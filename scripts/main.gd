@@ -427,7 +427,7 @@ func build_world() -> void:
 	sun.directional_shadow_max_distance = 22.0
 	sun.shadow_bias = 0.055
 	sun.shadow_normal_bias = 1.4
-	sun.shadow_blur = 2.0
+	# DirectionalLight3D has no shadow_blur property in Godot 4; avoid a runtime script error.
 	sun.shadow_enabled = true
 	add_child(sun)
 
