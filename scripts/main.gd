@@ -9,6 +9,9 @@ var look_last := Vector2.ZERO
 var move_origin := Vector2.ZERO
 var move_vector := Vector2.ZERO
 var touch_look_sensitivity := 0.00125
+var look_pending_delta := Vector2.ZERO
+var joystick_home_position := Vector2.ZERO
+var joystick_is_floating := false
 var joystick_base: Panel
 var joystick_knob: Panel
 var interact_button: Button
@@ -37,43 +40,75 @@ func _ready() -> void:
 	create_player()
 	create_mobile_hint()
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if player == null:
 		return
 
+	apply_smoothed_look(delta)
 	update_nearby_interaction()
 	if is_sitting:
 		player.velocity = Vector3.ZERO
 		return
 
-	var input_dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	if input_dir.length() < 0.08:
-		input_dir = move_vector
+	# Use one input source at a time. Mixing a keyboard vector with a stale
+	# touch-stick vector can produce unwanted diagonal or reversing movement.
+	var input_dir := move_vector if move_touch_id != -1 else Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	input_dir = input_dir.limit_length(1.0)
 
-	# Exponential smoothing avoids abrupt starts and direction changes.
-	var direction := (player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
+	var direction := player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)
+	direction.y = 0.0
+	if direction.length_squared() > 0.0001:
+		direction = direction.normalized()
+
 	var target_velocity := direction * 2.8
-	var smoothing := 1.0 - exp(-(_delta * (5.5 if input_dir.length() > 0.05 else 8.0)))
+	var smoothing := 1.0 - exp(-delta * (16.0 if input_dir.length() > 0.05 else 22.0))
 	var horizontal_velocity := Vector2(player.velocity.x, player.velocity.z).lerp(Vector2(target_velocity.x, target_velocity.z), smoothing)
 	player.velocity.x = horizontal_velocity.x
 	player.velocity.z = horizontal_velocity.y
-	player.velocity.y = 0.0
+
+	# Preserve vertical physics. Resetting Y velocity every frame can fight
+	# floor snapping and collision resolution, making the view jitter.
+	if not player.is_on_floor():
+		player.velocity.y -= 18.0 * delta
+	elif player.velocity.y < 0.0:
+		player.velocity.y = 0.0
+
+	# Stop at the walkable bounds by cancelling outward velocity, not by
+	# teleporting the body after collision resolution (which caused shaking).
+	var next_x := player.position.x + player.velocity.x * delta
+	var next_z := player.position.z + player.velocity.z * delta
+	if (next_x < -5.55 and player.velocity.x < 0.0) or (next_x > 5.55 and player.velocity.x > 0.0):
+		player.velocity.x = 0.0
+	if (next_z < -3.55 and player.velocity.z < 0.0) or (next_z > 7.75 and player.velocity.z > 0.0):
+		player.velocity.z = 0.0
+
 	player.floor_snap_length = 0.28
 	player.move_and_slide()
-
-	# Keep the player inside the walkable floor plan.
-	player.position.x = clampf(player.position.x, -5.55, 5.55)
-	player.position.z = clampf(player.position.z, -3.55, 7.75)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			var screen_width := get_viewport().get_visible_rect().size.x
-			if event.position.x < screen_width * 0.45 and move_touch_id == -1:
+			var screen_size := get_viewport().get_visible_rect().size
+			if event.position.x < screen_size.x * 0.45 and move_touch_id == -1:
 				move_touch_id = event.index
-				move_origin = joystick_center()
-				move_vector = Vector2.ZERO
+				var home_rect := Rect2(joystick_home_position, joystick_base.size)
+				if home_rect.has_point(event.position):
+					# Fixed stick: finger position is measured from the visible base.
+					joystick_is_floating = false
+					move_origin = joystick_center()
+					move_vector = ((event.position - move_origin) / 58.0).limit_length(1.0)
+				else:
+					# Floating stick: anchor it under the initial touch so a finger
+					# landing elsewhere on the left side does not cause a sudden turn.
+					joystick_is_floating = true
+					var max_x := maxf(0.0, screen_size.x * 0.45 - joystick_base.size.x)
+					var max_y := maxf(0.0, screen_size.y - joystick_base.size.y)
+					joystick_base.position = Vector2(
+						clampf(event.position.x - joystick_base.size.x * 0.5, 0.0, max_x),
+						clampf(event.position.y - joystick_base.size.y * 0.5, 0.0, max_y)
+					)
+					move_origin = event.position
+					move_vector = Vector2.ZERO
 				update_joystick_knob(event.position)
 			elif look_touch_id == -1:
 				look_touch_id = event.index
@@ -82,6 +117,9 @@ func _input(event: InputEvent) -> void:
 			if event.index == move_touch_id:
 				move_touch_id = -1
 				move_vector = Vector2.ZERO
+				if joystick_is_floating:
+					joystick_base.position = joystick_home_position
+					joystick_is_floating = false
 				reset_joystick_knob()
 			if event.index == look_touch_id:
 				look_touch_id = -1
@@ -98,9 +136,18 @@ func _input(event: InputEvent) -> void:
 func rotate_view(delta: Vector2) -> void:
 	if player == null or view_camera == null:
 		return
-	player.rotate_y(-delta.x * touch_look_sensitivity)
+	# Queue mouse/touch deltas and apply them gradually in physics frames.
+	look_pending_delta += delta * touch_look_sensitivity
+
+func apply_smoothed_look(delta: float) -> void:
+	if player == null or view_camera == null or look_pending_delta.length_squared() < 0.0000001:
+		return
+	var blend := 1.0 - exp(-delta * 24.0)
+	var applied := look_pending_delta * blend
+	look_pending_delta -= applied
+	player.rotation.y -= applied.x
 	view_camera.rotation.x = clampf(
-		view_camera.rotation.x - delta.y * touch_look_sensitivity,
+		view_camera.rotation.x - applied.y,
 		deg_to_rad(-75.0),
 		deg_to_rad(75.0)
 	)
@@ -136,6 +183,7 @@ func create_mobile_hint() -> void:
 	joystick_base.name = "MovementJoystickBase"
 	joystick_base.position = Vector2(28.0, get_viewport().get_visible_rect().size.y - 300.0)
 	joystick_base.size = Vector2(264.0, 264.0)
+	joystick_home_position = joystick_base.position
 	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var base_style := StyleBoxFlat.new()
 	base_style.bg_color = Color(0.04, 0.09, 0.13, 0.42)
@@ -344,17 +392,136 @@ func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: M
 	parent.add_child(mesh_instance)
 
 	if solid:
-		var body := StaticBody3D.new()
-		body.name = label + "Collision"
-		body.position = pos
-		parent.add_child(body)
-		var collision := CollisionShape3D.new()
-		var shape := BoxShape3D.new()
-		shape.size = size
-		collision.shape = shape
-		body.add_child(collision)
+		add_box_collision(parent, label + "Collision", size, pos)
 
 	return mesh_instance
+
+func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.name = label
+	body.position = pos
+	parent.add_child(body)
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+
+func ellipsoid(parent: Node3D, label: String, pos: Vector3, scale: Vector3, material: Material) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = label
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.5
+	mesh.height = 1.0
+	mesh.radial_segments = 24
+	mesh.rings = 12
+	instance.mesh = mesh
+	instance.position = pos
+	instance.scale = scale
+	instance.material_override = material
+	parent.add_child(instance)
+	return instance
+
+func cylinder(parent: Node3D, label: String, radius: float, height: float, pos: Vector3, material: Material) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = label
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 24
+	mesh.rings = 2
+	instance.mesh = mesh
+	instance.position = pos
+	instance.material_override = material
+	parent.add_child(instance)
+	return instance
+
+func rod_between(parent: Node3D, label: String, a: Vector3, b: Vector3, radius: float, material: Material) -> MeshInstance3D:
+	var direction := b - a
+	var rod := cylinder(parent, label, radius, direction.length(), (a + b) * 0.5, material)
+	if direction.length_squared() > 0.0001:
+		rod.quaternion = Quaternion(Vector3.UP, direction.normalized())
+	return rod
+
+func make_office_chair(label: String, seat_pos: Vector3, back_direction: float = 1.0, upholstery_color: Color = Color(0.10, 0.14, 0.17)) -> void:
+	var upholstery := mat(upholstery_color, 0.0, 0.78)
+	var edge := mat(Color(0.055, 0.075, 0.09), 0.18, 0.42)
+	var steel := mat(Color(0.56, 0.61, 0.64), 0.78, 0.24)
+	var rubber := mat(Color(0.035, 0.045, 0.05), 0.02, 0.72)
+
+	# Upholstered seat and gently rounded high back replace sharp cube shapes.
+	ellipsoid(self, label + "PaddedSeat", seat_pos, Vector3(0.72, 0.22, 0.66), upholstery)
+	ellipsoid(self, label + "SeatSeam", seat_pos + Vector3(0.0, 0.082, 0.0), Vector3(0.64, 0.055, 0.57), upholstery)
+	ellipsoid(self, label + "Backrest", seat_pos + Vector3(0.0, 0.34, back_direction * 0.27), Vector3(0.68, 0.72, 0.17), upholstery)
+	ellipsoid(self, label + "BackInset", seat_pos + Vector3(0.0, 0.35, back_direction * 0.365), Vector3(0.53, 0.53, 0.035), upholstery)
+	cylinder(self, label + "GasLift", 0.065, 0.34, seat_pos + Vector3(0.0, -0.245, 0.0), steel)
+	cylinder(self, label + "BaseHub", 0.11, 0.075, Vector3(seat_pos.x, 0.105, seat_pos.z), steel)
+
+	# Five-star swivel base and caster wheels.
+	for i in range(5):
+		var angle := TAU * float(i) / 5.0
+		var wheel_pos := Vector3(seat_pos.x + cos(angle) * 0.29, 0.075, seat_pos.z + sin(angle) * 0.29)
+		rod_between(self, label + "BaseSpoke", Vector3(seat_pos.x, 0.12, seat_pos.z), Vector3(wheel_pos.x, 0.09, wheel_pos.z), 0.025, steel)
+		ellipsoid(self, label + "CasterWheel", wheel_pos, Vector3(0.095, 0.075, 0.075), rubber)
+
+	# Arm supports and padded arm caps.
+	for side in [-1.0, 1.0]:
+		cylinder(self, label + "ArmSupport", 0.025, 0.20, seat_pos + Vector3(side * 0.29, -0.015, 0.0), steel)
+		ellipsoid(self, label + "ArmPad", seat_pos + Vector3(side * 0.29, 0.105, 0.0), Vector3(0.12, 0.045, 0.20), edge)
+
+	add_box_collision(self, label + "SeatCollision", Vector3(0.66, 0.20, 0.58), seat_pos)
+	add_box_collision(self, label + "BackCollision", Vector3(0.62, 0.62, 0.16), seat_pos + Vector3(0.0, 0.31, back_direction * 0.28))
+
+func make_plant(label: String, ground_pos: Vector3, size_scale: float = 1.0) -> void:
+	var pot := mat(Color(0.30, 0.22, 0.16), 0.02, 0.58)
+	var rim := mat(Color(0.42, 0.31, 0.22), 0.05, 0.42)
+	var trunk := mat(Color(0.24, 0.16, 0.10), 0.0, 0.92)
+	var greens := [
+		mat(Color(0.10, 0.29, 0.16), 0.0, 0.88),
+		mat(Color(0.16, 0.38, 0.20), 0.0, 0.82),
+		mat(Color(0.22, 0.43, 0.23), 0.0, 0.86)
+	]
+	cylinder(self, label + "TaperedPot", 0.23 * size_scale, 0.34 * size_scale, ground_pos + Vector3(0.0, 0.17 * size_scale, 0.0), pot)
+	cylinder(self, label + "PotRim", 0.245 * size_scale, 0.045 * size_scale, ground_pos + Vector3(0.0, 0.335 * size_scale, 0.0), rim)
+	cylinder(self, label + "Stem", 0.035 * size_scale, 0.72 * size_scale, ground_pos + Vector3(0.0, 0.72 * size_scale, 0.0), trunk)
+	for i in range(9):
+		var angle := TAU * float(i) / 9.0
+		var ring := 0.18 if i % 2 == 0 else 0.12
+		var leaf_pos := ground_pos + Vector3(cos(angle) * ring * size_scale, (0.72 + 0.12 * sin(float(i) * 1.7)) * size_scale, sin(angle) * ring * size_scale)
+		ellipsoid(self, label + "Leaf", leaf_pos, Vector3(0.22, 0.30, 0.20) * size_scale, greens[i % greens.size()])
+	ellipsoid(self, label + "TopLeaves", ground_pos + Vector3(0.0, 1.02 * size_scale, 0.0), Vector3(0.25, 0.27, 0.23) * size_scale, greens[1])
+	add_box_collision(self, label + "PotCollision", Vector3(0.42, 0.34, 0.42) * size_scale, ground_pos + Vector3(0.0, 0.17 * size_scale, 0.0))
+
+func make_office_table(label: String, size: Vector3, top_pos: Vector3, top_material: Material, metal_material: Material) -> void:
+	# Rectangular tops are retained, but thin edges, drawers and round metal legs
+	# make these read as actual desks instead of unadorned blocks.
+	box(self, label + "Top", Vector3(size.x, 0.12, size.z), top_pos, top_material, false)
+	box(self, label + "FrontEdge", Vector3(size.x - 0.04, 0.035, 0.035), top_pos + Vector3(0.0, -0.025, size.z * 0.5 - 0.018), metal_material, false)
+	box(self, label + "SideEdgeL", Vector3(0.035, 0.035, size.z - 0.04), top_pos + Vector3(-size.x * 0.5 + 0.018, -0.025, 0.0), metal_material, false)
+	box(self, label + "SideEdgeR", Vector3(0.035, 0.035, size.z - 0.04), top_pos + Vector3(size.x * 0.5 - 0.018, -0.025, 0.0), metal_material, false)
+
+	var leg_height := maxf(0.30, top_pos.y - 0.15)
+	var leg_y := 0.06 + leg_height * 0.5
+	for side_x in [-1.0, 1.0]:
+		for side_z in [-1.0, 1.0]:
+			var leg_pos := top_pos + Vector3(side_x * (size.x * 0.5 - 0.10), leg_y - top_pos.y, side_z * (size.z * 0.5 - 0.10))
+			cylinder(self, label + "RoundLeg", 0.045, leg_height, leg_pos, metal_material)
+	add_box_collision(self, label + "TopCollision", Vector3(size.x, 0.12, size.z), top_pos)
+
+func make_sofa(label: String, center: Vector3, width: float, depth: float, upholstery_color: Color) -> void:
+	var upholstery := mat(upholstery_color, 0.0, 0.84)
+	var piping := mat(Color(0.10, 0.15, 0.18), 0.0, 0.72)
+	# Rounded seat, separate cushions, raised back and soft arms.
+	ellipsoid(self, label + "SeatBase", center + Vector3(0.0, 0.28, 0.0), Vector3(width * 0.50, 0.18, depth * 0.50), piping)
+	ellipsoid(self, label + "SeatCushion", center + Vector3(0.0, 0.39, -depth * 0.03), Vector3(width * 0.46, 0.15, depth * 0.43), upholstery)
+	for i in range(2):
+		var x := (float(i) - 0.5) * width * 0.45
+		ellipsoid(self, label + "SeatPad", center + Vector3(x, 0.43, -depth * 0.03), Vector3(width * 0.21, 0.13, depth * 0.36), upholstery)
+	ellipsoid(self, label + "BackCushion", center + Vector3(0.0, 0.67, depth * 0.35), Vector3(width * 0.48, 0.34, 0.14), upholstery)
+	for side in [-1.0, 1.0]:
+		ellipsoid(self, label + "Armrest", center + Vector3(side * (width * 0.46), 0.48, 0.0), Vector3(width * 0.09, 0.23, depth * 0.50), upholstery)
+	add_box_collision(self, label + "SofaCollision", Vector3(width * 0.94, 0.70, depth * 0.90), center + Vector3(0.0, 0.35, 0.0))
 
 func label3d(text_value: String, pos: Vector3, size: float = 0.32) -> void:
 	var label := Label3D.new()
@@ -397,11 +564,8 @@ func add_photoreal_details() -> void:
 	box(self, "ReceptionMonitorStand", Vector3(0.10, 0.18, 0.10), Vector3(-3.65, 1.12, -0.84), metal, false)
 	box(self, "ReceptionDeskDrawer", Vector3(0.70, 0.20, 0.40), Vector3(-4.20, 0.35, -0.72), mat(Color(0.68, 0.70, 0.69), 0.08, 0.38), false)
 
-	# More believable boardroom table detailing and chair supports.
+	# Fine brushed-metal table trim; chairs now have their own swivel bases.
 	box(self, "BoardroomTableMetalEdge", Vector3(3.42, 0.045, 1.50), Vector3(2.45, 0.875, -0.35), metal, false)
-	for x in [1.15, 2.45, 3.75]:
-		box(self, "BoardroomSeatPedestal", Vector3(0.16, 0.38, 0.16), Vector3(x, 0.32, -1.55), metal, false)
-		box(self, "BoardroomSeatPedestal", Vector3(0.16, 0.38, 0.16), Vector3(x, 0.32, 0.85), metal, false)
 
 	# Thin metallic window mullions make the glass facade read as framed glazing.
 	for x in [-4.45, -1.5, 1.5, 4.45]:
@@ -466,27 +630,23 @@ func build_world() -> void:
 	box(self, "ReceptionDeskBase", Vector3(2.35, 0.82, 0.72), Vector3(-3.65, 0.48, -0.75), mat(Color(0.77, 0.79, 0.78), 0.05, 0.32))
 	box(self, "ReceptionDeskTop", Vector3(2.5, 0.12, 0.82), Vector3(-3.65, 0.95, -0.75), mat(WOOD, 0.0, 0.28))
 	box(self, "DeskFrontAccent", Vector3(1.8, 0.10, 0.04), Vector3(-3.65, 0.52, -0.375), mat(Color(0.18, 0.48, 0.61), 0.2, 0.25))
-	box(self, "WaitingSofaSeat", Vector3(2.0, 0.28, 0.72), Vector3(-3.8, 0.35, 1.55), mat(Color(0.17, 0.25, 0.30)))
-	box(self, "WaitingSofaBack", Vector3(2.0, 0.72, 0.20), Vector3(-3.8, 0.78, 1.82), mat(Color(0.17, 0.25, 0.30)))
-	box(self, "SofaArmLeft", Vector3(0.20, 0.48, 0.72), Vector3(-4.7, 0.56, 1.55), mat(Color(0.22, 0.31, 0.36)))
-	box(self, "SofaArmRight", Vector3(0.20, 0.48, 0.72), Vector3(-2.9, 0.56, 1.55), mat(Color(0.22, 0.31, 0.36)))
-	box(self, "CoffeeTable", Vector3(1.25, 0.12, 0.72), Vector3(-3.8, 0.48, 0.25), mat(Color(0.63, 0.67, 0.67), 0.35, 0.25))
+	make_sofa("WaitingSofa", Vector3(-3.8, 0.0, 1.55), 2.0, 0.72, Color(0.17, 0.25, 0.30))
+	make_office_table("CoffeeTable", Vector3(1.25, 0.12, 0.72), Vector3(-3.8, 0.48, 0.25), mat(Color(0.63, 0.67, 0.67), 0.35, 0.25), mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
 	label3d("RECEPTION", Vector3(-4.4, 2.25, -0.8), 0.28)
 
 	# Boardroom zone on the right.
-	box(self, "BoardroomTableTop", Vector3(3.35, 0.16, 1.45), Vector3(2.45, 0.98, -0.35), mat(WOOD, 0.0, 0.28))
-	box(self, "BoardroomTableLeg", Vector3(0.24, 0.88, 0.24), Vector3(2.45, 0.49, -0.35), mat(DARK, 0.4, 0.3))
+	make_office_table("BoardroomTable", Vector3(3.35, 0.16, 1.45), Vector3(2.45, 0.98, -0.35), mat(WOOD, 0.0, 0.28), mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
 	for x in [1.15, 2.45, 3.75]:
 		for z in [-1.55, 0.85]:
-			box(self, "BoardroomChairSeat", Vector3(0.72, 0.16, 0.65), Vector3(x, 0.55, z), mat(Color(0.15, 0.22, 0.27)))
-			box(self, "BoardroomChairBack", Vector3(0.72, 0.62, 0.14), Vector3(x, 0.87, z + (0.30 if z > 0 else -0.30)), mat(Color(0.15, 0.22, 0.27)))
+			make_office_chair("BoardroomChair", Vector3(x, 0.55, z), 1.0 if z > 0.0 else -1.0, Color(0.12, 0.17, 0.21))
 	label3d("BOARDROOM", Vector3(1.5, 2.4, -2.1), 0.28)
 	label3d("DIGITALWORLD HQ", Vector3(-1.5, 3.75, -4.15), 0.25)
 
-	# Simple plants add scale and life without heavy assets.
-	for p in [Vector3(-5.1, 0.0, 2.7), Vector3(5.0, 0.0, -2.0), Vector3(0.0, 0.0, 2.9)]:
-		box(self, "PlantPot", Vector3(0.48, 0.46, 0.48), p + Vector3(0, 0.23, 0), mat(Color(0.34, 0.24, 0.17)))
-		box(self, "PlantFoliage", Vector3(0.62, 0.92, 0.62), p + Vector3(0, 0.88, 0), mat(GREEN))
+	# Layered leaves, stems and rounded ceramic planters replace the green cubes.
+	make_plant("ReceptionPlantLeft", Vector3(-5.1, 0.0, 2.7), 1.0)
+	make_plant("BoardroomPlant", Vector3(5.0, 0.0, -2.0), 0.95)
+	# Keep the centre aisle clear of the player's spawn position.
+	make_plant("ReceptionPlantCenter", Vector3(0.0, 0.0, 2.0), 0.9)
 	add_photoreal_details()
 	build_phase_two()
 
@@ -522,24 +682,19 @@ func build_phase_two() -> void:
 
 	# Executive office one: desk, executive chair, guest seats and monitor.
 	box(self, "ExecutiveOneCarpet", Vector3(3.55, 0.018, 2.85), Vector3(-4.20, 0.075, 6.55), carpet, false)
-	box(self, "ExecutiveOneDesk", Vector3(1.85, 0.14, 0.88), Vector3(-4.15, 0.92, 6.45), exec_wood)
-	box(self, "ExecutiveOneDeskPedestal", Vector3(0.42, 0.78, 0.60), Vector3(-4.70, 0.48, 6.45), trim_mat)
+	make_office_table("ExecutiveOneDesk", Vector3(1.85, 0.14, 0.88), Vector3(-4.15, 0.92, 6.45), exec_wood, trim_mat)
 	box(self, "ExecutiveOneMonitor", Vector3(0.68, 0.42, 0.06), Vector3(-4.15, 1.22, 6.18), mat(Color(0.08, 0.16, 0.19), 0.1, 0.2), false)
-	box(self, "ExecutiveOneChairSeat", Vector3(0.62, 0.18, 0.60), Vector3(-4.15, 0.60, 5.45), mat(Color(0.10, 0.14, 0.17)))
-	box(self, "ExecutiveOneChairBack", Vector3(0.62, 0.62, 0.16), Vector3(-4.15, 0.91, 5.72), mat(Color(0.10, 0.14, 0.17)))
+	make_office_chair("ExecutiveOneChair", Vector3(-4.15, 0.60, 5.45), 1.0, Color(0.08, 0.12, 0.15))
 	for x in [-4.95, -3.45]:
-		box(self, "ExecutiveGuestSeat", Vector3(0.62, 0.18, 0.62), Vector3(x, 0.48, 7.45), mat(Color(0.22, 0.28, 0.31)))
+		make_office_chair("ExecutiveGuestChair", Vector3(x, 0.48, 7.45), 1.0, Color(0.19, 0.24, 0.27))
 	box(self, "ExecutiveOneCredenza", Vector3(2.30, 0.70, 0.38), Vector3(-4.25, 0.42, 7.95), exec_wood)
 	label3d("EXECUTIVE OFFICE", Vector3(-4.95, 2.35, 5.35), 0.22)
 
 	# Executive office two: a second desk and lounge seating.
 	box(self, "ExecutiveTwoCarpet", Vector3(3.45, 0.018, 2.85), Vector3(-0.25, 0.075, 6.55), carpet, false)
-	box(self, "ExecutiveTwoDesk", Vector3(1.75, 0.14, 0.82), Vector3(-0.25, 0.92, 6.45), exec_wood)
-	box(self, "ExecutiveTwoDeskLeg", Vector3(0.18, 0.78, 0.18), Vector3(-0.85, 0.48, 6.45), trim_mat)
-	box(self, "ExecutiveTwoDeskLeg", Vector3(0.18, 0.78, 0.18), Vector3(0.35, 0.48, 6.45), trim_mat)
+	make_office_table("ExecutiveTwoDesk", Vector3(1.75, 0.14, 0.82), Vector3(-0.25, 0.92, 6.45), exec_wood, trim_mat)
 	box(self, "ExecutiveTwoMonitor", Vector3(0.68, 0.42, 0.06), Vector3(-0.25, 1.22, 6.18), mat(Color(0.08, 0.16, 0.19), 0.1, 0.2), false)
-	box(self, "ExecutiveTwoSofa", Vector3(1.45, 0.32, 0.62), Vector3(-0.25, 0.35, 7.35), mat(Color(0.17, 0.25, 0.30)))
-	box(self, "ExecutiveTwoSofaBack", Vector3(1.45, 0.62, 0.16), Vector3(-0.25, 0.72, 7.58), mat(Color(0.17, 0.25, 0.30)))
+	make_sofa("ExecutiveTwoLoungeSofa", Vector3(-0.25, 0.0, 7.35), 1.45, 0.62, Color(0.17, 0.25, 0.30))
 	label3d("EXECUTIVE SUITE", Vector3(-1.15, 2.35, 5.35), 0.22)
 
 	# Elevator lobby: paired stainless doors, header and a visible call panel.
