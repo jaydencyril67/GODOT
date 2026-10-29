@@ -852,10 +852,7 @@ func add_architectural_finish() -> void:
 	# acoustic ceiling rather than a single blank roof surface.
 	for x in [-5.0, -3.0, -1.0, 1.0, 3.0, 5.0]:
 		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
-			var in_main := z <= 3.8
-			var in_wing := z >= 4.0
-			if (in_main and z <= 3.8) or (in_wing and z >= 4.0):
-				box(self, "AcousticCeilingTile", Vector3(1.94, 0.035, 1.94), Vector3(x, 3.30, z), ceiling_panel, false)
+			box(self, "AcousticCeilingTile", Vector3(1.94, 0.035, 1.94), Vector3(x, 3.30, z), ceiling_panel, false)
 		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
 			box(self, "CeilingGridJoint", Vector3(0.018, 0.012, 1.96), Vector3(x + 0.99, 3.275, z), ceiling_reveal, false)
 
