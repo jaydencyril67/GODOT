@@ -288,4 +288,4 @@ func build_world() -> void:
 	for p in [Vector3(-5.1, 0.0, 2.7), Vector3(5.0, 0.0, -2.0), Vector3(0.0, 0.0, 2.9)]:
 		box(self, "PlantPot", Vector3(0.48, 0.46, 0.48), p + Vector3(0, 0.23, 0), mat(Color(0.34, 0.24, 0.17)))
 		box(self, "PlantFoliage", Vector3(0.62, 0.92, 0.62), p + Vector3(0, 0.88, 0), mat(GREEN))
-
+	add_photoreal_details()
