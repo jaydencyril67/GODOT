@@ -695,7 +695,8 @@ func flush_instance_batches(batches: Dictionary, mesh: Mesh, prefix: String) -> 
 		instances.mesh = mesh
 		instances.instance_count = transforms.size()
 		for i in range(transforms.size()):
-			instances.set_instance_transform(i, transforms[i] as Transform3D)
+			var transform: Transform3D = transforms[i]
+			instances.set_instance_transform(i, transform)
 		var instance := MultiMeshInstance3D.new()
 		instance.name = "%s_%d" % [prefix, batch_index]
 		instance.multimesh = instances
