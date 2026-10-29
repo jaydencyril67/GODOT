@@ -27,6 +27,7 @@ var elevator_open := false
 var procedural_micro_normal: NoiseTexture2D
 var pbr_concrete_wall: StandardMaterial3D
 var pbr_concrete_floor: StandardMaterial3D
+var pbr_wood: StandardMaterial3D
 var elevator_left_closed := Vector3(3.30, 1.20, 8.34)
 var elevator_right_closed := Vector3(4.20, 1.20, 8.34)
 
@@ -393,6 +394,7 @@ func prepare_surface_library() -> void:
 
 	pbr_concrete_wall = make_wall_material(Color(0.88, 0.89, 0.88), 0.92, 0.55, 0.72)
 	pbr_concrete_floor = make_floor_material(Color(0.92, 0.92, 0.90), 0.78, 0.50, 0.52)
+	pbr_wood = make_wood_material(Color(0.78, 0.68, 0.54), 0.38, 2.0)
 
 func make_wall_material(tint: Color, roughness_value: float = 0.92, tile_scale: float = 0.55, bump_strength: float = 0.72) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -421,6 +423,21 @@ func make_floor_material(tint: Color, roughness_value: float = 0.78, tile_scale:
 	material.normal_enabled = true
 	material.normal_texture = load("res://assets/textures/concrete_floor_normal.jpg") as Texture2D
 	material.normal_scale = bump_strength
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	return material
+
+func make_wood_material(tint: Color, roughness_value: float = 0.38, tile_scale: float = 2.0) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.albedo_texture = load("res://assets/textures/wood_table_albedo.jpg") as Texture2D
+	material.metallic = 0.0
+	material.roughness = roughness_value
+	material.roughness_texture = load("res://assets/textures/wood_table_roughness.jpg") as Texture2D
+	material.normal_enabled = true
+	material.normal_texture = load("res://assets/textures/wood_table_normal.jpg") as Texture2D
+	material.normal_scale = 0.48
 	material.uv1_triplanar = true
 	material.uv1_world_triplanar = true
 	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
@@ -710,14 +727,14 @@ func build_world() -> void:
 
 	# Reception zone on the left.
 	box(self, "ReceptionDeskBase", Vector3(2.35, 0.82, 0.72), Vector3(-3.65, 0.48, -0.75), mat(Color(0.77, 0.79, 0.78), 0.05, 0.32))
-	box(self, "ReceptionDeskTop", Vector3(2.5, 0.12, 0.82), Vector3(-3.65, 0.95, -0.75), mat(WOOD, 0.0, 0.28))
+	box(self, "ReceptionDeskTop", Vector3(2.5, 0.12, 0.82), Vector3(-3.65, 0.95, -0.75), pbr_wood)
 	box(self, "DeskFrontAccent", Vector3(1.8, 0.10, 0.04), Vector3(-3.65, 0.52, -0.375), mat(Color(0.18, 0.48, 0.61), 0.2, 0.25))
 	make_sofa("WaitingSofa", Vector3(-3.8, 0.0, 1.55), 2.0, 0.72, Color(0.17, 0.25, 0.30))
 	make_office_table("CoffeeTable", Vector3(1.25, 0.12, 0.72), Vector3(-3.8, 0.48, 0.25), mat(Color(0.63, 0.67, 0.67), 0.35, 0.25), mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
 	label3d("RECEPTION", Vector3(-4.4, 2.25, -0.8), 0.28)
 
 	# Boardroom zone on the right.
-	make_office_table("BoardroomTable", Vector3(3.35, 0.16, 1.45), Vector3(2.45, 0.98, -0.35), mat(WOOD, 0.0, 0.28), mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
+	make_office_table("BoardroomTable", Vector3(3.35, 0.16, 1.45), Vector3(2.45, 0.98, -0.35), pbr_wood, mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
 	for x in [1.15, 2.45, 3.75]:
 		for z in [-1.55, 0.85]:
 			make_office_chair("BoardroomChair", Vector3(x, 0.55, z), 1.0 if z > 0.0 else -1.0, Color(0.12, 0.17, 0.21))
@@ -739,7 +756,7 @@ func build_phase_two() -> void:
 	var wall_mat := pbr_concrete_wall
 	var trim_mat := mat(Color(0.50, 0.57, 0.60), 0.72, 0.24)
 	var office_glass := mat(Color(0.48, 0.68, 0.76, 0.22), 0.12, 0.20)
-	var exec_wood := mat(Color(0.30, 0.17, 0.10), 0.05, 0.28)
+	var exec_wood := pbr_wood
 	var carpet := mat(Color(0.20, 0.25, 0.28), 0.0, 0.92)
 
 	box(self, "ExpansionFoundation", Vector3(12.8, 0.32, 4.8), Vector3(0, -0.18, 6.25), make_wall_material(Color(0.50, 0.53, 0.54), 0.96, 0.55, 0.62))
