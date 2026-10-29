@@ -219,14 +219,15 @@ func toggle_elevator() -> void:
 		return
 	elevator_open = not elevator_open
 	var slide := 0.82 if elevator_open else 0.0
+	var tween := create_tween().set_parallel(true)
 	if elevator_left != null:
-		elevator_left.position = elevator_left_closed + Vector3(-slide, 0.0, 0.0)
+		tween.tween_property(elevator_left, "position", elevator_left_closed + Vector3(-slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	if elevator_right != null:
-		elevator_right.position = elevator_right_closed + Vector3(slide, 0.0, 0.0)
+		tween.tween_property(elevator_right, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	if elevator_left_collision != null:
-		elevator_left_collision.position = elevator_left.position
+		tween.tween_property(elevator_left_collision, "position", elevator_left_closed + Vector3(-slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	if elevator_right_collision != null:
-		elevator_right_collision.position = elevator_right.position
+		tween.tween_property(elevator_right_collision, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	if interact_button != null:
 		interact_button.text = "CLOSE" if elevator_open else "OPEN"
 
