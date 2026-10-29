@@ -34,7 +34,33 @@ jobs:
         run: godot --version
 
       - name: Import and parse project
-        run: godot --headless --editor --path . --quit
+        shell: bash
+        run: |
+          set +e
+          godot --headless --editor --path . --quit 2>&1 | tee godot-import.log
+          godot_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$godot_status" -ne 0 ]; then
+            echo "Godot import/parse command exited with status $godot_status"
+            exit "$godot_status"
+          fi
+          if grep -E 'Parse Error:|SCRIPT ERROR:' godot-import.log; then
+            echo "Godot reported a script error during import/parse."
+            exit 1
+          fi
 
       - name: Smoke-test main scene startup
-        run: godot --headless --path . --quit-after 5
+        shell: bash
+        run: |
+          set +e
+          godot --headless --path . --quit-after 5 2>&1 | tee godot-startup.log
+          godot_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$godot_status" -ne 0 ]; then
+            echo "Godot startup command exited with status $godot_status"
+            exit "$godot_status"
+          fi
+          if grep -E 'Parse Error:|SCRIPT ERROR:' godot-startup.log; then
+            echo "Godot reported a script error during startup."
+            exit 1
+          fi
