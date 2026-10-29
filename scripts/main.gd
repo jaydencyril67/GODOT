@@ -24,6 +24,10 @@ var elevator_right: MeshInstance3D
 var elevator_left_collision: StaticBody3D
 var elevator_right_collision: StaticBody3D
 var elevator_open := false
+var procedural_micro_normal: NoiseTexture2D
+var pbr_concrete_wall: StandardMaterial3D
+var pbr_concrete_floor: StandardMaterial3D
+var pbr_wood: StandardMaterial3D
 var elevator_left_closed := Vector3(3.30, 1.20, 8.34)
 var elevator_right_closed := Vector3(4.20, 1.20, 8.34)
 
@@ -36,6 +40,7 @@ const WOOD := Color(0.34, 0.19, 0.10)
 const GREEN := Color(0.12, 0.34, 0.20)
 
 func _ready() -> void:
+	prepare_surface_library()
 	build_world()
 	create_player()
 	create_mobile_hint()
@@ -370,6 +375,74 @@ func toggle_elevator() -> void:
 	if elevator_right_collision != null:
 		tween.tween_property(elevator_right_collision, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 
+func prepare_surface_library() -> void:
+	# A subtle procedural micro-normal keeps non-scanned materials from looking
+	# perfectly flat while the major concrete surfaces use scanned CC0 PBR maps.
+	var detail_noise := FastNoiseLite.new()
+	detail_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	detail_noise.frequency = 0.085
+	detail_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	detail_noise.fractal_octaves = 4
+	detail_noise.fractal_gain = 0.42
+	procedural_micro_normal = NoiseTexture2D.new()
+	procedural_micro_normal.noise = detail_noise
+	procedural_micro_normal.width = 256
+	procedural_micro_normal.height = 256
+	procedural_micro_normal.seamless = true
+	procedural_micro_normal.as_normal_map = true
+	procedural_micro_normal.bump_strength = 0.11
+
+	pbr_concrete_wall = make_wall_material(Color(0.88, 0.89, 0.88), 0.92, 0.55, 0.72)
+	pbr_concrete_floor = make_floor_material(Color(0.92, 0.92, 0.90), 0.78, 0.50, 0.52)
+	pbr_wood = make_wood_material(Color(0.78, 0.68, 0.54), 0.38, 2.0)
+
+func make_wall_material(tint: Color, roughness_value: float = 0.92, tile_scale: float = 0.55, bump_strength: float = 0.72) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.albedo_texture = load("res://assets/textures/concrete_wall_albedo.jpg") as Texture2D
+	material.metallic = 0.0
+	material.roughness = roughness_value
+	material.roughness_texture = load("res://assets/textures/concrete_wall_roughness.jpg") as Texture2D
+	material.normal_enabled = true
+	material.normal_texture = load("res://assets/textures/concrete_wall_normal.jpg") as Texture2D
+	material.normal_scale = bump_strength
+	material.ao_enabled = true
+	material.ao_texture = load("res://assets/textures/concrete_wall_ao.jpg") as Texture2D
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	return material
+
+func make_floor_material(tint: Color, roughness_value: float = 0.78, tile_scale: float = 0.50, bump_strength: float = 0.52) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.albedo_texture = load("res://assets/textures/concrete_floor_albedo.jpg") as Texture2D
+	material.metallic = 0.0
+	material.roughness = roughness_value
+	material.roughness_texture = load("res://assets/textures/concrete_floor_roughness.jpg") as Texture2D
+	material.normal_enabled = true
+	material.normal_texture = load("res://assets/textures/concrete_floor_normal.jpg") as Texture2D
+	material.normal_scale = bump_strength
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	return material
+
+func make_wood_material(tint: Color, roughness_value: float = 0.38, tile_scale: float = 2.0) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.albedo_texture = load("res://assets/textures/wood_table_albedo.jpg") as Texture2D
+	material.metallic = 0.0
+	material.roughness = roughness_value
+	material.roughness_texture = load("res://assets/textures/wood_table_roughness.jpg") as Texture2D
+	material.normal_enabled = true
+	material.normal_texture = load("res://assets/textures/wood_table_normal.jpg") as Texture2D
+	material.normal_scale = 0.48
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	return material
+
 func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
@@ -379,6 +452,17 @@ func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> Standa
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	else:
+		# Keep opaque paint, upholstery, foliage and furniture from looking like
+		# flat plastic. Very smooth/metallic parts get a weaker micro-normal.
+		if procedural_micro_normal != null:
+			m.normal_enabled = true
+			m.normal_texture = procedural_micro_normal
+			m.normal_scale = 0.035 if roughness < 0.32 else (0.065 if metallic > 0.45 else 0.10)
+			m.uv1_triplanar = true
+			m.uv1_world_triplanar = true
+			var texture_repeat := 2.5 if metallic > 0.45 else (1.5 if roughness > 0.70 else 3.0)
+			m.uv1_scale = Vector3(texture_repeat, texture_repeat, texture_repeat)
 	return m
 
 func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: Material, solid: bool = true) -> MeshInstance3D:
@@ -574,13 +658,28 @@ func add_photoreal_details() -> void:
 func build_world() -> void:
 	var world := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.48, 0.57, 0.63)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.86, 0.89, 0.92)
-	env.ambient_light_energy = 0.95
+
+	# A physically motivated sky gives the glazing and metallic trim a real
+	# environment to reflect instead of a single flat background colour.
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color(0.16, 0.32, 0.49)
+	sky_material.sky_horizon_color = Color(0.68, 0.78, 0.84)
+	sky_material.ground_bottom_color = Color(0.18, 0.20, 0.21)
+	sky_material.ground_horizon_color = Color(0.62, 0.66, 0.67)
+	sky_material.sun_angle_max = 12.0
+	sky_material.use_debanding = true
+	var sky := Sky.new()
+	sky.sky_material = sky_material
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.72
+	env.ambient_light_sky_contribution = 0.82
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.05
+	env.tonemap_exposure = 1.0
+	env.glow_enabled = true
+	env.glow_intensity = 0.10
 	world.environment = env
 	add_child(world)
 
@@ -596,20 +695,20 @@ func build_world() -> void:
 	add_child(sun)
 
 	# Base slab and open-front floor plan.
-	box(self, "Foundation", Vector3(12.8, 0.32, 9.0), Vector3(0, -0.18, 0), mat(Color(0.18, 0.22, 0.25)))
-	box(self, "InteriorFloor", Vector3(12.2, 0.08, 8.4), Vector3(0, 0.02, 0), mat(FLOOR, 0.05, 0.3))
+	box(self, "Foundation", Vector3(12.8, 0.32, 9.0), Vector3(0, -0.18, 0), make_wall_material(Color(0.50, 0.53, 0.54), 0.96, 0.55, 0.62))
+	box(self, "InteriorFloor", Vector3(12.2, 0.08, 8.4), Vector3(0, 0.02, 0), pbr_concrete_floor)
 
 	# Rear facade: concrete frame and large glass panels.
-	box(self, "RearConcreteHeader", Vector3(12.2, 0.32, 0.30), Vector3(0, 3.25, -4.05), mat(CONCRETE))
-	box(self, "RearConcreteBase", Vector3(12.2, 0.42, 0.30), Vector3(0, 0.28, -4.05), mat(CONCRETE))
+	box(self, "RearConcreteHeader", Vector3(12.2, 0.32, 0.30), Vector3(0, 3.25, -4.05), pbr_concrete_wall)
+	box(self, "RearConcreteBase", Vector3(12.2, 0.42, 0.30), Vector3(0, 0.28, -4.05), pbr_concrete_wall)
 	for x in [-5.9, -3.0, 0.0, 3.0, 5.9]:
 		box(self, "AluminiumFrame", Vector3(0.12, 3.0, 0.22), Vector3(x, 1.82, -4.05), mat(Color(0.48, 0.55, 0.59), 0.7, 0.28))
 	for x in [-4.45, -1.5, 1.5, 4.45]:
 		box(self, "GlassFacade", Vector3(2.78, 2.85, 0.08), Vector3(x, 1.83, -4.12), mat(GLASS, 0.15, 0.18))
 
 	# Short side returns keep the building readable as a cutaway.
-	box(self, "LeftSideWall", Vector3(0.28, 3.2, 8.2), Vector3(-6.05, 1.58, 0), mat(CONCRETE))
-	box(self, "RightSidePier", Vector3(0.28, 3.2, 2.3), Vector3(6.05, 1.58, -2.9), mat(CONCRETE))
+	box(self, "LeftSideWall", Vector3(0.28, 3.2, 8.2), Vector3(-6.05, 1.58, 0), pbr_concrete_wall)
+	box(self, "RightSidePier", Vector3(0.28, 3.2, 2.3), Vector3(6.05, 1.58, -2.9), pbr_concrete_wall)
 	box(self, "RoofEdge", Vector3(12.5, 0.18, 0.42), Vector3(0, 3.42, -4.0), mat(Color(0.60, 0.65, 0.68), 0.35, 0.35))
 
 	# Interior glass partitions create separate reception and boardroom areas.
@@ -628,14 +727,14 @@ func build_world() -> void:
 
 	# Reception zone on the left.
 	box(self, "ReceptionDeskBase", Vector3(2.35, 0.82, 0.72), Vector3(-3.65, 0.48, -0.75), mat(Color(0.77, 0.79, 0.78), 0.05, 0.32))
-	box(self, "ReceptionDeskTop", Vector3(2.5, 0.12, 0.82), Vector3(-3.65, 0.95, -0.75), mat(WOOD, 0.0, 0.28))
+	box(self, "ReceptionDeskTop", Vector3(2.5, 0.12, 0.82), Vector3(-3.65, 0.95, -0.75), pbr_wood)
 	box(self, "DeskFrontAccent", Vector3(1.8, 0.10, 0.04), Vector3(-3.65, 0.52, -0.375), mat(Color(0.18, 0.48, 0.61), 0.2, 0.25))
 	make_sofa("WaitingSofa", Vector3(-3.8, 0.0, 1.55), 2.0, 0.72, Color(0.17, 0.25, 0.30))
 	make_office_table("CoffeeTable", Vector3(1.25, 0.12, 0.72), Vector3(-3.8, 0.48, 0.25), mat(Color(0.63, 0.67, 0.67), 0.35, 0.25), mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
 	label3d("RECEPTION", Vector3(-4.4, 2.25, -0.8), 0.28)
 
 	# Boardroom zone on the right.
-	make_office_table("BoardroomTable", Vector3(3.35, 0.16, 1.45), Vector3(2.45, 0.98, -0.35), mat(WOOD, 0.0, 0.28), mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
+	make_office_table("BoardroomTable", Vector3(3.35, 0.16, 1.45), Vector3(2.45, 0.98, -0.35), pbr_wood, mat(Color(0.53, 0.60, 0.63), 0.78, 0.24))
 	for x in [1.15, 2.45, 3.75]:
 		for z in [-1.55, 0.85]:
 			make_office_chair("BoardroomChair", Vector3(x, 0.55, z), 1.0 if z > 0.0 else -1.0, Color(0.12, 0.17, 0.21))
@@ -649,17 +748,18 @@ func build_world() -> void:
 	make_plant("ReceptionPlantCenter", Vector3(0.0, 0.0, 2.0), 0.9)
 	add_photoreal_details()
 	build_phase_two()
+	add_architectural_finish()
 
 func build_phase_two() -> void:
 	# New forward wing extends the walkable floor beyond the original reception.
-	var floor_mat := mat(Color(0.56, 0.58, 0.58), 0.08, 0.26)
-	var wall_mat := mat(Color(0.78, 0.80, 0.80), 0.05, 0.48)
+	var floor_mat := pbr_concrete_floor
+	var wall_mat := pbr_concrete_wall
 	var trim_mat := mat(Color(0.50, 0.57, 0.60), 0.72, 0.24)
 	var office_glass := mat(Color(0.48, 0.68, 0.76, 0.22), 0.12, 0.20)
-	var exec_wood := mat(Color(0.30, 0.17, 0.10), 0.05, 0.28)
+	var exec_wood := pbr_wood
 	var carpet := mat(Color(0.20, 0.25, 0.28), 0.0, 0.92)
 
-	box(self, "ExpansionFoundation", Vector3(12.8, 0.32, 4.8), Vector3(0, -0.18, 6.25), mat(Color(0.18, 0.22, 0.25)))
+	box(self, "ExpansionFoundation", Vector3(12.8, 0.32, 4.8), Vector3(0, -0.18, 6.25), make_wall_material(Color(0.50, 0.53, 0.54), 0.96, 0.55, 0.62))
 	box(self, "ExpansionFloor", Vector3(12.2, 0.08, 4.8), Vector3(0, 0.02, 6.25), floor_mat)
 	box(self, "ExpansionSideLeft", Vector3(0.28, 3.2, 4.6), Vector3(-6.05, 1.58, 6.15), wall_mat)
 	box(self, "ExpansionSideRight", Vector3(0.28, 3.2, 4.6), Vector3(6.05, 1.58, 6.15), wall_mat)
@@ -719,3 +819,80 @@ func build_phase_two() -> void:
 		wing_light.light_energy = 0.55
 		wing_light.omni_range = 4.5
 		add_child(wing_light)
+
+
+func add_architectural_finish() -> void:
+	# Contemporary commercial HQ exterior: layered concrete parapets, metal coping,
+	# framed low-e glazing, vertical facade fins, and realistic panel joints.
+	var exterior_concrete := make_wall_material(Color(0.84, 0.85, 0.83), 0.94, 0.55, 0.72)
+	var light_concrete := make_wall_material(Color(0.94, 0.94, 0.91), 0.92, 0.55, 0.48)
+	var dark_stone := make_wall_material(Color(0.33, 0.37, 0.39), 0.97, 0.55, 0.48)
+	var coping := mat(Color(0.42, 0.49, 0.52), 0.72, 0.30)
+	var glass := mat(Color(0.30, 0.48, 0.57, 0.32), 0.08, 0.12)
+	var glass_reflection := mat(Color(0.72, 0.82, 0.87, 0.18), 0.04, 0.16)
+	var sealant := mat(Color(0.10, 0.15, 0.17), 0.05, 0.72)
+	var ceiling_panel := mat(Color(0.84, 0.85, 0.82), 0.0, 0.92)
+	var ceiling_reveal := mat(Color(0.58, 0.62, 0.62), 0.12, 0.58)
+	var soffit := mat(Color(0.72, 0.75, 0.74), 0.0, 0.72)
+
+	# Flat-roof assembly with a visible fascia, coping cap, and underside soffit.
+	# Ceiling is made of sections so the interior still reads like a real office.
+	box(self, "MainRoofSlab", Vector3(12.65, 0.22, 8.85), Vector3(0.0, 3.46, 0.0), exterior_concrete, false)
+	box(self, "ExpansionRoofSlab", Vector3(12.65, 0.22, 4.82), Vector3(0.0, 3.46, 6.25), exterior_concrete, false)
+	box(self, "MainRoofFrontFascia", Vector3(12.75, 0.32, 0.16), Vector3(0.0, 3.40, 4.42), dark_stone, false)
+	box(self, "ExpansionRoofFrontFascia", Vector3(12.75, 0.32, 0.16), Vector3(0.0, 3.40, 8.63), dark_stone, false)
+	box(self, "MainRoofRearFascia", Vector3(12.75, 0.32, 0.16), Vector3(0.0, 3.40, -4.42), dark_stone, false)
+	box(self, "RoofFrontMetalCoping", Vector3(12.86, 0.055, 0.24), Vector3(0.0, 3.56, 4.42), coping, false)
+	box(self, "RoofExpansionMetalCoping", Vector3(12.86, 0.055, 0.24), Vector3(0.0, 3.56, 8.63), coping, false)
+	box(self, "RoofRearMetalCoping", Vector3(12.86, 0.055, 0.24), Vector3(0.0, 3.56, -4.42), coping, false)
+	box(self, "LeftRoofCoping", Vector3(0.22, 0.055, 13.10), Vector3(-6.32, 3.56, 2.08), coping, false)
+	box(self, "RightRoofCoping", Vector3(0.22, 0.055, 13.10), Vector3(6.32, 3.56, 2.08), coping, false)
+
+	# Suspended ceiling tiles and recessed linear joints create a believable
+	# acoustic ceiling rather than a single blank roof surface.
+	for x in [-5.0, -3.0, -1.0, 1.0, 3.0, 5.0]:
+		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
+			box(self, "AcousticCeilingTile", Vector3(1.94, 0.035, 1.94), Vector3(x, 3.30, z), ceiling_panel, false)
+		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
+			box(self, "CeilingGridJoint", Vector3(0.018, 0.012, 1.96), Vector3(x + 0.99, 3.275, z), ceiling_reveal, false)
+
+	# Weather-resistant facade panel joints and shallow vertical fins along the
+	# exposed left and right elevations.
+	for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
+		box(self, "LeftFacadePanelJoint", Vector3(0.012, 2.80, 0.025), Vector3(-5.895, 1.72, z), coping, false)
+		box(self, "RightFacadePanelJoint", Vector3(0.012, 2.80, 0.025), Vector3(5.895, 1.72, z), coping, false)
+	for x in [-5.35, -3.55, -1.75, 0.05, 1.85, 3.65, 5.35]:
+		box(self, "FrontFacadeVerticalFin", Vector3(0.075, 2.80, 0.12), Vector3(x, 1.82, 4.28), coping, false)
+
+	# Glazed entrance frontage with a clear central double-door opening.
+	# Side glazing completes the front elevation without sealing the entry.
+	box(self, "FrontGlassLeft", Vector3(3.10, 2.58, 0.075), Vector3(-3.95, 1.80, 4.34), glass, false)
+	box(self, "FrontGlassRight", Vector3(3.10, 2.58, 0.075), Vector3(3.95, 1.80, 4.34), glass, false)
+	box(self, "FrontGlassLeftReflect", Vector3(0.65, 2.30, 0.018), Vector3(-4.60, 1.80, 4.285), glass_reflection, false)
+	box(self, "FrontGlassRightReflect", Vector3(0.65, 2.30, 0.018), Vector3(4.60, 1.80, 4.285), glass_reflection, false)
+	for x in [-5.50, -4.95, -3.0, -2.40, 2.40, 3.0, 4.95, 5.50]:
+		box(self, "FrontGlazingMullion", Vector3(0.055, 2.64, 0.10), Vector3(x, 1.80, 4.29), coping, false)
+	box(self, "EntranceHeader", Vector3(2.35, 0.18, 0.18), Vector3(0.0, 3.08, 4.30), light_concrete, false)
+	box(self, "EntranceDoorLeft", Vector3(1.05, 2.45, 0.06), Vector3(-0.57, 1.76, 4.34), glass, false)
+	box(self, "EntranceDoorRight", Vector3(1.05, 2.45, 0.06), Vector3(0.57, 1.76, 4.34), glass, false)
+	box(self, "EntranceDoorHandleLeft", Vector3(0.025, 0.42, 0.025), Vector3(-0.12, 1.72, 4.285), coping, false)
+	box(self, "EntranceDoorHandleRight", Vector3(0.025, 0.42, 0.025), Vector3(0.12, 1.72, 4.285), coping, false)
+
+	# Layered entrance surround, concrete plinth and sill details.
+	box(self, "EntranceLeftStonePier", Vector3(0.20, 3.02, 0.28), Vector3(-1.28, 1.55, 4.26), light_concrete, false)
+	box(self, "EntranceRightStonePier", Vector3(0.20, 3.02, 0.28), Vector3(1.28, 1.55, 4.26), light_concrete, false)
+	box(self, "FrontFacadePlinth", Vector3(12.45, 0.16, 0.18), Vector3(0.0, 0.30, 4.30), dark_stone, false)
+	box(self, "ExpansionFacadePlinth", Vector3(12.45, 0.16, 0.18), Vector3(0.0, 0.30, 8.48), dark_stone, false)
+
+	# Expansion-wing glazing and wall reveals give the executive floor a
+	# coordinated modern commercial facade.
+	for x in [-4.5, -0.2, 4.2]:
+		box(self, "ExecutiveWingWindow", Vector3(2.50, 2.40, 0.055), Vector3(x, 1.78, 8.34), glass, false)
+		for dx in [-1.25, 1.25]:
+			box(self, "ExecutiveWingWindowFrame", Vector3(0.06, 2.48, 0.10), Vector3(x + dx, 1.78, 8.29), coping, false)
+		box(self, "ExecutiveWingWindowSill", Vector3(2.58, 0.07, 0.12), Vector3(x, 0.54, 8.29), coping, false)
+
+	# Small service roof upstands suggest drainage and waterproofing details.
+	box(self, "RoofDrainUpstand", Vector3(0.65, 0.12, 0.65), Vector3(5.35, 3.61, -3.45), soffit, false)
+	cylinder(self, "RoofVent", 0.12, 0.28, Vector3(5.35, 3.78, -3.45), coping)
+	box(self, "RoofServiceCurb", Vector3(0.95, 0.10, 0.52), Vector3(-4.95, 3.60, 7.80), soffit, false)
