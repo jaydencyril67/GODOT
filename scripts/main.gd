@@ -19,8 +19,8 @@ var saved_stand_position := Vector3.ZERO
 var saved_camera_height := 0.53
 var elevator_left: MeshInstance3D
 var elevator_right: MeshInstance3D
-var elevator_left_collision: StaticBody3D
-var elevator_right_collision: StaticBody3D
+var elevator_left_collision: AnimatableBody3D
+var elevator_right_collision: AnimatableBody3D
 var elevator_open := false
 var pending_interaction := ""
 var interaction_scan_timer := 0.0
@@ -28,8 +28,8 @@ var interaction_scan_timer := 0.0
 # Movement tuning is frame-rate independent because smoothing is exponential
 # in delta time, while collision movement remains in the fixed physics loop.
 const MOVE_SPEED := 2.8
-const MOVE_ACCEL_RESPONSE := 16.0
-const MOVE_DECEL_RESPONSE := 22.0
+const MOVE_ACCEL_RESPONSE := 24.0
+const MOVE_DECEL_RESPONSE := 30.0
 const GRAVITY := 18.0
 const INTERACTION_SCAN_INTERVAL := 0.08
 const SEAT_INTERACTION_RADIUS := 1.55
@@ -57,7 +57,9 @@ var cylinder_mesh_cache: Dictionary = {}
 var static_box_batches: Dictionary = {}
 var static_sphere_batches: Dictionary = {}
 var static_cylinder_batches: Dictionary = {}
-var static_collision_body: StaticBody3D
+# Static collision bodies are spatially grouped instead of combining the entire
+# building into one enormous broad-phase object.
+var static_collision_bodies: Dictionary = {}
 var shared_sphere_mesh: SphereMesh
 var shared_unit_cylinder_mesh: CylinderMesh
 
@@ -113,10 +115,13 @@ func _physics_process(delta: float) -> void:
 	if direction.length_squared() > 0.0001:
 		direction = direction.normalized()
 
-	var responding := input_dir.length_squared() > 0.0025
+	# Preserve analog joystick strength. Normalizing direction alone would turn
+	# even a tiny finger movement into a full-speed target velocity.
+	var input_strength := input_dir.length()
+	var responding := input_strength > 0.05
 	var response_rate := MOVE_ACCEL_RESPONSE if responding else MOVE_DECEL_RESPONSE
 	var smoothing := 1.0 - exp(-delta * response_rate)
-	var target_velocity := direction * MOVE_SPEED
+	var target_velocity := direction * MOVE_SPEED * input_strength
 	var horizontal_velocity := Vector2(player.velocity.x, player.velocity.z).lerp(Vector2(target_velocity.x, target_velocity.z), smoothing)
 	player.velocity.x = horizontal_velocity.x
 	player.velocity.z = horizontal_velocity.y
@@ -214,8 +219,11 @@ func rotate_view(input_delta: Vector2) -> void:
 func create_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "FirstPersonPlayer"
-	player.position = Vector3(0.0, 0.98, 3.15)
-	player.floor_snap_length = 0.28
+	# The floor top is y=0.06; aligning the capsule bottom to it avoids an
+	# unnecessary initial fall before the first grounded movement step.
+	player.position = Vector3(0.0, 0.96, 3.15)
+	player.floor_snap_length = 0.35
+	player.safe_margin = 0.005
 	add_child(player)
 
 	var capsule := CapsuleShape3D.new()
@@ -379,7 +387,8 @@ func begin_sitting() -> void:
 		return
 	saved_stand_position = player.global_position
 	saved_camera_height = view_camera.position.y
-	player.global_position = Vector3(chosen.x, 0.98, chosen.z + 0.45)
+	player.velocity = Vector3.ZERO
+	player.global_position = Vector3(chosen.x, 0.96, chosen.z + 0.45)
 	player.rotation.y = 0.0
 	view_camera.position.y = 0.12
 	is_sitting = true
@@ -387,6 +396,7 @@ func begin_sitting() -> void:
 func stand_up() -> void:
 	if player == null or view_camera == null:
 		return
+	player.velocity = Vector3.ZERO
 	player.global_position = saved_stand_position
 	view_camera.position.y = saved_camera_height
 	is_sitting = false
@@ -586,15 +596,31 @@ func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector
 		moving_body.add_child(collision)
 		return
 
-	# Root-level static shapes share one physics body, with each shape retaining
-	# its own offset. Animated doors and non-root use cases keep independent bodies.
 	if parent == self:
-		if static_collision_body == null:
-			static_collision_body = StaticBody3D.new()
-			static_collision_body.name = "StaticWorldCollision"
-			parent.add_child(static_collision_body)
-		collision.position = pos
-		static_collision_body.add_child(collision)
+		# Long surfaces (floors/walls) receive their own body. Smaller objects
+		# share a body only with nearby shapes, keeping broad-phase bounds local.
+		# A single body spanning the whole HQ would be a candidate for nearly
+		# every movement query and could force unnecessary shape-pair checks.
+		var group_key: String
+		var body_origin := Vector3.ZERO
+		if size.x > 6.0 or size.z > 6.0:
+			group_key = "large_" + label
+		else:
+			var cell_x := floori(pos.x / 3.0)
+			var cell_z := floori(pos.z / 3.0)
+			group_key = "%d_%d" % [cell_x, cell_z]
+			body_origin = Vector3((float(cell_x) + 0.5) * 3.0, 0.0, (float(cell_z) + 0.5) * 3.0)
+
+		var grouped_body := static_collision_bodies.get(group_key) as StaticBody3D
+		if grouped_body == null:
+			grouped_body = StaticBody3D.new()
+			grouped_body.name = "StaticCollision_" + group_key
+			grouped_body.position = body_origin
+			parent.add_child(grouped_body)
+			static_collision_bodies[group_key] = grouped_body
+
+		collision.position = pos - grouped_body.position
+		grouped_body.add_child(collision)
 		return
 
 	var body := StaticBody3D.new()
@@ -602,7 +628,6 @@ func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector
 	body.position = pos
 	parent.add_child(body)
 	body.add_child(collision)
-
 
 func ellipsoid(parent: Node3D, label: String, pos: Vector3, scale: Vector3, material: Material) -> void:
 	if parent == self and is_opaque_batchable_material(material):
@@ -1007,8 +1032,8 @@ func build_phase_two() -> void:
 	box(self, "ElevatorHeader", Vector3(1.92, 0.14, 0.18), Vector3(3.75, 2.55, 8.28), trim_mat)
 	elevator_left = box(self, "ElevatorDoorLeft", Vector3(0.86, 2.32, 0.08), elevator_left_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22), true, true)
 	elevator_right = box(self, "ElevatorDoorRight", Vector3(0.86, 2.32, 0.08), elevator_right_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22), true, true)
-	elevator_left_collision = get_node_or_null("ElevatorDoorLeftCollision") as StaticBody3D
-	elevator_right_collision = get_node_or_null("ElevatorDoorRightCollision") as StaticBody3D
+	elevator_left_collision = get_node_or_null("ElevatorDoorLeftCollision") as AnimatableBody3D
+	elevator_right_collision = get_node_or_null("ElevatorDoorRightCollision") as AnimatableBody3D
 	box(self, "ElevatorCallPanel", Vector3(0.18, 0.42, 0.05), Vector3(4.92, 1.48, 8.18), mat(Color(0.08, 0.13, 0.16), 0.25, 0.22), false)
 	box(self, "ElevatorFloorDisplay", Vector3(0.08, 0.10, 0.02), Vector3(4.92, 1.62, 8.14), mat(Color(0.18, 0.80, 0.66), 0.1, 0.2), false)
 	label3d("ELEVATORS", Vector3(3.05, 2.90, 8.18), 0.20)
