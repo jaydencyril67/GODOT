@@ -412,8 +412,11 @@ func build_phase_two() -> void:
 	box(self, "ExpansionSideRight", Vector3(0.28, 3.2, 4.6), Vector3(6.05, 1.58, 6.15), wall_mat)
 
 	# Rear wall has broad openings so each room remains reachable through its own doorway.
-	for x in [-4.45, -0.45, 3.65]:
+	for x in [-4.45, -0.45]:
 		box(self, "ExpansionRearWall", Vector3(2.9, 3.0, 0.24), Vector3(x, 1.50, 8.48), wall_mat)
+	# Keep a real opening behind the elevator doors so they can slide apart.
+	for x in [2.05, 5.40]:
+		box(self, "ElevatorRearWallSide", Vector3(1.10, 3.0, 0.24), Vector3(x, 1.50, 8.48), wall_mat)
 	for x in [-2.8, 1.8]:
 		box(self, "ExpansionRearPier", Vector3(0.24, 3.0, 0.24), Vector3(x, 1.50, 8.48), trim_mat)
 
