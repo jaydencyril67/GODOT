@@ -24,3 +24,9 @@ Original source copies were obtained from:
 https://github.com/jana-cuch/HauntedHouse-R3F/tree/main/public/window/brown_planks_09_1k
 
 These surface maps are reused under their original CC0 terms. The game's own source code and other assets keep their existing terms.
+
+## Wood Table 001
+Source: https://polyhaven.com/a/wood_table_001
+License: CC0 1.0 Universal.
+Maps: diffuse/albedo, OpenGL normal, roughness. Used on reception and executive/boardroom desk surfaces.
+Original source copies were obtained from https://github.com/jza10086/Billiards/tree/main/assets/textures/wood_table_001
