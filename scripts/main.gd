@@ -1,6 +1,16 @@
 extends Node3D
 
-# Lightweight procedural cutaway HQ. All geometry is generated in code.
+# First-person mobile exploration for the DigitalWorld HQ.
+var player: CharacterBody3D
+var view_camera: Camera3D
+var look_touch_id := -1
+var move_touch_id := -1
+var look_last := Vector2.ZERO
+var move_origin := Vector2.ZERO
+var move_vector := Vector2.ZERO
+var touch_look_sensitivity := 0.004
+
+# Lightweight procedural HQ. All geometry is generated in code.
 const CONCRETE := Color(0.70, 0.73, 0.74)
 const FLOOR := Color(0.36, 0.38, 0.39)
 const GLASS := Color(0.28, 0.48, 0.56, 0.24)
@@ -10,6 +20,108 @@ const GREEN := Color(0.12, 0.34, 0.20)
 
 func _ready() -> void:
 	build_world()
+	create_player()
+	create_mobile_hint()
+
+func _physics_process(_delta: float) -> void:
+	if player == null:
+		return
+
+	var input_dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	if input_dir.length() < 0.1:
+		input_dir = move_vector
+	input_dir = input_dir.limit_length(1.0)
+
+	# Local -Z is forward, so dragging upward moves into the office.
+	var direction := (player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
+	player.velocity.x = direction.x * 3.2
+	player.velocity.z = direction.z * 3.2
+	player.velocity.y = 0.0
+	player.move_and_slide()
+
+	# Keep the player inside the walkable floor plan.
+	player.position.x = clampf(player.position.x, -5.55, 5.55)
+	player.position.z = clampf(player.position.z, -3.55, 3.70)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			var screen_width := get_viewport().get_visible_rect().size.x
+			if event.position.x < screen_width * 0.45 and move_touch_id == -1:
+				move_touch_id = event.index
+				move_origin = event.position
+				move_vector = Vector2.ZERO
+			elif look_touch_id == -1:
+				look_touch_id = event.index
+				look_last = event.position
+		else:
+			if event.index == move_touch_id:
+				move_touch_id = -1
+				move_vector = Vector2.ZERO
+			if event.index == look_touch_id:
+				look_touch_id = -1
+	elif event is InputEventScreenDrag:
+		if event.index == move_touch_id:
+			move_vector = (event.position - move_origin) / 65.0
+			move_vector.x = clampf(move_vector.x, -1.0, 1.0)
+			move_vector.y = clampf(move_vector.y, -1.0, 1.0)
+		elif event.index == look_touch_id:
+			rotate_view(event.relative)
+	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		rotate_view(event.relative)
+
+func rotate_view(delta: Vector2) -> void:
+	if player == null or view_camera == null:
+		return
+	player.rotate_y(-delta.x * touch_look_sensitivity)
+	view_camera.rotation.x = clampf(
+		view_camera.rotation.x - delta.y * touch_look_sensitivity,
+		deg_to_rad(-75.0),
+		deg_to_rad(75.0)
+	)
+
+func create_player() -> void:
+	player = CharacterBody3D.new()
+	player.name = "FirstPersonPlayer"
+	player.position = Vector3(0.0, 0.98, 3.15)
+	add_child(player)
+
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.32
+	capsule.height = 1.8
+	var collision := CollisionShape3D.new()
+	collision.name = "BodyCollision"
+	collision.shape = capsule
+	player.add_child(collision)
+
+	view_camera = Camera3D.new()
+	view_camera.name = "FirstPersonCamera"
+	view_camera.position = Vector3(0.0, 0.53, 0.0)
+	view_camera.fov = 82.0
+	player.add_child(view_camera)
+	view_camera.current = true
+
+func create_mobile_hint() -> void:
+	var hud := CanvasLayer.new()
+	hud.name = "MobileControlsHint"
+	add_child(hud)
+
+	var hint := Label.new()
+	hint.name = "TouchControlsHint"
+	hint.text = "LEFT SIDE: DRAG TO WALK     •     RIGHT SIDE: DRAG TO LOOK"
+	hint.anchor_left = 0.0
+	hint.anchor_top = 1.0
+	hint.anchor_right = 1.0
+	hint.anchor_bottom = 1.0
+	hint.offset_left = 10.0
+	hint.offset_top = -48.0
+	hint.offset_right = -10.0
+	hint.offset_bottom = -10.0
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 13)
+	hint.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.95))
+	hud.add_child(hint)
 
 func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -22,7 +134,7 @@ func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> Standa
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return m
 
-func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: Material) -> MeshInstance3D:
+func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: Material, solid: bool = true) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = label
 	var mesh := BoxMesh.new()
@@ -31,6 +143,18 @@ func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: M
 	mesh_instance.position = pos
 	mesh_instance.material_override = material
 	parent.add_child(mesh_instance)
+
+	if solid:
+		var body := StaticBody3D.new()
+		body.name = label + "Collision"
+		body.position = pos
+		parent.add_child(body)
+		var collision := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = size
+		collision.shape = shape
+		body.add_child(collision)
+
 	return mesh_instance
 
 func label3d(text_value: String, pos: Vector3, size: float = 0.32) -> void:
@@ -78,6 +202,20 @@ func build_world() -> void:
 	box(self, "RightSidePier", Vector3(0.28, 3.2, 2.3), Vector3(6.05, 1.58, -2.9), mat(CONCRETE))
 	box(self, "RoofEdge", Vector3(12.5, 0.18, 0.42), Vector3(0, 3.42, -4.0), mat(Color(0.60, 0.65, 0.68), 0.35, 0.35))
 
+	# Interior glass partitions create separate reception and boardroom areas.
+	# Door-sized gaps are intentionally left open so the player can walk between rooms.
+	var partition_glass := mat(Color(0.45, 0.62, 0.68, 0.32), 0.12, 0.24)
+	var partition_frame := mat(Color(0.43, 0.51, 0.55), 0.65, 0.28)
+	box(self, "ReceptionPartitionA", Vector3(0.12, 2.75, 2.2), Vector3(-1.20, 1.39, -1.90), partition_glass)
+	box(self, "ReceptionPartitionB", Vector3(0.12, 2.75, 2.0), Vector3(-1.20, 1.39, 2.00), partition_glass)
+	box(self, "ReceptionPartitionTopA", Vector3(0.16, 0.10, 2.25), Vector3(-1.20, 2.79, -1.90), partition_frame)
+	box(self, "ReceptionPartitionTopB", Vector3(0.16, 0.10, 2.05), Vector3(-1.20, 2.79, 2.00), partition_frame)
+
+	box(self, "BoardroomPartitionA", Vector3(0.12, 2.75, 1.7), Vector3(0.55, 1.39, -1.85), partition_glass)
+	box(self, "BoardroomPartitionB", Vector3(0.12, 2.75, 2.0), Vector3(0.55, 1.39, 1.65), partition_glass)
+	box(self, "BoardroomPartitionTopA", Vector3(0.16, 0.10, 1.75), Vector3(0.55, 2.79, -1.85), partition_frame)
+	box(self, "BoardroomPartitionTopB", Vector3(0.16, 0.10, 2.05), Vector3(0.55, 2.79, 1.65), partition_frame)
+
 	# Reception zone on the left.
 	box(self, "ReceptionDeskBase", Vector3(2.35, 0.82, 0.72), Vector3(-3.65, 0.48, -0.75), mat(Color(0.77, 0.79, 0.78), 0.05, 0.32))
 	box(self, "ReceptionDeskTop", Vector3(2.5, 0.12, 0.82), Vector3(-3.65, 0.95, -0.75), mat(WOOD, 0.0, 0.28))
@@ -104,10 +242,3 @@ func build_world() -> void:
 		box(self, "PlantPot", Vector3(0.48, 0.46, 0.48), p + Vector3(0, 0.23, 0), mat(Color(0.34, 0.24, 0.17)))
 		box(self, "PlantFoliage", Vector3(0.62, 0.92, 0.62), p + Vector3(0, 0.88, 0), mat(GREEN))
 
-	var camera := Camera3D.new()
-	camera.name = "OverviewCamera"
-	camera.position = Vector3(10.0, 7.4, 11.5)
-	camera.fov = 42.0
-	add_child(camera)
-	camera.look_at(Vector3(0, 1.15, -0.35), Vector3.UP)
-	camera.current = true
