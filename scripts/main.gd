@@ -281,7 +281,7 @@ func begin_sitting() -> void:
 		Vector3(3.75, 0.55, -1.55)
 	]
 	var player_xz := Vector2(player.global_position.x, player.global_position.z)
-	var chosen := seats[0]
+	var chosen: Vector3 = seats[0]
 	var best_distance := INF
 	for seat_pos in seats:
 		var distance := player_xz.distance_to(Vector2(seat_pos.x, seat_pos.z))
