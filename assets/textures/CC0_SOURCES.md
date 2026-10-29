@@ -16,4 +16,11 @@ Maps: concrete floor diffuse/albedo, OpenGL normal, roughness.
 Original source copies were obtained from:
 https://github.com/AetherRadar/operation-steel-tide/tree/main/assets/textures
 
+## Brown Planks 09
+Source: https://polyhaven.com/a/brown_planks_09
+License: CC0 1.0 Universal (public domain dedication; attribution is not required).
+Maps: diffuse/albedo, OpenGL normal, packed ARM map (red = ambient occlusion, green = roughness, blue = metallic).
+Original source copies were obtained from:
+https://github.com/jana-cuch/HauntedHouse-R3F/tree/main/public/window/brown_planks_09_1k
+
 These surface maps are reused under their original CC0 terms. The game's own source code and other assets keep their existing terms.
