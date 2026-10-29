@@ -54,7 +54,12 @@ var material_cache: Dictionary = {}
 var box_mesh_cache: Dictionary = {}
 var box_shape_cache: Dictionary = {}
 var cylinder_mesh_cache: Dictionary = {}
+var static_box_batches: Dictionary = {}
+var static_sphere_batches: Dictionary = {}
+var static_cylinder_batches: Dictionary = {}
+var static_collision_body: StaticBody3D
 var shared_sphere_mesh: SphereMesh
+var shared_unit_cylinder_mesh: CylinderMesh
 
 var procedural_micro_normal: NoiseTexture2D
 var pbr_concrete_wall: StandardMaterial3D
@@ -74,6 +79,7 @@ const GREEN := Color(0.12, 0.34, 0.20)
 func _ready() -> void:
 	prepare_surface_library()
 	build_world()
+	finalize_static_geometry_batches()
 	create_player()
 	create_mobile_hint()
 
@@ -427,6 +433,10 @@ func prepare_surface_library() -> void:
 	pbr_wood = make_wood_material(Color(0.78, 0.68, 0.54), 0.38, 2.0)
 
 func make_wall_material(tint: Color, roughness_value: float = 0.92, tile_scale: float = 0.55, bump_strength: float = 0.72) -> StandardMaterial3D:
+	var cache_key := "wall|%s|%s|%s|%s" % [str(tint), str(roughness_value), str(tile_scale), str(bump_strength)]
+	if material_cache.has(cache_key):
+		return material_cache[cache_key] as StandardMaterial3D
+
 	var material := StandardMaterial3D.new()
 	material.albedo_color = tint
 	material.albedo_texture = load("res://assets/textures/concrete_wall_albedo.jpg") as Texture2D
@@ -441,9 +451,14 @@ func make_wall_material(tint: Color, roughness_value: float = 0.92, tile_scale: 
 	material.uv1_triplanar = true
 	material.uv1_world_triplanar = true
 	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	material_cache[cache_key] = material
 	return material
 
 func make_floor_material(tint: Color, roughness_value: float = 0.78, tile_scale: float = 0.50, bump_strength: float = 0.52) -> StandardMaterial3D:
+	var cache_key := "floor|%s|%s|%s|%s" % [str(tint), str(roughness_value), str(tile_scale), str(bump_strength)]
+	if material_cache.has(cache_key):
+		return material_cache[cache_key] as StandardMaterial3D
+
 	var material := StandardMaterial3D.new()
 	material.albedo_color = tint
 	material.albedo_texture = load("res://assets/textures/concrete_floor_albedo.jpg") as Texture2D
@@ -456,9 +471,14 @@ func make_floor_material(tint: Color, roughness_value: float = 0.78, tile_scale:
 	material.uv1_triplanar = true
 	material.uv1_world_triplanar = true
 	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	material_cache[cache_key] = material
 	return material
 
 func make_wood_material(tint: Color, roughness_value: float = 0.38, tile_scale: float = 2.0) -> StandardMaterial3D:
+	var cache_key := "wood|%s|%s|%s" % [str(tint), str(roughness_value), str(tile_scale)]
+	if material_cache.has(cache_key):
+		return material_cache[cache_key] as StandardMaterial3D
+
 	var material := StandardMaterial3D.new()
 	material.albedo_color = tint
 	material.albedo_texture = load("res://assets/textures/wood_table_albedo.jpg") as Texture2D
@@ -471,10 +491,11 @@ func make_wood_material(tint: Color, roughness_value: float = 0.38, tile_scale: 
 	material.uv1_triplanar = true
 	material.uv1_world_triplanar = true
 	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	material_cache[cache_key] = material
 	return material
 
 func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> StandardMaterial3D:
-	var cache_key := "%s|%s|%s" % [str(color), str(metallic), str(roughness)]
+	var cache_key := "mat|%s|%s|%s" % [str(color), str(metallic), str(roughness)]
 	if material_cache.has(cache_key):
 		return material_cache[cache_key] as StandardMaterial3D
 
@@ -493,14 +514,41 @@ func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> Standa
 			m.normal_enabled = true
 			m.normal_texture = procedural_micro_normal
 			m.normal_scale = 0.035 if roughness < 0.32 else (0.065 if metallic > 0.45 else 0.10)
-			m.uv1_triplanar = true
-			m.uv1_world_triplanar = true
+			# Primitive UVs are sufficient for small furniture and decorative parts.
+			# Keep the subtle micro-normal without expensive world-triplanar sampling
+			# on hundreds of small objects. Main concrete/wood PBR surfaces retain it.
+			m.uv1_triplanar = false
+			m.uv1_world_triplanar = false
 			var texture_repeat := 2.5 if metallic > 0.45 else (1.5 if roughness > 0.70 else 3.0)
 			m.uv1_scale = Vector3(texture_repeat, texture_repeat, texture_repeat)
 	material_cache[cache_key] = m
 	return m
 
+func is_opaque_batchable_material(material: Material) -> bool:
+	var standard := material as StandardMaterial3D
+	return standard != null and standard.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED
+
+
+func queue_instance_batch(batches: Dictionary, material: Material, transform: Transform3D) -> void:
+	var key := str(material.get_instance_id())
+	var batch: Dictionary = batches.get(key, {})
+	if batch.is_empty():
+		batch = {"material": material, "transforms": []}
+	var transforms: Array = batch["transforms"]
+	transforms.append(transform)
+	batch["transforms"] = transforms
+	batches[key] = batch
+
+
 func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: Material, solid: bool = true, animatable_collision: bool = false) -> MeshInstance3D:
+	# Batch static opaque boxes. Transparent glass and moving elevator doors remain
+	# individual MeshInstances so alpha sorting and door animation stay reliable.
+	if not animatable_collision and parent == self and is_opaque_batchable_material(material):
+		if solid:
+			add_box_collision(parent, label + "Collision", size, pos, false)
+		queue_instance_batch(static_box_batches, material, Transform3D(Basis().scaled(size), pos))
+		return null
+
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = label
 	var mesh_key := str(size)
@@ -516,20 +564,12 @@ func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: M
 
 	if solid:
 		add_box_collision(parent, label + "Collision", size, pos, animatable_collision)
-
 	return mesh_instance
 
-func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector3, animatable: bool = false) -> void:
-	var body: StaticBody3D
-	if animatable:
-		body = AnimatableBody3D.new()
-	else:
-		body = StaticBody3D.new()
-	body.name = label
-	body.position = pos
-	parent.add_child(body)
 
+func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector3, animatable: bool = false) -> void:
 	var collision := CollisionShape3D.new()
+	collision.name = label
 	var shape_key := str(size)
 	var shape := box_shape_cache.get(shape_key) as BoxShape3D
 	if shape == null:
@@ -537,9 +577,38 @@ func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector
 		shape.size = size
 		box_shape_cache[shape_key] = shape
 	collision.shape = shape
+
+	if animatable:
+		var moving_body := AnimatableBody3D.new()
+		moving_body.name = label
+		moving_body.position = pos
+		parent.add_child(moving_body)
+		moving_body.add_child(collision)
+		return
+
+	# Root-level static shapes share one physics body, with each shape retaining
+	# its own offset. Animated doors and non-root use cases keep independent bodies.
+	if parent == self:
+		if static_collision_body == null:
+			static_collision_body = StaticBody3D.new()
+			static_collision_body.name = "StaticWorldCollision"
+			parent.add_child(static_collision_body)
+		collision.position = pos
+		static_collision_body.add_child(collision)
+		return
+
+	var body := StaticBody3D.new()
+	body.name = label
+	body.position = pos
+	parent.add_child(body)
 	body.add_child(collision)
 
-func ellipsoid(parent: Node3D, label: String, pos: Vector3, scale: Vector3, material: Material) -> MeshInstance3D:
+
+func ellipsoid(parent: Node3D, label: String, pos: Vector3, scale: Vector3, material: Material) -> void:
+	if parent == self and is_opaque_batchable_material(material):
+		queue_instance_batch(static_sphere_batches, material, Transform3D(Basis().scaled(scale), pos))
+		return
+
 	var instance := MeshInstance3D.new()
 	instance.name = label
 	if shared_sphere_mesh == null:
@@ -553,9 +622,9 @@ func ellipsoid(parent: Node3D, label: String, pos: Vector3, scale: Vector3, mate
 	instance.scale = scale
 	instance.material_override = material
 	parent.add_child(instance)
-	return instance
 
-func cylinder(parent: Node3D, label: String, radius: float, height: float, pos: Vector3, material: Material) -> MeshInstance3D:
+
+func create_cylinder_instance(parent: Node3D, label: String, radius: float, height: float, pos: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = label
 	var mesh_key := "%s|%s" % [str(radius), str(height)]
@@ -574,6 +643,14 @@ func cylinder(parent: Node3D, label: String, radius: float, height: float, pos: 
 	parent.add_child(instance)
 	return instance
 
+
+func cylinder(parent: Node3D, label: String, radius: float, height: float, pos: Vector3, material: Material) -> void:
+	if parent == self and is_opaque_batchable_material(material):
+		var dimensions := Vector3(radius * 2.0, height, radius * 2.0)
+		queue_instance_batch(static_cylinder_batches, material, Transform3D(Basis().scaled(dimensions), pos))
+		return
+	create_cylinder_instance(parent, label, radius, height, pos, material)
+
 func add_multimesh_boxes(label: String, size: Vector3, positions: Array[Vector3], material: Material) -> MultiMeshInstance3D:
 	var instances := MultiMesh.new()
 	instances.transform_format = MultiMesh.TRANSFORM_3D
@@ -591,12 +668,67 @@ func add_multimesh_boxes(label: String, size: Vector3, positions: Array[Vector3]
 	add_child(instance)
 	return instance
 
-func rod_between(parent: Node3D, label: String, a: Vector3, b: Vector3, radius: float, material: Material) -> MeshInstance3D:
+func rod_between(parent: Node3D, label: String, a: Vector3, b: Vector3, radius: float, material: Material) -> void:
 	var direction := b - a
-	var rod := cylinder(parent, label, radius, direction.length(), (a + b) * 0.5, material)
-	if direction.length_squared() > 0.0001:
-		rod.quaternion = Quaternion(Vector3.UP, direction.normalized())
-	return rod
+	var length := direction.length()
+	if length <= 0.0001:
+		return
+	var midpoint := (a + b) * 0.5
+	var orientation := Quaternion(Vector3.UP, direction / length)
+	if parent == self and is_opaque_batchable_material(material):
+		var dimensions := Vector3(radius * 2.0, length, radius * 2.0)
+		var basis := Basis(orientation).scaled(dimensions)
+		queue_instance_batch(static_cylinder_batches, material, Transform3D(basis, midpoint))
+		return
+	var rod := create_cylinder_instance(parent, label, radius, length, midpoint, material)
+	rod.quaternion = orientation
+
+func flush_instance_batches(batches: Dictionary, mesh: Mesh, prefix: String) -> void:
+	var batch_index := 0
+	for key in batches.keys():
+		var batch: Dictionary = batches[key]
+		var transforms: Array = batch.get("transforms", [])
+		if transforms.is_empty():
+			continue
+		var instances := MultiMesh.new()
+		instances.transform_format = MultiMesh.TRANSFORM_3D
+		instances.mesh = mesh
+		instances.instance_count = transforms.size()
+		for i in range(transforms.size()):
+			instances.set_instance_transform(i, transforms[i] as Transform3D)
+		var instance := MultiMeshInstance3D.new()
+		instance.name = "%s_%d" % [prefix, batch_index]
+		instance.multimesh = instances
+		instance.material_override = batch["material"] as Material
+		add_child(instance)
+		batch_index += 1
+
+
+func finalize_static_geometry_batches() -> void:
+	# Shared unit meshes plus per-instance transforms preserve the handcrafted
+	# geometry while collapsing compatible opaque primitives into few draw calls.
+	var unit_box := BoxMesh.new()
+	unit_box.size = Vector3.ONE
+
+	if shared_sphere_mesh == null:
+		shared_sphere_mesh = SphereMesh.new()
+		shared_sphere_mesh.radius = 0.5
+		shared_sphere_mesh.height = 1.0
+		shared_sphere_mesh.radial_segments = 24
+		shared_sphere_mesh.rings = 12
+
+	if shared_unit_cylinder_mesh == null:
+		shared_unit_cylinder_mesh = CylinderMesh.new()
+		shared_unit_cylinder_mesh.top_radius = 0.5
+		shared_unit_cylinder_mesh.bottom_radius = 0.5
+		shared_unit_cylinder_mesh.height = 1.0
+		shared_unit_cylinder_mesh.radial_segments = 24
+		shared_unit_cylinder_mesh.rings = 2
+
+	flush_instance_batches(static_box_batches, unit_box, "StaticBoxBatch")
+	flush_instance_batches(static_sphere_batches, shared_sphere_mesh, "StaticSphereBatch")
+	flush_instance_batches(static_cylinder_batches, shared_unit_cylinder_mesh, "StaticCylinderBatch")
+
 
 func make_office_chair(label: String, seat_pos: Vector3, back_direction: float = 1.0, upholstery_color: Color = Color(0.10, 0.14, 0.17)) -> void:
 	var upholstery := mat(upholstery_color, 0.0, 0.78)
