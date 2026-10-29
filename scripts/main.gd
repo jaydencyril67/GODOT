@@ -107,7 +107,7 @@ func _input(event: InputEvent) -> void:
 						clampf(event.position.x - joystick_base.size.x * 0.5, 0.0, max_x),
 						clampf(event.position.y - joystick_base.size.y * 0.5, 0.0, max_y)
 					)
-					move_origin = joystick_center()
+					move_origin = event.position
 					move_vector = Vector2.ZERO
 				update_joystick_knob(event.position)
 			elif look_touch_id == -1:
