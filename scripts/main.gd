@@ -645,7 +645,8 @@ func build_world() -> void:
 	# Layered leaves, stems and rounded ceramic planters replace the green cubes.
 	make_plant("ReceptionPlantLeft", Vector3(-5.1, 0.0, 2.7), 1.0)
 	make_plant("BoardroomPlant", Vector3(5.0, 0.0, -2.0), 0.95)
-	make_plant("ReceptionPlantCenter", Vector3(0.0, 0.0, 2.9), 0.9)
+	# Keep the centre aisle clear of the player's spawn position.
+	make_plant("ReceptionPlantCenter", Vector3(0.0, 0.0, 2.0), 0.9)
 	add_photoreal_details()
 	build_phase_two()
 
