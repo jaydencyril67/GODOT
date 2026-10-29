@@ -41,7 +41,7 @@ func _physics_process(_delta: float) -> void:
 
 	# Keep the player inside the walkable floor plan.
 	player.position.x = clampf(player.position.x, -5.55, 5.55)
-	player.position.z = clampf(player.position.z, -3.55, 3.70)
+	player.position.z = clampf(player.position.z, -3.55, 7.75)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -168,6 +168,7 @@ func label3d(text_value: String, pos: Vector3, size: float = 0.32) -> void:
 	add_child(label)
 
 	add_photoreal_details()
+	build_phase_two()
 
 
 func add_photoreal_details() -> void:
@@ -289,3 +290,73 @@ func build_world() -> void:
 		box(self, "PlantPot", Vector3(0.48, 0.46, 0.48), p + Vector3(0, 0.23, 0), mat(Color(0.34, 0.24, 0.17)))
 		box(self, "PlantFoliage", Vector3(0.62, 0.92, 0.62), p + Vector3(0, 0.88, 0), mat(GREEN))
 	add_photoreal_details()
+
+func build_phase_two() -> void:
+	# New forward wing extends the walkable floor beyond the original reception.
+	var floor_mat := mat(Color(0.56, 0.58, 0.58), 0.08, 0.26)
+	var wall_mat := mat(Color(0.78, 0.80, 0.80), 0.05, 0.48)
+	var trim_mat := mat(Color(0.50, 0.57, 0.60), 0.72, 0.24)
+	var office_glass := mat(Color(0.48, 0.68, 0.76, 0.22), 0.12, 0.20)
+	var exec_wood := mat(Color(0.30, 0.17, 0.10), 0.05, 0.28)
+	var carpet := mat(Color(0.20, 0.25, 0.28), 0.0, 0.92)
+
+	box(self, "ExpansionFoundation", Vector3(12.8, 0.32, 4.8), Vector3(0, -0.18, 6.25), mat(Color(0.18, 0.22, 0.25)))
+	box(self, "ExpansionFloor", Vector3(12.2, 0.08, 4.8), Vector3(0, 0.02, 6.25), floor_mat)
+	box(self, "ExpansionSideLeft", Vector3(0.28, 3.2, 4.6), Vector3(-6.05, 1.58, 6.15), wall_mat)
+	box(self, "ExpansionSideRight", Vector3(0.28, 3.2, 4.6), Vector3(6.05, 1.58, 6.15), wall_mat)
+
+	# Rear wall has broad openings so each room remains reachable through its own doorway.
+	for x in [-4.45, -0.45, 3.65]:
+		box(self, "ExpansionRearWall", Vector3(2.9, 3.0, 0.24), Vector3(x, 1.50, 8.48), wall_mat)
+	for x in [-2.8, 1.8]:
+		box(self, "ExpansionRearPier", Vector3(0.24, 3.0, 0.24), Vector3(x, 1.50, 8.48), trim_mat)
+
+	# Glass dividers separate two executive suites from the elevator lobby.
+	# Their front ends stop short of the corridor, leaving clear entrances.
+	for x in [-2.35, 1.75]:
+		box(self, "ExecutiveGlassDivider", Vector3(0.10, 2.75, 3.0), Vector3(x, 1.39, 6.55), office_glass)
+		box(self, "ExecutiveDividerTopRail", Vector3(0.14, 0.10, 3.0), Vector3(x, 2.82, 6.55), trim_mat)
+		box(self, "ExecutiveDividerFloorRail", Vector3(0.14, 0.06, 3.0), Vector3(x, 0.10, 6.55), trim_mat)
+
+	# Executive office one: desk, executive chair, guest seats and monitor.
+	box(self, "ExecutiveOneCarpet", Vector3(3.55, 0.018, 2.85), Vector3(-4.20, 0.075, 6.55), carpet, false)
+	box(self, "ExecutiveOneDesk", Vector3(1.85, 0.14, 0.88), Vector3(-4.15, 0.92, 6.45), exec_wood)
+	box(self, "ExecutiveOneDeskPedestal", Vector3(0.42, 0.78, 0.60), Vector3(-4.70, 0.48, 6.45), trim_mat)
+	box(self, "ExecutiveOneMonitor", Vector3(0.68, 0.42, 0.06), Vector3(-4.15, 1.22, 6.18), mat(Color(0.08, 0.16, 0.19), 0.1, 0.2), false)
+	box(self, "ExecutiveOneChairSeat", Vector3(0.62, 0.18, 0.60), Vector3(-4.15, 0.60, 5.45), mat(Color(0.10, 0.14, 0.17)))
+	box(self, "ExecutiveOneChairBack", Vector3(0.62, 0.62, 0.16), Vector3(-4.15, 0.91, 5.72), mat(Color(0.10, 0.14, 0.17)))
+	for x in [-4.95, -3.45]:
+		box(self, "ExecutiveGuestSeat", Vector3(0.62, 0.18, 0.62), Vector3(x, 0.48, 7.45), mat(Color(0.22, 0.28, 0.31)))
+	box(self, "ExecutiveOneCredenza", Vector3(2.30, 0.70, 0.38), Vector3(-4.25, 0.42, 7.95), exec_wood)
+	label3d("EXECUTIVE OFFICE", Vector3(-4.95, 2.35, 5.35), 0.22)
+
+	# Executive office two: a second desk and lounge seating.
+	box(self, "ExecutiveTwoCarpet", Vector3(3.45, 0.018, 2.85), Vector3(-0.25, 0.075, 6.55), carpet, false)
+	box(self, "ExecutiveTwoDesk", Vector3(1.75, 0.14, 0.82), Vector3(-0.25, 0.92, 6.45), exec_wood)
+	box(self, "ExecutiveTwoDeskLeg", Vector3(0.18, 0.78, 0.18), Vector3(-0.85, 0.48, 6.45), trim_mat)
+	box(self, "ExecutiveTwoDeskLeg", Vector3(0.18, 0.78, 0.18), Vector3(0.35, 0.48, 6.45), trim_mat)
+	box(self, "ExecutiveTwoMonitor", Vector3(0.68, 0.42, 0.06), Vector3(-0.25, 1.22, 6.18), mat(Color(0.08, 0.16, 0.19), 0.1, 0.2), false)
+	box(self, "ExecutiveTwoSofa", Vector3(1.45, 0.32, 0.62), Vector3(-0.25, 0.35, 7.35), mat(Color(0.17, 0.25, 0.30)))
+	box(self, "ExecutiveTwoSofaBack", Vector3(1.45, 0.62, 0.16), Vector3(-0.25, 0.72, 7.58), mat(Color(0.17, 0.25, 0.30)))
+	label3d("EXECUTIVE SUITE", Vector3(-1.15, 2.35, 5.35), 0.22)
+
+	# Elevator lobby: paired stainless doors, header and a visible call panel.
+	box(self, "ElevatorCarpet", Vector3(3.75, 0.018, 2.85), Vector3(3.80, 0.075, 6.55), carpet, false)
+	box(self, "ElevatorFrameLeft", Vector3(0.12, 2.55, 0.18), Vector3(2.85, 1.28, 8.28), trim_mat)
+	box(self, "ElevatorFrameRight", Vector3(0.12, 2.55, 0.18), Vector3(4.65, 1.28, 8.28), trim_mat)
+	box(self, "ElevatorHeader", Vector3(1.92, 0.14, 0.18), Vector3(3.75, 2.55, 8.28), trim_mat)
+	box(self, "ElevatorDoorLeft", Vector3(0.86, 2.32, 0.08), Vector3(3.30, 1.20, 8.34), mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
+	box(self, "ElevatorDoorRight", Vector3(0.86, 2.32, 0.08), Vector3(4.20, 1.20, 8.34), mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
+	box(self, "ElevatorCallPanel", Vector3(0.18, 0.42, 0.05), Vector3(4.92, 1.48, 8.18), mat(Color(0.08, 0.13, 0.16), 0.25, 0.22), false)
+	box(self, "ElevatorFloorDisplay", Vector3(0.08, 0.10, 0.02), Vector3(4.92, 1.62, 8.14), mat(Color(0.18, 0.80, 0.66), 0.1, 0.2), false)
+	label3d("ELEVATORS", Vector3(3.05, 2.90, 8.18), 0.20)
+
+	# Soft light in the new wing.
+	for light_pos in [Vector3(-4.0, 2.90, 5.8), Vector3(0.0, 2.90, 5.8), Vector3(4.0, 2.90, 5.8)]:
+		var wing_light := OmniLight3D.new()
+		wing_light.name = "ExpansionWarmLight"
+		wing_light.position = light_pos
+		wing_light.light_color = Color(1.0, 0.88, 0.74)
+		wing_light.light_energy = 0.55
+		wing_light.omni_range = 4.5
+		add_child(wing_light)
