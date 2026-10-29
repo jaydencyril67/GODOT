@@ -24,6 +24,9 @@ var elevator_right: MeshInstance3D
 var elevator_left_collision: StaticBody3D
 var elevator_right_collision: StaticBody3D
 var elevator_open := false
+var procedural_micro_normal: NoiseTexture2D
+var pbr_concrete_wall: StandardMaterial3D
+var pbr_concrete_floor: StandardMaterial3D
 var elevator_left_closed := Vector3(3.30, 1.20, 8.34)
 var elevator_right_closed := Vector3(4.20, 1.20, 8.34)
 
@@ -36,6 +39,7 @@ const WOOD := Color(0.34, 0.19, 0.10)
 const GREEN := Color(0.12, 0.34, 0.20)
 
 func _ready() -> void:
+	prepare_surface_library()
 	build_world()
 	create_player()
 	create_mobile_hint()
@@ -370,6 +374,58 @@ func toggle_elevator() -> void:
 	if elevator_right_collision != null:
 		tween.tween_property(elevator_right_collision, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 
+func prepare_surface_library() -> void:
+	# A subtle procedural micro-normal keeps non-scanned materials from looking
+	# perfectly flat while the major concrete surfaces use scanned CC0 PBR maps.
+	var detail_noise := FastNoiseLite.new()
+	detail_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	detail_noise.frequency = 0.085
+	detail_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	detail_noise.fractal_octaves = 4
+	detail_noise.fractal_gain = 0.42
+	procedural_micro_normal = NoiseTexture2D.new()
+	procedural_micro_normal.noise = detail_noise
+	procedural_micro_normal.width = 256
+	procedural_micro_normal.height = 256
+	procedural_micro_normal.seamless = true
+	procedural_micro_normal.as_normal_map = true
+	procedural_micro_normal.bump_strength = 0.11
+
+	pbr_concrete_wall = make_wall_material(Color(0.88, 0.89, 0.88), 0.92, 0.55, 0.72)
+	pbr_concrete_floor = make_floor_material(Color(0.92, 0.92, 0.90), 0.78, 0.50, 0.52)
+
+func make_wall_material(tint: Color, roughness_value: float = 0.92, tile_scale: float = 0.55, bump_strength: float = 0.72) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.albedo_texture = load("res://assets/textures/concrete_wall_albedo.jpg") as Texture2D
+	material.metallic = 0.0
+	material.roughness = roughness_value
+	material.roughness_texture = load("res://assets/textures/concrete_wall_roughness.jpg") as Texture2D
+	material.normal_enabled = true
+	material.normal_texture = load("res://assets/textures/concrete_wall_normal.jpg") as Texture2D
+	material.normal_scale = bump_strength
+	material.ao_enabled = true
+	material.ao_texture = load("res://assets/textures/concrete_wall_ao.jpg") as Texture2D
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	return material
+
+func make_floor_material(tint: Color, roughness_value: float = 0.78, tile_scale: float = 0.50, bump_strength: float = 0.52) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.albedo_texture = load("res://assets/textures/concrete_floor_albedo.jpg") as Texture2D
+	material.metallic = 0.0
+	material.roughness = roughness_value
+	material.roughness_texture = load("res://assets/textures/concrete_floor_roughness.jpg") as Texture2D
+	material.normal_enabled = true
+	material.normal_texture = load("res://assets/textures/concrete_floor_normal.jpg") as Texture2D
+	material.normal_scale = bump_strength
+	material.uv1_triplanar = true
+	material.uv1_world_triplanar = true
+	material.uv1_scale = Vector3(tile_scale, tile_scale, tile_scale)
+	return material
+
 func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
@@ -379,6 +435,17 @@ func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> Standa
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	else:
+		# Keep opaque paint, upholstery, foliage and furniture from looking like
+		# flat plastic. Very smooth/metallic parts get a weaker micro-normal.
+		if procedural_micro_normal != null:
+			m.normal_enabled = true
+			m.normal_texture = procedural_micro_normal
+			m.normal_scale = 0.035 if roughness < 0.32 else (0.065 if metallic > 0.45 else 0.10)
+			m.uv1_triplanar = true
+			m.uv1_world_triplanar = true
+			var texture_repeat := 2.5 if metallic > 0.45 else (1.5 if roughness > 0.70 else 3.0)
+			m.uv1_scale = Vector3(texture_repeat, texture_repeat, texture_repeat)
 	return m
 
 func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: Material, solid: bool = true) -> MeshInstance3D:
@@ -574,13 +641,28 @@ func add_photoreal_details() -> void:
 func build_world() -> void:
 	var world := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.48, 0.57, 0.63)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.86, 0.89, 0.92)
-	env.ambient_light_energy = 0.95
+
+	# A physically motivated sky gives the glazing and metallic trim a real
+	# environment to reflect instead of a single flat background colour.
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color(0.16, 0.32, 0.49)
+	sky_material.sky_horizon_color = Color(0.68, 0.78, 0.84)
+	sky_material.ground_bottom_color = Color(0.18, 0.20, 0.21)
+	sky_material.ground_horizon_color = Color(0.62, 0.66, 0.67)
+	sky_material.sun_angle_max = 12.0
+	sky_material.use_debanding = true
+	var sky := Sky.new()
+	sky.sky_material = sky_material
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.72
+	env.ambient_light_sky_contribution = 0.82
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.05
+	env.tonemap_exposure = 1.0
+	env.glow_enabled = true
+	env.glow_intensity = 0.10
 	world.environment = env
 	add_child(world)
 
@@ -596,20 +678,20 @@ func build_world() -> void:
 	add_child(sun)
 
 	# Base slab and open-front floor plan.
-	box(self, "Foundation", Vector3(12.8, 0.32, 9.0), Vector3(0, -0.18, 0), mat(Color(0.18, 0.22, 0.25)))
-	box(self, "InteriorFloor", Vector3(12.2, 0.08, 8.4), Vector3(0, 0.02, 0), mat(FLOOR, 0.05, 0.3))
+	box(self, "Foundation", Vector3(12.8, 0.32, 9.0), Vector3(0, -0.18, 0), make_wall_material(Color(0.50, 0.53, 0.54), 0.96, 0.55, 0.62))
+	box(self, "InteriorFloor", Vector3(12.2, 0.08, 8.4), Vector3(0, 0.02, 0), pbr_concrete_floor)
 
 	# Rear facade: concrete frame and large glass panels.
-	box(self, "RearConcreteHeader", Vector3(12.2, 0.32, 0.30), Vector3(0, 3.25, -4.05), mat(CONCRETE))
-	box(self, "RearConcreteBase", Vector3(12.2, 0.42, 0.30), Vector3(0, 0.28, -4.05), mat(CONCRETE))
+	box(self, "RearConcreteHeader", Vector3(12.2, 0.32, 0.30), Vector3(0, 3.25, -4.05), pbr_concrete_wall)
+	box(self, "RearConcreteBase", Vector3(12.2, 0.42, 0.30), Vector3(0, 0.28, -4.05), pbr_concrete_wall)
 	for x in [-5.9, -3.0, 0.0, 3.0, 5.9]:
 		box(self, "AluminiumFrame", Vector3(0.12, 3.0, 0.22), Vector3(x, 1.82, -4.05), mat(Color(0.48, 0.55, 0.59), 0.7, 0.28))
 	for x in [-4.45, -1.5, 1.5, 4.45]:
 		box(self, "GlassFacade", Vector3(2.78, 2.85, 0.08), Vector3(x, 1.83, -4.12), mat(GLASS, 0.15, 0.18))
 
 	# Short side returns keep the building readable as a cutaway.
-	box(self, "LeftSideWall", Vector3(0.28, 3.2, 8.2), Vector3(-6.05, 1.58, 0), mat(CONCRETE))
-	box(self, "RightSidePier", Vector3(0.28, 3.2, 2.3), Vector3(6.05, 1.58, -2.9), mat(CONCRETE))
+	box(self, "LeftSideWall", Vector3(0.28, 3.2, 8.2), Vector3(-6.05, 1.58, 0), pbr_concrete_wall)
+	box(self, "RightSidePier", Vector3(0.28, 3.2, 2.3), Vector3(6.05, 1.58, -2.9), pbr_concrete_wall)
 	box(self, "RoofEdge", Vector3(12.5, 0.18, 0.42), Vector3(0, 3.42, -4.0), mat(Color(0.60, 0.65, 0.68), 0.35, 0.35))
 
 	# Interior glass partitions create separate reception and boardroom areas.
@@ -653,14 +735,14 @@ func build_world() -> void:
 
 func build_phase_two() -> void:
 	# New forward wing extends the walkable floor beyond the original reception.
-	var floor_mat := mat(Color(0.56, 0.58, 0.58), 0.08, 0.26)
-	var wall_mat := mat(Color(0.78, 0.80, 0.80), 0.05, 0.48)
+	var floor_mat := pbr_concrete_floor
+	var wall_mat := pbr_concrete_wall
 	var trim_mat := mat(Color(0.50, 0.57, 0.60), 0.72, 0.24)
 	var office_glass := mat(Color(0.48, 0.68, 0.76, 0.22), 0.12, 0.20)
 	var exec_wood := mat(Color(0.30, 0.17, 0.10), 0.05, 0.28)
 	var carpet := mat(Color(0.20, 0.25, 0.28), 0.0, 0.92)
 
-	box(self, "ExpansionFoundation", Vector3(12.8, 0.32, 4.8), Vector3(0, -0.18, 6.25), mat(Color(0.18, 0.22, 0.25)))
+	box(self, "ExpansionFoundation", Vector3(12.8, 0.32, 4.8), Vector3(0, -0.18, 6.25), make_wall_material(Color(0.50, 0.53, 0.54), 0.96, 0.55, 0.62))
 	box(self, "ExpansionFloor", Vector3(12.2, 0.08, 4.8), Vector3(0, 0.02, 6.25), floor_mat)
 	box(self, "ExpansionSideLeft", Vector3(0.28, 3.2, 4.6), Vector3(-6.05, 1.58, 6.15), wall_mat)
 	box(self, "ExpansionSideRight", Vector3(0.28, 3.2, 4.6), Vector3(6.05, 1.58, 6.15), wall_mat)
@@ -725,12 +807,12 @@ func build_phase_two() -> void:
 func add_architectural_finish() -> void:
 	# Contemporary commercial HQ exterior: layered concrete parapets, metal coping,
 	# framed low-e glazing, vertical facade fins, and realistic panel joints.
-	var exterior_concrete := mat(Color(0.70, 0.73, 0.73), 0.0, 0.82)
-	var light_concrete := mat(Color(0.82, 0.83, 0.81), 0.0, 0.88)
-	var dark_stone := mat(Color(0.25, 0.30, 0.32), 0.04, 0.76)
+	var exterior_concrete := make_wall_material(Color(0.84, 0.85, 0.83), 0.94, 0.55, 0.72)
+	var light_concrete := make_wall_material(Color(0.94, 0.94, 0.91), 0.92, 0.55, 0.48)
+	var dark_stone := make_wall_material(Color(0.33, 0.37, 0.39), 0.97, 0.55, 0.48)
 	var coping := mat(Color(0.42, 0.49, 0.52), 0.72, 0.30)
-	var glass := mat(Color(0.30, 0.48, 0.57, 0.38), 0.22, 0.16)
-	var glass_reflection := mat(Color(0.70, 0.83, 0.87, 0.28), 0.12, 0.20)
+	var glass := mat(Color(0.30, 0.48, 0.57, 0.32), 0.08, 0.12)
+	var glass_reflection := mat(Color(0.72, 0.82, 0.87, 0.18), 0.04, 0.16)
 	var sealant := mat(Color(0.10, 0.15, 0.17), 0.05, 0.72)
 	var ceiling_panel := mat(Color(0.84, 0.85, 0.82), 0.0, 0.92)
 	var ceiling_reveal := mat(Color(0.58, 0.62, 0.62), 0.12, 0.58)
