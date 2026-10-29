@@ -1,0 +1,40 @@
+name: DigitalWorld Godot Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Parse project and smoke-test startup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.3
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+          include-templates: false
+
+      - name: Report Godot version
+        run: godot --version
+
+      - name: Import and parse project
+        run: godot --headless --editor --path . --quit
+
+      - name: Smoke-test main scene startup
+        run: godot --headless --path . --quit-after 5
