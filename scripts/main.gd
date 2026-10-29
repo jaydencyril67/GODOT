@@ -8,10 +8,14 @@ var move_touch_id := -1
 var look_last := Vector2.ZERO
 var move_origin := Vector2.ZERO
 var move_vector := Vector2.ZERO
-var touch_look_sensitivity := 0.0032
+var touch_look_sensitivity := 0.00125
 var joystick_base: Panel
 var joystick_knob: Panel
 var interact_button: Button
+var current_interaction := ""
+var is_sitting := false
+var saved_stand_position := Vector3.ZERO
+var saved_camera_height := 0.53
 var elevator_left: MeshInstance3D
 var elevator_right: MeshInstance3D
 var elevator_left_collision: StaticBody3D
@@ -37,18 +41,25 @@ func _physics_process(_delta: float) -> void:
 	if player == null:
 		return
 
+	update_nearby_interaction()
+	if is_sitting:
+		player.velocity = Vector3.ZERO
+		return
+
 	var input_dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	if input_dir.length() < 0.1:
+	if input_dir.length() < 0.08:
 		input_dir = move_vector
 	input_dir = input_dir.limit_length(1.0)
 
-	# Accelerate and brake smoothly instead of snapping to full speed.
+	# Exponential smoothing avoids abrupt starts and direction changes.
 	var direction := (player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
-	var target_velocity := direction * 3.4
-	var rate := 12.0 if input_dir.length() > 0.05 else 16.0
-	player.velocity.x = move_toward(player.velocity.x, target_velocity.x, rate * _delta)
-	player.velocity.z = move_toward(player.velocity.z, target_velocity.z, rate * _delta)
+	var target_velocity := direction * 2.8
+	var smoothing := 1.0 - exp(-(_delta * (5.5 if input_dir.length() > 0.05 else 8.0)))
+	var horizontal_velocity := Vector2(player.velocity.x, player.velocity.z).lerp(Vector2(target_velocity.x, target_velocity.z), smoothing)
+	player.velocity.x = horizontal_velocity.x
+	player.velocity.z = horizontal_velocity.y
 	player.velocity.y = 0.0
+	player.floor_snap_length = 0.28
 	player.move_and_slide()
 
 	# Keep the player inside the walkable floor plan.
@@ -123,15 +134,15 @@ func create_mobile_hint() -> void:
 	# Fixed translucent joystick base and thumb pad, GTA-style.
 	joystick_base = Panel.new()
 	joystick_base.name = "MovementJoystickBase"
-	joystick_base.position = Vector2(28.0, get_viewport().get_visible_rect().size.y - 170.0)
-	joystick_base.size = Vector2(132.0, 132.0)
+	joystick_base.position = Vector2(28.0, get_viewport().get_visible_rect().size.y - 300.0)
+	joystick_base.size = Vector2(264.0, 264.0)
 	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var base_style := StyleBoxFlat.new()
 	base_style.bg_color = Color(0.04, 0.09, 0.13, 0.42)
-	base_style.corner_radius_top_left = 66
-	base_style.corner_radius_top_right = 66
-	base_style.corner_radius_bottom_left = 66
-	base_style.corner_radius_bottom_right = 66
+	base_style.corner_radius_top_left = 132
+	base_style.corner_radius_top_right = 132
+	base_style.corner_radius_bottom_left = 132
+	base_style.corner_radius_bottom_right = 132
 	base_style.border_width_left = 2
 	base_style.border_width_top = 2
 	base_style.border_width_right = 2
@@ -142,14 +153,14 @@ func create_mobile_hint() -> void:
 
 	joystick_knob = Panel.new()
 	joystick_knob.name = "MovementJoystickKnob"
-	joystick_knob.size = Vector2(54.0, 54.0)
+	joystick_knob.size = Vector2(108.0, 108.0)
 	joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var knob_style := StyleBoxFlat.new()
 	knob_style.bg_color = Color(0.72, 0.88, 0.96, 0.78)
-	knob_style.corner_radius_top_left = 27
-	knob_style.corner_radius_top_right = 27
-	knob_style.corner_radius_bottom_left = 27
-	knob_style.corner_radius_bottom_right = 27
+	knob_style.corner_radius_top_left = 54
+	knob_style.corner_radius_top_right = 54
+	knob_style.corner_radius_bottom_left = 54
+	knob_style.corner_radius_bottom_right = 54
 	knob_style.border_width_left = 2
 	knob_style.border_width_top = 2
 	knob_style.border_width_right = 2
@@ -161,33 +172,34 @@ func create_mobile_hint() -> void:
 
 	var hint := Label.new()
 	hint.text = "MOVE"
-	hint.position = Vector2(62.0, get_viewport().get_visible_rect().size.y - 36.0)
+	hint.position = Vector2(110.0, get_viewport().get_visible_rect().size.y - 28.0)
 	hint.add_theme_font_size_override("font_size", 12)
 	hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
 	hud.add_child(hint)
 
 	interact_button = Button.new()
-	interact_button.name = "InteractButton"
-	interact_button.text = "OPEN"
-	interact_button.position = Vector2(get_viewport().get_visible_rect().size.x - 112.0, get_viewport().get_visible_rect().size.y - 126.0)
-	interact_button.size = Vector2(88.0, 58.0)
-	interact_button.add_theme_font_size_override("font_size", 18)
+	interact_button.name = "ContextInteractionButton"
+	interact_button.text = "USE"
+	interact_button.position = Vector2(get_viewport().get_visible_rect().size.x - 132.0, get_viewport().get_visible_rect().size.y - 164.0)
+	interact_button.size = Vector2(104.0, 104.0)
+	interact_button.add_theme_font_size_override("font_size", 17)
 	interact_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	var button_style := StyleBoxFlat.new()
-	button_style.bg_color = Color(0.05, 0.28, 0.36, 0.82)
-	button_style.corner_radius_top_left = 14
-	button_style.corner_radius_top_right = 14
-	button_style.corner_radius_bottom_left = 14
-	button_style.corner_radius_bottom_right = 14
+	button_style.bg_color = Color(0.04, 0.12, 0.17, 0.48)
+	button_style.corner_radius_top_left = 52
+	button_style.corner_radius_top_right = 52
+	button_style.corner_radius_bottom_left = 52
+	button_style.corner_radius_bottom_right = 52
 	button_style.border_width_left = 2
 	button_style.border_width_top = 2
 	button_style.border_width_right = 2
 	button_style.border_width_bottom = 2
-	button_style.border_color = Color(0.65, 0.90, 1.0, 0.9)
+	button_style.border_color = Color(0.75, 0.91, 1.0, 0.72)
 	interact_button.add_theme_stylebox_override("normal", button_style)
 	interact_button.add_theme_stylebox_override("hover", button_style)
 	interact_button.add_theme_stylebox_override("pressed", button_style)
-	interact_button.pressed.connect(toggle_elevator)
+	interact_button.visible = false
+	interact_button.pressed.connect(perform_context_interaction)
 	hud.add_child(interact_button)
 
 func joystick_center() -> Vector2:
@@ -197,7 +209,7 @@ func update_joystick_knob(touch_position: Vector2) -> void:
 	if joystick_base == null or joystick_knob == null:
 		return
 	var center := joystick_center()
-	var offset := (touch_position - center).limit_length(44.0)
+	var offset := (touch_position - center).limit_length(88.0)
 	joystick_knob.position = center + offset - joystick_knob.size * 0.5
 
 func reset_joystick_knob() -> void:
@@ -205,31 +217,110 @@ func reset_joystick_knob() -> void:
 		return
 	joystick_knob.position = joystick_center() - joystick_knob.size * 0.5
 
+func update_nearby_interaction() -> void:
+	if interact_button == null or player == null:
+		return
+	if is_sitting:
+		current_interaction = "stand"
+		interact_button.text = "STAND"
+		interact_button.visible = true
+		return
+
+	var player_xz := Vector2(player.global_position.x, player.global_position.z)
+	var elevator_xz := Vector2(3.75, 7.25)
+	if player_xz.distance_to(elevator_xz) < 2.1:
+		current_interaction = "elevator"
+		interact_button.text = "CLOSE" if elevator_open else "OPEN"
+		interact_button.visible = true
+		return
+
+	var seats := [
+		{"label": "SIT", "position": Vector3(-4.15, 0.60, 5.45)},
+		{"label": "SIT", "position": Vector3(-4.95, 0.48, 7.45)},
+		{"label": "SIT", "position": Vector3(-3.45, 0.48, 7.45)},
+		{"label": "SIT", "position": Vector3(-0.25, 0.35, 7.35)},
+		{"label": "SIT", "position": Vector3(1.15, 0.55, -1.55)},
+		{"label": "SIT", "position": Vector3(2.45, 0.55, -1.55)},
+		{"label": "SIT", "position": Vector3(3.75, 0.55, -1.55)}
+	]
+	var nearest_seat: Vector3 = Vector3.ZERO
+	var nearest_distance := 1.55
+	for seat in seats:
+		var seat_pos: Vector3 = seat["position"]
+		var distance := player_xz.distance_to(Vector2(seat_pos.x, seat_pos.z))
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_seat = seat_pos
+	if nearest_distance < 1.55:
+		current_interaction = "sit"
+		interact_button.text = "SIT"
+		interact_button.visible = true
+	else:
+		current_interaction = ""
+		interact_button.visible = false
+
+func perform_context_interaction() -> void:
+	match current_interaction:
+		"elevator":
+			toggle_elevator()
+		"sit":
+			begin_sitting()
+		"stand":
+			stand_up()
+
+func begin_sitting() -> void:
+	if player == null or view_camera == null:
+		return
+	var seats := [
+		Vector3(-4.15, 0.60, 5.45),
+		Vector3(-4.95, 0.48, 7.45),
+		Vector3(-3.45, 0.48, 7.45),
+		Vector3(-0.25, 0.35, 7.35),
+		Vector3(1.15, 0.55, -1.55),
+		Vector3(2.45, 0.55, -1.55),
+		Vector3(3.75, 0.55, -1.55)
+	]
+	var player_xz := Vector2(player.global_position.x, player.global_position.z)
+	var chosen := seats[0]
+	var best_distance := INF
+	for seat_pos in seats:
+		var distance := player_xz.distance_to(Vector2(seat_pos.x, seat_pos.z))
+		if distance < best_distance:
+			best_distance = distance
+			chosen = seat_pos
+	if best_distance > 1.55:
+		return
+	saved_stand_position = player.global_position
+	saved_camera_height = view_camera.position.y
+	player.global_position = Vector3(chosen.x, 0.98, chosen.z + 0.45)
+	player.rotation.y = 0.0
+	view_camera.position.y = 0.12
+	is_sitting = true
+
+func stand_up() -> void:
+	if player == null or view_camera == null:
+		return
+	player.global_position = saved_stand_position
+	view_camera.position.y = saved_camera_height
+	is_sitting = false
+
 func toggle_elevator() -> void:
 	if player == null:
 		return
-	var elevator_center := Vector3(3.75, 0.0, 8.34)
-	if Vector2(player.global_position.x - elevator_center.x, player.global_position.z - elevator_center.z).length() > 4.0:
-		if interact_button != null:
-			interact_button.text = "TOO FAR"
-			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				if is_instance_valid(interact_button):
-					interact_button.text = "OPEN"
-			)
+	var elevator_center := Vector3(3.75, 0.0, 7.25)
+	if Vector2(player.global_position.x - elevator_center.x, player.global_position.z - elevator_center.z).length() > 2.5:
 		return
 	elevator_open = not elevator_open
 	var slide := 0.82 if elevator_open else 0.0
 	var tween := create_tween().set_parallel(true)
 	if elevator_left != null:
-		tween.tween_property(elevator_left, "position", elevator_left_closed + Vector3(-slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(elevator_left, "position", elevator_left_closed + Vector3(-slide, 0.0, 0.0), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	if elevator_right != null:
-		tween.tween_property(elevator_right, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(elevator_right, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	if elevator_left_collision != null:
-		tween.tween_property(elevator_left_collision, "position", elevator_left_closed + Vector3(-slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(elevator_left_collision, "position", elevator_left_closed + Vector3(-slide, 0.0, 0.0), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	if elevator_right_collision != null:
-		tween.tween_property(elevator_right_collision, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	if interact_button != null:
-		interact_button.text = "CLOSE" if elevator_open else "OPEN"
+		tween.tween_property(elevator_right_collision, "position", elevator_right_closed + Vector3(slide, 0.0, 0.0), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 
 func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -333,8 +424,10 @@ func build_world() -> void:
 	sun.name = "Daylight"
 	sun.rotation_degrees = Vector3(-48, -32, 0)
 	sun.light_energy = 1.35
-	sun.directional_shadow_max_distance = 35.0
-	sun.shadow_bias = 0.035
+	sun.directional_shadow_max_distance = 22.0
+	sun.shadow_bias = 0.055
+	sun.shadow_normal_bias = 1.4
+	sun.shadow_blur = 2.0
 	sun.shadow_enabled = true
 	add_child(sun)
 
