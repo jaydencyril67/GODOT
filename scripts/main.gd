@@ -649,6 +649,7 @@ func build_world() -> void:
 	make_plant("ReceptionPlantCenter", Vector3(0.0, 0.0, 2.0), 0.9)
 	add_photoreal_details()
 	build_phase_two()
+	add_architectural_finish()
 
 func build_phase_two() -> void:
 	# New forward wing extends the walkable floor beyond the original reception.
@@ -719,3 +720,83 @@ func build_phase_two() -> void:
 		wing_light.light_energy = 0.55
 		wing_light.omni_range = 4.5
 		add_child(wing_light)
+
+
+func add_architectural_finish() -> void:
+	# Contemporary commercial HQ exterior: layered concrete parapets, metal coping,
+	# framed low-e glazing, vertical facade fins, and realistic panel joints.
+	var exterior_concrete := mat(Color(0.70, 0.73, 0.73), 0.0, 0.82)
+	var light_concrete := mat(Color(0.82, 0.83, 0.81), 0.0, 0.88)
+	var dark_stone := mat(Color(0.25, 0.30, 0.32), 0.04, 0.76)
+	var coping := mat(Color(0.42, 0.49, 0.52), 0.72, 0.30)
+	var glass := mat(Color(0.30, 0.48, 0.57, 0.38), 0.22, 0.16)
+	var glass_reflection := mat(Color(0.70, 0.83, 0.87, 0.28), 0.12, 0.20)
+	var sealant := mat(Color(0.10, 0.15, 0.17), 0.05, 0.72)
+	var ceiling_panel := mat(Color(0.84, 0.85, 0.82), 0.0, 0.92)
+	var ceiling_reveal := mat(Color(0.58, 0.62, 0.62), 0.12, 0.58)
+	var soffit := mat(Color(0.72, 0.75, 0.74), 0.0, 0.72)
+
+	# Flat-roof assembly with a visible fascia, coping cap, and underside soffit.
+	# Ceiling is made of sections so the interior still reads like a real office.
+	box(self, "MainRoofSlab", Vector3(12.65, 0.22, 8.85), Vector3(0.0, 3.46, 0.0), exterior_concrete, false)
+	box(self, "ExpansionRoofSlab", Vector3(12.65, 0.22, 4.82), Vector3(0.0, 3.46, 6.25), exterior_concrete, false)
+	box(self, "MainRoofFrontFascia", Vector3(12.75, 0.32, 0.16), Vector3(0.0, 3.40, 4.42), dark_stone, false)
+	box(self, "ExpansionRoofFrontFascia", Vector3(12.75, 0.32, 0.16), Vector3(0.0, 3.40, 8.63), dark_stone, false)
+	box(self, "MainRoofRearFascia", Vector3(12.75, 0.32, 0.16), Vector3(0.0, 3.40, -4.42), dark_stone, false)
+	box(self, "RoofFrontMetalCoping", Vector3(12.86, 0.055, 0.24), Vector3(0.0, 3.56, 4.42), coping, false)
+	box(self, "RoofExpansionMetalCoping", Vector3(12.86, 0.055, 0.24), Vector3(0.0, 3.56, 8.63), coping, false)
+	box(self, "RoofRearMetalCoping", Vector3(12.86, 0.055, 0.24), Vector3(0.0, 3.56, -4.42), coping, false)
+	box(self, "LeftRoofCoping", Vector3(0.22, 0.055, 13.10), Vector3(-6.32, 3.56, 2.08), coping, false)
+	box(self, "RightRoofCoping", Vector3(0.22, 0.055, 13.10), Vector3(6.32, 3.56, 2.08), coping, false)
+
+	# Suspended ceiling tiles and recessed linear joints create a believable
+	# acoustic ceiling rather than a single blank roof surface.
+	for x in [-5.0, -3.0, -1.0, 1.0, 3.0, 5.0]:
+		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
+			var in_main := z <= 3.8
+			var in_wing := z >= 4.0
+			if (in_main and z <= 3.8) or (in_wing and z >= 4.0):
+				box(self, "AcousticCeilingTile", Vector3(1.94, 0.035, 1.94), Vector3(x, 3.30, z), ceiling_panel, false)
+		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
+			box(self, "CeilingGridJoint", Vector3(0.018, 0.012, 1.96), Vector3(x + 0.99, 3.275, z), ceiling_reveal, false)
+
+	# Weather-resistant facade panel joints and shallow vertical fins along the
+	# exposed left and right elevations.
+	for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
+		box(self, "LeftFacadePanelJoint", Vector3(0.012, 2.80, 0.025), Vector3(-5.895, 1.72, z), coping, false)
+		box(self, "RightFacadePanelJoint", Vector3(0.012, 2.80, 0.025), Vector3(5.895, 1.72, z), coping, false)
+	for x in [-5.35, -3.55, -1.75, 0.05, 1.85, 3.65, 5.35]:
+		box(self, "FrontFacadeVerticalFin", Vector3(0.075, 2.80, 0.12), Vector3(x, 1.82, 4.28), coping, false)
+
+	# Glazed entrance frontage with a clear central double-door opening.
+	# Side glazing completes the front elevation without sealing the entry.
+	box(self, "FrontGlassLeft", Vector3(3.10, 2.58, 0.075), Vector3(-3.95, 1.80, 4.34), glass, false)
+	box(self, "FrontGlassRight", Vector3(3.10, 2.58, 0.075), Vector3(3.95, 1.80, 4.34), glass, false)
+	box(self, "FrontGlassLeftReflect", Vector3(0.65, 2.30, 0.018), Vector3(-4.60, 1.80, 4.285), glass_reflection, false)
+	box(self, "FrontGlassRightReflect", Vector3(0.65, 2.30, 0.018), Vector3(4.60, 1.80, 4.285), glass_reflection, false)
+	for x in [-5.50, -4.95, -3.0, -2.40, 2.40, 3.0, 4.95, 5.50]:
+		box(self, "FrontGlazingMullion", Vector3(0.055, 2.64, 0.10), Vector3(x, 1.80, 4.29), coping, false)
+	box(self, "EntranceHeader", Vector3(2.35, 0.18, 0.18), Vector3(0.0, 3.08, 4.30), light_concrete, false)
+	box(self, "EntranceDoorLeft", Vector3(1.05, 2.45, 0.06), Vector3(-0.57, 1.76, 4.34), glass, false)
+	box(self, "EntranceDoorRight", Vector3(1.05, 2.45, 0.06), Vector3(0.57, 1.76, 4.34), glass, false)
+	box(self, "EntranceDoorHandleLeft", Vector3(0.025, 0.42, 0.025), Vector3(-0.12, 1.72, 4.285), coping, false)
+	box(self, "EntranceDoorHandleRight", Vector3(0.025, 0.42, 0.025), Vector3(0.12, 1.72, 4.285), coping, false)
+
+	# Layered entrance surround, concrete plinth and sill details.
+	box(self, "EntranceLeftStonePier", Vector3(0.20, 3.02, 0.28), Vector3(-1.28, 1.55, 4.26), light_concrete, false)
+	box(self, "EntranceRightStonePier", Vector3(0.20, 3.02, 0.28), Vector3(1.28, 1.55, 4.26), light_concrete, false)
+	box(self, "FrontFacadePlinth", Vector3(12.45, 0.16, 0.18), Vector3(0.0, 0.30, 4.30), dark_stone, false)
+	box(self, "ExpansionFacadePlinth", Vector3(12.45, 0.16, 0.18), Vector3(0.0, 0.30, 8.48), dark_stone, false)
+
+	# Expansion-wing glazing and wall reveals give the executive floor a
+	# coordinated modern commercial facade.
+	for x in [-4.5, -0.2, 4.2]:
+		box(self, "ExecutiveWingWindow", Vector3(2.50, 2.40, 0.055), Vector3(x, 1.78, 8.34), glass, false)
+		for dx in [-1.25, 1.25]:
+			box(self, "ExecutiveWingWindowFrame", Vector3(0.06, 2.48, 0.10), Vector3(x + dx, 1.78, 8.29), coping, false)
+		box(self, "ExecutiveWingWindowSill", Vector3(2.58, 0.07, 0.12), Vector3(x, 0.54, 8.29), coping, false)
+
+	# Small service roof upstands suggest drainage and waterproofing details.
+	box(self, "RoofDrainUpstand", Vector3(0.65, 0.12, 0.65), Vector3(5.35, 3.61, -3.45), soffit, false)
+	cylinder(self, "RoofVent", 0.12, 0.28, Vector3(5.35, 3.78, -3.45), coping)
+	box(self, "RoofServiceCurb", Vector3(0.95, 0.10, 0.52), Vector3(-4.95, 3.60, 7.80), soffit, false)
