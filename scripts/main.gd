@@ -11,11 +11,11 @@ var move_vector := Vector2.ZERO
 var touch_look_sensitivity := 0.004
 
 # Lightweight procedural HQ. All geometry is generated in code.
-const CONCRETE := Color(0.70, 0.73, 0.74)
-const FLOOR := Color(0.36, 0.38, 0.39)
-const GLASS := Color(0.28, 0.48, 0.56, 0.24)
+const CONCRETE := Color(0.76, 0.78, 0.78)
+const FLOOR := Color(0.52, 0.54, 0.54)
+const GLASS := Color(0.48, 0.68, 0.76, 0.20)
 const DARK := Color(0.08, 0.13, 0.17)
-const WOOD := Color(0.40, 0.23, 0.13)
+const WOOD := Color(0.34, 0.19, 0.10)
 const GREEN := Color(0.12, 0.34, 0.20)
 
 func _ready() -> void:
@@ -167,21 +167,68 @@ func label3d(text_value: String, pos: Vector3, size: float = 0.32) -> void:
 	label.modulate = Color(0.08, 0.15, 0.20)
 	add_child(label)
 
+	add_photoreal_details()
+
+
+func add_photoreal_details() -> void:
+	# Soft warm ceiling illumination balances the natural daylight.
+	for light_pos in [Vector3(-4.0, 2.95, -1.0), Vector3(0.0, 2.95, -1.0), Vector3(4.0, 2.95, -1.0), Vector3(-4.0, 2.95, 2.0), Vector3(3.5, 2.95, 2.0)]:
+		var ceiling_light := OmniLight3D.new()
+		ceiling_light.name = "WarmInteriorLighting"
+		ceiling_light.position = light_pos
+		ceiling_light.light_color = Color(1.0, 0.88, 0.72)
+		ceiling_light.light_energy = 0.45
+		ceiling_light.omni_range = 5.0
+		ceiling_light.shadow_enabled = false
+		add_child(ceiling_light)
+
+	# Slim ceiling light housings, brushed metal trim and subtle floor inlays.
+	var metal := mat(Color(0.63, 0.68, 0.70), 0.78, 0.24)
+	var light_panel := mat(Color(0.96, 0.95, 0.87), 0.0, 0.22)
+	var inlay := mat(Color(0.68, 0.72, 0.72), 0.28, 0.32)
+	for light_pos in [Vector3(-4.0, 3.02, -1.0), Vector3(0.0, 3.02, -1.0), Vector3(4.0, 3.02, -1.0), Vector3(-4.0, 3.02, 2.0), Vector3(3.5, 3.02, 2.0)]:
+		box(self, "CeilingLightTrim", Vector3(1.35, 0.06, 0.42), light_pos, metal, false)
+		box(self, "DiffusedLightPanel", Vector3(1.20, 0.025, 0.30), light_pos + Vector3(0.0, -0.035, 0.0), light_panel, false)
+	for x in [-4.8, -2.4, 0.0, 2.4, 4.8]:
+		box(self, "FloorInlay", Vector3(0.025, 0.008, 7.5), Vector3(x, 0.066, 0.0), inlay, false)
+
+	# Reception workstation details.
+	var screen_frame := mat(Color(0.035, 0.055, 0.065), 0.25, 0.22)
+	var screen_glow := mat(Color(0.12, 0.45, 0.62), 0.12, 0.18)
+	box(self, "ReceptionMonitorFrame", Vector3(0.78, 0.48, 0.055), Vector3(-3.65, 1.28, -0.86), screen_frame, false)
+	box(self, "ReceptionMonitorScreen", Vector3(0.70, 0.39, 0.018), Vector3(-3.65, 1.29, -0.895), screen_glow, false)
+	box(self, "ReceptionMonitorStand", Vector3(0.10, 0.18, 0.10), Vector3(-3.65, 1.12, -0.84), metal, false)
+	box(self, "ReceptionDeskDrawer", Vector3(0.70, 0.20, 0.40), Vector3(-4.20, 0.35, -0.72), mat(Color(0.68, 0.70, 0.69), 0.08, 0.38), false)
+
+	# More believable boardroom table detailing and chair supports.
+	box(self, "BoardroomTableMetalEdge", Vector3(3.42, 0.045, 1.50), Vector3(2.45, 0.875, -0.35), metal, false)
+	for x in [1.15, 2.45, 3.75]:
+		box(self, "BoardroomSeatPedestal", Vector3(0.16, 0.38, 0.16), Vector3(x, 0.32, -1.55), metal, false)
+		box(self, "BoardroomSeatPedestal", Vector3(0.16, 0.38, 0.16), Vector3(x, 0.32, 0.85), metal, false)
+
+	# Thin metallic window mullions make the glass facade read as framed glazing.
+	for x in [-4.45, -1.5, 1.5, 4.45]:
+		box(self, "WindowSill", Vector3(2.78, 0.045, 0.12), Vector3(x, 0.48, -3.98), metal, false)
+
 func build_world() -> void:
 	var world := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.48, 0.57, 0.63)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.78, 0.80, 0.81)
-	env.ambient_light_energy = 0.8
+	env.ambient_light_color = Color(0.86, 0.89, 0.92)
+	env.ambient_light_energy = 0.95
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 1.05
 	world.environment = env
 	add_child(world)
 
 	var sun := DirectionalLight3D.new()
 	sun.name = "Daylight"
 	sun.rotation_degrees = Vector3(-48, -32, 0)
-	sun.light_energy = 1.1
+	sun.light_energy = 1.35
+	sun.directional_shadow_max_distance = 35.0
+	sun.shadow_bias = 0.035
 	sun.shadow_enabled = true
 	add_child(sun)
 
