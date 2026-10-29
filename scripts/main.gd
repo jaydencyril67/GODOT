@@ -1,9 +1,9 @@
 extends Node3D
 
 # Lightweight procedural cutaway HQ. All geometry is generated in code.
-const CONCRETE := Color(0.78, 0.81, 0.82)
-const FLOOR := Color(0.28, 0.33, 0.36)
-const GLASS := Color(0.30, 0.68, 0.82, 0.42)
+const CONCRETE := Color(0.70, 0.73, 0.74)
+const FLOOR := Color(0.36, 0.38, 0.39)
+const GLASS := Color(0.28, 0.48, 0.56, 0.24)
 const DARK := Color(0.08, 0.13, 0.17)
 const WOOD := Color(0.40, 0.23, 0.13)
 const GREEN := Color(0.12, 0.34, 0.20)
@@ -47,9 +47,9 @@ func build_world() -> void:
 	var world := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.67, 0.82, 0.92)
+	env.background_color = Color(0.48, 0.57, 0.63)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.76, 0.82, 0.88)
+	env.ambient_light_color = Color(0.78, 0.80, 0.81)
 	env.ambient_light_energy = 0.8
 	world.environment = env
 	add_child(world)
@@ -57,7 +57,7 @@ func build_world() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Daylight"
 	sun.rotation_degrees = Vector3(-48, -32, 0)
-	sun.light_energy = 1.35
+	sun.light_energy = 1.1
 	sun.shadow_enabled = true
 	add_child(sun)
 
@@ -106,8 +106,8 @@ func build_world() -> void:
 
 	var camera := Camera3D.new()
 	camera.name = "OverviewCamera"
-	camera.position = Vector3(10.8, 8.0, 12.5)
+	camera.position = Vector3(10.0, 7.4, 11.5)
 	camera.fov = 42.0
 	add_child(camera)
-	camera.look_at(Vector3(0, 1.05, -0.2), Vector3.UP)
+	camera.look_at(Vector3(0, 1.15, -0.35), Vector3.UP)
 	camera.current = true
