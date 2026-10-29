@@ -5,11 +5,9 @@ var player: CharacterBody3D
 var view_camera: Camera3D
 var look_touch_id := -1
 var move_touch_id := -1
-var look_last := Vector2.ZERO
 var move_origin := Vector2.ZERO
 var move_vector := Vector2.ZERO
-var touch_look_sensitivity := 0.00125
-var look_pending_delta := Vector2.ZERO
+var look_sensitivity := 0.00125
 var joystick_home_position := Vector2.ZERO
 var joystick_is_floating := false
 var joystick_base: Panel
@@ -24,6 +22,40 @@ var elevator_right: MeshInstance3D
 var elevator_left_collision: StaticBody3D
 var elevator_right_collision: StaticBody3D
 var elevator_open := false
+var pending_interaction := ""
+var interaction_scan_timer := 0.0
+
+# Movement tuning is frame-rate independent because smoothing is exponential
+# in delta time, while collision movement remains in the fixed physics loop.
+const MOVE_SPEED := 2.8
+const MOVE_ACCEL_RESPONSE := 16.0
+const MOVE_DECEL_RESPONSE := 22.0
+const GRAVITY := 18.0
+const INTERACTION_SCAN_INTERVAL := 0.08
+const SEAT_INTERACTION_RADIUS := 1.55
+const ELEVATOR_INTERACTION_RADIUS := 2.1
+const PLAYER_BOUND_X := 5.55
+const PLAYER_BOUND_Z_MIN := -3.55
+const PLAYER_BOUND_Z_MAX := 7.75
+const ELEVATOR_CENTER_XZ := Vector2(3.75, 7.25)
+const SEAT_POSITIONS := [
+	Vector3(-4.15, 0.60, 5.45),
+	Vector3(-4.95, 0.48, 7.45),
+	Vector3(-3.45, 0.48, 7.45),
+	Vector3(-0.25, 0.35, 7.35),
+	Vector3(1.15, 0.55, -1.55),
+	Vector3(2.45, 0.55, -1.55),
+	Vector3(3.75, 0.55, -1.55)
+]
+
+# Resource caches avoid creating duplicate meshes, collision shapes and
+# identical materials for repeated procedural furniture/architecture.
+var material_cache: Dictionary = {}
+var box_mesh_cache: Dictionary = {}
+var box_shape_cache: Dictionary = {}
+var cylinder_mesh_cache: Dictionary = {}
+var shared_sphere_mesh: SphereMesh
+
 var procedural_micro_normal: NoiseTexture2D
 var pbr_concrete_wall: StandardMaterial3D
 var pbr_concrete_floor: StandardMaterial3D
@@ -49,14 +81,24 @@ func _physics_process(delta: float) -> void:
 	if player == null:
 		return
 
-	apply_smoothed_look(delta)
-	update_nearby_interaction()
+	# Apply interaction-driven body transforms inside the physics step rather
+	# than between physics ticks.
+	if not pending_interaction.is_empty():
+		apply_pending_interaction()
+
+	# Nearby prompts do not need a full scan every physics tick. This avoids
+	# rebuilding temporary arrays and repeatedly touching UI state at 60 Hz.
+	interaction_scan_timer -= delta
+	if interaction_scan_timer <= 0.0:
+		update_nearby_interaction()
+		interaction_scan_timer = INTERACTION_SCAN_INTERVAL
+
 	if is_sitting:
 		player.velocity = Vector3.ZERO
 		return
 
-	# Use one input source at a time. Mixing a keyboard vector with a stale
-	# touch-stick vector can produce unwanted diagonal or reversing movement.
+	# Use one active input source and normalize it so diagonal travel is never
+	# faster than straight travel.
 	var input_dir := move_vector if move_touch_id != -1 else Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	input_dir = input_dir.limit_length(1.0)
 
@@ -65,30 +107,42 @@ func _physics_process(delta: float) -> void:
 	if direction.length_squared() > 0.0001:
 		direction = direction.normalized()
 
-	var target_velocity := direction * 2.8
-	var smoothing := 1.0 - exp(-delta * (16.0 if input_dir.length() > 0.05 else 22.0))
+	var responding := input_dir.length_squared() > 0.0025
+	var response_rate := MOVE_ACCEL_RESPONSE if responding else MOVE_DECEL_RESPONSE
+	var smoothing := 1.0 - exp(-delta * response_rate)
+	var target_velocity := direction * MOVE_SPEED
 	var horizontal_velocity := Vector2(player.velocity.x, player.velocity.z).lerp(Vector2(target_velocity.x, target_velocity.z), smoothing)
 	player.velocity.x = horizontal_velocity.x
 	player.velocity.z = horizontal_velocity.y
 
-	# Preserve vertical physics. Resetting Y velocity every frame can fight
-	# floor snapping and collision resolution, making the view jitter.
+	# Preserve vertical physics and clear only downward velocity while grounded.
 	if not player.is_on_floor():
-		player.velocity.y -= 18.0 * delta
+		player.velocity.y -= GRAVITY * delta
 	elif player.velocity.y < 0.0:
 		player.velocity.y = 0.0
 
-	# Stop at the walkable bounds by cancelling outward velocity, not by
-	# teleporting the body after collision resolution (which caused shaking).
+	# Cancel outward movement before it crosses the walkable bounds. Avoid
+	# teleporting the body after move_and_slide(), which can produce jitter.
 	var next_x := player.position.x + player.velocity.x * delta
 	var next_z := player.position.z + player.velocity.z * delta
-	if (next_x < -5.55 and player.velocity.x < 0.0) or (next_x > 5.55 and player.velocity.x > 0.0):
+	if (next_x < -PLAYER_BOUND_X and player.velocity.x < 0.0) or (next_x > PLAYER_BOUND_X and player.velocity.x > 0.0):
 		player.velocity.x = 0.0
-	if (next_z < -3.55 and player.velocity.z < 0.0) or (next_z > 7.75 and player.velocity.z > 0.0):
+	if (next_z < PLAYER_BOUND_Z_MIN and player.velocity.z < 0.0) or (next_z > PLAYER_BOUND_Z_MAX and player.velocity.z > 0.0):
 		player.velocity.z = 0.0
 
-	player.floor_snap_length = 0.28
 	player.move_and_slide()
+
+func apply_pending_interaction() -> void:
+	var requested := pending_interaction
+	pending_interaction = ""
+	interaction_scan_timer = 0.0
+	match requested:
+		"elevator":
+			toggle_elevator()
+		"sit":
+			begin_sitting()
+		"stand":
+			stand_up()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -117,7 +171,6 @@ func _input(event: InputEvent) -> void:
 				update_joystick_knob(event.position)
 			elif look_touch_id == -1:
 				look_touch_id = event.index
-				look_last = event.position
 		else:
 			if event.index == move_touch_id:
 				move_touch_id = -1
@@ -138,21 +191,16 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		rotate_view(event.relative)
 
-func rotate_view(delta: Vector2) -> void:
+func rotate_view(input_delta: Vector2) -> void:
 	if player == null or view_camera == null:
 		return
-	# Queue mouse/touch deltas and apply them gradually in physics frames.
-	look_pending_delta += delta * touch_look_sensitivity
-
-func apply_smoothed_look(delta: float) -> void:
-	if player == null or view_camera == null or look_pending_delta.length_squared() < 0.0000001:
-		return
-	var blend := 1.0 - exp(-delta * 24.0)
-	var applied := look_pending_delta * blend
-	look_pending_delta -= applied
-	player.rotation.y -= applied.x
+	# Apply the full accumulated input delta immediately. Low-pass smoothing
+	# of the input queue introduced aim lag and allowed old movement to trail.
+	# Godot already accumulates mouse input; touch deltas are consumed as sent.
+	var look_delta := input_delta * look_sensitivity
+	player.rotation.y -= look_delta.x
 	view_camera.rotation.x = clampf(
-		view_camera.rotation.x - applied.y,
+		view_camera.rotation.x - look_delta.y,
 		deg_to_rad(-75.0),
 		deg_to_rad(75.0)
 	)
@@ -161,6 +209,7 @@ func create_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "FirstPersonPlayer"
 	player.position = Vector3(0.0, 0.98, 3.15)
+	player.floor_snap_length = 0.28
 	add_child(player)
 
 	var capsule := CapsuleShape3D.new()
@@ -280,31 +329,20 @@ func update_nearby_interaction() -> void:
 		return
 
 	var player_xz := Vector2(player.global_position.x, player.global_position.z)
-	var elevator_xz := Vector2(3.75, 7.25)
-	if player_xz.distance_to(elevator_xz) < 2.1:
+	if player_xz.distance_squared_to(ELEVATOR_CENTER_XZ) < ELEVATOR_INTERACTION_RADIUS * ELEVATOR_INTERACTION_RADIUS:
 		current_interaction = "elevator"
 		interact_button.text = "CLOSE" if elevator_open else "OPEN"
 		interact_button.visible = true
 		return
 
-	var seats := [
-		{"label": "SIT", "position": Vector3(-4.15, 0.60, 5.45)},
-		{"label": "SIT", "position": Vector3(-4.95, 0.48, 7.45)},
-		{"label": "SIT", "position": Vector3(-3.45, 0.48, 7.45)},
-		{"label": "SIT", "position": Vector3(-0.25, 0.35, 7.35)},
-		{"label": "SIT", "position": Vector3(1.15, 0.55, -1.55)},
-		{"label": "SIT", "position": Vector3(2.45, 0.55, -1.55)},
-		{"label": "SIT", "position": Vector3(3.75, 0.55, -1.55)}
-	]
-	var nearest_seat: Vector3 = Vector3.ZERO
-	var nearest_distance := 1.55
-	for seat in seats:
-		var seat_pos: Vector3 = seat["position"]
-		var distance := player_xz.distance_to(Vector2(seat_pos.x, seat_pos.z))
-		if distance < nearest_distance:
-			nearest_distance = distance
-			nearest_seat = seat_pos
-	if nearest_distance < 1.55:
+	var seat_radius_squared := SEAT_INTERACTION_RADIUS * SEAT_INTERACTION_RADIUS
+	var near_seat := false
+	for seat_pos in SEAT_POSITIONS:
+		var seat_xz := Vector2(seat_pos.x, seat_pos.z)
+		if player_xz.distance_squared_to(seat_xz) < seat_radius_squared:
+			near_seat = true
+			break
+	if near_seat:
 		current_interaction = "sit"
 		interact_button.text = "SIT"
 		interact_button.visible = true
@@ -313,35 +351,25 @@ func update_nearby_interaction() -> void:
 		interact_button.visible = false
 
 func perform_context_interaction() -> void:
-	match current_interaction:
-		"elevator":
-			toggle_elevator()
-		"sit":
-			begin_sitting()
-		"stand":
-			stand_up()
+	# Buttons are processed outside the physics step; queue the action so
+	# CharacterBody3D and moving collision bodies are changed predictably.
+	if current_interaction.is_empty() or not pending_interaction.is_empty():
+		return
+	pending_interaction = current_interaction
 
 func begin_sitting() -> void:
 	if player == null or view_camera == null:
 		return
-	var seats := [
-		Vector3(-4.15, 0.60, 5.45),
-		Vector3(-4.95, 0.48, 7.45),
-		Vector3(-3.45, 0.48, 7.45),
-		Vector3(-0.25, 0.35, 7.35),
-		Vector3(1.15, 0.55, -1.55),
-		Vector3(2.45, 0.55, -1.55),
-		Vector3(3.75, 0.55, -1.55)
-	]
 	var player_xz := Vector2(player.global_position.x, player.global_position.z)
-	var chosen: Vector3 = seats[0]
-	var best_distance := INF
-	for seat_pos in seats:
-		var distance := player_xz.distance_to(Vector2(seat_pos.x, seat_pos.z))
-		if distance < best_distance:
-			best_distance = distance
+	var chosen: Vector3 = SEAT_POSITIONS[0]
+	var best_distance_squared := INF
+	for seat_pos in SEAT_POSITIONS:
+		var seat_xz := Vector2(seat_pos.x, seat_pos.z)
+		var distance_squared := player_xz.distance_squared_to(seat_xz)
+		if distance_squared < best_distance_squared:
+			best_distance_squared = distance_squared
 			chosen = seat_pos
-	if best_distance > 1.55:
+	if best_distance_squared > SEAT_INTERACTION_RADIUS * SEAT_INTERACTION_RADIUS:
 		return
 	saved_stand_position = player.global_position
 	saved_camera_height = view_camera.position.y
@@ -360,12 +388,14 @@ func stand_up() -> void:
 func toggle_elevator() -> void:
 	if player == null:
 		return
-	var elevator_center := Vector3(3.75, 0.0, 7.25)
-	if Vector2(player.global_position.x - elevator_center.x, player.global_position.z - elevator_center.z).length() > 2.5:
+	var player_xz := Vector2(player.global_position.x, player.global_position.z)
+	if player_xz.distance_squared_to(ELEVATOR_CENTER_XZ) > 2.5 * 2.5:
 		return
 	elevator_open = not elevator_open
 	var slide := 0.82 if elevator_open else 0.0
-	var tween := create_tween().set_parallel(true)
+	var tween := create_tween()
+	tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	tween.set_parallel(true)
 	if elevator_left != null:
 		tween.tween_property(elevator_left, "position", elevator_left_closed + Vector3(-slide, 0.0, 0.0), 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	if elevator_right != null:
@@ -444,6 +474,10 @@ func make_wood_material(tint: Color, roughness_value: float = 0.38, tile_scale: 
 	return material
 
 func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> StandardMaterial3D:
+	var cache_key := "%s|%s|%s" % [str(color), str(metallic), str(roughness)]
+	if material_cache.has(cache_key):
+		return material_cache[cache_key] as StandardMaterial3D
+
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
 	m.metallic = metallic
@@ -463,43 +497,58 @@ func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> Standa
 			m.uv1_world_triplanar = true
 			var texture_repeat := 2.5 if metallic > 0.45 else (1.5 if roughness > 0.70 else 3.0)
 			m.uv1_scale = Vector3(texture_repeat, texture_repeat, texture_repeat)
+	material_cache[cache_key] = m
 	return m
 
-func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: Material, solid: bool = true) -> MeshInstance3D:
+func box(parent: Node3D, label: String, size: Vector3, pos: Vector3, material: Material, solid: bool = true, animatable_collision: bool = false) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = label
-	var mesh := BoxMesh.new()
-	mesh.size = size
+	var mesh_key := str(size)
+	var mesh := box_mesh_cache.get(mesh_key) as BoxMesh
+	if mesh == null:
+		mesh = BoxMesh.new()
+		mesh.size = size
+		box_mesh_cache[mesh_key] = mesh
 	mesh_instance.mesh = mesh
 	mesh_instance.position = pos
 	mesh_instance.material_override = material
 	parent.add_child(mesh_instance)
 
 	if solid:
-		add_box_collision(parent, label + "Collision", size, pos)
+		add_box_collision(parent, label + "Collision", size, pos, animatable_collision)
 
 	return mesh_instance
 
-func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector3) -> void:
-	var body := StaticBody3D.new()
+func add_box_collision(parent: Node3D, label: String, size: Vector3, pos: Vector3, animatable: bool = false) -> void:
+	var body: StaticBody3D
+	if animatable:
+		body = AnimatableBody3D.new()
+	else:
+		body = StaticBody3D.new()
 	body.name = label
 	body.position = pos
 	parent.add_child(body)
+
 	var collision := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = size
+	var shape_key := str(size)
+	var shape := box_shape_cache.get(shape_key) as BoxShape3D
+	if shape == null:
+		shape = BoxShape3D.new()
+		shape.size = size
+		box_shape_cache[shape_key] = shape
 	collision.shape = shape
 	body.add_child(collision)
 
 func ellipsoid(parent: Node3D, label: String, pos: Vector3, scale: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = label
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.5
-	mesh.height = 1.0
-	mesh.radial_segments = 24
-	mesh.rings = 12
-	instance.mesh = mesh
+	if shared_sphere_mesh == null:
+		shared_sphere_mesh = SphereMesh.new()
+		shared_sphere_mesh.radius = 0.5
+		shared_sphere_mesh.height = 1.0
+		shared_sphere_mesh.radial_segments = 24
+		shared_sphere_mesh.rings = 12
+	instance.mesh = shared_sphere_mesh
 	instance.position = pos
 	instance.scale = scale
 	instance.material_override = material
@@ -509,16 +558,37 @@ func ellipsoid(parent: Node3D, label: String, pos: Vector3, scale: Vector3, mate
 func cylinder(parent: Node3D, label: String, radius: float, height: float, pos: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = label
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = radius
-	mesh.bottom_radius = radius
-	mesh.height = height
-	mesh.radial_segments = 24
-	mesh.rings = 2
+	var mesh_key := "%s|%s" % [str(radius), str(height)]
+	var mesh := cylinder_mesh_cache.get(mesh_key) as CylinderMesh
+	if mesh == null:
+		mesh = CylinderMesh.new()
+		mesh.top_radius = radius
+		mesh.bottom_radius = radius
+		mesh.height = height
+		mesh.radial_segments = 24
+		mesh.rings = 2
+		cylinder_mesh_cache[mesh_key] = mesh
 	instance.mesh = mesh
 	instance.position = pos
 	instance.material_override = material
 	parent.add_child(instance)
+	return instance
+
+func add_multimesh_boxes(label: String, size: Vector3, positions: Array[Vector3], material: Material) -> MultiMeshInstance3D:
+	var instances := MultiMesh.new()
+	instances.transform_format = MultiMesh.TRANSFORM_3D
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	instances.mesh = mesh
+	instances.instance_count = positions.size()
+	for i in range(positions.size()):
+		instances.set_instance_transform(i, Transform3D(Basis(), positions[i]))
+
+	var instance := MultiMeshInstance3D.new()
+	instance.name = label
+	instance.multimesh = instances
+	instance.material_override = material
+	add_child(instance)
 	return instance
 
 func rod_between(parent: Node3D, label: String, a: Vector3, b: Vector3, radius: float, material: Material) -> MeshInstance3D:
@@ -802,8 +872,8 @@ func build_phase_two() -> void:
 	box(self, "ElevatorFrameLeft", Vector3(0.12, 2.55, 0.18), Vector3(2.85, 1.28, 8.28), trim_mat)
 	box(self, "ElevatorFrameRight", Vector3(0.12, 2.55, 0.18), Vector3(4.65, 1.28, 8.28), trim_mat)
 	box(self, "ElevatorHeader", Vector3(1.92, 0.14, 0.18), Vector3(3.75, 2.55, 8.28), trim_mat)
-	elevator_left = box(self, "ElevatorDoorLeft", Vector3(0.86, 2.32, 0.08), elevator_left_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
-	elevator_right = box(self, "ElevatorDoorRight", Vector3(0.86, 2.32, 0.08), elevator_right_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
+	elevator_left = box(self, "ElevatorDoorLeft", Vector3(0.86, 2.32, 0.08), elevator_left_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22), true, true)
+	elevator_right = box(self, "ElevatorDoorRight", Vector3(0.86, 2.32, 0.08), elevator_right_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22), true, true)
 	elevator_left_collision = get_node_or_null("ElevatorDoorLeftCollision") as StaticBody3D
 	elevator_right_collision = get_node_or_null("ElevatorDoorRightCollision") as StaticBody3D
 	box(self, "ElevatorCallPanel", Vector3(0.18, 0.42, 0.05), Vector3(4.92, 1.48, 8.18), mat(Color(0.08, 0.13, 0.16), 0.25, 0.22), false)
@@ -848,13 +918,16 @@ func add_architectural_finish() -> void:
 	box(self, "LeftRoofCoping", Vector3(0.22, 0.055, 13.10), Vector3(-6.32, 3.56, 2.08), coping, false)
 	box(self, "RightRoofCoping", Vector3(0.22, 0.055, 13.10), Vector3(6.32, 3.56, 2.08), coping, false)
 
-	# Suspended ceiling tiles and recessed linear joints create a believable
-	# acoustic ceiling rather than a single blank roof surface.
+	# Repeated static ceiling details are batched into two MultiMeshes. This
+	# preserves their layout while reducing dozens of individual draw calls.
+	var ceiling_tile_positions: Array[Vector3] = []
+	var ceiling_joint_positions: Array[Vector3] = []
 	for x in [-5.0, -3.0, -1.0, 1.0, 3.0, 5.0]:
 		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
-			box(self, "AcousticCeilingTile", Vector3(1.94, 0.035, 1.94), Vector3(x, 3.30, z), ceiling_panel, false)
-		for z in [-3.0, -1.0, 1.0, 3.0, 5.0, 7.0]:
-			box(self, "CeilingGridJoint", Vector3(0.018, 0.012, 1.96), Vector3(x + 0.99, 3.275, z), ceiling_reveal, false)
+			ceiling_tile_positions.append(Vector3(x, 3.30, z))
+			ceiling_joint_positions.append(Vector3(x + 0.99, 3.275, z))
+	add_multimesh_boxes("AcousticCeilingTiles", Vector3(1.94, 0.035, 1.94), ceiling_tile_positions, ceiling_panel)
+	add_multimesh_boxes("CeilingGridJoints", Vector3(0.018, 0.012, 1.96), ceiling_joint_positions, ceiling_reveal)
 
 	# Weather-resistant facade panel joints and shallow vertical fins along the
 	# exposed left and right elevations.
