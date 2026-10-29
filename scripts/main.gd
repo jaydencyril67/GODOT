@@ -8,7 +8,17 @@ var move_touch_id := -1
 var look_last := Vector2.ZERO
 var move_origin := Vector2.ZERO
 var move_vector := Vector2.ZERO
-var touch_look_sensitivity := 0.004
+var touch_look_sensitivity := 0.0032
+var joystick_base: Panel
+var joystick_knob: Panel
+var interact_button: Button
+var elevator_left: MeshInstance3D
+var elevator_right: MeshInstance3D
+var elevator_left_collision: StaticBody3D
+var elevator_right_collision: StaticBody3D
+var elevator_open := false
+var elevator_left_closed := Vector3(3.30, 1.20, 8.34)
+var elevator_right_closed := Vector3(4.20, 1.20, 8.34)
 
 # Lightweight procedural HQ. All geometry is generated in code.
 const CONCRETE := Color(0.76, 0.78, 0.78)
@@ -32,10 +42,12 @@ func _physics_process(_delta: float) -> void:
 		input_dir = move_vector
 	input_dir = input_dir.limit_length(1.0)
 
-	# Local -Z is forward, so dragging upward moves into the office.
+	# Accelerate and brake smoothly instead of snapping to full speed.
 	var direction := (player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
-	player.velocity.x = direction.x * 3.2
-	player.velocity.z = direction.z * 3.2
+	var target_velocity := direction * 3.4
+	var rate := 12.0 if input_dir.length() > 0.05 else 16.0
+	player.velocity.x = move_toward(player.velocity.x, target_velocity.x, rate * _delta)
+	player.velocity.z = move_toward(player.velocity.z, target_velocity.z, rate * _delta)
 	player.velocity.y = 0.0
 	player.move_and_slide()
 
@@ -49,8 +61,9 @@ func _input(event: InputEvent) -> void:
 			var screen_width := get_viewport().get_visible_rect().size.x
 			if event.position.x < screen_width * 0.45 and move_touch_id == -1:
 				move_touch_id = event.index
-				move_origin = event.position
+				move_origin = joystick_center()
 				move_vector = Vector2.ZERO
+				update_joystick_knob(event.position)
 			elif look_touch_id == -1:
 				look_touch_id = event.index
 				look_last = event.position
@@ -58,13 +71,14 @@ func _input(event: InputEvent) -> void:
 			if event.index == move_touch_id:
 				move_touch_id = -1
 				move_vector = Vector2.ZERO
+				reset_joystick_knob()
 			if event.index == look_touch_id:
 				look_touch_id = -1
 	elif event is InputEventScreenDrag:
 		if event.index == move_touch_id:
-			move_vector = (event.position - move_origin) / 65.0
-			move_vector.x = clampf(move_vector.x, -1.0, 1.0)
-			move_vector.y = clampf(move_vector.y, -1.0, 1.0)
+			var offset: Vector2 = event.position - move_origin
+			move_vector = (offset / 58.0).limit_length(1.0)
+			update_joystick_knob(event.position)
 		elif event.index == look_touch_id:
 			rotate_view(event.relative)
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
@@ -103,25 +117,118 @@ func create_player() -> void:
 
 func create_mobile_hint() -> void:
 	var hud := CanvasLayer.new()
-	hud.name = "MobileControlsHint"
+	hud.name = "MobileControls"
 	add_child(hud)
 
+	# Fixed translucent joystick base and thumb pad, GTA-style.
+	joystick_base = Panel.new()
+	joystick_base.name = "MovementJoystickBase"
+	joystick_base.position = Vector2(28.0, get_viewport().get_visible_rect().size.y - 170.0)
+	joystick_base.size = Vector2(132.0, 132.0)
+	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var base_style := StyleBoxFlat.new()
+	base_style.bg_color = Color(0.04, 0.09, 0.13, 0.42)
+	base_style.corner_radius_top_left = 66
+	base_style.corner_radius_top_right = 66
+	base_style.corner_radius_bottom_left = 66
+	base_style.corner_radius_bottom_right = 66
+	base_style.border_width_left = 2
+	base_style.border_width_top = 2
+	base_style.border_width_right = 2
+	base_style.border_width_bottom = 2
+	base_style.border_color = Color(0.75, 0.91, 1.0, 0.65)
+	joystick_base.add_theme_stylebox_override("panel", base_style)
+	hud.add_child(joystick_base)
+
+	joystick_knob = Panel.new()
+	joystick_knob.name = "MovementJoystickKnob"
+	joystick_knob.size = Vector2(54.0, 54.0)
+	joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var knob_style := StyleBoxFlat.new()
+	knob_style.bg_color = Color(0.72, 0.88, 0.96, 0.78)
+	knob_style.corner_radius_top_left = 27
+	knob_style.corner_radius_top_right = 27
+	knob_style.corner_radius_bottom_left = 27
+	knob_style.corner_radius_bottom_right = 27
+	knob_style.border_width_left = 2
+	knob_style.border_width_top = 2
+	knob_style.border_width_right = 2
+	knob_style.border_width_bottom = 2
+	knob_style.border_color = Color(1.0, 1.0, 1.0, 0.85)
+	joystick_knob.add_theme_stylebox_override("panel", knob_style)
+	hud.add_child(joystick_knob)
+	reset_joystick_knob()
+
 	var hint := Label.new()
-	hint.name = "TouchControlsHint"
-	hint.text = "LEFT SIDE: DRAG TO WALK     •     RIGHT SIDE: DRAG TO LOOK"
-	hint.anchor_left = 0.0
-	hint.anchor_top = 1.0
-	hint.anchor_right = 1.0
-	hint.anchor_bottom = 1.0
-	hint.offset_left = 10.0
-	hint.offset_top = -48.0
-	hint.offset_right = -10.0
-	hint.offset_bottom = -10.0
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 13)
-	hint.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.95))
+	hint.text = "MOVE"
+	hint.position = Vector2(62.0, get_viewport().get_visible_rect().size.y - 36.0)
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
 	hud.add_child(hint)
+
+	interact_button = Button.new()
+	interact_button.name = "InteractButton"
+	interact_button.text = "OPEN"
+	interact_button.position = Vector2(get_viewport().get_visible_rect().size.x - 112.0, get_viewport().get_visible_rect().size.y - 126.0)
+	interact_button.size = Vector2(88.0, 58.0)
+	interact_button.add_theme_font_size_override("font_size", 18)
+	interact_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	var button_style := StyleBoxFlat.new()
+	button_style.bg_color = Color(0.05, 0.28, 0.36, 0.82)
+	button_style.corner_radius_top_left = 14
+	button_style.corner_radius_top_right = 14
+	button_style.corner_radius_bottom_left = 14
+	button_style.corner_radius_bottom_right = 14
+	button_style.border_width_left = 2
+	button_style.border_width_top = 2
+	button_style.border_width_right = 2
+	button_style.border_width_bottom = 2
+	button_style.border_color = Color(0.65, 0.90, 1.0, 0.9)
+	interact_button.add_theme_stylebox_override("normal", button_style)
+	interact_button.add_theme_stylebox_override("hover", button_style)
+	interact_button.add_theme_stylebox_override("pressed", button_style)
+	interact_button.pressed.connect(toggle_elevator)
+	hud.add_child(interact_button)
+
+func joystick_center() -> Vector2:
+	return joystick_base.position + joystick_base.size * 0.5 if joystick_base != null else Vector2(94.0, 0.0)
+
+func update_joystick_knob(touch_position: Vector2) -> void:
+	if joystick_base == null or joystick_knob == null:
+		return
+	var center := joystick_center()
+	var offset := (touch_position - center).limit_length(44.0)
+	joystick_knob.position = center + offset - joystick_knob.size * 0.5
+
+func reset_joystick_knob() -> void:
+	if joystick_base == null or joystick_knob == null:
+		return
+	joystick_knob.position = joystick_center() - joystick_knob.size * 0.5
+
+func toggle_elevator() -> void:
+	if player == null:
+		return
+	var elevator_center := Vector3(3.75, 0.0, 8.34)
+	if Vector2(player.global_position.x - elevator_center.x, player.global_position.z - elevator_center.z).length() > 4.0:
+		if interact_button != null:
+			interact_button.text = "TOO FAR"
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				if is_instance_valid(interact_button):
+					interact_button.text = "OPEN"
+			)
+		return
+	elevator_open = not elevator_open
+	var slide := 0.82 if elevator_open else 0.0
+	if elevator_left != null:
+		elevator_left.position = elevator_left_closed + Vector3(-slide, 0.0, 0.0)
+	if elevator_right != null:
+		elevator_right.position = elevator_right_closed + Vector3(slide, 0.0, 0.0)
+	if elevator_left_collision != null:
+		elevator_left_collision.position = elevator_left.position
+	if elevator_right_collision != null:
+		elevator_right_collision.position = elevator_right.position
+	if interact_button != null:
+		interact_button.text = "CLOSE" if elevator_open else "OPEN"
 
 func mat(color: Color, metallic: float = 0.0, roughness: float = 0.55) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -166,9 +273,6 @@ func label3d(text_value: String, pos: Vector3, size: float = 0.32) -> void:
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.modulate = Color(0.08, 0.15, 0.20)
 	add_child(label)
-
-	add_photoreal_details()
-	build_phase_two()
 
 
 func add_photoreal_details() -> void:
@@ -290,6 +394,7 @@ func build_world() -> void:
 		box(self, "PlantPot", Vector3(0.48, 0.46, 0.48), p + Vector3(0, 0.23, 0), mat(Color(0.34, 0.24, 0.17)))
 		box(self, "PlantFoliage", Vector3(0.62, 0.92, 0.62), p + Vector3(0, 0.88, 0), mat(GREEN))
 	add_photoreal_details()
+	build_phase_two()
 
 func build_phase_two() -> void:
 	# New forward wing extends the walkable floor beyond the original reception.
@@ -345,8 +450,10 @@ func build_phase_two() -> void:
 	box(self, "ElevatorFrameLeft", Vector3(0.12, 2.55, 0.18), Vector3(2.85, 1.28, 8.28), trim_mat)
 	box(self, "ElevatorFrameRight", Vector3(0.12, 2.55, 0.18), Vector3(4.65, 1.28, 8.28), trim_mat)
 	box(self, "ElevatorHeader", Vector3(1.92, 0.14, 0.18), Vector3(3.75, 2.55, 8.28), trim_mat)
-	box(self, "ElevatorDoorLeft", Vector3(0.86, 2.32, 0.08), Vector3(3.30, 1.20, 8.34), mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
-	box(self, "ElevatorDoorRight", Vector3(0.86, 2.32, 0.08), Vector3(4.20, 1.20, 8.34), mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
+	elevator_left = box(self, "ElevatorDoorLeft", Vector3(0.86, 2.32, 0.08), elevator_left_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
+	elevator_right = box(self, "ElevatorDoorRight", Vector3(0.86, 2.32, 0.08), elevator_right_closed, mat(Color(0.68, 0.72, 0.74), 0.78, 0.22))
+	elevator_left_collision = get_node_or_null("ElevatorDoorLeftCollision") as StaticBody3D
+	elevator_right_collision = get_node_or_null("ElevatorDoorRightCollision") as StaticBody3D
 	box(self, "ElevatorCallPanel", Vector3(0.18, 0.42, 0.05), Vector3(4.92, 1.48, 8.18), mat(Color(0.08, 0.13, 0.16), 0.25, 0.22), false)
 	box(self, "ElevatorFloorDisplay", Vector3(0.08, 0.10, 0.02), Vector3(4.92, 1.62, 8.14), mat(Color(0.18, 0.80, 0.66), 0.1, 0.2), false)
 	label3d("ELEVATORS", Vector3(3.05, 2.90, 8.18), 0.20)
