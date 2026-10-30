@@ -138,7 +138,7 @@ func _show_menu() -> void:
 	center.add_child(content)
 
 	var eyebrow := _label("THE WORLD OF BUSINESS, BUILT BY YOU", 12, Color("#d9f5ff"), HORIZONTAL_ALIGNMENT_CENTER)
-	eyebrow.add_theme_color_override("font_color", Color("#eadcff"))
+	_apply_menu_3d_label(eyebrow, 2)
 	content.add_child(eyebrow)
 	_add_spacer(content, 8)
 
@@ -166,12 +166,14 @@ func _show_menu() -> void:
 
 	_add_spacer(content, 4)
 	var subtitle := _label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 12, Color("#c9efff"), HORIZONTAL_ALIGNMENT_CENTER)
+	_apply_menu_3d_label(subtitle, 2)
 	content.add_child(subtitle)
 	_add_spacer(content, 16)
 
 	var description := _label("Build your company. Shape your headquarters. Lead your industry.", 16, Color("#e5f8ff"), HORIZONTAL_ALIGNMENT_CENTER)
 	description.autowrap_mode = TextServer.AUTOWRAP_OFF
 	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_menu_3d_label(description, 3)
 	content.add_child(description)
 	_add_spacer(content, 34)
 
@@ -193,6 +195,7 @@ func _show_menu() -> void:
 	_add_spacer(content, 22)
 	var status := "SAVED COMPANY FOUND ON THIS DEVICE" if not career.is_empty() else "READY TO ESTABLISH A NEW COMPANY"
 	var status_label := _label("●  " + status, 11, Color("#c5edff"), HORIZONTAL_ALIGNMENT_CENTER)
+	_apply_menu_3d_label(status_label, 2)
 	content.add_child(status_label)
 
 	var footer := _label("KINGSHALL-ORG", 10, Color("#b9e8ff"))
@@ -202,14 +205,16 @@ func _show_menu() -> void:
 	footer.anchor_bottom = 1.0
 	footer.offset_top = -30
 	footer.offset_bottom = -10
+	_apply_menu_3d_label(footer, 2)
 	root.add_child(footer)
-	var footer_right := _label("DIGITALWORLD", 10, Color("#d4bce9"), HORIZONTAL_ALIGNMENT_RIGHT)
+	var footer_right := _label("DIGITALWORLD", 10, Color("#b9e8ff"), HORIZONTAL_ALIGNMENT_RIGHT)
 	footer_right.anchor_left = 0.54
 	footer_right.anchor_right = 0.96
 	footer_right.anchor_top = 1.0
 	footer_right.anchor_bottom = 1.0
 	footer_right.offset_top = -25
 	footer_right.offset_bottom = -8
+	_apply_menu_3d_label(footer_right, 2)
 	root.add_child(footer_right)
 
 
@@ -772,18 +777,19 @@ func _hero_font_base(font_variation: FontVariation) -> void:
 func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.16, 0.70, 0.94, 0.30) if primary else Color(0.72, 0.91, 1.0, 0.13)
+		style.bg_color = Color(0.12, 0.62, 0.91, 0.38) if primary else Color(0.58, 0.84, 1.0, 0.20)
 		if state == "hover":
-			style.bg_color = Color(0.30, 0.82, 1.0, 0.42) if primary else Color(0.76, 0.94, 1.0, 0.24)
+			style.bg_color = Color(0.28, 0.78, 1.0, 0.52) if primary else Color(0.74, 0.93, 1.0, 0.34)
 		elif state == "pressed":
-			style.bg_color = Color(0.04, 0.30, 0.66, 0.52)
-		style.border_color = Color(0.88, 0.97, 1.0, 0.82)
+			style.bg_color = Color(0.035, 0.24, 0.58, 0.62)
+		style.border_color = Color(0.90, 0.98, 1.0, 0.94)
 		style.set_border_width_all(1)
-		style.border_width_top = 2
+		style.border_width_top = 3
+		style.border_width_left = 2
 		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.02, 0.30, 0.66, 0.32)
-		style.shadow_size = 12 if primary else 8
-		style.shadow_offset = Vector2(0, 3)
+		style.shadow_color = Color(0.0, 0.16, 0.48, 0.62)
+		style.shadow_size = 15 if primary else 11
+		style.shadow_offset = Vector2(0, 5)
 		style.anti_aliasing = true
 		style.content_margin_left = 14
 		style.content_margin_right = 14
@@ -795,6 +801,21 @@ func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
 	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_color_override("font_outline_color", Color("#06345f"))
+	button.add_theme_constant_override("outline_size", 2)
+	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.12, 0.95))
+	button.add_theme_constant_override("shadow_offset_x", 2)
+	button.add_theme_constant_override("shadow_offset_y", 3)
+
+
+func _apply_menu_3d_label(label: Label, depth: int = 3) -> void:
+	# Layered outline and offset shadow give every menu caption a consistent
+	# raised, extruded finish while keeping the interface crisp on mobile.
+	label.add_theme_color_override("font_outline_color", Color("#052b59"))
+	label.add_theme_constant_override("outline_size", 2)
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.12, 0.92))
+	label.add_theme_constant_override("shadow_offset_x", depth)
+	label.add_theme_constant_override("shadow_offset_y", depth + 2)
 
 
 func _style_button(button: Button, primary: bool) -> void:
