@@ -93,13 +93,13 @@ func _show_menu() -> void:
 	_clear_world()
 	var root := _new_screen()
 
-	# Full-screen purple-to-black atmosphere. No panel or card behind the menu.
+	# Full-screen sky-blue through deep-blue atmosphere. No panel or card behind the menu.
 	var gradient := Gradient.new()
 	gradient.offsets = PackedFloat32Array([0.0, 0.46, 1.0])
 	gradient.colors = PackedColorArray([
-		Color("#c9a7ff"),
-		Color("#4b187f"),
-		Color("#050309")
+		Color("#8fe7ff"),
+		Color("#168bd5"),
+		Color("#061b52")
 	])
 	var gradient_texture := GradientTexture2D.new()
 	gradient_texture.gradient = gradient
@@ -109,7 +109,7 @@ func _show_menu() -> void:
 	gradient_texture.height = 512
 
 	var background := TextureRect.new()
-	background.name = "DigitalWorld_Purple_Gradient_Background"
+	background.name = "DigitalWorld_Blue_Gradient_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	background.stretch_mode = TextureRect.STRETCH_SCALE
@@ -120,7 +120,7 @@ func _show_menu() -> void:
 	# A subtle dark wash keeps the white typography readable.
 	var wash := ColorRect.new()
 	wash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	wash.color = Color(0.015, 0.005, 0.025, 0.16)
+	wash.color = Color(0.005, 0.035, 0.10, 0.20)
 	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(wash)
 
@@ -130,12 +130,14 @@ func _show_menu() -> void:
 
 	var content := VBoxContainer.new()
 	content.custom_minimum_size = Vector2(696, 0)
+	content.scale = Vector2(1.4, 1.4)
+	content.pivot_offset = Vector2(348, 180)
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 0)
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(content)
 
-	var eyebrow := _label("THE WORLD OF BUSINESS, BUILT BY YOU", 12, Color("#eadcff"), HORIZONTAL_ALIGNMENT_CENTER)
+	var eyebrow := _label("THE WORLD OF BUSINESS, BUILT BY YOU", 12, Color("#d9f5ff"), HORIZONTAL_ALIGNMENT_CENTER)
 	eyebrow.add_theme_color_override("font_color", Color("#eadcff"))
 	content.add_child(eyebrow)
 	_add_spacer(content, 8)
@@ -152,9 +154,9 @@ func _show_menu() -> void:
 	hero.custom_minimum_size = Vector2(0, 92)
 	hero.add_theme_font_size_override("font_size", 65)
 	hero.add_theme_color_override("font_color", Color("#ffffff"))
-	hero.add_theme_color_override("font_outline_color", Color("#321052"))
+	hero.add_theme_color_override("font_outline_color", Color("#06345f"))
 	hero.add_theme_constant_override("outline_size", 3)
-	hero.add_theme_color_override("font_shadow_color", Color(0.015, 0.0, 0.04, 0.95))
+	hero.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.10, 0.95))
 	hero.add_theme_constant_override("shadow_offset_x", 5)
 	hero.add_theme_constant_override("shadow_offset_y", 7)
 	var hero_font := FontVariation.new()
@@ -163,11 +165,11 @@ func _show_menu() -> void:
 	content.add_child(hero)
 
 	_add_spacer(content, 4)
-	var subtitle := _label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 12, Color("#e6d3ff"), HORIZONTAL_ALIGNMENT_CENTER)
+	var subtitle := _label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 12, Color("#c9efff"), HORIZONTAL_ALIGNMENT_CENTER)
 	content.add_child(subtitle)
 	_add_spacer(content, 16)
 
-	var description := _label("Build your company. Shape your headquarters. Lead your industry.", 16, Color("#f0e8fa"), HORIZONTAL_ALIGNMENT_CENTER)
+	var description := _label("Build your company. Shape your headquarters. Lead your industry.", 16, Color("#e5f8ff"), HORIZONTAL_ALIGNMENT_CENTER)
 	description.autowrap_mode = TextServer.AUTOWRAP_OFF
 	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(description)
@@ -176,7 +178,7 @@ func _show_menu() -> void:
 	# Simple, transparent glass controls in one clean horizontal row.
 	var actions := HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_theme_constant_override("separation", 14)
+	actions.add_theme_constant_override("separation", 20)
 	content.add_child(actions)
 
 	var start_button := _add_action_button(actions, "START GAME  ›", true, _start_new_game)
@@ -184,16 +186,16 @@ func _show_menu() -> void:
 	var settings_button := _add_action_button(actions, "SETTINGS", false, _show_settings)
 	var exit_button := _add_action_button(actions, "EXIT", false, _confirm_exit)
 	for button in [start_button, load_button, settings_button, exit_button]:
-		button.custom_minimum_size = Vector2(0, 58)
+		button.custom_minimum_size = Vector2(0, 81)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_glass_menu_button(button, button == start_button)
 
 	_add_spacer(content, 22)
 	var status := "SAVED COMPANY FOUND ON THIS DEVICE" if not career.is_empty() else "READY TO ESTABLISH A NEW COMPANY"
-	var status_label := _label("●  " + status, 11, Color("#dfc9f5"), HORIZONTAL_ALIGNMENT_CENTER)
+	var status_label := _label("●  " + status, 11, Color("#c5edff"), HORIZONTAL_ALIGNMENT_CENTER)
 	content.add_child(status_label)
 
-	var footer := _label("KINGSHALL-ORG", 10, Color("#d4bce9"))
+	var footer := _label("KINGSHALL-ORG", 10, Color("#b9e8ff"))
 	footer.anchor_left = 0.04
 	footer.anchor_right = 0.46
 	footer.anchor_top = 1.0
@@ -770,14 +772,19 @@ func _hero_font_base(font_variation: FontVariation) -> void:
 func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.55, 0.30, 0.82, 0.28) if primary else Color(0.92, 0.84, 1.0, 0.075)
+		style.bg_color = Color(0.16, 0.70, 0.94, 0.30) if primary else Color(0.72, 0.91, 1.0, 0.13)
 		if state == "hover":
-			style.bg_color = Color(0.72, 0.48, 0.96, 0.34) if primary else Color(0.92, 0.84, 1.0, 0.16)
+			style.bg_color = Color(0.30, 0.82, 1.0, 0.42) if primary else Color(0.76, 0.94, 1.0, 0.24)
 		elif state == "pressed":
-			style.bg_color = Color(0.35, 0.14, 0.58, 0.42)
-		style.border_color = Color(0.96, 0.90, 1.0, 0.48)
+			style.bg_color = Color(0.04, 0.30, 0.66, 0.52)
+		style.border_color = Color(0.88, 0.97, 1.0, 0.82)
 		style.set_border_width_all(1)
+		style.border_width_top = 2
 		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.02, 0.30, 0.66, 0.32)
+		style.shadow_size = 12 if primary else 8
+		style.shadow_offset = Vector2(0, 3)
+		style.anti_aliasing = true
 		style.content_margin_left = 14
 		style.content_margin_right = 14
 		style.content_margin_top = 10
@@ -787,7 +794,7 @@ func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
 	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
-	button.add_theme_font_size_override("font_size", 13)
+	button.add_theme_font_size_override("font_size", 18)
 
 
 func _style_button(button: Button, primary: bool) -> void:
