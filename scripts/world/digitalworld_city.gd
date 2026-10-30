@@ -130,6 +130,8 @@ func _create_material_library() -> void:
 		"glass": _glass_mat(),
 		"storefront": _mat(Color("#26383d"), 0.22, 0.38),
 		"window_frame": _mat(Color("#26343a"), 0.38, 0.62),
+		"glass_reflection": _mat(Color("#a8d2df"), 0.12, 0.32),
+		"window_gasket": _mat(Color("#111b20"), 0.72, 0.18),
 		"roof": _mat(Color("#59666a"), 0.72, 0.28),
 		"soil": _mat(Color("#655e4f"), 1.0),
 		"trunk": _mat(Color("#594235"), 0.98),
@@ -407,6 +409,14 @@ func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: floa
 	glass_mesh.size = Vector3(1.06 if columns == 2 else 0.72, 1.20, 0.10)
 	var sill_mesh := BoxMesh.new()
 	sill_mesh.size = Vector3(1.34 if columns == 2 else 0.98, 0.10, 0.20)
+	var head_mesh := BoxMesh.new()
+	head_mesh.size = Vector3(1.30 if columns == 2 else 0.94, 0.065, 0.17)
+	var gasket_mesh := BoxMesh.new()
+	gasket_mesh.size = Vector3(1.12 if columns == 2 else 0.78, 1.26, 0.035)
+	var reflection_mesh := BoxMesh.new()
+	reflection_mesh.size = Vector3(0.055, 1.00, 0.018)
+	var highlight_mesh := BoxMesh.new()
+	highlight_mesh.size = Vector3(0.72 if columns == 2 else 0.48, 0.025, 0.018)
 	var frame_mm := MultiMesh.new()
 	frame_mm.transform_format = MultiMesh.TRANSFORM_3D
 	frame_mm.mesh = frame_mesh
@@ -416,27 +426,59 @@ func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: floa
 	var sill_mm := MultiMesh.new()
 	sill_mm.transform_format = MultiMesh.TRANSFORM_3D
 	sill_mm.mesh = sill_mesh
+	var head_mm := MultiMesh.new()
+	head_mm.transform_format = MultiMesh.TRANSFORM_3D
+	head_mm.mesh = head_mesh
+	var gasket_mm := MultiMesh.new()
+	gasket_mm.transform_format = MultiMesh.TRANSFORM_3D
+	gasket_mm.mesh = gasket_mesh
+	var reflection_mm := MultiMesh.new()
+	reflection_mm.transform_format = MultiMesh.TRANSFORM_3D
+	reflection_mm.mesh = reflection_mesh
+	var highlight_mm := MultiMesh.new()
+	highlight_mm.transform_format = MultiMesh.TRANSFORM_3D
+	highlight_mm.mesh = highlight_mesh
 	var frame_transforms: Array[Transform3D] = []
 	var glass_transforms: Array[Transform3D] = []
 	var sill_transforms: Array[Transform3D] = []
+	var head_transforms: Array[Transform3D] = []
+	var gasket_transforms: Array[Transform3D] = []
+	var reflection_transforms: Array[Transform3D] = []
+	var highlight_transforms: Array[Transform3D] = []
 	for floor_index in range(1, floors):
 		var y := 0.42 + ground_height + float(floor_index - 1) * floor_height + 1.38
 		for column in range(columns):
 			var x := (float(column) - float(columns - 1) * 0.5) * spacing
-			var origin := basis * Vector3(x, y, facade_depth)
-			frame_transforms.append(Transform3D(basis, origin))
-			glass_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth + 0.045)))
+			frame_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth)))
+			gasket_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth + 0.035)))
+			glass_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth + 0.075)))
 			sill_transforms.append(Transform3D(basis, basis * Vector3(x, y - 0.72, facade_depth + 0.06)))
+			head_transforms.append(Transform3D(basis, basis * Vector3(x, y + 0.72, facade_depth + 0.055)))
+			# Narrow highlights simulate reflected sky on the glazing without texture-heavy materials.
+			reflection_transforms.append(Transform3D(basis, basis * Vector3(x - (0.30 if columns == 2 else 0.20), y, facade_depth + 0.132)))
+			highlight_transforms.append(Transform3D(basis, basis * Vector3(x + (0.10 if columns == 2 else 0.06), y + 0.48, facade_depth + 0.132)))
 	frame_mm.instance_count = frame_transforms.size()
 	glass_mm.instance_count = glass_transforms.size()
 	sill_mm.instance_count = sill_transforms.size()
+	head_mm.instance_count = head_transforms.size()
+	gasket_mm.instance_count = gasket_transforms.size()
+	reflection_mm.instance_count = reflection_transforms.size()
+	highlight_mm.instance_count = highlight_transforms.size()
 	for i in range(frame_transforms.size()):
 		frame_mm.set_instance_transform(i, frame_transforms[i])
 		glass_mm.set_instance_transform(i, glass_transforms[i])
 		sill_mm.set_instance_transform(i, sill_transforms[i])
-	_add_multimesh(parent, "Repeated_Window_Recess_Frames", frame_mm, materials["window_frame"])
-	_add_multimesh(parent, "Low_E_Mirror_Glazing", glass_mm, materials["glass"])
+		head_mm.set_instance_transform(i, head_transforms[i])
+		gasket_mm.set_instance_transform(i, gasket_transforms[i])
+		reflection_mm.set_instance_transform(i, reflection_transforms[i])
+		highlight_mm.set_instance_transform(i, highlight_transforms[i])
+	_add_multimesh(parent, "Deep_Window_Recess_Frames", frame_mm, materials["window_frame"])
+	_add_multimesh(parent, "Dark_Inner_Window_Gaskets", gasket_mm, materials["window_gasket"])
+	_add_multimesh(parent, "Low_E_Reflective_Glazing", glass_mm, materials["glass"])
 	_add_multimesh(parent, "Cast_Window_Sills", sill_mm, materials["metal"])
+	_add_multimesh(parent, "Window_Head_Trim", head_mm, materials["window_frame"])
+	_add_multimesh(parent, "Vertical_Sky_Reflection_Strips", reflection_mm, materials["glass_reflection"])
+	_add_multimesh(parent, "Upper_Glazing_Reflection_Highlights", highlight_mm, materials["glass_reflection"])
 
 func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth: float, floors: int, ground_height: float, floor_height: float, style: int, accent: Material) -> void:
 	var basis := Basis(Vector3.UP, angle)
