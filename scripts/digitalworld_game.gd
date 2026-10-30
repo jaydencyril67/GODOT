@@ -84,119 +84,174 @@ func _new_screen() -> Control:
 	ui_layer.add_child(ui_root)
 	return ui_root
 
+
 func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
 	var root := _new_screen()
 	var background := TextureRect.new()
-	background.name = "DigitalWorld_Landing_Artwork"
+	background.name = "DigitalWorld_Original_Landing_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	var landing_texture: Texture2D = load("res://assets/digitalworld-landing.png")
-	background.texture = landing_texture
+	background.texture = load("res://assets/digitalworld-landing.png")
 	root.add_child(background)
 
-	var shade := ColorRect.new()
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.02, 0.055, 0.075, 0.42)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(shade)
+	var tint := ColorRect.new()
+	tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tint.color = Color(0.12, 0.48, 0.68, 0.10)
+	tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(tint)
 
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(center)
-	var card := _panel(Color(0.89, 0.95, 0.94, 0.88), Color(1, 1, 1, 0.8), 18)
-	card.custom_minimum_size = Vector2(360, 430)
-	center.add_child(card)
-	var margin := _margin(card, 24, 24, 22, 22)
 	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 12)
-	margin.add_child(stack)
+	stack.custom_minimum_size = Vector2(310, 0)
+	stack.add_theme_constant_override("separation", 9)
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_child(stack)
 
-	var title := _label("DIGITALWORLD", 30, Color("#143e53"), HORIZONTAL_ALIGNMENT_CENTER)
-	stack.add_child(title)
-	stack.add_child(_label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 10, Color("#456777"), HORIZONTAL_ALIGNMENT_CENTER))
-	stack.add_child(_label("Build your company, develop its headquarters, and run its operations.", 13, Color("#355464"), HORIZONTAL_ALIGNMENT_CENTER))
-	_add_spacer(stack, 12)
-	_add_action_button(stack, "START GAME", true, _start_new_game)
-	_add_action_button(stack, "LOAD GAME", false, _load_game_pressed)
-	_add_action_button(stack, "SETTINGS", false, _show_settings)
-	_add_action_button(stack, "EXIT GAME", false, _confirm_exit)
+	stack.add_child(_label("DIGITALWORLD", 48, Color("#103a5a"), HORIZONTAL_ALIGNMENT_CENTER))
+	stack.add_child(_label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 9, Color("#217eae"), HORIZONTAL_ALIGNMENT_CENTER))
+	var description := _label("Build your company, develop its headquarters, and run its operations.", 12, Color("#426982"), HORIZONTAL_ALIGNMENT_CENTER)
+	description.custom_minimum_size = Vector2(280, 0)
+	stack.add_child(description)
+	_add_spacer(stack, 8)
+
+	var start_button := _add_action_button(stack, "START GAME                         ›", true, _start_new_game)
+	var load_button := _add_action_button(stack, "LOAD GAME                          ›", false, _load_game_pressed)
+	var settings_button := _add_action_button(stack, "SETTINGS                               ›", false, _show_settings)
+	_add_action_button(stack, "EXIT GAME                              ›", false, _confirm_exit)
+	for button in [start_button, load_button, settings_button]:
+		button.custom_minimum_size.y = 42
+		_style_glass_menu_button(button, button == start_button)
+
 	var status := "SAVED COMPANY FOUND ON THIS DEVICE" if not career.is_empty() else "READY TO ESTABLISH A NEW COMPANY"
-	stack.add_child(_label(status, 9, Color("#456777"), HORIZONTAL_ALIGNMENT_CENTER))
-	var footer := _label("KINGSHALL-ORG                                      DIGITALWORLD", 9, Color("#426982"), HORIZONTAL_ALIGNMENT_CENTER)
-	footer.anchor_left = 0.0
-	footer.anchor_right = 1.0
+	var status_label := _label("●  " + status, 9, Color("#426982"), HORIZONTAL_ALIGNMENT_CENTER)
+	status_label.custom_minimum_size = Vector2(300, 0)
+	stack.add_child(status_label)
+
+	var footer := _label("KINGSHALL-ORG", 8, Color("#3f789a"))
+	footer.anchor_left = 0.04
+	footer.anchor_right = 0.46
 	footer.anchor_top = 1.0
 	footer.anchor_bottom = 1.0
-	footer.offset_left = 10
-	footer.offset_right = -10
-	footer.offset_top = -26
+	footer.offset_top = -25
 	footer.offset_bottom = -8
 	root.add_child(footer)
+	var footer_right := _label("DIGITALWORLD", 8, Color("#527f9a"), HORIZONTAL_ALIGNMENT_RIGHT)
+	footer_right.anchor_left = 0.54
+	footer_right.anchor_right = 0.96
+	footer_right.anchor_top = 1.0
+	footer_right.anchor_bottom = 1.0
+	footer_right.offset_top = -25
+	footer_right.offset_bottom = -8
+	root.add_child(footer_right)
 
 func _start_new_game() -> void:
 	_show_profile()
+
 
 func _show_profile() -> void:
 	current_screen = "profile"
 	_clear_world()
 	var root := _new_screen()
-	_add_plain_background(root, Color("#9aaeb1"))
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(center)
+	var background := TextureRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = load("res://assets/digitalworld-landing.png")
+	root.add_child(background)
 
-	var card := _panel(Color("#e9eeea"), Color("#ffffff"), 16)
-	card.custom_minimum_size = Vector2(440, 570)
-	center.add_child(card)
-	var margin := _margin(card, 22, 22, 20, 20)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(scroll)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 10)
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(stack)
+	var shade := ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(shade)
 
-	stack.add_child(_label("DIGITALWORLD  /  FOUNDER SETUP", 10, Color("#426777"), HORIZONTAL_ALIGNMENT_CENTER))
-	stack.add_child(_label("CREATE YOUR COMPANY", 24, Color("#173c4b"), HORIZONTAL_ALIGNMENT_CENTER))
-	stack.add_child(_label("Establish your identity and define your company brand.", 12, Color("#526b70"), HORIZONTAL_ALIGNMENT_CENTER))
-	stack.add_child(_label("01   FOUNDER NAME", 10, Color("#345c68")))
+	var outer := MarginContainer.new()
+	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	outer.add_theme_constant_override("margin_left", 28)
+	outer.add_theme_constant_override("margin_right", 28)
+	outer.add_theme_constant_override("margin_top", 16)
+	outer.add_theme_constant_override("margin_bottom", 16)
+	root.add_child(outer)
+
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 12)
+	outer.add_child(page)
+	page.add_child(_label("DIGITALWORLD  /  FOUNDER SETUP", 9, Color("#8ccff1")))
+	page.add_child(_label("CREATE YOUR COMPANY", 30, Color("#f5fbff")))
+	page.add_child(_label("Establish your identity and define your company brand.", 11, Color("#c5deed")))
+
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 14)
+	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_child(columns)
+
+	var identity := _panel(Color(0.08, 0.22, 0.31, 0.72), Color(0.78, 0.91, 1.0, 0.28), 14)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	columns.add_child(identity)
+	var identity_margin := _margin(identity, 20, 20, 18, 18)
+	var identity_stack := VBoxContainer.new()
+	identity_stack.add_theme_constant_override("separation", 9)
+	identity_margin.add_child(identity_stack)
+	identity_stack.add_child(_label("01  FOUNDER IDENTITY", 11, Color("#9ad9f8")))
+	identity_stack.add_child(_label("Founder name", 10, Color("#b6d9ed")))
 	full_name_input = LineEdit.new()
-	full_name_input.placeholder_text = "Founder full name"
+	full_name_input.placeholder_text = "Enter your full name"
 	full_name_input.text = str(career.get("full_name", ""))
-	full_name_input.custom_minimum_size = Vector2(0, 48)
+	full_name_input.custom_minimum_size = Vector2(0, 42)
 	_style_line_edit(full_name_input)
-	stack.add_child(full_name_input)
-
-	stack.add_child(_label("02   COMPANY NAME", 10, Color("#345c68")))
+	identity_stack.add_child(full_name_input)
+	identity_stack.add_child(_label("Company name", 10, Color("#b6d9ed")))
 	company_name_input = LineEdit.new()
-	company_name_input.placeholder_text = "Enter company name"
+	company_name_input.placeholder_text = "Enter your company name"
 	company_name_input.text = str(career.get("company_name", ""))
-	company_name_input.custom_minimum_size = Vector2(0, 48)
+	company_name_input.custom_minimum_size = Vector2(0, 42)
 	_style_line_edit(company_name_input)
-	stack.add_child(company_name_input)
+	identity_stack.add_child(company_name_input)
+	var identity_note := _label("Your founder profile and company identity are stored locally on this device.", 9, Color("#a8c5d8"))
+	identity_note.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	identity_stack.add_child(identity_note)
 
-	stack.add_child(_label("03   COMPANY INSIGNIA", 10, Color("#345c68")))
-	stack.add_child(_label("Choose one of the 50 original DigitalWorld insignia names.", 11, Color("#637777")))
+	var brand := _panel(Color(0.08, 0.22, 0.31, 0.72), Color(0.78, 0.91, 1.0, 0.28), 14)
+	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	columns.add_child(brand)
+	var brand_margin := _margin(brand, 20, 20, 18, 18)
+	var brand_stack := VBoxContainer.new()
+	brand_stack.add_theme_constant_override("separation", 9)
+	brand_margin.add_child(brand_stack)
+	brand_stack.add_child(_label("02  COMPANY BRAND", 11, Color("#9ad9f8")))
+	brand_stack.add_child(_label("Choose your company insignia", 15, Color("#f5fbff")))
+	brand_stack.add_child(_label("Select one of the 50 original DigitalWorld insignia identities.", 10, Color("#c5deed")))
 	logo_option = OptionButton.new()
-	logo_option.custom_minimum_size = Vector2(0, 48)
+	logo_option.custom_minimum_size = Vector2(0, 42)
 	for index in range(LOGO_NAMES.size()):
 		logo_option.add_item("%02d  —  %s" % [index + 1, LOGO_NAMES[index]], index + 1)
 	var saved_logo := clampi(int(career.get("logo_id", 1)), 1, 50)
 	logo_option.select(saved_logo - 1)
-	stack.add_child(logo_option)
-	stack.add_child(_label("Your company profile is saved on this device using Godot's local user storage.", 10, Color("#637777")))
-	profile_status = _label("", 10, Color("#9c4b3d"), HORIZONTAL_ALIGNMENT_CENTER)
-	stack.add_child(profile_status)
+	brand_stack.add_child(logo_option)
+	var insignia_preview := _panel(Color(0.45, 0.76, 0.88, 0.12), Color(0.85, 0.96, 1.0, 0.22), 10)
+	insignia_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	brand_stack.add_child(insignia_preview)
+	var preview_margin := _margin(insignia_preview, 12, 12, 12, 12)
+	var preview_stack := VBoxContainer.new()
+	preview_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	preview_stack.add_child(_label("DIGITALWORLD", 20, Color("#e8f6ff"), HORIZONTAL_ALIGNMENT_CENTER))
+	preview_stack.add_child(_label("YOUR COMPANY  /  YOUR IDENTITY", 8, Color("#a8d7ef"), HORIZONTAL_ALIGNMENT_CENTER))
+	preview_margin.add_child(preview_stack)
 
+	profile_status = _label("", 10, Color("#ffd0b8"))
+	page.add_child(profile_status)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 10)
-	stack.add_child(actions)
-	_add_action_button(actions, "BACK", false, _show_menu)
-	_add_action_button(actions, "ESTABLISH COMPANY", true, _create_company)
+	actions.add_child(_add_action_button(actions, "BACK", false, _show_menu))
+	actions.add_child(_add_action_button(actions, "ESTABLISH COMPANY  ›", true, _create_company))
+	page.add_child(actions)
 
 func _create_company() -> void:
 	var founder := full_name_input.text.strip_edges()
@@ -525,6 +580,26 @@ func _add_action_button(parent: Node, caption: String, primary: bool, callback: 
 		button.pressed.connect(callback)
 	parent.add_child(button)
 	return button
+
+
+func _style_glass_menu_button(button: Button, primary: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.0, 0.75, 0.95, 0.64) if primary else Color(0.82, 0.95, 1.0, 0.24)
+		if state == "hover":
+			style.bg_color = Color(0.35, 0.86, 1.0, 0.52)
+		style.border_color = Color(1.0, 1.0, 1.0, 0.92)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(11)
+		style.content_margin_left = 13
+		style.content_margin_right = 13
+		style.content_margin_top = 8
+		style.content_margin_bottom = 8
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_font_size_override("font_size", 10)
 
 func _style_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
