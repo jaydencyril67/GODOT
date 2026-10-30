@@ -121,7 +121,7 @@ func _show_menu() -> void:
 	menu.name = "Minimal_3D_Command_Menu"
 	menu.custom_minimum_size = Vector2(440, 0)
 	menu.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	menu.add_theme_constant_override("separation", 14)
+	menu.add_theme_constant_override("separation", 18)
 	menu.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(menu)
 
@@ -137,40 +137,41 @@ func _show_menu() -> void:
 
 
 func _style_command_menu_button(button: Button, primary: bool) -> void:
+	# Individual translucent-white glass buttons with bright, defined edges.
+	# Keep every button visually separate; no dark connector or shared panel.
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
 		if state == "pressed":
-			style.bg_color = Color("#06335f")
+			style.bg_color = Color(0.48, 0.78, 0.98, 0.42)
 		elif state == "hover":
-			style.bg_color = Color(0.035, 0.42, 0.70, 0.98) if primary else Color(0.035, 0.19, 0.34, 0.98)
+			style.bg_color = Color(0.94, 0.99, 1.0, 0.48)
 		else:
-			style.bg_color = Color(0.025, 0.30, 0.54, 0.96) if primary else Color(0.025, 0.105, 0.20, 0.94)
-		style.border_color = Color("#73e5ff") if primary else Color(0.30, 0.72, 0.92, 0.82)
-		style.set_border_width_all(1)
+			style.bg_color = Color(0.88, 0.96, 1.0, 0.30) if primary else Color(0.88, 0.96, 1.0, 0.22)
+		style.border_color = Color(0.98, 1.0, 1.0, 1.0)
+		style.set_border_width_all(2)
 		style.border_width_top = 3
-		style.border_width_bottom = 5
-		style.set_corner_radius_all(13)
-		style.shadow_color = Color(0.0, 0.025, 0.09, 0.92)
-		style.shadow_size = 18 if primary else 14
-		style.shadow_offset = Vector2(0, 7)
+		style.border_width_bottom = 3
+		style.set_corner_radius_all(16)
+		style.shadow_color = Color(0.30, 0.78, 1.0, 0.38)
+		style.shadow_size = 16 if primary else 12
+		style.shadow_offset = Vector2(0, 5)
 		style.anti_aliasing = true
-		style.content_margin_left = 24
-		style.content_margin_right = 24
-		style.content_margin_top = 12
-		style.content_margin_bottom = 15
+		style.content_margin_left = 26
+		style.content_margin_right = 26
+		style.content_margin_top = 13
+		style.content_margin_bottom = 13
 		button.add_theme_stylebox_override(state, style)
 
 	button.add_theme_color_override("font_color", Color("#ffffff"))
 	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("#b9f4ff"))
+	button.add_theme_color_override("font_pressed_color", Color("#e2f8ff"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
 	button.add_theme_font_size_override("font_size", 20)
-	button.add_theme_color_override("font_outline_color", Color("#03182f"))
+	button.add_theme_color_override("font_outline_color", Color("#16476b"))
 	button.add_theme_constant_override("outline_size", 2)
-	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.015, 0.07, 0.95))
-	button.add_theme_constant_override("shadow_offset_x", 2)
-	button.add_theme_constant_override("shadow_offset_y", 3)
-
+	button.add_theme_color_override("font_shadow_color", Color(0.02, 0.12, 0.22, 0.72))
+	button.add_theme_constant_override("shadow_offset_x", 1)
+	button.add_theme_constant_override("shadow_offset_y", 2)
 
 func _start_new_game() -> void:
 	_show_profile()
