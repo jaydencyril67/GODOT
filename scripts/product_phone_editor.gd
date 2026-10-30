@@ -107,10 +107,6 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 	tools_content.add_theme_constant_override("separation", 12)
 	tools_scroll.add_child(tools_content)
 
-	tools_content.add_child(_make_label("MODEL CONTROLS", 16, Color.WHITE))
-	var instruction := _make_label("Use the controls for precise adjustments, or drag the model gently.", 12, Color("#d8efff"))
-	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tools_content.add_child(instruction)
 
 	var rotation_grid := GridContainer.new()
 	rotation_grid.name = card_name + "RotationControls"
@@ -127,8 +123,6 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 	_add_tool_button(rotation_grid, "Z −", _rotate_axis.bind(Vector3.FORWARD, -1.0))
 	_add_tool_button(rotation_grid, "Z +", _rotate_axis.bind(Vector3.FORWARD, 1.0))
 
-	var view_label := _make_label("VIEW", 11, Color("#a9e3ff"))
-	tools_content.add_child(view_label)
 	var view_grid := GridContainer.new()
 	view_grid.columns = 2
 	view_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -139,9 +133,6 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 	_add_tool_button(view_grid, "ZOOM IN", _zoom_camera.bind(-0.35))
 	_add_tool_button(view_grid, "ZOOM OUT", _zoom_camera.bind(0.35))
 
-	var model_note := _make_label("Single solid phone body. No screen or device details.", 10, Color("#c7e2f3"))
-	model_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tools_content.add_child(model_note)
 	return tools_panel
 
 
