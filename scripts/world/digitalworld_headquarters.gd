@@ -573,9 +573,10 @@ func _add_glass_curtain_wall(parent: Node3D, width: float, depth: float, floors:
 		for floor_index in range(floors):
 			var row_height: float = ground_height if floor_index == 0 else floor_height
 			var row_center: float = 0.42 + (ground_height * 0.5 if floor_index == 0 else ground_height + float(floor_index - 1) * floor_height + floor_height * 0.5)
+			var panel_basis := basis.scaled(Vector3(1.0, row_height - 0.24, 1.0))
 			for column in range(columns):
 				var x: float = (float(column) - float(columns - 1) * 0.5) * panel_width
-				panel_transforms.append(Transform3D(basis, basis * Vector3(x, row_center, facade_z)))
+				panel_transforms.append(Transform3D(panel_basis, basis * Vector3(x, row_center, facade_z)))
 				spandrel_transforms.append(Transform3D(basis, basis * Vector3(x, row_center - row_height * 0.5 + 0.13, facade_z + 0.045)))
 		for column in range(columns + 1):
 			var x: float = (float(column) - float(columns) * 0.5) * panel_width
