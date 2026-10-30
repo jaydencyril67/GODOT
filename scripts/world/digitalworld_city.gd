@@ -24,6 +24,8 @@ var last_touch_midpoint := Vector2.ZERO
 var materials: Dictionary = {}
 var facade_noise: Texture2D
 var pavement_noise: Texture2D
+var facade_normal: Texture2D
+var pavement_normal: Texture2D
 
 func _ready() -> void:
 	_build_city()
@@ -64,17 +66,18 @@ func _build_city() -> void:
 
 func _create_material_library() -> void:
 	materials = {
-		"ground": _mat(Color("#77796f"), 0.96),
-		"asphalt": _mat(Color("#242a2e"), 0.94),
+		"ground": _mat(Color("#77796f"), 0.98),
+		"asphalt": _mat(Color("#242a2e"), 0.96),
 		"asphalt_worn": _mat(Color("#343a3d"), 0.98),
-		"sidewalk": _mat(Color("#b8b8ae"), 0.9),
-		"curb": _mat(Color("#d2d0c6"), 0.84),
+		"sidewalk": _mat(Color("#b8b8ae"), 0.92),
+		"curb": _mat(Color("#d2d0c6"), 0.88),
 		"lane": _mat(Color("#e5d6a5"), 0.78),
 		"white": _mat(Color("#edf0e9"), 0.82),
 		"concrete": _mat(Color("#b8b9b1"), 0.9),
 		"dark_metal": _mat(Color("#303b40"), 0.42, 0.72),
 		"metal": _mat(Color("#78878b"), 0.34, 0.78),
 		"glass": _glass_mat(),
+		"storefront": _mat(Color("#26383d"), 0.22, 0.38),
 		"window_frame": _mat(Color("#26343a"), 0.38, 0.62),
 		"roof": _mat(Color("#59666a"), 0.72, 0.28),
 		"soil": _mat(Color("#655e4f"), 1.0),
@@ -103,6 +106,14 @@ func _create_procedural_surface_textures() -> void:
 	texture.seamless = true
 	texture.noise = noise
 	facade_noise = texture
+	var facade_normal_texture := NoiseTexture2D.new()
+	facade_normal_texture.width = 256
+	facade_normal_texture.height = 256
+	facade_normal_texture.seamless = true
+	facade_normal_texture.as_normal_map = true
+	facade_normal_texture.bump_strength = 0.22
+	facade_normal_texture.noise = noise
+	facade_normal = facade_normal_texture
 	var pavement := NoiseTexture2D.new()
 	pavement.width = 256
 	pavement.height = 256
@@ -113,16 +124,35 @@ func _create_procedural_surface_textures() -> void:
 	pavement_generator.fractal_octaves = 3
 	pavement.noise = pavement_generator
 	pavement_noise = pavement
+	var pavement_normal_texture := NoiseTexture2D.new()
+	pavement_normal_texture.width = 256
+	pavement_normal_texture.height = 256
+	pavement_normal_texture.seamless = true
+	pavement_normal_texture.as_normal_map = true
+	pavement_normal_texture.bump_strength = 0.32
+	pavement_normal_texture.noise = pavement_generator
+	pavement_normal = pavement_normal_texture
 	for key in ["concrete", "sidewalk"]:
 		var surface: StandardMaterial3D = materials[key]
 		surface.albedo_texture = facade_noise
 		surface.uv1_scale = Vector3(3.5, 3.5, 1.0)
+		surface.normal_enabled = true
+		surface.normal_texture = facade_normal
+		surface.normal_scale = 0.28
+		surface.roughness_texture = facade_noise
 	var road: StandardMaterial3D = materials["asphalt"]
 	road.albedo_texture = pavement_noise
 	road.uv1_scale = Vector3(8.0, 8.0, 1.0)
+	road.normal_enabled = true
+	road.normal_texture = pavement_normal
+	road.normal_scale = 0.34
+	road.roughness_texture = pavement_noise
 	var soil: StandardMaterial3D = materials["soil"]
 	soil.albedo_texture = pavement_noise
 	soil.uv1_scale = Vector3(5.0, 5.0, 1.0)
+	soil.normal_enabled = true
+	soil.normal_texture = pavement_normal
+	soil.normal_scale = 0.22
 
 func _create_environment() -> void:
 	var world := WorldEnvironment.new()
@@ -138,7 +168,8 @@ func _create_environment() -> void:
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.72
+	environment.ambient_light_energy = 0.62
+	environment.ambient_light_sky_contribution = 0.82
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.tonemap_exposure = 1.0
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
@@ -154,6 +185,8 @@ func _create_environment() -> void:
 	sun.light_color = Color("#fff0d8")
 	sun.light_energy = 1.25
 	sun.shadow_enabled = true
+	sun.shadow_bias = 0.035
+	sun.shadow_normal_bias = 1.4
 	sun.directional_shadow_max_distance = 90.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
@@ -236,10 +269,20 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 	var roof := _mat(Color("#525e62"), 0.78, 0.26)
 	wall.albedo_texture = facade_noise
 	wall.uv1_scale = Vector3(2.8, 2.8, 1.0)
+	wall.normal_enabled = true
+	wall.normal_texture = facade_normal
+	wall.normal_scale = 0.24
+	wall.roughness_texture = facade_noise
 	podium.albedo_texture = facade_noise
 	podium.uv1_scale = Vector3(3.2, 3.2, 1.0)
+	podium.normal_enabled = true
+	podium.normal_texture = facade_normal
+	podium.normal_scale = 0.3
 	roof.albedo_texture = facade_noise
 	roof.uv1_scale = Vector3(2.0, 2.0, 1.0)
+	roof.normal_enabled = true
+	roof.normal_texture = facade_normal
+	roof.normal_scale = 0.2
 
 	_box(root, "Architectural_Foundation_Plinth", Vector3(width + 0.7, 0.42, depth + 0.7), Vector3(0.0, 0.21, 0.0), materials["concrete"])
 	_box(root, "Continuous_Concrete_Building_Envelope", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.42, 0.0), wall)
@@ -250,6 +293,7 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 		var angle := float(side) * PI * 0.5
 		_add_facade_windows(root, angle, width, depth, floor_count, ground_height, floor_height, style)
 		_add_facade_pilasters(root, angle, width, depth, height, accent, style)
+		_add_facade_microdetails(root, angle, width, depth, floor_count, ground_height, floor_height, style, accent)
 		if style == 1 or style == 4:
 			_add_balcony_stack(root, angle, floor_count, ground_height, floor_height, width, depth, accent)
 
@@ -263,6 +307,7 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 	_box(root, "Rooftop_Parapet_Front", Vector3(width + 0.35, 0.62, 0.18), Vector3(0.0, height + 0.92, depth * 0.5), accent)
 	_box(root, "Rooftop_Parapet_Back", Vector3(width + 0.35, 0.62, 0.18), Vector3(0.0, height + 0.92, -depth * 0.5), accent)
 	_add_main_entrance(root, width, depth, ground_height, accent)
+	_add_rooftop_service_details(root, width, depth, height, roof, accent)
 	if style == 0 or style == 2:
 		_add_vertical_fins(root, height, accent, width, depth)
 
@@ -307,6 +352,68 @@ func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: floa
 	_add_multimesh(parent, "Repeated_Window_Recess_Frames", frame_mm, materials["window_frame"])
 	_add_multimesh(parent, "Low_E_Mirror_Glazing", glass_mm, materials["glass"])
 	_add_multimesh(parent, "Cast_Window_Sills", sill_mm, materials["metal"])
+
+func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth: float, floors: int, ground_height: float, floor_height: float, style: int, accent: Material) -> void:
+	var basis := Basis(Vector3.UP, angle)
+	var facade_z := depth * 0.5 + 0.19
+	var band_mesh := BoxMesh.new()
+	band_mesh.size = Vector3(width + 0.24, 0.075, 0.13)
+	var mullion_mesh := BoxMesh.new()
+	mullion_mesh.size = Vector3(0.045, 1.18, 0.055)
+	var transoms_mesh := BoxMesh.new()
+	transoms_mesh.size = Vector3(1.08, 0.045, 0.06)
+	var bands := MultiMesh.new()
+	bands.transform_format = MultiMesh.TRANSFORM_3D
+	bands.mesh = band_mesh
+	var mullions := MultiMesh.new()
+	mullions.transform_format = MultiMesh.TRANSFORM_3D
+	mullions.mesh = mullion_mesh
+	var transoms := MultiMesh.new()
+	transoms.transform_format = MultiMesh.TRANSFORM_3D
+	transoms.mesh = transoms_mesh
+	var band_transforms: Array[Transform3D] = []
+	var mullion_transforms: Array[Transform3D] = []
+	var transom_transforms: Array[Transform3D] = []
+	var columns := 3 if style == 2 else 2
+	var spacing := (width - 1.0) / float(columns)
+	for floor_index in range(1, floors):
+		var floor_y := 0.42 + ground_height + float(floor_index - 1) * floor_height
+		band_transforms.append(Transform3D(basis, basis * Vector3(0.0, floor_y + 0.08, facade_z)))
+		var window_y := floor_y + 1.38
+		for column in range(columns):
+			var x := (float(column) - float(columns - 1) * 0.5) * spacing
+			mullion_transforms.append(Transform3D(basis, basis * Vector3(x, window_y, facade_z + 0.07)))
+			transom_transforms.append(Transform3D(basis, basis * Vector3(x, window_y, facade_z + 0.075)))
+	bands.instance_count = band_transforms.size()
+	mullions.instance_count = mullion_transforms.size()
+	transoms.instance_count = transom_transforms.size()
+	for i in range(band_transforms.size()):
+		bands.set_instance_transform(i, band_transforms[i])
+	for i in range(mullion_transforms.size()):
+		mullions.set_instance_transform(i, mullion_transforms[i])
+	for i in range(transom_transforms.size()):
+		transoms.set_instance_transform(i, transom_transforms[i])
+	_add_multimesh(parent, "Continuous_Facade_Shadow_Reveal_Bands", bands, accent)
+	_add_multimesh(parent, "Precision_Window_Vertical_Mullions", mullions, materials["metal"])
+	_add_multimesh(parent, "Precision_Window_Transoms", transoms, materials["window_frame"])
+	# A dark recessed shopfront gives the street level a distinct, believable scale.
+	var shop := _box(parent, "Ground_Floor_Recessed_Storefront_Glazing", Vector3(width * 0.68, 1.9, 0.075), basis * Vector3(0.0, 1.62, facade_z + 0.015), materials["storefront"])
+	shop.rotation.y = angle
+	var canopy := _box(parent, "Ground_Floor_Continuous_Shop_Canopy", Vector3(width * 0.82, 0.11, 0.62), basis * Vector3(0.0, 2.85, facade_z + 0.22), materials["dark_metal"])
+	canopy.rotation.y = angle
+
+func _add_rooftop_service_details(parent: Node3D, width: float, depth: float, height: float, roof: Material, accent: Material) -> void:
+	for side in range(4):
+		var angle := float(side) * PI * 0.5
+		var basis := Basis(Vector3.UP, angle)
+		var rail := _box(parent, "Roof_Parapet_Return", Vector3(width + 0.35, 0.62, 0.18), basis * Vector3(0.0, height + 0.92, depth * 0.5), accent)
+		rail.rotation.y = angle
+	for i in range(3):
+		var x := -1.55 + float(i) * 1.55
+		_box(parent, "Rooftop_Mechanical_Condenser", Vector3(0.82, 0.48, 0.72), Vector3(x, height + 0.88, depth * 0.12), roof)
+		_box(parent, "Condenser_Front_Grille", Vector3(0.62, 0.28, 0.035), Vector3(x, height + 0.88, depth * 0.12 + 0.38), materials["dark_metal"])
+		_cylinder(parent, "Condenser_Fan_Hub", 0.12, 0.12, 0.045, Vector3(x, height + 1.14, depth * 0.12), materials["metal"])
+	_box(parent, "Roof_Service_Cable_Tray", Vector3(width * 0.7, 0.07, 0.12), Vector3(0.0, height + 0.7, -depth * 0.32), materials["dark_metal"])
 
 func _add_facade_pilasters(parent: Node3D, angle: float, width: float, depth: float, height: float, material: Material, style: int) -> void:
 	var basis := Basis(Vector3.UP, angle)
@@ -372,10 +479,18 @@ func _add_procedural_tree(position: Vector3, scale: float) -> void:
 	tree.scale = Vector3.ONE * scale
 	add_child(tree)
 	_cylinder(tree, "Tree_Trunk", 0.12, 0.18, 1.8, Vector3(0.0, 0.9, 0.0), materials["trunk"])
+	var branch_a := _cylinder(tree, "Tree_Branch_Left", 0.045, 0.075, 1.05, Vector3(-0.32, 1.65, 0.0), materials["trunk"])
+	branch_a.rotation.z = -0.62
+	var branch_b := _cylinder(tree, "Tree_Branch_Right", 0.045, 0.075, 1.0, Vector3(0.34, 1.72, 0.08), materials["trunk"])
+	branch_b.rotation.z = 0.58
 	_sphere(tree, "Tree_Canopy_Lower", 0.92, Vector3(0.0, 2.0, 0.0), materials["leaf_a"])
 	_sphere(tree, "Tree_Canopy_Upper", 0.68, Vector3(0.0, 2.75, 0.0), materials["leaf_b"])
 	_sphere(tree, "Tree_Canopy_Side_A", 0.58, Vector3(0.52, 2.18, 0.1), materials["leaf_a"])
 	_sphere(tree, "Tree_Canopy_Side_B", 0.55, Vector3(-0.5, 2.25, -0.1), materials["leaf_b"])
+	_sphere(tree, "Tree_Canopy_Back", 0.54, Vector3(0.05, 2.2, -0.48), materials["leaf_b"])
+	_sphere(tree, "Tree_Canopy_Front", 0.5, Vector3(-0.08, 2.12, 0.48), materials["leaf_a"])
+	_sphere(tree, "Tree_Canopy_Crown_Left", 0.42, Vector3(-0.42, 2.78, 0.18), materials["leaf_a"])
+	_sphere(tree, "Tree_Canopy_Crown_Right", 0.4, Vector3(0.4, 2.72, -0.16), materials["leaf_b"])
 
 func _add_streetlight(position: Vector3) -> void:
 	var root := Node3D.new()
@@ -406,7 +521,10 @@ func _make_procedural_car(index: int) -> Node3D:
 	_box(car, "Passenger_Cabin", Vector3(1.02, 0.48, 0.78), Vector3(-0.12, 0.99, 0.0), materials["glass"])
 	for x in [-0.58, 0.58]:
 		for z in [-0.49, 0.49]:
-			_cylinder(car, "Rubber_Tyre", 0.22, 0.22, 0.13, Vector3(x, 0.30, z), materials["rubber"])
+			var tyre := _cylinder(car, "Rubber_Tyre", 0.22, 0.22, 0.13, Vector3(x, 0.30, z), materials["rubber"])
+			tyre.rotation.x = PI * 0.5
+			var hub := _cylinder(car, "Alloy_Wheel_Hub", 0.105, 0.105, 0.145, Vector3(x, 0.30, z * 1.08), materials["metal"])
+			hub.rotation.x = PI * 0.5
 	for z in [-0.27, 0.27]:
 		_box(car, "LED_Headlamp", Vector3(0.08, 0.12, 0.16), Vector3(0.94, 0.57, z), materials["lamp"])
 		_box(car, "Rear_Lamp", Vector3(0.08, 0.12, 0.16), Vector3(-0.94, 0.57, z), materials["red"])
@@ -501,7 +619,7 @@ func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radi
 	mesh.top_radius = top_radius
 	mesh.bottom_radius = bottom_radius
 	mesh.height = height
-	mesh.radial_segments = 12
+	mesh.radial_segments = 16
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = material
@@ -528,8 +646,8 @@ func _sphere(parent: Node3D, node_name: String, radius: float, position: Vector3
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
 	mesh.height = radius * 2.0
-	mesh.radial_segments = 12
-	mesh.rings = 8
+	mesh.radial_segments = 18
+	mesh.rings = 12
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = material
@@ -538,9 +656,11 @@ func _sphere(parent: Node3D, node_name: String, radius: float, position: Vector3
 	return instance
 
 func _glass_mat() -> StandardMaterial3D:
-	var material := _mat(Color(0.48, 0.72, 0.82, 0.76), 0.12, 0.5)
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.metallic_specular = 0.72
+	var material := _mat(Color(0.32, 0.55, 0.66), 0.16, 0.42)
+	material.metallic_specular = 0.92
+	material.clearcoat_enabled = true
+	material.clearcoat = 0.72
+	material.clearcoat_roughness = 0.12
 	return material
 
 func _emissive_mat(color: Color, energy: float) -> StandardMaterial3D:
@@ -555,6 +675,7 @@ func _mat(color: Color, roughness: float = 0.82, metallic: float = 0.0) -> Stand
 	material.albedo_color = color
 	material.roughness = roughness
 	material.metallic = metallic
+	material.metallic_specular = 0.62
 	return material
 
 func _input(event: InputEvent) -> void:
