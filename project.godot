@@ -7,6 +7,7 @@ run/max_fps=60
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [display]
+window/size/mode=3
 window/handheld/orientation=0
 
 [rendering]
