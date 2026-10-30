@@ -6,6 +6,7 @@ const PHONE_SIZE := Vector3(1.45, 2.92, 0.20)
 const ROTATION_STEP := deg_to_rad(10.0)
 # Deliberately low so a normal finger movement makes a controlled turn.
 const DRAG_SENSITIVITY := 0.0024
+const MAX_TILT_ANGLE := deg_to_rad(75.0)
 
 var phone_body: MeshInstance3D
 var preview_camera: Camera3D
@@ -110,18 +111,16 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 
 	var rotation_grid := GridContainer.new()
 	rotation_grid.name = card_name + "RotationControls"
-	rotation_grid.columns = 3
+	rotation_grid.columns = 2
 	rotation_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rotation_grid.add_theme_constant_override("h_separation", 8)
 	rotation_grid.add_theme_constant_override("v_separation", 8)
 	tools_content.add_child(rotation_grid)
 
-	_add_tool_button(rotation_grid, "X −", _rotate_axis.bind(Vector3.RIGHT, 1.0))
-	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, -1.0))
+	_add_tool_button(rotation_grid, "X −", _rotate_axis.bind(Vector3.RIGHT, -1.0))
+	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, 1.0))
 	_add_tool_button(rotation_grid, "Y −", _rotate_axis.bind(Vector3.UP, -1.0))
 	_add_tool_button(rotation_grid, "Y +", _rotate_axis.bind(Vector3.UP, 1.0))
-	_add_tool_button(rotation_grid, "Z −", _rotate_axis.bind(Vector3.FORWARD, -1.0))
-	_add_tool_button(rotation_grid, "Z +", _rotate_axis.bind(Vector3.FORWARD, 1.0))
 
 	var view_grid := GridContainer.new()
 	view_grid.columns = 2
@@ -259,13 +258,31 @@ func _on_preview_gui_input(event: InputEvent) -> void:
 func _rotate_phone_from_drag(delta: Vector2) -> void:
 	if not is_instance_valid(phone_body):
 		return
-	phone_body.rotate_x(-delta.y * DRAG_SENSITIVITY)
-	phone_body.rotate_y(-delta.x * DRAG_SENSITIVITY)
+
+	# Lock each movement to one of four directions: left/right OR up/down.
+	# Horizontal drag turns the front toward the drag; vertical drag tilts
+	# the top edge down when dragging down, and up when dragging up.
+	if absf(delta.x) >= absf(delta.y):
+		phone_body.rotation.y = clampf(
+			phone_body.rotation.y + delta.x * DRAG_SENSITIVITY,
+			-MAX_TILT_ANGLE,
+			MAX_TILT_ANGLE
+		)
+	else:
+		phone_body.rotation.x = clampf(
+			phone_body.rotation.x - delta.y * DRAG_SENSITIVITY,
+			-MAX_TILT_ANGLE,
+			MAX_TILT_ANGLE
+		)
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
-	if is_instance_valid(phone_body):
-		phone_body.rotate_object_local(axis, ROTATION_STEP * direction)
+	if not is_instance_valid(phone_body):
+		return
+	if axis == Vector3.RIGHT:
+		phone_body.rotation.x = clampf(phone_body.rotation.x + ROTATION_STEP * direction, -MAX_TILT_ANGLE, MAX_TILT_ANGLE)
+	elif axis == Vector3.UP:
+		phone_body.rotation.y = clampf(phone_body.rotation.y + ROTATION_STEP * direction, -MAX_TILT_ANGLE, MAX_TILT_ANGLE)
 
 
 func _reset_phone_rotation() -> void:
