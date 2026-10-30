@@ -810,16 +810,38 @@ func _show_create_scene() -> void:
 		{"name": "SMART WATCHES", "number": "04", "description": "Develop wearable smart devices."}
 	]
 	for category in categories:
-		var card := _panel(Color(0.035, 0.14, 0.23, 0.84), Color(0.76, 0.92, 1.0, 0.76), 18)
+		var card := _panel(Color(0.34, 0.68, 0.88, 0.24), Color(0.86, 0.97, 1.0, 0.92), 18)
 		card.name = str(category["name"]).replace(" ", "_") + "_Category_Card"
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.custom_minimum_size = Vector2(card_width, card_height)
 		var card_style := card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		card_style.bg_color = Color(0.32, 0.66, 0.88, 0.27)
+		card_style.border_color = Color(0.86, 0.97, 1.0, 0.92)
 		card_style.set_border_width_all(1)
-		card_style.shadow_color = Color(0.0, 0.20, 0.36, 0.24)
-		card_style.shadow_size = 12
+		card_style.shadow_color = Color(0.0, 0.16, 0.34, 0.42)
+		card_style.shadow_size = 18
+		card_style.shadow_offset = Vector2(0, 5)
+		card_style.anti_aliasing = true
 		card.add_theme_stylebox_override("panel", card_style)
 		grid.add_child(card)
+
+		# Soft vertical reflection across the upper glass surface.
+		var glass_gradient := Gradient.new()
+		glass_gradient.set_color(0, Color(0.92, 0.98, 1.0, 0.34))
+		glass_gradient.set_color(1, Color(0.76, 0.91, 1.0, 0.0))
+		var glass_texture := GradientTexture2D.new()
+		glass_texture.gradient = glass_gradient
+		glass_texture.fill_from = Vector2(0.0, 0.0)
+		glass_texture.fill_to = Vector2(0.0, 1.0)
+		var reflection := TextureRect.new()
+		reflection.name = "Glass_Reflection"
+		reflection.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		reflection.offset_bottom = 78.0
+		reflection.texture = glass_texture
+		reflection.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		reflection.stretch_mode = TextureRect.STRETCH_SCALE
+		reflection.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(reflection)
 
 		var card_margin := _margin(card, 16 if compact else 22, 16 if compact else 22, 14 if compact else 18, 14 if compact else 18)
 		var card_content := VBoxContainer.new()
@@ -837,7 +859,7 @@ func _show_create_scene() -> void:
 		var choose := _add_action_button(card_content, "SELECT CATEGORY  ›", true, _on_create_category_pressed.bind(str(category["name"])))
 		choose.custom_minimum_size = Vector2(0, 46)
 		choose.add_theme_font_size_override("font_size", 12)
-		_style_company_glass_button(choose, true)
+		_style_create_glass_button(choose, true)
 
 	var actions := HBoxContainer.new()
 	actions.name = "CreateSceneActions"
@@ -849,7 +871,29 @@ func _show_create_scene() -> void:
 	back_button.custom_minimum_size = Vector2(0, 56)
 	back_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_button.add_theme_font_size_override("font_size", 14 if compact else 15)
-	_style_company_glass_button(back_button, false)
+	_style_create_glass_button(back_button, false)
+
+
+func _style_create_glass_button(button: Button, primary: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
+		if state == "hover":
+			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+		elif state == "pressed":
+			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
+		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#ffffff"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
 
 
 func _on_create_category_pressed(category: String) -> void:
