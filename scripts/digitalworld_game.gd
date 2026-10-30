@@ -42,6 +42,8 @@ var logo_picker_touch_velocity_y := 0.0
 var logo_picker_touch_logo_id := 0
 var logo_picker_mouse_logo_id := 0
 var profile_status: Label
+var loading_status_label: Label
+var loading_progress_bar: ProgressBar
 var graphics_quality := "High"
 var sound_enabled := true
 
@@ -714,10 +716,7 @@ func _show_city() -> void:
 func _show_headquarters_preview() -> void:
 	current_screen = "headquarters"
 	_clear_world()
-	if is_instance_valid(ui_layer):
-		ui_layer.queue_free()
-	ui_layer = null
-	ui_root = null
+	_show_headquarters_loading_screen()
 
 	var headquarters = HeadquartersPreviewScript.new()
 	headquarters.name = "DigitalWorld_Headquarters_Preview"
@@ -726,8 +725,108 @@ func _show_headquarters_preview() -> void:
 	headquarters.company_name = str(career.get("company_name", "YOUR COMPANY"))
 	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
 	headquarters.create_requested.connect(_show_create_scene)
+	headquarters.setup_progress.connect(_update_headquarters_loading)
+	headquarters.setup_completed.connect(_finish_headquarters_loading)
 	world_root = headquarters
 	add_child(world_root)
+
+
+func _show_headquarters_loading_screen() -> void:
+	var root := _new_screen()
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	var background := ColorRect.new()
+	background.name = "Headquarters_Preparation_Background"
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = Color("#071b2c")
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(background)
+
+	var accent := ColorRect.new()
+	accent.name = "Preparation_Accent"
+	accent.anchor_left = 0.0
+	accent.anchor_top = 0.0
+	accent.anchor_right = 1.0
+	accent.anchor_bottom = 0.0
+	accent.offset_bottom = 5.0
+	accent.color = Color("#249bd3")
+	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(accent)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+
+	var content := VBoxContainer.new()
+	content.name = "Headquarters_Preparation_Content"
+	content.custom_minimum_size = Vector2(420.0, 0.0)
+	content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	content.add_theme_constant_override("separation", 18)
+	center.add_child(content)
+
+	var brand := Label.new()
+	brand.text = "DIGITALWORLD HQ"
+	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brand.add_theme_font_size_override("font_size", 15)
+	brand.add_theme_color_override("font_color", Color("#72cfff"))
+	content.add_child(brand)
+
+	var title := Label.new()
+	title.text = "Preparing your headquarters"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_size_override("font_size", 27)
+	title.add_theme_color_override("font_color", Color("#ffffff"))
+	content.add_child(title)
+
+	var company_label := Label.new()
+	company_label.text = str(career.get("company_name", "YOUR COMPANY"))
+	company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	company_label.add_theme_font_size_override("font_size", 16)
+	company_label.add_theme_color_override("font_color", Color("#b9dff3"))
+	content.add_child(company_label)
+
+	loading_status_label = Label.new()
+	loading_status_label.name = "Preparation_Status"
+	loading_status_label.text = "Initializing game..."
+	loading_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	loading_status_label.add_theme_font_size_override("font_size", 15)
+	loading_status_label.add_theme_color_override("font_color", Color("#e3f4ff"))
+	content.add_child(loading_status_label)
+
+	loading_progress_bar = ProgressBar.new()
+	loading_progress_bar.name = "Preparation_Progress"
+	loading_progress_bar.custom_minimum_size = Vector2(0.0, 9.0)
+	loading_progress_bar.min_value = 0.0
+	loading_progress_bar.max_value = 100.0
+	loading_progress_bar.value = 5.0
+	loading_progress_bar.show_percentage = false
+	var progress_style := StyleBoxFlat.new()
+	progress_style.bg_color = Color("#1c3b50")
+	progress_style.set_corner_radius_all(6)
+	loading_progress_bar.add_theme_stylebox_override("background", progress_style)
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = Color("#35b7ee")
+	fill_style.set_corner_radius_all(6)
+	loading_progress_bar.add_theme_stylebox_override("fill", fill_style)
+	content.add_child(loading_progress_bar)
+
+
+func _update_headquarters_loading(message: String, progress: float) -> void:
+	if is_instance_valid(loading_status_label):
+		loading_status_label.text = message
+	if is_instance_valid(loading_progress_bar):
+		loading_progress_bar.value = clampf(progress, 0.0, 100.0)
+
+
+func _finish_headquarters_loading() -> void:
+	if is_instance_valid(ui_layer):
+		ui_layer.queue_free()
+	ui_layer = null
+	ui_root = null
+	loading_status_label = null
+	loading_progress_bar = null
 
 
 func _show_create_scene() -> void:
