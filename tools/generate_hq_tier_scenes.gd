@@ -2,37 +2,36 @@ extends SceneTree
 
 const HeadquartersScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const OUTPUT_DIRECTORY := "res://scenes/world/headquarters_tiers"
-const SHARED_DIRECTORY := "res://scenes/world/headquarters_tiers/shared"
 
 func _initialize() -> void:
 	call_deferred("_generate_tier_scenes")
 
 func _generate_tier_scenes() -> void:
+	# Remove the old external NoiseTexture2D resources. The new tier scenes
+	# carry baked ImageTexture data inside each PackedScene.
+	for legacy_path in [
+		"res://scenes/world/headquarters_tiers/shared/facade_noise.tres",
+		"res://scenes/world/headquarters_tiers/shared/facade_normal.tres"
+	]:
+		var absolute_path := ProjectSettings.globalize_path(legacy_path)
+		if FileAccess.file_exists(legacy_path):
+			var remove_error := DirAccess.remove_absolute(absolute_path)
+			if remove_error != OK:
+				push_error("Could not remove legacy HQ texture resource: " + legacy_path)
+				quit(1)
+				return
+
 	var builder = HeadquartersScript.new()
 	builder._create_material_library()
 	builder._create_procedural_surface_textures()
-
-	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SHARED_DIRECTORY))
-	if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
-		push_error("Could not create shared headquarters resource directory: %s" % error_string(directory_error))
+	if builder.facade_noise == null or builder.facade_normal == null:
+		push_error("HQ facade image textures could not be generated.")
 		builder.free()
 		quit(1)
 		return
 
-	# Store the two generated facade textures once as shared external resources.
-	# All ten tier scenes will reference these same files instead of embedding
-	# ten duplicate copies of the procedural texture data.
-	var noise_path := SHARED_DIRECTORY + "/facade_noise.tres"
-	var normal_path := SHARED_DIRECTORY + "/facade_normal.tres"
-	builder.facade_noise.take_over_path(noise_path)
-	builder.facade_normal.take_over_path(normal_path)
-	var noise_error := ResourceSaver.save(builder.facade_noise, noise_path)
-	var normal_error := ResourceSaver.save(builder.facade_normal, normal_path)
-	if noise_error != OK or normal_error != OK:
-		push_error("Could not save shared HQ facade textures.")
-		builder.free()
-		quit(1)
-		return
+	# ImageTexture pixel data is embedded by PackedScene.pack() with the
+	# materials that reference it. Tier scenes have no shared texture files.
 
 	for level in range(1, 11):
 		builder._build_procedural_building(level, true)
