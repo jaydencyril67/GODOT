@@ -107,6 +107,7 @@ func _build_city() -> void:
 	_create_environment()
 	_create_camera()
 	_add_city_ground()
+	_add_city_perimeter_walls()
 	_add_road_network()
 	_add_junction_details()
 	_add_all_buildings()
@@ -274,6 +275,17 @@ func _add_city_ground() -> void:
 	_box(self, "City_Ground_Base", Vector3(82.0, 0.8, 94.0), Vector3(0.0, -0.48, 0.0), materials["ground"])
 	_box(self, "City_Topsoil_Surface", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.04, 0.0), materials["soil"])
 	_add_box_collision(self, "City_Ground_Collision", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.015, 0.0))
+
+func _add_city_perimeter_walls() -> void:
+	# Invisible collision barriers keep the player inside the playable city.
+	# Their inner faces sit just inside the 80 x 92 metre ground perimeter.
+	var wall_height := 16.0
+	var wall_thickness := 1.0
+	var wall_y := wall_height * 0.5
+	_add_box_collision(self, "City_Perimeter_Wall_West", Vector3(wall_thickness, wall_height, 94.0), Vector3(-39.5, wall_y, 0.0))
+	_add_box_collision(self, "City_Perimeter_Wall_East", Vector3(wall_thickness, wall_height, 94.0), Vector3(39.5, wall_y, 0.0))
+	_add_box_collision(self, "City_Perimeter_Wall_North", Vector3(80.0, wall_height, wall_thickness), Vector3(0.0, wall_y, -45.5))
+	_add_box_collision(self, "City_Perimeter_Wall_South", Vector3(80.0, wall_height, wall_thickness), Vector3(0.0, wall_y, 45.5))
 
 func _add_road_network() -> void:
 	for row_edge in range(GRID_ROWS + 1):
