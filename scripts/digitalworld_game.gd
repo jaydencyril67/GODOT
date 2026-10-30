@@ -186,6 +186,7 @@ func _show_profile() -> void:
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.texture = load("res://assets/digitalworld-landing.png")
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(background)
 
 	var shade := ColorRect.new()
@@ -194,96 +195,131 @@ func _show_profile() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
+	# Scrollable layout prevents clipping on short landscape screens and phones.
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	root.add_child(scroll)
+
 	var outer := MarginContainer.new()
-	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	outer.add_theme_constant_override("margin_left", 28)
-	outer.add_theme_constant_override("margin_right", 28)
-	outer.add_theme_constant_override("margin_top", 16)
-	outer.add_theme_constant_override("margin_bottom", 16)
-	root.add_child(outer)
+	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	outer.add_theme_constant_override("margin_left", 24)
+	outer.add_theme_constant_override("margin_right", 24)
+	outer.add_theme_constant_override("margin_top", 18)
+	outer.add_theme_constant_override("margin_bottom", 18)
+	scroll.add_child(outer)
 
 	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 12)
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 10)
 	outer.add_child(page)
-	page.add_child(_label("DIGITALWORLD  /  FOUNDER SETUP", 9, Color("#8ccff1")))
-	page.add_child(_label("CREATE YOUR COMPANY", 30, Color("#f5fbff")))
-	page.add_child(_label("Establish your identity and define your company brand.", 11, Color("#c5deed")))
+	page.add_child(_label("DIGITALWORLD  /  FOUNDER SETUP", 12, Color("#a9e3ff")))
+	page.add_child(_label("CREATE YOUR COMPANY", 32, Color("#ffffff")))
+	page.add_child(_label("Establish your identity and define your company brand.", 14, Color("#d8efff")))
 
-	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 14)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var compact_layout := viewport_size.x < 900.0
+	var columns: BoxContainer = VBoxContainer.new() if compact_layout else HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 12)
+	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.add_child(columns)
 
-	var identity := _panel(Color(0.08, 0.22, 0.31, 0.72), Color(0.78, 0.91, 1.0, 0.28), 14)
+	var identity := _panel(Color(0.045, 0.17, 0.27, 0.78), Color(0.78, 0.94, 1.0, 0.88), 16)
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	identity.custom_minimum_size = Vector2(0, 286)
 	columns.add_child(identity)
-	var identity_margin := _margin(identity, 20, 20, 18, 18)
+	var identity_style := identity.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	identity_style.border_color = Color(0.78, 0.94, 1.0, 0.92)
+	identity_style.set_border_width_all(2)
+	identity_style.shadow_color = Color(0.02, 0.42, 0.72, 0.34)
+	identity_style.shadow_size = 14
+	identity.add_theme_stylebox_override("panel", identity_style)
+	var identity_margin := _margin(identity, 20, 20, 16, 16)
 	var identity_stack := VBoxContainer.new()
-	identity_stack.add_theme_constant_override("separation", 9)
+	identity_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity_stack.add_theme_constant_override("separation", 8)
 	identity_margin.add_child(identity_stack)
-	identity_stack.add_child(_label("01  FOUNDER IDENTITY", 11, Color("#9ad9f8")))
-	identity_stack.add_child(_label("Founder name", 10, Color("#b6d9ed")))
+	identity_stack.add_child(_label("01  /  FOUNDER IDENTITY", 13, Color("#a9e3ff")))
+	identity_stack.add_child(_label("Founder name", 13, Color("#e4f5ff")))
 	full_name_input = LineEdit.new()
 	full_name_input.placeholder_text = "Enter your full name"
 	full_name_input.text = str(career.get("full_name", ""))
-	full_name_input.custom_minimum_size = Vector2(0, 42)
+	full_name_input.custom_minimum_size = Vector2(0, 52)
+	full_name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	full_name_input.add_theme_font_size_override("font_size", 17)
 	_style_line_edit(full_name_input)
 	identity_stack.add_child(full_name_input)
-	identity_stack.add_child(_label("Company name", 10, Color("#b6d9ed")))
+	identity_stack.add_child(_label("Company name", 13, Color("#e4f5ff")))
 	company_name_input = LineEdit.new()
 	company_name_input.placeholder_text = "Enter your company name"
 	company_name_input.text = str(career.get("company_name", ""))
-	company_name_input.custom_minimum_size = Vector2(0, 42)
+	company_name_input.custom_minimum_size = Vector2(0, 52)
+	company_name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	company_name_input.add_theme_font_size_override("font_size", 17)
 	_style_line_edit(company_name_input)
 	identity_stack.add_child(company_name_input)
-	var identity_note := _label("Your founder profile and company identity are stored locally on this device.", 9, Color("#a8c5d8"))
-	identity_note.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	identity_stack.add_child(identity_note)
+	identity_stack.add_child(_label("Your founder profile and company identity are stored locally on this device.", 11, Color("#c7e2f3")))
 
-	var brand := _panel(Color(0.08, 0.22, 0.31, 0.72), Color(0.78, 0.91, 1.0, 0.28), 14)
+	var brand := _panel(Color(0.045, 0.17, 0.27, 0.78), Color(0.78, 0.94, 1.0, 0.88), 16)
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	brand.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	brand.custom_minimum_size = Vector2(0, 286)
 	columns.add_child(brand)
-	var brand_margin := _margin(brand, 20, 20, 18, 18)
+	var brand_style := brand.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	brand_style.border_color = Color(0.78, 0.94, 1.0, 0.92)
+	brand_style.set_border_width_all(2)
+	brand_style.shadow_color = Color(0.02, 0.42, 0.72, 0.34)
+	brand_style.shadow_size = 14
+	brand.add_theme_stylebox_override("panel", brand_style)
+	var brand_margin := _margin(brand, 20, 20, 16, 16)
 	var brand_stack := VBoxContainer.new()
-	brand_stack.add_theme_constant_override("separation", 9)
+	brand_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_stack.add_theme_constant_override("separation", 7)
 	brand_margin.add_child(brand_stack)
-	brand_stack.add_child(_label("02  COMPANY BRAND", 11, Color("#9ad9f8")))
-	brand_stack.add_child(_label("Choose your company insignia", 15, Color("#f5fbff")))
-	brand_stack.add_child(_label("Select one of the 50 original DigitalWorld insignia identities.", 10, Color("#c5deed")))
+	brand_stack.add_child(_label("02  /  COMPANY BRAND", 13, Color("#a9e3ff")))
+	brand_stack.add_child(_label("Choose your company insignia", 18, Color("#ffffff")))
+	brand_stack.add_child(_label("Select one of the 50 original DigitalWorld insignia identities.", 12, Color("#d8efff")))
 	selected_logo_id = clampi(int(career.get("logo_id", 1)), 1, 50)
 	logo_option = Button.new()
-	logo_option.custom_minimum_size = Vector2(0, 48)
+	logo_option.custom_minimum_size = Vector2(0, 50)
+	logo_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	logo_option.text = "%02d  —  %s     CHANGE" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1]]
 	_style_glass_menu_button(logo_option, false)
 	logo_option.pressed.connect(_open_logo_picker)
 	brand_stack.add_child(logo_option)
-	var insignia_preview_panel := _panel(Color(0.45, 0.76, 0.88, 0.12), Color(0.85, 0.96, 1.0, 0.22), 10)
-	insignia_preview_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var insignia_preview_panel := _panel(Color(0.55, 0.82, 0.96, 0.12), Color(0.85, 0.96, 1.0, 0.50), 12)
+	insignia_preview_panel.custom_minimum_size = Vector2(0, 112)
 	brand_stack.add_child(insignia_preview_panel)
-	var preview_margin := _margin(insignia_preview_panel, 12, 12, 12, 12)
-	var preview_stack := VBoxContainer.new()
-	preview_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	preview_stack.add_theme_constant_override("separation", 6)
+	var preview_margin := _margin(insignia_preview_panel, 10, 10, 6, 6)
+	var preview_row := HBoxContainer.new()
+	preview_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	preview_row.add_theme_constant_override("separation", 14)
+	preview_margin.add_child(preview_row)
 	insignia_preview = TextureRect.new()
-	insignia_preview.custom_minimum_size = Vector2(112, 112)
+	insignia_preview.custom_minimum_size = Vector2(84, 84)
 	insignia_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	insignia_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	insignia_preview.texture = _company_logo_texture(selected_logo_id)
-	insignia_preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	preview_stack.add_child(insignia_preview)
-	preview_stack.add_child(_label("SELECTED INSIGNIA", 9, Color("#a8d7ef"), HORIZONTAL_ALIGNMENT_CENTER))
-	preview_stack.add_child(_label("%02d  /  50   •   %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()], 11, Color("#e8f6ff"), HORIZONTAL_ALIGNMENT_CENTER))
-	preview_margin.add_child(preview_stack)
+	preview_row.add_child(insignia_preview)
+	var preview_copy := VBoxContainer.new()
+	preview_copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	preview_copy.add_child(_label("SELECTED INSIGNIA", 11, Color("#b8e5ff")))
+	preview_copy.add_child(_label("%02d / 50  •  %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()], 13, Color("#ffffff")))
+	preview_row.add_child(preview_copy)
 
-	profile_status = _label("", 10, Color("#ffd0b8"))
+	profile_status = _label("", 12, Color("#ffd0b8"))
 	page.add_child(profile_status)
 	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 10)
-	_add_action_button(actions, "BACK", false, _show_menu)
-	_add_action_button(actions, "ESTABLISH COMPANY  ›", true, _create_company)
+	actions.add_theme_constant_override("separation", 12)
+	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.add_child(actions)
+	var back_button := _add_action_button(actions, "BACK", false, _show_menu)
+	var establish_button := _add_action_button(actions, "ESTABLISH COMPANY  ›", true, _create_company)
+	for action_button in [back_button, establish_button]:
+		action_button.custom_minimum_size = Vector2(0, 54)
+		action_button.add_theme_font_size_override("font_size", 15)
+		_style_glass_menu_button(action_button, action_button == establish_button)
 
 
 func _company_logo_texture(logo_id: int) -> AtlasTexture:
@@ -789,15 +825,23 @@ func _style_button(button: Button, primary: bool) -> void:
 		button.add_theme_stylebox_override(state, style)
 
 func _style_line_edit(field: LineEdit) -> void:
-	field.add_theme_color_override("font_color", Color("#173c4b"))
-	field.add_theme_color_override("font_placeholder_color", Color("#80918f"))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#ffffff")
-	style.border_color = Color("#bdcbc5")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	field.add_theme_stylebox_override("normal", style)
-	field.add_theme_stylebox_override("focus", style)
+	field.add_theme_color_override("font_color", Color("#123d58"))
+	field.add_theme_color_override("font_placeholder_color", Color("#66879a"))
+	field.add_theme_color_override("caret_color", Color("#1679b5"))
+	field.add_theme_color_override("selection_color", Color(0.20, 0.58, 0.84, 0.34))
+	for state in ["normal", "focus", "read_only"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.94, 0.98, 1.0, 0.97)
+		style.border_color = Color("#bceaff") if state != "focus" else Color("#4fc5ff")
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(10)
+		style.shadow_color = Color(0.02, 0.20, 0.34, 0.16)
+		style.shadow_size = 5
+		style.content_margin_left = 14
+		style.content_margin_right = 14
+		style.content_margin_top = 9
+		style.content_margin_bottom = 9
+		field.add_theme_stylebox_override(state, style)
 
 func _add_spacer(parent: VBoxContainer, height: int) -> void:
 	var spacer := Control.new()
