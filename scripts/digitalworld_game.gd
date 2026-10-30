@@ -456,30 +456,19 @@ func _open_logo_picker() -> void:
 		option.clip_contents = true
 		_style_company_glass_button(option, logo_id == selected_logo_id)
 
+		var logo_center := CenterContainer.new()
+		logo_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		logo_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var mark := TextureRect.new()
 		mark.custom_minimum_size = Vector2(56, 56) if compact else Vector2(72, 72)
 		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		mark.texture = _company_logo_texture(logo_id)
-		mark.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-		mark.position -= mark.custom_minimum_size * 0.5
-		option.add_child(mark)
+		logo_center.add_child(mark)
+		option.add_child(logo_center)
 		option.pressed.connect(_select_company_logo.bind(logo_id))
 		grid.add_child(option)
 
-	var footer_line := ColorRect.new()
-	footer_line.custom_minimum_size = Vector2(0, 1)
-	footer_line.color = Color(0.72, 0.88, 0.96, 0.18)
-	stack.add_child(footer_line)
-
-	# Compact footer shows only the current selection count.
-	var footer := HBoxContainer.new()
-	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_child(footer)
-
-	var count_label := _label("%02d / 50 SELECTED" % selected_logo_id, 9 if compact else 10, Color("#b8e5ff"))
-	count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	footer.add_child(count_label)
 
 
 
