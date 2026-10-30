@@ -826,12 +826,19 @@ func _update_headquarters_loading(message: String, progress: float) -> void:
 
 
 func _finish_headquarters_loading() -> void:
-	if is_instance_valid(ui_layer):
-		ui_layer.queue_free()
+	# Prepare Product Studio while the headquarters is first being opened.
+	# The user will only switch visibility when tapping Create.
+	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
 	loading_status_label = null
 	loading_progress_bar = null
+
+	_show_create_scene()
+	_return_to_headquarters()
+
+	if is_instance_valid(preparation_layer):
+		preparation_layer.queue_free()
 
 
 func _show_create_scene() -> void:
