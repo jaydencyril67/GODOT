@@ -3,6 +3,7 @@ extends SceneTree
 
 const HeadquartersScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const OUTPUT_DIRECTORY := "res://scenes/world/headquarters_tiers"
+const SHARED_DIRECTORY := "res://scenes/world/headquarters_tiers/shared"
 
 func _initialize() -> void:
 	call_deferred("_generate_tier_scenes")
@@ -12,9 +13,24 @@ func _generate_tier_scenes() -> void:
 	builder._create_material_library()
 	builder._create_procedural_surface_textures()
 
-	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT_DIRECTORY))
+	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SHARED_DIRECTORY))
 	if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
-		push_error("Could not create headquarters tier scene directory: %s" % error_string(directory_error))
+		push_error("Could not create shared headquarters resource directory: %s" % error_string(directory_error))
+		builder.free()
+		quit(1)
+		return
+
+	# Store the two generated facade textures once as shared external resources.
+	# All ten tier scenes will reference these same files instead of embedding
+	# ten duplicate copies of the procedural texture data.
+	var noise_path := SHARED_DIRECTORY + "/facade_noise.tres"
+	var normal_path := SHARED_DIRECTORY + "/facade_normal.tres"
+	builder.facade_noise.take_over_path(noise_path)
+	builder.facade_normal.take_over_path(normal_path)
+	var noise_error := ResourceSaver.save(builder.facade_noise, noise_path)
+	var normal_error := ResourceSaver.save(builder.facade_normal, normal_path)
+	if noise_error != OK or normal_error != OK:
+		push_error("Could not save shared HQ facade textures.")
 		builder.free()
 		quit(1)
 		return
