@@ -121,6 +121,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	rotation_grid.add_theme_constant_override("v_separation", 8)
 	tools_content.add_child(rotation_grid)
 
+	# Standard rotation and zoom controls (10-degree rotation steps).
 	_add_tool_button(rotation_grid, "X −", _rotate_axis.bind(Vector3.RIGHT, -1.0))
 	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, 1.0))
 	_add_tool_button(rotation_grid, "Y −", _rotate_axis.bind(Vector3.UP, -1.0))
@@ -128,6 +129,15 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	_add_tool_button(rotation_grid, "RESET ROTATION", _reset_phone_rotation)
 	_add_tool_button(rotation_grid, "ZOOM IN", _zoom_camera.bind(-0.35))
 	_add_tool_button(rotation_grid, "ZOOM OUT", _zoom_camera.bind(0.35))
+
+	# Additional precision controls: 5-degree rotation and finer zoom steps.
+	_add_tool_button(rotation_grid, "X − 5°", _rotate_axis_fine.bind(Vector3.RIGHT, -1.0))
+	_add_tool_button(rotation_grid, "X + 5°", _rotate_axis_fine.bind(Vector3.RIGHT, 1.0))
+	_add_tool_button(rotation_grid, "Y − 5°", _rotate_axis_fine.bind(Vector3.UP, -1.0))
+	_add_tool_button(rotation_grid, "Y + 5°", _rotate_axis_fine.bind(Vector3.UP, 1.0))
+	_add_tool_button(rotation_grid, "FINE ZOOM IN", _zoom_camera.bind(-0.15))
+	_add_tool_button(rotation_grid, "FINE ZOOM OUT", _zoom_camera.bind(0.15))
+	_add_tool_button(rotation_grid, "RESET ZOOM", _reset_camera_zoom)
 
 	return tools_panel
 
@@ -276,6 +286,16 @@ func _rotate_axis(axis: Vector3, direction: float) -> void:
 		phone_body.rotation.y += ROTATION_STEP * direction
 
 
+func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
+	if not is_instance_valid(phone_body):
+		return
+	var fine_step := deg_to_rad(5.0)
+	if axis == Vector3.RIGHT:
+		phone_body.rotation.x += fine_step * direction
+	elif axis == Vector3.UP:
+		phone_body.rotation.y += fine_step * direction
+
+
 func _reset_phone_rotation() -> void:
 	if is_instance_valid(phone_body):
 		phone_body.rotation = Vector3.ZERO
@@ -285,6 +305,13 @@ func _zoom_camera(distance_change: float) -> void:
 	if not is_instance_valid(preview_camera):
 		return
 	preview_camera.position.z = clampf(preview_camera.position.z + distance_change, 3.0, 7.5)
+	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
+
+
+func _reset_camera_zoom() -> void:
+	if not is_instance_valid(preview_camera):
+		return
+	preview_camera.position = Vector3(0.0, 0.0, 5.2)
 	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
