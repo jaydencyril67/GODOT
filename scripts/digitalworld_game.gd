@@ -34,6 +34,13 @@ var logo_option: Button
 var selected_logo_id := 1
 var insignia_preview: TextureRect
 var logo_picker_layer: Control
+var logo_picker_panel: PanelContainer
+var logo_picker_scroll: ScrollContainer
+var logo_picker_scroll_tween: Tween
+var logo_picker_touch_index := -1
+var logo_picker_touch_start := Vector2.ZERO
+var logo_picker_touch_dragging := false
+var logo_picker_touch_velocity_y := 0.0
 var profile_status: Label
 var graphics_quality := "High"
 var sound_enabled := true
@@ -400,11 +407,11 @@ func _open_logo_picker() -> void:
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scrim.color = Color(0.005, 0.025, 0.045, 0.84)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
-	scrim.gui_input.connect(_on_logo_picker_scrim_input)
 	logo_picker_layer.add_child(scrim)
 
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center.add_theme_constant_override("margin_left", int(side_margin))
 	center.add_theme_constant_override("margin_right", int(side_margin))
 	center.add_theme_constant_override("margin_top", int(vertical_margin))
@@ -417,6 +424,7 @@ func _open_logo_picker() -> void:
 	panel.custom_minimum_size = Vector2(dialog_width, dialog_height)
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	logo_picker_panel = panel
 	center.add_child(panel)
 
 	var panel_style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
@@ -429,27 +437,33 @@ func _open_logo_picker() -> void:
 
 	var inset := 10 if compact else 18
 	var margin := _margin(panel, inset, inset, inset, inset)
-	# The modal contains only the scrollable grid of 50 logo choices.
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Scrolling stays enabled, but Godot's scrollbar is explicitly hidden.
 	var scroll := ScrollContainer.new()
 	scroll.name = "InsigniaGridScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.follow_focus = false
 	scroll.scroll_deadzone = 8
-	scroll.add_theme_constant_override("scrollbar_width", 0)
-	for state in ["scroll", "scroll_focus", "grabber", "grabber_highlight", "grabber_pressed"]:
-		scroll.add_theme_stylebox_override(state, StyleBoxEmpty.new())
-	scroll.gui_input.connect(_on_logo_picker_scroll_input.bind(scroll))
+	scroll.clip_contents = true
+	logo_picker_scroll = scroll
 	margin.add_child(scroll)
 
 	var grid := GridContainer.new()
 	grid.name = "InsigniaGrid"
 	grid.columns = columns
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 7 if compact else 10)
-	grid.add_theme_constant_override("v_separation", 7 if compact else 10)
+	var grid_gap := 7 if compact else 10
+	grid.add_theme_constant_override("h_separation", grid_gap)
+	grid.add_theme_constant_override("v_separation", grid_gap)
+	# Keep the grid taller than the viewport on every device size so the
+	# ScrollContainer always has a real vertical range to move through.
+	var tile_height := 94 if compact else 112
+	var grid_rows := int(ceil(50.0 / float(columns)))
+	grid.custom_minimum_size.y = float(grid_rows * tile_height + (grid_rows - 1) * grid_gap)
 	scroll.add_child(grid)
 
 	for index in range(50):
@@ -507,20 +521,75 @@ func _style_company_glass_button(button: Button, selected: bool = false) -> void
 	button.add_theme_constant_override("shadow_offset_y", 0)
 
 
-func _on_logo_picker_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
+func _input(event: InputEvent) -> void:
+	if not is_instance_valid(logo_picker_layer) or not is_instance_valid(logo_picker_panel):
+		return
+
+	var panel_rect := logo_picker_panel.get_global_rect()
+	var viewport := get_viewport()
+
+	# Close on any mouse/touch press outside the dialog, before the GUI layer
+	# can route that press to the scrim or to controls underneath the modal.
 	if event is InputEventMouseButton and event.pressed:
-		var direction := 0
-		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			direction = 1
-		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			direction = -1
-		if direction != 0:
-			var target := clampi(scroll.scroll_vertical + direction * 96, 0, maxi(0, int(scroll.get_v_scroll_bar().max_value - scroll.get_v_scroll_bar().page)))
-			var tween := scroll.create_tween()
-			tween.set_trans(Tween.TRANS_QUAD)
-			tween.set_ease(Tween.EASE_OUT)
-			tween.tween_property(scroll, "scroll_vertical", target, 0.20)
-			scroll.accept_event()
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN or event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			if is_instance_valid(logo_picker_scroll) and logo_picker_scroll.get_global_rect().has_point(event.position):
+				var direction := 1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1
+				var target := clampi(logo_picker_scroll.scroll_vertical + direction * 132, 0, _logo_picker_max_scroll())
+				_animate_logo_picker_scroll(target, 0.22)
+				viewport.set_input_as_handled()
+			return
+		if event.button_index == MOUSE_BUTTON_LEFT and not panel_rect.has_point(event.position):
+			_close_logo_picker()
+			viewport.set_input_as_handled()
+			return
+
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			if not panel_rect.has_point(event.position):
+				_close_logo_picker()
+				viewport.set_input_as_handled()
+				return
+			if is_instance_valid(logo_picker_scroll) and logo_picker_scroll.get_global_rect().has_point(event.position):
+				logo_picker_touch_index = event.index
+				logo_picker_touch_start = event.position
+				logo_picker_touch_dragging = false
+				logo_picker_touch_velocity_y = 0.0
+		else:
+			if event.index == logo_picker_touch_index:
+				if logo_picker_touch_dragging:
+					var fling_distance := clampf(logo_picker_touch_velocity_y * 0.10, -420.0, 420.0)
+					var target := clampi(roundi(float(logo_picker_scroll.scroll_vertical) - fling_distance), 0, _logo_picker_max_scroll())
+					_animate_logo_picker_scroll(target, 0.24)
+					viewport.set_input_as_handled()
+				logo_picker_touch_index = -1
+				logo_picker_touch_dragging = false
+				logo_picker_touch_velocity_y = 0.0
+
+	elif event is InputEventScreenDrag and event.index == logo_picker_touch_index:
+		if not logo_picker_touch_dragging and logo_picker_touch_start.distance_to(event.position) >= 9.0:
+			logo_picker_touch_dragging = true
+		if logo_picker_touch_dragging and is_instance_valid(logo_picker_scroll):
+			logo_picker_scroll.scroll_vertical = clampi(logo_picker_scroll.scroll_vertical - roundi(event.relative.y), 0, _logo_picker_max_scroll())
+			logo_picker_touch_velocity_y = event.velocity.y
+			viewport.set_input_as_handled()
+
+
+func _logo_picker_max_scroll() -> int:
+	if not is_instance_valid(logo_picker_scroll):
+		return 0
+	var bar := logo_picker_scroll.get_v_scroll_bar()
+	return maxi(0, roundi(bar.max_value - bar.page))
+
+
+func _animate_logo_picker_scroll(target: int, duration: float) -> void:
+	if not is_instance_valid(logo_picker_scroll):
+		return
+	if is_instance_valid(logo_picker_scroll_tween) and logo_picker_scroll_tween.is_running():
+		logo_picker_scroll_tween.kill()
+	logo_picker_scroll_tween = logo_picker_scroll.create_tween()
+	logo_picker_scroll_tween.set_trans(Tween.TRANS_QUAD)
+	logo_picker_scroll_tween.set_ease(Tween.EASE_OUT)
+	logo_picker_scroll_tween.tween_property(logo_picker_scroll, "scroll_vertical", target, duration)
 
 func _logo_option_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -546,17 +615,17 @@ func _select_company_logo(logo_id: int) -> void:
 	_close_logo_picker()
 
 
-func _on_logo_picker_scrim_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_close_logo_picker()
-	elif event is InputEventScreenTouch and event.pressed:
-		_close_logo_picker()
-
-
 func _close_logo_picker() -> void:
+	if is_instance_valid(logo_picker_scroll_tween) and logo_picker_scroll_tween.is_running():
+		logo_picker_scroll_tween.kill()
 	if is_instance_valid(logo_picker_layer):
 		logo_picker_layer.queue_free()
 	logo_picker_layer = null
+	logo_picker_panel = null
+	logo_picker_scroll = null
+	logo_picker_touch_index = -1
+	logo_picker_touch_dragging = false
+	logo_picker_touch_velocity_y = 0.0
 
 func _create_company() -> void:
 	var founder := full_name_input.text.strip_edges()
