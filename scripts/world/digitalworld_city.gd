@@ -995,12 +995,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			touch_points[event.index] = event.position
-			if touch_points.size() == 2:
-				var points := touch_points.values()
 		else:
 			touch_points.erase(event.index)
-			if touch_points.size() == 2:
-				var remaining := touch_points.values()
 		return
 	if event is InputEventScreenDrag and touch_points.has(event.index):
 		if touch_points.size() == 1:
