@@ -381,7 +381,10 @@ func _show_profile() -> void:
 	# Actions use full-width stacked buttons on narrow displays.
 	var actions: BoxContainer = VBoxContainer.new() if compact else HBoxContainer.new()
 	actions.name = "CompanySetupActions"
-	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Match the action row to the card widths above: each desktop button
+	# occupies exactly one card width, while stacked phone buttons match one card.
+	actions.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	actions.custom_minimum_size.x = reduced_card_width if compact else (reduced_card_width * 2.0 + 10.0)
 	actions.add_theme_constant_override("separation", 10)
 	page.add_child(actions)
 	var back_button := _add_action_button(actions, "BACK TO MENU", false, _show_menu)
