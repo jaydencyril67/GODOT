@@ -1,23 +1,73 @@
-name: DigitalWorld HQ Android Debug APK
+name: DigitalWorld HQ Android Release APK
 
 on:
   workflow_dispatch:
+    inputs:
+      build_apk:
+        description: 'Build and publish the DigitalWorld HQ Android APK'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: android-debug-apk-${{ github.ref }}
-  cancel-in-progress: true
+  group: digitalworld-hq-release-apk
+  cancel-in-progress: false
 
 jobs:
-  build-android-debug:
-    name: Build Android debug APK (Godot 4.7.2)
+  build-android-release:
+    if: inputs.build_apk
+    name: Build Android APK (Godot 4.7.2)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - name: Check out project
         uses: actions/checkout@v4
+
+      - name: Calculate next DigitalWorld HQ release version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release list --limit 1000 --json tagName,isDraft,isPrerelease > releases.json
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          releases = json.loads(Path("releases.json").read_text())
+          versions = []
+          for release in releases:
+              if release.get("isDraft") or release.get("isPrerelease"):
+                  continue
+              match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", release.get("tagName", ""))
+              if match:
+                  versions.append(tuple(map(int, match.groups())))
+
+          if not versions:
+              next_version = (1, 0, 0)
+          else:
+              major, minor, patch = max(versions)
+              if patch < 9:
+                  patch += 1
+              else:
+                  patch = 0
+                  if minor < 9:
+                      minor += 1
+                  else:
+                      minor = 0
+                      major += 1
+              next_version = (major, minor, patch)
+
+          version = ".".join(map(str, next_version))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"app_version={version}\n")
+          print(f"Next DigitalWorld HQ release version: {version}")
+          PY
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -49,6 +99,37 @@ jobs:
           use-dotnet: false
           include-templates: true
 
+      - name: Set DigitalWorld HQ Android version
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("export_presets.cfg")
+          text = path.read_text()
+          text, code_count = re.subn(
+              r"(?m)^version/code=\d+$",
+              "version/code=" + os.environ["APP_VERSION_CODE"],
+              text,
+              count=1,
+          )
+          text, name_count = re.subn(
+              r'(?m)^version/name="[^"]*"$',
+              'version/name="' + os.environ["APP_VERSION"] + '"',
+              text,
+              count=1,
+          )
+          if code_count != 1 or name_count != 1:
+              raise SystemExit("Could not safely set the Android version code and version name.")
+          path.write_text(text)
+          print(f"Configured DigitalWorld HQ {os.environ['APP_VERSION']} (versionCode {os.environ['APP_VERSION_CODE']})")
+          PY
+
       - name: Verify toolchain and Android preset
         shell: bash
         run: |
@@ -73,7 +154,7 @@ jobs:
       - name: Import project resources
         run: godot --headless --editor --path . --import --quit
 
-      - name: Export debug APK
+      - name: Export Android APK
         run: |
           set -euo pipefail
           mkdir -p build
@@ -118,10 +199,46 @@ jobs:
 
           echo "APK validation passed: signed, aligned, package ID correct, Android 11 minimum-SDK compatible, ARMv7 + ARM64."
 
-      - name: Upload debug APK artifact
+      - name: Prepare release APK and SHA-256 checksum
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+        run: |
+          set -euo pipefail
+          cp build/DigitalWorldHQ-debug.apk DigitalWorldHQ.apk
+          test -s DigitalWorldHQ.apk
+          sha256sum DigitalWorldHQ.apk > DigitalWorldHQ.apk.sha256
+          echo "Prepared DigitalWorldHQ.apk for version $APP_VERSION"
+          ls -lh DigitalWorldHQ.apk DigitalWorldHQ.apk.sha256
+
+      - name: Upload release build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DigitalWorld-HQ-Android-debug
-          path: build/DigitalWorldHQ-debug.apk
+          name: digitalworld-hq-v${{ steps.version.outputs.app_version }}-release-apk
+          path: |
+            DigitalWorldHQ.apk
+            DigitalWorldHQ.apk.sha256
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
+
+      - name: Publish versioned GitHub Release
+        id: publish_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+        run: |
+          set -euo pipefail
+          tag="v$APP_VERSION"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Release $tag already exists. A new version is required."
+            exit 1
+          fi
+
+          gh release create "$tag" DigitalWorldHQ.apk DigitalWorldHQ.apk.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "DigitalWorld HQ $APP_VERSION" \
+            --notes "DigitalWorld HQ Android release $APP_VERSION.
+
+          Download DigitalWorldHQ.apk and install it on Android. Android may ask you to confirm installation.
+
+          Android version code: ${{ github.run_number }}"
