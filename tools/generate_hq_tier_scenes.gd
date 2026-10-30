@@ -35,7 +35,7 @@ func _generate_tier_scenes() -> void:
 		return
 
 	for level in range(1, 11):
-		builder._build_procedural_building(level)
+		builder._build_procedural_building(level, true)
 		var building: Node3D = builder.building_root
 		if not is_instance_valid(building):
 			push_error("HQ tier %02d did not produce a building root." % level)
