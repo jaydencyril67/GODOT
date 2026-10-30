@@ -7,6 +7,20 @@ func _initialize() -> void:
 	call_deferred("_generate_tier_scenes")
 
 func _generate_tier_scenes() -> void:
+	# Remove the old external NoiseTexture2D resources. The new tier scenes
+	# carry baked ImageTexture data inside each PackedScene.
+	for legacy_path in [
+		"res://scenes/world/headquarters_tiers/shared/facade_noise.tres",
+		"res://scenes/world/headquarters_tiers/shared/facade_normal.tres"
+	]:
+		var absolute_path := ProjectSettings.globalize_path(legacy_path)
+		if FileAccess.file_exists(legacy_path):
+			var remove_error := DirAccess.remove_absolute(absolute_path)
+			if remove_error != OK:
+				push_error("Could not remove legacy HQ texture resource: " + legacy_path)
+				quit(1)
+				return
+
 	var builder = HeadquartersScript.new()
 	builder._create_material_library()
 	builder._create_procedural_surface_textures()
