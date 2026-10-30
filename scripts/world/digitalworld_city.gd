@@ -1,49 +1,12 @@
 extends Node3D
 class_name DigitalWorldCity
 
+# Fully procedural city. No imported building models and no fallback path.
 const GRID_COLUMNS := 5
 const GRID_ROWS := 6
 const PLOT_SPACING := 12.5
-const ROAD_WIDTH := 3.2
 const CITY_HALF_WIDTH := 34.0
 const CITY_HALF_DEPTH := 40.0
-const MODULAR_BUILDING_PILOT_INDICES := [4, 9, 14, 19, 24] # Five modular pilots; expand only after Android review.
-const CITY_BUILDING_MODELS := [
-	"res://assets/city_glb/building-a.glb",
-	"res://assets/city_glb/building-b.glb",
-	"res://assets/city_glb/building-c.glb",
-	"res://assets/city_glb/building-d.glb",
-	"res://assets/city_glb/building-e.glb",
-	"res://assets/city_glb/building-f.glb",
-	"res://assets/city_glb/building-g.glb",
-	"res://assets/city_glb/building-h.glb",
-	"res://assets/city_glb/building-i.glb",
-	"res://assets/city_glb/building-j.glb",
-	"res://assets/city_glb/building-k.glb",
-	"res://assets/city_glb/building-l.glb",
-	"res://assets/city_glb/building-m.glb",
-	"res://assets/city_glb/building-n.glb"
-]
-const CITY_TOWER_MODELS := [
-	"res://assets/city_glb/building-skyscraper-a.glb",
-	"res://assets/city_glb/building-skyscraper-b.glb",
-	"res://assets/city_glb/building-skyscraper-c.glb",
-	"res://assets/city_glb/building-skyscraper-d.glb",
-	"res://assets/city_glb/building-skyscraper-e.glb"
-]
-const CITY_CAR_MODELS := [
-	"res://assets/city_glb/sedan.glb",
-	"res://assets/city_glb/suv.glb",
-	"res://assets/city_glb/taxi.glb"
-]
-const CITY_PEDESTRIAN_MODELS := [
-	"res://assets/city_glb/character-female-a.glb",
-	"res://assets/city_glb/character-male-a.glb"
-]
-const CITY_TREE_MODELS := [
-	"res://assets/city_glb/tree-default.glb",
-	"res://assets/city_glb/tree-oak.glb"
-]
 
 var traffic: Array[Dictionary] = []
 var walkers: Array[Dictionary] = []
@@ -58,6 +21,7 @@ var mouse_panning := false
 var touch_points: Dictionary = {}
 var pinch_distance := 0.0
 var last_touch_midpoint := Vector2.ZERO
+var materials: Dictionary = {}
 
 func _ready() -> void:
 	_build_city()
@@ -67,624 +31,409 @@ func _process(delta: float) -> void:
 	animation_clock += delta
 	for vehicle in traffic:
 		var node: Node3D = vehicle["node"]
-		var direction: float = vehicle["direction"]
-		node.position.x += float(vehicle["speed"]) * direction * delta
-		if node.position.x > CITY_HALF_WIDTH + 4.0:
-			node.position.x = -CITY_HALF_WIDTH - 4.0
-		elif node.position.x < -CITY_HALF_WIDTH - 4.0:
-			node.position.x = CITY_HALF_WIDTH + 4.0
+		node.position.x += float(vehicle["speed"]) * float(vehicle["direction"]) * delta
+		if node.position.x > CITY_HALF_WIDTH + 5.0:
+			node.position.x = -CITY_HALF_WIDTH - 5.0
+		elif node.position.x < -CITY_HALF_WIDTH - 5.0:
+			node.position.x = CITY_HALF_WIDTH + 5.0
 	for person in walkers:
 		var node: Node3D = person["node"]
 		node.position.x += float(person["speed"]) * delta
 		if node.position.x > CITY_HALF_WIDTH:
 			node.position.x = -CITY_HALF_WIDTH
 		var phase := animation_clock * 7.0 + float(person["phase"])
-		if person.has("left_leg"):
-			(person["left_leg"] as Node3D).rotation.z = sin(phase) * 0.22
-			(person["right_leg"] as Node3D).rotation.z = -sin(phase) * 0.22
-			(person["left_arm"] as Node3D).rotation.z = -sin(phase) * 0.16
-			(person["right_arm"] as Node3D).rotation.z = sin(phase) * 0.16
-		else:
-			node.position.y = 0.025 + abs(sin(phase)) * 0.035
+		(person["left_leg"] as Node3D).rotation.z = sin(phase) * 0.24
+		(person["right_leg"] as Node3D).rotation.z = -sin(phase) * 0.24
+		(person["left_arm"] as Node3D).rotation.z = -sin(phase) * 0.17
+		(person["right_arm"] as Node3D).rotation.z = sin(phase) * 0.17
 
 func _build_city() -> void:
-	var environment_node := WorldEnvironment.new()
+	_create_material_library()
+	_create_environment()
+	_create_camera()
+	_add_city_ground()
+	_add_road_network()
+	_add_junction_details()
+	_add_all_buildings()
+	_add_urban_landscape()
+	_add_traffic()
+	_add_pedestrians()
+
+func _create_material_library() -> void:
+	materials = {
+		"ground": _mat(Color("#77796f"), 0.96),
+		"asphalt": _mat(Color("#242a2e"), 0.94),
+		"asphalt_worn": _mat(Color("#343a3d"), 0.98),
+		"sidewalk": _mat(Color("#b8b8ae"), 0.9),
+		"curb": _mat(Color("#d2d0c6"), 0.84),
+		"lane": _mat(Color("#e5d6a5"), 0.78),
+		"white": _mat(Color("#edf0e9"), 0.82),
+		"concrete": _mat(Color("#b8b9b1"), 0.9),
+		"dark_metal": _mat(Color("#303b40"), 0.42, 0.72),
+		"metal": _mat(Color("#78878b"), 0.34, 0.78),
+		"glass": _glass_mat(),
+		"window_frame": _mat(Color("#26343a"), 0.38, 0.62),
+		"roof": _mat(Color("#59666a"), 0.72, 0.28),
+		"soil": _mat(Color("#655e4f"), 1.0),
+		"trunk": _mat(Color("#594235"), 0.98),
+		"leaf_a": _mat(Color("#345c42"), 0.94),
+		"leaf_b": _mat(Color("#55764b"), 0.94),
+		"car_tire": _mat(Color("#171b1d"), 0.96),
+		"rubber": _mat(Color("#22282b"), 0.96),
+		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
+		"red": _emissive_mat(Color("#ed3e32"), 2.0),
+		"amber": _emissive_mat(Color("#ffb52e"), 1.8),
+		"green": _emissive_mat(Color("#43d58a"), 1.8)
+	}
+
+func _create_environment() -> void:
+	var world := WorldEnvironment.new()
 	var environment := Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#9fb8c7")
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#dce8ed")
-	environment.ambient_light_energy = 0.85
+	var sky := Sky.new()
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color("#477fa7")
+	sky_material.sky_horizon_color = Color("#c4d5d9")
+	sky_material.ground_bottom_color = Color("#343c40")
+	sky_material.ground_horizon_color = Color("#89999a")
+	sky_material.sun_angle_max = 18.0
+	sky.sky_material = sky_material
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 0.72
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment_node.environment = environment
-	add_child(environment_node)
+	environment.tonemap_exposure = 1.0
+	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
+	environment.fog_enabled = true
+	environment.fog_light_color = Color("#a9bdc5")
+	environment.fog_density = 0.0018
+	world.environment = environment
+	add_child(world)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	sun.light_energy = 1.15
+	sun.name = "Late_Afternoon_Sun"
+	sun.rotation_degrees = Vector3(-43.0, -31.0, 0.0)
+	sun.light_color = Color("#fff0d8")
+	sun.light_energy = 1.25
 	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 90.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
 
-	# Street-level cinematic entry. The orbit target stays inside the city,
-	# while distance and pitch remain user-controlled on touch and desktop.
+func _create_camera() -> void:
 	city_camera = Camera3D.new()
-	city_camera.name = "Metropolis_Free_Explore_Camera"
-	city_camera.fov = 66.0
+	city_camera.name = "City_Free_Explore_Camera"
+	city_camera.fov = 64.0
 	city_camera.near = 0.08
 	city_camera.far = 650.0
 	add_child(city_camera)
 	_update_camera_transform()
 	city_camera.current = true
 
-	var concrete := _mat(Color("#777f82"), 0.94)
-	var asphalt := _mat(Color("#252b30"), 0.94)
-	var sidewalk := _mat(Color("#b4b6b0"), 0.92)
-	var curb := _mat(Color("#d0d0c7"), 0.88)
-	var lane_paint := _mat(Color("#e9d8a2"), 0.78)
-	var white_paint := _mat(Color("#e8ece9"), 0.76)
-	var grassless_soil := _mat(Color("#77766c"), 1.0)
-	var concrete_texture := load("res://assets/textures/concrete-color.svg") as Texture2D
-	if concrete_texture != null:
-		concrete.albedo_texture = concrete_texture
-		asphalt.albedo_texture = concrete_texture
-		sidewalk.albedo_texture = concrete_texture
-		grassless_soil.albedo_texture = concrete_texture
-		concrete.uv1_scale = Vector3(5.0, 5.0, 1.0)
-		asphalt.uv1_scale = Vector3(7.0, 7.0, 1.0)
-		sidewalk.uv1_scale = Vector3(3.0, 3.0, 1.0)
-		grassless_soil.uv1_scale = Vector3(6.0, 6.0, 1.0)
-		asphalt.albedo_color = Color("#686b6c")
-		sidewalk.albedo_color = Color("#c3c0b5")
-		grassless_soil.albedo_color = Color("#96948a")
-	var trunk := _mat(Color("#655044"), 0.98)
-	var foliage_a := _mat(Color("#426b55"), 0.92)
-	var foliage_b := _mat(Color("#64815c"), 0.94)
-	var pole_material := _mat(Color("#3d484b"), 0.52, 0.62)
-	var lamp_material := _mat(Color("#fff0c5"), 0.24)
-	lamp_material.emission_enabled = true
-	lamp_material.emission = Color("#ffe3a0")
-	lamp_material.emission_energy_multiplier = 2.2
-	var glass_material := _mat(Color("#78b9d0"), 0.12, 0.62)
-	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glass_material.albedo_color = Color(0.47, 0.72, 0.82, 0.78)
-	glass_material.metallic = 0.48
-	glass_material.emission_enabled = true
-	glass_material.emission = Color("#183d50")
-	glass_material.emission_energy_multiplier = 0.18
-	var window_frame_material := _mat(Color("#26343b"), 0.42, 0.72)
-	var roof_detail_material := _mat(Color("#59656a"), 0.76, 0.35)
-	var signal_red := _emissive_mat(Color("#f04438"), 2.4)
-	var signal_amber := _emissive_mat(Color("#ffb52e"), 2.1)
-	var signal_green := _emissive_mat(Color("#42d889"), 2.2)
-	var manhole_material := _mat(Color("#343b3e"), 0.72, 0.68)
-	var drain_material := _mat(Color("#252b2e"), 0.78, 0.72)
+func _add_city_ground() -> void:
+	_box(self, "City_Ground_Base", Vector3(82.0, 0.8, 94.0), Vector3(0.0, -0.48, 0.0), materials["ground"])
+	_box(self, "City_Topsoil_Surface", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.04, 0.0), materials["soil"])
 
-	_box(self, "City_Base_Slab", Vector3(78.0, 0.7, 90.0), Vector3(0.0, -0.48, 0.0), concrete)
-	_box(self, "City_Paved_Surface", Vector3(76.0, 0.08, 88.0), Vector3(0.0, -0.08, 0.0), grassless_soil)
-
-	# Curved road corridors and offset paved sidewalks break the rigid grid silhouette.
+func _add_road_network() -> void:
 	for row_edge in range(GRID_ROWS + 1):
 		var z := (float(row_edge) - 3.0) * PLOT_SPACING
-		var road_points := PackedVector3Array()
-		for sample in range(13):
-			var t := float(sample) / 12.0
-			var x := lerpf(-38.0, 38.0, t)
-			var bend := sin(t * PI * 2.0 + float(row_edge) * 0.43) * 0.58
-			road_points.append(Vector3(x, 0.0, z + bend))
-		_add_road_ribbon("Curved_East_West_Asphalt", road_points, ROAD_WIDTH, 0.015, asphalt)
-		_add_road_ribbon("Curved_North_Sidewalk", _offset_road_path(road_points, Vector3(0.0, 0.0, -2.12)), 1.15, 0.075, sidewalk)
-		_add_road_ribbon("Curved_South_Sidewalk", _offset_road_path(road_points, Vector3(0.0, 0.0, 2.12)), 1.15, 0.075, sidewalk)
-		for dash in range(1, 12, 2):
-			var p: Vector3 = road_points[dash]
-			var next_p: Vector3 = road_points[dash + 1]
-			var mark := _box(self, "Curved_Centre_Lane_Marking", Vector3(2.1, 0.018, 0.075), Vector3((p.x + next_p.x) * 0.5, 0.085, (p.z + next_p.z) * 0.5), lane_paint)
-			mark.rotation.y = atan2(next_p.z - p.z, next_p.x - p.x)
+		_box(self, "East_West_Asphalt_Road", Vector3(80.0, 0.045, 3.5), Vector3(0.0, 0.025, z), materials["asphalt"])
+		_box(self, "North_Sidewalk", Vector3(80.0, 0.13, 1.35), Vector3(0.0, 0.09, z - 2.45), materials["sidewalk"])
+		_box(self, "South_Sidewalk", Vector3(80.0, 0.13, 1.35), Vector3(0.0, 0.09, z + 2.45), materials["sidewalk"])
+		_box(self, "North_Curb", Vector3(80.0, 0.16, 0.16), Vector3(0.0, 0.12, z - 1.86), materials["curb"])
+		_box(self, "South_Curb", Vector3(80.0, 0.16, 0.16), Vector3(0.0, 0.12, z + 1.86), materials["curb"])
+		for dash in range(16):
+			_box(self, "Broken_Centre_Lane_Marking", Vector3(2.0, 0.018, 0.075), Vector3(-37.0 + float(dash) * 5.0, 0.06, z), materials["lane"])
 	for col_edge in range(GRID_COLUMNS + 1):
 		var x := (float(col_edge) - 2.5) * PLOT_SPACING
-		var road_points := PackedVector3Array()
-		for sample in range(13):
-			var t := float(sample) / 12.0
-			var z := lerpf(-44.0, 44.0, t)
-			var bend := sin(t * PI * 2.0 + float(col_edge) * 0.51) * 0.52
-			road_points.append(Vector3(x + bend, 0.0, z))
-		_add_road_ribbon("Curved_North_South_Asphalt", road_points, ROAD_WIDTH, 0.02, asphalt)
-		_add_road_ribbon("Curved_West_Sidewalk", _offset_road_path(road_points, Vector3(-2.08, 0.0, 0.0)), 1.1, 0.08, sidewalk)
-		_add_road_ribbon("Curved_East_Sidewalk", _offset_road_path(road_points, Vector3(2.08, 0.0, 0.0)), 1.1, 0.08, sidewalk)
-		for dash in range(1, 12, 2):
-			var p: Vector3 = road_points[dash]
-			var next_p: Vector3 = road_points[dash + 1]
-			var mark := _box(self, "Curved_Centre_Lane_Marking", Vector3(0.075, 0.018, 2.1), Vector3((p.x + next_p.x) * 0.5, 0.09, (p.z + next_p.z) * 0.5), lane_paint)
-			mark.rotation.y = atan2(next_p.x - p.x, next_p.z - p.z)
+		_box(self, "North_South_Asphalt_Road", Vector3(3.5, 0.05, 92.0), Vector3(x, 0.035, 0.0), materials["asphalt"])
+		_box(self, "West_Sidewalk", Vector3(1.35, 0.13, 92.0), Vector3(x - 2.45, 0.09, 0.0), materials["sidewalk"])
+		_box(self, "East_Sidewalk", Vector3(1.35, 0.13, 92.0), Vector3(x + 2.45, 0.09, 0.0), materials["sidewalk"])
+		_box(self, "West_Curb", Vector3(0.16, 0.16, 92.0), Vector3(x - 1.86, 0.12, 0.0), materials["curb"])
+		_box(self, "East_Curb", Vector3(0.16, 0.16, 92.0), Vector3(x + 1.86, 0.12, 0.0), materials["curb"])
+		for dash in range(18):
+			_box(self, "Broken_Centre_Lane_Marking", Vector3(0.075, 0.018, 2.0), Vector3(x, 0.065, -43.0 + float(dash) * 5.0), materials["lane"])
 
-	# Marked pedestrian crossings at the central signalized junctions.
-	_add_crosswalk(Vector3(-6.25, 0.0, 0.0), true, white_paint)
-	_add_crosswalk(Vector3(6.25, 0.0, 0.0), true, white_paint)
-	_add_crosswalk(Vector3(0.0, 0.0, -6.25), false, white_paint)
-	_add_crosswalk(Vector3(0.0, 0.0, 6.25), false, white_paint)
+func _add_junction_details() -> void:
+	for center in [Vector3(-6.25, 0.0, 0.0), Vector3(6.25, 0.0, 0.0)]:
+		_add_crosswalk(center, true)
+	for center in [Vector3(0.0, 0.0, -6.25), Vector3(0.0, 0.0, 6.25)]:
+		_add_crosswalk(center, false)
+	for point in [Vector3(-7.0, 0.0, -1.9), Vector3(7.0, 0.0, 1.9), Vector3(-19.5, 0.0, 23.1), Vector3(19.5, 0.0, -23.1)]:
+		_add_traffic_signal(point)
+	for point in [Vector3(-8.4, 0.0, -1.9), Vector3(8.4, 0.0, 1.9), Vector3(-18.0, 0.0, 24.8), Vector3(18.0, 0.0, -24.8)]:
+		_add_manhole(point)
+	for point in [Vector3(-8.0, 0.0, -2.65), Vector3(8.0, 0.0, 2.65), Vector3(-20.5, 0.0, 21.8), Vector3(20.5, 0.0, -21.8)]:
+		_add_storm_drain(point)
 
-	# Thirty individually modelled city blocks: offices, apartments, hotels and towers.
+func _add_all_buildings() -> void:
 	for row in range(GRID_ROWS):
 		for col in range(GRID_COLUMNS):
-			var plot_position := Vector3(
-				(float(col) - 2.0) * PLOT_SPACING + sin(float(row) * 0.72) * 0.52,
+			var index := row * GRID_COLUMNS + col
+			var plot := Vector3(
+				(float(col) - 2.0) * PLOT_SPACING + sin(float(row) * 0.72) * 0.42,
 				0.0,
-				(float(row) - 2.5) * PLOT_SPACING + sin(float(col) * 0.63) * 0.48
+				(float(row) - 2.5) * PLOT_SPACING + sin(float(col) * 0.63) * 0.38
 			)
-			_build_city_building(row * GRID_COLUMNS + col, plot_position, window_frame_material, glass_material, roof_detail_material)
+			_build_procedural_building(index, plot)
 
-	# Street furniture and greenery soften the concrete city grid.
-	for row_edge in range(GRID_ROWS + 1):
-		var z := (float(row_edge) - 3.0) * PLOT_SPACING + PLOT_SPACING * 0.5
-		for x in [-24.0, 0.0, 24.0]:
-			if row_edge % 2 == 1:
-				_add_streetlight(Vector3(x, 0.0, z - 2.65), pole_material, lamp_material)
-	for col_edge in range(GRID_COLUMNS + 1):
-		var x := (float(col_edge) - 2.5) * PLOT_SPACING
-		for z in [-25.0, 0.0, 25.0]:
-			if col_edge % 2 == 0:
-				_add_streetlight(Vector3(x + 2.65, 0.0, z), pole_material, lamp_material)
+func _build_procedural_building(index: int, plot: Vector3) -> void:
+	var root := Node3D.new()
+	root.name = "Procedural_Architecture_%02d" % (index + 1)
+	root.position = plot
+	add_child(root)
 
-	# Signalized junctions give the main avenues recognizable city infrastructure.
-	for signal_position in [Vector3(-7.0, 0.0, -1.9), Vector3(7.0, 0.0, 1.9), Vector3(-19.5, 0.0, 23.1), Vector3(19.5, 0.0, -23.1)]:
-		var signal_root := Node3D.new()
-		signal_root.position = signal_position
-		add_child(signal_root)
-		var signal_model := _add_glb_model(signal_root, "res://assets/city_glb/traffic-light.glb", Vector3.ONE * 2.1)
-		if signal_model != null:
-			signal_model.rotation.y = PI * 0.5
-		_add_signal_lenses(signal_root, signal_red, signal_amber, signal_green)
+	var style := index % 5
+	var floor_count := [4, 7, 10, 13, 6][style] + (index % 3)
+	var floor_height := 2.75
+	var ground_height := 3.25
+	var width := 7.7 + float(index % 3) * 0.22
+	var depth := 7.7 + float((index + 1) % 3) * 0.18
+	var height := ground_height + float(floor_count - 1) * floor_height
+	var wall_colors := [Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")]
+	var accent_colors := [Color("#34464c"), Color("#665548"), Color("#263e4b"), Color("#4b5554"), Color("#34444a")]
+	var wall := _mat(wall_colors[style], 0.86, 0.04)
+	var podium := _mat(wall_colors[style].darkened(0.28), 0.72, 0.12)
+	var accent := _mat(accent_colors[style], 0.42, 0.48)
+	var roof := _mat(Color("#525e62"), 0.78, 0.26)
 
+	_box(root, "Architectural_Foundation_Plinth", Vector3(width + 0.7, 0.42, depth + 0.7), Vector3(0.0, 0.21, 0.0), materials["concrete"])
+	_box(root, "Continuous_Concrete_Building_Envelope", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.42, 0.0), wall)
+	_box(root, "Ground_Floor_Commercial_Podium", Vector3(width + 0.12, ground_height, depth + 0.12), Vector3(0.0, ground_height * 0.5 + 0.42, 0.0), podium)
+
+	# Four elevations share the same procedural window grammar, but vary by style.
+	for side in range(4):
+		var angle := float(side) * PI * 0.5
+		_add_facade_windows(root, angle, width, depth, floor_count, ground_height, floor_height, style)
+		_add_facade_pilasters(root, angle, width, depth, height, accent, style)
+		if style == 1 or style == 4:
+			_add_balcony_stack(root, angle, floor_count, ground_height, floor_height, width, depth, accent)
+
+	# Floor plates, cornices and a layered roof silhouette.
+	for floor_index in range(1, floor_count):
+		var y := 0.42 + ground_height + float(floor_index - 1) * floor_height
+		_box(root, "Expressed_Floor_Slab", Vector3(width + 0.22, 0.11, depth + 0.22), Vector3(0.0, y, 0.0), accent)
+	_box(root, "Roof_Cornice", Vector3(width + 0.55, 0.28, depth + 0.55), Vector3(0.0, height + 0.54, 0.0), accent)
+	_box(root, "Rooftop_Service_Penthouse", Vector3(width * 0.38, 1.15, depth * 0.38), Vector3(-width * 0.18, height + 1.23, -depth * 0.16), roof)
+	_box(root, "Rooftop_HVAC_Equipment", Vector3(1.25, 0.55, 0.9), Vector3(width * 0.2, height + 0.92, depth * 0.18), materials["metal"])
+	_box(root, "Rooftop_Parapet_Front", Vector3(width + 0.35, 0.62, 0.18), Vector3(0.0, height + 0.92, depth * 0.5), accent)
+	_box(root, "Rooftop_Parapet_Back", Vector3(width + 0.35, 0.62, 0.18), Vector3(0.0, height + 0.92, -depth * 0.5), accent)
+	_add_main_entrance(root, width, depth, ground_height, accent)
+	if style == 0 or style == 2:
+		_add_vertical_fins(root, height, accent, width, depth)
+
+func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: float, floors: int, ground_height: float, floor_height: float, style: int) -> void:
+	var basis := Basis(Vector3.UP, angle)
+	var facade_depth := depth * 0.5 + 0.095
+	var columns := 3 if style == 2 else 2
+	var spacing := (width - 1.0) / float(columns)
+	var frame_mesh := BoxMesh.new()
+	frame_mesh.size = Vector3(1.28 if columns == 2 else 0.92, 1.48, 0.16)
+	var glass_mesh := BoxMesh.new()
+	glass_mesh.size = Vector3(1.06 if columns == 2 else 0.72, 1.20, 0.10)
+	var sill_mesh := BoxMesh.new()
+	sill_mesh.size = Vector3(1.34 if columns == 2 else 0.98, 0.10, 0.20)
+	var frame_mm := MultiMesh.new()
+	frame_mm.transform_format = MultiMesh.TRANSFORM_3D
+	frame_mm.mesh = frame_mesh
+	var glass_mm := MultiMesh.new()
+	glass_mm.transform_format = MultiMesh.TRANSFORM_3D
+	glass_mm.mesh = glass_mesh
+	var sill_mm := MultiMesh.new()
+	sill_mm.transform_format = MultiMesh.TRANSFORM_3D
+	sill_mm.mesh = sill_mesh
+	var frame_transforms: Array[Transform3D] = []
+	var glass_transforms: Array[Transform3D] = []
+	var sill_transforms: Array[Transform3D] = []
+	for floor_index in range(1, floors):
+		var y := 0.42 + ground_height + float(floor_index - 1) * floor_height + 1.38
+		for column in range(columns):
+			var x := (float(column) - float(columns - 1) * 0.5) * spacing
+			var origin := basis * Vector3(x, y, facade_depth)
+			frame_transforms.append(Transform3D(basis, origin))
+			glass_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth + 0.045)))
+			sill_transforms.append(Transform3D(basis, basis * Vector3(x, y - 0.72, facade_depth + 0.06)))
+	frame_mm.instance_count = frame_transforms.size()
+	glass_mm.instance_count = glass_transforms.size()
+	sill_mm.instance_count = sill_transforms.size()
+	for i in range(frame_transforms.size()):
+		frame_mm.set_instance_transform(i, frame_transforms[i])
+		glass_mm.set_instance_transform(i, glass_transforms[i])
+		sill_mm.set_instance_transform(i, sill_transforms[i])
+	_add_multimesh(parent, "Repeated_Window_Recess_Frames", frame_mm, materials["window_frame"])
+	_add_multimesh(parent, "Low_E_Mirror_Glazing", glass_mm, materials["glass"])
+	_add_multimesh(parent, "Cast_Window_Sills", sill_mm, materials["metal"])
+
+func _add_facade_pilasters(parent: Node3D, angle: float, width: float, depth: float, height: float, material: Material, style: int) -> void:
+	var basis := Basis(Vector3.UP, angle)
+	for x in [-width * 0.5 + 0.16, width * 0.5 - 0.16]:
+		var pos := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.12)
+		_box(parent, "Facade_Corner_Pilaster", Vector3(0.22 if style != 3 else 0.34, height, 0.24), pos, material).rotation.y = angle
+	if style == 0 or style == 2:
+		for x in [-1.35, 1.35]:
+			var pos := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.2)
+			_box(parent, "Vertical_Aluminium_Sunshade", Vector3(0.10, height, 0.18), pos, material).rotation.y = angle
+
+func _add_balcony_stack(parent: Node3D, angle: float, floors: int, ground_height: float, floor_height: float, width: float, depth: float, material: Material) -> void:
+	var basis := Basis(Vector3.UP, angle)
+	var y_offset := 0.42
+	for floor_index in range(1, floors):
+		if floor_index % 2 == 0:
+			var y := y_offset + ground_height + float(floor_index - 1) * floor_height + 0.12
+			var p := basis * Vector3(0.0, y, depth * 0.5 + 0.55)
+			var balcony := _box(parent, "Cantilevered_Balcony_Slab", Vector3(width * 0.62, 0.13, 0.95), p, materials["concrete"])
+			balcony.rotation.y = angle
+			var rail_pos := basis * Vector3(0.0, y + 0.52, depth * 0.5 + 0.98)
+			var rail := _box(parent, "Balcony_Glass_Railing", Vector3(width * 0.62, 0.78, 0.055), rail_pos, materials["glass"])
+			rail.rotation.y = angle
+
+func _add_vertical_fins(parent: Node3D, height: float, material: Material, width: float, depth: float) -> void:
+	for side in range(4):
+		var angle := float(side) * PI * 0.5
+		var basis := Basis(Vector3.UP, angle)
+		for x in [-1.55, 1.55]:
+			var p := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.2)
+			var fin := _box(parent, "Full_Height_Facade_Fin", Vector3(0.13, height, 0.22), p, material)
+			fin.rotation.y = angle
+
+func _add_main_entrance(parent: Node3D, width: float, depth: float, ground_height: float, accent: Material) -> void:
+	var z := depth * 0.5 + 0.16
+	_box(parent, "Entrance_Portal_Frame", Vector3(1.65, 2.7, 0.22), Vector3(0.0, 1.78, z), accent)
+	_box(parent, "Entrance_Glazed_Door", Vector3(1.34, 2.38, 0.10), Vector3(0.0, 1.78, z + 0.08), materials["glass"])
+	_box(parent, "Entrance_Canopy", Vector3(2.7, 0.16, 1.0), Vector3(0.0, 3.05, z + 0.42), materials["metal"])
+	_box(parent, "Entrance_Steps", Vector3(2.4, 0.18, 0.7), Vector3(0.0, 0.09, z + 0.52), materials["concrete"])
+
+func _add_urban_landscape() -> void:
+	for row in range(GRID_ROWS + 1):
+		var z := (float(row) - 2.5) * PLOT_SPACING
+		for x in [-30.0, -18.0, -6.0, 6.0, 18.0, 30.0]:
+			_add_streetlight(Vector3(x, 0.0, z - 2.55))
+	for col in range(GRID_COLUMNS + 1):
+		var x := (float(col) - 2.5) * PLOT_SPACING
+		for z in [-30.0, -15.0, 15.0, 30.0]:
+			if col % 2 == 0:
+				_add_streetlight(Vector3(x + 2.55, 0.0, z))
 	for row in range(GRID_ROWS):
 		for col in range(GRID_COLUMNS):
-			var p := Vector3((float(col) - 2.0) * PLOT_SPACING, 0.0, (float(row) - 2.5) * PLOT_SPACING)
 			if (row + col) % 3 == 0:
-				_add_tree(Vector3(p.x - 4.35, 0.0, p.z - 4.45), trunk, foliage_a, foliage_b)
+				var p := Vector3((float(col) - 2.0) * PLOT_SPACING - 4.35, 0.0, (float(row) - 2.5) * PLOT_SPACING - 4.45)
+				_add_procedural_tree(p, 0.88 + float((row + col) % 2) * 0.16)
 
-	# Utility covers and curb drains add small-scale street infrastructure.
-	for utility_position in [Vector3(-8.4, 0.0, -1.9), Vector3(8.4, 0.0, 1.9), Vector3(-18.0, 0.0, 24.8), Vector3(18.0, 0.0, -24.8)]:
-		_add_manhole(utility_position, manhole_material)
-	for drain_position in [Vector3(-8.0, 0.0, -2.65), Vector3(8.0, 0.0, 2.65), Vector3(-20.5, 0.0, 21.8), Vector3(20.5, 0.0, -21.8)]:
-		_add_storm_drain(drain_position, drain_material)
+func _add_procedural_tree(position: Vector3, scale: float) -> void:
+	var tree := Node3D.new()
+	tree.name = "Procedural_Street_Tree"
+	tree.position = position
+	tree.scale = Vector3.ONE * scale
+	add_child(tree)
+	_cylinder(tree, "Tree_Trunk", 0.12, 0.18, 1.8, Vector3(0.0, 0.9, 0.0), materials["trunk"])
+	_sphere(tree, "Tree_Canopy_Lower", 0.92, Vector3(0.0, 2.0, 0.0), materials["leaf_a"])
+	_sphere(tree, "Tree_Canopy_Upper", 0.68, Vector3(0.0, 2.75, 0.0), materials["leaf_b"])
+	_sphere(tree, "Tree_Canopy_Side_A", 0.58, Vector3(0.52, 2.18, 0.1), materials["leaf_a"])
+	_sphere(tree, "Tree_Canopy_Side_B", 0.55, Vector3(-0.5, 2.25, -0.1), materials["leaf_b"])
 
-	# Cars circulate along the east-west avenues in both directions.
-	var traffic_lanes: Array[float] = [-25.0, 0.0, 25.0]
+func _add_streetlight(position: Vector3) -> void:
+	var root := Node3D.new()
+	root.name = "Procedural_Streetlight"
+	root.position = position
+	add_child(root)
+	_cylinder(root, "Tapered_Lamp_Post", 0.045, 0.075, 4.6, Vector3(0.0, 2.3, 0.0), materials["dark_metal"])
+	_box(root, "Cantilever_Lamp_Arm", Vector3(0.95, 0.07, 0.07), Vector3(0.38, 4.48, 0.0), materials["metal"])
+	_box(root, "LED_Luminaire_Housing", Vector3(0.48, 0.13, 0.32), Vector3(0.78, 4.38, 0.0), materials["dark_metal"])
+	_box(root, "LED_Luminaire_Diffuser", Vector3(0.39, 0.025, 0.24), Vector3(0.78, 4.30, 0.0), materials["lamp"])
+
+func _add_traffic() -> void:
+	var lanes: Array[float] = [-25.0, 0.0, 25.0]
 	for index in range(10):
-		var row_lane: float = traffic_lanes[index % 3]
 		var direction := 1.0 if index % 2 == 0 else -1.0
-		var start_x := -31.0 + float(index) * 6.8
-		var car := _make_car(index)
-		car.position = Vector3(start_x, 0.12, row_lane + (0.58 if direction > 0.0 else -0.58))
+		var car := _make_procedural_car(index)
+		car.position = Vector3(-31.0 + float(index) * 6.8, 0.12, lanes[index % 3] + (0.58 if direction > 0.0 else -0.58))
 		car.rotation.y = -PI * 0.5 if direction > 0.0 else PI * 0.5
 		add_child(car)
 		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction})
 
-	# Small pedestrians walk along the paved sidewalks, not through the traffic lanes.
-	var pedestrian_lanes: Array[float] = [-27.5, -2.5, 22.5]
+func _make_procedural_car(index: int) -> Node3D:
+	var car := Node3D.new()
+	car.name = "Procedural_Traffic_Vehicle_%02d" % (index + 1)
+	var paint_colors := [Color("#d8dce0"), Color("#263d50"), Color("#a84a38"), Color("#c5a45d"), Color("#3c6257")]
+	var paint := _mat(paint_colors[index % paint_colors.size()], 0.28, 0.52)
+	_box(car, "Stamped_Vehicle_Body", Vector3(1.85, 0.48, 0.92), Vector3(0.0, 0.54, 0.0), paint)
+	_box(car, "Passenger_Cabin", Vector3(1.02, 0.48, 0.78), Vector3(-0.12, 0.99, 0.0), materials["glass"])
+	for x in [-0.58, 0.58]:
+		for z in [-0.49, 0.49]:
+			_cylinder(car, "Rubber_Tyre", 0.22, 0.22, 0.13, Vector3(x, 0.30, z), materials["rubber"])
+	for z in [-0.27, 0.27]:
+		_box(car, "LED_Headlamp", Vector3(0.08, 0.12, 0.16), Vector3(0.94, 0.57, z), materials["lamp"])
+		_box(car, "Rear_Lamp", Vector3(0.08, 0.12, 0.16), Vector3(-0.94, 0.57, z), materials["red"])
+	return car
+
+func _add_pedestrians() -> void:
+	var lanes: Array[float] = [-27.5, -2.5, 22.5]
 	for index in range(14):
-		var person := _make_pedestrian(index)
-		person["node"].position = Vector3(-32.0 + float(index) * 4.7, 0.0, pedestrian_lanes[index % 3])
+		var person := _make_procedural_pedestrian(index)
+		person["node"].position = Vector3(-32.0 + float(index) * 4.7, 0.0, lanes[index % 3])
 		add_child(person["node"])
 		walkers.append(person)
 
-func _build_city_building(index: int, plot_position: Vector3, window_frame_material: Material, glass_material: Material, roof_detail_material: Material) -> void:
-	var building := Node3D.new()
-	building.name = "City_Building_%02d" % (index + 1)
-	building.position = plot_position
-	add_child(building)
+func _make_procedural_pedestrian(index: int) -> Dictionary:
+	var person := Node3D.new()
+	person.name = "Procedural_Pedestrian_%02d" % (index + 1)
+	var skin_colors := [Color("#8d6048"), Color("#a87555"), Color("#684631")]
+	var skin := _mat(skin_colors[index % skin_colors.size()], 0.9)
+	var clothing_colors := [Color("#355d72"), Color("#754b42"), Color("#465e49"), Color("#6d6384")]
+	var clothes := _mat(clothing_colors[index % clothing_colors.size()], 0.88)
+	var trousers := _mat(Color("#30383d"), 0.94)
+	_sphere(person, "Pedestrian_Head", 0.16, Vector3(0.0, 1.48, 0.0), skin)
+	_capsule(person, "Pedestrian_Torso", 0.19, 0.62, Vector3(0.0, 1.0, 0.0), clothes)
+	var left_leg := _capsule(person, "Pedestrian_Left_Leg", 0.07, 0.44, Vector3(-0.09, 0.48, 0.0), trousers)
+	var right_leg := _capsule(person, "Pedestrian_Right_Leg", 0.07, 0.44, Vector3(0.09, 0.48, 0.0), trousers)
+	var left_arm := _capsule(person, "Pedestrian_Left_Arm", 0.055, 0.4, Vector3(-0.23, 1.0, 0.0), clothes)
+	var right_arm := _capsule(person, "Pedestrian_Right_Arm", 0.055, 0.4, Vector3(0.23, 1.0, 0.0), clothes)
+	return {"node": person, "left_leg": left_leg, "right_leg": right_leg, "left_arm": left_arm, "right_arm": right_arm, "speed": 0.65 + float(index % 4) * 0.12, "phase": float(index) * 0.7}
 
-	# Controlled rollout: five procedural architecture pilots distributed across
-	# the city. Keep the other 25 imported buildings intact for comparison.
-	if index in MODULAR_BUILDING_PILOT_INDICES:
-		_add_modular_architecture_building(building, index, window_frame_material, glass_material, roof_detail_material)
-		return
-
-	var podium_material := _mat(Color("#777f82"), 0.88, 0.08)
-	_box(building, "Architectural_Podium", Vector3(9.2, 0.42, 9.2), Vector3(0.0, 0.21, 0.0), podium_material)
-
-	var model_path: String
-	var model_scale := 7.1 + float(index % 3) * 0.38
-	if index % 6 == 0 or index == 17 or index == 28:
-		model_path = CITY_TOWER_MODELS[floori(float(index) / 6.0) % CITY_TOWER_MODELS.size()]
-		model_scale += 0.75
-	else:
-		model_path = CITY_BUILDING_MODELS[index % CITY_BUILDING_MODELS.size()]
-
-	var model := _add_glb_model(building, model_path, Vector3.ONE * model_scale)
-	if model != null:
-		model.rotation.y = float((index * 3) % 4) * PI * 0.5
-		_add_building_glazing(building, index, window_frame_material, glass_material, roof_detail_material)
-	else:
-		# Keep a safe fallback if an imported asset fails to load on a clean editor import.
-		var fallback_height := 9.0 + float((index * 7) % 8) * 2.0
-		var fallback := _mat(Color("#9babb0"), 0.72, 0.12)
-		_box(building, "Fallback_Building_Mass", Vector3(6.0, fallback_height, 6.0), Vector3(0.0, 0.42 + fallback_height * 0.5, 0.0), fallback)
-
-
-func _add_modular_architecture_building(parent: Node3D, index: int, frame_material: Material, glass_material: Material, roof_material: Material) -> void:
-	# Reusable architectural vocabulary: ground-floor podium, repeated upper
-	# floors, four modular facades, optional balconies and a serviceable roof.
-	# Geometry is batched for the repeated windows to keep node/draw-call growth low.
-	var style := index % 3 # 0: office, 1: residential, 2: mixed-use.
-	var floor_count := 6 + (floori(float(index) / 5.0) % 3)
-	var building_width := 8.0
-	var ground_floor_height := 3.1
-	var upper_floor_height := 2.35
-	var total_height := ground_floor_height + float(floor_count - 1) * upper_floor_height
-
-	var wall_color := Color("#b9c0bd")
-	var podium_color := Color("#59676b")
-	var accent_color := Color("#35464d")
-	if style == 1:
-		wall_color = Color("#b7aa99")
-		podium_color = Color("#655a50")
-		accent_color = Color("#4c5558")
-	elif style == 2:
-		wall_color = Color("#c1c2bb")
-		podium_color = Color("#48575d")
-		accent_color = Color("#293b43")
-
-	var wall_material := _mat(wall_color, 0.88, 0.04)
-	var podium_material := _mat(podium_color, 0.62, 0.18)
-	var accent_material := _mat(accent_color, 0.48, 0.42)
-	var balcony_material := _mat(Color("#aebbc0"), 0.28, 0.36)
-
-	# Main concrete envelope and heavier street-level commercial podium.
-	_box(parent, "Modular_Concrete_Envelope", Vector3(building_width, total_height, building_width), Vector3(0.0, total_height * 0.5, 0.0), wall_material)
-	_box(parent, "Modular_Commercial_Podium", Vector3(8.55, ground_floor_height, 8.55), Vector3(0.0, ground_floor_height * 0.5, 0.0), podium_material)
-
-	# Strong corner piers and thin slab bands establish believable floor rhythm.
-	for corner_x in [-3.93, 3.93]:
-		for corner_z in [-3.93, 3.93]:
-			_box(parent, "Facade_Corner_Pier", Vector3(0.22, total_height, 0.22), Vector3(corner_x, total_height * 0.5, corner_z), accent_material)
-
-	# Vertical aluminium sun-shading fins break up the flat concrete elevations.
-	# They are repeated on all four sides and share one material per building.
-	for side_index in range(4):
-		var side_angle := float(side_index) * PI * 0.5
-		var side_basis := Basis(Vector3.UP, side_angle)
-		for fin_offset in [-1.31, 1.31]:
-			var fin_position := side_basis * Vector3(fin_offset, total_height * 0.5, 4.15)
-			var fin := _box(parent, "Vertical_Facade_Sunshade_Fin", Vector3(0.12, total_height, 0.20), fin_position, accent_material)
-			fin.rotation.y = side_angle
-
-	for floor_index in range(1, floor_count):
-		var slab_y := ground_floor_height + float(floor_index - 1) * upper_floor_height
-		_box(parent, "Horizontal_Floor_Band", Vector3(8.28, 0.12, 8.28), Vector3(0.0, slab_y, 0.0), accent_material)
-
-	# Ground-floor shopfronts are repeated around the building perimeter.
-	var shop_frame_mesh := BoxMesh.new()
-	shop_frame_mesh.size = Vector3(2.0, 2.12, 0.16)
-	var shop_glass_mesh := BoxMesh.new()
-	shop_glass_mesh.size = Vector3(1.72, 1.86, 0.10)
-	var shop_frames := MultiMesh.new()
-	shop_frames.transform_format = MultiMesh.TRANSFORM_3D
-	shop_frames.mesh = shop_frame_mesh
-	var shop_glass := MultiMesh.new()
-	shop_glass.transform_format = MultiMesh.TRANSFORM_3D
-	shop_glass.mesh = shop_glass_mesh
-	var shop_transforms: Array[Transform3D] = []
-	var shop_glass_transforms: Array[Transform3D] = []
-	for side_index in range(4):
-		var side_angle := float(side_index) * PI * 0.5
-		var side_basis := Basis(Vector3.UP, side_angle)
-		for bay_offset in [-2.62, 2.62]:
-			var shop_position := side_basis * Vector3(bay_offset, 1.62, 4.30)
-			shop_transforms.append(Transform3D(side_basis, shop_position))
-			var glass_position := side_basis * Vector3(bay_offset, 1.62, 4.40)
-			shop_glass_transforms.append(Transform3D(side_basis, glass_position))
-	shop_frames.instance_count = shop_transforms.size()
-	shop_glass.instance_count = shop_glass_transforms.size()
-	for item_index in range(shop_transforms.size()):
-		shop_frames.set_instance_transform(item_index, shop_transforms[item_index])
-		shop_glass.set_instance_transform(item_index, shop_glass_transforms[item_index])
-	var shop_frame_instance := MultiMeshInstance3D.new()
-	shop_frame_instance.name = "Repeated_Ground_Floor_Storefront_Frames"
-	shop_frame_instance.multimesh = shop_frames
-	shop_frame_instance.material_override = accent_material
-	shop_frame_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(shop_frame_instance)
-	var shop_glass_instance := MultiMeshInstance3D.new()
-	shop_glass_instance.name = "Ground_Floor_Commercial_Glazing"
-	shop_glass_instance.multimesh = shop_glass
-	shop_glass_instance.material_override = glass_material
-	shop_glass_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(shop_glass_instance)
-
-	# A clearly readable main entrance on the front side of the pilot building.
-	_box(parent, "Main_Entrance_Door_Frame", Vector3(1.35, 2.35, 0.18), Vector3(0.0, 1.25, 4.40), accent_material)
-	_box(parent, "Main_Entrance_Glass_Door", Vector3(1.08, 2.08, 0.10), Vector3(0.0, 1.25, 4.51), glass_material)
-
-	# Upper-floor windows: two shared MultiMesh batches, not individual nodes.
-	var window_frame_mesh := BoxMesh.new()
-	window_frame_mesh.size = Vector3(2.0, 1.72, 0.16)
-	var window_glass_mesh := BoxMesh.new()
-	window_glass_mesh.size = Vector3(1.68, 1.40, 0.09)
-	var window_frames := MultiMesh.new()
-	window_frames.transform_format = MultiMesh.TRANSFORM_3D
-	window_frames.mesh = window_frame_mesh
-	var window_glass := MultiMesh.new()
-	window_glass.transform_format = MultiMesh.TRANSFORM_3D
-	window_glass.mesh = window_glass_mesh
-	var frame_transforms: Array[Transform3D] = []
-	var glass_transforms: Array[Transform3D] = []
-	for side_index in range(4):
-		var side_angle := float(side_index) * PI * 0.5
-		var side_basis := Basis(Vector3.UP, side_angle)
-		for floor_index in range(1, floor_count):
-			var window_y := ground_floor_height + (float(floor_index) - 0.5) * upper_floor_height
-			for bay_offset in [-2.62, 0.0, 2.62]:
-				var frame_position := side_basis * Vector3(bay_offset, window_y, 4.08)
-				frame_transforms.append(Transform3D(side_basis, frame_position))
-				var glass_position := side_basis * Vector3(bay_offset, window_y, 4.18)
-				glass_transforms.append(Transform3D(side_basis, glass_position))
-	window_frames.instance_count = frame_transforms.size()
-	window_glass.instance_count = glass_transforms.size()
-	for item_index in range(frame_transforms.size()):
-		window_frames.set_instance_transform(item_index, frame_transforms[item_index])
-		window_glass.set_instance_transform(item_index, glass_transforms[item_index])
-	var frame_instance := MultiMeshInstance3D.new()
-	frame_instance.name = "Modular_Facade_Window_Frames"
-	frame_instance.multimesh = window_frames
-	frame_instance.material_override = frame_material
-	frame_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(frame_instance)
-	var glass_instance := MultiMeshInstance3D.new()
-	glass_instance.name = "Modular_Facade_Tinted_Glass"
-	glass_instance.multimesh = window_glass
-	glass_instance.material_override = glass_material
-	glass_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(glass_instance)
-
-	# Residential and mixed-use variants receive selected projecting balconies.
-	if style == 1 or style == 2:
-		for side_index in [0, 2]:
-			var side_angle := float(side_index) * PI * 0.5
-			var side_basis := Basis(Vector3.UP, side_angle)
-			for floor_index in range(2, floor_count, 2):
-				var balcony_y := ground_floor_height + float(floor_index - 1) * upper_floor_height - 0.16
-				for bay_offset in [-2.62, 2.62]:
-					var balcony_position := side_basis * Vector3(bay_offset, balcony_y, 4.56)
-					var balcony := _box(parent, "Projecting_Balcony_Slab", Vector3(2.18, 0.14, 1.05), balcony_position, accent_material)
-					balcony.rotation.y = side_angle
-					var rail_position := side_basis * Vector3(bay_offset, balcony_y + 0.49, 5.05)
-					var rail := _box(parent, "Balcony_Glass_Railing", Vector3(2.08, 0.78, 0.055), rail_position, balcony_material)
-					rail.rotation.y = side_angle
-					rail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-	# A clean parapet and roof-service equipment finish the silhouette.
-	var roof_y := total_height + 0.18
-	_box(parent, "Roof_Parapet_Front", Vector3(8.35, 0.36, 0.18), Vector3(0.0, roof_y, 4.08), accent_material)
-	_box(parent, "Roof_Parapet_Back", Vector3(8.35, 0.36, 0.18), Vector3(0.0, roof_y, -4.08), accent_material)
-	_box(parent, "Roof_Parapet_Left", Vector3(0.18, 0.36, 8.0), Vector3(-4.08, roof_y, 0.0), accent_material)
-	_box(parent, "Roof_Parapet_Right", Vector3(0.18, 0.36, 8.0), Vector3(4.08, roof_y, 0.0), accent_material)
-	var hvac := _box(parent, "Rooftop_HVAC_Service_Unit", Vector3(1.55, 0.72, 1.25), Vector3(-2.45, total_height + 0.55, -2.35), roof_material)
-	hvac.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_box(parent, "Rooftop_Stair_Core", Vector3(1.75, 1.45, 1.75), Vector3(2.25, total_height + 0.72, -2.15), wall_material)
-
-
-
-
-func _add_glb_model(parent: Node3D, model_path: String, model_scale: Vector3) -> Node3D:
-	if not ResourceLoader.exists(model_path):
-		return null
-	var packed_scene := ResourceLoader.load(model_path) as PackedScene
-	if packed_scene == null:
-		return null
-	var instance := packed_scene.instantiate() as Node3D
-	if instance == null:
-		return null
-	instance.scale = model_scale
-	parent.add_child(instance)
-	return instance
-
-
-func _offset_road_path(points: PackedVector3Array, offset: Vector3) -> PackedVector3Array:
-	var result := PackedVector3Array()
-	for point in points:
-		result.append(point + offset)
-	return result
-
-
-func _add_road_ribbon(node_name: String, points: PackedVector3Array, width: float, height: float, material: Material) -> void:
-	if points.size() < 2:
-		return
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
-	for index in range(points.size()):
-		var previous := points[maxi(index - 1, 0)]
-		var following := points[mini(index + 1, points.size() - 1)]
-		var tangent := (following - previous).normalized()
-		var side := Vector3(-tangent.z, 0.0, tangent.x).normalized() * width * 0.5
-		var center := points[index]
-		surface.set_uv(Vector2(float(index) * 0.42, 0.0))
-		surface.add_vertex(center - side + Vector3.UP * height)
-		surface.set_uv(Vector2(float(index) * 0.42, 1.0))
-		surface.add_vertex(center + side + Vector3.UP * height)
-	surface.generate_normals()
-	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.name = node_name
-	mesh_instance.mesh = surface.commit()
-	mesh_instance.material_override = material
-	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mesh_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	add_child(mesh_instance)
-
-func _add_building_glazing(parent: Node3D, index: int, frame_material: Material, glass_material: Material, roof_material: Material) -> void:
-	# Use two MultiMesh batches per building instead of hundreds of individual window nodes.
-	var tower := index % 6 == 0 or index == 17 or index == 28
-	var floor_count := 8 if tower else 4
-	var frame_mesh := BoxMesh.new()
-	frame_mesh.size = Vector3(1.42, 1.12, 0.13)
-	var glass_mesh := BoxMesh.new()
-	glass_mesh.size = Vector3(1.20, 0.90, 0.09)
-	var sill_mesh := BoxMesh.new()
-	sill_mesh.size = Vector3(1.38, 0.10, 0.18)
-	var frame_batch := MultiMesh.new()
-	frame_batch.transform_format = MultiMesh.TRANSFORM_3D
-	frame_batch.mesh = frame_mesh
-	var glass_batch := MultiMesh.new()
-	glass_batch.transform_format = MultiMesh.TRANSFORM_3D
-	glass_batch.mesh = glass_mesh
-	var sill_batch := MultiMesh.new()
-	sill_batch.transform_format = MultiMesh.TRANSFORM_3D
-	sill_batch.mesh = sill_mesh
-	var window_transforms: Array[Transform3D] = []
-	var sill_transforms: Array[Transform3D] = []
-	for floor_index in range(floor_count):
-		var window_y := 1.55 + float(floor_index) * 1.62
-		for side_index in range(4):
-			var side_angle := float(side_index) * PI * 0.5
-			for bay in range(2):
-				var bay_offset := -1.35 if bay == 0 else 1.35
-				var local_position := Vector3(bay_offset, window_y, 4.13)
-				var rotated_position := Basis(Vector3.UP, side_angle) * local_position
-				var window_basis := Basis(Vector3.UP, side_angle)
-				window_transforms.append(Transform3D(window_basis, rotated_position))
-				var sill_position := Vector3(bay_offset, window_y - 0.53, 4.16)
-				sill_transforms.append(Transform3D(window_basis, window_basis * sill_position))
-	frame_batch.instance_count = window_transforms.size()
-	glass_batch.instance_count = window_transforms.size()
-	sill_batch.instance_count = sill_transforms.size()
-	for window_index in range(window_transforms.size()):
-		frame_batch.set_instance_transform(window_index, window_transforms[window_index])
-		glass_batch.set_instance_transform(window_index, window_transforms[window_index])
-		sill_batch.set_instance_transform(window_index, sill_transforms[window_index])
-	var frames := MultiMeshInstance3D.new()
-	frames.name = "Architectural_Window_Frames"
-	frames.multimesh = frame_batch
-	frames.material_override = frame_material
-	frames.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(frames)
-	var glazing := MultiMeshInstance3D.new()
-	glazing.name = "Blue_Tinted_Glass_Panels"
-	glazing.multimesh = glass_batch
-	glazing.material_override = glass_material
-	glazing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(glazing)
-	var sills := MultiMeshInstance3D.new()
-	sills.name = "Architectural_Window_Sills"
-	sills.multimesh = sill_batch
-	sills.material_override = frame_material
-	sills.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(sills)
-	# A restrained rooftop service unit adds a constructed, functional silhouette.
-	var roof_unit := _box(parent, "Rooftop_HVAC_Unit", Vector3(1.45, 0.48, 0.95), Vector3(-2.55, 8.0 if tower else 7.0, -2.45), roof_material)
-	roof_unit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-
-
-func _add_signal_lenses(parent: Node3D, red: Material, amber: Material, green: Material) -> void:
-	# Two compact signal faces make the imported junction signal readable from either approach.
+func _add_traffic_signal(position: Vector3) -> void:
+	var root := Node3D.new()
+	root.position = position
+	add_child(root)
+	_cylinder(root, "Signal_Support_Pole", 0.07, 0.09, 3.3, Vector3(0.0, 1.65, 0.0), materials["dark_metal"])
 	for side in [-1.0, 1.0]:
-		var face_offset := Vector3(side * 0.24, 0.0, 0.0)
-		_box(parent, "Traffic_Signal_Housing", Vector3(0.34, 0.98, 0.22), Vector3(0.0, 2.05, side * 0.28), _mat(Color("#20272b"), 0.68, 0.32))
-		_sphere(parent, "Traffic_Signal_Red_Lens", 0.095, Vector3(0.0, 2.36, side * 0.405) + face_offset, red)
-		_sphere(parent, "Traffic_Signal_Amber_Lens", 0.095, Vector3(0.0, 2.05, side * 0.405) + face_offset, amber)
-		_sphere(parent, "Traffic_Signal_Green_Lens", 0.095, Vector3(0.0, 1.74, side * 0.405) + face_offset, green)
+		_box(root, "Signal_Housing", Vector3(0.34, 1.0, 0.24), Vector3(0.0, 2.45, side * 0.28), materials["dark_metal"])
+		_sphere(root, "Red_Signal_Lens", 0.095, Vector3(0.0, 2.76, side * 0.43), materials["red"])
+		_sphere(root, "Amber_Signal_Lens", 0.095, Vector3(0.0, 2.45, side * 0.43), materials["amber"])
+		_sphere(root, "Green_Signal_Lens", 0.095, Vector3(0.0, 2.14, side * 0.43), materials["green"])
 
-
-func _add_manhole(position: Vector3, material: Material) -> void:
-	_cylinder(self, "Road_Manhole_Cover", 0.38, 0.38, 0.045, position + Vector3.UP * 0.12, material)
-	for bolt_index in range(4):
-		var angle := float(bolt_index) * PI * 0.5
-		_cylinder(self, "Manhole_Fixing_Bolt", 0.025, 0.025, 0.018, position + Vector3(0.29 * cos(angle), 0.15, 0.29 * sin(angle)), material)
-
-
-func _add_storm_drain(position: Vector3, material: Material) -> void:
-	_box(self, "Storm_Drain_Frame", Vector3(1.05, 0.055, 0.42), position + Vector3.UP * 0.13, material)
-	for bar_index in range(7):
-		var z_offset := (float(bar_index) - 3.0) * 0.052
-		_box(self, "Storm_Drain_Slat", Vector3(0.92, 0.025, 0.018), position + Vector3(0.0, 0.166, z_offset), material)
-
-
-func _add_crosswalk(center: Vector3, across_horizontal_road: bool, material: Material) -> void:
-	var stripe_mesh := BoxMesh.new()
-	stripe_mesh.size = Vector3(0.22, 0.025, 2.75) if across_horizontal_road else Vector3(2.75, 0.025, 0.22)
+func _add_crosswalk(center: Vector3, horizontal: bool) -> void:
+	var stripe := BoxMesh.new()
+	stripe.size = Vector3(0.22, 0.025, 2.7) if horizontal else Vector3(2.7, 0.025, 0.22)
 	var batch := MultiMesh.new()
 	batch.transform_format = MultiMesh.TRANSFORM_3D
-	batch.mesh = stripe_mesh
+	batch.mesh = stripe
 	batch.instance_count = 7
-	for stripe_index in range(7):
-		var offset := float(stripe_index - 3) * 0.42
-		var stripe_position := center + (Vector3(offset, 0.105, 0.0) if across_horizontal_road else Vector3(0.0, 0.105, offset))
-		batch.set_instance_transform(stripe_index, Transform3D(Basis.IDENTITY, stripe_position))
-	var crossing := MultiMeshInstance3D.new()
-	crossing.name = "Pedestrian_Zebra_Crossing"
-	crossing.multimesh = batch
-	crossing.material_override = material
-	crossing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(crossing)
+	for i in range(7):
+		var offset := float(i - 3) * 0.42
+		var p := center + (Vector3(offset, 0.11, 0.0) if horizontal else Vector3(0.0, 0.11, offset))
+		batch.set_instance_transform(i, Transform3D(Basis.IDENTITY, p))
+	_add_multimesh(self, "Zebra_Crossing_Stripes", batch, materials["white"])
 
+func _add_manhole(position: Vector3) -> void:
+	_cylinder(self, "Cast_Iron_Manhole_Cover", 0.38, 0.38, 0.045, position + Vector3.UP * 0.12, materials["dark_metal"])
+	for i in range(4):
+		var angle := float(i) * PI * 0.5
+		_cylinder(self, "Manhole_Bolt", 0.025, 0.025, 0.018, position + Vector3(0.29 * cos(angle), 0.15, 0.29 * sin(angle)), materials["metal"])
 
-func _add_streetlight(position: Vector3, metal: Material, lamp: Material) -> void:
-	var light_root := Node3D.new()
-	light_root.position = position
-	add_child(light_root)
-	_cylinder(light_root, "Streetlight_Pole", 0.055, 0.075, 4.2, Vector3(0.0, 2.1, 0.0), metal)
-	_box(light_root, "Streetlight_Arm", Vector3(0.9, 0.07, 0.07), Vector3(0.36, 4.12, 0.0), metal)
-	_box(light_root, "Streetlight_Lamp", Vector3(0.42, 0.12, 0.28), Vector3(0.72, 4.02, 0.0), lamp)
-	var practical_light := OmniLight3D.new()
-	practical_light.name = "Streetlight_Illumination"
-	practical_light.position = Vector3(0.72, 3.94, 0.0)
-	practical_light.light_color = Color("#ffe2ad")
-	practical_light.light_energy = 0.42
-	practical_light.omni_range = 8.5
-	practical_light.shadow_enabled = false
-	# Keep the number of real-time lights low for mobile GPUs.
-	if int(abs(position.x * 3.0 + position.z)) % 3 == 0:
-		light_root.add_child(practical_light)
+func _add_storm_drain(position: Vector3) -> void:
+	_box(self, "Storm_Drain_Frame", Vector3(1.05, 0.055, 0.42), position + Vector3.UP * 0.13, materials["dark_metal"])
+	for i in range(7):
+		var offset := (float(i) - 3.0) * 0.052
+		_box(self, "Storm_Drain_Slat", Vector3(0.92, 0.025, 0.018), position + Vector3(0.0, 0.166, offset), materials["metal"])
 
-func _add_tree(position: Vector3, trunk_material: Material, leaf_a: Material, leaf_b: Material) -> void:
-	var tree := Node3D.new()
-	tree.name = "Urban_Tree"
-	tree.position = position
-	add_child(tree)
-	var tree_path: String = CITY_TREE_MODELS[int(abs(position.x * 3.0 + position.z)) % CITY_TREE_MODELS.size()]
-	var model := _add_glb_model(tree, tree_path, Vector3.ONE * 2.15)
-	if model == null:
-		_cylinder(tree, "Tree_Trunk", 0.13, 0.18, 1.55, Vector3(0.0, 0.78, 0.0), trunk_material)
-		_sphere(tree, "Tree_Canopy_Lower", 0.88, Vector3(0.0, 1.85, 0.0), leaf_a)
-		_sphere(tree, "Tree_Canopy_Upper", 0.62, Vector3(0.0, 2.55, 0.0), leaf_b)
-
-func _make_car(index: int) -> Node3D:
-	var car := Node3D.new()
-	car.name = "Traffic_Car_%02d" % (index + 1)
-	var model_path: String = CITY_CAR_MODELS[index % CITY_CAR_MODELS.size()]
-	var model := _add_glb_model(car, model_path, Vector3.ONE * 0.72)
-	if model == null:
-		var body := _mat(Color("#b84e3d"), 0.34, 0.28)
-		_box(car, "Car_Body_Fallback", Vector3(1.65, 0.48, 0.82), Vector3(0.0, 0.48, 0.0), body)
-	var headlamp_material := _mat(Color("#fff4d2"), 0.22)
-	headlamp_material.emission_enabled = true
-	headlamp_material.emission = Color("#fff0c5")
-	headlamp_material.emission_energy_multiplier = 1.8
-	var tail_lamp_material := _mat(Color("#b52e25"), 0.3)
-	tail_lamp_material.emission_enabled = true
-	tail_lamp_material.emission = Color("#b52e25")
-	tail_lamp_material.emission_energy_multiplier = 1.1
-	# Small front/rear lamp details follow the vehicle root orientation.
-	for side in [-1.0, 1.0]:
-		_box(car, "Vehicle_Headlamp", Vector3(0.12, 0.10, 0.055), Vector3(0.72, 0.48, side * 0.25), headlamp_material)
-		_box(car, "Vehicle_Tail_Lamp", Vector3(0.10, 0.10, 0.055), Vector3(-0.72, 0.48, side * 0.25), tail_lamp_material)
-	return car
-
-func _make_pedestrian(index: int) -> Dictionary:
-	var person := Node3D.new()
-	person.name = "Pedestrian_%02d" % (index + 1)
-	var model_path: String = CITY_PEDESTRIAN_MODELS[index % CITY_PEDESTRIAN_MODELS.size()]
-	var model := _add_glb_model(person, model_path, Vector3.ONE * 0.92)
-	person.rotation.y = -PI * 0.5
-	if model == null:
-		var clothes := _mat(Color("#355b72"), 0.88)
-		var skin := _mat(Color("#986b50"), 0.9)
-		var trousers := _mat(Color("#343b42"), 0.94)
-		_sphere(person, "Pedestrian_Head", 0.16, Vector3(0.0, 1.45, 0.0), skin)
-		_capsule(person, "Pedestrian_Torso", 0.19, 0.62, Vector3(0.0, 0.98, 0.0), clothes)
-		var left_leg := _capsule(person, "Pedestrian_Left_Leg", 0.07, 0.42, Vector3(-0.09, 0.48, 0.0), trousers)
-		var right_leg := _capsule(person, "Pedestrian_Right_Leg", 0.07, 0.42, Vector3(0.09, 0.48, 0.0), trousers)
-		var left_arm := _capsule(person, "Pedestrian_Left_Arm", 0.055, 0.4, Vector3(-0.23, 1.0, 0.0), clothes)
-		var right_arm := _capsule(person, "Pedestrian_Right_Arm", 0.055, 0.4, Vector3(0.23, 1.0, 0.0), clothes)
-		return {"node": person, "left_leg": left_leg, "right_leg": right_leg, "left_arm": left_arm, "right_arm": right_arm, "speed": 0.65 + float(index % 4) * 0.12, "phase": float(index) * 0.7}
-	return {"node": person, "speed": 0.65 + float(index % 4) * 0.12, "phase": float(index) * 0.7}
+func _add_multimesh(parent: Node3D, node_name: String, batch: MultiMesh, material: Material) -> void:
+	var instance := MultiMeshInstance3D.new()
+	instance.name = node_name
+	instance.multimesh = batch
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	parent.add_child(instance)
 
 func _box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
@@ -706,12 +455,11 @@ func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radi
 	mesh.top_radius = top_radius
 	mesh.bottom_radius = bottom_radius
 	mesh.height = height
-	mesh.radial_segments = 10
+	mesh.radial_segments = 12
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	parent.add_child(instance)
 	return instance
 
@@ -734,8 +482,8 @@ func _sphere(parent: Node3D, node_name: String, radius: float, position: Vector3
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
 	mesh.height = radius * 2.0
-	mesh.radial_segments = 10
-	mesh.rings = 6
+	mesh.radial_segments = 12
+	mesh.rings = 8
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = material
@@ -743,8 +491,27 @@ func _sphere(parent: Node3D, node_name: String, radius: float, position: Vector3
 	parent.add_child(instance)
 	return instance
 
+func _glass_mat() -> StandardMaterial3D:
+	var material := _mat(Color(0.48, 0.72, 0.82, 0.76), 0.12, 0.5)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.metallic_specular = 0.72
+	return material
+
+func _emissive_mat(color: Color, energy: float) -> StandardMaterial3D:
+	var material := _mat(color, 0.24, 0.05)
+	material.emission_enabled = true
+	material.emission = color
+	material.emission_energy_multiplier = energy
+	return material
+
+func _mat(color: Color, roughness: float = 0.82, metallic: float = 0.0) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = roughness
+	material.metallic = metallic
+	return material
+
 func _input(event: InputEvent) -> void:
-	# Desktop orbit, pan and wheel zoom.
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			mouse_orbiting = event.pressed
@@ -764,25 +531,17 @@ func _input(event: InputEvent) -> void:
 		elif mouse_panning:
 			_pan_camera(event.relative)
 		return
-
-	# Android: one finger orbits; two fingers pinch-zoom and pan together.
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			touch_points[event.index] = event.position
 			if touch_points.size() == 2:
 				var points: Array = touch_points.values()
-				var first_point: Vector2 = points[0]
-				var second_point: Vector2 = points[1]
-				pinch_distance = first_point.distance_to(second_point)
-				last_touch_midpoint = (first_point + second_point) * 0.5
+				pinch_distance = (points[0] as Vector2).distance_to(points[1] as Vector2)
+				last_touch_midpoint = ((points[0] as Vector2) + (points[1] as Vector2)) * 0.5
 		else:
 			touch_points.erase(event.index)
-			if touch_points.size() == 1:
-				pinch_distance = 0.0
-			elif touch_points.is_empty():
-				pinch_distance = 0.0
+			pinch_distance = 0.0
 		return
-
 	if event is InputEventScreenDrag and touch_points.has(event.index):
 		touch_points[event.index] = event.position
 		if touch_points.size() >= 2:
@@ -800,44 +559,33 @@ func _input(event: InputEvent) -> void:
 			_orbit_camera(event.relative)
 		get_viewport().set_input_as_handled()
 
-
 func _orbit_camera(relative: Vector2) -> void:
 	camera_yaw -= relative.x * 0.0052
 	camera_pitch = clampf(camera_pitch - relative.y * 0.0042, -0.16, 1.12)
 	_update_camera_transform()
 
-
 func _zoom_camera(amount: float) -> void:
 	camera_distance = clampf(camera_distance + amount, 6.5, 112.0)
 	_update_camera_transform()
 
-
 func _pan_camera(relative: Vector2) -> void:
 	if not is_instance_valid(city_camera):
 		return
-	var scale_factor := camera_distance * 0.00165
-	var camera_right := city_camera.global_transform.basis.x
-	var camera_up := city_camera.global_transform.basis.y
-	camera_target -= camera_right * relative.x * scale_factor
-	camera_target += camera_up * relative.y * scale_factor
+	var factor := camera_distance * 0.00165
+	camera_target -= city_camera.global_transform.basis.x * relative.x * factor
+	camera_target += city_camera.global_transform.basis.y * relative.y * factor
 	camera_target.x = clampf(camera_target.x, -48.0, 48.0)
 	camera_target.y = clampf(camera_target.y, 1.0, 38.0)
 	camera_target.z = clampf(camera_target.z, -55.0, 55.0)
 	_update_camera_transform()
 
-
 func _update_camera_transform() -> void:
 	if not is_instance_valid(city_camera):
 		return
 	var horizontal := cos(camera_pitch) * camera_distance
-	var offset := Vector3(
-		sin(camera_yaw) * horizontal,
-		sin(camera_pitch) * camera_distance,
-		cos(camera_yaw) * horizontal
-	)
+	var offset := Vector3(sin(camera_yaw) * horizontal, sin(camera_pitch) * camera_distance, cos(camera_yaw) * horizontal)
 	city_camera.position = camera_target + offset
 	city_camera.look_at(camera_target, Vector3.UP)
-
 
 func _reset_camera() -> void:
 	camera_target = Vector3(0.0, 5.2, 15.0)
@@ -845,7 +593,6 @@ func _reset_camera() -> void:
 	camera_pitch = -0.09
 	camera_distance = 26.0
 	_update_camera_transform()
-
 
 func _add_camera_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -855,14 +602,10 @@ func _add_camera_hud() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
-
 	var hint := Label.new()
 	hint.text = "DRAG TO ROTATE  •  PINCH TO ZOOM  •  TWO FINGERS TO PAN"
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.94, 0.97, 0.98, 0.86))
-	hint.add_theme_color_override("font_shadow_color", Color(0.02, 0.07, 0.10, 0.9))
-	hint.add_theme_constant_override("shadow_offset_x", 1)
-	hint.add_theme_constant_override("shadow_offset_y", 2)
 	hint.anchor_left = 0.0
 	hint.anchor_top = 1.0
 	hint.anchor_right = 0.0
@@ -871,44 +614,19 @@ func _add_camera_hud() -> void:
 	hint.offset_top = -34.0
 	hint.offset_right = 360.0
 	hint.offset_bottom = -14.0
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hint)
-
-	var reset_button := Button.new()
-	reset_button.text = "RESET VIEW"
-	reset_button.focus_mode = Control.FOCUS_NONE
-	reset_button.custom_minimum_size = Vector2(112.0, 38.0)
-	reset_button.anchor_left = 1.0
-	reset_button.anchor_top = 1.0
-	reset_button.anchor_right = 1.0
-	reset_button.anchor_bottom = 1.0
-	reset_button.offset_left = -130.0
-	reset_button.offset_top = -54.0
-	reset_button.offset_right = -18.0
-	reset_button.offset_bottom = -16.0
-	reset_button.add_theme_font_size_override("font_size", 11)
-	reset_button.add_theme_color_override("font_color", Color("#f4fbff"))
-	var button_style := StyleBoxFlat.new()
-	button_style.bg_color = Color(0.035, 0.13, 0.19, 0.78)
-	button_style.border_color = Color(0.65, 0.83, 0.91, 0.7)
-	button_style.set_border_width_all(1)
-	button_style.set_corner_radius_all(9)
-	for state in ["normal", "hover", "pressed", "focus"]:
-		reset_button.add_theme_stylebox_override(state, button_style)
-	reset_button.pressed.connect(_reset_camera)
-	root.add_child(reset_button)
-
-func _emissive_mat(color: Color, energy: float) -> StandardMaterial3D:
-	var material := _mat(color, 0.24, 0.05)
-	material.emission_enabled = true
-	material.emission = color
-	material.emission_energy_multiplier = energy
-	return material
-
-
-func _mat(color: Color, roughness: float = 0.82, metallic: float = 0.0) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = roughness
-	material.metallic = metallic
-	return material
+	var reset := Button.new()
+	reset.text = "RESET VIEW"
+	reset.focus_mode = Control.FOCUS_NONE
+	reset.custom_minimum_size = Vector2(112.0, 38.0)
+	reset.anchor_left = 1.0
+	reset.anchor_top = 1.0
+	reset.anchor_right = 1.0
+	reset.anchor_bottom = 1.0
+	reset.offset_left = -130.0
+	reset.offset_top = -54.0
+	reset.offset_right = -18.0
+	reset.offset_bottom = -16.0
+	reset.add_theme_font_size_override("font_size", 11)
+	reset.pressed.connect(_reset_camera)
+	root.add_child(reset)
