@@ -312,11 +312,13 @@ func _add_facade_pilasters(parent: Node3D, angle: float, width: float, depth: fl
 	var basis := Basis(Vector3.UP, angle)
 	for x in [-width * 0.5 + 0.16, width * 0.5 - 0.16]:
 		var pos := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.12)
-		_box(parent, "Facade_Corner_Pilaster", Vector3(0.22 if style != 3 else 0.34, height, 0.24), pos, material).rotation.y = angle
+		var pilaster := _box(parent, "Facade_Corner_Pilaster", Vector3(0.22 if style != 3 else 0.34, height, 0.24), pos, material)
+		pilaster.rotation.y = angle
 	if style == 0 or style == 2:
 		for x in [-1.35, 1.35]:
 			var pos := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.2)
-			_box(parent, "Vertical_Aluminium_Sunshade", Vector3(0.10, height, 0.18), pos, material).rotation.y = angle
+			var fin := _box(parent, "Vertical_Aluminium_Sunshade", Vector3(0.10, height, 0.18), pos, material)
+			fin.rotation.y = angle
 
 func _add_balcony_stack(parent: Node3D, angle: float, floors: int, ground_height: float, floor_height: float, width: float, depth: float, material: Material) -> void:
 	var basis := Basis(Vector3.UP, angle)
