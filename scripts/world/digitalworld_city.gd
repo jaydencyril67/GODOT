@@ -122,6 +122,19 @@ func _build_city() -> void:
 	var lane_paint := _mat(Color("#e4d9ad"), 0.82)
 	var white_paint := _mat(Color("#dce0dc"), 0.8)
 	var grassless_soil := _mat(Color("#77766c"), 1.0)
+	var concrete_texture := load("res://assets/textures/concrete-color.svg") as Texture2D
+	if concrete_texture != null:
+		concrete.albedo_texture = concrete_texture
+		asphalt.albedo_texture = concrete_texture
+		sidewalk.albedo_texture = concrete_texture
+		grassless_soil.albedo_texture = concrete_texture
+		concrete.uv1_scale = Vector3(5.0, 5.0, 1.0)
+		asphalt.uv1_scale = Vector3(7.0, 7.0, 1.0)
+		sidewalk.uv1_scale = Vector3(3.0, 3.0, 1.0)
+		grassless_soil.uv1_scale = Vector3(6.0, 6.0, 1.0)
+		asphalt.albedo_color = Color("#686b6c")
+		sidewalk.albedo_color = Color("#c3c0b5")
+		grassless_soil.albedo_color = Color("#96948a")
 	var trunk := _mat(Color("#655044"), 0.98)
 	var foliage_a := _mat(Color("#426b55"), 0.92)
 	var foliage_b := _mat(Color("#64815c"), 0.94)
@@ -284,7 +297,9 @@ func _add_road_ribbon(node_name: String, points: PackedVector3Array, width: floa
 		var tangent := (following - previous).normalized()
 		var side := Vector3(-tangent.z, 0.0, tangent.x).normalized() * width * 0.5
 		var center := points[index]
+		surface.set_uv(Vector2(float(index) * 0.42, 0.0))
 		surface.add_vertex(center - side + Vector3.UP * height)
+		surface.set_uv(Vector2(float(index) * 0.42, 1.0))
 		surface.add_vertex(center + side + Vector3.UP * height)
 	surface.generate_normals()
 	var mesh_instance := MeshInstance3D.new()
