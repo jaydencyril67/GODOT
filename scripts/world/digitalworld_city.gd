@@ -1,7 +1,7 @@
 extends Node3D
 class_name DigitalWorldCity
 
-# Fully procedural city. No imported building models and no fallback path.
+# Fully procedural city. Every structure is built from native Godot geometry.
 const GRID_COLUMNS := 5
 const GRID_ROWS := 6
 const PLOT_SPACING := 12.5
