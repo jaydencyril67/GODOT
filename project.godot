@@ -7,7 +7,7 @@ run/max_fps=60
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [display]
-window/handheld/orientation=1
+window/handheld/orientation=0
 
 [rendering]
 textures/vram_compression/import_etc2_astc=true
