@@ -20,6 +20,8 @@ const ACCENT := Color("#d8e6bd")
 
 var ui_layer: CanvasLayer
 var ui_root: Control
+var create_ui_layer: CanvasLayer
+var create_ui_root: Control
 var world_root: Node3D
 var career: Dictionary = {}
 var upgrade_level := 1
@@ -100,7 +102,10 @@ func _clear_world() -> void:
 
 func _new_screen() -> Control:
 	if is_instance_valid(ui_layer):
-		ui_layer.queue_free()
+		if ui_layer == create_ui_layer:
+			ui_layer.hide()
+		else:
+			ui_layer.queue_free()
 	ui_layer = CanvasLayer.new()
 	ui_layer.name = "Native_Godot_Interface"
 	add_child(ui_layer)
@@ -831,8 +836,22 @@ func _finish_headquarters_loading() -> void:
 
 func _show_create_scene() -> void:
 	current_screen = "create"
-	_clear_world()
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(false)
+
+	# Keep the product interface alive after its first construction. Opening it
+	# again only reveals the existing controls instead of rebuilding the page.
+	if is_instance_valid(create_ui_layer) and is_instance_valid(create_ui_root):
+		if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
+			ui_layer.queue_free()
+		ui_layer = create_ui_layer
+		ui_root = create_ui_root
+		ui_layer.show()
+		return
+
 	var root := _new_screen()
+	create_ui_layer = ui_layer
+	create_ui_root = ui_root
 
 	# Use the same background, overlay, scroll, margins, typography and glass-card
 	# construction as the founder setup page.
@@ -890,7 +909,7 @@ func _show_create_scene() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hero_row.add_child(title)
-	var back_button := _add_action_button(hero_row, "BACK", false, _show_city)
+	var back_button := _add_action_button(hero_row, "BACK", false, _return_to_headquarters)
 	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -974,6 +993,16 @@ func _show_create_scene() -> void:
 		choose.custom_minimum_size = Vector2(0, 46)
 		choose.add_theme_font_size_override("font_size", 12)
 		_style_create_glass_button(choose, true)
+
+func _return_to_headquarters() -> void:
+	current_screen = "headquarters"
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.hide()
+	ui_layer = null
+	ui_root = null
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(true)
+
 
 func _style_create_glass_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
