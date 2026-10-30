@@ -12,7 +12,6 @@ var interact_button: Button
 var current_interaction := ""
 var is_sitting := false
 var saved_stand_position := Vector3.ZERO
-var saved_camera_height := 0.53
 var elevator_left: MeshInstance3D
 var elevator_right: MeshInstance3D
 var elevator_left_collision: AnimatableBody3D
@@ -321,7 +320,6 @@ func begin_sitting() -> void:
 	saved_stand_position = player.global_position
 	player.velocity = Vector3.ZERO
 	player.global_position = Vector3(chosen.x, 0.96, chosen.z + 0.45)
-	view_camera.position.y = 0.12
 	is_sitting = true
 
 func stand_up() -> void:
