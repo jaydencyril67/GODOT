@@ -3,9 +3,11 @@ extends Node3D
 # First-person mobile exploration for the DigitalWorld HQ.
 var player: CharacterBody3D
 var view_camera: Camera3D
+# Independent touch ownership: left finger moves, right finger looks.
 var move_touch_id := -1
-var move_origin := Vector2.ZERO
+var look_touch_id := -1
 var move_vector := Vector2.ZERO
+var mouse_look_active := false
 var joystick_base: Panel
 var joystick_knob: Panel
 var interact_button: Button
@@ -22,6 +24,8 @@ var interaction_scan_timer := 0.0
 
 # Direct movement response: joystick input controls speed immediately.
 const MOVE_SPEED := 2.8
+const CAMERA_LOOK_SENSITIVITY := 0.004
+const CAMERA_PITCH_LIMIT := deg_to_rad(80.0)
 const GRAVITY := 18.0
 const INTERACTION_SCAN_INTERVAL := 0.08
 const SEAT_INTERACTION_RADIUS := 1.55
@@ -97,11 +101,16 @@ func _physics_process(delta: float) -> void:
 		player.velocity = Vector3.ZERO
 		return
 
-	# Simple fixed joystick: move directly in the building's world directions.
+	# One movement path for touch and keyboard. Movement follows player yaw,
+	# while camera pitch never affects the ground-plane direction.
 	var input_dir := move_vector if move_touch_id != -1 else Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	input_dir = input_dir.limit_length(1.0)
-	player.velocity.x = input_dir.x * MOVE_SPEED
-	player.velocity.z = input_dir.y * MOVE_SPEED
+	var local_move := Vector3(input_dir.x, 0.0, input_dir.y)
+	var world_move := player.global_basis * local_move
+	world_move.y = 0.0
+	world_move = world_move.normalized() if input_dir.length_squared() > 1.0 else world_move
+	player.velocity.x = world_move.x * MOVE_SPEED
+	player.velocity.z = world_move.z * MOVE_SPEED
 
 	# Preserve vertical physics and clear only downward velocity while grounded.
 	if not player.is_on_floor():
@@ -133,21 +142,46 @@ func apply_pending_interaction() -> void:
 			stand_up()
 
 func _input(event: InputEvent) -> void:
-	# One fixed joystick on the left side. The right side does not rotate the camera.
+	# Touch controls have exclusive ownership: a touch can never move and look
+	# at the same time. This allows simultaneous left-stick + right-look input.
+	var screen_midpoint := get_viewport().get_visible_rect().size.x * 0.5
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			if event.position.x < get_viewport().get_visible_rect().size.x * 0.5 and move_touch_id == -1:
+			if event.position.x < screen_midpoint and move_touch_id == -1:
 				move_touch_id = event.index
 				move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
 				update_joystick_knob(event.position)
+			elif event.position.x >= screen_midpoint and look_touch_id == -1:
+				look_touch_id = event.index
 		else:
 			if event.index == move_touch_id:
 				move_touch_id = -1
 				move_vector = Vector2.ZERO
 				reset_joystick_knob()
-	elif event is InputEventScreenDrag and event.index == move_touch_id:
-		move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
-		update_joystick_knob(event.position)
+			elif event.index == look_touch_id:
+				look_touch_id = -1
+	elif event is InputEventScreenDrag:
+		if event.index == move_touch_id:
+			move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
+			update_joystick_knob(event.position)
+		elif event.index == look_touch_id:
+			apply_camera_look(event.relative)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		mouse_look_active = event.pressed
+	elif event is InputEventMouseMotion and mouse_look_active:
+		apply_camera_look(event.relative)
+
+func apply_camera_look(look_delta: Vector2) -> void:
+	if player == null or view_camera == null:
+		return
+	# Yaw belongs to the player; pitch belongs to the camera. No joystick state
+	# is read or changed by this function.
+	player.rotate_y(-look_delta.x * CAMERA_LOOK_SENSITIVITY)
+	view_camera.rotation.x = clampf(
+		view_camera.rotation.x + look_delta.y * CAMERA_LOOK_SENSITIVITY,
+		-CAMERA_PITCH_LIMIT,
+		CAMERA_PITCH_LIMIT
+	)
 
 func create_player() -> void:
 	player = CharacterBody3D.new()
