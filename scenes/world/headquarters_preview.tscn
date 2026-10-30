@@ -1,0 +1,106 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/digitalworld_headquarters.gd" id="1_hq"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.278, 0.498, 0.655, 1)
+sky_horizon_color = Color(0.769, 0.835, 0.851, 1)
+ground_bottom_color = Color(0.204, 0.235, 0.251, 1)
+ground_horizon_color = Color(0.537, 0.6, 0.604, 1)
+sun_angle_max = 18.0
+
+[sub_resource type="Sky" id="Sky_hq"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_hq"]
+background_mode = 2
+sky = SubResource("Sky_hq")
+ambient_light_source = 2
+ambient_light_energy = 0.72
+ambient_light_sky_contribution = 0.88
+tonemap_mode = 2
+tonemap_exposure = 1.0
+reflected_light_source = 0
+
+[sub_resource type="StandardMaterial3D" id="Material_stage_ground"]
+albedo_color = Color(0.149, 0.247, 0.298, 1)
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="Material_stage_deck"]
+albedo_color = Color(0.251, 0.357, 0.408, 1)
+roughness = 0.72
+metallic = 0.22
+
+[sub_resource type="StandardMaterial3D" id="Material_stage_trim"]
+albedo_color = Color(0.302, 0.682, 0.835, 1)
+roughness = 0.35
+metallic = 0.35
+emission_enabled = true
+emission = Color(0.302, 0.682, 0.835, 1)
+emission_energy_multiplier = 1.2
+
+[sub_resource type="BoxMesh" id="BoxMesh_ground"]
+size = Vector3(90, 0.7, 90)
+
+[sub_resource type="BoxMesh" id="BoxMesh_deck"]
+size = Vector3(34, 0.24, 30)
+
+[sub_resource type="BoxMesh" id="BoxMesh_trim_front"]
+size = Vector3(34.1, 0.07, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_trim_side"]
+size = Vector3(0.14, 0.07, 30.1)
+
+[node name="DigitalWorld_Headquarters_Preview" type="Node3D"]
+script = ExtResource("1_hq")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_hq")
+
+[node name="Headquarters_Key_Light" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.731354, 0.309017, -0.608761, 0.498783, 0.34202, 0.796726, 0.465672, -0.887011, 0.0, 0, 0, 0)
+light_color = Color(1, 0.941176, 0.847059, 1)
+light_energy = 1.35
+shadow_enabled = true
+shadow_bias = 0.035
+shadow_normal_bias = 1.4
+directional_shadow_max_distance = 180.0
+directional_shadow_mode = 1
+
+[node name="Headquarters_Fill_Light" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 15, 12)
+light_color = Color(0.545, 0.812, 1, 1)
+light_energy = 1.1
+omni_range = 42.0
+shadow_enabled = false
+
+[node name="Headquarters_Studio_Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_ground")
+material_override = SubResource("Material_stage_ground")
+cast_shadow = 0
+position = Vector3(0, -0.55, 0)
+
+[node name="Headquarters_Presentation_Deck" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_deck")
+material_override = SubResource("Material_stage_deck")
+position = Vector3(0, -0.12, 0)
+
+[node name="Deck_Trim_Front" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_trim_front")
+material_override = SubResource("Material_stage_trim")
+position = Vector3(0, 0.035, 15)
+
+[node name="Deck_Trim_Back" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_trim_front")
+material_override = SubResource("Material_stage_trim")
+position = Vector3(0, 0.035, -15)
+
+[node name="Deck_Trim_Left" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_trim_side")
+material_override = SubResource("Material_stage_trim")
+position = Vector3(-17, 0.035, 0)
+
+[node name="Deck_Trim_Right" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_trim_side")
+material_override = SubResource("Material_stage_trim")
+position = Vector3(17, 0.035, 0)
