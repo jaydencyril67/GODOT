@@ -298,7 +298,6 @@ func _label(text: String, position: Vector3, accent: Color) -> void:
 	sign.outline_modulate = Color("#273330")
 	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sign.position = position + Vector3(0, 0, 0.01)
-	sign.rotation.y = PI
 	add_child(sign)
 	_box("Room_Sign_Accent", Vector3(0.08, 1.02, 0.025), position + Vector3(-2.2, 0, 0.02), _mat(accent, 0.6))
 
