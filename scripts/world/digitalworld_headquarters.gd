@@ -64,6 +64,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	var building_height := _build_procedural_building(preview_level)
+	_apply_runtime_building_customization(preview_level)
 
 	setup_progress.emit("Preparing camera and interface...", 88.0)
 	await get_tree().process_frame
@@ -281,11 +282,41 @@ func _add_level_silhouette_features(parent: Node3D, level: int, width: float, de
 			_box(parent, "Lowrise_Front_Balcony_Slab", Vector3(width * 0.76, 0.12, 0.72), Vector3(0.0, y, depth * 0.5 + 0.23), materials["concrete"])
 			_box(parent, "Lowrise_Balcony_Glass_Rail", Vector3(width * 0.72, 0.72, 0.055), Vector3(0.0, y + 0.40, depth * 0.5 + 0.56), materials["glass"])
 
+func _apply_runtime_building_customization(level: int) -> void:
+	# The architectural shell is loaded from a pre-generated tier scene.
+	# Company identity stays runtime-driven so the same scene can serve every player.
+	if not is_instance_valid(building_root):
+		return
+
+	var existing_branding := building_root.get_node_or_null("Runtime_Company_Branding")
+	if is_instance_valid(existing_branding):
+		existing_branding.queue_free()
+
+	var config: Dictionary = LEVEL_CONFIGS[clampi(level, 1, MAX_LEVEL) - 1]
+	var depth: float = float(config["depth"])
+	var ground_height: float = float(config["ground_height"])
+	var branding := Label3D.new()
+	branding.name = "Runtime_Company_Branding"
+	branding.text = company_name.strip_edges().to_upper()
+	if branding.text.is_empty():
+		branding.text = "YOUR COMPANY"
+	branding.font_size = 48
+	branding.pixel_size = 0.004
+	branding.modulate = Color("#eaf8ff")
+	branding.outline_size = 8
+	branding.outline_modulate = Color("#123b56")
+	branding.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	branding.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	branding.position = Vector3(0.0, ground_height + 0.48, depth * 0.5 + 0.315)
+	branding.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	building_root.add_child(branding)
+
 func _rebuild_preview() -> void:
 	if is_instance_valid(building_root):
 		building_root.queue_free()
 	building_root = null
 	var height := _build_procedural_building(preview_level)
+	_apply_runtime_building_customization(preview_level)
 	_configure_camera_framing(height)
 	_update_camera_transform()
 	_refresh_preview_interface()
