@@ -12,6 +12,18 @@ var traffic: Array[Dictionary] = []
 var walkers: Array[Dictionary] = []
 var animation_clock := 0.0
 var city_camera: Camera3D
+var player_body: CharacterBody3D
+var player_speed := 5.2
+var player_yaw := 0.0
+var player_pitch := -0.08
+var joystick_input := Vector2.ZERO
+var joystick_touch_index := -1
+var look_touch_index := -1
+var joystick_origin := Vector2.ZERO
+var joystick_default_position := Vector2.ZERO
+var joystick_base: Panel
+var joystick_knob: Panel
+var mouse_looking := false
 var camera_position := Vector3(0.0, 14.0, 48.0)
 var camera_yaw := 0.0
 var camera_pitch := -0.20
@@ -28,7 +40,7 @@ var pavement_normal: Texture2D
 
 func _ready() -> void:
 	_build_city()
-	_add_camera_hud()
+	_add_first_person_hud()
 
 func _process(delta: float) -> void:
 	animation_clock += delta
@@ -49,6 +61,33 @@ func _process(delta: float) -> void:
 		(person["right_leg"] as Node3D).rotation.z = -sin(phase) * 0.24
 		(person["left_arm"] as Node3D).rotation.z = -sin(phase) * 0.17
 		(person["right_arm"] as Node3D).rotation.z = sin(phase) * 0.17
+
+func _physics_process(delta: float) -> void:
+	if not is_instance_valid(player_body):
+		return
+	var input_vector := joystick_input
+	# Keep desktop keyboard movement available for editor testing.
+	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+		input_vector.x = -1.0
+	elif Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		input_vector.x = 1.0
+	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+		input_vector.y = -1.0
+	elif Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+		input_vector.y = 1.0
+	if input_vector.length() > 1.0:
+		input_vector = input_vector.normalized()
+	var move_direction := player_body.global_transform.basis * Vector3(input_vector.x, 0.0, input_vector.y)
+	move_direction.y = 0.0
+	if move_direction.length_squared() > 1.0:
+		move_direction = move_direction.normalized()
+	player_body.velocity.x = move_direction.x * player_speed
+	player_body.velocity.z = move_direction.z * player_speed
+	if not player_body.is_on_floor():
+		player_body.velocity.y -= float(ProjectSettings.get_setting("physics/3d/default_gravity")) * delta
+	elif player_body.velocity.y < 0.0:
+		player_body.velocity.y = -0.1
+	player_body.move_and_slide()
 
 func _build_city() -> void:
 	_create_material_library()
@@ -191,18 +230,38 @@ func _create_environment() -> void:
 	add_child(sun)
 
 func _create_camera() -> void:
+	# The player owns the camera so looking around never moves the player in a circle.
+	player_body = CharacterBody3D.new()
+	player_body.name = "First_Person_Player"
+	player_body.position = Vector3(0.0, 0.22, 0.0)
+	player_body.floor_snap_length = 0.28
+	player_body.floor_max_angle = deg_to_rad(48.0)
+	player_body.safe_margin = 0.03
+	var body_shape := CollisionShape3D.new()
+	body_shape.name = "Player_Capsule_Collision"
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.32
+	capsule.height = 1.8
+	body_shape.shape = capsule
+	body_shape.position = Vector3(0.0, 0.9, 0.0)
+	player_body.add_child(body_shape)
+	add_child(player_body)
+
 	city_camera = Camera3D.new()
-	city_camera.name = "City_Free_Explore_Camera"
-	city_camera.fov = 64.0
-	city_camera.near = 0.08
+	city_camera.name = "First_Person_Camera"
+	city_camera.fov = 76.0
+	city_camera.near = 0.06
 	city_camera.far = 650.0
-	add_child(city_camera)
-	_update_camera_transform()
+	city_camera.position = Vector3(0.0, 1.62, 0.0)
+	player_body.add_child(city_camera)
 	city_camera.current = true
+	player_body.rotation.y = player_yaw
+	city_camera.rotation.x = player_pitch
 
 func _add_city_ground() -> void:
 	_box(self, "City_Ground_Base", Vector3(82.0, 0.8, 94.0), Vector3(0.0, -0.48, 0.0), materials["ground"])
 	_box(self, "City_Topsoil_Surface", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.04, 0.0), materials["soil"])
+	_add_box_collision(self, "City_Ground_Collision", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.04, 0.0))
 
 func _add_road_network() -> void:
 	for row_edge in range(GRID_ROWS + 1):
@@ -260,6 +319,8 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 	var width := 7.7 + float(index % 3) * 0.22
 	var depth := 7.7 + float((index + 1) % 3) * 0.18
 	var height := ground_height + float(floor_count - 1) * floor_height
+	# One simple invisible collider per building keeps mobile physics inexpensive.
+	_add_box_collision(root, "Building_Solid_Collision", Vector3(width + 0.7, height + 0.42, depth + 0.7), Vector3(0.0, (height + 0.42) * 0.5, 0.0))
 	var wall_colors := [Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")]
 	var accent_colors := [Color("#34464c"), Color("#665548"), Color("#263e4b"), Color("#4b5554"), Color("#34444a")]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
@@ -678,124 +739,131 @@ func _mat(color: Color, roughness: float = 0.82, metallic: float = 0.0) -> Stand
 	return material
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			mouse_orbiting = event.pressed
-			return
-		if event.button_index == MOUSE_BUTTON_RIGHT or event.button_index == MOUSE_BUTTON_MIDDLE:
-			mouse_panning = event.pressed
-			return
-		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_camera(-2.4)
-			return
-		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_camera(2.4)
-			return
-	elif event is InputEventMouseMotion:
-		if mouse_orbiting:
-			_orbit_camera(event.relative)
-		elif mouse_panning:
-			_pan_camera(event.relative)
-		return
 	if event is InputEventScreenTouch:
+		var viewport_size := get_viewport().get_visible_rect().size
 		if event.pressed:
-			touch_points[event.index] = event.position
-			if touch_points.size() == 2:
-				var points: Array = touch_points.values()
-				pinch_distance = (points[0] as Vector2).distance_to(points[1] as Vector2)
-				last_touch_midpoint = ((points[0] as Vector2) + (points[1] as Vector2)) * 0.5
+			if event.position.x < viewport_size.x * 0.46 and event.position.y > viewport_size.y * 0.35 and joystick_touch_index == -1:
+				joystick_touch_index = event.index
+				joystick_origin = event.position
+				joystick_base.position = event.position - joystick_base.size * 0.5
+				joystick_base.visible = true
+				_update_joystick(Vector2.ZERO)
+			elif event.position.x >= viewport_size.x * 0.46 and look_touch_index == -1:
+				look_touch_index = event.index
 		else:
-			touch_points.erase(event.index)
-			pinch_distance = 0.0
+			if event.index == joystick_touch_index:
+				joystick_touch_index = -1
+				joystick_input = Vector2.ZERO
+				joystick_base.position = joystick_default_position
+				_update_joystick_visual()
+			if event.index == look_touch_index:
+				look_touch_index = -1
 		return
-	if event is InputEventScreenDrag and touch_points.has(event.index):
-		touch_points[event.index] = event.position
-		if touch_points.size() >= 2:
-			var points: Array = touch_points.values()
-			var first: Vector2 = points[0]
-			var second: Vector2 = points[1]
-			var next_distance := first.distance_to(second)
-			var midpoint := (first + second) * 0.5
-			if pinch_distance > 0.0:
-				_zoom_camera((pinch_distance - next_distance) * 0.045)
-			_pan_camera(midpoint - last_touch_midpoint)
-			pinch_distance = next_distance
-			last_touch_midpoint = midpoint
-		else:
-			_orbit_camera(event.relative)
-		get_viewport().set_input_as_handled()
-
-func _orbit_camera(relative: Vector2) -> void:
-	# Free-look rotation turns the camera in place; it never circles a target.
-	camera_yaw -= relative.x * 0.0052
-	camera_pitch = clampf(camera_pitch - relative.y * 0.0042, -1.25, 1.25)
-	_update_camera_transform()
-
-func _zoom_camera(amount: float) -> void:
-	if not is_instance_valid(city_camera):
+	if event is InputEventScreenDrag:
+		if event.index == joystick_touch_index:
+			_update_joystick((event.position - joystick_origin) / 58.0)
+			get_viewport().set_input_as_handled()
+		elif event.index == look_touch_index:
+			_look_camera(event.relative)
+			get_viewport().set_input_as_handled()
 		return
-	camera_position += -city_camera.global_transform.basis.z * amount
-	camera_position.x = clampf(camera_position.x, -72.0, 72.0)
-	camera_position.y = clampf(camera_position.y, 2.0, 48.0)
-	camera_position.z = clampf(camera_position.z, -85.0, 85.0)
-	_update_camera_transform()
-
-func _pan_camera(relative: Vector2) -> void:
-	if not is_instance_valid(city_camera):
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		mouse_looking = event.pressed
 		return
-	var factor := maxf(camera_position.length(), 12.0) * 0.00165
-	camera_position += -city_camera.global_transform.basis.x * relative.x * factor
-	camera_position += city_camera.global_transform.basis.y * relative.y * factor
-	camera_position.x = clampf(camera_position.x, -72.0, 72.0)
-	camera_position.y = clampf(camera_position.y, 2.0, 48.0)
-	camera_position.z = clampf(camera_position.z, -85.0, 85.0)
-	_update_camera_transform()
-
-func _update_camera_transform() -> void:
-	if not is_instance_valid(city_camera):
+	if event is InputEventMouseMotion and mouse_looking:
+		_look_camera(event.relative)
 		return
-	city_camera.position = camera_position
-	city_camera.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
 
-func _reset_camera() -> void:
-	camera_position = Vector3(0.0, 14.0, 48.0)
-	camera_yaw = 0.0
-	camera_pitch = -0.20
-	_update_camera_transform()
+func _look_camera(relative: Vector2) -> void:
+	if not is_instance_valid(player_body) or not is_instance_valid(city_camera):
+		return
+	player_yaw -= relative.x * 0.0042
+	player_pitch = clampf(player_pitch - relative.y * 0.0034, -1.32, 1.32)
+	player_body.rotation.y = player_yaw
+	city_camera.rotation.x = player_pitch
 
-func _add_camera_hud() -> void:
+func _update_joystick(value: Vector2) -> void:
+	joystick_input = value.limit_length(1.0)
+	_update_joystick_visual()
+
+func _update_joystick_visual() -> void:
+	if is_instance_valid(joystick_knob):
+		joystick_knob.position = Vector2(44.0, 44.0) + joystick_input * 42.0
+
+func _add_box_collision(parent: Node3D, node_name: String, size: Vector3, position: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.name = node_name
+	body.position = position
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	parent.add_child(body)
+
+func _add_first_person_hud() -> void:
 	var layer := CanvasLayer.new()
-	layer.name = "City_Camera_Controls"
+	layer.name = "First_Person_Mobile_Controls"
+	layer.layer = 5
 	add_child(layer)
 	var root := Control.new()
+	root.name = "Touch_Control_Overlay"
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
-	var hint := Label.new()
-	hint.text = "DRAG TO LOOK  •  PINCH TO MOVE  •  TWO FINGERS TO PAN"
-	hint.add_theme_font_size_override("font_size", 10)
-	hint.add_theme_color_override("font_color", Color(0.94, 0.97, 0.98, 0.86))
-	hint.anchor_left = 0.0
-	hint.anchor_top = 1.0
-	hint.anchor_right = 0.0
-	hint.anchor_bottom = 1.0
-	hint.offset_left = 18.0
-	hint.offset_top = -34.0
-	hint.offset_right = 360.0
-	hint.offset_bottom = -14.0
-	root.add_child(hint)
-	var reset := Button.new()
-	reset.text = "RESET VIEW"
-	reset.focus_mode = Control.FOCUS_NONE
-	reset.custom_minimum_size = Vector2(112.0, 38.0)
-	reset.anchor_left = 1.0
-	reset.anchor_top = 1.0
-	reset.anchor_right = 1.0
-	reset.anchor_bottom = 1.0
-	reset.offset_left = -130.0
-	reset.offset_top = -54.0
-	reset.offset_right = -18.0
-	reset.offset_bottom = -16.0
-	reset.add_theme_font_size_override("font_size", 11)
-	reset.pressed.connect(_reset_camera)
-	root.add_child(reset)
+
+	joystick_base = Panel.new()
+	joystick_base.name = "Movement_Joystick_Base"
+	joystick_base.size = Vector2(144.0, 144.0)
+	joystick_base.position = Vector2(28.0, get_viewport().get_visible_rect().size.y - 172.0)
+	joystick_default_position = joystick_base.position
+	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick_base.add_theme_stylebox_override("panel", _circle_style(Color(0.10, 0.20, 0.27, 0.38), Color(0.78, 0.91, 1.0, 0.62), 3))
+	root.add_child(joystick_base)
+
+	joystick_knob = Panel.new()
+	joystick_knob.name = "Movement_Joystick_Knob"
+	joystick_knob.size = Vector2(56.0, 56.0)
+	joystick_knob.position = Vector2(44.0, 44.0)
+	joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick_knob.add_theme_stylebox_override("panel", _circle_style(Color(0.56, 0.82, 0.96, 0.78), Color(1.0, 1.0, 1.0, 0.92), 2))
+	joystick_base.add_child(joystick_knob)
+
+	var look_hint := Label.new()
+	look_hint.name = "Look_Control_Hint"
+	look_hint.text = "DRAG RIGHT SIDE TO LOOK"
+	look_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	look_hint.add_theme_font_size_override("font_size", 11)
+	look_hint.add_theme_color_override("font_color", Color(0.94, 0.98, 1.0, 0.76))
+	look_hint.anchor_left = 1.0
+	look_hint.anchor_top = 1.0
+	look_hint.anchor_right = 1.0
+	look_hint.anchor_bottom = 1.0
+	look_hint.offset_left = -250.0
+	look_hint.offset_top = -34.0
+	look_hint.offset_right = -20.0
+	look_hint.offset_bottom = -14.0
+	look_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(look_hint)
+
+	var crosshair := Label.new()
+	crosshair.name = "First_Person_Center_Marker"
+	crosshair.text = "+"
+	crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	crosshair.add_theme_font_size_override("font_size", 18)
+	crosshair.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.72))
+	crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	crosshair.position = Vector2(-8.0, -12.0)
+	crosshair.size = Vector2(16.0, 24.0)
+	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(crosshair)
+
+func _circle_style(fill: Color, outline: Color, outline_width: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = outline
+	style.set_border_width_all(outline_width)
+	style.set_corner_radius_all(72)
+	style.anti_aliasing = true
+	return style
