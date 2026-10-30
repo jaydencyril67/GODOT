@@ -83,20 +83,20 @@ func _build_city() -> void:
 
 	# Continuous asphalt streets between every block, with raised paved sidewalks.
 	for row_edge in range(GRID_ROWS + 1):
-		var z := (float(row_edge) - 3.0) * PLOT_SPACING + PLOT_SPACING * 0.5
+		var z := (float(row_edge) - 3.0) * PLOT_SPACING
 		_box(self, "East_West_Asphalt_Road", Vector3(76.0, 0.10, ROAD_WIDTH), Vector3(0.0, 0.0, z), asphalt)
 		_box(self, "North_Sidewalk", Vector3(76.0, 0.16, 1.15), Vector3(0.0, 0.06, z - ROAD_WIDTH * 0.5 - 0.62), sidewalk)
 		_box(self, "South_Sidewalk", Vector3(76.0, 0.16, 1.15), Vector3(0.0, 0.06, z + ROAD_WIDTH * 0.5 + 0.62), sidewalk)
-		for dash in range(19):
-			var dx := -35.0 + float(dash) * 3.9
+		for dash in range(9):
+			var dx := -31.0 + float(dash) * 7.75
 			_box(self, "Broken_Centre_Lane_Marking", Vector3(1.75, 0.018, 0.09), Vector3(dx, 0.065, z), lane_paint)
 	for col_edge in range(GRID_COLUMNS + 1):
 		var x := (float(col_edge) - 2.5) * PLOT_SPACING
 		_box(self, "North_South_Asphalt_Road", Vector3(ROAD_WIDTH, 0.11, 88.0), Vector3(x, 0.012, 0.0), asphalt)
 		_box(self, "West_Sidewalk", Vector3(1.1, 0.16, 88.0), Vector3(x - ROAD_WIDTH * 0.5 - 0.58, 0.07, 0.0), sidewalk)
 		_box(self, "East_Sidewalk", Vector3(1.1, 0.16, 88.0), Vector3(x + ROAD_WIDTH * 0.5 + 0.58, 0.07, 0.0), sidewalk)
-		for dash in range(22):
-			var dz := -42.0 + float(dash) * 3.9
+		for dash in range(11):
+			var dz := -38.0 + float(dash) * 7.6
 			_box(self, "Broken_Centre_Lane_Marking", Vector3(0.09, 0.018, 1.75), Vector3(x, 0.075, dz), lane_paint)
 
 	# Thirty individually modelled city blocks: offices, apartments, hotels and towers.
@@ -108,18 +108,20 @@ func _build_city() -> void:
 	# Street furniture and greenery soften the concrete city grid.
 	for row_edge in range(GRID_ROWS + 1):
 		var z := (float(row_edge) - 3.0) * PLOT_SPACING + PLOT_SPACING * 0.5
-		for x in [-30.0, -18.0, -6.0, 6.0, 18.0, 30.0]:
-			_add_streetlight(Vector3(x, 0.0, z - 2.65), pole_material, lamp_material)
+		for x in [-24.0, 0.0, 24.0]:
+			if row_edge % 2 == 1:
+				_add_streetlight(Vector3(x, 0.0, z - 2.65), pole_material, lamp_material)
 	for col_edge in range(GRID_COLUMNS + 1):
 		var x := (float(col_edge) - 2.5) * PLOT_SPACING
-		for z in [-34.0, -17.0, 0.0, 17.0, 34.0]:
-			_add_streetlight(Vector3(x + 2.65, 0.0, z), pole_material, lamp_material)
+		for z in [-25.0, 0.0, 25.0]:
+			if col_edge % 2 == 0:
+				_add_streetlight(Vector3(x + 2.65, 0.0, z), pole_material, lamp_material)
 
 	for row in range(GRID_ROWS):
 		for col in range(GRID_COLUMNS):
 			var p := Vector3((float(col) - 2.0) * PLOT_SPACING, 0.0, (float(row) - 2.5) * PLOT_SPACING)
-			_add_tree(Vector3(p.x - 4.35, 0.0, p.z - 4.45), trunk, foliage_a, foliage_b)
-			_add_tree(Vector3(p.x + 4.35, 0.0, p.z + 4.45), trunk, foliage_b, foliage_a)
+			if (row + col) % 3 == 0:
+				_add_tree(Vector3(p.x - 4.35, 0.0, p.z - 4.45), trunk, foliage_a, foliage_b)
 
 	# Cars circulate along the east-west avenues in both directions.
 	for index in range(10):
@@ -168,11 +170,10 @@ func _build_city_building(index: int, plot_position: Vector3) -> void:
 	_box(building, "Roof_Crown", Vector3(width + 0.24, 0.28, depth + 0.24), Vector3(0.0, 0.94 + height, 0.0), trim)
 
 	# Recessed-looking horizontal glazing bands and vertical facade fins.
-	var floors := maxi(3, floori(height / 2.3))
+	var floors := clampi(floori(height / 4.0), 3, 4)
 	for floor_index in range(floors):
 		var y := 1.25 + float(floor_index) * (height / float(floors))
 		_box(building, "Front_Glass_Band", Vector3(width - 0.32, 0.72, 0.045), Vector3(0.0, y, depth * 0.5 + 0.025), glass)
-		_box(building, "Rear_Glass_Band", Vector3(width - 0.32, 0.72, 0.045), Vector3(0.0, y, -depth * 0.5 - 0.025), glass)
 	for fin in [-1.0, 1.0]:
 		_box(building, "Facade_Vertical_Fin", Vector3(0.13, height - 0.5, 0.16), Vector3(fin * (width * 0.5 - 0.12), 0.8 + height * 0.5, depth * 0.5 + 0.08), trim)
 
