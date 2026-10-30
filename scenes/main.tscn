@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/launcher.gd" id="1_launcher"]
+[ext_resource type="Script" path="res://scripts/digitalworld_game.gd" id="1_game"]
 
-[node name="DigitalWorldHQ" type="Node3D"]
-script = ExtResource("1_launcher")
+[node name="DigitalWorld" type="Node3D"]
+script = ExtResource("1_game")

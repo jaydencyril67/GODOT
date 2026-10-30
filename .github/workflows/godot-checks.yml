@@ -1,6 +1,8 @@
 name: DigitalWorld Godot Checks
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
