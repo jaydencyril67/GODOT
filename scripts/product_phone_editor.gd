@@ -92,7 +92,7 @@ func _build_editor_ui() -> void:
 func _make_tools_card(card_name: String, include_controls: bool) -> PanelContainer:
 	var tools_panel := _make_glass_panel(Color(0.28, 0.61, 0.80, 0.30))
 	tools_panel.name = card_name
-	tools_panel.custom_minimum_size.x = 260
+	tools_panel.custom_minimum_size.x = 273
 	tools_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	if not include_controls:
