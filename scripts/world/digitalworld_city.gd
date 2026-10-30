@@ -124,8 +124,9 @@ func _build_city() -> void:
 				_add_tree(Vector3(p.x - 4.35, 0.0, p.z - 4.45), trunk, foliage_a, foliage_b)
 
 	# Cars circulate along the east-west avenues in both directions.
+	var traffic_lanes: Array[float] = [-25.0, 0.0, 25.0]
 	for index in range(10):
-		var row_lane := [-25.0, 0.0, 25.0][index % 3]
+		var row_lane: float = traffic_lanes[index % 3]
 		var direction := 1.0 if index % 2 == 0 else -1.0
 		var start_x := -31.0 + float(index) * 6.8
 		var car := _make_car(index)
@@ -135,9 +136,10 @@ func _build_city() -> void:
 		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction})
 
 	# Small pedestrians walk along the paved sidewalks, not through the traffic lanes.
+	var pedestrian_lanes: Array[float] = [-27.5, -2.5, 22.5]
 	for index in range(14):
 		var person := _make_pedestrian(index)
-		person["node"].position = Vector3(-32.0 + float(index) * 4.7, 0.0, [-27.5, -2.5, 22.5][index % 3])
+		person["node"].position = Vector3(-32.0 + float(index) * 4.7, 0.0, pedestrian_lanes[index % 3])
 		add_child(person["node"])
 		walkers.append(person)
 
