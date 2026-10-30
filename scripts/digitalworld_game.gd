@@ -1,6 +1,6 @@
 extends Node3D
 
-const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
+const HeadquartersPreviewScene = preload("res://scenes/world/headquarters_preview.tscn")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 
 const LOGO_NAMES := [
@@ -723,7 +723,7 @@ func _show_headquarters_preview() -> void:
 	_clear_world()
 	_show_headquarters_loading_screen()
 
-	var headquarters = HeadquartersPreviewScript.new()
+	var headquarters: DigitalWorldHeadquarters = HeadquartersPreviewScene.instantiate()
 	headquarters.name = "DigitalWorld_Headquarters_Preview"
 	headquarters.preview_level = clampi(selected_upgrade, 1, 10)
 	headquarters.owned_level = clampi(upgrade_level, 1, 10)
