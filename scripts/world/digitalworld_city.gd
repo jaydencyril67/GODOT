@@ -578,10 +578,31 @@ func _add_vertical_fins(parent: Node3D, height: float, material: Material, width
 
 func _add_main_entrance(parent: Node3D, width: float, depth: float, ground_height: float, accent: Material) -> void:
 	var z := depth * 0.5 + 0.16
-	_box(parent, "Entrance_Portal_Frame", Vector3(1.65, 2.7, 0.22), Vector3(0.0, 1.78, z), accent)
-	_box(parent, "Entrance_Glazed_Door", Vector3(1.34, 2.38, 0.10), Vector3(0.0, 1.78, z + 0.08), materials["glass"])
-	_box(parent, "Entrance_Canopy", Vector3(2.7, 0.16, 1.0), Vector3(0.0, 3.05, z + 0.42), materials["metal"])
-	_box(parent, "Entrance_Steps", Vector3(2.4, 0.18, 0.7), Vector3(0.0, 0.09, z + 0.52), materials["concrete"])
+	# A layered portal, paired glazed leaves and a separate transom read as a real lobby entrance.
+	_box(parent, "Entrance_Portal_Frame", Vector3(1.78, 2.86, 0.24), Vector3(0.0, 1.78, z), accent)
+	_box(parent, "Entrance_Recess_Shadow", Vector3(1.48, 2.52, 0.045), Vector3(0.0, 1.76, z + 0.135), materials["window_gasket"])
+	_box(parent, "Entrance_Door_Leaf_Left", Vector3(0.60, 2.30, 0.075), Vector3(-0.315, 1.61, z + 0.17), materials["window_frame"])
+	_box(parent, "Entrance_Door_Leaf_Right", Vector3(0.60, 2.30, 0.075), Vector3(0.315, 1.61, z + 0.17), materials["window_frame"])
+	_box(parent, "Entrance_Left_Glazed_Panel", Vector3(0.40, 1.54, 0.025), Vector3(-0.315, 1.78, z + 0.215), materials["glass"])
+	_box(parent, "Entrance_Right_Glazed_Panel", Vector3(0.40, 1.54, 0.025), Vector3(0.315, 1.78, z + 0.215), materials["glass"])
+	for side in [-1.0, 1.0]:
+		_box(parent, "Entrance_Door_Outer_Stile", Vector3(0.045, 2.22, 0.045), Vector3(side * 0.59, 1.61, z + 0.225), materials["metal"])
+		_box(parent, "Entrance_Door_Inner_Stile", Vector3(0.035, 2.22, 0.045), Vector3(side * 0.035, 1.61, z + 0.225), materials["metal"])
+		_box(parent, "Entrance_Door_Kick_Plate", Vector3(0.48, 0.22, 0.025), Vector3(side * 0.315, 0.43, z + 0.245), materials["metal"])
+		_box(parent, "Entrance_Pull_Handle", Vector3(0.035, 0.42, 0.045), Vector3(side * 0.075, 1.28, z + 0.255), materials["metal"])
+	_box(parent, "Entrance_Central_Door_Meeting_Stile", Vector3(0.035, 2.28, 0.055), Vector3(0.0, 1.61, z + 0.23), materials["dark_metal"])
+	_box(parent, "Entrance_Transom_Frame", Vector3(1.34, 0.28, 0.08), Vector3(0.0, 2.91, z + 0.17), materials["metal"])
+	_box(parent, "Entrance_Transom_Glass", Vector3(1.20, 0.18, 0.025), Vector3(0.0, 2.91, z + 0.22), materials["glass"])
+	_box(parent, "Entrance_Threshold", Vector3(1.52, 0.07, 0.32), Vector3(0.0, 0.12, z + 0.22), materials["metal"])
+	_box(parent, "Entrance_Canopy", Vector3(2.7, 0.16, 1.0), Vector3(0.0, 3.18, z + 0.48), materials["metal"])
+	for side in [-1.0, 1.0]:
+		var canopy_brace := _box(parent, "Entrance_Canopy_Bracket", Vector3(0.07, 0.48, 0.48), Vector3(side * 1.02, 2.94, z + 0.55), materials["dark_metal"])
+		canopy_brace.rotation.z = side * -0.42
+		_box(parent, "Entrance_Wall_Light_Housing", Vector3(0.22, 0.28, 0.12), Vector3(side * 1.05, 2.15, z + 0.13), materials["dark_metal"])
+		_box(parent, "Entrance_Wall_Light_Diffuser", Vector3(0.14, 0.18, 0.035), Vector3(side * 1.05, 2.15, z + 0.205), materials["lamp"])
+	_box(parent, "Entrance_Upper_Step", Vector3(2.15, 0.14, 0.48), Vector3(0.0, 0.16, z + 0.48), materials["concrete"])
+	_box(parent, "Entrance_Lower_Step", Vector3(2.4, 0.14, 0.62), Vector3(0.0, 0.07, z + 0.91), materials["concrete"])
+	_box(parent, "Entrance_Step_Nosing", Vector3(2.4, 0.035, 0.08), Vector3(0.0, 0.235, z + 0.48), materials["metal"])
 
 func _add_urban_landscape() -> void:
 	for row in range(GRID_ROWS + 1):
@@ -631,10 +652,12 @@ func _add_streetlight(position: Vector3) -> void:
 
 func _add_traffic() -> void:
 	var lanes: Array[float] = [-25.0, 0.0, 25.0]
-	for index in range(10):
+	# Eighteen vehicles are spaced across the existing three traffic corridors.
+	for index in range(18):
 		var direction := 1.0 if index % 2 == 0 else -1.0
 		var car := _make_procedural_car(index)
-		car.position = Vector3(-31.0 + float(index) * 6.8, 0.12, lanes[index % 3] + (0.58 if direction > 0.0 else -0.58))
+		var lane_offset := 0.88 if direction > 0.0 else -0.88
+		car.position = Vector3(-31.0 + float(index) * 3.65, 0.12, lanes[index % 3] + lane_offset)
 		car.rotation.y = 0.0 if direction > 0.0 else PI
 		add_child(car)
 		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction, "phase": float(index) * 0.83, "wheels": car.get_meta("wheel_nodes", [])})
@@ -665,8 +688,10 @@ func _make_procedural_car(index: int) -> Node3D:
 	_box(car, "Rear_Bumper_Chrome_Trim", Vector3(0.035, 0.03, 0.76), Vector3(-1.112, 0.39, 0.0), chrome)
 
 	_box(car, "Roof_Panel", Vector3(0.88, 0.11, 0.76), Vector3(-0.13, 1.19, 0.0), paint)
-	_box(car, "Front_Windshield", Vector3(0.075, 0.34, 0.70), Vector3(0.34, 0.99, 0.0), front_glass)
-	_box(car, "Rear_Windshield", Vector3(0.075, 0.31, 0.68), Vector3(-0.61, 1.00, 0.0), front_glass)
+	var front_windshield := _box(car, "Front_Windshield", Vector3(0.075, 0.34, 0.70), Vector3(0.34, 0.99, 0.0), front_glass)
+	front_windshield.rotation.z = 0.24
+	var rear_windshield := _box(car, "Rear_Windshield", Vector3(0.075, 0.31, 0.68), Vector3(-0.61, 1.00, 0.0), front_glass)
+	rear_windshield.rotation.z = -0.20
 	for side in [-1.0, 1.0]:
 		_box(car, "Front_Side_Window", Vector3(0.39, 0.28, 0.025), Vector3(0.10, 1.02, side * 0.397), glass)
 		_box(car, "Rear_Side_Window", Vector3(0.34, 0.27, 0.025), Vector3(-0.34, 1.02, side * 0.397), glass)
@@ -714,17 +739,51 @@ func _make_procedural_car(index: int) -> Node3D:
 			var centre_cap := _cylinder(car, "Wheel_Centre_Cap", 0.043, 0.043, 0.19, Vector3(x, 0.29, z * 1.06), paint)
 			centre_cap.rotation.x = PI * 0.5
 			wheel_nodes.append(centre_cap)
+	# Fine body creases, cabin furniture and small fittings break up the simple base shell.
+	for side in [-1.0, 1.0]:
+		_box(car, "Front_Fender_Crease", Vector3(0.72, 0.018, 0.018), Vector3(0.63, 0.865, side * 0.455), chrome)
+		_box(car, "Rear_Quarter_Crease", Vector3(0.36, 0.018, 0.018), Vector3(-0.76, 0.855, side * 0.455), chrome)
+		_box(car, "Front_Door_Seam", Vector3(0.018, 0.34, 0.012), Vector3(0.31, 0.59, side * 0.495), trim)
+		_box(car, "Rear_Door_Seam", Vector3(0.018, 0.34, 0.012), Vector3(-0.48, 0.59, side * 0.495), trim)
+		_box(car, "Window_Belt_Seal", Vector3(0.76, 0.025, 0.035), Vector3(-0.12, 0.86, side * 0.405), rubber)
+		_box(car, "Interior_Seat_Back", Vector3(0.16, 0.38, 0.27), Vector3(-0.20, 0.91, side * 0.19), trim)
+		_box(car, "Interior_Seat_Base", Vector3(0.34, 0.09, 0.28), Vector3(-0.18, 0.69, side * 0.19), trim)
+	_box(car, "Dashboard_Cowl", Vector3(0.18, 0.12, 0.66), Vector3(0.40, 0.84, 0.0), trim)
+	_box(car, "Dashboard_Fascia", Vector3(0.045, 0.09, 0.54), Vector3(0.50, 0.83, 0.0), chrome)
+	_box(car, "Centre_Console", Vector3(0.48, 0.10, 0.14), Vector3(-0.03, 0.69, 0.0), trim)
+	var steering_wheel := _cylinder(car, "Interior_Steering_Wheel", 0.13, 0.13, 0.025, Vector3(0.35, 1.02, -0.20), trim)
+	steering_wheel.rotation.z = PI * 0.5
+	_box(car, "Interior_Rear_View_Mirror", Vector3(0.035, 0.06, 0.20), Vector3(0.31, 1.13, 0.0), chrome)
+	_box(car, "Windshield_Wiper_Left", Vector3(0.025, 0.018, 0.30), Vector3(0.405, 0.815, -0.19), trim)
+	_box(car, "Windshield_Wiper_Right", Vector3(0.025, 0.018, 0.30), Vector3(0.405, 0.815, 0.19), trim)
+	_box(car, "Hood_Press_Line_Left", Vector3(0.58, 0.018, 0.018), Vector3(0.66, 0.823, -0.29), chrome)
+	_box(car, "Hood_Press_Line_Right", Vector3(0.58, 0.018, 0.018), Vector3(0.66, 0.823, 0.29), chrome)
+	_box(car, "Rear_Boot_Lip", Vector3(0.30, 0.025, 0.76), Vector3(-0.82, 0.83, 0.0), chrome)
+	for side in [-1.0, 1.0]:
+		_box(car, "Front_Parking_Sensor", Vector3(0.025, 0.035, 0.035), Vector3(1.115, 0.40, side * 0.22), chrome)
+		_box(car, "Rear_Parking_Sensor", Vector3(0.025, 0.035, 0.035), Vector3(-1.115, 0.40, side * 0.22), chrome)
+		_box(car, "Side_Repeater_Indicator", Vector3(0.025, 0.045, 0.10), Vector3(0.42, 0.77, side * 0.50), materials["amber"])
+	var roof_antenna := _cylinder(car, "Roof_Radio_Antenna", 0.012, 0.022, 0.24, Vector3(-0.56, 1.31, 0.0), trim)
+	roof_antenna.rotation.z = -0.22
 	car.set_meta("wheel_nodes", wheel_nodes)
 	_box(car, "Front_Fog_Lamp_Left", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, -0.36), headlamp)
 	_box(car, "Front_Fog_Lamp_Right", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, 0.36), headlamp)
 	_box(car, "Exhaust_Tip", Vector3(0.12, 0.055, 0.07), Vector3(-1.10, 0.28, -0.30), chrome)
+	# The base mesh is a compact 2.2 x 1.0 x 1.3 m model. Scale it to
+	# approximately 4.1 m long, 1.65 m wide and 1.43 m tall.
+	car.scale = Vector3(1.86, 1.10, 1.65)
 	return car
 
 func _add_pedestrians() -> void:
+	# Keep pedestrians on the existing sidewalk corridors, distributed evenly
+	# across the city instead of spawning them beyond the city boundary.
 	var lanes: Array[float] = [-27.5, -2.5, 22.5]
-	for index in range(14):
+	for index in range(30):
 		var person := _make_procedural_pedestrian(index)
-		person["node"].position = Vector3(-32.0 + float(index) * 4.7, 0.0, lanes[index % 3])
+		var lane_index := index % lanes.size()
+		var position_in_lane := int(index / lanes.size())
+		var x_position := -32.0 + float(position_in_lane) * 7.1
+		person["node"].position = Vector3(x_position, 0.0, lanes[lane_index])
 		add_child(person["node"])
 		walkers.append(person)
 
@@ -757,6 +816,18 @@ func _make_procedural_pedestrian(index: int) -> Dictionary:
 		_sphere(person, "Pedestrian_Eye", 0.018, Vector3(0.145, 1.75, side * 0.065), detail)
 	_sphere(person, "Pedestrian_Nose", 0.035, Vector3(0.17, 1.69, 0.0), skin)
 	_box(person, "Pedestrian_Mouth", Vector3(0.012, 0.018, 0.075), Vector3(0.165, 1.64, 0.0), hair)
+	var eye_white := _mat(Color("#eee8dc"), 0.42)
+	var eye_dark := _mat(Color("#211c19"), 0.38)
+	for side in [-1.0, 1.0]:
+		_sphere(person, "Pedestrian_Eye_White", 0.022, Vector3(0.158, 1.755, side * 0.065), eye_white)
+		_sphere(person, "Pedestrian_Eye_Pupil", 0.010, Vector3(0.178, 1.755, side * 0.065), eye_dark)
+		_box(person, "Pedestrian_Eyebrow", Vector3(0.025, 0.018, 0.052), Vector3(0.151, 1.795, side * 0.065), hair)
+		_box(person, "Pedestrian_Shirt_Pocket", Vector3(0.018, 0.16, 0.12), Vector3(0.205, 1.29, side * 0.105), clothes)
+	if index % 4 == 1:
+		var glasses := _mat(Color("#252b30"), 0.28, 0.62)
+		for side in [-1.0, 1.0]:
+			_box(person, "Pedestrian_Glasses_Frame", Vector3(0.025, 0.075, 0.075), Vector3(0.17, 1.755, side * 0.067), glasses)
+		_box(person, "Pedestrian_Glasses_Bridge", Vector3(0.025, 0.018, 0.055), Vector3(0.18, 1.755, 0.0), glasses)
 
 	var left_leg_pivot := Node3D.new()
 	left_leg_pivot.name = "Pedestrian_Left_Leg_Pivot"
@@ -764,30 +835,45 @@ func _make_procedural_pedestrian(index: int) -> Dictionary:
 	person.add_child(left_leg_pivot)
 	_capsule(left_leg_pivot, "Pedestrian_Left_Trouser_Leg", 0.078, 0.48, Vector3(0.0, -0.25, 0.0), trousers)
 	_sphere(left_leg_pivot, "Pedestrian_Left_Shoe", 0.085, Vector3(0.045, -0.48, 0.045), shoe)
+	_box(left_leg_pivot, "Pedestrian_Left_Shoe_Sole", Vector3(0.20, 0.035, 0.13), Vector3(0.055, -0.535, 0.045), rubber)
+	_sphere(left_leg_pivot, "Pedestrian_Left_Shoe_Toe", 0.064, Vector3(0.105, -0.49, 0.045), shoe)
 	var right_leg_pivot := Node3D.new()
 	right_leg_pivot.name = "Pedestrian_Right_Leg_Pivot"
 	right_leg_pivot.position = Vector3(0.105, 0.83, 0.0)
 	person.add_child(right_leg_pivot)
 	_capsule(right_leg_pivot, "Pedestrian_Right_Trouser_Leg", 0.078, 0.48, Vector3(0.0, -0.25, 0.0), trousers)
 	_sphere(right_leg_pivot, "Pedestrian_Right_Shoe", 0.085, Vector3(0.045, -0.48, 0.045), shoe)
+	_box(right_leg_pivot, "Pedestrian_Right_Shoe_Sole", Vector3(0.20, 0.035, 0.13), Vector3(0.055, -0.535, 0.045), rubber)
+	_sphere(right_leg_pivot, "Pedestrian_Right_Shoe_Toe", 0.064, Vector3(0.105, -0.49, 0.045), shoe)
 
 	var left_arm_pivot := Node3D.new()
 	left_arm_pivot.name = "Pedestrian_Left_Arm_Pivot"
 	left_arm_pivot.position = Vector3(0.0, 1.43, -0.245)
 	person.add_child(left_arm_pivot)
 	_capsule(left_arm_pivot, "Pedestrian_Left_Sleeve", 0.068, 0.43, Vector3(0.0, -0.22, 0.0), clothes)
+	_cylinder(left_arm_pivot, "Pedestrian_Left_Cuff", 0.069, 0.069, 0.07, Vector3(0.0, -0.405, 0.0), clothes)
 	_sphere(left_arm_pivot, "Pedestrian_Left_Hand", 0.065, Vector3(0.0, -0.46, 0.0), skin)
 	var right_arm_pivot := Node3D.new()
 	right_arm_pivot.name = "Pedestrian_Right_Arm_Pivot"
 	right_arm_pivot.position = Vector3(0.0, 1.43, 0.245)
 	person.add_child(right_arm_pivot)
 	_capsule(right_arm_pivot, "Pedestrian_Right_Sleeve", 0.068, 0.43, Vector3(0.0, -0.22, 0.0), clothes)
+	_cylinder(right_arm_pivot, "Pedestrian_Right_Cuff", 0.069, 0.069, 0.07, Vector3(0.0, -0.405, 0.0), clothes)
 	_sphere(right_arm_pivot, "Pedestrian_Right_Hand", 0.065, Vector3(0.0, -0.46, 0.0), skin)
 
 	if index % 3 == 0:
 		var backpack := _mat(Color("#252f32"), 0.9)
 		_box(person, "Pedestrian_Backpack", Vector3(0.25, 0.34, 0.12), Vector3(-0.17, 1.18, 0.0), backpack)
 		_box(person, "Pedestrian_Backpack_Pocket", Vector3(0.16, 0.12, 0.025), Vector3(-0.24, 1.12, 0.0), backpack)
+	if index % 5 == 2:
+		var cap_material := _mat(Color("#263b4a"), 0.88)
+		_sphere(person, "Pedestrian_Baseball_Cap", 0.17, Vector3(-0.005, 1.845, 0.0), cap_material)
+		_box(person, "Pedestrian_Cap_Brim", Vector3(0.22, 0.035, 0.25), Vector3(0.13, 1.82, 0.0), cap_material)
+	# Small scale differences keep the crowd from looking like repeated copies.
+	var body_scale := 0.98 + float(index % 4) * 0.025
+	# The unscaled procedural figure is about 1.9 m tall; keep the crowd
+	# around a believable 1.7-1.85 m adult height with modest variation.
+	person.scale = Vector3(body_scale * 0.98, body_scale * 0.91, body_scale * 0.98)
 
 	var torso := person.get_node("Pedestrian_Torso") as Node3D
 	var head := person.get_node("Pedestrian_Head") as Node3D
