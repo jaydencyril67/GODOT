@@ -57,8 +57,9 @@ func _ready() -> void:
 	setup_progress.emit("Loading company data...", 20.0)
 	await get_tree().process_frame
 
-	_create_material_library()
-	_create_procedural_surface_textures()
+	if not _has_all_prebuilt_tier_scenes():
+		_create_material_library()
+		_create_procedural_surface_textures()
 
 	setup_progress.emit("Loading the prebuilt headquarters presentation...", 38.0)
 	await get_tree().process_frame
@@ -77,6 +78,14 @@ func _ready() -> void:
 
 	setup_progress.emit("Headquarters ready!", 100.0)
 	setup_completed.emit()
+
+func _has_all_prebuilt_tier_scenes() -> bool:
+	for level in range(1, MAX_LEVEL + 1):
+		var scene_path := "res://scenes/world/headquarters_tiers/level_%02d.tscn" % level
+		if not ResourceLoader.exists(scene_path):
+			return false
+	return true
+
 
 func _create_material_library() -> void:
 	materials = {
