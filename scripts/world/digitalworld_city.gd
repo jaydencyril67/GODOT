@@ -686,8 +686,10 @@ func _make_procedural_car(index: int) -> Node3D:
 	_box(car, "Rear_Bumper_Chrome_Trim", Vector3(0.035, 0.03, 0.76), Vector3(-1.112, 0.39, 0.0), chrome)
 
 	_box(car, "Roof_Panel", Vector3(0.88, 0.11, 0.76), Vector3(-0.13, 1.19, 0.0), paint)
-	_box(car, "Front_Windshield", Vector3(0.075, 0.34, 0.70), Vector3(0.34, 0.99, 0.0), front_glass)
-	_box(car, "Rear_Windshield", Vector3(0.075, 0.31, 0.68), Vector3(-0.61, 1.00, 0.0), front_glass)
+	var front_windshield := _box(car, "Front_Windshield", Vector3(0.075, 0.34, 0.70), Vector3(0.34, 0.99, 0.0), front_glass)
+	front_windshield.rotation.z = 0.24
+	var rear_windshield := _box(car, "Rear_Windshield", Vector3(0.075, 0.31, 0.68), Vector3(-0.61, 1.00, 0.0), front_glass)
+	rear_windshield.rotation.z = -0.20
 	for side in [-1.0, 1.0]:
 		_box(car, "Front_Side_Window", Vector3(0.39, 0.28, 0.025), Vector3(0.10, 1.02, side * 0.397), glass)
 		_box(car, "Rear_Side_Window", Vector3(0.34, 0.27, 0.025), Vector3(-0.34, 1.02, side * 0.397), glass)
@@ -747,11 +749,20 @@ func _make_procedural_car(index: int) -> Node3D:
 	_box(car, "Dashboard_Cowl", Vector3(0.18, 0.12, 0.66), Vector3(0.40, 0.84, 0.0), trim)
 	_box(car, "Dashboard_Fascia", Vector3(0.045, 0.09, 0.54), Vector3(0.50, 0.83, 0.0), chrome)
 	_box(car, "Centre_Console", Vector3(0.48, 0.10, 0.14), Vector3(-0.03, 0.69, 0.0), trim)
+	var steering_wheel := _cylinder(car, "Interior_Steering_Wheel", 0.13, 0.13, 0.025, Vector3(0.35, 1.02, -0.20), trim)
+	steering_wheel.rotation.z = PI * 0.5
+	_box(car, "Interior_Rear_View_Mirror", Vector3(0.035, 0.06, 0.20), Vector3(0.31, 1.13, 0.0), chrome)
 	_box(car, "Windshield_Wiper_Left", Vector3(0.025, 0.018, 0.30), Vector3(0.405, 0.815, -0.19), trim)
 	_box(car, "Windshield_Wiper_Right", Vector3(0.025, 0.018, 0.30), Vector3(0.405, 0.815, 0.19), trim)
 	_box(car, "Hood_Press_Line_Left", Vector3(0.58, 0.018, 0.018), Vector3(0.66, 0.823, -0.29), chrome)
 	_box(car, "Hood_Press_Line_Right", Vector3(0.58, 0.018, 0.018), Vector3(0.66, 0.823, 0.29), chrome)
 	_box(car, "Rear_Boot_Lip", Vector3(0.30, 0.025, 0.76), Vector3(-0.82, 0.83, 0.0), chrome)
+	for side in [-1.0, 1.0]:
+		_box(car, "Front_Parking_Sensor", Vector3(0.025, 0.035, 0.035), Vector3(1.115, 0.40, side * 0.22), chrome)
+		_box(car, "Rear_Parking_Sensor", Vector3(0.025, 0.035, 0.035), Vector3(-1.115, 0.40, side * 0.22), chrome)
+		_box(car, "Side_Repeater_Indicator", Vector3(0.025, 0.045, 0.10), Vector3(0.42, 0.77, side * 0.50), materials["amber"])
+	var roof_antenna := _cylinder(car, "Roof_Radio_Antenna", 0.012, 0.022, 0.24, Vector3(-0.56, 1.31, 0.0), trim)
+	roof_antenna.rotation.z = -0.22
 	car.set_meta("wheel_nodes", wheel_nodes)
 	_box(car, "Front_Fog_Lamp_Left", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, -0.36), headlamp)
 	_box(car, "Front_Fog_Lamp_Right", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, 0.36), headlamp)
@@ -844,6 +855,13 @@ func _make_procedural_pedestrian(index: int) -> Dictionary:
 		var backpack := _mat(Color("#252f32"), 0.9)
 		_box(person, "Pedestrian_Backpack", Vector3(0.25, 0.34, 0.12), Vector3(-0.17, 1.18, 0.0), backpack)
 		_box(person, "Pedestrian_Backpack_Pocket", Vector3(0.16, 0.12, 0.025), Vector3(-0.24, 1.12, 0.0), backpack)
+	if index % 5 == 2:
+		var cap_material := _mat(Color("#263b4a"), 0.88)
+		_sphere(person, "Pedestrian_Baseball_Cap", 0.17, Vector3(-0.005, 1.845, 0.0), cap_material)
+		_box(person, "Pedestrian_Cap_Brim", Vector3(0.22, 0.035, 0.25), Vector3(0.13, 1.82, 0.0), cap_material)
+	# Small scale differences keep the crowd from looking like repeated copies.
+	var body_scale := 0.94 + float(index % 4) * 0.04
+	person.scale = Vector3(body_scale, body_scale, body_scale)
 
 	var torso := person.get_node("Pedestrian_Torso") as Node3D
 	var head := person.get_node("Pedestrian_Head") as Node3D
