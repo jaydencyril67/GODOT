@@ -7,15 +7,15 @@ signal preview_level_changed(level: int)
 const MAX_LEVEL := 10
 const LEVEL_CONFIGS := [
 	{"name": "Workshop", "floors": 1, "width": 12.4, "depth": 9.4, "ground_height": 4.2, "floor_height": 3.0, "style": 0},
-	{"name": "Small Office", "floors": 2, "width": 9.4, "depth": 8.6, "ground_height": 3.4, "floor_height": 2.8, "style": 1},
-	{"name": "Business Office", "floors": 4, "width": 10.0, "depth": 9.0, "ground_height": 3.5, "floor_height": 2.8, "style": 1},
-	{"name": "Corporate Office", "floors": 6, "width": 10.4, "depth": 9.5, "ground_height": 3.55, "floor_height": 2.85, "style": 2},
-	{"name": "Commercial Tower", "floors": 9, "width": 10.8, "depth": 9.7, "ground_height": 3.6, "floor_height": 2.85, "style": 2},
-	{"name": "Business Tower", "floors": 12, "width": 11.0, "depth": 10.0, "ground_height": 3.65, "floor_height": 2.9, "style": 2},
-	{"name": "Enterprise Tower", "floors": 15, "width": 11.4, "depth": 10.2, "ground_height": 3.7, "floor_height": 2.95, "style": 3},
-	{"name": "Corporate Skyscraper", "floors": 18, "width": 11.8, "depth": 10.6, "ground_height": 3.75, "floor_height": 3.0, "style": 3},
-	{"name": "Grand Headquarters", "floors": 22, "width": 12.5, "depth": 11.0, "ground_height": 3.8, "floor_height": 3.0, "style": 4},
-	{"name": "Global Headquarters", "floors": 26, "width": 13.2, "depth": 11.4, "ground_height": 3.9, "floor_height": 3.0, "style": 4}
+	{"name": "Workshop & Office", "floors": 2, "width": 13.2, "depth": 10.0, "ground_height": 3.6, "floor_height": 2.9, "style": 1},
+	{"name": "Small Office Building", "floors": 3, "width": 14.4, "depth": 11.0, "ground_height": 3.6, "floor_height": 2.9, "style": 1},
+	{"name": "Modern Office", "floors": 4, "width": 15.6, "depth": 12.0, "ground_height": 3.7, "floor_height": 2.95, "style": 2},
+	{"name": "Large Office", "floors": 5, "width": 16.8, "depth": 13.0, "ground_height": 3.8, "floor_height": 2.95, "style": 2},
+	{"name": "Corporate Headquarters", "floors": 6, "width": 18.0, "depth": 14.0, "ground_height": 3.8, "floor_height": 3.0, "style": 3},
+	{"name": "Modern Glass Offices", "floors": 7, "width": 19.2, "depth": 15.0, "ground_height": 3.9, "floor_height": 3.0, "style": 3},
+	{"name": "Large Glass Headquarters", "floors": 8, "width": 20.4, "depth": 16.0, "ground_height": 3.9, "floor_height": 3.0, "style": 4},
+	{"name": "Grand Glass Headquarters", "floors": 9, "width": 21.8, "depth": 17.0, "ground_height": 4.0, "floor_height": 3.0, "style": 4},
+	{"name": "Massive Glass Headquarters", "floors": 10, "width": 23.0, "depth": 18.0, "ground_height": 4.0, "floor_height": 3.0, "style": 4}
 ]
 
 var preview_level: int = 1
@@ -67,7 +67,9 @@ func _create_material_library() -> void:
 		"stage_deck": _mat(Color("#405b68"), 0.72, 0.22),
 		"stage_trim": _emissive_mat(Color("#4daed5"), 1.2),
 		"workshop_cladding": _mat(Color("#8d9b9d"), 0.72, 0.22),
-		"workshop_shutter": _mat(Color("#394b52"), 0.65, 0.42)
+		"workshop_shutter": _mat(Color("#394b52"), 0.65, 0.42),
+		"glass_mullion": _mat(Color("#263f50"), 0.28, 0.82),
+		"glass_spandrel": _mat(Color("#17384a"), 0.22, 0.58)
 	}
 
 func _create_procedural_surface_textures() -> void:
@@ -137,11 +139,11 @@ func _create_environment() -> void:
 func _create_presentation_stage() -> void:
 	var ground := _box(self, "Headquarters_Studio_Ground", Vector3(90.0, 0.7, 90.0), Vector3(0.0, -0.55, 0.0), materials["stage_ground"])
 	ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_box(self, "Headquarters_Presentation_Deck", Vector3(22.0, 0.24, 22.0), Vector3(0.0, -0.12, 0.0), materials["stage_deck"])
-	_box(self, "Deck_Trim_Front", Vector3(22.1, 0.07, 0.14), Vector3(0.0, 0.035, 11.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Back", Vector3(22.1, 0.07, 0.14), Vector3(0.0, 0.035, -11.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Left", Vector3(0.14, 0.07, 22.1), Vector3(-11.0, 0.035, 0.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Right", Vector3(0.14, 0.07, 22.1), Vector3(11.0, 0.035, 0.0), materials["stage_trim"])
+	_box(self, "Headquarters_Presentation_Deck", Vector3(34.0, 0.24, 30.0), Vector3(0.0, -0.12, 0.0), materials["stage_deck"])
+	_box(self, "Deck_Trim_Front", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, 15.0), materials["stage_trim"])
+	_box(self, "Deck_Trim_Back", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, -15.0), materials["stage_trim"])
+	_box(self, "Deck_Trim_Left", Vector3(0.14, 0.07, 30.1), Vector3(-17.0, 0.035, 0.0), materials["stage_trim"])
+	_box(self, "Deck_Trim_Right", Vector3(0.14, 0.07, 30.1), Vector3(17.0, 0.035, 0.0), materials["stage_trim"])
 
 func _create_camera(building_height: float) -> void:
 	camera_target = Vector3(0.0, building_height * 0.46, 0.0)
@@ -178,6 +180,8 @@ func _build_procedural_building(level: int) -> float:
 		Color("#34464c"), Color("#665548"), Color("#263e4b"), Color("#4b5554"), Color("#34444a")
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
+	if style >= 3:
+		wall = _mat(Color("#102b3b"), 0.28, 0.48)
 	if level == 1:
 		wall.albedo_color = Color("#8d9b9d")
 		wall.roughness = 0.72
@@ -208,6 +212,9 @@ func _build_procedural_building(level: int) -> float:
 
 	if level == 1:
 		_add_workshop_features(building_root, width, depth, height)
+	elif style >= 3:
+		_add_glass_curtain_wall(building_root, width, depth, floor_count, ground_height, floor_height)
+		_add_main_entrance(building_root, width, depth, ground_height, accent)
 	else:
 		for side in range(4):
 			var angle := float(side) * PI * 0.5
@@ -225,7 +232,7 @@ func _build_procedural_building(level: int) -> float:
 		_box(building_root, "Rooftop_Service_Penthouse", Vector3(width * 0.38, 1.15, depth * 0.38), Vector3(-width * 0.18, height + 1.23, -depth * 0.16), roof)
 		_box(building_root, "Rooftop_HVAC_Equipment", Vector3(1.25, 0.55, 0.9), Vector3(width * 0.2, height + 0.92, depth * 0.18), materials["metal"])
 		_add_rooftop_service_details(building_root, width, depth, height, roof, accent)
-		if level >= 4:
+		if level >= 4 and style < 3:
 			_add_vertical_fins(building_root, height, accent, width, depth)
 		_add_level_silhouette_features(building_root, level, width, depth, height, accent, roof)
 
@@ -253,8 +260,8 @@ func _add_workshop_features(parent: Node3D, width: float, depth: float, height: 
 	_box(parent, "Workshop_Front_Canopy", Vector3(width * 0.58, 0.16, 1.15), Vector3(0.0, 3.45, front_z + 0.52), materials["dark_metal"])
 
 func _add_level_silhouette_features(parent: Node3D, level: int, width: float, depth: float, height: float, accent: Material, roof: Material) -> void:
-	var crown_height := 0.0
-	if level == 2 or level == 3:
+	# Low-rise levels gain practical balconies; upper levels keep a clean, flat corporate roofline.
+	if level >= 2 and level <= 4:
 		var floors: int = int(LEVEL_CONFIGS[level - 1]["floors"])
 		var floor_height: float = float(LEVEL_CONFIGS[level - 1]["floor_height"])
 		var ground_height: float = float(LEVEL_CONFIGS[level - 1]["ground_height"])
@@ -262,23 +269,6 @@ func _add_level_silhouette_features(parent: Node3D, level: int, width: float, de
 			var y := 0.42 + ground_height + float(floor_index - 1) * floor_height + 0.35
 			_box(parent, "Lowrise_Front_Balcony_Slab", Vector3(width * 0.76, 0.12, 0.72), Vector3(0.0, y, depth * 0.5 + 0.23), materials["concrete"])
 			_box(parent, "Lowrise_Balcony_Glass_Rail", Vector3(width * 0.72, 0.72, 0.055), Vector3(0.0, y + 0.40, depth * 0.5 + 0.56), materials["glass"])
-	if level >= 6:
-		for side in [-1.0, 1.0]:
-			var fin_x: float = float(side) * (width * 0.5 + 0.18)
-			_box(parent, "Tower_Outer_Corner_Fin", Vector3(0.26, height * 0.94, 0.36), Vector3(fin_x, height * 0.5 + 0.42, depth * 0.5 + 0.10), accent)
-	if level >= 8:
-		crown_height = 2.0 + float(level - 8) * 0.55
-		var crown_width := width * (0.78 if level < 10 else 0.68)
-		var crown_depth := depth * (0.78 if level < 10 else 0.70)
-		_box(parent, "Distinctive_Stepback_Crown", Vector3(crown_width, crown_height, crown_depth), Vector3(0.0, height + crown_height * 0.5, 0.0), accent)
-		_box(parent, "Crown_Glazed_Band", Vector3(crown_width * 0.88, 0.32, crown_depth * 0.88), Vector3(0.0, height + crown_height * 0.62, 0.0), materials["glass"])
-		_box(parent, "Crown_Roof_Cap", Vector3(crown_width + 0.42, 0.22, crown_depth + 0.42), Vector3(0.0, height + crown_height, 0.0), roof)
-	if level >= 9:
-		for side in [-1.0, 1.0]:
-			_box(parent, "Crown_Vertical_Blade", Vector3(0.16, crown_height, 0.20), Vector3(side * width * 0.23, height + 1.4, depth * 0.40), materials["hq_accent"])
-	if level == 10:
-		_cylinder(parent, "Global_Headquarters_Crown_Mast", 0.12, 0.20, 7.5, Vector3(0.0, height + crown_height + 3.85, 0.0), materials["metal"])
-		_box(parent, "Global_Headquarters_Crown_Light", Vector3(0.72, 0.28, 0.72), Vector3(0.0, height + crown_height + 7.7, 0.0), materials["hq_accent"])
 
 func _rebuild_preview() -> void:
 	if is_instance_valid(building_root):
@@ -545,6 +535,69 @@ func _update_camera_transform() -> void:
 	)
 	hq_camera.global_position = camera_target + camera_offset
 	hq_camera.look_at(camera_target, Vector3.UP)
+
+func _add_glass_curtain_wall(parent: Node3D, width: float, depth: float, floors: int, ground_height: float, floor_height: float) -> void:
+	# A continuous glazed skin wraps all four sides; repeated panels and mullions are batched for mobile.
+	for side in range(4):
+		var angle := float(side) * PI * 0.5
+		var basis := Basis(Vector3.UP, angle)
+		var side_width: float = width if side % 2 == 0 else depth
+		var side_depth: float = depth if side % 2 == 0 else width
+		var columns: int = maxi(4, int(round(side_width / 3.2)))
+		var panel_width: float = side_width / float(columns)
+		var panel_mesh := BoxMesh.new()
+		panel_mesh.size = Vector3(panel_width - 0.10, 1.0, 0.10)
+		var spandrel_mesh := BoxMesh.new()
+		spandrel_mesh.size = Vector3(panel_width - 0.10, 0.16, 0.13)
+		var vertical_mesh := BoxMesh.new()
+		vertical_mesh.size = Vector3(0.085, ground_height + float(floors - 1) * floor_height, 0.20)
+		var horizontal_mesh := BoxMesh.new()
+		horizontal_mesh.size = Vector3(side_width, 0.075, 0.18)
+		var panels := MultiMesh.new()
+		panels.transform_format = MultiMesh.TRANSFORM_3D
+		panels.mesh = panel_mesh
+		var spandrels := MultiMesh.new()
+		spandrels.transform_format = MultiMesh.TRANSFORM_3D
+		spandrels.mesh = spandrel_mesh
+		var verticals := MultiMesh.new()
+		verticals.transform_format = MultiMesh.TRANSFORM_3D
+		verticals.mesh = vertical_mesh
+		var horizontals := MultiMesh.new()
+		horizontals.transform_format = MultiMesh.TRANSFORM_3D
+		horizontals.mesh = horizontal_mesh
+		var panel_transforms: Array[Transform3D] = []
+		var spandrel_transforms: Array[Transform3D] = []
+		var vertical_transforms: Array[Transform3D] = []
+		var horizontal_transforms: Array[Transform3D] = []
+		var facade_z: float = side_depth * 0.5 + 0.13
+		for floor_index in range(floors):
+			var row_height: float = ground_height if floor_index == 0 else floor_height
+			var row_center: float = 0.42 + (ground_height * 0.5 if floor_index == 0 else ground_height + float(floor_index - 1) * floor_height + floor_height * 0.5)
+			for column in range(columns):
+				var x: float = (float(column) - float(columns - 1) * 0.5) * panel_width
+				panel_transforms.append(Transform3D(basis, basis * Vector3(x, row_center, facade_z)))
+				spandrel_transforms.append(Transform3D(basis, basis * Vector3(x, row_center - row_height * 0.5 + 0.13, facade_z + 0.045)))
+		for column in range(columns + 1):
+			var x: float = (float(column) - float(columns) * 0.5) * panel_width
+			vertical_transforms.append(Transform3D(basis, basis * Vector3(x, (ground_height + float(floors - 1) * floor_height) * 0.5 + 0.42, facade_z + 0.075)))
+		for floor_index in range(floors + 1):
+			var y: float = 0.42 + ground_height + float(floor_index - 1) * floor_height if floor_index > 0 else 0.42
+			horizontal_transforms.append(Transform3D(basis, basis * Vector3(0.0, y, facade_z + 0.08)))
+		panels.instance_count = panel_transforms.size()
+		spandrels.instance_count = spandrel_transforms.size()
+		verticals.instance_count = vertical_transforms.size()
+		horizontals.instance_count = horizontal_transforms.size()
+		for i in range(panel_transforms.size()):
+			panels.set_instance_transform(i, panel_transforms[i])
+			spandrels.set_instance_transform(i, spandrel_transforms[i])
+		for i in range(vertical_transforms.size()):
+			verticals.set_instance_transform(i, vertical_transforms[i])
+		for i in range(horizontal_transforms.size()):
+			horizontals.set_instance_transform(i, horizontal_transforms[i])
+		_add_multimesh(parent, "Glass_Curtain_Panels_Side_%d" % side, panels, materials["glass"])
+		_add_multimesh(parent, "Glass_Spandrel_Bands_Side_%d" % side, spandrels, materials["glass_spandrel"])
+		_add_multimesh(parent, "Aluminium_Curtain_Mullions_Side_%d" % side, verticals, materials["glass_mullion"])
+		_add_multimesh(parent, "Glass_Floor_Transoms_Side_%d" % side, horizontals, materials["glass_mullion"])
 
 func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: float, floors: int, ground_height: float, floor_height: float, style: int) -> void:
 	var basis := Basis(Vector3.UP, angle)
