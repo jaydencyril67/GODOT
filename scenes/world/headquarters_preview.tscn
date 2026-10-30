@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/digitalworld_headquarters.gd" id="1_hq"]
 
@@ -58,7 +58,7 @@ script = ExtResource("1_hq")
 environment = SubResource("Environment_hq")
 
 [node name="Headquarters_Key_Light" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.731354, 0.309017, -0.608761, 0.498783, 0.34202, 0.796726, 0.465672, -0.887011, 0.0, 0, 0, 0)
+rotation_degrees = Vector3(-43, -31, 0)
 light_color = Color(1, 0.941176, 0.847059, 1)
 light_energy = 1.35
 shadow_enabled = true
