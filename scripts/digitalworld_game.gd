@@ -521,20 +521,14 @@ func _open_logo_picker() -> void:
 	footer_line.color = Color(0.72, 0.88, 0.96, 0.18)
 	stack.add_child(footer_line)
 
-	# Fixed footer keeps the selection status and DONE action reachable.
+	# Compact footer shows only the current selection count.
 	var footer := HBoxContainer.new()
 	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer.add_theme_constant_override("separation", 8)
 	stack.add_child(footer)
 
 	var count_label := _label("%02d / 50 SELECTED" % selected_logo_id, 9 if compact else 10, Color("#b8e5ff"))
 	count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	footer.add_child(count_label)
-
-	var footer_hint := _label("TAP A DESIGN TO SELECT", 9 if compact else 10, Color("#91bfd5"))
-	footer_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	footer.add_child(footer_hint)
 
 
 
