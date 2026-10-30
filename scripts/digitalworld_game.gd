@@ -734,75 +734,126 @@ func _show_create_scene() -> void:
 	current_screen = "create"
 	_clear_world()
 	var root := _new_screen()
+
+	# Use the same background, overlay, scroll, margins, typography and glass-card
+	# construction as the founder setup page.
 	var background := TextureRect.new()
+	background.name = "DigitalWorld_Shared_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	background.texture = load("res://assets/digitalworld-landing.png")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(background)
+
 	var shade := ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.color = Color(0.015, 0.075, 0.12, 0.64)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
+	var scroll := ScrollContainer.new()
+	scroll.name = "CreateSceneScroll"
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.follow_focus = true
+	root.add_child(scroll)
+
 	var viewport_size := get_viewport().get_visible_rect().size
-	var card_size := maxf(84.0, minf(166.0, minf((viewport_size.x - 96.0) * 0.5, (viewport_size.y - 156.0) * 0.5)))
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(center)
+	var compact := viewport_size.x < 820.0
+	var page_margin := MarginContainer.new()
+	page_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_margin.add_theme_constant_override("margin_left", 18 if compact else 42)
+	page_margin.add_theme_constant_override("margin_right", 18 if compact else 42)
+	page_margin.add_theme_constant_override("margin_top", 22 if compact else 30)
+	page_margin.add_theme_constant_override("margin_bottom", 24 if compact else 30)
+	scroll.add_child(page_margin)
+
 	var page := VBoxContainer.new()
-	page.name = "Create_Product_Selection"
-	page.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	page.add_theme_constant_override("separation", 12)
-	center.add_child(page)
-	page.add_child(_label("DIGITALWORLD  /  PRODUCT STUDIO", 10, Color("#a9e3ff"), HORIZONTAL_ALIGNMENT_CENTER))
-	page.add_child(_label("WHAT WILL YOU CREATE?", 22, Color("#ffffff"), HORIZONTAL_ALIGNMENT_CENTER))
-	page.add_child(_label("Choose a product category to get started.", 12, Color("#d8efff"), HORIZONTAL_ALIGNMENT_CENTER))
+	page.name = "CreateSceneContent"
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 16)
+	page_margin.add_child(page)
+
+	var header := VBoxContainer.new()
+	header.add_theme_constant_override("separation", 5)
+	page.add_child(header)
+	header.add_child(_label("DIGITALWORLD  /  PRODUCT STUDIO", 11 if compact else 13, Color("#a9e3ff")))
+	var title := _label("CREATE A NEW PRODUCT", 27 if compact else 36, Color("#ffffff"))
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	header.add_child(title)
+	header.add_child(_label("Choose a product category to begin designing your next device.", 13 if compact else 15, Color("#d8efff")))
+
+	var section := VBoxContainer.new()
+	section.name = "ProductCategoriesSection"
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", 10)
+	page.add_child(section)
+	section.add_child(_label("01  /  PRODUCT CATEGORIES", 12, Color("#a9e3ff")))
 
 	var grid := GridContainer.new()
 	grid.name = "Create_Category_Grid"
 	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 14)
 	grid.add_theme_constant_override("v_separation", 14)
-	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	page.add_child(grid)
-	for category in ["PHONE", "LAPTOP", "TELEVISION", "SMART WATCHES"]:
-		var card := Button.new()
-		card.name = category.replace(" ", "_") + "_Create_Card"
-		card.custom_minimum_size = Vector2(card_size, card_size)
-		card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		card.text = category
-		card.add_theme_font_size_override("font_size", 16 if card_size >= 125.0 else 13)
-		var card_font := FontVariation.new()
-		card_font.base_font = ThemeDB.fallback_font
-		card_font.variation_embolden = 0.8
-		card.add_theme_font_override("font", card_font)
-		card.add_theme_color_override("font_color", Color("#ffffff"))
-		card.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		card.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-		for state in ["normal", "hover", "pressed", "focus"]:
-			var style := StyleBoxFlat.new()
-			style.bg_color = Color(0.10, 0.43, 0.70, 0.84)
-			if state == "hover":
-				style.bg_color = Color(0.14, 0.56, 0.82, 0.92)
-			elif state == "pressed":
-				style.bg_color = Color(0.06, 0.30, 0.54, 0.94)
-			style.border_color = Color(0.76, 0.93, 1.0, 0.95)
-			style.set_border_width_all(2)
-			style.set_corner_radius_all(12)
-			style.shadow_color = Color(0.0, 0.10, 0.28, 0.45)
-			style.shadow_size = 7
-			card.add_theme_stylebox_override(state, style)
-		card.pressed.connect(_on_create_category_pressed.bind(category))
-		grid.add_child(card)
-	var back := _add_action_button(page, "BACK TO HEADQUARTERS", false, _show_city)
-	back.custom_minimum_size = Vector2(card_size * 2.0 + 14.0, 42)
-	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.add_theme_font_size_override("font_size", 12)
+	section.add_child(grid)
 
+	var horizontal_page_width := maxf(0.0, viewport_size.x - (36.0 if compact else 84.0))
+	var card_width := maxf(1.0, (horizontal_page_width - 14.0) * 0.5)
+	var card_height := maxf(132.0, minf(220.0, card_width * 0.82))
+	var categories := [
+		{"name": "PHONE", "number": "01", "description": "Design smartphones and mobile devices."},
+		{"name": "LAPTOP", "number": "02", "description": "Create portable computers and notebooks."},
+		{"name": "TELEVISION", "number": "03", "description": "Build televisions and home displays."},
+		{"name": "SMART WATCHES", "number": "04", "description": "Develop wearable smart devices."}
+	]
+	for category in categories:
+		var card := _panel(Color(0.035, 0.14, 0.23, 0.84), Color(0.76, 0.92, 1.0, 0.76), 18)
+		card.name = str(category["name"]).replace(" ", "_") + "_Category_Card"
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.custom_minimum_size = Vector2(card_width, card_height)
+		var card_style := card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		card_style.set_border_width_all(1)
+		card_style.shadow_color = Color(0.0, 0.20, 0.36, 0.24)
+		card_style.shadow_size = 12
+		card.add_theme_stylebox_override("panel", card_style)
+		grid.add_child(card)
+
+		var card_margin := _margin(card, 16 if compact else 22, 16 if compact else 22, 14 if compact else 18, 14 if compact else 18)
+		var card_content := VBoxContainer.new()
+		card_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		card_content.add_theme_constant_override("separation", 7)
+		card_margin.add_child(card_content)
+		card_content.add_child(_label(str(category["number"]) + "  /  PRODUCT TYPE", 11, Color("#a9e3ff")))
+		var category_title := _label(str(category["name"]), 20 if compact else 24, Color("#ffffff"))
+		category_title.add_theme_font_size_override("font_size", 20 if compact else 24)
+		card_content.add_child(category_title)
+		var description := _label(str(category["description"]), 12 if compact else 13, Color("#c7e2f3"))
+		description.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		card_content.add_child(description)
+		var choose := _add_action_button(card_content, "SELECT CATEGORY  ›", true, _on_create_category_pressed.bind(str(category["name"])))
+		choose.custom_minimum_size = Vector2(0, 46)
+		choose.add_theme_font_size_override("font_size", 12)
+		_style_company_glass_button(choose, true)
+
+	var actions := HBoxContainer.new()
+	actions.name = "CreateSceneActions"
+	actions.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	actions.custom_minimum_size.x = horizontal_page_width
+	actions.add_theme_constant_override("separation", 10)
+	page.add_child(actions)
+	var back_button := _add_action_button(actions, "BACK TO HEADQUARTERS", false, _show_city)
+	back_button.custom_minimum_size = Vector2(0, 56)
+	back_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_button.add_theme_font_size_override("font_size", 14 if compact else 15)
+	_style_company_glass_button(back_button, false)
+
+
+func _on_create_category_pressed(category: String) -> void:
+	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
 func _on_create_category_pressed(category: String) -> void:
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
