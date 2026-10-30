@@ -147,9 +147,7 @@ func _create_presentation_stage() -> void:
 	_box(self, "Deck_Trim_Right", Vector3(0.14, 0.07, 30.1), Vector3(17.0, 0.035, 0.0), materials["stage_trim"])
 
 func _create_camera(building_height: float) -> void:
-	camera_target = Vector3(0.0, building_height * 0.46, 0.0)
-	camera_distance = maxf(16.0, building_height * 1.05)
-	camera_max_distance = maxf(22.0, building_height * 1.25)
+	_configure_camera_framing(building_height)
 	camera_yaw = 0.62
 	camera_pitch = 0.24
 	hq_camera = Camera3D.new()
@@ -160,6 +158,18 @@ func _create_camera(building_height: float) -> void:
 	add_child(hq_camera)
 	hq_camera.current = true
 	_update_camera_transform()
+
+func _configure_camera_framing(building_height: float) -> void:
+	var config: Dictionary = LEVEL_CONFIGS[preview_level - 1]
+	var building_width: float = float(config["width"])
+	var building_depth: float = float(config["depth"])
+	var footprint_diagonal := Vector2(building_width, building_depth).length()
+	# Scale the far framing limit with both the building height and its footprint.
+	# This keeps short buildings prominent while giving taller buildings more breathing room.
+	camera_target = Vector3(0.0, building_height * 0.46, 0.0)
+	camera_max_distance = maxf(14.0, maxf(building_height * 1.15, footprint_diagonal * 1.05))
+	# Open every level at its maximum zoom-out distance for a complete building overview.
+	camera_distance = camera_max_distance
 
 func _build_procedural_building(level: int) -> float:
 	var config: Dictionary = LEVEL_CONFIGS[clampi(level, 1, MAX_LEVEL) - 1]
@@ -277,9 +287,7 @@ func _rebuild_preview() -> void:
 		building_root.queue_free()
 	building_root = null
 	var height := _build_procedural_building(preview_level)
-	camera_target = Vector3(0.0, height * 0.46, 0.0)
-	camera_distance = maxf(16.0, height * 1.05)
-	camera_max_distance = maxf(22.0, height * 1.25)
+	_configure_camera_framing(height)
 	_update_camera_transform()
 	_refresh_preview_interface()
 	preview_level_changed.emit(preview_level)
