@@ -128,7 +128,27 @@ func _show_menu() -> void:
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(stack)
 
-	stack.add_child(_label("DIGITALWORLD", 48, Color("#103a5a"), HORIZONTAL_ALIGNMENT_CENTER))
+	var hero := Label.new()
+	hero.name = "DigitalWorld_3D_Hero"
+	hero.text = "DIGITALWORLD"
+	hero.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hero.autowrap_mode = TextServer.AUTOWRAP_OFF
+	hero.clip_text = false
+	hero.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	hero.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero.custom_minimum_size = Vector2(0, 76)
+	hero.add_theme_font_size_override("font_size", 48)
+	hero.add_theme_color_override("font_color", Color("#ffffff"))
+	hero.add_theme_color_override("font_outline_color", Color("#2b0b4b"))
+	hero.add_theme_constant_override("outline_size", 3)
+	hero.add_theme_color_override("font_shadow_color", Color(0.02, 0.0, 0.06, 0.95))
+	hero.add_theme_constant_override("shadow_offset_x", 5)
+	hero.add_theme_constant_override("shadow_offset_y", 7)
+	var hero_font := FontVariation.new()
+	hero.add_theme_font_override("font", hero_font)
+	hero.add_theme_font_size_override("font_size", 48)
+	stack.add_child(hero)
 	stack.add_child(_label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 9, Color("#e4d0ff"), HORIZONTAL_ALIGNMENT_CENTER))
 	var description := _label("Build your company, develop its headquarters, and run its operations.", 12, Color("#e0d2f4"), HORIZONTAL_ALIGNMENT_CENTER)
 	description.custom_minimum_size = Vector2(280, 0)
