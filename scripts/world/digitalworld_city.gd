@@ -46,18 +46,27 @@ func _process(delta: float) -> void:
 	animation_clock += delta
 	for vehicle in traffic:
 		var node: Node3D = vehicle["node"]
-		var speed := float(vehicle["speed"])
-		var direction := float(vehicle["direction"])
-		node.position.x += speed * direction * delta
-		if node.position.x > CITY_HALF_WIDTH + 5.0:
-			node.position.x = -CITY_HALF_WIDTH - 5.0
-		elif node.position.x < -CITY_HALF_WIDTH - 5.0:
-			node.position.x = CITY_HALF_WIDTH + 5.0
-		# Subtle suspension movement and rolling wheels keep traffic from feeling static.
+		var route: Array = vehicle["route"]
+		var route_length := float(vehicle["route_length"])
+		var current_speed := float(vehicle["current_speed"])
+		var target_speed := float(vehicle["target_speed"])
+		# Gradual throttle response prevents instant changes in vehicle speed.
+		current_speed = move_toward(current_speed, target_speed, 1.15 * delta)
+		vehicle["current_speed"] = current_speed
+		vehicle["route_progress"] = fposmod(float(vehicle["route_progress"]) + current_speed * delta, route_length)
+		var sample := _sample_traffic_route(route, float(vehicle["route_progress"]))
+		var target_position: Vector3 = sample["position"]
+		var tangent: Vector3 = sample["tangent"]
+		# Follow a rounded road centreline and smoothly steer the vehicle into each bend.
+		node.position.x = target_position.x
+		node.position.z = target_position.z
+		var target_yaw := atan2(-tangent.z, tangent.x)
+		node.rotation.y = lerp_angle(node.rotation.y, target_yaw, minf(5.5 * delta, 1.0))
+		# Subtle suspension movement and wheel rotation are tied to actual road speed.
 		var car_phase := animation_clock * 2.1 + float(vehicle["phase"])
 		node.position.y = 0.12 + sin(car_phase) * 0.012
 		for wheel in vehicle["wheels"]:
-			(wheel as Node3D).rotation.z -= speed * delta / 0.235
+			(wheel as Node3D).rotation.z -= current_speed * delta / 0.235
 	for person in walkers:
 		var node: Node3D = person["node"]
 		node.position.x += float(person["speed"]) * delta
@@ -651,16 +660,68 @@ func _add_streetlight(position: Vector3) -> void:
 	_box(root, "LED_Luminaire_Diffuser", Vector3(0.39, 0.025, 0.24), Vector3(0.78, 4.30, 0.0), materials["lamp"])
 
 func _add_traffic() -> void:
-	var lanes: Array[float] = [-25.0, 0.0, 25.0]
-	# Eighteen vehicles are spaced across the existing three traffic corridors.
+	# A rounded rectangular loop connects the existing east-west and north-south
+	# perimeter roads. Extra points at each corner create a gradual steering arc.
+	var route: Array[Vector3] = [
+		Vector3(-28.5, 0.12, -25.85),
+		Vector3(28.5, 0.12, -25.85),
+		Vector3(30.25, 0.12, -25.25),
+		Vector3(31.85, 0.12, -23.5),
+		Vector3(31.85, 0.12, 23.5),
+		Vector3(31.25, 0.12, 25.25),
+		Vector3(29.5, 0.12, 25.85),
+		Vector3(-29.5, 0.12, 25.85),
+		Vector3(-31.25, 0.12, 25.25),
+		Vector3(-31.85, 0.12, 23.5),
+		Vector3(-31.85, 0.12, -23.5),
+		Vector3(-31.25, 0.12, -25.25)
+	]
+	var route_length := _traffic_route_length(route)
 	for index in range(18):
-		var direction := 1.0 if index % 2 == 0 else -1.0
 		var car := _make_procedural_car(index)
-		var lane_offset := 0.88 if direction > 0.0 else -0.88
-		car.position = Vector3(-31.0 + float(index) * 3.65, 0.12, lanes[index % 3] + lane_offset)
-		car.rotation.y = 0.0 if direction > 0.0 else PI
+		var reverse_route := index % 2 == 1
+		var car_route: Array = route.duplicate()
+		if reverse_route:
+			car_route.reverse()
+		var car_route_length := _traffic_route_length(car_route)
+		var progress := car_route_length * float(index) / 18.0
+		var sample := _sample_traffic_route(car_route, progress)
+		car.position = sample["position"]
+		var tangent: Vector3 = sample["tangent"]
+		car.rotation.y = atan2(-tangent.z, tangent.x)
 		add_child(car)
-		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction, "phase": float(index) * 0.83, "wheels": car.get_meta("wheel_nodes", [])})
+		var cruising_speed := 3.0 + float(index % 3) * 0.45
+		traffic.append({
+			"node": car,
+			"route": car_route,
+			"route_length": car_route_length,
+			"route_progress": progress,
+			"current_speed": cruising_speed * 0.72,
+			"target_speed": cruising_speed,
+			"phase": float(index) * 0.83,
+			"wheels": car.get_meta("wheel_nodes", [])
+		})
+
+func _traffic_route_length(route: Array) -> float:
+	var total := 0.0
+	for index in range(route.size()):
+		var next_index := (index + 1) % route.size()
+		total += (route[next_index] as Vector3).distance_to(route[index] as Vector3)
+	return total
+
+func _sample_traffic_route(route: Array, distance: float) -> Dictionary:
+	var remaining := fposmod(distance, _traffic_route_length(route))
+	for index in range(route.size()):
+		var next_index := (index + 1) % route.size()
+		var start: Vector3 = route[index]
+		var finish: Vector3 = route[next_index]
+		var segment_length := start.distance_to(finish)
+		if remaining <= segment_length or index == route.size() - 1:
+			var direction := (finish - start).normalized()
+			var position := start + direction * minf(remaining, segment_length)
+			return {"position": position, "tangent": direction}
+		remaining -= segment_length
+	return {"position": route[0], "tangent": Vector3.RIGHT}
 
 func _make_procedural_car(index: int) -> Node3D:
 	var car := Node3D.new()
