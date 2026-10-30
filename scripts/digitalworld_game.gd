@@ -899,8 +899,6 @@ func _style_create_glass_button(button: Button, primary: bool) -> void:
 func _on_create_category_pressed(category: String) -> void:
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
-func _on_create_category_pressed(category: String) -> void:
-	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
 func _on_headquarters_preview_level_changed(level: int) -> void:
 	# Preview selection is temporary; owned progress is saved independently.
