@@ -28,8 +28,8 @@ func _build_scene() -> void:
 	camera.name = "Fixed_Cutaway_Camera"
 	camera.position = Vector3(15.5, 20.5, 25.5)
 	camera.fov = 38.0
-	camera.look_at(Vector3(0, 0.3, 0), Vector3.UP)
 	add_child(camera)
+	camera.look_at(Vector3(0, 0.3, 0), Vector3.UP)
 	camera.current = true
 
 	var floor_base := _mat(Color("#a6a79e"), 0.94)
