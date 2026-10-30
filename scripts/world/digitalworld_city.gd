@@ -570,7 +570,7 @@ func _add_traffic() -> void:
 		var direction := 1.0 if index % 2 == 0 else -1.0
 		var car := _make_procedural_car(index)
 		car.position = Vector3(-31.0 + float(index) * 6.8, 0.12, lanes[index % 3] + (0.58 if direction > 0.0 else -0.58))
-		car.rotation.y = -PI * 0.5 if direction > 0.0 else PI * 0.5
+		car.rotation.y = 0.0 if direction > 0.0 else PI
 		add_child(car)
 		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction})
 
