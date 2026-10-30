@@ -180,7 +180,7 @@ func _get_preview_viewport() -> SubViewport:
 	body_mesh.size = PHONE_SIZE
 	phone_body.mesh = body_mesh
 	var body_material := StandardMaterial3D.new()
-	body_material.albedo_color = Color("#777d83")
+	body_material.albedo_color = Color("#62686e")
 	body_material.metallic = 0.18
 	body_material.roughness = 0.42
 	phone_body.material_override = body_material
