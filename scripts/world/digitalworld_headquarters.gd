@@ -26,6 +26,7 @@ var company_name := "YOUR COMPANY"
 var building_root: Node3D
 var hq_camera: Camera3D
 var level_info_label: Label
+var preview_interface_layer: CanvasLayer
 var owned_info_label: Label
 var previous_level_button: Button
 var next_level_button: Button
@@ -339,10 +340,11 @@ func _show_next_level() -> void:
 	_rebuild_preview()
 
 func _create_preview_interface() -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "Headquarters_Preview_Interface"
-	layer.layer = 20
-	add_child(layer)
+	preview_interface_layer = CanvasLayer.new()
+	preview_interface_layer.name = "Headquarters_Preview_Interface"
+	preview_interface_layer.layer = 20
+	add_child(preview_interface_layer)
+	var layer := preview_interface_layer
 
 	var header := PanelContainer.new()
 	header.name = "Headquarters_Level_Header"
@@ -437,6 +439,15 @@ func _create_preview_interface() -> void:
 		row.add_child(button)
 
 	_refresh_preview_interface()
+
+func set_preview_active(active: bool) -> void:
+	# CanvasLayer is rendered independently of the Node3D visibility tree, so
+	# hide both the 3D preview and its interface while another screen is open.
+	visible = active
+	process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
+	if is_instance_valid(preview_interface_layer):
+		preview_interface_layer.visible = active
+
 
 func _create_side_level_button(parent: Node, node_name: String, glyph: String, left_side: bool) -> Button:
 	var button := Button.new()
