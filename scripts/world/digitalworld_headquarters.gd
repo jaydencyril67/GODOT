@@ -1,3 +1,4 @@
+@tool
 extends Node3D
 class_name DigitalWorldHeadquarters
 
@@ -43,6 +44,10 @@ var facade_noise: Texture2D
 var facade_normal: Texture2D
 
 func _ready() -> void:
+	# This script is tool-enabled only so the editor-time scene generator can
+	# reuse the exact runtime building builder. Do not run the game setup in-editor.
+	if Engine.is_editor_hint():
+		return
 	preview_level = clampi(preview_level, 1, MAX_LEVEL)
 	owned_level = clampi(owned_level, 1, MAX_LEVEL)
 
@@ -157,6 +162,18 @@ func _build_procedural_building(level: int) -> float:
 	var ground_height: float = float(config["ground_height"])
 	var floor_height: float = float(config["floor_height"])
 	var height: float = ground_height + float(floor_count - 1) * floor_height
+
+	# Prefer the editor-generated PackedScene for this tier. The procedural
+	# builder below remains as a safe fallback until all scene assets exist.
+	var tier_scene_path := "res://scenes/world/headquarters_tiers/level_%02d.tscn" % clampi(level, 1, MAX_LEVEL)
+	if ResourceLoader.exists(tier_scene_path):
+		var tier_scene := load(tier_scene_path) as PackedScene
+		if tier_scene != null:
+			building_root = tier_scene.instantiate() as Node3D
+			if building_root != null:
+				building_root.name = "Company_Headquarters_Level_%02d" % clampi(level, 1, MAX_LEVEL)
+				add_child(building_root)
+				return height
 
 	building_root = Node3D.new()
 	building_root.name = "Company_Headquarters_Level_%02d" % level
