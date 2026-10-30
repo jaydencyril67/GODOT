@@ -161,9 +161,9 @@ func _build_halfcut_office() -> void:
 
 	var camera := Camera3D.new()
 	camera.name = "CutawayCamera"
-	camera.position = Vector3(17.0, 12.5, 21.0)
-	camera.fov = 42.0
-	camera.look_at(Vector3(0.0, 3.1, 0.0), Vector3.UP)
+	camera.position = Vector3(17.0, 15.0, 21.0)
+	camera.fov = 38.0
+	camera.look_at(Vector3(0.0, 3.25, 0.0), Vector3.UP)
 	building_root.add_child(camera)
 	camera.current = true
 
@@ -197,17 +197,55 @@ func _build_halfcut_office() -> void:
 	_add_box("LeftCutEdgeColumn", Vector3(0.42, 6.5, 0.42), Vector3(-6.55, 3.85, 4.7), metal)
 	_add_box("RearRightColumn", Vector3(0.42, 6.5, 0.42), Vector3(6.55, 3.85, -4.7), metal)
 
-	# Open structural frame: no desks, furniture, characters, or interior interaction.
+	# Open structural frame: the front and right sides are removed for a clear view inside.
 	for x in [-5.8, -2.0, 2.0, 5.8]:
 		_add_box("FrontStructuralColumn", Vector3(0.34, 6.3, 0.34), Vector3(x, 3.85, 4.75), pale_concrete)
 		_add_box("MidStructuralColumn", Vector3(0.30, 6.3, 0.30), Vector3(x, 3.85, 0.0), metal)
 	_add_box("FrontLowerBeam", Vector3(14.0, 0.34, 0.36), Vector3(0, 3.18, 4.75), concrete)
 	_add_box("FrontUpperBeam", Vector3(14.0, 0.34, 0.36), Vector3(0, 6.32, 4.75), concrete)
 
-	# Roof is intentionally retained only over the rear half to communicate the cutaway.
-	_add_box("RearRoofSlab", Vector3(14.5, 0.28, 4.9), Vector3(0, 7.25, -2.65), concrete)
-	_add_box("RoofParapetRear", Vector3(14.5, 0.48, 0.24), Vector3(0, 7.58, -5.05), metal)
-	_add_box("RoofParapetLeft", Vector3(0.24, 0.48, 5.0), Vector3(-7.1, 7.58, -2.55), metal)
+	# Fully roofless top-down cutaway: both floor plates and all office rooms stay visible.
+	# Ground floor: reception, open-plan desks, meeting room and private offices.
+	_add_box("ReceptionDeskBase", Vector3(2.8, 0.78, 0.78), Vector3(-3.9, 1.12, 2.55), metal)
+	_add_box("ReceptionDeskTop", Vector3(3.0, 0.12, 0.92), Vector3(-3.9, 1.56, 2.55), pale_concrete)
+	_add_box("ReceptionFeatureWall", Vector3(3.8, 2.2, 0.18), Vector3(-3.9, 2.0, -0.45), pale_concrete)
+	_add_box("ReceptionLogoPanel", Vector3(1.3, 0.68, 0.06), Vector3(-3.9, 2.05, -0.32), glass)
+	_add_box("GroundMeetingTable", Vector3(3.4, 0.14, 1.55), Vector3(2.8, 1.22, -2.25), pale_concrete)
+	for x in [1.25, 2.8, 4.35]:
+		_add_box("MeetingChairSeat", Vector3(0.58, 0.16, 0.58), Vector3(x, 0.88, -3.45), metal)
+		_add_box("MeetingChairBack", Vector3(0.58, 0.62, 0.12), Vector3(x, 1.18, -3.72), metal)
+		_add_box("MeetingChairSeat", Vector3(0.58, 0.16, 0.58), Vector3(x, 0.88, -1.05), metal)
+		_add_box("MeetingChairBack", Vector3(0.58, 0.62, 0.12), Vector3(x, 1.18, -0.78), metal)
+	# Open-plan workstation islands.
+	for x in [-5.0, -2.2, 1.0]:
+		for z in [-1.2, 1.0]:
+			_add_box("OfficeDeskTop", Vector3(1.65, 0.12, 0.78), Vector3(x, 1.42, z), pale_concrete)
+			_add_box("OfficeDeskPedestal", Vector3(0.34, 0.72, 0.58), Vector3(x - 0.55, 1.02, z), metal)
+			_add_box("OfficeMonitor", Vector3(0.62, 0.48, 0.08), Vector3(x, 1.72, z - 0.18), DARK_METAL)
+			_add_box("OfficeChairSeat", Vector3(0.62, 0.16, 0.62), Vector3(x, 0.92, z + 0.78), metal)
+			_add_box("OfficeChairBack", Vector3(0.62, 0.64, 0.14), Vector3(x, 1.24, z + 1.05), metal)
+	# Glass partitions define enclosed offices without blocking the roofless view.
+	_add_box("GroundOfficePartitionA", Vector3(0.12, 2.35, 4.2), Vector3(5.1, 1.75, 1.9), glass)
+	_add_box("GroundOfficePartitionB", Vector3(3.2, 2.35, 0.12), Vector3(5.0, 1.75, -0.2), glass)
+	_add_box("GroundOfficeDesk", Vector3(1.8, 0.12, 0.85), Vector3(5.65, 1.45, 2.2), pale_concrete)
+	# Upper floor: executive offices and a second collaboration area.
+	_add_box("UpperMeetingTable", Vector3(3.2, 0.14, 1.45), Vector3(-3.8, 4.42, -2.15), pale_concrete)
+	for x in [-5.0, -3.8, -2.6]:
+		_add_box("UpperMeetingChairSeat", Vector3(0.54, 0.16, 0.54), Vector3(x, 4.08, -3.35), metal)
+		_add_box("UpperMeetingChairBack", Vector3(0.54, 0.58, 0.12), Vector3(x, 4.36, -3.60), metal)
+		_add_box("UpperMeetingChairSeat", Vector3(0.54, 0.16, 0.54), Vector3(x, 4.08, -0.95), metal)
+		_add_box("UpperMeetingChairBack", Vector3(0.54, 0.58, 0.12), Vector3(x, 4.36, -0.70), metal)
+	for x in [0.0, 3.0]:
+		_add_box("ExecutiveDeskTop", Vector3(2.0, 0.12, 0.88), Vector3(x, 4.62, 1.6), pale_concrete)
+		_add_box("ExecutiveDeskBase", Vector3(0.38, 0.78, 0.68), Vector3(x - 0.65, 4.22, 1.6), metal)
+		_add_box("ExecutiveMonitor", Vector3(0.68, 0.5, 0.08), Vector3(x, 4.92, 1.35), DARK_METAL)
+	_add_box("UpperGlassPartitionA", Vector3(0.12, 2.35, 4.3), Vector3(4.8, 4.9, 1.8), glass)
+	_add_box("UpperGlassPartitionB", Vector3(3.0, 2.35, 0.12), Vector3(4.7, 4.9, -0.3), glass)
+	_add_box("UpperOfficeDesk", Vector3(1.8, 0.12, 0.85), Vector3(5.55, 4.62, 2.0), pale_concrete)
+	# Low planters add scale and make the open floors read as furnished offices.
+	for z in [-3.9, 3.65]:
+		_add_box("GroundPlanter", Vector3(1.1, 0.48, 0.72), Vector3(-6.0, 1.0, z), _material(Color("#526f58"), 0.92))
+		_add_box("UpperPlanter", Vector3(1.1, 0.48, 0.72), Vector3(-6.0, 4.15, z), _material(Color("#526f58"), 0.92))
 
 	# A restrained front plinth and entrance threshold anchor the section.
 	_add_box("EntranceThreshold", Vector3(4.2, 0.16, 0.9), Vector3(0, 0.84, 5.45), pale_concrete)
