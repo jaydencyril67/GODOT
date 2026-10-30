@@ -15,63 +15,6 @@ func _ready() -> void:
 	_build_editor_ui()
 
 
-func _build_preview_world() -> void:
-	var viewport := SubViewport.new()
-	viewport.name = "PhonePreviewViewport"
-	viewport.size = Vector2i(1200, 900)
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	viewport.own_world_3d = true
-
-	var environment_node := WorldEnvironment.new()
-	var environment := Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#0a2942")
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#c7e8ff")
-	environment.ambient_light_energy = 0.65
-	environment_node.environment = environment
-	viewport.add_child(environment_node)
-
-	var preview_world := Node3D.new()
-	preview_world.name = "PhonePreviewWorld"
-	viewport.add_child(preview_world)
-
-	phone_body = MeshInstance3D.new()
-	phone_body.name = "Plain_Phone_Body"
-	var body_mesh := BoxMesh.new()
-	body_mesh.size = PHONE_SIZE
-	phone_body.mesh = body_mesh
-	var body_material := StandardMaterial3D.new()
-	body_material.albedo_color = Color("#a9c8dc")
-	body_material.metallic = 0.28
-	body_material.roughness = 0.32
-	phone_body.material_override = body_material
-	preview_world.add_child(phone_body)
-
-	var key_light := DirectionalLight3D.new()
-	key_light.name = "Soft_Key_Light"
-	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
-	key_light.light_energy = 1.35
-	key_light.shadow_enabled = true
-	preview_world.add_child(key_light)
-
-	var fill_light := OmniLight3D.new()
-	fill_light.name = "Soft_Fill_Light"
-	fill_light.position = Vector3(-2.2, 1.4, 2.8)
-	fill_light.light_color = Color("#83cfff")
-	fill_light.light_energy = 0.7
-	fill_light.omni_range = 8.0
-	preview_world.add_child(fill_light)
-
-	preview_camera = Camera3D.new()
-	preview_camera.name = "PhonePreviewCamera"
-	preview_camera.position = Vector3(0.0, 0.0, 5.2)
-	preview_camera.current = true
-	preview_camera.fov = 38.0
-	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
-	preview_world.add_child(preview_camera)
-
-
 func _build_editor_ui() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneEditorInterface"
