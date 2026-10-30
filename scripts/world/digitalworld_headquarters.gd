@@ -352,6 +352,13 @@ func _create_preview_interface() -> void:
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color("#9edfff"))
 	stack.add_child(title)
+	var company_label := Label.new()
+	company_label.text = company_name.to_upper()
+	company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	company_label.add_theme_font_size_override("font_size", 10)
+	company_label.add_theme_color_override("font_color", Color("#c6e6f6"))
+	company_label.clip_text = true
+	stack.add_child(company_label)
 	level_info_label = Label.new()
 	level_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	level_info_label.add_theme_font_size_override("font_size", 19)
