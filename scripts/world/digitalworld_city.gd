@@ -652,10 +652,12 @@ func _add_streetlight(position: Vector3) -> void:
 
 func _add_traffic() -> void:
 	var lanes: Array[float] = [-25.0, 0.0, 25.0]
-	for index in range(10):
+	# Eighteen vehicles are spaced across the existing three traffic corridors.
+	for index in range(18):
 		var direction := 1.0 if index % 2 == 0 else -1.0
 		var car := _make_procedural_car(index)
-		car.position = Vector3(-31.0 + float(index) * 6.8, 0.12, lanes[index % 3] + (0.58 if direction > 0.0 else -0.58))
+		var lane_offset := 0.58 if direction > 0.0 else -0.58
+		car.position = Vector3(-31.0 + float(index) * 3.65, 0.12, lanes[index % 3] + lane_offset)
 		car.rotation.y = 0.0 if direction > 0.0 else PI
 		add_child(car)
 		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction, "phase": float(index) * 0.83, "wheels": car.get_meta("wheel_nodes", [])})
@@ -767,13 +769,21 @@ func _make_procedural_car(index: int) -> Node3D:
 	_box(car, "Front_Fog_Lamp_Left", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, -0.36), headlamp)
 	_box(car, "Front_Fog_Lamp_Right", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, 0.36), headlamp)
 	_box(car, "Exhaust_Tip", Vector3(0.12, 0.055, 0.07), Vector3(-1.10, 0.28, -0.30), chrome)
+	# The base mesh is a compact 2.2 x 1.0 x 1.3 m model. Scale it to
+	# approximately 4.1 m long, 1.65 m wide and 1.43 m tall.
+	car.scale = Vector3(1.86, 1.10, 1.65)
 	return car
 
 func _add_pedestrians() -> void:
+	# Keep pedestrians on the existing sidewalk corridors, distributed evenly
+	# across the city instead of spawning them beyond the city boundary.
 	var lanes: Array[float] = [-27.5, -2.5, 22.5]
-	for index in range(14):
+	for index in range(30):
 		var person := _make_procedural_pedestrian(index)
-		person["node"].position = Vector3(-32.0 + float(index) * 4.7, 0.0, lanes[index % 3])
+		var lane_index := index % lanes.size()
+		var position_in_lane := int(index / lanes.size())
+		var x_position := -32.0 + float(position_in_lane) * 7.1
+		person["node"].position = Vector3(x_position, 0.0, lanes[lane_index])
 		add_child(person["node"])
 		walkers.append(person)
 
@@ -860,8 +870,10 @@ func _make_procedural_pedestrian(index: int) -> Dictionary:
 		_sphere(person, "Pedestrian_Baseball_Cap", 0.17, Vector3(-0.005, 1.845, 0.0), cap_material)
 		_box(person, "Pedestrian_Cap_Brim", Vector3(0.22, 0.035, 0.25), Vector3(0.13, 1.82, 0.0), cap_material)
 	# Small scale differences keep the crowd from looking like repeated copies.
-	var body_scale := 0.94 + float(index % 4) * 0.04
-	person.scale = Vector3(body_scale, body_scale, body_scale)
+	var body_scale := 0.98 + float(index % 4) * 0.025
+	# The unscaled procedural figure is about 1.9 m tall; keep the crowd
+	# around a believable 1.7-1.85 m adult height with modest variation.
+	person.scale = Vector3(body_scale * 0.98, body_scale * 0.91, body_scale * 0.98)
 
 	var torso := person.get_node("Pedestrian_Torso") as Node3D
 	var head := person.get_node("Pedestrian_Head") as Node3D
