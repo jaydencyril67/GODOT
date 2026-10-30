@@ -1,0 +1,14 @@
+Digital World city asset credits
+
+Imported GLB files in this directory are from Kenney's CC0 asset collections:
+- City Kit (Commercial)
+- City Kit (Roads)
+- Car Kit
+- Mini Characters
+- Nature Kit
+
+Original creator: Kenney — https://kenney.nl/
+Mirror catalog used for binary retrieval: https://github.com/Hidencod/tge-assets
+License: CC0 1.0 Universal (public domain dedication). Kenney confirms assets on its asset pages are CC0 and may be used commercially without attribution.
+
+Visual/style note: These are optimized stylized game assets, not photogrammetric photorealistic scans. They provide varied, complete meshes as a base for the city; further material, lighting, scale and layout work is still required.
