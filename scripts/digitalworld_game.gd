@@ -436,7 +436,12 @@ func _open_logo_picker() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.follow_focus = true
+	scroll.follow_focus = false
+	scroll.scroll_deadzone = 8
+	scroll.add_theme_constant_override("scrollbar_width", 0)
+	for state in ["scroll", "scroll_focus", "grabber", "grabber_highlight", "grabber_pressed"]:
+		scroll.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	scroll.gui_input.connect(_on_logo_picker_scroll_input.bind(scroll))
 	margin.add_child(scroll)
 
 	var grid := GridContainer.new()
@@ -453,10 +458,11 @@ func _open_logo_picker() -> void:
 		option.name = "InsigniaOption_%02d" % logo_id
 		option.custom_minimum_size = Vector2(0, 94 if compact else 112)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.toggle_mode = true
-		option.button_pressed = logo_id == selected_logo_id
+		option.toggle_mode = false
+		option.focus_mode = Control.FOCUS_NONE
+		option.mouse_default_cursor_shape = Control.CURSOR_ARROW
 		option.clip_contents = true
-		_style_company_glass_button(option, logo_id == selected_logo_id)
+		_style_company_glass_button(option)
 
 		var logo_center := CenterContainer.new()
 		logo_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -475,37 +481,46 @@ func _open_logo_picker() -> void:
 
 
 func _style_company_glass_button(button: Button, selected: bool = false) -> void:
-	# Quiet frosted-glass treatment: transparent fill, fine edge, no glow or shadow.
+	# Keep every visual state identical: no hover, pressed, focus, or selection flash.
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.48, 0.78, 0.92, 0.10)
+	style.border_color = Color(0.78, 0.92, 1.0, 0.26)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.shadow_size = 0
+	style.anti_aliasing = true
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.20, 0.58, 0.78, 0.25) if selected else Color(0.48, 0.78, 0.92, 0.10)
-		if state == "hover":
-			style.bg_color = Color(0.34, 0.70, 0.86, 0.30) if selected else Color(0.55, 0.82, 0.94, 0.19)
-		elif state == "pressed":
-			style.bg_color = Color(0.15, 0.48, 0.68, 0.36)
-		elif state == "disabled":
-			style.bg_color = Color(0.45, 0.62, 0.70, 0.07)
-		style.border_color = Color(0.78, 0.92, 1.0, 0.56) if selected else Color(0.78, 0.92, 1.0, 0.26)
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(12)
-		style.shadow_size = 0
-		style.anti_aliasing = true
-		style.content_margin_left = 12
-		style.content_margin_right = 12
-		style.content_margin_top = 9
-		style.content_margin_bottom = 9
 		button.add_theme_stylebox_override(state, style)
 	button.add_theme_color_override("font_color", Color("#f2faff"))
-	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
-	button.add_theme_color_override("font_disabled_color", Color("#8daab9"))
+	button.add_theme_color_override("font_hover_color", Color("#f2faff"))
+	button.add_theme_color_override("font_pressed_color", Color("#f2faff"))
+	button.add_theme_color_override("font_focus_color", Color("#f2faff"))
+	button.add_theme_color_override("font_disabled_color", Color("#f2faff"))
 	button.add_theme_color_override("font_outline_color", Color(0.0, 0.08, 0.14, 0.0))
 	button.add_theme_constant_override("outline_size", 0)
 	button.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
 	button.add_theme_constant_override("shadow_offset_x", 0)
 	button.add_theme_constant_override("shadow_offset_y", 0)
 
+
+func _on_logo_picker_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		var direction := 0
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			direction = 1
+		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			direction = -1
+		if direction != 0:
+			var target := clampi(scroll.scroll_vertical + direction * 96, 0, maxi(0, int(scroll.get_v_scroll_bar().max_value - scroll.get_v_scroll_bar().page)))
+			var tween := scroll.create_tween()
+			tween.set_trans(Tween.TRANS_QUAD)
+			tween.set_ease(Tween.EASE_OUT)
+			tween.tween_property(scroll, "scroll_vertical", target, 0.20)
+			scroll.accept_event()
 
 func _logo_option_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
