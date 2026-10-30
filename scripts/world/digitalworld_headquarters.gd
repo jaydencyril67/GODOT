@@ -158,7 +158,7 @@ func _configure_camera_framing(building_height: float) -> void:
 	# Reset on both initial load and every level switch to the calculated full-building view.
 	camera_distance = camera_max_distance
 
-func _build_procedural_building(level: int) -> float:
+func _build_procedural_building(level: int, force_procedural: bool = false) -> float:
 	var config: Dictionary = LEVEL_CONFIGS[clampi(level, 1, MAX_LEVEL) - 1]
 	var floor_count: int = int(config["floors"])
 	var style: int = int(config["style"])
@@ -171,7 +171,7 @@ func _build_procedural_building(level: int) -> float:
 	# Prefer the editor-generated PackedScene for this tier. The procedural
 	# builder below remains as a safe fallback until all scene assets exist.
 	var tier_scene_path := "res://scenes/world/headquarters_tiers/level_%02d.tscn" % clampi(level, 1, MAX_LEVEL)
-	if ResourceLoader.exists(tier_scene_path):
+	if not force_procedural and ResourceLoader.exists(tier_scene_path):
 		var tier_scene := load(tier_scene_path) as PackedScene
 		if tier_scene != null:
 			building_root = tier_scene.instantiate() as Node3D
