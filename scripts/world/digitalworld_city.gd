@@ -222,7 +222,7 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 	add_child(root)
 
 	var style := index % 5
-	var floor_count := [4, 7, 10, 13, 6][style] + (index % 3)
+	var floor_count: int = int([4, 7, 10, 13, 6][style]) + (index % 3)
 	var floor_height := 2.75
 	var ground_height := 3.25
 	var width := 7.7 + float(index % 3) * 0.22
