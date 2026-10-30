@@ -780,9 +780,24 @@ func _show_create_scene() -> void:
 	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
 	header.add_child(_label("DIGITALWORLD  /  PRODUCT STUDIO", 11 if compact else 13, Color("#a9e3ff")))
+
+	# Keep the hero title and Back control together on one horizontal header row.
+	var hero_row := HBoxContainer.new()
+	hero_row.name = "CreateHeroRow"
+	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero_row.add_theme_constant_override("separation", 12)
+	header.add_child(hero_row)
 	var title := _label("CREATE A NEW PRODUCT", 27 if compact else 36, Color("#ffffff"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	header.add_child(title)
+	hero_row.add_child(title)
+	var back_button := _add_action_button(hero_row, "BACK", false, _show_city)
+	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
+	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	back_button.add_theme_font_size_override("font_size", 13 if compact else 14)
+	_style_create_glass_button(back_button, false)
+
 	header.add_child(_label("Choose a product category to begin designing your next device.", 13 if compact else 15, Color("#d8efff")))
 
 	var section := VBoxContainer.new()
@@ -860,19 +875,6 @@ func _show_create_scene() -> void:
 		choose.custom_minimum_size = Vector2(0, 46)
 		choose.add_theme_font_size_override("font_size", 12)
 		_style_create_glass_button(choose, true)
-
-	var actions := HBoxContainer.new()
-	actions.name = "CreateSceneActions"
-	actions.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	actions.custom_minimum_size.x = horizontal_page_width
-	actions.add_theme_constant_override("separation", 10)
-	page.add_child(actions)
-	var back_button := _add_action_button(actions, "BACK TO HEADQUARTERS", false, _show_city)
-	back_button.custom_minimum_size = Vector2(0, 56)
-	back_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	back_button.add_theme_font_size_override("font_size", 14 if compact else 15)
-	_style_create_glass_button(back_button, false)
-
 
 func _style_create_glass_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
