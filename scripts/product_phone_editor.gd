@@ -61,7 +61,7 @@ func _build_editor_ui() -> void:
 	page_margin.add_child(layout)
 
 	# Matching tool cards flank the centered 3D preview.
-	layout.add_child(_make_tools_card("PhoneEditorLeftToolsCard"))
+	layout.add_child(_make_tools_card("PhoneEditorLeftToolsCard", true))
 
 	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.24))
 	preview_panel.name = "PhonePreviewCard"
@@ -86,14 +86,17 @@ func _build_editor_ui() -> void:
 	preview_container.add_child(_get_preview_viewport())
 	preview_stack.add_child(preview_container)
 
-	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard"))
+	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard", false))
 
 
-func _make_tools_card(card_name: String) -> PanelContainer:
+func _make_tools_card(card_name: String, include_controls: bool) -> PanelContainer:
 	var tools_panel := _make_glass_panel(Color(0.28, 0.61, 0.80, 0.30))
 	tools_panel.name = card_name
 	tools_panel.custom_minimum_size.x = 260
 	tools_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	if not include_controls:
+		return tools_panel
 
 	var tools_scroll := ScrollContainer.new()
 	tools_scroll.name = card_name + "Scroll"
@@ -104,6 +107,7 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 
 	var tools_content := VBoxContainer.new()
 	tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tools_content.add_theme_constant_override("separation", 12)
 	tools_scroll.add_child(tools_content)
 
@@ -112,6 +116,7 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 	rotation_grid.name = card_name + "RotationControls"
 	rotation_grid.columns = 2
 	rotation_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rotation_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rotation_grid.add_theme_constant_override("h_separation", 8)
 	rotation_grid.add_theme_constant_override("v_separation", 8)
 	tools_content.add_child(rotation_grid)
@@ -120,16 +125,9 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, 1.0))
 	_add_tool_button(rotation_grid, "Y −", _rotate_axis.bind(Vector3.UP, -1.0))
 	_add_tool_button(rotation_grid, "Y +", _rotate_axis.bind(Vector3.UP, 1.0))
-
-	var view_grid := GridContainer.new()
-	view_grid.columns = 2
-	view_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	view_grid.add_theme_constant_override("h_separation", 8)
-	view_grid.add_theme_constant_override("v_separation", 8)
-	tools_content.add_child(view_grid)
-	_add_tool_button(view_grid, "RESET ROTATION", _reset_phone_rotation)
-	_add_tool_button(view_grid, "ZOOM IN", _zoom_camera.bind(-0.35))
-	_add_tool_button(view_grid, "ZOOM OUT", _zoom_camera.bind(0.35))
+	_add_tool_button(rotation_grid, "RESET ROTATION", _reset_phone_rotation)
+	_add_tool_button(rotation_grid, "ZOOM IN", _zoom_camera.bind(-0.35))
+	_add_tool_button(rotation_grid, "ZOOM OUT", _zoom_camera.bind(0.35))
 
 	return tools_panel
 
@@ -213,6 +211,8 @@ func _add_tool_button(parent: GridContainer, caption: String, callback: Callable
 	button.text = caption
 	button.custom_minimum_size = Vector2(0, 48)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	button.custom_minimum_size.y = 48
 	button.add_theme_font_size_override("font_size", 11)
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
