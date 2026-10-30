@@ -3,13 +3,9 @@ extends Node3D
 # First-person mobile exploration for the DigitalWorld HQ.
 var player: CharacterBody3D
 var view_camera: Camera3D
-var look_touch_id := -1
 var move_touch_id := -1
 var move_origin := Vector2.ZERO
 var move_vector := Vector2.ZERO
-var look_sensitivity := 0.0035
-var joystick_home_position := Vector2.ZERO
-var joystick_is_floating := false
 var joystick_base: Panel
 var joystick_knob: Panel
 var interact_button: Button
@@ -102,23 +98,11 @@ func _physics_process(delta: float) -> void:
 		player.velocity = Vector3.ZERO
 		return
 
-	# Use one active input source and normalize it so diagonal travel is never
-	# faster than straight travel.
+	# Simple fixed joystick: move directly in the building's world directions.
 	var input_dir := move_vector if move_touch_id != -1 else Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	input_dir = input_dir.limit_length(1.0)
-
-	var direction := player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)
-	direction.y = 0.0
-	if direction.length_squared() > 0.0001:
-		direction = direction.normalized()
-
-	# Apply movement directly from the current input. This removes the
-	# gradual acceleration/deceleration feel while preserving analog stick
-	# strength and the existing maximum movement speed.
-	var input_strength := input_dir.length()
-	var target_velocity := direction * MOVE_SPEED * input_strength
-	player.velocity.x = target_velocity.x
-	player.velocity.z = target_velocity.z
+	player.velocity.x = input_dir.x * MOVE_SPEED
+	player.velocity.z = input_dir.y * MOVE_SPEED
 
 	# Preserve vertical physics and clear only downward velocity while grounded.
 	if not player.is_on_floor():
@@ -150,65 +134,21 @@ func apply_pending_interaction() -> void:
 			stand_up()
 
 func _input(event: InputEvent) -> void:
+	# One fixed joystick on the left side. The right side does not rotate the camera.
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			var screen_size := get_viewport().get_visible_rect().size
-			if event.position.x < screen_size.x * 0.45 and move_touch_id == -1:
+			if event.position.x < get_viewport().get_visible_rect().size.x * 0.5 and move_touch_id == -1:
 				move_touch_id = event.index
-				var home_rect := Rect2(joystick_home_position, joystick_base.size)
-				if home_rect.has_point(event.position):
-					# Fixed stick: finger position is measured from the visible base.
-					joystick_is_floating = false
-					move_origin = joystick_center()
-					move_vector = ((event.position - move_origin) / 58.0).limit_length(1.0)
-				else:
-					# Floating stick: anchor it under the initial touch so a finger
-					# landing elsewhere on the left side does not cause a sudden turn.
-					joystick_is_floating = true
-					var max_x := maxf(0.0, screen_size.x * 0.45 - joystick_base.size.x)
-					var max_y := maxf(0.0, screen_size.y - joystick_base.size.y)
-					joystick_base.position = Vector2(
-						clampf(event.position.x - joystick_base.size.x * 0.5, 0.0, max_x),
-						clampf(event.position.y - joystick_base.size.y * 0.5, 0.0, max_y)
-					)
-					move_origin = event.position
-					move_vector = Vector2.ZERO
+				move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
 				update_joystick_knob(event.position)
-			elif look_touch_id == -1:
-				look_touch_id = event.index
 		else:
 			if event.index == move_touch_id:
 				move_touch_id = -1
 				move_vector = Vector2.ZERO
-				if joystick_is_floating:
-					joystick_base.position = joystick_home_position
-					joystick_is_floating = false
 				reset_joystick_knob()
-			if event.index == look_touch_id:
-				look_touch_id = -1
-	elif event is InputEventScreenDrag:
-		if event.index == move_touch_id:
-			var offset: Vector2 = event.position - move_origin
-			move_vector = (offset / 58.0).limit_length(1.0)
-			update_joystick_knob(event.position)
-		elif event.index == look_touch_id:
-			rotate_view(event.relative)
-	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		rotate_view(event.relative)
-
-func rotate_view(input_delta: Vector2) -> void:
-	if player == null or view_camera == null:
-		return
-	# Apply the full accumulated input delta immediately. Low-pass smoothing
-	# of the input queue introduced aim lag and allowed old movement to trail.
-	# Godot already accumulates mouse input; touch deltas are consumed as sent.
-	var look_delta := input_delta * look_sensitivity
-	player.rotation.y -= look_delta.x
-	view_camera.rotation.x = clampf(
-		view_camera.rotation.x - look_delta.y,
-		deg_to_rad(-75.0),
-		deg_to_rad(75.0)
-	)
+	elif event is InputEventScreenDrag and event.index == move_touch_id:
+		move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
+		update_joystick_knob(event.position)
 
 func create_player() -> void:
 	player = CharacterBody3D.new()
@@ -240,12 +180,11 @@ func create_mobile_hint() -> void:
 	hud.name = "MobileControls"
 	add_child(hud)
 
-	# Fixed translucent joystick base and thumb pad, GTA-style.
+	# Fixed translucent joystick base and thumb pad.
 	joystick_base = Panel.new()
 	joystick_base.name = "MovementJoystickBase"
 	joystick_base.position = Vector2(28.0, get_viewport().get_visible_rect().size.y - 300.0)
 	joystick_base.size = Vector2(264.0, 264.0)
-	joystick_home_position = joystick_base.position
 	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var base_style := StyleBoxFlat.new()
 	base_style.bg_color = Color(0.04, 0.09, 0.13, 0.42)
@@ -380,19 +319,16 @@ func begin_sitting() -> void:
 	if best_distance_squared > SEAT_INTERACTION_RADIUS * SEAT_INTERACTION_RADIUS:
 		return
 	saved_stand_position = player.global_position
-	saved_camera_height = view_camera.position.y
 	player.velocity = Vector3.ZERO
 	player.global_position = Vector3(chosen.x, 0.96, chosen.z + 0.45)
-	player.rotation.y = 0.0
 	view_camera.position.y = 0.12
 	is_sitting = true
 
 func stand_up() -> void:
-	if player == null or view_camera == null:
+	if player == null:
 		return
 	player.velocity = Vector3.ZERO
 	player.global_position = saved_stand_position
-	view_camera.position.y = saved_camera_height
 	is_sitting = false
 
 func toggle_elevator() -> void:
