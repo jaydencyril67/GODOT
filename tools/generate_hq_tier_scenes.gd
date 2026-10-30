@@ -1,4 +1,3 @@
-@tool
 extends SceneTree
 
 const HeadquartersScript = preload("res://scripts/world/digitalworld_headquarters.gd")
