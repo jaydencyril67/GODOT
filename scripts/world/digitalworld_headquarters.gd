@@ -3,6 +3,8 @@ class_name DigitalWorldHeadquarters
 
 signal preview_level_changed(level: int)
 signal create_requested
+signal setup_progress(message: String, progress: float)
+signal setup_completed
 
 const MAX_LEVEL := 10
 const LEVEL_CONFIGS := [
@@ -42,13 +44,36 @@ var facade_normal: Texture2D
 func _ready() -> void:
 	preview_level = clampi(preview_level, 1, MAX_LEVEL)
 	owned_level = clampi(owned_level, 1, MAX_LEVEL)
+
+	setup_progress.emit("Initializing game...", 8.0)
+	await get_tree().process_frame
+
+	setup_progress.emit("Loading company data...", 20.0)
+	await get_tree().process_frame
+
 	_create_material_library()
 	_create_procedural_surface_textures()
+
+	setup_progress.emit("Setting up scenes...", 38.0)
+	await get_tree().process_frame
+
 	_create_environment()
 	_create_presentation_stage()
+
+	setup_progress.emit("Constructing your headquarters...", 58.0)
+	await get_tree().process_frame
+
 	var building_height := _build_procedural_building(preview_level)
+
+	setup_progress.emit("Preparing camera and interface...", 88.0)
+	await get_tree().process_frame
+
 	_create_camera(building_height)
 	_create_preview_interface()
+	await get_tree().process_frame
+
+	setup_progress.emit("Headquarters ready!", 100.0)
+	setup_completed.emit()
 
 func _create_material_library() -> void:
 	materials = {
