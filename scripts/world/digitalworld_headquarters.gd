@@ -2,6 +2,7 @@ extends Node3D
 class_name DigitalWorldHeadquarters
 
 signal preview_level_changed(level: int)
+signal create_requested
 
 const MAX_LEVEL := 10
 const LEVEL_CONFIGS := [
@@ -406,6 +407,8 @@ func _create_preview_interface() -> void:
 		button.custom_minimum_size = Vector2(0.0, 54.0)
 		button.add_theme_font_size_override("font_size", 12)
 		_style_preview_button(button, false)
+		if button_name == "Create":
+			button.pressed.connect(func(): create_requested.emit())
 		row.add_child(button)
 
 	_refresh_preview_interface()
