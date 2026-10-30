@@ -481,10 +481,18 @@ func _add_procedural_tree(position: Vector3, scale: float) -> void:
 	tree.scale = Vector3.ONE * scale
 	add_child(tree)
 	_cylinder(tree, "Tree_Trunk", 0.12, 0.18, 1.8, Vector3(0.0, 0.9, 0.0), materials["trunk"])
+	var branch_a := _cylinder(tree, "Tree_Branch_Left", 0.045, 0.075, 1.05, Vector3(-0.32, 1.65, 0.0), materials["trunk"])
+	branch_a.rotation.z = -0.62
+	var branch_b := _cylinder(tree, "Tree_Branch_Right", 0.045, 0.075, 1.0, Vector3(0.34, 1.72, 0.08), materials["trunk"])
+	branch_b.rotation.z = 0.58
 	_sphere(tree, "Tree_Canopy_Lower", 0.92, Vector3(0.0, 2.0, 0.0), materials["leaf_a"])
 	_sphere(tree, "Tree_Canopy_Upper", 0.68, Vector3(0.0, 2.75, 0.0), materials["leaf_b"])
 	_sphere(tree, "Tree_Canopy_Side_A", 0.58, Vector3(0.52, 2.18, 0.1), materials["leaf_a"])
 	_sphere(tree, "Tree_Canopy_Side_B", 0.55, Vector3(-0.5, 2.25, -0.1), materials["leaf_b"])
+	_sphere(tree, "Tree_Canopy_Back", 0.54, Vector3(0.05, 2.2, -0.48), materials["leaf_b"])
+	_sphere(tree, "Tree_Canopy_Front", 0.5, Vector3(-0.08, 2.12, 0.48), materials["leaf_a"])
+	_sphere(tree, "Tree_Canopy_Crown_Left", 0.42, Vector3(-0.42, 2.78, 0.18), materials["leaf_a"])
+	_sphere(tree, "Tree_Canopy_Crown_Right", 0.4, Vector3(0.4, 2.72, -0.16), materials["leaf_b"])
 
 func _add_streetlight(position: Vector3) -> void:
 	var root := Node3D.new()
@@ -515,7 +523,10 @@ func _make_procedural_car(index: int) -> Node3D:
 	_box(car, "Passenger_Cabin", Vector3(1.02, 0.48, 0.78), Vector3(-0.12, 0.99, 0.0), materials["glass"])
 	for x in [-0.58, 0.58]:
 		for z in [-0.49, 0.49]:
-			_cylinder(car, "Rubber_Tyre", 0.22, 0.22, 0.13, Vector3(x, 0.30, z), materials["rubber"])
+			var tyre := _cylinder(car, "Rubber_Tyre", 0.22, 0.22, 0.13, Vector3(x, 0.30, z), materials["rubber"])
+			tyre.rotation.x = PI * 0.5
+			var hub := _cylinder(car, "Alloy_Wheel_Hub", 0.105, 0.105, 0.145, Vector3(x, 0.30, z * 1.08), materials["metal"])
+			hub.rotation.x = PI * 0.5
 	for z in [-0.27, 0.27]:
 		_box(car, "LED_Headlamp", Vector3(0.08, 0.12, 0.16), Vector3(0.94, 0.57, z), materials["lamp"])
 		_box(car, "Rear_Lamp", Vector3(0.08, 0.12, 0.16), Vector3(-0.94, 0.57, z), materials["red"])
@@ -610,7 +621,7 @@ func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radi
 	mesh.top_radius = top_radius
 	mesh.bottom_radius = bottom_radius
 	mesh.height = height
-	mesh.radial_segments = 12
+	mesh.radial_segments = 16
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = material
@@ -637,8 +648,8 @@ func _sphere(parent: Node3D, node_name: String, radius: float, position: Vector3
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
 	mesh.height = radius * 2.0
-	mesh.radial_segments = 12
-	mesh.rings = 8
+	mesh.radial_segments = 18
+	mesh.rings = 12
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = material
