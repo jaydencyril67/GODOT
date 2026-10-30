@@ -77,6 +77,7 @@ func _create_material_library() -> void:
 		"dark_metal": _mat(Color("#303b40"), 0.42, 0.72),
 		"metal": _mat(Color("#78878b"), 0.34, 0.78),
 		"glass": _glass_mat(),
+		"storefront": _mat(Color("#26383d"), 0.22, 0.38),
 		"window_frame": _mat(Color("#26343a"), 0.38, 0.62),
 		"roof": _mat(Color("#59666a"), 0.72, 0.28),
 		"soil": _mat(Color("#655e4f"), 1.0),
@@ -396,9 +397,7 @@ func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth:
 	_add_multimesh(parent, "Precision_Window_Vertical_Mullions", mullions, materials["metal"])
 	_add_multimesh(parent, "Precision_Window_Transoms", transoms, materials["window_frame"])
 	# A dark recessed shopfront gives the street level a distinct, believable scale.
-	var storefront := _mat(Color("#26383d"), 0.22, 0.38)
-	storefront.metallic_specular = 0.82
-	var shop := _box(parent, "Ground_Floor_Recessed_Storefront_Glazing", Vector3(width * 0.68, 1.9, 0.075), basis * Vector3(0.0, 1.62, facade_z + 0.015), storefront)
+	var shop := _box(parent, "Ground_Floor_Recessed_Storefront_Glazing", Vector3(width * 0.68, 1.9, 0.075), basis * Vector3(0.0, 1.62, facade_z + 0.015), materials["storefront"])
 	shop.rotation.y = angle
 	var canopy := _box(parent, "Ground_Floor_Continuous_Shop_Canopy", Vector3(width * 0.82, 0.11, 0.62), basis * Vector3(0.0, 2.85, facade_z + 0.22), materials["dark_metal"])
 	canopy.rotation.y = angle
@@ -412,8 +411,7 @@ func _add_rooftop_service_details(parent: Node3D, width: float, depth: float, he
 	for i in range(3):
 		var x := -1.55 + float(i) * 1.55
 		_box(parent, "Rooftop_Mechanical_Condenser", Vector3(0.82, 0.48, 0.72), Vector3(x, height + 0.88, depth * 0.12), roof)
-		var grille := _box(parent, "Condenser_Front_Grille", Vector3(0.62, 0.28, 0.035), Vector3(x, height + 0.88, depth * 0.12 + 0.38), materials["dark_metal"])
-		grille.rotation.x = 0.0
+		_box(parent, "Condenser_Front_Grille", Vector3(0.62, 0.28, 0.035), Vector3(x, height + 0.88, depth * 0.12 + 0.38), materials["dark_metal"])
 		_cylinder(parent, "Condenser_Fan_Hub", 0.12, 0.12, 0.045, Vector3(x, height + 1.14, depth * 0.12), materials["metal"])
 	_box(parent, "Roof_Service_Cable_Tray", Vector3(width * 0.7, 0.07, 0.12), Vector3(0.0, height + 0.7, -depth * 0.32), materials["dark_metal"])
 
