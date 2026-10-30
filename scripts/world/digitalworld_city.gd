@@ -7,7 +7,7 @@ const PLOT_SPACING := 12.5
 const ROAD_WIDTH := 3.2
 const CITY_HALF_WIDTH := 34.0
 const CITY_HALF_DEPTH := 40.0
-const MODULAR_BUILDING_PILOT_INDEX := 14 # One custom building first; expand only after in-game review.
+const MODULAR_BUILDING_PILOT_INDICES := [4, 9, 14, 19, 24] # Five modular pilots; expand only after Android review.
 const CITY_BUILDING_MODELS := [
 	"res://assets/city_glb/building-a.glb",
 	"res://assets/city_glb/building-b.glb",
@@ -272,9 +272,9 @@ func _build_city_building(index: int, plot_position: Vector3, window_frame_mater
 	building.position = plot_position
 	add_child(building)
 
-	# First-stage rollout: one fully procedural building beside the existing
-	# imported city assets. Keep the other 29 buildings untouched for comparison.
-	if index == MODULAR_BUILDING_PILOT_INDEX:
+	# Controlled rollout: five procedural architecture pilots distributed across
+	# the city. Keep the other 25 imported buildings intact for comparison.
+	if index in MODULAR_BUILDING_PILOT_INDICES:
 		_add_modular_architecture_building(building, index, window_frame_material, glass_material, roof_detail_material)
 		return
 
@@ -305,7 +305,7 @@ func _add_modular_architecture_building(parent: Node3D, index: int, frame_materi
 	# floors, four modular facades, optional balconies and a serviceable roof.
 	# Geometry is batched for the repeated windows to keep node/draw-call growth low.
 	var style := index % 3 # 0: office, 1: residential, 2: mixed-use.
-	var floor_count := 6 + (index % 3)
+	var floor_count := 6 + (floori(float(index) / 5.0) % 3)
 	var building_width := 8.0
 	var ground_floor_height := 3.1
 	var upper_floor_height := 2.35
@@ -336,6 +336,17 @@ func _add_modular_architecture_building(parent: Node3D, index: int, frame_materi
 	for corner_x in [-3.93, 3.93]:
 		for corner_z in [-3.93, 3.93]:
 			_box(parent, "Facade_Corner_Pier", Vector3(0.22, total_height, 0.22), Vector3(corner_x, total_height * 0.5, corner_z), accent_material)
+
+	# Vertical aluminium sun-shading fins break up the flat concrete elevations.
+	# They are repeated on all four sides and share one material per building.
+	for side_index in range(4):
+		var side_angle := float(side_index) * PI * 0.5
+		var side_basis := Basis(Vector3.UP, side_angle)
+		for fin_offset in [-1.31, 1.31]:
+			var fin_position := side_basis * Vector3(fin_offset, total_height * 0.5, 4.15)
+			var fin := _box(parent, "Vertical_Facade_Sunshade_Fin", Vector3(0.12, total_height, 0.20), fin_position, accent_material)
+			fin.rotation.y = side_angle
+
 	for floor_index in range(1, floor_count):
 		var slab_y := ground_floor_height + float(floor_index - 1) * upper_floor_height
 		_box(parent, "Horizontal_Floor_Band", Vector3(8.28, 0.12, 8.28), Vector3(0.0, slab_y, 0.0), accent_material)
