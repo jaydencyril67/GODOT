@@ -581,10 +581,10 @@ func _add_main_entrance(parent: Node3D, width: float, depth: float, ground_heigh
 	# A layered portal, paired glazed leaves and a separate transom read as a real lobby entrance.
 	_box(parent, "Entrance_Portal_Frame", Vector3(1.78, 2.86, 0.24), Vector3(0.0, 1.78, z), accent)
 	_box(parent, "Entrance_Recess_Shadow", Vector3(1.48, 2.52, 0.045), Vector3(0.0, 1.76, z + 0.135), materials["window_gasket"])
-	_box(parent, "Entrance_Door_Leaf_Left", Vector3(0. sixty, 2.30, 0.075), Vector3(-0.315, 1.61, z + 0.17), materials["window_frame"])
-	_box(parent, "Entrance_Door_Leaf_Right", Vector3(0. sixty, 2.30, 0.075), Vector3(0.315, 1.61, z + 0.17), materials["window_frame"])
-	_box(parent, "Entrance_Left_Glazed_Panel", Vector3(0. forty, 1.54, 0.025), Vector3(-0.315, 1.78, z + 0.215), materials["glass"])
-	_box(parent, "Entrance_Right_Glazed_Panel", Vector3(0. forty, 1.54, 0.025), Vector3(0.315, 1.78, z + 0.215), materials["glass"])
+	_box(parent, "Entrance_Door_Leaf_Left", Vector3(0.60, 2.30, 0.075), Vector3(-0.315, 1.61, z + 0.17), materials["window_frame"])
+	_box(parent, "Entrance_Door_Leaf_Right", Vector3(0.60, 2.30, 0.075), Vector3(0.315, 1.61, z + 0.17), materials["window_frame"])
+	_box(parent, "Entrance_Left_Glazed_Panel", Vector3(0.40, 1.54, 0.025), Vector3(-0.315, 1.78, z + 0.215), materials["glass"])
+	_box(parent, "Entrance_Right_Glazed_Panel", Vector3(0.40, 1.54, 0.025), Vector3(0.315, 1.78, z + 0.215), materials["glass"])
 	for side in [-1.0, 1.0]:
 		_box(parent, "Entrance_Door_Outer_Stile", Vector3(0.045, 2.22, 0.045), Vector3(side * 0.59, 1.61, z + 0.225), materials["metal"])
 		_box(parent, "Entrance_Door_Inner_Stile", Vector3(0.035, 2.22, 0.045), Vector3(side * 0.035, 1.61, z + 0.225), materials["metal"])
