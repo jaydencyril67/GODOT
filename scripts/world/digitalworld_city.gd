@@ -46,21 +46,33 @@ func _process(delta: float) -> void:
 	animation_clock += delta
 	for vehicle in traffic:
 		var node: Node3D = vehicle["node"]
-		node.position.x += float(vehicle["speed"]) * float(vehicle["direction"]) * delta
+		var speed := float(vehicle["speed"])
+		var direction := float(vehicle["direction"])
+		node.position.x += speed * direction * delta
 		if node.position.x > CITY_HALF_WIDTH + 5.0:
 			node.position.x = -CITY_HALF_WIDTH - 5.0
 		elif node.position.x < -CITY_HALF_WIDTH - 5.0:
 			node.position.x = CITY_HALF_WIDTH + 5.0
+		# Subtle suspension movement and rolling wheels keep traffic from feeling static.
+		var car_phase := animation_clock * 2.1 + float(vehicle["phase"])
+		node.position.y = 0.12 + sin(car_phase) * 0.012
+		for wheel in vehicle["wheels"]:
+			(wheel as Node3D).rotation.z -= speed * delta / 0.235
 	for person in walkers:
 		var node: Node3D = person["node"]
 		node.position.x += float(person["speed"]) * delta
 		if node.position.x > CITY_HALF_WIDTH:
 			node.position.x = -CITY_HALF_WIDTH
-		var phase := animation_clock * 7.0 + float(person["phase"])
-		(person["left_leg"] as Node3D).rotation.z = sin(phase) * 0.24
-		(person["right_leg"] as Node3D).rotation.z = -sin(phase) * 0.24
-		(person["left_arm"] as Node3D).rotation.z = -sin(phase) * 0.17
-		(person["right_arm"] as Node3D).rotation.z = sin(phase) * 0.17
+		var phase := animation_clock * float(person["cadence"]) + float(person["phase"])
+		var stride := sin(phase)
+		var bob := absf(cos(phase * 2.0)) * 0.035
+		node.position.y = bob
+		(person["left_leg"] as Node3D).rotation.z = stride * 0.34
+		(person["right_leg"] as Node3D).rotation.z = -stride * 0.34
+		(person["left_arm"] as Node3D).rotation.z = -stride * 0.22
+		(person["right_arm"] as Node3D).rotation.z = stride * 0.22
+		(person["torso"] as Node3D).rotation.z = sin(phase * 2.0) * 0.018
+		(person["head"] as Node3D).rotation.z = sin(phase + 0.7) * 0.025
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player_body):
@@ -572,11 +584,12 @@ func _add_traffic() -> void:
 		car.position = Vector3(-31.0 + float(index) * 6.8, 0.12, lanes[index % 3] + (0.58 if direction > 0.0 else -0.58))
 		car.rotation.y = 0.0 if direction > 0.0 else PI
 		add_child(car)
-		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction})
+		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction, "phase": float(index) * 0.83, "wheels": car.get_meta("wheel_nodes", [])})
 
 func _make_procedural_car(index: int) -> Node3D:
 	var car := Node3D.new()
 	car.name = "Procedural_Traffic_Vehicle_%02d" % (index + 1)
+	var wheel_nodes: Array[Node3D] = []
 	var paint_colors := [Color("#d8dce0"), Color("#263d50"), Color("#a84a38"), Color("#c5a45d"), Color("#3c6257")]
 	var paint := _mat(paint_colors[index % paint_colors.size()], 0.24, 0.58)
 	var trim := _mat(Color("#182126"), 0.34, 0.48)
@@ -630,18 +643,25 @@ func _make_procedural_car(index: int) -> Node3D:
 		for z in [-0.52, 0.52]:
 			var tyre := _cylinder(car, "Rubber_Tyre", 0.235, 0.235, 0.16, Vector3(x, 0.29, z), rubber)
 			tyre.rotation.x = PI * 0.5
+			wheel_nodes.append(tyre)
 			var sidewall := _cylinder(car, "Tyre_Sidewall_Ring", 0.174, 0.174, 0.166, Vector3(x, 0.29, z * 1.012), trim)
 			sidewall.rotation.x = PI * 0.5
+			wheel_nodes.append(sidewall)
 			var brake := _cylinder(car, "Brake_Disc", 0.125, 0.125, 0.17, Vector3(x, 0.29, z * 1.025), chrome)
 			brake.rotation.x = PI * 0.5
+			wheel_nodes.append(brake)
 			var hub := _cylinder(car, "Alloy_Wheel_Face", 0.105, 0.105, 0.18, Vector3(x, 0.29, z * 1.04), chrome)
 			hub.rotation.x = PI * 0.5
+			wheel_nodes.append(hub)
 			for spoke in range(5):
 				var angle := float(spoke) * TAU / 5.0
 				var spoke_mesh := _box(car, "Alloy_Wheel_Spoke", Vector3(0.025, 0.14, 0.025), Vector3(x, 0.29 + cos(angle) * 0.065, z * 1.055 + sin(angle) * 0.065), chrome)
 				spoke_mesh.rotation.x = PI * 0.5
+				wheel_nodes.append(spoke_mesh)
 			var centre_cap := _cylinder(car, "Wheel_Centre_Cap", 0.043, 0.043, 0.19, Vector3(x, 0.29, z * 1.06), paint)
 			centre_cap.rotation.x = PI * 0.5
+			wheel_nodes.append(centre_cap)
+	car.set_meta("wheel_nodes", wheel_nodes)
 	_box(car, "Front_Fog_Lamp_Left", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, -0.36), headlamp)
 	_box(car, "Front_Fog_Lamp_Right", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, 0.36), headlamp)
 	_box(car, "Exhaust_Tip", Vector3(0.12, 0.055, 0.07), Vector3(-1.10, 0.28, -0.30), chrome)
@@ -716,7 +736,9 @@ func _make_procedural_pedestrian(index: int) -> Dictionary:
 		_box(person, "Pedestrian_Backpack", Vector3(0.25, 0.34, 0.12), Vector3(-0.17, 1.18, 0.0), backpack)
 		_box(person, "Pedestrian_Backpack_Pocket", Vector3(0.16, 0.12, 0.025), Vector3(-0.24, 1.12, 0.0), backpack)
 
-	return {"node": person, "left_leg": left_leg_pivot, "right_leg": right_leg_pivot, "left_arm": left_arm_pivot, "right_arm": right_arm_pivot, "speed": 0.65 + float(index % 4) * 0.12, "phase": float(index) * 0.7}
+	var torso := person.get_node("Pedestrian_Torso") as Node3D
+	var head := person.get_node("Pedestrian_Head") as Node3D
+	return {"node": person, "left_leg": left_leg_pivot, "right_leg": right_leg_pivot, "left_arm": left_arm_pivot, "right_arm": right_arm_pivot, "torso": torso, "head": head, "speed": 0.65 + float(index % 4) * 0.12, "cadence": 6.0 + float(index % 3) * 0.45, "phase": float(index) * 0.7}
 
 func _add_traffic_signal(position: Vector3) -> void:
 	var root := Node3D.new()
