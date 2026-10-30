@@ -382,44 +382,72 @@ func _open_logo_picker() -> void:
 	logo_picker_layer = Control.new()
 	logo_picker_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui_root.add_child(logo_picker_layer)
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.x < 700.0
 	var scrim := ColorRect.new()
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.015, 0.005, 0.025, 0.88)
+	scrim.color = Color(0.015, 0.045, 0.075, 0.90)
+	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
+
+	var outer := MarginContainer.new()
+	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	outer.add_theme_constant_override("margin_left", 14 if compact else 36)
+	outer.add_theme_constant_override("margin_right", 14 if compact else 36)
+	outer.add_theme_constant_override("margin_top", 14 if compact else 28)
+	outer.add_theme_constant_override("margin_bottom", 14 if compact else 28)
+	logo_picker_layer.add_child(outer)
+
 	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	logo_picker_layer.add_child(center)
-	var panel := _panel(Color(0.10, 0.055, 0.16, 0.98), Color(0.82, 0.68, 1.0, 0.62), 14)
-	panel.custom_minimum_size = Vector2(620, 0)
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer.add_child(center)
+
+	var panel := _panel(Color(0.035, 0.14, 0.23, 0.98), Color(0.76, 0.92, 1.0, 0.82), 18)
+	panel.custom_minimum_size = Vector2(0, 0)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.add_child(panel)
-	var margin := _margin(panel, 16, 16, 12, 12)
+
+	var margin := _margin(panel, 14 if compact else 22, 14 if compact else 22, 14 if compact else 20, 14 if compact else 20)
 	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 10)
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 12)
 	margin.add_child(stack)
+
 	var heading := HBoxContainer.new()
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_theme_constant_override("separation", 10)
 	stack.add_child(heading)
 	var title_stack := VBoxContainer.new()
 	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_stack.add_child(_label("COMPANY BRANDING", 10, Color("#d8baff")))
-	title_stack.add_child(_label("CHOOSE YOUR INSIGNIA", 19, Color("#ffffff")))
-	title_stack.add_child(_label("Select one of the 50 original DigitalWorld vector designs.", 10, Color("#d8cbe8")))
+	title_stack.add_child(_label("COMPANY BRANDING", 10 if compact else 12, Color("#a9e3ff")))
+	title_stack.add_child(_label("CHOOSE YOUR INSIGNIA", 18 if compact else 22, Color("#ffffff")))
+	title_stack.add_child(_label("50 original DigitalWorld vector designs.", 11 if compact else 13, Color("#c7e2f3")))
 	heading.add_child(title_stack)
 	var close := _add_action_button(heading, "CLOSE", false, _close_logo_picker)
-	close.custom_minimum_size = Vector2(76, 42)
+	close.custom_minimum_size = Vector2(76, 44)
+	close.size_flags_horizontal = Control.SIZE_SHRINK_END
+
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 300)
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	stack.add_child(scroll)
+
 	var grid := GridContainer.new()
-	grid.columns = 5
+	grid.columns = 3 if compact else 5
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	scroll.add_child(grid)
 	for index in range(50):
 		var logo_id := index + 1
 		var option := Button.new()
-		option.custom_minimum_size = Vector2(104, 82)
+		option.custom_minimum_size = Vector2(0, 82 if compact else 96)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.toggle_mode = true
 		option.button_pressed = logo_id == selected_logo_id
@@ -428,9 +456,9 @@ func _open_logo_picker() -> void:
 		option.add_theme_stylebox_override("pressed", _logo_option_style(true))
 		var cell := VBoxContainer.new()
 		cell.alignment = BoxContainer.ALIGNMENT_CENTER
-		cell.add_theme_constant_override("separation", 3)
+		cell.add_theme_constant_override("separation", 4)
 		var mark := TextureRect.new()
-		mark.custom_minimum_size = Vector2(42, 42)
+		mark.custom_minimum_size = Vector2(42 if compact else 50, 42 if compact else 50)
 		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		mark.texture = _company_logo_texture(logo_id)
@@ -440,13 +468,18 @@ func _open_logo_picker() -> void:
 		option.add_child(cell)
 		option.pressed.connect(_select_company_logo.bind(logo_id))
 		grid.add_child(option)
+
 	var footer := HBoxContainer.new()
+	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.add_child(footer)
-	footer.add_child(_label("%02d / 50 SELECTED" % selected_logo_id, 10, Color("#d8baff")))
+	var count_label := _label("%02d / 50 SELECTED" % selected_logo_id, 10, Color("#b8e5ff"))
+	footer.add_child(count_label)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(spacer)
 	_add_action_button(footer, "DONE", true, _close_logo_picker)
+
+
 
 
 func _logo_option_style(selected: bool) -> StyleBoxFlat:
@@ -466,8 +499,10 @@ func _select_company_logo(logo_id: int) -> void:
 	selected_logo_id = clampi(logo_id, 1, 50)
 	logo_option.text = "%02d  —  %s     CHANGE" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1]]
 	insignia_preview.texture = _company_logo_texture(selected_logo_id)
-	var preview_copy := insignia_preview.get_parent().get_child(2) as Label
-	preview_copy.text = "%02d  /  50   •   %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()]
+	var preview_row := insignia_preview.get_parent()
+	var preview_copy := preview_row.get_node_or_null("SelectedInsigniaName") as Label
+	if is_instance_valid(preview_copy):
+		preview_copy.text = "%02d / 50  ·  %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()]
 	_close_logo_picker()
 
 
