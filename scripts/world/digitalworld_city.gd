@@ -204,7 +204,7 @@ func _build_city() -> void:
 				0.0,
 				(float(row) - 2.5) * PLOT_SPACING + sin(float(col) * 0.63) * 0.48
 			)
-			_build_city_building(row * GRID_COLUMNS + col, plot_position)
+			_build_city_building(row * GRID_COLUMNS + col, plot_position, window_frame_material, glass_material, roof_detail_material)
 
 	# Street furniture and greenery soften the concrete city grid.
 	for row_edge in range(GRID_ROWS + 1):
@@ -253,7 +253,7 @@ func _build_city() -> void:
 		add_child(person["node"])
 		walkers.append(person)
 
-func _build_city_building(index: int, plot_position: Vector3) -> void:
+func _build_city_building(index: int, plot_position: Vector3, window_frame_material: Material, glass_material: Material, roof_detail_material: Material) -> void:
 	var building := Node3D.new()
 	building.name = "City_Building_%02d" % (index + 1)
 	building.position = plot_position
@@ -334,13 +334,19 @@ func _add_building_glazing(parent: Node3D, index: int, frame_material: Material,
 	frame_mesh.size = Vector3(1.42, 1.12, 0.13)
 	var glass_mesh := BoxMesh.new()
 	glass_mesh.size = Vector3(1.20, 0.90, 0.09)
+	var sill_mesh := BoxMesh.new()
+	sill_mesh.size = Vector3(1.38, 0.10, 0.18)
 	var frame_batch := MultiMesh.new()
 	frame_batch.transform_format = MultiMesh.TRANSFORM_3D
 	frame_batch.mesh = frame_mesh
 	var glass_batch := MultiMesh.new()
 	glass_batch.transform_format = MultiMesh.TRANSFORM_3D
 	glass_batch.mesh = glass_mesh
+	var sill_batch := MultiMesh.new()
+	sill_batch.transform_format = MultiMesh.TRANSFORM_3D
+	sill_batch.mesh = sill_mesh
 	var window_transforms: Array[Transform3D] = []
+	var sill_transforms: Array[Transform3D] = []
 	for floor_index in range(floor_count):
 		var window_y := 1.55 + float(floor_index) * 1.62
 		for side_index in range(4):
@@ -349,12 +355,17 @@ func _add_building_glazing(parent: Node3D, index: int, frame_material: Material,
 				var bay_offset := -1.35 if bay == 0 else 1.35
 				var local_position := Vector3(bay_offset, window_y, 4.13)
 				var rotated_position := Basis(Vector3.UP, side_angle) * local_position
-				window_transforms.append(Transform3D(Basis(Vector3.UP, side_angle), rotated_position))
+				var window_basis := Basis(Vector3.UP, side_angle)
+				window_transforms.append(Transform3D(window_basis, rotated_position))
+				var sill_position := Vector3(bay_offset, window_y - 0.53, 4.16)
+				sill_transforms.append(Transform3D(window_basis, window_basis * sill_position))
 	frame_batch.instance_count = window_transforms.size()
 	glass_batch.instance_count = window_transforms.size()
+	sill_batch.instance_count = sill_transforms.size()
 	for window_index in range(window_transforms.size()):
 		frame_batch.set_instance_transform(window_index, window_transforms[window_index])
 		glass_batch.set_instance_transform(window_index, window_transforms[window_index])
+		sill_batch.set_instance_transform(window_index, sill_transforms[window_index])
 	var frames := MultiMeshInstance3D.new()
 	frames.name = "Architectural_Window_Frames"
 	frames.multimesh = frame_batch
@@ -367,6 +378,12 @@ func _add_building_glazing(parent: Node3D, index: int, frame_material: Material,
 	glazing.material_override = glass_material
 	glazing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(glazing)
+	var sills := MultiMeshInstance3D.new()
+	sills.name = "Architectural_Window_Sills"
+	sills.multimesh = sill_batch
+	sills.material_override = frame_material
+	sills.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(sills)
 	# A restrained rooftop service unit adds a constructed, functional silhouette.
 	var roof_unit := _box(parent, "Rooftop_HVAC_Unit", Vector3(1.45, 0.48, 0.95), Vector3(-2.55, 8.0 if tower else 7.0, -2.45), roof_material)
 	roof_unit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
