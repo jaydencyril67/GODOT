@@ -382,9 +382,7 @@ func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth:
 		for column in range(columns):
 			var x := (float(column) - float(columns - 1) * 0.5) * spacing
 			mullion_transforms.append(Transform3D(basis, basis * Vector3(x, window_y, facade_z + 0.07)))
-			if column < columns - 1:
-				var between_x := x + spacing * 0.5
-				transom_transforms.append(Transform3D(basis, basis * Vector3(between_x, window_y, facade_z + 0.075)))
+			transom_transforms.append(Transform3D(basis, basis * Vector3(x, window_y, facade_z + 0.075)))
 	bands.instance_count = band_transforms.size()
 	mullions.instance_count = mullion_transforms.size()
 	transoms.instance_count = transom_transforms.size()
@@ -413,7 +411,7 @@ func _add_rooftop_service_details(parent: Node3D, width: float, depth: float, he
 		rail.rotation.y = angle
 	for i in range(3):
 		var x := -1.55 + float(i) * 1.55
-		var unit := _box(parent, "Rooftop_Mechanical_Condenser", Vector3(0.82, 0.48, 0.72), Vector3(x, height + 0.88, depth * 0.12), roof)
+		_box(parent, "Rooftop_Mechanical_Condenser", Vector3(0.82, 0.48, 0.72), Vector3(x, height + 0.88, depth * 0.12), roof)
 		var grille := _box(parent, "Condenser_Front_Grille", Vector3(0.62, 0.28, 0.035), Vector3(x, height + 0.88, depth * 0.12 + 0.38), materials["dark_metal"])
 		grille.rotation.x = 0.0
 		_cylinder(parent, "Condenser_Fan_Hub", 0.12, 0.12, 0.045, Vector3(x, height + 1.14, depth * 0.12), materials["metal"])
