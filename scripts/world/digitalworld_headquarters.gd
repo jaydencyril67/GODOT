@@ -58,8 +58,8 @@ func _ready() -> void:
 	setup_progress.emit("Setting up scenes...", 38.0)
 	await get_tree().process_frame
 
-	_create_environment()
-	_create_presentation_stage()
+	setup_progress.emit("Loading the prebuilt headquarters presentation...", 38.0)
+	await get_tree().process_frame
 
 	setup_progress.emit("Constructing your headquarters...", 58.0)
 	await get_tree().process_frame
@@ -90,9 +90,6 @@ func _create_material_library() -> void:
 		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
 		"hq_sign": _mat(Color("#123b56"), 0.32, 0.48),
 		"hq_accent": _emissive_mat(Color("#50b9e8"), 1.8),
-		"stage_ground": _mat(Color("#263f4c"), 0.92),
-		"stage_deck": _mat(Color("#405b68"), 0.72, 0.22),
-		"stage_trim": _emissive_mat(Color("#4daed5"), 1.2),
 		"workshop_cladding": _mat(Color("#8d9b9d"), 0.72, 0.22),
 		"workshop_shutter": _mat(Color("#394b52"), 0.65, 0.42),
 		"glass_mullion": _mat(Color("#263f50"), 0.28, 0.82),
@@ -119,58 +116,6 @@ func _create_procedural_surface_textures() -> void:
 	normal_texture.bump_strength = 0.22
 	normal_texture.noise = noise
 	facade_normal = normal_texture
-
-func _create_environment() -> void:
-	var world := WorldEnvironment.new()
-	var environment := Environment.new()
-	var sky := Sky.new()
-	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#477fa7")
-	sky_material.sky_horizon_color = Color("#c4d5d9")
-	sky_material.ground_bottom_color = Color("#343c40")
-	sky_material.ground_horizon_color = Color("#89999a")
-	sky_material.sun_angle_max = 18.0
-	sky.sky_material = sky_material
-	environment.background_mode = Environment.BG_SKY
-	environment.sky = sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.72
-	environment.ambient_light_sky_contribution = 0.88
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.tonemap_exposure = 1.0
-	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
-	world.environment = environment
-	add_child(world)
-
-	var sun := DirectionalLight3D.new()
-	sun.name = "Headquarters_Key_Light"
-	sun.rotation_degrees = Vector3(-43.0, -31.0, 0.0)
-	sun.light_color = Color("#fff0d8")
-	sun.light_energy = 1.35
-	sun.shadow_enabled = true
-	sun.shadow_bias = 0.035
-	sun.shadow_normal_bias = 1.4
-	sun.directional_shadow_max_distance = 180.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	add_child(sun)
-
-	var fill := OmniLight3D.new()
-	fill.name = "Headquarters_Fill_Light"
-	fill.position = Vector3(-18.0, 15.0, 12.0)
-	fill.light_color = Color("#8bcfff")
-	fill.light_energy = 1.1
-	fill.omni_range = 42.0
-	fill.shadow_enabled = false
-	add_child(fill)
-
-func _create_presentation_stage() -> void:
-	var ground := _box(self, "Headquarters_Studio_Ground", Vector3(90.0, 0.7, 90.0), Vector3(0.0, -0.55, 0.0), materials["stage_ground"])
-	ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_box(self, "Headquarters_Presentation_Deck", Vector3(34.0, 0.24, 30.0), Vector3(0.0, -0.12, 0.0), materials["stage_deck"])
-	_box(self, "Deck_Trim_Front", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, 15.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Back", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, -15.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Left", Vector3(0.14, 0.07, 30.1), Vector3(-17.0, 0.035, 0.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Right", Vector3(0.14, 0.07, 30.1), Vector3(17.0, 0.035, 0.0), materials["stage_trim"])
 
 func _create_camera(building_height: float) -> void:
 	_configure_camera_framing(building_height)
