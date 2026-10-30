@@ -600,9 +600,9 @@ func _add_main_entrance(parent: Node3D, width: float, depth: float, ground_heigh
 		canopy_brace.rotation.z = side * -0.42
 		_box(parent, "Entrance_Wall_Light_Housing", Vector3(0.22, 0.28, 0.12), Vector3(side * 1.05, 2.15, z + 0.13), materials["dark_metal"])
 		_box(parent, "Entrance_Wall_Light_Diffuser", Vector3(0.14, 0.18, 0.035), Vector3(side * 1.05, 2.15, z + 0.205), materials["lamp"])
-	_box(parent, "Entrance_Upper_Step", Vector3(2.15, 0.14, 0.48), Vector3(0.0, 0.07, z + 0.48), materials["concrete"])
+	_box(parent, "Entrance_Upper_Step", Vector3(2.15, 0.14, 0.48), Vector3(0.0, 0.16, z + 0.48), materials["concrete"])
 	_box(parent, "Entrance_Lower_Step", Vector3(2.4, 0.14, 0.62), Vector3(0.0, 0.07, z + 0.91), materials["concrete"])
-	_box(parent, "Entrance_Step_Nosing", Vector3(2.4, 0.035, 0.08), Vector3(0.0, 0.145, z + 0.91), materials["metal"])
+	_box(parent, "Entrance_Step_Nosing", Vector3(2.4, 0.035, 0.08), Vector3(0.0, 0.235, z + 0.48), materials["metal"])
 
 func _add_urban_landscape() -> void:
 	for row in range(GRID_ROWS + 1):
