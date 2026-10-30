@@ -763,7 +763,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenDrag:
 		if event.index == joystick_touch_index:
-			_update_joystick((event.position - joystick_origin) / 116.0)
+			_update_joystick((event.position - joystick_origin) / 44.0)
 			get_viewport().set_input_as_handled()
 		elif event.index == look_touch_index:
 			_look_camera(event.relative)
@@ -790,7 +790,7 @@ func _update_joystick(value: Vector2) -> void:
 
 func _update_joystick_visual() -> void:
 	if is_instance_valid(joystick_knob):
-		joystick_knob.position = Vector2(88.0, 88.0) + joystick_input * 84.0
+		joystick_knob.position = Vector2(44.0, 44.0) + joystick_input * 44.0
 
 func _add_box_collision(parent: Node3D, node_name: String, size: Vector3, position: Vector3) -> void:
 	var body := StaticBody3D.new()
@@ -825,7 +825,7 @@ func _add_first_person_hud() -> void:
 
 	joystick_knob = Panel.new()
 	joystick_knob.name = "Movement_Joystick_Knob"
-	joystick_knob.size = Vector2(112.0, 112.0)
+	joystick_knob.size = Vector2(200.0, 200.0)
 	joystick_knob.position = Vector2(44.0, 44.0)
 	joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_knob.add_theme_stylebox_override("panel", _circle_style(Color(0.56, 0.82, 0.96, 0.78), Color(1.0, 1.0, 1.0, 0.92), 4))
