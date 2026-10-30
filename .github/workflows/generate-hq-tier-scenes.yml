@@ -58,7 +58,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scenes/world/headquarters_tiers/*.tscn scenes/world/headquarters_tiers/shared/*.tres
+          git add -A scenes/world/headquarters_tiers/
           if git diff --cached --quiet; then
             echo "Generated HQ scenes are already up to date."
             exit 0
