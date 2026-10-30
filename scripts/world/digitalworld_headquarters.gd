@@ -29,6 +29,7 @@ var previous_level_button: Button
 var next_level_button: Button
 var camera_target := Vector3.ZERO
 var camera_distance := 38.0
+var camera_max_distance := 36.0
 var camera_yaw := 0.62
 var camera_pitch := 0.24
 var mouse_orbiting := false
@@ -147,7 +148,8 @@ func _create_presentation_stage() -> void:
 
 func _create_camera(building_height: float) -> void:
 	camera_target = Vector3(0.0, building_height * 0.46, 0.0)
-	camera_distance = maxf(18.0, building_height * 1.34)
+	camera_distance = maxf(16.0, building_height * 1.05)
+	camera_max_distance = maxf(22.0, building_height * 1.25)
 	camera_yaw = 0.62
 	camera_pitch = 0.24
 	hq_camera = Camera3D.new()
@@ -276,7 +278,8 @@ func _rebuild_preview() -> void:
 	building_root = null
 	var height := _build_procedural_building(preview_level)
 	camera_target = Vector3(0.0, height * 0.46, 0.0)
-	camera_distance = maxf(18.0, height * 1.34)
+	camera_distance = maxf(16.0, height * 1.05)
+	camera_max_distance = maxf(22.0, height * 1.25)
 	_update_camera_transform()
 	_refresh_preview_interface()
 	preview_level_changed.emit(preview_level)
@@ -521,7 +524,7 @@ func _pan_camera(relative: Vector2) -> void:
 	_update_camera_transform()
 
 func _zoom_camera(amount: float) -> void:
-	camera_distance = clampf(camera_distance + amount, 12.0, 260.0)
+	camera_distance = clampf(camera_distance + amount, 10.0, camera_max_distance)
 	_update_camera_transform()
 
 func _update_camera_transform() -> void:
