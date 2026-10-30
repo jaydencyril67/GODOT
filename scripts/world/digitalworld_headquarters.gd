@@ -53,11 +53,12 @@ func _ready() -> void:
 	setup_progress.emit("Loading company data...", 20.0)
 	await get_tree().process_frame
 
-	if not _has_all_prebuilt_tier_scenes():
-		_create_material_library()
-		_create_procedural_surface_textures()
+	# Initialize the same materials on every startup. Prebuilt tier scenes now
+	# contain their baked image textures and do not depend on shared generators.
+	_create_material_library()
+	_create_procedural_surface_textures()
 
-	setup_progress.emit("Loading the prebuilt headquarters presentation...", 38.0)
+	setup_progress.emit("Preparing headquarters materials...", 38.0)
 	await get_tree().process_frame
 
 	setup_progress.emit("Constructing your headquarters...", 58.0)
@@ -105,25 +106,25 @@ func _create_material_library() -> void:
 	}
 
 func _create_procedural_surface_textures() -> void:
+	# Bake deterministic image data before packing tier scenes. NoiseTexture2D
+	# is a generator resource and can leave saved scenes dependent on runtime
+	# generation/import timing; ImageTexture stores the finished pixels.
 	var noise := FastNoiseLite.new()
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 	noise.frequency = 0.035
 	noise.fractal_octaves = 4
 	noise.fractal_gain = 0.52
-	var texture := NoiseTexture2D.new()
-	texture.width = 256
-	texture.height = 256
-	texture.seamless = true
-	texture.noise = noise
-	facade_noise = texture
-	var normal_texture := NoiseTexture2D.new()
-	normal_texture.width = 256
-	normal_texture.height = 256
-	normal_texture.seamless = true
-	normal_texture.as_normal_map = true
-	normal_texture.bump_strength = 0.22
-	normal_texture.noise = noise
-	facade_normal = normal_texture
+
+	var facade_image := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	for y in range(256):
+		for x in range(256):
+			var value: float = 0.5 + noise.get_noise_2d(float(x), float(y)) * 0.12
+			facade_image.set_pixel(x, y, Color(value, value, value, 1.0))
+
+	facade_noise = ImageTexture.create_from_image(facade_image)
+	var normal_image := facade_image.duplicate()
+	normal_image.bump_map_to_normal_map(0.22)
+	facade_normal = ImageTexture.create_from_image(normal_image)
 
 func _create_camera(building_height: float) -> void:
 	_configure_camera_framing(building_height)
