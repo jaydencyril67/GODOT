@@ -12,7 +12,6 @@ var preview_container: SubViewportContainer
 
 
 func _ready() -> void:
-	_build_preview_world()
 	_build_editor_ui()
 
 
