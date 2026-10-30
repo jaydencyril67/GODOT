@@ -55,9 +55,6 @@ func _ready() -> void:
 	_create_material_library()
 	_create_procedural_surface_textures()
 
-	setup_progress.emit("Setting up scenes...", 38.0)
-	await get_tree().process_frame
-
 	setup_progress.emit("Loading the prebuilt headquarters presentation...", 38.0)
 	await get_tree().process_frame
 
