@@ -4,7 +4,7 @@ extends Node3D
 var player: CharacterBody3D
 var view_camera: Camera3D
 var move_touch_id := -1
-var move_origin := Vector2.ZERO
+var look_touch_id := -1
 var move_vector := Vector2.ZERO
 var joystick_base: Panel
 var joystick_knob: Panel
@@ -22,6 +22,7 @@ var interaction_scan_timer := 0.0
 
 # Direct movement response: joystick input controls speed immediately.
 const MOVE_SPEED := 2.8
+const CAMERA_LOOK_SENSITIVITY := 0.004
 const GRAVITY := 18.0
 const INTERACTION_SCAN_INTERVAL := 0.08
 const SEAT_INTERACTION_RADIUS := 1.55
@@ -97,11 +98,12 @@ func _physics_process(delta: float) -> void:
 		player.velocity = Vector3.ZERO
 		return
 
-	# Simple fixed joystick: move directly in the building's world directions.
+	# Joystick movement is immediate and relative to the direction the player faces.
 	var input_dir := move_vector if move_touch_id != -1 else Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	input_dir = input_dir.limit_length(1.0)
-	player.velocity.x = input_dir.x * MOVE_SPEED
-	player.velocity.z = input_dir.y * MOVE_SPEED
+	var move_direction := player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)
+	player.velocity.x = move_direction.x * MOVE_SPEED
+	player.velocity.z = move_direction.z * MOVE_SPEED
 
 	# Preserve vertical physics and clear only downward velocity while grounded.
 	if not player.is_on_floor():
@@ -133,21 +135,42 @@ func apply_pending_interaction() -> void:
 			stand_up()
 
 func _input(event: InputEvent) -> void:
-	# One fixed joystick on the left side. The right side does not rotate the camera.
+	# Left finger controls movement; a separate right finger controls the view.
 	if event is InputEventScreenTouch:
+		var screen_midpoint := get_viewport().get_visible_rect().size.x * 0.5
 		if event.pressed:
-			if event.position.x < get_viewport().get_visible_rect().size.x * 0.5 and move_touch_id == -1:
+			if event.position.x < screen_midpoint and move_touch_id == -1:
 				move_touch_id = event.index
 				move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
 				update_joystick_knob(event.position)
+			elif event.position.x >= screen_midpoint and look_touch_id == -1:
+				look_touch_id = event.index
 		else:
 			if event.index == move_touch_id:
 				move_touch_id = -1
 				move_vector = Vector2.ZERO
 				reset_joystick_knob()
-	elif event is InputEventScreenDrag and event.index == move_touch_id:
-		move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
-		update_joystick_knob(event.position)
+			elif event.index == look_touch_id:
+				look_touch_id = -1
+	elif event is InputEventScreenDrag:
+		if event.index == move_touch_id:
+			move_vector = ((event.position - joystick_center()) / 58.0).limit_length(1.0)
+			update_joystick_knob(event.position)
+		elif event.index == look_touch_id:
+			apply_camera_look(event.relative)
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		apply_camera_look(event.relative)
+
+func apply_camera_look(look_delta: Vector2) -> void:
+	if player == null or view_camera == null:
+		return
+	# Apply touch/mouse deltas immediately: no queued input or camera easing.
+	player.rotate_y(-look_delta.x * CAMERA_LOOK_SENSITIVITY)
+	view_camera.rotation.x = clampf(
+		view_camera.rotation.x + look_delta.y * CAMERA_LOOK_SENSITIVITY,
+		deg_to_rad(-80.0),
+		deg_to_rad(80.0)
+	)
 
 func create_player() -> void:
 	player = CharacterBody3D.new()
