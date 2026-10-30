@@ -3,8 +3,9 @@ extends Node3D
 signal back_requested
 
 const PHONE_SIZE := Vector3(1.28, 2.58, 0.18)
-const ROTATION_STEP := deg_to_rad(15.0)
-const DRAG_SENSITIVITY := 0.009
+const ROTATION_STEP := deg_to_rad(10.0)
+# Deliberately low so a normal finger movement makes a controlled turn.
+const DRAG_SENSITIVITY := 0.0024
 
 var phone_body: MeshInstance3D
 var preview_camera: Camera3D
@@ -26,105 +27,141 @@ func _build_editor_ui() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	layer.add_child(root)
 
-	var background := ColorRect.new()
+	# Match the shared background and overlay used by the other game pages.
+	var background := TextureRect.new()
+	background.name = "DigitalWorld_Shared_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color("#071c30")
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = load("res://assets/digitalworld-landing.png")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(background)
 
-	var preview_backdrop := ColorRect.new()
-	preview_backdrop.anchor_right = 0.64
-	preview_backdrop.anchor_bottom = 1.0
-	preview_backdrop.offset_top = 78.0
-	preview_backdrop.color = Color("#0a2942")
-	preview_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(preview_backdrop)
+	var shade := ColorRect.new()
+	shade.name = "Shared_Background_Overlay"
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(shade)
+
+	var page_margin := MarginContainer.new()
+	page_margin.name = "PhoneEditorPageMargin"
+	page_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_margin.add_theme_constant_override("margin_left", 22)
+	page_margin.add_theme_constant_override("margin_right", 22)
+	page_margin.add_theme_constant_override("margin_top", 20)
+	page_margin.add_theme_constant_override("margin_bottom", 20)
+	root.add_child(page_margin)
+
+	var layout := HBoxContainer.new()
+	layout.name = "PhoneEditorMainLayout"
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_theme_constant_override("separation", 18)
+	page_margin.add_child(layout)
+
+	# Large, uncluttered preview area; the 3D block remains the visual focus.
+	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.24))
+	preview_panel.name = "PhonePreviewCard"
+	preview_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(preview_panel)
+
+	var preview_stack := VBoxContainer.new()
+	preview_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	preview_stack.add_theme_constant_override("separation", 8)
+	preview_panel.add_child(preview_stack)
 
 	preview_container = SubViewportContainer.new()
 	preview_container.name = "RotatablePhonePreview"
-	preview_container.anchor_right = 0.64
-	preview_container.anchor_bottom = 1.0
-	preview_container.offset_left = 12.0
-	preview_container.offset_top = 78.0
-	preview_container.offset_right = -8.0
-	preview_container.offset_bottom = -12.0
+	preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	preview_container.stretch = true
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	preview_container.gui_input.connect(_on_preview_gui_input)
-	var viewport := _get_preview_viewport()
-	preview_container.add_child(viewport)
-	root.add_child(preview_container)
+	preview_container.add_child(_get_preview_viewport())
+	preview_stack.add_child(preview_container)
 
-	var header := HBoxContainer.new()
-	header.name = "PhoneEditorHeader"
-	header.anchor_right = 1.0
-	header.offset_left = 22.0
-	header.offset_top = 12.0
-	header.offset_right = -20.0
-	header.offset_bottom = 66.0
-	header.add_theme_constant_override("separation", 12)
-	root.add_child(header)
+	var drag_hint := _make_label("DRAG THE 3D MODEL TO ROTATE", 11, Color("#d8efff"))
+	drag_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	drag_hint.custom_minimum_size.y = 24
+	preview_stack.add_child(drag_hint)
 
-	var title_stack := VBoxContainer.new()
-	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_stack.add_theme_constant_override("separation", 1)
-	header.add_child(title_stack)
-	title_stack.add_child(_make_label("DIGITALWORLD  /  PRODUCT STUDIO", 10, Color("#9edfff")))
-	title_stack.add_child(_make_label("PHONE EDITOR", 23, Color.WHITE))
+	# Tools sit in a single glass card, using the same visual language as
+	# the category cards and controls on the other game pages.
+	var tools_panel := _make_glass_panel(Color(0.28, 0.61, 0.80, 0.30))
+	tools_panel.name = "PhoneEditorToolsCard"
+	tools_panel.custom_minimum_size.x = 300
+	tools_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(tools_panel)
 
-	var back_button := _make_button("BACK", 112.0, 42.0)
-	back_button.pressed.connect(_on_back_pressed)
-	header.add_child(back_button)
-
-	var tools_panel := PanelContainer.new()
-	tools_panel.name = "PhoneEditorToolsPanel"
-	tools_panel.anchor_left = 0.65
-	tools_panel.anchor_top = 0.105
-	tools_panel.anchor_right = 1.0
-	tools_panel.anchor_bottom = 1.0
-	tools_panel.offset_right = -14.0
-	tools_panel.offset_bottom = -14.0
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.12, 0.36, 0.54, 0.42)
-	panel_style.border_color = Color(0.73, 0.91, 1.0, 0.72)
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(16)
-	panel_style.content_margin_left = 14.0
-	panel_style.content_margin_right = 14.0
-	panel_style.content_margin_top = 14.0
-	panel_style.content_margin_bottom = 14.0
-	tools_panel.add_theme_stylebox_override("panel", panel_style)
-	root.add_child(tools_panel)
+	var tools_scroll := ScrollContainer.new()
+	tools_scroll.name = "PhoneEditorToolsScroll"
+	tools_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tools_panel.add_child(tools_scroll)
 
 	var tools_content := VBoxContainer.new()
-	tools_content.add_theme_constant_override("separation", 10)
-	tools_panel.add_child(tools_content)
-	tools_content.add_child(_make_label("EDITOR CONTROLS", 14, Color.WHITE))
-	var instruction := _make_label("Drag the plain 3D body to turn it freely. Use the blocks below for precise rotation.", 11, Color("#c5e6f7"))
+	tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tools_content.add_theme_constant_override("separation", 12)
+	tools_scroll.add_child(tools_content)
+
+	tools_content.add_child(_make_label("MODEL CONTROLS", 16, Color.WHITE))
+	var instruction := _make_label("Use the controls for precise adjustments, or drag the model gently.", 12, Color("#d8efff"))
 	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tools_content.add_child(instruction)
 
-	var grid := GridContainer.new()
-	grid.name = "PhoneEditorButtonGrid"
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 7)
-	grid.add_theme_constant_override("v_separation", 8)
-	tools_content.add_child(grid)
+	var rotation_grid := GridContainer.new()
+	rotation_grid.name = "PhoneRotationControls"
+	rotation_grid.columns = 3
+	rotation_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rotation_grid.add_theme_constant_override("h_separation", 8)
+	rotation_grid.add_theme_constant_override("v_separation", 8)
+	tools_content.add_child(rotation_grid)
 
-	_add_tool_button(grid, "X -", _rotate_axis.bind(Vector3.RIGHT, -1.0))
-	_add_tool_button(grid, "X +", _rotate_axis.bind(Vector3.RIGHT, 1.0))
-	_add_tool_button(grid, "Y -", _rotate_axis.bind(Vector3.UP, -1.0))
-	_add_tool_button(grid, "Y +", _rotate_axis.bind(Vector3.UP, 1.0))
-	_add_tool_button(grid, "Z -", _rotate_axis.bind(Vector3.FORWARD, -1.0))
-	_add_tool_button(grid, "Z +", _rotate_axis.bind(Vector3.FORWARD, 1.0))
-	_add_tool_button(grid, "RESET", _reset_phone_rotation)
-	_add_tool_button(grid, "ZOOM +", _zoom_camera.bind(-0.4))
-	_add_tool_button(grid, "ZOOM -", _zoom_camera.bind(0.4))
+	_add_tool_button(rotation_grid, "X −", _rotate_axis.bind(Vector3.RIGHT, -1.0))
+	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, 1.0))
+	_add_tool_button(rotation_grid, "Y −", _rotate_axis.bind(Vector3.UP, -1.0))
+	_add_tool_button(rotation_grid, "Y +", _rotate_axis.bind(Vector3.UP, 1.0))
+	_add_tool_button(rotation_grid, "Z −", _rotate_axis.bind(Vector3.FORWARD, -1.0))
+	_add_tool_button(rotation_grid, "Z +", _rotate_axis.bind(Vector3.FORWARD, 1.0))
 
-	var hint := _make_label("The model is intentionally a single solid block: no display, camera, buttons, logo or ports.", 10, Color("#b8d9ed"))
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tools_content.add_child(hint)
+	var view_label := _make_label("VIEW", 11, Color("#a9e3ff"))
+	tools_content.add_child(view_label)
+	var view_grid := GridContainer.new()
+	view_grid.columns = 2
+	view_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	view_grid.add_theme_constant_override("h_separation", 8)
+	view_grid.add_theme_constant_override("v_separation", 8)
+	tools_content.add_child(view_grid)
+	_add_tool_button(view_grid, "RESET ROTATION", _reset_phone_rotation)
+	_add_tool_button(view_grid, "ZOOM IN", _zoom_camera.bind(-0.35))
+	_add_tool_button(view_grid, "ZOOM OUT", _zoom_camera.bind(0.35))
+
+	var model_note := _make_label("Single solid phone body. No screen or device details.", 10, Color("#c7e2f3"))
+	model_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tools_content.add_child(model_note)
+
+
+func _make_glass_panel(fill_color: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.border_color = Color(0.86, 0.97, 1.0, 0.90)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(18)
+	style.shadow_color = Color(0.0, 0.16, 0.34, 0.35)
+	style.shadow_size = 12
+	style.shadow_offset = Vector2(0, 4)
+	style.anti_aliasing = true
+	style.content_margin_left = 16
+	style.content_margin_right = 16
+	style.content_margin_top = 16
+	style.content_margin_bottom = 16
+	panel.add_theme_stylebox_override("panel", style)
+	return panel
 
 
 func _get_preview_viewport() -> SubViewport:
@@ -137,7 +174,7 @@ func _get_preview_viewport() -> SubViewport:
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#0a2942")
+	environment.background_color = Color(0.035, 0.13, 0.22, 0.0)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("#c7e8ff")
 	environment.ambient_light_energy = 0.65
@@ -183,37 +220,31 @@ func _get_preview_viewport() -> SubViewport:
 
 
 func _add_tool_button(parent: GridContainer, caption: String, callback: Callable) -> void:
-	var button := _make_button(caption, 0.0, 64.0)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.x = 0.0
-	button.pressed.connect(callback)
-	parent.add_child(button)
-
-
-func _make_button(caption: String, min_width: float, min_height: float) -> Button:
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size = Vector2(min_width, min_height)
-	button.add_theme_font_size_override("font_size", 12)
+	button.custom_minimum_size = Vector2(0, 48)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_font_size_override("font_size", 11)
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.26, 0.62, 0.82, 0.42)
+		style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
 		if state == "hover":
-			style.bg_color = Color(0.38, 0.76, 0.96, 0.62)
+			style.bg_color = Color(0.76, 0.92, 1.0, 0.38)
 		elif state == "pressed":
-			style.bg_color = Color(0.10, 0.39, 0.65, 0.78)
-		style.border_color = Color(0.82, 0.95, 1.0, 0.82)
+			style.bg_color = Color(0.35, 0.68, 0.88, 0.48)
+		style.border_color = Color(0.91, 0.98, 1.0, 0.92)
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(10)
-		style.content_margin_left = 5.0
-		style.content_margin_right = 5.0
-		style.content_margin_top = 8.0
-		style.content_margin_bottom = 8.0
+		style.set_corner_radius_all(11)
+		style.content_margin_left = 5
+		style.content_margin_right = 5
+		style.content_margin_top = 7
+		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	return button
+	button.pressed.connect(callback)
+	parent.add_child(button)
 
 
 func _make_label(caption: String, font_size: int, color: Color) -> Label:
