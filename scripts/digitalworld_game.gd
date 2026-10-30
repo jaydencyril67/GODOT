@@ -249,8 +249,8 @@ func _show_profile() -> void:
 	page.add_child(profile_status)
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 10)
-	actions.add_child(_add_action_button(actions, "BACK", false, _show_menu))
-	actions.add_child(_add_action_button(actions, "ESTABLISH COMPANY  ›", true, _create_company))
+	_add_action_button(actions, "BACK", false, _show_menu)
+	_add_action_button(actions, "ESTABLISH COMPANY  ›", true, _create_company)
 	page.add_child(actions)
 
 func _create_company() -> void:
