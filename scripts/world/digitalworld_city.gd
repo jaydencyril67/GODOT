@@ -200,8 +200,6 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 		_add_facade_windows(root, angle, width, depth, floor_count, ground_height, floor_height, style)
 		_add_facade_pilasters(root, angle, width, depth, height, accent, style)
 		_add_facade_microdetails(root, angle, width, depth, floor_count, ground_height, floor_height, style, accent)
-		if style == 1 or style == 4:
-			_add_balcony_stack(root, angle, floor_count, ground_height, floor_height, width, depth, accent)
 
 	# Floor plates, cornices and a layered roof silhouette.
 	for floor_index in range(1, floor_count):
@@ -373,19 +371,6 @@ func _add_facade_pilasters(parent: Node3D, angle: float, width: float, depth: fl
 			var fin := _box(parent, "Vertical_Aluminium_Sunshade", Vector3(0.10, height, 0.18), pos, material)
 			fin.rotation.y = angle
 
-func _add_balcony_stack(parent: Node3D, angle: float, floors: int, ground_height: float, floor_height: float, width: float, depth: float, material: Material) -> void:
-	var basis := Basis(Vector3.UP, angle)
-	var y_offset := 0.42
-	for floor_index in range(1, floors):
-		if floor_index % 2 == 0:
-			var y := y_offset + ground_height + float(floor_index - 1) * floor_height + 0.12
-			var p := basis * Vector3(0.0, y, depth * 0.5 + 0.55)
-			var balcony := _box(parent, "Cantilevered_Balcony_Slab", Vector3(width * 0.62, 0.13, 0.95), p, materials["concrete"])
-			balcony.rotation.y = angle
-			var rail_pos := basis * Vector3(0.0, y + 0.52, depth * 0.5 + 0.98)
-			var rail := _box(parent, "Balcony_Glass_Railing", Vector3(width * 0.62, 0.78, 0.055), rail_pos, materials["glass"])
-			rail.rotation.y = angle
-
 func _add_vertical_fins(parent: Node3D, height: float, material: Material, width: float, depth: float) -> void:
 	for side in range(4):
 		var angle := float(side) * PI * 0.5
@@ -453,21 +438,6 @@ func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radi
 	mesh.bottom_radius = bottom_radius
 	mesh.height = height
 	mesh.radial_segments = 16
-	instance.mesh = mesh
-	instance.position = position
-	instance.material_override = material
-	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(instance)
-	return instance
-
-func _sphere(parent: Node3D, node_name: String, radius: float, position: Vector3, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	var mesh := SphereMesh.new()
-	mesh.radius = radius
-	mesh.height = radius * 2.0
-	mesh.radial_segments = 18
-	mesh.rings = 12
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = material
