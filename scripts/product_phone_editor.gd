@@ -2,7 +2,7 @@ extends Node3D
 
 signal back_requested
 
-const PHONE_SIZE := Vector3(1.28, 2.58, 0.18)
+const PHONE_SIZE := Vector3(1.45, 2.92, 0.20)
 const ROTATION_STEP := deg_to_rad(10.0)
 # Deliberately low so a normal finger movement makes a controlled turn.
 const DRAG_SENSITIVITY := 0.0024
@@ -85,11 +85,6 @@ func _build_editor_ui() -> void:
 	preview_container.gui_input.connect(_on_preview_gui_input)
 	preview_container.add_child(_get_preview_viewport())
 	preview_stack.add_child(preview_container)
-
-	var drag_hint := _make_label("DRAG THE 3D MODEL TO ROTATE", 11, Color("#d8efff"))
-	drag_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	drag_hint.custom_minimum_size.y = 24
-	preview_stack.add_child(drag_hint)
 
 	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard"))
 
