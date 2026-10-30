@@ -44,10 +44,6 @@ var facade_noise: Texture2D
 var facade_normal: Texture2D
 
 func _ready() -> void:
-	# This script is tool-enabled only so the editor-time scene generator can
-	# reuse the exact runtime building builder. Do not run the game setup in-editor.
-	if Engine.is_editor_hint():
-		return
 	preview_level = clampi(preview_level, 1, MAX_LEVEL)
 	owned_level = clampi(owned_level, 1, MAX_LEVEL)
 
