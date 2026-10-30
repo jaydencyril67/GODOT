@@ -188,7 +188,6 @@ static func _create_starter_building(company_name: String) -> Node3D:
 	for roof_piece in [roof_left, roof_right]:
 		for seam_index in range(11):
 			var rib := _box(roof_piece, Vector3(0.075, 0.1, 11.8), Vector3(float(seam_index - 5) * 0.62, 0.32, 0), roof_seam, "Raised_Roof_Seam")
-			rib.cast_shadow = true
 
 	# Corner piers, plinth, entry step, eaves and rainwater details.
 	for x in [-6.18, 6.18]:

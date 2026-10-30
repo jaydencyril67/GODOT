@@ -313,7 +313,7 @@ func _show_upgrades() -> void:
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 8)
 	content.add_child(actions)
-	var selected_name := BuildingFactory.BUILDING_NAMES[selected_upgrade - 1]
+	var selected_name: String = str(BuildingFactory.BUILDING_NAMES[selected_upgrade - 1])
 	actions.add_child(_label("SELECTED: %s" % selected_name.to_upper(), 10, PALE))
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
