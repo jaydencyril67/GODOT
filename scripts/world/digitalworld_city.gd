@@ -726,7 +726,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _orbit_camera(relative: Vector2) -> void:
-	# Free-look rotation: turn the camera in place instead of orbiting a fixed target.
+	# Free-look rotation turns the camera in place; it never circles a target.
 	camera_yaw -= relative.x * 0.0052
 	camera_pitch = clampf(camera_pitch - relative.y * 0.0042, -1.25, 1.25)
 	_update_camera_transform()
@@ -743,7 +743,7 @@ func _zoom_camera(amount: float) -> void:
 func _pan_camera(relative: Vector2) -> void:
 	if not is_instance_valid(city_camera):
 		return
-	var factor := maxf(camera_position.distance_to(Vector3.ZERO), 12.0) * 0.00165
+	var factor := maxf(camera_position.length(), 12.0) * 0.00165
 	camera_position += -city_camera.global_transform.basis.x * relative.x * factor
 	camera_position += city_camera.global_transform.basis.y * relative.y * factor
 	camera_position.x = clampf(camera_position.x, -72.0, 72.0)
