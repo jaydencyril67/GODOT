@@ -39,7 +39,7 @@ jobs:
           status=${PIPESTATUS[1]}
           exit "$status"
 
-      - name: Install Android SDK components
+      - name: Install pinned Android SDK components
         run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install Godot 4.7.2 and matching export templates
@@ -54,23 +54,69 @@ jobs:
         run: |
           set -euo pipefail
           godot --version
-          if ! grep -q '^platform="Android"$' export_presets.cfg; then
+          grep -q '^platform="Android"$' export_presets.cfg || {
             echo "::error::The Android export preset is missing."
             exit 1
-          fi
+          }
+          grep -q '^architectures/armeabi-v7a=true$' export_presets.cfg || {
+            echo "::error::ARMv7 support is not enabled in the Android preset."
+            exit 1
+          }
+          grep -q '^architectures/arm64-v8a=true$' export_presets.cfg || {
+            echo "::error::ARM64 support is not enabled in the Android preset."
+            exit 1
+          }
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/zipalign"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/aapt"
 
       - name: Import project resources
         run: godot --headless --editor --path . --import --quit
 
       - name: Export debug APK
         run: |
+          set -euo pipefail
           mkdir -p build
           godot --headless --path . --export-debug "Android" build/DigitalWorldHQ-debug.apk
 
-      - name: Verify APK output
+      - name: Validate APK integrity, signing, alignment, package and Android compatibility
+        shell: bash
         run: |
-          test -s build/DigitalWorldHQ-debug.apk
-          file build/DigitalWorldHQ-debug.apk
+          set -euo pipefail
+          APK="build/DigitalWorldHQ-debug.apk"
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+
+          test -s "$APK"
+          unzip -t "$APK"
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+          "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
+
+          BADGING="$("$BUILD_TOOLS/aapt" dump badging "$APK")"
+          printf '%s\n' "$BADGING"
+
+          PACKAGE_NAME="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+          MIN_SDK="$(printf '%s\n' "$BADGING" | sed -n "s/^sdkVersion:'\\([0-9]*\\)'.*/\\1/p")"
+
+          if [[ "$PACKAGE_NAME" != "org.godotengine.digitalworldhq" ]]; then
+            echo "::error::Unexpected Android package name: $PACKAGE_NAME"
+            exit 1
+          fi
+
+          if [[ -n "$MIN_SDK" && "$MIN_SDK" -gt 30 ]]; then
+            echo "::error::APK requires Android API $MIN_SDK, but Android 11 devices support API 30."
+            exit 1
+          fi
+
+          unzip -Z1 "$APK" | grep -q '^lib/armeabi-v7a/.*\\.so$' || {
+            echo "::error::APK is missing ARMv7 native libraries."
+            exit 1
+          }
+          unzip -Z1 "$APK" | grep -q '^lib/arm64-v8a/.*\\.so$' || {
+            echo "::error::APK is missing ARM64 native libraries."
+            exit 1
+          }
+
+          echo "APK validation passed: signed, aligned, package ID correct, Android 11 minimum-SDK compatible, ARMv7 + ARM64."
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
