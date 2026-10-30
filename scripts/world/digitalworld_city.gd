@@ -116,11 +116,11 @@ func _build_city() -> void:
 	city_camera.current = true
 
 	var concrete := _mat(Color("#777f82"), 0.94)
-	var asphalt := _mat(Color("#30383d"), 0.96)
+	var asphalt := _mat(Color("#252b30"), 0.94)
 	var sidewalk := _mat(Color("#b4b6b0"), 0.92)
 	var curb := _mat(Color("#d0d0c7"), 0.88)
-	var lane_paint := _mat(Color("#e4d9ad"), 0.82)
-	var white_paint := _mat(Color("#dce0dc"), 0.8)
+	var lane_paint := _mat(Color("#e9d8a2"), 0.78)
+	var white_paint := _mat(Color("#e8ece9"), 0.76)
 	var grassless_soil := _mat(Color("#77766c"), 1.0)
 	var concrete_texture := load("res://assets/textures/concrete-color.svg") as Texture2D
 	if concrete_texture != null:
@@ -139,10 +139,19 @@ func _build_city() -> void:
 	var foliage_a := _mat(Color("#426b55"), 0.92)
 	var foliage_b := _mat(Color("#64815c"), 0.94)
 	var pole_material := _mat(Color("#3d484b"), 0.52, 0.62)
-	var lamp_material := _mat(Color("#fff0c5"), 0.28)
+	var lamp_material := _mat(Color("#fff0c5"), 0.24)
 	lamp_material.emission_enabled = true
 	lamp_material.emission = Color("#ffe3a0")
-	lamp_material.emission_energy_multiplier = 1.4
+	lamp_material.emission_energy_multiplier = 2.2
+	var glass_material := _mat(Color("#78b9d0"), 0.12, 0.62)
+	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass_material.albedo_color.a = 0.78
+	glass_material.metallic = 0.48
+	glass_material.emission_enabled = true
+	glass_material.emission = Color("#183d50")
+	glass_material.emission_energy_multiplier = 0.18
+	var window_frame_material := _mat(Color("#26343b"), 0.42, 0.72)
+	var roof_detail_material := _mat(Color("#59656a"), 0.76, 0.35)
 
 	_box(self, "City_Base_Slab", Vector3(78.0, 0.7, 90.0), Vector3(0.0, -0.48, 0.0), concrete)
 	_box(self, "City_Paved_Surface", Vector3(76.0, 0.08, 88.0), Vector3(0.0, -0.08, 0.0), grassless_soil)
@@ -180,6 +189,12 @@ func _build_city() -> void:
 			var next_p: Vector3 = road_points[dash + 1]
 			var mark := _box(self, "Curved_Centre_Lane_Marking", Vector3(0.075, 0.018, 2.1), Vector3((p.x + next_p.x) * 0.5, 0.09, (p.z + next_p.z) * 0.5), lane_paint)
 			mark.rotation.y = atan2(next_p.x - p.x, next_p.z - p.z)
+
+	# Marked pedestrian crossings at the central signalized junctions.
+	_add_crosswalk(Vector3(-6.25, 0.0, 0.0), true, white_paint)
+	_add_crosswalk(Vector3(6.25, 0.0, 0.0), true, white_paint)
+	_add_crosswalk(Vector3(0.0, 0.0, -6.25), false, white_paint)
+	_add_crosswalk(Vector3(0.0, 0.0, 6.25), false, white_paint)
 
 	# Thirty individually modelled city blocks: offices, apartments, hotels and towers.
 	for row in range(GRID_ROWS):
@@ -258,6 +273,7 @@ func _build_city_building(index: int, plot_position: Vector3) -> void:
 	var model := _add_glb_model(building, model_path, Vector3.ONE * model_scale)
 	if model != null:
 		model.rotation.y = float((index * 3) % 4) * PI * 0.5
+		_add_building_glazing(building, index, window_frame_material, glass_material, roof_detail_material)
 	else:
 		# Keep a safe fallback if an imported asset fails to load on a clean editor import.
 		var fallback_height := 9.0 + float((index * 7) % 8) * 2.0
@@ -310,6 +326,71 @@ func _add_road_ribbon(node_name: String, points: PackedVector3Array, width: floa
 	mesh_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	add_child(mesh_instance)
 
+func _add_building_glazing(parent: Node3D, index: int, frame_material: Material, glass_material: Material, roof_material: Material) -> void:
+	# Use two MultiMesh batches per building instead of hundreds of individual window nodes.
+	var tower := index % 6 == 0 or index == 17 or index == 28
+	var floor_count := 8 if tower else 4
+	var frame_mesh := BoxMesh.new()
+	frame_mesh.size = Vector3(1.42, 1.12, 0.13)
+	var glass_mesh := BoxMesh.new()
+	glass_mesh.size = Vector3(1.20, 0.90, 0.09)
+	var frame_batch := MultiMesh.new()
+	frame_batch.transform_format = MultiMesh.TRANSFORM_3D
+	frame_batch.mesh = frame_mesh
+	var glass_batch := MultiMesh.new()
+	glass_batch.transform_format = MultiMesh.TRANSFORM_3D
+	glass_batch.mesh = glass_mesh
+	var window_transforms: Array[Transform3D] = []
+	for floor_index in range(floor_count):
+		var window_y := 1.55 + float(floor_index) * 1.62
+		for side_index in range(4):
+			var side_angle := float(side_index) * PI * 0.5
+			for bay in range(2):
+				var bay_offset := -1.35 if bay == 0 else 1.35
+				var local_position := Vector3(bay_offset, window_y, 4.13)
+				var rotated_position := Basis(Vector3.UP, side_angle) * local_position
+				window_transforms.append(Transform3D(Basis(Vector3.UP, side_angle), rotated_position))
+	frame_batch.instance_count = window_transforms.size()
+	glass_batch.instance_count = window_transforms.size()
+	for window_index in range(window_transforms.size()):
+		frame_batch.set_instance_transform(window_index, window_transforms[window_index])
+		glass_batch.set_instance_transform(window_index, window_transforms[window_index])
+	var frames := MultiMeshInstance3D.new()
+	frames.name = "Architectural_Window_Frames"
+	frames.multimesh = frame_batch
+	frames.material_override = frame_material
+	frames.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(frames)
+	var glazing := MultiMeshInstance3D.new()
+	glazing.name = "Blue_Tinted_Glass_Panels"
+	glazing.multimesh = glass_batch
+	glazing.material_override = glass_material
+	glazing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(glazing)
+	# A restrained rooftop service unit adds a constructed, functional silhouette.
+	var roof_unit := _box(parent, "Rooftop_HVAC_Unit", Vector3(1.45, 0.48, 0.95), Vector3(-2.55, 8.0 if tower else 7.0, -2.45), roof_material)
+	roof_unit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+func _add_crosswalk(center: Vector3, across_horizontal_road: bool, material: Material) -> void:
+	var stripe_mesh := BoxMesh.new()
+	stripe_mesh.size = Vector3(0.22, 0.025, 2.75) if across_horizontal_road else Vector3(2.75, 0.025, 0.22)
+	var batch := MultiMesh.new()
+	batch.transform_format = MultiMesh.TRANSFORM_3D
+	batch.mesh = stripe_mesh
+	batch.instance_count = 7
+	for stripe_index in range(7):
+		var offset := float(stripe_index - 3) * 0.42
+		var stripe_position := center + (Vector3(offset, 0.105, 0.0) if across_horizontal_road else Vector3(0.0, 0.105, offset))
+		batch.set_instance_transform(stripe_index, Transform3D(Basis.IDENTITY, stripe_position))
+	var crossing := MultiMeshInstance3D.new()
+	crossing.name = "Pedestrian_Zebra_Crossing"
+	crossing.multimesh = batch
+	crossing.material_override = material
+	crossing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(crossing)
+
+
 func _add_streetlight(position: Vector3, metal: Material, lamp: Material) -> void:
 	var light_root := Node3D.new()
 	light_root.position = position
@@ -317,6 +398,16 @@ func _add_streetlight(position: Vector3, metal: Material, lamp: Material) -> voi
 	_cylinder(light_root, "Streetlight_Pole", 0.055, 0.075, 4.2, Vector3(0.0, 2.1, 0.0), metal)
 	_box(light_root, "Streetlight_Arm", Vector3(0.9, 0.07, 0.07), Vector3(0.36, 4.12, 0.0), metal)
 	_box(light_root, "Streetlight_Lamp", Vector3(0.42, 0.12, 0.28), Vector3(0.72, 4.02, 0.0), lamp)
+	var practical_light := OmniLight3D.new()
+	practical_light.name = "Streetlight_Illumination"
+	practical_light.position = Vector3(0.72, 3.94, 0.0)
+	practical_light.light_color = Color("#ffe2ad")
+	practical_light.light_energy = 0.42
+	practical_light.omni_range = 8.5
+	practical_light.shadow_enabled = false
+	# Keep the number of real-time lights low for mobile GPUs.
+	if int(abs(position.x * 3.0 + position.z)) % 3 == 0:
+		light_root.add_child(practical_light)
 
 func _add_tree(position: Vector3, trunk_material: Material, leaf_a: Material, leaf_b: Material) -> void:
 	var tree := Node3D.new()
@@ -338,6 +429,18 @@ func _make_car(index: int) -> Node3D:
 	if model == null:
 		var body := _mat(Color("#b84e3d"), 0.34, 0.28)
 		_box(car, "Car_Body_Fallback", Vector3(1.65, 0.48, 0.82), Vector3(0.0, 0.48, 0.0), body)
+	var headlamp_material := _mat(Color("#fff4d2"), 0.22)
+	headlamp_material.emission_enabled = true
+	headlamp_material.emission = Color("#fff0c5")
+	headlamp_material.emission_energy_multiplier = 1.8
+	var tail_lamp_material := _mat(Color("#b52e25"), 0.3)
+	tail_lamp_material.emission_enabled = true
+	tail_lamp_material.emission = Color("#b52e25")
+	tail_lamp_material.emission_energy_multiplier = 1.1
+	# Small front/rear lamp details follow the vehicle root orientation.
+	for side in [-1.0, 1.0]:
+		_box(car, "Vehicle_Headlamp", Vector3(0.12, 0.10, 0.055), Vector3(0.72, 0.48, side * 0.25), headlamp_material)
+		_box(car, "Vehicle_Tail_Lamp", Vector3(0.10, 0.10, 0.055), Vector3(-0.72, 0.48, side * 0.25), tail_lamp_material)
 	return car
 
 func _make_pedestrian(index: int) -> Dictionary:
