@@ -35,12 +35,15 @@ var selected_logo_id := 1
 var insignia_preview: TextureRect
 var logo_picker_layer: Control
 var logo_picker_panel: PanelContainer
+var logo_picker_grid: GridContainer
 var logo_picker_scroll: ScrollContainer
 var logo_picker_scroll_tween: Tween
 var logo_picker_touch_index := -1
 var logo_picker_touch_start := Vector2.ZERO
 var logo_picker_touch_dragging := false
 var logo_picker_touch_velocity_y := 0.0
+var logo_picker_touch_logo_id := 0
+var logo_picker_mouse_logo_id := 0
 var profile_status: Label
 var graphics_quality := "High"
 var sound_enabled := true
@@ -464,6 +467,7 @@ func _open_logo_picker() -> void:
 	var tile_height := 94 if compact else 112
 	var grid_rows := int(ceil(50.0 / float(columns)))
 	grid.custom_minimum_size.y = float(grid_rows * tile_height + (grid_rows - 1) * grid_gap)
+	logo_picker_grid = grid
 	scroll.add_child(grid)
 
 	for index in range(50):
@@ -474,6 +478,7 @@ func _open_logo_picker() -> void:
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.toggle_mode = false
 		option.focus_mode = Control.FOCUS_NONE
+		option.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		option.mouse_default_cursor_shape = Control.CURSOR_ARROW
 		option.clip_contents = true
 		_style_company_glass_button(option)
@@ -488,7 +493,6 @@ func _open_logo_picker() -> void:
 		mark.texture = _company_logo_texture(logo_id)
 		logo_center.add_child(mark)
 		option.add_child(logo_center)
-		option.pressed.connect(_select_company_logo.bind(logo_id))
 		grid.add_child(option)
 
 
@@ -528,21 +532,36 @@ func _input(event: InputEvent) -> void:
 	var panel_rect := logo_picker_panel.get_global_rect()
 	var viewport := get_viewport()
 
-	# Close on any mouse/touch press outside the dialog, before the GUI layer
-	# can route that press to the scrim or to controls underneath the modal.
-	if event is InputEventMouseButton and event.pressed:
+	# Desktop mouse input is handled here, not by the logo tile Controls.
+	if event is InputEventMouseButton and not OS.has_feature("android"):
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN or event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			if is_instance_valid(logo_picker_scroll) and logo_picker_scroll.get_global_rect().has_point(event.position):
+			if event.pressed and is_instance_valid(logo_picker_scroll) and logo_picker_scroll.get_global_rect().has_point(event.position):
 				var direction := 1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1
 				var target := clampi(logo_picker_scroll.scroll_vertical + direction * 132, 0, _logo_picker_max_scroll())
 				_animate_logo_picker_scroll(target, 0.22)
 				viewport.set_input_as_handled()
 			return
-		if event.button_index == MOUSE_BUTTON_LEFT and not panel_rect.has_point(event.position):
-			_close_logo_picker()
-			viewport.set_input_as_handled()
-			return
 
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				if not panel_rect.has_point(event.position):
+					_close_logo_picker()
+					viewport.set_input_as_handled()
+					return
+				logo_picker_mouse_logo_id = _logo_picker_logo_at(event.position)
+				if logo_picker_mouse_logo_id > 0:
+					viewport.set_input_as_handled()
+			else:
+				if logo_picker_mouse_logo_id > 0:
+					var released_logo_id := _logo_picker_logo_at(event.position)
+					if released_logo_id == logo_picker_mouse_logo_id:
+						_select_company_logo(released_logo_id)
+					viewport.set_input_as_handled()
+				logo_picker_mouse_logo_id = 0
+		return
+
+	# Android touch input is tracked before GUI dispatch. A drag moves the grid;
+	# a short tap selects a logo only when it starts and ends on that same tile.
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			if not panel_rect.has_point(event.position):
@@ -554,16 +573,23 @@ func _input(event: InputEvent) -> void:
 				logo_picker_touch_start = event.position
 				logo_picker_touch_dragging = false
 				logo_picker_touch_velocity_y = 0.0
+				logo_picker_touch_logo_id = _logo_picker_logo_at(event.position)
+				viewport.set_input_as_handled()
 		else:
 			if event.index == logo_picker_touch_index:
 				if logo_picker_touch_dragging:
 					var fling_distance := clampf(logo_picker_touch_velocity_y * 0.10, -420.0, 420.0)
 					var target := clampi(roundi(float(logo_picker_scroll.scroll_vertical) - fling_distance), 0, _logo_picker_max_scroll())
 					_animate_logo_picker_scroll(target, 0.24)
-					viewport.set_input_as_handled()
+				else:
+					var released_logo_id := _logo_picker_logo_at(event.position)
+					if logo_picker_touch_logo_id > 0 and released_logo_id == logo_picker_touch_logo_id:
+						_select_company_logo(released_logo_id)
+				viewport.set_input_as_handled()
 				logo_picker_touch_index = -1
 				logo_picker_touch_dragging = false
 				logo_picker_touch_velocity_y = 0.0
+				logo_picker_touch_logo_id = 0
 
 	elif event is InputEventScreenDrag and event.index == logo_picker_touch_index:
 		if not logo_picker_touch_dragging and logo_picker_touch_start.distance_to(event.position) >= 9.0:
@@ -573,6 +599,15 @@ func _input(event: InputEvent) -> void:
 			logo_picker_touch_velocity_y = event.velocity.y
 			viewport.set_input_as_handled()
 
+
+func _logo_picker_logo_at(position: Vector2) -> int:
+	if not is_instance_valid(logo_picker_grid):
+		return 0
+	for index in range(logo_picker_grid.get_child_count()):
+		var tile := logo_picker_grid.get_child(index) as Control
+		if is_instance_valid(tile) and tile.get_global_rect().has_point(position):
+			return index + 1
+	return 0
 
 func _logo_picker_max_scroll() -> int:
 	if not is_instance_valid(logo_picker_scroll):
@@ -622,10 +657,13 @@ func _close_logo_picker() -> void:
 		logo_picker_layer.queue_free()
 	logo_picker_layer = null
 	logo_picker_panel = null
+	logo_picker_grid = null
 	logo_picker_scroll = null
 	logo_picker_touch_index = -1
 	logo_picker_touch_dragging = false
 	logo_picker_touch_velocity_y = 0.0
+	logo_picker_touch_logo_id = 0
+	logo_picker_mouse_logo_id = 0
 
 func _create_company() -> void:
 	var founder := full_name_input.text.strip_edges()
