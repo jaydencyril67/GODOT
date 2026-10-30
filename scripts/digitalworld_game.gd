@@ -14,7 +14,7 @@ const LOGO_NAMES := [
 ]
 const UPGRADE_FLOORS := [1, 2, 3, 5, 7, 9, 12, 15, 19, 23]
 
-const NAVY := Color("#103a5a")
+const NAVY := Color("#ffffff")
 const BLUE := Color("#248cc4")
 const PANEL := Color(0.075, 0.12, 0.13, 0.94)
 const PALE := Color("#e8eee8")
@@ -89,17 +89,33 @@ func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
 	var root := _new_screen()
+	# Native Godot gradient background: light purple -> deep purple -> black.
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.52, 1.0])
+	gradient.colors = PackedColorArray([
+		Color("#c9a7ff"),
+		Color("#4b187f"),
+		Color("#050309")
+	])
+	var gradient_texture := GradientTexture2D.new()
+	gradient_texture.gradient = gradient
+	gradient_texture.fill_from = Vector2(0.0, 0.0)
+	gradient_texture.fill_to = Vector2(1.0, 1.0)
+	gradient_texture.width = 512
+	gradient_texture.height = 512
+
 	var background := TextureRect.new()
-	background.name = "DigitalWorld_Original_Landing_Background"
+	background.name = "DigitalWorld_Purple_Gradient_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.texture = load("res://assets/digitalworld-landing.png")
+	background.stretch_mode = TextureRect.STRETCH_SCALE
+	background.texture = gradient_texture
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(background)
 
 	var tint := ColorRect.new()
 	tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	tint.color = Color(0.12, 0.48, 0.68, 0.10)
+	tint.color = Color(0.015, 0.005, 0.025, 0.12)
 	tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tint)
 
@@ -113,8 +129,8 @@ func _show_menu() -> void:
 	center.add_child(stack)
 
 	stack.add_child(_label("DIGITALWORLD", 48, Color("#103a5a"), HORIZONTAL_ALIGNMENT_CENTER))
-	stack.add_child(_label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 9, Color("#217eae"), HORIZONTAL_ALIGNMENT_CENTER))
-	var description := _label("Build your company, develop its headquarters, and run its operations.", 12, Color("#426982"), HORIZONTAL_ALIGNMENT_CENTER)
+	stack.add_child(_label("TECHNOLOGY  /  INDUSTRY  /  ENTERPRISE", 9, Color("#e4d0ff"), HORIZONTAL_ALIGNMENT_CENTER))
+	var description := _label("Build your company, develop its headquarters, and run its operations.", 12, Color("#e0d2f4"), HORIZONTAL_ALIGNMENT_CENTER)
 	description.custom_minimum_size = Vector2(280, 0)
 	stack.add_child(description)
 	_add_spacer(stack, 8)
@@ -132,7 +148,7 @@ func _show_menu() -> void:
 	status_label.custom_minimum_size = Vector2(300, 0)
 	stack.add_child(status_label)
 
-	var footer := _label("KINGSHALL-ORG", 8, Color("#3f789a"))
+	var footer := _label("KINGSHALL-ORG", 8, Color("#cdb8e8"))
 	footer.anchor_left = 0.04
 	footer.anchor_right = 0.46
 	footer.anchor_top = 1.0
@@ -140,7 +156,7 @@ func _show_menu() -> void:
 	footer.offset_top = -25
 	footer.offset_bottom = -8
 	root.add_child(footer)
-	var footer_right := _label("DIGITALWORLD", 8, Color("#527f9a"), HORIZONTAL_ALIGNMENT_RIGHT)
+	var footer_right := _label("DIGITALWORLD", 8, Color("#cdb8e8"), HORIZONTAL_ALIGNMENT_RIGHT)
 	footer_right.anchor_left = 0.54
 	footer_right.anchor_right = 0.96
 	footer_right.anchor_top = 1.0
@@ -585,10 +601,10 @@ func _add_action_button(parent: Node, caption: String, primary: bool, callback: 
 func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.0, 0.75, 0.95, 0.64) if primary else Color(0.82, 0.95, 1.0, 0.24)
+		style.bg_color = Color(0.43, 0.16, 0.72, 0.78) if primary else Color(0.72, 0.58, 0.92, 0.20)
 		if state == "hover":
-			style.bg_color = Color(0.35, 0.86, 1.0, 0.52)
-		style.border_color = Color(1.0, 1.0, 1.0, 0.92)
+			style.bg_color = Color(0.62, 0.35, 0.88, 0.62)
+		style.border_color = Color(0.91, 0.82, 1.0, 0.88)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
 		style.content_margin_left = 13
