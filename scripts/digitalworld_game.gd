@@ -523,6 +523,39 @@ func _open_logo_picker() -> void:
 
 
 
+func _style_company_glass_button(button: Button, selected: bool = false) -> void:
+	# Quiet frosted-glass treatment: transparent fill, fine edge, no glow or shadow.
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.20, 0.58, 0.78, 0.25) if selected else Color(0.48, 0.78, 0.92, 0.10)
+		if state == "hover":
+			style.bg_color = Color(0.34, 0.70, 0.86, 0.30) if selected else Color(0.55, 0.82, 0.94, 0.19)
+		elif state == "pressed":
+			style.bg_color = Color(0.15, 0.48, 0.68, 0.36)
+		elif state == "disabled":
+			style.bg_color = Color(0.45, 0.62, 0.70, 0.07)
+		style.border_color = Color(0.78, 0.92, 1.0, 0.56) if selected else Color(0.78, 0.92, 1.0, 0.26)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(12)
+		style.shadow_size = 0
+		style.anti_aliasing = true
+		style.content_margin_left = 12
+		style.content_margin_right = 12
+		style.content_margin_top = 9
+		style.content_margin_bottom = 9
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#f2faff"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
+	button.add_theme_color_override("font_disabled_color", Color("#8daab9"))
+	button.add_theme_color_override("font_outline_color", Color(0.0, 0.08, 0.14, 0.0))
+	button.add_theme_constant_override("outline_size", 0)
+	button.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	button.add_theme_constant_override("shadow_offset_x", 0)
+	button.add_theme_constant_override("shadow_offset_y", 0)
+
+
 func _logo_option_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.20, 0.58, 0.78, 0.25) if selected else Color(0.48, 0.78, 0.92, 0.10)
