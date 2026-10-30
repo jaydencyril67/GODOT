@@ -96,52 +96,21 @@ func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
 	var root := _new_screen()
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-
-	# Midnight-to-electric-blue atmosphere with restrained luminous geometry.
-	var gradient := Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.48, 1.0])
-	gradient.colors = PackedColorArray([
-		Color("#07152f"),
-		Color("#07518d"),
-		Color("#020817")
-	])
-	var gradient_texture := GradientTexture2D.new()
-	gradient_texture.gradient = gradient
-	gradient_texture.fill_from = Vector2(0.0, 0.0)
-	gradient_texture.fill_to = Vector2(1.0, 1.0)
-	gradient_texture.width = 1024
-	gradient_texture.height = 512
-
+	# Match the founder setup page's exact background image and overlay.
 	var background := TextureRect.new()
-	background.name = "Midnight_Electric_Blue_Background"
+	background.name = "DigitalWorld_Shared_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_SCALE
-	background.texture = gradient_texture
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = load("res://assets/digitalworld-landing.png")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(background)
 
-	# Soft diagonal light bands add depth without competing with the menu.
-	for band_index in range(3):
-		var band := ColorRect.new()
-		band.size = Vector2(viewport_size.x * 1.45, viewport_size.y * 0.12)
-		band.position = Vector2(-viewport_size.x * 0.16, viewport_size.y * (0.17 + band_index * 0.29))
-		band.rotation = deg_to_rad(-17.0)
-		band.color = Color(0.12, 0.68, 1.0, 0.055 if band_index != 1 else 0.085)
-		band.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.add_child(band)
-
-	var edge_glow := ColorRect.new()
-	edge_glow.anchor_left = 0.0
-	edge_glow.anchor_right = 0.0
-	edge_glow.anchor_top = 0.0
-	edge_glow.anchor_bottom = 1.0
-	edge_glow.offset_left = 0.0
-	edge_glow.offset_right = 5.0
-	edge_glow.color = Color("#25c8ff")
-	edge_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(edge_glow)
+	var shade := ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(shade)
 
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
