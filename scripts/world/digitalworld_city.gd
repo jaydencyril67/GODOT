@@ -676,7 +676,6 @@ func _add_traffic() -> void:
 		Vector3(-31.85, 0.12, -23.5),
 		Vector3(-31.25, 0.12, -25.25)
 	]
-	var route_length := _traffic_route_length(route)
 	for index in range(18):
 		var car := _make_procedural_car(index)
 		var reverse_route := index % 2 == 1
