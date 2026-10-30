@@ -22,6 +22,8 @@ var touch_points: Dictionary = {}
 var pinch_distance := 0.0
 var last_touch_midpoint := Vector2.ZERO
 var materials: Dictionary = {}
+var facade_noise: Texture2D
+var pavement_noise: Texture2D
 
 func _ready() -> void:
 	_build_city()
@@ -49,6 +51,7 @@ func _process(delta: float) -> void:
 
 func _build_city() -> void:
 	_create_material_library()
+	_create_procedural_surface_textures()
 	_create_environment()
 	_create_camera()
 	_add_city_ground()
@@ -85,6 +88,41 @@ func _create_material_library() -> void:
 		"amber": _emissive_mat(Color("#ffb52e"), 1.8),
 		"green": _emissive_mat(Color("#43d58a"), 1.8)
 	}
+
+func _create_procedural_surface_textures() -> void:
+	# Runtime-generated surface breakup keeps the city self-contained: no texture
+	# packs or imported building materials are required.
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	noise.frequency = 0.035
+	noise.fractal_octaves = 4
+	noise.fractal_gain = 0.52
+	var texture := NoiseTexture2D.new()
+	texture.width = 256
+	texture.height = 256
+	texture.seamless = true
+	texture.noise = noise
+	facade_noise = texture
+	var pavement := NoiseTexture2D.new()
+	pavement.width = 256
+	pavement.height = 256
+	pavement.seamless = true
+	var pavement_generator := FastNoiseLite.new()
+	pavement_generator.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	pavement_generator.frequency = 0.075
+	pavement_generator.fractal_octaves = 3
+	pavement.noise = pavement_generator
+	pavement_noise = pavement
+	for key in ["concrete", "sidewalk"]:
+		var surface: StandardMaterial3D = materials[key]
+		surface.albedo_texture = facade_noise
+		surface.uv1_scale = Vector3(3.5, 3.5, 1.0)
+	var road: StandardMaterial3D = materials["asphalt"]
+	road.albedo_texture = pavement_noise
+	road.uv1_scale = Vector3(8.0, 8.0, 1.0)
+	var soil: StandardMaterial3D = materials["soil"]
+	soil.albedo_texture = pavement_noise
+	soil.uv1_scale = Vector3(5.0, 5.0, 1.0)
 
 func _create_environment() -> void:
 	var world := WorldEnvironment.new()
@@ -196,6 +234,12 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 	var podium := _mat(wall_colors[style].darkened(0.28), 0.72, 0.12)
 	var accent := _mat(accent_colors[style], 0.42, 0.48)
 	var roof := _mat(Color("#525e62"), 0.78, 0.26)
+	wall.albedo_texture = facade_noise
+	wall.uv1_scale = Vector3(2.8, 2.8, 1.0)
+	podium.albedo_texture = facade_noise
+	podium.uv1_scale = Vector3(3.2, 3.2, 1.0)
+	roof.albedo_texture = facade_noise
+	roof.uv1_scale = Vector3(2.0, 2.0, 1.0)
 
 	_box(root, "Architectural_Foundation_Plinth", Vector3(width + 0.7, 0.42, depth + 0.7), Vector3(0.0, 0.21, 0.0), materials["concrete"])
 	_box(root, "Continuous_Concrete_Building_Envelope", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.42, 0.0), wall)
