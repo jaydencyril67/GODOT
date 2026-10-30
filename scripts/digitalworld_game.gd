@@ -30,7 +30,9 @@ var selected_upgrade := 1
 var current_screen := "menu"
 var full_name_input: LineEdit
 var company_name_input: LineEdit
-var logo_option: OptionButton
+var logo_option: Button
+var selected_logo_id := 1
+var insignia_preview: TextureRect
 var profile_status: Label
 var graphics_quality := "High"
 var sound_enabled := true
@@ -287,21 +289,29 @@ func _show_profile() -> void:
 	brand_stack.add_child(_label("02  COMPANY BRAND", 11, Color("#9ad9f8")))
 	brand_stack.add_child(_label("Choose your company insignia", 15, Color("#f5fbff")))
 	brand_stack.add_child(_label("Select one of the 50 original DigitalWorld insignia identities.", 10, Color("#c5deed")))
-	logo_option = OptionButton.new()
-	logo_option.custom_minimum_size = Vector2(0, 42)
-	for index in range(LOGO_NAMES.size()):
-		logo_option.add_item("%02d  —  %s" % [index + 1, LOGO_NAMES[index]], index + 1)
-	var saved_logo := clampi(int(career.get("logo_id", 1)), 1, 50)
-	logo_option.select(saved_logo - 1)
+	selected_logo_id = clampi(int(career.get("logo_id", 1)), 1, 50)
+	logo_option = Button.new()
+	logo_option.custom_minimum_size = Vector2(0, 48)
+	logo_option.text = "%02d  —  %s     CHANGE" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1]]
+	_style_glass_menu_button(logo_option, false)
+	logo_option.pressed.connect(_open_logo_picker)
 	brand_stack.add_child(logo_option)
-	var insignia_preview := _panel(Color(0.45, 0.76, 0.88, 0.12), Color(0.85, 0.96, 1.0, 0.22), 10)
-	insignia_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	brand_stack.add_child(insignia_preview)
-	var preview_margin := _margin(insignia_preview, 12, 12, 12, 12)
+	var insignia_preview_panel := _panel(Color(0.45, 0.76, 0.88, 0.12), Color(0.85, 0.96, 1.0, 0.22), 10)
+	insignia_preview_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	brand_stack.add_child(insignia_preview_panel)
+	var preview_margin := _margin(insignia_preview_panel, 12, 12, 12, 12)
 	var preview_stack := VBoxContainer.new()
 	preview_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	preview_stack.add_child(_label("DIGITALWORLD", 20, Color("#e8f6ff"), HORIZONTAL_ALIGNMENT_CENTER))
-	preview_stack.add_child(_label("YOUR COMPANY  /  YOUR IDENTITY", 8, Color("#a8d7ef"), HORIZONTAL_ALIGNMENT_CENTER))
+	preview_stack.add_theme_constant_override("separation", 6)
+	insignia_preview = TextureRect.new()
+	insignia_preview.custom_minimum_size = Vector2(112, 112)
+	insignia_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	insignia_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	insignia_preview.texture = _company_logo_texture(selected_logo_id)
+	insignia_preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	preview_stack.add_child(insignia_preview)
+	preview_stack.add_child(_label("SELECTED INSIGNIA", 9, Color("#a8d7ef"), HORIZONTAL_ALIGNMENT_CENTER))
+	preview_stack.add_child(_label("%02d  /  50   •   %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()], 11, Color("#e8f6ff"), HORIZONTAL_ALIGNMENT_CENTER))
 	preview_margin.add_child(preview_stack)
 
 	profile_status = _label("", 10, Color("#ffd0b8"))
@@ -312,6 +322,116 @@ func _show_profile() -> void:
 	_add_action_button(actions, "ESTABLISH COMPANY  ›", true, _create_company)
 	page.add_child(actions)
 
+
+func _company_logo_texture(logo_id: int) -> AtlasTexture:
+	var atlas := load("res://assets/company_logos.svg") as Texture2D
+	var texture := AtlasTexture.new()
+	texture.atlas = atlas
+	var index := clampi(logo_id, 1, 50) - 1
+	texture.region = Rect2(Vector2((index % 10) * 100, floori(float(index) / 10.0) * 100), Vector2(100, 100))
+	return texture
+
+
+func _open_logo_picker() -> void:
+	if is_instance_valid(logo_picker_layer):
+		logo_picker_layer.queue_free()
+	logo_picker_layer = Control.new()
+	logo_picker_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ui_root.add_child(logo_picker_layer)
+	var scrim := ColorRect.new()
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.color = Color(0.015, 0.005, 0.025, 0.88)
+	logo_picker_layer.add_child(scrim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	logo_picker_layer.add_child(center)
+	var panel := _panel(Color(0.10, 0.055, 0.16, 0.98), Color(0.82, 0.68, 1.0, 0.62), 14)
+	panel.custom_minimum_size = Vector2(620, 0)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.add_child(panel)
+	var margin := _margin(panel, 16, 16, 12, 12)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 10)
+	margin.add_child(stack)
+	var heading := HBoxContainer.new()
+	stack.add_child(heading)
+	var title_stack := VBoxContainer.new()
+	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_stack.add_child(_label("COMPANY BRANDING", 10, Color("#d8baff")))
+	title_stack.add_child(_label("CHOOSE YOUR INSIGNIA", 19, Color("#ffffff")))
+	title_stack.add_child(_label("Select one of the 50 original DigitalWorld vector designs.", 10, Color("#d8cbe8")))
+	heading.add_child(title_stack)
+	var close := _add_action_button(heading, "CLOSE", false, _close_logo_picker)
+	close.custom_minimum_size = Vector2(76, 42)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 300)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_child(scroll)
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	scroll.add_child(grid)
+	for index in range(50):
+		var logo_id := index + 1
+		var option := Button.new()
+		option.custom_minimum_size = Vector2(104, 82)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.toggle_mode = true
+		option.button_pressed = logo_id == selected_logo_id
+		option.add_theme_stylebox_override("normal", _logo_option_style(logo_id == selected_logo_id))
+		option.add_theme_stylebox_override("hover", _logo_option_style(true))
+		option.add_theme_stylebox_override("pressed", _logo_option_style(true))
+		var cell := VBoxContainer.new()
+		cell.alignment = BoxContainer.ALIGNMENT_CENTER
+		cell.add_theme_constant_override("separation", 3)
+		var mark := TextureRect.new()
+		mark.custom_minimum_size = Vector2(42, 42)
+		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		mark.texture = _company_logo_texture(logo_id)
+		mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		cell.add_child(mark)
+		cell.add_child(_label(LOGO_NAMES[index].to_upper(), 9, Color("#ffffff"), HORIZONTAL_ALIGNMENT_CENTER))
+		option.add_child(cell)
+		option.pressed.connect(_select_company_logo.bind(logo_id))
+		grid.add_child(option)
+	var footer := HBoxContainer.new()
+	stack.add_child(footer)
+	footer.add_child(_label("%02d / 50 SELECTED" % selected_logo_id, 10, Color("#d8baff")))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(spacer)
+	_add_action_button(footer, "DONE", true, _close_logo_picker)
+
+
+func _logo_option_style(selected: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.48, 0.27, 0.68, 0.52) if selected else Color(0.9, 0.84, 1.0, 0.07)
+	style.border_color = Color(0.86, 0.70, 1.0, 0.78) if selected else Color(0.9, 0.84, 1.0, 0.24)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	return style
+
+
+func _select_company_logo(logo_id: int) -> void:
+	selected_logo_id = clampi(logo_id, 1, 50)
+	logo_option.text = "%02d  —  %s     CHANGE" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1]]
+	insignia_preview.texture = _company_logo_texture(selected_logo_id)
+	var preview_copy := insignia_preview.get_parent().get_child(2) as Label
+	preview_copy.text = "%02d  /  50   •   %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()]
+	_close_logo_picker()
+
+
+func _close_logo_picker() -> void:
+	if is_instance_valid(logo_picker_layer):
+		logo_picker_layer.queue_free()
+	logo_picker_layer = null
+
 func _create_company() -> void:
 	var founder := full_name_input.text.strip_edges()
 	var company := company_name_input.text.strip_edges()
@@ -320,7 +440,7 @@ func _create_company() -> void:
 		return
 	career["full_name"] = founder
 	career["company_name"] = company
-	career["logo_id"] = logo_option.get_selected_id()
+	career["logo_id"] = selected_logo_id
 	if str(career.get("created_at", "")).is_empty():
 		career["created_at"] = Time.get_datetime_string_from_system(true)
 	upgrade_level = clampi(upgrade_level, 1, 10)
