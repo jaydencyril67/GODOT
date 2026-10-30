@@ -179,7 +179,9 @@ func _build_procedural_building(level: int) -> float:
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
 	if level == 1:
-		wall = materials["workshop_cladding"]
+		wall.albedo_color = Color("#8d9b9d")
+		wall.roughness = 0.72
+		wall.metallic = 0.22
 	var podium := _mat(wall_colors[style].darkened(0.28), 0.72, 0.12)
 	var accent := _mat(accent_colors[style], 0.42, 0.48)
 	var roof := _mat(Color("#525e62"), 0.78, 0.26)
