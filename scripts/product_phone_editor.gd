@@ -6,7 +6,6 @@ const PHONE_SIZE := Vector3(1.45, 2.92, 0.20)
 const ROTATION_STEP := deg_to_rad(10.0)
 # Deliberately low so a normal finger movement makes a controlled turn.
 const DRAG_SENSITIVITY := 0.0024
-const MAX_TILT_ANGLE := deg_to_rad(75.0)
 
 var phone_body: MeshInstance3D
 var preview_camera: Camera3D
@@ -263,26 +262,18 @@ func _rotate_phone_from_drag(delta: Vector2) -> void:
 	# Horizontal drag turns the front toward the drag; vertical drag tilts
 	# the top edge down when dragging down, and up when dragging up.
 	if absf(delta.x) >= absf(delta.y):
-		phone_body.rotation.y = clampf(
-			phone_body.rotation.y + delta.x * DRAG_SENSITIVITY,
-			-MAX_TILT_ANGLE,
-			MAX_TILT_ANGLE
-		)
+		phone_body.rotation.y += delta.x * DRAG_SENSITIVITY
 	else:
-		phone_body.rotation.x = clampf(
-			phone_body.rotation.x - delta.y * DRAG_SENSITIVITY,
-			-MAX_TILT_ANGLE,
-			MAX_TILT_ANGLE
-		)
+		phone_body.rotation.x -= delta.y * DRAG_SENSITIVITY
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
 	if not is_instance_valid(phone_body):
 		return
 	if axis == Vector3.RIGHT:
-		phone_body.rotation.x = clampf(phone_body.rotation.x + ROTATION_STEP * direction, -MAX_TILT_ANGLE, MAX_TILT_ANGLE)
+		phone_body.rotation.x += ROTATION_STEP * direction
 	elif axis == Vector3.UP:
-		phone_body.rotation.y = clampf(phone_body.rotation.y + ROTATION_STEP * direction, -MAX_TILT_ANGLE, MAX_TILT_ANGLE)
+		phone_body.rotation.y += ROTATION_STEP * direction
 
 
 func _reset_phone_rotation() -> void:
