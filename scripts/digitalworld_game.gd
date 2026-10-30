@@ -137,24 +137,23 @@ func _show_menu() -> void:
 
 
 func _style_command_menu_button(button: Button, primary: bool) -> void:
-	# Individual translucent-white glass buttons with bright, defined edges.
-	# Keep every button visually separate; no dark connector or shared panel.
+	# Frosted-glass appearance: translucent white surfaces and crisp borders,
+	# with no neon glow or coloured drop shadow.
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
 		if state == "pressed":
-			style.bg_color = Color(0.48, 0.78, 0.98, 0.42)
+			style.bg_color = Color(0.78, 0.91, 0.98, 0.38)
 		elif state == "hover":
-			style.bg_color = Color(0.94, 0.99, 1.0, 0.48)
+			style.bg_color = Color(0.98, 1.0, 1.0, 0.40)
 		else:
-			style.bg_color = Color(0.88, 0.96, 1.0, 0.30) if primary else Color(0.88, 0.96, 1.0, 0.22)
-		style.border_color = Color(0.98, 1.0, 1.0, 1.0)
+			style.bg_color = Color(0.94, 0.98, 1.0, 0.28) if primary else Color(0.94, 0.98, 1.0, 0.22)
+		style.border_color = Color(1.0, 1.0, 1.0, 0.92)
 		style.set_border_width_all(2)
 		style.border_width_top = 3
-		style.border_width_bottom = 3
 		style.set_corner_radius_all(16)
-		style.shadow_color = Color(0.30, 0.78, 1.0, 0.38)
-		style.shadow_size = 16 if primary else 12
-		style.shadow_offset = Vector2(0, 5)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.10)
+		style.shadow_size = 2
+		style.shadow_offset = Vector2(0, 1)
 		style.anti_aliasing = true
 		style.content_margin_left = 26
 		style.content_margin_right = 26
@@ -164,14 +163,14 @@ func _style_command_menu_button(button: Button, primary: bool) -> void:
 
 	button.add_theme_color_override("font_color", Color("#ffffff"))
 	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("#e2f8ff"))
+	button.add_theme_color_override("font_pressed_color", Color("#f0faff"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
 	button.add_theme_font_size_override("font_size", 20)
-	button.add_theme_color_override("font_outline_color", Color("#16476b"))
-	button.add_theme_constant_override("outline_size", 2)
-	button.add_theme_color_override("font_shadow_color", Color(0.02, 0.12, 0.22, 0.72))
-	button.add_theme_constant_override("shadow_offset_x", 1)
-	button.add_theme_constant_override("shadow_offset_y", 2)
+	button.add_theme_color_override("font_outline_color", Color(0.08, 0.20, 0.30, 0.72))
+	button.add_theme_constant_override("outline_size", 1)
+	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.0))
+	button.add_theme_constant_override("shadow_offset_x", 0)
+	button.add_theme_constant_override("shadow_offset_y", 0)
 
 func _start_new_game() -> void:
 	_show_profile()
