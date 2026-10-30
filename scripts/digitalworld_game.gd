@@ -25,6 +25,7 @@ var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: Node3D
 var phone_editor: Node3D
+var home_navigation_layer: CanvasLayer
 var career: Dictionary = {}
 var upgrade_level := 1
 var selected_upgrade := 1
@@ -716,26 +717,115 @@ func _load_game_pressed() -> void:
 		_show_notice("NO SAVED COMPANY", "No saved DigitalWorld company was found on this device. Choose NEW GAME to establish one.")
 
 func _show_city() -> void:
-	# New and loaded companies open at their currently owned headquarters level.
-	selected_upgrade = clampi(upgrade_level, 1, 10)
-	_show_headquarters_preview()
+	# Every new or returning company lands on Home at its currently owned building.
+	upgrade_level = clampi(upgrade_level, 1, 10)
+	selected_upgrade = upgrade_level
+	_show_home_scene()
 
-func _show_headquarters_preview() -> void:
-	current_screen = "headquarters"
+
+func _show_home_scene() -> void:
+	current_screen = "home"
 	_clear_world()
 	_show_headquarters_loading_screen()
 
 	var headquarters = HeadquartersPreviewScript.new()
-	headquarters.name = "DigitalWorld_Headquarters_Preview"
-	headquarters.preview_level = clampi(selected_upgrade, 1, 10)
+	headquarters.name = "DigitalWorld_Home_Scene"
+	headquarters.home_mode = true
+	headquarters.preview_level = clampi(upgrade_level, 1, 10)
 	headquarters.owned_level = clampi(upgrade_level, 1, 10)
 	headquarters.company_name = str(career.get("company_name", "YOUR COMPANY"))
 	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
-	headquarters.create_requested.connect(_show_create_scene)
+	headquarters.back_requested.connect(_return_home_from_headquarters)
+	headquarters.upgrade_requested.connect(_upgrade_headquarters)
 	headquarters.setup_progress.connect(_update_headquarters_loading)
 	headquarters.setup_completed.connect(_finish_headquarters_loading)
 	world_root = headquarters
 	add_child(world_root)
+
+
+func _show_headquarters_preview() -> void:
+	current_screen = "headquarters"
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.queue_free()
+	home_navigation_layer = null
+	ui_layer = null
+	ui_root = null
+	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
+		world_root.set_preview_active(true)
+		world_root.set_home_mode(false)
+
+
+func _return_home_from_headquarters() -> void:
+	current_screen = "home"
+	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
+		world_root.set_home_mode(true)
+		world_root.set_preview_active(true)
+	_show_home_navigation()
+
+
+func _upgrade_headquarters(level: int) -> void:
+	var requested_level := clampi(level, 1, 10)
+	if requested_level <= upgrade_level:
+		return
+	var previous_level := upgrade_level
+	upgrade_level = requested_level
+	career["upgrade_level"] = upgrade_level
+	if not _save_career():
+		upgrade_level = previous_level
+		career["upgrade_level"] = previous_level
+		_show_notice("UPGRADE NOT SAVED", "Your headquarters upgrade could not be saved. Please try again.")
+		return
+	if is_instance_valid(world_root) and world_root.has_method("set_owned_level"):
+		world_root.set_owned_level(upgrade_level)
+
+
+func _show_home_navigation() -> void:
+	ui_layer = null
+	ui_root = null
+	var root := _new_screen()
+	ui_layer.layer = 30
+	home_navigation_layer = ui_layer
+
+	var bottom_panel := PanelContainer.new()
+	bottom_panel.name = "Home_Bottom_Navigation"
+	bottom_panel.anchor_left = 0.0
+	bottom_panel.anchor_top = 1.0
+	bottom_panel.anchor_right = 1.0
+	bottom_panel.anchor_bottom = 1.0
+	bottom_panel.offset_left = 8.0
+	bottom_panel.offset_top = -78.0
+	bottom_panel.offset_right = -8.0
+	bottom_panel.offset_bottom = -8.0
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#102638")
+	panel_style.border_color = Color("#397da5")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(12)
+	panel_style.content_margin_left = 7.0
+	panel_style.content_margin_right = 7.0
+	panel_style.content_margin_top = 6.0
+	panel_style.content_margin_bottom = 6.0
+	bottom_panel.add_theme_stylebox_override("panel", panel_style)
+	root.add_child(bottom_panel)
+
+	var row := HBoxContainer.new()
+	row.name = "Home_Navigation_Buttons_Row"
+	row.add_theme_constant_override("separation", 5)
+	bottom_panel.add_child(row)
+	for button_name in ["Create", "Products", "Research", "Marketing", "Media", "Office", "Statistics"]:
+		var button := Button.new()
+		button.name = button_name + "_Button"
+		button.text = button_name
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size = Vector2(0.0, 54.0)
+		button.add_theme_font_size_override("font_size", 12)
+		_style_button(button, button_name == "Office")
+		if button_name == "Create":
+			button.pressed.connect(_show_create_scene)
+		elif button_name == "Office":
+			button.pressed.connect(_show_headquarters_preview)
+		row.add_child(button)
 
 
 func _show_headquarters_loading_screen() -> void:
@@ -828,23 +918,22 @@ func _update_headquarters_loading(message: String, progress: float) -> void:
 
 
 func _finish_headquarters_loading() -> void:
-	# Prepare Product Studio while the headquarters is first being opened.
-	# The user will only switch visibility when tapping Create.
 	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
 	loading_status_label = null
 	loading_progress_bar = null
 
-	_show_create_scene()
-	_return_to_headquarters()
-
+	_show_home_navigation()
 	if is_instance_valid(preparation_layer):
 		preparation_layer.queue_free()
 
 
 func _show_create_scene() -> void:
 	current_screen = "create"
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.queue_free()
+	home_navigation_layer = null
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
 		world_root.set_preview_active(false)
 
@@ -918,7 +1007,7 @@ func _show_create_scene() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hero_row.add_child(title)
-	var back_button := _add_action_button(hero_row, "BACK", false, _return_to_headquarters)
+	var back_button := _add_action_button(hero_row, "BACK", false, _return_to_home)
 	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1003,14 +1092,16 @@ func _show_create_scene() -> void:
 		choose.add_theme_font_size_override("font_size", 12)
 		_style_create_glass_button(choose, true)
 
-func _return_to_headquarters() -> void:
-	current_screen = "headquarters"
+func _return_to_home() -> void:
+	current_screen = "home"
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.hide()
 	ui_layer = null
 	ui_root = null
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
+		world_root.set_home_mode(true)
 		world_root.set_preview_active(true)
+	_show_home_navigation()
 
 
 func _style_create_glass_button(button: Button, primary: bool) -> void:
