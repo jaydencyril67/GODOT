@@ -152,6 +152,11 @@ func _build_city() -> void:
 	glass_material.emission_energy_multiplier = 0.18
 	var window_frame_material := _mat(Color("#26343b"), 0.42, 0.72)
 	var roof_detail_material := _mat(Color("#59656a"), 0.76, 0.35)
+	var signal_red := _emissive_mat(Color("#f04438"), 2.4)
+	var signal_amber := _emissive_mat(Color("#ffb52e"), 2.1)
+	var signal_green := _emissive_mat(Color("#42d889"), 2.2)
+	var manhole_material := _mat(Color("#343b3e"), 0.72, 0.68)
+	var drain_material := _mat(Color("#252b2e"), 0.78, 0.72)
 
 	_box(self, "City_Base_Slab", Vector3(78.0, 0.7, 90.0), Vector3(0.0, -0.48, 0.0), concrete)
 	_box(self, "City_Paved_Surface", Vector3(76.0, 0.08, 88.0), Vector3(0.0, -0.08, 0.0), grassless_soil)
@@ -226,12 +231,19 @@ func _build_city() -> void:
 		var signal_model := _add_glb_model(signal_root, "res://assets/city_glb/traffic-light.glb", Vector3.ONE * 2.1)
 		if signal_model != null:
 			signal_model.rotation.y = PI * 0.5
+		_add_signal_lenses(signal_root, signal_red, signal_amber, signal_green)
 
 	for row in range(GRID_ROWS):
 		for col in range(GRID_COLUMNS):
 			var p := Vector3((float(col) - 2.0) * PLOT_SPACING, 0.0, (float(row) - 2.5) * PLOT_SPACING)
 			if (row + col) % 3 == 0:
 				_add_tree(Vector3(p.x - 4.35, 0.0, p.z - 4.45), trunk, foliage_a, foliage_b)
+
+	# Utility covers and curb drains add small-scale street infrastructure.
+	for utility_position in [Vector3(-8.4, 0.0, -1.9), Vector3(8.4, 0.0, 1.9), Vector3(-18.0, 0.0, 24.8), Vector3(18.0, 0.0, -24.8)]:
+		_add_manhole(utility_position, manhole_material)
+	for drain_position in [Vector3(-8.0, 0.0, -2.65), Vector3(8.0, 0.0, 2.65), Vector3(-20.5, 0.0, 21.8), Vector3(20.5, 0.0, -21.8)]:
+		_add_storm_drain(drain_position, drain_material)
 
 	# Cars circulate along the east-west avenues in both directions.
 	var traffic_lanes: Array[float] = [-25.0, 0.0, 25.0]
@@ -387,6 +399,30 @@ func _add_building_glazing(parent: Node3D, index: int, frame_material: Material,
 	# A restrained rooftop service unit adds a constructed, functional silhouette.
 	var roof_unit := _box(parent, "Rooftop_HVAC_Unit", Vector3(1.45, 0.48, 0.95), Vector3(-2.55, 8.0 if tower else 7.0, -2.45), roof_material)
 	roof_unit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+func _add_signal_lenses(parent: Node3D, red: Material, amber: Material, green: Material) -> void:
+	# Two compact signal faces make the imported junction signal readable from either approach.
+	for side in [-1.0, 1.0]:
+		var face_offset := Vector3(side * 0.24, 0.0, 0.0)
+		_box(parent, "Traffic_Signal_Housing", Vector3(0.34, 0.98, 0.22), Vector3(0.0, 2.05, side * 0.28), _mat(Color("#20272b"), 0.68, 0.32))
+		_sphere(parent, "Traffic_Signal_Red_Lens", 0.095, Vector3(0.0, 2.36, side * 0.405) + face_offset, red)
+		_sphere(parent, "Traffic_Signal_Amber_Lens", 0.095, Vector3(0.0, 2.05, side * 0.405) + face_offset, amber)
+		_sphere(parent, "Traffic_Signal_Green_Lens", 0.095, Vector3(0.0, 1.74, side * 0.405) + face_offset, green)
+
+
+func _add_manhole(position: Vector3, material: Material) -> void:
+	_cylinder(self, "Road_Manhole_Cover", 0.38, 0.38, 0.045, position + Vector3.UP * 0.12, material)
+	for bolt_index in range(4):
+		var angle := float(bolt_index) * PI * 0.5
+		_cylinder(self, "Manhole_Fixing_Bolt", 0.025, 0.025, 0.018, position + Vector3(0.29 * cos(angle), 0.15, 0.29 * sin(angle)), material)
+
+
+func _add_storm_drain(position: Vector3, material: Material) -> void:
+	_box(self, "Storm_Drain_Frame", Vector3(1.05, 0.055, 0.42), position + Vector3.UP * 0.13, material)
+	for bar_index in range(7):
+		var z_offset := (float(bar_index) - 3.0) * 0.052
+		_box(self, "Storm_Drain_Slat", Vector3(0.92, 0.025, 0.018), position + Vector3(0.0, 0.166, z_offset), material)
 
 
 func _add_crosswalk(center: Vector3, across_horizontal_road: bool, material: Material) -> void:
@@ -690,6 +726,14 @@ func _add_camera_hud() -> void:
 		reset_button.add_theme_stylebox_override(state, button_style)
 	reset_button.pressed.connect(_reset_camera)
 	root.add_child(reset_button)
+
+func _emissive_mat(color: Color, energy: float) -> StandardMaterial3D:
+	var material := _mat(color, 0.24, 0.05)
+	material.emission_enabled = true
+	material.emission = color
+	material.emission_energy_multiplier = energy
+	return material
+
 
 func _mat(color: Color, roughness: float = 0.82, metallic: float = 0.0) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
