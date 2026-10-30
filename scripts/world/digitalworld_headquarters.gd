@@ -1,7 +1,6 @@
 extends Node3D
 class_name DigitalWorldHeadquarters
 
-signal map_requested
 signal preview_level_changed(level: int)
 
 const MAX_LEVEL := 10
@@ -309,22 +308,6 @@ func _create_preview_interface() -> void:
 	layer.name = "Headquarters_Preview_Interface"
 	layer.layer = 20
 	add_child(layer)
-
-	var map_button := Button.new()
-	map_button.name = "Back_To_Expansion_Map"
-	map_button.text = "‹  EXPANSION MAP"
-	map_button.anchor_left = 0.0
-	map_button.anchor_top = 0.0
-	map_button.anchor_right = 0.0
-	map_button.anchor_bottom = 0.0
-	map_button.offset_left = 16.0
-	map_button.offset_top = 16.0
-	map_button.offset_right = 204.0
-	map_button.offset_bottom = 68.0
-	map_button.add_theme_font_size_override("font_size", 13)
-	_style_preview_button(map_button, false)
-	map_button.pressed.connect(func(): map_requested.emit())
-	layer.add_child(map_button)
 
 	var header := PanelContainer.new()
 	header.name = "Headquarters_Level_Header"
