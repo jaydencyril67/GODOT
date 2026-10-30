@@ -334,6 +334,7 @@ func _show_profile() -> void:
 	insignia_preview.texture = _company_logo_texture(selected_logo_id)
 	preview_row.add_child(insignia_preview)
 	var preview_copy := VBoxContainer.new()
+	preview_copy.name = "PreviewCopy"
 	preview_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_copy.alignment = BoxContainer.ALIGNMENT_CENTER
 	preview_copy.add_theme_constant_override("separation", 5)
@@ -500,7 +501,7 @@ func _select_company_logo(logo_id: int) -> void:
 	logo_option.text = "%02d  —  %s     CHANGE" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1]]
 	insignia_preview.texture = _company_logo_texture(selected_logo_id)
 	var preview_row := insignia_preview.get_parent()
-	var preview_copy := preview_row.get_node_or_null("SelectedInsigniaName") as Label
+	var preview_copy := preview_row.get_node_or_null("PreviewCopy/SelectedInsigniaName") as Label
 	if is_instance_valid(preview_copy):
 		preview_copy.text = "%02d / 50  ·  %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()]
 	_close_logo_picker()
