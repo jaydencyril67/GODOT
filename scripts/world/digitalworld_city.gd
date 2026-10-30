@@ -7,6 +7,7 @@ const PLOT_SPACING := 12.5
 const ROAD_WIDTH := 3.2
 const CITY_HALF_WIDTH := 34.0
 const CITY_HALF_DEPTH := 40.0
+const MODULAR_BUILDING_PILOT_INDEX := 14 # One custom building first; expand only after in-game review.
 const CITY_BUILDING_MODELS := [
 	"res://assets/city_glb/building-a.glb",
 	"res://assets/city_glb/building-b.glb",
@@ -271,6 +272,12 @@ func _build_city_building(index: int, plot_position: Vector3, window_frame_mater
 	building.position = plot_position
 	add_child(building)
 
+	# First-stage rollout: one fully procedural building beside the existing
+	# imported city assets. Keep the other 29 buildings untouched for comparison.
+	if index == MODULAR_BUILDING_PILOT_INDEX:
+		_add_modular_architecture_building(building, index, window_frame_material, glass_material, roof_detail_material)
+		return
+
 	var podium_material := _mat(Color("#777f82"), 0.88, 0.08)
 	_box(building, "Architectural_Podium", Vector3(9.2, 0.42, 9.2), Vector3(0.0, 0.21, 0.0), podium_material)
 
@@ -291,6 +298,159 @@ func _build_city_building(index: int, plot_position: Vector3, window_frame_mater
 		var fallback_height := 9.0 + float((index * 7) % 8) * 2.0
 		var fallback := _mat(Color("#9babb0"), 0.72, 0.12)
 		_box(building, "Fallback_Building_Mass", Vector3(6.0, fallback_height, 6.0), Vector3(0.0, 0.42 + fallback_height * 0.5, 0.0), fallback)
+
+
+func _add_modular_architecture_building(parent: Node3D, index: int, frame_material: Material, glass_material: Material, roof_material: Material) -> void:
+	# Reusable architectural vocabulary: ground-floor podium, repeated upper
+	# floors, four modular facades, optional balconies and a serviceable roof.
+	# Geometry is batched for the repeated windows to keep node/draw-call growth low.
+	var style := index % 3 # 0: office, 1: residential, 2: mixed-use.
+	var floor_count := 6 + (index % 3)
+	var building_width := 8.0
+	var ground_floor_height := 3.1
+	var upper_floor_height := 2.35
+	var total_height := ground_floor_height + float(floor_count - 1) * upper_floor_height
+
+	var wall_color := Color("#b9c0bd")
+	var podium_color := Color("#59676b")
+	var accent_color := Color("#35464d")
+	if style == 1:
+		wall_color = Color("#b7aa99")
+		podium_color = Color("#655a50")
+		accent_color = Color("#4c5558")
+	elif style == 2:
+		wall_color = Color("#c1c2bb")
+		podium_color = Color("#48575d")
+		accent_color = Color("#293b43")
+
+	var wall_material := _mat(wall_color, 0.88, 0.04)
+	var podium_material := _mat(podium_color, 0.62, 0.18)
+	var accent_material := _mat(accent_color, 0.48, 0.42)
+	var balcony_material := _mat(Color("#aebbc0"), 0.28, 0.36)
+
+	# Main concrete envelope and heavier street-level commercial podium.
+	_box(parent, "Modular_Concrete_Envelope", Vector3(building_width, total_height, building_width), Vector3(0.0, total_height * 0.5, 0.0), wall_material)
+	_box(parent, "Modular_Commercial_Podium", Vector3(8.55, ground_floor_height, 8.55), Vector3(0.0, ground_floor_height * 0.5, 0.0), podium_material)
+
+	# Strong corner piers and thin slab bands establish believable floor rhythm.
+	for corner_x in [-3.93, 3.93]:
+		for corner_z in [-3.93, 3.93]:
+			_box(parent, "Facade_Corner_Pier", Vector3(0.22, total_height, 0.22), Vector3(corner_x, total_height * 0.5, corner_z), accent_material)
+	for floor_index in range(1, floor_count):
+		var slab_y := ground_floor_height + float(floor_index - 1) * upper_floor_height
+		_box(parent, "Horizontal_Floor_Band", Vector3(8.28, 0.12, 8.28), Vector3(0.0, slab_y, 0.0), accent_material)
+
+	# Ground-floor shopfronts are repeated around the building perimeter.
+	var shop_frame_mesh := BoxMesh.new()
+	shop_frame_mesh.size = Vector3(2.0, 2.12, 0.16)
+	var shop_glass_mesh := BoxMesh.new()
+	shop_glass_mesh.size = Vector3(1.72, 1.86, 0.10)
+	var shop_frames := MultiMesh.new()
+	shop_frames.transform_format = MultiMesh.TRANSFORM_3D
+	shop_frames.mesh = shop_frame_mesh
+	var shop_glass := MultiMesh.new()
+	shop_glass.transform_format = MultiMesh.TRANSFORM_3D
+	shop_glass.mesh = shop_glass_mesh
+	var shop_transforms: Array[Transform3D] = []
+	var shop_glass_transforms: Array[Transform3D] = []
+	for side_index in range(4):
+		var side_angle := float(side_index) * PI * 0.5
+		var side_basis := Basis(Vector3.UP, side_angle)
+		for bay_offset in [-2.62, 2.62]:
+			var shop_position := side_basis * Vector3(bay_offset, 1.62, 4.30)
+			shop_transforms.append(Transform3D(side_basis, shop_position))
+			var glass_position := side_basis * Vector3(bay_offset, 1.62, 4.40)
+			shop_glass_transforms.append(Transform3D(side_basis, glass_position))
+	shop_frames.instance_count = shop_transforms.size()
+	shop_glass.instance_count = shop_glass_transforms.size()
+	for item_index in range(shop_transforms.size()):
+		shop_frames.set_instance_transform(item_index, shop_transforms[item_index])
+		shop_glass.set_instance_transform(item_index, shop_glass_transforms[item_index])
+	var shop_frame_instance := MultiMeshInstance3D.new()
+	shop_frame_instance.name = "Repeated_Ground_Floor_Storefront_Frames"
+	shop_frame_instance.multimesh = shop_frames
+	shop_frame_instance.material_override = accent_material
+	shop_frame_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(shop_frame_instance)
+	var shop_glass_instance := MultiMeshInstance3D.new()
+	shop_glass_instance.name = "Ground_Floor_Commercial_Glazing"
+	shop_glass_instance.multimesh = shop_glass
+	shop_glass_instance.material_override = glass_material
+	shop_glass_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(shop_glass_instance)
+
+	# A clearly readable main entrance on the front side of the pilot building.
+	_box(parent, "Main_Entrance_Door_Frame", Vector3(1.35, 2.35, 0.18), Vector3(0.0, 1.25, 4.40), accent_material)
+	_box(parent, "Main_Entrance_Glass_Door", Vector3(1.08, 2.08, 0.10), Vector3(0.0, 1.25, 4.51), glass_material)
+
+	# Upper-floor windows: two shared MultiMesh batches, not individual nodes.
+	var window_frame_mesh := BoxMesh.new()
+	window_frame_mesh.size = Vector3(2.0, 1.72, 0.16)
+	var window_glass_mesh := BoxMesh.new()
+	window_glass_mesh.size = Vector3(1.68, 1.40, 0.09)
+	var window_frames := MultiMesh.new()
+	window_frames.transform_format = MultiMesh.TRANSFORM_3D
+	window_frames.mesh = window_frame_mesh
+	var window_glass := MultiMesh.new()
+	window_glass.transform_format = MultiMesh.TRANSFORM_3D
+	window_glass.mesh = window_glass_mesh
+	var frame_transforms: Array[Transform3D] = []
+	var glass_transforms: Array[Transform3D] = []
+	for side_index in range(4):
+		var side_angle := float(side_index) * PI * 0.5
+		var side_basis := Basis(Vector3.UP, side_angle)
+		for floor_index in range(1, floor_count):
+			var window_y := ground_floor_height + (float(floor_index) - 0.5) * upper_floor_height
+			for bay_offset in [-2.62, 0.0, 2.62]:
+				var frame_position := side_basis * Vector3(bay_offset, window_y, 4.08)
+				frame_transforms.append(Transform3D(side_basis, frame_position))
+				var glass_position := side_basis * Vector3(bay_offset, window_y, 4.18)
+				glass_transforms.append(Transform3D(side_basis, glass_position))
+	window_frames.instance_count = frame_transforms.size()
+	window_glass.instance_count = glass_transforms.size()
+	for item_index in range(frame_transforms.size()):
+		window_frames.set_instance_transform(item_index, frame_transforms[item_index])
+		window_glass.set_instance_transform(item_index, glass_transforms[item_index])
+	var frame_instance := MultiMeshInstance3D.new()
+	frame_instance.name = "Modular_Facade_Window_Frames"
+	frame_instance.multimesh = window_frames
+	frame_instance.material_override = frame_material
+	frame_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(frame_instance)
+	var glass_instance := MultiMeshInstance3D.new()
+	glass_instance.name = "Modular_Facade_Tinted_Glass"
+	glass_instance.multimesh = window_glass
+	glass_instance.material_override = glass_material
+	glass_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(glass_instance)
+
+	# Residential and mixed-use variants receive selected projecting balconies.
+	if style == 1 or style == 2:
+		for side_index in [0, 2]:
+			var side_angle := float(side_index) * PI * 0.5
+			var side_basis := Basis(Vector3.UP, side_angle)
+			for floor_index in range(2, floor_count, 2):
+				var balcony_y := ground_floor_height + float(floor_index - 1) * upper_floor_height - 0.16
+				for bay_offset in [-2.62, 2.62]:
+					var balcony_position := side_basis * Vector3(bay_offset, balcony_y, 4.56)
+					var balcony := _box(parent, "Projecting_Balcony_Slab", Vector3(2.18, 0.14, 1.05), balcony_position, accent_material)
+					balcony.rotation.y = side_angle
+					var rail_position := side_basis * Vector3(bay_offset, balcony_y + 0.49, 5.05)
+					var rail := _box(parent, "Balcony_Glass_Railing", Vector3(2.08, 0.78, 0.055), rail_position, balcony_material)
+					rail.rotation.y = side_angle
+					rail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	# A clean parapet and roof-service equipment finish the silhouette.
+	var roof_y := total_height + 0.18
+	_box(parent, "Roof_Parapet_Front", Vector3(8.35, 0.36, 0.18), Vector3(0.0, roof_y, 4.08), accent_material)
+	_box(parent, "Roof_Parapet_Back", Vector3(8.35, 0.36, 0.18), Vector3(0.0, roof_y, -4.08), accent_material)
+	_box(parent, "Roof_Parapet_Left", Vector3(0.18, 0.36, 8.0), Vector3(-4.08, roof_y, 0.0), accent_material)
+	_box(parent, "Roof_Parapet_Right", Vector3(0.18, 0.36, 8.0), Vector3(4.08, roof_y, 0.0), accent_material)
+	var hvac := _box(parent, "Rooftop_HVAC_Service_Unit", Vector3(1.55, 0.72, 1.25), Vector3(-2.45, total_height + 0.55, -2.35), roof_material)
+	hvac.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_box(parent, "Rooftop_Stair_Core", Vector3(1.75, 1.45, 1.75), Vector3(2.25, total_height + 0.72, -2.15), wall_material)
+
+
 
 
 func _add_glb_model(parent: Node3D, model_path: String, model_scale: Vector3) -> Node3D:
