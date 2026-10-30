@@ -1047,7 +1047,7 @@ func _show_phone_editor() -> void:
 		phone_editor.queue_free()
 	phone_editor = PhoneEditorScene.instantiate() as Node3D
 	phone_editor.name = "Phone_Product_Editor"
-	phone_editor.back_requested.connect(_return_from_phone_editor)
+	phone_editor.connect("back_requested", Callable(self, "_return_from_phone_editor"))
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.hide()
 	add_child(phone_editor)
