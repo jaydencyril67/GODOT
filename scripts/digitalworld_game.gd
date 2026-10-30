@@ -946,14 +946,25 @@ func _format_game_date(timestamp: float) -> String:
 			1: suffix = "st"
 			2: suffix = "nd"
 			3: suffix = "rd"
-	return "%d%s %s %04d" % [day, suffix, Time.get_month_name(int(date["month"])).substr(0, 3), int(date["year"])]
+	var month_names := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+	return "%d%s %s %04d" % [day, suffix, month_names[int(date["month"]) - 1], int(date["year"])]
+
+
+func _format_balance(amount: float) -> String:
+	var digits := str(roundi(amount))
+	var formatted := ""
+	for index in range(digits.length()):
+		if index > 0 and (digits.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += digits.substr(index, 1)
+	return "$" + formatted
 
 
 func _update_home_status_bar() -> void:
 	if is_instance_valid(home_date_label):
 		home_date_label.text = _format_game_date(game_date_unix)
 	if is_instance_valid(home_balance_label):
-		home_balance_label.text = "$" + String.num_int64(roundi(float(career.get("balance", 10000000.0))))
+		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 	if is_instance_valid(home_time_button):
