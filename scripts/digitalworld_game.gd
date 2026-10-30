@@ -419,8 +419,8 @@ func _open_logo_picker() -> void:
 
 	var panel_style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	panel_style.bg_color = Color(0.025, 0.105, 0.17, 0.97)
-	panel_style.border_color = Color(0.76, 0.91, 0.98, 0.44)
-	panel_style.set_border_width_all(1)
+	panel_style.border_color = Color(0.48, 0.82, 1.0, 0.92)
+	panel_style.set_border_width_all(3)
 	panel_style.shadow_size = 0
 	panel_style.set_corner_radius_all(18)
 	panel.add_theme_stylebox_override("panel", panel_style)
@@ -487,12 +487,14 @@ func _open_logo_picker() -> void:
 		var logo_id := index + 1
 		var option := Button.new()
 		option.name = "InsigniaOption_%02d" % logo_id
-		option.custom_minimum_size = Vector2(0, 76 if compact else 94)
+		option.custom_minimum_size = Vector2(0, 94 if compact else 112)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.toggle_mode = true
 		option.button_pressed = logo_id == selected_logo_id
 		option.clip_text = true
 		_style_company_glass_button(option, logo_id == selected_logo_id)
+		option.add_theme_constant_override("h_separation", 6)
+		option.add_theme_constant_override("icon_max_width", 56 if compact else 64)
 
 		var cell := VBoxContainer.new()
 		cell.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -529,17 +531,10 @@ func _open_logo_picker() -> void:
 	count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	footer.add_child(count_label)
 
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer.add_child(spacer)
-
-	var done := Button.new()
-	done.text = "DONE"
-	done.custom_minimum_size = Vector2(88, 38) if compact else Vector2(104, 42)
-	done.size_flags_horizontal = Control.SIZE_SHRINK_END
-	done.pressed.connect(_close_logo_picker)
-	_style_company_glass_button(done, true)
-	footer.add_child(done)
+	var footer_hint := _label("TAP A DESIGN TO SELECT", 9 if compact else 10, Color("#91bfd5"))
+	footer_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	footer.add_child(footer_hint)
 
 
 
