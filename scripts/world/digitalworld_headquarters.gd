@@ -162,12 +162,21 @@ func _configure_camera_framing(building_height: float) -> void:
 	var config: Dictionary = LEVEL_CONFIGS[preview_level - 1]
 	var building_width: float = float(config["width"])
 	var building_depth: float = float(config["depth"])
-	var footprint_diagonal := Vector2(building_width, building_depth).length()
-	# Scale the far framing limit with both the building height and its footprint.
-	# This keeps short buildings prominent while giving taller buildings more breathing room.
-	camera_target = Vector3(0.0, building_height * 0.46, 0.0)
-	camera_max_distance = maxf(14.0, maxf(building_height * 1.15, footprint_diagonal * 1.05))
-	# Open every level at its maximum zoom-out distance for a complete building overview.
+	# Include the rooftop service equipment and parapet in the camera's framing bounds.
+	var framing_height: float = building_height + 1.8
+	var framing_center_y: float = 0.21 + framing_height * 0.5
+	# A bounding-sphere fit keeps the entire building visible at every camera yaw and pitch.
+	# Vertical FOV is the limiting dimension on the landscape phone viewport.
+	var half_width: float = building_width * 0.5 + 0.7
+	var half_depth: float = building_depth * 0.5 + 0.7
+	var half_height: float = framing_height * 0.5
+	var framing_radius := Vector3(half_width, half_height, half_depth).length()
+	var half_fov_radians := deg_to_rad(hq_camera.fov * 0.5) if is_instance_valid(hq_camera) else deg_to_rad(26.0)
+	var fit_distance: float = framing_radius / sin(half_fov_radians)
+	camera_target = Vector3(0.0, framing_center_y, 0.0)
+	# Extra breathing room prevents the roof and corners touching the screen edges.
+	camera_max_distance = maxf(18.0, fit_distance * 1.18)
+	# Reset on both initial load and every level switch to the calculated full-building view.
 	camera_distance = camera_max_distance
 
 func _build_procedural_building(level: int) -> float:
