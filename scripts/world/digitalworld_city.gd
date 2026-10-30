@@ -857,6 +857,7 @@ func _make_procedural_pedestrian(index: int) -> Dictionary:
 	var trousers_colors := [Color("#30383d"), Color("#252c36"), Color("#51483d"), Color("#343b50")]
 	var trousers := _mat(trousers_colors[index % trousers_colors.size()], 0.92)
 	var shoe := _mat(Color("#171b1e"), 0.72)
+	var rubber := _mat(Color("#111619"), 0.96)
 	var hair_colors := [Color("#171411"), Color("#30231d"), Color("#49352a")]
 	var hair := _mat(hair_colors[index % hair_colors.size()], 0.96)
 	var detail := _mat(Color("#d2b99d"), 0.76)
