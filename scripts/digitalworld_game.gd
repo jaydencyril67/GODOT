@@ -1,6 +1,7 @@
 extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
+const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor.tscn")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 
 const LOGO_NAMES := [
@@ -23,6 +24,7 @@ var ui_root: Control
 var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: Node3D
+var phone_editor: Node3D
 var career: Dictionary = {}
 var upgrade_level := 1
 var selected_upgrade := 1
@@ -1034,7 +1036,33 @@ func _style_create_glass_button(button: Button, primary: bool) -> void:
 
 
 func _on_create_category_pressed(category: String) -> void:
+	if category.to_upper() == "PHONE":
+		_show_phone_editor()
+		return
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
+
+
+func _show_phone_editor() -> void:
+	if is_instance_valid(phone_editor):
+		phone_editor.queue_free()
+	phone_editor = PhoneEditorScene.instantiate() as Node3D
+	phone_editor.name = "Phone_Product_Editor"
+	phone_editor.connect("back_requested", Callable(self, "_return_from_phone_editor"))
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.hide()
+	add_child(phone_editor)
+	current_screen = "phone_editor"
+
+
+func _return_from_phone_editor() -> void:
+	if is_instance_valid(phone_editor):
+		phone_editor.queue_free()
+	phone_editor = null
+	current_screen = "create"
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.show()
+		ui_layer = create_ui_layer
+		ui_root = create_ui_root
 
 
 func _on_headquarters_preview_level_changed(level: int) -> void:
