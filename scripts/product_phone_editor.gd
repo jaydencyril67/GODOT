@@ -120,8 +120,8 @@ func _make_tools_card(card_name: String) -> PanelContainer:
 	rotation_grid.add_theme_constant_override("v_separation", 8)
 	tools_content.add_child(rotation_grid)
 
-	_add_tool_button(rotation_grid, "X −", _rotate_axis.bind(Vector3.RIGHT, -1.0))
-	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, 1.0))
+	_add_tool_button(rotation_grid, "X −", _rotate_axis.bind(Vector3.RIGHT, 1.0))
+	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, -1.0))
 	_add_tool_button(rotation_grid, "Y −", _rotate_axis.bind(Vector3.UP, -1.0))
 	_add_tool_button(rotation_grid, "Y +", _rotate_axis.bind(Vector3.UP, 1.0))
 	_add_tool_button(rotation_grid, "Z −", _rotate_axis.bind(Vector3.FORWARD, -1.0))
