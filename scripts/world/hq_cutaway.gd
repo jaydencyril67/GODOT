@@ -32,16 +32,17 @@ func _build_scene() -> void:
 	camera.look_at(Vector3(0, 0.3, 0), Vector3.UP)
 	camera.current = true
 
-	var floor_base := _mat(Color("#a6a79e"), 0.94)
-	var floor_left := _mat(Color("#b6bbb3"), 0.94)
-	var floor_middle := _mat(Color("#969f98"), 0.92)
-	var floor_right := _mat(Color("#c5bda9"), 0.95)
-	var wall := _mat(Color("#d5d2c8"), 0.90)
-	var partition := _mat(Color("#c5c7bd"), 0.88)
-	var dark := _mat(Color("#303a39"), 0.42, 0.48)
-	var aluminum := _mat(Color("#9da8a2"), 0.32, 0.72)
-	var desk := _mat(Color("#6c6254"), 0.74)
-	var light_desk := _mat(Color("#d0c8b8"), 0.68)
+	# Restrained architectural palette and physically based surface response.
+	var floor_base := _mat(Color("#777b78"), 0.82)
+	var floor_left := _mat(Color("#898e89"), 0.84)
+	var floor_middle := _mat(Color("#777f7b"), 0.84)
+	var floor_right := _mat(Color("#918b7f"), 0.86)
+	var wall := _mat(Color("#c4c4bd"), 0.92)
+	var partition := _mat(Color("#aeb8b5"), 0.42, 0.18)
+	var dark := _mat(Color("#202a2b"), 0.58, 0.32)
+	var aluminum := _mat(Color("#87918f"), 0.38, 0.78)
+	var desk := _mat(Color("#55483b"), 0.62)
+	var light_desk := _mat(Color("#b9b1a2"), 0.58)
 	var screen := _mat(Color("#101f2a"), 0.2, 0.12)
 	screen.emission_enabled = true
 	screen.emission = Color("#1c5b75")
@@ -51,6 +52,7 @@ func _build_scene() -> void:
 	var rubber := _mat(Color("#252c2b"), 0.9)
 	var glass := _mat(Color("#a8c6c5", 0.48), 0.12, 0.28)
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var green := _mat(Color("#a6d78b"), 0.35)
 	green.emission_enabled = true
 	green.emission = Color("#4e9e3a")
@@ -75,6 +77,12 @@ func _build_scene() -> void:
 	_box("Left_Cutaway_Wall", Vector3(0.2, 3.55, 14.35), Vector3(-9.15, 2.0, 0), wall)
 	_box("Right_Cutaway_Wall", Vector3(0.2, 3.55, 14.35), Vector3(9.15, 2.0, 0), wall)
 	_box("Rear_Cutaway_Wall", Vector3(18.3, 3.55, 0.2), Vector3(0, 2.0, -7.15), wall)
+	# Architectural structure: concrete piers, a continuous lintel and restrained facade trim.
+	for x in [-8.95, -3.05, 3.05, 8.95]:
+		_box("Rear_Structural_Pier", Vector3(0.24, 3.65, 0.3), Vector3(x, 2.0, -6.94), aluminum)
+	_box("Rear_Facade_Lintel", Vector3(18.25, 0.2, 0.28), Vector3(0, 3.78, -6.94), dark)
+	_box("Left_Facade_Cap", Vector3(0.28, 0.18, 14.2), Vector3(-9.0, 3.82, 0), dark)
+	_box("Right_Facade_Cap", Vector3(0.28, 0.18, 14.2), Vector3(9.0, 3.82, 0), dark)
 	_box("Front_Left_Wall_Remnant", Vector3(7.5, 3.55, 0.2), Vector3(-5.15, 2.0, 7.1), wall)
 	_box("Front_Right_Wall_Remnant", Vector3(7.5, 3.55, 0.2), Vector3(5.15, 2.0, 7.1), wall)
 
@@ -87,9 +95,11 @@ func _build_scene() -> void:
 	_box("Skirting_Right", Vector3(0.08, 0.16, 13.9), Vector3(9.02, 0.42, 0), aluminum)
 	_box("Skirting_Rear", Vector3(18.1, 0.16, 0.08), Vector3(0, 0.42, -7.02), aluminum)
 	for x in [-3.02, 3.02]:
-		_box("Department_Glass_Partition", Vector3(0.16, 3.0, 8.35), Vector3(x, 1.72, -2.65), partition)
-		_box("Department_Glass_Partition", Vector3(0.16, 3.0, 3.25), Vector3(x, 1.72, 5.45), partition)
-		_box("Department_Glass_Partition", Vector3(0.16, 3.0, 1.55), Vector3(x, 1.72, 0.25), partition)
+		_box("Department_Glass_Partition", Vector3(0.10, 3.0, 8.35), Vector3(x, 1.72, -2.65), glass)
+		_box("Partition_Top_Rail", Vector3(0.14, 0.10, 8.4), Vector3(x, 3.25, -2.65), aluminum)
+		_box("Partition_Bottom_Rail", Vector3(0.14, 0.10, 8.4), Vector3(x, 0.25, -2.65), aluminum)
+		_box("Department_Glass_Partition", Vector3(0.10, 3.0, 3.25), Vector3(x, 1.72, 5.45), glass)
+		_box("Department_Glass_Partition", Vector3(0.10, 3.0, 1.55), Vector3(x, 1.72, 0.25), glass)
 
 	# Room labels are actual 3D signs on the back wall, not HTML overlays.
 	_label("PROGRAMMING STUDIO", Vector3(-6.05, 3.1, -6.99), Color("#7ebfce"))
@@ -159,8 +169,8 @@ func _build_scene() -> void:
 			_box("Light_Diffuser", Vector3(1.2, 0.028, 0.45), Vector3(x, 3.58, z), _emissive_mat(Color("#fff0cc"), 1.05))
 			var fill := OmniLight3D.new()
 			fill.light_color = Color("#ffe9c6") if x != 0 else Color("#e1edff")
-			fill.light_energy = 1.6
-			fill.omni_range = 8.5
+			fill.light_energy = 0.85
+			fill.omni_range = 7.0
 			fill.position = Vector3(x, 3.1, z)
 			add_child(fill)
 
