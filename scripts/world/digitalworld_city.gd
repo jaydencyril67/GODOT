@@ -656,7 +656,7 @@ func _add_traffic() -> void:
 	for index in range(18):
 		var direction := 1.0 if index % 2 == 0 else -1.0
 		var car := _make_procedural_car(index)
-		var lane_offset := 0.58 if direction > 0.0 else -0.58
+		var lane_offset := 0.88 if direction > 0.0 else -0.88
 		car.position = Vector3(-31.0 + float(index) * 3.65, 0.12, lanes[index % 3] + lane_offset)
 		car.rotation.y = 0.0 if direction > 0.0 else PI
 		add_child(car)
