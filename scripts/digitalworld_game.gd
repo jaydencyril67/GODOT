@@ -39,6 +39,10 @@ var graphics_quality := "High"
 var sound_enabled := true
 
 func _ready() -> void:
+	# Re-apply Android immersive fullscreen at runtime as well as in the export preset.
+	# Android may briefly reveal system bars for its edge-swipe navigation gesture.
+	if OS.has_feature("android"):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	_load_career()
 	_show_menu()
 
