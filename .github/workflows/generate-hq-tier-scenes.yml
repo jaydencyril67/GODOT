@@ -40,9 +40,6 @@ jobs:
             test -s "scenes/world/headquarters_tiers/level_${level}.tscn"
           done
 
-      - name: Validate all ten generated tier scenes
-        run: godot --headless --path . --script res://tools/validate_hq_tier_scenes.gd
-
       - name: Re-import generated scene resources
         shell: bash
         run: |
@@ -52,6 +49,9 @@ jobs:
             echo "Godot reported an error while importing generated HQ scenes."
             exit 1
           fi
+
+      - name: Validate all ten generated tier scenes
+        run: godot --headless --path . --script res://tools/validate_hq_tier_scenes.gd
 
       - name: Commit generated scenes
         shell: bash
