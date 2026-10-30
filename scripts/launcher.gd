@@ -39,14 +39,8 @@ func show_landing_page() -> void:
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	backdrop.stretch_mode = TextureRect.STRETCH_SCALE
-	var gradient := Gradient.new()
-	gradient.set_color(0, Color("#b7e6ff"))
-	gradient.set_color(1, Color("#55b8ed"))
-	var gradient_texture := GradientTexture2D.new()
-	gradient_texture.gradient = gradient
-	gradient_texture.fill_from = Vector2(0.5, 0.0)
-	gradient_texture.fill_to = Vector2(0.5, 1.0)
-	backdrop.texture = gradient_texture
+	backdrop.texture = load("res://assets/digitalworld-landing.png")
+	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	screen.add_child(backdrop)
 
 	var menu := VBoxContainer.new()
