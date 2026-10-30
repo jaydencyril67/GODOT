@@ -20,6 +20,7 @@ var facade_normal: Texture2D
 
 func _ready() -> void:
 	_build_tycoon_map()
+	_create_bottom_navigation()
 
 func _build_tycoon_map() -> void:
 	_create_material_library()
@@ -29,6 +30,79 @@ func _build_tycoon_map() -> void:
 	_add_tycoon_ground()
 	_add_expansion_slots()
 	_add_headquarters()
+
+
+func _create_bottom_navigation() -> void:
+	# A viewport-anchored navigation bar stays fixed to the bottom of the screen.
+	var layer := CanvasLayer.new()
+	layer.name = "Tycoon_Bottom_Navigation_Layer"
+	layer.layer = 10
+	add_child(layer)
+
+	var panel := PanelContainer.new()
+	panel.name = "Fixed_Bottom_Navigation"
+	panel.anchor_left = 0.0
+	panel.anchor_top = 1.0
+	panel.anchor_right = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 8.0
+	panel.offset_top = -78.0
+	panel.offset_right = -8.0
+	panel.offset_bottom = -8.0
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#102638")
+	panel_style.border_color = Color("#397da5")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(12)
+	panel_style.content_margin_left = 7.0
+	panel_style.content_margin_right = 7.0
+	panel_style.content_margin_top = 6.0
+	panel_style.content_margin_bottom = 6.0
+	panel.add_theme_stylebox_override("panel", panel_style)
+	layer.add_child(panel)
+
+	var row := HBoxContainer.new()
+	row.name = "Navigation_Buttons_Row"
+	row.add_theme_constant_override("separation", 5)
+	panel.add_child(row)
+
+	var button_names: Array[String] = [
+		"Create",
+		"Products",
+		"Research",
+		"Marketing",
+		"Media",
+		"Office",
+		"Statistics"
+	]
+	for button_name in button_names:
+		var button := Button.new()
+		button.name = button_name + "_Button"
+		button.text = button_name
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size = Vector2(0.0, 54.0)
+		button.add_theme_font_size_override("font_size", 12)
+		button.add_theme_color_override("font_color", Color("#eaf6ff"))
+		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color("#1c4560")
+		normal.set_corner_radius_all(8)
+		normal.content_margin_left = 2.0
+		normal.content_margin_right = 2.0
+		var hover := normal.duplicate() as StyleBoxFlat
+		hover.bg_color = Color("#28698e")
+		var pressed := normal.duplicate() as StyleBoxFlat
+		pressed.bg_color = Color("#1686bd")
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", pressed)
+		button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		row.add_child(button)
 
 func _create_material_library() -> void:
 	materials = {
