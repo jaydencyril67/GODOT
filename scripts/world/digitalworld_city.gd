@@ -145,7 +145,7 @@ func _build_city() -> void:
 	lamp_material.emission_energy_multiplier = 2.2
 	var glass_material := _mat(Color("#78b9d0"), 0.12, 0.62)
 	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glass_material.albedo_color.a = 0.78
+	glass_material.albedo_color = Color(0.47, 0.72, 0.82, 0.78)
 	glass_material.metallic = 0.48
 	glass_material.emission_enabled = true
 	glass_material.emission = Color("#183d50")
