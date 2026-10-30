@@ -114,6 +114,7 @@ func _show_menu() -> void:
 
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.add_child(center)
 
