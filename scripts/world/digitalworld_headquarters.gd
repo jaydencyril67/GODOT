@@ -5,6 +5,8 @@ signal preview_level_changed(level: int)
 signal create_requested
 signal setup_progress(message: String, progress: float)
 signal setup_completed
+signal back_requested
+signal upgrade_requested(level: int)
 
 const MAX_LEVEL := 10
 const LEVEL_CONFIGS := [
@@ -30,6 +32,8 @@ var preview_interface_layer: CanvasLayer
 var owned_info_label: Label
 var previous_level_button: Button
 var next_level_button: Button
+var upgrade_button: Button
+var home_mode := false
 var camera_target := Vector3.ZERO
 var camera_distance := 38.0
 var camera_max_distance := 36.0
@@ -370,7 +374,7 @@ func _create_preview_interface() -> void:
 	stack.add_theme_constant_override("separation", 3)
 	header.add_child(stack)
 	var title := Label.new()
-	title.text = "HEADQUARTERS PREVIEW"
+	title.text = "YOUR HEADQUARTERS" if home_mode else "HEADQUARTERS BUILDINGS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color("#9edfff"))
@@ -394,50 +398,64 @@ func _create_preview_interface() -> void:
 	stack.add_child(owned_info_label)
 	layer.add_child(header)
 
-	previous_level_button = _create_side_level_button(layer, "Previous_Level_Button", "‹", true)
-	previous_level_button.pressed.connect(_show_previous_level)
-	next_level_button = _create_side_level_button(layer, "Next_Level_Button", "›", false)
-	next_level_button.pressed.connect(_show_next_level)
+	if not home_mode:
+		previous_level_button = _create_side_level_button(layer, "Previous_Level_Button", "‹", true)
+		previous_level_button.pressed.connect(_show_previous_level)
+		next_level_button = _create_side_level_button(layer, "Next_Level_Button", "›", false)
+		next_level_button.pressed.connect(_show_next_level)
 
-	var bottom_layer := PanelContainer.new()
-	bottom_layer.name = "Fixed_Bottom_Navigation"
-	bottom_layer.anchor_left = 0.0
-	bottom_layer.anchor_top = 1.0
-	bottom_layer.anchor_right = 1.0
-	bottom_layer.anchor_bottom = 1.0
-	bottom_layer.offset_left = 8.0
-	bottom_layer.offset_top = -78.0
-	bottom_layer.offset_right = -8.0
-	bottom_layer.offset_bottom = -8.0
-	var bottom_style := StyleBoxFlat.new()
-	bottom_style.bg_color = Color("#102638")
-	bottom_style.border_color = Color("#397da5")
-	bottom_style.set_border_width_all(1)
-	bottom_style.set_corner_radius_all(12)
-	bottom_style.content_margin_left = 7.0
-	bottom_style.content_margin_right = 7.0
-	bottom_style.content_margin_top = 6.0
-	bottom_style.content_margin_bottom = 6.0
-	bottom_layer.add_theme_stylebox_override("panel", bottom_style)
-	layer.add_child(bottom_layer)
+		var back_button := _create_bottom_action_button(layer, "Back", false)
+		back_button.name = "Headquarters_Back_Button"
+		back_button.anchor_left = 0.0
+		back_button.anchor_top = 1.0
+		back_button.anchor_right = 0.0
+		back_button.anchor_bottom = 1.0
+		back_button.offset_left = 18.0
+		back_button.offset_top = -76.0
+		back_button.offset_right = 146.0
+		back_button.offset_bottom = -18.0
+		back_button.pressed.connect(func(): back_requested.emit())
 
-	var row := HBoxContainer.new()
-	row.name = "Navigation_Buttons_Row"
-	row.add_theme_constant_override("separation", 5)
-	bottom_layer.add_child(row)
-	for button_name in ["Create", "Products", "Research", "Marketing", "Media", "Office", "Statistics"]:
-		var button := Button.new()
-		button.name = button_name + "_Button"
-		button.text = button_name
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, 54.0)
-		button.add_theme_font_size_override("font_size", 12)
-		_style_preview_button(button, false)
-		if button_name == "Create":
-			button.pressed.connect(func(): create_requested.emit())
-		row.add_child(button)
+		upgrade_button = _create_bottom_action_button(layer, "Upgrade", true)
+		upgrade_button.name = "Headquarters_Upgrade_Button"
+		upgrade_button.anchor_left = 1.0
+		upgrade_button.anchor_top = 1.0
+		upgrade_button.anchor_right = 1.0
+		upgrade_button.anchor_bottom = 1.0
+		upgrade_button.offset_left = -146.0
+		upgrade_button.offset_top = -76.0
+		upgrade_button.offset_right = -18.0
+		upgrade_button.offset_bottom = -18.0
+		upgrade_button.pressed.connect(func(): upgrade_requested.emit(preview_level))
 
+	_refresh_preview_interface()
+
+
+func _create_bottom_action_button(parent: Node, caption: String, primary: bool) -> Button:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(128.0, 58.0)
+	button.add_theme_font_size_override("font_size", 14)
+	_style_preview_button(button, primary)
+	parent.add_child(button)
+	return button
+
+
+func set_home_mode(active: bool) -> void:
+	home_mode = active
+	preview_level = owned_level
+	_rebuild_preview()
+	if is_instance_valid(preview_interface_layer):
+		preview_interface_layer.free()
+	preview_interface_layer = null
+	previous_level_button = null
+	next_level_button = null
+	upgrade_button = null
+	_create_preview_interface()
+
+
+func set_owned_level(level: int) -> void:
+	owned_level = clampi(level, 1, MAX_LEVEL)
 	_refresh_preview_interface()
 
 func set_preview_active(active: bool) -> void:
@@ -481,6 +499,8 @@ func _refresh_preview_interface() -> void:
 		previous_level_button.disabled = preview_level <= 1
 	if is_instance_valid(next_level_button):
 		next_level_button.disabled = preview_level >= MAX_LEVEL
+	if is_instance_valid(upgrade_button):
+		upgrade_button.disabled = preview_level <= owned_level
 
 func _style_preview_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
