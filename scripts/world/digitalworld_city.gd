@@ -12,10 +12,9 @@ var traffic: Array[Dictionary] = []
 var walkers: Array[Dictionary] = []
 var animation_clock := 0.0
 var city_camera: Camera3D
-var camera_target := Vector3(0.0, 5.2, 15.0)
+var camera_position := Vector3(0.0, 14.0, 48.0)
 var camera_yaw := 0.0
-var camera_pitch := -0.09
-var camera_distance := 26.0
+var camera_pitch := -0.20
 var mouse_orbiting := false
 var mouse_panning := false
 var touch_points: Dictionary = {}
@@ -727,38 +726,41 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _orbit_camera(relative: Vector2) -> void:
+	# Free-look rotation: turn the camera in place instead of orbiting a fixed target.
 	camera_yaw -= relative.x * 0.0052
-	camera_pitch = clampf(camera_pitch - relative.y * 0.0042, -0.16, 1.12)
+	camera_pitch = clampf(camera_pitch - relative.y * 0.0042, -1.25, 1.25)
 	_update_camera_transform()
 
 func _zoom_camera(amount: float) -> void:
-	camera_distance = clampf(camera_distance + amount, 6.5, 112.0)
+	if not is_instance_valid(city_camera):
+		return
+	camera_position += -city_camera.global_transform.basis.z * amount
+	camera_position.x = clampf(camera_position.x, -72.0, 72.0)
+	camera_position.y = clampf(camera_position.y, 2.0, 48.0)
+	camera_position.z = clampf(camera_position.z, -85.0, 85.0)
 	_update_camera_transform()
 
 func _pan_camera(relative: Vector2) -> void:
 	if not is_instance_valid(city_camera):
 		return
-	var factor := camera_distance * 0.00165
-	camera_target -= city_camera.global_transform.basis.x * relative.x * factor
-	camera_target += city_camera.global_transform.basis.y * relative.y * factor
-	camera_target.x = clampf(camera_target.x, -48.0, 48.0)
-	camera_target.y = clampf(camera_target.y, 1.0, 38.0)
-	camera_target.z = clampf(camera_target.z, -55.0, 55.0)
+	var factor := maxf(camera_position.distance_to(Vector3.ZERO), 12.0) * 0.00165
+	camera_position += -city_camera.global_transform.basis.x * relative.x * factor
+	camera_position += city_camera.global_transform.basis.y * relative.y * factor
+	camera_position.x = clampf(camera_position.x, -72.0, 72.0)
+	camera_position.y = clampf(camera_position.y, 2.0, 48.0)
+	camera_position.z = clampf(camera_position.z, -85.0, 85.0)
 	_update_camera_transform()
 
 func _update_camera_transform() -> void:
 	if not is_instance_valid(city_camera):
 		return
-	var horizontal := cos(camera_pitch) * camera_distance
-	var offset := Vector3(sin(camera_yaw) * horizontal, sin(camera_pitch) * camera_distance, cos(camera_yaw) * horizontal)
-	city_camera.position = camera_target + offset
-	city_camera.look_at(camera_target, Vector3.UP)
+	city_camera.position = camera_position
+	city_camera.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
 
 func _reset_camera() -> void:
-	camera_target = Vector3(0.0, 5.2, 15.0)
+	camera_position = Vector3(0.0, 14.0, 48.0)
 	camera_yaw = 0.0
-	camera_pitch = -0.09
-	camera_distance = 26.0
+	camera_pitch = -0.20
 	_update_camera_transform()
 
 func _add_camera_hud() -> void:
@@ -770,7 +772,7 @@ func _add_camera_hud() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
 	var hint := Label.new()
-	hint.text = "DRAG TO ROTATE  •  PINCH TO ZOOM  •  TWO FINGERS TO PAN"
+	hint.text = "DRAG TO LOOK  •  PINCH TO MOVE  •  TWO FINGERS TO PAN"
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.94, 0.97, 0.98, 0.86))
 	hint.anchor_left = 0.0
