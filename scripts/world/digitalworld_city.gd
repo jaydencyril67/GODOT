@@ -570,7 +570,7 @@ func _add_traffic() -> void:
 		var direction := 1.0 if index % 2 == 0 else -1.0
 		var car := _make_procedural_car(index)
 		car.position = Vector3(-31.0 + float(index) * 6.8, 0.12, lanes[index % 3] + (0.58 if direction > 0.0 else -0.58))
-		car.rotation.y = -PI * 0.5 if direction > 0.0 else PI * 0.5
+		car.rotation.y = 0.0 if direction > 0.0 else PI
 		add_child(car)
 		traffic.append({"node": car, "speed": 3.0 + float(index % 3) * 0.65, "direction": direction})
 
@@ -578,18 +578,73 @@ func _make_procedural_car(index: int) -> Node3D:
 	var car := Node3D.new()
 	car.name = "Procedural_Traffic_Vehicle_%02d" % (index + 1)
 	var paint_colors := [Color("#d8dce0"), Color("#263d50"), Color("#a84a38"), Color("#c5a45d"), Color("#3c6257")]
-	var paint := _mat(paint_colors[index % paint_colors.size()], 0.28, 0.52)
-	_box(car, "Stamped_Vehicle_Body", Vector3(1.85, 0.48, 0.92), Vector3(0.0, 0.54, 0.0), paint)
-	_box(car, "Passenger_Cabin", Vector3(1.02, 0.48, 0.78), Vector3(-0.12, 0.99, 0.0), materials["glass"])
-	for x in [-0.58, 0.58]:
-		for z in [-0.49, 0.49]:
-			var tyre := _cylinder(car, "Rubber_Tyre", 0.22, 0.22, 0.13, Vector3(x, 0.30, z), materials["rubber"])
+	var paint := _mat(paint_colors[index % paint_colors.size()], 0.24, 0.58)
+	var trim := _mat(Color("#182126"), 0.34, 0.48)
+	var chrome := _mat(Color("#aebbc0"), 0.2, 0.82)
+	var rubber := _mat(Color("#111619"), 0.96)
+	var glass := _glass_mat()
+	var front_glass := _mat(Color("#263d49"), 0.12, 0.28)
+	front_glass.clearcoat_enabled = true
+	front_glass.clearcoat = 0.9
+	var headlamp := _emissive_mat(Color("#fff0c9"), 2.2)
+	var tail_lamp := _emissive_mat(Color("#d91e2b"), 1.8)
+
+	_box(car, "Lower_Stamped_Aluminium_Body", Vector3(2.05, 0.42, 0.98), Vector3(0.0, 0.48, 0.0), paint)
+	_box(car, "Upper_Body_Beltline", Vector3(1.88, 0.20, 0.94), Vector3(-0.02, 0.76, 0.0), paint)
+	_box(car, "Front_Bonnet", Vector3(0.70, 0.10, 0.88), Vector3(0.63, 0.76, 0.0), paint)
+	_box(car, "Rear_Deck_Lid", Vector3(0.43, 0.09, 0.86), Vector3(-0.76, 0.76, 0.0), paint)
+	_box(car, "Front_Bumper", Vector3(0.13, 0.16, 1.00), Vector3(1.04, 0.39, 0.0), trim)
+	_box(car, "Rear_Bumper", Vector3(0.13, 0.15, 1.00), Vector3(-1.04, 0.39, 0.0), trim)
+	_box(car, "Front_Bumper_Chrome_Trim", Vector3(0.035, 0.035, 0.76), Vector3(1.112, 0.39, 0.0), chrome)
+	_box(car, "Rear_Bumper_Chrome_Trim", Vector3(0.035, 0.03, 0.76), Vector3(-1.112, 0.39, 0.0), chrome)
+
+	_box(car, "Roof_Panel", Vector3(0.88, 0.11, 0.76), Vector3(-0.13, 1.19, 0.0), paint)
+	_box(car, "Front_Windshield", Vector3(0.075, 0.34, 0.70), Vector3(0.34, 0.99, 0.0), front_glass)
+	_box(car, "Rear_Windshield", Vector3(0.075, 0.31, 0.68), Vector3(-0.61, 1.00, 0.0), front_glass)
+	for side in [-1.0, 1.0]:
+		_box(car, "Front_Side_Window", Vector3(0.39, 0.28, 0.025), Vector3(0.10, 1.02, side * 0.397), glass)
+		_box(car, "Rear_Side_Window", Vector3(0.34, 0.27, 0.025), Vector3(-0.34, 1.02, side * 0.397), glass)
+		_box(car, "Front_Window_Pillar", Vector3(0.055, 0.39, 0.055), Vector3(0.34, 1.00, side * 0.39), trim)
+		_box(car, "Centre_Window_Pillar", Vector3(0.06, 0.43, 0.055), Vector3(-0.12, 1.00, side * 0.39), trim)
+		_box(car, "Rear_Window_Pillar", Vector3(0.055, 0.38, 0.055), Vector3(-0.59, 1.00, side * 0.39), trim)
+		_box(car, "Door_Belt_Chrome", Vector3(0.80, 0.025, 0.025), Vector3(-0.12, 0.82, side * 0.49), chrome)
+		_box(car, "Door_Handle", Vector3(0.13, 0.035, 0.025), Vector3(-0.12, 0.70, side * 0.50), chrome)
+		_box(car, "Side_Mirror_Stem", Vector3(0.12, 0.045, 0.045), Vector3(0.37, 0.91, side * 0.50), trim)
+		_box(car, "Side_Mirror_Housing", Vector3(0.16, 0.12, 0.10), Vector3(0.43, 0.96, side * 0.55), paint)
+		_box(car, "Side_Mirror_Glass", Vector3(0.025, 0.075, 0.065), Vector3(0.51, 0.96, side * 0.55), chrome)
+
+	_box(car, "Front_Grille_Outer", Vector3(0.035, 0.18, 0.38), Vector3(1.075, 0.53, 0.0), trim)
+	for grille_bar in range(5):
+		_box(car, "Front_Grille_Slat", Vector3(0.018, 0.012, 0.31), Vector3(1.098, 0.47 + float(grille_bar) * 0.03, 0.0), chrome)
+	_box(car, "Front_Registration_Plate", Vector3(0.025, 0.075, 0.30), Vector3(1.12, 0.31, 0.0), chrome)
+	_box(car, "Rear_Registration_Plate", Vector3(0.025, 0.07, 0.30), Vector3(-1.12, 0.31, 0.0), chrome)
+	for side in [-1.0, 1.0]:
+		_box(car, "LED_Headlamp_Housing", Vector3(0.07, 0.15, 0.23), Vector3(1.075, 0.59, side * 0.34), trim)
+		_box(car, "LED_Headlamp_Lens", Vector3(0.035, 0.105, 0.18), Vector3(1.116, 0.60, side * 0.34), headlamp)
+		_box(car, "Rear_Lamp_Housing", Vector3(0.07, 0.18, 0.22), Vector3(-1.075, 0.58, side * 0.34), trim)
+		_box(car, "Rear_Lamp_Lens", Vector3(0.035, 0.13, 0.17), Vector3(-1.116, 0.59, side * 0.34), tail_lamp)
+		_box(car, "Amber_Indicator", Vector3(0.025, 0.045, 0.07), Vector3(1.12, 0.51, side * 0.34), materials["amber"])
+		_box(car, "Rear_Reflector", Vector3(0.025, 0.035, 0.10), Vector3(-1.12, 0.43, side * 0.34), materials["red"])
+
+	for x in [-0.64, 0.64]:
+		for z in [-0.52, 0.52]:
+			var tyre := _cylinder(car, "Rubber_Tyre", 0.235, 0.235, 0.16, Vector3(x, 0.29, z), rubber)
 			tyre.rotation.x = PI * 0.5
-			var hub := _cylinder(car, "Alloy_Wheel_Hub", 0.105, 0.105, 0.145, Vector3(x, 0.30, z * 1.08), materials["metal"])
+			var sidewall := _cylinder(car, "Tyre_Sidewall_Ring", 0.174, 0.174, 0.166, Vector3(x, 0.29, z * 1.012), trim)
+			sidewall.rotation.x = PI * 0.5
+			var brake := _cylinder(car, "Brake_Disc", 0.125, 0.125, 0.17, Vector3(x, 0.29, z * 1.025), chrome)
+			brake.rotation.x = PI * 0.5
+			var hub := _cylinder(car, "Alloy_Wheel_Face", 0.105, 0.105, 0.18, Vector3(x, 0.29, z * 1.04), chrome)
 			hub.rotation.x = PI * 0.5
-	for z in [-0.27, 0.27]:
-		_box(car, "LED_Headlamp", Vector3(0.08, 0.12, 0.16), Vector3(0.94, 0.57, z), materials["lamp"])
-		_box(car, "Rear_Lamp", Vector3(0.08, 0.12, 0.16), Vector3(-0.94, 0.57, z), materials["red"])
+			for spoke in range(5):
+				var angle := float(spoke) * TAU / 5.0
+				var spoke_mesh := _box(car, "Alloy_Wheel_Spoke", Vector3(0.025, 0.14, 0.025), Vector3(x, 0.29 + cos(angle) * 0.065, z * 1.055 + sin(angle) * 0.065), chrome)
+				spoke_mesh.rotation.x = PI * 0.5
+			var centre_cap := _cylinder(car, "Wheel_Centre_Cap", 0.043, 0.043, 0.19, Vector3(x, 0.29, z * 1.06), paint)
+			centre_cap.rotation.x = PI * 0.5
+	_box(car, "Front_Fog_Lamp_Left", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, -0.36), headlamp)
+	_box(car, "Front_Fog_Lamp_Right", Vector3(0.03, 0.055, 0.09), Vector3(1.12, 0.37, 0.36), headlamp)
+	_box(car, "Exhaust_Tip", Vector3(0.12, 0.055, 0.07), Vector3(-1.10, 0.28, -0.30), chrome)
 	return car
 
 func _add_pedestrians() -> void:
@@ -603,18 +658,65 @@ func _add_pedestrians() -> void:
 func _make_procedural_pedestrian(index: int) -> Dictionary:
 	var person := Node3D.new()
 	person.name = "Procedural_Pedestrian_%02d" % (index + 1)
-	var skin_colors := [Color("#8d6048"), Color("#a87555"), Color("#684631")]
-	var skin := _mat(skin_colors[index % skin_colors.size()], 0.9)
-	var clothing_colors := [Color("#355d72"), Color("#754b42"), Color("#465e49"), Color("#6d6384")]
-	var clothes := _mat(clothing_colors[index % clothing_colors.size()], 0.88)
-	var trousers := _mat(Color("#30383d"), 0.94)
-	_sphere(person, "Pedestrian_Head", 0.16, Vector3(0.0, 1.48, 0.0), skin)
-	_capsule(person, "Pedestrian_Torso", 0.19, 0.62, Vector3(0.0, 1.0, 0.0), clothes)
-	var left_leg := _capsule(person, "Pedestrian_Left_Leg", 0.07, 0.44, Vector3(-0.09, 0.48, 0.0), trousers)
-	var right_leg := _capsule(person, "Pedestrian_Right_Leg", 0.07, 0.44, Vector3(0.09, 0.48, 0.0), trousers)
-	var left_arm := _capsule(person, "Pedestrian_Left_Arm", 0.055, 0.4, Vector3(-0.23, 1.0, 0.0), clothes)
-	var right_arm := _capsule(person, "Pedestrian_Right_Arm", 0.055, 0.4, Vector3(0.23, 1.0, 0.0), clothes)
-	return {"node": person, "left_leg": left_leg, "right_leg": right_leg, "left_arm": left_arm, "right_arm": right_arm, "speed": 0.65 + float(index % 4) * 0.12, "phase": float(index) * 0.7}
+	var skin_colors := [Color("#8d6048"), Color("#a87555"), Color("#684631"), Color("#bd8b69")]
+	var skin := _mat(skin_colors[index % skin_colors.size()], 0.82)
+	var clothing_colors := [Color("#355d72"), Color("#754b42"), Color("#465e49"), Color("#6d6384"), Color("#b18a45")]
+	var clothes := _mat(clothing_colors[index % clothing_colors.size()], 0.84)
+	var trousers_colors := [Color("#30383d"), Color("#252c36"), Color("#51483d"), Color("#343b50")]
+	var trousers := _mat(trousers_colors[index % trousers_colors.size()], 0.92)
+	var shoe := _mat(Color("#171b1e"), 0.72)
+	var hair_colors := [Color("#171411"), Color("#30231d"), Color("#49352a")]
+	var hair := _mat(hair_colors[index % hair_colors.size()], 0.96)
+	var detail := _mat(Color("#d2b99d"), 0.76)
+	var belt := _mat(Color("#252a2d"), 0.62, 0.18)
+
+	_sphere(person, "Pedestrian_Pelvis", 0.19, Vector3(0.0, 0.84, 0.0), trousers)
+	_capsule(person, "Pedestrian_Torso", 0.205, 0.66, Vector3(0.0, 1.18, 0.0), clothes)
+	_cylinder(person, "Pedestrian_Neck", 0.075, 0.085, 0.13, Vector3(0.0, 1.57, 0.0), skin)
+	_box(person, "Pedestrian_Belt", Vector3(0.30, 0.055, 0.20), Vector3(0.0, 0.91, 0.0), belt)
+	_box(person, "Pedestrian_Shirt_Collar", Vector3(0.20, 0.07, 0.17), Vector3(0.0, 1.48, 0.0), detail)
+
+	_sphere(person, "Pedestrian_Head", 0.17, Vector3(0.0, 1.72, 0.0), skin)
+	_sphere(person, "Pedestrian_Hair_Cap", 0.155, Vector3(-0.018, 1.81, 0.0), hair)
+	_box(person, "Pedestrian_Hairline", Vector3(0.055, 0.12, 0.27), Vector3(0.125, 1.75, 0.0), hair)
+	for side in [-1.0, 1.0]:
+		_sphere(person, "Pedestrian_Ear", 0.045, Vector3(0.0, 1.72, side * 0.165), skin)
+		_sphere(person, "Pedestrian_Eye", 0.018, Vector3(0.145, 1.75, side * 0.065), detail)
+	_sphere(person, "Pedestrian_Nose", 0.035, Vector3(0.17, 1.69, 0.0), skin)
+	_box(person, "Pedestrian_Mouth", Vector3(0.012, 0.018, 0.075), Vector3(0.165, 1.64, 0.0), hair)
+
+	var left_leg_pivot := Node3D.new()
+	left_leg_pivot.name = "Pedestrian_Left_Leg_Pivot"
+	left_leg_pivot.position = Vector3(-0.105, 0.83, 0.0)
+	person.add_child(left_leg_pivot)
+	_capsule(left_leg_pivot, "Pedestrian_Left_Trouser_Leg", 0.078, 0.48, Vector3(0.0, -0.25, 0.0), trousers)
+	_sphere(left_leg_pivot, "Pedestrian_Left_Shoe", 0.085, Vector3(0.045, -0.48, 0.045), shoe)
+	var right_leg_pivot := Node3D.new()
+	right_leg_pivot.name = "Pedestrian_Right_Leg_Pivot"
+	right_leg_pivot.position = Vector3(0.105, 0.83, 0.0)
+	person.add_child(right_leg_pivot)
+	_capsule(right_leg_pivot, "Pedestrian_Right_Trouser_Leg", 0.078, 0.48, Vector3(0.0, -0.25, 0.0), trousers)
+	_sphere(right_leg_pivot, "Pedestrian_Right_Shoe", 0.085, Vector3(0.045, -0.48, 0.045), shoe)
+
+	var left_arm_pivot := Node3D.new()
+	left_arm_pivot.name = "Pedestrian_Left_Arm_Pivot"
+	left_arm_pivot.position = Vector3(0.0, 1.43, -0.245)
+	person.add_child(left_arm_pivot)
+	_capsule(left_arm_pivot, "Pedestrian_Left_Sleeve", 0.068, 0.43, Vector3(0.0, -0.22, 0.0), clothes)
+	_sphere(left_arm_pivot, "Pedestrian_Left_Hand", 0.065, Vector3(0.0, -0.46, 0.0), skin)
+	var right_arm_pivot := Node3D.new()
+	right_arm_pivot.name = "Pedestrian_Right_Arm_Pivot"
+	right_arm_pivot.position = Vector3(0.0, 1.43, 0.245)
+	person.add_child(right_arm_pivot)
+	_capsule(right_arm_pivot, "Pedestrian_Right_Sleeve", 0.068, 0.43, Vector3(0.0, -0.22, 0.0), clothes)
+	_sphere(right_arm_pivot, "Pedestrian_Right_Hand", 0.065, Vector3(0.0, -0.46, 0.0), skin)
+
+	if index % 3 == 0:
+		var backpack := _mat(Color("#252f32"), 0.9)
+		_box(person, "Pedestrian_Backpack", Vector3(0.25, 0.34, 0.12), Vector3(-0.17, 1.18, 0.0), backpack)
+		_box(person, "Pedestrian_Backpack_Pocket", Vector3(0.16, 0.12, 0.025), Vector3(-0.24, 1.12, 0.0), backpack)
+
+	return {"node": person, "left_leg": left_leg_pivot, "right_leg": right_leg_pivot, "left_arm": left_arm_pivot, "right_arm": right_arm_pivot, "speed": 0.65 + float(index % 4) * 0.12, "phase": float(index) * 0.7}
 
 func _add_traffic_signal(position: Vector3) -> void:
 	var root := Node3D.new()
