@@ -44,6 +44,7 @@ func _generate_tier_scenes() -> void:
 			return
 
 		builder.remove_child(building)
+		_set_scene_owners(building, building)
 		var packed_scene := PackedScene.new()
 		var pack_error := packed_scene.pack(building)
 		if pack_error != OK:
@@ -69,3 +70,11 @@ func _generate_tier_scenes() -> void:
 	builder.free()
 	print("Successfully generated all 10 prebuilt headquarters tier scenes.")
 	quit(0)
+
+
+func _set_scene_owners(node: Node, scene_root: Node) -> void:
+	# PackedScene.pack() serializes only descendants owned by the packed root.
+	# add_child() does not assign ownership, so explicitly own every generated part.
+	for child in node.get_children():
+		child.owner = scene_root
+		_set_scene_owners(child, scene_root)
