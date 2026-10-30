@@ -49,12 +49,23 @@ var graphics_quality := "High"
 var sound_enabled := true
 
 func _ready() -> void:
-	# Re-apply Android immersive fullscreen at runtime as well as in the export preset.
-	# Android may briefly reveal system bars for its edge-swipe navigation gesture.
+	# Start in Android immersive fullscreen after the display window is initialized.
 	if OS.has_feature("android"):
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		call_deferred("_apply_android_fullscreen")
 	_load_career()
 	_show_menu()
+
+
+func _notification(what: int) -> void:
+	# Android can restore system bars after app switching; re-enter immersive mode
+	# when the game resumes instead of allowing a reduced-height window to persist.
+	if what == NOTIFICATION_APPLICATION_RESUMED and OS.has_feature("android"):
+		call_deferred("_apply_android_fullscreen")
+
+
+func _apply_android_fullscreen() -> void:
+	if OS.has_feature("android"):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _load_career() -> bool:
 	var config := ConfigFile.new()
@@ -250,14 +261,21 @@ func _show_profile() -> void:
 	sections.name = "CompanySetupSections"
 	sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sections.add_theme_constant_override("separation", 14 if compact else 18)
+	sections.alignment = BoxContainer.ALIGNMENT_CENTER
 	page.add_child(sections)
+
+	# Keep both cards centered and reduce each card's previous horizontal
+	# allocation by a factor of 1.05 on phones and wide landscape displays.
+	var horizontal_page_width := maxf(0.0, viewport_size.x - (36.0 if compact else 84.0))
+	var original_card_width := horizontal_page_width if compact else (horizontal_page_width - 18.0) * 0.5
+	var reduced_card_width := maxf(1.0, original_card_width / 1.05)
 
 	# Founder identity card.
 	var identity := _panel(Color(0.035, 0.14, 0.23, 0.84), Color(0.76, 0.92, 1.0, 0.76), 18)
 	identity.name = "FounderIdentityCard"
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	identity.size_flags_stretch_ratio = 1.0
-	identity.custom_minimum_size = Vector2(0, 0)
+	identity.custom_minimum_size = Vector2(reduced_card_width, 0)
 	sections.add_child(identity)
 	var identity_style := identity.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	identity_style.set_border_width_all(1)
@@ -300,9 +318,9 @@ func _show_profile() -> void:
 	# Brand card.
 	var brand := _panel(Color(0.035, 0.14, 0.23, 0.84), Color(0.76, 0.92, 1.0, 0.76), 18)
 	brand.name = "CompanyBrandCard"
-	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	brand.size_flags_stretch_ratio = 1.0
-	brand.custom_minimum_size = Vector2(0, 0)
+	brand.custom_minimum_size = Vector2(reduced_card_width, 0)
 	sections.add_child(brand)
 	var brand_style := brand.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	brand_style.set_border_width_all(1)
