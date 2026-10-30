@@ -60,11 +60,14 @@ func _build_editor_ui() -> void:
 	layout.add_theme_constant_override("separation", 18)
 	page_margin.add_child(layout)
 
-	# Large, uncluttered preview area; the 3D block remains the visual focus.
+	# Matching tool cards flank the centered 3D preview.
+	layout.add_child(_make_tools_card("PhoneEditorLeftToolsCard"))
+
 	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.24))
 	preview_panel.name = "PhonePreviewCard"
 	preview_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	preview_panel.custom_minimum_size.x = 220
 	layout.add_child(preview_panel)
 
 	var preview_stack := VBoxContainer.new()
@@ -88,16 +91,17 @@ func _build_editor_ui() -> void:
 	drag_hint.custom_minimum_size.y = 24
 	preview_stack.add_child(drag_hint)
 
-	# Tools sit in a single glass card, using the same visual language as
-	# the category cards and controls on the other game pages.
+	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard"))
+
+
+func _make_tools_card(card_name: String) -> PanelContainer:
 	var tools_panel := _make_glass_panel(Color(0.28, 0.61, 0.80, 0.30))
-	tools_panel.name = "PhoneEditorToolsCard"
-	tools_panel.custom_minimum_size.x = 300
+	tools_panel.name = card_name
+	tools_panel.custom_minimum_size.x = 260
 	tools_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_child(tools_panel)
 
 	var tools_scroll := ScrollContainer.new()
-	tools_scroll.name = "PhoneEditorToolsScroll"
+	tools_scroll.name = card_name + "Scroll"
 	tools_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -114,7 +118,7 @@ func _build_editor_ui() -> void:
 	tools_content.add_child(instruction)
 
 	var rotation_grid := GridContainer.new()
-	rotation_grid.name = "PhoneRotationControls"
+	rotation_grid.name = card_name + "RotationControls"
 	rotation_grid.columns = 3
 	rotation_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rotation_grid.add_theme_constant_override("h_separation", 8)
@@ -143,6 +147,7 @@ func _build_editor_ui() -> void:
 	var model_note := _make_label("Single solid phone body. No screen or device details.", 10, Color("#c7e2f3"))
 	model_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tools_content.add_child(model_note)
+	return tools_panel
 
 
 func _make_glass_panel(fill_color: Color) -> PanelContainer:
@@ -191,7 +196,7 @@ func _get_preview_viewport() -> SubViewport:
 	body_mesh.size = PHONE_SIZE
 	phone_body.mesh = body_mesh
 	var body_material := StandardMaterial3D.new()
-	body_material.albedo_color = Color("#858b91")
+	body_material.albedo_color = Color("#777d83")
 	body_material.metallic = 0.18
 	body_material.roughness = 0.42
 	phone_body.material_override = body_material
