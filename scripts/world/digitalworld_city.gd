@@ -19,8 +19,6 @@ var camera_pitch := 0.48
 var mouse_orbiting := false
 var mouse_panning := false
 var touch_points: Dictionary = {}
-var pinch_distance := 0.0
-var last_touch_midpoint := Vector2.ZERO
 var materials: Dictionary = {}
 var facade_noise: Texture2D
 var pavement_noise: Texture2D
@@ -285,7 +283,6 @@ func _build_procedural_building(index: int, plot: Vector3) -> void:
 	var width := 7.7 + float(index % 3) * 0.22
 	var depth := 7.7 + float((index + 1) % 3) * 0.18
 	var height := ground_height + float(floor_count - 1) * floor_height
-	# One simple invisible collider per building keeps mobile physics inexpensive.
 	var wall_colors := [Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")]
 	var accent_colors := [Color("#34464c"), Color("#665548"), Color("#263e4b"), Color("#4b5554"), Color("#34444a")]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
@@ -1000,15 +997,10 @@ func _input(event: InputEvent) -> void:
 			touch_points[event.index] = event.position
 			if touch_points.size() == 2:
 				var points := touch_points.values()
-				pinch_distance = (points[0] as Vector2).distance_to(points[1] as Vector2)
-				last_touch_midpoint = ((points[0] as Vector2) + (points[1] as Vector2)) * 0.5
 		else:
 			touch_points.erase(event.index)
-			pinch_distance = 0.0
 			if touch_points.size() == 2:
 				var remaining := touch_points.values()
-				pinch_distance = (remaining[0] as Vector2).distance_to(remaining[1] as Vector2)
-				last_touch_midpoint = ((remaining[0] as Vector2) + (remaining[1] as Vector2)) * 0.5
 		return
 	if event is InputEventScreenDrag and touch_points.has(event.index):
 		if touch_points.size() == 1:
@@ -1023,8 +1015,6 @@ func _input(event: InputEvent) -> void:
 			var new_distance := (new_points[0] as Vector2).distance_to(new_points[1] as Vector2)
 			_pan_camera(new_midpoint - old_midpoint)
 			_zoom_camera((old_distance - new_distance) * 0.12)
-			pinch_distance = new_distance
-			last_touch_midpoint = new_midpoint
 		touch_points[event.index] = event.position
 		get_viewport().set_input_as_handled()
 		return
