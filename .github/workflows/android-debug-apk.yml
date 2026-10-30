@@ -1,0 +1,74 @@
+name: DigitalWorld HQ Android Debug APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-debug-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android-debug:
+    name: Build Android debug APK (Godot 4.7.2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install Godot 4.7.2 and matching export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Verify toolchain and Android preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version
+          if ! grep -q '^platform="Android"$' export_presets.cfg; then
+            echo "::error::The Android export preset is missing."
+            exit 1
+          fi
+
+      - name: Import project resources
+        run: godot --headless --editor --path . --import --quit
+
+      - name: Export debug APK
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug "Android" build/DigitalWorldHQ-debug.apk
+
+      - name: Verify APK output
+        run: |
+          test -s build/DigitalWorldHQ-debug.apk
+          file build/DigitalWorldHQ-debug.apk
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DigitalWorld-HQ-Android-debug
+          path: build/DigitalWorldHQ-debug.apk
+          if-no-files-found: error
+          retention-days: 14
