@@ -1,6 +1,7 @@
 extends Node3D
 
 const CityMapScript = preload("res://scripts/world/digitalworld_city.gd")
+const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 
 const LOGO_NAMES := [
@@ -707,21 +708,45 @@ func _load_game_pressed() -> void:
 		_show_notice("NO SAVED COMPANY", "No saved DigitalWorld company was found on this device. Choose NEW GAME to establish one.")
 
 func _show_city() -> void:
-	current_screen = "city"
-	_clear_world()
+	# New and loaded companies open at their currently owned headquarters level.
+	selected_upgrade = clampi(upgrade_level, 1, 10)
+	_show_headquarters_preview()
 
-	# The first company destination is the fully 3D miniature metropolis.
-	# Keep this world free of UI overlays so the city fills the screen.
+func _show_headquarters_preview() -> void:
+	current_screen = "headquarters"
+	_clear_world()
 	if is_instance_valid(ui_layer):
 		ui_layer.queue_free()
 	ui_layer = null
 	ui_root = null
 
-	var city := CityMapScript.new()
-	city.name = "DigitalWorld_Mini_Metropolis"
-	world_root = city
+	var headquarters = HeadquartersPreviewScript.new()
+	headquarters.name = "DigitalWorld_Headquarters_Preview"
+	headquarters.preview_level = clampi(selected_upgrade, 1, 10)
+	headquarters.owned_level = clampi(upgrade_level, 1, 10)
+	headquarters.company_name = str(career.get("company_name", "YOUR COMPANY"))
+	headquarters.map_requested.connect(_show_expansion_map)
+	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
+	world_root = headquarters
 	add_child(world_root)
 
+func _show_expansion_map() -> void:
+	current_screen = "map"
+	_clear_world()
+	if is_instance_valid(ui_layer):
+		ui_layer.queue_free()
+	ui_layer = null
+	ui_root = null
+
+	var expansion_map = CityMapScript.new()
+	expansion_map.name = "DigitalWorld_Expansion_Map"
+	expansion_map.headquarters_requested.connect(_show_headquarters_preview)
+	world_root = expansion_map
+	add_child(world_root)
+
+func _on_headquarters_preview_level_changed(level: int) -> void:
+	# Preview selection is temporary; owned progress is saved independently.
+	selected_upgrade = clampi(level, 1, 10)
 
 func _show_settings() -> void:
 	if not is_instance_valid(ui_root):
