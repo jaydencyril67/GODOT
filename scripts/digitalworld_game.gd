@@ -26,6 +26,13 @@ var create_ui_root: Control
 var world_root: Node3D
 var phone_editor: Node3D
 var home_navigation_layer: CanvasLayer
+var home_company_label: Label
+var home_date_label: Label
+var home_balance_label: Label
+var home_time_button: Button
+var game_date_unix := 1262304000.0
+var game_clock_paused := false
+var last_saved_game_day := -1
 var career: Dictionary = {}
 var upgrade_level := 1
 var selected_upgrade := 1
@@ -54,13 +61,33 @@ var sound_enabled := true
 
 func _ready() -> void:
 	# Start in Android immersive fullscreen after the display window is initialized.
+	set_process(true)
 	if OS.has_feature("android"):
 		call_deferred("_apply_android_fullscreen")
 	_load_career()
 	_show_menu()
 
 
+func _process(delta: float) -> void:
+	if career.is_empty() or str(career.get("company_name", "")).is_empty() or game_clock_paused:
+		return
+	if current_screen not in ["home", "headquarters", "create"]:
+		return
+	var previous_day := floori(game_date_unix / 86400.0)
+	# One complete in-game day passes every three real-world seconds.
+	game_date_unix += delta * 28800.0
+	var current_day := floori(game_date_unix / 86400.0)
+	if current_day != previous_day:
+		_save_career()
+		last_saved_game_day = current_day
+	_update_home_status_bar()
+
+
 func _notification(what: int) -> void:
+	# Persist simulation state when the app is backgrounded or closed.
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if not career.is_empty():
+			_save_career()
 	# Android can restore system bars after app switching; re-enter immersive mode
 	# when the game resumes instead of allowing a reduced-height window to persist.
 	if what == NOTIFICATION_APPLICATION_RESUMED and OS.has_feature("android"):
@@ -82,8 +109,14 @@ func _load_career() -> bool:
 		"company_name": str(config.get_value("career", "company_name", "")),
 		"logo_id": int(config.get_value("career", "logo_id", 1)),
 		"created_at": str(config.get_value("career", "created_at", "")),
-		"last_opened_at": str(config.get_value("career", "last_opened_at", ""))
+		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
+		"balance": float(config.get_value("career", "balance", 10000000.0)),
+		"game_date_unix": float(config.get_value("career", "game_date_unix", 1262304000.0)),
+		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false))
 	}
+	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
+	game_clock_paused = bool(career.get("game_clock_paused", false))
+	last_saved_game_day = floori(game_date_unix / 86400.0)
 	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 1)), 1, 10)
 	return not str(career.get("company_name", "")).is_empty()
 
@@ -95,6 +128,9 @@ func _save_career() -> bool:
 	config.set_value("career", "created_at", str(career.get("created_at", "")))
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
 	config.set_value("career", "upgrade_level", upgrade_level)
+	config.set_value("career", "balance", float(career.get("balance", 10000000.0)))
+	config.set_value("career", "game_date_unix", game_date_unix)
+	config.set_value("career", "game_clock_paused", game_clock_paused)
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -702,6 +738,14 @@ func _create_company() -> void:
 	career["full_name"] = founder
 	career["company_name"] = company
 	career["logo_id"] = selected_logo_id
+	if not career.has("balance"):
+		career["balance"] = 10000000.0
+	if not career.has("game_date_unix"):
+		game_date_unix = 1262304000.0
+		career["game_date_unix"] = game_date_unix
+	if not career.has("game_clock_paused"):
+		game_clock_paused = false
+		career["game_clock_paused"] = false
 	if str(career.get("created_at", "")).is_empty():
 		career["created_at"] = Time.get_datetime_string_from_system(true)
 	upgrade_level = clampi(upgrade_level, 1, 10)
@@ -786,6 +830,8 @@ func _show_home_navigation() -> void:
 	ui_layer.layer = 30
 	home_navigation_layer = ui_layer
 
+	_build_home_status_bar(root)
+
 	var bottom_panel := PanelContainer.new()
 	bottom_panel.name = "Home_Bottom_Navigation"
 	bottom_panel.anchor_left = 0.0
@@ -826,6 +872,99 @@ func _show_home_navigation() -> void:
 		elif button_name == "Office":
 			button.pressed.connect(_show_headquarters_preview)
 		row.add_child(button)
+
+
+func _build_home_status_bar(root: Control) -> void:
+	var status_panel := PanelContainer.new()
+	status_panel.name = "Home_Android_Status_Bar"
+	status_panel.anchor_left = 0.0
+	status_panel.anchor_top = 0.0
+	status_panel.anchor_right = 1.0
+	status_panel.anchor_bottom = 0.0
+	status_panel.offset_left = 8.0
+	status_panel.offset_top = 8.0
+	status_panel.offset_right = -8.0
+	status_panel.offset_bottom = 66.0
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.025, 0.09, 0.15, 0.90)
+	panel_style.border_color = Color(0.40, 0.76, 0.94, 0.70)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(12)
+	panel_style.content_margin_left = 10.0
+	panel_style.content_margin_right = 10.0
+	panel_style.content_margin_top = 5.0
+	panel_style.content_margin_bottom = 5.0
+	status_panel.add_theme_stylebox_override("panel", panel_style)
+	root.add_child(status_panel)
+
+	var row := HBoxContainer.new()
+	row.name = "Home_Status_Information_Row"
+	row.add_theme_constant_override("separation", 10)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	status_panel.add_child(row)
+
+	home_company_label = Label.new()
+	home_company_label.name = "Company_Name"
+	home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
+	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home_company_label.clip_text = true
+	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	home_company_label.add_theme_font_size_override("font_size", 14)
+	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
+	row.add_child(home_company_label)
+
+	home_date_label = Label.new()
+	home_date_label.name = "Game_Date"
+	home_date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_date_label.add_theme_font_size_override("font_size", 13)
+	home_date_label.add_theme_color_override("font_color", Color("#bce8ff"))
+	row.add_child(home_date_label)
+
+	home_balance_label = Label.new()
+	home_balance_label.name = "Company_Balance"
+	home_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	home_balance_label.add_theme_font_size_override("font_size", 13)
+	home_balance_label.add_theme_color_override("font_color", Color("#a8f0c0"))
+	row.add_child(home_balance_label)
+
+	home_time_button = Button.new()
+	home_time_button.name = "Game_Time_Control"
+	home_time_button.custom_minimum_size = Vector2(76.0, 38.0)
+	home_time_button.add_theme_font_size_override("font_size", 11)
+	_style_button(home_time_button, true)
+	home_time_button.pressed.connect(_toggle_game_clock)
+	row.add_child(home_time_button)
+	_update_home_status_bar()
+
+
+func _format_game_date(timestamp: float) -> String:
+	var date := Time.get_datetime_dict_from_unix_time(floori(timestamp))
+	var day := int(date["day"])
+	var suffix := "th"
+	if day % 100 < 11 or day % 100 > 13:
+		match day % 10:
+			1: suffix = "st"
+			2: suffix = "nd"
+			3: suffix = "rd"
+	return "%d%s %s %04d" % [day, suffix, Time.get_month_name(int(date["month"])).substr(0, 3), int(date["year"])]
+
+
+func _update_home_status_bar() -> void:
+	if is_instance_valid(home_date_label):
+		home_date_label.text = _format_game_date(game_date_unix)
+	if is_instance_valid(home_balance_label):
+		home_balance_label.text = "$" + String.num_int64(roundi(float(career.get("balance", 10000000.0))))
+	if is_instance_valid(home_company_label):
+		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
+	if is_instance_valid(home_time_button):
+		home_time_button.text = "▶ PLAY" if game_clock_paused else "Ⅱ PAUSE"
+
+
+func _toggle_game_clock() -> void:
+	game_clock_paused = not game_clock_paused
+	career["game_clock_paused"] = game_clock_paused
+	_save_career()
+	_update_home_status_bar()
 
 
 func _show_headquarters_loading_screen() -> void:
