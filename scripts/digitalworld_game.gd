@@ -146,6 +146,7 @@ func _show_menu() -> void:
 	hero.add_theme_constant_override("shadow_offset_x", 5)
 	hero.add_theme_constant_override("shadow_offset_y", 7)
 	var hero_font := FontVariation.new()
+	_hero_font_base(hero_font)
 	hero.add_theme_font_override("font", hero_font)
 	hero.add_theme_font_size_override("font_size", 48)
 	stack.add_child(hero)
@@ -616,6 +617,11 @@ func _add_action_button(parent: Node, caption: String, primary: bool, callback: 
 		button.pressed.connect(callback)
 	parent.add_child(button)
 	return button
+
+
+func _hero_font_base(font_variation: FontVariation) -> void:
+	font_variation.base_font = ThemeDB.fallback_font
+	font_variation.variation_embolden = 0.7
 
 
 func _style_glass_menu_button(button: Button, primary: bool) -> void:
