@@ -329,8 +329,10 @@ func _input(event: InputEvent) -> void:
 			touch_points[event.index] = event.position
 			if touch_points.size() == 2:
 				var points: Array = touch_points.values()
-				pinch_distance = (points[0] as Vector2).distance_to(points[1] as Vector2)
-				last_touch_midpoint = ((points[0] as Vector2) + (points[1] as Vector2)) * 0.5
+				var first_point: Vector2 = points[0]
+				var second_point: Vector2 = points[1]
+				pinch_distance = first_point.distance_to(second_point)
+				last_touch_midpoint = (first_point + second_point) * 0.5
 		else:
 			touch_points.erase(event.index)
 			if touch_points.size() == 1:
