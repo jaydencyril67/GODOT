@@ -23,6 +23,7 @@ var interaction_scan_timer := 0.0
 # Direct movement response: joystick input controls speed immediately.
 const MOVE_SPEED := 2.8
 const CAMERA_LOOK_SENSITIVITY := 0.004
+const CAMERA_PITCH_LIMIT := deg_to_rad(80.0)
 const GRAVITY := 18.0
 const INTERACTION_SCAN_INTERVAL := 0.08
 const SEAT_INTERACTION_RADIUS := 1.55
@@ -98,12 +99,17 @@ func _physics_process(delta: float) -> void:
 		player.velocity = Vector3.ZERO
 		return
 
-	# Joystick movement is immediate and relative to the direction the player faces.
+	# One ground-plane movement path for touch and keyboard. Camera pitch
+	# cannot tilt movement into or out of the floor, and diagonal input is capped.
 	var input_dir := move_vector if move_touch_id != -1 else Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	input_dir = input_dir.limit_length(1.0)
-	var move_direction := player.global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)
-	player.velocity.x = move_direction.x * MOVE_SPEED
-	player.velocity.z = move_direction.z * MOVE_SPEED
+	var local_move := Vector3(input_dir.x, 0.0, input_dir.y)
+	var world_move := player.global_basis * local_move
+	world_move.y = 0.0
+	if input_dir.length_squared() > 1.0:
+		world_move = world_move.normalized()
+	player.velocity.x = world_move.x * MOVE_SPEED
+	player.velocity.z = world_move.z * MOVE_SPEED
 
 	# Preserve vertical physics and clear only downward velocity while grounded.
 	if not player.is_on_floor():
@@ -168,8 +174,8 @@ func apply_camera_look(look_delta: Vector2) -> void:
 	player.rotate_y(-look_delta.x * CAMERA_LOOK_SENSITIVITY)
 	view_camera.rotation.x = clampf(
 		view_camera.rotation.x + look_delta.y * CAMERA_LOOK_SENSITIVITY,
-		deg_to_rad(-80.0),
-		deg_to_rad(80.0)
+		-CAMERA_PITCH_LIMIT,
+		CAMERA_PITCH_LIMIT
 	)
 
 func create_player() -> void:
