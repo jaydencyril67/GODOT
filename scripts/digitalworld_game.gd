@@ -1,8 +1,6 @@
 extends Node3D
 
-const HQWorldScript = preload("res://scripts/world/hq_world.gd")
 const HQCutawayScript = preload("res://scripts/world/hq_cutaway.gd")
-const BuildingFactory = preload("res://scripts/world/hq_building_factory.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 
 const LOGO_NAMES := [
@@ -12,7 +10,6 @@ const LOGO_NAMES := [
 	"Flare", "Keystone", "Bluepeak", "Atlas", "Crescent", "Vortex", "Beacon", "Stratos", "Ironclad", "Mosaic",
 	"Northstar", "Vector", "Aether", "Pulse", "Forge", "Meridian", "Lumen", "Cobalt", "Terra", "Frontier"
 ]
-const UPGRADE_FLOORS := [1, 2, 3, 5, 7, 9, 12, 15, 19, 23]
 
 const NAVY := Color("#ffffff")
 const BLUE := Color("#248cc4")
@@ -698,173 +695,30 @@ func _create_company() -> void:
 	if not _save_career():
 		profile_status.text = "The company could not be saved. Check device storage."
 		return
-	_show_map()
+	_show_office()
 
 func _load_game_pressed() -> void:
 	if _load_career():
-		_show_map()
+		_show_office()
 	else:
-		_show_notice("NO SAVED COMPANY", "No saved DigitalWorld company was found on this device. Choose START GAME to establish one.")
+		_show_notice("NO SAVED COMPANY", "No saved DigitalWorld company was found on this device. Choose NEW GAME to establish one.")
 
-func _show_map() -> void:
-	current_screen = "map"
+func _show_office() -> void:
+	current_screen = "office"
 	_clear_world()
-	var map := HQWorldScript.new()
-	map.configure(str(career.get("company_name", "YOUR COMPANY")), upgrade_level)
-	map.building_selected.connect(_open_headquarters)
-	map.upgrade_requested.connect(_show_upgrades)
-	map.tool_selected.connect(_map_tool_selected)
-	world_root = map
+
+	# The first company destination is the 3D half-cutaway office itself.
+	# Keep this page intentionally free of maps, toolbars, menus and overlays.
+	if is_instance_valid(ui_layer):
+		ui_layer.queue_free()
+	ui_layer = null
+	ui_root = null
+
+	var office := HQCutawayScript.new()
+	office.name = "Company_Office_Cutaway"
+	world_root = office
 	add_child(world_root)
 
-	var root := _new_screen()
-	_add_top_bar(root, "DIGITALWORLD  /  COMPANY TERRITORY", str(career.get("company_name", "YOUR COMPANY")), _show_menu)
-	var sidebar := _anchored_panel(root, 14, 12, 248, -12, 0, 0.2, 0, 0.78)
-	var side_stack := VBoxContainer.new()
-	side_stack.add_theme_constant_override("separation", 8)
-	sidebar.add_child(side_stack)
-	side_stack.add_child(_label("HEADQUARTERS TOOLS", 10, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
-	_add_action_button(side_stack, "BUILD", false, func(): _map_action("BUILD"))
-	_add_action_button(side_stack, "UPGRADE", true, _show_upgrades)
-	_add_action_button(side_stack, "DOWNGRADE", false, func(): _map_action("DOWNGRADE"))
-	_add_action_button(side_stack, "DEMOLISH", false, func(): _map_action("DEMOLISH"))
-	_add_bottom_bar(root, "10 PLOTS  /  SELECT YOUR HEADQUARTERS TO OPEN ITS OPERATIONS")
-	
-func _open_headquarters() -> void:
-	_show_interior()
-
-func _show_interior() -> void:
-	current_screen = "interior"
-	_clear_world()
-	var interior := HQCutawayScript.new()
-	world_root = interior
-	add_child(world_root)
-
-	var root := _new_screen()
-	_add_top_bar(root, "DIGITALWORLD  /  COMPANY INTERIOR", str(career.get("company_name", "YOUR COMPANY")), _show_map, "EXTERIOR")
-	var sidebar := _anchored_panel(root, 14, 12, 248, -12, 0, 0.16, 0, 0.86)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 8)
-	sidebar.add_child(stack)
-	stack.add_child(_label("OPERATIONS", 10, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
-	for action in ["CREATE", "RESEARCH", "INVENTORY", "HISTORY", "STAFFS"]:
-		_add_action_button(stack, action, false, func(): _interior_action(action))
-	_add_bottom_bar(root, "PROGRAMMING STUDIO     /     MANUFACTURING     /     PACKAGING & STACKING")
-
-func _map_action(action: String) -> void:
-	if action == "UPGRADE":
-		_show_upgrades()
-	else:
-		_show_notice(action, "This headquarters management tool is present in the DigitalWorld design. Its construction/economy system has not yet been connected.")
-
-func _map_tool_selected(tool_name: String) -> void:
-	_map_action(tool_name)
-
-func _interior_action(action: String) -> void:
-	_show_notice(action, "The %s department panel is not connected to a simulation system yet. The original DigitalWorld version shows this as a tool entry without a gameplay handler." % action.to_lower())
-
-func _show_upgrades() -> void:
-	current_screen = "upgrade"
-	_clear_world()
-	selected_upgrade = mini(10, upgrade_level + 1)
-	var stage := Node3D.new()
-	stage.name = "Native_Godot_Upgrade_Showroom"
-	world_root = stage
-	add_child(stage)
-	_build_upgrade_showroom(stage)
-
-	var root := _new_screen()
-	_add_top_bar(root, "DIGITALWORLD  /  HEADQUARTERS DEVELOPMENT", "CURRENT LEVEL  %02d / 10" % upgrade_level, _show_map, "EXTERIOR")
-	var bottom := _anchored_panel(root, 12, 0, -12, -10, 0, 0.53, 1, 1)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 8)
-	bottom.add_child(content)
-	content.add_child(_label("SELECT A HEADQUARTERS TIER", 10, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
-	var grid := GridContainer.new()
-	grid.columns = 5
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 6)
-	content.add_child(grid)
-	for index in range(10):
-		var tier := index + 1
-		var button := Button.new()
-		button.text = "%02d  %s\n%d FLOORS" % [tier, BuildingFactory.BUILDING_NAMES[index], UPGRADE_FLOORS[index]]
-		button.custom_minimum_size = Vector2(125, 48)
-		button.toggle_mode = true
-		button.button_pressed = tier == selected_upgrade
-		_style_button(button, tier == selected_upgrade)
-		button.pressed.connect(_select_upgrade.bind(tier))
-		grid.add_child(button)
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 8)
-	content.add_child(actions)
-	var selected_name: String = str(BuildingFactory.BUILDING_NAMES[selected_upgrade - 1])
-	actions.add_child(_label("SELECTED: %s" % selected_name.to_upper(), 10, PALE))
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_child(spacer)
-	_add_action_button(actions, "BACK", false, _show_map)
-	_add_action_button(actions, "UPGRADE BUILDING", true, _confirm_upgrade)
-
-func _select_upgrade(level: int) -> void:
-	selected_upgrade = clampi(level, 1, 10)
-	_show_upgrades()
-
-func _confirm_upgrade() -> void:
-	if selected_upgrade <= upgrade_level:
-		_show_notice("HEADQUARTERS LEVEL", "That tier is already owned. Select a higher development tier.")
-		return
-	upgrade_level = selected_upgrade
-	_save_career()
-	_show_map()
-
-func _build_upgrade_showroom(parent: Node3D) -> void:
-	var environment_node := WorldEnvironment.new()
-	var environment := Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#8b9697")
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#eaf1ef")
-	environment.ambient_light_energy = 1.0
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment_node.environment = environment
-	parent.add_child(environment_node)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-52, -32, 0)
-	sun.light_energy = 1.8
-	sun.shadow_enabled = true
-	parent.add_child(sun)
-	var camera := Camera3D.new()
-	camera.position = Vector3(0, 42, 86)
-	camera.fov = 42
-	camera.look_at(Vector3(0, 8, 0), Vector3.UP)
-	parent.add_child(camera)
-	camera.current = true
-	var ground := MeshInstance3D.new()
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(140, 86)
-	ground.mesh = plane
-	ground.position.y = -0.1
-	ground.material_override = _material(Color("#777d7a"), 0.96)
-	parent.add_child(ground)
-	for index in range(10):
-		var tier := index + 1
-		var column := index % 5
-		var row := floori(float(index) / 5.0)
-		var x := float(column - 2) * 15.5
-		var z := 10.0 if row == 0 else -10.0
-		var pad := MeshInstance3D.new()
-		var pad_mesh := BoxMesh.new()
-		pad_mesh.size = Vector3(12.5, 0.22, 12.5)
-		pad.mesh = pad_mesh
-		pad.position = Vector3(x, 0.08, z)
-		pad.material_override = _material(Color("#d7e5c2") if tier == selected_upgrade else Color("#b3b8b3"), 0.85, 0.12)
-		parent.add_child(pad)
-		var building: Node3D = BuildingFactory.create_preview_building(tier)
-		building.scale = Vector3.ONE * 0.42
-		building.position = Vector3(x, 0.22, z)
-		building.rotation.y = -0.12
-		parent.add_child(building)
 
 func _show_settings() -> void:
 	if not is_instance_valid(ui_root):
@@ -927,44 +781,6 @@ func _add_plain_background(root: Control, color: Color) -> void:
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.color = color
 	root.add_child(backdrop)
-
-func _add_top_bar(root: Control, kicker: String, company: String, back_action: Callable, back_text: String = "MAIN MENU") -> void:
-	var panel := _anchored_panel(root, 12, 12, -12, 76, 0, 0, 1, 0)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	row.add_theme_constant_override("alignment", BoxContainer.ALIGNMENT_CENTER)
-	panel.add_child(row)
-	var brand := _label("DW", 17, Color("#183e4b"), HORIZONTAL_ALIGNMENT_CENTER)
-	brand.custom_minimum_size = Vector2(42, 42)
-	row.add_child(brand)
-	var copy := VBoxContainer.new()
-	copy.add_child(_label(kicker, 9, Color("#456777")))
-	copy.add_child(_label(company, 15, Color("#163e4d")))
-	row.add_child(copy)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-	_add_action_button(row, "SETTINGS", false, _show_settings)
-	_add_action_button(row, back_text, true, back_action)
-
-func _add_bottom_bar(root: Control, text_value: String) -> void:
-	var panel := _anchored_panel(root, 12, -52, -12, -10, 0, 1, 1, 1)
-	var label := _label(text_value, 10, PALE, HORIZONTAL_ALIGNMENT_CENTER)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	panel.add_child(label)
-
-func _anchored_panel(parent: Control, offset_left: float, offset_top: float, offset_right: float, offset_bottom: float, anchor_left: float, anchor_top: float, anchor_right: float, anchor_bottom: float) -> PanelContainer:
-	var panel := _panel(PANEL, Color(0.78, 0.88, 0.82, 0.5), 10)
-	panel.anchor_left = anchor_left
-	panel.anchor_top = anchor_top
-	panel.anchor_right = anchor_right
-	panel.anchor_bottom = anchor_bottom
-	panel.offset_left = offset_left
-	panel.offset_top = offset_top
-	panel.offset_right = offset_right
-	panel.offset_bottom = offset_bottom
-	parent.add_child(panel)
-	return panel
 
 func _panel(background: Color, border: Color, radius: int) -> PanelContainer:
 	var panel := PanelContainer.new()
@@ -1099,10 +915,3 @@ func _add_spacer(parent: VBoxContainer, height: int) -> void:
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = height
 	parent.add_child(spacer)
-
-func _material(color: Color, roughness: float, metallic: float = 0.0) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = roughness
-	material.metallic = metallic
-	return material
