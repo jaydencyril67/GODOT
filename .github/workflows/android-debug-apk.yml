@@ -94,8 +94,8 @@ jobs:
           BADGING="$("$BUILD_TOOLS/aapt" dump badging "$APK")"
           printf '%s\n' "$BADGING"
 
-          PACKAGE_NAME="$(printf '%s\\n' "$BADGING" | awk -F"'" '/^package:/{print $2; exit}')"
-          MIN_SDK="$(printf '%s\\n' "$BADGING" | awk -F"'" '/^sdkVersion:/{print $2; exit}')"
+          PACKAGE_NAME="$(printf '%s\n' "$BADGING" | awk -F"'" '/^package:/{print $2; exit}')"
+          MIN_SDK="$(printf '%s\n' "$BADGING" | awk -F"'" '/^sdkVersion:/{print $2; exit}')"
 
           if [[ "$PACKAGE_NAME" != "org.godotengine.digitalworldhq" ]]; then
             echo "::error::Unexpected Android package name: $PACKAGE_NAME"
