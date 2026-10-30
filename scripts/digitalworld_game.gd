@@ -33,6 +33,7 @@ var company_name_input: LineEdit
 var logo_option: Button
 var selected_logo_id := 1
 var insignia_preview: TextureRect
+var logo_picker_layer: Control
 var profile_status: Label
 var graphics_quality := "High"
 var sound_enabled := true
