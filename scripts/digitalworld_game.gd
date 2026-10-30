@@ -399,6 +399,7 @@ func _open_logo_picker() -> void:
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scrim.color = Color(0.005, 0.025, 0.045, 0.84)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	scrim.gui_input.connect(_on_logo_picker_scrim_input)
 	logo_picker_layer.add_child(scrim)
 
 	var center := CenterContainer.new()
@@ -527,6 +528,13 @@ func _select_company_logo(logo_id: int) -> void:
 	if is_instance_valid(preview_copy):
 		preview_copy.text = "%02d / 50  ·  %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()]
 	_close_logo_picker()
+
+
+func _on_logo_picker_scrim_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_close_logo_picker()
+	elif event is InputEventScreenTouch and event.pressed:
+		_close_logo_picker()
 
 
 func _close_logo_picker() -> void:
