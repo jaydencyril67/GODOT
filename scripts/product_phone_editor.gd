@@ -264,7 +264,7 @@ func _rotate_phone_from_drag(delta: Vector2) -> void:
 	if absf(delta.x) >= absf(delta.y):
 		phone_body.rotation.y += delta.x * DRAG_SENSITIVITY
 	else:
-		phone_body.rotation.x -= delta.y * DRAG_SENSITIVITY
+		phone_body.rotation.x += delta.y * DRAG_SENSITIVITY
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
