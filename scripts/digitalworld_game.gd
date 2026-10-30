@@ -725,8 +725,83 @@ func _show_headquarters_preview() -> void:
 	headquarters.owned_level = clampi(upgrade_level, 1, 10)
 	headquarters.company_name = str(career.get("company_name", "YOUR COMPANY"))
 	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
+	headquarters.create_requested.connect(_show_create_scene)
 	world_root = headquarters
 	add_child(world_root)
+
+
+func _show_create_scene() -> void:
+	current_screen = "create"
+	_clear_world()
+	var root := _new_screen()
+	var background := TextureRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = load("res://assets/digitalworld-landing.png")
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(background)
+	var shade := ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(shade)
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	var card_size := maxf(84.0, minf(166.0, minf((viewport_size.x - 96.0) * 0.5, (viewport_size.y - 156.0) * 0.5)))
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+	var page := VBoxContainer.new()
+	page.name = "Create_Product_Selection"
+	page.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	page.add_theme_constant_override("separation", 12)
+	center.add_child(page)
+	page.add_child(_label("DIGITALWORLD  /  PRODUCT STUDIO", 10, Color("#a9e3ff"), HORIZONTAL_ALIGNMENT_CENTER))
+	page.add_child(_label("WHAT WILL YOU CREATE?", 22, Color("#ffffff"), HORIZONTAL_ALIGNMENT_CENTER))
+	page.add_child(_label("Choose a product category to get started.", 12, Color("#d8efff"), HORIZONTAL_ALIGNMENT_CENTER))
+
+	var grid := GridContainer.new()
+	grid.name = "Create_Category_Grid"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 14)
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	page.add_child(grid)
+	for category in ["PHONE", "LAPTOP", "TELEVISION", "SMART WATCHES"]:
+		var card := Button.new()
+		card.name = category.replace(" ", "_") + "_Create_Card"
+		card.custom_minimum_size = Vector2(card_size, card_size)
+		card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		card.text = category
+		card.add_theme_font_size_override("font_size", 16 if card_size >= 125.0 else 13)
+		card.add_theme_color_override("font_color", Color("#ffffff"))
+		card.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		card.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+		for state in ["normal", "hover", "pressed", "focus"]:
+			var style := StyleBoxFlat.new()
+			style.bg_color = Color(0.10, 0.43, 0.70, 0.84)
+			if state == "hover":
+				style.bg_color = Color(0.14, 0.56, 0.82, 0.92)
+			elif state == "pressed":
+				style.bg_color = Color(0.06, 0.30, 0.54, 0.94)
+			style.border_color = Color(0.76, 0.93, 1.0, 0.95)
+			style.set_border_width_all(2)
+			style.set_corner_radius_all(12)
+			style.shadow_color = Color(0.0, 0.10, 0.28, 0.45)
+			style.shadow_size = 7
+			card.add_theme_stylebox_override(state, style)
+		card.pressed.connect(_on_create_category_pressed.bind(category))
+		grid.add_child(card)
+	var back := _add_action_button(page, "BACK TO HEADQUARTERS", false, _show_city)
+	back.custom_minimum_size = Vector2(card_size * 2.0 + 14.0, 42)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	back.add_theme_font_size_override("font_size", 12)
+
+
+func _on_create_category_pressed(category: String) -> void:
+	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
 func _on_headquarters_preview_level_changed(level: int) -> void:
 	# Preview selection is temporary; owned progress is saved independently.
