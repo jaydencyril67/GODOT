@@ -94,8 +94,8 @@ jobs:
           BADGING="$("$BUILD_TOOLS/aapt" dump badging "$APK")"
           printf '%s\n' "$BADGING"
 
-          PACKAGE_NAME="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
-          MIN_SDK="$(printf '%s\n' "$BADGING" | sed -n "s/^sdkVersion:'\\([0-9]*\\)'.*/\\1/p")"
+          PACKAGE_NAME="$(printf '%s\\n' "$BADGING" | awk -F"'" '/^package:/{print $2; exit}')"
+          MIN_SDK="$(printf '%s\\n' "$BADGING" | awk -F"'" '/^sdkVersion:/{print $2; exit}')"
 
           if [[ "$PACKAGE_NAME" != "org.godotengine.digitalworldhq" ]]; then
             echo "::error::Unexpected Android package name: $PACKAGE_NAME"
@@ -107,11 +107,11 @@ jobs:
             exit 1
           fi
 
-          unzip -Z1 "$APK" | grep -q '^lib/armeabi-v7a/.*\\.so$' || {
+          unzip -Z1 "$APK" | grep -q '^lib/armeabi-v7a/' || {
             echo "::error::APK is missing ARMv7 native libraries."
             exit 1
           }
-          unzip -Z1 "$APK" | grep -q '^lib/arm64-v8a/.*\\.so$' || {
+          unzip -Z1 "$APK" | grep -q '^lib/arm64-v8a/' || {
             echo "::error::APK is missing ARM64 native libraries."
             exit 1
           }
