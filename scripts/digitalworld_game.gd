@@ -427,45 +427,7 @@ func _open_logo_picker() -> void:
 
 	var inset := 10 if compact else 18
 	var margin := _margin(panel, inset, inset, inset, inset)
-	var stack := VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 8 if compact else 11)
-	margin.add_child(stack)
-
-	# Fixed header: it never moves with the logo grid.
-	var heading := HBoxContainer.new()
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_theme_constant_override("separation", 8)
-	stack.add_child(heading)
-
-	var title_stack := VBoxContainer.new()
-	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_stack.add_theme_constant_override("separation", 3)
-	heading.add_child(title_stack)
-	title_stack.add_child(_label("COMPANY BRANDING  /  STEP 02", 9 if compact else 11, Color("#a9dff5")))
-	var title := _label("Choose your insignia", 17 if compact else 23, Color("#ffffff"))
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title_stack.add_child(title)
-	var subtitle := _label("Select one of 50 original DigitalWorld designs.", 10 if compact else 12, Color("#c4dbe8"))
-	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title_stack.add_child(subtitle)
-
-	var close := Button.new()
-	close.text = "✕"
-	close.custom_minimum_size = Vector2(38, 38) if compact else Vector2(42, 42)
-	close.size_flags_horizontal = Control.SIZE_SHRINK_END
-	close.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	close.pressed.connect(_close_logo_picker)
-	_style_company_glass_button(close)
-	heading.add_child(close)
-
-	var divider := ColorRect.new()
-	divider.custom_minimum_size = Vector2(0, 1)
-	divider.color = Color(0.72, 0.88, 0.96, 0.18)
-	stack.add_child(divider)
-
-	# Only this middle region scrolls; header and footer remain stationary.
+	# The modal contains only the scrollable grid of 50 logo choices.
 	var scroll := ScrollContainer.new()
 	scroll.name = "InsigniaGridScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -473,7 +435,7 @@ func _open_logo_picker() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.follow_focus = true
-	stack.add_child(scroll)
+	margin.add_child(scroll)
 
 	var grid := GridContainer.new()
 	grid.name = "InsigniaGrid"
@@ -491,28 +453,17 @@ func _open_logo_picker() -> void:
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.toggle_mode = true
 		option.button_pressed = logo_id == selected_logo_id
-		option.clip_text = true
+		option.clip_contents = true
 		_style_company_glass_button(option, logo_id == selected_logo_id)
-		option.add_theme_constant_override("h_separation", 6)
-		option.add_theme_constant_override("icon_max_width", 56 if compact else 64)
 
-		var cell := VBoxContainer.new()
-		cell.alignment = BoxContainer.ALIGNMENT_CENTER
-		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cell.add_theme_constant_override("separation", 3)
 		var mark := TextureRect.new()
-		mark.custom_minimum_size = Vector2(36, 36) if compact else Vector2(48, 48)
+		mark.custom_minimum_size = Vector2(56, 56) if compact else Vector2(72, 72)
 		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		mark.texture = _company_logo_texture(logo_id)
-		mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		cell.add_child(mark)
-
-		var logo_name := _label(LOGO_NAMES[index].to_upper(), 8 if compact else 9, Color("#eaf6fc"), HORIZONTAL_ALIGNMENT_CENTER)
-		logo_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		logo_name.max_lines_visible = 2
-		cell.add_child(logo_name)
-		option.add_child(cell)
+		mark.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		mark.position -= mark.custom_minimum_size * 0.5
+		option.add_child(mark)
 		option.pressed.connect(_select_company_logo.bind(logo_id))
 		grid.add_child(option)
 
