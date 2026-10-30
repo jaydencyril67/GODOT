@@ -776,6 +776,10 @@ func _show_create_scene() -> void:
 		card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		card.text = category
 		card.add_theme_font_size_override("font_size", 16 if card_size >= 125.0 else 13)
+		var card_font := FontVariation.new()
+		card_font.base_font = ThemeDB.fallback_font
+		card_font.variation_embolden = 0.8
+		card.add_theme_font_override("font", card_font)
 		card.add_theme_color_override("font_color", Color("#ffffff"))
 		card.add_theme_color_override("font_hover_color", Color("#ffffff"))
 		card.add_theme_color_override("font_pressed_color", Color("#ffffff"))
