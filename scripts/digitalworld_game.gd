@@ -96,7 +96,7 @@ func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
 	var root := _new_screen()
-	var viewport_size := get_viewport_rect().size
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 
 	# Midnight-to-electric-blue atmosphere with restrained luminous geometry.
 	var gradient := Gradient.new()
