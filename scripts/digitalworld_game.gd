@@ -1,6 +1,6 @@
 extends Node3D
 
-const HQCutawayScript = preload("res://scripts/world/hq_cutaway.gd")
+const CityMapScript = preload("res://scripts/world/digitalworld_city.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 
 const LOGO_NAMES := [
@@ -698,28 +698,28 @@ func _create_company() -> void:
 	if not _save_career():
 		profile_status.text = "The company could not be saved. Check device storage."
 		return
-	_show_office()
+	_show_city()
 
 func _load_game_pressed() -> void:
 	if _load_career():
-		_show_office()
+		_show_city()
 	else:
 		_show_notice("NO SAVED COMPANY", "No saved DigitalWorld company was found on this device. Choose NEW GAME to establish one.")
 
-func _show_office() -> void:
-	current_screen = "office"
+func _show_city() -> void:
+	current_screen = "city"
 	_clear_world()
 
-	# The first company destination is the 3D half-cutaway office itself.
-	# Keep this page intentionally free of maps, toolbars, menus and overlays.
+	# The first company destination is the fully 3D miniature metropolis.
+	# Keep this world free of UI overlays so the city fills the screen.
 	if is_instance_valid(ui_layer):
 		ui_layer.queue_free()
 	ui_layer = null
 	ui_root = null
 
-	var office := HQCutawayScript.new()
-	office.name = "Company_Office_Cutaway"
-	world_root = office
+	var city := CityMapScript.new()
+	city.name = "DigitalWorld_Mini_Metropolis"
+	world_root = city
 	add_child(world_root)
 
 
