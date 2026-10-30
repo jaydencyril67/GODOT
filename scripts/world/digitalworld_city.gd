@@ -11,9 +11,20 @@ const CITY_HALF_DEPTH := 40.0
 var traffic: Array[Dictionary] = []
 var walkers: Array[Dictionary] = []
 var animation_clock := 0.0
+var city_camera: Camera3D
+var camera_target := Vector3(0.0, 5.2, 15.0)
+var camera_yaw := 0.0
+var camera_pitch := -0.09
+var camera_distance := 26.0
+var mouse_orbiting := false
+var mouse_panning := false
+var touch_points: Dictionary = {}
+var pinch_distance := 0.0
+var last_touch_midpoint := Vector2.ZERO
 
 func _ready() -> void:
 	_build_city()
+	_add_camera_hud()
 
 func _process(delta: float) -> void:
 	animation_clock += delta
@@ -54,13 +65,16 @@ func _build_city() -> void:
 	sun.shadow_enabled = true
 	add_child(sun)
 
-	var camera := Camera3D.new()
-	camera.name = "Metropolis_Overview_Camera"
-	camera.position = Vector3(79.0, 105.0, 91.0)
-	camera.fov = 49.0
-	add_child(camera)
-	camera.look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
-	camera.current = true
+	# Street-level cinematic entry. The orbit target stays inside the city,
+	# while distance and pitch remain user-controlled on touch and desktop.
+	city_camera = Camera3D.new()
+	city_camera.name = "Metropolis_Free_Explore_Camera"
+	city_camera.fov = 66.0
+	city_camera.near = 0.08
+	city_camera.far = 650.0
+	add_child(city_camera)
+	_update_camera_transform()
+	city_camera.current = true
 
 	var concrete := _mat(Color("#777f82"), 0.94)
 	var asphalt := _mat(Color("#30383d"), 0.96)
@@ -286,6 +300,159 @@ func _sphere(parent: Node3D, node_name: String, radius: float, position: Vector3
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(instance)
 	return instance
+
+func _input(event: InputEvent) -> void:
+	# Desktop orbit, pan and wheel zoom.
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			mouse_orbiting = event.pressed
+			return
+		if event.button_index == MOUSE_BUTTON_RIGHT or event.button_index == MOUSE_BUTTON_MIDDLE:
+			mouse_panning = event.pressed
+			return
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_camera(-2.4)
+			return
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_camera(2.4)
+			return
+	elif event is InputEventMouseMotion:
+		if mouse_orbiting:
+			_orbit_camera(event.relative)
+		elif mouse_panning:
+			_pan_camera(event.relative)
+		return
+
+	# Android: one finger orbits; two fingers pinch-zoom and pan together.
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			touch_points[event.index] = event.position
+			if touch_points.size() == 2:
+				var points: Array = touch_points.values()
+				pinch_distance = (points[0] as Vector2).distance_to(points[1] as Vector2)
+				last_touch_midpoint = ((points[0] as Vector2) + (points[1] as Vector2)) * 0.5
+		else:
+			touch_points.erase(event.index)
+			if touch_points.size() == 1:
+				pinch_distance = 0.0
+			elif touch_points.is_empty():
+				pinch_distance = 0.0
+		return
+
+	if event is InputEventScreenDrag and touch_points.has(event.index):
+		touch_points[event.index] = event.position
+		if touch_points.size() >= 2:
+			var points: Array = touch_points.values()
+			var first: Vector2 = points[0]
+			var second: Vector2 = points[1]
+			var next_distance := first.distance_to(second)
+			var midpoint := (first + second) * 0.5
+			if pinch_distance > 0.0:
+				_zoom_camera((pinch_distance - next_distance) * 0.045)
+			_pan_camera(midpoint - last_touch_midpoint)
+			pinch_distance = next_distance
+			last_touch_midpoint = midpoint
+		else:
+			_orbit_camera(event.relative)
+		get_viewport().set_input_as_handled()
+
+
+func _orbit_camera(relative: Vector2) -> void:
+	camera_yaw -= relative.x * 0.0052
+	camera_pitch = clampf(camera_pitch - relative.y * 0.0042, -0.16, 1.12)
+	_update_camera_transform()
+
+
+func _zoom_camera(amount: float) -> void:
+	camera_distance = clampf(camera_distance + amount, 6.5, 112.0)
+	_update_camera_transform()
+
+
+func _pan_camera(relative: Vector2) -> void:
+	if not is_instance_valid(city_camera):
+		return
+	var scale_factor := camera_distance * 0.00165
+	var camera_right := city_camera.global_transform.basis.x
+	var camera_up := city_camera.global_transform.basis.y
+	camera_target -= camera_right * relative.x * scale_factor
+	camera_target += camera_up * relative.y * scale_factor
+	camera_target.x = clampf(camera_target.x, -48.0, 48.0)
+	camera_target.y = clampf(camera_target.y, 1.0, 38.0)
+	camera_target.z = clampf(camera_target.z, -55.0, 55.0)
+	_update_camera_transform()
+
+
+func _update_camera_transform() -> void:
+	if not is_instance_valid(city_camera):
+		return
+	var horizontal := cos(camera_pitch) * camera_distance
+	var offset := Vector3(
+		sin(camera_yaw) * horizontal,
+		sin(camera_pitch) * camera_distance,
+		cos(camera_yaw) * horizontal
+	)
+	city_camera.position = camera_target + offset
+	city_camera.look_at(camera_target, Vector3.UP)
+
+
+func _reset_camera() -> void:
+	camera_target = Vector3(0.0, 5.2, 15.0)
+	camera_yaw = 0.0
+	camera_pitch = -0.09
+	camera_distance = 26.0
+	_update_camera_transform()
+
+
+func _add_camera_hud() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "City_Camera_Controls"
+	add_child(layer)
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(root)
+
+	var hint := Label.new()
+	hint.text = "DRAG TO ROTATE  •  PINCH TO ZOOM  •  TWO FINGERS TO PAN"
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.94, 0.97, 0.98, 0.86))
+	hint.add_theme_color_override("font_shadow_color", Color(0.02, 0.07, 0.10, 0.9))
+	hint.add_theme_constant_override("shadow_offset_x", 1)
+	hint.add_theme_constant_override("shadow_offset_y", 2)
+	hint.anchor_left = 0.0
+	hint.anchor_top = 1.0
+	hint.anchor_right = 0.0
+	hint.anchor_bottom = 1.0
+	hint.offset_left = 18.0
+	hint.offset_top = -34.0
+	hint.offset_right = 360.0
+	hint.offset_bottom = -14.0
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(hint)
+
+	var reset_button := Button.new()
+	reset_button.text = "RESET VIEW"
+	reset_button.focus_mode = Control.FOCUS_NONE
+	reset_button.custom_minimum_size = Vector2(112.0, 38.0)
+	reset_button.anchor_left = 1.0
+	reset_button.anchor_top = 1.0
+	reset_button.anchor_right = 1.0
+	reset_button.anchor_bottom = 1.0
+	reset_button.offset_left = -130.0
+	reset_button.offset_top = -54.0
+	reset_button.offset_right = -18.0
+	reset_button.offset_bottom = -16.0
+	reset_button.add_theme_font_size_override("font_size", 11)
+	reset_button.add_theme_color_override("font_color", Color("#f4fbff"))
+	var button_style := StyleBoxFlat.new()
+	button_style.bg_color = Color(0.035, 0.13, 0.19, 0.78)
+	button_style.border_color = Color(0.65, 0.83, 0.91, 0.7)
+	button_style.set_border_width_all(1)
+	button_style.set_corner_radius_all(9)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		reset_button.add_theme_stylebox_override(state, button_style)
+	reset_button.pressed.connect(_reset_camera)
+	root.add_child(reset_button)
 
 func _mat(color: Color, roughness: float = 0.82, metallic: float = 0.0) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
