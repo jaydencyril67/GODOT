@@ -261,12 +261,13 @@ func _create_camera() -> void:
 func _add_city_ground() -> void:
 	_box(self, "City_Ground_Base", Vector3(82.0, 0.8, 94.0), Vector3(0.0, -0.48, 0.0), materials["ground"])
 	_box(self, "City_Topsoil_Surface", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.04, 0.0), materials["soil"])
-	_add_box_collision(self, "City_Ground_Collision", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.04, 0.0))
+	_add_box_collision(self, "City_Ground_Collision", Vector3(80.0, 0.08, 92.0), Vector3(0.0, -0.015, 0.0))
 
 func _add_road_network() -> void:
 	for row_edge in range(GRID_ROWS + 1):
 		var z := (float(row_edge) - 3.0) * PLOT_SPACING
 		_box(self, "East_West_Asphalt_Road", Vector3(80.0, 0.045, 3.5), Vector3(0.0, 0.025, z), materials["asphalt"])
+		_add_box_collision(self, "East_West_Road_Collision", Vector3(80.0, 0.045, 3.5), Vector3(0.0, 0.025, z))
 		_box(self, "North_Sidewalk", Vector3(80.0, 0.13, 1.35), Vector3(0.0, 0.09, z - 2.45), materials["sidewalk"])
 		_box(self, "South_Sidewalk", Vector3(80.0, 0.13, 1.35), Vector3(0.0, 0.09, z + 2.45), materials["sidewalk"])
 		_box(self, "North_Curb", Vector3(80.0, 0.16, 0.16), Vector3(0.0, 0.12, z - 1.86), materials["curb"])
@@ -276,6 +277,7 @@ func _add_road_network() -> void:
 	for col_edge in range(GRID_COLUMNS + 1):
 		var x := (float(col_edge) - 2.5) * PLOT_SPACING
 		_box(self, "North_South_Asphalt_Road", Vector3(3.5, 0.05, 92.0), Vector3(x, 0.035, 0.0), materials["asphalt"])
+		_add_box_collision(self, "North_South_Road_Collision", Vector3(3.5, 0.05, 92.0), Vector3(x, 0.035, 0.0))
 		_box(self, "West_Sidewalk", Vector3(1.35, 0.13, 92.0), Vector3(x - 2.45, 0.09, 0.0), materials["sidewalk"])
 		_box(self, "East_Sidewalk", Vector3(1.35, 0.13, 92.0), Vector3(x + 2.45, 0.09, 0.0), materials["sidewalk"])
 		_box(self, "West_Curb", Vector3(0.16, 0.16, 92.0), Vector3(x - 1.86, 0.12, 0.0), materials["curb"])
