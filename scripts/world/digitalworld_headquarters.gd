@@ -264,7 +264,7 @@ func _add_level_silhouette_features(parent: Node3D, level: int, width: float, de
 			_box(parent, "Lowrise_Balcony_Glass_Rail", Vector3(width * 0.72, 0.72, 0.055), Vector3(0.0, y + 0.40, depth * 0.5 + 0.56), materials["glass"])
 	if level >= 6:
 		for side in [-1.0, 1.0]:
-			var fin_x := side * (width * 0.5 + 0.18)
+			var fin_x: float = float(side) * (width * 0.5 + 0.18)
 			_box(parent, "Tower_Outer_Corner_Fin", Vector3(0.26, height * 0.94, 0.36), Vector3(fin_x, height * 0.5 + 0.42, depth * 0.5 + 0.10), accent)
 	if level >= 8:
 		crown_height = 2.0 + float(level - 8) * 0.55
