@@ -7,7 +7,7 @@ var look_touch_id := -1
 var move_touch_id := -1
 var move_origin := Vector2.ZERO
 var move_vector := Vector2.ZERO
-var look_sensitivity := 0.00125
+var look_sensitivity := 0.0035
 var joystick_home_position := Vector2.ZERO
 var joystick_is_floating := false
 var joystick_base: Panel
@@ -25,11 +25,8 @@ var elevator_open := false
 var pending_interaction := ""
 var interaction_scan_timer := 0.0
 
-# Movement tuning is frame-rate independent because smoothing is exponential
-# in delta time, while collision movement remains in the fixed physics loop.
+# Direct movement response: joystick input controls speed immediately.
 const MOVE_SPEED := 2.8
-const MOVE_ACCEL_RESPONSE := 24.0
-const MOVE_DECEL_RESPONSE := 30.0
 const GRAVITY := 18.0
 const INTERACTION_SCAN_INTERVAL := 0.08
 const SEAT_INTERACTION_RADIUS := 1.55
@@ -115,16 +112,13 @@ func _physics_process(delta: float) -> void:
 	if direction.length_squared() > 0.0001:
 		direction = direction.normalized()
 
-	# Preserve analog joystick strength. Normalizing direction alone would turn
-	# even a tiny finger movement into a full-speed target velocity.
+	# Apply movement directly from the current input. This removes the
+	# gradual acceleration/deceleration feel while preserving analog stick
+	# strength and the existing maximum movement speed.
 	var input_strength := input_dir.length()
-	var responding := input_strength > 0.05
-	var response_rate := MOVE_ACCEL_RESPONSE if responding else MOVE_DECEL_RESPONSE
-	var smoothing := 1.0 - exp(-delta * response_rate)
 	var target_velocity := direction * MOVE_SPEED * input_strength
-	var horizontal_velocity := Vector2(player.velocity.x, player.velocity.z).lerp(Vector2(target_velocity.x, target_velocity.z), smoothing)
-	player.velocity.x = horizontal_velocity.x
-	player.velocity.z = horizontal_velocity.y
+	player.velocity.x = target_velocity.x
+	player.velocity.z = target_velocity.z
 
 	# Preserve vertical physics and clear only downward velocity while grounded.
 	if not player.is_on_floor():
