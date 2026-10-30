@@ -190,6 +190,15 @@ func _build_city() -> void:
 			if col_edge % 2 == 0:
 				_add_streetlight(Vector3(x + 2.65, 0.0, z), pole_material, lamp_material)
 
+	# Signalized junctions give the main avenues recognizable city infrastructure.
+	for signal_position in [Vector3(-7.0, 0.0, -1.9), Vector3(7.0, 0.0, 1.9), Vector3(-19.5, 0.0, 23.1), Vector3(19.5, 0.0, -23.1)]:
+		var signal_root := Node3D.new()
+		signal_root.position = signal_position
+		add_child(signal_root)
+		var signal_model := _add_glb_model(signal_root, "res://assets/city_glb/traffic-light.glb", Vector3.ONE * 2.1)
+		if signal_model != null:
+			signal_model.rotation.y = PI * 0.5
+
 	for row in range(GRID_ROWS):
 		for col in range(GRID_COLUMNS):
 			var p := Vector3((float(col) - 2.0) * PLOT_SPACING, 0.0, (float(row) - 2.5) * PLOT_SPACING)
@@ -228,7 +237,7 @@ func _build_city_building(index: int, plot_position: Vector3) -> void:
 	var model_path: String
 	var model_scale := 7.1 + float(index % 3) * 0.38
 	if index % 6 == 0 or index == 17 or index == 28:
-		model_path = CITY_TOWER_MODELS[(index / 6) % CITY_TOWER_MODELS.size()]
+		model_path = CITY_TOWER_MODELS[floori(float(index) / 6.0) % CITY_TOWER_MODELS.size()]
 		model_scale += 0.75
 	else:
 		model_path = CITY_BUILDING_MODELS[index % CITY_BUILDING_MODELS.size()]
@@ -236,7 +245,6 @@ func _build_city_building(index: int, plot_position: Vector3) -> void:
 	var model := _add_glb_model(building, model_path, Vector3.ONE * model_scale)
 	if model != null:
 		model.rotation.y = float((index * 3) % 4) * PI * 0.5
-		model.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if model is GeometryInstance3D else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	else:
 		# Keep a safe fallback if an imported asset fails to load on a clean editor import.
 		var fallback_height := 9.0 + float((index * 7) % 8) * 2.0
@@ -322,6 +330,7 @@ func _make_pedestrian(index: int) -> Dictionary:
 	person.name = "Pedestrian_%02d" % (index + 1)
 	var model_path: String = CITY_PEDESTRIAN_MODELS[index % CITY_PEDESTRIAN_MODELS.size()]
 	var model := _add_glb_model(person, model_path, Vector3.ONE * 0.92)
+	person.rotation.y = -PI * 0.5
 	if model == null:
 		var clothes := _mat(Color("#355b72"), 0.88)
 		var skin := _mat(Color("#986b50"), 0.9)
