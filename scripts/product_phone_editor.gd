@@ -1495,7 +1495,7 @@ func _refresh_phone_mesh() -> void:
 	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
 	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
-(value: float) -> void:
+func _on_border_radius_level_changed(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
 	if is_instance_valid(border_radius_value_label):
 		border_radius_value_label.text = "LEVEL %d / 6" % border_radius_level
