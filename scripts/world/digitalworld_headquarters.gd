@@ -422,14 +422,14 @@ func _create_preview_interface() -> void:
 		var staff_market_button := Button.new()
 		staff_market_button.name = "Headquarters_Staff_Market_Button"
 		staff_market_button.text = "STAFF MARKET"
-		staff_market_button.anchor_left = 0.5
+		staff_market_button.anchor_left = 1.0
 		staff_market_button.anchor_top = 0.0
-		staff_market_button.anchor_right = 0.5
+		staff_market_button.anchor_right = 1.0
 		staff_market_button.anchor_bottom = 0.0
-		staff_market_button.offset_left = -150.0
-		staff_market_button.offset_top = 128.0
-		staff_market_button.offset_right = -8.0
-		staff_market_button.offset_bottom = 172.0
+		staff_market_button.offset_left = -310.0
+		staff_market_button.offset_top = 20.0
+		staff_market_button.offset_right = -166.0
+		staff_market_button.offset_bottom = 64.0
 		staff_market_button.add_theme_font_size_override("font_size", 13)
 		_style_preview_button(staff_market_button, true)
 		staff_market_button.pressed.connect(func(): staff_market_requested.emit())
@@ -438,14 +438,14 @@ func _create_preview_interface() -> void:
 		var staff_management_button := Button.new()
 		staff_management_button.name = "Headquarters_Staff_Management_Button"
 		staff_management_button.text = "STAFF MANAGEMENT"
-		staff_management_button.anchor_left = 0.5
+		staff_management_button.anchor_left = 1.0
 		staff_management_button.anchor_top = 0.0
-		staff_management_button.anchor_right = 0.5
+		staff_management_button.anchor_right = 1.0
 		staff_management_button.anchor_bottom = 0.0
-		staff_management_button.offset_left = 8.0
-		staff_management_button.offset_top = 128.0
-		staff_management_button.offset_right = 150.0
-		staff_management_button.offset_bottom = 172.0
+		staff_management_button.offset_left = -158.0
+		staff_management_button.offset_top = 20.0
+		staff_management_button.offset_right = -14.0
+		staff_management_button.offset_bottom = 64.0
 		staff_management_button.add_theme_font_size_override("font_size", 13)
 		_style_preview_button(staff_management_button, false)
 		staff_management_button.pressed.connect(func(): staff_management_requested.emit())
