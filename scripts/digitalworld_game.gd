@@ -2182,6 +2182,9 @@ func _return_home_from_staff() -> void:
 
 
 func _hire_staff_candidate(candidate_id: String) -> void:
+	if upgrade_level <= 0:
+		_show_notice("OFFICE REQUIRED", "Purchase an office building before hiring employees. Your company must own an office to employ staff.")
+		return
 	var market: Array = career.get("staff_candidates", [])
 	var team: Array = career.get("staff_employees", [])
 	if team.size() >= HeadquartersPreviewScript.get_staff_capacity(upgrade_level):
@@ -2200,6 +2203,11 @@ func _hire_staff_candidate(candidate_id: String) -> void:
 
 
 func _apply_staff_hire_candidate(candidate_id: String) -> void:
+	# Re-check ownership after the confirmation dialog too, so a stale hire
+	# confirmation can never bypass the office requirement.
+	if upgrade_level <= 0:
+		_show_notice("OFFICE REQUIRED", "Purchase an office building before hiring employees. Your company must own an office to employ staff.")
+		return
 	var market: Array = career.get("staff_candidates", [])
 	var team: Array = career.get("staff_employees", [])
 	if team.size() >= HeadquartersPreviewScript.get_staff_capacity(upgrade_level):
