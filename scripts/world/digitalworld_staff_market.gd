@@ -79,18 +79,16 @@ func _build() -> void:
 	var title_text := "STAFF MARKET" if mode == "market" else ("STAFF MANAGEMENT" if mode == "management" else "OFFICE")
 	heading.add_child(_label(title_text, 25, WHITE))
 	heading.add_child(_label("AVAILABLE BALANCE  " + _money(company_balance), 11, Color("#a8e8ff")))
-	var back := _button("BACK", false)
-	back.custom_minimum_size = Vector2(78, 44)
+	var back := _button("BACK TO HQ", false)
+	back.custom_minimum_size = Vector2(124, 44)
 	back.pressed.connect(func(): back_requested.emit())
 	header.add_child(back)
 
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 7)
 	page.add_child(tabs)
-	_add_tab(tabs, "OFFICE", mode == "office", "office")
 	_add_tab(tabs, "STAFF MARKET", mode == "market", "market")
 	_add_tab(tabs, "MY STAFF", mode == "management", "management")
-	_add_tab(tabs, "HEADQUARTERS", false, "headquarters")
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
