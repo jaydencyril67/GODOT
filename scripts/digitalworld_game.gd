@@ -1517,7 +1517,7 @@ func _show_research_scene() -> void:
 	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	back_button.add_theme_font_size_override("font_size", 13 if compact else 14)
+	_apply_shared_page_typography(back_button, 15 if compact else 16)
 	_style_create_glass_button(back_button, false)
 	header.add_child(_label("Explore research areas for the products your company develops.", 13 if compact else 15, Color("#d8efff")))
 
@@ -1586,7 +1586,7 @@ func _show_research_scene() -> void:
 		card_margin.add_child(card_content)
 		card_content.add_child(_label(str(category["number"]) + "  /  RESEARCH AREA", 11, Color("#a9e3ff")))
 		var category_title := _label(str(category["name"]), 20 if compact else 24, Color("#ffffff"))
-		category_title.add_theme_font_size_override("font_size", 20 if compact else 24)
+		_apply_shared_page_typography(category_title, 22 if compact else 26)
 		card_content.add_child(category_title)
 		var description := _label(str(category["description"]), 12 if compact else 13, Color("#c7e2f3"))
 		description.size_flags_vertical = Control.SIZE_EXPAND_FILL
