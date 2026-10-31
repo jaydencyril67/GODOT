@@ -2,6 +2,7 @@ extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor.tscn")
+const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 
 const LOGO_NAMES := [
@@ -30,6 +31,8 @@ var home_company_label: Label
 var home_date_label: Label
 var home_balance_label: Label
 var home_time_button: Button
+var staff_ui_layer: CanvasLayer
+var staff_screen: Control
 var game_date_unix := 1262304000.0
 var game_clock_paused := false
 var last_saved_game_day := -1
@@ -71,7 +74,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if career.is_empty() or str(career.get("company_name", "")).is_empty() or game_clock_paused:
 		return
-	if current_screen not in ["home", "headquarters", "create"]:
+	if current_screen not in ["home", "headquarters", "create", "office", "staff_market", "staff_management"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -81,7 +84,9 @@ func _process(delta: float) -> void:
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month and current_month != str(career.get("last_rent_billed_month", previous_month)):
 		_process_monthly_headquarters_rent(current_month)
+		_process_monthly_staff_payroll(current_month)
 	if current_day != previous_day:
+		_process_staff_market_refresh(current_day)
 		_save_career()
 		last_saved_game_day = current_day
 	_update_home_status_bar()
@@ -144,12 +149,20 @@ func _load_career() -> bool:
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
 		"game_date_unix": float(config.get_value("career", "game_date_unix", 1262304000.0)),
 		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
-		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0)))))
+		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
+		"last_payroll_billed_month": str(config.get_value("career", "last_payroll_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
+		"staff_candidates": config.get_value("career", "staff_candidates", []),
+		"staff_employees": config.get_value("career", "staff_employees", []),
+		"next_staff_candidate_id": int(config.get_value("career", "next_staff_candidate_id", 1)),
+		"last_candidate_refresh_day": int(config.get_value("career", "last_candidate_refresh_day", floori(float(config.get_value("career", "game_date_unix", 1262304000.0)) / 86400.0))),
+		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false))
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
 	last_saved_game_day = floori(game_date_unix / 86400.0)
 	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 1)), 1, 10)
+	if not str(career.get("company_name", "")).is_empty():
+		_ensure_staff_data()
 	return not str(career.get("company_name", "")).is_empty()
 
 func _save_career() -> bool:
@@ -164,6 +177,12 @@ func _save_career() -> bool:
 	config.set_value("career", "game_date_unix", game_date_unix)
 	config.set_value("career", "game_clock_paused", game_clock_paused)
 	config.set_value("career", "last_rent_billed_month", str(career.get("last_rent_billed_month", _get_game_month_key(game_date_unix))))
+	config.set_value("career", "last_payroll_billed_month", str(career.get("last_payroll_billed_month", _get_game_month_key(game_date_unix))))
+	config.set_value("career", "staff_candidates", career.get("staff_candidates", []))
+	config.set_value("career", "staff_employees", career.get("staff_employees", []))
+	config.set_value("career", "next_staff_candidate_id", int(career.get("next_staff_candidate_id", 1)))
+	config.set_value("career", "last_candidate_refresh_day", int(career.get("last_candidate_refresh_day", floori(game_date_unix / 86400.0))))
+	config.set_value("career", "staff_market_initialized", bool(career.get("staff_market_initialized", false)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -781,6 +800,9 @@ func _create_company() -> void:
 		career["game_clock_paused"] = false
 	if not career.has("last_rent_billed_month"):
 		career["last_rent_billed_month"] = _get_game_month_key(game_date_unix)
+	if not career.has("last_payroll_billed_month"):
+		career["last_payroll_billed_month"] = _get_game_month_key(game_date_unix)
+	_ensure_staff_data()
 	if str(career.get("created_at", "")).is_empty():
 		career["created_at"] = Time.get_datetime_string_from_system(true)
 	upgrade_level = clampi(upgrade_level, 1, 10)
@@ -825,6 +847,7 @@ func _show_home_scene() -> void:
 
 
 func _show_headquarters_preview() -> void:
+	_close_staff_overlay()
 	current_screen = "headquarters"
 	if is_instance_valid(home_navigation_layer):
 		home_navigation_layer.queue_free()
@@ -944,7 +967,7 @@ func _show_home_navigation() -> void:
 		if button_name == "Create":
 			button.pressed.connect(_show_create_scene)
 		elif button_name == "Office":
-			button.pressed.connect(_show_headquarters_preview)
+			button.pressed.connect(_show_office_hub)
 		row.add_child(button)
 
 
@@ -1423,6 +1446,241 @@ func _return_from_phone_editor() -> void:
 func _on_headquarters_preview_level_changed(level: int) -> void:
 	# Preview selection is temporary; owned progress is saved independently.
 	selected_upgrade = clampi(level, 1, 10)
+
+
+func _process_monthly_staff_payroll(month_key: String) -> void:
+	if month_key == str(career.get("last_payroll_billed_month", "")):
+		return
+	var payroll := 0.0
+	for employee in career.get("staff_employees", []):
+		payroll += float(employee.get("monthly_salary", 0.0))
+	var previous_balance := float(career.get("balance", 10000000.0))
+	career["last_payroll_billed_month"] = month_key
+	if payroll <= 0.0:
+		_save_career()
+		return
+	if previous_balance < payroll:
+		_save_career()
+		_show_notice("PAYROLL UNPAID", "Your company needs %s for monthly staff salaries, but only has %s available. No money was deducted." % [_format_balance(payroll), _format_balance(previous_balance)])
+		return
+	career["balance"] = previous_balance - payroll
+	if not _save_career():
+		career["balance"] = previous_balance
+		career["last_payroll_billed_month"] = _get_game_month_key(game_date_unix - 86400.0)
+		_show_notice("PAYROLL NOT SAVED", "Monthly staff payroll could not be saved. Your balance has not changed.")
+		return
+	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
+		world_root.set_company_balance(float(career["balance"]))
+	_update_home_status_bar()
+
+
+func _ensure_staff_data() -> void:
+	if not career.has("staff_candidates") or not career.get("staff_candidates") is Array:
+		career["staff_candidates"] = []
+	if not career.has("staff_employees") or not career.get("staff_employees") is Array:
+		career["staff_employees"] = []
+	if not bool(career.get("staff_market_initialized", false)):
+		var initial_candidates: Array = []
+		for index in range(50):
+			initial_candidates.append(_generate_staff_candidate())
+		career["staff_candidates"] = initial_candidates
+		career["staff_market_initialized"] = true
+	if not career.has("next_staff_candidate_id"):
+		career["next_staff_candidate_id"] = 1
+	if not career.has("last_candidate_refresh_day"):
+		career["last_candidate_refresh_day"] = floori(game_date_unix / 86400.0)
+	if not career.has("last_payroll_billed_month"):
+		career["last_payroll_billed_month"] = _get_game_month_key(game_date_unix)
+
+
+func _generate_staff_candidate() -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var first_names := ["Amara", "Chinedu", "Zara", "Daniel", "Amina", "David", "Ada", "Samuel", "Mariam", "Michael", "Tomi", "Emeka", "Grace", "Ibrahim", "Nneka", "Joseph", "Kemi", "Peter", "Ngozi", "Victor", "Fatima", "Esther", "Olu", "Ruth", "Tunde"]
+	var surnames := ["Okafor", "Adeyemi", "Bello", "Eze", "Williams", "Adebayo", "Nwosu", "Ibrahim", "Mensah", "Obi", "Lawal", "James", "Balogun", "Osei", "Udo", "Johnson", "Akinyemi", "Musa", "Daniels", "Onyeka"]
+	var roles := {
+		"Development": ["Software Developer", "Senior Developer", "Game Developer", "UI/UX Designer", "Systems Engineer"],
+		"Research": ["Research Analyst", "Data Analyst", "Research Scientist", "Product Researcher", "Innovation Specialist"],
+		"Marketing": ["Marketing Manager", "Marketing Specialist", "Brand Strategist", "Social Media Manager", "Advertising Specialist"],
+		"Finance": ["Accountant", "Financial Analyst", "Budget Analyst", "Finance Manager"],
+		"Operations": ["Operations Manager", "Project Coordinator", "Business Operations Specialist"],
+		"Human Resources": ["HR Manager", "Recruitment Officer", "People Operations Specialist"]
+	}
+	var departments := ["Development", "Research", "Marketing", "Finance", "Operations", "Human Resources"]
+	var department: String = departments[rng.randi_range(0, departments.size() - 1)]
+	var role_list: Array = roles[department]
+	var ability := rng.randi_range(42, 98)
+	var efficiency := rng.randi_range(48, 99)
+	var experience := rng.randi_range(0, 22)
+	var potential := rng.randi_range(maxi(ability, 55), 100)
+	var base_salary := 125000.0
+	match department:
+		"Development": base_salary = 190000.0
+		"Research": base_salary = 175000.0
+		"Marketing": base_salary = 145000.0
+		"Finance": base_salary = 155000.0
+		"Operations": base_salary = 130000.0
+		"Human Resources": base_salary = 135000.0
+	var salary := roundf(base_salary * (0.65 + float(ability) / 100.0) * (1.0 + float(experience) * 0.035) / 1000.0) * 1000.0
+	var rarity := "Common"
+	if ability >= 92:
+		rarity = "Legendary"
+	elif ability >= 84:
+		rarity = "Elite"
+	elif ability >= 74:
+		rarity = "Rare"
+	elif ability >= 62:
+		rarity = "Uncommon"
+	var candidate_id := "candidate_%05d" % int(career.get("next_staff_candidate_id", 1))
+	career["next_staff_candidate_id"] = int(career.get("next_staff_candidate_id", 1)) + 1
+	return {
+		"id": candidate_id,
+		"full_name": first_names[rng.randi_range(0, first_names.size() - 1)] + " " + surnames[rng.randi_range(0, surnames.size() - 1)],
+		"age": rng.randi_range(21, 58),
+		"gender": "Female" if rng.randi_range(0, 1) == 0 else "Male",
+		"department": department,
+		"position": role_list[rng.randi_range(0, role_list.size() - 1)],
+		"ability": ability,
+		"efficiency": efficiency,
+		"potential": potential,
+		"experience": experience,
+		"education": ["Diploma", "Bachelor's Degree", "Master's Degree", "Doctorate"][rng.randi_range(0, 3)],
+		"personality": ["Analytical", "Creative", "Collaborative", "Ambitious", "Adaptable", "Methodical"][rng.randi_range(0, 5)],
+		"reliability": rng.randi_range(55, 100),
+		"communication": rng.randi_range(45, 100),
+		"monthly_salary": salary,
+		"rarity": rarity
+	}
+
+
+func _process_staff_market_refresh(current_day: int) -> void:
+	var market: Array = career.get("staff_candidates", [])
+	var last_refresh := int(career.get("last_candidate_refresh_day", current_day))
+	if market.size() >= 50:
+		career["last_candidate_refresh_day"] = current_day
+		return
+	if current_day - last_refresh < 3:
+		return
+	market.append(_generate_staff_candidate())
+	career["staff_candidates"] = market
+	career["last_candidate_refresh_day"] = current_day
+
+
+func _show_office_hub() -> void:
+	_open_staff_screen("office")
+
+
+func _open_staff_screen(screen_mode: String) -> void:
+	current_screen = screen_mode if screen_mode == "office" else ("staff_market" if screen_mode == "market" else "staff_management")
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.queue_free()
+	home_navigation_layer = null
+	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
+		ui_layer.queue_free()
+	ui_layer = null
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.queue_free()
+	staff_ui_layer = CanvasLayer.new()
+	staff_ui_layer.name = "DigitalWorld_Staff_Office_Layer"
+	staff_ui_layer.layer = 40
+	add_child(staff_ui_layer)
+	staff_screen = StaffMarketScene.instantiate()
+	staff_ui_layer.add_child(staff_screen)
+	staff_screen.back_requested.connect(_return_home_from_staff)
+	staff_screen.headquarters_requested.connect(_show_headquarters_preview)
+	staff_screen.hire_requested.connect(_hire_staff_candidate)
+	staff_screen.dismiss_requested.connect(_request_staff_dismissal)
+	staff_screen.assignment_requested.connect(_assign_staff_department)
+	var mode := "office" if screen_mode == "office" else ("market" if screen_mode == "market" else "management")
+	staff_screen.open(mode, career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+
+
+func _close_staff_overlay() -> void:
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.queue_free()
+	staff_ui_layer = null
+	staff_screen = null
+
+
+func _return_home_from_staff() -> void:
+	_close_staff_overlay()
+	current_screen = "home"
+	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
+		world_root.set_home_mode(true)
+		world_root.set_preview_active(true)
+	_show_home_navigation()
+
+
+func _hire_staff_candidate(candidate_id: String) -> void:
+	var market: Array = career.get("staff_candidates", [])
+	var team: Array = career.get("staff_employees", [])
+	if team.size() >= HeadquartersPreviewScript.get_staff_capacity(upgrade_level):
+		_show_notice("HEADQUARTERS FULL", "Your current headquarters can hold %d employees. Upgrade your headquarters to expand staff capacity." % HeadquartersPreviewScript.get_staff_capacity(upgrade_level))
+		return
+	var candidate_index := -1
+	for index in range(market.size()):
+		if str(market[index].get("id", "")) == candidate_id:
+			candidate_index = index
+			break
+	if candidate_index < 0:
+		return
+	var previous_market := market.duplicate(true)
+	var previous_team := team.duplicate(true)
+	var hired: Dictionary = market[candidate_index].duplicate(true)
+	market.remove_at(candidate_index)
+	team.append(hired)
+	career["staff_candidates"] = market
+	career["staff_employees"] = team
+	if not _save_career():
+		career["staff_candidates"] = previous_market
+		career["staff_employees"] = previous_team
+		_show_notice("HIRE NOT SAVED", "The employee could not be saved. No candidate was removed from the market.")
+		return
+	_open_staff_screen("market")
+
+
+func _request_staff_dismissal(employee_id: String) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "DISMISS EMPLOYEE"
+	dialog.dialog_text = "Dismiss this employee from your company? This action cannot be undone."
+	dialog.confirmed.connect(func():
+		_dismiss_staff_employee(employee_id)
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func(): dialog.queue_free())
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(420, 180))
+
+
+func _dismiss_staff_employee(employee_id: String) -> void:
+	var team: Array = career.get("staff_employees", [])
+	var previous_team := team.duplicate(true)
+	for index in range(team.size() - 1, -1, -1):
+		if str(team[index].get("id", "")) == employee_id:
+			team.remove_at(index)
+			break
+	career["staff_employees"] = team
+	if not _save_career():
+		career["staff_employees"] = previous_team
+		_show_notice("DISMISSAL NOT SAVED", "Your employee roster has not changed.")
+		return
+	_open_staff_screen("management")
+
+
+func _assign_staff_department(employee_id: String, department: String) -> void:
+	var team: Array = career.get("staff_employees", [])
+	var previous_team := team.duplicate(true)
+	for employee in team:
+		if str(employee.get("id", "")) == employee_id:
+			employee["department"] = department
+			break
+	career["staff_employees"] = team
+	if not _save_career():
+		career["staff_employees"] = previous_team
+		_show_notice("ASSIGNMENT NOT SAVED", "The employee's department has not changed.")
+		return
+	_open_staff_screen("management")
+
 
 func _show_settings() -> void:
 	if not is_instance_valid(ui_root):
