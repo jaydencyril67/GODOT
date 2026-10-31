@@ -212,7 +212,7 @@ func _build_department_candidate_row(department: String, compact: bool) -> void:
 	var horizontal_scroll := ScrollContainer.new()
 	horizontal_scroll.name = "Market_" + department.replace(" ", "") + "_HorizontalRow"
 	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	horizontal_scroll.custom_minimum_size.y = 326 if compact else 316
+	horizontal_scroll.custom_minimum_size.y = 366 if compact else 356
 	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	horizontal_scroll.follow_focus = false
@@ -237,7 +237,7 @@ func _build_department_candidate_row(department: String, compact: bool) -> void:
 	if department_count == 0:
 		var empty_card := _glass_card_message("NO " + department.to_upper() + " CANDIDATES", "New candidates for this department will appear here.")
 		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		empty_card.custom_minimum_size = Vector2(290 if compact else 320, 300 if compact else 290)
+		empty_card.custom_minimum_size = Vector2(290 if compact else 320, 340 if compact else 330)
 		candidate_row.add_child(empty_card)
 
 
