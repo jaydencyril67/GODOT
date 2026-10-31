@@ -675,7 +675,6 @@ func _get_preview_viewport() -> SubViewport:
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
 	body_material.roughness = 0.94
-	body_material.specular = 0.12
 	# This is a closed solid mesh with outward-facing, correctly wound
 	# triangles. Cull its back faces instead of shading interior backfaces
 	# with automatically inverted normals.
@@ -1013,7 +1012,6 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	toggle.texture_normal = _make_side_button_checkbox_icon(false)
 	toggle.texture_hover = _make_side_button_checkbox_icon(false)
 	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.texture_hover_pressed = _make_side_button_checkbox_icon(true)
 	toggle.toggle_mode = true
 	toggle.button_pressed = enabled
 	toggle.focus_mode = Control.FOCUS_NONE
