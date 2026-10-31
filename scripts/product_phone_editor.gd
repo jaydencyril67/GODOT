@@ -207,41 +207,12 @@ func _build_design_research_content(parent: Control) -> void:
 	if research_view == "HARDWARE":
 		_build_hardware_research_grid(parent, compact)
 	elif research_view == "SOFTWARE":
-		var empty_state := CenterContainer.new()
-		empty_state.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		empty_state.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		parent.add_child(empty_state)
-		empty_state.add_child(_make_label("SOFTWARE RESEARCH  •  COMING SOON", 15 if compact else 18, Color("#c7eaff")))
+		_build_software_research_grid(parent, compact)
 	else:
 		_build_extras_research_content(parent, compact)
 
 
 func _build_hardware_research_grid(parent: Control, compact: bool) -> void:
-	var viewport_size := get_viewport().get_visible_rect().size
-	var aspect_ratio := viewport_size.x / maxf(viewport_size.y, 1.0)
-	var columns := 6 if aspect_ratio >= 1.55 else (5 if aspect_ratio >= 1.2 else 3)
-	var short_screen := viewport_size.y < 430.0
-	var card_height := 58.0 if short_screen else (82.0 if compact else 104.0)
-
-	var section := VBoxContainer.new()
-	section.name = "HardwareResearchSection"
-	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	section.add_theme_constant_override("separation", 5)
-	parent.add_child(section)
-
-	var section_title := _make_label("HARDWARE FEATURES", 13 if compact else 16, Color("#b9eaff"))
-	section.add_child(section_title)
-
-	var grid := GridContainer.new()
-	grid.name = "HardwareResearchFeatureGrid"
-	grid.columns = columns
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8 if compact else 12)
-	grid.add_theme_constant_override("v_separation", 7 if compact else 10)
-	section.add_child(grid)
-
 	var features := [
 		"Screen Tech",
 		"Power/Volume Buttons",
@@ -260,12 +231,65 @@ func _build_hardware_research_grid(parent: Control, compact: bool) -> void:
 		"Body Frame",
 		"Phone Width",
 		"Phone Height",
-		"Sim/Memory Slot"
+		"Sim/Memory Slot",
+		"Protection",
+		"Refresh Rate"
 	]
+	_build_research_feature_grid(parent, compact, "HARDWARE FEATURES", "Hardware", features)
 
-	for feature_name in features:
+
+func _build_software_research_grid(parent: Control, compact: bool) -> void:
+	var features := [
+		"RAM",
+		"Internal Storage",
+		"RAM Technology",
+		"Battery",
+		"Charging Speed",
+		"Wireless Charge",
+		"Bluetooth",
+		"WiFi",
+		"Network",
+		"NFC",
+		"GPS",
+		"USB Connectivity",
+		"Sensors",
+		"Front Camera",
+		"Rare Camera",
+		"Memory Clock"
+	]
+	_build_research_feature_grid(parent, compact, "SOFTWARE FEATURES", "Software", features)
+
+
+func _build_research_feature_grid(parent: Control, compact: bool, section_caption: String, grid_prefix: String, features: Array) -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var aspect_ratio := viewport_size.x / maxf(viewport_size.y, 1.0)
+	var columns := 6 if aspect_ratio >= 1.55 else (5 if aspect_ratio >= 1.2 else 3)
+	var short_screen := viewport_size.y < 430.0
+	var card_height := 58.0 if short_screen else (82.0 if compact else 104.0)
+
+	var section := VBoxContainer.new()
+	section.name = grid_prefix + "ResearchSection"
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", 5)
+	parent.add_child(section)
+
+	var section_title := _make_label(section_caption, 13 if compact else 16, Color("#b9eaff"))
+	section.add_child(section_title)
+
+	var grid := GridContainer.new()
+	grid.name = grid_prefix + "ResearchFeatureGrid"
+	grid.columns = columns
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8 if compact else 12)
+	grid.add_theme_constant_override("v_separation", 7 if compact else 10)
+	section.add_child(grid)
+
+	for feature_value in features:
+		var feature_name := str(feature_value)
 		var card := _make_staff_style_card()
-		card.name = feature_name.replace("/", "_").replace(" ", "") + "_HardwareCard"
+		card.name = feature_name.replace("/", "_").replace(" ", "") + "_" + grid_prefix + "Card"
 		card.custom_minimum_size = Vector2(0, card_height)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
