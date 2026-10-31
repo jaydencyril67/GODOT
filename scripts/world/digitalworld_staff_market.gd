@@ -55,6 +55,7 @@ func _build() -> void:
 	staff_touch_axis = ""
 	staff_touch_velocity = Vector2.ZERO
 	for child in get_children():
+		child.hide()
 		child.queue_free()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var viewport_size := get_viewport().get_visible_rect().size
