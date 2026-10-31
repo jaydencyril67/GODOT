@@ -10,6 +10,7 @@ signal upgrade_requested(level: int)
 
 const MAX_LEVEL := 10
 const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
+const UPGRADE_COSTS := [0, 10000000, 15000000, 22000000, 30000000, 40000000, 52000000, 63000000, 75000000, 100000000]
 const LEVEL_CONFIGS := [
 	{"name": "Workshop", "floors": 1, "width": 12.4, "depth": 9.4, "ground_height": 4.2, "floor_height": 3.0, "style": 0},
 	{"name": "Workshop & Office", "floors": 2, "width": 13.2, "depth": 10.0, "ground_height": 3.6, "floor_height": 2.9, "style": 1},
@@ -26,6 +27,9 @@ const LEVEL_CONFIGS := [
 var preview_level: int = 1
 var owned_level: int = 1
 var company_name := "YOUR COMPANY"
+var company_balance := 10000000.0
+var upgrade_cost_label: Label
+var available_balance_label: Label
 var building_root: Node3D
 var hq_camera: Camera3D
 var level_info_label: Label
@@ -431,6 +435,46 @@ func _create_preview_interface() -> void:
 		upgrade_button.offset_bottom = -18.0
 		upgrade_button.pressed.connect(func(): upgrade_requested.emit(preview_level))
 
+		var cost_panel := PanelContainer.new()
+		cost_panel.name = "Headquarters_Upgrade_Finance_Panel"
+		cost_panel.anchor_left = 1.0
+		cost_panel.anchor_top = 1.0
+		cost_panel.anchor_right = 1.0
+		cost_panel.anchor_bottom = 1.0
+		cost_panel.offset_left = -286.0
+		cost_panel.offset_top = -150.0
+		cost_panel.offset_right = -18.0
+		cost_panel.offset_bottom = -84.0
+		var cost_style := StyleBoxFlat.new()
+		cost_style.bg_color = Color(0.025, 0.105, 0.16, 0.90)
+		cost_style.border_color = Color(0.35, 0.72, 0.91, 0.78)
+		cost_style.set_border_width_all(1)
+		cost_style.set_corner_radius_all(10)
+		cost_style.content_margin_left = 10.0
+		cost_style.content_margin_right = 10.0
+		cost_style.content_margin_top = 6.0
+		cost_style.content_margin_bottom = 6.0
+		cost_panel.add_theme_stylebox_override("panel", cost_style)
+		layer.add_child(cost_panel)
+
+		var finance_stack := VBoxContainer.new()
+		finance_stack.add_theme_constant_override("separation", 3)
+		cost_panel.add_child(finance_stack)
+
+		upgrade_cost_label = Label.new()
+		upgrade_cost_label.name = "Headquarters_Upgrade_Cost"
+		upgrade_cost_label.add_theme_font_size_override("font_size", 15)
+		upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff"))
+		upgrade_cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		finance_stack.add_child(upgrade_cost_label)
+
+		available_balance_label = Label.new()
+		available_balance_label.name = "Headquarters_Available_Balance"
+		available_balance_label.add_theme_font_size_override("font_size", 13)
+		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff"))
+		available_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		finance_stack.add_child(available_balance_label)
+
 	_refresh_preview_interface()
 
 
@@ -493,16 +537,48 @@ func _refresh_preview_interface() -> void:
 		level_info_label.text = "OFFICE BUILDING LEVEL %d" % preview_level
 	if is_instance_valid(staff_capacity_label):
 		staff_capacity_label.text = "STAFF CAPACITY: %d WORKERS" % _get_staff_capacity(preview_level)
-
-
-func _get_staff_capacity(level: int) -> int:
-	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
 	if is_instance_valid(previous_level_button):
 		previous_level_button.disabled = preview_level <= 1
 	if is_instance_valid(next_level_button):
 		next_level_button.disabled = preview_level >= MAX_LEVEL
+	var upgrade_cost := get_upgrade_cost(preview_level)
+	var can_afford_upgrade := company_balance >= upgrade_cost
+	if is_instance_valid(upgrade_cost_label):
+		if preview_level <= owned_level:
+			upgrade_cost_label.text = "ALREADY OWNED"
+			upgrade_cost_label.add_theme_color_override("font_color", Color("#b9e8ff"))
+		else:
+			upgrade_cost_label.text = "UPGRADE COST: %s" % _format_money(upgrade_cost)
+			upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff") if can_afford_upgrade else Color("#ffb5a8"))
+	if is_instance_valid(available_balance_label):
+		available_balance_label.text = "BALANCE: %s" % _format_money(company_balance)
+		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
 	if is_instance_valid(upgrade_button):
-		upgrade_button.disabled = preview_level <= owned_level
+		upgrade_button.disabled = preview_level <= owned_level or not can_afford_upgrade
+
+
+func _get_staff_capacity(level: int) -> int:
+	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
+
+
+static func get_upgrade_cost(level: int) -> int:
+	return UPGRADE_COSTS[clampi(level, 1, MAX_LEVEL) - 1]
+
+
+func set_company_balance(amount: float) -> void:
+	company_balance = maxf(0.0, amount)
+	_refresh_preview_interface()
+
+
+func _format_money(amount: float) -> String:
+	var digits := str(roundi(amount))
+	var formatted := ""
+	for index in range(digits.length()):
+		if index > 0 and (digits.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += digits.substr(index, 1)
+	return "$" + formatted
+
 
 func _style_preview_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
