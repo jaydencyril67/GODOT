@@ -994,18 +994,21 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	var heading_spacer := Control.new()
 	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading_row.add_child(heading_spacer)
-	var toggle := CheckBox.new()
-	toggle.text = ""
-	# Keep the hit target compact and make the actual checkbox artwork 36 px.
-	toggle.custom_minimum_size = Vector2(56, 52)
-	toggle.add_theme_constant_override("icon_max_width", 36)
-	toggle.add_theme_icon_override("unchecked", _make_side_button_checkbox_icon(false))
-	toggle.add_theme_icon_override("checked", _make_side_button_checkbox_icon(true))
-	toggle.add_theme_icon_override("unchecked_disabled", _make_side_button_checkbox_icon(false))
-	toggle.add_theme_icon_override("checked_disabled", _make_side_button_checkbox_icon(true))
+	# A dedicated TextureButton gives us a fully custom checkbox with an exact-size hit area.
+	var toggle := TextureButton.new()
+	toggle.name = "Custom" + ("Power" if side == "right" else "Volume") + "ButtonCheckbox"
+	toggle.custom_minimum_size = Vector2(36, 36)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.texture_hover_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
 	toggle.button_pressed = enabled
-	toggle.toggled.connect(_on_side_button_toggled.bind(side))
-	_apply_research_typography(toggle, 19)
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.pressed.connect(_on_side_button_toggle_pressed.bind(toggle, side))
 	heading_row.add_child(toggle)
 	var position_title := _make_label("VERTICAL POSITION", 14, Color("#c7eaff"))
 	content.add_child(position_title)
@@ -1036,6 +1039,10 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 		power_button_position_label = position_label
 	else:
 		volume_button_position_label = position_label
+
+
+func _on_side_button_toggle_pressed(toggle: TextureButton, side: String) -> void:
+	_on_side_button_toggled(toggle.button_pressed, side)
 
 
 func _on_side_button_toggled(enabled: bool, side: String) -> void:
