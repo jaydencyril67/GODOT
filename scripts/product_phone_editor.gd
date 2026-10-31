@@ -10,10 +10,16 @@ const DRAG_SENSITIVITY := 0.0024
 var phone_body: MeshInstance3D
 var preview_camera: Camera3D
 var preview_container: SubViewportContainer
+var research_mode := false
+var research_selected_tab := "Design"
+var research_tab_status: Label
 
 
 func _ready() -> void:
-	_build_editor_ui()
+	if research_mode:
+		_build_research_ui()
+	else:
+		_build_editor_ui()
 
 
 func _build_editor_ui() -> void:
@@ -87,6 +93,134 @@ func _build_editor_ui() -> void:
 	preview_stack.add_child(preview_container)
 
 	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard", false))
+
+
+func _build_research_ui() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "PhoneResearchInterface"
+	add_child(layer)
+
+	var root := Control.new()
+	root.name = "PhoneResearchRoot"
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	layer.add_child(root)
+
+	var background := TextureRect.new()
+	background.name = "DigitalWorld_Shared_Background"
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = load("res://assets/digitalworld-landing.png")
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(background)
+
+	var shade := ColorRect.new()
+	shade.name = "Shared_Background_Overlay"
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(shade)
+
+	var header := HBoxContainer.new()
+	header.name = "PhoneResearchHeader"
+	header.anchor_left = 0.02
+	header.anchor_top = 0.025
+	header.anchor_right = 0.98
+	header.anchor_bottom = 0.12
+	header.add_theme_constant_override("separation", 14)
+	root.add_child(header)
+
+	var back_button := Button.new()
+	back_button.text = "‹  BACK TO RESEARCH"
+	back_button.custom_minimum_size = Vector2(190, 48)
+	back_button.add_theme_font_size_override("font_size", 14)
+	_style_research_button(back_button, false)
+	back_button.pressed.connect(_on_back_pressed)
+	header.add_child(back_button)
+
+	var title := _make_label("PHONE RESEARCH", 24, Color.WHITE)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+
+	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.18))
+	preview_panel.name = "ResearchPhonePreviewPanel"
+	preview_panel.anchor_left = 0.13
+	preview_panel.anchor_top = 0.14
+	preview_panel.anchor_right = 0.87
+	preview_panel.anchor_bottom = 0.76
+	root.add_child(preview_panel)
+
+	preview_container = SubViewportContainer.new()
+	preview_container.name = "ResearchPhonePreview"
+	preview_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	preview_container.stretch = true
+	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	preview_container.gui_input.connect(_on_preview_gui_input)
+	preview_container.add_child(_get_preview_viewport())
+	preview_panel.add_child(preview_container)
+
+	research_tab_status = _make_label("DESIGN RESEARCH", 15, Color("#d8efff"))
+	research_tab_status.anchor_left = 0.04
+	research_tab_status.anchor_top = 0.765
+	research_tab_status.anchor_right = 0.96
+	research_tab_status.anchor_bottom = 0.81
+	research_tab_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root.add_child(research_tab_status)
+
+	var bottom_panel := _make_glass_panel(Color(0.035, 0.12, 0.20, 0.90))
+	bottom_panel.name = "PhoneResearchBottomNavigation"
+	bottom_panel.anchor_left = 0.015
+	bottom_panel.anchor_top = 0.83
+	bottom_panel.anchor_right = 0.985
+	bottom_panel.anchor_bottom = 0.98
+	root.add_child(bottom_panel)
+
+	var tabs := HBoxContainer.new()
+	tabs.name = "PhoneResearchTabs"
+	tabs.add_theme_constant_override("separation", 8)
+	bottom_panel.add_child(tabs)
+	for tab_name in ["Design", "Technology", "Packaging", "Extras"]:
+		var tab_button := Button.new()
+		tab_button.text = tab_name
+		tab_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tab_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		tab_button.custom_minimum_size = Vector2(0, 54)
+		tab_button.add_theme_font_size_override("font_size", 15)
+		_style_research_button(tab_button, tab_name == research_selected_tab)
+		tab_button.pressed.connect(_on_research_tab_pressed.bind(tab_name, tabs))
+		tabs.add_child(tab_button)
+
+
+func _on_research_tab_pressed(tab_name: String, tabs: HBoxContainer) -> void:
+	research_selected_tab = tab_name
+	if is_instance_valid(research_tab_status):
+		research_tab_status.text = tab_name.to_upper() + " RESEARCH"
+	for child in tabs.get_children():
+		if child is Button:
+			_style_research_button(child as Button, (child as Button).text == tab_name)
+
+
+func _style_research_button(button: Button, selected: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.16, 0.58, 0.86, 0.56) if selected else Color(0.60, 0.84, 0.96, 0.20)
+		if state == "hover":
+			style.bg_color = Color(0.30, 0.72, 0.96, 0.48)
+		elif state == "pressed":
+			style.bg_color = Color(0.12, 0.42, 0.72, 0.62)
+		style.border_color = Color(0.91, 0.98, 1.0, 0.92)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(12)
+		style.content_margin_left = 10
+		style.content_margin_right = 10
+		style.content_margin_top = 8
+		style.content_margin_bottom = 8
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 
 
 func _make_tools_card(card_name: String, include_controls: bool) -> PanelContainer:
