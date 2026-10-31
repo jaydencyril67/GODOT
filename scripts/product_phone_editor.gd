@@ -1069,13 +1069,13 @@ func _refresh_phone_side_buttons() -> void:
 	button_root.name = "PhoneSideButtons"
 	phone_body.add_child(button_root)
 	var frame_material := StandardMaterial3D.new()
-	frame_material.albedo_color = Color("#343d48")
-	frame_material.metallic = 0.72
-	frame_material.roughness = 0.28
+	frame_material.albedo_color = Color("#9da6af")
+	frame_material.metallic = 0.06
+	frame_material.roughness = 0.86
 	var key_material := StandardMaterial3D.new()
-	key_material.albedo_color = Color("#aeb9c5")
-	key_material.metallic = 0.82
-	key_material.roughness = 0.24
+	key_material.albedo_color = Color("#a8b0b9")
+	key_material.metallic = 0.08
+	key_material.roughness = 0.82
 	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
 	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
 	var key_length := 0.30 * side_button_length_scale
@@ -1091,7 +1091,7 @@ func _refresh_phone_side_buttons() -> void:
 
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
 	# Keep the physical keys close to flush with the phone frame.
-	var button_depth := maxf(radius * 0.95, 0.016)
+	var button_depth := maxf(radius * 0.42, 0.008)
 	var button_width := maxf(radius * 1.35, 0.024)
 
 	var backing := MeshInstance3D.new()
@@ -1110,7 +1110,7 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	key_mesh.size = Vector3(button_depth, maxf(length, radius * 2.0), button_width)
 	key.mesh = key_mesh
 	key.material_override = key_material
-	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + button_depth * 0.28), position_y, 0.0)
+	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + button_depth * 0.08), position_y, 0.0)
 	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(key)
 
