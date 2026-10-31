@@ -836,14 +836,15 @@ func _upgrade_headquarters(level: int) -> void:
 	_update_home_status_bar()
 
 
-func _downgrade_headquarters(level: int) -> void:
+func _downgrade_headquarters(level: int, refund_percent: int) -> void:
 	var requested_level := clampi(level, 1, 10)
 	if requested_level >= upgrade_level:
 		return
 	var previous_level := upgrade_level
 	var previous_balance := float(career.get("balance", 10000000.0))
+	var safe_refund_percent := clampi(refund_percent, 50, 60)
 	var amount_paid := float(HeadquartersPreviewScript.get_upgrade_cost(previous_level))
-	var refund_amount := amount_paid * 0.60
+	var refund_amount := amount_paid * float(safe_refund_percent) / 100.0
 	upgrade_level = requested_level
 	career["upgrade_level"] = upgrade_level
 	career["balance"] = previous_balance + refund_amount
