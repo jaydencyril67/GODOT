@@ -344,10 +344,17 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	var hire := _button("HIRE", true)
 	hire.custom_minimum_size = Vector2(104, 46)
 	hire.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hire.disabled = employees.size() >= capacity
-	hire.pressed.connect(func(): hire_requested.emit(str(candidate.get("id", ""))))
+	var office_owned := capacity > 0
+	hire.disabled = not office_owned or employees.size() >= capacity
+	hire.pressed.connect(func():
+		if not office_owned:
+			return
+		hire_requested.emit(str(candidate.get("id", "")))
+	)
 	action_row.add_child(hire)
-	if employees.size() >= capacity:
+	if not office_owned:
+		stack.add_child(_label("PURCHASE AN OFFICE TO HIRE STAFF", 12, Color("#ffd0b8")))
+	elif employees.size() >= capacity:
 		stack.add_child(_label("HQ CAPACITY REACHED", 12, Color("#ffd0b8")))
 	return card
 
