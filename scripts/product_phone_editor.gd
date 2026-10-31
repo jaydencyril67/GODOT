@@ -1005,8 +1005,11 @@ func _refresh_phone_speakers() -> void:
 	speaker_set.name = "PhoneSpeakerOpenings"
 	phone_body.add_child(speaker_set)
 
+	# Fixed center clearance for every supported connector. Speaker placement
+	# never reads charge_port_type or port dimensions, so port edits cannot
+	# move, resize, or reshape these circles.
 	var bottom_y := -PHONE_SIZE.y * 0.5
-	var port_edge := _get_charge_port_half_width()
+	var reserved_port_half_width := 0.115
 	var edge_margin := 0.035
 	var hole_spacing := 0.045
 	var hole_radius := 0.012
@@ -1015,13 +1018,11 @@ func _refresh_phone_speakers() -> void:
 	var positions: Array[float] = []
 
 	for index in range(left_count):
-		positions.append(-(port_edge + edge_margin + float(left_count - 1 - index) * hole_spacing))
+		positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * hole_spacing))
 	for index in range(right_count):
-		positions.append(port_edge + edge_margin + float(index) * hole_spacing)
+		positions.append(reserved_port_half_width + edge_margin + float(index) * hole_spacing)
 
 	var hole_material := StandardMaterial3D.new()
-	# Speaker openings must stay solid black instead of washing out under the
-	# preview lighting. These are dark acoustic openings, not metallic discs.
 	hole_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	hole_material.albedo_color = Color.BLACK
 	hole_material.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -1032,13 +1033,13 @@ func _refresh_phone_speakers() -> void:
 		var disc := CylinderMesh.new()
 		disc.top_radius = hole_radius
 		disc.bottom_radius = hole_radius
-		disc.height = 0.006
-		disc.radial_segments = 24
+		disc.height = 0.012
+		disc.radial_segments = 32
 		opening.mesh = disc
 		opening.material_override = hole_material
-		# The outside cap is exactly on the phone's bottom plane; the cylinder
-		# extends inward so the speaker detail is not a floating disc.
-		opening.position = Vector3(positions[index], bottom_y + 0.003, 0.0)
+		# Only 1.5 mm projects beyond the bottom plane; 10.5 mm is embedded
+		# inside the frame so the black circular face stays attached.
+		opening.position = Vector3(positions[index], bottom_y + 0.0045, 0.0)
 		opening.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		speaker_set.add_child(opening)
 
@@ -1060,7 +1061,7 @@ func _show_charge_port_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Eight established phone connector types", 12, Color("#c7eaff"))
+	var description := _make_label("Five established phone connector types", 12, Color("#c7eaff"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -1091,9 +1092,6 @@ func _show_charge_port_controls() -> void:
 		"Apple Lightning",
 		"Micro-USB (Micro-B)",
 		"Mini-USB (Mini-B)",
-		"Apple 30-pin Dock",
-		"USB 3.0 Micro-B",
-		"Nokia 2mm Barrel",
 		"DC Barrel Jack"
 	]
 	for port_type in port_types:
@@ -1309,20 +1307,6 @@ func _refresh_phone_charge_port() -> void:
 			port_height = 3.1 * unit_per_mm
 			shape = "mini"
 			contact_count = 5
-		"Apple 30-pin Dock":
-			port_width = 21.0 * unit_per_mm
-			port_height = 5.5 * unit_per_mm
-			shape = "wide"
-			contact_count = 30
-		"USB 3.0 Micro-B":
-			port_width = 12.25 * unit_per_mm
-			port_height = 2.45 * unit_per_mm
-			shape = "micro_usb_3"
-			contact_count = 10
-		"Nokia 2mm Barrel":
-			port_width = 2.0 * unit_per_mm
-			port_height = port_width
-			circular = true
 		"DC Barrel Jack":
 			port_width = 3.5 * unit_per_mm
 			port_height = port_width
@@ -1369,9 +1353,6 @@ func _refresh_phone_charge_port() -> void:
 		elif charge_port_type == "Apple Lightning":
 			opening_width_ratio = 0.94
 			opening_height_ratio = 0.80
-		elif charge_port_type == "Apple 30-pin Dock":
-			opening_width_ratio = 0.96
-			opening_height_ratio = 0.84
 		inner_points = _make_port_outline(port_width * opening_width_ratio, port_height * opening_height_ratio, port_height * opening_height_ratio * 0.38, 8)
 
 	# Fit the complete mouth and its metal lip inside the handset's actual
@@ -1489,42 +1470,6 @@ func _refresh_phone_charge_port() -> void:
 			for point in pad:
 				shifted.append(point + Vector2(x, 0.0))
 			_add_port_detail(port_root, "Contact_%02d" % contact_index, shifted, contact_face_y - 0.0002, contact_material)
-	elif charge_port_type == "USB 3.0 Micro-B":
-		# Keep the original five-pin Micro-B section and the five extra
-		# SuperSpeed contacts in the adjacent extension.
-		var superspeed_contact_pitch := 0.55 * unit_per_mm * profile_fit
-		var main_center := -port_width * 0.17
-		var extension_center := port_width * 0.33
-		var main_bed := _make_port_outline(port_width * 0.54, port_height * 0.48, port_height * 0.18, 5)
-		var extension_bed := _make_port_outline(port_width * 0.25, port_height * 0.72, port_height * 0.12, 5)
-		var shifted_main := PackedVector2Array()
-		var shifted_extension := PackedVector2Array()
-		for point in main_bed:
-			shifted_main.append(point + Vector2(main_center, 0.0))
-		for point in extension_bed:
-			shifted_extension.append(point + Vector2(extension_center, 0.0))
-		_add_port_detail(port_root, "MicroBInsulatingBed", shifted_main, contact_face_y, tongue_material)
-		_add_port_detail(port_root, "SuperSpeedInsulatingBed", shifted_extension, contact_face_y, tongue_material)
-		for group in range(2):
-			var group_center := main_center if group == 0 else extension_center
-			for contact_index in range(5):
-				var x := group_center + (float(contact_index) - 2.0) * superspeed_contact_pitch
-				var pad := _make_port_outline(superspeed_contact_pitch * 0.66, port_height * 0.11, port_height * 0.025, 3)
-				var shifted := PackedVector2Array()
-				for point in pad:
-					shifted.append(point + Vector2(x, 0.0))
-				_add_port_detail(port_root, "SuperSpeedContact_%d_%d" % [group, contact_index], shifted, contact_face_y - 0.0002, contact_material)
-	elif charge_port_type == "Apple 30-pin Dock":
-		var dock_contact_pitch := 0.62 * unit_per_mm * profile_fit
-		var contact_bed := _make_port_outline(port_width * 0.90, port_height * 0.30, port_height * 0.12, 6)
-		_add_port_detail(port_root, "DockConnectorInsulator", contact_bed, contact_face_y, tongue_material)
-		for contact_index in range(30):
-			var x := (float(contact_index) - 14.5) * dock_contact_pitch
-			var pad := _make_port_outline(dock_contact_pitch * 0.68, port_height * 0.16, port_height * 0.035, 3)
-			var shifted := PackedVector2Array()
-			for point in pad:
-				shifted.append(point + Vector2(x, 0.0))
-			_add_port_detail(port_root, "DockContact_%02d" % contact_index, shifted, contact_face_y - 0.0002, contact_material)
 	elif contact_count > 0:
 		var generic_contact_span := port_width * 0.68
 		var generic_contact_pitch := generic_contact_span / float(contact_count)
