@@ -1001,8 +1001,13 @@ func _refresh_phone_speakers() -> void:
 		positions.append(reserved_port_half_width + edge_margin + float(index) * hole_spacing)
 
 	var hole_material := StandardMaterial3D.new()
+	# Unshaded + pure black albedo keeps the speaker faces black under every
+	# scene light. No metallic/specular response or received shadows are used.
 	hole_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	hole_material.albedo_color = Color.BLACK
+	hole_material.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
+	hole_material.metallic = 0.0
+	hole_material.roughness = 1.0
+	hole_material.disable_receive_shadows = true
 	hole_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	for index in range(positions.size()):
