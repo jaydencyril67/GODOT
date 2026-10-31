@@ -665,10 +665,10 @@ func _style_option_button(button: OptionButton) -> void:
 	button.add_theme_color_override("font_hover_color", WHITE)
 
 
-func _label(value: String, size: int, color: Color) -> Label:
+func _label(value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.add_theme_font_size_override("font_size", maxi(roundi(float(size) * 1.18), 15))
+	label.add_theme_font_size_override("font_size", maxi(roundi(float(font_size) * 1.18), 15))
 	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return label
