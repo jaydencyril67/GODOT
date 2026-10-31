@@ -29,6 +29,7 @@ func _ready() -> void:
 func _build_editor_ui() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneEditorInterface"
+	layer.layer = 50
 	add_child(layer)
 
 	var root := Control.new()
@@ -103,6 +104,7 @@ func _build_research_ui() -> void:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneResearchInterface"
+	layer.layer = 50
 	add_child(layer)
 
 	var root := Control.new()
