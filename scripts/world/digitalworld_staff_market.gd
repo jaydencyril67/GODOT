@@ -197,16 +197,6 @@ func _animate_staff_scroll(target: int, duration: float) -> void:
 func _build_market() -> void:
 	var viewport_width := get_viewport().get_visible_rect().size.x
 	var compact := viewport_width < 900.0
-	var stats := GridContainer.new()
-	stats.columns = 1 if compact else 3
-	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats.add_theme_constant_override("h_separation", 10)
-	stats.add_theme_constant_override("v_separation", 8)
-	content.add_child(stats)
-	_add_stat_card_to(stats, "AVAILABLE CANDIDATES", "%d / 50" % candidates.size(), "The candidate market refreshes every in-game month")
-	_add_stat_card_to(stats, "OPEN POSITIONS", str(maxi(0, capacity - employees.size())), "Based on your HQ hiring capacity")
-	_add_stat_card_to(stats, "MONTHLY PAYROLL", _money(_total_payroll()), "Current salary commitment")
-
 	var filter_panel := _card()
 	var filter_margin := _margin(filter_panel, 14, 14, 10, 10)
 	var filter_row := HBoxContainer.new()
@@ -293,14 +283,6 @@ func _candidate_card(candidate: Dictionary) -> Control:
 
 func _build_management() -> void:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	var stats := GridContainer.new()
-	stats.columns = 1 if compact else 2
-	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats.add_theme_constant_override("h_separation", 10)
-	stats.add_theme_constant_override("v_separation", 8)
-	content.add_child(stats)
-	_add_stat_card_to(stats, "TEAM SIZE", "%d / %d" % [employees.size(), capacity], "Employees on your company roster")
-	_add_stat_card_to(stats, "MONTHLY PAYROLL", _money(_total_payroll()), "Total salary expense at monthly billing")
 	content.add_child(_label("YOUR EMPLOYEES", 17 if compact else 19, WHITE))
 	var employee_list := GridContainer.new()
 	employee_list.name = "Staff_Employee_Grid"
