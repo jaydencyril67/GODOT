@@ -1242,13 +1242,11 @@ func _refresh_phone_charge_port() -> void:
 	var port_width := 8.34 * unit_per_mm
 	var port_height := 2.56 * unit_per_mm
 	var shape := "rounded"
-	var contact_rows := 0
 	var contact_count := 0
 	var circular := false
 
 	match charge_port_type:
 		"USB Type-C":
-			contact_rows = 2
 			contact_count = 6
 		"Apple Lightning":
 			port_width = 6.7 * unit_per_mm
@@ -1259,7 +1257,6 @@ func _refresh_phone_charge_port() -> void:
 			port_width = 6.85 * unit_per_mm
 			port_height = 1.85 * unit_per_mm
 			shape = "micro"
-			contact_rows = 1
 			contact_count = 5
 		"Mini-USB (Mini-B)":
 			port_width = 6.9 * unit_per_mm
@@ -1288,18 +1285,12 @@ func _refresh_phone_charge_port() -> void:
 			port_height = port_width
 			circular = true
 
-	var outer_points := PackedVector2Array()
 	var inner_points := PackedVector2Array()
 	if circular:
-		outer_points = _make_port_outline(port_width, port_height, port_width * 0.5, 12)
+		# Barrel sockets have a visible insulating bore inside a circular metal sleeve.
 		inner_points = _make_port_outline(port_width * 0.62, port_height * 0.62, port_width * 0.31, 12)
 	elif shape == "micro":
-		outer_points = PackedVector2Array([
-			Vector2(-port_width * 0.5, -port_height * 0.5),
-			Vector2(port_width * 0.5, -port_height * 0.5),
-			Vector2(port_width * 0.39, port_height * 0.5),
-			Vector2(-port_width * 0.39, port_height * 0.5)
-		])
+		# Micro-B has the characteristic shallow trapezoid, wider at its mouth.
 		inner_points = PackedVector2Array([
 			Vector2(-port_width * 0.46, -port_height * 0.42),
 			Vector2(port_width * 0.46, -port_height * 0.42),
@@ -1307,28 +1298,15 @@ func _refresh_phone_charge_port() -> void:
 			Vector2(-port_width * 0.42, port_height * 0.42)
 		])
 	elif shape == "mini":
-		outer_points = PackedVector2Array([
-			Vector2(-port_width * 0.5, -port_height * 0.5),
-			Vector2(port_width * 0.5, -port_height * 0.5),
-			Vector2(port_width * 0.36, port_height * 0.5),
-			Vector2(-port_width * 0.36, port_height * 0.5)
-		])
-		inner_points = _make_port_outline(port_width * 0.90, port_height * 0.82, port_height * 0.15)
-	elif shape == "micro_usb_3":
-		# The SuperSpeed Micro-B receptacle has the familiar Micro-B section
-		# plus a wider adjacent extension, not one generic rectangular slot.
-		outer_points = _make_port_outline(port_width, port_height, port_height * 0.12)
+		# Mini-B is taller and more strongly tapered than Micro-B.
 		inner_points = PackedVector2Array([
-			Vector2(-port_width * 0.5, -port_height * 0.38),
-			Vector2(port_width * 0.5, -port_height * 0.38),
-			Vector2(port_width * 0.5, port_height * 0.38),
-			Vector2(-port_width * 0.5, port_height * 0.38)
+			Vector2(-port_width * 0.45, -port_height * 0.41),
+			Vector2(port_width * 0.45, -port_height * 0.41),
+			Vector2(port_width * 0.30, port_height * 0.41),
+			Vector2(-port_width * 0.30, port_height * 0.41)
 		])
-		var micro_extension := _make_port_outline(port_width * 0.34, port_height * 0.76, port_height * 0.12)
-		var shifted_extension := PackedVector2Array()
-		for point in micro_extension:
-			shifted_extension.append(point + Vector2(port_width * 0.32, 0.0))
-		# Merge the adjoining extension into the opening silhouette.
+	elif shape == "micro_usb_3":
+		# SuperSpeed Micro-B joins a Micro-B section to a wider side extension.
 		inner_points = PackedVector2Array([
 			Vector2(-port_width * 0.5, -port_height * 0.38),
 			Vector2(port_width * 0.16, -port_height * 0.38),
@@ -1340,7 +1318,6 @@ func _refresh_phone_charge_port() -> void:
 			Vector2(-port_width * 0.5, port_height * 0.38)
 		])
 	else:
-		outer_points = _make_port_outline(port_width, port_height, port_height * 0.5, 8)
 		var opening_width_ratio := 0.95
 		var opening_height_ratio := 0.84
 		if charge_port_type == "USB Type-C":
@@ -1358,10 +1335,12 @@ func _refresh_phone_charge_port() -> void:
 	# bottom rail. If the frame is very thin, the whole aperture scales evenly.
 	var current_phone_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
 	var half_phone_depth := current_phone_depth * 0.5
+	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
+	var flat_bottom_half_width := PHONE_SIZE.x * 0.5 - current_corner_radius
 	var profile_fit := 1.0
 	for point in inner_points:
 		if absf(point.x) > 0.00001:
-			profile_fit = minf(profile_fit, (PHONE_SIZE.x * 0.5 - 0.025) / (absf(point.x) * 1.12))
+			profile_fit = minf(profile_fit, (flat_bottom_half_width - 0.025) / (absf(point.x) * 1.12))
 		if absf(point.y) > 0.00001:
 			profile_fit = minf(profile_fit, (half_phone_depth - 0.004) / (absf(point.y) * 1.12))
 	profile_fit = clampf(profile_fit, 0.01, 1.0)
@@ -1369,6 +1348,8 @@ func _refresh_phone_charge_port() -> void:
 	for point in inner_points:
 		fitted_opening.append(point * profile_fit)
 	inner_points = fitted_opening
+	port_width *= profile_fit
+	port_height *= profile_fit
 	charge_port_opening_points = inner_points.duplicate()
 
 	var port_root := Node3D.new()
@@ -1385,6 +1366,11 @@ func _refresh_phone_charge_port() -> void:
 	bezel_material.metallic = 0.86
 	bezel_material.roughness = 0.27
 	bezel_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var gasket_material := StandardMaterial3D.new()
+	gasket_material.albedo_color = Color("#20262c")
+	gasket_material.metallic = 0.22
+	gasket_material.roughness = 0.74
+	gasket_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var cavity_material := StandardMaterial3D.new()
 	cavity_material.albedo_color = Color("#030507")
 	cavity_material.roughness = 0.96
@@ -1413,6 +1399,7 @@ func _refresh_phone_charge_port() -> void:
 	# details now sit down inside the recess rather than on the exterior face.
 	var bezel_scale := 1.12 if not circular else 1.22
 	_add_port_ring(port_root, "MachinedMetalPortLip", inner_points, bezel_scale, bottom_y - 0.00035, bezel_material)
+	_add_port_ring(port_root, "DarkInnerGasket", inner_points, 1.045, bottom_y - 0.00055, gasket_material)
 	_add_port_cavity_walls(port_root, "RecessedMetalSideWalls", inner_points, mouth_y, back_y, cavity_wall_material)
 	_add_port_detail(port_root, "DeepDarkPortInterior", inner_points, back_y + 0.00015, cavity_material)
 
@@ -1481,20 +1468,9 @@ func _on_border_radius_level_changed(value: float) -> void:
 	_refresh_phone_mesh()
 
 
-func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array) -> void:
+func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float) -> void:
 	var half_size := phone_size * 0.5
-	var fit_scale := 1.0
-	for point in port_opening:
-		if absf(point.x) > 0.00001:
-			fit_scale = minf(fit_scale, (half_size.x - 0.025) / absf(point.x))
-		if absf(point.y) > 0.00001:
-			fit_scale = minf(fit_scale, (half_size.z - 0.004) / absf(point.y))
-	fit_scale = clampf(fit_scale, 0.01, 1.0)
-
-	var opening := PackedVector2Array()
-	for point in port_opening:
-		opening.append(point * fit_scale)
-
+	var opening := port_opening
 	var mouth_y := -half_size.y
 	var bottom_normal := Vector3(0.0, -1.0, 0.0)
 	# Project each aperture point radially onto the perimeter of the complete
@@ -1502,7 +1478,7 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 	# the frame instead of drawing a dark decal over a solid box.
 	var outer_points := PackedVector3Array()
 	for point in opening:
-		var scale_x := half_size.x / maxf(absf(point.x), 0.000001)
+		var scale_x := flat_bottom_half_width / maxf(absf(point.x), 0.000001)
 		var scale_z := half_size.z / maxf(absf(point.y), 0.000001)
 		var ray_scale := minf(scale_x, scale_z)
 		var outer := point * ray_scale
@@ -1583,7 +1559,8 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array 
 		var b: Vector2 = outline[next_index]
 		var is_bottom_edge := absf(a.y + half_size.y) < 0.0001 and absf(b.y + half_size.y) < 0.0001
 		if is_bottom_edge and port_opening.size() >= 3:
-			_add_phone_bottom_edge_with_port(surface, phone_size, port_opening)
+			var flat_bottom_half_width := maxf(absf(a.x), absf(b.x))
+			_add_phone_bottom_edge_with_port(surface, phone_size, port_opening, flat_bottom_half_width)
 		else:
 			var edge := b - a
 			var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
