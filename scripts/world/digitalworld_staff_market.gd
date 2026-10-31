@@ -371,7 +371,7 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 	horizontal_scroll.name = "Staff_" + department.replace(" ", "") + "_HorizontalRow"
 	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	horizontal_scroll.custom_minimum_size.y = 462 if compact else 432
-	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	horizontal_scroll.follow_focus = false
 	horizontal_scroll.clip_contents = true
