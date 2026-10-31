@@ -881,27 +881,35 @@ func _build_home_status_bar(root: Control) -> void:
 	status_panel.anchor_top = 0.0
 	status_panel.anchor_right = 1.0
 	status_panel.anchor_bottom = 0.0
-	status_panel.offset_left = 8.0
-	status_panel.offset_top = 8.0
-	status_panel.offset_right = -8.0
-	status_panel.offset_bottom = 66.0
+	status_panel.offset_left = 12.0
+	status_panel.offset_top = 10.0
+	status_panel.offset_right = -12.0
+	status_panel.offset_bottom = 94.0
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.025, 0.09, 0.15, 0.90)
-	panel_style.border_color = Color(0.40, 0.76, 0.94, 0.70)
+	panel_style.bg_color = Color(0.018, 0.075, 0.13, 0.96)
+	panel_style.border_color = Color(0.34, 0.75, 0.96, 0.88)
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
-	panel_style.content_margin_left = 10.0
-	panel_style.content_margin_right = 10.0
-	panel_style.content_margin_top = 5.0
-	panel_style.content_margin_bottom = 5.0
+	panel_style.set_corner_radius_all(18)
+	panel_style.shadow_color = Color(0.0, 0.025, 0.10, 0.48)
+	panel_style.shadow_size = 12
+	panel_style.shadow_offset = Vector2(0.0, 4.0)
+	panel_style.content_margin_left = 14.0
+	panel_style.content_margin_right = 14.0
+	panel_style.content_margin_top = 8.0
+	panel_style.content_margin_bottom = 8.0
 	status_panel.add_theme_stylebox_override("panel", panel_style)
 	root.add_child(status_panel)
 
-	var row := HBoxContainer.new()
-	row.name = "Home_Status_Information_Row"
-	row.add_theme_constant_override("separation", 10)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	status_panel.add_child(row)
+	var content := VBoxContainer.new()
+	content.name = "Home_Status_Content"
+	content.add_theme_constant_override("separation", 5)
+	status_panel.add_child(content)
+
+	var identity_row := HBoxContainer.new()
+	identity_row.name = "Company_And_Balance_Row"
+	identity_row.add_theme_constant_override("separation", 10)
+	identity_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_child(identity_row)
 
 	home_company_label = Label.new()
 	home_company_label.name = "Company_Name"
@@ -909,33 +917,69 @@ func _build_home_status_bar(root: Control) -> void:
 	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	home_company_label.clip_text = true
 	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	home_company_label.add_theme_font_size_override("font_size", 14)
+	home_company_label.add_theme_font_size_override("font_size", 17)
 	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
-	row.add_child(home_company_label)
+	identity_row.add_child(home_company_label)
 
-	home_date_label = Label.new()
-	home_date_label.name = "Game_Date"
-	home_date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	home_date_label.add_theme_font_size_override("font_size", 13)
-	home_date_label.add_theme_color_override("font_color", Color("#bce8ff"))
-	row.add_child(home_date_label)
+	var balance_chip := PanelContainer.new()
+	balance_chip.name = "Company_Balance_Chip"
+	var balance_style := StyleBoxFlat.new()
+	balance_style.bg_color = Color(0.12, 0.62, 0.46, 0.20)
+	balance_style.border_color = Color(0.40, 0.94, 0.73, 0.62)
+	balance_style.set_border_width_all(1)
+	balance_style.set_corner_radius_all(10)
+	balance_style.content_margin_left = 10.0
+	balance_style.content_margin_right = 10.0
+	balance_style.content_margin_top = 4.0
+	balance_style.content_margin_bottom = 4.0
+	balance_chip.add_theme_stylebox_override("panel", balance_style)
+	identity_row.add_child(balance_chip)
 
 	home_balance_label = Label.new()
 	home_balance_label.name = "Company_Balance"
-	home_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	home_balance_label.add_theme_font_size_override("font_size", 13)
-	home_balance_label.add_theme_color_override("font_color", Color("#a8f0c0"))
-	row.add_child(home_balance_label)
+	home_balance_label.add_theme_font_size_override("font_size", 15)
+	home_balance_label.add_theme_color_override("font_color", Color("#a8f0d0"))
+	balance_chip.add_child(home_balance_label)
+
+	var info_row := HBoxContainer.new()
+	info_row.name = "Game_Date_And_Clock_Row"
+	info_row.add_theme_constant_override("separation", 10)
+	info_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_child(info_row)
+
+	home_date_label = Label.new()
+	home_date_label.name = "Game_Date"
+	home_date_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home_date_label.add_theme_font_size_override("font_size", 14)
+	home_date_label.add_theme_color_override("font_color", Color("#bfeaff"))
+	info_row.add_child(home_date_label)
 
 	home_time_button = Button.new()
 	home_time_button.name = "Game_Time_Control"
-	home_time_button.custom_minimum_size = Vector2(76.0, 38.0)
-	home_time_button.add_theme_font_size_override("font_size", 11)
-	_style_button(home_time_button, true)
+	home_time_button.custom_minimum_size = Vector2(112.0, 32.0)
+	home_time_button.add_theme_font_size_override("font_size", 12)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var button_style := StyleBoxFlat.new()
+		button_style.bg_color = Color(0.08, 0.48, 0.72, 0.92)
+		if state == "hover":
+			button_style.bg_color = Color(0.12, 0.64, 0.88, 0.98)
+		elif state == "pressed":
+			button_style.bg_color = Color(0.035, 0.28, 0.48, 1.0)
+		elif state == "disabled":
+			button_style.bg_color = Color(0.10, 0.20, 0.27, 0.7)
+		button_style.border_color = Color("#8bdcff")
+		button_style.set_border_width_all(1)
+		button_style.set_corner_radius_all(10)
+		button_style.shadow_color = Color(0.0, 0.04, 0.12, 0.36)
+		button_style.shadow_size = 5
+		button_style.shadow_offset = Vector2(0.0, 2.0)
+		home_time_button.add_theme_stylebox_override(state, button_style)
+	home_time_button.add_theme_color_override("font_color", Color("#ffffff"))
+	home_time_button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	home_time_button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 	home_time_button.pressed.connect(_toggle_game_clock)
-	row.add_child(home_time_button)
+	info_row.add_child(home_time_button)
 	_update_home_status_bar()
-
 
 func _format_game_date(timestamp: float) -> String:
 	var date := Time.get_datetime_dict_from_unix_time(floori(timestamp))

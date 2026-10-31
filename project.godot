@@ -12,6 +12,9 @@ window/handheld/orientation=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[gui]
+theme/custom="res://themes/digitalworld_theme.tres"
+
 [rendering]
 textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="gl_compatibility"

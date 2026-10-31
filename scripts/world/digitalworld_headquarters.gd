@@ -350,53 +350,34 @@ func _create_preview_interface() -> void:
 	add_child(preview_interface_layer)
 	var layer := preview_interface_layer
 
-	var header := PanelContainer.new()
-	header.name = "Headquarters_Level_Header"
-	header.anchor_left = 0.5
-	header.anchor_top = 0.0
-	header.anchor_right = 0.5
-	header.anchor_bottom = 0.0
-	header.offset_left = -188.0
-	header.offset_top = 14.0
-	header.offset_right = 188.0
-	header.offset_bottom = 124.0
-	var header_style := StyleBoxFlat.new()
-	header_style.bg_color = Color(0.035, 0.12, 0.19, 0.90)
-	header_style.border_color = Color("#4aa5d3")
-	header_style.set_border_width_all(1)
-	header_style.set_corner_radius_all(12)
-	header_style.content_margin_left = 14.0
-	header_style.content_margin_right = 14.0
-	header_style.content_margin_top = 8.0
-	header_style.content_margin_bottom = 8.0
-	header.add_theme_stylebox_override("panel", header_style)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 3)
-	header.add_child(stack)
-	var title := Label.new()
-	title.text = "YOUR HEADQUARTERS" if home_mode else "HEADQUARTERS BUILDINGS"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 12)
-	title.add_theme_color_override("font_color", Color("#9edfff"))
-	stack.add_child(title)
-	var company_label := Label.new()
-	company_label.text = company_name.to_upper()
-	company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	company_label.add_theme_font_size_override("font_size", 10)
-	company_label.add_theme_color_override("font_color", Color("#c6e6f6"))
-	company_label.clip_text = true
-	stack.add_child(company_label)
-	level_info_label = Label.new()
-	level_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	level_info_label.add_theme_font_size_override("font_size", 19)
-	level_info_label.add_theme_color_override("font_color", Color("#ffffff"))
-	stack.add_child(level_info_label)
-	owned_info_label = Label.new()
-	owned_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	owned_info_label.add_theme_font_size_override("font_size", 10)
-	owned_info_label.add_theme_color_override("font_color", Color("#c6e6f6"))
-	stack.add_child(owned_info_label)
-	layer.add_child(header)
+	# Home intentionally has no text overlay above the building. The Buildings
+	# page gets one clean, bold architectural level title instead of the old card.	
+	level_info_label = null
+	owned_info_label = null
+	if not home_mode:
+		level_info_label = Label.new()
+		level_info_label.name = "Office_Building_Level_Hero"
+		level_info_label.anchor_left = 0.08
+		level_info_label.anchor_top = 0.0
+		level_info_label.anchor_right = 0.92
+		level_info_label.anchor_bottom = 0.0
+		level_info_label.offset_top = 20.0
+		level_info_label.offset_bottom = 82.0
+		level_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		level_info_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		level_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		level_info_label.add_theme_font_size_override("font_size", 34)
+		level_info_label.add_theme_color_override("font_color", Color("#ffffff"))
+		level_info_label.add_theme_color_override("font_outline_color", Color("#062b46"))
+		level_info_label.add_theme_constant_override("outline_size", 5)
+		level_info_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.10, 0.95))
+		level_info_label.add_theme_constant_override("shadow_offset_x", 2)
+		level_info_label.add_theme_constant_override("shadow_offset_y", 4)
+		var hero_font := FontVariation.new()
+		hero_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		hero_font.variation_embolden = 0.9
+		level_info_label.add_theme_font_override("font", hero_font)
+		layer.add_child(level_info_label)
 
 	if not home_mode:
 		previous_level_button = _create_side_level_button(layer, "Previous_Level_Button", "‹", true)
@@ -487,14 +468,7 @@ func _create_side_level_button(parent: Node, node_name: String, glyph: String, l
 
 func _refresh_preview_interface() -> void:
 	if is_instance_valid(level_info_label):
-		var config: Dictionary = LEVEL_CONFIGS[preview_level - 1]
-		level_info_label.text = "LEVEL %02d / %02d  ·  %s" % [preview_level, MAX_LEVEL, str(config["name"]).to_upper()]
-	if is_instance_valid(owned_info_label):
-		var owned_name: String = str(LEVEL_CONFIGS[owned_level - 1]["name"])
-		var preview_status := "CURRENT COMPANY LEVEL"
-		if preview_level != owned_level:
-			preview_status = "PREVIEW ONLY  ·  CURRENT LEVEL: %02d" % owned_level
-		owned_info_label.text = "%s  ·  %s" % [preview_status, owned_name.to_upper()]
+		level_info_label.text = "OFFICE BUILDING LEVEL %d" % preview_level
 	if is_instance_valid(previous_level_button):
 		previous_level_button.disabled = preview_level <= 1
 	if is_instance_valid(next_level_button):
