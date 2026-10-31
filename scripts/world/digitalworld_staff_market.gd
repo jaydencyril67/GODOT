@@ -6,7 +6,7 @@ signal hire_requested(candidate_id: String)
 signal dismiss_requested(employee_id: String)
 signal assignment_requested(employee_id: String, department: String)
 
-const DEPARTMENTS := ["Development", "Research", "Marketing", "Finance", "Operations", "Human Resources"]
+const DEPARTMENTS := ["Development", "Marketing", "Research"]
 const BG := Color("#071d32")
 const PANEL := Color(0.055, 0.17, 0.28, 0.94)
 const BORDER := Color(0.35, 0.72, 0.94, 0.72)
