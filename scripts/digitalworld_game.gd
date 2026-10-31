@@ -1238,7 +1238,6 @@ func _update_home_status_bar() -> void:
 		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
 	if is_instance_valid(home_research_points_label):
 		home_research_points_label.text = "%s RESEARCH PTS" % _format_count(int(career.get("research_points", 0)))
-	_update_research_dashboard()
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 		var company_card := home_company_label.get_parent() as PanelContainer
