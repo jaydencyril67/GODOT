@@ -1005,7 +1005,7 @@ func _add_vertical_fins(parent: Node3D, height: float, material: Material, width
 			var fin := _box(parent, "Full_Height_Facade_Fin", Vector3(0.13, height, 0.22), p, material)
 			fin.rotation.y = angle
 
-func _add_main_entrance(parent: Node3D, width: float, depth: float, ground_height: float, accent: Material) -> void:
+func _add_main_entrance(parent: Node3D, _width: float, depth: float, _ground_height: float, accent: Material) -> void:
 	var z := depth * 0.5 + 0.16
 	# A layered portal, paired glazed leaves and a separate transom read as a real lobby entrance.
 	_box(parent, "Entrance_Portal_Frame", Vector3(1.78, 2.86, 0.24), Vector3(0.0, 1.78, z), accent)
@@ -1042,20 +1042,20 @@ func _add_multimesh(parent: Node3D, node_name: String, batch: MultiMesh, materia
 	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	parent.add_child(instance)
 
-func _box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, material: Material) -> MeshInstance3D:
+func _box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	instance.mesh = mesh
-	instance.position = position
+	instance.position = local_position
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	parent.add_child(instance)
 	return instance
 
-func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radius: float, height: float, position: Vector3, material: Material) -> MeshInstance3D:
+func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radius: float, height: float, local_position: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := CylinderMesh.new()
@@ -1064,7 +1064,7 @@ func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radi
 	mesh.height = height
 	mesh.radial_segments = 16
 	instance.mesh = mesh
-	instance.position = position
+	instance.position = local_position
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(instance)
