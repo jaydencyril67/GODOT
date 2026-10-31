@@ -648,9 +648,9 @@ func _get_preview_viewport() -> SubViewport:
 	phone_body.name = "Plain_Phone_Body"
 	phone_body.mesh = _create_rounded_phone_mesh(0.0)
 	var body_material := StandardMaterial3D.new()
-	body_material.albedo_color = Color("#f4f7fa")
-	body_material.metallic = 0.08
-	body_material.roughness = 0.30
+	body_material.albedo_color = Color("#c4ced8")
+	body_material.metallic = 0.22
+	body_material.roughness = 0.38
 	phone_body.material_override = body_material
 	preview_world.add_child(phone_body)
 
@@ -721,6 +721,37 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_thickness_controls()
 
 
+func _style_feature_slider(meter: VSlider) -> void:
+	# A high-contrast vertical track and a large silver-blue draggable thumb.
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("#173d59")
+	track.border_color = Color("#8fd8ff")
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(8)
+	track.content_margin_left = 5
+	track.content_margin_right = 5
+	track.content_margin_top = 5
+	track.content_margin_bottom = 5
+	meter.add_theme_stylebox_override("slider", track)
+
+	var grabber_gradient := Gradient.new()
+	grabber_gradient.set_color(0, Color("#f4fbff"))
+	grabber_gradient.set_color(1, Color("#65bce9"))
+	var grabber_texture := GradientTexture2D.new()
+	grabber_texture.gradient = grabber_gradient
+	grabber_texture.width = 28
+	grabber_texture.height = 28
+	grabber_texture.fill_from = Vector2(0.0, 0.0)
+	grabber_texture.fill_to = Vector2(1.0, 1.0)
+	meter.add_theme_icon_override("grabber", grabber_texture)
+	meter.add_theme_icon_override("grabber_highlight", grabber_texture)
+	meter.add_theme_stylebox_override("grabber_area", StyleBoxEmpty.new())
+	meter.add_theme_stylebox_override("grabber_area_highlight", StyleBoxEmpty.new())
+	meter.focus_mode = Control.FOCUS_NONE
+	meter.mouse_filter = Control.MOUSE_FILTER_STOP
+	meter.editable = true
+
+
 func _show_border_radius_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -778,10 +809,11 @@ func _show_border_radius_controls() -> void:
 	meter.value = border_radius_level
 	meter.tick_count = 7
 	meter.ticks_on_both_sides = true
-	meter.custom_minimum_size = Vector2(54, 250)
+	meter.custom_minimum_size = Vector2(76, 290)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_border_radius_level_changed)
+	_style_feature_slider(meter)
 	meter_row.add_child(meter)
 
 	border_radius_value_label = _make_label("LEVEL %d / 6" % border_radius_level, 16, Color("#a9e3ff"))
@@ -851,6 +883,7 @@ func _show_thickness_controls() -> void:
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_phone_thickness_level_changed)
+	_style_feature_slider(meter)
 	meter_row.add_child(meter)
 
 	phone_thickness_value_label = _make_label("LEVEL %d / 6" % phone_thickness_level, 16, Color("#a9e3ff"))
