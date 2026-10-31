@@ -262,7 +262,7 @@ func _build_design_research_content(parent: Control) -> void:
 			stack.add_child(_make_label(str(item["group"]), 9, Color("#a9e3ff")))
 			stack.add_child(_make_label(str(item["name"]).to_upper(), 16 if compact else 18, Color.WHITE))
 			var detail := _make_label(str(item["detail"]), 11, Color("#c7e2f3"))
-		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			stack.add_child(detail)
 
