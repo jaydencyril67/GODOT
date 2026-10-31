@@ -969,28 +969,6 @@ func _on_speaker_count_changed(value: float) -> void:
 	_refresh_phone_speakers()
 
 
-func _get_charge_port_half_width() -> float:
-	var unit_per_mm := PHONE_SIZE.y / 150.0
-	match charge_port_type:
-		"USB Type-C":
-			return 8.34 * unit_per_mm * 0.5
-		"Micro-USB (Micro-B)":
-			return 6.85 * unit_per_mm * 0.5
-		"Mini-USB (Mini-B)":
-			return 6.9 * unit_per_mm * 0.5
-		"Apple Lightning":
-			return 6.7 * unit_per_mm * 0.5
-		"Apple 30-pin Dock":
-			return 21.0 * unit_per_mm * 0.5
-		"USB 3.0 Micro-B":
-			return 12.25 * unit_per_mm * 0.5
-		"Nokia 2mm Barrel":
-			return 2.0 * unit_per_mm * 0.5
-		"DC Barrel Jack":
-			return 3.5 * unit_per_mm * 0.5
-	return 0.0
-
-
 func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
