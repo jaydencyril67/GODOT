@@ -311,7 +311,8 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	var margin := _margin(card, 9, 9, 8, 8)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 5)
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 7)
 	margin.add_child(stack)
 
 	stack.add_child(_label(str(candidate.get("full_name", "Candidate")).to_upper(), 18 if compact else 20, WHITE))
@@ -322,6 +323,12 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	var country_label := _label(str(candidate.get("country", "International")).to_upper(), 11, Color("#c7e2f3"))
 	country_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity_row.add_child(country_label)
+
+	# Flexible breathing room distributes the profile information through
+	# the existing card height instead of leaving a large blank footer.
+	var profile_spacer := Control.new()
+	profile_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_child(profile_spacer)
 
 	var divider := HSeparator.new()
 	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
@@ -338,6 +345,10 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	_add_metric(metrics, "ABILITY", int(candidate.get("ability", 0)))
 	_add_metric(metrics, "EFFICIENCY", int(candidate.get("efficiency", 0)))
 	stack.add_child(_label("EDUCATION  " + str(candidate.get("education", "—")), 12, MUTED))
+
+	var action_spacer := Control.new()
+	action_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_child(action_spacer)
 
 	var action_row := HBoxContainer.new()
 	action_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
