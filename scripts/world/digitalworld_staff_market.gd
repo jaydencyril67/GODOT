@@ -302,7 +302,7 @@ func _total_payroll() -> float:
 
 
 func _money(amount: float) -> String:
-	return "$" + String.num_int64(roundi(amount)).reverse().substr(0, 0) if false else _format_money(roundi(amount))
+	return _format_money(roundi(amount))
 
 
 func _format_money(amount: int) -> String:
