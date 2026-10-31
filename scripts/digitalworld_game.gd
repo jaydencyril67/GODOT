@@ -964,6 +964,16 @@ func _downgrade_headquarters(level: int, refund_percent: int) -> void:
 	_update_home_status_bar()
 
 
+func _apply_home_button_typography(button: Button, font_size: int) -> void:
+	# Use the project STIX variable font explicitly and strengthen its weight
+	# without changing any button dimensions, layout, or visual styling.
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 0.7
+	button.add_theme_font_override("font", stix_font)
+	button.add_theme_font_size_override("font_size", font_size)
+
+
 func _show_home_navigation() -> void:
 	# Let _new_screen() retire the previous screen before creating Home UI.
 	# Clearing ui_layer here would orphan the previous CanvasLayer on screen.
@@ -1006,7 +1016,7 @@ func _show_home_navigation() -> void:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		button.custom_minimum_size = Vector2(0.0, 54.0)
-		button.add_theme_font_size_override("font_size", 12)
+		_apply_home_button_typography(button, 14)
 		_style_button(button, false)
 		if button_name == "Create":
 			button.pressed.connect(_show_create_scene)
@@ -1085,7 +1095,7 @@ func _build_home_status_bar(root: Control) -> void:
 	home_time_button.name = "Game_Time_Control"
 	home_time_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	home_time_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	home_time_button.add_theme_font_size_override("font_size", 13)
+	_apply_home_button_typography(home_time_button, 15)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var button_style := StyleBoxFlat.new()
 		button_style.bg_color = Color(0.10, 0.48, 0.70, 0.24)
