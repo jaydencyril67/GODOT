@@ -20,6 +20,8 @@ var research_item_cards: Dictionary = {}
 var research_view := "HARDWARE"
 var left_tools_page := 0
 var left_tools_swipe_distance := 0.0
+var left_tools_previous_button: Button
+var left_tools_next_button: Button
 
 
 func _ready() -> void:
@@ -101,6 +103,47 @@ func _build_editor_ui() -> void:
 	preview_container.gui_input.connect(_on_preview_gui_input)
 	preview_container.add_child(_get_preview_viewport())
 	preview_stack.add_child(preview_container)
+
+	# Navigation controls sit over the top corners of the 3D preview.
+	var preview_navigation := HBoxContainer.new()
+	preview_navigation.name = "PhonePreviewPanelNavigation"
+	preview_navigation.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	preview_navigation.offset_left = 12.0
+	preview_navigation.offset_top = 12.0
+	preview_navigation.offset_right = -12.0
+	preview_navigation.offset_bottom = 60.0
+	preview_navigation.add_theme_constant_override("separation", 8)
+	preview_navigation.mouse_filter = Control.MOUSE_FILTER_PASS
+	preview_panel.add_child(preview_navigation)
+
+	left_tools_previous_button = Button.new()
+	left_tools_previous_button.name = "PreviousToolsPageButton"
+	left_tools_previous_button.text = "←"
+	left_tools_previous_button.custom_minimum_size = Vector2(44, 44)
+	left_tools_previous_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	left_tools_previous_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	left_tools_previous_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(left_tools_previous_button, 25)
+	_style_staff_button(left_tools_previous_button, false)
+	left_tools_previous_button.pressed.connect(_on_left_tools_previous_pressed)
+	preview_navigation.add_child(left_tools_previous_button)
+
+	var navigation_spacer := Control.new()
+	navigation_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_navigation.add_child(navigation_spacer)
+
+	left_tools_next_button = Button.new()
+	left_tools_next_button.name = "NextToolsPageButton"
+	left_tools_next_button.text = "→"
+	left_tools_next_button.custom_minimum_size = Vector2(44, 44)
+	left_tools_next_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	left_tools_next_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	left_tools_next_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(left_tools_next_button, 25)
+	_style_staff_button(left_tools_next_button, false)
+	left_tools_next_button.pressed.connect(_on_left_tools_next_pressed)
+	preview_navigation.add_child(left_tools_next_button)
+	_update_left_tools_navigation_buttons()
 
 	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard", false))
 
@@ -679,8 +722,24 @@ func _on_left_tools_gui_input(event: InputEvent) -> void:
 			left_tools_swipe_distance = 0.0
 
 
+func _on_left_tools_previous_pressed() -> void:
+	_set_left_tools_page(left_tools_page - 1)
+
+
+func _on_left_tools_next_pressed() -> void:
+	_set_left_tools_page(left_tools_page + 1)
+
+
+func _update_left_tools_navigation_buttons() -> void:
+	if is_instance_valid(left_tools_previous_button):
+		left_tools_previous_button.disabled = left_tools_page <= 0
+	if is_instance_valid(left_tools_next_button):
+		left_tools_next_button.disabled = left_tools_page >= 2
+
+
 func _set_left_tools_page(requested_page: int) -> void:
 	left_tools_page = clampi(requested_page, 0, 2)
+	_update_left_tools_navigation_buttons()
 	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
 	if not is_instance_valid(tools_content):
 		return
