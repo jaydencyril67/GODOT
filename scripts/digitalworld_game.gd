@@ -1007,6 +1007,9 @@ func _apply_headquarters_upgrade(requested_level: int) -> void:
 			world_root.set_owned_level(upgrade_level)
 		if world_root.has_method("set_company_balance"):
 			world_root.set_company_balance(float(career["balance"]))
+	# The staff pages are prebuilt before purchase. Refresh both cached screens
+	# now so their hire buttons receive the newly purchased office capacity.
+	_refresh_staff_screen_data()
 	_update_home_status_bar()
 	_show_finance_toast(-upgrade_cost, "HEADQUARTERS UPGRADE")
 
