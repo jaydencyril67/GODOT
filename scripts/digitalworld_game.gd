@@ -1521,6 +1521,21 @@ func _ensure_staff_data() -> void:
 			initial_candidates.append(_generate_staff_candidate())
 		career["staff_candidates"] = initial_candidates
 		career["staff_market_initialized"] = true
+	# Remove retired staff attributes from existing saves during migration.
+	for candidate_value in career["staff_candidates"]:
+		if candidate_value is Dictionary:
+			var candidate_data: Dictionary = candidate_value
+			candidate_data.erase("potential")
+			candidate_data.erase("reliability")
+			candidate_data.erase("communication")
+			candidate_data.erase("personality")
+	for employee_value in career["staff_employees"]:
+		if employee_value is Dictionary:
+			var employee_data: Dictionary = employee_value
+			employee_data.erase("potential")
+			employee_data.erase("reliability")
+			employee_data.erase("communication")
+			employee_data.erase("personality")
 	if not career.has("next_staff_candidate_id"):
 		career["next_staff_candidate_id"] = 1
 	# Older saves migrate to the current in-game month without triggering an instant refresh.
@@ -1549,7 +1564,6 @@ func _generate_staff_candidate() -> Dictionary:
 	var ability := rng.randi_range(42, 98)
 	var efficiency := rng.randi_range(48, 99)
 	var experience := rng.randi_range(0, 22)
-	var potential := rng.randi_range(maxi(ability, 55), 100)
 	var base_salary := 125000.0
 	match department:
 		"Development": base_salary = 190000.0
@@ -1579,12 +1593,8 @@ func _generate_staff_candidate() -> Dictionary:
 		"position": role_list[rng.randi_range(0, role_list.size() - 1)],
 		"ability": ability,
 		"efficiency": efficiency,
-		"potential": potential,
 		"experience": experience,
 		"education": ["Diploma", "Bachelor's Degree", "Master's Degree", "Doctorate"][rng.randi_range(0, 3)],
-		"personality": ["Analytical", "Creative", "Collaborative", "Ambitious", "Adaptable", "Methodical"][rng.randi_range(0, 5)],
-		"reliability": rng.randi_range(55, 100),
-		"communication": rng.randi_range(45, 100),
 		"monthly_salary": salary,
 		"rarity": rarity
 	}
