@@ -9,6 +9,7 @@ signal back_requested
 signal upgrade_requested(level: int)
 
 const MAX_LEVEL := 10
+const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
 const LEVEL_CONFIGS := [
 	{"name": "Workshop", "floors": 1, "width": 12.4, "depth": 9.4, "ground_height": 4.2, "floor_height": 3.0, "style": 0},
 	{"name": "Workshop & Office", "floors": 2, "width": 13.2, "depth": 10.0, "ground_height": 3.6, "floor_height": 2.9, "style": 1},
@@ -28,6 +29,7 @@ var company_name := "YOUR COMPANY"
 var building_root: Node3D
 var hq_camera: Camera3D
 var level_info_label: Label
+var staff_capacity_label: Label
 var preview_interface_layer: CanvasLayer
 var owned_info_label: Label
 var previous_level_button: Button
@@ -379,6 +381,26 @@ func _create_preview_interface() -> void:
 		level_info_label.add_theme_font_override("font", hero_font)
 		layer.add_child(level_info_label)
 
+		staff_capacity_label = Label.new()
+		staff_capacity_label.name = "Office_Building_Staff_Capacity"
+		staff_capacity_label.anchor_left = 0.12
+		staff_capacity_label.anchor_top = 0.0
+		staff_capacity_label.anchor_right = 0.88
+		staff_capacity_label.anchor_bottom = 0.0
+		staff_capacity_label.offset_top = 78.0
+		staff_capacity_label.offset_bottom = 116.0
+		staff_capacity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		staff_capacity_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		staff_capacity_label.add_theme_font_size_override("font_size", 21)
+		staff_capacity_label.add_theme_color_override("font_color", Color("#d8f3ff"))
+		staff_capacity_label.add_theme_color_override("font_outline_color", Color("#062b46"))
+		staff_capacity_label.add_theme_constant_override("outline_size", 4)
+		var staff_font := FontVariation.new()
+		staff_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		staff_font.variation_embolden = 0.45
+		staff_capacity_label.add_theme_font_override("font", staff_font)
+		layer.add_child(staff_capacity_label)
+
 	if not home_mode:
 		previous_level_button = _create_side_level_button(layer, "Previous_Level_Button", "‹", true)
 		previous_level_button.pressed.connect(_show_previous_level)
@@ -469,6 +491,12 @@ func _create_side_level_button(parent: Node, node_name: String, glyph: String, l
 func _refresh_preview_interface() -> void:
 	if is_instance_valid(level_info_label):
 		level_info_label.text = "OFFICE BUILDING LEVEL %d" % preview_level
+	if is_instance_valid(staff_capacity_label):
+		staff_capacity_label.text = "STAFF CAPACITY: %d WORKERS" % _get_staff_capacity(preview_level)
+
+
+func _get_staff_capacity(level: int) -> int:
+	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
 	if is_instance_valid(previous_level_button):
 		previous_level_button.disabled = preview_level <= 1
 	if is_instance_valid(next_level_button):
