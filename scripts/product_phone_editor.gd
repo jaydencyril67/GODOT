@@ -50,7 +50,7 @@ func _build_editor_ui() -> void:
 	var shade := ColorRect.new()
 	shade.name = "Shared_Background_Overlay"
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.color = Color(0.008, 0.035, 0.065, 0.78)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
@@ -123,7 +123,7 @@ func _build_research_ui() -> void:
 	var shade := ColorRect.new()
 	shade.name = "Shared_Background_Overlay"
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.color = Color(0.008, 0.035, 0.065, 0.78)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
