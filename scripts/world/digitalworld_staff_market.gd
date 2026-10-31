@@ -201,8 +201,8 @@ func _animate_staff_scroll(target: int, duration: float) -> void:
 func _add_tab(parent: HBoxContainer, caption: String, active: bool, target: String) -> void:
 	var button := _button(caption, active)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.y = 42
-	button.add_theme_font_size_override("font_size", 10)
+	button.custom_minimum_size.y = 50
+	button.add_theme_font_size_override("font_size", 15)
 	button.pressed.connect(func():
 		if target == "headquarters":
 			headquarters_requested.emit()
@@ -259,7 +259,7 @@ func _build_market() -> void:
 	for department in DEPARTMENTS:
 		filter.add_item(department)
 	filter.custom_minimum_size = Vector2(175 if compact else 220, 44)
-	filter.add_theme_font_size_override("font_size", 13)
+	filter.add_theme_font_size_override("font_size", 16)
 	_style_option_button(filter)
 	filter.item_selected.connect(func(index: int):
 		market_filter = "All Departments" if index == 0 else DEPARTMENTS[index - 1]
@@ -294,11 +294,11 @@ func _build_market() -> void:
 func _candidate_card(candidate: Dictionary) -> Control:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
-	card.custom_minimum_size = Vector2(0, 330 if compact else 350)
+	card.custom_minimum_size = Vector2(0, 420 if compact else 390)
 	var margin := _margin(card, 10, 10, 11, 11)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 9)
+	stack.add_theme_constant_override("separation", 11)
 	margin.add_child(stack)
 	stack.add_child(_label(str(candidate.get("full_name", "Candidate")).to_upper(), 18 if compact else 20, WHITE))
 	stack.add_child(_label(str(candidate.get("position", "Specialist")).to_upper(), 13, Color("#b9eaff")))
@@ -358,7 +358,7 @@ func _build_management() -> void:
 func _employee_card(employee: Dictionary) -> Control:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
-	card.custom_minimum_size = Vector2(0, 360 if compact else 380)
+	card.custom_minimum_size = Vector2(0, 450 if compact else 420)
 	var margin := _margin(card, 10, 10, 11, 11)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -469,10 +469,10 @@ func _add_metric(parent: GridContainer, caption: String, value: int) -> void:
 	style.border_color = Color(0.72, 0.91, 1.0, 0.28)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(8)
-	style.content_margin_left = 7
-	style.content_margin_right = 7
-	style.content_margin_top = 5
-	style.content_margin_bottom = 5
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
 	metric.add_theme_stylebox_override("panel", style)
 	metric.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var metric_stack := VBoxContainer.new()
@@ -498,7 +498,7 @@ func _button(caption: String, primary: bool) -> Button:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size.y = 42
-	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_font_size_override("font_size", 18)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
@@ -542,7 +542,7 @@ func _style_option_button(button: OptionButton) -> void:
 func _label(value: String, size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.add_theme_font_size_override("font_size", maxi(size, 12))
+	label.add_theme_font_size_override("font_size", maxi(roundi(float(size) * 1.18), 15))
 	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return label
