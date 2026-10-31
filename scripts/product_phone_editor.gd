@@ -258,9 +258,9 @@ func _build_design_research_content(root: Control) -> void:
 	content.add_child(grid)
 
 	var items := [
-		{"id":"screen_size", "name":"Screen size", "group":"SCREEN & FORM", "detail":"Research larger or more compact display dimensions."},
-		{"id":"phone_thickness", "name":"Phone thickness", "group":"SCREEN & FORM", "detail":"Research slimmer or thicker body proportions."},
-		{"id":"bezel_width", "name":"Bezel width", "group":"SCREEN & FORM", "detail":"Research the visible border around the display."},
+		{"id":"screen_size", "name":"Screen size", "group":"SCREEN TECH", "detail":"Research larger or more compact display dimensions."},
+		{"id":"phone_thickness", "name":"Phone thickness", "group":"SCREEN TECH", "detail":"Research slimmer or thicker body proportions."},
+		{"id":"bezel_width", "name":"Bezel width", "group":"SCREEN TECH", "detail":"Research the visible border around the display."},
 		{"id":"frame_material", "name":"Frame material", "group":"EXTERIOR BUILD", "detail":"Research the materials used on the outer frame."},
 		{"id":"body_finish", "name":"Body finish", "group":"EXTERIOR BUILD", "detail":"Research textures, coatings and exterior finishes."},
 		{"id":"camera_module", "name":"Camera-module design", "group":"EXTERIOR BUILD", "detail":"Research the shape and arrangement of the visible camera housing."}
@@ -283,6 +283,7 @@ func _build_design_research_content(root: Control) -> void:
 		margin.add_child(stack)
 		stack.add_child(_make_label(str(item["group"]), 10, Color("#a9e3ff")))
 		stack.add_child(_make_label(str(item["name"]), 16, Color.WHITE))
+		stack.add_child(_make_label(str(item["detail"]), 11, Color("#c7e2f3")))
 		var level_label := _make_label("CURRENT LEVEL: 1", 13, Color("#d8efff"))
 		level_label.name = "ResearchLevel"
 		stack.add_child(level_label)
