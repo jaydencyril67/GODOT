@@ -1204,7 +1204,7 @@ func _accrue_research_points(game_time_delta: float) -> void:
 
 	var accumulated_progress := maxf(0.0, float(career.get("research_points_progress", 0.0)))
 	accumulated_progress += daily_output * game_time_delta / 86400.0
-	var whole_points := floori(accumulated_progress + 0.0000001)
+	var whole_points := floori(accumulated_progress)
 	if whole_points > 0:
 		career["research_points"] = maxi(0, int(career.get("research_points", 0))) + whole_points
 		accumulated_progress -= float(whole_points)
