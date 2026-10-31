@@ -269,58 +269,42 @@ func _build_design_research_content(parent: Control) -> void:
 		_build_extras_research_content(parent, compact)
 
 
-func _build_hardware_research_grid(parent: Control, compact: bool) -> void:
-	var features := [
-		"Screen Tech",
-		"Power/Volume Buttons",
-		"Thickness",
-		"Screen Width",
-		"Screen Height",
-		"Screen Type",
-		"Border Radius",
-		"Speakers",
-		"Charge Port",
-		"Front Camera",
-		"Rare Camera",
-		"Style Pen",
-		"Side Button",
-		"Audio Output",
-		"Body Frame",
-		"Phone Width",
-		"Phone Height",
-		"Sim/Memory Slot",
-		"Protection",
-		"Refresh Rate",
-		"Back Panel Material",
-		"Frame Material",
-		"Body Finish & Colour",
+func _get_hardware_research_features() -> Array:
+	return [
+		"Screen Tech", "Power/Volume Buttons", "Thickness", "Screen Width",
+		"Screen Height", "Screen Type", "Border Radius", "Speakers",
+		"Charge Port", "Front Camera", "Rare Camera", "Style Pen",
+		"Side Button", "Audio Output", "Body Frame", "Phone Width",
+		"Phone Height", "Sim/Memory Slot", "Protection", "Refresh Rate",
+		"Back Panel Material", "Frame Material", "Body Finish & Colour",
 		"Cooling System Design"
 	]
-	_build_research_feature_grid(parent, compact, "HARDWARE FEATURES", "Hardware", features)
+
+
+func _get_software_research_features() -> Array:
+	return [
+		"RAM", "Internal Storage", "RAM Technology", "Battery",
+		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
+		"Network", "NFC", "GPS", "USB Connectivity", "Sensors",
+		"Front Camera", "Rare Camera", "Memory Clock", "AI Processing",
+		"Data Encryption"
+	]
+
+
+func _get_extras_research_features() -> Array:
+	return [
+		"Box Package", "Phone Case", "Charger", "Charger Speed",
+		"Protection Glass", "Wireless Earbuds", "Smartwatch", "Power Bank",
+		"USB Cable", "Camera Lens Protector", "Phone Stand", "SIM Ejector Tool"
+	]
+
+
+func _build_hardware_research_grid(parent: Control, compact: bool) -> void:
+	_build_research_feature_grid(parent, compact, "HARDWARE FEATURES", "Hardware", _get_hardware_research_features())
 
 
 func _build_software_research_grid(parent: Control, compact: bool) -> void:
-	var features := [
-		"RAM",
-		"Internal Storage",
-		"RAM Technology",
-		"Battery",
-		"Charging Speed",
-		"Wireless Charge",
-		"Bluetooth",
-		"WiFi",
-		"Network",
-		"NFC",
-		"GPS",
-		"USB Connectivity",
-		"Sensors",
-		"Front Camera",
-		"Rare Camera",
-		"Memory Clock",
-		"AI Processing",
-		"Data Encryption"
-	]
-	_build_research_feature_grid(parent, compact, "SOFTWARE FEATURES", "Software", features)
+	_build_research_feature_grid(parent, compact, "SOFTWARE FEATURES", "Software", _get_software_research_features())
 
 
 func _build_research_feature_grid(parent: Control, compact: bool, section_caption: String, grid_prefix: String, features: Array) -> void:
@@ -409,21 +393,7 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 
 func _build_extras_research_content(parent: Control, compact: bool) -> void:
-	var features := [
-		"Box Package",
-		"Phone Case",
-		"Charger",
-		"Charger Speed",
-		"Protection Glass",
-		"Wireless Earbuds",
-		"Smartwatch",
-		"Power Bank",
-		"USB Cable",
-		"Camera Lens Protector",
-		"Phone Stand",
-		"SIM Ejector Tool"
-	]
-	_build_research_feature_grid(parent, compact, "EXTRAS & ACCESSORIES", "Extras", features)
+	_build_research_feature_grid(parent, compact, "EXTRAS & ACCESSORIES", "Extras", _get_extras_research_features())
 
 
 
@@ -579,36 +549,39 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	tools_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tools_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	tools_panel.add_child(tools_scroll)
 
 	var tools_content := VBoxContainer.new()
 	tools_content.name = card_name + "Pages"
 	tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tools_content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	tools_content.add_theme_constant_override("separation", 8)
 	tools_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	tools_scroll.add_child(tools_content)
 
-	var page_button_counts := [24, 18, 12]
-	for page_index in range(page_button_counts.size()):
+	var page_feature_lists := [
+		_get_hardware_research_features(),
+		_get_software_research_features(),
+		_get_extras_research_features()
+	]
+	for page_index in range(page_feature_lists.size()):
 		var page_grid := GridContainer.new()
 		page_grid.name = card_name + "ButtonPage" + str(page_index + 1)
-		page_grid.columns = 3
+		page_grid.columns = 2
 		page_grid.mouse_filter = Control.MOUSE_FILTER_PASS
 		page_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		page_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL if page_index == 0 else Control.SIZE_SHRINK_BEGIN
+		page_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		page_grid.add_theme_constant_override("h_separation", 8)
 		page_grid.add_theme_constant_override("v_separation", 8)
 		page_grid.visible = page_index == 0
 		tools_content.add_child(page_grid)
 
-		for button_index in range(page_button_counts[page_index]):
-			_add_tool_button(page_grid)
+		for feature_name in page_feature_lists[page_index]:
+			_add_tool_button(page_grid, str(feature_name))
 
 	tools_scroll.gui_input.connect(_on_left_tools_gui_input)
-	tools_scroll.resized.connect(_update_left_tools_page_button_heights)
 	left_tools_page = 0
-	call_deferred("_update_left_tools_page_button_heights")
 	return tools_panel
 
 
@@ -686,14 +659,17 @@ func _get_preview_viewport() -> SubViewport:
 	return viewport
 
 
-func _add_tool_button(parent: GridContainer) -> void:
+func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	var button := Button.new()
-	button.text = ""
+	button.text = feature_name
+	button.tooltip_text = feature_name
 	button.mouse_filter = Control.MOUSE_FILTER_PASS
-	button.custom_minimum_size = Vector2(0, 48)
+	button.custom_minimum_size = Vector2(0, 64)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_apply_research_typography(button, 13)
+	button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_research_typography(button, 12)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
@@ -704,28 +680,13 @@ func _add_tool_button(parent: GridContainer) -> void:
 		style.border_color = Color(0.91, 0.98, 1.0, 0.92)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
-		style.content_margin_left = 5
-		style.content_margin_right = 5
+		style.content_margin_left = 7
+		style.content_margin_right = 7
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	# Blank placeholder: no text, icon, or pressed action.
+	# Feature selection remains display-only until the phone editor actions are implemented.
 	parent.add_child(button)
-
-
-func _update_left_tools_page_button_heights() -> void:
-	if not is_instance_valid(left_tools_scroll):
-		return
-	# The 24-button page has 8 rows. Its rows expand to use the full panel;
-	# the shorter pages reuse that exact row height and leave the rest empty.
-	var row_height := maxf(48.0, (left_tools_scroll.size.y - 56.0) / 8.0)
-	for page_index in [1, 2]:
-		var page_grid := left_tools_scroll.get_node_or_null("PhoneEditorLeftToolsCardPages/PhoneEditorLeftToolsCardButtonPage" + str(page_index + 1)) as GridContainer
-		if not is_instance_valid(page_grid):
-			continue
-		for child in page_grid.get_children():
-			if child is Button:
-				(child as Button).custom_minimum_size.y = row_height
 
 
 func _on_left_tools_gui_input(event: InputEvent) -> void:
