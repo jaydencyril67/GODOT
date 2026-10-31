@@ -1219,7 +1219,7 @@ func _show_headquarters_loading_screen() -> void:
 	var brand := Label.new()
 	brand.text = "DIGITALWORLD HQ"
 	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	brand.add_theme_font_size_override("font_size", 15)
+	_apply_home_button_typography(brand, 18)
 	brand.add_theme_color_override("font_color", Color("#72cfff"))
 	content.add_child(brand)
 
@@ -1227,14 +1227,14 @@ func _show_headquarters_loading_screen() -> void:
 	title.text = "Preparing your headquarters"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 27)
+	_apply_home_button_typography(title, 32)
 	title.add_theme_color_override("font_color", Color("#ffffff"))
 	content.add_child(title)
 
 	var company_label := Label.new()
 	company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 	company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	company_label.add_theme_font_size_override("font_size", 16)
+	_apply_home_button_typography(company_label, 19)
 	company_label.add_theme_color_override("font_color", Color("#b9dff3"))
 	content.add_child(company_label)
 
@@ -1242,7 +1242,7 @@ func _show_headquarters_loading_screen() -> void:
 	loading_status_label.name = "Preparation_Status"
 	loading_status_label.text = "Initializing game..."
 	loading_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	loading_status_label.add_theme_font_size_override("font_size", 15)
+	_apply_home_button_typography(loading_status_label, 18)
 	loading_status_label.add_theme_color_override("font_color", Color("#e3f4ff"))
 	content.add_child(loading_status_label)
 
