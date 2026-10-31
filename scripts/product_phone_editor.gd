@@ -972,15 +972,21 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 8)
 	section.add_child(content)
+	var heading_row := HBoxContainer.new()
+	heading_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_child(heading_row)
 	var heading := _make_label(caption, 18, Color("#ffffff"))
-	content.add_child(heading)
+	heading_row.add_child(heading)
+	var heading_spacer := Control.new()
+	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_row.add_child(heading_spacer)
 	var toggle := CheckBox.new()
-	toggle.text = "Enabled"
-	toggle.custom_minimum_size = Vector2(0, 44)
+	toggle.text = ""
+	toggle.custom_minimum_size = Vector2(44, 44)
 	toggle.button_pressed = enabled
 	toggle.toggled.connect(_on_side_button_toggled.bind(side))
 	_apply_research_typography(toggle, 16)
-	content.add_child(toggle)
+	heading_row.add_child(toggle)
 	var position_title := _make_label("VERTICAL POSITION", 14, Color("#c7eaff"))
 	content.add_child(position_title)
 	var position_row := HBoxContainer.new()
@@ -1083,7 +1089,8 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
-	var button_depth := maxf(radius * 1.65, 0.028)
+	# Keep the physical keys close to flush with the phone frame.
+	var button_depth := maxf(radius * 0.95, 0.016)
 	var button_width := maxf(radius * 1.35, 0.024)
 
 	var backing := MeshInstance3D.new()
@@ -1102,7 +1109,7 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	key_mesh.size = Vector3(button_depth, maxf(length, radius * 2.0), button_width)
 	key.mesh = key_mesh
 	key.material_override = key_material
-	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + button_depth * 0.42), position_y, 0.0)
+	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + button_depth * 0.28), position_y, 0.0)
 	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(key)
 
