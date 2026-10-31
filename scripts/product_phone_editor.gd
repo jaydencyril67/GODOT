@@ -979,7 +979,8 @@ func _refresh_phone_speakers() -> void:
 
 	# Keep speaker perforations in two balanced groups, leaving a clear
 	# central lane for the charging connector.
-	var front_z := PHONE_SIZE.z * 0.5 + 0.002
+	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var front_z := current_depth * 0.5 + 0.002
 	var port_clearance := 0.25
 	var hole_spacing := 0.052
 	var hole_radius := 0.012
@@ -1104,7 +1105,8 @@ func _refresh_phone_charge_port() -> void:
 	# Put the connector on the visible front face in the reserved centre lane.
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
-	port_root.position = Vector3(0.0, -1.34, PHONE_SIZE.z * 0.5 + 0.003)
+	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	port_root.position = Vector3(0.0, -1.34, current_depth * 0.5 + 0.003)
 	phone_body.add_child(port_root)
 
 	var outer_material := StandardMaterial3D.new()
