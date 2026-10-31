@@ -1129,7 +1129,10 @@ func _refresh_phone_side_buttons() -> void:
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
 	# The side key is almost flush with the frame. Keep its backing fully
 	# inset so the backing cannot create a false oversized protrusion.
-	var button_depth := maxf(radius * 0.22, 0.0015)
+	# PHONE_SIZE.y represents a 150 mm handset. Set the exposed key face
+	# to a real 0.5 mm stand-off instead of scaling it from the tiny corner radius.
+	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var button_depth := (0.5 * unit_per_mm) / 0.95
 	var button_width := maxf(radius * 1.35, 0.024)
 	var side_edge := PHONE_SIZE.x * 0.5
 
