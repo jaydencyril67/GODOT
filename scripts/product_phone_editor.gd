@@ -648,13 +648,14 @@ func _get_preview_viewport() -> SubViewport:
 	phone_body.name = "Plain_Phone_Body"
 	phone_body.mesh = _create_rounded_phone_mesh(0.0)
 	var body_material := StandardMaterial3D.new()
-	# Keep the body opaque and close to its original solid light-silver finish.
-	# A metallic surface strongly changes brightness with the custom rounded
-	# mesh normals, which made the same albedo look like transparent grey.
-	body_material.albedo_color = Color("#c4ced8")
+	# Use a slightly darker cool silver so the phone silhouette and rounded
+	# perimeter remain readable instead of clipping to near-white under preview
+	# lighting. Higher roughness and restrained specular soften bright hotspots.
+	body_material.albedo_color = Color("#aab8c5")
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
-	body_material.roughness = 0.72
+	body_material.roughness = 0.86
+	body_material.specular = 0.28
 	# This is a closed solid mesh with outward-facing, correctly wound
 	# triangles. Cull its back faces instead of shading interior backfaces
 	# with automatically inverted normals.
