@@ -76,8 +76,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if career.is_empty() or str(career.get("company_name", "")).is_empty() or game_clock_paused:
 		return
-	if current_screen not in ["home", "headquarters", "create", "research", "research_phone", "office", "staff_market", "staff_management"]:
-		return
+	# Keep simulation and monthly staff refresh active while any company screen is open.
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
 	# One complete in-game day passes every three real-world seconds.
@@ -848,6 +847,8 @@ func _show_city() -> void:
 func _show_home_scene() -> void:
 	current_screen = "home"
 	_clear_world()
+	# Regenerate all available candidates on every app launch during HQ preparation.
+	_refresh_staff_market_on_startup()
 	_show_headquarters_loading_screen()
 
 	var headquarters = HeadquartersPreviewScript.new()
@@ -1781,30 +1782,39 @@ func _ensure_staff_data() -> void:
 func _generate_staff_candidate() -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	var first_names := ["Amara", "Chinedu", "Zara", "Daniel", "Amina", "David", "Ada", "Samuel", "Mariam", "Michael", "Tomi", "Emeka", "Grace", "Ibrahim", "Nneka", "Joseph", "Kemi", "Peter", "Ngozi", "Victor", "Fatima", "Esther", "Olu", "Ruth", "Tunde"]
-	var surnames := ["Okafor", "Adeyemi", "Bello", "Eze", "Williams", "Adebayo", "Nwosu", "Ibrahim", "Mensah", "Obi", "Lawal", "James", "Balogun", "Osei", "Udo", "Johnson", "Akinyemi", "Musa", "Daniels", "Onyeka"]
+	# Keep given names and surnames paired within nine international name pools.
+	var international_names := {
+		"China": {"first": ["Wei", "Yun", "Jia", "Ming", "Mei", "Hao", "Xinyi", "Lei", "Lina", "Jun", "Yating", "Chen"], "last": ["Wang", "Li", "Zhang", "Liu", "Chen", "Yang", "Huang", "Zhao", "Wu", "Zhou"]},
+		"USA": {"first": ["James", "Olivia", "Ethan", "Ava", "Noah", "Madison", "Liam", "Grace", "Mason", "Chloe", "Logan", "Harper"], "last": ["Smith", "Johnson", "Williams", "Brown", "Miller", "Davis", "Wilson", "Taylor", "Anderson", "Thomas"]},
+		"UK": {"first": ["Oliver", "Amelia", "George", "Isla", "Harry", "Charlotte", "Arthur", "Freya", "Oscar", "Florence", "Jack", "Emily"], "last": ["Smith", "Jones", "Taylor", "Brown", "Wilson", "Davies", "Evans", "Thomas", "Roberts", "Walker"]},
+		"Belgium": {"first": ["Lucas", "Emma", "Arthur", "Louise", "Louis", "Alice", "Jules", "Marie", "Victor", "Elise", "Noah", "Lena"], "last": ["Peeters", "Janssens", "Maes", "Jacobs", "Mertens", "Willems", "Claes", "Goossens", "Dubois", "Lambert"]},
+		"Netherlands": {"first": ["Daan", "Emma", "Sem", "Julia", "Milan", "Sophie", "Lars", "Tess", "Finn", "Lotte", "Bram", "Eva"], "last": ["de Jong", "Jansen", "de Vries", "van den Berg", "Bakker", "Visser", "Smit", "Meijer", "de Boer", "Mulder"]},
+		"Poland": {"first": ["Jakub", "Zofia", "Antoni", "Julia", "Jan", "Maja", "Szymon", "Hanna", "Aleksander", "Alicja", "Filip", "Oliwia"], "last": ["Nowak", "Kowalski", "Wiśniewski", "Wójcik", "Kamiński", "Lewandowski", "Zieliński", "Szymański", "Woźniak", "Dąbrowski"]},
+		"Nigeria": {"first": ["Chinedu", "Amara", "Tobi", "Adaora", "Ifeanyi", "Zainab", "Oluwaseun", "Nneka", "Emeka", "Amina", "Kelechi", "Temiloluwa"], "last": ["Okafor", "Adeyemi", "Balogun", "Eze", "Nwosu", "Adebayo", "Onyeka", "Ibrahim", "Ogunleye", "Mohammed"]},
+		"Russia": {"first": ["Alexander", "Anastasia", "Dmitri", "Sofia", "Nikolai", "Ekaterina", "Mikhail", "Alina", "Ivan", "Daria", "Artem", "Natalia"], "last": ["Ivanov", "Smirnov", "Kuznetsov", "Popov", "Sokolov", "Lebedev", "Kozlov", "Novikov", "Morozov", "Volkov"]},
+		"Spain": {"first": ["Hugo", "Lucia", "Mateo", "Sofia", "Martin", "Martina", "Leo", "Valeria", "Daniel", "Carmen", "Pablo", "Alba"], "last": ["Garcia", "Rodriguez", "Gonzalez", "Fernandez", "Lopez", "Martinez", "Sanchez", "Perez", "Gomez", "Martin"]}
+	}
+	var countries: Array = international_names.keys()
+	var country: String = str(countries[rng.randi_range(0, countries.size() - 1)])
+	var name_pool: Dictionary = international_names[country]
+	var first_names: Array = name_pool["first"]
+	var surnames: Array = name_pool["last"]
 	var roles := {
 		"Development": ["Software Developer", "Senior Developer", "Game Developer", "UI/UX Designer", "Systems Engineer"],
 		"Research": ["Research Analyst", "Data Analyst", "Research Scientist", "Product Researcher", "Innovation Specialist"],
-		"Marketing": ["Marketing Manager", "Marketing Specialist", "Brand Strategist", "Social Media Manager", "Advertising Specialist"],
-		"Finance": ["Accountant", "Financial Analyst", "Budget Analyst", "Finance Manager"],
-		"Operations": ["Operations Manager", "Project Coordinator", "Business Operations Specialist"],
-		"Human Resources": ["HR Manager", "Recruitment Officer", "People Operations Specialist"]
+		"Marketing": ["Marketing Manager", "Marketing Specialist", "Brand Strategist", "Social Media Manager", "Advertising Specialist"]
 	}
-	var departments := ["Development", "Research", "Marketing", "Finance", "Operations", "Human Resources"]
+	var departments := ["Development", "Marketing", "Research"]
 	var department: String = departments[rng.randi_range(0, departments.size() - 1)]
 	var role_list: Array = roles[department]
 	var ability := rng.randi_range(42, 98)
 	var efficiency := rng.randi_range(48, 99)
 	var experience := rng.randi_range(0, 22)
-	var base_salary := 125000.0
+	var base_salary := 145000.0
 	match department:
 		"Development": base_salary = 190000.0
 		"Research": base_salary = 175000.0
 		"Marketing": base_salary = 145000.0
-		"Finance": base_salary = 155000.0
-		"Operations": base_salary = 130000.0
-		"Human Resources": base_salary = 135000.0
 	var salary := roundf(base_salary * (0.65 + float(ability) / 100.0) * (1.0 + float(experience) * 0.035) / 1000.0) * 1000.0
 	var rarity := "Common"
 	if ability >= 92:
@@ -1819,7 +1829,8 @@ func _generate_staff_candidate() -> Dictionary:
 	career["next_staff_candidate_id"] = int(career.get("next_staff_candidate_id", 1)) + 1
 	return {
 		"id": candidate_id,
-		"full_name": first_names[rng.randi_range(0, first_names.size() - 1)] + " " + surnames[rng.randi_range(0, surnames.size() - 1)],
+		"full_name": str(first_names[rng.randi_range(0, first_names.size() - 1)]) + " " + str(surnames[rng.randi_range(0, surnames.size() - 1)]),
+		"country": country,
 		"age": rng.randi_range(21, 58),
 		"gender": "Female" if rng.randi_range(0, 1) == 0 else "Male",
 		"department": department,
@@ -1833,24 +1844,39 @@ func _generate_staff_candidate() -> Dictionary:
 	}
 
 
+func _refresh_staff_market_on_startup() -> void:
+	# Refresh candidates on every launch while the HQ preparation screen is shown.
+	# Employees already hired remain untouched.
+	_ensure_staff_data()
+	var refreshed_market: Array = []
+	for index in range(50):
+		refreshed_market.append(_generate_staff_candidate())
+	career["staff_candidates"] = refreshed_market
+	career["staff_market_initialized"] = true
+	career["last_candidate_refresh_month"] = _get_game_month_key(game_date_unix)
+	_save_career()
+
+
 func _process_staff_market_refresh(current_month: String) -> void:
-	var market: Array = career.get("staff_candidates", [])
 	var last_refresh_month := str(career.get("last_candidate_refresh_month", current_month))
 	var current_parts := current_month.split("-")
 	var previous_parts := last_refresh_month.split("-")
 	if current_parts.size() != 2 or previous_parts.size() != 2:
 		career["last_candidate_refresh_month"] = current_month
+		_save_career()
 		return
 	var current_month_index := int(current_parts[0]) * 12 + int(current_parts[1])
 	var previous_month_index := int(previous_parts[0]) * 12 + int(previous_parts[1])
-	if current_month_index - previous_month_index < 3:
+	if current_month_index <= previous_month_index:
 		return
-	# Keep the existing gradual replenishment: one new candidate per 3 in-game months.
-	# A full market simply waits; after a hire, the next scheduled cycle can replenish it.
-	if market.size() < 50:
-		market.append(_generate_staff_candidate())
-		career["staff_candidates"] = market
+	# Replace all 50 candidates once per in-game month, even off the staff screens.
+	var refreshed_market: Array = []
+	for index in range(50):
+		refreshed_market.append(_generate_staff_candidate())
+	career["staff_candidates"] = refreshed_market
+	career["staff_market_initialized"] = true
 	career["last_candidate_refresh_month"] = current_month
+	_save_career()
 	_refresh_staff_screen_data()
 
 
