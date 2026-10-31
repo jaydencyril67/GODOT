@@ -363,7 +363,7 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 	var horizontal_scroll := ScrollContainer.new()
 	horizontal_scroll.name = "Staff_" + department.replace(" ", "") + "_HorizontalRow"
 	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	horizontal_scroll.custom_minimum_size.y = 462 if compact else 432
+	horizontal_scroll.custom_minimum_size.y = 366 if compact else 356
 	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	horizontal_scroll.follow_focus = false
@@ -373,7 +373,7 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 
 	var employee_row := HBoxContainer.new()
 	employee_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	employee_row.add_theme_constant_override("separation", 12)
+	employee_row.add_theme_constant_override("separation", 10)
 	horizontal_scroll.add_child(employee_row)
 
 	var department_count := 0
@@ -382,14 +382,14 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 			continue
 		var employee_card := _employee_card(employee)
 		employee_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		employee_card.custom_minimum_size.x = 300 if compact else 340
+		employee_card.custom_minimum_size.x = _market_candidate_card_width(compact)
 		employee_row.add_child(employee_card)
 		department_count += 1
 
 	if department_count == 0:
 		var empty_card := _glass_card_message("NO " + department.to_upper() + " STAFF", "Employees assigned to this department will appear here.")
 		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		empty_card.custom_minimum_size = Vector2(300 if compact else 340, 450 if compact else 420)
+		empty_card.custom_minimum_size = Vector2(_market_candidate_card_width(compact), 300 if compact else 290)
 		employee_row.add_child(empty_card)
 
 
@@ -397,7 +397,7 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 func _employee_card(employee: Dictionary) -> Control:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
-	card.custom_minimum_size = Vector2(300 if compact else 340, 450 if compact else 420)
+	card.custom_minimum_size = Vector2(_market_candidate_card_width(compact), 300 if compact else 290)
 	var margin := _margin(card, 9, 9, 8, 8)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
