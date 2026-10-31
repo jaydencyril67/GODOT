@@ -72,8 +72,10 @@ func _build_editor_ui() -> void:
 	layout.add_theme_constant_override("separation", 18)
 	page_margin.add_child(layout)
 
-	# Matching tool cards flank the centered 3D preview.
-	layout.add_child(_make_tools_card("PhoneEditorLeftToolsCard", true))
+	# The left tools panel is 1.5x wider; keep the preview and right panel unchanged.
+	var left_tools_panel := _make_tools_card("PhoneEditorLeftToolsCard", true)
+	left_tools_panel.custom_minimum_size.x = 273.0 * 1.5
+	layout.add_child(left_tools_panel)
 
 	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.24))
 	preview_panel.name = "PhonePreviewCard"
@@ -541,7 +543,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 
 	var rotation_grid := GridContainer.new()
 	rotation_grid.name = card_name + "RotationControls"
-	rotation_grid.columns = 2
+	rotation_grid.columns = 3
 	rotation_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rotation_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rotation_grid.add_theme_constant_override("h_separation", 8)
