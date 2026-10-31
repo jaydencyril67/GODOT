@@ -928,12 +928,12 @@ func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth:
 	var spacing := (width - 1.0) / float(columns)
 	for floor_index in range(1, floors):
 		var floor_y := 0.42 + ground_height + float(floor_index - 1) * floor_height
-		band_transforms.append(Transform3D(basis, rotation_basis * Vector3(0.0, floor_y + 0.08, facade_z)))
+		band_transforms.append(Transform3D(rotation_basis, rotation_basis * Vector3(0.0, floor_y + 0.08, facade_z)))
 		var window_y := floor_y + 1.38
 		for column in range(columns):
 			var x := (float(column) - float(columns - 1) * 0.5) * spacing
-			mullion_transforms.append(Transform3D(basis, rotation_basis * Vector3(x, window_y, facade_z + 0.07)))
-			transom_transforms.append(Transform3D(basis, rotation_basis * Vector3(x, window_y, facade_z + 0.075)))
+			mullion_transforms.append(Transform3D(rotation_basis, rotation_basis * Vector3(x, window_y, facade_z + 0.07)))
+			transom_transforms.append(Transform3D(rotation_basis, rotation_basis * Vector3(x, window_y, facade_z + 0.075)))
 	bands.instance_count = band_transforms.size()
 	mullions.instance_count = mullion_transforms.size()
 	transoms.instance_count = transom_transforms.size()
