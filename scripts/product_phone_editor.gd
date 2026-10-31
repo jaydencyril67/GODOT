@@ -22,6 +22,7 @@ var left_tools_page := 0
 var left_tools_previous_button: Button
 var left_tools_next_button: Button
 var left_tools_scroll: ScrollContainer
+var preview_mouse_dragging := false
 
 
 func _ready() -> void:
@@ -100,7 +101,6 @@ func _build_editor_ui() -> void:
 	preview_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	preview_container.stretch = true
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	preview_container.gui_input.connect(_on_preview_gui_input)
 	preview_container.add_child(_get_preview_viewport())
 	preview_stack.add_child(preview_container)
 
@@ -730,14 +730,23 @@ func _make_label(caption: String, font_size: int, color: Color) -> Label:
 	return label
 
 
-func _on_preview_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
-		var motion := event as InputEventMouseMotion
-		if (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-			_rotate_phone_from_drag(motion.relative)
+func _input(event: InputEvent) -> void:
+	if research_mode or not is_instance_valid(preview_container):
+		return
+
+	var preview_rect := preview_container.get_global_rect()
+	if event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
+			preview_mouse_dragging = mouse_button.pressed and preview_rect.has_point(mouse_button.position)
+	elif event is InputEventMouseMotion:
+		var mouse_motion := event as InputEventMouseMotion
+		if preview_mouse_dragging and (mouse_motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			_rotate_phone_from_drag(mouse_motion.relative)
 	elif event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		_rotate_phone_from_drag(drag.relative)
+		var screen_drag := event as InputEventScreenDrag
+		if preview_rect.has_point(screen_drag.position):
+			_rotate_phone_from_drag(screen_drag.relative)
 
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
