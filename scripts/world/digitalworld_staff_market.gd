@@ -188,6 +188,7 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	stats.add_child(_label("EFFICIENCY  %d/100" % int(candidate.get("efficiency", 0)), 11, WHITE))
 	stats.add_child(_label("POTENTIAL  %d/100" % int(candidate.get("potential", 0)), 11, WHITE))
 	stack.add_child(_label("Education: %s   •   Personality: %s" % [candidate.get("education", "—"), candidate.get("personality", "—")], 11, MUTED))
+	stack.add_child(_label("Reliability: %d/100   •   Communication: %d/100" % [int(candidate.get("reliability", 0)), int(candidate.get("communication", 0))], 11, MUTED))
 	stack.add_child(_label("Requested salary: %s / month" % _money(float(candidate.get("monthly_salary", 0.0))), 13, Color("#a8e8ff")))
 	var hire := _button("HIRE CANDIDATE", true)
 	hire.disabled = employees.size() >= capacity
@@ -216,6 +217,7 @@ func _employee_card(employee: Dictionary) -> Control:
 	stack.add_child(_label(str(employee.get("full_name", "Employee")), 17, WHITE))
 	stack.add_child(_label("%s  •  %s  •  %d years old" % [employee.get("position", "Staff"), employee.get("department", "Unassigned"), int(employee.get("age", 0))], 11, MUTED))
 	stack.add_child(_label("Ability %d  |  Efficiency %d  |  Experience %d years" % [int(employee.get("ability", 0)), int(employee.get("efficiency", 0)), int(employee.get("experience", 0))], 12, WHITE))
+	stack.add_child(_label("Reliability %d  |  Communication %d  |  Potential %d" % [int(employee.get("reliability", 0)), int(employee.get("communication", 0)), int(employee.get("potential", 0))], 11, MUTED))
 	stack.add_child(_label("Monthly salary: %s" % _money(float(employee.get("monthly_salary", 0.0))), 12, Color("#a8e8ff")))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
