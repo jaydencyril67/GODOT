@@ -32,6 +32,14 @@ var speaker_count_value_label: Label
 var charge_port_type := "None"
 var charge_port_opening_points := PackedVector2Array()
 var charge_port_value_label: Label
+var power_button_enabled := true
+var volume_button_enabled := true
+var power_button_y := 0.72
+var volume_button_y := 0.34
+var side_button_length_scale := 1.0
+var power_button_position_label: Label
+var volume_button_position_label: Label
+var side_button_length_label: Label
 var active_feature_panel: Control
 var right_tools_content: VBoxContainer
 
@@ -673,6 +681,7 @@ func _get_preview_viewport() -> SubViewport:
 	# with automatically inverted normals.
 	body_material.cull_mode = BaseMaterial3D.CULL_BACK
 	phone_body.material_override = body_material
+	_refresh_phone_side_buttons()
 	# The preview contains only the phone body, so it has no useful external
 	# shadow to cast. Prevent the custom rounded perimeter from self-shadowing
 	# and producing large shadow-map artifacts as its radius changes.
@@ -736,7 +745,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Border Radius", "Thickness", "Speakers", "Charge Port"]:
+	if feature_name in ["Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -751,6 +760,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_speaker_controls()
 	elif feature_name == "Charge Port":
 		_show_charge_port_controls()
+	elif feature_name == "Power/Volume Buttons":
+		_show_power_volume_controls()
 
 
 func _style_feature_slider(meter: VSlider) -> void:
@@ -901,6 +912,165 @@ func _show_thickness_controls() -> void:
 	phone_thickness_value_label = _make_label("LEVEL %d / 10" % phone_thickness_level, 16, Color("#a9e3ff"))
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
+
+
+func _show_power_volume_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "PowerVolumeControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 12)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("POWER & VOLUME BUTTONS", 18, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+	var description := _make_label("Enable each physical side button, adjust its position, and set both button lengths.", 12, Color("#c7eaff"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y)
+	_add_side_button_controls("VOLUME BUTTON", "left", volume_button_enabled, volume_button_y)
+
+	var divider := HSeparator.new()
+	active_feature_panel.add_child(divider)
+	var length_title := _make_label("BOTH BUTTON LENGTH", 13, Color("#d8f1ff"))
+	length_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(length_title)
+	var length_slider := HSlider.new()
+	length_slider.name = "BothSideButtonLengthSlider"
+	length_slider.min_value = 0.35
+	length_slider.max_value = 1.0
+	length_slider.step = 0.05
+	length_slider.value = side_button_length_scale
+	length_slider.custom_minimum_size = Vector2(0, 34)
+	length_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	length_slider.value_changed.connect(_on_side_button_length_changed)
+	_style_horizontal_feature_slider(length_slider)
+	active_feature_panel.add_child(length_slider)
+	side_button_length_label = _make_label("LENGTH  %d%%" % roundi(side_button_length_scale * 100.0), 14, Color("#a9e3ff"))
+	side_button_length_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(side_button_length_label)
+
+
+func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float) -> void:
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(section)
+	var heading := _make_label(caption, 14, Color("#d8f1ff"))
+	section.add_child(heading)
+	var toggle := CheckBox.new()
+	toggle.text = "Enable " + caption.to_lower()
+	toggle.button_pressed = enabled
+	toggle.toggled.connect(_on_side_button_toggled.bind(side))
+	_apply_research_typography(toggle, 12)
+	section.add_child(toggle)
+	var position_row := HBoxContainer.new()
+	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	position_row.add_theme_constant_override("separation", 8)
+	section.add_child(position_row)
+	var down := Button.new()
+	down.text = "↓"
+	down.custom_minimum_size = Vector2(42, 38)
+	_apply_research_typography(down, 20)
+	_style_staff_button(down, false)
+	down.pressed.connect(_on_side_button_position_step.bind(side, -1))
+	position_row.add_child(down)
+	var position_label := _make_label("POSITION  %d%%" % roundi(position_y / 1.20 * 100.0), 12, Color("#a9e3ff"))
+	position_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	position_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	position_row.add_child(position_label)
+	var up := Button.new()
+	up.text = "↑"
+	up.custom_minimum_size = Vector2(42, 38)
+	_apply_research_typography(up, 20)
+	_style_staff_button(up, false)
+	up.pressed.connect(_on_side_button_position_step.bind(side, 1))
+	position_row.add_child(up)
+	if side == "right":
+		power_button_position_label = position_label
+	else:
+		volume_button_position_label = position_label
+
+
+func _on_side_button_toggled(enabled: bool, side: String) -> void:
+	if side == "right":
+		power_button_enabled = enabled
+	else:
+		volume_button_enabled = enabled
+	_refresh_phone_side_buttons()
+
+
+func _on_side_button_position_step(side: String, direction: int) -> void:
+	if side == "right":
+		power_button_y = clampf(power_button_y + float(direction) * 0.06, -1.20, 1.20)
+		if is_instance_valid(power_button_position_label):
+			power_button_position_label.text = "POSITION  %d%%" % roundi(power_button_y / 1.20 * 100.0)
+	else:
+		volume_button_y = clampf(volume_button_y + float(direction) * 0.06, -1.20, 1.20)
+		if is_instance_valid(volume_button_position_label):
+			volume_button_position_label.text = "POSITION  %d%%" % roundi(volume_button_y / 1.20 * 100.0)
+	_refresh_phone_side_buttons()
+
+
+func _on_side_button_length_changed(value: float) -> void:
+	side_button_length_scale = clampf(value, 0.35, 1.0)
+	if is_instance_valid(side_button_length_label):
+		side_button_length_label.text = "LENGTH  %d%%" % roundi(side_button_length_scale * 100.0)
+	_refresh_phone_side_buttons()
+
+
+func _style_horizontal_feature_slider(meter: HSlider) -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("#173d59")
+	track.border_color = Color("#8fd8ff")
+	track.set_border_width_all(1)
+	track.set_corner_radius_all(6)
+	track.content_margin_top = 4
+	track.content_margin_bottom = 4
+	meter.add_theme_stylebox_override("slider", track)
+	meter.focus_mode = Control.FOCUS_NONE
+	meter.mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _refresh_phone_side_buttons() -> void:
+	if not is_instance_valid(phone_body):
+		return
+	var previous := phone_body.get_node_or_null("PhoneSideButtons")
+	if is_instance_valid(previous):
+		previous.free()
+	var button_root := Node3D.new()
+	button_root.name = "PhoneSideButtons"
+	phone_body.add_child(button_root)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color("#737d88")
+	material.metallic = 0.62
+	material.roughness = 0.34
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var button_depth := minf(current_depth * 0.68, 0.075)
+	var button_length := 0.24 * side_button_length_scale
+	var button_width := maxf(0.018, current_depth * 0.16)
+	if power_button_enabled:
+		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, button_length, button_width, button_depth, material)
+	if volume_button_enabled:
+		_add_phone_side_button(button_root, "VolumeButton", -1.0, volume_button_y, button_length, button_width, button_depth, material)
+
+
+func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, width: float, depth: float, material: Material) -> void:
+	var button := MeshInstance3D.new()
+	button.name = node_name
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(width, length, depth)
+	button.mesh = mesh
+	button.material_override = material
+	button.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + width * 0.30), position_y, 0.0)
+	parent.add_child(button)
 
 
 func _show_speaker_controls() -> void:
@@ -1495,6 +1665,7 @@ func _refresh_phone_mesh() -> void:
 	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
 	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
+	_refresh_phone_side_buttons()
 func _on_border_radius_level_changed(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
 	if is_instance_valid(border_radius_value_label):
