@@ -550,23 +550,19 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	rotation_grid.add_theme_constant_override("v_separation", 8)
 	tools_content.add_child(rotation_grid)
 
-	# Standard rotation and zoom controls (10-degree rotation steps).
-	_add_tool_button(rotation_grid, "X −", _rotate_axis.bind(Vector3.RIGHT, -1.0))
-	_add_tool_button(rotation_grid, "X +", _rotate_axis.bind(Vector3.RIGHT, 1.0))
-	_add_tool_button(rotation_grid, "Y −", _rotate_axis.bind(Vector3.UP, -1.0))
-	_add_tool_button(rotation_grid, "Y +", _rotate_axis.bind(Vector3.UP, 1.0))
-	_add_tool_button(rotation_grid, "RESET ROTATION", _reset_phone_rotation)
-	_add_tool_button(rotation_grid, "ZOOM IN", _zoom_camera.bind(-0.35))
-	_add_tool_button(rotation_grid, "ZOOM OUT", _zoom_camera.bind(0.35))
-
-	# Additional precision controls: 5-degree rotation and finer zoom steps.
-	_add_tool_button(rotation_grid, "X − 5°", _rotate_axis_fine.bind(Vector3.RIGHT, -1.0))
-	_add_tool_button(rotation_grid, "X + 5°", _rotate_axis_fine.bind(Vector3.RIGHT, 1.0))
-	_add_tool_button(rotation_grid, "Y − 5°", _rotate_axis_fine.bind(Vector3.UP, -1.0))
-	_add_tool_button(rotation_grid, "Y + 5°", _rotate_axis_fine.bind(Vector3.UP, 1.0))
-	_add_tool_button(rotation_grid, "FINE ZOOM IN", _zoom_camera.bind(-0.15))
-	_add_tool_button(rotation_grid, "FINE ZOOM OUT", _zoom_camera.bind(0.15))
-	_add_tool_button(rotation_grid, "RESET ZOOM", _reset_camera_zoom)
+	# Exactly 24 placeholder buttons. They are intentionally non-functional for now.
+	var button_captions := [
+		"X −", "X +", "Y −",
+		"Y +", "RESET ROTATION", "ZOOM IN",
+		"ZOOM OUT", "X − 5°", "X + 5°",
+		"Y − 5°", "Y + 5°", "FINE ZOOM IN",
+		"FINE ZOOM OUT", "RESET ZOOM", "OPTION 15",
+		"OPTION 16", "OPTION 17", "OPTION 18",
+		"OPTION 19", "OPTION 20", "OPTION 21",
+		"OPTION 22", "OPTION 23", "OPTION 24"
+	]
+	for caption in button_captions:
+		_add_tool_button(rotation_grid, caption)
 
 	return tools_panel
 
@@ -645,7 +641,7 @@ func _get_preview_viewport() -> SubViewport:
 	return viewport
 
 
-func _add_tool_button(parent: GridContainer, caption: String, callback: Callable) -> void:
+func _add_tool_button(parent: GridContainer, caption: String) -> void:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size = Vector2(0, 48)
@@ -671,9 +667,8 @@ func _add_tool_button(parent: GridContainer, caption: String, callback: Callable
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	button.pressed.connect(callback)
+	# No pressed signal is connected: this button is a visual placeholder only.
 	parent.add_child(button)
-
 
 func _make_label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
