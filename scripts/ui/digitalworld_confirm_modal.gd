@@ -49,7 +49,7 @@ func _build_modal() -> void:
 	root.add_child(center)
 
 	_panel = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(390, 0)
+	_panel.custom_minimum_size = Vector2(minf(390.0, maxf(280.0, get_viewport().get_visible_rect().size.x - 44.0)), 0)
 	_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_panel.scale = Vector2.ONE
 	var panel_style := StyleBoxFlat.new()
