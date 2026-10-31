@@ -126,6 +126,7 @@ func _process_monthly_headquarters_rent(month_key: String) -> void:
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
+	_update_staff_office_balance()
 
 
 func _notification(what: int) -> void:
@@ -1482,6 +1483,7 @@ func _process_monthly_staff_payroll(month_key: String) -> void:
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
+	_update_staff_office_balance()
 
 
 func _ensure_staff_data() -> void:
@@ -1574,6 +1576,19 @@ func _process_staff_market_refresh(current_day: int) -> void:
 	market.append(_generate_staff_candidate())
 	career["staff_candidates"] = market
 	career["last_candidate_refresh_day"] = current_day
+	_refresh_staff_screen_data()
+
+
+func _refresh_staff_screen_data() -> void:
+	if not is_instance_valid(staff_screen):
+		return
+	var mode := "office" if current_screen == "office" else ("market" if current_screen == "staff_market" else "management")
+	staff_screen.open(mode, career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+
+
+func _update_staff_office_balance() -> void:
+	if is_instance_valid(staff_screen):
+		staff_screen.update_balance(float(career.get("balance", 0.0)))
 
 
 func _show_office_hub() -> void:
