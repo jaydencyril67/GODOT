@@ -541,6 +541,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tools_content.add_theme_constant_override("separation", 8)
+	tools_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	tools_scroll.add_child(tools_content)
 
 	var page_button_counts := [24, 18, 12]
@@ -548,6 +549,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 		var page_grid := GridContainer.new()
 		page_grid.name = card_name + "ButtonPage" + str(page_index + 1)
 		page_grid.columns = 3
+		page_grid.mouse_filter = Control.MOUSE_FILTER_PASS
 		page_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		page_grid.add_theme_constant_override("h_separation", 8)
@@ -640,6 +642,7 @@ func _get_preview_viewport() -> SubViewport:
 func _add_tool_button(parent: GridContainer) -> void:
 	var button := Button.new()
 	button.text = ""
+	button.mouse_filter = Control.MOUSE_FILTER_PASS
 	button.custom_minimum_size = Vector2(0, 48)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -669,7 +672,7 @@ func _on_left_tools_gui_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		left_tools_swipe_distance += (event as InputEventScreenDrag).relative.x
 		if absf(left_tools_swipe_distance) >= 70.0:
-			if left_tools_swipe_distance < 0.0:
+			if left_tools_swipe_distance > 0.0:
 				_set_left_tools_page(left_tools_page + 1)
 			else:
 				_set_left_tools_page(left_tools_page - 1)
