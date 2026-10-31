@@ -425,9 +425,9 @@ func _create_preview_interface() -> void:
 		staff_market_button.anchor_top = 0.0
 		staff_market_button.anchor_right = 1.0
 		staff_market_button.anchor_bottom = 0.0
-		staff_market_button.offset_left = -310.0
+		staff_market_button.offset_left = -340.0
 		staff_market_button.offset_top = 20.0
-		staff_market_button.offset_right = -166.0
+		staff_market_button.offset_right = -196.0
 		staff_market_button.offset_bottom = 64.0
 		_apply_preview_typography(staff_market_button, 15)
 		_style_preview_button(staff_market_button, true)
