@@ -1117,8 +1117,7 @@ func _on_charge_port_selected(port_type: String) -> void:
 	_refresh_phone_charge_port()
 	var radius := 0.32 * float(border_radius_level) / 6.0
 	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
-	_refresh_phone_speakers()
-	_show_charge_port_controls()
+
 
 
 func _make_port_outline(width: float, height: float, corner_radius: float, segments: int = 5) -> PackedVector2Array:
@@ -1513,10 +1512,7 @@ func _refresh_phone_mesh() -> void:
 	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
 	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
-	_refresh_phone_speakers()
-
-
-func _on_border_radius_level_changed(value: float) -> void:
+(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
 	if is_instance_valid(border_radius_value_label):
 		border_radius_value_label.text = "LEVEL %d / 6" % border_radius_level
