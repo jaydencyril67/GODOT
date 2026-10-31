@@ -778,6 +778,7 @@ func _show_home_scene() -> void:
 	headquarters.preview_level = clampi(upgrade_level, 1, 10)
 	headquarters.owned_level = clampi(upgrade_level, 1, 10)
 	headquarters.company_name = str(career.get("company_name", "YOUR COMPANY"))
+	headquarters.company_balance = float(career.get("balance", 10000000.0))
 	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
 	headquarters.back_requested.connect(_return_home_from_headquarters)
 	headquarters.upgrade_requested.connect(_upgrade_headquarters)
@@ -811,16 +812,27 @@ func _upgrade_headquarters(level: int) -> void:
 	var requested_level := clampi(level, 1, 10)
 	if requested_level <= upgrade_level:
 		return
+	var upgrade_cost := float(HeadquartersPreviewScript.get_upgrade_cost(requested_level))
+	var previous_balance := float(career.get("balance", 10000000.0))
+	if previous_balance < upgrade_cost:
+		_show_notice("INSUFFICIENT BALANCE", "You need %s to relocate to Headquarters Level %d. Your available balance is %s." % [_format_balance(upgrade_cost), requested_level, _format_balance(previous_balance)])
+		return
 	var previous_level := upgrade_level
 	upgrade_level = requested_level
 	career["upgrade_level"] = upgrade_level
+	career["balance"] = previous_balance - upgrade_cost
 	if not _save_career():
 		upgrade_level = previous_level
 		career["upgrade_level"] = previous_level
-		_show_notice("UPGRADE NOT SAVED", "Your headquarters upgrade could not be saved. Please try again.")
+		career["balance"] = previous_balance
+		_show_notice("UPGRADE NOT SAVED", "Your headquarters upgrade and payment could not be saved. No money was deducted. Please try again.")
 		return
-	if is_instance_valid(world_root) and world_root.has_method("set_owned_level"):
-		world_root.set_owned_level(upgrade_level)
+	if is_instance_valid(world_root):
+		if world_root.has_method("set_owned_level"):
+			world_root.set_owned_level(upgrade_level)
+		if world_root.has_method("set_company_balance"):
+			world_root.set_company_balance(float(career["balance"]))
+	_update_home_status_bar()
 
 
 func _show_home_navigation() -> void:
