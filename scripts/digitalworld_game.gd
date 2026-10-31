@@ -192,7 +192,7 @@ func _load_career() -> bool:
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
 	last_saved_game_day = floori(game_date_unix / 86400.0)
-	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 1)), 1, 10)
+	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 1)), 0, 10)
 	if not str(career.get("company_name", "")).is_empty():
 		_ensure_staff_data()
 	return not str(career.get("company_name", "")).is_empty()
