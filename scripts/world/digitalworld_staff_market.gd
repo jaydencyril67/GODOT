@@ -100,7 +100,7 @@ func _build() -> void:
 	var header := VBoxContainer.new()
 	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
-	header.add_child(_label("DIGITALWORLD  /  OFFICE", 11 if compact else 13, Color("#a9e3ff")))
+	header.add_child(_label("DIGITALWORLD  /  STAFF", 11 if compact else 13, Color("#a9e3ff")))
 
 	var hero_row := HBoxContainer.new()
 	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -109,7 +109,7 @@ func _build() -> void:
 	var heading := VBoxContainer.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hero_row.add_child(heading)
-	var title_text := "STAFF MARKET" if mode == "market" else ("STAFF MANAGEMENT" if mode == "management" else "OFFICE")
+	var title_text := "STAFF MARKET" if mode == "market" else "MY STAFF"
 	var title := _label(title_text, 27 if compact else 36, WHITE)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
