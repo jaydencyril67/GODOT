@@ -352,8 +352,9 @@ func _show_previous_level() -> void:
 func _show_next_level() -> void:
 	if preview_level >= MAX_LEVEL:
 		return
-	preview_level += 1
+	preview_level = mini(preview_level + 1, MAX_LEVEL)
 	_update_downgrade_refund_roll()
+	_rebuild_preview()
 
 
 func _update_downgrade_refund_roll() -> void:
@@ -585,7 +586,7 @@ func _refresh_preview_interface() -> void:
 			upgrade_cost_label.text = "UPGRADE COST: %s" % _format_money(upgrade_cost)
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff") if can_afford_upgrade else Color("#ffb5a8"))
 	if is_instance_valid(monthly_rent_label):
-		monthly_rent_label.text = "MONTHLY RENT (5%%): %s" % _format_money(get_monthly_rent(owned_level))
+		monthly_rent_label.text = "MONTHLY RENT: %s" % _format_money(get_monthly_rent(owned_level))
 	if is_instance_valid(available_balance_label):
 		available_balance_label.text = "BALANCE: %s" % _format_money(company_balance)
 		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
