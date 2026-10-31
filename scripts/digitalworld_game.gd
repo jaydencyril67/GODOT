@@ -74,12 +74,43 @@ func _process(delta: float) -> void:
 	if current_screen not in ["home", "headquarters", "create"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
+	var previous_month := _get_game_month_key(game_date_unix)
 	# One complete in-game day passes every three real-world seconds.
 	game_date_unix += delta * 28800.0
 	var current_day := floori(game_date_unix / 86400.0)
+	var current_month := _get_game_month_key(game_date_unix)
+	if current_month != previous_month and current_month != str(career.get("last_rent_billed_month", previous_month)):
+		_process_monthly_headquarters_rent(current_month)
 	if current_day != previous_day:
 		_save_career()
 		last_saved_game_day = current_day
+	_update_home_status_bar()
+
+
+func _get_game_month_key(timestamp: float) -> String:
+	var date := Time.get_datetime_dict_from_unix_time(int(timestamp))
+	return "%04d-%02d" % [date.year, date.month]
+
+
+func _process_monthly_headquarters_rent(month_key: String) -> void:
+	var monthly_rent := float(HeadquartersPreviewScript.get_monthly_rent(upgrade_level))
+	var current_balance := float(career.get("balance", 10000000.0))
+	career["last_rent_billed_month"] = month_key
+	if monthly_rent <= 0.0:
+		_save_career()
+		return
+	if current_balance < monthly_rent:
+		_save_career()
+		_show_notice("MONTHLY RENT DUE", "Your Level %d headquarters requires %s in monthly rent, but your balance is only %s. Rent was not deducted." % [upgrade_level, _format_balance(monthly_rent), _format_balance(current_balance)])
+		return
+	career["balance"] = current_balance - monthly_rent
+	if not _save_career():
+		career["balance"] = current_balance
+		career["last_rent_billed_month"] = _get_game_month_key(game_date_unix - 86400.0)
+		_show_notice("RENT PAYMENT NOT SAVED", "Your monthly headquarters rent could not be saved. Your balance has not changed.")
+		return
+	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
+		world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
 
 
@@ -112,7 +143,8 @@ func _load_career() -> bool:
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
 		"game_date_unix": float(config.get_value("career", "game_date_unix", 1262304000.0)),
-		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false))
+		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
+		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0)))))
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
@@ -131,6 +163,7 @@ func _save_career() -> bool:
 	config.set_value("career", "balance", float(career.get("balance", 10000000.0)))
 	config.set_value("career", "game_date_unix", game_date_unix)
 	config.set_value("career", "game_clock_paused", game_clock_paused)
+	config.set_value("career", "last_rent_billed_month", str(career.get("last_rent_billed_month", _get_game_month_key(game_date_unix))))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -746,6 +779,8 @@ func _create_company() -> void:
 	if not career.has("game_clock_paused"):
 		game_clock_paused = false
 		career["game_clock_paused"] = false
+	if not career.has("last_rent_billed_month"):
+		career["last_rent_billed_month"] = _get_game_month_key(game_date_unix)
 	if str(career.get("created_at", "")).is_empty():
 		career["created_at"] = Time.get_datetime_string_from_system(true)
 	upgrade_level = clampi(upgrade_level, 1, 10)
