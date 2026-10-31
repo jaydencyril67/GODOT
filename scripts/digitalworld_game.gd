@@ -121,6 +121,10 @@ func _process_pending_monthly_expenses() -> void:
 func _process_monthly_headquarters_rent(month_key: String) -> void:
 	if month_key == str(career.get("last_rent_billed_month", "")):
 		return
+	if upgrade_level <= 0:
+		career["last_rent_billed_month"] = month_key
+		_save_career()
+		return
 	var monthly_rent := float(HeadquartersPreviewScript.get_monthly_rent(upgrade_level))
 	var current_balance := float(career.get("balance", 10000000.0))
 	career["last_rent_billed_month"] = month_key
@@ -163,7 +167,7 @@ func _load_career() -> bool:
 	var config := ConfigFile.new()
 	if config.load(SAVE_PATH) != OK:
 		career = {}
-		upgrade_level = 1
+		upgrade_level = 0
 		return false
 	career = {
 		"full_name": str(config.get_value("career", "full_name", "")),
@@ -861,7 +865,8 @@ func _create_company() -> void:
 	_ensure_staff_data()
 	if str(career.get("created_at", "")).is_empty():
 		career["created_at"] = Time.get_datetime_string_from_system(true)
-	upgrade_level = clampi(upgrade_level, 1, 10)
+	upgrade_level = 0
+	career["upgrade_level"] = upgrade_level
 	if not _save_career():
 		profile_status.text = "The company could not be saved. Check device storage."
 		return
@@ -875,8 +880,8 @@ func _load_game_pressed() -> void:
 
 func _show_city() -> void:
 	# Every new or returning company lands on Home at its currently owned building.
-	upgrade_level = clampi(upgrade_level, 1, 10)
-	selected_upgrade = upgrade_level
+	upgrade_level = clampi(upgrade_level, 0, 10)
+	selected_upgrade = maxi(upgrade_level, 1)
 	_process_pending_monthly_expenses()
 	_show_home_scene()
 
@@ -893,7 +898,7 @@ func _show_home_scene() -> void:
 	headquarters.name = "DigitalWorld_Home_Scene"
 	headquarters.home_mode = true
 	headquarters.preview_level = clampi(upgrade_level, 1, 10)
-	headquarters.owned_level = clampi(upgrade_level, 1, 10)
+	headquarters.owned_level = clampi(upgrade_level, 0, 10)
 	headquarters.company_name = str(career.get("company_name", "YOUR COMPANY"))
 	headquarters.company_balance = float(career.get("balance", 10000000.0))
 	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
