@@ -971,6 +971,11 @@ func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
 func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float) -> void:
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	# Reserve enough height for the heading, custom checkbox, position label,
+	# and the complete +/- control row. Without this explicit minimum the
+	# nested PanelContainer can collapse to the heading's height on mobile.
+	section.custom_minimum_size = Vector2(0.0, 152.0)
 	var section_style := StyleBoxFlat.new()
 	section_style.bg_color = Color(0.20, 0.48, 0.66, 0.25)
 	section_style.border_color = Color(0.55, 0.80, 0.94, 0.55)
@@ -984,20 +989,25 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	active_feature_panel.add_child(section)
 
 	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.custom_minimum_size.y = 130.0
 	content.add_theme_constant_override("separation", 8)
 	section.add_child(content)
 	var heading_row := HBoxContainer.new()
-	heading_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	heading_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	heading_row.custom_minimum_size.y = 40.0
+	heading_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(heading_row)
 	var heading := _make_label(caption, 18, Color("#ffffff"))
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	heading_row.add_child(heading)
-	var heading_spacer := Control.new()
-	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading_row.add_child(heading_spacer)
 	# A dedicated TextureButton gives us a fully custom checkbox with an exact-size hit area.
 	var toggle := TextureButton.new()
 	toggle.name = "Custom" + ("Power" if side == "right" else "Volume") + "ButtonCheckbox"
 	toggle.custom_minimum_size = Vector2(36, 36)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	toggle.ignore_texture_size = true
 	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	toggle.texture_normal = _make_side_button_checkbox_icon(false)
@@ -1011,8 +1021,10 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	toggle.pressed.connect(_on_side_button_toggle_pressed.bind(toggle, side))
 	heading_row.add_child(toggle)
 	var position_title := _make_label("VERTICAL POSITION", 14, Color("#c7eaff"))
+	position_title.custom_minimum_size.y = 22.0
 	content.add_child(position_title)
 	var position_row := HBoxContainer.new()
+	position_row.custom_minimum_size.y = 54.0
 	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	position_row.add_theme_constant_override("separation", 12)
 	content.add_child(position_row)
