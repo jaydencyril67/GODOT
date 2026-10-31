@@ -1247,7 +1247,7 @@ func _refresh_phone_charge_port() -> void:
 
 	match charge_port_type:
 		"USB Type-C":
-			contact_count = 6
+			contact_count = 12
 		"Apple Lightning":
 			port_width = 6.7 * unit_per_mm
 			port_height = 1.5 * unit_per_mm
@@ -1381,9 +1381,10 @@ func _refresh_phone_charge_port() -> void:
 		cavity_wall_material.metallic = 0.88
 		cavity_wall_material.roughness = 0.34
 	var tongue_material := StandardMaterial3D.new()
-	tongue_material.albedo_color = Color("#aeb8c1")
-	tongue_material.metallic = 0.55
-	tongue_material.roughness = 0.38
+	# Connector tongues and contact beds are insulating polymer, not bare metal.
+	tongue_material.albedo_color = Color("#414951")
+	tongue_material.metallic = 0.08
+	tongue_material.roughness = 0.68
 	tongue_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var contact_material := StandardMaterial3D.new()
 	contact_material.albedo_color = Color("#d5a64f")
@@ -1403,7 +1404,7 @@ func _refresh_phone_charge_port() -> void:
 		var tongue_points := _make_port_outline(port_width * 0.72, port_height * 0.20, port_height * 0.10, 6)
 		_add_port_detail(port_root, "USBCTongue", tongue_points, contact_face_y, tongue_material)
 		for row in range(2):
-			for contact_index in range(12):
+			for contact_index in range(contact_count):
 				var x := (float(contact_index) - 5.5) * (port_width * 0.66 / 12.0)
 				var z := (1.0 if row == 0 else -1.0) * port_height * 0.105
 				var pad := _make_port_outline(port_width * 0.035, port_height * 0.055, port_height * 0.02, 3)
@@ -1421,8 +1422,61 @@ func _refresh_phone_charge_port() -> void:
 				for point in pad:
 					shifted.append(point + Vector2(x, z))
 				_add_port_detail(port_root, "LightningContact_%d_%d" % [row, contact_index], shifted, contact_face_y - 0.0002, contact_material)
+	elif charge_port_type in ["Micro-USB (Micro-B)", "Mini-USB (Mini-B)"]:
+		var pitch_mm := 0.65 if charge_port_type == "Micro-USB (Micro-B)" else 0.80
+		var contact_pitch := pitch_mm * unit_per_mm * profile_fit
+		var contact_span := contact_pitch * 4.0
+		var bed_width := minf(port_width * 0.62, contact_span * 1.40)
+		var bed_height := port_height * (0.48 if charge_port_type == "Micro-USB (Micro-B)" else 0.42)
+		var insert_bed := _make_port_outline(bed_width, bed_height, bed_height * 0.20, 5)
+		_add_port_detail(port_root, "InsulatingContactBed", insert_bed, contact_face_y, tongue_material)
+		var pad_width := contact_pitch * 0.66
+		var pad_height := maxf(port_height * 0.13, 0.002)
+		for contact_index in range(5):
+			var x := (float(contact_index) - 2.0) * contact_pitch
+			var pad := _make_port_outline(pad_width, pad_height, pad_height * 0.18, 3)
+			var shifted := PackedVector2Array()
+			for point in pad:
+				shifted.append(point + Vector2(x, 0.0))
+			_add_port_detail(port_root, "Contact_%02d" % contact_index, shifted, contact_face_y - 0.0002, contact_material)
+	elif charge_port_type == "USB 3.0 Micro-B":
+		# Keep the original five-pin Micro-B section and the five extra
+		# SuperSpeed contacts in the adjacent extension.
+		var contact_pitch := 0.55 * unit_per_mm * profile_fit
+		var main_center := -port_width * 0.17
+		var extension_center := port_width * 0.33
+		var main_bed := _make_port_outline(port_width * 0.54, port_height * 0.48, port_height * 0.18, 5)
+		var extension_bed := _make_port_outline(port_width * 0.25, port_height * 0.72, port_height * 0.12, 5)
+		var shifted_main := PackedVector2Array()
+		var shifted_extension := PackedVector2Array()
+		for point in main_bed:
+			shifted_main.append(point + Vector2(main_center, 0.0))
+		for point in extension_bed:
+			shifted_extension.append(point + Vector2(extension_center, 0.0))
+		_add_port_detail(port_root, "MicroBInsulatingBed", shifted_main, contact_face_y, tongue_material)
+		_add_port_detail(port_root, "SuperSpeedInsulatingBed", shifted_extension, contact_face_y, tongue_material)
+		for group in range(2):
+			var group_center := main_center if group == 0 else extension_center
+			for contact_index in range(5):
+				var x := group_center + (float(contact_index) - 2.0) * contact_pitch
+				var pad := _make_port_outline(contact_pitch * 0.66, port_height * 0.11, port_height * 0.025, 3)
+				var shifted := PackedVector2Array()
+				for point in pad:
+					shifted.append(point + Vector2(x, 0.0))
+				_add_port_detail(port_root, "SuperSpeedContact_%d_%d" % [group, contact_index], shifted, contact_face_y - 0.0002, contact_material)
+	elif charge_port_type == "Apple 30-pin Dock":
+		var contact_pitch := 0.62 * unit_per_mm * profile_fit
+		var contact_bed := _make_port_outline(port_width * 0.90, port_height * 0.30, port_height * 0.12, 6)
+		_add_port_detail(port_root, "DockConnectorInsulator", contact_bed, contact_face_y, tongue_material)
+		for contact_index in range(30):
+			var x := (float(contact_index) - 14.5) * contact_pitch
+			var pad := _make_port_outline(contact_pitch * 0.68, port_height * 0.16, port_height * 0.035, 3)
+			var shifted := PackedVector2Array()
+			for point in pad:
+				shifted.append(point + Vector2(x, 0.0))
+			_add_port_detail(port_root, "DockContact_%02d" % contact_index, shifted, contact_face_y - 0.0002, contact_material)
 	elif contact_count > 0:
-		var contact_span := port_width * 0.74
+		var contact_span := port_width * 0.68
 		var contact_pitch := contact_span / float(contact_count)
 		var contact_width := contact_pitch * 0.66
 		var contact_height := maxf(port_height * 0.11, 0.002)
@@ -1435,8 +1489,18 @@ func _refresh_phone_charge_port() -> void:
 			_add_port_detail(port_root, "Contact_%02d" % contact_index, shifted, contact_face_y - 0.0002, contact_material)
 
 	if circular:
-		var center_contact := _make_port_outline(port_width * 0.15, port_height * 0.15, port_width * 0.075, 12)
-		_add_port_detail(port_root, "BarrelCenterTerminal", center_contact, contact_face_y + recess_depth * 0.12, contact_material)
+		var barrel_pin := MeshInstance3D.new()
+		barrel_pin.name = "BarrelCenterTerminal"
+		var pin_mesh := CylinderMesh.new()
+		pin_mesh.top_radius = port_width * 0.075
+		pin_mesh.bottom_radius = port_width * 0.075
+		pin_mesh.height = minf(0.012, recess_depth * 0.18)
+		pin_mesh.radial_segments = 20
+		barrel_pin.mesh = pin_mesh
+		barrel_pin.material_override = contact_material
+		barrel_pin.position = Vector3(0.0, back_y - pin_mesh.height * 0.5 - 0.001, 0.0)
+		barrel_pin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		port_root.add_child(barrel_pin)
 
 
 func _on_phone_thickness_level_changed(value: float) -> void:
