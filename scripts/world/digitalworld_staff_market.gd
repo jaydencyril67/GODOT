@@ -312,7 +312,6 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	var country_label := _label(str(candidate.get("country", "International")).to_upper(), 11, Color("#c7e2f3"))
 	country_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity_row.add_child(country_label)
-	identity_row.add_child(_label(str(candidate.get("rarity", "STANDARD")).to_upper(), 12, Color("#d5f2ff")))
 
 	var divider := HSeparator.new()
 	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
