@@ -1,6 +1,7 @@
 extends Node3D
 
 signal back_requested
+signal research_upgrade_requested(research_id: String)
 
 const PHONE_SIZE := Vector3(1.45, 2.92, 0.20)
 const ROTATION_STEP := deg_to_rad(10.0)
@@ -13,6 +14,10 @@ var preview_container: SubViewportContainer
 var research_mode := false
 var research_selected_tab := "Design"
 var research_tab_status: Label
+var research_content_panel: PanelContainer
+var research_levels: Dictionary = {}
+var research_balance := 0.0
+var research_item_cards: Dictionary = {}
 
 
 func _ready() -> void:
@@ -192,6 +197,17 @@ func _build_research_ui() -> void:
 		tab_button.pressed.connect(_on_research_tab_pressed.bind(tab_name, tabs))
 		tabs.add_child(tab_button)
 
+	_build_design_research_content(root)
+	preview_panel.visible = false
+	research_tab_status.visible = false
+
+
+func set_research_data(levels: Dictionary, balance: float) -> void:
+	research_levels = levels.duplicate(true)
+	research_balance = balance
+	if is_instance_valid(research_content_panel):
+		_refresh_design_research_cards()
+
 
 func _on_research_tab_pressed(tab_name: String, tabs: HBoxContainer) -> void:
 	research_selected_tab = tab_name
@@ -200,6 +216,116 @@ func _on_research_tab_pressed(tab_name: String, tabs: HBoxContainer) -> void:
 	for child in tabs.get_children():
 		if child is Button:
 			_style_research_button(child as Button, (child as Button).text == tab_name)
+	if is_instance_valid(research_content_panel) and is_instance_valid(preview_container):
+		var show_design := tab_name == "Design"
+		research_content_panel.visible = show_design
+		preview_container.get_parent().visible = not show_design
+		if is_instance_valid(research_tab_status):
+			research_tab_status.visible = not show_design
+
+
+func _build_design_research_content(root: Control) -> void:
+	research_content_panel = _make_glass_panel(Color(0.035, 0.14, 0.23, 0.88))
+	research_content_panel.name = "PhoneDesignResearchContent"
+	research_content_panel.anchor_left = 0.035
+	research_content_panel.anchor_top = 0.14
+	research_content_panel.anchor_right = 0.965
+	research_content_panel.anchor_bottom = 0.81
+	root.add_child(research_content_panel)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "DesignResearchScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	research_content_panel.add_child(scroll)
+
+	var content := VBoxContainer.new()
+	content.name = "DesignResearchList"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
+	scroll.add_child(content)
+	content.add_child(_make_label("EXTERIOR DESIGN RESEARCH", 19, Color.WHITE))
+	content.add_child(_make_label("Develop the phone's visible shape, screen and outer materials. Internal hardware and connectivity are researched elsewhere.", 13, Color("#c7e2f3")))
+
+	var grid := GridContainer.new()
+	grid.name = "ExteriorDesignResearchGrid"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	content.add_child(grid)
+
+	var items := [
+		{"id":"screen_size", "name":"Screen size", "group":"SCREEN & FORM", "detail":"Research larger or more compact display dimensions."},
+		{"id":"phone_thickness", "name":"Phone thickness", "group":"SCREEN & FORM", "detail":"Research slimmer or thicker body proportions."},
+		{"id":"bezel_width", "name":"Bezel width", "group":"SCREEN & FORM", "detail":"Research the visible border around the display."},
+		{"id":"frame_material", "name":"Frame material", "group":"EXTERIOR BUILD", "detail":"Research the materials used on the outer frame."},
+		{"id":"body_finish", "name":"Body finish", "group":"EXTERIOR BUILD", "detail":"Research textures, coatings and exterior finishes."},
+		{"id":"camera_module", "name":"Camera-module design", "group":"EXTERIOR BUILD", "detail":"Research the shape and arrangement of the visible camera housing."}
+	]
+	for item in items:
+		var card := _make_glass_panel(Color(0.20, 0.48, 0.66, 0.28))
+		card.name = str(item["id"]) + "_ResearchCard"
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.custom_minimum_size = Vector2(250, 132)
+		grid.add_child(card)
+
+		var margin := MarginContainer.new()
+		margin.add_theme_constant_override("margin_left", 12)
+		margin.add_theme_constant_override("margin_right", 12)
+		margin.add_theme_constant_override("margin_top", 10)
+		margin.add_theme_constant_override("margin_bottom", 10)
+		card.add_child(margin)
+		var stack := VBoxContainer.new()
+		stack.add_theme_constant_override("separation", 5)
+		margin.add_child(stack)
+		stack.add_child(_make_label(str(item["group"]), 10, Color("#a9e3ff")))
+		stack.add_child(_make_label(str(item["name"]), 16, Color.WHITE))
+		var level_label := _make_label("CURRENT LEVEL: 1", 13, Color("#d8efff"))
+		level_label.name = "ResearchLevel"
+		stack.add_child(level_label)
+		var upgrade_button := Button.new()
+		upgrade_button.name = "UpgradeResearch"
+		upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		upgrade_button.custom_minimum_size.y = 36
+		upgrade_button.add_theme_font_size_override("font_size", 12)
+		_style_research_button(upgrade_button, true)
+		upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind(str(item["id"])))
+		stack.add_child(upgrade_button)
+		research_item_cards[str(item["id"])] = {"level":level_label, "button":upgrade_button}
+	_refresh_design_research_cards()
+
+
+func _refresh_design_research_cards() -> void:
+	for research_id in research_item_cards:
+		var entry: Dictionary = research_item_cards[research_id]
+		var level := clampi(int(research_levels.get(research_id, 1)), 1, 20)
+		var cost := 250000.0 * float(level)
+		var level_label: Label = entry["level"]
+		var upgrade_button: Button = entry["button"]
+		level_label.text = "CURRENT LEVEL: %d / 20" % level
+		if level >= 20:
+			upgrade_button.text = "MAXIMUM LEVEL"
+			upgrade_button.disabled = true
+		else:
+			upgrade_button.text = "UPGRADE TO %d  •  %s" % [level + 1, _format_research_money(cost)]
+			upgrade_button.disabled = research_balance < cost
+
+
+func _format_research_money(amount: float) -> String:
+	var digits := str(roundi(amount))
+	var formatted := ""
+	for index in range(digits.length()):
+		if index > 0 and (digits.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += digits.substr(index, 1)
+	return "$" + formatted
+
+
+func _on_design_research_upgrade_pressed(research_id: String) -> void:
+	research_upgrade_requested.emit(research_id)
 
 
 func _style_research_button(button: Button, selected: bool) -> void:
