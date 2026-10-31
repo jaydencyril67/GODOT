@@ -2,7 +2,6 @@ extends Node3D
 class_name DigitalWorldHeadquarters
 
 signal preview_level_changed(level: int)
-signal create_requested
 signal setup_progress(message: String, progress: float)
 signal setup_completed
 signal back_requested
