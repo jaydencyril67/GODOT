@@ -32,7 +32,7 @@ var home_date_label: Label
 var home_balance_label: Label
 var home_time_button: Button
 var staff_ui_layer: CanvasLayer
-var staff_screen: Control
+var staff_screen
 var game_date_unix := 1262304000.0
 var game_clock_paused := false
 var last_saved_game_day := -1
