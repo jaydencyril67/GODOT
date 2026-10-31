@@ -734,7 +734,8 @@ func _on_left_tools_gui_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		left_tools_swipe_distance += (event as InputEventScreenDrag).relative.x
 		if absf(left_tools_swipe_distance) >= 70.0:
-			if left_tools_swipe_distance > 0.0:
+			# Finger swipes left to advance and right to return to the previous page.
+			if left_tools_swipe_distance < 0.0:
 				_set_left_tools_page(left_tools_page + 1)
 			else:
 				_set_left_tools_page(left_tools_page - 1)
