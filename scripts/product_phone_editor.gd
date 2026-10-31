@@ -810,8 +810,8 @@ func _create_rounded_phone_mesh(radius: float) -> ArrayMesh:
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var segments := 10
 	var faces := [
-		[Vector3.FORWARD, Vector3.RIGHT, Vector3.UP, half_size.x, half_size.y],
-		[Vector3.BACK, Vector3.LEFT, Vector3.UP, half_size.x, half_size.y],
+		[Vector3.BACK, Vector3.RIGHT, Vector3.UP, half_size.x, half_size.y],
+		[Vector3.FORWARD, Vector3.LEFT, Vector3.UP, half_size.x, half_size.y],
 		[Vector3.RIGHT, Vector3.FORWARD, Vector3.UP, half_size.z, half_size.y],
 		[Vector3.LEFT, Vector3.BACK, Vector3.UP, half_size.z, half_size.y],
 		[Vector3.UP, Vector3.LEFT, Vector3.BACK, half_size.x, half_size.z],
