@@ -1288,30 +1288,6 @@ func _refresh_phone_charge_port() -> void:
 			port_height = port_width
 			circular = true
 
-	var port_root := Node3D.new()
-	port_root.name = "PhoneChargingPort"
-	phone_body.add_child(port_root)
-	var bottom_y := -PHONE_SIZE.y * 0.5
-	var bezel_material := StandardMaterial3D.new()
-	bezel_material.albedo_color = Color("#69737d")
-	bezel_material.metallic = 0.72
-	bezel_material.roughness = 0.34
-	bezel_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var cavity_material := StandardMaterial3D.new()
-	cavity_material.albedo_color = Color("#05070a")
-	cavity_material.roughness = 1.0
-	cavity_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var tongue_material := StandardMaterial3D.new()
-	tongue_material.albedo_color = Color("#b9c2c9")
-	tongue_material.metallic = 0.42
-	tongue_material.roughness = 0.48
-	tongue_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var contact_material := StandardMaterial3D.new()
-	contact_material.albedo_color = Color("#c79b52")
-	contact_material.metallic = 0.68
-	contact_material.roughness = 0.38
-	contact_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-
 	var outer_points := PackedVector2Array()
 	var inner_points := PackedVector2Array()
 	if circular:
@@ -1398,6 +1374,7 @@ func _refresh_phone_charge_port() -> void:
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
 	phone_body.add_child(port_root)
+	var bottom_y := -PHONE_SIZE.y * 0.5
 	var mouth_y := bottom_y + 0.0001
 	var recess_depth := minf(6.2 * unit_per_mm, PHONE_SIZE.y * 0.08)
 	var back_y := bottom_y + recess_depth
