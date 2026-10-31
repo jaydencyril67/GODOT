@@ -214,13 +214,15 @@ func _clear_world() -> void:
 	staff_management_screen = null
 
 func _new_screen() -> Control:
+	# Hide the outgoing screen immediately. queue_free() removes it only at
+	# the end of the frame, so leaving it visible can briefly stack two scenes.
 	if is_instance_valid(ui_layer):
-		if ui_layer == create_ui_layer:
-			ui_layer.hide()
-		else:
+		ui_layer.hide()
+		if ui_layer != create_ui_layer:
 			ui_layer.queue_free()
 	ui_layer = CanvasLayer.new()
 	ui_layer.name = "Native_Godot_Interface"
+	ui_layer.layer = 20
 	add_child(ui_layer)
 	ui_root = Control.new()
 	ui_root.name = "ScreenRoot"
@@ -1912,7 +1914,7 @@ func _prepare_staff_scenes() -> void:
 		return
 	staff_ui_layer = CanvasLayer.new()
 	staff_ui_layer.name = "DigitalWorld_Prepared_Staff_Layer"
-	staff_ui_layer.layer = 40
+	staff_ui_layer.layer = 60
 	add_child(staff_ui_layer)
 
 	staff_market_screen = StaffMarketScene.instantiate()
