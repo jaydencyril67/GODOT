@@ -866,7 +866,7 @@ func _show_home_navigation() -> void:
 		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		button.custom_minimum_size = Vector2(0.0, 54.0)
 		button.add_theme_font_size_override("font_size", 12)
-		_style_button(button, button_name == "Office")
+		_style_button(button, false)
 		if button_name == "Create":
 			button.pressed.connect(_show_create_scene)
 		elif button_name == "Office":
@@ -875,111 +875,107 @@ func _show_home_navigation() -> void:
 
 
 func _build_home_status_bar(root: Control) -> void:
-	var status_panel := PanelContainer.new()
-	status_panel.name = "Home_Android_Status_Bar"
-	status_panel.anchor_left = 0.0
-	status_panel.anchor_top = 0.0
-	status_panel.anchor_right = 1.0
-	status_panel.anchor_bottom = 0.0
-	status_panel.offset_left = 12.0
-	status_panel.offset_top = 10.0
-	status_panel.offset_right = -12.0
-	status_panel.offset_bottom = 94.0
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.018, 0.075, 0.13, 0.96)
-	panel_style.border_color = Color(0.34, 0.75, 0.96, 0.88)
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(18)
-	panel_style.shadow_color = Color(0.0, 0.025, 0.10, 0.48)
-	panel_style.shadow_size = 12
-	panel_style.shadow_offset = Vector2(0.0, 4.0)
-	panel_style.content_margin_left = 14.0
-	panel_style.content_margin_right = 14.0
-	panel_style.content_margin_top = 8.0
-	panel_style.content_margin_bottom = 8.0
-	status_panel.add_theme_stylebox_override("panel", panel_style)
-	root.add_child(status_panel)
+	var cards_row := HBoxContainer.new()
+	cards_row.name = "Home_Individual_Glass_Cards"
+	cards_row.anchor_left = 0.0
+	cards_row.anchor_top = 0.0
+	cards_row.anchor_right = 1.0
+	cards_row.anchor_bottom = 0.0
+	cards_row.offset_left = 12.0
+	cards_row.offset_top = 10.0
+	cards_row.offset_right = -12.0
+	cards_row.offset_bottom = 78.0
+	cards_row.add_theme_constant_override("separation", 10)
+	cards_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(cards_row)
 
-	var content := VBoxContainer.new()
-	content.name = "Home_Status_Content"
-	content.add_theme_constant_override("separation", 5)
-	status_panel.add_child(content)
-
-	var identity_row := HBoxContainer.new()
-	identity_row.name = "Company_And_Balance_Row"
-	identity_row.add_theme_constant_override("separation", 10)
-	identity_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_child(identity_row)
-
+	# Each status item is an independent glass card with its own spacing,
+	# border and highlight. There is deliberately no shared parent panel.
+	var company_card := _make_home_status_glass_card("Company_Name_Card")
+	company_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	company_card.custom_minimum_size = Vector2(150.0, 62.0)
+	cards_row.add_child(company_card)
 	home_company_label = Label.new()
 	home_company_label.name = "Company_Name"
 	home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	home_company_label.clip_text = true
 	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	home_company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_company_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	home_company_label.add_theme_font_size_override("font_size", 17)
 	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
-	identity_row.add_child(home_company_label)
+	company_card.add_child(home_company_label)
 
-	var balance_chip := PanelContainer.new()
-	balance_chip.name = "Company_Balance_Chip"
-	var balance_style := StyleBoxFlat.new()
-	balance_style.bg_color = Color(0.12, 0.62, 0.46, 0.20)
-	balance_style.border_color = Color(0.40, 0.94, 0.73, 0.62)
-	balance_style.set_border_width_all(1)
-	balance_style.set_corner_radius_all(10)
-	balance_style.content_margin_left = 10.0
-	balance_style.content_margin_right = 10.0
-	balance_style.content_margin_top = 4.0
-	balance_style.content_margin_bottom = 4.0
-	balance_chip.add_theme_stylebox_override("panel", balance_style)
-	identity_row.add_child(balance_chip)
-
+	var balance_card := _make_home_status_glass_card("Company_Balance_Card")
+	balance_card.custom_minimum_size = Vector2(150.0, 62.0)
+	cards_row.add_child(balance_card)
 	home_balance_label = Label.new()
 	home_balance_label.name = "Company_Balance"
-	home_balance_label.add_theme_font_size_override("font_size", 15)
-	home_balance_label.add_theme_color_override("font_color", Color("#a8f0d0"))
-	balance_chip.add_child(home_balance_label)
+	home_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_balance_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	home_balance_label.add_theme_font_size_override("font_size", 16)
+	home_balance_label.add_theme_color_override("font_color", Color("#b8f6df"))
+	balance_card.add_child(home_balance_label)
 
-	var info_row := HBoxContainer.new()
-	info_row.name = "Game_Date_And_Clock_Row"
-	info_row.add_theme_constant_override("separation", 10)
-	info_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_child(info_row)
-
+	var date_card := _make_home_status_glass_card("Game_Date_Card")
+	date_card.custom_minimum_size = Vector2(154.0, 62.0)
+	cards_row.add_child(date_card)
 	home_date_label = Label.new()
 	home_date_label.name = "Game_Date"
-	home_date_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_date_label.add_theme_font_size_override("font_size", 14)
-	home_date_label.add_theme_color_override("font_color", Color("#bfeaff"))
-	info_row.add_child(home_date_label)
+	home_date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	home_date_label.add_theme_font_size_override("font_size", 15)
+	home_date_label.add_theme_color_override("font_color", Color("#c8edff"))
+	date_card.add_child(home_date_label)
 
+	var clock_card := _make_home_status_glass_card("Game_Clock_Card")
+	clock_card.custom_minimum_size = Vector2(118.0, 62.0)
+	cards_row.add_child(clock_card)
 	home_time_button = Button.new()
 	home_time_button.name = "Game_Time_Control"
-	home_time_button.custom_minimum_size = Vector2(112.0, 32.0)
-	home_time_button.add_theme_font_size_override("font_size", 12)
+	home_time_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home_time_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	home_time_button.add_theme_font_size_override("font_size", 13)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var button_style := StyleBoxFlat.new()
-		button_style.bg_color = Color(0.08, 0.48, 0.72, 0.92)
+		button_style.bg_color = Color(0.10, 0.48, 0.70, 0.24)
 		if state == "hover":
-			button_style.bg_color = Color(0.12, 0.64, 0.88, 0.98)
+			button_style.bg_color = Color(0.20, 0.68, 0.88, 0.38)
 		elif state == "pressed":
-			button_style.bg_color = Color(0.035, 0.28, 0.48, 1.0)
+			button_style.bg_color = Color(0.04, 0.32, 0.52, 0.42)
 		elif state == "disabled":
-			button_style.bg_color = Color(0.10, 0.20, 0.27, 0.7)
-		button_style.border_color = Color("#8bdcff")
+			button_style.bg_color = Color(0.10, 0.20, 0.27, 0.18)
+		button_style.set_corner_radius_all(11)
+		button_style.border_color = Color(0.60, 0.88, 1.0, 0.46)
 		button_style.set_border_width_all(1)
-		button_style.set_corner_radius_all(10)
-		button_style.shadow_color = Color(0.0, 0.04, 0.12, 0.36)
-		button_style.shadow_size = 5
-		button_style.shadow_offset = Vector2(0.0, 2.0)
 		home_time_button.add_theme_stylebox_override(state, button_style)
 	home_time_button.add_theme_color_override("font_color", Color("#ffffff"))
 	home_time_button.add_theme_color_override("font_hover_color", Color("#ffffff"))
 	home_time_button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 	home_time_button.pressed.connect(_toggle_game_clock)
-	info_row.add_child(home_time_button)
+	clock_card.add_child(home_time_button)
+
 	_update_home_status_bar()
+
+
+func _make_home_status_glass_card(card_name: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.name = card_name
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.10, 0.28, 0.40, 0.38)
+	style.border_color = Color(0.58, 0.84, 0.98, 0.66)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(13)
+	style.shadow_color = Color(0.0, 0.04, 0.12, 0.34)
+	style.shadow_size = 8
+	style.shadow_offset = Vector2(0.0, 3.0)
+	style.content_margin_left = 10.0
+	style.content_margin_right = 10.0
+	style.content_margin_top = 5.0
+	style.content_margin_bottom = 5.0
+	card.add_theme_stylebox_override("panel", style)
+	return card
 
 func _format_game_date(timestamp: float) -> String:
 	var date := Time.get_datetime_dict_from_unix_time(floori(timestamp))
