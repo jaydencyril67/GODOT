@@ -22,6 +22,7 @@ var left_tools_page := 0
 var left_tools_swipe_distance := 0.0
 var left_tools_previous_button: Button
 var left_tools_next_button: Button
+var left_tools_scroll: ScrollContainer
 
 
 func _ready() -> void:
@@ -574,6 +575,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 
 	var tools_scroll := ScrollContainer.new()
 	tools_scroll.name = card_name + "Scroll"
+	left_tools_scroll = tools_scroll
 	tools_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -594,7 +596,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 		page_grid.columns = 3
 		page_grid.mouse_filter = Control.MOUSE_FILTER_PASS
 		page_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		page_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		page_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL if page_index == 0 else Control.SIZE_SHRINK_BEGIN
 		page_grid.add_theme_constant_override("h_separation", 8)
 		page_grid.add_theme_constant_override("v_separation", 8)
 		page_grid.visible = page_index == 0
@@ -604,7 +606,9 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 			_add_tool_button(page_grid)
 
 	tools_scroll.gui_input.connect(_on_left_tools_gui_input)
+	tools_scroll.resized.connect(_update_left_tools_page_button_heights)
 	left_tools_page = 0
+	call_deferred("_update_left_tools_page_button_heights")
 	return tools_panel
 
 
@@ -688,7 +692,7 @@ func _add_tool_button(parent: GridContainer) -> void:
 	button.mouse_filter = Control.MOUSE_FILTER_PASS
 	button.custom_minimum_size = Vector2(0, 48)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.size_flags_vertical = Control.SIZE_FILL
+	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(button, 13)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
@@ -707,6 +711,21 @@ func _add_tool_button(parent: GridContainer) -> void:
 		button.add_theme_stylebox_override(state, style)
 	# Blank placeholder: no text, icon, or pressed action.
 	parent.add_child(button)
+
+
+func _update_left_tools_page_button_heights() -> void:
+	if not is_instance_valid(left_tools_scroll):
+		return
+	# The 24-button page has 8 rows. Its rows expand to use the full panel;
+	# the shorter pages reuse that exact row height and leave the rest empty.
+	var row_height := maxf(48.0, (left_tools_scroll.size.y - 56.0) / 8.0)
+	for page_index in [1, 2]:
+		var page_grid := left_tools_scroll.get_node_or_null("PhoneEditorLeftToolsCardPages/PhoneEditorLeftToolsCardButtonPage" + str(page_index + 1)) as GridContainer
+		if not is_instance_valid(page_grid):
+			continue
+		for child in page_grid.get_children():
+			if child is Button:
+				(child as Button).custom_minimum_size.y = row_height
 
 
 func _on_left_tools_gui_input(event: InputEvent) -> void:
