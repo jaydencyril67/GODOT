@@ -284,25 +284,57 @@ func _candidate_card(candidate: Dictionary) -> Control:
 func _build_management() -> void:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	content.add_child(_label("YOUR EMPLOYEES", 17 if compact else 19, WHITE))
-	var employee_list := GridContainer.new()
-	employee_list.name = "Staff_Employee_Grid"
-	employee_list.columns = 2
-	employee_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	employee_list.add_theme_constant_override("h_separation", 12)
-	employee_list.add_theme_constant_override("v_separation", 12)
-	content.add_child(employee_list)
-	if employees.is_empty():
-		employee_list.add_child(_glass_card_message("YOUR TEAM IS EMPTY", "Visit the Staff Market to recruit your first team members."))
-	else:
-		for employee in employees:
-			employee_list.add_child(_employee_card(employee))
+	for department in DEPARTMENTS:
+		_build_department_employee_row(department, compact)
+
+
+func _build_department_employee_row(department: String, compact: bool) -> void:
+	var section := VBoxContainer.new()
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", 7)
+	content.add_child(section)
+
+	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#b9eaff"))
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_child(heading)
+
+	var horizontal_scroll := ScrollContainer.new()
+	horizontal_scroll.name = "Staff_" + department.replace(" ", "") + "_HorizontalRow"
+	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	horizontal_scroll.custom_minimum_size.y = 462 if compact else 432
+	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	horizontal_scroll.follow_focus = false
+	horizontal_scroll.clip_contents = true
+	section.add_child(horizontal_scroll)
+
+	var employee_row := HBoxContainer.new()
+	employee_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	employee_row.add_theme_constant_override("separation", 12)
+	horizontal_scroll.add_child(employee_row)
+
+	var department_count := 0
+	for employee in employees:
+		if str(employee.get("department", "")) != department:
+			continue
+		var employee_card := _employee_card(employee)
+		employee_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		employee_card.custom_minimum_size.x = 300 if compact else 340
+		employee_row.add_child(employee_card)
+		department_count += 1
+
+	if department_count == 0:
+		var empty_card := _glass_card_message("NO " + department.to_upper() + " STAFF", "Employees assigned to this department will appear here.")
+		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		empty_card.custom_minimum_size = Vector2(300 if compact else 340, 112)
+		employee_row.add_child(empty_card)
 
 
 
 func _employee_card(employee: Dictionary) -> Control:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
-	card.custom_minimum_size = Vector2(0, 450 if compact else 420)
+	card.custom_minimum_size = Vector2(300 if compact else 340, 450 if compact else 420)
 	var margin := _margin(card, 10, 10, 11, 11)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
