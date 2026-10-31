@@ -851,6 +851,8 @@ func _show_home_scene() -> void:
 	headquarters.back_requested.connect(_return_home_from_headquarters)
 	headquarters.upgrade_requested.connect(_upgrade_headquarters)
 	headquarters.downgrade_requested.connect(_downgrade_headquarters)
+	headquarters.staff_market_requested.connect(func(): _open_staff_screen("market"))
+	headquarters.staff_management_requested.connect(func(): _open_staff_screen("management"))
 	headquarters.setup_progress.connect(_update_headquarters_loading)
 	headquarters.setup_completed.connect(_finish_headquarters_loading)
 	world_root = headquarters
@@ -1603,7 +1605,7 @@ func _update_staff_office_balance() -> void:
 
 
 func _show_office_hub() -> void:
-	_open_staff_screen("office")
+	_show_headquarters_preview()
 
 
 func _open_staff_screen(screen_mode: String) -> void:
@@ -1640,11 +1642,7 @@ func _close_staff_overlay() -> void:
 
 func _return_home_from_staff() -> void:
 	_close_staff_overlay()
-	current_screen = "home"
-	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
-		world_root.set_home_mode(true)
-		world_root.set_preview_active(true)
-	_show_home_navigation()
+	_show_headquarters_preview()
 
 
 func _hire_staff_candidate(candidate_id: String) -> void:
