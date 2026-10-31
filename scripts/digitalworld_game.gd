@@ -395,7 +395,7 @@ func _show_profile() -> void:
 	var header := VBoxContainer.new()
 	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
-	var eyebrow := _label("DIGITALWORLD  /  FOUNDER SETUP", 11 if compact else 13, Color("#a9e3ff"))
+	var eyebrow := _label("DIGITAL WORLD MOBILES  /  FOUNDER SETUP", 11 if compact else 13, Color("#a9e3ff"))
 	header.add_child(eyebrow)
 	var title := _label("CREATE YOUR COMPANY", 27 if compact else 36, Color("#ffffff"))
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -436,7 +436,7 @@ func _show_profile() -> void:
 	identity_margin.add_child(identity_stack)
 	identity_stack.add_child(_label("01  /  FOUNDER IDENTITY", 12, Color("#a9e3ff")))
 	identity_stack.add_child(_label("Your details", 20 if compact else 22, Color("#ffffff")))
-	identity_stack.add_child(_label("These details identify you and your business in DigitalWorld.", 12, Color("#c7e2f3")))
+	identity_stack.add_child(_label("These details identify you and your business in Digital World Mobiles.", 12, Color("#c7e2f3")))
 
 	identity_stack.add_child(_label("FOUNDER NAME", 11, Color("#d9efff")))
 	full_name_input = LineEdit.new()
@@ -481,7 +481,7 @@ func _show_profile() -> void:
 	brand_margin.add_child(brand_stack)
 	brand_stack.add_child(_label("02  /  COMPANY BRAND", 12, Color("#a9e3ff")))
 	brand_stack.add_child(_label("Choose your insignia", 20 if compact else 22, Color("#ffffff")))
-	brand_stack.add_child(_label("Select one of 50 original DigitalWorld insignia designs.", 12, Color("#c7e2f3")))
+	brand_stack.add_child(_label("Select one of 50 original Digital World Mobiles insignia designs.", 12, Color("#c7e2f3")))
 
 	selected_logo_id = clampi(int(career.get("logo_id", 1)), 1, 50)
 	logo_option = Button.new()
@@ -871,7 +871,7 @@ func _load_game_pressed() -> void:
 	if _load_career():
 		_show_city()
 	else:
-		_show_notice("NO SAVED COMPANY", "No saved DigitalWorld company was found on this device. Choose NEW GAME to establish one.")
+		_show_notice("NO SAVED COMPANY", "No saved Digital World Mobiles company was found on this device. Choose NEW GAME to establish one.")
 
 func _show_city() -> void:
 	# Every new or returning company lands on Home at its currently owned building.
@@ -1392,7 +1392,7 @@ func _show_headquarters_loading_screen() -> void:
 	center.add_child(content)
 
 	var brand := Label.new()
-	brand.text = "DIGITALWORLD HQ"
+	brand.text = "DIGITAL WORLD MOBILES"
 	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_home_button_typography(brand, 18)
 	brand.add_theme_color_override("font_color", Color("#72cfff"))
@@ -1528,7 +1528,7 @@ func _show_create_scene() -> void:
 	var header := VBoxContainer.new()
 	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
-	header.add_child(_label("DIGITALWORLD  /  PRODUCT STUDIO", 11 if compact else 13, Color("#a9e3ff")))
+	header.add_child(_label("DIGITAL WORLD MOBILES  /  PRODUCT STUDIO", 11 if compact else 13, Color("#a9e3ff")))
 
 	# Keep the hero title and Back control together on one horizontal header row.
 	var hero_row := HBoxContainer.new()
@@ -1677,7 +1677,7 @@ func _show_research_scene() -> void:
 	var header := VBoxContainer.new()
 	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
-	header.add_child(_label("DIGITALWORLD  /  RESEARCH", 11 if compact else 13, Color("#a9e3ff")))
+	header.add_child(_label("DIGITAL WORLD MOBILES  /  RESEARCH", 11 if compact else 13, Color("#a9e3ff")))
 
 	var hero_row := HBoxContainer.new()
 	hero_row.name = "ResearchHeroRow"
@@ -2320,7 +2320,7 @@ func _close_settings_overlay(shade: Control, center: Control) -> void:
 		center.queue_free()
 
 func _confirm_exit() -> void:
-	_show_confirmation("EXIT DIGITALWORLD", "Are you sure you want to leave DigitalWorld? Your saved company data will remain on this device.", "EXIT", Callable(self, "_exit_digitalworld"))
+	_show_confirmation("EXIT DIGITAL WORLD MOBILES", "Are you sure you want to leave Digital World Mobiles? Your saved company data will remain on this device.", "EXIT", Callable(self, "_exit_digitalworld"))
 
 
 func _exit_digitalworld() -> void:
