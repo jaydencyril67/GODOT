@@ -82,8 +82,9 @@ func _process(delta: float) -> void:
 	game_date_unix += delta * 28800.0
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
-	if current_month != previous_month and current_month != str(career.get("last_rent_billed_month", previous_month)):
+	if current_month != str(career.get("last_rent_billed_month", current_month)):
 		_process_monthly_headquarters_rent(current_month)
+	if current_month != str(career.get("last_payroll_billed_month", current_month)):
 		_process_monthly_staff_payroll(current_month)
 	if current_day != previous_day:
 		_process_staff_market_refresh(current_day)
@@ -98,6 +99,8 @@ func _get_game_month_key(timestamp: float) -> String:
 
 
 func _process_monthly_headquarters_rent(month_key: String) -> void:
+	if month_key == str(career.get("last_rent_billed_month", "")):
+		return
 	var monthly_rent := float(HeadquartersPreviewScript.get_monthly_rent(upgrade_level))
 	var current_balance := float(career.get("balance", 10000000.0))
 	career["last_rent_billed_month"] = month_key
@@ -1475,9 +1478,9 @@ func _process_monthly_staff_payroll(month_key: String) -> void:
 
 
 func _ensure_staff_data() -> void:
-	if not career.has("staff_candidates") or not career.get("staff_candidates") is Array:
+	if not career.has("staff_candidates") or not (career.get("staff_candidates") is Array):
 		career["staff_candidates"] = []
-	if not career.has("staff_employees") or not career.get("staff_employees") is Array:
+	if not career.has("staff_employees") or not (career.get("staff_employees") is Array):
 		career["staff_employees"] = []
 	if not bool(career.get("staff_market_initialized", false)):
 		var initial_candidates: Array = []
