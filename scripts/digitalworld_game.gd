@@ -31,11 +31,6 @@ var home_company_label: Label
 var home_date_label: Label
 var home_balance_label: Label
 var home_research_points_label: Label
-var research_department_points_label: Label
-var research_department_staff_label: Label
-var research_department_efficiency_label: Label
-var research_department_rate_label: Label
-var research_department_clock_label: Label
 var home_time_button: Button
 var staff_ui_layer: CanvasLayer
 var staff_screen
@@ -1216,66 +1211,6 @@ func _accrue_research_points(game_time_delta: float) -> void:
 	career["research_points_progress"] = clampf(accumulated_progress, 0.0, 0.9999999)
 
 
-func _build_research_department_panel(parent: VBoxContainer, compact: bool) -> void:
-	var panel := _panel(Color(0.10, 0.30, 0.43, 0.82), Color(0.72, 0.91, 1.0, 0.78), 18)
-	panel.name = "Research_Department_Status_Panel"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	parent.add_child(panel)
-
-	var margin := _margin(panel, 16 if compact else 22, 16 if compact else 22, 14 if compact else 18, 14 if compact else 18)
-	var content := VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 9)
-	margin.add_child(content)
-
-	var heading_row := HBoxContainer.new()
-	heading_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading_row.add_theme_constant_override("separation", 10)
-	content.add_child(heading_row)
-	var heading := _label("RESEARCH DEPARTMENT", 16 if compact else 19, Color("#ffffff"))
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading_row.add_child(heading)
-	research_department_points_label = _label("0 RESEARCH POINTS", 15 if compact else 18, Color("#b8f6df"))
-	research_department_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	heading_row.add_child(research_department_points_label)
-
-	var stats := GridContainer.new()
-	stats.name = "Research_Department_Live_Statistics"
-	stats.columns = 2
-	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats.add_theme_constant_override("h_separation", 12)
-	stats.add_theme_constant_override("v_separation", 6)
-	content.add_child(stats)
-
-	research_department_staff_label = _label("RESEARCH STAFF  /  0", 12 if compact else 14, Color("#d8efff"))
-	research_department_efficiency_label = _label("AVERAGE EFFICIENCY  /  0%", 12 if compact else 14, Color("#d8efff"))
-	research_department_rate_label = _label("PRODUCTION  /  0.00 PTS PER DAY", 12 if compact else 14, Color("#d8efff"))
-	research_department_clock_label = _label("GAME CLOCK  /  RUNNING", 12 if compact else 14, Color("#d8efff"))
-	for stat_label in [research_department_staff_label, research_department_efficiency_label, research_department_rate_label, research_department_clock_label]:
-		stat_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		stats.add_child(stat_label)
-
-	content.add_child(_label("Production follows the in-game clock and stops whenever the clock is paused.", 11 if compact else 12, Color("#c7e2f3")))
-	_update_research_dashboard()
-
-
-func _update_research_dashboard() -> void:
-	var stats := _get_research_department_stats()
-	var staff_count := int(stats.get("staff_count", 0))
-	var average_efficiency := float(stats.get("average_efficiency", 0.0))
-	var daily_output := float(stats.get("daily_output", 0.0))
-	if is_instance_valid(research_department_points_label):
-		research_department_points_label.text = "%s RESEARCH POINTS" % _format_count(int(career.get("research_points", 0)))
-	if is_instance_valid(research_department_staff_label):
-		research_department_staff_label.text = "RESEARCH STAFF  /  %d" % staff_count
-	if is_instance_valid(research_department_efficiency_label):
-		research_department_efficiency_label.text = "AVERAGE EFFICIENCY  /  %.1f%%" % average_efficiency
-	if is_instance_valid(research_department_rate_label):
-		research_department_rate_label.text = "PRODUCTION  /  %.2f PTS PER IN-GAME DAY" % daily_output
-	if is_instance_valid(research_department_clock_label):
-		research_department_clock_label.text = "GAME CLOCK  /  %s" % ("PAUSED" if game_clock_paused else "RUNNING")
-
-
 func _format_count(amount: int) -> String:
 	var digits := str(maxi(amount, 0))
 	var formatted := ""
@@ -1660,8 +1595,6 @@ func _show_research_scene() -> void:
 	_apply_shared_page_typography(back_button, 15 if compact else 16)
 	_style_create_glass_button(back_button, false)
 	header.add_child(_label("Explore research areas for the products your company develops.", 13 if compact else 15, Color("#d8efff")))
-
-	_build_research_department_panel(page, compact)
 
 	var section := VBoxContainer.new()
 	section.name = "ResearchProductCategories"
