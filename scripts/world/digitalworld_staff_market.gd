@@ -33,6 +33,11 @@ func open(screen_mode: String, candidate_data: Array, employee_data: Array, staf
 	_build()
 
 
+func update_balance(amount: float) -> void:
+	company_balance = amount
+	_build()
+
+
 func _build() -> void:
 	for child in get_children():
 		child.queue_free()
