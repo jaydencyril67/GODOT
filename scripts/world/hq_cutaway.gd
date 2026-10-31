@@ -290,6 +290,7 @@ func _sphere(parent: Node3D, radius: float, position: Vector3, material: Materia
 func _label(text: String, position: Vector3, accent: Color) -> void:
 	var board := _box("Room_Sign", Vector3(4.55, 1.08, 0.08), position - Vector3(0, 0, 0.045), _mat(Color("#273330"), 0.8))
 	var sign := Label3D.new()
+	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	sign.text = text
 	sign.font_size = 34
 	sign.pixel_size = 0.012

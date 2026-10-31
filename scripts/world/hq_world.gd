@@ -92,6 +92,7 @@ func _build_world() -> void:
 	add_child(pick_body)
 
 	var hint := Label3D.new()
+	hint.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	hint.text = "TAP HEADQUARTERS TO OPEN"
 	hint.font_size = 24
 	hint.pixel_size = 0.014
@@ -113,6 +114,7 @@ func _create_plot(number: int, center: Vector3) -> void:
 		_box("Plot_%02d_Marking" % number, Vector3(25.3, 0.035, 0.11), center + Vector3(0, 0.22, offset), line)
 		_box("Plot_%02d_Marking" % number, Vector3(0.11, 0.035, 25.3), center + Vector3(offset, 0.22, 0), line)
 	var number_label := Label3D.new()
+	number_label.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	number_label.text = "PLOT %02d" % number
 	number_label.font_size = 22
 	number_label.pixel_size = 0.018

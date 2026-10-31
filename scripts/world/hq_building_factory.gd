@@ -138,6 +138,7 @@ static func create_building(level: int, company_name: String = "YOUR COMPANY") -
 	plaque.material_override = dark_concrete
 	root.add_child(plaque)
 	var sign := Label3D.new()
+	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	sign.text = company_name.to_upper().substr(0, 24) if not company_name.is_empty() else "YOUR COMPANY"
 	sign.font_size = 44
 	sign.pixel_size = 0.008
@@ -271,6 +272,7 @@ static func _create_starter_building(company_name: String) -> Node3D:
 	# Company name fascia on the main entrance.
 	_box(root, Vector3(5.3, 0.85, 0.18), Vector3(0, 7.0, 5.12), dark_metal, "Company_Sign_Plaque")
 	var company_sign := Label3D.new()
+	company_sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	company_sign.text = company_name.to_upper().substr(0, 24) if not company_name.is_empty() else "YOUR COMPANY"
 	company_sign.font_size = 40
 	company_sign.pixel_size = 0.008
