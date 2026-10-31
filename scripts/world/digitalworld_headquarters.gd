@@ -558,7 +558,8 @@ func set_home_mode(active: bool) -> void:
 	preview_level = owned_level
 	_rebuild_preview()
 	if is_instance_valid(preview_interface_layer):
-		preview_interface_layer.free()
+		preview_interface_layer.hide()
+		preview_interface_layer.queue_free()
 	preview_interface_layer = null
 	previous_level_button = null
 	next_level_button = null
