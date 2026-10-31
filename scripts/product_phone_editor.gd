@@ -36,7 +36,7 @@ var power_button_enabled := false
 var volume_button_enabled := false
 var power_button_y := 0.72
 var volume_button_y := 0.34
-var side_button_length_scale := 1.0
+var side_button_length_scale := 1.35
 var power_button_position_label: Label
 var volume_button_position_label: Label
 var side_button_length_label: Label
