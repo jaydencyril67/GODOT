@@ -322,7 +322,7 @@ func _add_workshop_features(parent: Node3D, width: float, depth: float, height: 
 		_box(parent, "Workshop_Roof_Rib", Vector3(0.055, 0.07, depth + 0.55), Vector3(x, height + 0.51, 0.0), materials["metal"])
 	_box(parent, "Workshop_Front_Canopy", Vector3(width * 0.58, 0.16, 1.15), Vector3(0.0, 3.45, front_z + 0.52), materials["dark_metal"])
 
-func _add_level_silhouette_features(parent: Node3D, level: int, width: float, depth: float, height: float, accent: Material, _roof: Material) -> void:
+func _add_level_silhouette_features(parent: Node3D, level: int, width: float, depth: float, _height: float, accent: Material, _roof: Material) -> void:
 	# Low-rise levels gain practical balconies; upper levels keep a clean, flat corporate roofline.
 	if level >= 2 and level <= 4:
 		var floors: int = int(LEVEL_CONFIGS[level - 1]["floors"])
