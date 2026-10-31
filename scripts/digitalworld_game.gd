@@ -570,7 +570,11 @@ func _show_profile() -> void:
 	status_panel.add_child(profile_status)
 
 	# Actions use full-width stacked buttons on narrow displays.
-	var actions: BoxContainer = VBoxContainer.new() if compact else HBoxContainer.new()
+	var actions: BoxContainer
+	if compact:
+		actions = VBoxContainer.new()
+	else:
+		actions = HBoxContainer.new()
 	actions.name = "CompanySetupActions"
 	# Match the action row to the card widths above: each desktop button
 	# occupies exactly one card width, while stacked phone buttons match one card.
