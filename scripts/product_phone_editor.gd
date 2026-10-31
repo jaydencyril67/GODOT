@@ -671,8 +671,7 @@ func _get_preview_viewport() -> SubViewport:
 	preview_camera.position = Vector3(0.0, 0.0, 5.2)
 	preview_camera.current = true
 	preview_camera.fov = 38.0
-	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
-	preview_world.add_child(preview_camera)
+		preview_world.add_child(preview_camera)
 	return viewport
 
 
@@ -808,7 +807,6 @@ func _show_border_radius_controls() -> void:
 	meter.step = 1
 	meter.value = border_radius_level
 	meter.tick_count = 7
-	meter.ticks_on_both_sides = true
 	meter.custom_minimum_size = Vector2(76, 290)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -878,7 +876,6 @@ func _show_thickness_controls() -> void:
 	meter.step = 1
 	meter.value = phone_thickness_level
 	meter.tick_count = 7
-	meter.ticks_on_both_sides = true
 	meter.custom_minimum_size = Vector2(54, 250)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
