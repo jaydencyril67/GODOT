@@ -638,7 +638,7 @@ func _open_logo_picker() -> void:
 
 
 
-func _style_company_glass_button(button: Button, selected: bool = false) -> void:
+func _style_company_glass_button(button: Button, _selected: bool = false) -> void:
 	# Keep every visual state identical: no hover, pressed, focus, or selection flash.
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.48, 0.78, 0.92, 0.10)
