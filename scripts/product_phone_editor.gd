@@ -1330,8 +1330,8 @@ func _refresh_phone_charge_port() -> void:
 		var opening_width_ratio := 0.95
 		var opening_height_ratio := 0.84
 		if charge_port_type == "USB Type-C":
-			opening_width_ratio = 0.96
-			opening_height_ratio = 0.84
+			opening_width_ratio = 1.0
+			opening_height_ratio = 1.0
 		elif charge_port_type == "Apple Lightning":
 			opening_width_ratio = 0.94
 			opening_height_ratio = 0.80
@@ -1440,17 +1440,17 @@ func _refresh_phone_charge_port() -> void:
 				_add_port_detail(port_root, "LightningContact_%d_%d" % [row, contact_index], shifted, contact_face_y - 0.0002, contact_material)
 	elif charge_port_type in ["Micro-USB (Micro-B)", "Mini-USB (Mini-B)"]:
 		var pitch_mm := 0.65 if charge_port_type == "Micro-USB (Micro-B)" else 0.80
-		var contact_pitch := pitch_mm * unit_per_mm * profile_fit
-		var contact_span := contact_pitch * 4.0
-		var bed_width := minf(port_width * 0.62, contact_span * 1.40)
+		var micro_contact_pitch := pitch_mm * unit_per_mm * profile_fit
+		var micro_contact_span := micro_contact_pitch * 4.0
+		var bed_width := minf(port_width * 0.62, micro_contact_span * 1.40)
 		var bed_height := port_height * (0.48 if charge_port_type == "Micro-USB (Micro-B)" else 0.42)
 		var insert_bed := _make_port_outline(bed_width, bed_height, bed_height * 0.20, 5)
 		_add_port_detail(port_root, "InsulatingContactBed", insert_bed, contact_face_y, tongue_material)
-		var pad_width := contact_pitch * 0.66
+		var micro_pad_width := micro_contact_pitch * 0.66
 		var pad_height := maxf(port_height * 0.13, 0.002)
 		for contact_index in range(5):
-			var x := (float(contact_index) - 2.0) * contact_pitch
-			var pad := _make_port_outline(pad_width, pad_height, pad_height * 0.18, 3)
+			var x := (float(contact_index) - 2.0) * micro_contact_pitch
+			var pad := _make_port_outline(micro_pad_width, pad_height, pad_height * 0.18, 3)
 			var shifted := PackedVector2Array()
 			for point in pad:
 				shifted.append(point + Vector2(x, 0.0))
@@ -1458,7 +1458,7 @@ func _refresh_phone_charge_port() -> void:
 	elif charge_port_type == "USB 3.0 Micro-B":
 		# Keep the original five-pin Micro-B section and the five extra
 		# SuperSpeed contacts in the adjacent extension.
-		var contact_pitch := 0.55 * unit_per_mm * profile_fit
+		var superspeed_contact_pitch := 0.55 * unit_per_mm * profile_fit
 		var main_center := -port_width * 0.17
 		var extension_center := port_width * 0.33
 		var main_bed := _make_port_outline(port_width * 0.54, port_height * 0.48, port_height * 0.18, 5)
@@ -1474,31 +1474,31 @@ func _refresh_phone_charge_port() -> void:
 		for group in range(2):
 			var group_center := main_center if group == 0 else extension_center
 			for contact_index in range(5):
-				var x := group_center + (float(contact_index) - 2.0) * contact_pitch
-				var pad := _make_port_outline(contact_pitch * 0.66, port_height * 0.11, port_height * 0.025, 3)
+				var x := group_center + (float(contact_index) - 2.0) * superspeed_contact_pitch
+				var pad := _make_port_outline(superspeed_contact_pitch * 0.66, port_height * 0.11, port_height * 0.025, 3)
 				var shifted := PackedVector2Array()
 				for point in pad:
 					shifted.append(point + Vector2(x, 0.0))
 				_add_port_detail(port_root, "SuperSpeedContact_%d_%d" % [group, contact_index], shifted, contact_face_y - 0.0002, contact_material)
 	elif charge_port_type == "Apple 30-pin Dock":
-		var contact_pitch := 0.62 * unit_per_mm * profile_fit
+		var dock_contact_pitch := 0.62 * unit_per_mm * profile_fit
 		var contact_bed := _make_port_outline(port_width * 0.90, port_height * 0.30, port_height * 0.12, 6)
 		_add_port_detail(port_root, "DockConnectorInsulator", contact_bed, contact_face_y, tongue_material)
 		for contact_index in range(30):
-			var x := (float(contact_index) - 14.5) * contact_pitch
-			var pad := _make_port_outline(contact_pitch * 0.68, port_height * 0.16, port_height * 0.035, 3)
+			var x := (float(contact_index) - 14.5) * dock_contact_pitch
+			var pad := _make_port_outline(dock_contact_pitch * 0.68, port_height * 0.16, port_height * 0.035, 3)
 			var shifted := PackedVector2Array()
 			for point in pad:
 				shifted.append(point + Vector2(x, 0.0))
 			_add_port_detail(port_root, "DockContact_%02d" % contact_index, shifted, contact_face_y - 0.0002, contact_material)
 	elif contact_count > 0:
-		var contact_span := port_width * 0.68
-		var contact_pitch := contact_span / float(contact_count)
-		var contact_width := contact_pitch * 0.66
+		var generic_contact_span := port_width * 0.68
+		var generic_contact_pitch := generic_contact_span / float(contact_count)
+		var generic_contact_width := generic_contact_pitch * 0.66
 		var contact_height := maxf(port_height * 0.11, 0.002)
 		for contact_index in range(contact_count):
-			var x := (float(contact_index) - float(contact_count - 1) * 0.5) * contact_pitch
-			var pad := _make_port_outline(contact_width, contact_height, contact_height * 0.18, 3)
+			var x := (float(contact_index) - float(contact_count - 1) * 0.5) * generic_contact_pitch
+			var pad := _make_port_outline(generic_contact_width, contact_height, contact_height * 0.18, 3)
 			var shifted := PackedVector2Array()
 			for point in pad:
 				shifted.append(point + Vector2(x, 0.0))
