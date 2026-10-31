@@ -18,7 +18,6 @@ var employees: Array = []
 var capacity := 3
 var company_name := "YOUR COMPANY"
 var company_balance := 0.0
-var market_filter := "All Departments"
 var content: VBoxContainer
 var staff_scroll: ScrollContainer
 var staff_scroll_tween: Tween
@@ -195,91 +194,109 @@ func _animate_staff_scroll(target: int, duration: float) -> void:
 
 
 func _build_market() -> void:
-	var viewport_width := get_viewport().get_visible_rect().size.x
-	var compact := viewport_width < 900.0
-	var filter_panel := _card()
-	var filter_margin := _margin(filter_panel, 14, 14, 10, 10)
-	var filter_row := HBoxContainer.new()
-	filter_row.add_theme_constant_override("separation", 12)
-	filter_margin.add_child(filter_row)
-	var filter_label := _label("DEPARTMENT", 12, WHITE)
-	filter_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	filter_row.add_child(filter_label)
-	var filter := OptionButton.new()
-	filter.add_item("All Departments")
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	for department in DEPARTMENTS:
-		filter.add_item(department)
-	filter.custom_minimum_size = Vector2(175 if compact else 220, 44)
-	filter.add_theme_font_size_override("font_size", 16)
-	_style_option_button(filter)
-	filter.item_selected.connect(func(index: int):
-		market_filter = "All Departments" if index == 0 else DEPARTMENTS[index - 1]
-		_build()
-	)
-	for i in range(filter.item_count):
-		if filter.get_item_text(i) == market_filter:
-			filter.select(i)
-	filter_row.add_child(filter)
-	content.add_child(filter_panel)
+		_build_department_candidate_row(department, compact)
 
-	var list_heading := _label("AVAILABLE CANDIDATES", 20 if compact else 22, WHITE)
-	content.add_child(list_heading)
-	var candidate_list := GridContainer.new()
-	candidate_list.name = "Staff_Candidate_Grid"
-	candidate_list.columns = 2
-	candidate_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	candidate_list.add_theme_constant_override("h_separation", 12)
-	candidate_list.add_theme_constant_override("v_separation", 12)
-	content.add_child(candidate_list)
-	var visible_count := 0
+
+func _build_department_candidate_row(department: String, compact: bool) -> void:
+	var section := VBoxContainer.new()
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", 6)
+	content.add_child(section)
+
+	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#b9eaff"))
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_child(heading)
+
+	var horizontal_scroll := ScrollContainer.new()
+	horizontal_scroll.name = "Market_" + department.replace(" ", "") + "_HorizontalRow"
+	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	horizontal_scroll.custom_minimum_size.y = 326 if compact else 316
+	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	horizontal_scroll.follow_focus = false
+	horizontal_scroll.clip_contents = true
+	section.add_child(horizontal_scroll)
+
+	var candidate_row := HBoxContainer.new()
+	candidate_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	candidate_row.add_theme_constant_override("separation", 10)
+	horizontal_scroll.add_child(candidate_row)
+
+	var department_count := 0
 	for candidate in candidates:
-		if market_filter != "All Departments" and str(candidate.get("department", "")) != market_filter:
+		if str(candidate.get("department", "")) != department:
 			continue
-		candidate_list.add_child(_candidate_card(candidate))
-		visible_count += 1
-	if visible_count == 0:
-		candidate_list.add_child(_glass_card_message("NO MATCHING CANDIDATES", "Try another department filter to see more people."))
+		var candidate_card := _candidate_card(candidate)
+		candidate_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		candidate_card.custom_minimum_size.x = 290 if compact else 320
+		candidate_row.add_child(candidate_card)
+		department_count += 1
 
+	if department_count == 0:
+		var empty_card := _glass_card_message("NO " + department.to_upper() + " CANDIDATES", "New candidates for this department will appear here.")
+		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		empty_card.custom_minimum_size = Vector2(290 if compact else 320, 300 if compact else 290)
+		candidate_row.add_child(empty_card)
 
 
 func _candidate_card(candidate: Dictionary) -> Control:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
-	card.custom_minimum_size = Vector2(0, 420 if compact else 390)
-	var margin := _margin(card, 10, 10, 11, 11)
+	card.custom_minimum_size = Vector2(290 if compact else 320, 300 if compact else 290)
+	var margin := _margin(card, 9, 9, 8, 8)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 11)
+	stack.add_theme_constant_override("separation", 5)
 	margin.add_child(stack)
+
 	stack.add_child(_label(str(candidate.get("full_name", "Candidate")).to_upper(), 18 if compact else 20, WHITE))
 	stack.add_child(_label(str(candidate.get("position", "Specialist")).to_upper(), 13, Color("#b9eaff")))
-	stack.add_child(_label("COUNTRY  " + str(candidate.get("country", "International")).to_upper(), 11, Color("#c7e2f3")))
-	stack.add_child(_label(str(candidate.get("rarity", "STANDARD")).to_upper(), 12, Color("#d5f2ff")))
+	var identity_row := HBoxContainer.new()
+	identity_row.add_theme_constant_override("separation", 8)
+	stack.add_child(identity_row)
+	var country_label := _label(str(candidate.get("country", "International")).to_upper(), 11, Color("#c7e2f3"))
+	country_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity_row.add_child(country_label)
+	identity_row.add_child(_label(str(candidate.get("rarity", "STANDARD")).to_upper(), 12, Color("#d5f2ff")))
+
 	var divider := HSeparator.new()
 	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
 	stack.add_child(divider)
 	stack.add_child(_label("DEPARTMENT  " + str(candidate.get("department", "Unassigned")).to_upper(), 12, WHITE))
 	stack.add_child(_label("AGE  %d YEARS   /   EXPERIENCE  %s YEARS" % [int(candidate.get("age", 0)), str(candidate.get("experience", 0))], 12, MUTED))
+
 	var metrics := GridContainer.new()
-	metrics.columns = 2 if compact else 3
+	metrics.columns = 2
 	metrics.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	metrics.add_theme_constant_override("h_separation", 6)
-	metrics.add_theme_constant_override("v_separation", 6)
+	metrics.add_theme_constant_override("v_separation", 4)
 	stack.add_child(metrics)
 	_add_metric(metrics, "ABILITY", int(candidate.get("ability", 0)))
 	_add_metric(metrics, "EFFICIENCY", int(candidate.get("efficiency", 0)))
 	stack.add_child(_label("EDUCATION  " + str(candidate.get("education", "—")), 12, MUTED))
-	stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9e3ff")))
-	stack.add_child(_label(_money(float(candidate.get("monthly_salary", 0.0))), 21, WHITE))
-	var hire := _button("HIRE CANDIDATE", true)
-	hire.custom_minimum_size.y = 48
-	hire.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var action_row := HBoxContainer.new()
+	action_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_row.add_theme_constant_override("separation", 8)
+	stack.add_child(action_row)
+	var salary_stack := VBoxContainer.new()
+	salary_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	salary_stack.add_theme_constant_override("separation", 1)
+	action_row.add_child(salary_stack)
+	salary_stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9e3ff")))
+	salary_stack.add_child(_label(_money(float(candidate.get("monthly_salary", 0.0))), 21, WHITE))
+	var hire := _button("HIRE", true)
+	hire.custom_minimum_size = Vector2(104, 46)
+	hire.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hire.disabled = employees.size() >= capacity
 	hire.pressed.connect(func(): hire_requested.emit(str(candidate.get("id", ""))))
-	stack.add_child(hire)
+	action_row.add_child(hire)
 	if employees.size() >= capacity:
 		stack.add_child(_label("HQ CAPACITY REACHED", 12, Color("#ffd0b8")))
 	return card
+
 
 func _build_management() -> void:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
