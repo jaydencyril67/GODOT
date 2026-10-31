@@ -1167,7 +1167,7 @@ func _refresh_phone_charge_port() -> void:
 	surround_mesh.size = Vector3(port_width + 0.035, 0.009, port_depth + 0.035)
 	surround.mesh = surround_mesh
 	surround.material_override = outer_material
-	surround.position.y = -0.001
+	surround.position.y = 0.0045
 	surround.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	port_root.add_child(surround)
 
@@ -1177,7 +1177,7 @@ func _refresh_phone_charge_port() -> void:
 	cavity_mesh.size = Vector3(port_width, 0.004, port_depth)
 	cavity.mesh = cavity_mesh
 	cavity.material_override = cavity_material
-	cavity.position.y = -0.006
+	cavity.position.y = 0.002
 	cavity.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	port_root.add_child(cavity)
 
