@@ -659,7 +659,7 @@ func _get_preview_viewport() -> SubViewport:
 
 	phone_body = MeshInstance3D.new()
 	phone_body.name = "Plain_Phone_Body"
-	phone_body.mesh = _create_rounded_phone_mesh(0.0)
+	phone_body.mesh = _create_rounded_phone_mesh(0.0, PackedVector2Array())
 	var body_material := StandardMaterial3D.new()
 	# Use a restrained silver-white base. Preview lighting is balanced below
 	# so the rendered face keeps this colour instead of clipping to pure white.
@@ -1554,7 +1554,7 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 		_add_phone_mesh_triangle(surface, outer_a, inner_b, inner_a, bottom_normal)
 
 
-func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array = PackedVector2Array()) -> Mesh:
+func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array) -> Mesh:
 	var phone_size := PHONE_SIZE
 	# Level 10 reaches an ultra-slim 0.08-unit body.
 	phone_size.z = lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
