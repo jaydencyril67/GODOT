@@ -960,9 +960,8 @@ func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
 
-	# Rebuild only this feature so changing the slider never affects other
-	# phone details. Each opening is a layered, recessed-looking perforation
-	# on the bottom-facing Y edge, not a raised cylinder on the screen.
+	# Rebuild only the speaker details. The cylinders stand upright on the
+	# bottom edge (their cylinder axis is Y), rather than lying sideways.
 	for child in phone_body.get_children():
 		if child.name.begins_with("PhoneSpeakerOpening_"):
 			child.queue_free()
@@ -973,6 +972,13 @@ func _refresh_phone_speakers() -> void:
 	var phone_bottom_y := -PHONE_SIZE.y * 0.5
 	var spacing := 0.092
 	var start_x := -float(speaker_count - 1) * spacing * 0.5
+	var slimness := float(phone_thickness_level) / 10.0
+
+	# Thick phones get taller, narrower cylindrical barrels. As the body
+	# becomes slimmer, the barrels shorten and widen into a rounder profile.
+	var cylinder_height := lerpf(0.030, 0.014, slimness)
+	var outer_radius := lerpf(0.012, 0.018, slimness)
+	var inner_radius := outer_radius * 0.68
 
 	var rim_material := StandardMaterial3D.new()
 	rim_material.albedo_color = Color("#626d77")
@@ -990,32 +996,32 @@ func _refresh_phone_speakers() -> void:
 		opening_root.position = Vector3(start_x + float(speaker_index) * spacing, phone_bottom_y, 0.0)
 		phone_body.add_child(opening_root)
 
-		# A fine metallic lip catches light around the dark acoustic aperture.
+		# CylinderMesh uses its Y axis as its length. The top cap sits flush
+		# against the phone edge; the cylinder extends straight outward/down.
 		var rim := MeshInstance3D.new()
 		rim.name = "SpeakerApertureRim"
 		var rim_mesh := CylinderMesh.new()
-		rim_mesh.top_radius = 0.020
-		rim_mesh.bottom_radius = 0.020
-		rim_mesh.height = 0.002
+		rim_mesh.top_radius = outer_radius * 0.88
+		rim_mesh.bottom_radius = outer_radius
+		rim_mesh.height = cylinder_height
 		rim_mesh.radial_segments = 24
 		rim.mesh = rim_mesh
 		rim.material_override = rim_material
-		rim.position.y = -0.0008
+		rim.position.y = -cylinder_height * 0.5
 		rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		opening_root.add_child(rim)
 
-		# The smaller, nearly black insert sits just beyond the lip to read
-		# visually as a tiny drilled/recessed hole in the metal frame.
+		# A narrower, dark upright core creates the recessed acoustic centre.
 		var aperture := MeshInstance3D.new()
 		aperture.name = "SpeakerAcousticOpening"
 		var aperture_mesh := CylinderMesh.new()
-		aperture_mesh.top_radius = 0.014
-		aperture_mesh.bottom_radius = 0.014
-		aperture_mesh.height = 0.002
+		aperture_mesh.top_radius = inner_radius * 0.88
+		aperture_mesh.bottom_radius = inner_radius
+		aperture_mesh.height = cylinder_height * 0.88
 		aperture_mesh.radial_segments = 24
 		aperture.mesh = aperture_mesh
 		aperture.material_override = aperture_material
-		aperture.position.y = -0.0022
+		aperture.position.y = -cylinder_height * 0.5
 		aperture.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		opening_root.add_child(aperture)
 
