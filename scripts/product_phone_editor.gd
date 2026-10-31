@@ -651,7 +651,7 @@ func _get_preview_viewport() -> SubViewport:
 	# Use a bright silver-white finish: clearly white, with a cool silver
 	# undertone. Keep reflections soft so the face does not wash out and the
 	# rounded edges remain visible in the preview.
-	body_material.albedo_color = Color("#d8e1e9")
+	body_material.albedo_color = Color("#b8c0c8")
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
 	body_material.roughness = 0.94
