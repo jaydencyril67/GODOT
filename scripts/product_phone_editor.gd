@@ -28,6 +28,7 @@ var border_radius_value_label: Label
 var phone_thickness_level := 0
 var phone_thickness_value_label: Label
 var active_feature_panel: Control
+var right_tools_content: VBoxContainer
 
 
 func _ready() -> void:
@@ -150,7 +151,19 @@ func _build_editor_ui() -> void:
 	preview_navigation.add_child(left_tools_next_button)
 	_update_left_tools_navigation_buttons()
 
-	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard", false))
+	var right_tools_panel := _make_tools_card("PhoneEditorRightToolsCard", false)
+	layout.add_child(right_tools_panel)
+	right_tools_content = VBoxContainer.new()
+	right_tools_content.name = "PhoneEditorRightToolsContent"
+	right_tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_tools_content.add_theme_constant_override("separation", 14)
+	right_tools_panel.add_child(right_tools_content)
+	var initial_hint := _make_label("SELECT A FEATURE", 18, Color("#c7eaff"))
+	initial_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	initial_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	initial_hint.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_tools_content.add_child(initial_hint)
 
 
 func _apply_research_typography(control: Control, font_size: int) -> void:
@@ -635,9 +648,9 @@ func _get_preview_viewport() -> SubViewport:
 	phone_body.name = "Plain_Phone_Body"
 	phone_body.mesh = _create_rounded_phone_mesh(0.0)
 	var body_material := StandardMaterial3D.new()
-	body_material.albedo_color = Color("#62686e")
-	body_material.metallic = 0.18
-	body_material.roughness = 0.42
+	body_material.albedo_color = Color("#f4f7fa")
+	body_material.metallic = 0.08
+	body_material.roughness = 0.30
 	phone_body.material_override = body_material
 	preview_world.add_child(phone_body)
 
@@ -695,7 +708,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name == "Border Radius":
+	if feature_name == "Border Radius" or feature_name == "Thickness":
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -709,23 +722,16 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 func _show_border_radius_controls() -> void:
-	if is_instance_valid(active_feature_panel):
-		active_feature_panel.queue_free()
-		active_feature_panel = null
-
-	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
-	if not is_instance_valid(tools_content):
+	if not is_instance_valid(right_tools_content):
 		return
-
-	for child in tools_content.get_children():
-		child.visible = false
-
+	for child in right_tools_content.get_children():
+		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BorderRadiusControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 14)
-	tools_content.add_child(active_feature_panel)
+	right_tools_content.add_child(active_feature_panel)
 
 	var back_button := Button.new()
 	back_button.text = "←  ALL FEATURES"
@@ -785,17 +791,10 @@ func _show_border_radius_controls() -> void:
 
 
 func _show_thickness_controls() -> void:
-	if is_instance_valid(active_feature_panel):
-		active_feature_panel.queue_free()
-		active_feature_panel = null
-
-	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
-	if not is_instance_valid(tools_content):
+	if not is_instance_valid(right_tools_content):
 		return
-
-	for child in tools_content.get_children():
-		child.visible = false
-
+	for child in right_tools_content.get_children():
+		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "ThicknessControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -877,13 +876,15 @@ func _close_feature_controls() -> void:
 	if is_instance_valid(active_feature_panel):
 		active_feature_panel.queue_free()
 		active_feature_panel = null
-	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
-	if not is_instance_valid(tools_content):
+	if not is_instance_valid(right_tools_content):
 		return
-	for page_index in range(3):
-		var page_grid := tools_content.get_node_or_null("PhoneEditorLeftToolsCardButtonPage" + str(page_index + 1))
-		if is_instance_valid(page_grid):
-			page_grid.visible = page_index == left_tools_page
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	var initial_hint := _make_label("SELECT A FEATURE", 18, Color("#c7eaff"))
+	initial_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	initial_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	initial_hint.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_tools_content.add_child(initial_hint)
 
 
 func _on_border_radius_level_changed(value: float) -> void:
