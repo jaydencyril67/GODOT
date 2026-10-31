@@ -624,7 +624,7 @@ func _refresh_preview_interface() -> void:
 	var can_afford_upgrade := company_balance >= upgrade_cost
 	var downgrade_refund := float(get_upgrade_cost(owned_level)) * float(downgrade_refund_percent) / 100.0
 	if is_instance_valid(upgrade_button):
-		upgrade_button.text = "Purchase" if owned_level == 0 and preview_level == 1 else "Upgrade"
+		upgrade_button.text = "Purchase"
 	if is_instance_valid(upgrade_cost_label):
 		if preview_level < owned_level:
 			upgrade_cost_label.text = "DOWNGRADE REFUND (%d%%): %s" % [downgrade_refund_percent, _format_money(downgrade_refund)]
