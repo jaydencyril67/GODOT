@@ -3,7 +3,7 @@ extends Node3D
 signal back_requested
 signal research_upgrade_requested(research_id: String)
 
-const PHONE_SIZE := Vector3(1.45, 2.92, 0.20)
+const PHONE_SIZE := Vector3(1.45, 2.92, 0.22)
 const ROTATION_STEP := deg_to_rad(10.0)
 # Deliberately low so a normal finger movement makes a controlled turn.
 const DRAG_SENSITIVITY := 0.0024
@@ -18,6 +18,8 @@ var research_levels: Dictionary = {}
 var research_balance := 0.0
 var research_item_cards: Dictionary = {}
 var research_view := "HARDWARE"
+var left_tools_page := 0
+var left_tools_swipe_distance := 0.0
 
 
 func _ready() -> void:
@@ -535,35 +537,29 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	tools_panel.add_child(tools_scroll)
 
 	var tools_content := VBoxContainer.new()
+	tools_content.name = card_name + "Pages"
 	tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	tools_content.add_theme_constant_override("separation", 12)
+	tools_content.add_theme_constant_override("separation", 8)
 	tools_scroll.add_child(tools_content)
 
+	var page_button_counts := [24, 18, 12]
+	for page_index in range(page_button_counts.size()):
+		var page_grid := GridContainer.new()
+		page_grid.name = card_name + "ButtonPage" + str(page_index + 1)
+		page_grid.columns = 3
+		page_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		page_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		page_grid.add_theme_constant_override("h_separation", 8)
+		page_grid.add_theme_constant_override("v_separation", 8)
+		page_grid.visible = page_index == 0
+		tools_content.add_child(page_grid)
 
-	var rotation_grid := GridContainer.new()
-	rotation_grid.name = card_name + "RotationControls"
-	rotation_grid.columns = 3
-	rotation_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rotation_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rotation_grid.add_theme_constant_override("h_separation", 8)
-	rotation_grid.add_theme_constant_override("v_separation", 8)
-	tools_content.add_child(rotation_grid)
+		for button_index in range(page_button_counts[page_index]):
+			_add_tool_button(page_grid)
 
-	# Exactly 24 placeholder buttons. They are intentionally non-functional for now.
-	var button_captions := [
-		"X −", "X +", "Y −",
-		"Y +", "RESET ROTATION", "ZOOM IN",
-		"ZOOM OUT", "X − 5°", "X + 5°",
-		"Y − 5°", "Y + 5°", "FINE ZOOM IN",
-		"FINE ZOOM OUT", "RESET ZOOM", "OPTION 15",
-		"OPTION 16", "OPTION 17", "OPTION 18",
-		"OPTION 19", "OPTION 20", "OPTION 21",
-		"OPTION 22", "OPTION 23", "OPTION 24"
-	]
-	for caption in button_captions:
-		_add_tool_button(rotation_grid, caption)
-
+	tools_scroll.gui_input.connect(_on_left_tools_gui_input)
+	left_tools_page = 0
 	return tools_panel
 
 
@@ -641,17 +637,13 @@ func _get_preview_viewport() -> SubViewport:
 	return viewport
 
 
-func _add_tool_button(parent: GridContainer, caption: String) -> void:
+func _add_tool_button(parent: GridContainer) -> void:
 	var button := Button.new()
-	button.text = caption
+	button.text = ""
 	button.custom_minimum_size = Vector2(0, 48)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.y = 48
 	_apply_research_typography(button, 13)
-	button.add_theme_color_override("font_color", Color.WHITE)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
@@ -667,8 +659,32 @@ func _add_tool_button(parent: GridContainer, caption: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	# No pressed signal is connected: this button is a visual placeholder only.
+	# Blank placeholder: no text, icon, or pressed action.
 	parent.add_child(button)
+
+
+func _on_left_tools_gui_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and event.pressed:
+		left_tools_swipe_distance = 0.0
+	elif event is InputEventScreenDrag:
+		left_tools_swipe_distance += (event as InputEventScreenDrag).relative.x
+		if absf(left_tools_swipe_distance) >= 70.0:
+			if left_tools_swipe_distance < 0.0:
+				_set_left_tools_page(left_tools_page + 1)
+			else:
+				_set_left_tools_page(left_tools_page - 1)
+			left_tools_swipe_distance = 0.0
+
+
+func _set_left_tools_page(requested_page: int) -> void:
+	left_tools_page = clampi(requested_page, 0, 2)
+	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
+	if not is_instance_valid(tools_content):
+		return
+	for page_index in range(3):
+		var page_grid := tools_content.get_node_or_null("PhoneEditorLeftToolsCardButtonPage" + str(page_index + 1))
+		if is_instance_valid(page_grid):
+			page_grid.visible = page_index == left_tools_page
 
 func _make_label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
