@@ -654,8 +654,8 @@ func _get_preview_viewport() -> SubViewport:
 	body_material.albedo_color = Color("#d8e1e9")
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
-	body_material.roughness = 0.84
-	body_material.specular = 0.3
+	body_material.roughness = 0.94
+	body_material.specular = 0.12
 	# This is a closed solid mesh with outward-facing, correctly wound
 	# triangles. Cull its back faces instead of shading interior backfaces
 	# with automatically inverted normals.
@@ -669,14 +669,18 @@ func _get_preview_viewport() -> SubViewport:
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
-	key_light.light_energy = 1.35
+	# Keep the key light soft enough to avoid a sharp reflected streak
+	# across the silver-white front face.
+	key_light.light_energy = 1.0
 	key_light.shadow_enabled = true
 	preview_world.add_child(key_light)
 
 	var fill_light := OmniLight3D.new()
 	fill_light.position = Vector3(-2.2, 1.4, 2.8)
 	fill_light.light_color = Color("#83cfff")
-	fill_light.light_energy = 0.7
+	# A restrained fill preserves edge definition without adding a
+	# second bright reflection across the body.
+	fill_light.light_energy = 0.38
 	fill_light.omni_range = 8.0
 	preview_world.add_child(fill_light)
 
