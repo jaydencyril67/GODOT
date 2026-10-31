@@ -977,13 +977,12 @@ func _refresh_phone_speakers() -> void:
 	if speaker_count <= 0:
 		return
 
-	# Keep speaker perforations in two balanced groups, leaving a clear
-	# central lane for the charging connector.
-	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
-	var front_z := current_depth * 0.5 + 0.002
+	# Speaker holes belong to the bottom edge (negative Y), not the front glass.
+	# Keep two groups around the central charging-port position.
+	var bottom_y := -PHONE_SIZE.y * 0.5 - 0.002
 	var port_clearance := 0.25
 	var hole_spacing := 0.052
-	var hole_radius := 0.012
+	var hole_radius := 0.018
 	var group_gap := 0.12
 	var left_count := int(ceil(float(speaker_count) * 0.5))
 	var right_count := speaker_count - left_count
@@ -999,14 +998,14 @@ func _refresh_phone_speakers() -> void:
 	for index in range(positions.size()):
 		var hole := MeshInstance3D.new()
 		hole.name = "PhoneSpeakerOpening_%d" % (index + 1)
-		var disc := SphereMesh.new()
-		disc.radius = hole_radius
+		var disc := CylinderMesh.new()
+		disc.top_radius = hole_radius
+		disc.bottom_radius = hole_radius
 		disc.height = 0.004
-		disc.radial_segments = 16
-		disc.rings = 6
+		disc.radial_segments = 20
 		hole.mesh = disc
 		hole.material_override = hole_material
-		hole.position = Vector3(positions[index], -1.34, front_z)
+		hole.position = Vector3(positions[index], bottom_y, 0.0)
 		hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		phone_body.add_child(hole)
 
@@ -1102,11 +1101,12 @@ func _refresh_phone_charge_port() -> void:
 	if charge_port_type == "None":
 		return
 
-	# Put the connector on the visible front face in the reserved centre lane.
+	# Mount the connector on the actual bottom edge (negative Y).
+	# Rotate the port's local XY artwork onto the phone's XZ bottom plane.
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
-	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
-	port_root.position = Vector3(0.0, -1.34, current_depth * 0.5 + 0.003)
+	port_root.position = Vector3(0.0, -PHONE_SIZE.y * 0.5 - 0.001, 0.0)
+	port_root.rotation_degrees.x = 90.0
 	phone_body.add_child(port_root)
 
 	var outer_material := StandardMaterial3D.new()
@@ -1172,7 +1172,6 @@ func _refresh_phone_charge_port() -> void:
 		ring_mesh.height = 0.008
 		ring_mesh.radial_segments = 32
 		ring.mesh = ring_mesh
-		ring.rotation_degrees.x = 90.0
 		ring.material_override = outer_material
 		ring.position.z = 0.001
 		port_root.add_child(ring)
@@ -1184,7 +1183,6 @@ func _refresh_phone_charge_port() -> void:
 		hole_mesh.height = 0.004
 		hole_mesh.radial_segments = 32
 		hole.mesh = hole_mesh
-		hole.rotation_degrees.x = 90.0
 		hole.material_override = inner_material
 		hole.position.z = 0.006
 		port_root.add_child(hole)
