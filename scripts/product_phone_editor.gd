@@ -779,15 +779,6 @@ func _show_border_radius_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 14)
 	right_tools_content.add_child(active_feature_panel)
 
-	var back_button := Button.new()
-	back_button.text = "←  ALL FEATURES"
-	back_button.custom_minimum_size.y = 46
-	back_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(back_button, 15)
-	_style_staff_button(back_button, false)
-	back_button.pressed.connect(_close_feature_controls)
-	active_feature_panel.add_child(back_button)
-
 	var title := _make_label("BORDER RADIUS", 19, Color.WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
@@ -848,15 +839,6 @@ func _show_thickness_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 14)
 	right_tools_content.add_child(active_feature_panel)
 
-	var back_button := Button.new()
-	back_button.text = "←  ALL FEATURES"
-	back_button.custom_minimum_size.y = 46
-	back_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(back_button, 15)
-	_style_staff_button(back_button, false)
-	back_button.pressed.connect(_close_feature_controls)
-	active_feature_panel.add_child(back_button)
-
 	var title := _make_label("PHONE THICKNESS", 19, Color.WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
@@ -916,12 +898,6 @@ func _refresh_phone_mesh() -> void:
 		return
 	var radius := 0.32 * float(border_radius_level) / 6.0
 	phone_body.mesh = _create_rounded_phone_mesh(radius)
-
-
-func _close_feature_controls() -> void:
-	if is_instance_valid(active_feature_panel):
-		active_feature_panel.queue_free()
-		active_feature_panel = null
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
