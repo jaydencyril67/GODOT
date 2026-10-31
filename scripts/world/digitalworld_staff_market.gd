@@ -114,11 +114,15 @@ func _build() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
 	heading.add_child(_label(company_name.to_upper() + "  /  AVAILABLE BALANCE  " + _money(company_balance), 11 if compact else 12, Color("#c7eaff")))
-	var back := _button("BACK TO HQ", false)
-	back.custom_minimum_size = Vector2(112 if compact else 126, 44 if compact else 50)
-	back.size_flags_horizontal = Control.SIZE_SHRINK_END
-	back.pressed.connect(func(): back_requested.emit())
-	hero_row.add_child(back)
+	var back_button := Button.new()
+	back_button.text = "BACK"
+	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
+	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	back_button.add_theme_font_size_override("font_size", 13 if compact else 14)
+	_style_create_glass_button(back_button)
+	back_button.pressed.connect(func(): back_requested.emit())
+	hero_row.add_child(back_button)
 
 	# The page-level ScrollContainer owns vertical scrolling. A second nested
 	# ScrollContainer here can collapse to zero height inside the VBox on mobile,
@@ -480,6 +484,29 @@ func _button(caption: String, primary: bool) -> Button:
 	button.add_theme_color_override("font_pressed_color", WHITE)
 	button.add_theme_color_override("font_disabled_color", MUTED)
 	return button
+
+
+func _style_create_glass_button(button: Button) -> void:
+	# Exact non-primary glass treatment used by Create Your Product.
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.72, 0.89, 0.98, 0.14)
+		if state == "hover":
+			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+		elif state == "pressed":
+			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
+		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#ffffff"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
 
 
 func _style_option_button(button: OptionButton) -> void:
