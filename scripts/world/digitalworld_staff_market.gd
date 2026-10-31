@@ -73,6 +73,7 @@ func _build() -> void:
 	heading.add_child(eyebrow)
 	var title_text := "STAFF MARKET" if mode == "market" else ("STAFF MANAGEMENT" if mode == "management" else "OFFICE")
 	heading.add_child(_label(title_text, 25, WHITE))
+	heading.add_child(_label("AVAILABLE BALANCE  " + _money(company_balance), 11, Color("#a8e8ff")))
 	var back := _button("BACK", false)
 	back.custom_minimum_size = Vector2(78, 44)
 	back.pressed.connect(func(): back_requested.emit())
