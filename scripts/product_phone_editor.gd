@@ -967,27 +967,28 @@ func _refresh_phone_speakers() -> void:
 	if speaker_count <= 0:
 		return
 
-	var phone_thickness := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
-	var front_z := phone_thickness * 0.5 + 0.006
-	var spacing := 0.115
+	var phone_bottom_y := -PHONE_SIZE.y * 0.5
+	var spacing := 0.105
 	var start_x := -float(speaker_count - 1) * spacing * 0.5
 
 	for speaker_index in range(speaker_count):
 		var opening := MeshInstance3D.new()
 		opening.name = "PhoneSpeakerOpening_%d" % (speaker_index + 1)
 		var opening_mesh := CylinderMesh.new()
-		opening_mesh.top_radius = 0.032
-		opening_mesh.bottom_radius = 0.032
-		opening_mesh.height = 0.012
-		opening_mesh.radial_segments = 16
+		# A short cylinder aligned to the phone's Y axis sits on the bottom
+		# edge, making a small dark aperture rather than a mark on the screen.
+		opening_mesh.top_radius = 0.018
+		opening_mesh.bottom_radius = 0.018
+		opening_mesh.height = 0.004
+		opening_mesh.radial_segments = 20
 		opening.mesh = opening_mesh
 
 		var opening_material := StandardMaterial3D.new()
-		opening_material.albedo_color = Color("#18232d")
-		opening_material.roughness = 0.92
+		opening_material.albedo_color = Color("#101820")
+		opening_material.roughness = 1.0
+		opening_material.metallic = 0.0
 		opening.material_override = opening_material
-		opening.rotation_degrees.x = 90.0
-		opening.position = Vector3(start_x + float(speaker_index) * spacing, -PHONE_SIZE.y * 0.5 + 0.12, front_z)
+		opening.position = Vector3(start_x + float(speaker_index) * spacing, phone_bottom_y - 0.001, 0.0)
 		opening.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		phone_body.add_child(opening)
 
