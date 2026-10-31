@@ -307,53 +307,142 @@ func _employee_card(employee: Dictionary) -> Control:
 
 
 func _add_stat_card(caption: String, value: String, detail: String) -> void:
+	_add_stat_card_to(content, caption, value, detail)
+
+
+func _add_stat_card_to(parent: Control, caption: String, value: String, detail: String) -> void:
 	var card := _card()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var margin := _margin(card, 12, 12, 10, 10)
 	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 3)
-	card.add_child(stack)
-	stack.add_child(_label(caption, 10, Color("#8bdcff")))
-	stack.add_child(_label(value, 22, WHITE))
-	stack.add_child(_label(detail, 10, MUTED))
-	content.add_child(card)
+	stack.add_theme_constant_override("separation", 4)
+	margin.add_child(stack)
+	stack.add_child(_label(caption, 10, Color("#a9e3ff")))
+	stack.add_child(_label(value, 21, WHITE))
+	stack.add_child(_label(detail, 9, MUTED))
+	parent.add_child(card)
 
 
 func _card() -> PanelContainer:
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL
-	style.border_color = BORDER
+	style.bg_color = Color(0.32, 0.66, 0.88, 0.27)
+	style.border_color = Color(0.86, 0.97, 1.0, 0.92)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(13)
-	style.content_margin_left = 13
-	style.content_margin_right = 13
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
+	style.set_corner_radius_all(18)
+	style.shadow_color = Color(0.0, 0.16, 0.34, 0.42)
+	style.shadow_size = 18
+	style.shadow_offset = Vector2(0, 5)
+	style.anti_aliasing = true
 	card.add_theme_stylebox_override("panel", style)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var glass_gradient := Gradient.new()
+	glass_gradient.set_color(0, Color(0.92, 0.98, 1.0, 0.30))
+	glass_gradient.set_color(1, Color(0.76, 0.91, 1.0, 0.0))
+	var glass_texture := GradientTexture2D.new()
+	glass_texture.gradient = glass_gradient
+	glass_texture.fill_from = Vector2(0.0, 0.0)
+	glass_texture.fill_to = Vector2(0.0, 1.0)
+	var reflection := TextureRect.new()
+	reflection.name = "Glass_Reflection"
+	reflection.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	reflection.offset_bottom = 70.0
+	reflection.texture = glass_texture
+	reflection.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	reflection.stretch_mode = TextureRect.STRETCH_SCALE
+	reflection.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(reflection)
+	return card
+
+
+func _margin(parent: Control, left: int, right: int, top: int, bottom: int) -> MarginContainer:
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", left)
+	margin.add_theme_constant_override("margin_right", right)
+	margin.add_theme_constant_override("margin_top", top)
+	margin.add_theme_constant_override("margin_bottom", bottom)
+	parent.add_child(margin)
+	return margin
+
+
+func _add_metric(parent: GridContainer, caption: String, value: int) -> void:
+	var metric := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.72, 0.89, 0.98, 0.10)
+	style.border_color = Color(0.72, 0.91, 1.0, 0.28)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 5
+	style.content_margin_bottom = 5
+	metric.add_theme_stylebox_override("panel", style)
+	metric.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var metric_stack := VBoxContainer.new()
+	metric_stack.add_theme_constant_override("separation", 1)
+	metric.add_child(metric_stack)
+	metric_stack.add_child(_label(caption, 8, Color("#a9e3ff")))
+	metric_stack.add_child(_label("%d / 100" % value, 11, WHITE))
+	parent.add_child(metric)
+
+
+func _glass_card_message(title_text: String, detail: String) -> Control:
+	var card := _card()
+	var margin := _margin(card, 18, 18, 16, 16)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 5)
+	margin.add_child(stack)
+	stack.add_child(_label(title_text, 14, WHITE))
+	stack.add_child(_label(detail, 11, MUTED))
 	return card
 
 
 func _button(caption: String, primary: bool) -> Button:
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size.y = 40
+	button.custom_minimum_size.y = 42
 	button.add_theme_font_size_override("font_size", 12)
-	for state in ["normal", "hover", "pressed", "disabled"]:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#167eb5") if primary else Color(0.24, 0.48, 0.64, 0.56)
+		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
 		if state == "hover":
-			style.bg_color = Color("#279ed4")
+			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
 		elif state == "pressed":
-			style.bg_color = Color("#0c5c91")
+			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
 		elif state == "disabled":
-			style.bg_color = Color(0.20, 0.29, 0.35, 0.55)
-		style.border_color = Color(0.72, 0.91, 1.0, 0.88)
+			style.bg_color = Color(0.35, 0.49, 0.59, 0.20)
+		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(9)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
 		button.add_theme_stylebox_override(state, style)
 	button.add_theme_color_override("font_color", WHITE)
+	button.add_theme_color_override("font_hover_color", WHITE)
+	button.add_theme_color_override("font_pressed_color", WHITE)
 	button.add_theme_color_override("font_disabled_color", MUTED)
 	return button
+
+
+func _style_option_button(button: OptionButton) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.34, 0.68, 0.88, 0.24)
+		if state == "hover":
+			style.bg_color = Color(0.48, 0.78, 0.96, 0.34)
+		elif state == "pressed":
+			style.bg_color = Color(0.25, 0.58, 0.82, 0.42)
+		style.border_color = Color(0.86, 0.97, 1.0, 0.82)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(10)
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", WHITE)
+	button.add_theme_color_override("font_hover_color", WHITE)
 
 
 func _label(value: String, size: int, color: Color) -> Label:
