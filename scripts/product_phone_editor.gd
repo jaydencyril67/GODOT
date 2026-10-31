@@ -982,8 +982,8 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	heading_row.add_child(heading_spacer)
 	var toggle := CheckBox.new()
 	toggle.text = ""
-	toggle.custom_minimum_size = Vector2(56, 52)
-	toggle.add_theme_constant_override("icon_max_width", 30)
+	toggle.custom_minimum_size = Vector2(112, 104)
+	toggle.add_theme_constant_override("icon_max_width", 60)
 	toggle.button_pressed = enabled
 	toggle.toggled.connect(_on_side_button_toggled.bind(side))
 	_apply_research_typography(toggle, 19)
@@ -1092,7 +1092,7 @@ func _refresh_phone_side_buttons() -> void:
 
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
 	# Keep the physical keys close to flush with the phone frame.
-	var button_depth := maxf(radius * 0.42, 0.008)
+	var button_depth := maxf(radius * 0.21, 0.004)
 	var button_width := maxf(radius * 1.35, 0.024)
 
 	var backing := MeshInstance3D.new()
