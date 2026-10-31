@@ -1019,8 +1019,10 @@ func _refresh_phone_speakers() -> void:
 		positions.append(port_edge + edge_margin + float(index) * hole_spacing)
 
 	var hole_material := StandardMaterial3D.new()
-	hole_material.albedo_color = Color("#080a0d")
-	hole_material.roughness = 1.0
+	# Speaker openings must stay solid black instead of washing out under the
+	# preview lighting. These are dark acoustic openings, not metallic discs.
+	hole_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hole_material.albedo_color = Color.BLACK
 	hole_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	for index in range(positions.size()):
