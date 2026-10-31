@@ -3,7 +3,6 @@ extends Control
 signal back_requested
 signal hire_requested(candidate_id: String)
 signal dismiss_requested(employee_id: String)
-signal assignment_requested(employee_id: String, department: String)
 
 const DEPARTMENTS := ["Development", "Marketing", "Research"]
 const BG := Color("#071d32")
