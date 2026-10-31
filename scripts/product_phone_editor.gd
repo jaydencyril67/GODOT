@@ -1083,13 +1083,13 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
+	var button_depth := maxf(radius * 1.65, 0.028)
+	var button_width := maxf(radius * 1.35, 0.024)
+
 	var backing := MeshInstance3D.new()
 	backing.name = node_name + "Recess"
-	var recess_mesh := CapsuleMesh.new()
-	recess_mesh.radius = radius * 1.18
-	recess_mesh.height = length + radius * 0.7
-	recess_mesh.radial_segments = 20
-	recess_mesh.rings = 6
+	var recess_mesh := BoxMesh.new()
+	recess_mesh.size = Vector3(radius * 2.36, length + radius * 0.7, button_width * 1.45)
 	backing.mesh = recess_mesh
 	backing.material_override = frame_material
 	backing.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + radius * 0.18), position_y, 0.0)
@@ -1098,14 +1098,11 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 
 	var key := MeshInstance3D.new()
 	key.name = node_name
-	var key_mesh := CapsuleMesh.new()
-	key_mesh.radius = radius
-	key_mesh.height = maxf(length, radius * 2.0)
-	key_mesh.radial_segments = 24
-	key_mesh.rings = 8
+	var key_mesh := BoxMesh.new()
+	key_mesh.size = Vector3(button_depth, maxf(length, radius * 2.0), button_width)
 	key.mesh = key_mesh
 	key.material_override = key_material
-	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + radius * 0.42), position_y, 0.0)
+	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + button_depth * 0.42), position_y, 0.0)
 	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(key)
 
