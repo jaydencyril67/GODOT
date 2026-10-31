@@ -671,7 +671,7 @@ func _get_preview_viewport() -> SubViewport:
 	preview_camera.position = Vector3(0.0, 0.0, 5.2)
 	preview_camera.current = true
 	preview_camera.fov = 38.0
-		preview_world.add_child(preview_camera)
+	preview_world.add_child(preview_camera)
 	return viewport
 
 
