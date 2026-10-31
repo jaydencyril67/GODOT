@@ -929,10 +929,6 @@ func _show_power_volume_controls() -> void:
 	var title := _make_label("POWER & VOLUME", 22, Color.WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
-	var description := _make_label("Configure the physical side keys on your phone frame.", 15, Color("#c7eaff"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
 
 	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y)
 	_add_side_button_controls("VOLUME ROCKER", "left", volume_button_enabled, volume_button_y)
