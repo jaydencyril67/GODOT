@@ -202,9 +202,9 @@ func _input(event: InputEvent) -> void:
 			viewport.set_input_as_handled()
 
 
-func _staff_horizontal_scroll_at(position: Vector2) -> ScrollContainer:
+func _staff_horizontal_scroll_at(screen_position: Vector2) -> ScrollContainer:
 	for row in staff_horizontal_rows:
-		if is_instance_valid(row) and row.get_global_rect().has_point(position):
+		if is_instance_valid(row) and row.get_global_rect().has_point(screen_position):
 			return row
 	return null
 
