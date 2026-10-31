@@ -968,41 +968,60 @@ func _on_speaker_count_changed(value: float) -> void:
 	_refresh_phone_speakers()
 
 
+func _get_charge_port_half_width() -> float:
+	var unit_per_mm := PHONE_SIZE.y / 150.0
+	match charge_port_type:
+		"USB Type-C":
+			return 8.34 * unit_per_mm * 0.5
+		"Micro-USB (Micro-B)":
+			return 6.85 * unit_per_mm * 0.5
+		"Mini-USB (Mini-B)":
+			return 6.9 * unit_per_mm * 0.5
+		"Apple Lightning":
+			return 6.7 * unit_per_mm * 0.5
+		"Apple 30-pin Dock":
+			return 21.0 * unit_per_mm * 0.5
+		"Samsung 30-pin":
+			return 16.0 * unit_per_mm * 0.5
+		"Nokia 2mm Barrel":
+			return 2.0 * unit_per_mm * 0.5
+		"DC Barrel Jack":
+			return 3.5 * unit_per_mm * 0.5
+	return 0.0
+
+
 func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
 
-	# Replace the complete speaker set immediately. queue_free() is deferred,
-	# which allowed old and new openings to overlap during rapid slider changes.
 	var previous_set := phone_body.get_node_or_null("PhoneSpeakerOpenings")
 	if is_instance_valid(previous_set):
 		previous_set.free()
-
 	if speaker_count <= 0:
 		return
 
-	# Keep the openings on the bottom edge, split around the connector.
 	var speaker_set := Node3D.new()
 	speaker_set.name = "PhoneSpeakerOpenings"
 	phone_body.add_child(speaker_set)
 
-	var bottom_y := -PHONE_SIZE.y * 0.5 - 0.002
-	var port_clearance := 0.25
-	var hole_spacing := 0.052
-	var hole_radius := 0.018
-	var group_gap := 0.12
+	var bottom_y := -PHONE_SIZE.y * 0.5
+	var port_edge := _get_charge_port_half_width()
+	var edge_margin := 0.035
+	var hole_spacing := 0.045
+	var hole_radius := 0.012
 	var left_count := int(ceil(float(speaker_count) * 0.5))
 	var right_count := speaker_count - left_count
 	var positions: Array[float] = []
 
 	for index in range(left_count):
-		positions.append(-port_clearance - group_gap - float(left_count - 1 - index) * hole_spacing)
+		positions.append(-(port_edge + edge_margin + float(left_count - 1 - index) * hole_spacing))
 	for index in range(right_count):
-		positions.append(port_clearance + group_gap + float(index) * hole_spacing)
+		positions.append(port_edge + edge_margin + float(index) * hole_spacing)
 
 	var hole_material := StandardMaterial3D.new()
-	hole_material.albedo_color = Color("#050608")
+	hole_material.albedo_color = Color("#080a0d")
 	hole_material.roughness = 1.0
+	hole_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	for index in range(positions.size()):
 		var opening := MeshInstance3D.new()
@@ -1010,14 +1029,15 @@ func _refresh_phone_speakers() -> void:
 		var disc := CylinderMesh.new()
 		disc.top_radius = hole_radius
 		disc.bottom_radius = hole_radius
-		disc.height = 0.004
-		disc.radial_segments = 20
+		disc.height = 0.006
+		disc.radial_segments = 24
 		opening.mesh = disc
 		opening.material_override = hole_material
-		opening.position = Vector3(positions[index], bottom_y, 0.0)
+		# The outside cap is exactly on the phone's bottom plane; the cylinder
+		# extends inward so the speaker detail is not a floating disc.
+		opening.position = Vector3(positions[index], bottom_y + 0.003, 0.0)
 		opening.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		speaker_set.add_child(opening)
-
 
 
 func _show_charge_port_controls() -> void:
@@ -1037,7 +1057,7 @@ func _show_charge_port_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Choose the connector built into the phone", 12, Color("#c7eaff"))
+	var description := _make_label("Eight established phone connector types", 12, Color("#c7eaff"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -1065,18 +1085,12 @@ func _show_charge_port_controls() -> void:
 	var port_types := [
 		"None",
 		"USB Type-C",
-		"USB Type-A",
+		"Apple Lightning",
 		"Micro-USB (Micro-B)",
 		"Mini-USB (Mini-B)",
-		"Apple Lightning",
 		"Apple 30-pin Dock",
-		"Nokia 2mm Barrel",
-		"Nokia Pop-Port",
-		"Sony Ericsson FastPort",
-		"Samsung 20-pin",
 		"Samsung 30-pin",
-		"Motorola Proprietary",
-		"HTC ExtUSB",
+		"Nokia 2mm Barrel",
 		"DC Barrel Jack"
 	]
 	for port_type in port_types:
@@ -1098,167 +1112,202 @@ func _on_charge_port_selected(port_type: String) -> void:
 	if is_instance_valid(charge_port_value_label):
 		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
 	_refresh_phone_charge_port()
+	_refresh_phone_speakers()
 	_show_charge_port_controls()
+
+
+func _make_port_outline(width: float, height: float, corner_radius: float, segments: int = 5) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var radius := minf(corner_radius, minf(width, height) * 0.5)
+	var centers := [
+		Vector2(width * 0.5 - radius, height * 0.5 - radius),
+		Vector2(-width * 0.5 + radius, height * 0.5 - radius),
+		Vector2(-width * 0.5 + radius, -height * 0.5 + radius),
+		Vector2(width * 0.5 - radius, -height * 0.5 + radius)
+	]
+	for corner in range(4):
+		var start_angle := float(corner) * PI * 0.5
+		for step in range(segments + 1):
+			var angle := start_angle + float(step) / float(segments) * PI * 0.5
+			points.append(centers[corner] + Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _make_port_face(points: PackedVector2Array, face_y: float) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	var indices := Geometry2D.triangulate_polygon(points)
+	if indices.is_empty():
+		return mesh
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(0, indices.size(), 3):
+		var a: Vector2 = points[indices[index]]
+		var b: Vector2 = points[indices[index + 1]]
+		var c: Vector2 = points[indices[index + 2]]
+		surface.set_normal(Vector3(0.0, -1.0, 0.0))
+		surface.add_vertex(Vector3(a.x, face_y, a.y))
+		surface.set_normal(Vector3(0.0, -1.0, 0.0))
+		surface.add_vertex(Vector3(b.x, face_y, b.y))
+		surface.set_normal(Vector3(0.0, -1.0, 0.0))
+		surface.add_vertex(Vector3(c.x, face_y, c.y))
+	surface.commit(mesh)
+	return mesh
+
+
+func _add_port_detail(parent: Node3D, node_name: String, points: PackedVector2Array, face_y: float, material: Material) -> void:
+	var detail := MeshInstance3D.new()
+	detail.name = node_name
+	detail.mesh = _make_port_face(points, face_y)
+	detail.material_override = material
+	detail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(detail)
 
 
 func _refresh_phone_charge_port() -> void:
 	if not is_instance_valid(phone_body):
 		return
-	for child in phone_body.get_children():
-		if child.name == "PhoneChargingPort":
-			child.queue_free()
+	var previous_port := phone_body.get_node_or_null("PhoneChargingPort")
+	if is_instance_valid(previous_port):
+		previous_port.free()
 	if charge_port_type == "None":
 		return
 
-	# Mount the connector on the actual bottom edge (negative Y).
-	# Rotate the port's local XY artwork onto the phone's XZ bottom plane.
-	var port_root := Node3D.new()
-	port_root.name = "PhoneChargingPort"
-	port_root.position = Vector3(0.0, -PHONE_SIZE.y * 0.5 - 0.001, 0.0)
-	port_root.rotation_degrees.x = 90.0
-	phone_body.add_child(port_root)
-
-	var outer_material := StandardMaterial3D.new()
-	outer_material.albedo_color = Color("#111820")
-	outer_material.roughness = 0.88
-	var inner_material := StandardMaterial3D.new()
-	inner_material.albedo_color = Color("#020406")
-	inner_material.roughness = 1.0
-	var contact_material := StandardMaterial3D.new()
-	contact_material.albedo_color = Color("#b8c4ce")
-	contact_material.metallic = 0.55
-	contact_material.roughness = 0.42
-
-	var outer := MeshInstance3D.new()
-	outer.name = "ChargingPortOuterShape"
-	var inner := MeshInstance3D.new()
-	inner.name = "ChargingPortOpening"
-	var outer_mesh: Mesh
-	var inner_mesh: Mesh
-	var port_width := 0.30
-	var port_height := 0.075
-	var pill_shape := false
-	var trapezoid_shape := false
-	var circular_shape := false
+	# Connector openings are sized from published receptacle dimensions and
+	# scaled against a 150 mm reference handset height.
+	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var port_width := 8.34 * unit_per_mm
+	var port_height := 2.56 * unit_per_mm
+	var shape := "rounded"
+	var contact_rows := 0
+	var contact_count := 0
+	var circular := false
 
 	match charge_port_type:
 		"USB Type-C":
-			port_width = 0.30
-			port_height = 0.082
-			pill_shape = true
-		"USB Type-A":
-			port_width = 0.39
-			port_height = 0.105
-		"Micro-USB (Micro-B)":
-			port_width = 0.245
-			port_height = 0.070
-			trapezoid_shape = true
-		"Mini-USB (Mini-B)":
-			port_width = 0.31
-			port_height = 0.085
-			trapezoid_shape = true
+			contact_rows = 2
+			contact_count = 6
 		"Apple Lightning":
-			port_width = 0.285
-			port_height = 0.045
-			pill_shape = true
+			port_width = 6.7 * unit_per_mm
+			port_height = 1.5 * unit_per_mm
+			contact_rows = 2
+			contact_count = 8
+		"Micro-USB (Micro-B)":
+			port_width = 6.85 * unit_per_mm
+			port_height = 1.85 * unit_per_mm
+			shape = "micro"
+			contact_rows = 1
+			contact_count = 5
+		"Mini-USB (Mini-B)":
+			port_width = 6.9 * unit_per_mm
+			port_height = 3.1 * unit_per_mm
+			shape = "mini"
+			contact_rows = 1
+			contact_count = 5
 		"Apple 30-pin Dock":
-			port_width = 0.52
-			port_height = 0.105
-		"Nokia 2mm Barrel", "DC Barrel Jack":
-			port_width = 0.105
-			port_height = 0.105
-			circular_shape = true
-		"Nokia Pop-Port", "Sony Ericsson FastPort", "Samsung 20-pin", "Samsung 30-pin", "Motorola Proprietary", "HTC ExtUSB":
-			port_width = 0.35
-			port_height = 0.095
+			port_width = 21.0 * unit_per_mm
+			port_height = 5.5 * unit_per_mm
+			shape = "wide"
+			contact_rows = 1
+			contact_count = 30
+		"Samsung 30-pin":
+			port_width = 16.0 * unit_per_mm
+			port_height = 5.0 * unit_per_mm
+			shape = "wide"
+			contact_rows = 1
+			contact_count = 30
+		"Nokia 2mm Barrel":
+			port_width = 2.0 * unit_per_mm
+			port_height = port_width
+			circular = true
+		"DC Barrel Jack":
+			port_width = 3.5 * unit_per_mm
+			port_height = port_width
+			circular = true
 
-	if circular_shape:
-		var ring := MeshInstance3D.new()
-		ring.name = "ChargingPortCircularRim"
-		var ring_mesh := CylinderMesh.new()
-		ring_mesh.top_radius = port_width * 0.5
-		ring_mesh.bottom_radius = port_width * 0.5
-		ring_mesh.height = 0.008
-		ring_mesh.radial_segments = 32
-		ring.mesh = ring_mesh
-		ring.material_override = outer_material
-		ring.position.z = 0.001
-		port_root.add_child(ring)
-		var hole := MeshInstance3D.new()
-		hole.name = "ChargingPortCircularOpening"
-		var hole_mesh := CylinderMesh.new()
-		hole_mesh.top_radius = port_width * 0.34
-		hole_mesh.bottom_radius = port_width * 0.34
-		hole_mesh.height = 0.004
-		hole_mesh.radial_segments = 32
-		hole.mesh = hole_mesh
-		hole.material_override = inner_material
-		hole.position.z = 0.006
-		port_root.add_child(hole)
-		return
+	var port_root := Node3D.new()
+	port_root.name = "PhoneChargingPort"
+	phone_body.add_child(port_root)
+	var bottom_y := -PHONE_SIZE.y * 0.5
+	var bezel_material := StandardMaterial3D.new()
+	bezel_material.albedo_color = Color("#69737d")
+	bezel_material.metallic = 0.72
+	bezel_material.roughness = 0.34
+	bezel_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var cavity_material := StandardMaterial3D.new()
+	cavity_material.albedo_color = Color("#05070a")
+	cavity_material.roughness = 1.0
+	cavity_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var tongue_material := StandardMaterial3D.new()
+	tongue_material.albedo_color = Color("#b9c2c9")
+	tongue_material.metallic = 0.42
+	tongue_material.roughness = 0.48
+	tongue_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var contact_material := StandardMaterial3D.new()
+	contact_material.albedo_color = Color("#c79b52")
+	contact_material.metallic = 0.68
+	contact_material.roughness = 0.38
+	contact_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
-	if pill_shape:
-		var outer_capsule := CapsuleMesh.new()
-		outer_capsule.radius = port_height * 0.5
-		outer_capsule.height = maxf(port_width, port_height)
-		outer_mesh = outer_capsule
-		var inner_capsule := CapsuleMesh.new()
-		inner_capsule.radius = port_height * 0.34
-		inner_capsule.height = maxf(port_width - 0.025, port_height * 0.68)
-		inner_mesh = inner_capsule
-		outer.rotation_degrees.z = 90.0
-		inner.rotation_degrees.z = 90.0
+	var outer_points := PackedVector2Array()
+	var inner_points := PackedVector2Array()
+	if circular:
+		outer_points = _make_port_outline(port_width, port_height, port_width * 0.5, 12)
+		inner_points = _make_port_outline(port_width * 0.62, port_height * 0.62, port_width * 0.31, 12)
+	elif shape == "micro":
+		outer_points = PackedVector2Array([
+			Vector2(-port_width * 0.5, -port_height * 0.5),
+			Vector2(port_width * 0.5, -port_height * 0.5),
+			Vector2(port_width * 0.39, port_height * 0.5),
+			Vector2(-port_width * 0.39, port_height * 0.5)
+		])
+		inner_points = PackedVector2Array([
+			Vector2(-port_width * 0.39, -port_height * 0.36),
+			Vector2(port_width * 0.39, -port_height * 0.36),
+			Vector2(port_width * 0.31, port_height * 0.36),
+			Vector2(-port_width * 0.31, port_height * 0.36)
+		])
+	elif shape == "mini":
+		outer_points = PackedVector2Array([
+			Vector2(-port_width * 0.5, -port_height * 0.5),
+			Vector2(port_width * 0.5, -port_height * 0.5),
+			Vector2(port_width * 0.36, port_height * 0.5),
+			Vector2(-port_width * 0.36, port_height * 0.5)
+		])
+		inner_points = _make_port_outline(port_width * 0.78, port_height * 0.68, port_height * 0.12)
+	elif shape == "wide":
+		outer_points = _make_port_outline(port_width, port_height, port_height * 0.12)
+		inner_points = _make_port_outline(port_width * 0.88, port_height * 0.72, port_height * 0.08)
 	else:
-		var outer_box := BoxMesh.new()
-		outer_box.size = Vector3(port_width, port_height, 0.008)
-		outer_mesh = outer_box
-		if trapezoid_shape:
-			# A tapered insert gives Micro/ Mini USB their characteristic
-			# narrower lower edge instead of a generic rectangular slot.
-			var points := PackedVector2Array([
-				Vector2(-port_width * 0.5, -port_height * 0.5),
-				Vector2(port_width * 0.5, -port_height * 0.5),
-				Vector2(port_width * 0.38, port_height * 0.5),
-				Vector2(-port_width * 0.38, port_height * 0.5)
-			])
-			var indices := Geometry2D.triangulate_polygon(points)
-			var surface := SurfaceTool.new()
-			surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-			for tri in range(0, indices.size(), 3):
-				var v0 := points[indices[tri]]
-				var v1 := points[indices[tri + 1]]
-				var v2 := points[indices[tri + 2]]
-				surface.add_vertex(Vector3(v0.x, v0.y, 0.0))
-				surface.add_vertex(Vector3(v1.x, v1.y, 0.0))
-				surface.add_vertex(Vector3(v2.x, v2.y, 0.0))
-			inner_mesh = surface.commit()
-		else:
-			var inner_box := BoxMesh.new()
-			inner_box.size = Vector3(port_width * 0.78, port_height * 0.58, 0.004)
-			inner_mesh = inner_box
+		outer_points = _make_port_outline(port_width, port_height, port_height * 0.5, 8)
+		inner_points = _make_port_outline(port_width * 0.86, port_height * 0.64, port_height * 0.32, 8)
 
-	outer.mesh = outer_mesh
-	outer.material_override = outer_material
-	outer.position.z = 0.001
-	outer.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	port_root.add_child(outer)
+	# The trim sits almost flush to the bottom edge, not as a raised block.
+	_add_port_detail(port_root, "ReceptacleMetalBezel", outer_points, bottom_y - 0.00035, bezel_material)
+	_add_port_detail(port_root, "DarkRecessedReceptacle", inner_points, bottom_y - 0.00065, cavity_material)
 
-	inner.mesh = inner_mesh
-	inner.material_override = inner_material
-	inner.position.z = 0.006
-	inner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	port_root.add_child(inner)
-
-	if charge_port_type == "Apple Lightning":
-		var contact := MeshInstance3D.new()
-		contact.name = "LightningContactTongue"
-		var contact_mesh := BoxMesh.new()
-		contact_mesh.size = Vector3(port_width * 0.72, 0.009, 0.003)
-		contact.mesh = contact_mesh
-		contact.material_override = contact_material
-		contact.position.z = 0.009
-		port_root.add_child(contact)
-
+	if charge_port_type == "USB Type-C":
+		var tongue_points := _make_port_outline(port_width * 0.72, port_height * 0.20, port_height * 0.10, 6)
+		_add_port_detail(port_root, "USBCTongue", tongue_points, bottom_y - 0.00095, tongue_material)
+	elif charge_port_type == "Apple Lightning":
+		for row in range(2):
+			for contact_index in range(contact_count):
+				var x := (float(contact_index) - float(contact_count - 1) * 0.5) * port_width * 0.075
+				var z := (1.0 if row == 0 else -1.0) * port_height * 0.25
+				var pad := _make_port_outline(port_width * 0.035, port_height * 0.12, port_width * 0.01, 3)
+				var shifted := PackedVector2Array()
+				for point in pad:
+					shifted.append(point + Vector2(x, z))
+				_add_port_detail(port_root, "LightningContact_%d_%d" % [row, contact_index], shifted, bottom_y - 0.00095, contact_material)
+	elif contact_count > 0:
+		var contact_width := port_width * (0.68 if contact_count > 8 else 0.055)
+		var contact_height := maxf(port_height * 0.10, 0.002)
+		for contact_index in range(contact_count):
+			var x := (float(contact_index) - float(contact_count - 1) * 0.5) * (contact_width / float(contact_count))
+			var pad := _make_port_outline(contact_width / float(contact_count) * 0.58, contact_height, contact_height * 0.18, 3)
+			var shifted := PackedVector2Array()
+			for point in pad:
+				shifted.append(point + Vector2(x, 0.0))
+			_add_port_detail(port_root, "Contact_%02d" % contact_index, shifted, bottom_y - 0.00095, contact_material)
 
 
 func _on_phone_thickness_level_changed(value: float) -> void:
