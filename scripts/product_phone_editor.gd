@@ -659,6 +659,10 @@ func _get_preview_viewport() -> SubViewport:
 	# the phone appear open when it is rotated in the 3D preview.
 	body_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	phone_body.material_override = body_material
+	# The preview contains only the phone body, so it has no useful external
+	# shadow to cast. Prevent the custom rounded perimeter from self-shadowing
+	# and producing large shadow-map artifacts as its radius changes.
+	phone_body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	preview_world.add_child(phone_body)
 
 	var key_light := DirectionalLight3D.new()
