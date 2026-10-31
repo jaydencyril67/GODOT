@@ -29,6 +29,8 @@ var phone_thickness_level := 0
 var phone_thickness_value_label: Label
 var speaker_count := 0
 var speaker_count_value_label: Label
+var charge_port_type := "None"
+var charge_port_value_label: Label
 var active_feature_panel: Control
 var right_tools_content: VBoxContainer
 
@@ -85,16 +87,22 @@ func _build_editor_ui() -> void:
 	layout.add_theme_constant_override("separation", 18)
 	page_margin.add_child(layout)
 
-	# The left tools panel is 1.5x wider; keep the preview and right panel unchanged.
+	# Balanced panel widths adapt to compact and wide viewports.
+	var compact_layout := get_viewport().get_visible_rect().size.x < 900.0
+	page_margin.add_theme_constant_override("margin_left", 10 if compact_layout else 22)
+	page_margin.add_theme_constant_override("margin_right", 10 if compact_layout else 22)
+	layout.add_theme_constant_override("separation", 8 if compact_layout else 18)
 	var left_tools_panel := _make_tools_card("PhoneEditorLeftToolsCard", true)
-	left_tools_panel.custom_minimum_size.x = 273.0 * 1.5
+	left_tools_panel.custom_minimum_size.x = 190.0 if compact_layout else 245.0
+	left_tools_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_child(left_tools_panel)
 
 	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.24))
 	preview_panel.name = "PhonePreviewCard"
 	preview_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	preview_panel.custom_minimum_size.x = 220
+	preview_panel.custom_minimum_size.x = 170 if compact_layout else 220
+	preview_panel.size_flags_stretch_ratio = 1.45
 	layout.add_child(preview_panel)
 
 	var preview_stack := VBoxContainer.new()
@@ -154,6 +162,8 @@ func _build_editor_ui() -> void:
 	_update_left_tools_navigation_buttons()
 
 	var right_tools_panel := _make_tools_card("PhoneEditorRightToolsCard", false)
+	right_tools_panel.custom_minimum_size.x = 190.0 if compact_layout else 245.0
+	right_tools_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_child(right_tools_panel)
 	right_tools_content = VBoxContainer.new()
 	right_tools_content.name = "PhoneEditorRightToolsContent"
@@ -725,7 +735,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Border Radius", "Thickness", "Speakers"]:
+	if feature_name in ["Border Radius", "Thickness", "Speakers", "Charge Port"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -738,6 +748,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_thickness_controls()
 	elif feature_name == "Speakers":
 		_show_speaker_controls()
+	elif feature_name == "Charge Port":
+		_show_charge_port_controls()
 
 
 func _style_feature_slider(meter: VSlider) -> void:
@@ -976,9 +988,9 @@ func _refresh_phone_speakers() -> void:
 	var disc_height := 0.008
 
 	var rim_material := StandardMaterial3D.new()
-	rim_material.albedo_color = Color("#626d77")
+	rim_material.albedo_color = Color("#080a0d")
 	rim_material.roughness = 0.72
-	rim_material.metallic = 0.42
+	rim_material.metallic = 0.0
 
 	var aperture_material := StandardMaterial3D.new()
 	aperture_material.albedo_color = Color("#080d12")
@@ -1017,6 +1029,159 @@ func _refresh_phone_speakers() -> void:
 		opening_root.add_child(aperture)
 
 
+func _show_charge_port_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ChargePortControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("CHARGING PORT", 19, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var description := _make_label("Choose the connector built into the phone", 12, Color("#c7eaff"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	var selected_label := _make_label("SELECTED: " + charge_port_type.to_upper(), 13, Color("#a9e3ff"))
+	selected_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(selected_label)
+	charge_port_value_label = selected_label
+
+	var port_scroll := ScrollContainer.new()
+	port_scroll.name = "ChargePortOptionsScroll"
+	port_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	port_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	port_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	port_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	active_feature_panel.add_child(port_scroll)
+
+	var options := GridContainer.new()
+	options.name = "ChargePortOptionsGrid"
+	options.columns = 1
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("v_separation", 7)
+	port_scroll.add_child(options)
+
+	var port_types := [
+		"None",
+		"USB Type-C",
+		"USB Type-A",
+		"Micro-USB (Micro-B)",
+		"Mini-USB (Mini-B)",
+		"Apple Lightning",
+		"Apple 30-pin Dock",
+		"Nokia 2mm Barrel",
+		"Nokia Pop-Port",
+		"Sony Ericsson FastPort",
+		"Samsung 20-pin",
+		"Samsung 30-pin",
+		"Motorola Proprietary",
+		"HTC ExtUSB",
+		"DC Barrel Jack"
+	]
+	for port_type in port_types:
+		var option_button := Button.new()
+		option_button.name = "ChargePort_" + port_type.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+		option_button.text = port_type
+		option_button.tooltip_text = port_type
+		option_button.custom_minimum_size = Vector2(0, 44)
+		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_research_typography(option_button, 13)
+		_style_staff_button(option_button, port_type == charge_port_type)
+		option_button.pressed.connect(_on_charge_port_selected.bind(port_type))
+		options.add_child(option_button)
+
+
+func _on_charge_port_selected(port_type: String) -> void:
+	charge_port_type = port_type
+	if is_instance_valid(charge_port_value_label):
+		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
+	_refresh_phone_charge_port()
+	_show_charge_port_controls()
+
+
+func _refresh_phone_charge_port() -> void:
+	if not is_instance_valid(phone_body):
+		return
+	for child in phone_body.get_children():
+		if child.name == "PhoneChargingPort":
+			child.queue_free()
+	if charge_port_type == "None":
+		return
+
+	var port_root := Node3D.new()
+	port_root.name = "PhoneChargingPort"
+	# The port is placed on the bottom edge, facing down (-Y), and remains
+	# within the phone's thickness instead of hanging below the chassis.
+	port_root.position = Vector3(0.0, -PHONE_SIZE.y * 0.5 + 0.001, 0.0)
+	phone_body.add_child(port_root)
+
+	var port_width := 0.30
+	var port_depth := 0.095
+	match charge_port_type:
+		"USB Type-C":
+			port_width = 0.30
+			port_depth = 0.095
+		"USB Type-A":
+			port_width = 0.40
+			port_depth = 0.13
+		"Micro-USB (Micro-B)":
+			port_width = 0.25
+			port_depth = 0.075
+		"Mini-USB (Mini-B)":
+			port_width = 0.31
+			port_depth = 0.10
+		"Apple Lightning":
+			port_width = 0.29
+			port_depth = 0.065
+		"Apple 30-pin Dock":
+			port_width = 0.58
+			port_depth = 0.10
+		"Nokia 2mm Barrel", "DC Barrel Jack":
+			port_width = 0.11
+			port_depth = 0.11
+		"Nokia Pop-Port", "Sony Ericsson FastPort", "Samsung 20-pin", "Samsung 30-pin", "Motorola Proprietary", "HTC ExtUSB":
+			port_width = 0.36
+			port_depth = 0.10
+
+	var outer_material := StandardMaterial3D.new()
+	outer_material.albedo_color = Color("#080a0d")
+	outer_material.roughness = 0.95
+	var cavity_material := StandardMaterial3D.new()
+	cavity_material.albedo_color = Color("#000000")
+	cavity_material.roughness = 1.0
+
+	var surround := MeshInstance3D.new()
+	surround.name = "ChargingPortBlackSurround"
+	var surround_mesh := BoxMesh.new()
+	surround_mesh.size = Vector3(port_width + 0.035, 0.009, port_depth + 0.035)
+	surround.mesh = surround_mesh
+	surround.material_override = outer_material
+	surround.position.y = -0.001
+	surround.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	port_root.add_child(surround)
+
+	var cavity := MeshInstance3D.new()
+	cavity.name = "ChargingPortOpening"
+	var cavity_mesh := BoxMesh.new()
+	cavity_mesh.size = Vector3(port_width, 0.004, port_depth)
+	cavity.mesh = cavity_mesh
+	cavity.material_override = cavity_material
+	cavity.position.y = -0.006
+	cavity.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	port_root.add_child(cavity)
+
+
 func _on_phone_thickness_level_changed(value: float) -> void:
 	phone_thickness_level = clampi(roundi(value), 0, 10)
 	if is_instance_valid(phone_thickness_value_label):
@@ -1030,6 +1195,7 @@ func _refresh_phone_mesh() -> void:
 	var radius := 0.32 * float(border_radius_level) / 6.0
 	phone_body.mesh = _create_rounded_phone_mesh(radius)
 	_refresh_phone_speakers()
+	_refresh_phone_charge_port()
 
 
 func _on_border_radius_level_changed(value: float) -> void:
