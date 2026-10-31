@@ -923,72 +923,90 @@ func _show_power_volume_controls() -> void:
 	active_feature_panel.name = "PowerVolumeControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_theme_constant_override("separation", 18)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("POWER & VOLUME BUTTONS", 18, Color.WHITE)
+	var title := _make_label("POWER & VOLUME", 22, Color.WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
-	var description := _make_label("Enable each physical side button, adjust its position, and set both button lengths.", 12, Color("#c7eaff"))
+	var description := _make_label("Configure the physical side keys on your phone frame.", 15, Color("#c7eaff"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
 	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y)
-	_add_side_button_controls("VOLUME BUTTON", "left", volume_button_enabled, volume_button_y)
+	_add_side_button_controls("VOLUME ROCKER", "left", volume_button_enabled, volume_button_y)
 
 	var divider := HSeparator.new()
 	active_feature_panel.add_child(divider)
-	var length_title := _make_label("BOTH BUTTON LENGTH", 13, Color("#d8f1ff"))
+	var length_title := _make_label("BUTTON LENGTH", 17, Color("#d8f1ff"))
 	length_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(length_title)
 	var length_slider := HSlider.new()
 	length_slider.name = "BothSideButtonLengthSlider"
-	length_slider.min_value = 0.35
-	length_slider.max_value = 1.0
+	length_slider.min_value = 0.55
+	length_slider.max_value = 1.35
 	length_slider.step = 0.05
 	length_slider.value = side_button_length_scale
-	length_slider.custom_minimum_size = Vector2(0, 34)
+	length_slider.custom_minimum_size = Vector2(0, 54)
 	length_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	length_slider.value_changed.connect(_on_side_button_length_changed)
 	_style_horizontal_feature_slider(length_slider)
 	active_feature_panel.add_child(length_slider)
-	side_button_length_label = _make_label("LENGTH  %d%%" % roundi(side_button_length_scale * 100.0), 14, Color("#a9e3ff"))
+	side_button_length_label = _make_label("LENGTH  %d%%" % roundi(side_button_length_scale * 100.0), 17, Color("#a9e3ff"))
 	side_button_length_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(side_button_length_label)
 
 
 func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float) -> void:
-	var section := VBoxContainer.new()
-	section.add_theme_constant_override("separation", 6)
+	var section := PanelContainer.new()
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var section_style := StyleBoxFlat.new()
+	section_style.bg_color = Color(0.20, 0.48, 0.66, 0.25)
+	section_style.border_color = Color(0.55, 0.80, 0.94, 0.55)
+	section_style.set_border_width_all(1)
+	section_style.set_corner_radius_all(12)
+	section_style.content_margin_left = 12
+	section_style.content_margin_right = 12
+	section_style.content_margin_top = 12
+	section_style.content_margin_bottom = 12
+	section.add_theme_stylebox_override("panel", section_style)
 	active_feature_panel.add_child(section)
-	var heading := _make_label(caption, 14, Color("#d8f1ff"))
-	section.add_child(heading)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 10)
+	section.add_child(content)
+	var heading := _make_label(caption, 18, Color("#ffffff"))
+	content.add_child(heading)
 	var toggle := CheckBox.new()
-	toggle.text = "Enable " + caption.to_lower()
+	toggle.text = "Enabled"
+	toggle.custom_minimum_size = Vector2(0, 44)
 	toggle.button_pressed = enabled
 	toggle.toggled.connect(_on_side_button_toggled.bind(side))
-	_apply_research_typography(toggle, 12)
-	section.add_child(toggle)
+	_apply_research_typography(toggle, 16)
+	content.add_child(toggle)
+	var position_title := _make_label("VERTICAL POSITION", 14, Color("#c7eaff"))
+	content.add_child(position_title)
 	var position_row := HBoxContainer.new()
 	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	position_row.add_theme_constant_override("separation", 8)
-	section.add_child(position_row)
+	position_row.add_theme_constant_override("separation", 12)
+	content.add_child(position_row)
 	var down := Button.new()
-	down.text = "↓"
-	down.custom_minimum_size = Vector2(42, 38)
-	_apply_research_typography(down, 20)
+	down.text = "−"
+	down.custom_minimum_size = Vector2(64, 54)
+	_apply_research_typography(down, 27)
 	_style_staff_button(down, false)
 	down.pressed.connect(_on_side_button_position_step.bind(side, -1))
 	position_row.add_child(down)
-	var position_label := _make_label("POSITION  %d%%" % roundi(position_y / 1.20 * 100.0), 12, Color("#a9e3ff"))
+	var position_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 17, Color("#a9e3ff"))
 	position_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	position_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	position_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	position_row.add_child(position_label)
 	var up := Button.new()
-	up.text = "↑"
-	up.custom_minimum_size = Vector2(42, 38)
-	_apply_research_typography(up, 20)
+	up.text = "+"
+	up.custom_minimum_size = Vector2(64, 54)
+	_apply_research_typography(up, 27)
 	_style_staff_button(up, false)
 	up.pressed.connect(_on_side_button_position_step.bind(side, 1))
 	position_row.add_child(up)
@@ -1010,16 +1028,16 @@ func _on_side_button_position_step(side: String, direction: int) -> void:
 	if side == "right":
 		power_button_y = clampf(power_button_y + float(direction) * 0.06, -1.20, 1.20)
 		if is_instance_valid(power_button_position_label):
-			power_button_position_label.text = "POSITION  %d%%" % roundi(power_button_y / 1.20 * 100.0)
+			power_button_position_label.text = "%d%%" % roundi(power_button_y / 1.20 * 100.0)
 	else:
 		volume_button_y = clampf(volume_button_y + float(direction) * 0.06, -1.20, 1.20)
 		if is_instance_valid(volume_button_position_label):
-			volume_button_position_label.text = "POSITION  %d%%" % roundi(volume_button_y / 1.20 * 100.0)
+			volume_button_position_label.text = "%d%%" % roundi(volume_button_y / 1.20 * 100.0)
 	_refresh_phone_side_buttons()
 
 
 func _on_side_button_length_changed(value: float) -> void:
-	side_button_length_scale = clampf(value, 0.35, 1.0)
+	side_button_length_scale = clampf(value, 0.55, 1.35)
 	if is_instance_valid(side_button_length_label):
 		side_button_length_label.text = "LENGTH  %d%%" % roundi(side_button_length_scale * 100.0)
 	_refresh_phone_side_buttons()
@@ -1029,10 +1047,10 @@ func _style_horizontal_feature_slider(meter: HSlider) -> void:
 	var track := StyleBoxFlat.new()
 	track.bg_color = Color("#173d59")
 	track.border_color = Color("#8fd8ff")
-	track.set_border_width_all(1)
-	track.set_corner_radius_all(6)
-	track.content_margin_top = 4
-	track.content_margin_bottom = 4
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(8)
+	track.content_margin_top = 7
+	track.content_margin_bottom = 7
 	meter.add_theme_stylebox_override("slider", track)
 	meter.focus_mode = Control.FOCUS_NONE
 	meter.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1047,31 +1065,53 @@ func _refresh_phone_side_buttons() -> void:
 	var button_root := Node3D.new()
 	button_root.name = "PhoneSideButtons"
 	phone_body.add_child(button_root)
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color("#737d88")
-	material.metallic = 0.62
-	material.roughness = 0.34
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var frame_material := StandardMaterial3D.new()
+	frame_material.albedo_color = Color("#343d48")
+	frame_material.metallic = 0.72
+	frame_material.roughness = 0.28
+	var key_material := StandardMaterial3D.new()
+	key_material.albedo_color = Color("#aeb9c5")
+	key_material.metallic = 0.82
+	key_material.roughness = 0.24
 	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
-	var button_depth := minf(current_depth * 0.68, 0.075)
-	var button_length := 0.24 * side_button_length_scale
-	var button_width := maxf(0.018, current_depth * 0.16)
+	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
+	var key_length := 0.30 * side_button_length_scale
 	if power_button_enabled:
-		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, button_length, button_width, button_depth, material)
+		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, key_length, key_radius, frame_material, key_material)
 	if volume_button_enabled:
-		_add_phone_side_button(button_root, "VolumeButton", -1.0, volume_button_y, button_length, button_width, button_depth, material)
+		# A real volume rocker is represented by two separate tactile keys.
+		var rocker_gap := 0.018
+		var half_key_length := key_length * 0.46
+		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + half_key_length * 0.52 + rocker_gap, half_key_length, key_radius, frame_material, key_material)
+		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - half_key_length * 0.52 - rocker_gap, half_key_length, key_radius, frame_material, key_material)
 
 
-func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, width: float, depth: float, material: Material) -> void:
-	var button := MeshInstance3D.new()
-	button.name = node_name
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(width, length, depth)
-	button.mesh = mesh
-	button.material_override = material
-	button.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + width * 0.30), position_y, 0.0)
-	parent.add_child(button)
+func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
+	var backing := MeshInstance3D.new()
+	backing.name = node_name + "Recess"
+	var recess_mesh := CapsuleMesh.new()
+	recess_mesh.radius = radius * 1.18
+	recess_mesh.height = length + radius * 0.7
+	recess_mesh.radial_segments = 20
+	recess_mesh.rings = 6
+	backing.mesh = recess_mesh
+	backing.material_override = frame_material
+	backing.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + radius * 0.18), position_y, 0.0)
+	backing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(backing)
 
+	var key := MeshInstance3D.new()
+	key.name = node_name
+	var key_mesh := CapsuleMesh.new()
+	key_mesh.radius = radius
+	key_mesh.height = maxf(length, radius * 2.0)
+	key_mesh.radial_segments = 24
+	key_mesh.rings = 8
+	key.mesh = key_mesh
+	key.material_override = key_material
+	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + radius * 0.42), position_y, 0.0)
+	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(key)
 
 func _show_speaker_controls() -> void:
 	if not is_instance_valid(right_tools_content):
