@@ -234,25 +234,32 @@ func _build_office() -> void:
 
 
 func _build_market() -> void:
-	var stats := HBoxContainer.new()
-	stats.add_theme_constant_override("separation", 10)
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	var compact := viewport_width < 900.0
+	var stats := GridContainer.new()
+	stats.columns = 1 if compact else 3
+	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats.add_theme_constant_override("h_separation", 10)
+	stats.add_theme_constant_override("v_separation", 8)
 	content.add_child(stats)
-	_add_stat_card_to(stats, "AVAILABLE CANDIDATES", "%d / 50" % candidates.size(), "Gradual market refresh")
-	_add_stat_card_to(stats, "OPEN POSITIONS", str(maxi(0, capacity - employees.size())), "HQ hiring capacity")
+	_add_stat_card_to(stats, "AVAILABLE CANDIDATES", "%d / 50" % candidates.size(), "New candidates arrive every 3 in-game months")
+	_add_stat_card_to(stats, "OPEN POSITIONS", str(maxi(0, capacity - employees.size())), "Based on your HQ hiring capacity")
 	_add_stat_card_to(stats, "MONTHLY PAYROLL", _money(_total_payroll()), "Current salary commitment")
 
+	var filter_panel := _card()
+	var filter_margin := _margin(filter_panel, 14, 14, 10, 10)
 	var filter_row := HBoxContainer.new()
-	filter_row.add_theme_constant_override("separation", 10)
-	content.add_child(filter_row)
-	var filter_label := _label("FILTER BY DEPARTMENT", 11, Color("#a9e3ff"))
+	filter_row.add_theme_constant_override("separation", 12)
+	filter_margin.add_child(filter_row)
+	var filter_label := _label("DEPARTMENT", 12, WHITE)
 	filter_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	filter_row.add_child(filter_label)
 	var filter := OptionButton.new()
 	filter.add_item("All Departments")
 	for department in DEPARTMENTS:
 		filter.add_item(department)
-	filter.custom_minimum_size = Vector2(190, 42)
-	filter.add_theme_font_size_override("font_size", 12)
+	filter.custom_minimum_size = Vector2(175 if compact else 220, 44)
+	filter.add_theme_font_size_override("font_size", 13)
 	_style_option_button(filter)
 	filter.item_selected.connect(func(index: int):
 		market_filter = "All Departments" if index == 0 else DEPARTMENTS[index - 1]
@@ -262,122 +269,178 @@ func _build_market() -> void:
 		if filter.get_item_text(i) == market_filter:
 			filter.select(i)
 	filter_row.add_child(filter)
+	content.add_child(filter_panel)
 
-	var candidates_grid := GridContainer.new()
-	candidates_grid.name = "Staff_Candidate_Grid"
-	candidates_grid.columns = 2 if get_viewport().get_visible_rect().size.x >= 1050.0 else 1
-	candidates_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	candidates_grid.add_theme_constant_override("h_separation", 14)
-	candidates_grid.add_theme_constant_override("v_separation", 14)
-	content.add_child(candidates_grid)
+	var list_heading := _label("AVAILABLE CANDIDATES", 16 if compact else 18, WHITE)
+	content.add_child(list_heading)
+	var candidate_list := VBoxContainer.new()
+	candidate_list.name = "Staff_Candidate_List"
+	candidate_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	candidate_list.add_theme_constant_override("separation", 9)
+	content.add_child(candidate_list)
 	var visible_count := 0
 	for candidate in candidates:
 		if market_filter != "All Departments" and str(candidate.get("department", "")) != market_filter:
 			continue
-		candidates_grid.add_child(_candidate_card(candidate))
+		candidate_list.add_child(_candidate_card(candidate))
 		visible_count += 1
 	if visible_count == 0:
-		content.add_child(_glass_card_message("NO MATCHING CANDIDATES", "Try another department filter to see more people."))
+		candidate_list.add_child(_glass_card_message("NO MATCHING CANDIDATES", "Try another department filter to see more people."))
+
 
 
 func _candidate_card(candidate: Dictionary) -> Control:
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
-	card.custom_minimum_size = Vector2(0, 250)
-	var margin := _margin(card, 16, 16, 14, 14)
+	var margin := _margin(card, 14, 14, 12, 12)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 7)
+	stack.add_theme_constant_override("separation", 9)
 	margin.add_child(stack)
 
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 8)
-	stack.add_child(top)
-	var name_stack := VBoxContainer.new()
-	name_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_stack.add_child(_label(str(candidate.get("full_name", "Candidate")), 17, WHITE))
-	name_stack.add_child(_label("%s  •  %d years  •  %s" % [candidate.get("gender", "Not specified"), int(candidate.get("age", 0)), candidate.get("department", "")], 10, MUTED))
-	top.add_child(name_stack)
-	var tier := _label(str(candidate.get("rarity", "STANDARD")).to_upper(), 10, Color("#b7eaff"))
+	var heading := HBoxContainer.new()
+	heading.add_theme_constant_override("separation", 10)
+	stack.add_child(heading)
+	var identity := VBoxContainer.new()
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.add_theme_constant_override("separation", 3)
+	heading.add_child(identity)
+	var name := _label(str(candidate.get("full_name", "Candidate")).to_upper(), 16 if compact else 19, WHITE)
+	identity.add_child(name)
+	identity.add_child(_label(str(candidate.get("position", "Specialist")).to_upper(), 11 if compact else 12, Color("#b9eaff")))
+	var tier := _label(str(candidate.get("rarity", "STANDARD")).to_upper(), 10, Color("#d5f2ff"))
 	tier.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	top.add_child(tier)
+	heading.add_child(tier)
 
-	stack.add_child(_label(str(candidate.get("position", "Specialist")).to_upper() + "  /  " + str(candidate.get("experience", 0)) + " YEARS EXPERIENCE", 11, Color("#c7eaff")))
+	var details := _label("%s  /  %d YEARS  /  %s  /  %s YEARS EXPERIENCE" % [str(candidate.get("department", "Unassigned")).to_upper(), int(candidate.get("age", 0)), str(candidate.get("gender", "Not specified")).to_upper(), str(candidate.get("experience", 0))], 10, MUTED)
+	stack.add_child(details)
 	var divider := HSeparator.new()
-	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.35))
+	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
 	stack.add_child(divider)
 
-	var stats := GridContainer.new()
-	stats.columns = 3
-	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats.add_theme_constant_override("h_separation", 6)
-	stats.add_theme_constant_override("v_separation", 6)
-	stack.add_child(stats)
-	_add_metric(stats, "ABILITY", int(candidate.get("ability", 0)))
-	_add_metric(stats, "EFFICIENCY", int(candidate.get("efficiency", 0)))
-	_add_metric(stats, "POTENTIAL", int(candidate.get("potential", 0)))
-	_add_metric(stats, "RELIABILITY", int(candidate.get("reliability", 0)))
-	_add_metric(stats, "COMMUNICATION", int(candidate.get("communication", 0)))
+	var metrics := GridContainer.new()
+	metrics.columns = 3 if compact else 5
+	metrics.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	metrics.add_theme_constant_override("h_separation", 7)
+	metrics.add_theme_constant_override("v_separation", 7)
+	stack.add_child(metrics)
+	_add_metric(metrics, "ABILITY", int(candidate.get("ability", 0)))
+	_add_metric(metrics, "EFFICIENCY", int(candidate.get("efficiency", 0)))
+	_add_metric(metrics, "POTENTIAL", int(candidate.get("potential", 0)))
+	_add_metric(metrics, "RELIABILITY", int(candidate.get("reliability", 0)))
+	_add_metric(metrics, "COMMUNICATION", int(candidate.get("communication", 0)))
 
-	stack.add_child(_label("EDUCATION  " + str(candidate.get("education", "—")) + "   •   " + str(candidate.get("personality", "—")), 10, MUTED))
-	var salary := _label("MONTHLY SALARY  " + _money(float(candidate.get("monthly_salary", 0.0))), 13, Color("#b9edff"))
-	stack.add_child(salary)
-	var hire := _button("HIRE CANDIDATE", true)
+	stack.add_child(_label("EDUCATION  " + str(candidate.get("education", "—")) + "   /   " + str(candidate.get("personality", "—")), 10, MUTED))
+	var footer := HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 12)
+	stack.add_child(footer)
+	var salary_stack := VBoxContainer.new()
+	salary_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	salary_stack.add_theme_constant_override("separation", 2)
+	salary_stack.add_child(_label("MONTHLY SALARY", 9, Color("#a9e3ff")))
+	salary_stack.add_child(_label(_money(float(candidate.get("monthly_salary", 0.0))), 17 if compact else 19, WHITE))
+	footer.add_child(salary_stack)
+	var hire := _button("HIRE", true)
+	hire.custom_minimum_size = Vector2(112 if compact else 148, 46)
 	hire.disabled = employees.size() >= capacity
-	hire.custom_minimum_size.y = 44
 	hire.pressed.connect(func(): hire_requested.emit(str(candidate.get("id", ""))))
-	stack.add_child(hire)
+	footer.add_child(hire)
 	if employees.size() >= capacity:
 		stack.add_child(_label("HEADQUARTERS CAPACITY REACHED", 10, Color("#ffd0b8")))
 	return card
 
 
 
+
 func _build_management() -> void:
-	_add_stat_card("TEAM SIZE", "%d / %d" % [employees.size(), capacity], "Employees currently on your company roster")
-	_add_stat_card("MONTHLY PAYROLL", _money(_total_payroll()), "Total salary expense at the next monthly billing")
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
+	var stats := GridContainer.new()
+	stats.columns = 1 if compact else 2
+	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats.add_theme_constant_override("h_separation", 10)
+	stats.add_theme_constant_override("v_separation", 8)
+	content.add_child(stats)
+	_add_stat_card_to(stats, "TEAM SIZE", "%d / %d" % [employees.size(), capacity], "Employees on your company roster")
+	_add_stat_card_to(stats, "MONTHLY PAYROLL", _money(_total_payroll()), "Total salary expense at monthly billing")
+	content.add_child(_label("YOUR EMPLOYEES", 17 if compact else 19, WHITE))
+	var employee_list := VBoxContainer.new()
+	employee_list.name = "Staff_Employee_List"
+	employee_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	employee_list.add_theme_constant_override("separation", 9)
+	content.add_child(employee_list)
 	if employees.is_empty():
-		content.add_child(_label("Your company has no employees yet. Visit the Staff Market to recruit your first team members.", 14, MUTED))
+		employee_list.add_child(_glass_card_message("YOUR TEAM IS EMPTY", "Visit the Staff Market to recruit your first team members."))
+	return
 	for employee in employees:
-		content.add_child(_employee_card(employee))
+		employee_list.add_child(_employee_card(employee))
+
 
 
 func _employee_card(employee: Dictionary) -> Control:
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
-	var margin := _margin(card, 16, 16, 14, 14)
+	var margin := _margin(card, 14, 14, 12, 12)
 	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 7)
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 9)
 	margin.add_child(stack)
-	stack.add_child(_label(str(employee.get("full_name", "Employee")), 17, WHITE))
-	stack.add_child(_label("%s  •  %s  •  %d years old" % [employee.get("position", "Staff"), employee.get("department", "Unassigned"), int(employee.get("age", 0))], 11, MUTED))
-	var stats := GridContainer.new()
-	stats.columns = 3
-	stats.add_theme_constant_override("h_separation", 8)
-	stats.add_theme_constant_override("v_separation", 6)
-	stack.add_child(stats)
-	_add_metric(stats, "ABILITY", int(employee.get("ability", 0)))
-	_add_metric(stats, "EFFICIENCY", int(employee.get("efficiency", 0)))
-	_add_metric(stats, "EXPERIENCE", int(employee.get("experience", 0)))
-	_add_metric(stats, "RELIABILITY", int(employee.get("reliability", 0)))
-	_add_metric(stats, "COMMUNICATION", int(employee.get("communication", 0)))
-	_add_metric(stats, "POTENTIAL", int(employee.get("potential", 0)))
-	stack.add_child(_label("MONTHLY SALARY  " + _money(float(employee.get("monthly_salary", 0.0))), 12, Color("#b9edff")))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	stack.add_child(row)
+
+	var heading := HBoxContainer.new()
+	heading.add_theme_constant_override("separation", 10)
+	stack.add_child(heading)
+	var identity := VBoxContainer.new()
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.add_theme_constant_override("separation", 3)
+	heading.add_child(identity)
+	identity.add_child(_label(str(employee.get("full_name", "Employee")).to_upper(), 16 if compact else 19, WHITE))
+	identity.add_child(_label(str(employee.get("position", "Staff")).to_upper(), 11, Color("#b9eaff")))
+	var department_tag := _label(str(employee.get("department", "UNASSIGNED")).to_upper(), 10, Color("#d5f2ff"))
+	department_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	heading.add_child(department_tag)
+
+	var divider := HSeparator.new()
+	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
+	stack.add_child(divider)
+	stack.add_child(_label("%d YEARS OLD  /  %s YEARS EXPERIENCE" % [int(employee.get("age", 0)), str(employee.get("experience", 0))], 10, MUTED))
+
+	var metrics := GridContainer.new()
+	metrics.columns = 3 if compact else 6
+	metrics.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	metrics.add_theme_constant_override("h_separation", 7)
+	metrics.add_theme_constant_override("v_separation", 7)
+	stack.add_child(metrics)
+	_add_metric(metrics, "ABILITY", int(employee.get("ability", 0)))
+	_add_metric(metrics, "EFFICIENCY", int(employee.get("efficiency", 0)))
+	_add_metric(metrics, "EXPERIENCE", int(employee.get("experience", 0)))
+	_add_metric(metrics, "RELIABILITY", int(employee.get("reliability", 0)))
+	_add_metric(metrics, "COMMUNICATION", int(employee.get("communication", 0)))
+	_add_metric(metrics, "POTENTIAL", int(employee.get("potential", 0)))
+
+	var footer := HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 10)
+	stack.add_child(footer)
+	var salary_stack := VBoxContainer.new()
+	salary_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	salary_stack.add_theme_constant_override("separation", 2)
+	salary_stack.add_child(_label("MONTHLY SALARY", 9, Color("#a9e3ff")))
+	salary_stack.add_child(_label(_money(float(employee.get("monthly_salary", 0.0))), 17 if compact else 19, WHITE))
+	footer.add_child(salary_stack)
 	var assignment := OptionButton.new()
 	for department in DEPARTMENTS:
 		assignment.add_item(department)
 	for i in range(assignment.item_count):
 		if assignment.get_item_text(i) == str(employee.get("department", "")):
 			assignment.select(i)
-	assignment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	assignment.custom_minimum_size = Vector2(150 if compact else 190, 44)
 	_style_option_button(assignment)
 	assignment.item_selected.connect(func(index: int): assignment_requested.emit(str(employee.get("id", "")), DEPARTMENTS[index]))
-	row.add_child(assignment)
+	footer.add_child(assignment)
 	var dismiss := _button("DISMISS", false)
+	dismiss.custom_minimum_size = Vector2(92 if compact else 112, 44)
 	dismiss.pressed.connect(func(): dismiss_requested.emit(str(employee.get("id", ""))))
-	row.add_child(dismiss)
+	footer.add_child(dismiss)
 	return card
+
 
 
 
