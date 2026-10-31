@@ -202,6 +202,19 @@ func _save_career() -> bool:
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
+func _dispose_phone_editor() -> void:
+	if not is_instance_valid(phone_editor):
+		phone_editor = null
+		return
+	# CanvasLayers render independently of their Node3D parent, so hide the
+	# editor's interface before deferred deletion to prevent a transition flash.
+	for child in phone_editor.get_children():
+		if child is CanvasLayer:
+			child.hide()
+	phone_editor.queue_free()
+	phone_editor = null
+
+
 func _clear_world() -> void:
 	if is_instance_valid(world_root):
 		world_root.queue_free()
@@ -1590,8 +1603,7 @@ func _return_home_from_research() -> void:
 
 
 func _show_research_phone() -> void:
-	if is_instance_valid(phone_editor):
-		phone_editor.queue_free()
+	_dispose_phone_editor()
 	phone_editor = PhoneEditorScene.instantiate() as Node3D
 	phone_editor.name = "Phone_Research_Screen"
 	phone_editor.set("research_mode", true)
@@ -1605,9 +1617,7 @@ func _show_research_phone() -> void:
 
 
 func _return_from_research_phone() -> void:
-	if is_instance_valid(phone_editor):
-		phone_editor.queue_free()
-	phone_editor = null
+	_dispose_phone_editor()
 	current_screen = "research"
 	if is_instance_valid(ui_layer):
 		ui_layer.show()
@@ -1697,8 +1707,7 @@ func _on_create_category_pressed(category: String) -> void:
 
 
 func _show_phone_editor() -> void:
-	if is_instance_valid(phone_editor):
-		phone_editor.queue_free()
+	_dispose_phone_editor()
 	phone_editor = PhoneEditorScene.instantiate() as Node3D
 	phone_editor.name = "Phone_Product_Editor"
 	phone_editor.connect("back_requested", Callable(self, "_return_from_phone_editor"))
@@ -1709,9 +1718,7 @@ func _show_phone_editor() -> void:
 
 
 func _return_from_phone_editor() -> void:
-	if is_instance_valid(phone_editor):
-		phone_editor.queue_free()
-	phone_editor = null
+	_dispose_phone_editor()
 	current_screen = "create"
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.show()
