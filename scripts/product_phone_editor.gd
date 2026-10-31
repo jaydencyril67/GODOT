@@ -12,9 +12,8 @@ var phone_body: MeshInstance3D
 var preview_camera: Camera3D
 var preview_container: SubViewportContainer
 var research_mode := false
-var research_selected_tab := "Design"
-var research_tab_status: Label
-var research_content_panel: PanelContainer
+var research_content_panel: Control
+var research_balance_label: Label
 var research_levels: Dictionary = {}
 var research_balance := 0.0
 var research_item_cards: Dictionary = {}
@@ -101,6 +100,7 @@ func _build_editor_ui() -> void:
 
 
 func _build_research_ui() -> void:
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneResearchInterface"
 	add_child(layer)
@@ -127,136 +127,83 @@ func _build_research_ui() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
-	var header := HBoxContainer.new()
-	header.name = "PhoneResearchHeader"
-	header.anchor_left = 0.02
-	header.anchor_top = 0.025
-	header.anchor_right = 0.98
-	header.anchor_bottom = 0.12
-	header.add_theme_constant_override("separation", 14)
-	root.add_child(header)
+	var scroll := ScrollContainer.new()
+	scroll.name = "PhoneResearchPageScroll"
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.follow_focus = false
+	scroll.scroll_deadzone = 8
+	scroll.clip_contents = true
+	root.add_child(scroll)
+
+	var outer := MarginContainer.new()
+	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	outer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer.add_theme_constant_override("margin_left", 18 if compact else 42)
+	outer.add_theme_constant_override("margin_right", 18 if compact else 42)
+	outer.add_theme_constant_override("margin_top", 18 if compact else 28)
+	outer.add_theme_constant_override("margin_bottom", 24)
+	scroll.add_child(outer)
+
+	var page := VBoxContainer.new()
+	page.name = "PhoneResearchPageContent"
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 15 if compact else 18)
+	outer.add_child(page)
+
+	var header := VBoxContainer.new()
+	header.add_theme_constant_override("separation", 5)
+	page.add_child(header)
+	header.add_child(_make_label("DIGITALWORLD  /  RESEARCH  /  PHONE", 11 if compact else 13, Color("#a9e3ff")))
+
+	var hero_row := HBoxContainer.new()
+	hero_row.name = "PhoneResearchHeroRow"
+	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero_row.add_theme_constant_override("separation", 12)
+	header.add_child(hero_row)
+
+	var heading := VBoxContainer.new()
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero_row.add_child(heading)
+	heading.add_child(_make_label("PHONE DESIGN RESEARCH", 27 if compact else 36, Color.WHITE))
+	research_balance_label = _make_label("AVAILABLE BALANCE  " + _format_research_money(research_balance), 11 if compact else 12, Color("#c7eaff"))
+	heading.add_child(research_balance_label)
 
 	var back_button := Button.new()
-	back_button.text = "‹  BACK TO RESEARCH"
-	back_button.custom_minimum_size = Vector2(190, 48)
-	back_button.add_theme_font_size_override("font_size", 14)
-	_style_research_button(back_button, false)
+	back_button.text = "BACK"
+	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
+	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	back_button.add_theme_font_size_override("font_size", 13 if compact else 14)
+	_style_staff_back_button(back_button)
 	back_button.pressed.connect(_on_back_pressed)
-	header.add_child(back_button)
+	hero_row.add_child(back_button)
 
-	var title := _make_label("PHONE RESEARCH", 24, Color.WHITE)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	header.add_child(title)
-
-	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.18))
-	preview_panel.name = "ResearchPhonePreviewPanel"
-	preview_panel.anchor_left = 0.13
-	preview_panel.anchor_top = 0.14
-	preview_panel.anchor_right = 0.87
-	preview_panel.anchor_bottom = 0.76
-	root.add_child(preview_panel)
-
-	preview_container = SubViewportContainer.new()
-	preview_container.name = "ResearchPhonePreview"
-	preview_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	preview_container.stretch = true
-	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	preview_container.gui_input.connect(_on_preview_gui_input)
-	preview_container.add_child(_get_preview_viewport())
-	preview_panel.add_child(preview_container)
-
-	research_tab_status = _make_label("DESIGN RESEARCH", 15, Color("#d8efff"))
-	research_tab_status.anchor_left = 0.04
-	research_tab_status.anchor_top = 0.765
-	research_tab_status.anchor_right = 0.96
-	research_tab_status.anchor_bottom = 0.81
-	research_tab_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(research_tab_status)
-
-	var bottom_panel := _make_glass_panel(Color(0.035, 0.12, 0.20, 0.90))
-	bottom_panel.name = "PhoneResearchBottomNavigation"
-	bottom_panel.anchor_left = 0.015
-	bottom_panel.anchor_top = 0.83
-	bottom_panel.anchor_right = 0.985
-	bottom_panel.anchor_bottom = 0.98
-	root.add_child(bottom_panel)
-
-	var tabs := HBoxContainer.new()
-	tabs.name = "PhoneResearchTabs"
-	tabs.add_theme_constant_override("separation", 8)
-	bottom_panel.add_child(tabs)
-	for tab_name in ["Design", "Technology", "Packaging", "Extras"]:
-		var tab_button := Button.new()
-		tab_button.text = tab_name
-		tab_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tab_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		tab_button.custom_minimum_size = Vector2(0, 54)
-		tab_button.add_theme_font_size_override("font_size", 15)
-		_style_research_button(tab_button, tab_name == research_selected_tab)
-		tab_button.pressed.connect(_on_research_tab_pressed.bind(tab_name, tabs))
-		tabs.add_child(tab_button)
-
-	_build_design_research_content(root)
-	preview_panel.visible = false
-	research_tab_status.visible = false
+	var research_content := VBoxContainer.new()
+	research_content.name = "PhoneDesignResearchContent"
+	research_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	research_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	research_content.add_theme_constant_override("separation", 12)
+	page.add_child(research_content)
+	_build_design_research_content(research_content)
 
 
 func set_research_data(levels: Dictionary, balance: float) -> void:
 	research_levels = levels.duplicate(true)
 	research_balance = balance
+	if is_instance_valid(research_balance_label):
+		research_balance_label.text = "AVAILABLE BALANCE  " + _format_research_money(research_balance)
 	if is_instance_valid(research_content_panel):
 		_refresh_design_research_cards()
 
 
-func _on_research_tab_pressed(tab_name: String, tabs: HBoxContainer) -> void:
-	research_selected_tab = tab_name
-	if is_instance_valid(research_tab_status):
-		research_tab_status.text = tab_name.to_upper() + " RESEARCH"
-	for child in tabs.get_children():
-		if child is Button:
-			_style_research_button(child as Button, (child as Button).text == tab_name)
-	if is_instance_valid(research_content_panel) and is_instance_valid(preview_container):
-		var show_design := tab_name == "Design"
-		research_content_panel.visible = show_design
-		preview_container.get_parent().visible = not show_design
-		if is_instance_valid(research_tab_status):
-			research_tab_status.visible = not show_design
-
-
-func _build_design_research_content(root: Control) -> void:
-	research_content_panel = _make_glass_panel(Color(0.035, 0.14, 0.23, 0.88))
-	research_content_panel.name = "PhoneDesignResearchContent"
-	research_content_panel.anchor_left = 0.035
-	research_content_panel.anchor_top = 0.14
-	research_content_panel.anchor_right = 0.965
-	research_content_panel.anchor_bottom = 0.81
-	root.add_child(research_content_panel)
-
-	var scroll := ScrollContainer.new()
-	scroll.name = "DesignResearchScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	research_content_panel.add_child(scroll)
-
-	var content := VBoxContainer.new()
-	content.name = "DesignResearchList"
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
-	scroll.add_child(content)
-	content.add_child(_make_label("EXTERIOR DESIGN RESEARCH", 19, Color.WHITE))
-	content.add_child(_make_label("Develop the phone's visible shape, screen and outer materials. Internal hardware and connectivity are researched elsewhere.", 13, Color("#c7e2f3")))
-
-	var grid := GridContainer.new()
-	grid.name = "ExteriorDesignResearchGrid"
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	content.add_child(grid)
-
+func _build_design_research_content(parent: Control) -> void:
+	research_content_panel = parent
+	research_item_cards.clear()
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
+	var card_width := _research_card_width(compact)
 	var items := [
 		{"id":"screen_size", "name":"Screen size", "group":"SCREEN TECH", "detail":"Research larger or more compact display dimensions."},
 		{"id":"phone_thickness", "name":"Phone thickness", "group":"SCREEN TECH", "detail":"Research slimmer or thicker body proportions."},
@@ -265,38 +212,81 @@ func _build_design_research_content(root: Control) -> void:
 		{"id":"body_finish", "name":"Body finish", "group":"EXTERIOR BUILD", "detail":"Research textures, coatings and exterior finishes."},
 		{"id":"camera_module", "name":"Camera-module design", "group":"EXTERIOR BUILD", "detail":"Research the shape and arrangement of the visible camera housing."}
 	]
-	for item in items:
-		var card := _make_glass_panel(Color(0.20, 0.48, 0.66, 0.28))
-		card.name = str(item["id"]) + "_ResearchCard"
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.custom_minimum_size = Vector2(250, 132)
-		grid.add_child(card)
 
-		var margin := MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 12)
-		margin.add_theme_constant_override("margin_right", 12)
-		margin.add_theme_constant_override("margin_top", 10)
-		margin.add_theme_constant_override("margin_bottom", 10)
-		card.add_child(margin)
-		var stack := VBoxContainer.new()
-		stack.add_theme_constant_override("separation", 5)
-		margin.add_child(stack)
-		stack.add_child(_make_label(str(item["group"]), 10, Color("#a9e3ff")))
-		stack.add_child(_make_label(str(item["name"]), 16, Color.WHITE))
-		stack.add_child(_make_label(str(item["detail"]), 11, Color("#c7e2f3")))
-		var level_label := _make_label("CURRENT LEVEL: 1", 13, Color("#d8efff"))
-		level_label.name = "ResearchLevel"
-		stack.add_child(level_label)
-		var upgrade_button := Button.new()
-		upgrade_button.name = "UpgradeResearch"
-		upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		upgrade_button.custom_minimum_size.y = 36
-		upgrade_button.add_theme_font_size_override("font_size", 12)
-		_style_research_button(upgrade_button, true)
-		upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind(str(item["id"])))
-		stack.add_child(upgrade_button)
-		research_item_cards[str(item["id"])] = {"level":level_label, "button":upgrade_button}
+	for group_name in ["SCREEN TECH", "EXTERIOR BUILD"]:
+		var section := VBoxContainer.new()
+		section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		section.add_theme_constant_override("separation", 6)
+		parent.add_child(section)
+		section.add_child(_make_label(group_name, 16 if compact else 18, Color("#b9eaff")))
+
+		var horizontal_scroll := ScrollContainer.new()
+		horizontal_scroll.name = group_name.replace(" ", "") + "_ResearchHorizontalRow"
+		horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		horizontal_scroll.custom_minimum_size.y = 246
+		horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		horizontal_scroll.follow_focus = false
+		horizontal_scroll.clip_contents = true
+		section.add_child(horizontal_scroll)
+
+		var card_row := HBoxContainer.new()
+		card_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		card_row.add_theme_constant_override("separation", 10)
+		horizontal_scroll.add_child(card_row)
+
+		for item in items:
+			if str(item["group"]) != group_name:
+				continue
+			var card := _make_staff_style_card()
+			card.name = str(item["id"]) + "_ResearchCard"
+			card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			card.custom_minimum_size = Vector2(card_width, 232)
+			card_row.add_child(card)
+
+			var margin := MarginContainer.new()
+			margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			margin.add_theme_constant_override("margin_left", 10)
+			margin.add_theme_constant_override("margin_right", 10)
+			margin.add_theme_constant_override("margin_top", 9)
+			margin.add_theme_constant_override("margin_bottom", 9)
+			card.add_child(margin)
+
+			var stack := VBoxContainer.new()
+			stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			stack.add_theme_constant_override("separation", 6)
+			margin.add_child(stack)
+			stack.add_child(_make_label(str(item["group"]), 9, Color("#a9e3ff")))
+			stack.add_child(_make_label(str(item["name"]).to_upper(), 16 if compact else 18, Color.WHITE))
+			var detail := _make_label(str(item["detail"]), 11, Color("#c7e2f3"))
+		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			stack.add_child(detail)
+
+			var level_label := _make_label("CURRENT LEVEL: 1 / 20", 12, Color("#d8efff"))
+			level_label.name = "ResearchLevel"
+			stack.add_child(level_label)
+
+			var upgrade_button := Button.new()
+			upgrade_button.name = "UpgradeResearch"
+			upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			upgrade_button.custom_minimum_size.y = 42
+			upgrade_button.add_theme_font_size_override("font_size", 12)
+			_style_staff_button(upgrade_button, true)
+			upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind(str(item["id"])))
+			stack.add_child(upgrade_button)
+			research_item_cards[str(item["id"])] = {"level":level_label, "button":upgrade_button}
+
 	_refresh_design_research_cards()
+
+
+func _research_card_width(compact: bool) -> float:
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	var page_margins := 36.0 if compact else 84.0
+	return maxf(170.0, (viewport_width - page_margins - 30.0) / 3.5)
 
 
 func _refresh_design_research_cards() -> void:
@@ -329,25 +319,83 @@ func _on_design_research_upgrade_pressed(research_id: String) -> void:
 	research_upgrade_requested.emit(research_id)
 
 
-func _style_research_button(button: Button, selected: bool) -> void:
-	for state in ["normal", "hover", "pressed", "focus"]:
+func _make_staff_style_card() -> PanelContainer:
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.32, 0.66, 0.88, 0.27)
+	style.border_color = Color(0.86, 0.97, 1.0, 0.92)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(18)
+	style.shadow_color = Color(0.0, 0.16, 0.34, 0.42)
+	style.shadow_size = 18
+	style.shadow_offset = Vector2(0, 5)
+	style.anti_aliasing = true
+	card.add_theme_stylebox_override("panel", style)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var glass_gradient := Gradient.new()
+	glass_gradient.set_color(0, Color(0.92, 0.98, 1.0, 0.30))
+	glass_gradient.set_color(1, Color(0.76, 0.91, 1.0, 0.0))
+	var glass_texture := GradientTexture2D.new()
+	glass_texture.gradient = glass_gradient
+	glass_texture.fill_from = Vector2(0.0, 0.0)
+	glass_texture.fill_to = Vector2(0.0, 1.0)
+	var reflection := TextureRect.new()
+	reflection.name = "Glass_Reflection"
+	reflection.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	reflection.offset_bottom = 70.0
+	reflection.texture = glass_texture
+	reflection.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	reflection.stretch_mode = TextureRect.STRETCH_SCALE
+	reflection.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(reflection)
+	return card
+
+
+func _style_staff_button(button: Button, primary: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.16, 0.58, 0.86, 0.56) if selected else Color(0.60, 0.84, 0.96, 0.20)
+		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
 		if state == "hover":
-			style.bg_color = Color(0.30, 0.72, 0.96, 0.48)
+			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
 		elif state == "pressed":
-			style.bg_color = Color(0.12, 0.42, 0.72, 0.62)
-		style.border_color = Color(0.91, 0.98, 1.0, 0.92)
+			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
+		elif state == "disabled":
+			style.bg_color = Color(0.35, 0.49, 0.59, 0.20)
+		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(12)
-		style.content_margin_left = 10
-		style.content_margin_right = 10
-		style.content_margin_top = 8
-		style.content_margin_bottom = 8
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
 		button.add_theme_stylebox_override(state, style)
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color("#a9c9dc"))
+
+
+func _style_staff_back_button(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.72, 0.89, 0.98, 0.14)
+		if state == "hover":
+			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+		elif state == "pressed":
+			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
+		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_focus_color", Color.WHITE)
 
 
 func _make_tools_card(card_name: String, include_controls: bool) -> PanelContainer:
