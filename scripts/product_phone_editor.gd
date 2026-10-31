@@ -550,6 +550,9 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	tools_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var vertical_bar := tools_scroll.get_v_scroll_bar()
+	vertical_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	vertical_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tools_panel.add_child(tools_scroll)
 
 	var tools_content := VBoxContainer.new()
@@ -580,7 +583,6 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 		for feature_name in page_feature_lists[page_index]:
 			_add_tool_button(page_grid, str(feature_name))
 
-	tools_scroll.gui_input.connect(_on_left_tools_gui_input)
 	left_tools_page = 0
 	return tools_panel
 
@@ -664,6 +666,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	button.text = ""
 	button.tooltip_text = feature_name
 	button.mouse_filter = Control.MOUSE_FILTER_PASS
+	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 64)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -673,8 +676,8 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
 		if state == "hover":
 			style.bg_color = Color(0.76, 0.92, 1.0, 0.38)
-		elif state == "pressed":
-			style.bg_color = Color(0.35, 0.68, 0.88, 0.48)
+		elif state == "pressed" or state == "focus":
+			style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
 		style.border_color = Color(0.91, 0.98, 1.0, 0.92)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
@@ -696,20 +699,6 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	button.add_child(feature_label)
 	# Feature selection remains display-only until the phone editor actions are implemented.
 	parent.add_child(button)
-
-
-func _on_left_tools_gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and event.pressed:
-		left_tools_swipe_distance = 0.0
-	elif event is InputEventScreenDrag:
-		left_tools_swipe_distance += (event as InputEventScreenDrag).relative.x
-		if absf(left_tools_swipe_distance) >= 70.0:
-			# Finger swipes left to advance and right to return to the previous page.
-			if left_tools_swipe_distance < 0.0:
-				_set_left_tools_page(left_tools_page + 1)
-			else:
-				_set_left_tools_page(left_tools_page - 1)
-			left_tools_swipe_distance = 0.0
 
 
 func _on_left_tools_previous_pressed() -> void:
