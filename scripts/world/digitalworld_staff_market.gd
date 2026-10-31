@@ -42,63 +42,79 @@ func _build() -> void:
 	for child in get_children():
 		child.queue_free()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var background := ColorRect.new()
-	background.color = BG
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.x < 900.0
+
+	var background := TextureRect.new()
+	background.name = "DigitalWorld_Shared_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture = load("res://assets/digitalworld-landing.png")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-	var glow := ColorRect.new()
-	glow.color = Color(0.035, 0.32, 0.52, 0.18)
-	glow.anchor_left = 0.0
-	glow.anchor_top = 0.0
-	glow.anchor_right = 1.0
-	glow.anchor_bottom = 0.36
-	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(glow)
+
+	var shade := ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.075, 0.12, 0.64)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(shade)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "StaffSceneScroll"
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.follow_focus = true
+	add_child(scroll)
 
 	var outer := MarginContainer.new()
-	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	outer.add_theme_constant_override("margin_left", 16)
-	outer.add_theme_constant_override("margin_right", 16)
-	outer.add_theme_constant_override("margin_top", 12)
-	outer.add_theme_constant_override("margin_bottom", 94)
-	add_child(outer)
+	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	outer.add_theme_constant_override("margin_left", 18 if compact else 42)
+	outer.add_theme_constant_override("margin_right", 18 if compact else 42)
+	outer.add_theme_constant_override("margin_top", 18 if compact else 28)
+	outer.add_theme_constant_override("margin_bottom", 24)
+	scroll.add_child(outer)
+
 	var page := VBoxContainer.new()
+	page.name = "StaffSceneContent"
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_theme_constant_override("separation", 12)
+	page.add_theme_constant_override("separation", 15 if compact else 18)
 	outer.add_child(page)
 
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 8)
+	var header := VBoxContainer.new()
+	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
+	header.add_child(_label("DIGITALWORLD  /  OFFICE", 11 if compact else 13, Color("#a9e3ff")))
+
+	var hero_row := HBoxContainer.new()
+	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero_row.add_theme_constant_override("separation", 12)
+	header.add_child(hero_row)
 	var heading := VBoxContainer.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(heading)
-	var eyebrow := _label(company_name.to_upper() + "  /  OFFICE", 10, Color("#83d5ff"))
-	heading.add_child(eyebrow)
+	hero_row.add_child(heading)
 	var title_text := "STAFF MARKET" if mode == "market" else ("STAFF MANAGEMENT" if mode == "management" else "OFFICE")
-	heading.add_child(_label(title_text, 25, WHITE))
-	heading.add_child(_label("AVAILABLE BALANCE  " + _money(company_balance), 11, Color("#a8e8ff")))
+	var title := _label(title_text, 27 if compact else 36, WHITE)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(title)
+	heading.add_child(_label(company_name.to_upper() + "  /  AVAILABLE BALANCE  " + _money(company_balance), 11 if compact else 12, Color("#c7eaff")))
 	var back := _button("BACK TO HQ", false)
-	back.custom_minimum_size = Vector2(124, 44)
+	back.custom_minimum_size = Vector2(112 if compact else 126, 44 if compact else 50)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back.pressed.connect(func(): back_requested.emit())
-	header.add_child(back)
+	hero_row.add_child(back)
 
 	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 7)
+	tabs.add_theme_constant_override("separation", 10)
 	page.add_child(tabs)
 	_add_tab(tabs, "STAFF MARKET", mode == "market", "market")
 	_add_tab(tabs, "MY STAFF", mode == "management", "management")
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	page.add_child(scroll)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 10)
-	scroll.add_child(content)
+	content.add_theme_constant_override("separation", 12)
+	page.add_child(content)
 
 	if mode == "office":
 		_build_office()
@@ -106,7 +122,6 @@ func _build() -> void:
 		_build_market()
 	else:
 		_build_management()
-
 
 func _add_tab(parent: HBoxContainer, caption: String, active: bool, target: String) -> void:
 	var button := _button(caption, active)
