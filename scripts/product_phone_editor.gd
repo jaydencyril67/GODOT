@@ -636,7 +636,7 @@ func _get_preview_viewport() -> SubViewport:
 	environment.background_color = Color(0.035, 0.13, 0.22, 0.0)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("#c7e8ff")
-	environment.ambient_light_energy = 0.65
+	environment.ambient_light_energy = 0.24
 	environment_node.environment = environment
 	viewport.add_child(environment_node)
 
@@ -648,9 +648,8 @@ func _get_preview_viewport() -> SubViewport:
 	phone_body.name = "Plain_Phone_Body"
 	phone_body.mesh = _create_rounded_phone_mesh(0.0)
 	var body_material := StandardMaterial3D.new()
-	# Use a bright silver-white finish: clearly white, with a cool silver
-	# undertone. Keep reflections soft so the face does not wash out and the
-	# rounded edges remain visible in the preview.
+	# Use a restrained silver-white base. Preview lighting is balanced below
+	# so the rendered face keeps this colour instead of clipping to pure white.
 	body_material.albedo_color = Color("#b8c0c8")
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
@@ -671,7 +670,7 @@ func _get_preview_viewport() -> SubViewport:
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
 	# Keep the key light soft enough to avoid a sharp reflected streak
 	# across the silver-white front face.
-	key_light.light_energy = 1.0
+	key_light.light_energy = 0.62
 	key_light.shadow_enabled = true
 	preview_world.add_child(key_light)
 
@@ -680,7 +679,7 @@ func _get_preview_viewport() -> SubViewport:
 	fill_light.light_color = Color("#83cfff")
 	# A restrained fill preserves edge definition without adding a
 	# second bright reflection across the body.
-	fill_light.light_energy = 0.38
+	fill_light.light_energy = 0.12
 	fill_light.omni_range = 8.0
 	preview_world.add_child(fill_light)
 
