@@ -19,7 +19,6 @@ var research_balance := 0.0
 var research_item_cards: Dictionary = {}
 var research_view := "HARDWARE"
 var left_tools_page := 0
-var left_tools_swipe_distance := 0.0
 var left_tools_previous_button: Button
 var left_tools_next_button: Button
 var left_tools_scroll: ScrollContainer
