@@ -101,6 +101,15 @@ func _build_editor_ui() -> void:
 	layout.add_child(_make_tools_card("PhoneEditorRightToolsCard", false))
 
 
+func _apply_research_typography(control: Control, font_size: int) -> void:
+	# Keep the existing STIX variable font and strengthen its weight consistently.
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 0.7
+	control.add_theme_font_override("font", stix_font)
+	control.add_theme_font_size_override("font_size", font_size)
+
+
 func _build_research_ui() -> void:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var layer := CanvasLayer.new()
@@ -171,7 +180,7 @@ func _build_research_ui() -> void:
 	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	back_button.add_theme_font_size_override("font_size", 13 if compact else 14)
+	_apply_research_typography(back_button, 15 if compact else 16)
 	_style_staff_back_button(back_button)
 	back_button.pressed.connect(_on_back_pressed)
 	hero_row.add_child(back_button)
@@ -330,7 +339,7 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 		dummy_button.text = "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		dummy_button.add_theme_font_size_override("font_size", 9 if short_screen else 10)
+		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
 		# Intentionally no pressed signal: these are placeholder buttons for now.
 		content.add_child(dummy_button)
@@ -382,7 +391,7 @@ func _build_research_view_selector(parent: Control, compact: bool) -> void:
 		var button := Button.new()
 		button.text = view_name
 		button.custom_minimum_size = Vector2(112 if compact else 148, 40 if compact else 46)
-		button.add_theme_font_size_override("font_size", 10 if compact else 12)
+		_apply_research_typography(button, 12 if compact else 14)
 		_style_staff_button(button, research_view == view_name)
 		button.pressed.connect(_on_research_view_selected.bind(view_name))
 		selector.add_child(button)
@@ -667,7 +676,7 @@ func _add_tool_button(parent: GridContainer, caption: String, callback: Callable
 func _make_label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = caption
-	label.add_theme_font_size_override("font_size", font_size)
+	_apply_research_typography(label, font_size + 2)
 	label.add_theme_color_override("font_color", color)
 	return label
 
