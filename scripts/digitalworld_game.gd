@@ -33,6 +33,8 @@ var home_balance_label: Label
 var home_time_button: Button
 var staff_ui_layer: CanvasLayer
 var staff_screen
+var staff_market_screen
+var staff_management_screen
 var game_date_unix := 1262304000.0
 var game_clock_paused := false
 var last_saved_game_day := -1
@@ -1229,6 +1231,9 @@ func _update_headquarters_loading(message: String, progress: float) -> void:
 
 
 func _finish_headquarters_loading() -> void:
+	# Prepare both staff pages while the HQ loading screen is still active.
+	# HQ buttons will only reveal these already-built controls.
+	_prepare_staff_scenes()
 	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
@@ -1593,10 +1598,15 @@ func _process_staff_market_refresh(current_day: int) -> void:
 
 
 func _refresh_staff_screen_data() -> void:
-	if not is_instance_valid(staff_screen):
+	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
 		return
-	var mode := "office" if current_screen == "office" else ("market" if current_screen == "staff_market" else "management")
-	staff_screen.open(mode, career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	var candidates: Array = career.get("staff_candidates", [])
+	var employees: Array = career.get("staff_employees", [])
+	var capacity := HeadquartersPreviewScript.get_staff_capacity(upgrade_level)
+	var business_name := str(career.get("company_name", "YOUR COMPANY"))
+	var balance := float(career.get("balance", 0.0))
+	staff_market_screen.open("market", candidates, employees, capacity, business_name, balance)
+	staff_management_screen.open("management", candidates, employees, capacity, business_name, balance)
 
 
 func _update_staff_office_balance() -> void:
@@ -1608,35 +1618,58 @@ func _show_office_hub() -> void:
 	_show_headquarters_preview()
 
 
+func _prepare_staff_scenes() -> void:
+	if is_instance_valid(staff_market_screen) and is_instance_valid(staff_management_screen):
+		return
+	staff_ui_layer = CanvasLayer.new()
+	staff_ui_layer.name = "DigitalWorld_Prepared_Staff_Layer"
+	staff_ui_layer.layer = 40
+	add_child(staff_ui_layer)
+
+	staff_market_screen = StaffMarketScene.instantiate()
+	staff_market_screen.name = "Prepared_Staff_Market"
+	staff_ui_layer.add_child(staff_market_screen)
+	_connect_staff_screen_signals(staff_market_screen)
+	staff_market_screen.open("market", career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_market_screen.hide()
+
+	staff_management_screen = StaffMarketScene.instantiate()
+	staff_management_screen.name = "Prepared_Staff_Management"
+	staff_ui_layer.add_child(staff_management_screen)
+	_connect_staff_screen_signals(staff_management_screen)
+	staff_management_screen.open("management", career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_management_screen.hide()
+
+
+func _connect_staff_screen_signals(screen: Control) -> void:
+	screen.back_requested.connect(_return_home_from_staff)
+	screen.headquarters_requested.connect(_show_headquarters_preview)
+	screen.hire_requested.connect(_hire_staff_candidate)
+	screen.dismiss_requested.connect(_request_staff_dismissal)
+	screen.assignment_requested.connect(_assign_staff_department)
+
+
 func _open_staff_screen(screen_mode: String) -> void:
-	current_screen = screen_mode if screen_mode == "office" else ("staff_market" if screen_mode == "market" else "staff_management")
+	current_screen = "staff_market" if screen_mode == "market" else "staff_management"
 	if is_instance_valid(home_navigation_layer):
 		home_navigation_layer.queue_free()
 	home_navigation_layer = null
 	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
 		ui_layer.queue_free()
 	ui_layer = null
-	if is_instance_valid(staff_ui_layer):
-		staff_ui_layer.queue_free()
-	staff_ui_layer = CanvasLayer.new()
-	staff_ui_layer.name = "DigitalWorld_Staff_Office_Layer"
-	staff_ui_layer.layer = 40
-	add_child(staff_ui_layer)
-	staff_screen = StaffMarketScene.instantiate()
-	staff_ui_layer.add_child(staff_screen)
-	staff_screen.back_requested.connect(_return_home_from_staff)
-	staff_screen.headquarters_requested.connect(_show_headquarters_preview)
-	staff_screen.hire_requested.connect(_hire_staff_candidate)
-	staff_screen.dismiss_requested.connect(_request_staff_dismissal)
-	staff_screen.assignment_requested.connect(_assign_staff_department)
-	var mode := "office" if screen_mode == "office" else ("market" if screen_mode == "market" else "management")
-	staff_screen.open(mode, career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
+		_prepare_staff_scenes()
+	staff_market_screen.hide()
+	staff_management_screen.hide()
+	staff_screen = staff_market_screen if screen_mode == "market" else staff_management_screen
+	staff_screen.show()
 
 
 func _close_staff_overlay() -> void:
-	if is_instance_valid(staff_ui_layer):
-		staff_ui_layer.queue_free()
-	staff_ui_layer = null
+	if is_instance_valid(staff_market_screen):
+		staff_market_screen.hide()
+	if is_instance_valid(staff_management_screen):
+		staff_management_screen.hide()
 	staff_screen = null
 
 
