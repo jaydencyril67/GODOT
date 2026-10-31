@@ -426,46 +426,81 @@ func _employee_card(employee: Dictionary) -> Control:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
 	var card := _card()
 	card.custom_minimum_size = Vector2(300 if compact else 340, 450 if compact else 420)
-	var margin := _margin(card, 10, 10, 11, 11)
+	var margin := _margin(card, 9, 9, 8, 8)
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 9)
+	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 7)
 	margin.add_child(stack)
+
+	# Keep the employee profile in the same order and visual language as
+	# Staff Market: identity, department, age/experience, core metrics,
+	# education, then compensation and the management actions.
 	stack.add_child(_label(str(employee.get("full_name", "Employee")).to_upper(), 18 if compact else 20, WHITE))
 	stack.add_child(_label(str(employee.get("position", "Staff")).to_upper(), 13, Color("#b9eaff")))
-	stack.add_child(_label("COUNTRY  " + str(employee.get("country", "International")).to_upper(), 11, Color("#c7e2f3")))
-	stack.add_child(_label("DEPARTMENT  " + str(employee.get("department", "UNASSIGNED")).to_upper(), 12, WHITE))
-	stack.add_child(_label("AGE  %d YEARS   /   EXPERIENCE  %s YEARS" % [int(employee.get("age", 0)), str(employee.get("experience", 0))], 12, MUTED))
+	var identity_row := HBoxContainer.new()
+	identity_row.add_theme_constant_override("separation", 8)
+	stack.add_child(identity_row)
+	var country_label := _label(str(employee.get("country", "International")).to_upper(), 11, Color("#c7e2f3"))
+	country_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity_row.add_child(country_label)
+
+	var profile_spacer := Control.new()
+	profile_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_child(profile_spacer)
+
 	var divider := HSeparator.new()
 	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
 	stack.add_child(divider)
+	stack.add_child(_label("DEPARTMENT  " + str(employee.get("department", "Unassigned")).to_upper(), 12, WHITE))
+	stack.add_child(_label("AGE  %d YEARS   /   EXPERIENCE  %s YEARS" % [int(employee.get("age", 0)), str(employee.get("experience", 0))], 12, MUTED))
+
 	var metrics := GridContainer.new()
-	metrics.columns = 2 if compact else 3
+	metrics.columns = 2
 	metrics.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	metrics.add_theme_constant_override("h_separation", 6)
-	metrics.add_theme_constant_override("v_separation", 6)
+	metrics.add_theme_constant_override("v_separation", 4)
 	stack.add_child(metrics)
 	_add_metric(metrics, "ABILITY", int(employee.get("ability", 0)))
 	_add_metric(metrics, "EFFICIENCY", int(employee.get("efficiency", 0)))
-	_add_metric(metrics, "EXPERIENCE", int(employee.get("experience", 0)))
-	stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9e3ff")))
-	stack.add_child(_label(_money(float(employee.get("monthly_salary", 0.0))), 21, WHITE))
+	stack.add_child(_label("EDUCATION  " + str(employee.get("education", "—")), 12, MUTED))
+
+	var action_spacer := Control.new()
+	action_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_child(action_spacer)
+
+	var action_row := HBoxContainer.new()
+	action_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_row.add_theme_constant_override("separation", 8)
+	stack.add_child(action_row)
+	var salary_stack := VBoxContainer.new()
+	salary_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	salary_stack.add_theme_constant_override("separation", 1)
+	action_row.add_child(salary_stack)
+	salary_stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9e3ff")))
+	salary_stack.add_child(_label(_money(float(employee.get("monthly_salary", 0.0))), 21, WHITE))
+
+	var management_actions := VBoxContainer.new()
+	management_actions.size_flags_horizontal = Control.SIZE_SHRINK_END
+	management_actions.add_theme_constant_override("separation", 6)
+	action_row.add_child(management_actions)
 	var assignment := OptionButton.new()
 	for department in DEPARTMENTS:
 		assignment.add_item(department)
 	for i in range(assignment.item_count):
 		if assignment.get_item_text(i) == str(employee.get("department", "")):
 			assignment.select(i)
-	assignment.custom_minimum_size.y = 46
-	assignment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	assignment.custom_minimum_size = Vector2(126, 42)
+	assignment.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_style_option_button(assignment)
 	assignment.item_selected.connect(func(index: int): assignment_requested.emit(str(employee.get("id", "")), DEPARTMENTS[index]))
-	stack.add_child(assignment)
+	management_actions.add_child(assignment)
+
 	var dismiss := _button("DISMISS", false)
-	dismiss.custom_minimum_size.y = 46
-	dismiss.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dismiss.custom_minimum_size = Vector2(126, 42)
+	dismiss.size_flags_horizontal = Control.SIZE_SHRINK_END
 	dismiss.pressed.connect(func(): dismiss_requested.emit(str(employee.get("id", ""))))
-	stack.add_child(dismiss)
+	management_actions.add_child(dismiss)
 	return card
 
 func _add_stat_card(caption: String, value: String, detail: String) -> void:
