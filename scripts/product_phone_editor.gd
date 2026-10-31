@@ -863,7 +863,7 @@ func _show_thickness_controls() -> void:
 	level_labels.add_theme_constant_override("separation", 0)
 	meter_row.add_child(level_labels)
 
-	for level in range(6, -1, -1):
+	for level in range(10, -1, -1):
 		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -872,33 +872,33 @@ func _show_thickness_controls() -> void:
 	var meter := VSlider.new()
 	meter.name = "PhoneThicknessLevelMeter"
 	meter.min_value = 0
-	meter.max_value = 6
+	meter.max_value = 10
 	meter.step = 1
 	meter.value = phone_thickness_level
-	meter.tick_count = 7
-	meter.custom_minimum_size = Vector2(54, 250)
+	meter.tick_count = 11
+	meter.custom_minimum_size = Vector2(64, 290)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_phone_thickness_level_changed)
 	_style_feature_slider(meter)
 	meter_row.add_child(meter)
 
-	phone_thickness_value_label = _make_label("LEVEL %d / 6" % phone_thickness_level, 16, Color("#a9e3ff"))
+	phone_thickness_value_label = _make_label("LEVEL %d / 10" % phone_thickness_level, 16, Color("#a9e3ff"))
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
 
 
 func _on_phone_thickness_level_changed(value: float) -> void:
-	phone_thickness_level = clampi(roundi(value), 0, 6)
+	phone_thickness_level = clampi(roundi(value), 0, 10)
 	if is_instance_valid(phone_thickness_value_label):
-		phone_thickness_value_label.text = "LEVEL %d / 6" % phone_thickness_level
+		phone_thickness_value_label.text = "LEVEL %d / 10" % phone_thickness_level
 	_refresh_phone_mesh()
 
 
 func _refresh_phone_mesh() -> void:
 	if not is_instance_valid(phone_body):
 		return
-	var radius := 0.22 * float(border_radius_level) / 6.0
+	var radius := 0.32 * float(border_radius_level) / 6.0
 	phone_body.mesh = _create_rounded_phone_mesh(radius)
 
 
@@ -926,69 +926,75 @@ func _on_border_radius_level_changed(value: float) -> void:
 
 func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	var phone_size := PHONE_SIZE
-	# Level 6 reaches a 0.15-unit body thickness, a slim modern-phone profile.
-	phone_size.z = lerpf(PHONE_SIZE.z, 0.15, float(phone_thickness_level) / 6.0)
-	# Preserve the original BoxMesh silhouette exactly when no corner radius is applied.
+	# Level 10 is slim, while retaining a 0.12-unit body for future side hardware.
+	phone_size.z = lerpf(PHONE_SIZE.z, 0.12, float(phone_thickness_level) / 10.0)
 	if radius <= 0.0001:
 		var plain_body := BoxMesh.new()
 		plain_body.size = phone_size
 		return plain_body
+
+	# Round only the phone's front/back outline. The Z thickness remains a
+	# straight extrusion, so changing corner radius cannot turn the whole body
+	# into a capsule or reshape its broad front and rear faces.
 	var half_size := phone_size * 0.5
-	var safe_radius := clampf(radius, 0.0, minf(half_size.x, minf(half_size.y, half_size.z)) - 0.001)
-	var inner := half_size - Vector3.ONE * safe_radius
+	var corner_radius := clampf(radius, 0.0, minf(half_size.x, half_size.y) - 0.001)
+	var corner_centers := [
+		Vector2(half_size.x - corner_radius, half_size.y - corner_radius),
+		Vector2(-half_size.x + corner_radius, half_size.y - corner_radius),
+		Vector2(-half_size.x + corner_radius, -half_size.y + corner_radius),
+		Vector2(half_size.x - corner_radius, -half_size.y + corner_radius)
+	]
+	var outline := PackedVector2Array()
+	var corner_segments := 8
+	for corner_index in range(4):
+		var center: Vector2 = corner_centers[corner_index]
+		var start_angle := float(corner_index) * PI * 0.5
+		for segment in range(corner_segments + 1):
+			var angle := start_angle + float(segment) / float(corner_segments) * PI * 0.5
+			outline.append(center + Vector2(cos(angle), sin(angle)) * corner_radius)
+
+	var triangle_indices: PackedInt32Array = Geometry2D.triangulate_polygon(outline)
+	if triangle_indices.is_empty():
+		var fallback_body := BoxMesh.new()
+		fallback_body.size = phone_size
+		return fallback_body
+
+	var front_z := half_size.z
+	var back_z := -half_size.z
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var segments := 10
-	var faces := [
-		[Vector3.BACK, Vector3.RIGHT, Vector3.UP, half_size.x, half_size.y],
-		[Vector3.FORWARD, Vector3.LEFT, Vector3.UP, half_size.x, half_size.y],
-		[Vector3.RIGHT, Vector3.FORWARD, Vector3.UP, half_size.z, half_size.y],
-		[Vector3.LEFT, Vector3.BACK, Vector3.UP, half_size.z, half_size.y],
-		[Vector3.UP, Vector3.LEFT, Vector3.BACK, half_size.x, half_size.z],
-		[Vector3.DOWN, Vector3.LEFT, Vector3.FORWARD, half_size.x, half_size.z]
-	]
 
-	for face in faces:
-		var normal: Vector3 = face[0]
-		var axis_u: Vector3 = face[1]
-		var axis_v: Vector3 = face[2]
-		var extent_u: float = face[3]
-		var extent_v: float = face[4]
-		for y in range(segments):
-			for x in range(segments):
-				var x0 := -1.0 + 2.0 * float(x) / float(segments)
-				var x1 := -1.0 + 2.0 * float(x + 1) / float(segments)
-				var y0 := -1.0 + 2.0 * float(y) / float(segments)
-				var y1 := -1.0 + 2.0 * float(y + 1) / float(segments)
-				var p00 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x0, y0, half_size, inner, safe_radius)
-				var p10 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x1, y0, half_size, inner, safe_radius)
-				var p11 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x1, y1, half_size, inner, safe_radius)
-				var p01 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x0, y1, half_size, inner, safe_radius)
-				surface.add_vertex(p00)
-				surface.add_vertex(p10)
-				surface.add_vertex(p11)
-				surface.add_vertex(p00)
-				surface.add_vertex(p11)
-				surface.add_vertex(p01)
+	# Flat front and rear faces, triangulated from the same rounded outline.
+	for index in range(0, triangle_indices.size(), 3):
+		var a: Vector2 = outline[triangle_indices[index]]
+		var b: Vector2 = outline[triangle_indices[index + 1]]
+		var c: Vector2 = outline[triangle_indices[index + 2]]
+		surface.add_vertex(Vector3(a.x, a.y, front_z))
+		surface.add_vertex(Vector3(b.x, b.y, front_z))
+		surface.add_vertex(Vector3(c.x, c.y, front_z))
+		surface.add_vertex(Vector3(a.x, a.y, back_z))
+		surface.add_vertex(Vector3(c.x, c.y, back_z))
+		surface.add_vertex(Vector3(b.x, b.y, back_z))
 
+	# Straight side walls connect the two outlines without rounding the Z edges.
+	for index in range(outline.size()):
+		var next_index := (index + 1) % outline.size()
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[next_index]
+		var front_a := Vector3(a.x, a.y, front_z)
+		var front_b := Vector3(b.x, b.y, front_z)
+		var back_a := Vector3(a.x, a.y, back_z)
+		var back_b := Vector3(b.x, b.y, back_z)
+		surface.add_vertex(front_a)
+		surface.add_vertex(back_a)
+		surface.add_vertex(back_b)
+		surface.add_vertex(front_a)
+		surface.add_vertex(back_b)
+		surface.add_vertex(front_b)
+
+	surface.index()
 	surface.generate_normals()
 	return surface.commit()
-
-
-func _rounded_box_point(normal: Vector3, axis_u: Vector3, axis_v: Vector3, extent_u: float, extent_v: float, x: float, y: float, half_size: Vector3, inner: Vector3, radius: float) -> Vector3:
-	var point := normal * half_size.dot(normal) + axis_u * extent_u * x + axis_v * extent_v * y
-	if radius <= 0.0001:
-		return point
-	var closest := Vector3(
-		clampf(point.x, -inner.x, inner.x),
-		clampf(point.y, -inner.y, inner.y),
-		clampf(point.z, -inner.z, inner.z)
-	)
-	var direction := point - closest
-	if direction.length_squared() <= 0.000001:
-		return point
-	return closest + direction.normalized() * radius
-
 
 func _on_left_tools_previous_pressed() -> void:
 	_set_left_tools_page(left_tools_page - 1)
