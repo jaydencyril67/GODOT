@@ -904,7 +904,7 @@ func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: floa
 	_add_multimesh(parent, "Upper_Glazing_Reflection_Highlights", highlight_mm, materials["glass_reflection"])
 
 func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth: float, floors: int, ground_height: float, floor_height: float, style: int, accent: Material) -> void:
-	var basis := Basis(Vector3.UP, angle)
+	var rotation_basis := Basis(Vector3.UP, angle)
 	var facade_z := depth * 0.5 + 0.19
 	var band_mesh := BoxMesh.new()
 	band_mesh.size = Vector3(width + 0.24, 0.075, 0.13)
@@ -928,12 +928,12 @@ func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth:
 	var spacing := (width - 1.0) / float(columns)
 	for floor_index in range(1, floors):
 		var floor_y := 0.42 + ground_height + float(floor_index - 1) * floor_height
-		band_transforms.append(Transform3D(basis, basis * Vector3(0.0, floor_y + 0.08, facade_z)))
+		band_transforms.append(Transform3D(basis, rotation_basis * Vector3(0.0, floor_y + 0.08, facade_z)))
 		var window_y := floor_y + 1.38
 		for column in range(columns):
 			var x := (float(column) - float(columns - 1) * 0.5) * spacing
-			mullion_transforms.append(Transform3D(basis, basis * Vector3(x, window_y, facade_z + 0.07)))
-			transom_transforms.append(Transform3D(basis, basis * Vector3(x, window_y, facade_z + 0.075)))
+			mullion_transforms.append(Transform3D(basis, rotation_basis * Vector3(x, window_y, facade_z + 0.07)))
+			transom_transforms.append(Transform3D(basis, rotation_basis * Vector3(x, window_y, facade_z + 0.075)))
 	bands.instance_count = band_transforms.size()
 	mullions.instance_count = mullion_transforms.size()
 	transoms.instance_count = transom_transforms.size()
@@ -947,9 +947,9 @@ func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth:
 	_add_multimesh(parent, "Precision_Window_Vertical_Mullions", mullions, materials["metal"])
 	_add_multimesh(parent, "Precision_Window_Transoms", transoms, materials["window_frame"])
 	# A dark recessed shopfront gives the street level a distinct, believable scale.
-	var shop := _box(parent, "Ground_Floor_Recessed_Storefront_Glazing", Vector3(width * 0.68, 1.9, 0.075), basis * Vector3(0.0, 1.62, facade_z + 0.015), materials["storefront"])
+	var shop := _box(parent, "Ground_Floor_Recessed_Storefront_Glazing", Vector3(width * 0.68, 1.9, 0.075), rotation_basis * Vector3(0.0, 1.62, facade_z + 0.015), materials["storefront"])
 	shop.rotation.y = angle
-	var canopy := _box(parent, "Ground_Floor_Continuous_Shop_Canopy", Vector3(width * 0.82, 0.11, 0.62), basis * Vector3(0.0, 2.85, facade_z + 0.22), materials["dark_metal"])
+	var canopy := _box(parent, "Ground_Floor_Continuous_Shop_Canopy", Vector3(width * 0.82, 0.11, 0.62), rotation_basis * Vector3(0.0, 2.85, facade_z + 0.22), materials["dark_metal"])
 	canopy.rotation.y = angle
 
 func _add_rooftop_service_details(parent: Node3D, width: float, depth: float, height: float, roof: Material, accent: Material) -> void:
