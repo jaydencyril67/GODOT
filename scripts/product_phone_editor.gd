@@ -551,7 +551,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 		page_grid.columns = 3
 		page_grid.mouse_filter = Control.MOUSE_FILTER_PASS
 		page_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		page_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		page_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		page_grid.add_theme_constant_override("h_separation", 8)
 		page_grid.add_theme_constant_override("v_separation", 8)
 		page_grid.visible = page_index == 0
@@ -645,7 +645,7 @@ func _add_tool_button(parent: GridContainer) -> void:
 	button.mouse_filter = Control.MOUSE_FILTER_PASS
 	button.custom_minimum_size = Vector2(0, 48)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	button.size_flags_vertical = Control.SIZE_FILL
 	_apply_research_typography(button, 13)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
