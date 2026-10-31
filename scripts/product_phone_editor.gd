@@ -959,7 +959,11 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	for corner_index in range(4):
 		var center: Vector2 = corner_centers[corner_index]
 		var start_angle := float(corner_index) * PI * 0.5
-		for segment in range(corner_segments + 1):
+		# Each corner contributes its start point only. The previous
+		# corner already contributes this arc's end point, so including both
+		# endpoints creates duplicate consecutive vertices that can confuse
+		# polygon triangulation and leave dark/overlapping cap triangles.
+		for segment in range(corner_segments):
 			var angle := start_angle + float(segment) / float(corner_segments) * PI * 0.5
 			outline.append(center + Vector2(cos(angle), sin(angle)) * corner_radius)
 
