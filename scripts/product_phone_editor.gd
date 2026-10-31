@@ -1140,6 +1140,19 @@ func _make_port_outline(width: float, height: float, corner_radius: float, segme
 	return points
 
 
+func _resample_port_outline(points: PackedVector2Array, minimum_points: int = 48) -> PackedVector2Array:
+	if points.size() < 3:
+		return points
+	var samples_per_edge := maxi(1, int(ceil(float(minimum_points) / float(points.size()))))
+	var result := PackedVector2Array()
+	for index in range(points.size()):
+		var next_index := (index + 1) % points.size()
+		for sample_index in range(samples_per_edge):
+			var weight := float(sample_index) / float(samples_per_edge)
+			result.append(points[index].lerp(points[next_index], weight))
+	return result
+
+
 func _make_port_face(points: PackedVector2Array, face_y: float) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	var indices := Geometry2D.triangulate_polygon(points)
@@ -1346,6 +1359,9 @@ func _refresh_phone_charge_port() -> void:
 	inner_points = fitted_opening
 	port_width *= profile_fit
 	port_height *= profile_fit
+	# Add points along the connector profile so the full bottom-edge surface
+	# can wrap cleanly around small trapezoidal and stepped receptacle shapes.
+	inner_points = _resample_port_outline(inner_points, 48)
 	charge_port_opening_points = inner_points.duplicate()
 
 	var port_root := Node3D.new()
