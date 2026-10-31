@@ -7,6 +7,7 @@ signal setup_progress(message: String, progress: float)
 signal setup_completed
 signal back_requested
 signal upgrade_requested(level: int)
+signal downgrade_requested(level: int)
 
 const MAX_LEVEL := 10
 const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
@@ -39,6 +40,7 @@ var owned_info_label: Label
 var previous_level_button: Button
 var next_level_button: Button
 var upgrade_button: Button
+var downgrade_button: Button
 var home_mode := false
 var camera_target := Vector3.ZERO
 var camera_distance := 38.0
@@ -435,6 +437,18 @@ func _create_preview_interface() -> void:
 		upgrade_button.offset_bottom = -18.0
 		upgrade_button.pressed.connect(func(): upgrade_requested.emit(preview_level))
 
+		downgrade_button = _create_bottom_action_button(layer, "Downgrade", false)
+		downgrade_button.name = "Headquarters_Downgrade_Button"
+		downgrade_button.anchor_left = 1.0
+		downgrade_button.anchor_top = 1.0
+		downgrade_button.anchor_right = 1.0
+		downgrade_button.anchor_bottom = 1.0
+		downgrade_button.offset_left = -284.0
+		downgrade_button.offset_top = -76.0
+		downgrade_button.offset_right = -156.0
+		downgrade_button.offset_bottom = -18.0
+		downgrade_button.pressed.connect(func(): downgrade_requested.emit(preview_level))
+
 		var cost_panel := PanelContainer.new()
 		cost_panel.name = "Headquarters_Upgrade_Finance_Panel"
 		cost_panel.anchor_left = 1.0
@@ -543,9 +557,13 @@ func _refresh_preview_interface() -> void:
 		next_level_button.disabled = preview_level >= MAX_LEVEL
 	var upgrade_cost := get_upgrade_cost(preview_level)
 	var can_afford_upgrade := company_balance >= upgrade_cost
+	var downgrade_refund := float(get_upgrade_cost(owned_level)) * 0.60
 	if is_instance_valid(upgrade_cost_label):
-		if preview_level <= owned_level:
-			upgrade_cost_label.text = "ALREADY OWNED"
+		if preview_level < owned_level:
+			upgrade_cost_label.text = "DOWNGRADE REFUND (60%%): %s" % _format_money(downgrade_refund)
+			upgrade_cost_label.add_theme_color_override("font_color", Color("#8ff0bd"))
+		elif preview_level == owned_level:
+			upgrade_cost_label.text = "CURRENT HEADQUARTERS"
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#b9e8ff"))
 		else:
 			upgrade_cost_label.text = "UPGRADE COST: %s" % _format_money(upgrade_cost)
@@ -555,6 +573,8 @@ func _refresh_preview_interface() -> void:
 		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
 	if is_instance_valid(upgrade_button):
 		upgrade_button.disabled = preview_level <= owned_level or not can_afford_upgrade
+	if is_instance_valid(downgrade_button):
+		downgrade_button.disabled = preview_level >= owned_level
 
 
 func _get_staff_capacity(level: int) -> int:
