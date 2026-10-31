@@ -894,10 +894,15 @@ func _on_border_radius_level_changed(value: float) -> void:
 	_refresh_phone_mesh()
 
 
-func _create_rounded_phone_mesh(radius: float) -> ArrayMesh:
+func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	var phone_size := PHONE_SIZE
 	# Level 6 reaches a 0.15-unit body thickness, a slim modern-phone profile.
 	phone_size.z = lerpf(PHONE_SIZE.z, 0.15, float(phone_thickness_level) / 6.0)
+	# Preserve the original BoxMesh silhouette exactly when no corner radius is applied.
+	if radius <= 0.0001:
+		var plain_body := BoxMesh.new()
+		plain_body.size = phone_size
+		return plain_body
 	var half_size := phone_size * 0.5
 	var safe_radius := clampf(radius, 0.0, minf(half_size.x, minf(half_size.y, half_size.z)) - 0.001)
 	var inner := half_size - Vector3.ONE * safe_radius
