@@ -3,6 +3,7 @@ extends Node3D
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
+const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 
 const LOGO_NAMES := [
@@ -36,6 +37,7 @@ var staff_ui_layer: CanvasLayer
 var staff_screen
 var staff_market_screen
 var staff_management_screen
+var confirm_modal: CanvasLayer
 var game_date_unix := 1262304000.0
 var game_clock_paused := false
 var last_saved_game_day := -1
@@ -70,6 +72,9 @@ func _ready() -> void:
 	set_process(true)
 	if OS.has_feature("android"):
 		call_deferred("_apply_android_fullscreen")
+	confirm_modal = ConfirmModalScript.new()
+	confirm_modal.name = "DigitalWorld_Confirm_Modal"
+	add_child(confirm_modal)
 	_load_career()
 	_show_menu()
 
@@ -931,6 +936,17 @@ func _upgrade_headquarters(level: int) -> void:
 	if previous_balance < upgrade_cost:
 		_show_notice("INSUFFICIENT BALANCE", "You need %s to relocate to Headquarters Level %d. Your available balance is %s." % [_format_balance(upgrade_cost), requested_level, _format_balance(previous_balance)])
 		return
+	_show_confirmation("UPGRADE HEADQUARTERS", "Upgrade your headquarters to Level %d?\n\nCost: %s\nAvailable balance: %s" % [requested_level, _format_balance(upgrade_cost), _format_balance(previous_balance)], "UPGRADE", Callable(self, "_apply_headquarters_upgrade").bind(requested_level))
+
+
+func _apply_headquarters_upgrade(requested_level: int) -> void:
+	if requested_level <= upgrade_level:
+		return
+	var upgrade_cost := float(HeadquartersPreviewScript.get_upgrade_cost(requested_level))
+	var previous_balance := float(career.get("balance", 10000000.0))
+	if previous_balance < upgrade_cost:
+		_show_notice("INSUFFICIENT BALANCE", "You need %s to relocate to Headquarters Level %d. Your available balance is %s." % [_format_balance(upgrade_cost), requested_level, _format_balance(previous_balance)])
+		return
 	var previous_level := upgrade_level
 	upgrade_level = requested_level
 	career["upgrade_level"] = upgrade_level
@@ -947,10 +963,18 @@ func _upgrade_headquarters(level: int) -> void:
 		if world_root.has_method("set_company_balance"):
 			world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
-
-
 func _downgrade_headquarters(level: int, refund_percent: int) -> void:
 	var requested_level := clampi(level, 1, 10)
+	if requested_level >= upgrade_level:
+		return
+	var previous_level := upgrade_level
+	var safe_refund_percent := clampi(refund_percent, 50, 60)
+	var amount_paid := float(HeadquartersPreviewScript.get_upgrade_cost(previous_level))
+	var refund_amount := amount_paid * float(safe_refund_percent) / 100.0
+	_show_confirmation("DOWNGRADE HEADQUARTERS", "Downgrade your headquarters to Level %d?\n\nEstimated refund: %s (%d%%)." % [requested_level, _format_balance(refund_amount), safe_refund_percent], "DOWNGRADE", Callable(self, "_apply_headquarters_downgrade").bind(requested_level, safe_refund_percent))
+
+
+func _apply_headquarters_downgrade(requested_level: int, refund_percent: int) -> void:
 	if requested_level >= upgrade_level:
 		return
 	var previous_level := upgrade_level
@@ -973,8 +997,6 @@ func _downgrade_headquarters(level: int, refund_percent: int) -> void:
 		if world_root.has_method("set_company_balance"):
 			world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
-
-
 func _apply_home_button_typography(button: Control, font_size: int) -> void:
 	# Use the project STIX variable font explicitly and strengthen its weight
 	# without changing any button dimensions, layout, or visual styling.
@@ -1718,19 +1740,40 @@ func _on_phone_design_research_upgrade(research_id: String) -> void:
 	}
 	if not research_names.has(research_id):
 		return
-
-	var research_levels: Dictionary = career.get("phone_design_research", {}).duplicate(true)
+	var research_levels: Dictionary = career.get("phone_design_research", {})
 	var current_level := clampi(int(research_levels.get(research_id, 1)), 1, 20)
 	if current_level >= 20:
 		_show_notice("MAXIMUM RESEARCH LEVEL", str(research_names[research_id]) + " has already reached level 20.")
 		return
-
 	var upgrade_cost := 250000.0 * float(current_level)
 	var previous_balance := float(career.get("balance", 10000000.0))
 	if previous_balance < upgrade_cost:
 		_show_notice("INSUFFICIENT BALANCE", "Upgrading %s to level %d requires %s. Your available balance is %s." % [research_names[research_id], current_level + 1, _format_balance(upgrade_cost), _format_balance(previous_balance)])
 		return
+	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Upgrade %s from Level %d to Level %d?\n\nCost: %s" % [research_names[research_id], current_level, current_level + 1, _format_balance(upgrade_cost)], "UPGRADE", Callable(self, "_apply_phone_design_research_upgrade").bind(research_id))
 
+
+func _apply_phone_design_research_upgrade(research_id: String) -> void:
+	var research_names := {
+		"screen_size": "Screen size",
+		"phone_thickness": "Phone thickness",
+		"bezel_width": "Bezel width",
+		"frame_material": "Frame material",
+		"body_finish": "Body finish",
+		"camera_module": "Camera-module design"
+	}
+	if not research_names.has(research_id):
+		return
+	var research_levels: Dictionary = career.get("phone_design_research", {}).duplicate(true)
+	var current_level := clampi(int(research_levels.get(research_id, 1)), 1, 20)
+	if current_level >= 20:
+		_show_notice("MAXIMUM RESEARCH LEVEL", str(research_names[research_id]) + " has already reached level 20.")
+		return
+	var upgrade_cost := 250000.0 * float(current_level)
+	var previous_balance := float(career.get("balance", 10000000.0))
+	if previous_balance < upgrade_cost:
+		_show_notice("INSUFFICIENT BALANCE", "Upgrading %s to level %d requires %s. Your available balance is %s." % [research_names[research_id], current_level + 1, _format_balance(upgrade_cost), _format_balance(previous_balance)])
+		return
 	var previous_levels := research_levels.duplicate(true)
 	research_levels[research_id] = current_level + 1
 	career["phone_design_research"] = research_levels
@@ -1740,15 +1783,12 @@ func _on_phone_design_research_upgrade(research_id: String) -> void:
 		career["balance"] = previous_balance
 		_show_notice("RESEARCH NOT SAVED", "The research upgrade could not be saved. Your research level and balance have not changed.")
 		return
-
 	_update_home_status_bar()
 	_update_staff_office_balance()
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
 	if is_instance_valid(phone_editor):
 		phone_editor.call("set_research_data", career.get("phone_design_research", {}), float(career["balance"]))
-
-
 func _return_to_home() -> void:
 	current_screen = "home"
 	if is_instance_valid(create_ui_layer):
@@ -2078,6 +2118,24 @@ func _hire_staff_candidate(candidate_id: String) -> void:
 	if team.size() >= HeadquartersPreviewScript.get_staff_capacity(upgrade_level):
 		_show_notice("HEADQUARTERS FULL", "Your current headquarters can hold %d employees. Upgrade your headquarters to expand staff capacity." % HeadquartersPreviewScript.get_staff_capacity(upgrade_level))
 		return
+	for candidate_value in market:
+		if not (candidate_value is Dictionary):
+			continue
+		var candidate: Dictionary = candidate_value
+		if str(candidate.get("id", "")) != candidate_id:
+			continue
+		var candidate_name := str(candidate.get("name", candidate.get("full_name", "this candidate")))
+		var salary := float(candidate.get("monthly_salary", 0.0))
+		_show_confirmation("HIRE EMPLOYEE", "Hire %s to join your company?\n\nDepartment: %s\nMonthly salary: %s" % [candidate_name, str(candidate.get("department", "Unassigned")), _format_balance(salary)], "HIRE", Callable(self, "_apply_staff_hire_candidate").bind(candidate_id))
+		return
+
+
+func _apply_staff_hire_candidate(candidate_id: String) -> void:
+	var market: Array = career.get("staff_candidates", [])
+	var team: Array = career.get("staff_employees", [])
+	if team.size() >= HeadquartersPreviewScript.get_staff_capacity(upgrade_level):
+		_show_notice("HEADQUARTERS FULL", "Your current headquarters can hold %d employees. Upgrade your headquarters to expand staff capacity." % HeadquartersPreviewScript.get_staff_capacity(upgrade_level))
+		return
 	var candidate_index := -1
 	for index in range(market.size()):
 		if str(market[index].get("id", "")) == candidate_id:
@@ -2099,21 +2157,13 @@ func _hire_staff_candidate(candidate_id: String) -> void:
 		return
 	_refresh_staff_screen_data()
 	_open_staff_screen("market")
-
-
 func _request_staff_dismissal(employee_id: String) -> void:
-	var dialog := ConfirmationDialog.new()
-	dialog.title = "DISMISS EMPLOYEE"
-	dialog.dialog_text = "Dismiss this employee from your company? This action cannot be undone."
-	dialog.confirmed.connect(func():
-		_dismiss_staff_employee(employee_id)
-		dialog.queue_free()
-	)
-	dialog.canceled.connect(func(): dialog.queue_free())
-	add_child(dialog)
-	dialog.popup_centered(Vector2i(420, 180))
-
-
+	var employee_name := "this employee"
+	for employee_value in career.get("staff_employees", []):
+		if employee_value is Dictionary and str(employee_value.get("id", "")) == employee_id:
+			employee_name = str(employee_value.get("name", employee_value.get("full_name", employee_name)))
+			break
+	_show_confirmation("DISMISS EMPLOYEE", "Dismiss %s from your company? This action cannot be undone." % employee_name, "DISMISS", Callable(self, "_dismiss_staff_employee").bind(employee_id))
 func _dismiss_staff_employee(employee_id: String) -> void:
 	var team: Array = career.get("staff_employees", [])
 	var previous_team := team.duplicate(true)
@@ -2189,12 +2239,15 @@ func _close_settings_overlay(shade: Control, center: Control) -> void:
 		center.queue_free()
 
 func _confirm_exit() -> void:
-	var dialog := ConfirmationDialog.new()
-	dialog.title = "EXIT DIGITALWORLD"
-	dialog.dialog_text = "Are you sure you want to leave DigitalWorld? Your saved company data will remain on this device."
-	dialog.confirmed.connect(func(): get_tree().quit())
-	add_child(dialog)
-	dialog.popup_centered(Vector2i(420, 190))
+	_show_confirmation("EXIT DIGITALWORLD", "Are you sure you want to leave DigitalWorld? Your saved company data will remain on this device.", "EXIT", Callable(self, "_exit_digitalworld"))
+
+
+func _exit_digitalworld() -> void:
+	get_tree().quit()
+func _show_confirmation(title_text: String, message_text: String, action_text: String, action: Callable) -> void:
+	if is_instance_valid(confirm_modal):
+		confirm_modal.show_confirmation(title_text, message_text, action_text, action)
+
 
 func _show_notice(title_text: String, message_text: String) -> void:
 	var dialog := AcceptDialog.new()
