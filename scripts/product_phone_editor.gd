@@ -23,6 +23,9 @@ var left_tools_previous_button: Button
 var left_tools_next_button: Button
 var left_tools_scroll: ScrollContainer
 var preview_mouse_dragging := false
+var border_radius_level := 0
+var border_radius_value_label: Label
+var active_feature_panel: Control
 
 
 func _ready() -> void:
@@ -628,9 +631,7 @@ func _get_preview_viewport() -> SubViewport:
 
 	phone_body = MeshInstance3D.new()
 	phone_body.name = "Plain_Phone_Body"
-	var body_mesh := BoxMesh.new()
-	body_mesh.size = PHONE_SIZE
-	phone_body.mesh = body_mesh
+	phone_body.mesh = _create_rounded_phone_mesh(0.0)
 	var body_material := StandardMaterial3D.new()
 	body_material.albedo_color = Color("#62686e")
 	body_material.metallic = 0.18
@@ -692,8 +693,171 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	# Feature selection remains display-only until the phone editor actions are implemented.
+	if feature_name == "Border Radius":
+		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
+	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
+
+
+func _on_tool_feature_pressed(feature_name: String) -> void:
+	if feature_name != "Border Radius":
+		return
+	_show_border_radius_controls()
+
+
+func _show_border_radius_controls() -> void:
+	if is_instance_valid(active_feature_panel):
+		active_feature_panel.queue_free()
+		active_feature_panel = null
+
+	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
+	if not is_instance_valid(tools_content):
+		return
+
+	for child in tools_content.get_children():
+		child.visible = false
+
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "BorderRadiusControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 14)
+	tools_content.add_child(active_feature_panel)
+
+	var back_button := Button.new()
+	back_button.text = "←  ALL FEATURES"
+	back_button.custom_minimum_size.y = 46
+	back_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(back_button, 15)
+	_style_staff_button(back_button, false)
+	back_button.pressed.connect(_close_feature_controls)
+	active_feature_panel.add_child(back_button)
+
+	var title := _make_label("BORDER RADIUS", 19, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var description := _make_label("Adjust the curvature of the phone's outer corners", 12, Color("#c7eaff"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	var meter_row := HBoxContainer.new()
+	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	meter_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(meter_row)
+
+	var level_labels := VBoxContainer.new()
+	level_labels.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	level_labels.alignment = BoxContainer.ALIGNMENT_CENTER
+	level_labels.add_theme_constant_override("separation", 0)
+	meter_row.add_child(level_labels)
+
+	for level in range(6, -1, -1):
+		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
+		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		level_labels.add_child(level_label)
+
+	var meter := VSlider.new()
+	meter.name = "BorderRadiusLevelMeter"
+	meter.min_value = 0
+	meter.max_value = 6
+	meter.step = 1
+	meter.value = border_radius_level
+	meter.tick_count = 7
+	meter.ticks_on_both_sides = true
+	meter.custom_minimum_size = Vector2(54, 250)
+	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	meter.value_changed.connect(_on_border_radius_level_changed)
+	meter_row.add_child(meter)
+
+	border_radius_value_label = _make_label("LEVEL %d / 6" % border_radius_level, 16, Color("#a9e3ff"))
+	border_radius_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(border_radius_value_label)
+
+
+func _close_feature_controls() -> void:
+	if is_instance_valid(active_feature_panel):
+		active_feature_panel.queue_free()
+		active_feature_panel = null
+	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
+	if not is_instance_valid(tools_content):
+		return
+	for page_index in range(3):
+		var page_grid := tools_content.get_node_or_null("PhoneEditorLeftToolsCardButtonPage" + str(page_index + 1))
+		if is_instance_valid(page_grid):
+			page_grid.visible = page_index == left_tools_page
+
+
+func _on_border_radius_level_changed(value: float) -> void:
+	border_radius_level = clampi(roundi(value), 0, 6)
+	if is_instance_valid(border_radius_value_label):
+		border_radius_value_label.text = "LEVEL %d / 6" % border_radius_level
+	if is_instance_valid(phone_body):
+		var radius := 0.22 * float(border_radius_level) / 6.0
+		phone_body.mesh = _create_rounded_phone_mesh(radius)
+
+
+func _create_rounded_phone_mesh(radius: float) -> ArrayMesh:
+	var half_size := PHONE_SIZE * 0.5
+	var safe_radius := clampf(radius, 0.0, minf(half_size.x, minf(half_size.y, half_size.z)) - 0.001)
+	var inner := half_size - Vector3.ONE * safe_radius
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var segments := 10
+	var faces := [
+		[Vector3.FORWARD, Vector3.RIGHT, Vector3.UP, half_size.x, half_size.y],
+		[Vector3.BACK, Vector3.LEFT, Vector3.UP, half_size.x, half_size.y],
+		[Vector3.RIGHT, Vector3.FORWARD, Vector3.UP, half_size.z, half_size.y],
+		[Vector3.LEFT, Vector3.BACK, Vector3.UP, half_size.z, half_size.y],
+		[Vector3.UP, Vector3.LEFT, Vector3.BACK, half_size.x, half_size.z],
+		[Vector3.DOWN, Vector3.LEFT, Vector3.FORWARD, half_size.x, half_size.z]
+	]
+
+	for face in faces:
+		var normal: Vector3 = face[0]
+		var axis_u: Vector3 = face[1]
+		var axis_v: Vector3 = face[2]
+		var extent_u: float = face[3]
+		var extent_v: float = face[4]
+		for y in range(segments):
+			for x in range(segments):
+				var x0 := -1.0 + 2.0 * float(x) / float(segments)
+				var x1 := -1.0 + 2.0 * float(x + 1) / float(segments)
+				var y0 := -1.0 + 2.0 * float(y) / float(segments)
+				var y1 := -1.0 + 2.0 * float(y + 1) / float(segments)
+				var p00 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x0, y0, half_size, inner, safe_radius)
+				var p10 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x1, y0, half_size, inner, safe_radius)
+				var p11 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x1, y1, half_size, inner, safe_radius)
+				var p01 := _rounded_box_point(normal, axis_u, axis_v, extent_u, extent_v, x0, y1, half_size, inner, safe_radius)
+				surface.add_vertex(p00)
+				surface.add_vertex(p10)
+				surface.add_vertex(p11)
+				surface.add_vertex(p00)
+				surface.add_vertex(p11)
+				surface.add_vertex(p01)
+
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _rounded_box_point(normal: Vector3, axis_u: Vector3, axis_v: Vector3, extent_u: float, extent_v: float, x: float, y: float, half_size: Vector3, inner: Vector3, radius: float) -> Vector3:
+	var point := normal * half_size.dot(normal) + axis_u * extent_u * x + axis_v * extent_v * y
+	if radius <= 0.0001:
+		return point
+	var closest := Vector3(
+		clampf(point.x, -inner.x, inner.x),
+		clampf(point.y, -inner.y, inner.y),
+		clampf(point.z, -inner.z, inner.z)
+	)
+	var direction := point - closest
+	if direction.length_squared() <= 0.000001:
+		return point
+	return closest + direction.normalized() * radius
 
 
 func _on_left_tools_previous_pressed() -> void:
