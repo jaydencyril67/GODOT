@@ -25,6 +25,8 @@ var left_tools_scroll: ScrollContainer
 var preview_mouse_dragging := false
 var border_radius_level := 0
 var border_radius_value_label: Label
+var phone_thickness_level := 0
+var phone_thickness_value_label: Label
 var active_feature_panel: Control
 
 
@@ -700,9 +702,10 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
-	if feature_name != "Border Radius":
-		return
-	_show_border_radius_controls()
+	if feature_name == "Border Radius":
+		_show_border_radius_controls()
+	elif feature_name == "Thickness":
+		_show_thickness_controls()
 
 
 func _show_border_radius_controls() -> void:
@@ -780,6 +783,96 @@ func _show_border_radius_controls() -> void:
 	active_feature_panel.add_child(border_radius_value_label)
 
 
+
+func _show_thickness_controls() -> void:
+	if is_instance_valid(active_feature_panel):
+		active_feature_panel.queue_free()
+		active_feature_panel = null
+
+	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
+	if not is_instance_valid(tools_content):
+		return
+
+	for child in tools_content.get_children():
+		child.visible = false
+
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ThicknessControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 14)
+	tools_content.add_child(active_feature_panel)
+
+	var back_button := Button.new()
+	back_button.text = "←  ALL FEATURES"
+	back_button.custom_minimum_size.y = 46
+	back_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(back_button, 15)
+	_style_staff_button(back_button, false)
+	back_button.pressed.connect(_close_feature_controls)
+	active_feature_panel.add_child(back_button)
+
+	var title := _make_label("PHONE THICKNESS", 19, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var description := _make_label("Make the phone body slimmer or thicker", 12, Color("#c7eaff"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	var meter_row := HBoxContainer.new()
+	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	meter_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(meter_row)
+
+	var level_labels := VBoxContainer.new()
+	level_labels.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	level_labels.alignment = BoxContainer.ALIGNMENT_CENTER
+	level_labels.add_theme_constant_override("separation", 0)
+	meter_row.add_child(level_labels)
+
+	for level in range(6, -1, -1):
+		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
+		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		level_labels.add_child(level_label)
+
+	var meter := VSlider.new()
+	meter.name = "PhoneThicknessLevelMeter"
+	meter.min_value = 0
+	meter.max_value = 6
+	meter.step = 1
+	meter.value = phone_thickness_level
+	meter.tick_count = 7
+	meter.ticks_on_both_sides = true
+	meter.custom_minimum_size = Vector2(54, 250)
+	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	meter.value_changed.connect(_on_phone_thickness_level_changed)
+	meter_row.add_child(meter)
+
+	phone_thickness_value_label = _make_label("LEVEL %d / 6" % phone_thickness_level, 16, Color("#a9e3ff"))
+	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(phone_thickness_value_label)
+
+
+func _on_phone_thickness_level_changed(value: float) -> void:
+	phone_thickness_level = clampi(roundi(value), 0, 6)
+	if is_instance_valid(phone_thickness_value_label):
+		phone_thickness_value_label.text = "LEVEL %d / 6" % phone_thickness_level
+	_refresh_phone_mesh()
+
+
+func _refresh_phone_mesh() -> void:
+	if not is_instance_valid(phone_body):
+		return
+	var radius := 0.22 * float(border_radius_level) / 6.0
+	phone_body.mesh = _create_rounded_phone_mesh(radius)
+
+
 func _close_feature_controls() -> void:
 	if is_instance_valid(active_feature_panel):
 		active_feature_panel.queue_free()
@@ -797,13 +890,14 @@ func _on_border_radius_level_changed(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
 	if is_instance_valid(border_radius_value_label):
 		border_radius_value_label.text = "LEVEL %d / 6" % border_radius_level
-	if is_instance_valid(phone_body):
-		var radius := 0.22 * float(border_radius_level) / 6.0
-		phone_body.mesh = _create_rounded_phone_mesh(radius)
+	_refresh_phone_mesh()
 
 
 func _create_rounded_phone_mesh(radius: float) -> ArrayMesh:
-	var half_size := PHONE_SIZE * 0.5
+	var phone_size := PHONE_SIZE
+	# Level 6 reaches a 0.15-unit body thickness, a slim modern-phone profile.
+	phone_size.z = lerpf(PHONE_SIZE.z, 0.15, float(phone_thickness_level) / 6.0)
+	var half_size := phone_size * 0.5
 	var safe_radius := clampf(radius, 0.0, minf(half_size.x, minf(half_size.y, half_size.z)) - 0.001)
 	var inner := half_size - Vector3.ONE * safe_radius
 	var surface := SurfaceTool.new()
