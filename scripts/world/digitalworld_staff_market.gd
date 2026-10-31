@@ -452,27 +452,14 @@ func _employee_card(employee: Dictionary) -> Control:
 	salary_stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9e3ff")))
 	salary_stack.add_child(_label(_money(float(employee.get("monthly_salary", 0.0))), 21, WHITE))
 
-	var management_actions := VBoxContainer.new()
-	management_actions.size_flags_horizontal = Control.SIZE_SHRINK_END
-	management_actions.add_theme_constant_override("separation", 6)
-	action_row.add_child(management_actions)
-	var assignment := OptionButton.new()
-	for department in DEPARTMENTS:
-		assignment.add_item(department)
-	for i in range(assignment.item_count):
-		if assignment.get_item_text(i) == str(employee.get("department", "")):
-			assignment.select(i)
-	assignment.custom_minimum_size = Vector2(126, 42)
-	assignment.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_style_option_button(assignment)
-	assignment.item_selected.connect(func(index: int): assignment_requested.emit(str(employee.get("id", "")), DEPARTMENTS[index]))
-	management_actions.add_child(assignment)
-
+	# Department selector removed from employee cards. Keep Dismiss in its
+	# former top position, directly beside the salary information.
 	var dismiss := _button("DISMISS", false)
 	dismiss.custom_minimum_size = Vector2(126, 42)
 	dismiss.size_flags_horizontal = Control.SIZE_SHRINK_END
+	dismiss.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	dismiss.pressed.connect(func(): dismiss_requested.emit(str(employee.get("id", ""))))
-	management_actions.add_child(dismiss)
+	action_row.add_child(dismiss)
 	return card
 
 func _add_stat_card(caption: String, value: String, detail: String) -> void:
