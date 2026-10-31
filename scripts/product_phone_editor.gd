@@ -259,7 +259,8 @@ func _build_software_research_grid(parent: Control, compact: bool) -> void:
 		"Sensors",
 		"Front Camera",
 		"Rare Camera",
-		"Memory Clock"
+		"Memory Clock",
+		"AI Processing"
 	]
 	_build_research_feature_grid(parent, compact, "SOFTWARE FEATURES", "Software", features)
 
