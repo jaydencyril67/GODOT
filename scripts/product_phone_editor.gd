@@ -960,6 +960,9 @@ func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
 
+	# Rebuild only this feature so changing the slider never affects other
+	# phone details. Each opening is a layered, recessed-looking perforation
+	# on the bottom-facing Y edge, not a raised cylinder on the screen.
 	for child in phone_body.get_children():
 		if child.name.begins_with("PhoneSpeakerOpening_"):
 			child.queue_free()
@@ -968,29 +971,53 @@ func _refresh_phone_speakers() -> void:
 		return
 
 	var phone_bottom_y := -PHONE_SIZE.y * 0.5
-	var spacing := 0.105
+	var spacing := 0.092
 	var start_x := -float(speaker_count - 1) * spacing * 0.5
 
-	for speaker_index in range(speaker_count):
-		var opening := MeshInstance3D.new()
-		opening.name = "PhoneSpeakerOpening_%d" % (speaker_index + 1)
-		var opening_mesh := CylinderMesh.new()
-		# A short cylinder aligned to the phone's Y axis sits on the bottom
-		# edge, making a small dark aperture rather than a mark on the screen.
-		opening_mesh.top_radius = 0.018
-		opening_mesh.bottom_radius = 0.018
-		opening_mesh.height = 0.004
-		opening_mesh.radial_segments = 20
-		opening.mesh = opening_mesh
+	var rim_material := StandardMaterial3D.new()
+	rim_material.albedo_color = Color("#626d77")
+	rim_material.roughness = 0.72
+	rim_material.metallic = 0.42
 
-		var opening_material := StandardMaterial3D.new()
-		opening_material.albedo_color = Color("#101820")
-		opening_material.roughness = 1.0
-		opening_material.metallic = 0.0
-		opening.material_override = opening_material
-		opening.position = Vector3(start_x + float(speaker_index) * spacing, phone_bottom_y - 0.001, 0.0)
-		opening.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		phone_body.add_child(opening)
+	var aperture_material := StandardMaterial3D.new()
+	aperture_material.albedo_color = Color("#080d12")
+	aperture_material.roughness = 1.0
+	aperture_material.metallic = 0.0
+
+	for speaker_index in range(speaker_count):
+		var opening_root := Node3D.new()
+		opening_root.name = "PhoneSpeakerOpening_%d" % (speaker_index + 1)
+		opening_root.position = Vector3(start_x + float(speaker_index) * spacing, phone_bottom_y, 0.0)
+		phone_body.add_child(opening_root)
+
+		# A fine metallic lip catches light around the dark acoustic aperture.
+		var rim := MeshInstance3D.new()
+		rim.name = "SpeakerApertureRim"
+		var rim_mesh := CylinderMesh.new()
+		rim_mesh.top_radius = 0.020
+		rim_mesh.bottom_radius = 0.020
+		rim_mesh.height = 0.002
+		rim_mesh.radial_segments = 24
+		rim.mesh = rim_mesh
+		rim.material_override = rim_material
+		rim.position.y = -0.0008
+		rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		opening_root.add_child(rim)
+
+		# The smaller, nearly black insert sits just beyond the lip to read
+		# visually as a tiny drilled/recessed hole in the metal frame.
+		var aperture := MeshInstance3D.new()
+		aperture.name = "SpeakerAcousticOpening"
+		var aperture_mesh := CylinderMesh.new()
+		aperture_mesh.top_radius = 0.014
+		aperture_mesh.bottom_radius = 0.014
+		aperture_mesh.height = 0.002
+		aperture_mesh.radial_segments = 24
+		aperture.mesh = aperture_mesh
+		aperture.material_override = aperture_material
+		aperture.position.y = -0.0022
+		aperture.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		opening_root.add_child(aperture)
 
 
 func _on_phone_thickness_level_changed(value: float) -> void:
