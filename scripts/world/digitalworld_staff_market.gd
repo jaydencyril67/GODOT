@@ -45,6 +45,11 @@ func update_balance(amount: float) -> void:
 
 
 func _build() -> void:
+	if is_instance_valid(staff_scroll_tween) and staff_scroll_tween.is_running():
+		staff_scroll_tween.kill()
+	staff_touch_index = -1
+	staff_touch_dragging = false
+	staff_touch_velocity_y = 0.0
 	for child in get_children():
 		child.queue_free()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
