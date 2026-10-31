@@ -972,10 +972,9 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	# Reserve enough height for the heading, custom checkbox, position label,
-	# and the complete +/- control row. Without this explicit minimum the
-	# nested PanelContainer can collapse to the heading's height on mobile.
-	section.custom_minimum_size = Vector2(0.0, 152.0)
+	# Keep the complete control stack inside the panel on compact screens.
+	# The panel's own margins are additional to the VBox content height.
+	section.custom_minimum_size = Vector2(0.0, 184.0)
 	var section_style := StyleBoxFlat.new()
 	section_style.bg_color = Color(0.20, 0.48, 0.66, 0.25)
 	section_style.border_color = Color(0.55, 0.80, 0.94, 0.55)
@@ -990,7 +989,8 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.custom_minimum_size.y = 130.0
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.custom_minimum_size.y = 158.0
 	content.add_theme_constant_override("separation", 8)
 	section.add_child(content)
 	var heading_row := HBoxContainer.new()
