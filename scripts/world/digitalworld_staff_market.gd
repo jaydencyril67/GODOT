@@ -326,7 +326,7 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 	if department_count == 0:
 		var empty_card := _glass_card_message("NO " + department.to_upper() + " STAFF", "Employees assigned to this department will appear here.")
 		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		empty_card.custom_minimum_size = Vector2(300 if compact else 340, 112)
+		empty_card.custom_minimum_size = Vector2(300 if compact else 340, 450 if compact else 420)
 		employee_row.add_child(empty_card)
 
 
