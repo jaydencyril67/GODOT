@@ -1767,6 +1767,7 @@ func _ensure_staff_data() -> void:
 			candidate_data.erase("reliability")
 			candidate_data.erase("communication")
 			candidate_data.erase("personality")
+			candidate_data.erase("rarity")
 	for employee_value in career["staff_employees"]:
 		if employee_value is Dictionary:
 			var employee_data: Dictionary = employee_value
@@ -1774,6 +1775,7 @@ func _ensure_staff_data() -> void:
 			employee_data.erase("reliability")
 			employee_data.erase("communication")
 			employee_data.erase("personality")
+			employee_data.erase("rarity")
 			# Migrate employees from retired departments into the new three-team structure.
 			if str(employee_data.get("department", "")) not in ["Development", "Marketing", "Research"]:
 				var legacy_position := str(employee_data.get("position", "")).to_lower()
@@ -1829,15 +1831,6 @@ func _generate_staff_candidate() -> Dictionary:
 		"Research": base_salary = 175000.0
 		"Marketing": base_salary = 145000.0
 	var salary := roundf(base_salary * (0.65 + float(ability) / 100.0) * (1.0 + float(experience) * 0.035) / 1000.0) * 1000.0
-	var rarity := "Common"
-	if ability >= 92:
-		rarity = "Legendary"
-	elif ability >= 84:
-		rarity = "Elite"
-	elif ability >= 74:
-		rarity = "Rare"
-	elif ability >= 62:
-		rarity = "Uncommon"
 	var candidate_id := "candidate_%05d" % int(career.get("next_staff_candidate_id", 1))
 	career["next_staff_candidate_id"] = int(career.get("next_staff_candidate_id", 1)) + 1
 	return {
@@ -1852,8 +1845,7 @@ func _generate_staff_candidate() -> Dictionary:
 		"efficiency": efficiency,
 		"experience": experience,
 		"education": ["Diploma", "Bachelor's Degree", "Master's Degree", "Doctorate"][rng.randi_range(0, 3)],
-		"monthly_salary": salary,
-		"rarity": rarity
+		"monthly_salary": salary
 	}
 
 
