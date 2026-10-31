@@ -19,9 +19,8 @@ var capacity := 3
 var company_name := "YOUR COMPANY"
 var company_balance := 0.0
 var content: VBoxContainer
-var staff_scroll: ScrollContainer
-var staff_scroll_tween: Tween
 var staff_horizontal_tween: Tween
+var department_view := "Marketing"
 var staff_horizontal_rows: Array[ScrollContainer] = []
 var staff_active_horizontal_scroll: ScrollContainer
 var staff_touch_index := -1
@@ -47,8 +46,6 @@ func update_balance(amount: float) -> void:
 
 
 func _build() -> void:
-	if is_instance_valid(staff_scroll_tween) and staff_scroll_tween.is_running():
-		staff_scroll_tween.kill()
 	if is_instance_valid(staff_horizontal_tween) and staff_horizontal_tween.is_running():
 		staff_horizontal_tween.kill()
 	staff_horizontal_rows.clear()
@@ -78,25 +75,15 @@ func _build() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "StaffSceneScroll"
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	scroll.follow_focus = false
-	scroll.scroll_deadzone = 8
-	scroll.clip_contents = true
-	staff_scroll = scroll
-	add_child(scroll)
-
 	var outer := MarginContainer.new()
+	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	outer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_theme_constant_override("margin_left", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_right", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_top", 18 if compact else 28)
 	outer.add_theme_constant_override("margin_bottom", 24)
-	scroll.add_child(outer)
+	add_child(outer)
 
 	var page := VBoxContainer.new()
 	page.name = "StaffSceneContent"
@@ -132,9 +119,8 @@ func _build() -> void:
 	back_button.pressed.connect(func(): back_requested.emit())
 	hero_row.add_child(back_button)
 
-	# The page-level ScrollContainer owns vertical scrolling. A second nested
-	# ScrollContainer here can collapse to zero height inside the VBox on mobile,
-	# making both candidate and employee lists appear empty.
+	# Department selector switches between single horizontal rows. The page
+	# itself never scrolls vertically.
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -148,14 +134,13 @@ func _build() -> void:
 		_build_management()
 
 func _input(event: InputEvent) -> void:
-	if not is_instance_valid(staff_scroll) or not visible:
+	if not visible:
 		return
 	var viewport := get_viewport()
-	var scroll_rect := staff_scroll.get_global_rect()
 
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			if scroll_rect.has_point(event.position):
+			if get_global_rect().has_point(event.position):
 				staff_touch_index = event.index
 				staff_touch_start = event.position
 				staff_touch_dragging = false
@@ -164,13 +149,9 @@ func _input(event: InputEvent) -> void:
 				staff_active_horizontal_scroll = _staff_horizontal_scroll_at(event.position)
 		else:
 			if event.index == staff_touch_index:
-				if staff_touch_dragging:
-					if staff_touch_axis == "horizontal" and is_instance_valid(staff_active_horizontal_scroll):
-						var horizontal_target := clampi(roundi(float(staff_active_horizontal_scroll.scroll_horizontal) - staff_touch_velocity.x * 0.10), 0, _staff_horizontal_max_scroll(staff_active_horizontal_scroll))
-						_animate_staff_horizontal_scroll(staff_active_horizontal_scroll, horizontal_target, 0.24)
-					elif staff_touch_axis == "vertical":
-						var vertical_target := clampi(roundi(float(staff_scroll.scroll_vertical) - staff_touch_velocity.y * 0.10), 0, _staff_max_scroll())
-						_animate_staff_scroll(vertical_target, 0.24)
+				if staff_touch_dragging and staff_touch_axis == "horizontal" and is_instance_valid(staff_active_horizontal_scroll):
+					var horizontal_target := clampi(roundi(float(staff_active_horizontal_scroll.scroll_horizontal) - staff_touch_velocity.x * 0.10), 0, _staff_horizontal_max_scroll(staff_active_horizontal_scroll))
+					_animate_staff_horizontal_scroll(staff_active_horizontal_scroll, horizontal_target, 0.24)
 					viewport.set_input_as_handled()
 				staff_touch_index = -1
 				staff_touch_dragging = false
@@ -181,27 +162,15 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and event.index == staff_touch_index:
 		var drag_delta: Vector2 = event.position - staff_touch_start
 		if staff_touch_axis == "" and drag_delta.length() >= 9.0:
-			staff_touch_dragging = true
 			if is_instance_valid(staff_active_horizontal_scroll) and absf(drag_delta.x) > absf(drag_delta.y):
+				staff_touch_dragging = true
 				staff_touch_axis = "horizontal"
-			else:
-				staff_touch_axis = "vertical"
-		if staff_touch_dragging:
-			if staff_touch_axis == "horizontal" and is_instance_valid(staff_active_horizontal_scroll):
-				staff_active_horizontal_scroll.scroll_horizontal = clampi(staff_active_horizontal_scroll.scroll_horizontal - roundi(event.relative.x), 0, _staff_horizontal_max_scroll(staff_active_horizontal_scroll))
-			elif staff_touch_axis == "vertical":
-				staff_scroll.scroll_vertical = clampi(staff_scroll.scroll_vertical - roundi(event.relative.y), 0, _staff_max_scroll())
+		if staff_touch_dragging and staff_touch_axis == "horizontal" and is_instance_valid(staff_active_horizontal_scroll):
+			staff_active_horizontal_scroll.scroll_horizontal = clampi(staff_active_horizontal_scroll.scroll_horizontal - roundi(event.relative.x), 0, _staff_horizontal_max_scroll(staff_active_horizontal_scroll))
 			staff_touch_velocity = event.velocity
 			viewport.set_input_as_handled()
 
-	elif event is InputEventMouseButton and not OS.has_feature("android"):
-		if event.pressed and (event.button_index == MOUSE_BUTTON_WHEEL_DOWN or event.button_index == MOUSE_BUTTON_WHEEL_UP) and scroll_rect.has_point(event.position):
-			var direction := 1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1
-			var target := clampi(staff_scroll.scroll_vertical + direction * 132, 0, _staff_max_scroll())
-			_animate_staff_scroll(target, 0.22)
-			viewport.set_input_as_handled()
-
-
+	
 func _staff_horizontal_scroll_at(screen_position: Vector2) -> ScrollContainer:
 	for row in staff_horizontal_rows:
 		if is_instance_valid(row) and row.get_global_rect().has_point(screen_position):
@@ -227,28 +196,31 @@ func _animate_staff_horizontal_scroll(row: ScrollContainer, target: int, duratio
 	staff_horizontal_tween.tween_property(row, "scroll_horizontal", target, duration)
 
 
-func _staff_max_scroll() -> int:
-	if not is_instance_valid(staff_scroll):
-		return 0
-	var bar := staff_scroll.get_v_scroll_bar()
-	return maxi(0, roundi(bar.max_value - bar.page))
-
-
-func _animate_staff_scroll(target: int, duration: float) -> void:
-	if not is_instance_valid(staff_scroll):
-		return
-	if is_instance_valid(staff_scroll_tween) and staff_scroll_tween.is_running():
-		staff_scroll_tween.kill()
-	staff_scroll_tween = staff_scroll.create_tween()
-	staff_scroll_tween.set_trans(Tween.TRANS_QUAD)
-	staff_scroll_tween.set_ease(Tween.EASE_OUT)
-	staff_scroll_tween.tween_property(staff_scroll, "scroll_vertical", target, duration)
-
-
 func _build_market() -> void:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	for department in DEPARTMENTS:
-		_build_department_candidate_row(department, compact)
+	_build_department_selector(compact)
+	_build_department_candidate_row(department_view, compact)
+
+
+func _build_department_selector(compact: bool) -> void:
+	var selector := HBoxContainer.new()
+	selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selector.alignment = BoxContainer.ALIGNMENT_END
+	selector.add_theme_constant_override("separation", 7 if compact else 10)
+	content.add_child(selector)
+	for department in ["Marketing", "Research", "Development"]:
+		var tab := _button(department.to_upper(), department_view == department)
+		tab.custom_minimum_size = Vector2(108 if compact else 142, 40 if compact else 46)
+		tab.add_theme_font_size_override("font_size", 11 if compact else 13)
+		tab.pressed.connect(func(): _select_department_view(department))
+		selector.add_child(tab)
+
+
+func _select_department_view(department: String) -> void:
+	if not DEPARTMENTS.has(department) or department_view == department:
+		return
+	department_view = department
+	_build()
 
 
 func _build_department_candidate_row(department: String, compact: bool) -> void:
@@ -373,9 +345,8 @@ func _candidate_card(candidate: Dictionary) -> Control:
 
 func _build_management() -> void:
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	content.add_child(_label("YOUR EMPLOYEES", 17 if compact else 19, WHITE))
-	for department in DEPARTMENTS:
-		_build_department_employee_row(department, compact)
+	_build_department_selector(compact)
+	_build_department_employee_row(department_view, compact)
 
 
 func _build_department_employee_row(department: String, compact: bool) -> void:
