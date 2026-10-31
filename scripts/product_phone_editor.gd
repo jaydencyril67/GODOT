@@ -27,6 +27,8 @@ var border_radius_level := 0
 var border_radius_value_label: Label
 var phone_thickness_level := 0
 var phone_thickness_value_label: Label
+var speaker_count := 0
+var speaker_count_value_label: Label
 var active_feature_panel: Control
 var right_tools_content: VBoxContainer
 
@@ -723,7 +725,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name == "Border Radius" or feature_name == "Thickness":
+	if feature_name in ["Border Radius", "Thickness", "Speakers"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -734,6 +736,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_border_radius_controls()
 	elif feature_name == "Thickness":
 		_show_thickness_controls()
+	elif feature_name == "Speakers":
+		_show_speaker_controls()
 
 
 func _style_feature_slider(meter: VSlider) -> void:
@@ -886,6 +890,108 @@ func _show_thickness_controls() -> void:
 	active_feature_panel.add_child(phone_thickness_value_label)
 
 
+func _show_speaker_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "SpeakerControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 14)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("PHONE SPEAKERS", 19, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var description := _make_label("Choose how many speaker openings appear along the bottom edge", 12, Color("#c7eaff"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	var meter_row := HBoxContainer.new()
+	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	meter_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(meter_row)
+
+	var level_labels := VBoxContainer.new()
+	level_labels.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	level_labels.alignment = BoxContainer.ALIGNMENT_CENTER
+	level_labels.add_theme_constant_override("separation", 0)
+	meter_row.add_child(level_labels)
+
+	for level in range(6, -1, -1):
+		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
+		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		level_labels.add_child(level_label)
+
+	var meter := VSlider.new()
+	meter.name = "SpeakerCountLevelMeter"
+	meter.min_value = 0
+	meter.max_value = 6
+	meter.step = 1
+	meter.value = speaker_count
+	meter.tick_count = 7
+	meter.custom_minimum_size = Vector2(76, 290)
+	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	meter.value_changed.connect(_on_speaker_count_changed)
+	_style_feature_slider(meter)
+	meter_row.add_child(meter)
+
+	speaker_count_value_label = _make_label("SPEAKERS %d / 6" % speaker_count, 16, Color("#a9e3ff"))
+	speaker_count_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(speaker_count_value_label)
+
+
+func _on_speaker_count_changed(value: float) -> void:
+	speaker_count = clampi(roundi(value), 0, 6)
+	if is_instance_valid(speaker_count_value_label):
+		speaker_count_value_label.text = "SPEAKERS %d / 6" % speaker_count
+	_refresh_phone_speakers()
+
+
+func _refresh_phone_speakers() -> void:
+	if not is_instance_valid(phone_body):
+		return
+
+	for child in phone_body.get_children():
+		if child.name.begins_with("PhoneSpeakerOpening_"):
+			child.queue_free()
+
+	if speaker_count <= 0:
+		return
+
+	var phone_thickness := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var front_z := phone_thickness * 0.5 + 0.006
+	var spacing := 0.115
+	var start_x := -float(speaker_count - 1) * spacing * 0.5
+
+	for speaker_index in range(speaker_count):
+		var opening := MeshInstance3D.new()
+		opening.name = "PhoneSpeakerOpening_%d" % (speaker_index + 1)
+		var opening_mesh := CylinderMesh.new()
+		opening_mesh.top_radius = 0.032
+		opening_mesh.bottom_radius = 0.032
+		opening_mesh.height = 0.012
+		opening_mesh.radial_segments = 16
+		opening.mesh = opening_mesh
+
+		var opening_material := StandardMaterial3D.new()
+		opening_material.albedo_color = Color("#18232d")
+		opening_material.roughness = 0.92
+		opening.material_override = opening_material
+		opening.rotation_degrees.x = 90.0
+		opening.position = Vector3(start_x + float(speaker_index) * spacing, -PHONE_SIZE.y * 0.5 + 0.12, front_z)
+		opening.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		phone_body.add_child(opening)
+
+
 func _on_phone_thickness_level_changed(value: float) -> void:
 	phone_thickness_level = clampi(roundi(value), 0, 10)
 	if is_instance_valid(phone_thickness_value_label):
@@ -898,6 +1004,7 @@ func _refresh_phone_mesh() -> void:
 		return
 	var radius := 0.32 * float(border_radius_level) / 6.0
 	phone_body.mesh = _create_rounded_phone_mesh(radius)
+	_refresh_phone_speakers()
 
 
 func _on_border_radius_level_changed(value: float) -> void:
