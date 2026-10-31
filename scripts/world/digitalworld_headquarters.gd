@@ -813,17 +813,17 @@ func _add_glass_curtain_wall(parent: Node3D, width: float, depth: float, floors:
 		for floor_index in range(floors):
 			var row_height: float = ground_height if floor_index == 0 else floor_height
 			var row_center: float = 0.42 + (ground_height * 0.5 if floor_index == 0 else ground_height + float(floor_index - 1) * floor_height + floor_height * 0.5)
-			var panel_basis := basis.scaled(Vector3(1.0, row_height - 0.24, 1.0))
+			var panel_basis := side_basis.scaled(Vector3(1.0, row_height - 0.24, 1.0))
 			for column in range(columns):
 				var x: float = (float(column) - float(columns - 1) * 0.5) * panel_width
 				panel_transforms.append(Transform3D(panel_basis, side_basis * Vector3(x, row_center, facade_z)))
-				spandrel_transforms.append(Transform3D(basis, side_basis * Vector3(x, row_center - row_height * 0.5 + 0.13, facade_z + 0.045)))
+				spandrel_transforms.append(Transform3D(side_basis, side_basis * Vector3(x, row_center - row_height * 0.5 + 0.13, facade_z + 0.045)))
 		for column in range(columns + 1):
 			var x: float = (float(column) - float(columns) * 0.5) * panel_width
-			vertical_transforms.append(Transform3D(basis, side_basis * Vector3(x, (ground_height + float(floors - 1) * floor_height) * 0.5 + 0.42, facade_z + 0.075)))
+			vertical_transforms.append(Transform3D(side_basis, side_basis * Vector3(x, (ground_height + float(floors - 1) * floor_height) * 0.5 + 0.42, facade_z + 0.075)))
 		for floor_index in range(floors + 1):
 			var y: float = 0.42 + ground_height + float(floor_index - 1) * floor_height if floor_index > 0 else 0.42
-			horizontal_transforms.append(Transform3D(basis, side_basis * Vector3(0.0, y, facade_z + 0.08)))
+			horizontal_transforms.append(Transform3D(side_basis, side_basis * Vector3(0.0, y, facade_z + 0.08)))
 		panels.instance_count = panel_transforms.size()
 		spandrels.instance_count = spandrel_transforms.size()
 		verticals.instance_count = vertical_transforms.size()
