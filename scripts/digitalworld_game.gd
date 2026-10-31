@@ -1279,12 +1279,18 @@ func _update_home_status_bar() -> void:
 
 
 func _show_finance_toast(amount: float, activity: String) -> void:
-	# Keep the notification attached to the balance card so it appears beside
-	# the exact figure that changed, without shifting the status-bar layout.
-	if not is_instance_valid(home_balance_label):
-		return
-	var balance_card := home_balance_label.get_parent() as PanelContainer
-	if not is_instance_valid(balance_card) or not balance_card.is_visible_in_tree():
+	# Attach the toast to whichever balance display is currently visible:
+	# the Home status card or the headquarters finance panel.
+	var toast_parent: Control
+	var toast_y := 68.0
+	if is_instance_valid(home_balance_label) and home_balance_label.is_visible_in_tree():
+		toast_parent = home_balance_label.get_parent() as Control
+	elif is_instance_valid(world_root):
+		var hq_balance_label := world_root.get("available_balance_label") as Control
+		if is_instance_valid(hq_balance_label) and hq_balance_label.is_visible_in_tree():
+			toast_parent = hq_balance_label
+			toast_y = 22.0
+	if not is_instance_valid(toast_parent):
 		return
 	if is_instance_valid(home_finance_toast_tween):
 		home_finance_toast_tween.kill()
@@ -1297,8 +1303,9 @@ func _show_finance_toast(amount: float, activity: String) -> void:
 	toast.z_index = 100
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast.custom_minimum_size = Vector2(230.0, 38.0)
+	toast.size = Vector2(230.0, 38.0)
 	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	toast.position = Vector2(-115.0, 68.0)
+	toast.position = Vector2(-115.0, toast_y)
 	toast.modulate.a = 0.0
 
 	var style := StyleBoxFlat.new()
@@ -1324,7 +1331,7 @@ func _show_finance_toast(amount: float, activity: String) -> void:
 	label.clip_text = true
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	toast.add_child(label)
-	balance_card.add_child(toast)
+	toast_parent.add_child(toast)
 	home_finance_toast = toast
 
 	home_finance_toast_tween = create_tween()
