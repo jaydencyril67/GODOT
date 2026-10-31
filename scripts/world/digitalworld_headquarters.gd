@@ -780,7 +780,7 @@ func _add_glass_curtain_wall(parent: Node3D, width: float, depth: float, floors:
 	# A continuous glazed skin wraps all four sides; repeated panels and mullions are batched for mobile.
 	for side in range(4):
 		var angle := float(side) * PI * 0.5
-		var basis := Basis(Vector3.UP, angle)
+		var side_basis := Basis(Vector3.UP, angle)
 		var side_width: float = width if side % 2 == 0 else depth
 		var side_depth: float = depth if side % 2 == 0 else width
 		var columns: int = maxi(4, int(round(side_width / 3.2)))
@@ -816,14 +816,14 @@ func _add_glass_curtain_wall(parent: Node3D, width: float, depth: float, floors:
 			var panel_basis := basis.scaled(Vector3(1.0, row_height - 0.24, 1.0))
 			for column in range(columns):
 				var x: float = (float(column) - float(columns - 1) * 0.5) * panel_width
-				panel_transforms.append(Transform3D(panel_basis, basis * Vector3(x, row_center, facade_z)))
-				spandrel_transforms.append(Transform3D(basis, basis * Vector3(x, row_center - row_height * 0.5 + 0.13, facade_z + 0.045)))
+				panel_transforms.append(Transform3D(panel_basis, side_basis * Vector3(x, row_center, facade_z)))
+				spandrel_transforms.append(Transform3D(basis, side_basis * Vector3(x, row_center - row_height * 0.5 + 0.13, facade_z + 0.045)))
 		for column in range(columns + 1):
 			var x: float = (float(column) - float(columns) * 0.5) * panel_width
-			vertical_transforms.append(Transform3D(basis, basis * Vector3(x, (ground_height + float(floors - 1) * floor_height) * 0.5 + 0.42, facade_z + 0.075)))
+			vertical_transforms.append(Transform3D(basis, side_basis * Vector3(x, (ground_height + float(floors - 1) * floor_height) * 0.5 + 0.42, facade_z + 0.075)))
 		for floor_index in range(floors + 1):
 			var y: float = 0.42 + ground_height + float(floor_index - 1) * floor_height if floor_index > 0 else 0.42
-			horizontal_transforms.append(Transform3D(basis, basis * Vector3(0.0, y, facade_z + 0.08)))
+			horizontal_transforms.append(Transform3D(basis, side_basis * Vector3(0.0, y, facade_z + 0.08)))
 		panels.instance_count = panel_transforms.size()
 		spandrels.instance_count = spandrel_transforms.size()
 		verticals.instance_count = vertical_transforms.size()
