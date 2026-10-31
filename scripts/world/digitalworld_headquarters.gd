@@ -7,7 +7,7 @@ signal setup_progress(message: String, progress: float)
 signal setup_completed
 signal back_requested
 signal upgrade_requested(level: int)
-signal downgrade_requested(level: int)
+signal downgrade_requested(level: int, refund_percent: int)
 
 const MAX_LEVEL := 10
 const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
@@ -41,6 +41,7 @@ var previous_level_button: Button
 var next_level_button: Button
 var upgrade_button: Button
 var downgrade_button: Button
+var downgrade_refund_percent := 55
 var home_mode := false
 var camera_target := Vector3.ZERO
 var camera_distance := 38.0
@@ -343,13 +344,19 @@ func _show_previous_level() -> void:
 	if preview_level <= 1:
 		return
 	preview_level -= 1
+	_update_downgrade_refund_roll()
 	_rebuild_preview()
 
 func _show_next_level() -> void:
 	if preview_level >= MAX_LEVEL:
 		return
 	preview_level += 1
-	_rebuild_preview()
+	_update_downgrade_refund_roll()
+
+
+func _update_downgrade_refund_roll() -> void:
+	if preview_level < owned_level:
+		downgrade_refund_percent = randi_range(50, 60)
 
 func _create_preview_interface() -> void:
 	preview_interface_layer = CanvasLayer.new()
@@ -447,7 +454,7 @@ func _create_preview_interface() -> void:
 		downgrade_button.offset_top = -76.0
 		downgrade_button.offset_right = -156.0
 		downgrade_button.offset_bottom = -18.0
-		downgrade_button.pressed.connect(func(): downgrade_requested.emit(preview_level))
+		downgrade_button.pressed.connect(func(): downgrade_requested.emit(preview_level, downgrade_refund_percent))
 
 		var cost_panel := PanelContainer.new()
 		cost_panel.name = "Headquarters_Upgrade_Finance_Panel"
@@ -557,10 +564,10 @@ func _refresh_preview_interface() -> void:
 		next_level_button.disabled = preview_level >= MAX_LEVEL
 	var upgrade_cost := get_upgrade_cost(preview_level)
 	var can_afford_upgrade := company_balance >= upgrade_cost
-	var downgrade_refund := float(get_upgrade_cost(owned_level)) * 0.60
+	var downgrade_refund := float(get_upgrade_cost(owned_level)) * float(downgrade_refund_percent) / 100.0
 	if is_instance_valid(upgrade_cost_label):
 		if preview_level < owned_level:
-			upgrade_cost_label.text = "DOWNGRADE REFUND (60%%): %s" % _format_money(downgrade_refund)
+			upgrade_cost_label.text = "DOWNGRADE REFUND (%d%%): %s" % [downgrade_refund_percent, _format_money(downgrade_refund)]
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#8ff0bd"))
 		elif preview_level == owned_level:
 			upgrade_cost_label.text = "CURRENT HEADQUARTERS"
