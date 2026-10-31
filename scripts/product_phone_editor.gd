@@ -1079,12 +1079,13 @@ func _refresh_phone_side_buttons() -> void:
 	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
 	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
 	var key_length := 0.30 * side_button_length_scale
+	var single_key_length := key_length * 0.46
 	if power_button_enabled:
-		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, key_length, key_radius, frame_material, key_material)
+		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, single_key_length, key_radius, frame_material, key_material)
 	if volume_button_enabled:
 		# A real volume rocker is represented by two separate tactile keys.
 		var rocker_gap := 0.018
-		var half_key_length := key_length * 0.46
+		var half_key_length := single_key_length
 		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + half_key_length * 0.52 + rocker_gap, half_key_length, key_radius, frame_material, key_material)
 		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - half_key_length * 0.52 - rocker_gap, half_key_length, key_radius, frame_material, key_material)
 
