@@ -980,9 +980,9 @@ func _add_facade_pilasters(parent: Node3D, angle: float, width: float, depth: fl
 func _add_vertical_fins(parent: Node3D, height: float, material: Material, width: float, depth: float) -> void:
 	for side in range(4):
 		var angle := float(side) * PI * 0.5
-		var basis := Basis(Vector3.UP, angle)
+		var rotation_basis := Basis(Vector3.UP, angle)
 		for x in [-1.55, 1.55]:
-			var p := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.2)
+			var p := rotation_basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.2)
 			var fin := _box(parent, "Full_Height_Facade_Fin", Vector3(0.13, height, 0.22), p, material)
 			fin.rotation.y = angle
 
