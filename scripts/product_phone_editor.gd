@@ -898,15 +898,6 @@ func _refresh_phone_mesh() -> void:
 		return
 	var radius := 0.32 * float(border_radius_level) / 6.0
 	phone_body.mesh = _create_rounded_phone_mesh(radius)
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	var initial_hint := _make_label("SELECT A FEATURE", 18, Color("#c7eaff"))
-	initial_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	initial_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	initial_hint.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_tools_content.add_child(initial_hint)
 
 
 func _on_border_radius_level_changed(value: float) -> void:
