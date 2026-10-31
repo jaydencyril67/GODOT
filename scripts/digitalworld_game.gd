@@ -2197,7 +2197,6 @@ func _connect_staff_screen_signals(screen: Control) -> void:
 	screen.back_requested.connect(_return_home_from_staff)
 	screen.hire_requested.connect(_hire_staff_candidate)
 	screen.dismiss_requested.connect(_request_staff_dismissal)
-	screen.assignment_requested.connect(_assign_staff_department)
 
 
 func _open_staff_screen(screen_mode: String) -> void:
