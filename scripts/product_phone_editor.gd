@@ -671,8 +671,12 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	# Use the same STIX variable font and emboldening as the app's other scene buttons.
-	_apply_research_typography(button, 12)
+	# Make feature names larger and heavier while keeping the app's STIX font.
+	var button_font := FontVariation.new()
+	button_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	button_font.variation_embolden = 1.2
+	button.add_theme_font_override("font", button_font)
+	button.add_theme_font_size_override("font_size", 16)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
