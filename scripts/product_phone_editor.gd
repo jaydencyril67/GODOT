@@ -1127,17 +1127,19 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
-	# Keep the physical keys close to flush with the phone frame.
-	var button_depth := maxf(radius * 0.21, 0.004)
+	# The side key is almost flush with the frame. Keep its backing fully
+	# inset so the backing cannot create a false oversized protrusion.
+	var button_depth := maxf(radius * 0.08, 0.0015)
 	var button_width := maxf(radius * 1.35, 0.024)
+	var side_edge := PHONE_SIZE.x * 0.5
 
 	var backing := MeshInstance3D.new()
 	backing.name = node_name + "Recess"
 	var recess_mesh := BoxMesh.new()
-	recess_mesh.size = Vector3(radius * 2.36, length + radius * 0.7, button_width * 1.45)
+	recess_mesh.size = Vector3(radius * 0.5, length + radius * 0.7, button_width * 1.45)
 	backing.mesh = recess_mesh
 	backing.material_override = frame_material
-	backing.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + radius * 0.18), position_y, 0.0)
+	backing.position = Vector3(side_sign * (side_edge - radius * 0.35), position_y, 0.0)
 	backing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(backing)
 
@@ -1147,7 +1149,9 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	key_mesh.size = Vector3(button_depth, maxf(length, radius * 2.0), button_width)
 	key.mesh = key_mesh
 	key.material_override = key_material
-	key.position = Vector3(side_sign * (PHONE_SIZE.x * 0.5 + button_depth * 0.08), position_y, 0.0)
+	# Center the thin key just beyond the side plane, leaving only a shallow
+	# tactile surface exposed rather than a raised block.
+	key.position = Vector3(side_sign * (side_edge + button_depth * 0.45), position_y, 0.0)
 	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(key)
 
