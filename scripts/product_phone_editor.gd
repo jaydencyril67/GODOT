@@ -1140,17 +1140,51 @@ func _make_port_outline(width: float, height: float, corner_radius: float, segme
 	return points
 
 
-func _resample_port_outline(points: PackedVector2Array, minimum_points: int = 48) -> PackedVector2Array:
-	if points.size() < 3:
-		return points
-	var samples_per_edge := maxi(1, int(ceil(float(minimum_points) / float(points.size()))))
-	var result := PackedVector2Array()
+func _port_polygon_ray_intersection(points: PackedVector2Array, direction: Vector2) -> Vector2:
+	var nearest_distance := 1.0e20
 	for index in range(points.size()):
 		var next_index := (index + 1) % points.size()
-		for sample_index in range(samples_per_edge):
-			var weight := float(sample_index) / float(samples_per_edge)
-			result.append(points[index].lerp(points[next_index], weight))
-	return result
+		var edge_start := points[index]
+		var edge := points[next_index] - edge_start
+		var denominator := direction.cross(edge)
+		if absf(denominator) < 0.000001:
+			continue
+		var distance := edge_start.cross(edge) / denominator
+		var edge_weight := edge_start.cross(direction) / denominator
+		if distance > 0.0 and edge_weight >= -0.0001 and edge_weight <= 1.0001:
+			nearest_distance = minf(nearest_distance, distance)
+	if nearest_distance >= 1.0e19:
+		return Vector2.ZERO
+	return direction * nearest_distance
+
+
+func _resample_port_outline_by_angle(points: PackedVector2Array, side_half_width: float, side_half_height: float) -> PackedVector2Array:
+	if points.size() < 3:
+		return points
+	var angles: Array[float] = []
+	var sample_count := 64
+	for index in range(sample_count):
+		angles.append(PI * 2.0 * float(index) / float(sample_count))
+	# Include the four exact handset-frame corner directions so the mapped
+	# outer contour reaches every corner without leaving tiny uncovered wedges.
+	var corner_angle := atan2(side_half_height, side_half_width)
+	angles.append(corner_angle)
+	angles.append(PI - corner_angle)
+	angles.append(PI + corner_angle)
+	angles.append(PI * 2.0 - corner_angle)
+	angles.sort()
+
+	var result := PackedVector2Array()
+	var previous_angle := -1.0
+	for angle in angles:
+		if absf(angle - previous_angle) < 0.00001:
+			continue
+		previous_angle = angle
+		var direction := Vector2(cos(angle), sin(angle))
+		var boundary_point := _port_polygon_ray_intersection(points, direction)
+		if boundary_point != Vector2.ZERO:
+			result.append(boundary_point)
+	return result if result.size() >= 3 else points
 
 
 func _make_port_face(points: PackedVector2Array, face_y: float) -> ArrayMesh:
@@ -1361,7 +1395,7 @@ func _refresh_phone_charge_port() -> void:
 	port_height *= profile_fit
 	# Add points along the connector profile so the full bottom-edge surface
 	# can wrap cleanly around small trapezoidal and stepped receptacle shapes.
-	inner_points = _resample_port_outline(inner_points, 48)
+	inner_points = _resample_port_outline_by_angle(inner_points, flat_bottom_half_width, half_phone_depth)
 	charge_port_opening_points = inner_points.duplicate()
 
 	var port_root := Node3D.new()
