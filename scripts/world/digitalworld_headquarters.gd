@@ -441,9 +441,9 @@ func _create_preview_interface() -> void:
 		staff_management_button.anchor_top = 0.0
 		staff_management_button.anchor_right = 1.0
 		staff_management_button.anchor_bottom = 0.0
-		staff_management_button.offset_left = -158.0
+		staff_management_button.offset_left = -188.0
 		staff_management_button.offset_top = 20.0
-		staff_management_button.offset_right = -14.0
+		staff_management_button.offset_right = -44.0
 		staff_management_button.offset_bottom = 64.0
 		_apply_preview_typography(staff_management_button, 15)
 		_style_preview_button(staff_management_button, false)
