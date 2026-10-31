@@ -86,8 +86,8 @@ func _process(delta: float) -> void:
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month:
 		_process_pending_monthly_expenses()
+		_process_staff_market_refresh(current_month)
 	if current_day != previous_day:
-		_process_staff_market_refresh(current_day)
 		_save_career()
 		last_saved_game_day = current_day
 	_update_home_status_bar()
@@ -166,7 +166,7 @@ func _load_career() -> bool:
 		"staff_candidates": config.get_value("career", "staff_candidates", []),
 		"staff_employees": config.get_value("career", "staff_employees", []),
 		"next_staff_candidate_id": int(config.get_value("career", "next_staff_candidate_id", 1)),
-		"last_candidate_refresh_day": int(config.get_value("career", "last_candidate_refresh_day", floori(float(config.get_value("career", "game_date_unix", 1262304000.0)) / 86400.0))),
+		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
 		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false))
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
@@ -193,7 +193,7 @@ func _save_career() -> bool:
 	config.set_value("career", "staff_candidates", career.get("staff_candidates", []))
 	config.set_value("career", "staff_employees", career.get("staff_employees", []))
 	config.set_value("career", "next_staff_candidate_id", int(career.get("next_staff_candidate_id", 1)))
-	config.set_value("career", "last_candidate_refresh_day", int(career.get("last_candidate_refresh_day", floori(game_date_unix / 86400.0))))
+	config.set_value("career", "last_candidate_refresh_month", str(career.get("last_candidate_refresh_month", _get_game_month_key(game_date_unix))))
 	config.set_value("career", "staff_market_initialized", bool(career.get("staff_market_initialized", false)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
@@ -1523,8 +1523,9 @@ func _ensure_staff_data() -> void:
 		career["staff_market_initialized"] = true
 	if not career.has("next_staff_candidate_id"):
 		career["next_staff_candidate_id"] = 1
-	if not career.has("last_candidate_refresh_day"):
-		career["last_candidate_refresh_day"] = floori(game_date_unix / 86400.0)
+	# Older saves migrate to the current in-game month without triggering an instant refresh.
+	if not career.has("last_candidate_refresh_month"):
+		career["last_candidate_refresh_month"] = _get_game_month_key(game_date_unix)
 	if not career.has("last_payroll_billed_month"):
 		career["last_payroll_billed_month"] = _get_game_month_key(game_date_unix)
 
@@ -1589,17 +1590,24 @@ func _generate_staff_candidate() -> Dictionary:
 	}
 
 
-func _process_staff_market_refresh(current_day: int) -> void:
+func _process_staff_market_refresh(current_month: String) -> void:
 	var market: Array = career.get("staff_candidates", [])
-	var last_refresh := int(career.get("last_candidate_refresh_day", current_day))
-	if market.size() >= 50:
-		career["last_candidate_refresh_day"] = current_day
+	var last_refresh_month := str(career.get("last_candidate_refresh_month", current_month))
+	var current_parts := current_month.split("-")
+	var previous_parts := last_refresh_month.split("-")
+	if current_parts.size() != 2 or previous_parts.size() != 2:
+		career["last_candidate_refresh_month"] = current_month
 		return
-	if current_day - last_refresh < 3:
+	var current_month_index := int(current_parts[0]) * 12 + int(current_parts[1])
+	var previous_month_index := int(previous_parts[0]) * 12 + int(previous_parts[1])
+	if current_month_index - previous_month_index < 3:
 		return
-	market.append(_generate_staff_candidate())
-	career["staff_candidates"] = market
-	career["last_candidate_refresh_day"] = current_day
+	# Keep the existing gradual replenishment: one new candidate per 3 in-game months.
+	# A full market simply waits; after a hire, the next scheduled cycle can replenish it.
+	if market.size() < 50:
+		market.append(_generate_staff_candidate())
+		career["staff_candidates"] = market
+	career["last_candidate_refresh_month"] = current_month
 	_refresh_staff_screen_data()
 
 
