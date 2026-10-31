@@ -982,10 +982,11 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	heading_row.add_child(heading_spacer)
 	var toggle := CheckBox.new()
 	toggle.text = ""
-	toggle.custom_minimum_size = Vector2(44, 44)
+	toggle.custom_minimum_size = Vector2(56, 52)
+	toggle.add_theme_constant_override("icon_max_width", 30)
 	toggle.button_pressed = enabled
 	toggle.toggled.connect(_on_side_button_toggled.bind(side))
-	_apply_research_typography(toggle, 16)
+	_apply_research_typography(toggle, 19)
 	heading_row.add_child(toggle)
 	var position_title := _make_label("VERTICAL POSITION", 14, Color("#c7eaff"))
 	content.add_child(position_title)
