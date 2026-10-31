@@ -111,10 +111,19 @@ func _build() -> void:
 	_add_tab(tabs, "STAFF MARKET", mode == "market", "market")
 	_add_tab(tabs, "MY STAFF", mode == "management", "management")
 
+	var content_scroll := ScrollContainer.new()
+	content_scroll.name = "Staff_Content_Scroll"
+	content_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	content_scroll.follow_focus = true
+	page.add_child(content_scroll)
+
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 12)
-	page.add_child(content)
+	content_scroll.add_child(content)
 
 	if mode == "office":
 		_build_office()
