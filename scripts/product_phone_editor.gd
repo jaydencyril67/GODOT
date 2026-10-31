@@ -323,33 +323,15 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 		feature_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		content.add_child(feature_label)
 
-		if grid_prefix == "Extras" and feature_name == "Camera Module Design":
-			var level_label := _make_label("LEVEL: 1 / 20", 8 if short_screen else 9, Color("#d8efff"))
-			level_label.name = "ResearchLevel"
-			content.add_child(level_label)
-			var upgrade_button := Button.new()
-			upgrade_button.name = "UpgradeResearch"
-			upgrade_button.text = "UPGRADE"
-			upgrade_button.custom_minimum_size.y = 22 if short_screen else 28
-			upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			upgrade_button.add_theme_font_size_override("font_size", 8 if short_screen else 9)
-			_style_staff_button(upgrade_button, true)
-			upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind("camera_module"))
-			content.add_child(upgrade_button)
-			research_item_cards["camera_module"] = {"level": level_label, "button": upgrade_button}
-		else:
-			var dummy_button := Button.new()
-			dummy_button.name = "DummyFeatureButton"
-			dummy_button.text = "SELECT"
-			dummy_button.custom_minimum_size.y = 25 if short_screen else 32
-			dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			dummy_button.add_theme_font_size_override("font_size", 9 if short_screen else 10)
-			_style_staff_button(dummy_button, false)
-			# Intentionally no pressed signal: these are placeholder buttons for now.
-			content.add_child(dummy_button)
-
-	if grid_prefix == "Extras":
-		_refresh_design_research_cards()
+		var dummy_button := Button.new()
+		dummy_button.name = "DummyFeatureButton"
+		dummy_button.text = "SELECT"
+		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
+		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		dummy_button.add_theme_font_size_override("font_size", 9 if short_screen else 10)
+		_style_staff_button(dummy_button, false)
+		# Intentionally no pressed signal: these are placeholder buttons for now.
+		content.add_child(dummy_button)
 
 
 func _build_extras_research_content(parent: Control, compact: bool) -> void:
@@ -365,8 +347,7 @@ func _build_extras_research_content(parent: Control, compact: bool) -> void:
 		"USB Cable",
 		"Camera Lens Protector",
 		"Phone Stand",
-		"SIM Ejector Tool",
-		"Camera Module Design"
+		"SIM Ejector Tool"
 	]
 	_build_research_feature_grid(parent, compact, "EXTRAS & ACCESSORIES", "Extras", features)
 
