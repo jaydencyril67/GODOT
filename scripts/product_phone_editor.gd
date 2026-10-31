@@ -648,9 +648,16 @@ func _get_preview_viewport() -> SubViewport:
 	phone_body.name = "Plain_Phone_Body"
 	phone_body.mesh = _create_rounded_phone_mesh(0.0)
 	var body_material := StandardMaterial3D.new()
+	# Keep the body opaque and close to its original solid light-silver finish.
+	# A metallic surface strongly changes brightness with the custom rounded
+	# mesh normals, which made the same albedo look like transparent grey.
 	body_material.albedo_color = Color("#c4ced8")
-	body_material.metallic = 0.22
-	body_material.roughness = 0.38
+	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	body_material.metallic = 0.0
+	body_material.roughness = 0.72
+	# Render both sides of the closed mesh so a winding variation cannot make
+	# the phone appear open when it is rotated in the 3D preview.
+	body_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	phone_body.material_override = body_material
 	preview_world.add_child(phone_body)
 
