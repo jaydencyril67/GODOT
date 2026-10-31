@@ -45,6 +45,15 @@ func update_balance(amount: float) -> void:
 	_build()
 
 
+func _apply_staff_typography(control: Control, font_size: int) -> void:
+	# Use the same STIX variable font and stronger weight as the other updated pages.
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 0.7
+	control.add_theme_font_override("font", stix_font)
+	control.add_theme_font_size_override("font_size", font_size)
+
+
 func _build() -> void:
 	if is_instance_valid(staff_horizontal_tween) and staff_horizontal_tween.is_running():
 		staff_horizontal_tween.kill()
@@ -115,7 +124,7 @@ func _build() -> void:
 	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	back_button.add_theme_font_size_override("font_size", 13 if compact else 14)
+	_apply_staff_typography(back_button, 15 if compact else 16)
 	_style_create_glass_button(back_button)
 	back_button.pressed.connect(func(): back_requested.emit())
 	hero_row.add_child(back_button)
@@ -212,7 +221,7 @@ func _build_department_selector(compact: bool) -> void:
 	for department in ["Marketing", "Research", "Development"]:
 		var tab := _button(department.to_upper(), department_view == department)
 		tab.custom_minimum_size = Vector2(108 if compact else 142, 40 if compact else 46)
-		tab.add_theme_font_size_override("font_size", 11 if compact else 13)
+		_apply_staff_typography(tab, 13 if compact else 15)
 		tab.pressed.connect(func(): _select_department_view(department))
 		selector.add_child(tab)
 
@@ -560,7 +569,7 @@ func _button(caption: String, primary: bool) -> Button:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size.y = 42
-	button.add_theme_font_size_override("font_size", 18)
+	_apply_staff_typography(button, 20)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
@@ -627,7 +636,7 @@ func _style_option_button(button: OptionButton) -> void:
 func _label(value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.add_theme_font_size_override("font_size", maxi(roundi(float(font_size) * 1.18), 15))
+	_apply_staff_typography(label, maxi(roundi(float(font_size) * 1.18) + 2, 17))
 	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return label
