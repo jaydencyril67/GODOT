@@ -963,8 +963,10 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Explicit per-face normals prevent SurfaceTool from averaging the flat
-	# screen surfaces with the curved perimeter and creating smoky shading.
+	# The phone front is at positive Z (the preview camera looks from positive Z),
+	# so its outward normal is +Z. Godot's BACK constant is +Z; FORWARD is -Z.
+	# Keep the front and back normals outward-facing so backface culling never
+	# removes either broad surface and exposes the inside of the phone.
 	for index in range(0, triangle_indices.size(), 3):
 		var a2: Vector2 = outline[triangle_indices[index]]
 		var b2: Vector2 = outline[triangle_indices[index + 1]]
@@ -975,11 +977,11 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 		var back_a := Vector3(a2.x, a2.y, back_z)
 		var back_b := Vector3(b2.x, b2.y, back_z)
 		var back_c := Vector3(c2.x, c2.y, back_z)
-		_add_phone_mesh_triangle(surface, front_a, front_b, front_c, Vector3.FORWARD)
-		_add_phone_mesh_triangle(surface, back_a, back_c, back_b, Vector3.BACK)
+		_add_phone_mesh_triangle(surface, front_a, front_b, front_c, Vector3(0.0, 0.0, 1.0))
+		_add_phone_mesh_triangle(surface, back_a, back_c, back_b, Vector3(0.0, 0.0, -1.0))
 
-	# Build each perimeter wall with its own outward normal. Keep vertices
-	# unindexed so adjacent curved segments do not blend into the broad faces.
+	# Build a continuous wall around the complete outline. Each segment gets
+	# its own flat outward normal; duplicate vertices keep the broad faces flat.
 	for index in range(outline.size()):
 		var next_index := (index + 1) % outline.size()
 		var a: Vector2 = outline[index]
@@ -996,8 +998,8 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	return surface.commit()
 
 
-func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, desired_normal: Vector3) -> void:
-	var normal := desired_normal.normalized()
+func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward_normal: Vector3) -> void:
+	var normal := outward_normal.normalized()
 	if (b - a).cross(c - a).dot(normal) < 0.0:
 		var swap := b
 		b = c
