@@ -82,10 +82,8 @@ func _process(delta: float) -> void:
 	game_date_unix += delta * 28800.0
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
-	if current_month != str(career.get("last_rent_billed_month", current_month)):
-		_process_monthly_headquarters_rent(current_month)
-	if current_month != str(career.get("last_payroll_billed_month", current_month)):
-		_process_monthly_staff_payroll(current_month)
+	if current_month != previous_month:
+		_process_pending_monthly_expenses()
 	if current_day != previous_day:
 		_process_staff_market_refresh(current_day)
 		_save_career()
@@ -96,6 +94,14 @@ func _process(delta: float) -> void:
 func _get_game_month_key(timestamp: float) -> String:
 	var date := Time.get_datetime_dict_from_unix_time(int(timestamp))
 	return "%04d-%02d" % [date.year, date.month]
+
+
+func _process_pending_monthly_expenses() -> void:
+	var month_key := _get_game_month_key(game_date_unix)
+	if month_key != str(career.get("last_rent_billed_month", month_key)):
+		_process_monthly_headquarters_rent(month_key)
+	if month_key != str(career.get("last_payroll_billed_month", month_key)):
+		_process_monthly_staff_payroll(month_key)
 
 
 func _process_monthly_headquarters_rent(month_key: String) -> void:
@@ -824,6 +830,7 @@ func _show_city() -> void:
 	# Every new or returning company lands on Home at its currently owned building.
 	upgrade_level = clampi(upgrade_level, 1, 10)
 	selected_upgrade = upgrade_level
+	_process_pending_monthly_expenses()
 	_show_home_scene()
 
 
