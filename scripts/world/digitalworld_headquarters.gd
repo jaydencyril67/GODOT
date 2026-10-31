@@ -599,6 +599,10 @@ func _get_staff_capacity(level: int) -> int:
 	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
 
 
+static func get_staff_capacity(level: int) -> int:
+	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
+
+
 static func get_upgrade_cost(level: int) -> int:
 	return UPGRADE_COSTS[clampi(level, 1, MAX_LEVEL) - 1]
 
