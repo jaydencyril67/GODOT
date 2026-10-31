@@ -31,6 +31,8 @@ var home_navigation_layer: CanvasLayer
 var home_company_label: Label
 var home_date_label: Label
 var home_balance_label: Label
+var home_finance_toast: PanelContainer
+var home_finance_toast_tween: Tween
 var home_research_points_label: Label
 var home_time_button: Button
 var staff_ui_layer: CanvasLayer
@@ -139,6 +141,7 @@ func _process_monthly_headquarters_rent(month_key: String) -> void:
 		world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
 	_update_staff_office_balance()
+	_show_finance_toast(-monthly_rent, "HEADQUARTERS RENT")
 
 
 func _notification(what: int) -> void:
@@ -963,6 +966,8 @@ func _apply_headquarters_upgrade(requested_level: int) -> void:
 		if world_root.has_method("set_company_balance"):
 			world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
+	_show_finance_toast(-upgrade_cost, "HEADQUARTERS UPGRADE")
+
 func _downgrade_headquarters(level: int, refund_percent: int) -> void:
 	var requested_level := clampi(level, 1, 10)
 	if requested_level >= upgrade_level:
@@ -997,6 +1002,8 @@ func _apply_headquarters_downgrade(requested_level: int, refund_percent: int) ->
 		if world_root.has_method("set_company_balance"):
 			world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
+	_show_finance_toast(refund_amount, "HEADQUARTERS REFUND")
+
 func _apply_home_button_typography(button: Control, font_size: int) -> void:
 	# Use the project STIX variable font explicitly and strengthen its weight
 	# without changing any button dimensions, layout, or visual styling.
@@ -1269,6 +1276,71 @@ func _update_home_status_bar() -> void:
 			company_card.custom_minimum_size.x = clampf(text_width + 24.0, 110.0, 280.0)
 	if is_instance_valid(home_time_button):
 		home_time_button.text = "▶ PLAY" if game_clock_paused else "Ⅱ PAUSE"
+
+
+func _show_finance_toast(amount: float, activity: String) -> void:
+	# Keep the notification attached to the balance card so it appears beside
+	# the exact figure that changed, without shifting the status-bar layout.
+	if not is_instance_valid(home_balance_label):
+		return
+	var balance_card := home_balance_label.get_parent() as PanelContainer
+	if not is_instance_valid(balance_card) or not balance_card.is_visible_in_tree():
+		return
+	if is_instance_valid(home_finance_toast_tween):
+		home_finance_toast_tween.kill()
+	if is_instance_valid(home_finance_toast):
+		home_finance_toast.queue_free()
+
+	var received := amount >= 0.0
+	var toast := PanelContainer.new()
+	toast.name = "Home_Financial_Activity_Toast"
+	toast.z_index = 100
+	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast.custom_minimum_size = Vector2(230.0, 38.0)
+	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toast.position = Vector2(-115.0, 68.0)
+	toast.modulate.a = 0.0
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.035, 0.20, 0.17, 0.96) if received else Color(0.24, 0.075, 0.075, 0.96)
+	style.border_color = Color(0.35, 0.94, 0.70, 0.95) if received else Color(1.0, 0.48, 0.43, 0.95)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.shadow_color = Color(0.0, 0.04, 0.10, 0.42)
+	style.shadow_size = 9
+	style.shadow_offset = Vector2(0, 3)
+	style.content_margin_left = 9.0
+	style.content_margin_right = 9.0
+	style.content_margin_top = 5.0
+	style.content_margin_bottom = 5.0
+	toast.add_theme_stylebox_override("panel", style)
+
+	var label := Label.new()
+	label.text = ("+" if received else "−") + _format_balance(absf(amount)) + "  ·  " + activity
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", Color("#baffdf") if received else Color("#ffd0ca"))
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	toast.add_child(label)
+	balance_card.add_child(toast)
+	home_finance_toast = toast
+
+	home_finance_toast_tween = create_tween()
+	home_finance_toast_tween.set_trans(Tween.TRANS_CUBIC)
+	home_finance_toast_tween.set_ease(Tween.EASE_OUT)
+	home_finance_toast_tween.tween_property(toast, "position:y", 74.0, 0.16)
+	home_finance_toast_tween.parallel().tween_property(toast, "modulate:a", 1.0, 0.16)
+	home_finance_toast_tween.tween_interval(1.8)
+	home_finance_toast_tween.set_ease(Tween.EASE_IN)
+	home_finance_toast_tween.tween_property(toast, "modulate:a", 0.0, 0.22)
+	home_finance_toast_tween.tween_callback(func():
+		if is_instance_valid(toast):
+			toast.queue_free()
+		if home_finance_toast == toast:
+			home_finance_toast = null
+	)
 
 
 func _toggle_game_clock() -> void:
@@ -1785,6 +1857,7 @@ func _apply_phone_design_research_upgrade(research_id: String) -> void:
 		return
 	_update_home_status_bar()
 	_update_staff_office_balance()
+	_show_finance_toast(-upgrade_cost, "RESEARCH UPGRADE")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
 	if is_instance_valid(phone_editor):
@@ -1880,6 +1953,7 @@ func _process_monthly_staff_payroll(month_key: String) -> void:
 		world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
 	_update_staff_office_balance()
+	_show_finance_toast(-payroll, "MONTHLY PAYROLL")
 
 
 func _ensure_staff_data() -> void:
