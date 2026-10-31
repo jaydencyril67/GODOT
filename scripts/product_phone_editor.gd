@@ -17,7 +17,7 @@ var research_balance_label: Label
 var research_levels: Dictionary = {}
 var research_balance := 0.0
 var research_item_cards: Dictionary = {}
-var research_view := "SCREEN TECH"
+var research_view := "HARDWARE"
 
 
 func _ready() -> void:
@@ -205,12 +205,12 @@ func _build_design_research_content(parent: Control) -> void:
 	_build_research_view_selector(parent, compact)
 
 	var items := [
-		{"id":"screen_size", "name":"Screen size", "group":"SCREEN TECH", "detail":"Research larger or more compact display dimensions."},
+		{"id":"screen_size", "name":"Screen size", "group":"HARDWARE", "detail":"Research larger or more compact display dimensions."},
 		{"id":"phone_thickness", "name":"Phone thickness", "group":"SCREEN TECH", "detail":"Research slimmer or thicker body proportions."},
 		{"id":"bezel_width", "name":"Bezel width", "group":"SCREEN TECH", "detail":"Research the visible border around the display."},
-		{"id":"frame_material", "name":"Frame material", "group":"EXTERIOR BUILD", "detail":"Research the materials used on the outer frame."},
+		{"id":"frame_material", "name":"Frame material", "group":"HARDWARE", "detail":"Research the materials used on the outer frame."},
 		{"id":"body_finish", "name":"Body finish", "group":"EXTERIOR BUILD", "detail":"Research textures, coatings and exterior finishes."},
-		{"id":"camera_module", "name":"Camera-module design", "group":"CAMERA DESIGN", "detail":"Research the shape and arrangement of the visible camera housing."}
+		{"id":"camera_module", "name":"Camera-module design", "group":"EXTRAS", "detail":"Research the shape and arrangement of the visible camera housing."}
 	]
 
 	var section := VBoxContainer.new()
@@ -293,7 +293,7 @@ func _build_research_view_selector(parent: Control, compact: bool) -> void:
 	selector.add_theme_constant_override("separation", 7 if compact else 10)
 	parent.add_child(selector)
 
-	for view_name in ["SCREEN TECH", "EXTERIOR BUILD", "CAMERA DESIGN"]:
+	for view_name in ["HARDWARE", "SOFTWARE", "EXTRAS"]:
 		var button := Button.new()
 		button.text = view_name
 		button.custom_minimum_size = Vector2(112 if compact else 148, 40 if compact else 46)
@@ -304,7 +304,7 @@ func _build_research_view_selector(parent: Control, compact: bool) -> void:
 
 
 func _on_research_view_selected(view_name: String) -> void:
-	if not ["SCREEN TECH", "EXTERIOR BUILD", "CAMERA DESIGN"].has(view_name):
+	if not ["HARDWARE", "SOFTWARE", "EXTRAS"].has(view_name):
 		return
 	if research_view == view_name:
 		return
