@@ -981,8 +981,8 @@ func _get_charge_port_half_width() -> float:
 			return 6.7 * unit_per_mm * 0.5
 		"Apple 30-pin Dock":
 			return 21.0 * unit_per_mm * 0.5
-		"Samsung 30-pin":
-			return 16.0 * unit_per_mm * 0.5
+		"USB 3.0 Micro-B":
+			return 12.25 * unit_per_mm * 0.5
 		"Nokia 2mm Barrel":
 			return 2.0 * unit_per_mm * 0.5
 		"DC Barrel Jack":
@@ -1089,7 +1089,7 @@ func _show_charge_port_controls() -> void:
 		"Micro-USB (Micro-B)",
 		"Mini-USB (Mini-B)",
 		"Apple 30-pin Dock",
-		"Samsung 30-pin",
+		"USB 3.0 Micro-B",
 		"Nokia 2mm Barrel",
 		"DC Barrel Jack"
 	]
@@ -1209,12 +1209,12 @@ func _refresh_phone_charge_port() -> void:
 			shape = "wide"
 			contact_rows = 1
 			contact_count = 30
-		"Samsung 30-pin":
-			port_width = 16.0 * unit_per_mm
-			port_height = 5.0 * unit_per_mm
-			shape = "wide"
+		"USB 3.0 Micro-B":
+			port_width = 12.25 * unit_per_mm
+			port_height = 2.45 * unit_per_mm
+			shape = "micro_usb_3"
 			contact_rows = 1
-			contact_count = 30
+			contact_count = 10
 		"Nokia 2mm Barrel":
 			port_width = 2.0 * unit_per_mm
 			port_height = port_width
@@ -1274,9 +1274,31 @@ func _refresh_phone_charge_port() -> void:
 			Vector2(-port_width * 0.36, port_height * 0.5)
 		])
 		inner_points = _make_port_outline(port_width * 0.78, port_height * 0.68, port_height * 0.12)
-	elif shape == "wide":
+	elif shape == "micro_usb_3":
+		# The SuperSpeed Micro-B receptacle has the familiar Micro-B section
+		# plus a wider adjacent extension, not one generic rectangular slot.
 		outer_points = _make_port_outline(port_width, port_height, port_height * 0.12)
-		inner_points = _make_port_outline(port_width * 0.88, port_height * 0.72, port_height * 0.08)
+		inner_points = PackedVector2Array([
+			Vector2(-port_width * 0.5, -port_height * 0.38),
+			Vector2(port_width * 0.5, -port_height * 0.38),
+			Vector2(port_width * 0.5, port_height * 0.38),
+			Vector2(-port_width * 0.5, port_height * 0.38)
+		])
+		var micro_extension := _make_port_outline(port_width * 0.34, port_height * 0.76, port_height * 0.12)
+		var shifted_extension := PackedVector2Array()
+		for point in micro_extension:
+			shifted_extension.append(point + Vector2(port_width * 0.32, 0.0))
+		# Merge the adjoining extension into the opening silhouette.
+		inner_points = PackedVector2Array([
+			Vector2(-port_width * 0.5, -port_height * 0.38),
+			Vector2(port_width * 0.16, -port_height * 0.38),
+			Vector2(port_width * 0.16, -port_height * 0.5),
+			Vector2(port_width * 0.5, -port_height * 0.5),
+			Vector2(port_width * 0.5, port_height * 0.5),
+			Vector2(port_width * 0.16, port_height * 0.5),
+			Vector2(port_width * 0.16, port_height * 0.38),
+			Vector2(-port_width * 0.5, port_height * 0.38)
+		])
 	else:
 		outer_points = _make_port_outline(port_width, port_height, port_height * 0.5, 8)
 		inner_points = _make_port_outline(port_width * 0.86, port_height * 0.64, port_height * 0.32, 8)
@@ -1288,6 +1310,15 @@ func _refresh_phone_charge_port() -> void:
 	if charge_port_type == "USB Type-C":
 		var tongue_points := _make_port_outline(port_width * 0.72, port_height * 0.20, port_height * 0.10, 6)
 		_add_port_detail(port_root, "USBCTongue", tongue_points, bottom_y - 0.00095, tongue_material)
+		for row in range(2):
+			for contact_index in range(12):
+				var x := (float(contact_index) - 5.5) * (port_width * 0.66 / 12.0)
+				var z := (1.0 if row == 0 else -1.0) * port_height * 0.105
+				var pad := _make_port_outline(port_width * 0.035, port_height * 0.055, port_height * 0.02, 3)
+				var shifted := PackedVector2Array()
+				for point in pad:
+					shifted.append(point + Vector2(x, z))
+				_add_port_detail(port_root, "USBCContact_%d_%d" % [row, contact_index], shifted, bottom_y - 0.00105, contact_material)
 	elif charge_port_type == "Apple Lightning":
 		for row in range(2):
 			for contact_index in range(contact_count):
