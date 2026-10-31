@@ -319,7 +319,7 @@ func _style_command_menu_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
 	button.add_theme_color_override("font_pressed_color", Color("#f0faff"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
-	button.add_theme_font_size_override("font_size", 20)
+	_apply_shared_page_typography(button, 22)
 	button.add_theme_color_override("font_outline_color", Color(0.08, 0.20, 0.30, 0.72))
 	button.add_theme_constant_override("outline_size", 1)
 	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.0))
@@ -429,7 +429,7 @@ func _show_profile() -> void:
 	full_name_input.text = str(career.get("full_name", ""))
 	full_name_input.custom_minimum_size = Vector2(0, 54)
 	full_name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	full_name_input.add_theme_font_size_override("font_size", 16)
+	_apply_shared_page_typography(full_name_input, 18)
 	_style_line_edit(full_name_input)
 	identity_stack.add_child(full_name_input)
 
@@ -439,7 +439,7 @@ func _show_profile() -> void:
 	company_name_input.text = str(career.get("company_name", ""))
 	company_name_input.custom_minimum_size = Vector2(0, 54)
 	company_name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	company_name_input.add_theme_font_size_override("font_size", 16)
+	_apply_shared_page_typography(company_name_input, 18)
 	_style_line_edit(company_name_input)
 	identity_stack.add_child(company_name_input)
 
@@ -473,7 +473,7 @@ func _show_profile() -> void:
 	logo_option.text = "%02d   %s     ·     CHANGE" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1]]
 	logo_option.custom_minimum_size = Vector2(0, 52)
 	logo_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	logo_option.add_theme_font_size_override("font_size", 14)
+	_apply_shared_page_typography(logo_option, 16)
 	_style_company_glass_button(logo_option)
 	logo_option.pressed.connect(_open_logo_picker)
 	brand_stack.add_child(logo_option)
@@ -527,7 +527,7 @@ func _show_profile() -> void:
 	for action_button in [back_button, establish_button]:
 		action_button.custom_minimum_size = Vector2(0, 56)
 		action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		action_button.add_theme_font_size_override("font_size", 14 if compact else 15)
+		_apply_shared_page_typography(action_button, 16 if compact else 17)
 		_style_company_glass_button(action_button, action_button == establish_button)
 
 
@@ -1056,7 +1056,7 @@ func _build_home_status_bar(root: Control) -> void:
 	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	home_company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	home_company_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	home_company_label.add_theme_font_size_override("font_size", 17)
+	_apply_shared_page_typography(home_company_label, 19)
 	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
 	company_card.add_child(home_company_label)
 
@@ -1073,7 +1073,7 @@ func _build_home_status_bar(root: Control) -> void:
 	home_balance_label.name = "Company_Balance"
 	home_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	home_balance_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	home_balance_label.add_theme_font_size_override("font_size", 16)
+	_apply_shared_page_typography(home_balance_label, 18)
 	home_balance_label.add_theme_color_override("font_color", Color("#b8f6df"))
 	balance_card.add_child(home_balance_label)
 
@@ -1084,7 +1084,7 @@ func _build_home_status_bar(root: Control) -> void:
 	home_date_label.name = "Game_Date"
 	home_date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	home_date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	home_date_label.add_theme_font_size_override("font_size", 15)
+	_apply_shared_page_typography(home_date_label, 17)
 	home_date_label.add_theme_color_override("font_color", Color("#c8edff"))
 	date_card.add_child(home_date_label)
 
@@ -1369,7 +1369,7 @@ func _show_create_scene() -> void:
 	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	back_button.add_theme_font_size_override("font_size", 13 if compact else 14)
+	_apply_shared_page_typography(back_button, 15 if compact else 16)
 	_style_create_glass_button(back_button, false)
 
 	header.add_child(_label("Choose a product category to begin designing your next device.", 13 if compact else 15, Color("#d8efff")))
@@ -1440,14 +1440,14 @@ func _show_create_scene() -> void:
 		card_margin.add_child(card_content)
 		card_content.add_child(_label(str(category["number"]) + "  /  PRODUCT TYPE", 11, Color("#a9e3ff")))
 		var category_title := _label(str(category["name"]), 20 if compact else 24, Color("#ffffff"))
-		category_title.add_theme_font_size_override("font_size", 20 if compact else 24)
+		_apply_shared_page_typography(category_title, 22 if compact else 26)
 		card_content.add_child(category_title)
 		var description := _label(str(category["description"]), 12 if compact else 13, Color("#c7e2f3"))
 		description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		card_content.add_child(description)
 		var choose := _add_action_button(card_content, "SELECT CATEGORY  ›", true, _on_create_category_pressed.bind(str(category["name"])))
 		choose.custom_minimum_size = Vector2(0, 46)
-		choose.add_theme_font_size_override("font_size", 12)
+		_apply_shared_page_typography(choose, 14)
 		_style_create_glass_button(choose, true)
 
 func _show_research_scene() -> void:
@@ -1593,7 +1593,7 @@ func _show_research_scene() -> void:
 		card_content.add_child(description)
 		var explore := _add_action_button(card_content, "OPEN RESEARCH  ›", true, _on_research_category_pressed.bind(str(category["name"])))
 		explore.custom_minimum_size = Vector2(0, 46)
-		explore.add_theme_font_size_override("font_size", 12)
+		_apply_shared_page_typography(explore, 14)
 		_style_create_glass_button(explore, true)
 
 
@@ -2098,6 +2098,8 @@ func _show_settings() -> void:
 	sound.toggled.connect(func(enabled: bool): sound_enabled = enabled)
 	stack.add_child(sound)
 	var done_button := _add_action_button(stack, "DONE", true, Callable())
+	_apply_shared_page_typography(quality, 15)
+	_apply_shared_page_typography(sound, 15)
 	done_button.pressed.connect(_close_settings_overlay.bind(shade, center))
 
 func _close_settings_overlay(shade: Control, center: Control) -> void:
@@ -2149,10 +2151,18 @@ func _margin(parent: Control, left: int, right: int, top: int, bottom: int) -> M
 	parent.add_child(margin)
 	return margin
 
+func _apply_shared_page_typography(control: Control, font_size: int) -> void:
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 0.7
+	control.add_theme_font_override("font", stix_font)
+	control.add_theme_font_size_override("font_size", font_size)
+
+
 func _label(text_value: String, size: int, color: Color, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
 	var label := Label.new()
 	label.text = text_value
-	label.add_theme_font_size_override("font_size", size)
+	_apply_shared_page_typography(label, size + 2)
 	label.add_theme_color_override("font_color", color)
 	label.horizontal_alignment = alignment
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2163,7 +2173,7 @@ func _add_action_button(parent: Node, caption: String, primary: bool, callback: 
 	button.text = caption
 	button.custom_minimum_size = Vector2(0, 44)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.add_theme_font_size_override("font_size", 11)
+	_apply_shared_page_typography(button, 13)
 	button.add_theme_color_override("font_color", Color("#ffffff") if primary else Color("#e8eee8"))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
@@ -2205,7 +2215,7 @@ func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
 	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
-	button.add_theme_font_size_override("font_size", 18)
+	_apply_shared_page_typography(button, 20)
 	button.add_theme_color_override("font_outline_color", Color("#06345f"))
 	button.add_theme_constant_override("outline_size", 2)
 	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.12, 0.95))
