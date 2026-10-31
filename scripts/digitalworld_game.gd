@@ -202,6 +202,12 @@ func _clear_world() -> void:
 	if is_instance_valid(world_root):
 		world_root.queue_free()
 	world_root = null
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.queue_free()
+	staff_ui_layer = null
+	staff_screen = null
+	staff_market_screen = null
+	staff_management_screen = null
 
 func _new_screen() -> Control:
 	if is_instance_valid(ui_layer):
@@ -1703,6 +1709,7 @@ func _hire_staff_candidate(candidate_id: String) -> void:
 		career["staff_employees"] = previous_team
 		_show_notice("HIRE NOT SAVED", "The employee could not be saved. No candidate was removed from the market.")
 		return
+	_refresh_staff_screen_data()
 	_open_staff_screen("market")
 
 
@@ -1731,6 +1738,7 @@ func _dismiss_staff_employee(employee_id: String) -> void:
 		career["staff_employees"] = previous_team
 		_show_notice("DISMISSAL NOT SAVED", "Your employee roster has not changed.")
 		return
+	_refresh_staff_screen_data()
 	_open_staff_screen("management")
 
 
@@ -1746,6 +1754,7 @@ func _assign_staff_department(employee_id: String, department: String) -> void:
 		career["staff_employees"] = previous_team
 		_show_notice("ASSIGNMENT NOT SAVED", "The employee's department has not changed.")
 		return
+	_refresh_staff_screen_data()
 	_open_staff_screen("management")
 
 
