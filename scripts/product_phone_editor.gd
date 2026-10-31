@@ -936,7 +936,7 @@ func _show_speaker_controls() -> void:
 	level_labels.add_theme_constant_override("separation", 0)
 	meter_row.add_child(level_labels)
 
-	for level in range(6, -1, -1):
+	for level in range(12, -1, -1):
 		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -945,10 +945,10 @@ func _show_speaker_controls() -> void:
 	var meter := VSlider.new()
 	meter.name = "SpeakerCountLevelMeter"
 	meter.min_value = 0
-	meter.max_value = 6
+	meter.max_value = 12
 	meter.step = 1
 	meter.value = speaker_count
-	meter.tick_count = 7
+	meter.tick_count = 13
 	meter.custom_minimum_size = Vector2(76, 290)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -956,29 +956,36 @@ func _show_speaker_controls() -> void:
 	_style_feature_slider(meter)
 	meter_row.add_child(meter)
 
-	speaker_count_value_label = _make_label("SPEAKERS %d / 6" % speaker_count, 16, Color("#a9e3ff"))
+	speaker_count_value_label = _make_label("SPEAKERS %d / 12" % speaker_count, 16, Color("#a9e3ff"))
 	speaker_count_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(speaker_count_value_label)
 
 
 func _on_speaker_count_changed(value: float) -> void:
-	speaker_count = clampi(roundi(value), 0, 6)
+	speaker_count = clampi(roundi(value), 0, 12)
 	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS %d / 6" % speaker_count
+		speaker_count_value_label.text = "SPEAKERS %d / 12" % speaker_count
 	_refresh_phone_speakers()
 
 
 func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
-	for child in phone_body.get_children():
-		if child.name.begins_with("PhoneSpeakerOpening_"):
-			child.queue_free()
+
+	# Replace the complete speaker set immediately. queue_free() is deferred,
+	# which allowed old and new openings to overlap during rapid slider changes.
+	var previous_set := phone_body.get_node_or_null("PhoneSpeakerOpenings")
+	if is_instance_valid(previous_set):
+		previous_set.free()
+
 	if speaker_count <= 0:
 		return
 
-	# Speaker holes belong to the bottom edge (negative Y), not the front glass.
-	# Keep two groups around the central charging-port position.
+	# Keep the openings on the bottom edge, split around the connector.
+	var speaker_set := Node3D.new()
+	speaker_set.name = "PhoneSpeakerOpenings"
+	phone_body.add_child(speaker_set)
+
 	var bottom_y := -PHONE_SIZE.y * 0.5 - 0.002
 	var port_clearance := 0.25
 	var hole_spacing := 0.052
@@ -987,6 +994,7 @@ func _refresh_phone_speakers() -> void:
 	var left_count := int(ceil(float(speaker_count) * 0.5))
 	var right_count := speaker_count - left_count
 	var positions: Array[float] = []
+
 	for index in range(left_count):
 		positions.append(-port_clearance - group_gap - float(left_count - 1 - index) * hole_spacing)
 	for index in range(right_count):
@@ -995,19 +1003,20 @@ func _refresh_phone_speakers() -> void:
 	var hole_material := StandardMaterial3D.new()
 	hole_material.albedo_color = Color("#050608")
 	hole_material.roughness = 1.0
+
 	for index in range(positions.size()):
-		var hole := MeshInstance3D.new()
-		hole.name = "PhoneSpeakerOpening_%d" % (index + 1)
+		var opening := MeshInstance3D.new()
+		opening.name = "Opening_%02d" % (index + 1)
 		var disc := CylinderMesh.new()
 		disc.top_radius = hole_radius
 		disc.bottom_radius = hole_radius
 		disc.height = 0.004
 		disc.radial_segments = 20
-		hole.mesh = disc
-		hole.material_override = hole_material
-		hole.position = Vector3(positions[index], bottom_y, 0.0)
-		hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		phone_body.add_child(hole)
+		opening.mesh = disc
+		opening.material_override = hole_material
+		opening.position = Vector3(positions[index], bottom_y, 0.0)
+		opening.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		speaker_set.add_child(opening)
 
 
 
