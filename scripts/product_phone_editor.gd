@@ -1455,7 +1455,7 @@ func _refresh_phone_charge_port() -> void:
 		_add_port_detail(port_root, "USBCTongue", tongue_points, contact_face_y, tongue_material)
 		for row in range(2):
 			for contact_index in range(contact_count):
-				var x := (float(contact_index) - 5.5) * (port_width * 0.66 / 12.0)
+				var x := (float(contact_index) - float(contact_count - 1) * 0.5) * (port_width * 0.66 / float(contact_count))
 				var z := (1.0 if row == 0 else -1.0) * port_height * 0.105
 				var pad := _make_port_outline(port_width * 0.035, port_height * 0.055, port_height * 0.02, 3)
 				var shifted := PackedVector2Array()
