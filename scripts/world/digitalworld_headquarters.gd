@@ -385,7 +385,7 @@ func _create_preview_interface() -> void:
 		level_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		level_info_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		level_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		level_info_label.add_theme_font_size_override("font_size", 36)
+		_apply_preview_typography(level_info_label, 36)
 		level_info_label.add_theme_color_override("font_color", Color("#ffffff"))
 		level_info_label.add_theme_color_override("font_outline_color", Color("#062b46"))
 		level_info_label.add_theme_constant_override("outline_size", 5)
@@ -408,7 +408,7 @@ func _create_preview_interface() -> void:
 		staff_capacity_label.offset_bottom = 116.0
 		staff_capacity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		staff_capacity_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		staff_capacity_label.add_theme_font_size_override("font_size", 23)
+		_apply_preview_typography(staff_capacity_label, 23)
 		staff_capacity_label.add_theme_color_override("font_color", Color("#d8f3ff"))
 		staff_capacity_label.add_theme_color_override("font_outline_color", Color("#062b46"))
 		staff_capacity_label.add_theme_constant_override("outline_size", 4)
@@ -429,7 +429,7 @@ func _create_preview_interface() -> void:
 		staff_market_button.offset_top = 20.0
 		staff_market_button.offset_right = -166.0
 		staff_market_button.offset_bottom = 64.0
-		staff_market_button.add_theme_font_size_override("font_size", 15)
+		_apply_preview_typography(staff_market_button, 15)
 		_style_preview_button(staff_market_button, true)
 		staff_market_button.pressed.connect(func(): staff_market_requested.emit())
 		layer.add_child(staff_market_button)
@@ -445,7 +445,7 @@ func _create_preview_interface() -> void:
 		staff_management_button.offset_top = 20.0
 		staff_management_button.offset_right = -14.0
 		staff_management_button.offset_bottom = 64.0
-		staff_management_button.add_theme_font_size_override("font_size", 15)
+		_apply_preview_typography(staff_management_button, 15)
 		_style_preview_button(staff_management_button, false)
 		staff_management_button.pressed.connect(func(): staff_management_requested.emit())
 		layer.add_child(staff_management_button)
@@ -520,21 +520,21 @@ func _create_preview_interface() -> void:
 
 		upgrade_cost_label = Label.new()
 		upgrade_cost_label.name = "Headquarters_Upgrade_Cost"
-		upgrade_cost_label.add_theme_font_size_override("font_size", 17)
+		_apply_preview_typography(upgrade_cost_label, 17)
 		upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff"))
 		upgrade_cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		finance_stack.add_child(upgrade_cost_label)
 
 		monthly_rent_label = Label.new()
 		monthly_rent_label.name = "Headquarters_Monthly_Rent"
-		monthly_rent_label.add_theme_font_size_override("font_size", 15)
+		_apply_preview_typography(monthly_rent_label, 15)
 		monthly_rent_label.add_theme_color_override("font_color", Color("#f4d58a"))
 		monthly_rent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		finance_stack.add_child(monthly_rent_label)
 
 		available_balance_label = Label.new()
 		available_balance_label.name = "Headquarters_Available_Balance"
-		available_balance_label.add_theme_font_size_override("font_size", 15)
+		_apply_preview_typography(available_balance_label, 15)
 		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff"))
 		available_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		finance_stack.add_child(available_balance_label)
@@ -542,11 +542,19 @@ func _create_preview_interface() -> void:
 	_refresh_preview_interface()
 
 
+func _apply_preview_typography(control: Control, font_size: int) -> void:
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 0.7
+	control.add_theme_font_override("font", stix_font)
+	control.add_theme_font_size_override("font_size", font_size)
+
+
 func _create_bottom_action_button(parent: Node, caption: String, primary: bool) -> Button:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size = Vector2(128.0, 58.0)
-	button.add_theme_font_size_override("font_size", 16)
+	_apply_preview_typography(button, 16)
 	_style_preview_button(button, primary)
 	parent.add_child(button)
 	return button
