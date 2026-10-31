@@ -76,7 +76,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if career.is_empty() or str(career.get("company_name", "")).is_empty() or game_clock_paused:
 		return
-	# Keep simulation and monthly staff refresh active while any company screen is open.
+	# Keep the in-game clock and monthly staff refresh running on all company screens,
+	# including while the player is browsing products, research, or other HQ features.
+	if current_screen not in ["home", "headquarters", "create", "research", "research_phone", "office", "staff_market", "staff_management", "phone_editor"]:
+		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
 	# One complete in-game day passes every three real-world seconds.
@@ -1770,6 +1773,15 @@ func _ensure_staff_data() -> void:
 			employee_data.erase("reliability")
 			employee_data.erase("communication")
 			employee_data.erase("personality")
+			# Migrate employees from retired departments into the new three-team structure.
+			if str(employee_data.get("department", "")) not in ["Development", "Marketing", "Research"]:
+				var legacy_position := str(employee_data.get("position", "")).to_lower()
+				if "research" in legacy_position or "analyst" in legacy_position or "scientist" in legacy_position:
+					employee_data["department"] = "Research"
+				elif "marketing" in legacy_position or "brand" in legacy_position or "social" in legacy_position or "recruit" in legacy_position:
+					employee_data["department"] = "Marketing"
+				else:
+					employee_data["department"] = "Development"
 	if not career.has("next_staff_candidate_id"):
 		career["next_staff_candidate_id"] = 1
 	# Older saves migrate to the current in-game month without triggering an instant refresh.
