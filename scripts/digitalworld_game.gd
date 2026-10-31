@@ -441,7 +441,11 @@ func _show_profile() -> void:
 	header.add_child(subtitle)
 
 	# The two main sections flow vertically on phones and side-by-side on wide screens.
-	var sections: BoxContainer = VBoxContainer.new() if compact else HBoxContainer.new()
+	var sections: BoxContainer
+	if compact:
+		sections = VBoxContainer.new()
+	else:
+		sections = HBoxContainer.new()
 	sections.name = "CompanySetupSections"
 	sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sections.add_theme_constant_override("separation", 14 if compact else 18)
@@ -805,12 +809,12 @@ func _input(event: InputEvent) -> void:
 			viewport.set_input_as_handled()
 
 
-func _logo_picker_logo_at(position: Vector2) -> int:
+func _logo_picker_logo_at(local_position: Vector2) -> int:
 	if not is_instance_valid(logo_picker_grid):
 		return 0
 	for index in range(logo_picker_grid.get_child_count()):
 		var tile := logo_picker_grid.get_child(index) as Control
-		if is_instance_valid(tile) and tile.get_global_rect().has_point(position):
+		if is_instance_valid(tile) and tile.get_global_rect().has_point(local_position):
 			return index + 1
 	return 0
 
