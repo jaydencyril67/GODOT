@@ -650,7 +650,7 @@ func _add_tool_button(parent: GridContainer, caption: String, callback: Callable
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	button.custom_minimum_size.y = 48
-	button.add_theme_font_size_override("font_size", 11)
+	_apply_research_typography(button, 13)
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
