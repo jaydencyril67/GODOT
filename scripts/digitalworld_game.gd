@@ -782,6 +782,7 @@ func _show_home_scene() -> void:
 	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
 	headquarters.back_requested.connect(_return_home_from_headquarters)
 	headquarters.upgrade_requested.connect(_upgrade_headquarters)
+	headquarters.downgrade_requested.connect(_downgrade_headquarters)
 	headquarters.setup_progress.connect(_update_headquarters_loading)
 	headquarters.setup_completed.connect(_finish_headquarters_loading)
 	world_root = headquarters
@@ -826,6 +827,31 @@ func _upgrade_headquarters(level: int) -> void:
 		career["upgrade_level"] = previous_level
 		career["balance"] = previous_balance
 		_show_notice("UPGRADE NOT SAVED", "Your headquarters upgrade and payment could not be saved. No money was deducted. Please try again.")
+		return
+	if is_instance_valid(world_root):
+		if world_root.has_method("set_owned_level"):
+			world_root.set_owned_level(upgrade_level)
+		if world_root.has_method("set_company_balance"):
+			world_root.set_company_balance(float(career["balance"]))
+	_update_home_status_bar()
+
+
+func _downgrade_headquarters(level: int) -> void:
+	var requested_level := clampi(level, 1, 10)
+	if requested_level >= upgrade_level:
+		return
+	var previous_level := upgrade_level
+	var previous_balance := float(career.get("balance", 10000000.0))
+	var amount_paid := float(HeadquartersPreviewScript.get_upgrade_cost(previous_level))
+	var refund_amount := amount_paid * 0.60
+	upgrade_level = requested_level
+	career["upgrade_level"] = upgrade_level
+	career["balance"] = previous_balance + refund_amount
+	if not _save_career():
+		upgrade_level = previous_level
+		career["upgrade_level"] = previous_level
+		career["balance"] = previous_balance
+		_show_notice("DOWNGRADE NOT SAVED", "Your headquarters downgrade and refund could not be saved. Your building and balance have not changed.")
 		return
 	if is_instance_valid(world_root):
 		if world_root.has_method("set_owned_level"):
