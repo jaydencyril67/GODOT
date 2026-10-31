@@ -1083,13 +1083,13 @@ func _build_home_status_bar(root: Control) -> void:
 	balance_card.add_child(home_balance_label)
 
 	var research_points_card := _make_home_status_glass_card("Research_Points_Card")
-	research_points_card.custom_minimum_size = Vector2(132.0, 62.0)
+	research_points_card.custom_minimum_size = Vector2(150.0, 62.0)
 	cards_row.add_child(research_points_card)
 	home_research_points_label = Label.new()
 	home_research_points_label.name = "Research_Points"
 	home_research_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	home_research_points_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_apply_shared_page_typography(home_research_points_label, 16)
+	_apply_shared_page_typography(home_research_points_label, 14)
 	home_research_points_label.add_theme_color_override("font_color", Color("#d8e6ff"))
 	research_points_card.add_child(home_research_points_label)
 
@@ -1191,7 +1191,7 @@ func _update_home_status_bar() -> void:
 	if is_instance_valid(home_balance_label):
 		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
 	if is_instance_valid(home_research_points_label):
-		home_research_points_label.text = "%s RP" % _format_count(int(career.get("research_points", 0)))
+		home_research_points_label.text = "%s RESEARCH PTS" % _format_count(int(career.get("research_points", 0)))
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 		var company_card := home_company_label.get_parent() as PanelContainer
