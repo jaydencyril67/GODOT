@@ -30,6 +30,7 @@ var home_navigation_layer: CanvasLayer
 var home_company_label: Label
 var home_date_label: Label
 var home_balance_label: Label
+var home_research_points_label: Label
 var home_time_button: Button
 var staff_ui_layer: CanvasLayer
 var staff_screen
@@ -161,6 +162,7 @@ func _load_career() -> bool:
 		"created_at": str(config.get_value("career", "created_at", "")),
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
+		"research_points": int(config.get_value("career", "research_points", 0)),
 		"game_date_unix": float(config.get_value("career", "game_date_unix", 1262304000.0)),
 		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
 		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
@@ -189,6 +191,7 @@ func _save_career() -> bool:
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
 	config.set_value("career", "upgrade_level", upgrade_level)
 	config.set_value("career", "balance", float(career.get("balance", 10000000.0)))
+	config.set_value("career", "research_points", int(career.get("research_points", 0)))
 	config.set_value("career", "game_date_unix", game_date_unix)
 	config.set_value("career", "game_clock_paused", game_clock_paused)
 	config.set_value("career", "last_rent_billed_month", str(career.get("last_rent_billed_month", _get_game_month_key(game_date_unix))))
@@ -829,6 +832,8 @@ func _create_company() -> void:
 	career["logo_id"] = selected_logo_id
 	if not career.has("balance"):
 		career["balance"] = 10000000.0
+	if not career.has("research_points"):
+		career["research_points"] = 0
 	if not career.has("game_date_unix"):
 		game_date_unix = 1262304000.0
 		career["game_date_unix"] = game_date_unix
@@ -1077,6 +1082,17 @@ func _build_home_status_bar(root: Control) -> void:
 	home_balance_label.add_theme_color_override("font_color", Color("#b8f6df"))
 	balance_card.add_child(home_balance_label)
 
+	var research_points_card := _make_home_status_glass_card("Research_Points_Card")
+	research_points_card.custom_minimum_size = Vector2(132.0, 62.0)
+	cards_row.add_child(research_points_card)
+	home_research_points_label = Label.new()
+	home_research_points_label.name = "Research_Points"
+	home_research_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_research_points_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_apply_shared_page_typography(home_research_points_label, 16)
+	home_research_points_label.add_theme_color_override("font_color", Color("#d8e6ff"))
+	research_points_card.add_child(home_research_points_label)
+
 	var date_card := _make_home_status_glass_card("Game_Date_Card")
 	date_card.custom_minimum_size = Vector2(154.0, 62.0)
 	cards_row.add_child(date_card)
@@ -1149,6 +1165,16 @@ func _format_game_date(timestamp: float) -> String:
 	return "%d%s %s %04d" % [day, suffix, month_names[int(date["month"]) - 1], int(date["year"])]
 
 
+func _format_count(amount: int) -> String:
+	var digits := str(maxi(amount, 0))
+	var formatted := ""
+	for index in range(digits.length()):
+		if index > 0 and (digits.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += digits.substr(index, 1)
+	return formatted
+
+
 func _format_balance(amount: float) -> String:
 	var digits := str(roundi(amount))
 	var formatted := ""
@@ -1164,6 +1190,8 @@ func _update_home_status_bar() -> void:
 		home_date_label.text = _format_game_date(game_date_unix)
 	if is_instance_valid(home_balance_label):
 		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
+	if is_instance_valid(home_research_points_label):
+		home_research_points_label.text = "%s RP" % _format_count(int(career.get("research_points", 0)))
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 		var company_card := home_company_label.get_parent() as PanelContainer
