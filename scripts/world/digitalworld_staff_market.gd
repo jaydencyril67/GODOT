@@ -21,10 +21,14 @@ var company_balance := 0.0
 var content: VBoxContainer
 var staff_scroll: ScrollContainer
 var staff_scroll_tween: Tween
+var staff_horizontal_tween: Tween
+var staff_horizontal_rows: Array[ScrollContainer] = []
+var staff_active_horizontal_scroll: ScrollContainer
 var staff_touch_index := -1
 var staff_touch_start := Vector2.ZERO
 var staff_touch_dragging := false
-var staff_touch_velocity_y := 0.0
+var staff_touch_axis := ""
+var staff_touch_velocity := Vector2.ZERO
 
 
 func open(screen_mode: String, candidate_data: Array, employee_data: Array, staff_capacity: int, business_name: String, balance: float) -> void:
@@ -45,9 +49,14 @@ func update_balance(amount: float) -> void:
 func _build() -> void:
 	if is_instance_valid(staff_scroll_tween) and staff_scroll_tween.is_running():
 		staff_scroll_tween.kill()
+	if is_instance_valid(staff_horizontal_tween) and staff_horizontal_tween.is_running():
+		staff_horizontal_tween.kill()
+	staff_horizontal_rows.clear()
+	staff_active_horizontal_scroll = null
 	staff_touch_index = -1
 	staff_touch_dragging = false
-	staff_touch_velocity_y = 0.0
+	staff_touch_axis = ""
+	staff_touch_velocity = Vector2.ZERO
 	for child in get_children():
 		child.queue_free()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -143,36 +152,79 @@ func _input(event: InputEvent) -> void:
 		return
 	var viewport := get_viewport()
 	var scroll_rect := staff_scroll.get_global_rect()
+
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			if scroll_rect.has_point(event.position):
 				staff_touch_index = event.index
 				staff_touch_start = event.position
 				staff_touch_dragging = false
-				staff_touch_velocity_y = 0.0
+				staff_touch_axis = ""
+				staff_touch_velocity = Vector2.ZERO
+				staff_active_horizontal_scroll = _staff_horizontal_scroll_at(event.position)
 		else:
 			if event.index == staff_touch_index:
 				if staff_touch_dragging:
-					var fling_distance := clampf(staff_touch_velocity_y * 0.10, -420.0, 420.0)
-					var target := clampi(roundi(float(staff_scroll.scroll_vertical) - fling_distance), 0, _staff_max_scroll())
-					_animate_staff_scroll(target, 0.24)
+					if staff_touch_axis == "horizontal" and is_instance_valid(staff_active_horizontal_scroll):
+						var horizontal_target := clampi(roundi(float(staff_active_horizontal_scroll.scroll_horizontal) - staff_touch_velocity.x * 0.10), 0, _staff_horizontal_max_scroll(staff_active_horizontal_scroll))
+						_animate_staff_horizontal_scroll(staff_active_horizontal_scroll, horizontal_target, 0.24)
+					elif staff_touch_axis == "vertical":
+						var vertical_target := clampi(roundi(float(staff_scroll.scroll_vertical) - staff_touch_velocity.y * 0.10), 0, _staff_max_scroll())
+						_animate_staff_scroll(vertical_target, 0.24)
 					viewport.set_input_as_handled()
 				staff_touch_index = -1
 				staff_touch_dragging = false
-				staff_touch_velocity_y = 0.0
+				staff_touch_axis = ""
+				staff_touch_velocity = Vector2.ZERO
+				staff_active_horizontal_scroll = null
+
 	elif event is InputEventScreenDrag and event.index == staff_touch_index:
-		if not staff_touch_dragging and staff_touch_start.distance_to(event.position) >= 9.0:
+		var drag_delta := event.position - staff_touch_start
+		if staff_touch_axis == "" and drag_delta.length() >= 9.0:
 			staff_touch_dragging = true
+			if is_instance_valid(staff_active_horizontal_scroll) and absf(drag_delta.x) > absf(drag_delta.y):
+				staff_touch_axis = "horizontal"
+			else:
+				staff_touch_axis = "vertical"
 		if staff_touch_dragging:
-			staff_scroll.scroll_vertical = clampi(staff_scroll.scroll_vertical - roundi(event.relative.y), 0, _staff_max_scroll())
-			staff_touch_velocity_y = event.velocity.y
+			if staff_touch_axis == "horizontal" and is_instance_valid(staff_active_horizontal_scroll):
+				staff_active_horizontal_scroll.scroll_horizontal = clampi(staff_active_horizontal_scroll.scroll_horizontal - roundi(event.relative.x), 0, _staff_horizontal_max_scroll(staff_active_horizontal_scroll))
+			elif staff_touch_axis == "vertical":
+				staff_scroll.scroll_vertical = clampi(staff_scroll.scroll_vertical - roundi(event.relative.y), 0, _staff_max_scroll())
+			staff_touch_velocity = event.velocity
 			viewport.set_input_as_handled()
+
 	elif event is InputEventMouseButton and not OS.has_feature("android"):
 		if event.pressed and (event.button_index == MOUSE_BUTTON_WHEEL_DOWN or event.button_index == MOUSE_BUTTON_WHEEL_UP) and scroll_rect.has_point(event.position):
 			var direction := 1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1
 			var target := clampi(staff_scroll.scroll_vertical + direction * 132, 0, _staff_max_scroll())
 			_animate_staff_scroll(target, 0.22)
 			viewport.set_input_as_handled()
+
+
+func _staff_horizontal_scroll_at(position: Vector2) -> ScrollContainer:
+	for row in staff_horizontal_rows:
+		if is_instance_valid(row) and row.get_global_rect().has_point(position):
+			return row
+	return null
+
+
+func _staff_horizontal_max_scroll(row: ScrollContainer) -> int:
+	if not is_instance_valid(row):
+		return 0
+	var bar := row.get_h_scroll_bar()
+	return maxi(0, roundi(bar.max_value - bar.page))
+
+
+func _animate_staff_horizontal_scroll(row: ScrollContainer, target: int, duration: float) -> void:
+	if not is_instance_valid(row):
+		return
+	if is_instance_valid(staff_horizontal_tween) and staff_horizontal_tween.is_running():
+		staff_horizontal_tween.kill()
+	staff_horizontal_tween = row.create_tween()
+	staff_horizontal_tween.set_trans(Tween.TRANS_QUAD)
+	staff_horizontal_tween.set_ease(Tween.EASE_OUT)
+	staff_horizontal_tween.tween_property(row, "scroll_horizontal", target, duration)
 
 
 func _staff_max_scroll() -> int:
@@ -213,11 +265,12 @@ func _build_department_candidate_row(department: String, compact: bool) -> void:
 	horizontal_scroll.name = "Market_" + department.replace(" ", "") + "_HorizontalRow"
 	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	horizontal_scroll.custom_minimum_size.y = 366 if compact else 356
-	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	horizontal_scroll.follow_focus = false
 	horizontal_scroll.clip_contents = true
 	section.add_child(horizontal_scroll)
+	staff_horizontal_rows.append(horizontal_scroll)
 
 	var candidate_row := HBoxContainer.new()
 	candidate_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -324,6 +377,7 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 	horizontal_scroll.follow_focus = false
 	horizontal_scroll.clip_contents = true
 	section.add_child(horizontal_scroll)
+	staff_horizontal_rows.append(horizontal_scroll)
 
 	var employee_row := HBoxContainer.new()
 	employee_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
