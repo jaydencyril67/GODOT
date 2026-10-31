@@ -954,6 +954,20 @@ func _show_power_volume_controls() -> void:
 	active_feature_panel.add_child(side_button_length_label)
 
 
+func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
+	var image := Image.new()
+	var svg := ""
+	if checked:
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#72c9f4" fill-opacity="0.30" stroke="#dff6ff" stroke-width="2.5"/><path d="M9 18.5l6 6L27.5 12" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
+	else:
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#d8f2ff" fill-opacity="0.10" stroke="#dff6ff" stroke-width="2.5"/></svg>"""
+	var error := image.load_svg_from_string(svg)
+	if error != OK:
+		push_warning("Could not create side-button checkbox icon")
+		return null
+	return ImageTexture.create_from_image(image)
+
+
 func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float) -> void:
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -982,8 +996,13 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	heading_row.add_child(heading_spacer)
 	var toggle := CheckBox.new()
 	toggle.text = ""
-	toggle.custom_minimum_size = Vector2(112, 104)
-	toggle.add_theme_constant_override("icon_max_width", 60)
+	# Keep the hit target compact and make the actual checkbox artwork 36 px.
+	toggle.custom_minimum_size = Vector2(56, 52)
+	toggle.add_theme_constant_override("icon_max_width", 36)
+	toggle.add_theme_icon_override("unchecked", _make_side_button_checkbox_icon(false))
+	toggle.add_theme_icon_override("checked", _make_side_button_checkbox_icon(true))
+	toggle.add_theme_icon_override("unchecked_disabled", _make_side_button_checkbox_icon(false))
+	toggle.add_theme_icon_override("checked_disabled", _make_side_button_checkbox_icon(true))
 	toggle.button_pressed = enabled
 	toggle.toggled.connect(_on_side_button_toggled.bind(side))
 	_apply_research_typography(toggle, 19)
