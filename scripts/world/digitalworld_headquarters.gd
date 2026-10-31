@@ -751,10 +751,10 @@ func _orbit_camera(relative: Vector2) -> void:
 func _pan_camera(relative: Vector2) -> void:
 	if not is_instance_valid(hq_camera):
 		return
-	var scale := camera_distance * 0.0016
+	var pan_scale := camera_distance * 0.0016
 	var camera_right := hq_camera.global_transform.basis.x
-	camera_target -= camera_right * relative.x * scale
-	camera_target += Vector3.UP * relative.y * scale
+	camera_target -= camera_right * relative.x * pan_scale
+	camera_target += Vector3.UP * relative.y * pan_scale
 	camera_target.x = clampf(camera_target.x, -24.0, 24.0)
 	camera_target.z = clampf(camera_target.z, -24.0, 24.0)
 	camera_target.y = clampf(camera_target.y, 0.0, 150.0)
