@@ -926,16 +926,15 @@ func _on_border_radius_level_changed(value: float) -> void:
 
 func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	var phone_size := PHONE_SIZE
-	# Level 10 is slim, while retaining a 0.12-unit body for future side hardware.
-	phone_size.z = lerpf(PHONE_SIZE.z, 0.12, float(phone_thickness_level) / 10.0)
+	# Level 10 reaches an ultra-slim 0.08-unit body.
+	phone_size.z = lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
 	if radius <= 0.0001:
 		var plain_body := BoxMesh.new()
 		plain_body.size = phone_size
 		return plain_body
 
-	# Round only the phone's front/back outline. The Z thickness remains a
-	# straight extrusion, so changing corner radius cannot turn the whole body
-	# into a capsule or reshape its broad front and rear faces.
+	# Round only the phone's front/back outline. Keep the front and rear faces
+	# flat and preserve a straight extrusion through the phone's thickness.
 	var half_size := phone_size * 0.5
 	var corner_radius := clampf(radius, 0.0, minf(half_size.x, half_size.y) - 0.001)
 	var corner_centers := [
@@ -964,37 +963,52 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Flat front and rear faces, triangulated from the same rounded outline.
+	# Explicit per-face normals prevent SurfaceTool from averaging the flat
+	# screen surfaces with the curved perimeter and creating smoky shading.
 	for index in range(0, triangle_indices.size(), 3):
-		var a: Vector2 = outline[triangle_indices[index]]
-		var b: Vector2 = outline[triangle_indices[index + 1]]
-		var c: Vector2 = outline[triangle_indices[index + 2]]
-		surface.add_vertex(Vector3(a.x, a.y, front_z))
-		surface.add_vertex(Vector3(b.x, b.y, front_z))
-		surface.add_vertex(Vector3(c.x, c.y, front_z))
-		surface.add_vertex(Vector3(a.x, a.y, back_z))
-		surface.add_vertex(Vector3(c.x, c.y, back_z))
-		surface.add_vertex(Vector3(b.x, b.y, back_z))
+		var a2: Vector2 = outline[triangle_indices[index]]
+		var b2: Vector2 = outline[triangle_indices[index + 1]]
+		var c2: Vector2 = outline[triangle_indices[index + 2]]
+		var front_a := Vector3(a2.x, a2.y, front_z)
+		var front_b := Vector3(b2.x, b2.y, front_z)
+		var front_c := Vector3(c2.x, c2.y, front_z)
+		var back_a := Vector3(a2.x, a2.y, back_z)
+		var back_b := Vector3(b2.x, b2.y, back_z)
+		var back_c := Vector3(c2.x, c2.y, back_z)
+		_add_phone_mesh_triangle(surface, front_a, front_b, front_c, Vector3.BACK)
+		_add_phone_mesh_triangle(surface, back_a, back_c, back_b, Vector3.FORWARD)
 
-	# Straight side walls connect the two outlines without rounding the Z edges.
+	# Build each perimeter wall with its own outward normal. Keep vertices
+	# unindexed so adjacent curved segments do not blend into the broad faces.
 	for index in range(outline.size()):
 		var next_index := (index + 1) % outline.size()
 		var a: Vector2 = outline[index]
 		var b: Vector2 = outline[next_index]
+		var edge := b - a
+		var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
 		var front_a := Vector3(a.x, a.y, front_z)
 		var front_b := Vector3(b.x, b.y, front_z)
 		var back_a := Vector3(a.x, a.y, back_z)
 		var back_b := Vector3(b.x, b.y, back_z)
-		surface.add_vertex(front_a)
-		surface.add_vertex(back_a)
-		surface.add_vertex(back_b)
-		surface.add_vertex(front_a)
-		surface.add_vertex(back_b)
-		surface.add_vertex(front_b)
+		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, side_normal)
+		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, side_normal)
 
-	surface.index()
-	surface.generate_normals()
 	return surface.commit()
+
+
+func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, desired_normal: Vector3) -> void:
+	var normal := desired_normal.normalized()
+	if (b - a).cross(c - a).dot(normal) < 0.0:
+		var swap := b
+		b = c
+		c = swap
+	surface.set_normal(normal)
+	surface.add_vertex(a)
+	surface.set_normal(normal)
+	surface.add_vertex(b)
+	surface.set_normal(normal)
+	surface.add_vertex(c)
+
 
 func _on_left_tools_previous_pressed() -> void:
 	_set_left_tools_page(left_tools_page - 1)
