@@ -661,15 +661,13 @@ func _get_preview_viewport() -> SubViewport:
 
 func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	var button := Button.new()
-	button.text = feature_name
+	button.text = ""
 	button.tooltip_text = feature_name
 	button.mouse_filter = Control.MOUSE_FILTER_PASS
 	button.custom_minimum_size = Vector2(0, 64)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_research_typography(button, 12)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
@@ -685,6 +683,17 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
+
+	var feature_label := Label.new()
+	feature_label.text = feature_name
+	feature_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	feature_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	feature_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	feature_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	feature_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	feature_label.add_theme_color_override("font_color", Color.WHITE)
+	_apply_research_typography(feature_label, 12)
+	button.add_child(feature_label)
 	# Feature selection remains display-only until the phone editor actions are implemented.
 	parent.add_child(button)
 
