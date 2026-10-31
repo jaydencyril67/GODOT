@@ -1811,6 +1811,7 @@ func _ensure_staff_data() -> void:
 	for candidate_value in career["staff_candidates"]:
 		if candidate_value is Dictionary:
 			var candidate_data: Dictionary = candidate_value
+			candidate_data.erase("ability")
 			candidate_data.erase("potential")
 			candidate_data.erase("reliability")
 			candidate_data.erase("communication")
@@ -1819,6 +1820,7 @@ func _ensure_staff_data() -> void:
 	for employee_value in career["staff_employees"]:
 		if employee_value is Dictionary:
 			var employee_data: Dictionary = employee_value
+			employee_data.erase("ability")
 			employee_data.erase("potential")
 			employee_data.erase("reliability")
 			employee_data.erase("communication")
@@ -1870,7 +1872,6 @@ func _generate_staff_candidate() -> Dictionary:
 	var departments := ["Development", "Marketing", "Research"]
 	var department: String = departments[rng.randi_range(0, departments.size() - 1)]
 	var role_list: Array = roles[department]
-	var ability := rng.randi_range(42, 98)
 	var efficiency := rng.randi_range(48, 99)
 	var experience := rng.randi_range(0, 22)
 	var base_salary := 145000.0
@@ -1878,7 +1879,7 @@ func _generate_staff_candidate() -> Dictionary:
 		"Development": base_salary = 190000.0
 		"Research": base_salary = 175000.0
 		"Marketing": base_salary = 145000.0
-	var salary := roundf(base_salary * (0.65 + float(ability) / 100.0) * (1.0 + float(experience) * 0.035) / 1000.0) * 1000.0
+	var salary := roundf(base_salary * (0.65 + float(efficiency) / 100.0) * (1.0 + float(experience) * 0.035) / 1000.0) * 1000.0
 	var candidate_id := "candidate_%05d" % int(career.get("next_staff_candidate_id", 1))
 	career["next_staff_candidate_id"] = int(career.get("next_staff_candidate_id", 1)) + 1
 	return {
@@ -1889,7 +1890,6 @@ func _generate_staff_candidate() -> Dictionary:
 		"gender": "Female" if rng.randi_range(0, 1) == 0 else "Male",
 		"department": department,
 		"position": role_list[rng.randi_range(0, role_list.size() - 1)],
-		"ability": ability,
 		"efficiency": efficiency,
 		"experience": experience,
 		"education": ["Diploma", "Bachelor's Degree", "Master's Degree", "Doctorate"][rng.randi_range(0, 3)],
