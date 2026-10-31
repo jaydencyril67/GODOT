@@ -975,8 +975,8 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 		var back_a := Vector3(a2.x, a2.y, back_z)
 		var back_b := Vector3(b2.x, b2.y, back_z)
 		var back_c := Vector3(c2.x, c2.y, back_z)
-		_add_phone_mesh_triangle(surface, front_a, front_b, front_c, Vector3.BACK)
-		_add_phone_mesh_triangle(surface, back_a, back_c, back_b, Vector3.FORWARD)
+		_add_phone_mesh_triangle(surface, front_a, front_b, front_c, Vector3.FORWARD)
+		_add_phone_mesh_triangle(surface, back_a, back_c, back_b, Vector3.BACK)
 
 	# Build each perimeter wall with its own outward normal. Keep vertices
 	# unindexed so adjacent curved segments do not blend into the broad faces.
