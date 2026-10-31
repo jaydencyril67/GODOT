@@ -8,6 +8,8 @@ signal setup_completed
 signal back_requested
 signal upgrade_requested(level: int)
 signal downgrade_requested(level: int, refund_percent: int)
+signal staff_market_requested
+signal staff_management_requested
 
 const MAX_LEVEL := 10
 const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
@@ -416,6 +418,38 @@ func _create_preview_interface() -> void:
 		staff_font.variation_embolden = 0.45
 		staff_capacity_label.add_theme_font_override("font", staff_font)
 		layer.add_child(staff_capacity_label)
+
+		var staff_market_button := Button.new()
+		staff_market_button.name = "Headquarters_Staff_Market_Button"
+		staff_market_button.text = "STAFF MARKET"
+		staff_market_button.anchor_left = 0.5
+		staff_market_button.anchor_top = 0.0
+		staff_market_button.anchor_right = 0.5
+		staff_market_button.anchor_bottom = 0.0
+		staff_market_button.offset_left = -150.0
+		staff_market_button.offset_top = 128.0
+		staff_market_button.offset_right = -8.0
+		staff_market_button.offset_bottom = 172.0
+		staff_market_button.add_theme_font_size_override("font_size", 13)
+		_style_preview_button(staff_market_button, true)
+		staff_market_button.pressed.connect(func(): staff_market_requested.emit())
+		layer.add_child(staff_market_button)
+
+		var staff_management_button := Button.new()
+		staff_management_button.name = "Headquarters_Staff_Management_Button"
+		staff_management_button.text = "STAFF MANAGEMENT"
+		staff_management_button.anchor_left = 0.5
+		staff_management_button.anchor_top = 0.0
+		staff_management_button.anchor_right = 0.5
+		staff_management_button.anchor_bottom = 0.0
+		staff_management_button.offset_left = 8.0
+		staff_management_button.offset_top = 128.0
+		staff_management_button.offset_right = 150.0
+		staff_management_button.offset_bottom = 172.0
+		staff_management_button.add_theme_font_size_override("font_size", 13)
+		_style_preview_button(staff_management_button, false)
+		staff_management_button.pressed.connect(func(): staff_management_requested.emit())
+		layer.add_child(staff_management_button)
 
 	if not home_mode:
 		previous_level_button = _create_side_level_button(layer, "Previous_Level_Button", "‹", true)
