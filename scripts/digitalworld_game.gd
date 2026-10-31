@@ -1137,8 +1137,10 @@ func _build_home_status_bar(root: Control) -> void:
 	home_company_label.name = "Company_Name"
 	home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_company_label.clip_text = true
-	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	home_company_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	home_company_label.clip_text = false
+	home_company_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	home_company_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	home_company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	home_company_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_apply_shared_page_typography(home_company_label, 19)
@@ -1315,10 +1317,22 @@ func _update_home_status_bar() -> void:
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 		var company_card := home_company_label.get_parent() as PanelContainer
+		var cards_row := company_card.get_parent() as HBoxContainer if is_instance_valid(company_card) else null
 		if is_instance_valid(company_card):
 			var company_font := home_company_label.get_theme_font("font")
-			var text_width := company_font.get_string_size(home_company_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
-			company_card.custom_minimum_size.x = clampf(text_width + 24.0, 110.0, 280.0)
+			var text_width := company_font.get_string_size(home_company_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
+			# Reserve room for the four fixed status cards, their gaps and the row margins.
+			# The company card uses the remaining width, growing naturally for longer names.
+			var viewport_width := get_viewport().get_visible_rect().size.x
+			var maximum_company_width := maxf(110.0, viewport_width - 636.0)
+			var company_width := minf(text_width + 24.0, maximum_company_width)
+			var usable_text_width := maxf(1.0, company_width - 24.0)
+			var estimated_lines := maxi(1, ceili(text_width / usable_text_width))
+			var company_height := maxf(62.0, float(estimated_lines) * 23.0 + 20.0)
+			company_card.custom_minimum_size = Vector2(company_width, company_height)
+			home_company_label.custom_minimum_size.y = maxf(42.0, float(estimated_lines) * 23.0)
+			if is_instance_valid(cards_row):
+				cards_row.offset_bottom = 10.0 + company_height
 	if is_instance_valid(home_time_button):
 		home_time_button.text = "▶ PLAY" if game_clock_paused else "Ⅱ PAUSE"
 
