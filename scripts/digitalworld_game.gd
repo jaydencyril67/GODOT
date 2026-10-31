@@ -346,6 +346,39 @@ func _style_command_menu_button(button: Button, primary: bool) -> void:
 	button.add_theme_constant_override("shadow_offset_y", 0)
 
 func _start_new_game() -> void:
+	# Never overwrite an existing career without the player's explicit approval.
+	if FileAccess.file_exists(SAVE_PATH):
+		_show_confirmation(
+			"START A NEW GAME?",
+			"Starting a new game will permanently erase your saved company, money, office, employees, research and all other game progress. This cannot be undone.\n\nDo you want to reset your saved data and start again?",
+			"START NEW GAME",
+			Callable(self, "_reset_saved_game_and_start")
+		)
+		return
+	_begin_fresh_game()
+
+
+func _reset_saved_game_and_start() -> void:
+	# Delete the persistent save only after the reusable confirmation modal confirms.
+	if FileAccess.file_exists(SAVE_PATH):
+		var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+		if remove_error != OK:
+			_show_notice("SAVE RESET FAILED", "Your existing game data could not be erased. Your saved company has been kept safe.")
+			return
+	_begin_fresh_game()
+
+
+func _begin_fresh_game() -> void:
+	# Clear every in-memory value that belongs to the previous career as well.
+	career = {}
+	upgrade_level = 0
+	selected_upgrade = 1
+	selected_logo_id = 1
+	game_date_unix = 1262304000.0
+	game_clock_paused = false
+	last_saved_game_day = -1
+	_dispose_phone_editor()
+	_clear_world()
 	_show_profile()
 
 
