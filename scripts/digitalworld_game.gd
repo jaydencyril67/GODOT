@@ -964,7 +964,7 @@ func _downgrade_headquarters(level: int, refund_percent: int) -> void:
 	_update_home_status_bar()
 
 
-func _apply_home_button_typography(button: Button, font_size: int) -> void:
+func _apply_home_button_typography(button: Control, font_size: int) -> void:
 	# Use the project STIX variable font explicitly and strengthen its weight
 	# without changing any button dimensions, layout, or visual styling.
 	var stix_font := FontVariation.new()
