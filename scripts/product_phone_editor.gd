@@ -923,7 +923,7 @@ func _show_power_volume_controls() -> void:
 	active_feature_panel.name = "PowerVolumeControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 18)
+	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("POWER & VOLUME", 22, Color.WHITE)
@@ -968,13 +968,13 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	section_style.set_corner_radius_all(12)
 	section_style.content_margin_left = 12
 	section_style.content_margin_right = 12
-	section_style.content_margin_top = 12
-	section_style.content_margin_bottom = 12
+	section_style.content_margin_top = 9
+	section_style.content_margin_bottom = 9
 	section.add_theme_stylebox_override("panel", section_style)
 	active_feature_panel.add_child(section)
 
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 10)
+	content.add_theme_constant_override("separation", 8)
 	section.add_child(content)
 	var heading := _make_label(caption, 18, Color("#ffffff"))
 	content.add_child(heading)
