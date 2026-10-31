@@ -850,9 +850,10 @@ func _show_city() -> void:
 func _show_home_scene() -> void:
 	current_screen = "home"
 	_clear_world()
-	# Regenerate all available candidates on every app launch during HQ preparation.
-	_refresh_staff_market_on_startup()
 	_show_headquarters_loading_screen()
+	# Let the HQ preparation screen render before refreshing the market and generating buildings.
+	await get_tree().process_frame
+	_refresh_staff_market_on_startup()
 
 	var headquarters = HeadquartersPreviewScript.new()
 	headquarters.name = "DigitalWorld_Home_Scene"
