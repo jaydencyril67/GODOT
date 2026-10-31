@@ -841,7 +841,7 @@ func _add_glass_curtain_wall(parent: Node3D, width: float, depth: float, floors:
 		_add_multimesh(parent, "Glass_Floor_Transoms_Side_%d" % side, horizontals, materials["glass_mullion"])
 
 func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: float, floors: int, ground_height: float, floor_height: float, style: int) -> void:
-	var basis := Basis(Vector3.UP, angle)
+	var facade_basis := Basis(Vector3.UP, angle)
 	var facade_depth := depth * 0.5 + 0.095
 	var columns := 3 if style == 2 else 2
 	var spacing := (width - 1.0) / float(columns)
@@ -891,14 +891,14 @@ func _add_facade_windows(parent: Node3D, angle: float, width: float, depth: floa
 		var y := 0.42 + ground_height + float(floor_index - 1) * floor_height + 1.38
 		for column in range(columns):
 			var x := (float(column) - float(columns - 1) * 0.5) * spacing
-			frame_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth)))
-			gasket_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth + 0.035)))
-			glass_transforms.append(Transform3D(basis, basis * Vector3(x, y, facade_depth + 0.075)))
-			sill_transforms.append(Transform3D(basis, basis * Vector3(x, y - 0.72, facade_depth + 0.06)))
-			head_transforms.append(Transform3D(basis, basis * Vector3(x, y + 0.72, facade_depth + 0.055)))
+			frame_transforms.append(Transform3D(facade_basis, facade_basis * Vector3(x, y, facade_depth)))
+			gasket_transforms.append(Transform3D(facade_basis, facade_basis * Vector3(x, y, facade_depth + 0.035)))
+			glass_transforms.append(Transform3D(facade_basis, facade_basis * Vector3(x, y, facade_depth + 0.075)))
+			sill_transforms.append(Transform3D(facade_basis, facade_basis * Vector3(x, y - 0.72, facade_depth + 0.06)))
+			head_transforms.append(Transform3D(facade_basis, facade_basis * Vector3(x, y + 0.72, facade_depth + 0.055)))
 			# Narrow highlights simulate reflected sky on the glazing without texture-heavy materials.
-			reflection_transforms.append(Transform3D(basis, basis * Vector3(x - (0.30 if columns == 2 else 0.20), y, facade_depth + 0.132)))
-			highlight_transforms.append(Transform3D(basis, basis * Vector3(x + (0.10 if columns == 2 else 0.06), y + 0.48, facade_depth + 0.132)))
+			reflection_transforms.append(Transform3D(facade_basis, facade_basis * Vector3(x - (0.30 if columns == 2 else 0.20), y, facade_depth + 0.132)))
+			highlight_transforms.append(Transform3D(facade_basis, facade_basis * Vector3(x + (0.10 if columns == 2 else 0.06), y + 0.48, facade_depth + 0.132)))
 	frame_mm.instance_count = frame_transforms.size()
 	glass_mm.instance_count = glass_transforms.size()
 	sill_mm.instance_count = sill_transforms.size()
@@ -974,8 +974,8 @@ func _add_facade_microdetails(parent: Node3D, angle: float, width: float, depth:
 func _add_rooftop_service_details(parent: Node3D, width: float, depth: float, height: float, roof: Material, accent: Material) -> void:
 	for side in range(4):
 		var angle := float(side) * PI * 0.5
-		var basis := Basis(Vector3.UP, angle)
-		var rail := _box(parent, "Roof_Parapet_Return", Vector3(width + 0.35, 0.62, 0.18), basis * Vector3(0.0, height + 0.92, depth * 0.5), accent)
+		var side_basis := Basis(Vector3.UP, angle)
+		var rail := _box(parent, "Roof_Parapet_Return", Vector3(width + 0.35, 0.62, 0.18), side_basis * Vector3(0.0, height + 0.92, depth * 0.5), accent)
 		rail.rotation.y = angle
 	for i in range(3):
 		var x := -1.55 + float(i) * 1.55
@@ -985,14 +985,14 @@ func _add_rooftop_service_details(parent: Node3D, width: float, depth: float, he
 	_box(parent, "Roof_Service_Cable_Tray", Vector3(width * 0.7, 0.07, 0.12), Vector3(0.0, height + 0.7, -depth * 0.32), materials["dark_metal"])
 
 func _add_facade_pilasters(parent: Node3D, angle: float, width: float, depth: float, height: float, material: Material, style: int) -> void:
-	var basis := Basis(Vector3.UP, angle)
+	var facade_basis := Basis(Vector3.UP, angle)
 	for x in [-width * 0.5 + 0.16, width * 0.5 - 0.16]:
-		var pos := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.12)
+		var pos := facade_basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.12)
 		var pilaster := _box(parent, "Facade_Corner_Pilaster", Vector3(0.22 if style != 3 else 0.34, height, 0.24), pos, material)
 		pilaster.rotation.y = angle
 	if style == 0 or style == 2:
 		for x in [-1.35, 1.35]:
-			var pos := basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.2)
+			var pos := facade_basis * Vector3(x, height * 0.5 + 0.42, depth * 0.5 + 0.2)
 			var fin := _box(parent, "Vertical_Aluminium_Sunshade", Vector3(0.10, height, 0.18), pos, material)
 			fin.rotation.y = angle
 
