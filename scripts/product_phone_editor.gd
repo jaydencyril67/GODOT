@@ -800,7 +800,7 @@ func _show_thickness_controls() -> void:
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 14)
-	tools_content.add_child(active_feature_panel)
+	right_tools_content.add_child(active_feature_panel)
 
 	var back_button := Button.new()
 	back_button.text = "←  ALL FEATURES"
