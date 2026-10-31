@@ -655,9 +655,10 @@ func _get_preview_viewport() -> SubViewport:
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
 	body_material.roughness = 0.72
-	# Render both sides of the closed mesh so a winding variation cannot make
-	# the phone appear open when it is rotated in the 3D preview.
-	body_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# This is a closed solid mesh with outward-facing, correctly wound
+	# triangles. Cull its back faces instead of shading interior backfaces
+	# with automatically inverted normals.
+	body_material.cull_mode = BaseMaterial3D.CULL_BACK
 	phone_body.material_override = body_material
 	# The preview contains only the phone body, so it has no useful external
 	# shadow to cast. Prevent the custom rounded perimeter from self-shadowing
@@ -1015,7 +1016,10 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 
 func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward_normal: Vector3) -> void:
 	var normal := outward_normal.normalized()
-	if (b - a).cross(c - a).dot(normal) < 0.0:
+	# Godot expects clockwise triangle winding for front faces. With
+	# outward normals, the vertex cross product must therefore point in
+	# the opposite direction. The previous comparison reversed every face.
+	if (b - a).cross(c - a).dot(normal) > 0.0:
 		var swap := b
 		b = c
 		c = swap
