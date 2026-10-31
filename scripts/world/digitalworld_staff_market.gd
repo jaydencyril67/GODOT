@@ -21,6 +21,12 @@ var company_name := "YOUR COMPANY"
 var company_balance := 0.0
 var market_filter := "All Departments"
 var content: VBoxContainer
+var staff_scroll: ScrollContainer
+var staff_scroll_tween: Tween
+var staff_touch_index := -1
+var staff_touch_start := Vector2.ZERO
+var staff_touch_dragging := false
+var staff_touch_velocity_y := 0.0
 
 
 func open(screen_mode: String, candidate_data: Array, employee_data: Array, staff_capacity: int, business_name: String, balance: float) -> void:
@@ -64,8 +70,11 @@ func _build() -> void:
 	scroll.name = "StaffSceneScroll"
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.follow_focus = true
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.follow_focus = false
+	scroll.scroll_deadzone = 8
+	scroll.clip_contents = true
+	staff_scroll = scroll
 	add_child(scroll)
 
 	var outer := MarginContainer.new()
@@ -128,6 +137,61 @@ func _build() -> void:
 		_build_market()
 	else:
 		_build_management()
+
+func _input(event: InputEvent) -> void:
+	if not is_instance_valid(staff_scroll) or not visible:
+		return
+	var viewport := get_viewport()
+	var scroll_rect := staff_scroll.get_global_rect()
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			if scroll_rect.has_point(event.position):
+				staff_touch_index = event.index
+				staff_touch_start = event.position
+				staff_touch_dragging = false
+				staff_touch_velocity_y = 0.0
+		else:
+			if event.index == staff_touch_index:
+				if staff_touch_dragging:
+					var fling_distance := clampf(staff_touch_velocity_y * 0.10, -420.0, 420.0)
+					var target := clampi(roundi(float(staff_scroll.scroll_vertical) - fling_distance), 0, _staff_max_scroll())
+					_animate_staff_scroll(target, 0.24)
+					viewport.set_input_as_handled()
+				staff_touch_index = -1
+				staff_touch_dragging = false
+				staff_touch_velocity_y = 0.0
+	elif event is InputEventScreenDrag and event.index == staff_touch_index:
+		if not staff_touch_dragging and staff_touch_start.distance_to(event.position) >= 9.0:
+			staff_touch_dragging = true
+		if staff_touch_dragging:
+			staff_scroll.scroll_vertical = clampi(staff_scroll.scroll_vertical - roundi(event.relative.y), 0, _staff_max_scroll())
+			staff_touch_velocity_y = event.velocity.y
+			viewport.set_input_as_handled()
+	elif event is InputEventMouseButton and not OS.has_feature("android"):
+		if event.pressed and (event.button_index == MOUSE_BUTTON_WHEEL_DOWN or event.button_index == MOUSE_BUTTON_WHEEL_UP) and scroll_rect.has_point(event.position):
+			var direction := 1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1
+			var target := clampi(staff_scroll.scroll_vertical + direction * 132, 0, _staff_max_scroll())
+			_animate_staff_scroll(target, 0.22)
+			viewport.set_input_as_handled()
+
+
+func _staff_max_scroll() -> int:
+	if not is_instance_valid(staff_scroll):
+		return 0
+	var bar := staff_scroll.get_v_scroll_bar()
+	return maxi(0, roundi(bar.max_value - bar.page))
+
+
+func _animate_staff_scroll(target: int, duration: float) -> void:
+	if not is_instance_valid(staff_scroll):
+		return
+	if is_instance_valid(staff_scroll_tween) and staff_scroll_tween.is_running():
+		staff_scroll_tween.kill()
+	staff_scroll_tween = staff_scroll.create_tween()
+	staff_scroll_tween.set_trans(Tween.TRANS_QUAD)
+	staff_scroll_tween.set_ease(Tween.EASE_OUT)
+	staff_scroll_tween.tween_property(staff_scroll, "scroll_vertical", target, duration)
+
 
 func _add_tab(parent: HBoxContainer, caption: String, active: bool, target: String) -> void:
 	var button := _button(caption, active)
