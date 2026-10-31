@@ -650,7 +650,7 @@ func _get_preview_viewport() -> SubViewport:
 	var body_material := StandardMaterial3D.new()
 	# Use a restrained silver-white base. Preview lighting is balanced below
 	# so the rendered face keeps this colour instead of clipping to pure white.
-	body_material.albedo_color = Color("#b8c0c8")
+	body_material.albedo_color = Color("#a5adb6")
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
 	body_material.roughness = 0.94
