@@ -179,7 +179,7 @@ func _input(event: InputEvent) -> void:
 				staff_active_horizontal_scroll = null
 
 	elif event is InputEventScreenDrag and event.index == staff_touch_index:
-		var drag_delta := event.position - staff_touch_start
+		var drag_delta: Vector2 = event.position - staff_touch_start
 		if staff_touch_axis == "" and drag_delta.length() >= 9.0:
 			staff_touch_dragging = true
 			if is_instance_valid(staff_active_horizontal_scroll) and absf(drag_delta.x) > absf(drag_delta.y):
