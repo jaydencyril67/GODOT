@@ -1612,15 +1612,16 @@ func _process_staff_market_refresh(current_month: String) -> void:
 
 
 func _refresh_staff_screen_data() -> void:
-	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
+	# Refresh only the visible page. Hidden cached scenes stay untouched until opened.
+	if not is_instance_valid(staff_screen) or not staff_screen.visible:
 		return
 	var candidates: Array = career.get("staff_candidates", [])
 	var employees: Array = career.get("staff_employees", [])
 	var capacity := HeadquartersPreviewScript.get_staff_capacity(upgrade_level)
 	var business_name := str(career.get("company_name", "YOUR COMPANY"))
 	var balance := float(career.get("balance", 0.0))
-	staff_market_screen.open("market", candidates, employees, capacity, business_name, balance)
-	staff_management_screen.open("management", candidates, employees, capacity, business_name, balance)
+	var mode := "market" if current_screen == "staff_market" else "management"
+	staff_screen.open(mode, candidates, employees, capacity, business_name, balance)
 
 
 func _update_staff_office_balance() -> void:
@@ -1676,6 +1677,14 @@ func _open_staff_screen(screen_mode: String) -> void:
 	staff_market_screen.hide()
 	staff_management_screen.hide()
 	staff_screen = staff_market_screen if screen_mode == "market" else staff_management_screen
+	staff_screen.open(
+		"market" if screen_mode == "market" else "management",
+		career.get("staff_candidates", []),
+		career.get("staff_employees", []),
+		HeadquartersPreviewScript.get_staff_capacity(upgrade_level),
+		str(career.get("company_name", "YOUR COMPANY")),
+		float(career.get("balance", 0.0))
+	)
 	staff_screen.show()
 
 
