@@ -1,7 +1,6 @@
 extends Control
 
 signal back_requested
-signal headquarters_requested
 signal hire_requested(candidate_id: String)
 signal dismiss_requested(employee_id: String)
 signal assignment_requested(employee_id: String, department: String)
@@ -121,12 +120,6 @@ func _build() -> void:
 	back.pressed.connect(func(): back_requested.emit())
 	hero_row.add_child(back)
 
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 10)
-	page.add_child(tabs)
-	_add_tab(tabs, "STAFF MARKET", mode == "market", "market")
-	_add_tab(tabs, "MY STAFF", mode == "management", "management")
-
 	# The page-level ScrollContainer owns vertical scrolling. A second nested
 	# ScrollContainer here can collapse to zero height inside the VBox on mobile,
 	# making both candidate and employee lists appear empty.
@@ -136,9 +129,8 @@ func _build() -> void:
 	content.add_theme_constant_override("separation", 12)
 	page.add_child(content)
 
-	if mode == "office":
-		_build_office()
-	elif mode == "market":
+	# Dedicated screens: no navigation switcher between market and management.
+	if mode == "market":
 		_build_market()
 	else:
 		_build_management()
@@ -196,41 +188,6 @@ func _animate_staff_scroll(target: int, duration: float) -> void:
 	staff_scroll_tween.set_trans(Tween.TRANS_QUAD)
 	staff_scroll_tween.set_ease(Tween.EASE_OUT)
 	staff_scroll_tween.tween_property(staff_scroll, "scroll_vertical", target, duration)
-
-
-func _add_tab(parent: HBoxContainer, caption: String, active: bool, target: String) -> void:
-	var button := _button(caption, active)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.custom_minimum_size.y = 50
-	button.add_theme_font_size_override("font_size", 15)
-	button.pressed.connect(func():
-		if target == "headquarters":
-			headquarters_requested.emit()
-		else:
-			mode = target
-			_build()
-	)
-	parent.add_child(button)
-
-
-func _build_office() -> void:
-	content.add_child(_label("COMPANY WORKFORCE", 12, Color("#8bdcff")))
-	content.add_child(_label("Manage your headquarters and build the team behind your company.", 15, WHITE))
-	_add_stat_card("EMPLOYEES", "%d / %d" % [employees.size(), capacity], "Your current headquarters capacity")
-	_add_stat_card("MARKET CANDIDATES", str(candidates.size()), "Available people waiting to be hired")
-	_add_stat_card("MONTHLY PAYROLL", _money(_total_payroll()), "Current salary commitment")
-	var market := _button("EXPLORE STAFF MARKET", true)
-	market.custom_minimum_size.y = 58
-	market.pressed.connect(func(): mode = "market"; _build())
-	content.add_child(market)
-	var team := _button("MANAGE MY STAFF", false)
-	team.custom_minimum_size.y = 54
-	team.pressed.connect(func(): mode = "management"; _build())
-	content.add_child(team)
-	var hq := _button("HEADQUARTERS BUILDINGS", false)
-	hq.custom_minimum_size.y = 54
-	hq.pressed.connect(func(): headquarters_requested.emit())
-	content.add_child(hq)
 
 
 func _build_market() -> void:
