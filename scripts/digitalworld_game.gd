@@ -972,12 +972,16 @@ func _upgrade_headquarters(level: int) -> void:
 	var requested_level := clampi(level, 1, 10)
 	if requested_level <= upgrade_level:
 		return
+	var is_first_purchase := upgrade_level <= 0 and requested_level == 1
 	var upgrade_cost := float(HeadquartersPreviewScript.get_upgrade_cost(requested_level))
 	var previous_balance := float(career.get("balance", 10000000.0))
 	if previous_balance < upgrade_cost:
-		_show_notice("INSUFFICIENT BALANCE", "You need %s to relocate to Headquarters Level %d. Your available balance is %s." % [_format_balance(upgrade_cost), requested_level, _format_balance(previous_balance)])
+		_show_notice("INSUFFICIENT BALANCE", "You need %s to purchase Headquarters Level %d. Your available balance is %s." % [_format_balance(upgrade_cost), requested_level, _format_balance(previous_balance)])
 		return
-	_show_confirmation("UPGRADE HEADQUARTERS", "Upgrade your headquarters to Level %d?\n\nCost: %s\nAvailable balance: %s" % [requested_level, _format_balance(upgrade_cost), _format_balance(previous_balance)], "UPGRADE", Callable(self, "_apply_headquarters_upgrade").bind(requested_level))
+	var confirmation_title := "PURCHASE HEADQUARTERS" if is_first_purchase else "UPGRADE HEADQUARTERS"
+	var confirmation_message := "Purchase your first headquarters (Level %d)?\n\nPurchase price: %s\nAvailable balance: %s" % [requested_level, _format_balance(upgrade_cost), _format_balance(previous_balance)] if is_first_purchase else "Upgrade your headquarters to Level %d?\n\nCost: %s\nAvailable balance: %s" % [requested_level, _format_balance(upgrade_cost), _format_balance(previous_balance)]
+	var confirmation_action := "PURCHASE" if is_first_purchase else "UPGRADE"
+	_show_confirmation(confirmation_title, confirmation_message, confirmation_action, Callable(self, "_apply_headquarters_upgrade").bind(requested_level))
 
 
 func _apply_headquarters_upgrade(requested_level: int) -> void:
