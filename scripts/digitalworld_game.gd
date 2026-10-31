@@ -167,7 +167,8 @@ func _load_career() -> bool:
 		"staff_employees": config.get_value("career", "staff_employees", []),
 		"next_staff_candidate_id": int(config.get_value("career", "next_staff_candidate_id", 1)),
 		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
-		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false))
+		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false)),
+		"phone_design_research": config.get_value("career", "phone_design_research", {})
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
@@ -195,6 +196,7 @@ func _save_career() -> bool:
 	config.set_value("career", "next_staff_candidate_id", int(career.get("next_staff_candidate_id", 1)))
 	config.set_value("career", "last_candidate_refresh_month", str(career.get("last_candidate_refresh_month", _get_game_month_key(game_date_unix))))
 	config.set_value("career", "staff_market_initialized", bool(career.get("staff_market_initialized", false)))
+	config.set_value("career", "phone_design_research", career.get("phone_design_research", {}))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -1586,6 +1588,8 @@ func _show_research_phone() -> void:
 	phone_editor.name = "Phone_Research_Screen"
 	phone_editor.set("research_mode", true)
 	phone_editor.connect("back_requested", Callable(self, "_return_from_research_phone"))
+	phone_editor.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
+	phone_editor.call("set_research_data", career.get("phone_design_research", {}), float(career.get("balance", 10000000.0)))
 	if is_instance_valid(ui_layer):
 		ui_layer.hide()
 	add_child(phone_editor)
@@ -1599,6 +1603,48 @@ func _return_from_research_phone() -> void:
 	current_screen = "research"
 	if is_instance_valid(ui_layer):
 		ui_layer.show()
+
+
+func _on_phone_design_research_upgrade(research_id: String) -> void:
+	var research_names := {
+		"screen_size": "Screen size",
+		"phone_thickness": "Phone thickness",
+		"bezel_width": "Bezel width",
+		"frame_material": "Frame material",
+		"body_finish": "Body finish",
+		"camera_module": "Camera-module design"
+	}
+	if not research_names.has(research_id):
+		return
+
+	var research_levels: Dictionary = career.get("phone_design_research", {}).duplicate(true)
+	var current_level := clampi(int(research_levels.get(research_id, 1)), 1, 20)
+	if current_level >= 20:
+		_show_notice("MAXIMUM RESEARCH LEVEL", str(research_names[research_id]) + " has already reached level 20.")
+		return
+
+	var upgrade_cost := 250000.0 * float(current_level)
+	var previous_balance := float(career.get("balance", 10000000.0))
+	if previous_balance < upgrade_cost:
+		_show_notice("INSUFFICIENT BALANCE", "Upgrading %s to level %d requires %s. Your available balance is %s." % [research_names[research_id], current_level + 1, _format_balance(upgrade_cost), _format_balance(previous_balance)])
+		return
+
+	var previous_levels := research_levels.duplicate(true)
+	research_levels[research_id] = current_level + 1
+	career["phone_design_research"] = research_levels
+	career["balance"] = previous_balance - upgrade_cost
+	if not _save_career():
+		career["phone_design_research"] = previous_levels
+		career["balance"] = previous_balance
+		_show_notice("RESEARCH NOT SAVED", "The research upgrade could not be saved. Your research level and balance have not changed.")
+		return
+
+	_update_home_status_bar()
+	_update_staff_office_balance()
+	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
+		world_root.set_company_balance(float(career["balance"]))
+	if is_instance_valid(phone_editor):
+		phone_editor.call("set_research_data", career.get("phone_design_research", {}), float(career["balance"]))
 
 
 func _return_to_home() -> void:
