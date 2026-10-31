@@ -1251,7 +1251,6 @@ func _refresh_phone_charge_port() -> void:
 		"Apple Lightning":
 			port_width = 6.7 * unit_per_mm
 			port_height = 1.5 * unit_per_mm
-			contact_rows = 2
 			contact_count = 8
 		"Micro-USB (Micro-B)":
 			port_width = 6.85 * unit_per_mm
@@ -1262,19 +1261,16 @@ func _refresh_phone_charge_port() -> void:
 			port_width = 6.9 * unit_per_mm
 			port_height = 3.1 * unit_per_mm
 			shape = "mini"
-			contact_rows = 1
 			contact_count = 5
 		"Apple 30-pin Dock":
 			port_width = 21.0 * unit_per_mm
 			port_height = 5.5 * unit_per_mm
 			shape = "wide"
-			contact_rows = 1
 			contact_count = 30
 		"USB 3.0 Micro-B":
 			port_width = 12.25 * unit_per_mm
 			port_height = 2.45 * unit_per_mm
 			shape = "micro_usb_3"
-			contact_rows = 1
 			contact_count = 10
 		"Nokia 2mm Barrel":
 			port_width = 2.0 * unit_per_mm
