@@ -30,6 +30,7 @@ var phone_thickness_value_label: Label
 var speaker_count := 0
 var speaker_count_value_label: Label
 var charge_port_type := "None"
+var charge_port_opening_points := PackedVector2Array()
 var charge_port_value_label: Label
 var active_feature_panel: Control
 var right_tools_content: VBoxContainer
@@ -1113,7 +1114,11 @@ func _on_charge_port_selected(port_type: String) -> void:
 	charge_port_type = port_type
 	if is_instance_valid(charge_port_value_label):
 		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
+	# Rebuild the receptacle first so its exact aperture is used when the
+	# phone's bottom frame mesh is regenerated.
 	_refresh_phone_charge_port()
+	var radius := 0.32 * float(border_radius_level) / 6.0
+	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
 	_refresh_phone_speakers()
 	_show_charge_port_controls()
 
@@ -1165,12 +1170,69 @@ func _add_port_detail(parent: Node3D, node_name: String, points: PackedVector2Ar
 	parent.add_child(detail)
 
 
+func _make_port_ring_mesh(opening_points: PackedVector2Array, scale_factor: float, face_y: float) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	if opening_points.size() < 3:
+		return mesh
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var normal := Vector3(0.0, -1.0, 0.0)
+	for index in range(opening_points.size()):
+		var next_index := (index + 1) % opening_points.size()
+		var inner_a := opening_points[index]
+		var inner_b := opening_points[next_index]
+		var outer_a := inner_a * scale_factor
+		var outer_b := inner_b * scale_factor
+		_add_phone_mesh_triangle(surface, Vector3(outer_a.x, face_y, outer_a.y), Vector3(outer_b.x, face_y, outer_b.y), Vector3(inner_b.x, face_y, inner_b.y), normal)
+		_add_phone_mesh_triangle(surface, Vector3(outer_a.x, face_y, outer_a.y), Vector3(inner_b.x, face_y, inner_b.y), Vector3(inner_a.x, face_y, inner_a.y), normal)
+	return surface.commit()
+
+
+func _add_port_ring(parent: Node3D, node_name: String, opening_points: PackedVector2Array, scale_factor: float, face_y: float, material: Material) -> void:
+	var ring := MeshInstance3D.new()
+	ring.name = node_name
+	ring.mesh = _make_port_ring_mesh(opening_points, scale_factor, face_y)
+	ring.material_override = material
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(ring)
+
+
+func _make_port_cavity_walls(points: PackedVector2Array, mouth_y: float, back_y: float) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	if points.size() < 3:
+		return mesh
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(points.size()):
+		var next_index := (index + 1) % points.size()
+		var a := points[index]
+		var b := points[next_index]
+		var inward := -((a + b) * 0.5).normalized()
+		var wall_normal := Vector3(inward.x, 0.0, inward.y).normalized()
+		var mouth_a := Vector3(a.x, mouth_y, a.y)
+		var mouth_b := Vector3(b.x, mouth_y, b.y)
+		var back_a := Vector3(a.x, back_y, a.y)
+		var back_b := Vector3(b.x, back_y, b.y)
+		_add_phone_mesh_triangle(surface, mouth_a, mouth_b, back_b, wall_normal)
+		_add_phone_mesh_triangle(surface, mouth_a, back_b, back_a, wall_normal)
+	return surface.commit()
+
+
+func _add_port_cavity_walls(parent: Node3D, node_name: String, points: PackedVector2Array, mouth_y: float, back_y: float, material: Material) -> void:
+	var walls := MeshInstance3D.new()
+	walls.name = node_name
+	walls.mesh = _make_port_cavity_walls(points, mouth_y, back_y)
+	walls.material_override = material
+	walls.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(walls)
+
 func _refresh_phone_charge_port() -> void:
 	if not is_instance_valid(phone_body):
 		return
 	var previous_port := phone_body.get_node_or_null("PhoneChargingPort")
 	if is_instance_valid(previous_port):
 		previous_port.free()
+	charge_port_opening_points = PackedVector2Array()
 	if charge_port_type == "None":
 		return
 
@@ -1263,10 +1325,10 @@ func _refresh_phone_charge_port() -> void:
 			Vector2(-port_width * 0.39, port_height * 0.5)
 		])
 		inner_points = PackedVector2Array([
-			Vector2(-port_width * 0.39, -port_height * 0.36),
-			Vector2(port_width * 0.39, -port_height * 0.36),
-			Vector2(port_width * 0.31, port_height * 0.36),
-			Vector2(-port_width * 0.31, port_height * 0.36)
+			Vector2(-port_width * 0.46, -port_height * 0.42),
+			Vector2(port_width * 0.46, -port_height * 0.42),
+			Vector2(port_width * 0.42, port_height * 0.42),
+			Vector2(-port_width * 0.42, port_height * 0.42)
 		])
 	elif shape == "mini":
 		outer_points = PackedVector2Array([
@@ -1275,7 +1337,7 @@ func _refresh_phone_charge_port() -> void:
 			Vector2(port_width * 0.36, port_height * 0.5),
 			Vector2(-port_width * 0.36, port_height * 0.5)
 		])
-		inner_points = _make_port_outline(port_width * 0.78, port_height * 0.68, port_height * 0.12)
+		inner_points = _make_port_outline(port_width * 0.90, port_height * 0.82, port_height * 0.15)
 	elif shape == "micro_usb_3":
 		# The SuperSpeed Micro-B receptacle has the familiar Micro-B section
 		# plus a wider adjacent extension, not one generic rectangular slot.
@@ -1303,15 +1365,83 @@ func _refresh_phone_charge_port() -> void:
 		])
 	else:
 		outer_points = _make_port_outline(port_width, port_height, port_height * 0.5, 8)
-		inner_points = _make_port_outline(port_width * 0.86, port_height * 0.64, port_height * 0.32, 8)
+		var opening_width_ratio := 0.95
+		var opening_height_ratio := 0.84
+		if charge_port_type == "USB Type-C":
+			opening_width_ratio = 0.96
+			opening_height_ratio = 0.84
+		elif charge_port_type == "Apple Lightning":
+			opening_width_ratio = 0.94
+			opening_height_ratio = 0.80
+		elif charge_port_type == "Apple 30-pin Dock":
+			opening_width_ratio = 0.96
+			opening_height_ratio = 0.84
+		inner_points = _make_port_outline(port_width * opening_width_ratio, port_height * opening_height_ratio, port_height * opening_height_ratio * 0.38, 8)
 
-	# The trim sits almost flush to the bottom edge, not as a raised block.
-	_add_port_detail(port_root, "ReceptacleMetalBezel", outer_points, bottom_y - 0.00035, bezel_material)
-	_add_port_detail(port_root, "DarkRecessedReceptacle", inner_points, bottom_y - 0.00065, cavity_material)
+	# Fit the complete mouth and its metal lip inside the handset's actual
+	# bottom rail. If the frame is very thin, the whole aperture scales evenly.
+	var current_phone_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var half_phone_depth := current_phone_depth * 0.5
+	var profile_fit := 1.0
+	for point in inner_points:
+		if absf(point.x) > 0.00001:
+			profile_fit = minf(profile_fit, (PHONE_SIZE.x * 0.5 - 0.025) / (absf(point.x) * 1.12))
+		if absf(point.y) > 0.00001:
+			profile_fit = minf(profile_fit, (half_phone_depth - 0.004) / (absf(point.y) * 1.12))
+	profile_fit = clampf(profile_fit, 0.01, 1.0)
+	var fitted_opening := PackedVector2Array()
+	for point in inner_points:
+		fitted_opening.append(point * profile_fit)
+	inner_points = fitted_opening
+	charge_port_opening_points = inner_points.duplicate()
+
+	var port_root := Node3D.new()
+	port_root.name = "PhoneChargingPort"
+	phone_body.add_child(port_root)
+	var mouth_y := bottom_y + 0.0001
+	var recess_depth := minf(6.2 * unit_per_mm, PHONE_SIZE.y * 0.08)
+	var back_y := bottom_y + recess_depth
+	var contact_face_y := bottom_y + recess_depth * 0.54
+
+	var bezel_material := StandardMaterial3D.new()
+	bezel_material.albedo_color = Color("#8a929a")
+	bezel_material.metallic = 0.86
+	bezel_material.roughness = 0.27
+	bezel_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var cavity_material := StandardMaterial3D.new()
+	cavity_material.albedo_color = Color("#030507")
+	cavity_material.roughness = 0.96
+	cavity_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var cavity_wall_material := StandardMaterial3D.new()
+	cavity_wall_material.albedo_color = Color("#343b43")
+	cavity_wall_material.metallic = 0.76
+	cavity_wall_material.roughness = 0.42
+	cavity_wall_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if circular:
+		cavity_wall_material.albedo_color = Color("#818990")
+		cavity_wall_material.metallic = 0.88
+		cavity_wall_material.roughness = 0.34
+	var tongue_material := StandardMaterial3D.new()
+	tongue_material.albedo_color = Color("#aeb8c1")
+	tongue_material.metallic = 0.55
+	tongue_material.roughness = 0.38
+	tongue_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var contact_material := StandardMaterial3D.new()
+	contact_material.albedo_color = Color("#d5a64f")
+	contact_material.metallic = 0.78
+	contact_material.roughness = 0.29
+	contact_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	# Actual aperture: the phone frame mesh is cut around this profile. These
+	# details now sit down inside the recess rather than on the exterior face.
+	var bezel_scale := 1.12 if not circular else 1.22
+	_add_port_ring(port_root, "MachinedMetalPortLip", inner_points, bezel_scale, bottom_y - 0.00035, bezel_material)
+	_add_port_cavity_walls(port_root, "RecessedMetalSideWalls", inner_points, mouth_y, back_y, cavity_wall_material)
+	_add_port_detail(port_root, "DeepDarkPortInterior", inner_points, back_y + 0.00015, cavity_material)
 
 	if charge_port_type == "USB Type-C":
 		var tongue_points := _make_port_outline(port_width * 0.72, port_height * 0.20, port_height * 0.10, 6)
-		_add_port_detail(port_root, "USBCTongue", tongue_points, bottom_y - 0.00095, tongue_material)
+		_add_port_detail(port_root, "USBCTongue", tongue_points, contact_face_y, tongue_material)
 		for row in range(2):
 			for contact_index in range(12):
 				var x := (float(contact_index) - 5.5) * (port_width * 0.66 / 12.0)
@@ -1320,7 +1450,7 @@ func _refresh_phone_charge_port() -> void:
 				var shifted := PackedVector2Array()
 				for point in pad:
 					shifted.append(point + Vector2(x, z))
-				_add_port_detail(port_root, "USBCContact_%d_%d" % [row, contact_index], shifted, bottom_y - 0.00105, contact_material)
+				_add_port_detail(port_root, "USBCContact_%d_%d" % [row, contact_index], shifted, contact_face_y - 0.0002, contact_material)
 	elif charge_port_type == "Apple Lightning":
 		for row in range(2):
 			for contact_index in range(contact_count):
@@ -1330,17 +1460,23 @@ func _refresh_phone_charge_port() -> void:
 				var shifted := PackedVector2Array()
 				for point in pad:
 					shifted.append(point + Vector2(x, z))
-				_add_port_detail(port_root, "LightningContact_%d_%d" % [row, contact_index], shifted, bottom_y - 0.00095, contact_material)
+				_add_port_detail(port_root, "LightningContact_%d_%d" % [row, contact_index], shifted, contact_face_y - 0.0002, contact_material)
 	elif contact_count > 0:
-		var contact_width := port_width * (0.68 if contact_count > 8 else 0.055)
-		var contact_height := maxf(port_height * 0.10, 0.002)
+		var contact_span := port_width * 0.74
+		var contact_pitch := contact_span / float(contact_count)
+		var contact_width := contact_pitch * 0.66
+		var contact_height := maxf(port_height * 0.11, 0.002)
 		for contact_index in range(contact_count):
-			var x := (float(contact_index) - float(contact_count - 1) * 0.5) * (contact_width / float(contact_count))
-			var pad := _make_port_outline(contact_width / float(contact_count) * 0.58, contact_height, contact_height * 0.18, 3)
+			var x := (float(contact_index) - float(contact_count - 1) * 0.5) * contact_pitch
+			var pad := _make_port_outline(contact_width, contact_height, contact_height * 0.18, 3)
 			var shifted := PackedVector2Array()
 			for point in pad:
 				shifted.append(point + Vector2(x, 0.0))
-			_add_port_detail(port_root, "Contact_%02d" % contact_index, shifted, bottom_y - 0.00095, contact_material)
+			_add_port_detail(port_root, "Contact_%02d" % contact_index, shifted, contact_face_y - 0.0002, contact_material)
+
+	if circular:
+		var center_contact := _make_port_outline(port_width * 0.15, port_height * 0.15, port_width * 0.075, 12)
+		_add_port_detail(port_root, "BarrelCenterTerminal", center_contact, contact_face_y + recess_depth * 0.12, contact_material)
 
 
 func _on_phone_thickness_level_changed(value: float) -> void:
@@ -1354,9 +1490,11 @@ func _refresh_phone_mesh() -> void:
 	if not is_instance_valid(phone_body):
 		return
 	var radius := 0.32 * float(border_radius_level) / 6.0
-	phone_body.mesh = _create_rounded_phone_mesh(radius)
-	_refresh_phone_speakers()
+	# Refresh the fitted aperture first: thickness upgrades can change how much
+	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
+	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
+	_refresh_phone_speakers()
 
 
 func _on_border_radius_level_changed(value: float) -> void:
@@ -1366,37 +1504,74 @@ func _on_border_radius_level_changed(value: float) -> void:
 	_refresh_phone_mesh()
 
 
-func _create_rounded_phone_mesh(radius: float) -> Mesh:
+func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array) -> void:
+	var half_size := phone_size * 0.5
+	var fit_scale := 1.0
+	for point in port_opening:
+		if absf(point.x) > 0.00001:
+			fit_scale = minf(fit_scale, (half_size.x - 0.025) / absf(point.x))
+		if absf(point.y) > 0.00001:
+			fit_scale = minf(fit_scale, (half_size.z - 0.004) / absf(point.y))
+	fit_scale = clampf(fit_scale, 0.01, 1.0)
+
+	var opening := PackedVector2Array()
+	for point in port_opening:
+		opening.append(point * fit_scale)
+
+	var mouth_y := -half_size.y
+	var bottom_normal := Vector3(0.0, -1.0, 0.0)
+	# Project each aperture point radially onto the perimeter of the complete
+	# bottom rail. The resulting triangle strip leaves a genuine opening in
+	# the frame instead of drawing a dark decal over a solid box.
+	var outer_points := PackedVector3Array()
+	for point in opening:
+		var scale_x := half_size.x / maxf(absf(point.x), 0.000001)
+		var scale_z := half_size.z / maxf(absf(point.y), 0.000001)
+		var ray_scale := minf(scale_x, scale_z)
+		var outer := point * ray_scale
+		outer_points.append(Vector3(outer.x, mouth_y, outer.y))
+
+	for index in range(opening.size()):
+		var next_index := (index + 1) % opening.size()
+		var outer_a := outer_points[index]
+		var outer_b := outer_points[next_index]
+		var inner_a := Vector3(opening[index].x, mouth_y, opening[index].y)
+		var inner_b := Vector3(opening[next_index].x, mouth_y, opening[next_index].y)
+		_add_phone_mesh_triangle(surface, outer_a, outer_b, inner_b, bottom_normal)
+		_add_phone_mesh_triangle(surface, outer_a, inner_b, inner_a, bottom_normal)
+
+
+func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array = PackedVector2Array()) -> Mesh:
 	var phone_size := PHONE_SIZE
 	# Level 10 reaches an ultra-slim 0.08-unit body.
 	phone_size.z = lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
-	if radius <= 0.0001:
-		var plain_body := BoxMesh.new()
-		plain_body.size = phone_size
-		return plain_body
-
-	# Round only the phone's front/back outline. Keep the front and rear faces
-	# flat and preserve a straight extrusion through the phone's thickness.
 	var half_size := phone_size * 0.5
-	var corner_radius := clampf(radius, 0.0, minf(half_size.x, half_size.y) - 0.001)
-	var corner_centers := [
-		Vector2(half_size.x - corner_radius, half_size.y - corner_radius),
-		Vector2(-half_size.x + corner_radius, half_size.y - corner_radius),
-		Vector2(-half_size.x + corner_radius, -half_size.y + corner_radius),
-		Vector2(half_size.x - corner_radius, -half_size.y + corner_radius)
-	]
 	var outline := PackedVector2Array()
-	var corner_segments := 8
-	for corner_index in range(4):
-		var center: Vector2 = corner_centers[corner_index]
-		var start_angle := float(corner_index) * PI * 0.5
-		# Each corner contributes its start point only. The previous
-		# corner already contributes this arc's end point, so including both
-		# endpoints creates duplicate consecutive vertices that can confuse
-		# polygon triangulation and leave dark/overlapping cap triangles.
-		for segment in range(corner_segments):
-			var angle := start_angle + float(segment) / float(corner_segments) * PI * 0.5
-			outline.append(center + Vector2(cos(angle), sin(angle)) * corner_radius)
+
+	if radius <= 0.0001:
+		outline = PackedVector2Array([
+			Vector2(half_size.x, half_size.y),
+			Vector2(-half_size.x, half_size.y),
+			Vector2(-half_size.x, -half_size.y),
+			Vector2(half_size.x, -half_size.y)
+		])
+	else:
+		# Round only the phone's front/back outline. Keep the front and rear
+		# faces flat and preserve a straight extrusion through the thickness.
+		var corner_radius := clampf(radius, 0.0, minf(half_size.x, half_size.y) - 0.001)
+		var corner_centers := [
+			Vector2(half_size.x - corner_radius, half_size.y - corner_radius),
+			Vector2(-half_size.x + corner_radius, half_size.y - corner_radius),
+			Vector2(-half_size.x + corner_radius, -half_size.y + corner_radius),
+			Vector2(half_size.x - corner_radius, -half_size.y + corner_radius)
+		]
+		var corner_segments := 8
+		for corner_index in range(4):
+			var center: Vector2 = corner_centers[corner_index]
+			var start_angle := float(corner_index) * PI * 0.5
+			for segment in range(corner_segments):
+				var angle := start_angle + float(segment) / float(corner_segments) * PI * 0.5
+				outline.append(center + Vector2(cos(angle), sin(angle)) * corner_radius)
 
 	var triangle_indices: PackedInt32Array = Geometry2D.triangulate_polygon(outline)
 	if triangle_indices.is_empty():
@@ -1409,10 +1584,7 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# The phone front is at positive Z (the preview camera looks from positive Z),
-	# so its outward normal is +Z. Godot's BACK constant is +Z; FORWARD is -Z.
-	# Keep the front and back normals outward-facing so backface culling never
-	# removes either broad surface and exposes the inside of the phone.
+	# Build the two broad glass-facing surfaces with outward normals.
 	for index in range(0, triangle_indices.size(), 3):
 		var a2: Vector2 = outline[triangle_indices[index]]
 		var b2: Vector2 = outline[triangle_indices[index + 1]]
@@ -1426,23 +1598,26 @@ func _create_rounded_phone_mesh(radius: float) -> Mesh:
 		_add_phone_mesh_triangle(surface, front_a, front_b, front_c, Vector3(0.0, 0.0, 1.0))
 		_add_phone_mesh_triangle(surface, back_a, back_c, back_b, Vector3(0.0, 0.0, -1.0))
 
-	# Build a continuous wall around the complete outline. Each segment gets
-	# its own flat outward normal; duplicate vertices keep the broad faces flat.
+	# Build the perimeter. Only the straight bottom rail is interrupted by
+	# the connector aperture; all other sides remain continuous.
 	for index in range(outline.size()):
 		var next_index := (index + 1) % outline.size()
 		var a: Vector2 = outline[index]
 		var b: Vector2 = outline[next_index]
-		var edge := b - a
-		var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
-		var front_a := Vector3(a.x, a.y, front_z)
-		var front_b := Vector3(b.x, b.y, front_z)
-		var back_a := Vector3(a.x, a.y, back_z)
-		var back_b := Vector3(b.x, b.y, back_z)
-		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, side_normal)
-		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, side_normal)
+		var is_bottom_edge := absf(a.y + half_size.y) < 0.0001 and absf(b.y + half_size.y) < 0.0001
+		if is_bottom_edge and port_opening.size() >= 3:
+			_add_phone_bottom_edge_with_port(surface, phone_size, port_opening)
+		else:
+			var edge := b - a
+			var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
+			var front_a := Vector3(a.x, a.y, front_z)
+			var front_b := Vector3(b.x, b.y, front_z)
+			var back_a := Vector3(a.x, a.y, back_z)
+			var back_b := Vector3(b.x, b.y, back_z)
+			_add_phone_mesh_triangle(surface, front_a, back_a, back_b, side_normal)
+			_add_phone_mesh_triangle(surface, front_a, back_b, front_b, side_normal)
 
 	return surface.commit()
-
 
 func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward_normal: Vector3) -> void:
 	var normal := outward_normal.normalized()
