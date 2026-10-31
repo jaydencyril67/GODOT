@@ -960,8 +960,8 @@ func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
 
-	# Rebuild only the speaker details. The cylinders stand upright on the
-	# bottom edge (their cylinder axis is Y), rather than lying sideways.
+	# Rebuild only the speaker details. Each cylinder is recessed into the
+	# bottom edge, with its outer cap flush to the phone surface.
 	for child in phone_body.get_children():
 		if child.name.begins_with("PhoneSpeakerOpening_"):
 			child.queue_free()
@@ -996,8 +996,9 @@ func _refresh_phone_speakers() -> void:
 		opening_root.position = Vector3(start_x + float(speaker_index) * spacing, phone_bottom_y, 0.0)
 		phone_body.add_child(opening_root)
 
-		# CylinderMesh uses its Y axis as its length. The top cap sits flush
-		# against the phone edge; the cylinder extends straight outward/down.
+		# CylinderMesh uses its Y axis as its length. Keep the cylinder inside
+		# the phone: its bottom cap is flush with the bottom edge, while the
+		# rest of the barrel extends inward instead of protruding outward.
 		var rim := MeshInstance3D.new()
 		rim.name = "SpeakerApertureRim"
 		var rim_mesh := CylinderMesh.new()
@@ -1007,7 +1008,7 @@ func _refresh_phone_speakers() -> void:
 		rim_mesh.radial_segments = 24
 		rim.mesh = rim_mesh
 		rim.material_override = rim_material
-		rim.position.y = -cylinder_height * 0.5
+		rim.position.y = cylinder_height * 0.5
 		rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		opening_root.add_child(rim)
 
@@ -1021,7 +1022,7 @@ func _refresh_phone_speakers() -> void:
 		aperture_mesh.radial_segments = 24
 		aperture.mesh = aperture_mesh
 		aperture.material_override = aperture_material
-		aperture.position.y = -cylinder_height * 0.5
+		aperture.position.y = cylinder_height * 0.5
 		aperture.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		opening_root.add_child(aperture)
 
