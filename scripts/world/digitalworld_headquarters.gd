@@ -12,8 +12,8 @@ signal staff_management_requested
 
 const MAX_LEVEL := 10
 const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
-const UPGRADE_COSTS := [0, 10000000, 15000000, 22000000, 30000000, 40000000, 52000000, 63000000, 75000000, 100000000]
-const MONTHLY_RENTS := [100000, 500000, 750000, 1100000, 1500000, 2000000, 2600000, 3150000, 3750000, 5000000]
+const UPGRADE_COSTS := [3000000, 10000000, 15000000, 22000000, 30000000, 40000000, 52000000, 63000000, 75000000, 100000000]
+const MONTHLY_RENTS := [150000, 500000, 750000, 1100000, 1500000, 2000000, 2600000, 3150000, 3750000, 5000000]
 const LEVEL_CONFIGS := [
 	{"name": "Workshop", "floors": 1, "width": 12.4, "depth": 9.4, "ground_height": 4.2, "floor_height": 3.0, "style": 0},
 	{"name": "Workshop & Office", "floors": 2, "width": 13.2, "depth": 10.0, "ground_height": 3.6, "floor_height": 2.9, "style": 1},
@@ -28,7 +28,7 @@ const LEVEL_CONFIGS := [
 ]
 
 var preview_level: int = 1
-var owned_level: int = 1
+var owned_level: int = 0
 var company_name := "YOUR COMPANY"
 var company_balance := 10000000.0
 var upgrade_cost_label: Label
@@ -60,7 +60,7 @@ var facade_normal: Texture2D
 
 func _ready() -> void:
 	preview_level = clampi(preview_level, 1, MAX_LEVEL)
-	owned_level = clampi(owned_level, 1, MAX_LEVEL)
+	owned_level = clampi(owned_level, 0, MAX_LEVEL)
 
 	setup_progress.emit("Initializing game...", 8.0)
 	await get_tree().process_frame
@@ -80,7 +80,9 @@ func _ready() -> void:
 	setup_progress.emit("Constructing your headquarters...", 58.0)
 	await get_tree().process_frame
 
-	var building_height := _build_procedural_building(preview_level)
+	var building_height := 4.2
+	if not home_mode or owned_level > 0:
+		building_height = _build_procedural_building(preview_level)
 
 	setup_progress.emit("Preparing camera and interface...", 88.0)
 	await get_tree().process_frame
@@ -337,7 +339,9 @@ func _rebuild_preview() -> void:
 	if is_instance_valid(building_root):
 		building_root.queue_free()
 	building_root = null
-	var height := _build_procedural_building(preview_level)
+	var height := 4.2
+	if not home_mode or owned_level > 0:
+		height = _build_procedural_building(preview_level)
 	_configure_camera_framing(height)
 	_update_camera_transform()
 	_refresh_preview_interface()
@@ -562,7 +566,7 @@ func _create_bottom_action_button(parent: Node, caption: String, primary: bool) 
 
 func set_home_mode(active: bool) -> void:
 	home_mode = active
-	preview_level = owned_level
+	preview_level = maxi(owned_level, 1)
 	_rebuild_preview()
 	if is_instance_valid(preview_interface_layer):
 		preview_interface_layer.hide()
@@ -575,8 +579,10 @@ func set_home_mode(active: bool) -> void:
 
 
 func set_owned_level(level: int) -> void:
-	owned_level = clampi(level, 1, MAX_LEVEL)
-	_refresh_preview_interface()
+	owned_level = clampi(level, 0, MAX_LEVEL)
+	if home_mode:
+		preview_level = maxi(owned_level, 1)
+	_rebuild_preview()
 
 func set_preview_active(active: bool) -> void:
 	# CanvasLayer is rendered independently of the Node3D visibility tree, so
@@ -617,15 +623,18 @@ func _refresh_preview_interface() -> void:
 	var upgrade_cost := get_upgrade_cost(preview_level)
 	var can_afford_upgrade := company_balance >= upgrade_cost
 	var downgrade_refund := float(get_upgrade_cost(owned_level)) * float(downgrade_refund_percent) / 100.0
+	if is_instance_valid(upgrade_button):
+		upgrade_button.text = "Purchase" if owned_level == 0 and preview_level == 1 else "Upgrade"
 	if is_instance_valid(upgrade_cost_label):
 		if preview_level < owned_level:
 			upgrade_cost_label.text = "DOWNGRADE REFUND (%d%%): %s" % [downgrade_refund_percent, _format_money(downgrade_refund)]
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#8ff0bd"))
-		elif preview_level == owned_level:
+		elif preview_level == owned_level and owned_level > 0:
 			upgrade_cost_label.text = "CURRENT HEADQUARTERS"
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#b9e8ff"))
 		else:
-			upgrade_cost_label.text = "UPGRADE COST: %s" % _format_money(upgrade_cost)
+			var cost_caption := "PURCHASE COST" if owned_level == 0 and preview_level == 1 else "UPGRADE COST"
+			upgrade_cost_label.text = "%s: %s" % [cost_caption, _format_money(upgrade_cost)]
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff") if can_afford_upgrade else Color("#ffb5a8"))
 	if is_instance_valid(monthly_rent_label):
 		monthly_rent_label.text = "MONTHLY RENT: %s" % _format_money(get_monthly_rent(preview_level))
@@ -635,7 +644,7 @@ func _refresh_preview_interface() -> void:
 	if is_instance_valid(upgrade_button):
 		upgrade_button.disabled = preview_level <= owned_level or not can_afford_upgrade
 	if is_instance_valid(downgrade_button):
-		downgrade_button.disabled = preview_level >= owned_level
+		downgrade_button.disabled = owned_level <= 0 or preview_level >= owned_level
 
 
 func _get_staff_capacity(level: int) -> int:
@@ -643,6 +652,8 @@ func _get_staff_capacity(level: int) -> int:
 
 
 static func get_staff_capacity(level: int) -> int:
+	if level <= 0:
+		return 0
 	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
 
 
