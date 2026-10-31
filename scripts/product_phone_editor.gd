@@ -335,6 +335,21 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 		# Intentionally no pressed signal: these are placeholder buttons for now.
 		content.add_child(dummy_button)
 
+	# Keep every category at the same row count as Hardware. Empty trailing
+	# cells preserve the Hardware card height without stretching shorter grids.
+	if grid_prefix != "Hardware":
+		var hardware_row_count := ceili(24.0 / float(columns))
+		var target_grid_slots := hardware_row_count * columns
+		var spacer_count := maxi(0, target_grid_slots - features.size())
+		for spacer_index in range(spacer_count):
+			var spacer := Control.new()
+			spacer.name = grid_prefix + "ResearchEmptySlot" + str(spacer_index + 1)
+			spacer.custom_minimum_size = Vector2(0, card_height)
+			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			grid.add_child(spacer)
+
 
 func _build_extras_research_content(parent: Control, compact: bool) -> void:
 	var features := [
