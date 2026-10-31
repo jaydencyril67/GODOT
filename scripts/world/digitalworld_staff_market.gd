@@ -15,7 +15,7 @@ const MUTED := Color("#a9c9dc")
 var mode := "office"
 var candidates: Array = []
 var employees: Array = []
-var capacity := 3
+var capacity := 0
 var company_name := "YOUR COMPANY"
 var company_balance := 0.0
 var content: VBoxContainer
