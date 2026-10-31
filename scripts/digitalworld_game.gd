@@ -994,7 +994,7 @@ func _build_home_status_bar(root: Control) -> void:
 	cards_row.offset_right = -12.0
 	cards_row.offset_bottom = 78.0
 	cards_row.add_theme_constant_override("separation", 10)
-	cards_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	root.add_child(cards_row)
 
 	# Each status item is an independent glass card with its own spacing,
@@ -1014,6 +1014,12 @@ func _build_home_status_bar(root: Control) -> void:
 	home_company_label.add_theme_font_size_override("font_size", 17)
 	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
 	company_card.add_child(home_company_label)
+
+	# Push the financial, date and clock cards together to the far right.
+	var status_spacer := Control.new()
+	status_spacer.name = "Home_Status_Flexible_Spacer"
+	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards_row.add_child(status_spacer)
 
 	var balance_card := _make_home_status_glass_card("Company_Balance_Card")
 	balance_card.custom_minimum_size = Vector2(150.0, 62.0)
