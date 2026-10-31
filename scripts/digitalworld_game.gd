@@ -1337,7 +1337,7 @@ func _show_finance_toast(amount: float, activity: String) -> void:
 	home_finance_toast_tween = create_tween()
 	home_finance_toast_tween.set_trans(Tween.TRANS_CUBIC)
 	home_finance_toast_tween.set_ease(Tween.EASE_OUT)
-	home_finance_toast_tween.tween_property(toast, "position:y", 74.0, 0.16)
+	home_finance_toast_tween.tween_property(toast, "position:y", toast_y + 6.0, 0.16)
 	home_finance_toast_tween.parallel().tween_property(toast, "modulate:a", 1.0, 0.16)
 	home_finance_toast_tween.tween_interval(1.8)
 	home_finance_toast_tween.set_ease(Tween.EASE_IN)
