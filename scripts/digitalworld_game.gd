@@ -1463,7 +1463,7 @@ func _add_action_button(parent: Node, caption: String, primary: bool, callback: 
 
 
 func _hero_font_base(font_variation: FontVariation) -> void:
-	font_variation.base_font = ThemeDB.fallback_font
+	font_variation.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	font_variation.variation_embolden = 0.7
 
 
