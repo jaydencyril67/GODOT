@@ -13,7 +13,7 @@ signal staff_management_requested
 const MAX_LEVEL := 10
 const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
 const UPGRADE_COSTS := [0, 10000000, 15000000, 22000000, 30000000, 40000000, 52000000, 63000000, 75000000, 100000000]
-const MONTHLY_RENT_PERCENT := 5.0
+const MONTHLY_RENTS := [100000, 500000, 750000, 1100000, 1500000, 2000000, 2600000, 3150000, 3750000, 5000000]
 const LEVEL_CONFIGS := [
 	{"name": "Workshop", "floors": 1, "width": 12.4, "depth": 9.4, "ground_height": 4.2, "floor_height": 3.0, "style": 0},
 	{"name": "Workshop & Office", "floors": 2, "width": 13.2, "depth": 10.0, "ground_height": 3.6, "floor_height": 2.9, "style": 1},
@@ -628,7 +628,7 @@ func _refresh_preview_interface() -> void:
 			upgrade_cost_label.text = "UPGRADE COST: %s" % _format_money(upgrade_cost)
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff") if can_afford_upgrade else Color("#ffb5a8"))
 	if is_instance_valid(monthly_rent_label):
-		monthly_rent_label.text = "MONTHLY RENT: %s" % _format_money(get_monthly_rent(owned_level))
+		monthly_rent_label.text = "MONTHLY RENT: %s" % _format_money(get_monthly_rent(preview_level))
 	if is_instance_valid(available_balance_label):
 		available_balance_label.text = "BALANCE: %s" % _format_money(company_balance)
 		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
@@ -651,7 +651,7 @@ static func get_upgrade_cost(level: int) -> int:
 
 
 static func get_monthly_rent(level: int) -> float:
-	return float(get_upgrade_cost(level)) * MONTHLY_RENT_PERCENT / 100.0
+	return float(MONTHLY_RENTS[clampi(level, 1, MAX_LEVEL) - 1])
 
 
 func set_company_balance(amount: float) -> void:
