@@ -324,7 +324,6 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	metrics.add_theme_constant_override("h_separation", 6)
 	metrics.add_theme_constant_override("v_separation", 4)
 	stack.add_child(metrics)
-	_add_metric(metrics, "ABILITY", int(candidate.get("ability", 0)))
 	_add_metric(metrics, "EFFICIENCY", int(candidate.get("efficiency", 0)))
 	stack.add_child(_label("EDUCATION  " + str(candidate.get("education", "—")), 12, MUTED))
 
@@ -442,7 +441,6 @@ func _employee_card(employee: Dictionary) -> Control:
 	metrics.add_theme_constant_override("h_separation", 6)
 	metrics.add_theme_constant_override("v_separation", 4)
 	stack.add_child(metrics)
-	_add_metric(metrics, "ABILITY", int(employee.get("ability", 0)))
 	_add_metric(metrics, "EFFICIENCY", int(employee.get("efficiency", 0)))
 	stack.add_child(_label("EDUCATION  " + str(employee.get("education", "—")), 12, MUTED))
 
