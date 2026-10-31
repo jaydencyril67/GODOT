@@ -32,8 +32,8 @@ var speaker_count_value_label: Label
 var charge_port_type := "None"
 var charge_port_opening_points := PackedVector2Array()
 var charge_port_value_label: Label
-var power_button_enabled := true
-var volume_button_enabled := true
+var power_button_enabled := false
+var volume_button_enabled := false
 var power_button_y := 0.72
 var volume_button_y := 0.34
 var side_button_length_scale := 1.0
