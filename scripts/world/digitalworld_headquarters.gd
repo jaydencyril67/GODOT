@@ -12,6 +12,7 @@ signal downgrade_requested(level: int, refund_percent: int)
 const MAX_LEVEL := 10
 const STAFF_CAPACITIES := [3, 7, 13, 20, 30, 42, 55, 75, 100, 130]
 const UPGRADE_COSTS := [0, 10000000, 15000000, 22000000, 30000000, 40000000, 52000000, 63000000, 75000000, 100000000]
+const MONTHLY_RENT_PERCENT := 5.0
 const LEVEL_CONFIGS := [
 	{"name": "Workshop", "floors": 1, "width": 12.4, "depth": 9.4, "ground_height": 4.2, "floor_height": 3.0, "style": 0},
 	{"name": "Workshop & Office", "floors": 2, "width": 13.2, "depth": 10.0, "ground_height": 3.6, "floor_height": 2.9, "style": 1},
@@ -30,6 +31,7 @@ var owned_level: int = 1
 var company_name := "YOUR COMPANY"
 var company_balance := 10000000.0
 var upgrade_cost_label: Label
+var monthly_rent_label: Label
 var available_balance_label: Label
 var building_root: Node3D
 var hq_camera: Camera3D
@@ -463,7 +465,7 @@ func _create_preview_interface() -> void:
 		cost_panel.anchor_right = 1.0
 		cost_panel.anchor_bottom = 1.0
 		cost_panel.offset_left = -286.0
-		cost_panel.offset_top = -150.0
+		cost_panel.offset_top = -174.0
 		cost_panel.offset_right = -18.0
 		cost_panel.offset_bottom = -84.0
 		var cost_style := StyleBoxFlat.new()
@@ -488,6 +490,13 @@ func _create_preview_interface() -> void:
 		upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff"))
 		upgrade_cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		finance_stack.add_child(upgrade_cost_label)
+
+		monthly_rent_label = Label.new()
+		monthly_rent_label.name = "Headquarters_Monthly_Rent"
+		monthly_rent_label.add_theme_font_size_override("font_size", 13)
+		monthly_rent_label.add_theme_color_override("font_color", Color("#f4d58a"))
+		monthly_rent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		finance_stack.add_child(monthly_rent_label)
 
 		available_balance_label = Label.new()
 		available_balance_label.name = "Headquarters_Available_Balance"
@@ -575,6 +584,8 @@ func _refresh_preview_interface() -> void:
 		else:
 			upgrade_cost_label.text = "UPGRADE COST: %s" % _format_money(upgrade_cost)
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff") if can_afford_upgrade else Color("#ffb5a8"))
+	if is_instance_valid(monthly_rent_label):
+		monthly_rent_label.text = "MONTHLY RENT (5%%): %s" % _format_money(get_monthly_rent(owned_level))
 	if is_instance_valid(available_balance_label):
 		available_balance_label.text = "BALANCE: %s" % _format_money(company_balance)
 		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
@@ -590,6 +601,10 @@ func _get_staff_capacity(level: int) -> int:
 
 static func get_upgrade_cost(level: int) -> int:
 	return UPGRADE_COSTS[clampi(level, 1, MAX_LEVEL) - 1]
+
+
+static func get_monthly_rent(level: int) -> float:
+	return float(get_upgrade_cost(level)) * MONTHLY_RENT_PERCENT / 100.0
 
 
 func set_company_balance(amount: float) -> void:
