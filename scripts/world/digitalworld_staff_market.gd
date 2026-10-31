@@ -70,6 +70,7 @@ func _build() -> void:
 
 	var outer := MarginContainer.new()
 	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	outer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_theme_constant_override("margin_left", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_right", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_top", 18 if compact else 28)
@@ -79,6 +80,7 @@ func _build() -> void:
 	var page := VBoxContainer.new()
 	page.name = "StaffSceneContent"
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_theme_constant_override("separation", 15 if compact else 18)
 	outer.add_child(page)
 
@@ -111,19 +113,14 @@ func _build() -> void:
 	_add_tab(tabs, "STAFF MARKET", mode == "market", "market")
 	_add_tab(tabs, "MY STAFF", mode == "management", "management")
 
-	var content_scroll := ScrollContainer.new()
-	content_scroll.name = "Staff_Content_Scroll"
-	content_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	content_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	content_scroll.follow_focus = true
-	page.add_child(content_scroll)
-
+	# The page-level ScrollContainer owns vertical scrolling. A second nested
+	# ScrollContainer here can collapse to zero height inside the VBox on mobile,
+	# making both candidate and employee lists appear empty.
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 12)
-	content_scroll.add_child(content)
+	page.add_child(content)
 
 	if mode == "office":
 		_build_office()
