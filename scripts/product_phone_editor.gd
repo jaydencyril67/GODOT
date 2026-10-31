@@ -319,68 +319,54 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 		feature_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		content.add_child(feature_label)
 
-		var dummy_button := Button.new()
-		dummy_button.name = "DummyFeatureButton"
-		dummy_button.text = "SELECT"
-		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
-		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		dummy_button.add_theme_font_size_override("font_size", 9 if short_screen else 10)
-		_style_staff_button(dummy_button, false)
-		# Intentionally no pressed signal: these are placeholder buttons for now.
-		content.add_child(dummy_button)
+		if grid_prefix == "Extras" and feature_name == "Camera Module Design":
+			var level_label := _make_label("LEVEL: 1 / 20", 8 if short_screen else 9, Color("#d8efff"))
+			level_label.name = "ResearchLevel"
+			content.add_child(level_label)
+			var upgrade_button := Button.new()
+			upgrade_button.name = "UpgradeResearch"
+			upgrade_button.text = "UPGRADE"
+			upgrade_button.custom_minimum_size.y = 22 if short_screen else 28
+			upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			upgrade_button.add_theme_font_size_override("font_size", 8 if short_screen else 9)
+			_style_staff_button(upgrade_button, true)
+			upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind("camera_module"))
+			content.add_child(upgrade_button)
+			research_item_cards["camera_module"] = {"level": level_label, "button": upgrade_button}
+		else:
+			var dummy_button := Button.new()
+			dummy_button.name = "DummyFeatureButton"
+			dummy_button.text = "SELECT"
+			dummy_button.custom_minimum_size.y = 25 if short_screen else 32
+			dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			dummy_button.add_theme_font_size_override("font_size", 9 if short_screen else 10)
+			_style_staff_button(dummy_button, false)
+			# Intentionally no pressed signal: these are placeholder buttons for now.
+			content.add_child(dummy_button)
+
+	if grid_prefix == "Extras":
+		_refresh_design_research_cards()
 
 
 func _build_extras_research_content(parent: Control, compact: bool) -> void:
-	var section := VBoxContainer.new()
-	section.name = "ExtrasResearchSection"
-	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	section.add_theme_constant_override("separation", 8)
-	parent.add_child(section)
-	section.add_child(_make_label("EXTRAS", 14 if compact else 17, Color("#b9eaff")))
+	var features := [
+		"Box Package",
+		"Phone Case",
+		"Charger",
+		"Charger Speed",
+		"Protection Glass",
+		"Wireless Earbuds",
+		"Smartwatch",
+		"Power Bank",
+		"USB Cable",
+		"Camera Lens Protector",
+		"Phone Stand",
+		"SIM Ejector Tool",
+		"Camera Module Design"
+	]
+	_build_research_feature_grid(parent, compact, "EXTRAS & ACCESSORIES", "Extras", features)
 
-	var card := _make_staff_style_card()
-	card.name = "camera_module_ResearchCard"
-	card.custom_minimum_size = Vector2(250 if compact else 320, 220)
-	card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	section.add_child(card)
 
-	var margin := MarginContainer.new()
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	card.add_child(margin)
-
-	var stack := VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 7)
-	margin.add_child(stack)
-	stack.add_child(_make_label("EXTRAS", 9, Color("#a9e3ff")))
-	stack.add_child(_make_label("CAMERA-MODULE DESIGN", 16 if compact else 18, Color.WHITE))
-	var detail := _make_label("Research the shape and arrangement of the visible camera housing.", 11, Color("#c7e2f3"))
-	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stack.add_child(detail)
-
-	var level_label := _make_label("CURRENT LEVEL: 1 / 20", 12, Color("#d8efff"))
-	level_label.name = "ResearchLevel"
-	stack.add_child(level_label)
-
-	var upgrade_button := Button.new()
-	upgrade_button.name = "UpgradeResearch"
-	upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upgrade_button.custom_minimum_size.y = 42
-	upgrade_button.add_theme_font_size_override("font_size", 12)
-	_style_staff_button(upgrade_button, true)
-	upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind("camera_module"))
-	stack.add_child(upgrade_button)
-	research_item_cards["camera_module"] = {"level": level_label, "button": upgrade_button}
-	_refresh_design_research_cards()
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
 	var selector := HBoxContainer.new()
