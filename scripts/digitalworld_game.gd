@@ -880,6 +880,7 @@ func _show_headquarters_preview() -> void:
 	_close_staff_overlay()
 	current_screen = "headquarters"
 	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
 		home_navigation_layer.queue_free()
 	home_navigation_layer = null
 	ui_layer = null
@@ -951,8 +952,8 @@ func _downgrade_headquarters(level: int, refund_percent: int) -> void:
 
 
 func _show_home_navigation() -> void:
-	ui_layer = null
-	ui_root = null
+	# Let _new_screen() retire the previous screen before creating Home UI.
+	# Clearing ui_layer here would orphan the previous CanvasLayer on screen.
 	var root := _new_screen()
 	ui_layer.layer = 30
 	home_navigation_layer = ui_layer
@@ -1265,6 +1266,7 @@ func _finish_headquarters_loading() -> void:
 func _show_create_scene() -> void:
 	current_screen = "create"
 	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
 		home_navigation_layer.queue_free()
 	home_navigation_layer = null
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
@@ -1428,6 +1430,7 @@ func _show_create_scene() -> void:
 func _show_research_scene() -> void:
 	current_screen = "research"
 	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
 		home_navigation_layer.queue_free()
 	home_navigation_layer = null
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
@@ -1580,8 +1583,6 @@ func _on_research_category_pressed(category: String) -> void:
 
 func _return_home_from_research() -> void:
 	current_screen = "home"
-	ui_layer = null
-	ui_root = null
 	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
 		world_root.set_home_mode(true)
 		world_root.set_preview_active(true)
@@ -1941,10 +1942,15 @@ func _connect_staff_screen_signals(screen: Control) -> void:
 
 func _open_staff_screen(screen_mode: String) -> void:
 	current_screen = "staff_market" if screen_mode == "market" else "staff_management"
+	# Staff is a standalone page, not a translucent layer over the HQ scene.
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(false)
 	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
 		home_navigation_layer.queue_free()
 	home_navigation_layer = null
 	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
+		ui_layer.hide()
 		ui_layer.queue_free()
 	ui_layer = null
 	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
