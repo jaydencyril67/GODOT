@@ -233,7 +233,11 @@ func _build_hardware_research_grid(parent: Control, compact: bool) -> void:
 		"Phone Height",
 		"Sim/Memory Slot",
 		"Protection",
-		"Refresh Rate"
+		"Refresh Rate",
+		"Back Panel Material",
+		"Frame Material",
+		"Body Finish & Colour",
+		"Cooling System Design"
 	]
 	_build_research_feature_grid(parent, compact, "HARDWARE FEATURES", "Hardware", features)
 
