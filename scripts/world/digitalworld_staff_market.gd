@@ -293,9 +293,9 @@ func _build_management() -> void:
 	content.add_child(employee_list)
 	if employees.is_empty():
 		employee_list.add_child(_glass_card_message("YOUR TEAM IS EMPTY", "Visit the Staff Market to recruit your first team members."))
-	return
-	for employee in employees:
-		employee_list.add_child(_employee_card(employee))
+	else:
+		for employee in employees:
+			employee_list.add_child(_employee_card(employee))
 
 
 
