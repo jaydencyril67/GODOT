@@ -278,20 +278,30 @@ func _build_department_candidate_row(department: String, compact: bool) -> void:
 	horizontal_scroll.add_child(candidate_row)
 
 	var department_count := 0
+	var market_card_width := _market_candidate_card_width(compact)
 	for candidate in candidates:
 		if str(candidate.get("department", "")) != department:
 			continue
 		var candidate_card := _candidate_card(candidate)
 		candidate_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		candidate_card.custom_minimum_size.x = 290 if compact else 320
+		candidate_card.custom_minimum_size.x = market_card_width
 		candidate_row.add_child(candidate_card)
 		department_count += 1
 
 	if department_count == 0:
 		var empty_card := _glass_card_message("NO " + department.to_upper() + " CANDIDATES", "New candidates for this department will appear here.")
 		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		empty_card.custom_minimum_size = Vector2(290 if compact else 320, 340 if compact else 330)
+		empty_card.custom_minimum_size = Vector2(market_card_width, 340 if compact else 330)
 		candidate_row.add_child(empty_card)
+
+
+func _market_candidate_card_width(compact: bool) -> float:
+	# Show three complete candidate cards and part of the fourth at the
+	# initial leftmost position, so users can immediately discover swiping.
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	var page_margins := 36.0 if compact else 84.0
+	var row_gap_allowance := 30.0
+	return maxf(1.0, (viewport_width - page_margins - row_gap_allowance) / 3.5)
 
 
 func _candidate_card(candidate: Dictionary) -> Control:
