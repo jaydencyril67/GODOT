@@ -17,6 +17,7 @@ var research_balance_label: Label
 var research_levels: Dictionary = {}
 var research_balance := 0.0
 var research_item_cards: Dictionary = {}
+var research_view := "SCREEN TECH"
 
 
 func _ready() -> void:
@@ -129,24 +130,16 @@ func _build_research_ui() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "PhoneResearchPageScroll"
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	scroll.follow_focus = false
-	scroll.scroll_deadzone = 8
-	scroll.clip_contents = true
-	root.add_child(scroll)
-
 	var outer := MarginContainer.new()
+	outer.name = "PhoneResearchPageMargin"
+	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	outer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_theme_constant_override("margin_left", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_right", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_top", 18 if compact else 28)
 	outer.add_theme_constant_override("margin_bottom", 24)
-	scroll.add_child(outer)
+	root.add_child(outer)
 
 	var page := VBoxContainer.new()
 	page.name = "PhoneResearchPageContent"
@@ -203,86 +196,121 @@ func set_research_data(levels: Dictionary, balance: float) -> void:
 
 func _build_design_research_content(parent: Control) -> void:
 	research_content_panel = parent
+	for child in parent.get_children():
+		child.hide()
+		child.queue_free()
 	research_item_cards.clear()
+
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	var card_width := _research_card_width(compact)
+	_build_research_view_selector(parent, compact)
+
 	var items := [
 		{"id":"screen_size", "name":"Screen size", "group":"SCREEN TECH", "detail":"Research larger or more compact display dimensions."},
 		{"id":"phone_thickness", "name":"Phone thickness", "group":"SCREEN TECH", "detail":"Research slimmer or thicker body proportions."},
 		{"id":"bezel_width", "name":"Bezel width", "group":"SCREEN TECH", "detail":"Research the visible border around the display."},
 		{"id":"frame_material", "name":"Frame material", "group":"EXTERIOR BUILD", "detail":"Research the materials used on the outer frame."},
 		{"id":"body_finish", "name":"Body finish", "group":"EXTERIOR BUILD", "detail":"Research textures, coatings and exterior finishes."},
-		{"id":"camera_module", "name":"Camera-module design", "group":"EXTERIOR BUILD", "detail":"Research the shape and arrangement of the visible camera housing."}
+		{"id":"camera_module", "name":"Camera-module design", "group":"CAMERA DESIGN", "detail":"Research the shape and arrangement of the visible camera housing."}
 	]
 
-	for group_name in ["SCREEN TECH", "EXTERIOR BUILD"]:
-		var section := VBoxContainer.new()
-		section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		section.add_theme_constant_override("separation", 6)
-		parent.add_child(section)
-		section.add_child(_make_label(group_name, 16 if compact else 18, Color("#b9eaff")))
+	var section := VBoxContainer.new()
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", 6)
+	parent.add_child(section)
+	section.add_child(_make_label(research_view, 16 if compact else 18, Color("#b9eaff")))
 
-		var horizontal_scroll := ScrollContainer.new()
-		horizontal_scroll.name = group_name.replace(" ", "") + "_ResearchHorizontalRow"
-		horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		horizontal_scroll.custom_minimum_size.y = 246
-		horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-		horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		horizontal_scroll.follow_focus = false
-		horizontal_scroll.clip_contents = true
-		section.add_child(horizontal_scroll)
+	var horizontal_scroll := ScrollContainer.new()
+	horizontal_scroll.name = research_view.replace(" ", "") + "_ResearchHorizontalRow"
+	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	horizontal_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	horizontal_scroll.custom_minimum_size.y = 246
+	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	horizontal_scroll.follow_focus = false
+	horizontal_scroll.clip_contents = true
+	section.add_child(horizontal_scroll)
 
-		var card_row := HBoxContainer.new()
-		card_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		card_row.add_theme_constant_override("separation", 10)
-		horizontal_scroll.add_child(card_row)
+	var card_row := HBoxContainer.new()
+	card_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card_row.add_theme_constant_override("separation", 10)
+	horizontal_scroll.add_child(card_row)
 
-		for item in items:
-			if str(item["group"]) != group_name:
-				continue
-			var card := _make_staff_style_card()
-			card.name = str(item["id"]) + "_ResearchCard"
-			card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			card.custom_minimum_size = Vector2(card_width, 232)
-			card_row.add_child(card)
+	var card_width := _research_card_width(compact)
+	for item in items:
+		if str(item["group"]) != research_view:
+			continue
+		var card := _make_staff_style_card()
+		card.name = str(item["id"]) + "_ResearchCard"
+		card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		card.custom_minimum_size = Vector2(card_width, 232)
+		card_row.add_child(card)
 
-			var margin := MarginContainer.new()
-			margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			margin.add_theme_constant_override("margin_left", 10)
-			margin.add_theme_constant_override("margin_right", 10)
-			margin.add_theme_constant_override("margin_top", 9)
-			margin.add_theme_constant_override("margin_bottom", 9)
-			card.add_child(margin)
+		var margin := MarginContainer.new()
+		margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		margin.add_theme_constant_override("margin_left", 10)
+		margin.add_theme_constant_override("margin_right", 10)
+		margin.add_theme_constant_override("margin_top", 9)
+		margin.add_theme_constant_override("margin_bottom", 9)
+		card.add_child(margin)
 
-			var stack := VBoxContainer.new()
-			stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			stack.add_theme_constant_override("separation", 6)
-			margin.add_child(stack)
-			stack.add_child(_make_label(str(item["group"]), 9, Color("#a9e3ff")))
-			stack.add_child(_make_label(str(item["name"]).to_upper(), 16 if compact else 18, Color.WHITE))
-			var detail := _make_label(str(item["detail"]), 11, Color("#c7e2f3"))
-			detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			stack.add_child(detail)
+		var stack := VBoxContainer.new()
+		stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		stack.add_theme_constant_override("separation", 6)
+		margin.add_child(stack)
+		stack.add_child(_make_label(str(item["group"]), 9, Color("#a9e3ff")))
+		stack.add_child(_make_label(str(item["name"]).to_upper(), 16 if compact else 18, Color.WHITE))
+		var detail := _make_label(str(item["detail"]), 11, Color("#c7e2f3"))
+		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		stack.add_child(detail)
 
-			var level_label := _make_label("CURRENT LEVEL: 1 / 20", 12, Color("#d8efff"))
-			level_label.name = "ResearchLevel"
-			stack.add_child(level_label)
+		var level_label := _make_label("CURRENT LEVEL: 1 / 20", 12, Color("#d8efff"))
+		level_label.name = "ResearchLevel"
+		stack.add_child(level_label)
 
-			var upgrade_button := Button.new()
-			upgrade_button.name = "UpgradeResearch"
-			upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			upgrade_button.custom_minimum_size.y = 42
-			upgrade_button.add_theme_font_size_override("font_size", 12)
-			_style_staff_button(upgrade_button, true)
-			upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind(str(item["id"])))
-			stack.add_child(upgrade_button)
-			research_item_cards[str(item["id"])] = {"level":level_label, "button":upgrade_button}
+		var upgrade_button := Button.new()
+		upgrade_button.name = "UpgradeResearch"
+		upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		upgrade_button.custom_minimum_size.y = 42
+		upgrade_button.add_theme_font_size_override("font_size", 12)
+		_style_staff_button(upgrade_button, true)
+		upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind(str(item["id"])))
+		stack.add_child(upgrade_button)
+		research_item_cards[str(item["id"])] = {"level":level_label, "button":upgrade_button}
 
 	_refresh_design_research_cards()
+
+
+func _build_research_view_selector(parent: Control, compact: bool) -> void:
+	var selector := HBoxContainer.new()
+	selector.name = "PhoneResearchDepartmentSelector"
+	selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selector.alignment = BoxContainer.ALIGNMENT_END
+	selector.add_theme_constant_override("separation", 7 if compact else 10)
+	parent.add_child(selector)
+
+	for view_name in ["SCREEN TECH", "EXTERIOR BUILD", "CAMERA DESIGN"]:
+		var button := Button.new()
+		button.text = view_name
+		button.custom_minimum_size = Vector2(112 if compact else 148, 40 if compact else 46)
+		button.add_theme_font_size_override("font_size", 10 if compact else 12)
+		_style_staff_button(button, research_view == view_name)
+		button.pressed.connect(_on_research_view_selected.bind(view_name))
+		selector.add_child(button)
+
+
+func _on_research_view_selected(view_name: String) -> void:
+	if not ["SCREEN TECH", "EXTERIOR BUILD", "CAMERA DESIGN"].has(view_name):
+		return
+	if research_view == view_name:
+		return
+	research_view = view_name
+	if is_instance_valid(research_content_panel):
+		_build_design_research_content(research_content_panel)
 
 
 func _research_card_width(compact: bool) -> float:
