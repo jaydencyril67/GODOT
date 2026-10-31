@@ -1703,10 +1703,10 @@ func _show_research_scene() -> void:
 	var card_width := maxf(1.0, (horizontal_page_width - 14.0) * 0.5)
 	var card_height := maxf(132.0, minf(220.0, card_width * 0.82))
 	var categories := [
-		{"name": "PHONE", "number": "01", "description": "Explore smartphone design, components and product technologies."},
-		{"name": "LAPTOP", "number": "02", "description": "Research portable computers and next-generation notebooks."},
-		{"name": "TELEVISION", "number": "03", "description": "Explore display technology and connected home screens."},
-		{"name": "SMART WATCHES", "number": "04", "description": "Research wearable devices, sensors and smart features."}
+		{"name": "PHONE", "number": "01", "description": "Design the complete smartphone, from its exterior to its user experience."},
+		{"name": "PROCESSOR", "number": "02", "description": "Develop mobile chipsets and next-generation processing technology."},
+		{"name": "OPERATING SYSTEM", "number": "03", "description": "Create the software platform that powers the phone and its features."},
+		{"name": "CAMERA", "number": "04", "description": "Develop smartphone camera systems, sensors and imaging technology."}
 	]
 	for category in categories:
 		var card := _panel(Color(0.34, 0.68, 0.88, 0.24), Color(0.86, 0.97, 1.0, 0.92), 18)
