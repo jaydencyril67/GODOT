@@ -31,7 +31,7 @@ var home_navigation_layer: CanvasLayer
 var home_company_label: Label
 var home_date_label: Label
 var home_balance_label: Label
-var home_finance_toast: PanelContainer
+var home_finance_toast: Label
 var home_finance_toast_tween: Tween
 var home_research_points_label: Label
 var home_time_button: Button
@@ -1279,7 +1279,7 @@ func _update_home_status_bar() -> void:
 
 
 func _show_finance_toast(amount: float, activity: String) -> void:
-	# Attach the toast to whichever balance display is currently visible:
+	# Attach the floating text to whichever balance display is currently visible:
 	# the Home status card or the headquarters finance panel.
 	var toast_parent: Control
 	var toast_y := 68.0
@@ -1298,7 +1298,7 @@ func _show_finance_toast(amount: float, activity: String) -> void:
 		home_finance_toast.queue_free()
 
 	var received := amount >= 0.0
-	var toast := PanelContainer.new()
+	var toast := Label.new()
 	toast.name = "Home_Financial_Activity_Toast"
 	toast.z_index = 100
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1307,30 +1307,13 @@ func _show_finance_toast(amount: float, activity: String) -> void:
 	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	toast.position = Vector2(-115.0, toast_y)
 	toast.modulate.a = 0.0
-
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.035, 0.20, 0.17, 0.96) if received else Color(0.24, 0.075, 0.075, 0.96)
-	style.border_color = Color(0.35, 0.94, 0.70, 0.95) if received else Color(1.0, 0.48, 0.43, 0.95)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(10)
-	style.shadow_color = Color(0.0, 0.04, 0.10, 0.42)
-	style.shadow_size = 9
-	style.shadow_offset = Vector2(0, 3)
-	style.content_margin_left = 9.0
-	style.content_margin_right = 9.0
-	style.content_margin_top = 5.0
-	style.content_margin_bottom = 5.0
-	toast.add_theme_stylebox_override("panel", style)
-
-	var label := Label.new()
-	label.text = ("+" if received else "−") + _format_balance(absf(amount)) + "  ·  " + activity
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 13)
-	label.add_theme_color_override("font_color", Color("#baffdf") if received else Color("#ffd0ca"))
-	label.clip_text = true
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	toast.add_child(label)
+	toast.text = ("+" if received else "−") + _format_balance(absf(amount)) + "  ·  " + activity
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	toast.add_theme_font_size_override("font_size", 13)
+	toast.add_theme_color_override("font_color", Color("#baffdf") if received else Color("#ffd0ca"))
+	toast.clip_text = true
+	toast.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	toast_parent.add_child(toast)
 	home_finance_toast = toast
 
