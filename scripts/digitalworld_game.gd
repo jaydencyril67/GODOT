@@ -1000,8 +1000,8 @@ func _build_home_status_bar(root: Control) -> void:
 	# Each status item is an independent glass card with its own spacing,
 	# border and highlight. There is deliberately no shared parent panel.
 	var company_card := _make_home_status_glass_card("Company_Name_Card")
-	company_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	company_card.custom_minimum_size = Vector2(150.0, 62.0)
+	company_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	company_card.custom_minimum_size = Vector2(0.0, 62.0)
 	cards_row.add_child(company_card)
 	home_company_label = Label.new()
 	home_company_label.name = "Company_Name"
@@ -1115,6 +1115,11 @@ func _update_home_status_bar() -> void:
 		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
+		var company_card := home_company_label.get_parent() as PanelContainer
+		if is_instance_valid(company_card):
+			var company_font := home_company_label.get_theme_font("font")
+			var text_width := company_font.get_string_size(home_company_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+			company_card.custom_minimum_size.x = clampf(text_width + 24.0, 110.0, 280.0)
 	if is_instance_valid(home_time_button):
 		home_time_button.text = "▶ PLAY" if game_clock_paused else "Ⅱ PAUSE"
 
