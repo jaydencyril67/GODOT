@@ -971,62 +971,44 @@ func _on_speaker_count_changed(value: float) -> void:
 func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
-
-	# Rebuild the speaker circles directly on the phone's bottom edge.
 	for child in phone_body.get_children():
 		if child.name.begins_with("PhoneSpeakerOpening_"):
 			child.queue_free()
-
 	if speaker_count <= 0:
 		return
 
-	var phone_bottom_y := -PHONE_SIZE.y * 0.5
-	var spacing := 0.105
-	var start_x := -float(speaker_count - 1) * spacing * 0.5
-	var outer_radius := 0.032
-	var inner_radius := 0.023
-	var disc_height := 0.008
+	# Keep speaker perforations in two balanced groups, leaving a clear
+	# central lane for the charging connector.
+	var front_z := PHONE_SIZE.z * 0.5 + 0.002
+	var port_clearance := 0.25
+	var hole_spacing := 0.052
+	var hole_radius := 0.012
+	var group_gap := 0.12
+	var left_count := int(ceil(float(speaker_count) * 0.5))
+	var right_count := speaker_count - left_count
+	var positions: Array[float] = []
+	for index in range(left_count):
+		positions.append(-port_clearance - group_gap - float(left_count - 1 - index) * hole_spacing)
+	for index in range(right_count):
+		positions.append(port_clearance + group_gap + float(index) * hole_spacing)
 
-	var rim_material := StandardMaterial3D.new()
-	rim_material.albedo_color = Color("#080a0d")
-	rim_material.roughness = 0.72
-	rim_material.metallic = 0.0
+	var hole_material := StandardMaterial3D.new()
+	hole_material.albedo_color = Color("#050608")
+	hole_material.roughness = 1.0
+	for index in range(positions.size()):
+		var hole := MeshInstance3D.new()
+		hole.name = "PhoneSpeakerOpening_%d" % (index + 1)
+		var disc := SphereMesh.new()
+		disc.radius = hole_radius
+		disc.height = 0.004
+		disc.radial_segments = 16
+		disc.rings = 6
+		hole.mesh = disc
+		hole.material_override = hole_material
+		hole.position = Vector3(positions[index], -1.34, front_z)
+		hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		phone_body.add_child(hole)
 
-	var aperture_material := StandardMaterial3D.new()
-	aperture_material.albedo_color = Color("#080d12")
-	aperture_material.roughness = 1.0
-	aperture_material.metallic = 0.0
-
-	for speaker_index in range(speaker_count):
-		var opening_root := Node3D.new()
-		opening_root.name = "PhoneSpeakerOpening_%d" % (speaker_index + 1)
-		opening_root.position = Vector3(start_x + float(speaker_index) * spacing, phone_bottom_y - disc_height * 0.35, 0.0)
-		phone_body.add_child(opening_root)
-
-		# Flattened spheres create broad circular speaker faces, not protruding barrels.
-		var rim := MeshInstance3D.new()
-		rim.name = "SpeakerApertureRim"
-		var rim_mesh := SphereMesh.new()
-		rim_mesh.radius = outer_radius
-		rim_mesh.height = disc_height
-		rim_mesh.radial_segments = 24
-		rim_mesh.rings = 8
-		rim.mesh = rim_mesh
-		rim.material_override = rim_material
-		rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		opening_root.add_child(rim)
-
-		var aperture := MeshInstance3D.new()
-		aperture.name = "SpeakerAcousticOpening"
-		var aperture_mesh := SphereMesh.new()
-		aperture_mesh.radius = inner_radius
-		aperture_mesh.height = disc_height * 0.9
-		aperture_mesh.radial_segments = 24
-		aperture_mesh.rings = 8
-		aperture.mesh = aperture_mesh
-		aperture.material_override = aperture_material
-		aperture.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		opening_root.add_child(aperture)
 
 
 func _show_charge_port_controls() -> void:
@@ -1119,67 +1101,155 @@ func _refresh_phone_charge_port() -> void:
 	if charge_port_type == "None":
 		return
 
+	# Put the connector on the visible front face in the reserved centre lane.
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
-	# The port is placed on the bottom edge, facing down (-Y), and remains
-	# within the phone's thickness instead of hanging below the chassis.
-	port_root.position = Vector3(0.0, -PHONE_SIZE.y * 0.5 + 0.001, 0.0)
+	port_root.position = Vector3(0.0, -1.34, PHONE_SIZE.z * 0.5 + 0.003)
 	phone_body.add_child(port_root)
 
+	var outer_material := StandardMaterial3D.new()
+	outer_material.albedo_color = Color("#111820")
+	outer_material.roughness = 0.88
+	var inner_material := StandardMaterial3D.new()
+	inner_material.albedo_color = Color("#020406")
+	inner_material.roughness = 1.0
+	var contact_material := StandardMaterial3D.new()
+	contact_material.albedo_color = Color("#b8c4ce")
+	contact_material.metallic = 0.55
+	contact_material.roughness = 0.42
+
+	var outer := MeshInstance3D.new()
+	outer.name = "ChargingPortOuterShape"
+	var inner := MeshInstance3D.new()
+	inner.name = "ChargingPortOpening"
+	var outer_mesh: Mesh
+	var inner_mesh: Mesh
 	var port_width := 0.30
-	var port_depth := 0.095
+	var port_height := 0.075
+	var pill_shape := false
+	var trapezoid_shape := false
+	var circular_shape := false
+
 	match charge_port_type:
 		"USB Type-C":
 			port_width = 0.30
-			port_depth = 0.095
+			port_height = 0.082
+			pill_shape = true
 		"USB Type-A":
-			port_width = 0.40
-			port_depth = 0.13
+			port_width = 0.39
+			port_height = 0.105
 		"Micro-USB (Micro-B)":
-			port_width = 0.25
-			port_depth = 0.075
+			port_width = 0.245
+			port_height = 0.070
+			trapezoid_shape = true
 		"Mini-USB (Mini-B)":
 			port_width = 0.31
-			port_depth = 0.10
+			port_height = 0.085
+			trapezoid_shape = true
 		"Apple Lightning":
-			port_width = 0.29
-			port_depth = 0.065
+			port_width = 0.285
+			port_height = 0.045
+			pill_shape = true
 		"Apple 30-pin Dock":
-			port_width = 0.58
-			port_depth = 0.10
+			port_width = 0.52
+			port_height = 0.105
 		"Nokia 2mm Barrel", "DC Barrel Jack":
-			port_width = 0.11
-			port_depth = 0.11
+			port_width = 0.105
+			port_height = 0.105
+			circular_shape = true
 		"Nokia Pop-Port", "Sony Ericsson FastPort", "Samsung 20-pin", "Samsung 30-pin", "Motorola Proprietary", "HTC ExtUSB":
-			port_width = 0.36
-			port_depth = 0.10
+			port_width = 0.35
+			port_height = 0.095
 
-	var outer_material := StandardMaterial3D.new()
-	outer_material.albedo_color = Color("#080a0d")
-	outer_material.roughness = 0.95
-	var cavity_material := StandardMaterial3D.new()
-	cavity_material.albedo_color = Color("#000000")
-	cavity_material.roughness = 1.0
+	if circular_shape:
+		var ring := MeshInstance3D.new()
+		ring.name = "ChargingPortCircularRim"
+		var ring_mesh := CylinderMesh.new()
+		ring_mesh.top_radius = port_width * 0.5
+		ring_mesh.bottom_radius = port_width * 0.5
+		ring_mesh.height = 0.008
+		ring_mesh.radial_segments = 32
+		ring.mesh = ring_mesh
+		ring.rotation_degrees.x = 90.0
+		ring.material_override = outer_material
+		ring.position.z = 0.001
+		port_root.add_child(ring)
+		var hole := MeshInstance3D.new()
+		hole.name = "ChargingPortCircularOpening"
+		var hole_mesh := CylinderMesh.new()
+		hole_mesh.top_radius = port_width * 0.34
+		hole_mesh.bottom_radius = port_width * 0.34
+		hole_mesh.height = 0.004
+		hole_mesh.radial_segments = 32
+		hole.mesh = hole_mesh
+		hole.rotation_degrees.x = 90.0
+		hole.material_override = inner_material
+		hole.position.z = 0.006
+		port_root.add_child(hole)
+		return
 
-	var surround := MeshInstance3D.new()
-	surround.name = "ChargingPortBlackSurround"
-	var surround_mesh := BoxMesh.new()
-	surround_mesh.size = Vector3(port_width + 0.035, 0.009, port_depth + 0.035)
-	surround.mesh = surround_mesh
-	surround.material_override = outer_material
-	surround.position.y = 0.0045
-	surround.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	port_root.add_child(surround)
+	if pill_shape:
+		var outer_capsule := CapsuleMesh.new()
+		outer_capsule.radius = port_height * 0.5
+		outer_capsule.height = maxf(port_width, port_height)
+		outer_mesh = outer_capsule
+		var inner_capsule := CapsuleMesh.new()
+		inner_capsule.radius = port_height * 0.34
+		inner_capsule.height = maxf(port_width - 0.025, port_height * 0.68)
+		inner_mesh = inner_capsule
+		outer.rotation_degrees.z = 90.0
+		inner.rotation_degrees.z = 90.0
+	else:
+		var outer_box := BoxMesh.new()
+		outer_box.size = Vector3(port_width, port_height, 0.008)
+		outer_mesh = outer_box
+		if trapezoid_shape:
+			# A tapered insert gives Micro/ Mini USB their characteristic
+			# narrower lower edge instead of a generic rectangular slot.
+			var points := PackedVector2Array([
+				Vector2(-port_width * 0.5, -port_height * 0.5),
+				Vector2(port_width * 0.5, -port_height * 0.5),
+				Vector2(port_width * 0.38, port_height * 0.5),
+				Vector2(-port_width * 0.38, port_height * 0.5)
+			])
+			var indices := Geometry2D.triangulate_polygon(points)
+			var surface := SurfaceTool.new()
+			surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+			for tri in range(0, indices.size(), 3):
+				var v0 := points[indices[tri]]
+				var v1 := points[indices[tri + 1]]
+				var v2 := points[indices[tri + 2]]
+				surface.add_vertex(Vector3(v0.x, v0.y, 0.0))
+				surface.add_vertex(Vector3(v1.x, v1.y, 0.0))
+				surface.add_vertex(Vector3(v2.x, v2.y, 0.0))
+			inner_mesh = surface.commit()
+		else:
+			var inner_box := BoxMesh.new()
+			inner_box.size = Vector3(port_width * 0.78, port_height * 0.58, 0.004)
+			inner_mesh = inner_box
 
-	var cavity := MeshInstance3D.new()
-	cavity.name = "ChargingPortOpening"
-	var cavity_mesh := BoxMesh.new()
-	cavity_mesh.size = Vector3(port_width, 0.004, port_depth)
-	cavity.mesh = cavity_mesh
-	cavity.material_override = cavity_material
-	cavity.position.y = 0.002
-	cavity.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	port_root.add_child(cavity)
+	outer.mesh = outer_mesh
+	outer.material_override = outer_material
+	outer.position.z = 0.001
+	outer.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	port_root.add_child(outer)
+
+	inner.mesh = inner_mesh
+	inner.material_override = inner_material
+	inner.position.z = 0.006
+	inner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	port_root.add_child(inner)
+
+	if charge_port_type == "Apple Lightning":
+		var contact := MeshInstance3D.new()
+		contact.name = "LightningContactTongue"
+		var contact_mesh := BoxMesh.new()
+		contact_mesh.size = Vector3(port_width * 0.72, 0.009, 0.003)
+		contact.mesh = contact_mesh
+		contact.material_override = contact_material
+		contact.position.z = 0.009
+		port_root.add_child(contact)
+
 
 
 func _on_phone_thickness_level_changed(value: float) -> void:
