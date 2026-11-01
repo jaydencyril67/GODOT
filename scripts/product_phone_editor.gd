@@ -8,6 +8,126 @@ const ROTATION_STEP := deg_to_rad(10.0)
 # Deliberately low so a normal finger movement makes a controlled turn.
 const DRAG_SENSITIVITY := 0.0024
 
+class DeviceColorSpectrum extends Control:
+	signal color_changed(color: Color)
+	var hue := 0.0
+	var saturation := 1.0
+	var brightness := 1.0
+	var spectrum_texture: ImageTexture
+	var dragging := false
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(180, 150)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		_rebuild_spectrum()
+		queue_redraw()
+
+	func set_hue(value: float) -> void:
+		hue = fposmod(value, 1.0)
+		_rebuild_spectrum()
+		queue_redraw()
+
+	func set_color_value(color: Color) -> void:
+		hue = color.h
+		saturation = color.s
+		brightness = color.v
+		_rebuild_spectrum()
+		queue_redraw()
+
+	func _rebuild_spectrum() -> void:
+		var image := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+		for y in range(128):
+			for x in range(128):
+				image.set_pixel(x, y, Color.from_hsv(hue, float(x) / 127.0, 1.0 - float(y) / 127.0))
+		spectrum_texture = ImageTexture.create_from_image(image)
+
+	func _draw() -> void:
+		var rect := Rect2(Vector2.ZERO, size)
+		if spectrum_texture:
+			draw_texture_rect(spectrum_texture, rect, false)
+		draw_rect(rect, Color("#7fa9c4"), false, 1.0)
+		var cursor := Vector2(saturation * size.x, (1.0 - brightness) * size.y)
+		draw_circle(cursor, 7.0, Color("#071522"))
+		draw_arc(cursor, 7.0, 0.0, TAU, 32, Color.WHITE, 2.0, true)
+		draw_circle(cursor, 2.0, Color.WHITE)
+
+	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			dragging = event.pressed
+			if dragging:
+				_update_from_position(event.position)
+				accept_event()
+		elif event is InputEventMouseMotion and dragging:
+			_update_from_position(event.position)
+			accept_event()
+		elif event is InputEventScreenTouch:
+			dragging = event.pressed
+			if dragging:
+				_update_from_position(event.position)
+				accept_event()
+		elif event is InputEventScreenDrag and dragging:
+			_update_from_position(event.position)
+			accept_event()
+
+	func _update_from_position(point: Vector2) -> void:
+		if size.x <= 0.0 or size.y <= 0.0:
+			return
+		saturation = clampf(point.x / size.x, 0.0, 1.0)
+		brightness = 1.0 - clampf(point.y / size.y, 0.0, 1.0)
+		queue_redraw()
+		color_changed.emit(Color.from_hsv(hue, saturation, brightness))
+
+
+class DeviceHueBar extends Control:
+	signal hue_changed(hue: float)
+	var hue := 0.0
+	var dragging := false
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(0, 22)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		queue_redraw()
+
+	func set_hue(value: float) -> void:
+		hue = fposmod(value, 1.0)
+		queue_redraw()
+
+	func _draw() -> void:
+		var segments := 72
+		var segment_width := size.x / float(segments)
+		for i in range(segments):
+			var x := float(i) * segment_width
+			draw_rect(Rect2(x, 2.0, segment_width + 1.0, maxf(1.0, size.y - 4.0)), Color.from_hsv(float(i) / float(segments - 1), 1.0, 1.0))
+		var marker_x := hue * size.x
+		draw_line(Vector2(marker_x, 0.0), Vector2(marker_x, size.y), Color("#071522"), 5.0)
+		draw_line(Vector2(marker_x, 0.0), Vector2(marker_x, size.y), Color.WHITE, 2.0)
+
+	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			dragging = event.pressed
+			if dragging:
+				_update_hue(event.position.x)
+				accept_event()
+		elif event is InputEventMouseMotion and dragging:
+			_update_hue(event.position.x)
+			accept_event()
+		elif event is InputEventScreenTouch:
+			dragging = event.pressed
+			if dragging:
+				_update_hue(event.position.x)
+				accept_event()
+		elif event is InputEventScreenDrag and dragging:
+			_update_hue(event.position.x)
+			accept_event()
+
+	func _update_hue(x: float) -> void:
+		if size.x <= 0.0:
+			return
+		hue = clampf(x / size.x, 0.0, 1.0)
+		queue_redraw()
+		hue_changed.emit(hue)
+
+
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
 var home_button_type := "Circle Home Button"
@@ -814,77 +934,98 @@ func _show_device_color_controls() -> void:
 	active_feature_panel.name = "DeviceColorControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("DEVICE COLOR", 18, Color("#c7eaff"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
-
-	var description := _make_label("Choose a body color or enter a custom HEX code.", 12, Color("#d8eaf5"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var description := _make_label("Fine-tune the finish of your phone body.", 12, Color("#d8eaf5"))
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
 
-	var palette_title := _make_label("QUICK COLORS", 12, Color("#a9e3ff"))
-	active_feature_panel.add_child(palette_title)
+	var spectrum_heading := _make_label("COLOR SPECTRUM", 11, Color("#a9e3ff"))
+	active_feature_panel.add_child(spectrum_heading)
+	var spectrum := DeviceColorSpectrum.new()
+	spectrum.name = "DeviceColorSpectrum"
+	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spectrum.custom_minimum_size = Vector2(180, 164)
+	spectrum.set_color_value(device_body_color)
+	spectrum.color_changed.connect(_on_device_body_color_changed)
+	active_feature_panel.add_child(spectrum)
 
-	var palette := GridContainer.new()
-	palette.name = "CustomDeviceColorPalette"
-	palette.columns = 4
-	palette.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	palette.add_theme_constant_override("h_separation", 10)
-	palette.add_theme_constant_override("v_separation", 10)
-	active_feature_panel.add_child(palette)
+	var hue_heading := _make_label("HUE", 11, Color("#a9e3ff"))
+	active_feature_panel.add_child(hue_heading)
+	var hue_bar := DeviceHueBar.new()
+	hue_bar.name = "DeviceColorHue"
+	hue_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hue_bar.set_hue(device_body_color.h)
+	hue_bar.hue_changed.connect(_on_device_color_hue_changed)
+	active_feature_panel.add_child(hue_bar)
 
-	var palette_colors: Array[Color] = [
-		Color("#111820"), Color("#e8edf2"), Color("#687786"), Color("#263746"),
-		Color("#123c72"), Color("#1479c9"), Color("#13a6a0"), Color("#27834a"),
-		Color("#8b3eb5"), Color("#d13c68"), Color("#d66a28"), Color("#e2b52b")
-	]
-	for palette_color in palette_colors:
-		var swatch := Button.new()
-		swatch.name = "Color_" + palette_color.to_html(false).to_upper()
-		swatch.custom_minimum_size = Vector2(42, 38)
-		swatch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		swatch.focus_mode = Control.FOCUS_NONE
-		swatch.tooltip_text = "#" + palette_color.to_html(false).to_upper()
-		var swatch_style := StyleBoxFlat.new()
-		swatch_style.bg_color = palette_color
-		swatch_style.set_corner_radius_all(8)
-		swatch_style.set_border_width_all(1)
-		swatch_style.border_color = Color("#8abbd5")
-		swatch.add_theme_stylebox_override("normal", swatch_style)
-		var hover_style := swatch_style.duplicate() as StyleBoxFlat
-		hover_style.set_border_width_all(2)
-		hover_style.border_color = Color.WHITE
-		swatch.add_theme_stylebox_override("hover", hover_style)
-		swatch.add_theme_stylebox_override("pressed", hover_style)
-		swatch.pressed.connect(_on_device_palette_color_selected.bind(palette_color))
-		palette.add_child(swatch)
+	var selected_row := HBoxContainer.new()
+	selected_row.name = "SelectedDeviceColor"
+	selected_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selected_row.add_theme_constant_override("separation", 10)
+	active_feature_panel.add_child(selected_row)
+	var selected_swatch := ColorRect.new()
+	selected_swatch.name = "SelectedColorSwatch"
+	selected_swatch.custom_minimum_size = Vector2(42, 32)
+	selected_swatch.color = device_body_color
+	var swatch_style := StyleBoxFlat.new()
+	swatch_style.set_corner_radius_all(7)
+	swatch_style.set_border_width_all(1)
+	swatch_style.border_color = Color("#8abbd5")
+	selected_swatch.add_theme_stylebox_override("panel", swatch_style)
+	selected_row.add_child(selected_swatch)
+	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 14, Color("#e5f6ff"))
+	device_color_hex_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	device_color_hex_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	selected_row.add_child(device_color_hex_label)
 
-	var hex_title := _make_label("CUSTOM HEX", 12, Color("#a9e3ff"))
-	active_feature_panel.add_child(hex_title)
+	var rgb_heading := _make_label("RGB VALUES", 11, Color("#a9e3ff"))
+	active_feature_panel.add_child(rgb_heading)
+	var rgb_row := HBoxContainer.new()
+	rgb_row.name = "DeviceColorRGB"
+	rgb_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rgb_row.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(rgb_row)
+	for channel in ["R", "G", "B"]:
+		var channel_column := VBoxContainer.new()
+		channel_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		channel_column.add_theme_constant_override("separation", 3)
+		rgb_row.add_child(channel_column)
+		var channel_label := _make_label(channel, 10, Color("#91b8cf"))
+		channel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		channel_column.add_child(channel_label)
+		var channel_input := SpinBox.new()
+		channel_input.name = "DeviceColor" + channel
+		channel_input.min_value = 0
+		channel_input.max_value = 255
+		channel_input.step = 1
+		channel_input.value = roundi(device_body_color.r * 255.0) if channel == "R" else (roundi(device_body_color.g * 255.0) if channel == "G" else roundi(device_body_color.b * 255.0))
+		channel_input.custom_minimum_size = Vector2(0, 36)
+		channel_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		channel_input.add_theme_color_override("font_color", Color("#eaf7ff"))
+		channel_column.add_child(channel_input)
+		channel_input.value_changed.connect(_on_device_rgb_channel_changed.bind(channel))
 
-	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 14, Color("#d8f1ff"))
-	device_color_hex_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(device_color_hex_label)
-
+	var hex_heading := _make_label("HEX CODE", 11, Color("#a9e3ff"))
+	active_feature_panel.add_child(hex_heading)
 	var hex_row := HBoxContainer.new()
 	hex_row.name = "CustomHexEntry"
 	hex_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hex_row.add_theme_constant_override("separation", 8)
+	hex_row.add_theme_constant_override("separation", 7)
 	active_feature_panel.add_child(hex_row)
-
 	var hex_input := LineEdit.new()
 	hex_input.name = "DeviceColorHexInput"
 	hex_input.placeholder_text = "#RRGGBB"
 	hex_input.text = device_body_color.to_html(false).to_upper()
 	hex_input.max_length = 7
 	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hex_input.custom_minimum_size = Vector2(0, 40)
+	hex_input.custom_minimum_size = Vector2(0, 38)
 	hex_input.clear_button_enabled = true
-	hex_input.focus_mode = Control.FOCUS_ALL
 	hex_input.add_theme_color_override("font_color", Color("#edf8ff"))
 	hex_input.add_theme_color_override("font_placeholder_color", Color("#7893a5"))
 	hex_input.add_theme_color_override("caret_color", Color("#75d5ff"))
@@ -902,13 +1043,12 @@ func _show_device_color_controls() -> void:
 	hex_input.add_theme_stylebox_override("focus", hex_focus)
 	hex_input.add_theme_stylebox_override("read_only", hex_normal)
 	hex_row.add_child(hex_input)
-
 	var apply_button := Button.new()
 	apply_button.name = "ApplyDeviceHex"
 	apply_button.text = "APPLY"
-	apply_button.custom_minimum_size = Vector2(76, 40)
+	apply_button.custom_minimum_size = Vector2(68, 38)
 	apply_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(apply_button, 11)
+	_apply_research_typography(apply_button, 10)
 	var apply_normal := StyleBoxFlat.new()
 	apply_normal.bg_color = Color("#17496a")
 	apply_normal.set_corner_radius_all(8)
@@ -916,20 +1056,30 @@ func _show_device_color_controls() -> void:
 	apply_normal.border_color = Color("#4da9d8")
 	var apply_hover := apply_normal.duplicate() as StyleBoxFlat
 	apply_hover.bg_color = Color("#20658e")
-	var apply_pressed := apply_normal.duplicate() as StyleBoxFlat
-	apply_pressed.bg_color = Color("#10334d")
 	apply_button.add_theme_stylebox_override("normal", apply_normal)
 	apply_button.add_theme_stylebox_override("hover", apply_hover)
-	apply_button.add_theme_stylebox_override("pressed", apply_pressed)
 	apply_button.add_theme_color_override("font_color", Color("#effaff"))
-	apply_button.add_theme_color_override("font_hover_color", Color.WHITE)
 	hex_row.add_child(apply_button)
 	apply_button.pressed.connect(_on_device_color_hex_submitted.bind(hex_input))
 	hex_input.text_submitted.connect(_on_device_color_hex_text_submitted)
 
 
-func _on_device_palette_color_selected(color: Color) -> void:
-	_on_device_body_color_changed(color)
+func _on_device_color_hue_changed(hue: float) -> void:
+	var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(spectrum):
+		spectrum.set_hue(hue)
+		_on_device_body_color_changed(Color.from_hsv(hue, spectrum.saturation, spectrum.brightness))
+
+
+func _on_device_rgb_channel_changed(value: float, channel: String) -> void:
+	var updated := device_body_color
+	if channel == "R":
+		updated.r = value / 255.0
+	elif channel == "G":
+		updated.g = value / 255.0
+	else:
+		updated.b = value / 255.0
+	_on_device_body_color_changed(updated)
 
 
 func _on_device_color_hex_text_submitted(value: String) -> void:
@@ -949,8 +1099,6 @@ func _apply_device_color_hex(value: String) -> void:
 			device_color_hex_label.add_theme_color_override("font_color", Color("#ff7373"))
 		return
 	_on_device_body_color_changed(Color.from_string("#" + hex_value, device_body_color))
-	if is_instance_valid(device_color_hex_label):
-		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
 
 
 func _on_device_body_color_changed(color: Color) -> void:
@@ -962,11 +1110,22 @@ func _on_device_body_color_changed(color: Color) -> void:
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + device_body_color.to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
-	var hex_input: LineEdit
 	if is_instance_valid(active_feature_panel):
-		hex_input = active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
-	if is_instance_valid(hex_input):
-		hex_input.text = device_body_color.to_html(false).to_upper()
+		var swatch := active_feature_panel.get_node_or_null("SelectedDeviceColor/SelectedColorSwatch") as ColorRect
+		if is_instance_valid(swatch):
+			swatch.color = device_body_color
+		var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
+		if is_instance_valid(spectrum):
+			spectrum.set_color_value(device_body_color)
+		var hue_bar := active_feature_panel.get_node_or_null("DeviceColorHue") as DeviceHueBar
+		if is_instance_valid(hue_bar):
+			hue_bar.set_hue(device_body_color.h)
+		for channel in ["R", "G", "B"]:
+			var channel_input := active_feature_panel.get_node_or_null("DeviceColorRGB/".join(["", ""])) as SpinBox
+			channel_input = active_feature_panel.get_node_or_null("DeviceColorRGB/" + "VBoxContainer/DeviceColor" + channel) as SpinBox if false else null
+		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
+		if is_instance_valid(hex_input):
+			hex_input.text = device_body_color.to_html(false).to_upper()
 
 
 func _show_screen_size_controls() -> void:
