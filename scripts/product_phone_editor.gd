@@ -1356,18 +1356,27 @@ func _toggle_back_design_size_action() -> void:
 	_show_back_design_controls()
 
 func _add_back_design_box() -> void:
+	var box_size := Vector2(0.34, 0.34)
+	var half := box_size * 0.5
+	var body_half := Vector2(PHONE_SIZE.x * 0.5, PHONE_SIZE.y * 0.5)
+	var min_x := -body_half.x + half.x
+	var max_x := body_half.x - half.x
+	var min_y := -body_half.y + half.y
+	var max_y := body_half.y - half.y
 	var placed := false
-	for row in range(6):
-		for column in range(3):
-			var box_position := Vector2(-0.43 + float(column) * 0.43, 1.05 - float(row) * 0.40)
-			var box_size := Vector2(0.34, 0.34)
+	# Scan the usable back in small steps so a new box occupies an actually free spot.
+	var y := max_y
+	while y >= min_y and not placed:
+		var x := min_x
+		while x <= max_x and not placed:
+			var box_position := Vector2(x, y)
 			if _back_design_position_is_free(box_position, box_size, -1):
 				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08})
 				selected_back_design_box = back_design_boxes.size() - 1
 				next_back_design_box_id += 1
 				placed = true
-				break
-		if placed: break
+			x += 0.08
+		y -= 0.08
 	if placed:
 		_refresh_back_design_boxes()
 		_refresh_back_design_panel()
@@ -1387,14 +1396,15 @@ func _select_back_design_box(index: int) -> void:
 
 func _back_design_position_is_free(box_position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
 	var half := box_size * 0.5
-	if absf(box_position.x) + half.x > PHONE_SIZE.x * 0.5 - 0.07: return false
-	if absf(box_position.y) + half.y > PHONE_SIZE.y * 0.5 - 0.07: return false
+	# The phone body and other raised boxes are the only placement constraints.
+	if absf(box_position.x) + half.x > PHONE_SIZE.x * 0.5: return false
+	if absf(box_position.y) + half.y > PHONE_SIZE.y * 0.5: return false
 	for index in range(back_design_boxes.size()):
 		if index == ignore_index: continue
 		var other: Dictionary = back_design_boxes[index]
 		var other_half: Vector2 = other["size"] * 0.5
 		var other_position: Vector2 = other["position"]
-		if absf(box_position.x - other_position.x) < half.x + other_half.x + 0.035 and absf(position.y - other_position.y) < half.y + other_half.y + 0.035: return false
+		if absf(box_position.x - other_position.x) < half.x + other_half.x and absf(box_position.y - other_position.y) < half.y + other_half.y: return false
 	return true
 
 func _on_back_design_pad_pressed(direction: Vector2i) -> void:
@@ -1426,7 +1436,7 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 			next_position.y -= step * 0.5
 			next_half.y += step * 0.5
 		var next_size := next_half * 2.0
-		if next_size.x >= 0.08 and next_size.y >= 0.08 and next_size.x <= 0.78 and next_size.y <= 1.65 and _back_design_position_is_free(next_position, next_size, selected_back_design_box):
+		if next_size.x > 0.001 and next_size.y > 0.001 and _back_design_position_is_free(next_position, next_size, selected_back_design_box):
 			box["position"] = next_position
 			box["size"] = next_size
 	back_design_boxes[selected_back_design_box] = box
