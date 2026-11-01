@@ -1586,7 +1586,7 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			island_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			camera_root.add_child(island_mesh)
 			# The camera glass is almost invisible inside the black capsule;
-				# avoid the bright metallic lens ring used by ordinary punch-holes.
+			# avoid the bright metallic lens ring used by ordinary punch-holes.
 			var island_lens_ring := StandardMaterial3D.new()
 			island_lens_ring.albedo_color = Color("#05080d")
 			island_lens_ring.metallic = 0.18
