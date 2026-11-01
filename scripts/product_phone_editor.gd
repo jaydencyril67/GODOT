@@ -28,10 +28,12 @@ class DeviceColorSpectrum extends Control:
 		queue_redraw()
 
 	func set_color_value(color: Color) -> void:
-		hue = color.h
+		var next_hue := color.h
+		if not is_equal_approx(hue, next_hue):
+			hue = next_hue
+			_rebuild_spectrum()
 		saturation = color.s
 		brightness = color.v
-		_rebuild_spectrum()
 		queue_redraw()
 
 	func _rebuild_spectrum() -> void:
@@ -1004,6 +1006,20 @@ func _show_device_color_controls() -> void:
 		channel_input.custom_minimum_size = Vector2(0, 36)
 		channel_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		channel_input.add_theme_color_override("font_color", Color("#eaf7ff"))
+		var channel_editor := channel_input.get_line_edit()
+		var channel_normal := StyleBoxFlat.new()
+		channel_normal.bg_color = Color("#101d29")
+		channel_normal.set_corner_radius_all(6)
+		channel_normal.set_border_width_all(1)
+		channel_normal.border_color = Color("#31516a")
+		channel_normal.content_margin_left = 5.0
+		channel_normal.content_margin_right = 5.0
+		var channel_focus := channel_normal.duplicate() as StyleBoxFlat
+		channel_focus.border_color = Color("#64caff")
+		channel_focus.set_border_width_all(2)
+		channel_editor.add_theme_stylebox_override("normal", channel_normal)
+		channel_editor.add_theme_stylebox_override("focus", channel_focus)
+		channel_editor.add_theme_color_override("font_color", Color("#eaf7ff"))
 		channel_column.add_child(channel_input)
 		channel_input.value_changed.connect(_on_device_rgb_channel_changed.bind(channel))
 
