@@ -1256,9 +1256,9 @@ func _set_back_design_mode(mode: String) -> void:
 
 func _add_back_design_box() -> void:
 	var placed := false
-	for row in range(7):
+	for row in range(6):
 		for column in range(3):
-			var position := Vector2(-0.43 + float(column) * 0.43, 1.05 - float(row) * 0.43)
+			var position := Vector2(-0.43 + float(column) * 0.43, 1.05 - float(row) * 0.40)
 			var box_size := Vector2(0.34, 0.34)
 			if _back_design_position_is_free(position, box_size, -1):
 				back_design_boxes.append({"id": next_back_design_box_id, "position": position, "size": box_size, "border": 0.08})
@@ -1362,7 +1362,7 @@ func _make_back_design_mesh(box_size: Vector2, corner_radius: float, depth: floa
 		var a: Vector2 = outline[indices[index]]
 		var b: Vector2 = outline[indices[index + 1]]
 		var c: Vector2 = outline[indices[index + 2]]
-		_add_phone_mesh_triangle(surface, a.x * Vector3.RIGHT + a.y * Vector3.UP + Vector3(0, 0, outer_z), b.x * Vector3.RIGHT + b.y * Vector3.UP + Vector3(0, 0, outer_z), c.x * Vector3.RIGHT + c.y * Vector3.UP + Vector3(0, 0, outer_z), Vector3(0, 0, -1))
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, outer_z), Vector3(b.x, b.y, outer_z), Vector3(c.x, c.y, outer_z), Vector3(0, 0, -1))
 		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, 0), Vector3(c.x, c.y, 0), Vector3(b.x, b.y, 0), Vector3(0, 0, 1))
 	for index in range(outline.size()):
 		var next := (index + 1) % outline.size()
@@ -1399,7 +1399,7 @@ func _refresh_back_design_boxes() -> void:
 		raised.material_override = material
 		raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var position: Vector2 = box["position"]
-		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5 - 0.035)
+		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5)
 		root.add_child(raised)
 
 func _show_screen_size_controls() -> void:
