@@ -1211,6 +1211,8 @@ func _show_back_design_controls() -> void:
 		modes.add_child(mode_button)
 	var pad := GridContainer.new()
 	pad.columns = 3
+	pad.add_theme_constant_override("h_separation", 14)
+	pad.add_theme_constant_override("v_separation", 14)
 	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	active_feature_panel.add_child(pad)
 	_add_back_design_pad_spacer(pad)
@@ -1321,8 +1323,8 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 	var box_position: Vector2 = box["position"]
 	var box_size: Vector2 = box["size"]
 	if back_design_mode == "MOVE":
-		# The rear face is viewed from the opposite side, so horizontal movement is mirrored.
-		var next_position := box_position + Vector2(-direction.x, direction.y) * 0.04
+		# Match the on-screen arrow direction: left moves left and right moves right.
+		var next_position := box_position + Vector2(direction.x, direction.y) * 0.04
 		if _back_design_position_is_free(next_position, box_size, selected_back_design_box):
 			box["position"] = next_position
 	else:
