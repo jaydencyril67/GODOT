@@ -23,6 +23,7 @@ var bezel_width := 0.10
 var bezel_height := 0.20
 var bezel_width_value_label: Label
 var bezel_height_value_label: Label
+var bezel_height_slider: VSlider
 var screen_shape_mode := "Flat screen"
 var side_curve_enabled := false
 var vertical_curve_enabled := false
@@ -874,22 +875,22 @@ func _show_screen_size_controls() -> void:
 	bezel_height_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	height_column.add_child(bezel_height_value_label)
 
-	var height_slider := VSlider.new()
-	height_slider.name = "ScreenHeightSlider"
-	height_slider.min_value = 0.02
-	height_slider.max_value = 0.325
-	height_slider.step = 0.001
-	height_slider.value = 0.345 - clampf(bezel_height, 0.02, 0.325)
-	height_slider.tick_count = 14
-	height_slider.custom_minimum_size = Vector2(64, 250)
-	height_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	height_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	height_slider.value_changed.connect(_on_bezel_height_changed)
-	_style_feature_slider(height_slider)
-	height_column.add_child(height_slider)
+	bezel_height_slider = VSlider.new()
+	bezel_height_slider.name = "ScreenHeightSlider"
+	bezel_height_slider.min_value = 0.02
+	bezel_height_slider.max_value = 0.345 - _minimum_screen_height_bezel()
+	bezel_height_slider.step = 0.001
+	bezel_height = clampf(bezel_height, _minimum_screen_height_bezel(), 0.325)
+	bezel_height_slider.value = 0.345 - bezel_height
+	bezel_height_slider.tick_count = 14
+	bezel_height_slider.custom_minimum_size = Vector2(64, 250)
+	bezel_height_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	bezel_height_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	bezel_height_slider.value_changed.connect(_on_bezel_height_changed)
+	_style_feature_slider(bezel_height_slider)
+	height_column.add_child(bezel_height_slider)
 
 	bezel_width = 0.17 - width_slider.value
-	bezel_height = 0.345 - height_slider.value
 	_update_bezel_value_labels()
 	_refresh_screen_type_controls()
 
@@ -904,7 +905,7 @@ func _on_bezel_width_changed(value: float) -> void:
 
 func _on_bezel_height_changed(value: float) -> void:
 	# The slider represents screen size: moving it up must reduce the bezel.
-	bezel_height = clampf(0.345 - value, 0.02, 0.325)
+	bezel_height = clampf(0.345 - value, _minimum_screen_height_bezel(), 0.325)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
@@ -1020,8 +1021,25 @@ func _is_screen_width_max() -> bool:
 	return bezel_width <= 0.0205
 
 
+func _minimum_screen_height_bezel() -> float:
+	# The bezel camera occupies a small permanent strip of the handset frame.
+	# Because the display remains centred, half of this reserve is the minimum
+	# top/bottom bezel thickness required to keep the camera on the phone.
+	return 0.07 if front_camera_enabled and front_camera_style == "Bezel Camera" else 0.02
+
+
+func _update_bezel_height_slider_limit() -> void:
+	if not is_instance_valid(bezel_height_slider):
+		return
+	var minimum_bezel := _minimum_screen_height_bezel()
+	bezel_height = clampf(bezel_height, minimum_bezel, 0.325)
+	bezel_height_slider.max_value = 0.345 - minimum_bezel
+	bezel_height_slider.set_value_no_signal(0.345 - bezel_height)
+	_update_bezel_value_labels()
+
+
 func _is_screen_height_max() -> bool:
-	return bezel_height <= 0.0205
+	return bezel_height <= _minimum_screen_height_bezel() + 0.0005
 
 
 func _refresh_screen_type_controls() -> void:
@@ -1305,12 +1323,6 @@ func _refresh_phone_screen() -> void:
 	# Symmetrical bezels consume the outer edges; the display fills the remaining area.
 	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
 	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
-	# A bezel-mounted selfie camera needs a permanent strip of handset frame.
-	# Reserve that space at the TOP only, shifting the display down so maximum
-	# screen-height settings can never push the camera beyond the phone body.
-	var bezel_camera_top_reserve := 0.14 if front_camera_enabled and front_camera_style == "Bezel Camera" else 0.0
-	if bezel_camera_top_reserve > 0.0:
-		screen_height = minf(screen_height, PHONE_SIZE.y - bezel_camera_top_reserve)
 	# The display inherits the phone's exact outer corner radius so curved
 	# glass and frame stay visually aligned as Border Radius is upgraded.
 	var screen_radius := 0.32 * float(border_radius_level) / 6.0
@@ -1361,7 +1373,7 @@ func _refresh_phone_screen() -> void:
 	display.material_override = display_material
 	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
-	display.position = Vector3(0.0, -bezel_camera_top_reserve * 0.5, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
+	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
@@ -1456,6 +1468,7 @@ func _show_front_camera_controls() -> void:
 
 func _on_front_camera_enablement_toggled(enabled: bool) -> void:
 	front_camera_enabled = enabled
+	_update_bezel_height_slider_limit()
 	_refresh_phone_screen()
 	var toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
@@ -1469,6 +1482,7 @@ func _on_front_camera_style_selected(style_name: String) -> void:
 	if not FRONT_CAMERA_STYLES.has(style_name):
 		return
 	front_camera_style = style_name
+	_update_bezel_height_slider_limit()
 	_refresh_phone_screen()
 	for option_name in front_camera_option_buttons:
 		var option: Button = front_camera_option_buttons[option_name]
@@ -1517,11 +1531,10 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 
 	match front_camera_style:
 		"Bezel Camera":
-			# Keep the lens fixed in the reserved handset-top strip, independent
-			# of the display height and bezel slider. camera_root inherits the
-			# display's downward offset, so this local position maps to the
-			# centre of the reserved physical bezel area.
-			var bezel_camera_y := PHONE_SIZE.y * 0.5
+			# Place the lens in the actual top bezel, centred between the display
+			# edge and handset edge. The height slider is capped so this strip
+			# always remains available without shifting or clipping the display.
+			var bezel_camera_y := top_edge + bezel_height * 0.5
 			_add_front_camera_lens(camera_root, Vector3(0.0, bezel_camera_y, front_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
 			# Restore the original compact oval glass with the selfie camera
