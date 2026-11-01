@@ -1459,10 +1459,6 @@ func _position_back_design_selection_popup() -> void:
 		return
 	if not back_design_selection_popup.visible:
 		return
-	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-	if not is_instance_valid(editor_root):
-		return
-
 	var viewport_rect := get_viewport().get_visible_rect()
 	var button_rect := back_design_selection_button.get_global_rect()
 	var side_gap := 6.0
@@ -1489,7 +1485,10 @@ func _position_back_design_selection_popup() -> void:
 	var max_popup_x := viewport_rect.end.x - popup_width - viewport_padding
 	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + viewport_padding, max_popup_x)
 	var popup_global_position := Vector2(popup_x, popup_y)
-	back_design_selection_popup.position = editor_root.to_local(popup_global_position)
+	# button_rect is already in canvas/global UI coordinates. Assign the popup's
+	# global position directly; converting through PhoneEditorRoot shifts it
+	# because that control is offset/scaled inside the editor interface.
+	back_design_selection_popup.global_position = popup_global_position
 
 
 func _rebuild_back_design_selection_popup() -> void:
