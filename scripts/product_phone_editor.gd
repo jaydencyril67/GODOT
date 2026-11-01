@@ -1582,7 +1582,7 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# of using a fixed edge inset that changes its apparent position when
 			# the screen expands for a side curve.
 			var side_lens_radius := 0.037
- 			var side_camera_x := -screen_width * (0.40 if border_radius_level == 0 else 0.36)
+			var side_camera_x := -screen_width * (0.40 if border_radius_level == 0 else 0.36)
 			var side_camera_y := _side_camera_safe_y(side_camera_x, screen_width, screen_height, side_lens_radius, camera_y)
 			var side_camera_z := front_z + _front_camera_screen_surface_z(side_camera_x, side_camera_y, screen_width, screen_height)
 			_add_front_camera_lens(camera_root, Vector3(side_camera_x, side_camera_y, side_camera_z), side_lens_radius, cutout_material, lens_material, ring_material)
