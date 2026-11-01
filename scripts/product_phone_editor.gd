@@ -1232,6 +1232,7 @@ func _show_back_design_controls() -> void:
 	back_design_border_slider.min_value = 0.0
 	back_design_border_slider.max_value = 0.45
 	back_design_border_slider.step = 0.01
+	back_design_border_slider.custom_minimum_size = Vector2(0, 48)
 	back_design_border_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	active_feature_panel.add_child(back_design_border_slider)
