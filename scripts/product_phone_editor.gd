@@ -183,6 +183,13 @@ var power_button_enabled := false
 var volume_button_enabled := false
 var power_button_y := 0.72
 var volume_button_y := 0.34
+var camera_side_button_enabled := false
+var camera_side_button_y := 0.12
+var sound_button_enabled := false
+var sim_tray_enabled := false
+var sim_tray_y := -0.58
+var camera_side_button_position_label: Label
+var sim_tray_position_label: Label
 var side_button_length_scale := 1.35
 var power_button_position_label: Label
 var volume_button_position_label: Label
@@ -920,6 +927,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_charge_port_controls()
 	elif feature_name == "Power/Volume Buttons":
 		_show_power_volume_controls()
+	elif feature_name == "Side Button":
+		_show_side_button_controls()
 	elif feature_name == "Home Button":
 		_show_home_button_controls()
 	elif feature_name == "Front Camera":
@@ -1141,6 +1150,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = device_body_color.to_html(false).to_upper()
+	_refresh_phone_side_buttons()
 
 
 func _show_screen_size_controls() -> void:
@@ -2632,6 +2642,118 @@ func _on_side_button_position_step(side: String, direction: int) -> void:
 			volume_button_position_label.text = "%d%%" % roundi(volume_button_y / 1.20 * 100.0)
 	_refresh_phone_side_buttons()
 
+func _show_side_button_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "SideButtonControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 12)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("SIDE BUTTONS", 21, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+	var description := _make_label("Add tactile controls and a SIM tray to the phone frame.", 12, Color("#d8eaf5"))
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	_add_optional_side_feature_row("SIDE BUTTON", "camera", camera_side_button_enabled, true, camera_side_button_y)
+	_add_optional_side_feature_row("SOUND BUTTON", "sound", sound_button_enabled, false, volume_button_y)
+	_add_optional_side_feature_row("SIM TRAY", "sim", sim_tray_enabled, true, sim_tray_y)
+
+
+func _add_optional_side_feature_row(caption: String, feature: String, enabled: bool, with_position: bool, position_y: float) -> void:
+	var section := PanelContainer.new()
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.20, 0.48, 0.66, 0.22)
+	style.border_color = Color(0.55, 0.80, 0.94, 0.55)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(11)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	section.add_theme_stylebox_override("panel", style)
+	active_feature_panel.add_child(section)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 6)
+	section.add_child(content)
+	var header := HBoxContainer.new()
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_child(header)
+	var label := _make_label(caption, 17, Color.WHITE)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(label)
+	var toggle := CheckBox.new()
+	toggle.name = feature.capitalize() + "ButtonCheckbox"
+	toggle.button_pressed = enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.toggled.connect(_on_optional_side_feature_toggled.bind(feature))
+	header.add_child(toggle)
+
+	if with_position:
+		var position_caption := _make_label("POSITION ON PHONE SIDE", 12, Color("#c7eaff"))
+		content.add_child(position_caption)
+		var controls := HBoxContainer.new()
+		controls.alignment = BoxContainer.ALIGNMENT_CENTER
+		controls.add_theme_constant_override("separation", 10)
+		content.add_child(controls)
+		var down := Button.new()
+		down.text = "−"
+		down.custom_minimum_size = Vector2(58, 44)
+		_apply_research_typography(down, 24)
+		_style_staff_button(down, false)
+		down.pressed.connect(_on_optional_side_feature_position_step.bind(feature, -1))
+		controls.add_child(down)
+		var value_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 15, Color("#a9e3ff"))
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		controls.add_child(value_label)
+		var up := Button.new()
+		up.text = "+"
+		up.custom_minimum_size = Vector2(58, 44)
+		_apply_research_typography(up, 24)
+		_style_staff_button(up, false)
+		up.pressed.connect(_on_optional_side_feature_position_step.bind(feature, 1))
+		controls.add_child(up)
+		if feature == "camera":
+			camera_side_button_position_label = value_label
+		else:
+			sim_tray_position_label = value_label
+
+
+func _on_optional_side_feature_toggled(enabled: bool, feature: String) -> void:
+	match feature:
+		"camera":
+			camera_side_button_enabled = enabled
+		"sound":
+			sound_button_enabled = enabled
+		"sim":
+			sim_tray_enabled = enabled
+	_refresh_phone_side_buttons()
+
+
+func _on_optional_side_feature_position_step(feature: String, direction: int) -> void:
+	if feature == "camera":
+		camera_side_button_y = clampf(camera_side_button_y + float(direction) * 0.06, -1.20, 1.20)
+		if is_instance_valid(camera_side_button_position_label):
+			camera_side_button_position_label.text = "%d%%" % roundi(camera_side_button_y / 1.20 * 100.0)
+	else:
+		sim_tray_y = clampf(sim_tray_y + float(direction) * 0.06, -1.20, 1.20)
+		if is_instance_valid(sim_tray_position_label):
+			sim_tray_position_label.text = "%d%%" % roundi(sim_tray_y / 1.20 * 100.0)
+	_refresh_phone_side_buttons()
+
+
 
 func _on_side_button_length_changed(value: float) -> void:
 	side_button_length_scale = clampf(value, 0.55, 1.35)
@@ -2662,14 +2784,17 @@ func _refresh_phone_side_buttons() -> void:
 	var button_root := Node3D.new()
 	button_root.name = "PhoneSideButtons"
 	phone_body.add_child(button_root)
+
+	# Match the keys to the selected body finish, with a darker seam for definition.
 	var frame_material := StandardMaterial3D.new()
-	frame_material.albedo_color = Color("#9da6af")
-	frame_material.metallic = 0.06
-	frame_material.roughness = 0.86
+	frame_material.albedo_color = device_body_color.darkened(0.22)
+	frame_material.metallic = 0.42
+	frame_material.roughness = 0.34
 	var key_material := StandardMaterial3D.new()
-	key_material.albedo_color = Color("#a8b0b9")
-	key_material.metallic = 0.08
-	key_material.roughness = 0.82
+	key_material.albedo_color = device_body_color.lightened(0.07)
+	key_material.metallic = 0.32
+	key_material.roughness = 0.30
+
 	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
 	var key_length := 0.30 * side_button_length_scale
@@ -2677,11 +2802,52 @@ func _refresh_phone_side_buttons() -> void:
 	if power_button_enabled:
 		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, single_key_length, key_radius, frame_material, key_material)
 	if volume_button_enabled:
-		# A real volume rocker is represented by two separate tactile keys.
 		var rocker_gap := 0.018
-		var half_key_length := single_key_length
-		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + half_key_length * 0.52 + rocker_gap, half_key_length, key_radius, frame_material, key_material)
-		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - half_key_length * 0.52 - rocker_gap, half_key_length, key_radius, frame_material, key_material)
+		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + single_key_length * 0.52 + rocker_gap, single_key_length, key_radius, frame_material, key_material)
+		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - single_key_length * 0.52 - rocker_gap, single_key_length, key_radius, frame_material, key_material)
+	if camera_side_button_enabled:
+		_add_phone_side_button(button_root, "QuickCameraSideButton", 1.0, camera_side_button_y, 0.19, key_radius * 0.88, frame_material, key_material)
+	if sound_button_enabled:
+		_add_phone_side_button(button_root, "SoundActionButton", -1.0, volume_button_y + single_key_length + 0.15, 0.105, key_radius * 0.78, frame_material, key_material)
+	if sim_tray_enabled:
+		_add_phone_sim_tray(button_root, -1.0, sim_tray_y, frame_material, key_material)
+
+
+func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, frame_material: Material, key_material: Material) -> void:
+	var edge := PHONE_SIZE.x * 0.5
+	var slot := MeshInstance3D.new()
+	slot.name = "SimTrayOuterSeam"
+	var slot_mesh := BoxMesh.new()
+	slot_mesh.size = Vector3(0.006, 0.205, 0.034)
+	slot.mesh = slot_mesh
+	slot.material_override = frame_material
+	slot.position = Vector3(side_sign * (edge + 0.001), position_y, 0.0)
+	slot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(slot)
+
+	var tray_face := MeshInstance3D.new()
+	tray_face.name = "SimTrayFace"
+	var face_mesh := BoxMesh.new()
+	face_mesh.size = Vector3(0.004, 0.178, 0.021)
+	tray_face.mesh = face_mesh
+	tray_face.material_override = key_material
+	tray_face.position = Vector3(side_sign * (edge + 0.004), position_y, 0.0)
+	tray_face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(tray_face)
+
+	var eject_hole := MeshInstance3D.new()
+	eject_hole.name = "SimTrayEjectPinhole"
+	var hole_mesh := CylinderMesh.new()
+	hole_mesh.top_radius = 0.006
+	hole_mesh.bottom_radius = 0.006
+	hole_mesh.height = 0.003
+	hole_mesh.radial_segments = 20
+	eject_hole.mesh = hole_mesh
+	eject_hole.rotation_degrees.z = 90.0
+	eject_hole.position = Vector3(side_sign * (edge + 0.007), position_y - 0.065, 0.0)
+	eject_hole.material_override = frame_material
+	eject_hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(eject_hole)
 
 
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
