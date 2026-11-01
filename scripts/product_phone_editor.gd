@@ -1510,32 +1510,10 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Early smartphones placed a small lens in the upper display bezel.
 			_add_front_camera_lens(camera_root, Vector3(0.0, top_edge + maxf(bezel_height * 0.24, 0.045), front_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
-			# Rounded upper shoulder with a soft inverted point below the lens.
-			var drop_cap := MeshInstance3D.new()
-			drop_cap.name = "WaterdropNotchUpperCurve"
-			var cap_mesh := SphereMesh.new()
-			cap_mesh.radius = 0.095
-			cap_mesh.height = 0.095
-			cap_mesh.radial_segments = 32
-			cap_mesh.rings = 16
-			drop_cap.mesh = cap_mesh
-			drop_cap.scale = Vector3(1.0, 0.62, 0.035)
-			drop_cap.position = Vector3(0.0, camera_y + 0.012, front_z)
-			drop_cap.material_override = cutout_material
-			camera_root.add_child(drop_cap)
-			var drop_tip := MeshInstance3D.new()
-			drop_tip.name = "WaterdropNotchLowerCurve"
-			var tip_mesh := SphereMesh.new()
-			tip_mesh.radius = 0.060
-			tip_mesh.height = 0.12
-			tip_mesh.radial_segments = 32
-			tip_mesh.rings = 16
-			drop_tip.mesh = tip_mesh
-			drop_tip.scale = Vector3(0.72, 0.78, 0.035)
-			drop_tip.position = Vector3(0.0, camera_y - 0.035, front_z)
-			drop_tip.material_override = cutout_material
-			camera_root.add_child(drop_tip)
-			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y + 0.008, front_z + 0.008), 0.027, cutout_material, lens_material, ring_material)
+			# Restore the original compact oval glass with the selfie camera
+			# sitting just beneath its centre; no oversized teardrop geometry.
+			_add_camera_cutout(camera_root, "WaterdropNotchCutout", Vector2(0.19, 0.105), Vector2(0.0, 0.0), front_z, cutout_material)
+			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y - 0.020, front_z + 0.008), 0.025, cutout_material, lens_material, ring_material)
 		"Punch-Hole":
 			# Single, small circular opening centred on the top safe area.
 			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y, front_z), 0.038, cutout_material, lens_material, ring_material)
