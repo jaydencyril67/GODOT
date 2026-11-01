@@ -936,8 +936,8 @@ func _show_device_color_controls() -> void:
 	active_feature_panel.name = "DeviceColorControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	var compact_color_ui := get_viewport().get_visible_rect().size.y < 820.0 or get_viewport().get_visible_rect().size.x < 900.0
-	active_feature_panel.add_theme_constant_override("separation", 5 if compact_color_ui else 8)
+	var compact_color_ui := get_viewport().get_visible_rect().size.y < 650.0
+	active_feature_panel.add_theme_constant_override("separation", 7 if compact_color_ui else 9)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("DEVICE COLOR", 18, Color("#c7eaff"))
@@ -948,17 +948,17 @@ func _show_device_color_controls() -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
 
-	var spectrum_heading := _make_label("COLOR SPECTRUM", 11, Color("#a9e3ff"))
+	var spectrum_heading := _make_label("COLOR SPECTRUM", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(spectrum_heading)
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spectrum.custom_minimum_size = Vector2(0, clampf(get_viewport().get_visible_rect().size.y * 0.17, 88.0, 126.0))
+	spectrum.custom_minimum_size = Vector2(0, clampf(get_viewport().get_visible_rect().size.y * 0.22, 145.0, 190.0))
 	spectrum.set_color_value(device_body_color)
 	spectrum.color_changed.connect(_on_device_body_color_changed)
 	active_feature_panel.add_child(spectrum)
 
-	var hue_heading := _make_label("HUE", 11, Color("#a9e3ff"))
+	var hue_heading := _make_label("HUE", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(hue_heading)
 	var hue_bar := DeviceHueBar.new()
 	hue_bar.name = "DeviceColorHue"
@@ -974,7 +974,7 @@ func _show_device_color_controls() -> void:
 	active_feature_panel.add_child(selected_row)
 	var selected_swatch := ColorRect.new()
 	selected_swatch.name = "SelectedColorSwatch"
-	selected_swatch.custom_minimum_size = Vector2(34, 26)
+	selected_swatch.custom_minimum_size = Vector2(42, 34)
 	selected_swatch.color = device_body_color
 	selected_row.add_child(selected_swatch)
 	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 14, Color("#e5f6ff"))
@@ -982,7 +982,7 @@ func _show_device_color_controls() -> void:
 	device_color_hex_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	selected_row.add_child(device_color_hex_label)
 
-	var rgb_heading := _make_label("RGB VALUES", 11, Color("#a9e3ff"))
+	var rgb_heading := _make_label("RGB VALUES", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(rgb_heading)
 	var rgb_row := HBoxContainer.new()
 	rgb_row.name = "DeviceColorRGB"
@@ -995,7 +995,7 @@ func _show_device_color_controls() -> void:
 		channel_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		channel_column.add_theme_constant_override("separation", 3)
 		rgb_row.add_child(channel_column)
-		var channel_label := _make_label(channel, 10, Color("#91b8cf"))
+		var channel_label := _make_label(channel, 12, Color("#91b8cf"))
 		channel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		channel_column.add_child(channel_label)
 		var channel_input := SpinBox.new()
@@ -1004,7 +1004,7 @@ func _show_device_color_controls() -> void:
 		channel_input.max_value = 255
 		channel_input.step = 1
 		channel_input.value = roundi(device_body_color.r * 255.0) if channel == "R" else (roundi(device_body_color.g * 255.0) if channel == "G" else roundi(device_body_color.b * 255.0))
-		channel_input.custom_minimum_size = Vector2(0, 30)
+		channel_input.custom_minimum_size = Vector2(0, 40)
 		channel_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		channel_input.add_theme_color_override("font_color", Color("#eaf7ff"))
 		var channel_editor := channel_input.get_line_edit()
@@ -1024,7 +1024,7 @@ func _show_device_color_controls() -> void:
 		channel_column.add_child(channel_input)
 		channel_input.value_changed.connect(_on_device_rgb_channel_changed.bind(channel))
 
-	var hex_heading := _make_label("HEX CODE", 11, Color("#a9e3ff"))
+	var hex_heading := _make_label("HEX CODE", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(hex_heading)
 	var hex_row := HBoxContainer.new()
 	hex_row.name = "CustomHexEntry"
@@ -1037,7 +1037,7 @@ func _show_device_color_controls() -> void:
 	hex_input.text = device_body_color.to_html(false).to_upper()
 	hex_input.max_length = 7
 	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hex_input.custom_minimum_size = Vector2(0, 32)
+	hex_input.custom_minimum_size = Vector2(0, 40)
 	hex_input.clear_button_enabled = true
 	hex_input.add_theme_color_override("font_color", Color("#edf8ff"))
 	hex_input.add_theme_color_override("font_placeholder_color", Color("#7893a5"))
@@ -1059,9 +1059,9 @@ func _show_device_color_controls() -> void:
 	var apply_button := Button.new()
 	apply_button.name = "ApplyDeviceHex"
 	apply_button.text = "APPLY"
-	apply_button.custom_minimum_size = Vector2(64, 32)
+	apply_button.custom_minimum_size = Vector2(68, 40)
 	apply_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(apply_button, 10)
+	_apply_research_typography(apply_button, 12)
 	var apply_normal := StyleBoxFlat.new()
 	apply_normal.bg_color = Color("#17496a")
 	apply_normal.set_corner_radius_all(8)
