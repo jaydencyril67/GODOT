@@ -1235,7 +1235,6 @@ func _show_back_design_controls() -> void:
 	back_design_color_mode = false
 	if not is_instance_valid(right_tools_content): return
 	var viewport_size := get_viewport().get_visible_rect().size
-	var compact := viewport_size.y < 760.0 or viewport_size.x < 900.0
 	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
 	var control_height := 29.0 if tight else (33.0 if compact else 38.0)
 	var slider_height := 26.0 if tight else (32.0 if compact else 38.0)
@@ -1309,7 +1308,7 @@ func _show_back_design_controls() -> void:
 		pad.add_child(center_button)
 	else:
 		var center := _make_label("MOVE", 14, Color("#c7eaff"))
-		center.custom_minimum_size = Vector2(52, 44)
+		center.custom_minimum_size = Vector2(44 if tight else 48, 34 if tight else 40)
 		center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		pad.add_child(center)
@@ -1418,9 +1417,11 @@ func _add_back_design_pad_spacer(parent: GridContainer) -> void:
 	parent.add_child(spacer)
 
 func _add_back_design_pad_button(parent: GridContainer, caption: String, direction: Vector2i) -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size = Vector2(52, 44)
+	button.custom_minimum_size = Vector2(44, 34) if tight else Vector2(48, 40)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(button, 21)
 	_style_staff_button(button, true)
