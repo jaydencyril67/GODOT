@@ -2692,11 +2692,23 @@ func _add_optional_side_feature_row(caption: String, feature: String, enabled: b
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(label)
-	var toggle := CheckBox.new()
-	toggle.name = feature.capitalize() + "ButtonCheckbox"
+	# Reuse the exact custom TextureButton checkbox artwork and sizing used
+	# by the Power and Volume controls for a consistent editor UI.
+	var toggle := TextureButton.new()
+	toggle.name = "Custom" + feature.capitalize() + "ButtonCheckbox"
+	toggle.custom_minimum_size = Vector2(36, 36)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
 	toggle.button_pressed = enabled
 	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.toggled.connect(_on_optional_side_feature_toggled.bind(feature))
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.pressed.connect(_on_optional_side_feature_toggle_pressed.bind(toggle, feature))
 	header.add_child(toggle)
 
 	if with_position:
@@ -2729,6 +2741,10 @@ func _add_optional_side_feature_row(caption: String, feature: String, enabled: b
 			camera_side_button_position_label = value_label
 		else:
 			sim_tray_position_label = value_label
+
+
+func _on_optional_side_feature_toggle_pressed(toggle: TextureButton, feature: String) -> void:
+	_on_optional_side_feature_toggled(toggle.button_pressed, feature)
 
 
 func _on_optional_side_feature_toggled(enabled: bool, feature: String) -> void:
