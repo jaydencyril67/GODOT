@@ -2428,8 +2428,8 @@ func _refresh_phone_home_button() -> void:
 		var home_key := MeshInstance3D.new()
 		home_key.name = "PhysicalNavigationHomeKey"
 		var home_mesh := CylinderMesh.new()
-		home_mesh.top_radius = 0.041
-		home_mesh.bottom_radius = 0.041
+		home_mesh.top_radius = 0.044
+		home_mesh.bottom_radius = 0.044
 		home_mesh.height = 0.003
 		home_mesh.radial_segments = 48
 		home_key.mesh = home_mesh
@@ -2497,14 +2497,14 @@ func _refresh_phone_home_button() -> void:
 	home_mark.name = "FlatHomeButtonMark"
 	if is_circle:
 		var circle_mesh := CylinderMesh.new()
-		circle_mesh.top_radius = 0.068
-		circle_mesh.bottom_radius = 0.068
+		circle_mesh.top_radius = 0.073
+		circle_mesh.bottom_radius = 0.073
 		circle_mesh.height = 0.003
 		circle_mesh.radial_segments = 64
 		home_mark.mesh = circle_mesh
 		home_mark.rotation_degrees.x = 90.0
 	else:
-		home_mark.mesh = _create_rounded_panel_mesh(mark_width - 0.008, mark_height - 0.008, 0.003, maxf(0.004, mark_radius - 0.004))
+		home_mark.mesh = _create_rounded_panel_mesh(mark_width, mark_height, 0.003, mark_radius)
 	home_mark.position = Vector3(0.0, center_y, button_surface_z + 0.013)
 	home_mark.material_override = icon_material
 	home_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
