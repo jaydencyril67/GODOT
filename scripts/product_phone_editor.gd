@@ -218,6 +218,7 @@ var selected_back_design_box := -1
 var next_back_design_box_id := 1
 var back_design_selection_button: Button
 var back_design_selection_popup: PanelContainer
+var back_design_selection_scroll: ScrollContainer
 var back_design_selection_items: VBoxContainer
 var back_design_size_label: Label
 var back_design_border_label: Label
@@ -936,6 +937,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
+	_close_back_design_selection_popup()
 	if feature_name == "Screen Tech":
 		_show_screen_tech_controls()
 	elif feature_name == "Screen Size":
@@ -968,6 +970,7 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 func _show_device_color_controls(return_to_back_design: bool = false) -> void:
+	_close_back_design_selection_popup()
 	back_design_color_mode = return_to_back_design
 	if not is_instance_valid(right_tools_content):
 		return
@@ -1254,6 +1257,12 @@ func _on_device_body_color_changed(color: Color) -> void:
 
 
 func _show_back_design_controls() -> void:
+	_close_back_design_selection_popup()
+	if is_instance_valid(back_design_selection_popup):
+		back_design_selection_popup.queue_free()
+		back_design_selection_popup = null
+		back_design_selection_scroll = null
+		back_design_selection_items = null
 	back_design_color_mode = false
 	if not is_instance_valid(right_tools_content): return
 	var viewport_size := get_viewport().get_visible_rect().size
@@ -1327,9 +1336,21 @@ func _show_back_design_controls() -> void:
 	dropdown_panel_style.content_margin_top = 8
 	dropdown_panel_style.content_margin_bottom = 8
 	back_design_selection_popup.add_theme_stylebox_override("panel", dropdown_panel_style)
+	back_design_selection_scroll = ScrollContainer.new()
+	back_design_selection_scroll.name = "BackDesignDropdownScroll"
+	back_design_selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_design_selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	back_design_selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	back_design_selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var dropdown_scroll_bar := back_design_selection_scroll.get_v_scroll_bar()
+	dropdown_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	dropdown_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	back_design_selection_popup.add_child(back_design_selection_scroll)
 	back_design_selection_items = VBoxContainer.new()
+	back_design_selection_items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_design_selection_items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	back_design_selection_items.add_theme_constant_override("separation", 7)
-	back_design_selection_popup.add_child(back_design_selection_items)
+	back_design_selection_scroll.add_child(back_design_selection_items)
 	# Keep the dropdown outside the VBox layout so it overlays the panel.
 	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
 	if is_instance_valid(editor_root):
@@ -1428,6 +1449,11 @@ func _toggle_back_design_selection_popup() -> void:
 		call_deferred("_position_back_design_selection_popup")
 
 
+func _close_back_design_selection_popup() -> void:
+	if is_instance_valid(back_design_selection_popup):
+		back_design_selection_popup.visible = false
+
+
 func _position_back_design_selection_popup() -> void:
 	if not is_instance_valid(back_design_selection_popup) or not is_instance_valid(back_design_selection_button):
 		return
@@ -1436,15 +1462,33 @@ func _position_back_design_selection_popup() -> void:
 	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
 	if not is_instance_valid(editor_root):
 		return
+
 	var viewport_rect := get_viewport().get_visible_rect()
 	var button_rect := back_design_selection_button.get_global_rect()
-	var content_height := back_design_selection_popup.get_combined_minimum_size().y
-	var popup_height := minf(content_height, viewport_rect.size.y * 0.45)
-	var popup_width := button_rect.size.x
+	var side_gap := 6.0
+	var viewport_padding := 6.0
+	var popup_width := minf(button_rect.size.x, viewport_rect.size.x - viewport_padding * 2.0)
+	var content_height := back_design_selection_items.get_combined_minimum_size().y + 20.0 if is_instance_valid(back_design_selection_items) else 64.0
+	var desired_height := minf(maxf(content_height, 64.0), viewport_rect.size.y * 0.45)
+
+	# Keep the popup attached to its selector. Open below when it fits; otherwise
+	# open above. If neither side has enough room, use the side with more space
+	# and let the ScrollContainer handle the remaining options.
+	var available_above := maxf(0.0, button_rect.position.y - viewport_rect.position.y - side_gap - viewport_padding)
+	var button_bottom := button_rect.position.y + button_rect.size.y
+	var available_below := maxf(0.0, viewport_rect.end.y - button_bottom - side_gap - viewport_padding)
+	var open_below := available_below >= desired_height or available_below >= available_above
+	var available_height := available_below if open_below else available_above
+	var popup_height := minf(desired_height, available_height)
+	if popup_height <= 0.0:
+		back_design_selection_popup.visible = false
+		return
+
 	back_design_selection_popup.size = Vector2(popup_width, popup_height)
-	var popup_global_position := Vector2(button_rect.position.x, button_rect.position.y - popup_height - 6.0)
-	popup_global_position.x = clampf(popup_global_position.x, viewport_rect.position.x + 6.0, viewport_rect.end.x - popup_width - 6.0)
-	popup_global_position.y = maxf(viewport_rect.position.y + 6.0, popup_global_position.y)
+	var popup_y := button_bottom + side_gap if open_below else button_rect.position.y - popup_height - side_gap
+	var max_popup_x := viewport_rect.end.x - popup_width - viewport_padding
+	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + viewport_padding, max_popup_x)
+	var popup_global_position := Vector2(popup_x, popup_y)
 	back_design_selection_popup.position = editor_root.to_local(popup_global_position)
 
 
