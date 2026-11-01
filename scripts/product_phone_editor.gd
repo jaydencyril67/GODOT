@@ -744,8 +744,8 @@ func _get_preview_viewport() -> SubViewport:
 
 func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	var button := Button.new()
-	button.text = "SCREEN WIDTH\nWAITING" if feature_name == "Screen Width" else feature_name
-	button.tooltip_text = "Screen width adjustment — waiting" if feature_name == "Screen Width" else feature_name
+	button.text = feature_name
+	button.tooltip_text = feature_name
 	button.mouse_filter = Control.MOUSE_FILTER_PASS
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 64)
