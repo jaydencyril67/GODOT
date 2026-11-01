@@ -943,8 +943,8 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		var a: Vector2 = outline[indices[index]]
 		var b: Vector2 = outline[indices[index + 1]]
 		var c: Vector2 = outline[indices[index + 2]]
-		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, front_z), Vector3(b.x, b.y, front_z), Vector3(c.x, c.y, front_z), Vector3.FORWARD)
-		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, back_z), Vector3(c.x, c.y, back_z), Vector3(b.x, b.y, back_z), Vector3.BACK)
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, front_z), Vector3(b.x, b.y, front_z), Vector3(c.x, c.y, front_z), Vector3.BACK)
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, back_z), Vector3(c.x, c.y, back_z), Vector3(b.x, b.y, back_z), Vector3.FORWARD)
 	for index in range(outline.size()):
 		var next_index := (index + 1) % outline.size()
 		var a: Vector2 = outline[index]
@@ -972,7 +972,6 @@ func _refresh_phone_screen() -> void:
 
 	var display := MeshInstance3D.new()
 	display.name = "PhoneDisplayPanel"
-	var has_external_home_button := home_button_type != "On-screen"
 	# Keep a consistent, slimmer lower rail for physical keys and give the
 	# top rail the exact same height. The glass is inset evenly on all sides.
 	var screen_width := PHONE_SIZE.x - 0.08
