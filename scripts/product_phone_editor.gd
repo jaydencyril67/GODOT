@@ -958,9 +958,10 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "DeviceColorControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	var compact_color_ui := get_viewport().get_visible_rect().size.y < 650.0
-	active_feature_panel.add_theme_constant_override("separation", 7 if compact_color_ui else 9)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if return_to_back_design else Control.SIZE_SHRINK_BEGIN
+	var color_viewport_size := get_viewport().get_visible_rect().size
+	var compact_color_ui := color_viewport_size.y < 760.0 or color_viewport_size.x < 900.0
+	active_feature_panel.add_theme_constant_override("separation", 6 if compact_color_ui else 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	if return_to_back_design:
@@ -1006,7 +1007,8 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spectrum.custom_minimum_size = Vector2(0, clampf(get_viewport().get_visible_rect().size.y * 0.22, 145.0, 190.0) * 1.5)
+	var spectrum_height := clampf(color_viewport_size.y * 0.18, 120.0, 165.0) if return_to_back_design else clampf(color_viewport_size.y * 0.22, 145.0, 190.0) * 1.5
+	spectrum.custom_minimum_size = Vector2(0, spectrum_height)
 	spectrum.set_color_value(_get_active_color_picker_color())
 	spectrum.color_changed.connect(_on_device_body_color_changed)
 	active_feature_panel.add_child(spectrum)
@@ -1128,6 +1130,8 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	hex_row.add_child(apply_button)
 	apply_button.pressed.connect(_on_device_color_hex_submitted.bind(hex_input))
 	hex_input.text_submitted.connect(_on_device_color_hex_text_submitted)
+	if return_to_back_design:
+		_add_back_design_flexible_space(active_feature_panel)
 
 
 func _get_active_color_picker_color() -> Color:
@@ -1164,7 +1168,7 @@ func _on_device_color_hue_changed(hue: float) -> void:
 
 
 func _on_device_rgb_channel_changed(value: float, channel: String) -> void:
-	var updated := device_body_color
+	var updated := _get_active_color_picker_color()
 	if channel == "R":
 		updated.r = value / 255.0
 	elif channel == "G":
@@ -1226,7 +1230,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 				channel_input.set_value_no_signal(roundi(channel_value * 255.0))
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
-			hex_input.text = device_body_color.to_html(false).to_upper()
+			hex_input.text = _get_active_color_picker_color().to_html(false).to_upper()
 	_refresh_back_design_boxes()
 	_refresh_phone_side_buttons()
 
@@ -1320,7 +1324,7 @@ func _show_back_design_controls() -> void:
 	if back_design_mode == "SIZE":
 		var center_button := Button.new()
 		center_button.text = back_design_size_action
-		center_button.custom_minimum_size = Vector2(48 if tight else 52, 38 if tight else 44)
+		center_button.custom_minimum_size = Vector2(44, 38) if tight else (Vector2(48, 42) if compact else Vector2(54, 46))
 		center_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		_apply_research_typography(center_button, 12 if tight else 13)
 		_style_staff_button(center_button, back_design_size_action == "EXPAND")
@@ -1328,7 +1332,7 @@ func _show_back_design_controls() -> void:
 		pad.add_child(center_button)
 	else:
 		var center := _make_label("MOVE", 13 if tight else 14, Color("#c7eaff"))
-		center.custom_minimum_size = Vector2(48 if tight else 52, 38 if tight else 44)
+		center.custom_minimum_size = Vector2(44, 38) if tight else (Vector2(48, 42) if compact else Vector2(54, 46))
 		center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		pad.add_child(center)
