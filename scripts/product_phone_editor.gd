@@ -14,7 +14,7 @@ var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
 var front_camera_style := "Punch-Hole"
-const FRONT_CAMERA_STYLES := ["Bezel Camera", "Wide Notch", "Waterdrop Notch", "Punch-Hole", "Dual Punch-Hole", "Dynamic Island", "Under-Display Camera"]
+const FRONT_CAMERA_STYLES := ["Bezel Camera", "Wide Notch", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole (Left)", "Side Punch-Hole (Right)", "Dual Side Punch-Hole (Left)", "Dual Side Punch-Hole (Right)", "Dual Punch-Hole", "Dynamic Island", "Under-Display Camera"]
 var front_camera_option_buttons: Dictionary = {}
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
@@ -1531,8 +1531,33 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 		"Punch-Hole":
 			# Single, small circular opening centred on the top safe area.
 			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y, front_z), 0.038, cutout_material, lens_material, ring_material)
+		"Side Punch-Hole (Left)":
+			# Single camera near the upper-left corner, as used by side-aligned
+			# selfie cutouts on several all-screen phone designs.
+			var side_inset := minf(0.095, screen_width * 0.10)
+			var left_x := -screen_width * 0.5 + side_inset
+			_add_front_camera_lens(camera_root, Vector3(left_x, camera_y, front_z), 0.037, cutout_material, lens_material, ring_material)
+		"Side Punch-Hole (Right)":
+			# Mirrored upper-right placement.
+			var side_inset := minf(0.095, screen_width * 0.10)
+			var right_x := screen_width * 0.5 - side_inset
+			_add_front_camera_lens(camera_root, Vector3(right_x, camera_y, front_z), 0.037, cutout_material, lens_material, ring_material)
+		"Dual Side Punch-Hole (Left)":
+			# Two adjacent lenses grouped near the upper-left screen edge.
+			var dual_side_inset := minf(0.105, screen_width * 0.11)
+			var dual_left_x := -screen_width * 0.5 + dual_side_inset
+			var dual_side_spacing := 0.050
+			_add_front_camera_lens(camera_root, Vector3(dual_left_x - dual_side_spacing * 0.5, camera_y, front_z), 0.027, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(dual_left_x + dual_side_spacing * 0.5, camera_y, front_z), 0.027, cutout_material, lens_material, ring_material)
+		"Dual Side Punch-Hole (Right)":
+			# Mirrored dual-lens group near the upper-right screen edge.
+			var dual_side_inset := minf(0.105, screen_width * 0.11)
+			var dual_right_x := screen_width * 0.5 - dual_side_inset
+			var dual_side_spacing := 0.050
+			_add_front_camera_lens(camera_root, Vector3(dual_right_x - dual_side_spacing * 0.5, camera_y, front_z), 0.027, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(dual_right_x + dual_side_spacing * 0.5, camera_y, front_z), 0.027, cutout_material, lens_material, ring_material)
 		"Dual Punch-Hole":
-			# Two distinct, evenly spaced circular openings for dual selfie optics.
+			# Two distinct, evenly spaced circular openings centred at the top.
 			var dual_spacing := 0.052
 			_add_front_camera_lens(camera_root, Vector3(-dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
 			_add_front_camera_lens(camera_root, Vector3(dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
