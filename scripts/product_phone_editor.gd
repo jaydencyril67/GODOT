@@ -3052,17 +3052,16 @@ func _refresh_rear_hardware_visuals() -> void:
 		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
 		var support_z := _rear_hardware_support_surface_z(module_position, module_size)
-		var is_selected := rear_hardware_mode == "CAMERA" and camera_index == rear_camera_selected_index
-		# Samsung Galaxy-inspired dark camera stack: graphite housing,
-		# near-black polished lens glass and restrained cool reflections.
+		# One permanent Samsung Galaxy-inspired rear-camera appearance.
+		# Selection, movement, resizing and refreshes must never swap its style.
 		var housing_material := StandardMaterial3D.new()
-		housing_material.albedo_color = Color("#080b10")
-		housing_material.metallic = 0.84
-		housing_material.roughness = 0.22
+		housing_material.albedo_color = Color("#05070a")
+		housing_material.metallic = 0.88
+		housing_material.roughness = 0.20
 		var ring_material := StandardMaterial3D.new()
-		ring_material.albedo_color = Color("#65caff") if is_selected else Color("#252c35")
-		ring_material.metallic = 0.92
-		ring_material.roughness = 0.17
+		ring_material.albedo_color = Color("#171d25")
+		ring_material.metallic = 0.94
+		ring_material.roughness = 0.14
 		var lens_material := StandardMaterial3D.new()
 		lens_material.albedo_color = Color("#03070d")
 		lens_material.metallic = 0.62
