@@ -179,22 +179,12 @@ func _build_editor_ui() -> void:
 	right_tools_panel.custom_minimum_size.x = 190.0 if compact_layout else 245.0
 	right_tools_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_child(right_tools_panel)
-	var right_tools_scroll := ScrollContainer.new()
-	right_tools_scroll.name = "PhoneEditorRightToolsScroll"
-	right_tools_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	right_tools_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	var right_scroll_bar := right_tools_scroll.get_v_scroll_bar()
-	right_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	right_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	right_tools_panel.add_child(right_tools_scroll)
 	right_tools_content = VBoxContainer.new()
 	right_tools_content.name = "PhoneEditorRightToolsContent"
 	right_tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_tools_content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	right_tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right_tools_content.add_theme_constant_override("separation", 14)
-	right_tools_scroll.add_child(right_tools_content)
+	right_tools_panel.add_child(right_tools_content)
 	var initial_hint := _make_label("SELECT A FEATURE", 18, Color("#c7eaff"))
 	initial_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	initial_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -760,15 +750,15 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Type", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons"]:
+	if feature_name in ["Screen Tech", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
 
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
-	if feature_name == "Screen Type":
-		_show_screen_type_controls()
+	if feature_name == "Screen Tech":
+		_show_screen_tech_controls()
 	elif feature_name == "Border Radius":
 		_show_border_radius_controls()
 	elif feature_name == "Thickness":
@@ -782,17 +772,17 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 
-func _show_screen_type_controls() -> void:
+func _show_screen_tech_controls() -> void:
 	if is_instance_valid(active_feature_panel):
 		active_feature_panel.queue_free()
 	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "ScreenTypeControls"
+	active_feature_panel.name = "ScreenTechControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("SCREEN DISPLAY", 18, Color("#c7eaff"))
+	var title := _make_label("SCREEN TECHNOLOGY", 18, Color("#c7eaff"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
@@ -800,32 +790,50 @@ func _show_screen_type_controls() -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
 
-	screen_enable_checkbox = CheckBox.new()
-	screen_enable_checkbox.name = "ScreenEnablement"
-	screen_enable_checkbox.text = "Screen Enablement"
-	screen_enable_checkbox.button_pressed = screen_enabled
-	screen_enable_checkbox.add_theme_font_size_override("font_size", 15)
-	screen_enable_checkbox.add_theme_color_override("font_color", Color.WHITE)
-	screen_enable_checkbox.toggled.connect(_on_screen_enablement_toggled)
-	active_feature_panel.add_child(screen_enable_checkbox)
+	# Custom checkbox: a compact toggle square beside its label, styled to
+	# match the editor rather than using Godot's default CheckBox artwork.
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "ScreenEnablementRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_child(enable_row)
+
+	var enable_toggle := Button.new()
+	enable_toggle.name = "ScreenEnablement"
+	enable_toggle.toggle_mode = true
+	enable_toggle.button_pressed = screen_enabled
+	enable_toggle.text = "✓" if screen_enabled else ""
+	enable_toggle.custom_minimum_size = Vector2(30, 30)
+	enable_toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	enable_toggle.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(enable_toggle, 17)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var toggle_style := StyleBoxFlat.new()
+		toggle_style.bg_color = Color("#17415b") if state != "hover" else Color("#205a78")
+		if state == "pressed" or state == "focus":
+			toggle_style.bg_color = Color("#147eaa")
+		toggle_style.border_color = Color("#8fd8ff")
+		toggle_style.set_border_width_all(2)
+		toggle_style.set_corner_radius_all(7)
+		enable_toggle.add_theme_stylebox_override(state, toggle_style)
+	enable_toggle.add_theme_color_override("font_color", Color.WHITE)
+	enable_toggle.toggled.connect(_on_screen_enablement_toggled)
+	enable_row.add_child(enable_toggle)
+
+	var enable_label := _make_label("Screen Enablement", 14, Color.WHITE)
+	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	enable_row.add_child(enable_label)
 
 	var type_title := _make_label("AVAILABLE SCREEN TYPES", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(type_title)
 
-	var type_scroll := ScrollContainer.new()
-	type_scroll.name = "ScreenTypeOptionsScroll"
-	type_scroll.custom_minimum_size.y = 230.0
-	type_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	type_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	type_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	active_feature_panel.add_child(type_scroll)
-
-	var type_list := VBoxContainer.new()
-	type_list.name = "ScreenTypeOptions"
-	type_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_list.add_theme_constant_override("separation", 7)
-	type_scroll.add_child(type_list)
+	var type_grid := GridContainer.new()
+	type_grid.name = "ScreenTypeOptions"
+	type_grid.columns = 2
+	type_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_grid.add_theme_constant_override("h_separation", 7)
+	type_grid.add_theme_constant_override("v_separation", 7)
+	active_feature_panel.add_child(type_grid)
 
 	screen_type_buttons.clear()
 	var screen_types := [
@@ -844,20 +852,22 @@ func _show_screen_type_controls() -> void:
 		var option := Button.new()
 		option.name = "ScreenType_" + type_name.replace(" ", "").replace("-", "")
 		option.text = type_name
-		option.custom_minimum_size.y = 42.0
+		option.custom_minimum_size = Vector2(0, 42.0)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(option, 13)
+		_apply_research_typography(option, 12)
 		_style_staff_button(option, type_name == selected_screen_type)
 		option.pressed.connect(_on_screen_type_selected.bind(type_name))
-		type_list.add_child(option)
+		type_grid.add_child(option)
 		screen_type_buttons[type_name] = option
 	_refresh_screen_type_buttons()
-
 
 func _on_screen_enablement_toggled(enabled: bool) -> void:
 	screen_enabled = enabled
 	_refresh_phone_screen()
+	var toggle := active_feature_panel.get_node_or_null("ScreenEnablementRow/ScreenEnablement") if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(toggle):
+		toggle.text = "✓" if enabled else ""
 	_refresh_screen_type_buttons()
 
 
