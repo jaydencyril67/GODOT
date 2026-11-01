@@ -802,41 +802,80 @@ func _show_screen_size_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var explanation := _make_label("Adjust the screen size. The display updates automatically.", 12, Color("#d8eaf5"))
+	var explanation := _make_label("Adjust the display width and height independently.", 12, Color("#d8eaf5"))
 	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(explanation)
 
-	var meter_column := VBoxContainer.new()
-	meter_column.name = "ScreenSizeColumn"
-	meter_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	meter_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter_column.alignment = BoxContainer.ALIGNMENT_CENTER
-	meter_column.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(meter_column)
+	var sliders_row := HBoxContainer.new()
+	sliders_row.name = "ScreenSizeSliders"
+	sliders_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sliders_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sliders_row.add_theme_constant_override("separation", 8)
+	active_feature_panel.add_child(sliders_row)
 
-	var size_heading := _make_label("SCREEN SIZE", 13, Color.WHITE)
-	size_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	meter_column.add_child(size_heading)
-	bezel_height_value_label = _make_label("", 12, Color("#b9eaff"))
+	var width_column := VBoxContainer.new()
+	width_column.name = "ScreenWidthColumn"
+	width_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	width_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	width_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	width_column.add_theme_constant_override("separation", 6)
+	sliders_row.add_child(width_column)
+
+	var width_heading := _make_label("WIDTH", 13, Color.WHITE)
+	width_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	width_column.add_child(width_heading)
+
+	bezel_width_value_label = _make_label("", 11, Color("#d8eaf5"))
+	bezel_width_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	width_column.add_child(bezel_width_value_label)
+
+	var width_slider := VSlider.new()
+	width_slider.name = "ScreenWidthSlider"
+	width_slider.min_value = 0.02
+	width_slider.max_value = 0.15
+	width_slider.step = 0.001
+	width_slider.value = clampf(bezel_width, 0.02, 0.15)
+	width_slider.tick_count = 14
+	width_slider.custom_minimum_size = Vector2(64, 250)
+	width_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	width_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	width_slider.value_changed.connect(_on_bezel_width_changed)
+	_style_feature_slider(width_slider)
+	width_column.add_child(width_slider)
+
+	var height_column := VBoxContainer.new()
+	height_column.name = "ScreenHeightColumn"
+	height_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	height_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	height_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	height_column.add_theme_constant_override("separation", 6)
+	sliders_row.add_child(height_column)
+
+	var height_heading := _make_label("HEIGHT", 13, Color.WHITE)
+	height_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	height_column.add_child(height_heading)
+
+	bezel_height_value_label = _make_label("", 11, Color("#d8eaf5"))
 	bezel_height_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	meter_column.add_child(bezel_height_value_label)
+	height_column.add_child(bezel_height_value_label)
 
-	var size_meter := VSlider.new()
-	size_meter.name = "ScreenSizeSlider"
-	size_meter.min_value = 0.02
-	size_meter.max_value = 0.325
-	size_meter.step = 0.001
-	size_meter.value = clampf(bezel_height, 0.02, 0.325)
-	size_meter.tick_count = 14
-	size_meter.custom_minimum_size = Vector2(76, 250)
-	size_meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	size_meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	size_meter.value_changed.connect(_on_bezel_height_changed)
-	_style_feature_slider(size_meter)
-	meter_column.add_child(size_meter)
+	var height_slider := VSlider.new()
+	height_slider.name = "ScreenHeightSlider"
+	height_slider.min_value = 0.02
+	height_slider.max_value = 0.325
+	height_slider.step = 0.001
+	height_slider.value = clampf(bezel_height, 0.02, 0.325)
+	height_slider.tick_count = 14
+	height_slider.custom_minimum_size = Vector2(64, 250)
+	height_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	height_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	height_slider.value_changed.connect(_on_bezel_height_changed)
+	_style_feature_slider(height_slider)
+	height_column.add_child(height_slider)
 
-	bezel_height = size_meter.value
+	bezel_width = width_slider.value
+	bezel_height = height_slider.value
 	_update_bezel_value_labels()
 
 
@@ -856,9 +895,9 @@ func _update_bezel_value_labels() -> void:
 	# PHONE_SIZE maps to an approximately 75 mm-wide handset.
 	const MODEL_UNITS_TO_MM := 75.0 / 1.45
 	if is_instance_valid(bezel_width_value_label):
-		bezel_width_value_label.text = "Screen width setting: %.1f mm" % (bezel_width * MODEL_UNITS_TO_MM)
+		bezel_width_value_label.text = "%.1f mm" % ((PHONE_SIZE.x - bezel_width * 2.0) * MODEL_UNITS_TO_MM)
 	if is_instance_valid(bezel_height_value_label):
-		bezel_height_value_label.text = "Screen inset: %.1f mm" % (bezel_height * MODEL_UNITS_TO_MM)
+		bezel_height_value_label.text = "%.1f mm" % ((PHONE_SIZE.y - bezel_height * 2.0) * MODEL_UNITS_TO_MM)
 
 
 func _show_screen_tech_controls() -> void:
