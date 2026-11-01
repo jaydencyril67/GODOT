@@ -973,11 +973,6 @@ func _show_device_color_controls() -> void:
 	selected_swatch.name = "SelectedColorSwatch"
 	selected_swatch.custom_minimum_size = Vector2(42, 32)
 	selected_swatch.color = device_body_color
-	var swatch_style := StyleBoxFlat.new()
-	swatch_style.set_corner_radius_all(7)
-	swatch_style.set_border_width_all(1)
-	swatch_style.border_color = Color("#8abbd5")
-	selected_swatch.add_theme_stylebox_override("panel", swatch_style)
 	selected_row.add_child(selected_swatch)
 	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 14, Color("#e5f6ff"))
 	device_color_hex_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -993,6 +988,7 @@ func _show_device_color_controls() -> void:
 	active_feature_panel.add_child(rgb_row)
 	for channel in ["R", "G", "B"]:
 		var channel_column := VBoxContainer.new()
+		channel_column.name = channel + "Column"
 		channel_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		channel_column.add_theme_constant_override("separation", 3)
 		rgb_row.add_child(channel_column)
@@ -1121,8 +1117,10 @@ func _on_device_body_color_changed(color: Color) -> void:
 		if is_instance_valid(hue_bar):
 			hue_bar.set_hue(device_body_color.h)
 		for channel in ["R", "G", "B"]:
-			var channel_input := active_feature_panel.get_node_or_null("DeviceColorRGB/".join(["", ""])) as SpinBox
-			channel_input = active_feature_panel.get_node_or_null("DeviceColorRGB/" + "VBoxContainer/DeviceColor" + channel) as SpinBox if false else null
+			var channel_input := active_feature_panel.get_node_or_null("DeviceColorRGB/" + channel + "Column/DeviceColor" + channel) as SpinBox
+			if is_instance_valid(channel_input):
+				var channel_value := device_body_color.r if channel == "R" else (device_body_color.g if channel == "G" else device_body_color.b)
+				channel_input.set_value_no_signal(roundi(channel_value * 255.0))
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = device_body_color.to_html(false).to_upper()
