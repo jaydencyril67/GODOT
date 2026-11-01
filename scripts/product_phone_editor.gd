@@ -1745,10 +1745,10 @@ func _refresh_phone_side_buttons() -> void:
 
 func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
 	# Keep the recess below the frame surface and give the actual key a
-	# clearly visible, subtle 1.5 mm stand-off. The previous 0.5 mm projection
+	# clearly visible, subtle 1.2 mm stand-off. The previous 0.5 mm projection
 	# was too shallow to read in the 3D preview, making the buttons look flush.
 	var unit_per_mm := PHONE_SIZE.y / 150.0
-	var button_depth := (1.5 * unit_per_mm) / 0.95
+	var button_depth := (1.2 * unit_per_mm) / 0.95
 	var button_width := maxf(radius * 1.35, 0.024)
 	var side_edge := PHONE_SIZE.x * 0.5
 
