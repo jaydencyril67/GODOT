@@ -885,6 +885,22 @@ func _show_device_color_controls() -> void:
 	hex_input.custom_minimum_size = Vector2(0, 40)
 	hex_input.clear_button_enabled = true
 	hex_input.focus_mode = Control.FOCUS_ALL
+	hex_input.add_theme_color_override("font_color", Color("#edf8ff"))
+	hex_input.add_theme_color_override("font_placeholder_color", Color("#7893a5"))
+	hex_input.add_theme_color_override("caret_color", Color("#75d5ff"))
+	var hex_normal := StyleBoxFlat.new()
+	hex_normal.bg_color = Color("#101d29")
+	hex_normal.set_corner_radius_all(8)
+	hex_normal.set_border_width_all(1)
+	hex_normal.border_color = Color("#31516a")
+	hex_normal.content_margin_left = 10.0
+	hex_normal.content_margin_right = 10.0
+	var hex_focus := hex_normal.duplicate() as StyleBoxFlat
+	hex_focus.border_color = Color("#64caff")
+	hex_focus.set_border_width_all(2)
+	hex_input.add_theme_stylebox_override("normal", hex_normal)
+	hex_input.add_theme_stylebox_override("focus", hex_focus)
+	hex_input.add_theme_stylebox_override("read_only", hex_normal)
 	hex_row.add_child(hex_input)
 
 	var apply_button := Button.new()
@@ -893,6 +909,20 @@ func _show_device_color_controls() -> void:
 	apply_button.custom_minimum_size = Vector2(76, 40)
 	apply_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(apply_button, 11)
+	var apply_normal := StyleBoxFlat.new()
+	apply_normal.bg_color = Color("#17496a")
+	apply_normal.set_corner_radius_all(8)
+	apply_normal.set_border_width_all(1)
+	apply_normal.border_color = Color("#4da9d8")
+	var apply_hover := apply_normal.duplicate() as StyleBoxFlat
+	apply_hover.bg_color = Color("#20658e")
+	var apply_pressed := apply_normal.duplicate() as StyleBoxFlat
+	apply_pressed.bg_color = Color("#10334d")
+	apply_button.add_theme_stylebox_override("normal", apply_normal)
+	apply_button.add_theme_stylebox_override("hover", apply_hover)
+	apply_button.add_theme_stylebox_override("pressed", apply_pressed)
+	apply_button.add_theme_color_override("font_color", Color("#effaff"))
+	apply_button.add_theme_color_override("font_hover_color", Color.WHITE)
 	hex_row.add_child(apply_button)
 	apply_button.pressed.connect(_on_device_color_hex_submitted.bind(hex_input))
 	hex_input.text_submitted.connect(_on_device_color_hex_text_submitted)
