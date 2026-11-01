@@ -2847,15 +2847,15 @@ func _get_rear_hardware_default_size() -> float:
 
 func _add_rear_hardware_module() -> void:
 	var module_size := _get_rear_hardware_default_size()
-	var position := _find_rear_hardware_spawn_position(rear_hardware_mode, module_size)
-	if position.x > 900.0:
+	var spawn_position := _find_rear_hardware_spawn_position(rear_hardware_mode, module_size)
+	if spawn_position.x > 900.0:
 		return
 	if rear_hardware_mode == "FLASH":
-		rear_flash_modules.append({"id": next_rear_flash_id, "position": position, "size": module_size})
+		rear_flash_modules.append({"id": next_rear_flash_id, "position": spawn_position, "size": module_size})
 		rear_flash_selected_index = rear_flash_modules.size() - 1
 		next_rear_flash_id += 1
 	else:
-		rear_camera_modules.append({"id": next_rear_camera_id, "position": position, "size": module_size})
+		rear_camera_modules.append({"id": next_rear_camera_id, "position": spawn_position, "size": module_size})
 		rear_camera_selected_index = rear_camera_modules.size() - 1
 		next_rear_camera_id += 1
 	_refresh_rear_hardware_visuals()
@@ -2899,13 +2899,13 @@ func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vec
 	return Vector2(1000.0, 1000.0)
 
 
-func _rear_module_position_is_free(position: Vector2, module_size: float, kind: String, ignore_index: int) -> bool:
+func _rear_module_position_is_free(candidate_position: Vector2, module_size: float, kind: String, ignore_index: int) -> bool:
 	var extent := module_size * 1.22
-	if absf(position.x) + extent > PHONE_SIZE.x * 0.5 - 0.025:
+	if absf(candidate_position.x) + extent > PHONE_SIZE.x * 0.5 - 0.025:
 		return false
-	if absf(position.y) + extent > PHONE_SIZE.y * 0.5 - 0.025:
+	if absf(candidate_position.y) + extent > PHONE_SIZE.y * 0.5 - 0.025:
 		return false
-	if not _back_design_position_is_free(position, Vector2(extent * 2.0, extent * 2.0), -1):
+	if not _back_design_position_is_free(candidate_position, Vector2(extent * 2.0, extent * 2.0), -1):
 		return false
 	for index in range(rear_camera_modules.size()):
 		if kind == "CAMERA" and index == ignore_index:
@@ -2913,7 +2913,7 @@ func _rear_module_position_is_free(position: Vector2, module_size: float, kind: 
 		var other: Dictionary = rear_camera_modules[index]
 		var other_position: Vector2 = other["position"]
 		var other_size := float(other["size"])
-		if position.distance_to(other_position) < (module_size + other_size) * 1.18 + 0.025:
+		if candidate_position.distance_to(other_position) < (module_size + other_size) * 1.18 + 0.025:
 			return false
 	for index in range(rear_flash_modules.size()):
 		if kind == "FLASH" and index == ignore_index:
