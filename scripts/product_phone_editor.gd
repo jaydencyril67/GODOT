@@ -2063,7 +2063,7 @@ func _refresh_phone_home_button() -> void:
 	button_root.name = "PhoneHomeButton"
 	phone_body.add_child(button_root)
 	# Keep the home marking close to the handset's bottom edge.
-	var center_y := -PHONE_SIZE.y * 0.5 + 0.09
+	var center_y := -PHONE_SIZE.y * 0.5 + 0.11
 	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var body_front_z := current_depth * 0.5
 	var button_surface_z := body_front_z + 0.0008
