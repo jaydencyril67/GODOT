@@ -11,10 +11,11 @@ const DRAG_SENSITIVITY := 0.0024
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
 var home_button_type := "Circle Home Button"
+var home_button_enabled := false
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
 var screen_enabled := false
-var selected_screen_type := "AMOLED"
+var selected_screen_type := "TFT LCD"
 var screen_enable_checkbox: CheckBox
 var screen_type_buttons: Dictionary = {}
 const SCREEN_TYPE_ORDER := ["TFT LCD", "LED-LCD", "IPS LCD", "Mini-LED LCD", "OLED", "AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"]
@@ -974,7 +975,7 @@ func _refresh_phone_screen() -> void:
 	display.name = "PhoneDisplayPanel"
 	# Keep a consistent, slimmer lower rail for physical keys and give the
 	# top rail the exact same height. The glass is inset evenly on all sides.
-	var screen_width := PHONE_SIZE.x - 0.08
+	var screen_width := PHONE_SIZE.x - 0.20
 	var screen_height := PHONE_SIZE.y - 0.40
 	var screen_radius := maxf(0.018, 0.32 * float(border_radius_level) / 6.0 - 0.04)
 	display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
@@ -1024,7 +1025,7 @@ func _refresh_phone_screen() -> void:
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
-	if home_button_type == "On-screen":
+	if home_button_enabled and home_button_type == "On-screen":
 		# Keep the on-screen navigation control generic; OS-specific styles
 		# are intentionally reserved for the later operating-system system.
 		var home_indicator := MeshInstance3D.new()
@@ -1249,6 +1250,37 @@ func _show_home_button_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "HomeButtonEnablementRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_child(enable_row)
+
+	var enable_toggle := Button.new()
+	enable_toggle.name = "HomeButtonEnablement"
+	enable_toggle.toggle_mode = true
+	enable_toggle.button_pressed = home_button_enabled
+	enable_toggle.text = "✓" if home_button_enabled else ""
+	enable_toggle.custom_minimum_size = Vector2(30, 30)
+	enable_toggle.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(enable_toggle, 17)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var toggle_style := StyleBoxFlat.new()
+		toggle_style.bg_color = Color("#17415b") if state != "hover" else Color("#205a78")
+		if state == "pressed" or state == "focus":
+			toggle_style.bg_color = Color("#147eaa")
+		toggle_style.border_color = Color("#8fd8ff")
+		toggle_style.set_border_width_all(2)
+		toggle_style.set_corner_radius_all(7)
+		enable_toggle.add_theme_stylebox_override(state, toggle_style)
+	enable_toggle.add_theme_color_override("font_color", Color.WHITE)
+	enable_toggle.toggled.connect(_on_home_button_enablement_toggled)
+	enable_row.add_child(enable_toggle)
+
+	var enable_label := _make_label("Home Button Enablement", 14, Color.WHITE)
+	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	enable_row.add_child(enable_label)
+
 	var type_grid := GridContainer.new()
 	type_grid.name = "HomeButtonTypes"
 	type_grid.columns = 1
@@ -1268,13 +1300,28 @@ func _show_home_button_controls() -> void:
 		_apply_research_typography(option, 13)
 		_style_screen_type_option(option, mini(index, 9), type_name == home_button_type)
 		option.pressed.connect(_on_home_button_type_selected.bind(type_name))
+		option.disabled = not home_button_enabled
 		type_grid.add_child(option)
 		home_button_option_buttons[type_name] = option
+
+
+func _on_home_button_enablement_toggled(enabled: bool) -> void:
+	home_button_enabled = enabled
+	_refresh_phone_home_button()
+	if home_button_type == "On-screen":
+		_refresh_phone_screen()
+	var toggle := active_feature_panel.get_node_or_null("HomeButtonEnablementRow/HomeButtonEnablement") if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(toggle):
+		toggle.text = "✓" if enabled else ""
+	for option_name in home_button_option_buttons:
+		var option: Button = home_button_option_buttons[option_name]
+		option.disabled = not enabled
 
 
 func _on_home_button_type_selected(type_name: String) -> void:
 	home_button_type = type_name
 	_refresh_phone_home_button()
+	_refresh_phone_screen()
 	for option_name in home_button_option_buttons:
 		var option: Button = home_button_option_buttons[option_name]
 		_style_screen_type_option(option, mini(HOME_BUTTON_TYPES.find(option_name), 9), option_name == home_button_type)
@@ -1286,6 +1333,9 @@ func _refresh_phone_home_button() -> void:
 	var previous := phone_body.get_node_or_null("PhoneHomeButton")
 	if is_instance_valid(previous):
 		previous.free()
+	# Home controls are absent until the user explicitly enables them.
+	if not home_button_enabled:
+		return
 	# On-screen is the only software-rendered option. The physical navigation
 	# layout below is built directly on the lower hardware bezel.
 	if home_button_type == "On-screen":
