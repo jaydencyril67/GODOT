@@ -202,7 +202,9 @@ var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
 var next_back_design_box_id := 1
-var back_design_selection_list: OptionButton
+var back_design_selection_button: Button
+var back_design_selection_popup: PanelContainer
+var back_design_selection_items: VBoxContainer
 var back_design_size_label: Label
 var back_design_border_label: Label
 var back_design_border_slider: HSlider
@@ -1285,14 +1287,33 @@ func _show_back_design_controls() -> void:
 
 	var selector_label := _make_label("SELECT RAISED SECTION", label_size, Color("#a9e3ff"))
 	active_feature_panel.add_child(selector_label)
-	back_design_selection_list = OptionButton.new()
-	back_design_selection_list.name = "BackDesignBoxSelector"
-	back_design_selection_list.custom_minimum_size.y = control_height
-	back_design_selection_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_research_typography(back_design_selection_list, button_font_size)
-	_style_custom_dropdown(back_design_selection_list)
-	back_design_selection_list.item_selected.connect(_select_back_design_box)
-	active_feature_panel.add_child(back_design_selection_list)
+	back_design_selection_button = Button.new()
+	back_design_selection_button.name = "BackDesignBoxSelector"
+	back_design_selection_button.text = "CHOOSE RAISED BOX  ▼"
+	back_design_selection_button.custom_minimum_size.y = control_height
+	back_design_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_research_typography(back_design_selection_button, button_font_size)
+	_style_staff_button(back_design_selection_button, true)
+	back_design_selection_button.pressed.connect(_toggle_back_design_selection_popup)
+	active_feature_panel.add_child(back_design_selection_button)
+	back_design_selection_popup = PanelContainer.new()
+	back_design_selection_popup.name = "BackDesignCustomDropdown"
+	back_design_selection_popup.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_design_selection_popup.visible = false
+	var dropdown_panel_style := StyleBoxFlat.new()
+	dropdown_panel_style.bg_color = Color("#071d2d")
+	dropdown_panel_style.border_color = Color("#65caff")
+	dropdown_panel_style.set_border_width_all(2)
+	dropdown_panel_style.set_corner_radius_all(12)
+	dropdown_panel_style.content_margin_left = 8
+	dropdown_panel_style.content_margin_right = 8
+	dropdown_panel_style.content_margin_top = 8
+	dropdown_panel_style.content_margin_bottom = 8
+	back_design_selection_popup.add_theme_stylebox_override("panel", dropdown_panel_style)
+	back_design_selection_items = VBoxContainer.new()
+	back_design_selection_items.add_theme_constant_override("separation", 7)
+	back_design_selection_popup.add_child(back_design_selection_items)
+	active_feature_panel.add_child(back_design_selection_popup)
 	_add_back_design_flexible_space(active_feature_panel)
 
 	var modes := HBoxContainer.new()
@@ -1377,58 +1398,49 @@ func _add_back_design_flexible_space(parent: Control) -> void:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(spacer)
 
-func _style_custom_dropdown(selector: OptionButton) -> void:
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.035, 0.12, 0.19, 0.92)
-	normal.border_color = Color("#65caff")
-	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(10)
-	normal.content_margin_left = 12
-	normal.content_margin_right = 12
-	normal.content_margin_top = 7
-	normal.content_margin_bottom = 7
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.08, 0.25, 0.36, 0.98)
-	hover.border_color = Color("#b5eaff")
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.10, 0.31, 0.45, 1.0)
-	for state in ["normal", "hover", "pressed", "focus"]:
-		selector.add_theme_stylebox_override(state, normal if state == "normal" or state == "focus" else hover if state == "hover" else pressed)
-	selector.add_theme_color_override("font_color", Color("#e8f7ff"))
-	selector.add_theme_color_override("font_hover_color", Color.WHITE)
-	selector.add_theme_color_override("font_pressed_color", Color.WHITE)
-	selector.add_theme_color_override("font_focus_color", Color.WHITE)
-	var popup := selector.get_popup()
-	# Keep the menu comfortably readable and at least as wide as its selector.
-	popup.min_size = Vector2i(maxi(roundi(selector.custom_minimum_size.x), 260), 0)
-	popup.add_theme_font_size_override("font_size", 16)
-	var popup_panel := StyleBoxFlat.new()
-	popup_panel.bg_color = Color("#092235")
-	popup_panel.border_color = Color("#65caff")
-	popup_panel.set_border_width_all(1)
-	popup_panel.set_corner_radius_all(9)
-	popup.add_theme_stylebox_override("panel", popup_panel)
-	var popup_hover := StyleBoxFlat.new()
-	popup_hover.bg_color = Color(0.12, 0.39, 0.55, 0.98)
-	popup_hover.set_corner_radius_all(5)
-	popup_hover.content_margin_left = 12
-	popup_hover.content_margin_right = 12
-	popup_hover.content_margin_top = 10
-	popup_hover.content_margin_bottom = 10
-	var popup_pressed := popup_hover.duplicate() as StyleBoxFlat
-	popup_pressed.bg_color = Color("#155477")
-	var popup_focus := popup_hover.duplicate() as StyleBoxFlat
-	popup_focus.bg_color = Color(0.10, 0.30, 0.43, 0.98)
-	popup.add_theme_stylebox_override("hover", popup_hover)
-	popup.add_theme_stylebox_override("pressed", popup_pressed)
-	popup.add_theme_stylebox_override("focus", popup_focus)
-	popup.add_theme_color_override("font_color", Color("#dff4ff"))
-	popup.add_theme_color_override("font_hover_color", Color.WHITE)
-	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
-	popup.add_theme_color_override("font_accelerator_color", Color("#9bcce5"))
-	popup.add_theme_constant_override("v_separation", 10)
-	popup.add_theme_constant_override("outline_size", 1)
-	popup.add_theme_color_override("font_outline_color", Color("#061522"))
+func _toggle_back_design_selection_popup() -> void:
+	if not is_instance_valid(back_design_selection_popup):
+		return
+	back_design_selection_popup.visible = not back_design_selection_popup.visible
+
+
+func _rebuild_back_design_selection_popup() -> void:
+	if not is_instance_valid(back_design_selection_items):
+		return
+	for child in back_design_selection_items.get_children():
+		child.queue_free()
+	for index in range(back_design_boxes.size()):
+		var box: Dictionary = back_design_boxes[index]
+		var item := Button.new()
+		item.text = "RAISED BOX  %d%s" % [int(box["id"]), "   ✓ SELECTED" if index == selected_back_design_box else ""]
+		item.custom_minimum_size = Vector2(0, 48)
+		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		item.add_theme_font_size_override("font_size", 15)
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color("#10334a")
+		normal.border_color = Color("#285b78")
+		normal.set_border_width_all(1)
+		normal.set_corner_radius_all(8)
+		normal.content_margin_left = 14
+		var hover := normal.duplicate() as StyleBoxFlat
+		hover.bg_color = Color("#155477")
+		hover.border_color = Color("#a9e7ff")
+		item.add_theme_stylebox_override("normal", normal)
+		item.add_theme_stylebox_override("hover", hover)
+		item.add_theme_stylebox_override("pressed", hover)
+		item.add_theme_color_override("font_color", Color("#e8f7ff"))
+		item.pressed.connect(_select_back_design_box.bind(index))
+		back_design_selection_items.add_child(item)
+	back_design_selection_button.disabled = back_design_boxes.is_empty()
+	if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		var selected: Dictionary = back_design_boxes[selected_back_design_box]
+		back_design_selection_button.text = "RAISED BOX  %d  ▼" % int(selected["id"])
+	else:
+		back_design_selection_button.text = "CHOOSE RAISED BOX  ▼"
+	if back_design_boxes.is_empty():
+		back_design_selection_button.text = "ADD A BOX TO SELECT"
+		back_design_selection_popup.visible = false
 
 
 func _style_back_design_slider(slider: HSlider) -> void:
@@ -1520,8 +1532,11 @@ func _remove_selected_back_design_box() -> void:
 	_refresh_back_design_panel()
 
 func _select_back_design_box(index: int) -> void:
-	if index < 0 or index >= back_design_boxes.size(): return
+	if index < 0 or index >= back_design_boxes.size():
+		return
 	selected_back_design_box = index
+	if is_instance_valid(back_design_selection_popup):
+		back_design_selection_popup.visible = false
 	_refresh_back_design_boxes()
 	_refresh_back_design_panel()
 
@@ -1539,31 +1554,40 @@ func _back_design_position_is_free(box_position: Vector2, box_size: Vector2, ign
 	return true
 
 func _on_back_design_pad_pressed(direction: Vector2i) -> void:
-	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
+	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size():
+		return
 	var box: Dictionary = back_design_boxes[selected_back_design_box]
 	var box_position: Vector2 = box["position"]
 	var box_size: Vector2 = box["size"]
+	# The back face is viewed from negative local Z, so its local X axis is
+	# mirrored on screen. Convert horizontal D-pad input to the phone's local
+	# coordinates before applying either movement or resize.
+	var screen_direction := Vector2(direction.x, direction.y)
+	var camera_position := preview_camera.global_position if is_instance_valid(preview_camera) else Vector3(0.0, 0.0, 5.2)
+	var toward_camera := camera_position - phone_body.global_position
+	var viewing_back := phone_body.global_transform.basis.z.dot(toward_camera) < 0.0
+	var local_direction := Vector2(-screen_direction.x if viewing_back else screen_direction.x, screen_direction.y)
 	if back_design_mode == "MOVE":
-		# Match the on-screen arrow direction: left moves left and right moves right.
-		var next_position := box_position + Vector2(direction.x, direction.y) * 0.04
+		var next_position := box_position + local_direction * 0.04
 		if _back_design_position_is_free(next_position, box_size, selected_back_design_box):
 			box["position"] = next_position
 	else:
-		# Crop-style handles: each arrow moves only its matching edge.
+		# Each arrow edits the corresponding visible edge. EXPAND adds size;
+		# SHRINK removes size. The selected edge remains anchored in place.
 		var half := box_size * 0.5
 		var next_position := box_position
 		var next_half := half
-		var step := 0.025 * (1.0 if back_design_size_action == "EXPAND" else -1.0)
-		if direction.x < 0:
+		var step := 0.025 if back_design_size_action == "EXPAND" else -0.025
+		if local_direction.x < 0.0:
 			next_position.x -= step * 0.5
 			next_half.x += step * 0.5
-		elif direction.x > 0:
+		elif local_direction.x > 0.0:
 			next_position.x += step * 0.5
 			next_half.x += step * 0.5
-		elif direction.y > 0:
+		elif local_direction.y > 0.0:
 			next_position.y += step * 0.5
 			next_half.y += step * 0.5
-		elif direction.y < 0:
+		elif local_direction.y < 0.0:
 			next_position.y -= step * 0.5
 			next_half.y += step * 0.5
 		var next_size := next_half * 2.0
@@ -1581,16 +1605,9 @@ func _on_back_design_border_changed(value: float) -> void:
 	if is_instance_valid(back_design_border_label): back_design_border_label.text = "ROUNDING  %.0f%%" % (value / 0.45 * 100.0)
 
 func _refresh_back_design_panel() -> void:
-	if not is_instance_valid(back_design_selection_list): return
-	back_design_selection_list.clear()
-	for index in range(back_design_boxes.size()):
-		var box: Dictionary = back_design_boxes[index]
-		back_design_selection_list.add_item("RAISED BOX %d" % int(box["id"]))
-		back_design_selection_list.set_item_metadata(index, index)
-	if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		back_design_selection_list.select(selected_back_design_box)
-	else:
-		back_design_selection_list.select(-1)
+	if not is_instance_valid(back_design_selection_button):
+		return
+	_rebuild_back_design_selection_popup()
 	var has_box := selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size()
 	if has_box:
 		var selected: Dictionary = back_design_boxes[selected_back_design_box]
