@@ -1381,6 +1381,7 @@ func _refresh_phone_screen() -> void:
 		previous.free()
 	phone_screen = null
 	if not screen_enabled:
+		_refresh_phone_home_button()
 		return
 
 	var display := MeshInstance3D.new()
@@ -2059,46 +2060,52 @@ func _on_home_button_type_selected(type_name: String) -> void:
 
 
 func _refresh_phone_home_button() -> void:
-	if not is_instance_valid(phone_screen):
+	if not is_instance_valid(phone_body):
 		return
-	var previous := phone_screen.get_node_or_null("PhoneHomeButton")
+	var previous := phone_body.get_node_or_null("PhoneHomeButton")
 	if is_instance_valid(previous):
 		previous.free()
-	# Home controls are absent until the user explicitly enables them.
+	# Home controls belong to the handset, not the display. Their X/Y position
+	# is fixed to the device, so changing screen height never moves them.
 	if not home_button_enabled or home_button_type == "On-screen":
 		return
 
-	# Physical-style home controls are rendered as thin graphics directly on
-	# the display surface. They are never raised above the glass, on flat or
-	# curved screens.
 	var button_root := Node3D.new()
 	button_root.name = "PhoneHomeButton"
-	phone_screen.add_child(button_root)
-	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
-	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
-	var center_y := -screen_height * 0.5 + 0.105
-	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
-	var surface_z := _front_camera_screen_surface_z(0.0, center_y, screen_width, screen_height)
-	# Flat display panels are 0.006 units thick, so place the thin marking
-	# directly on their +Z glass face. Curved displays are zero-thickness
-	# surfaces and use a small offset above their sampled curved profile.
-	var flat_z := surface_z + (0.0034 if not curved_display else 0.0006)
+	phone_body.add_child(button_root)
+	var center_y := -PHONE_SIZE.y * 0.5 + 0.18
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var body_front_z := current_depth * 0.5
+	var button_surface_z := body_front_z + 0.0008
 
+	# When the screen reaches this fixed device position, rest the marking on
+	# the actual glass surface. Otherwise it sits directly on the exposed body.
+	if is_instance_valid(phone_screen):
+		var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
+		var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+		var is_over_screen := absf(center_y) <= screen_height * 0.5
+		if is_over_screen:
+			var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
+			var glass_surface_z := _front_camera_screen_surface_z(0.0, center_y, screen_width, screen_height)
+			button_surface_z = phone_screen.position.z + glass_surface_z + (0.0036 if not curved_display else 0.0008)
+
+	# Dark, unshaded markings remain legible on the light silver device body
+	# and on the darker display without becoming raised physical keys.
 	var icon_material := StandardMaterial3D.new()
-	icon_material.albedo_color = Color("#aebbc8")
+	icon_material.albedo_color = Color("#263746")
 	icon_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	icon_material.roughness = 0.9
 
 	if home_button_type == "Recent · Home · Back (Physical)":
-		# Classic navigation symbols, kept flat against the same glass surface.
 		for line_index in range(3):
 			var recent_line := MeshInstance3D.new()
 			recent_line.name = "RecentNavigationLine"
 			var line_mesh := BoxMesh.new()
 			line_mesh.size = Vector3(0.075, 0.009, 0.0008)
 			recent_line.mesh = line_mesh
-			recent_line.position = Vector3(-0.34, center_y + (float(line_index) - 1.0) * 0.025, flat_z)
+			recent_line.position = Vector3(-0.34, center_y + (float(line_index) - 1.0) * 0.025, button_surface_z)
 			recent_line.material_override = icon_material
+			recent_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			button_root.add_child(recent_line)
 
 		var home_key := MeshInstance3D.new()
@@ -2110,8 +2117,9 @@ func _refresh_phone_home_button() -> void:
 		home_mesh.radial_segments = 32
 		home_key.mesh = home_mesh
 		home_key.rotation_degrees.x = 90.0
-		home_key.position = Vector3(0.0, center_y, flat_z)
+		home_key.position = Vector3(0.0, center_y, button_surface_z)
 		home_key.material_override = icon_material
+		home_key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		button_root.add_child(home_key)
 
 		for segment in range(2):
@@ -2120,9 +2128,10 @@ func _refresh_phone_home_button() -> void:
 			var stroke_mesh := BoxMesh.new()
 			stroke_mesh.size = Vector3(0.055, 0.009, 0.0008)
 			back_stroke.mesh = stroke_mesh
-			back_stroke.position = Vector3(0.34 + (0.008 if segment == 0 else -0.008), center_y + (0.018 if segment == 0 else -0.018), flat_z)
+			back_stroke.position = Vector3(0.34 + (0.008 if segment == 0 else -0.008), center_y + (0.018 if segment == 0 else -0.018), button_surface_z)
 			back_stroke.rotation_degrees.z = -35.0 if segment == 0 else 35.0
 			back_stroke.material_override = icon_material
+			back_stroke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			button_root.add_child(back_stroke)
 		return
 
@@ -2142,8 +2151,9 @@ func _refresh_phone_home_button() -> void:
 		var mark_height := 0.065 if is_oval else 0.11
 		var mark_radius := mark_height * 0.48 if is_oval else (0.008 if home_button_type == "Square Home Button" else 0.026)
 		home_mark.mesh = _create_rounded_panel_mesh(mark_width, mark_height, 0.0008, mark_radius)
-	home_mark.position = Vector3(0.0, center_y, flat_z)
+	home_mark.position = Vector3(0.0, center_y, button_surface_z)
 	home_mark.material_override = icon_material
+	home_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	button_root.add_child(home_mark)
 
 
