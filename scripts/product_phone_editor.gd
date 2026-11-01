@@ -948,7 +948,7 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 
-func _show_device_color_controls() -> void:
+func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
@@ -961,9 +961,26 @@ func _show_device_color_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 7 if compact_color_ui else 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("DEVICE COLOR", 18, Color("#c7eaff"))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(title)
+	if return_to_back_design:
+		var color_header := HBoxContainer.new()
+		color_header.add_theme_constant_override("separation", 6)
+		active_feature_panel.add_child(color_header)
+		var back_button := Button.new()
+		back_button.text = "‹"
+		back_button.custom_minimum_size = Vector2(34, 32)
+		back_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(back_button, 25)
+		_style_staff_button(back_button, false)
+		back_button.pressed.connect(_show_back_design_controls)
+		color_header.add_child(back_button)
+		var color_title := _make_label("BACK DESIGN COLOR", 16, Color("#c7eaff"))
+		color_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		color_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		color_header.add_child(color_title)
+	else:
+		var title := _make_label("DEVICE COLOR", 18, Color("#c7eaff"))
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		active_feature_panel.add_child(title)
 	var description := _make_label("Fine-tune the finish of your phone body.", 12, Color("#d8eaf5"))
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1162,6 +1179,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = device_body_color.to_html(false).to_upper()
+	_refresh_back_design_boxes()
 	_refresh_phone_side_buttons()
 
 
@@ -1264,6 +1282,15 @@ func _show_back_design_controls() -> void:
 	active_feature_panel.add_child(back_design_border_slider)
 	back_design_border_label = _make_label("", 12, Color("#d8eaf5"))
 	active_feature_panel.add_child(back_design_border_label)
+	var color_button := Button.new()
+	color_button.name = "BackDesignColorButton"
+	color_button.text = "●  BODY COLOR"
+	color_button.custom_minimum_size.y = 36
+	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_research_typography(color_button, 13)
+	_style_staff_button(color_button, false)
+	color_button.pressed.connect(_show_device_color_controls.bind(true))
+	active_feature_panel.add_child(color_button)
 	_refresh_back_design_panel()
 
 func _style_back_design_selector(selector: OptionButton) -> void:
