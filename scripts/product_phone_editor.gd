@@ -50,7 +50,7 @@ var left_tools_scroll: ScrollContainer
 var preview_mouse_dragging := false
 var border_radius_level := 0
 var border_radius_value_label: Label
-var phone_thickness_level := 0
+var phone_thickness_level := 10
 var phone_thickness_value_label: Label
 var speaker_count := 0
 var speaker_count_value_label: Label
