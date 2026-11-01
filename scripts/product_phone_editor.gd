@@ -1509,8 +1509,6 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 		"Bezel Camera":
 			# Early smartphones placed a small lens in the upper display bezel.
 			_add_front_camera_lens(camera_root, Vector3(0.0, top_edge + maxf(bezel_height * 0.24, 0.045), front_z), 0.032, cutout_material, lens_material, ring_material)
-			_add_front_camera_lens(camera_root, Vector3(-notch_width * 0.27, camera_y - 0.004, front_z + 0.008), 0.026, cutout_material, lens_material, ring_material)
-			_add_camera_sensor_dot(camera_root, Vector3(notch_width * 0.20, camera_y - 0.004, front_z + 0.009), 0.010, ring_material)
 		"Waterdrop Notch":
 			# Compact teardrop-style notch: narrow at its lower end.
 			_add_camera_cutout(camera_root, "WaterdropNotchCutout", Vector2(0.19, 0.115), Vector2(0.0, 0.012), front_z, cutout_material)
