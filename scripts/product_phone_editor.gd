@@ -1201,6 +1201,7 @@ func _show_back_design_controls() -> void:
 	back_design_selection_list.custom_minimum_size.y = 36
 	back_design_selection_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(back_design_selection_list, 13)
+	_style_back_design_selector(back_design_selection_list)
 	back_design_selection_list.item_selected.connect(_select_back_design_box)
 	active_feature_panel.add_child(back_design_selection_list)
 	var top_flex_space := Control.new()
@@ -1256,13 +1257,79 @@ func _show_back_design_controls() -> void:
 	back_design_border_slider.min_value = 0.0
 	back_design_border_slider.max_value = 0.45
 	back_design_border_slider.step = 0.01
-	back_design_border_slider.custom_minimum_size = Vector2(0, 32)
+	back_design_border_slider.custom_minimum_size = Vector2(0, 40)
 	back_design_border_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_back_design_slider(back_design_border_slider)
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	active_feature_panel.add_child(back_design_border_slider)
 	back_design_border_label = _make_label("", 12, Color("#d8eaf5"))
 	active_feature_panel.add_child(back_design_border_label)
 	_refresh_back_design_panel()
+
+func _style_back_design_selector(selector: OptionButton) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.035, 0.12, 0.19, 0.92)
+	normal.border_color = Color("#65caff")
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(10)
+	normal.content_margin_left = 12
+	normal.content_margin_right = 12
+	normal.content_margin_top = 7
+	normal.content_margin_bottom = 7
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.08, 0.25, 0.36, 0.98)
+	hover.border_color = Color("#b5eaff")
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.10, 0.31, 0.45, 1.0)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		selector.add_theme_stylebox_override(state, normal if state == "normal" or state == "focus" else hover if state == "hover" else pressed)
+	selector.add_theme_color_override("font_color", Color("#e8f7ff"))
+	selector.add_theme_color_override("font_hover_color", Color.WHITE)
+	selector.add_theme_color_override("font_pressed_color", Color.WHITE)
+	selector.add_theme_color_override("font_focus_color", Color.WHITE)
+	var popup := selector.get_popup()
+	var popup_panel := StyleBoxFlat.new()
+	popup_panel.bg_color = Color("#092235")
+	popup_panel.border_color = Color("#65caff")
+	popup_panel.set_border_width_all(1)
+	popup_panel.set_corner_radius_all(9)
+	popup.add_theme_stylebox_override("panel", popup_panel)
+	var popup_hover := StyleBoxFlat.new()
+	popup_hover.bg_color = Color(0.12, 0.39, 0.55, 0.98)
+	popup_hover.set_corner_radius_all(5)
+	popup.add_theme_stylebox_override("hover", popup_hover)
+	popup.add_theme_color_override("font_color", Color("#dff4ff"))
+	popup.add_theme_color_override("font_hover_color", Color.WHITE)
+	popup.add_theme_color_override("font_accelerator_color", Color("#9bcce5"))
+	popup.add_theme_constant_override("v_separation", 5)
+
+
+func _style_back_design_slider(slider: HSlider) -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("#102f46")
+	track.border_color = Color("#477f9e")
+	track.set_border_width_all(1)
+	track.set_corner_radius_all(8)
+	track.content_margin_top = 4
+	track.content_margin_bottom = 4
+	slider.add_theme_stylebox_override("slider", track)
+	var grabber := StyleBoxFlat.new()
+	grabber.bg_color = Color("#a9e7ff")
+	grabber.border_color = Color.WHITE
+	grabber.set_border_width_all(2)
+	grabber.set_corner_radius_all(20)
+	grabber.content_margin_left = 5
+	grabber.content_margin_right = 5
+	grabber.content_margin_top = 5
+	grabber.content_margin_bottom = 5
+	var grabber_hover := grabber.duplicate() as StyleBoxFlat
+	grabber_hover.bg_color = Color.WHITE
+	grabber_hover.border_color = Color("#65caff")
+	slider.add_theme_stylebox_override("grabber", grabber)
+	slider.add_theme_stylebox_override("grabber_highlight", grabber_hover)
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+
 
 func _add_back_design_pad_spacer(parent: GridContainer) -> void:
 	var spacer := Control.new()
