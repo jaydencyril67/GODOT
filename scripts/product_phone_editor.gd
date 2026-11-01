@@ -1235,6 +1235,7 @@ func _show_back_design_controls() -> void:
 	back_design_color_mode = false
 	if not is_instance_valid(right_tools_content): return
 	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.y < 760.0 or viewport_size.x < 900.0
 	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
 	var control_height := 29.0 if tight else (33.0 if compact else 38.0)
 	var slider_height := 26.0 if tight else (32.0 if compact else 38.0)
