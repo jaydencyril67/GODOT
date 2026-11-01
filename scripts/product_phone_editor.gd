@@ -11,7 +11,7 @@ const DRAG_SENSITIVITY := 0.0024
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
 var home_button_type := "Round Physical"
-const HOME_BUTTON_TYPES := ["Round Mechanical", "Oval Mechanical", "Rounded-Rectangle Mechanical", "Square Mechanical", "Recessed Mechanical", "Capacitive Fingerprint", "Solid-State Haptic", "Oval + Side Capacitive Keys", "On-screen"]
+const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
 var screen_enabled := false
 var selected_screen_type := "AMOLED"
@@ -1235,15 +1235,14 @@ func _refresh_phone_home_button() -> void:
 	var previous := phone_body.get_node_or_null("PhoneHomeButton")
 	if is_instance_valid(previous):
 		previous.free()
-	# On-screen is deliberately generic. OS-specific navigation layouts are
-	# reserved for the later operating-system creation system.
+	# On-screen is the only software-rendered option. The physical navigation
+	# layout below is built directly on the lower hardware bezel.
 	if home_button_type == "On-screen":
 		return
 
 	var button_root := Node3D.new()
 	button_root.name = "PhoneHomeButton"
 	phone_body.add_child(button_root)
-	# Keep the complete physical control in the lower bezel, below the display.
 	var center_y := -PHONE_SIZE.y * 0.5 + 0.16
 	var front_z := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0) * 0.5
 	var button_material := StandardMaterial3D.new()
@@ -1255,95 +1254,92 @@ func _refresh_phone_home_button() -> void:
 	dark_material.metallic = 0.16
 	dark_material.roughness = 0.52
 
-	if home_button_type in ["Round Mechanical", "Solid-State Haptic"]:
+	if home_button_type == "Recent · Home · Back (Physical)":
+		# Classic Android hardware navigation row: Recent on the left,
+		# Home in the centre, and Back on the right, all outside the display.
+		var recent_material := StandardMaterial3D.new()
+		recent_material.albedo_color = Color("#c5d0da")
+		recent_material.roughness = 0.7
+		for line_index in range(3):
+			var recent_line := MeshInstance3D.new()
+			recent_line.name = "RecentNavigationLine"
+			var line_mesh := BoxMesh.new()
+			line_mesh.size = Vector3(0.075, 0.009, 0.003)
+			recent_line.mesh = line_mesh
+			recent_line.position = Vector3(-0.34, center_y + (float(line_index) - 1.0) * 0.025, front_z + 0.006)
+			recent_line.material_override = recent_material
+			button_root.add_child(recent_line)
+
+		var home_key := MeshInstance3D.new()
+		home_key.name = "PhysicalNavigationHomeKey"
+		var home_mesh := CylinderMesh.new()
+		home_mesh.top_radius = 0.044
+		home_mesh.bottom_radius = 0.044
+		home_mesh.height = 0.006
+		home_mesh.radial_segments = 32
+		home_key.mesh = home_mesh
+		home_key.rotation_degrees.x = 90.0
+		home_key.position = Vector3(0.0, center_y, front_z + 0.007)
+		home_key.material_override = recent_material
+		button_root.add_child(home_key)
+
+		for segment in range(2):
+			var back_stroke := MeshInstance3D.new()
+			back_stroke.name = "BackNavigationChevron"
+			var stroke_mesh := BoxMesh.new()
+			stroke_mesh.size = Vector3(0.055, 0.009, 0.003)
+			back_stroke.mesh = stroke_mesh
+			back_stroke.position = Vector3(0.34 + (0.008 if segment == 0 else -0.008), center_y + (0.018 if segment == 0 else -0.018), front_z + 0.006)
+			back_stroke.rotation_degrees.z = -35.0 if segment == 0 else 35.0
+			back_stroke.material_override = recent_material
+			button_root.add_child(back_stroke)
+		return
+
+	if home_button_type == "Circle Home Button":
 		var ring := MeshInstance3D.new()
 		ring.name = "RoundHomeButtonBezel"
 		var ring_mesh := CylinderMesh.new()
 		ring_mesh.top_radius = 0.092
 		ring_mesh.bottom_radius = 0.092
-		ring_mesh.height = 0.010 if home_button_type == "Solid-State Haptic" else 0.014
+		ring_mesh.height = 0.014
 		ring_mesh.radial_segments = 48
 		ring.mesh = ring_mesh
 		ring.rotation_degrees.x = 90.0
-		ring.position = Vector3(0.0, center_y, front_z + 0.005)
+		ring.position = Vector3(0.0, center_y, front_z + 0.006)
 		ring.material_override = button_material
 		button_root.add_child(ring)
 		var face := MeshInstance3D.new()
 		face.name = "RoundHomeButtonFace"
 		var face_mesh := CylinderMesh.new()
-		face_mesh.top_radius = 0.073 if home_button_type == "Round Mechanical" else 0.076
-		face_mesh.bottom_radius = face_mesh.top_radius
+		face_mesh.top_radius = 0.073
+		face_mesh.bottom_radius = 0.073
 		face_mesh.height = 0.010
 		face_mesh.radial_segments = 48
 		face.mesh = face_mesh
 		face.rotation_degrees.x = 90.0
-		face.position = Vector3(0.0, center_y, front_z + 0.012)
+		face.position = Vector3(0.0, center_y, front_z + 0.014)
 		face.material_override = dark_material
 		button_root.add_child(face)
-	elif home_button_type == "Capacitive Fingerprint":
-		var sensor := MeshInstance3D.new()
-		sensor.name = "CapacitiveFingerprintSensor"
-		var sensor_mesh := BoxMesh.new()
-		sensor_mesh.size = Vector3(0.19, 0.075, 0.003)
-		sensor.mesh = sensor_mesh
-		sensor.position = Vector3(0.0, center_y, front_z + 0.004)
-		sensor.material_override = dark_material
-		button_root.add_child(sensor)
 	else:
+		# The oval follows the OPPO F1s-style pill; the square is a distinct
+		# squared physical key. Both sit entirely within the lower bezel.
 		var backing := MeshInstance3D.new()
 		backing.name = "HomeButtonBezel"
 		var backing_mesh := BoxMesh.new()
-		var backing_size := Vector3(0.23, 0.105, 0.012)
-		if home_button_type in ["Oval Mechanical", "Oval + Side Capacitive Keys"]:
-			backing_size = Vector3(0.25, 0.105, 0.012)
-		elif home_button_type == "Rounded-Rectangle Mechanical":
-			backing_size = Vector3(0.22, 0.105, 0.012)
-		elif home_button_type == "Square Mechanical":
-			backing_size = Vector3(0.15, 0.15, 0.012)
-		elif home_button_type == "Recessed Mechanical":
-			backing_size = Vector3(0.22, 0.095, 0.006)
-		backing_mesh.size = backing_size
+		backing_mesh.size = Vector3(0.25, 0.105, 0.012) if home_button_type == "Oval Home Button" else Vector3(0.15, 0.15, 0.012)
 		backing.mesh = backing_mesh
 		backing.position = Vector3(0.0, center_y, front_z + 0.004)
-		backing.material_override = dark_material if home_button_type == "Recessed Mechanical" else button_material
+		backing.material_override = button_material
 		button_root.add_child(backing)
 
 		var face := MeshInstance3D.new()
 		face.name = "HomeButtonFace"
 		var face_mesh := BoxMesh.new()
-		var face_size := Vector3(0.19, 0.070, 0.010)
-		if home_button_type in ["Oval Mechanical", "Oval + Side Capacitive Keys"]:
-			face_size = Vector3(0.21, 0.065, 0.010)
-		elif home_button_type == "Rounded-Rectangle Mechanical":
-			face_size = Vector3(0.18, 0.068, 0.010)
-		elif home_button_type == "Square Mechanical":
-			face_size = Vector3(0.11, 0.11, 0.010)
-		elif home_button_type == "Recessed Mechanical":
-			face_size = Vector3(0.17, 0.055, 0.004)
-		face_mesh.size = face_size
+		face_mesh.size = Vector3(0.21, 0.065, 0.010) if home_button_type == "Oval Home Button" else Vector3(0.11, 0.11, 0.010)
 		face.mesh = face_mesh
 		face.position = Vector3(0.0, center_y, front_z + 0.012)
-		face.material_override = dark_material if home_button_type != "Recessed Mechanical" else button_material
+		face.material_override = dark_material
 		button_root.add_child(face)
-
-	if home_button_type == "Oval + Side Capacitive Keys":
-		# OPPO F1s-style layout: a central physical fingerprint/home key
-		# flanked by separate capacitive navigation touch keys.
-		for side in [-1.0, 1.0]:
-			var nav_key := MeshInstance3D.new()
-			nav_key.name = "CapacitiveNavigationKey"
-			var nav_mesh := BoxMesh.new()
-			nav_mesh.size = Vector3(0.075, 0.045, 0.003)
-			nav_key.mesh = nav_mesh
-			nav_key.position = Vector3(side * 0.31, center_y, front_z + 0.005)
-			var nav_material := StandardMaterial3D.new()
-			nav_material.albedo_color = Color("#c5d0da")
-			nav_material.emission_enabled = true
-			nav_material.emission = Color("#7899b5")
-			nav_material.emission_energy_multiplier = 0.12
-			nav_material.roughness = 0.72
-			nav_key.material_override = nav_material
-			button_root.add_child(nav_key)
 
 
 func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
