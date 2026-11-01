@@ -1399,6 +1399,9 @@ func _style_custom_dropdown(selector: OptionButton) -> void:
 	selector.add_theme_color_override("font_pressed_color", Color.WHITE)
 	selector.add_theme_color_override("font_focus_color", Color.WHITE)
 	var popup := selector.get_popup()
+	# Keep the menu comfortably readable and at least as wide as its selector.
+	popup.min_size = Vector2i(maxi(roundi(selector.custom_minimum_size.x), 260), 0)
+	popup.add_theme_font_size_override("font_size", 16)
 	var popup_panel := StyleBoxFlat.new()
 	popup_panel.bg_color = Color("#092235")
 	popup_panel.border_color = Color("#65caff")
@@ -1408,6 +1411,10 @@ func _style_custom_dropdown(selector: OptionButton) -> void:
 	var popup_hover := StyleBoxFlat.new()
 	popup_hover.bg_color = Color(0.12, 0.39, 0.55, 0.98)
 	popup_hover.set_corner_radius_all(5)
+	popup_hover.content_margin_left = 12
+	popup_hover.content_margin_right = 12
+	popup_hover.content_margin_top = 10
+	popup_hover.content_margin_bottom = 10
 	var popup_pressed := popup_hover.duplicate() as StyleBoxFlat
 	popup_pressed.bg_color = Color("#155477")
 	var popup_focus := popup_hover.duplicate() as StyleBoxFlat
@@ -1419,7 +1426,7 @@ func _style_custom_dropdown(selector: OptionButton) -> void:
 	popup.add_theme_color_override("font_hover_color", Color.WHITE)
 	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
 	popup.add_theme_color_override("font_accelerator_color", Color("#9bcce5"))
-	popup.add_theme_constant_override("v_separation", 7)
+	popup.add_theme_constant_override("v_separation", 10)
 	popup.add_theme_constant_override("outline_size", 1)
 	popup.add_theme_color_override("font_outline_color", Color("#061522"))
 
@@ -1546,7 +1553,7 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 		var half := box_size * 0.5
 		var next_position := box_position
 		var next_half := half
-		var step := 0.025 * (-1.0 if back_design_size_action == "EXPAND" else 1.0)
+		var step := 0.025 * (1.0 if back_design_size_action == "EXPAND" else -1.0)
 		if direction.x < 0:
 			next_position.x -= step * 0.5
 			next_half.x += step * 0.5
