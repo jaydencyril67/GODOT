@@ -1489,6 +1489,21 @@ func _on_front_camera_style_selected(style_name: String) -> void:
 		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(option_name) + 2, 9), option_name == front_camera_style)
 
 
+func _front_camera_screen_surface_z(x: float, y: float, screen_width: float, screen_height: float) -> float:
+	# Match the exact depth profile used by _create_curved_screen_mesh so
+	# side-mounted lenses sit just above the glass instead of floating over
+	# the flat centre plane when either screen edge is curved.
+	if screen_shape_mode != "Curve screen":
+		return 0.0
+	var side_drop := 0.0
+	var vertical_drop := 0.0
+	if side_curve_enabled:
+		side_drop = 0.028 * pow(absf(x / maxf(screen_width * 0.5, 0.001)), 6.0)
+	if vertical_curve_enabled:
+		vertical_drop = 0.028 * pow(absf(y / maxf(screen_height * 0.5, 0.001)), 6.0)
+	return -maxf(side_drop, vertical_drop)
+
+
 func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
 	if not front_camera_enabled:
 		return
@@ -1545,20 +1560,25 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Single, small circular opening centred on the top safe area.
 			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y, front_z), 0.038, cutout_material, lens_material, ring_material)
 		"Side Punch-Hole":
-			# Anchor the lens to the live display edge, but keep its full radius
-			# inside the rounded corner as the bezel and border radius change.
+			# Keep the camera in a consistent side section of the display instead
+			# of using a fixed edge inset that changes its apparent position when
+			# the screen expands for a side curve.
 			var side_lens_radius := 0.037
-			var side_inset := maxf(corner_safe_inset, side_lens_radius + 0.018)
-			var left_x := -screen_width * 0.5 + side_inset
-			_add_front_camera_lens(camera_root, Vector3(left_x, camera_y, front_z), side_lens_radius, cutout_material, lens_material, ring_material)
+			var side_camera_x := -screen_width * 0.36
+			var side_camera_z := front_z + _front_camera_screen_surface_z(side_camera_x, camera_y, screen_width, screen_height)
+			_add_front_camera_lens(camera_root, Vector3(side_camera_x, camera_y, side_camera_z), side_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Side Punch-Hole":
-			# Keep both lenses inside the same rounded-corner safe area.
+			# Both lenses share the same normalized side anchor and follow the
+			# curved glass depth, so curving cannot drag them toward screen centre.
 			var dual_lens_radius := 0.027
-			var dual_side_inset := maxf(corner_safe_inset, dual_lens_radius + 0.018)
-			var dual_left_x := -screen_width * 0.5 + dual_side_inset
+			var dual_camera_x := -screen_width * 0.36
 			var dual_side_spacing := 0.050
-			_add_front_camera_lens(camera_root, Vector3(dual_left_x - dual_side_spacing * 0.5, camera_y, front_z), dual_lens_radius, cutout_material, lens_material, ring_material)
-			_add_front_camera_lens(camera_root, Vector3(dual_left_x + dual_side_spacing * 0.5, camera_y, front_z), dual_lens_radius, cutout_material, lens_material, ring_material)
+			var dual_left_x := dual_camera_x - dual_side_spacing * 0.5
+			var dual_right_x := dual_camera_x + dual_side_spacing * 0.5
+			var dual_left_z := front_z + _front_camera_screen_surface_z(dual_left_x, camera_y, screen_width, screen_height)
+			var dual_right_z := front_z + _front_camera_screen_surface_z(dual_right_x, camera_y, screen_width, screen_height)
+			_add_front_camera_lens(camera_root, Vector3(dual_left_x, camera_y, dual_left_z), dual_lens_radius, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(dual_right_x, camera_y, dual_right_z), dual_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Punch-Hole":
 			# Two distinct, evenly spaced circular openings centred at the top.
 			var dual_spacing := 0.052
