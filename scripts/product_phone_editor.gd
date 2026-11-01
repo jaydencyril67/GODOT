@@ -323,8 +323,8 @@ func _build_design_research_content(parent: Control) -> void:
 
 func _get_hardware_research_features() -> Array:
 	return [
-		"Screen Tech", "Power/Volume Buttons", "Thickness", "Bezel Width",
-		"Bezel Height", "Screen Type", "Border Radius", "Speakers",
+		"Screen Tech", "Power/Volume Buttons", "Thickness", "Screen Width",
+		"Screen Size", "Screen Type", "Border Radius", "Speakers",
 		"Charge Port", "Front Camera", "Rare Camera", "Style Pen",
 		"Side Button", "Home Button", "Body Frame", "Phone Width",
 		"Phone Height", "Sim/Memory Slot", "Protection", "Refresh Rate",
@@ -730,8 +730,8 @@ func _get_preview_viewport() -> SubViewport:
 
 func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	var button := Button.new()
-	button.text = feature_name
-	button.tooltip_text = feature_name
+	button.text = "SCREEN WIDTH\nWAITING" if feature_name == "Screen Width" else feature_name
+	button.tooltip_text = "Screen width adjustment — waiting" if feature_name == "Screen Width" else feature_name
 	button.mouse_filter = Control.MOUSE_FILTER_PASS
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 64)
@@ -760,7 +760,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Bezel Width", "Bezel Height", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -769,8 +769,8 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 func _on_tool_feature_pressed(feature_name: String) -> void:
 	if feature_name == "Screen Tech":
 		_show_screen_tech_controls()
-	elif feature_name in ["Bezel Width", "Bezel Height"]:
-		_show_bezel_controls()
+	elif feature_name == "Screen Size":
+		_show_screen_size_controls()
 	elif feature_name == "Border Radius":
 		_show_border_radius_controls()
 	elif feature_name == "Thickness":
@@ -786,99 +786,57 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 
-func _show_bezel_controls() -> void:
+func _show_screen_size_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "BezelDesignControls"
+	active_feature_panel.name = "ScreenSizeControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("BEZEL DESIGN", 18, Color("#c7eaff"))
+	var title := _make_label("SCREEN SIZE", 18, Color("#c7eaff"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var explanation := _make_label("Adjust the borders. The screen resizes automatically.", 12, Color("#d8eaf5"))
+	var explanation := _make_label("Adjust the screen size. The display updates automatically.", 12, Color("#d8eaf5"))
 	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(explanation)
 
-	# Match the Border Radius panel: two tall, custom-styled vertical sliders.
-	# Width controls sit on the left and height controls on the right.
-	var meter_row := HBoxContainer.new()
-	meter_row.name = "BezelSliderRow"
-	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	meter_row.add_theme_constant_override("separation", 18)
-	active_feature_panel.add_child(meter_row)
+	var meter_column := VBoxContainer.new()
+	meter_column.name = "ScreenSizeColumn"
+	meter_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	meter_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	meter_column.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(meter_column)
 
-	var width_column := VBoxContainer.new()
-	width_column.name = "BezelWidthColumn"
-	width_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	width_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	width_column.alignment = BoxContainer.ALIGNMENT_CENTER
-	width_column.add_theme_constant_override("separation", 6)
-	meter_row.add_child(width_column)
-
-	var width_heading := _make_label("BEZEL WIDTH", 13, Color.WHITE)
-	width_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	width_column.add_child(width_heading)
-	bezel_width_value_label = _make_label("", 12, Color("#b9eaff"))
-	bezel_width_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	width_column.add_child(bezel_width_value_label)
-
-	var width_meter := VSlider.new()
-	width_meter.name = "BezelWidthSlider"
-	width_meter.min_value = 0.02
-	width_meter.max_value = 0.15
-	width_meter.step = 0.001
-	width_meter.value = clampf(bezel_width, 0.02, 0.15)
-	width_meter.tick_count = 14
-	width_meter.custom_minimum_size = Vector2(76, 250)
-	width_meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	width_meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	width_meter.value_changed.connect(_on_bezel_width_changed)
-	_style_feature_slider(width_meter)
-	width_column.add_child(width_meter)
-
-	var height_column := VBoxContainer.new()
-	height_column.name = "BezelHeightColumn"
-	height_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	height_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	height_column.alignment = BoxContainer.ALIGNMENT_CENTER
-	height_column.add_theme_constant_override("separation", 6)
-	meter_row.add_child(height_column)
-
-	var height_heading := _make_label("BEZEL HEIGHT", 13, Color.WHITE)
-	height_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	height_column.add_child(height_heading)
+	var size_heading := _make_label("SCREEN SIZE", 13, Color.WHITE)
+	size_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	meter_column.add_child(size_heading)
 	bezel_height_value_label = _make_label("", 12, Color("#b9eaff"))
 	bezel_height_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	height_column.add_child(bezel_height_value_label)
+	meter_column.add_child(bezel_height_value_label)
 
-	var height_meter := VSlider.new()
-	height_meter.name = "BezelHeightSlider"
-	height_meter.min_value = 0.02
-	height_meter.max_value = 0.325
-	height_meter.step = 0.001
-	height_meter.value = clampf(bezel_height, 0.02, 0.325)
-	height_meter.tick_count = 14
-	height_meter.custom_minimum_size = Vector2(76, 250)
-	height_meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	height_meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	height_meter.value_changed.connect(_on_bezel_height_changed)
-	_style_feature_slider(height_meter)
-	height_column.add_child(height_meter)
+	var size_meter := VSlider.new()
+	size_meter.name = "ScreenSizeSlider"
+	size_meter.min_value = 0.02
+	size_meter.max_value = 0.325
+	size_meter.step = 0.001
+	size_meter.value = clampf(bezel_height, 0.02, 0.325)
+	size_meter.tick_count = 14
+	size_meter.custom_minimum_size = Vector2(76, 250)
+	size_meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	size_meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	size_meter.value_changed.connect(_on_bezel_height_changed)
+	_style_feature_slider(size_meter)
+	meter_column.add_child(size_meter)
 
-	# Keep the stored values inside the new slider limits if they were set
-	# before these tighter maximums were introduced.
-	bezel_width = width_meter.value
-	bezel_height = height_meter.value
+	bezel_height = size_meter.value
 	_update_bezel_value_labels()
 
 
@@ -898,9 +856,9 @@ func _update_bezel_value_labels() -> void:
 	# PHONE_SIZE maps to an approximately 75 mm-wide handset.
 	const MODEL_UNITS_TO_MM := 75.0 / 1.45
 	if is_instance_valid(bezel_width_value_label):
-		bezel_width_value_label.text = "Each side: %.1f mm" % (bezel_width * MODEL_UNITS_TO_MM)
+		bezel_width_value_label.text = "Screen width setting: %.1f mm" % (bezel_width * MODEL_UNITS_TO_MM)
 	if is_instance_valid(bezel_height_value_label):
-		bezel_height_value_label.text = "Top and bottom: %.1f mm" % (bezel_height * MODEL_UNITS_TO_MM)
+		bezel_height_value_label.text = "Screen inset: %.1f mm" % (bezel_height * MODEL_UNITS_TO_MM)
 
 
 func _show_screen_tech_controls() -> void:
