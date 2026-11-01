@@ -1709,7 +1709,9 @@ func _refresh_back_design_boxes() -> void:
 	if not is_instance_valid(phone_body): return
 	var old_root := phone_body.get_node_or_null("BackDesignRaisedSections")
 	if is_instance_valid(old_root): old_root.free()
-	if back_design_boxes.is_empty(): return
+	if back_design_boxes.is_empty():
+		_refresh_rear_hardware_visuals()
+		return
 	var root := Node3D.new()
 	root.name = "BackDesignRaisedSections"
 	phone_body.add_child(root)
