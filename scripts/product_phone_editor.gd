@@ -972,6 +972,23 @@ func _refresh_phone_screen() -> void:
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
+	if home_button_type == "On-screen":
+		# Keep the on-screen navigation control generic; OS-specific styles
+		# are intentionally reserved for the later operating-system system.
+		var home_indicator := MeshInstance3D.new()
+		home_indicator.name = "GenericOnScreenHomeIndicator"
+		var indicator_mesh := BoxMesh.new()
+		indicator_mesh.size = Vector3(0.18, 0.018, 0.002)
+		home_indicator.mesh = indicator_mesh
+		var indicator_material := StandardMaterial3D.new()
+		indicator_material.albedo_color = Color(0.88, 0.94, 1.0, 0.88)
+		indicator_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		indicator_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		indicator_material.roughness = 0.8
+		home_indicator.material_override = indicator_material
+		home_indicator.position = Vector3(0.0, -display_mesh.size.y * 0.5 + 0.075, 0.004)
+		home_indicator.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		display.add_child(home_indicator)
 
 
 func _style_feature_slider(meter: VSlider) -> void:
