@@ -14,7 +14,7 @@ var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
 var front_camera_style := "Punch-Hole"
-const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
+const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
 var front_camera_option_buttons: Dictionary = {}
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
@@ -1585,20 +1585,6 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			var side_camera_y := _side_camera_safe_y(side_camera_x, screen_width, screen_height, side_lens_radius, camera_y)
 			var side_camera_z := front_z + _front_camera_screen_surface_z(side_camera_x, side_camera_y, screen_width, screen_height)
 			_add_front_camera_lens(camera_root, Vector3(side_camera_x, side_camera_y, side_camera_z), side_lens_radius, cutout_material, lens_material, ring_material)
-		"Dual Side Punch-Hole":
-			# Both lenses share the same normalized side anchor and follow the
-			# curved glass depth, so curving cannot drag them toward screen centre.
-			var dual_lens_radius := 0.027
-			var dual_camera_x := -screen_width * (0.40 if border_radius_level == 0 else 0.36)
-			var dual_side_spacing := 0.050
-			var dual_left_x := dual_camera_x - dual_side_spacing * 0.5
-			var dual_right_x := dual_camera_x + dual_side_spacing * 0.5
-			var dual_left_y := _side_camera_safe_y(dual_left_x, screen_width, screen_height, dual_lens_radius, camera_y)
-			var dual_right_y := _side_camera_safe_y(dual_right_x, screen_width, screen_height, dual_lens_radius, camera_y)
-			var dual_left_z := front_z + _front_camera_screen_surface_z(dual_left_x, dual_left_y, screen_width, screen_height)
-			var dual_right_z := front_z + _front_camera_screen_surface_z(dual_right_x, dual_right_y, screen_width, screen_height)
-			_add_front_camera_lens(camera_root, Vector3(dual_left_x, dual_left_y, dual_left_z), dual_lens_radius, cutout_material, lens_material, ring_material)
-			_add_front_camera_lens(camera_root, Vector3(dual_right_x, dual_right_y, dual_right_z), dual_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Punch-Hole":
 			# Two distinct, evenly spaced circular openings centred at the top.
 			var dual_spacing := 0.052
