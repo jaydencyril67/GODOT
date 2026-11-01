@@ -835,7 +835,7 @@ func _show_screen_size_controls() -> void:
 	width_slider.min_value = 0.02
 	width_slider.max_value = 0.15
 	width_slider.step = 0.001
-	width_slider.value = clampf(bezel_width, 0.02, 0.15)
+	width_slider.value = 0.17 - clampf(bezel_width, 0.02, 0.15)
 	width_slider.tick_count = 14
 	width_slider.custom_minimum_size = Vector2(64, 250)
 	width_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -865,7 +865,7 @@ func _show_screen_size_controls() -> void:
 	height_slider.min_value = 0.02
 	height_slider.max_value = 0.325
 	height_slider.step = 0.001
-	height_slider.value = clampf(bezel_height, 0.02, 0.325)
+	height_slider.value = 0.345 - clampf(bezel_height, 0.02, 0.325)
 	height_slider.tick_count = 14
 	height_slider.custom_minimum_size = Vector2(64, 250)
 	height_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -874,19 +874,21 @@ func _show_screen_size_controls() -> void:
 	_style_feature_slider(height_slider)
 	height_column.add_child(height_slider)
 
-	bezel_width = width_slider.value
-	bezel_height = height_slider.value
+	bezel_width = 0.17 - width_slider.value
+	bezel_height = 0.345 - height_slider.value
 	_update_bezel_value_labels()
 
 
 func _on_bezel_width_changed(value: float) -> void:
-	bezel_width = clampf(value, 0.02, 0.15)
+	# The slider represents screen size: moving it up must reduce the bezel.
+	bezel_width = clampf(0.17 - value, 0.02, 0.15)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 
 
 func _on_bezel_height_changed(value: float) -> void:
-	bezel_height = clampf(value, 0.02, 0.325)
+	# The slider represents screen size: moving it up must reduce the bezel.
+	bezel_height = clampf(0.345 - value, 0.02, 0.325)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 
