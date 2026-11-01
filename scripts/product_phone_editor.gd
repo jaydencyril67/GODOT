@@ -1240,11 +1240,15 @@ func _create_curved_screen_mesh(width: float, height: float, _corner_radius: flo
 		for x_index in range(X_SEGMENTS + 1):
 			var u := float(x_index) / float(X_SEGMENTS)
 			var x := (u - 0.5) * width
-			var z := 0.0
+			var side_drop := 0.0
+			var vertical_drop := 0.0
 			if curve_sides:
-				z -= SIDE_BEND * pow(abs(x / maxf(width * 0.5, 0.001)), 6.0)
+				side_drop = SIDE_BEND * pow(abs(x / maxf(width * 0.5, 0.001)), 6.0)
 			if curve_vertical:
-				z -= VERTICAL_BEND * pow(abs(y / maxf(height * 0.5, 0.001)), 6.0)
+				vertical_drop = VERTICAL_BEND * pow(abs(y / maxf(height * 0.5, 0.001)), 6.0)
+			# Blend the two edge curves instead of adding their depth. Adding
+			# them doubles the corner drop and can visibly twist/distort the glass.
+			var z := -maxf(side_drop, vertical_drop)
 			points.append(Vector3(x, y, z))
 	for y_index in range(Y_SEGMENTS):
 		for x_index in range(X_SEGMENTS):
