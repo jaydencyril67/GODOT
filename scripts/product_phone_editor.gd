@@ -1559,14 +1559,17 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 	var box: Dictionary = back_design_boxes[selected_back_design_box]
 	var box_position: Vector2 = box["position"]
 	var box_size: Vector2 = box["size"]
-	# The back face is viewed from negative local Z, so its local X axis is
-	# mirrored on screen. Convert horizontal D-pad input to the phone's local
-	# coordinates before applying either movement or resize.
-	var screen_direction := Vector2(direction.x, direction.y)
-	var camera_position := preview_camera.global_position if is_instance_valid(preview_camera) else Vector3(0.0, 0.0, 5.2)
-	var toward_camera := camera_position - phone_body.global_position
-	var viewing_back := phone_body.global_transform.basis.z.dot(toward_camera) < 0.0
-	var local_direction := Vector2(-screen_direction.x if viewing_back else screen_direction.x, screen_direction.y)
+	# Convert the visible D-pad direction through the camera and phone
+	# transforms. This accounts for the mirrored back face and any preview
+	# rotation, so LEFT always means screen-left and UP always means screen-up.
+	var local_basis := phone_body.global_transform.basis.inverse()
+	var camera_right_local := local_basis * preview_camera.global_transform.basis.x
+	var camera_up_local := local_basis * preview_camera.global_transform.basis.y
+	var local_direction_3d := camera_right_local * float(direction.x) + camera_up_local * float(direction.y)
+	var local_direction := Vector2(local_direction_3d.x, local_direction_3d.y)
+	if local_direction.length_squared() < 0.000001:
+		return
+	local_direction = local_direction.normalized()
 	if back_design_mode == "MOVE":
 		var next_position := box_position + local_direction * 0.04
 		if _back_design_position_is_free(next_position, box_size, selected_back_design_box):
@@ -1578,6 +1581,11 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 		var next_position := box_position
 		var next_half := half
 		var step := 0.025 if back_design_size_action == "EXPAND" else -0.025
+		# A resize arrow changes the nearest visible edge, not a diagonal corner.
+		if absf(local_direction.x) >= absf(local_direction.y):
+			local_direction = Vector2(signf(local_direction.x), 0.0)
+		else:
+			local_direction = Vector2(0.0, signf(local_direction.y))
 		if local_direction.x < 0.0:
 			next_position.x -= step * 0.5
 			next_half.x += step * 0.5
