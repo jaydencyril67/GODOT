@@ -1224,30 +1224,46 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 	return surface.commit()
 
 
-func _create_curved_screen_mesh(width: float, height: float, _corner_radius: float, curve_sides: bool, curve_vertical: bool) -> ArrayMesh:
-	# Subdivided glass surface: the selected edges gently roll down toward the
-	# handset frame instead of ending as a flat panel.
+func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool) -> ArrayMesh:
+	# Keep the curved glass on the same rounded-rectangle footprint as the
+	# handset. The edge bend changes depth only; it must not square off corners.
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	const X_SEGMENTS := 24
-	const Y_SEGMENTS := 40
+	const X_SEGMENTS := 48
+	const Y_SEGMENTS := 80
 	const SIDE_BEND := 0.028
 	const VERTICAL_BEND := 0.028
+	var half_width := width * 0.5
+	var half_height := height * 0.5
+	var radius := clampf(corner_radius, 0.0, minf(half_width, half_height))
+	var corner_x := half_width - radius
+	var corner_y := half_height - radius
 	var points: Array[Vector3] = []
 	for y_index in range(Y_SEGMENTS + 1):
 		var v := float(y_index) / float(Y_SEGMENTS)
-		var y := (0.5 - v) * height
+		var raw_y := (0.5 - v) * height
 		for x_index in range(X_SEGMENTS + 1):
 			var u := float(x_index) / float(X_SEGMENTS)
-			var x := (u - 0.5) * width
+			var raw_x := (u - 0.5) * width
+			var x := raw_x
+			var y := raw_y
+			# Project grid samples outside the rounded corner arcs onto the
+			# exact radius. This gives the curved mesh the same corner profile
+			# as the phone body instead of a rectangular glass silhouette.
+			if radius > 0.0001 and absf(raw_x) > corner_x and absf(raw_y) > corner_y:
+				var corner_center := Vector2(signf(raw_x) * corner_x, signf(raw_y) * corner_y)
+				var corner_offset := Vector2(raw_x, raw_y) - corner_center
+				if corner_offset.length_squared() > radius * radius:
+					corner_offset = corner_offset.normalized() * radius
+					x = corner_center.x + corner_offset.x
+					y = corner_center.y + corner_offset.y
 			var side_drop := 0.0
 			var vertical_drop := 0.0
 			if curve_sides:
-				side_drop = SIDE_BEND * pow(abs(x / maxf(width * 0.5, 0.001)), 6.0)
+				side_drop = SIDE_BEND * pow(absf(x / maxf(half_width, 0.001)), 6.0)
 			if curve_vertical:
-				vertical_drop = VERTICAL_BEND * pow(abs(y / maxf(height * 0.5, 0.001)), 6.0)
-			# Blend the two edge curves instead of adding their depth. Adding
-			# them doubles the corner drop and can visibly twist/distort the glass.
+				vertical_drop = VERTICAL_BEND * pow(absf(y / maxf(half_height, 0.001)), 6.0)
+			# Blend the two edge curves instead of stacking their depth.
 			var z := -maxf(side_drop, vertical_drop)
 			points.append(Vector3(x, y, z))
 	for y_index in range(Y_SEGMENTS):
@@ -1283,7 +1299,9 @@ func _refresh_phone_screen() -> void:
 	# Symmetrical bezels consume the outer edges; the display fills the remaining area.
 	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
 	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
-	var screen_radius := maxf(0.018, 0.32 * float(border_radius_level) / 6.0 - 0.04)
+	# The display inherits the phone's exact outer corner radius so curved
+	# glass and frame stay visually aligned as Border Radius is upgraded.
+	var screen_radius := 0.32 * float(border_radius_level) / 6.0
 	if screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled):
 		display.mesh = _create_curved_screen_mesh(screen_width, screen_height, screen_radius, side_curve_enabled, vertical_curve_enabled)
 	else:
