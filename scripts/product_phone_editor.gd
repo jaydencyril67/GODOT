@@ -17,7 +17,7 @@ class DeviceColorSpectrum extends Control:
 	var dragging := false
 
 	func _ready() -> void:
-		custom_minimum_size = Vector2(0, 110)
+		# Keep the minimum height configured by the color panel; do not overwrite it here.
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		_rebuild_spectrum()
 		queue_redraw()
