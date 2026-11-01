@@ -199,6 +199,14 @@ var active_feature_panel: Control
 var right_tools_content: VBoxContainer
 var device_body_color := Color("#a5adb6")
 var device_color_hex_label: Label
+var back_design_boxes: Array[Dictionary] = []
+var selected_back_design_box := -1
+var next_back_design_box_id := 1
+var back_design_selection_list: VBoxContainer
+var back_design_size_label: Label
+var back_design_border_label: Label
+var back_design_border_slider: HSlider
+var back_design_mode := "MOVE"
 
 
 func _ready() -> void:
@@ -469,7 +477,7 @@ func _get_hardware_research_features() -> Array:
 		"Screen Tech", "Power/Volume Buttons", "Thickness", "Device Color",
 		"Screen Size", "Screen Type", "Border Radius", "Speakers",
 		"Charge Port", "Front Camera", "Rare Camera", "Style Pen",
-		"Side Button", "Home Button", "Body Frame", "Phone Width",
+		"Side Button", "Home Button", "Back Design", "Phone Width",
 		"Phone Height", "Sim/Memory Slot", "Protection", "Refresh Rate",
 		"Back Panel Material", "Frame Material", "Body Finish & Colour",
 		"Cooling System Design"
@@ -903,7 +911,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Back Design"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -934,6 +942,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_home_button_controls()
 	elif feature_name == "Front Camera":
 		_show_front_camera_controls()
+	elif feature_name == "Back Design":
+		_show_back_design_controls()
 
 
 
@@ -1153,6 +1163,244 @@ func _on_device_body_color_changed(color: Color) -> void:
 			hex_input.text = device_body_color.to_html(false).to_upper()
 	_refresh_phone_side_buttons()
 
+
+func _show_back_design_controls() -> void:
+	if not is_instance_valid(right_tools_content): return
+	for child in right_tools_content.get_children(): child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "BackDesignControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 8)
+	right_tools_content.add_child(active_feature_panel)
+	var heading := _make_label("BACK DESIGN", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var actions := HBoxContainer.new()
+	active_feature_panel.add_child(actions)
+	var add_button := Button.new()
+	add_button.text = "+ ADD BOX"
+	add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_research_typography(add_button, 13)
+	_style_staff_button(add_button, true)
+	add_button.pressed.connect(_add_back_design_box)
+	actions.add_child(add_button)
+	var remove_button := Button.new()
+	remove_button.text = "− REMOVE"
+	remove_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_research_typography(remove_button, 13)
+	_style_staff_button(remove_button, false)
+	remove_button.pressed.connect(_remove_selected_back_design_box)
+	actions.add_child(remove_button)
+	active_feature_panel.add_child(_make_label("RAISED SECTIONS · TAP TO SELECT", 10, Color("#a9e3ff")))
+	back_design_selection_list = VBoxContainer.new()
+	back_design_selection_list.name = "BackDesignBoxList"
+	active_feature_panel.add_child(back_design_selection_list)
+	var modes := HBoxContainer.new()
+	active_feature_panel.add_child(modes)
+	for mode in ["SIZE", "MOVE"]:
+		var mode_button := Button.new()
+		mode_button.text = mode
+		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(mode_button, 13)
+		_style_staff_button(mode_button, back_design_mode == mode)
+		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
+		modes.add_child(mode_button)
+	var pad := GridContainer.new()
+	pad.columns = 3
+	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	active_feature_panel.add_child(pad)
+	_add_back_design_pad_spacer(pad)
+	_add_back_design_pad_button(pad, "↑", Vector2i(0, 1))
+	_add_back_design_pad_spacer(pad)
+	_add_back_design_pad_button(pad, "←", Vector2i(-1, 0))
+	var center := _make_label(back_design_mode, 11, Color("#c7eaff"))
+	center.custom_minimum_size = Vector2(48, 42)
+	center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pad.add_child(center)
+	_add_back_design_pad_button(pad, "→", Vector2i(1, 0))
+	_add_back_design_pad_spacer(pad)
+	_add_back_design_pad_button(pad, "↓", Vector2i(0, -1))
+	_add_back_design_pad_spacer(pad)
+	back_design_size_label = _make_label("", 11, Color("#d8eaf5"))
+	active_feature_panel.add_child(back_design_size_label)
+	active_feature_panel.add_child(_make_label("CORNER BORDER", 12, Color("#a9e3ff")))
+	back_design_border_slider = HSlider.new()
+	back_design_border_slider.min_value = 0.0
+	back_design_border_slider.max_value = 0.45
+	back_design_border_slider.step = 0.01
+	back_design_border_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
+	active_feature_panel.add_child(back_design_border_slider)
+	back_design_border_label = _make_label("", 11, Color("#d8eaf5"))
+	active_feature_panel.add_child(back_design_border_label)
+	_refresh_back_design_panel()
+
+func _add_back_design_pad_spacer(parent: GridContainer) -> void:
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(48, 42)
+	parent.add_child(spacer)
+
+func _add_back_design_pad_button(parent: GridContainer, caption: String, direction: Vector2i) -> void:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(48, 42)
+	_apply_research_typography(button, 20)
+	_style_staff_button(button, true)
+	button.pressed.connect(_on_back_design_pad_pressed.bind(direction))
+	parent.add_child(button)
+
+func _set_back_design_mode(mode: String) -> void:
+	back_design_mode = mode
+	_show_back_design_controls()
+
+func _add_back_design_box() -> void:
+	var placed := false
+	for row in range(7):
+		for column in range(3):
+			var position := Vector2(-0.43 + float(column) * 0.43, 1.05 - float(row) * 0.43)
+			var box_size := Vector2(0.34, 0.34)
+			if _back_design_position_is_free(position, box_size, -1):
+				back_design_boxes.append({"id": next_back_design_box_id, "position": position, "size": box_size, "border": 0.08})
+				selected_back_design_box = back_design_boxes.size() - 1
+				next_back_design_box_id += 1
+				placed = true
+				break
+		if placed: break
+	if placed:
+		_refresh_back_design_boxes()
+		_refresh_back_design_panel()
+
+func _remove_selected_back_design_box() -> void:
+	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
+	back_design_boxes.remove_at(selected_back_design_box)
+	selected_back_design_box = mini(selected_back_design_box, back_design_boxes.size() - 1)
+	_refresh_back_design_boxes()
+	_refresh_back_design_panel()
+
+func _select_back_design_box(index: int) -> void:
+	if index < 0 or index >= back_design_boxes.size(): return
+	selected_back_design_box = index
+	_refresh_back_design_boxes()
+	_refresh_back_design_panel()
+
+func _back_design_position_is_free(position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
+	var half := box_size * 0.5
+	if absf(position.x) + half.x > PHONE_SIZE.x * 0.5 - 0.07: return false
+	if absf(position.y) + half.y > PHONE_SIZE.y * 0.5 - 0.07: return false
+	for index in range(back_design_boxes.size()):
+		if index == ignore_index: continue
+		var other: Dictionary = back_design_boxes[index]
+		var other_half: Vector2 = other["size"] * 0.5
+		var other_position: Vector2 = other["position"]
+		if absf(position.x - other_position.x) < half.x + other_half.x + 0.035 and absf(position.y - other_position.y) < half.y + other_half.y + 0.035: return false
+	return true
+
+func _on_back_design_pad_pressed(direction: Vector2i) -> void:
+	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
+	var box: Dictionary = back_design_boxes[selected_back_design_box]
+	var position: Vector2 = box["position"]
+	var box_size: Vector2 = box["size"]
+	if back_design_mode == "MOVE":
+		var next_position := position + Vector2(direction) * 0.04
+		if _back_design_position_is_free(next_position, box_size, selected_back_design_box): box["position"] = next_position
+	else:
+		var change := 0.025 if direction.x + direction.y > 0 else -0.025
+		var next_size := box_size + Vector2(change, change)
+		next_size.x = clampf(next_size.x, 0.20, 0.76)
+		next_size.y = clampf(next_size.y, 0.20, 0.76)
+		if _back_design_position_is_free(position, next_size, selected_back_design_box): box["size"] = next_size
+	back_design_boxes[selected_back_design_box] = box
+	_refresh_back_design_boxes()
+	_refresh_back_design_panel()
+
+func _on_back_design_border_changed(value: float) -> void:
+	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
+	back_design_boxes[selected_back_design_box]["border"] = value
+	_refresh_back_design_boxes()
+	if is_instance_valid(back_design_border_label): back_design_border_label.text = "ROUNDING  %.0f%%" % (value / 0.45 * 100.0)
+
+func _refresh_back_design_panel() -> void:
+	if not is_instance_valid(back_design_selection_list): return
+	for child in back_design_selection_list.get_children(): child.queue_free()
+	for index in range(back_design_boxes.size()):
+		var box: Dictionary = back_design_boxes[index]
+		var selector := Button.new()
+		selector.text = ("●  " if index == selected_back_design_box else "○  ") + "RAISED BOX %d" % int(box["id"])
+		selector.custom_minimum_size.y = 34
+		selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		selector.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_apply_research_typography(selector, 12)
+		_style_staff_button(selector, index == selected_back_design_box)
+		selector.pressed.connect(_select_back_design_box.bind(index))
+		back_design_selection_list.add_child(selector)
+	var has_box := selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size()
+	if has_box:
+		var selected: Dictionary = back_design_boxes[selected_back_design_box]
+		var size: Vector2 = selected["size"]
+		back_design_size_label.text = "SIZE  %.2f × %.2f" % [size.x, size.y]
+		back_design_border_slider.set_value_no_signal(float(selected["border"]))
+		back_design_border_label.text = "ROUNDING  %.0f%%" % (float(selected["border"]) / 0.45 * 100.0)
+	else:
+		back_design_size_label.text = "ADD A BOX TO BEGIN"
+		back_design_border_slider.set_value_no_signal(0.0)
+		back_design_border_label.text = "NO BOX SELECTED"
+
+func _make_back_design_mesh(box_size: Vector2, corner_radius: float, depth: float) -> ArrayMesh:
+	var outline := PackedVector2Array()
+	var radius := clampf(corner_radius, 0.001, minf(box_size.x, box_size.y) * 0.48)
+	var centers := [Vector2(box_size.x * 0.5 - radius, box_size.y * 0.5 - radius), Vector2(-box_size.x * 0.5 + radius, box_size.y * 0.5 - radius), Vector2(-box_size.x * 0.5 + radius, -box_size.y * 0.5 + radius), Vector2(box_size.x * 0.5 - radius, -box_size.y * 0.5 + radius)]
+	for corner in range(4):
+		for segment in range(5):
+			var angle := float(corner) * PI * 0.5 + float(segment) / 4.0 * PI * 0.5
+			outline.append(centers[corner] + Vector2(cos(angle), sin(angle)) * radius)
+	var indices := Geometry2D.triangulate_polygon(outline)
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var outer_z := -depth
+	for index in range(0, indices.size(), 3):
+		var a: Vector2 = outline[indices[index]]
+		var b: Vector2 = outline[indices[index + 1]]
+		var c: Vector2 = outline[indices[index + 2]]
+		_add_phone_mesh_triangle(surface, a.x * Vector3.RIGHT + a.y * Vector3.UP + Vector3(0, 0, outer_z), b.x * Vector3.RIGHT + b.y * Vector3.UP + Vector3(0, 0, outer_z), c.x * Vector3.RIGHT + c.y * Vector3.UP + Vector3(0, 0, outer_z), Vector3(0, 0, -1))
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, 0), Vector3(c.x, c.y, 0), Vector3(b.x, b.y, 0), Vector3(0, 0, 1))
+	for index in range(outline.size()):
+		var next := (index + 1) % outline.size()
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[next]
+		var normal := Vector3((b - a).y, -(b - a).x, 0).normalized()
+		var fa := Vector3(a.x, a.y, outer_z)
+		var fb := Vector3(b.x, b.y, outer_z)
+		var ba := Vector3(a.x, a.y, 0)
+		var bb := Vector3(b.x, b.y, 0)
+		_add_phone_mesh_triangle(surface, fa, ba, bb, normal)
+		_add_phone_mesh_triangle(surface, fa, bb, fb, normal)
+	return surface.commit()
+
+func _refresh_back_design_boxes() -> void:
+	if not is_instance_valid(phone_body): return
+	var old_root := phone_body.get_node_or_null("BackDesignRaisedSections")
+	if is_instance_valid(old_root): old_root.free()
+	if back_design_boxes.is_empty(): return
+	var root := Node3D.new()
+	root.name = "BackDesignRaisedSections"
+	phone_body.add_child(root)
+	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	for index in range(back_design_boxes.size()):
+		var box: Dictionary = back_design_boxes[index]
+		var size: Vector2 = box["size"]
+		var raised := MeshInstance3D.new()
+		raised.name = "RaisedBackBox_%d" % int(box["id"])
+		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035)
+		var material := StandardMaterial3D.new()
+		material.albedo_color = device_body_color.lightened(0.045) if index == selected_back_design_box else device_body_color.darkened(0.10)
+		material.metallic = 0.34
+		material.roughness = 0.48
+		raised.material_override = material
+		raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var position: Vector2 = box["position"]
+		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5 - 0.035)
+		root.add_child(raised)
 
 func _show_screen_size_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -3500,9 +3748,11 @@ func _refresh_phone_mesh() -> void:
 	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
 	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
+	_refresh_back_design_boxes()
 	_refresh_phone_side_buttons()
 	_refresh_phone_home_button()
 	_refresh_phone_screen()
+	_refresh_back_design_boxes()
 func _on_border_radius_level_changed(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
 	if is_instance_valid(border_radius_value_label):
