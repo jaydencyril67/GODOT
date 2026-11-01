@@ -606,12 +606,8 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	tools_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	tools_scroll.add_child(tools_content)
 
-	var hardware_tool_features := _get_hardware_research_features()
-	# Screen Type is configured from the Screen Tech editor control now, so
-	# don't show a second, disconnected Screen Type button in the tool grid.
-	hardware_tool_features.erase("Screen Type")
 	var page_feature_lists := [
-		hardware_tool_features,
+		_get_hardware_research_features(),
 		_get_software_research_features(),
 		_get_extras_research_features()
 	]
