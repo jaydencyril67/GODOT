@@ -1523,11 +1523,9 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 	# the user changes screen dimensions or bezel settings.
 	var top_edge := screen_height * 0.5
 	var top_inset := clampf(screen_height * 0.035, 0.055, 0.095)
-	# Keep side-mounted lenses inside the rounded display corner. The inset
-	# follows both the active screen dimensions and the selected border radius.
-	var screen_corner_radius := 0.32 * float(border_radius_level) / 6.0
-	var corner_safe_inset := screen_corner_radius + 0.045
-	var camera_y := top_edge - maxf(top_inset, corner_safe_inset)
+	# Standard front-camera styles keep a fixed top inset. Border Radius
+	# adjustments are applied only inside the Side Punch-Hole style below.
+	var camera_y := top_edge - top_inset
 	camera_root.set_meta("camera_y", camera_y)
 	var front_z := 0.014
 
