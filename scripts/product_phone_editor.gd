@@ -773,8 +773,11 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 func _show_screen_tech_controls() -> void:
-	if is_instance_valid(active_feature_panel):
-		active_feature_panel.queue_free()
+	# Remove the full-height empty-state hint and any previous feature controls
+	# so Screen Tech starts at the top of the right-hand panel.
+	for child in right_tools_content.get_children():
+		right_tools_content.remove_child(child)
+		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "ScreenTechControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -785,10 +788,6 @@ func _show_screen_tech_controls() -> void:
 	var title := _make_label("SCREEN TECHNOLOGY", 18, Color("#c7eaff"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
-
-	var description := _make_label("Enable the display, then choose the panel technology used on this phone.", 12, Color("#d5eaf5"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
 
 	# Custom checkbox: a compact toggle square beside its label, styled to
 	# match the editor rather than using Godot's default CheckBox artwork.
@@ -829,7 +828,7 @@ func _show_screen_tech_controls() -> void:
 
 	var type_grid := GridContainer.new()
 	type_grid.name = "ScreenTypeOptions"
-	type_grid.columns = 2
+	type_grid.columns = 1
 	type_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	type_grid.add_theme_constant_override("h_separation", 7)
 	type_grid.add_theme_constant_override("v_separation", 7)
