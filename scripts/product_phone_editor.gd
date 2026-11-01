@@ -1504,25 +1504,10 @@ func _front_camera_screen_surface_z(x: float, y: float, screen_width: float, scr
 	return -maxf(side_drop, vertical_drop)
 
 
-func _side_camera_safe_y(x: float, screen_width: float, screen_height: float, lens_radius: float, fallback_y: float) -> float:
-	# Keep the side camera at its normal top inset unless the rounded
-	# corner forces it farther down. Never move it upward as the radius grows.
-	var corner_radius := 0.32 * float(border_radius_level) / 6.0
-	if corner_radius <= 0.001:
-		return fallback_y
-	var safe_radius := maxf(0.0, corner_radius - lens_radius - 0.012)
-	var corner_center_x := -screen_width * 0.5 + corner_radius
-	var corner_center_y := screen_height * 0.5 - corner_radius
-	var horizontal_offset := absf(x - corner_center_x)
-	if horizontal_offset >= safe_radius:
-		return fallback_y
-	var vertical_reach := sqrt(maxf(0.0, safe_radius * safe_radius - horizontal_offset * horizontal_offset))
-	var highest_safe_y := corner_center_y + vertical_reach - 0.008
-	# Limit the extra downward correction to a small, predictable step per
-	# border level so the lens does not jump when the corner radius increases.
-	var max_gradual_drop := 0.012 * float(border_radius_level)
-	var corner_safe_y := minf(fallback_y, highest_safe_y)
-	return maxf(corner_safe_y, fallback_y - max_gradual_drop)
+func _side_camera_safe_y(fallback_y: float) -> float:
+	# Enforce an exact, cumulative downward movement of 0.012 units per
+	# border-radius level. Level 0 keeps the normal top inset unchanged.
+	return fallback_y - (0.012 * float(border_radius_level))
 
 
 func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
@@ -1589,7 +1574,7 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Side-camera positioning starts from the unbordered top inset.
 			# The helper then applies only a gradual, capped correction per level.
 			var side_camera_base_y := top_edge - top_inset
-			var side_camera_y := _side_camera_safe_y(side_camera_x, screen_width, screen_height, side_lens_radius, side_camera_base_y)
+			var side_camera_y := _side_camera_safe_y(side_camera_base_y)
 			var side_camera_z := front_z + _front_camera_screen_surface_z(side_camera_x, side_camera_y, screen_width, screen_height)
 			_add_front_camera_lens(camera_root, Vector3(side_camera_x, side_camera_y, side_camera_z), side_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Punch-Hole":
