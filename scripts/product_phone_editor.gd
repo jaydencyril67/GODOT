@@ -1482,7 +1482,11 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 	# the user changes screen dimensions or bezel settings.
 	var top_edge := screen_height * 0.5
 	var top_inset := clampf(screen_height * 0.035, 0.055, 0.095)
-	var camera_y := top_edge - top_inset
+	# Keep side-mounted lenses inside the rounded display corner. The inset
+	# follows both the active screen dimensions and the selected border radius.
+	var screen_corner_radius := 0.32 * float(border_radius_level) / 6.0
+	var corner_safe_inset := screen_corner_radius + 0.045
+	var camera_y := top_edge - maxf(top_inset, corner_safe_inset)
 	camera_root.set_meta("camera_y", camera_y)
 	var front_z := 0.014
 
@@ -1518,30 +1522,34 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Single, small circular opening centred on the top safe area.
 			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y, front_z), 0.038, cutout_material, lens_material, ring_material)
 		"Side Punch-Hole":
-			# Single camera near the upper-left corner.
-			var side_inset := minf(0.095, screen_width * 0.10)
+			# Anchor the lens to the live display edge, but keep its full radius
+			# inside the rounded corner as the bezel and border radius change.
+			var side_lens_radius := 0.037
+			var side_inset := maxf(corner_safe_inset, side_lens_radius + 0.018)
 			var left_x := -screen_width * 0.5 + side_inset
-			_add_front_camera_lens(camera_root, Vector3(left_x, camera_y, front_z), 0.037, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(left_x, camera_y, front_z), side_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Side Punch-Hole":
-			# Two adjacent lenses grouped near the upper-left screen edge.
-			var dual_side_inset := minf(0.105, screen_width * 0.11)
+			# Keep both lenses inside the same rounded-corner safe area.
+			var dual_lens_radius := 0.027
+			var dual_side_inset := maxf(corner_safe_inset, dual_lens_radius + 0.018)
 			var dual_left_x := -screen_width * 0.5 + dual_side_inset
 			var dual_side_spacing := 0.050
-			_add_front_camera_lens(camera_root, Vector3(dual_left_x - dual_side_spacing * 0.5, camera_y, front_z), 0.027, cutout_material, lens_material, ring_material)
-			_add_front_camera_lens(camera_root, Vector3(dual_left_x + dual_side_spacing * 0.5, camera_y, front_z), 0.027, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(dual_left_x - dual_side_spacing * 0.5, camera_y, front_z), dual_lens_radius, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(dual_left_x + dual_side_spacing * 0.5, camera_y, front_z), dual_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Punch-Hole":
 			# Two distinct, evenly spaced circular openings centred at the top.
 			var dual_spacing := 0.052
 			_add_front_camera_lens(camera_root, Vector3(-dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
 			_add_front_camera_lens(camera_root, Vector3(dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
 		"Pop-Up Camera":
-			# Physical pop-up module emerges from the handset's top edge, not the
-			# display edge, and sits toward the upper-left side of the phone.
-			var popup_x := -PHONE_SIZE.x * 0.5 + 0.18
+			# Centre the physical module on the handset's top edge and reduce
+			# its previous width by exactly 50%.
+			var popup_x := 0.0
 			var popup_y := PHONE_SIZE.y * 0.5 + 0.055
+			var popup_width := 0.15
 			var popup_housing := MeshInstance3D.new()
 			popup_housing.name = "PopUpCameraHousing"
-			popup_housing.mesh = _create_rounded_panel_mesh(0.30, 0.13, 0.035, 0.045)
+			popup_housing.mesh = _create_rounded_panel_mesh(popup_width, 0.13, 0.035, 0.045)
 			popup_housing.position = Vector3(popup_x, popup_y, front_z)
 			popup_housing.material_override = ring_material
 			popup_housing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
