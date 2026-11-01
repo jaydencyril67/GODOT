@@ -1396,6 +1396,7 @@ func _refresh_phone_screen() -> void:
 		home_indicator.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		display.add_child(home_indicator)
 
+	_refresh_phone_home_button()
 
 func _show_front_camera_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -1991,56 +1992,42 @@ func _on_home_button_type_selected(type_name: String) -> void:
 
 
 func _refresh_phone_home_button() -> void:
-	if not is_instance_valid(phone_body):
+	if not is_instance_valid(phone_screen):
 		return
-	var previous := phone_body.get_node_or_null("PhoneHomeButton")
+	var previous := phone_screen.get_node_or_null("PhoneHomeButton")
 	if is_instance_valid(previous):
 		previous.free()
 	# Home controls are absent until the user explicitly enables them.
-	if not home_button_enabled:
-		return
-	# On-screen is the only software-rendered option. The physical navigation
-	# layout below is built directly on the lower hardware bezel.
-	if home_button_type == "On-screen":
+	if not home_button_enabled or home_button_type == "On-screen":
 		return
 
+	# Physical-style home controls are rendered as thin graphics directly on
+	# the display surface. They are never raised above the glass, on flat or
+	# curved screens.
 	var button_root := Node3D.new()
 	button_root.name = "PhoneHomeButton"
-	phone_body.add_child(button_root)
-	var center_y := -PHONE_SIZE.y * 0.5 + 0.10
-	# Nudge only the circular and square physical keys very slightly upward.
-	if home_button_type == "Circle Home Button" or home_button_type == "Square Home Button":
-		center_y += 0.02
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
-	var front_z := current_depth * 0.5
-	# Curved glass reaches farther over the lower bezel than a flat display.
-	# Lift physical keys above the display surface so they remain visible
-	# instead of being occluded when either curved edge is enabled.
-	if screen_enabled and screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled):
-		front_z += 0.045
-	var button_material := StandardMaterial3D.new()
-	button_material.albedo_color = Color("#89939e")
-	button_material.metallic = 0.34
-	button_material.roughness = 0.38
-	var dark_material := StandardMaterial3D.new()
-	dark_material.albedo_color = Color("#202a34")
-	dark_material.metallic = 0.16
-	dark_material.roughness = 0.52
+	phone_screen.add_child(button_root)
+	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
+	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+	var center_y := -screen_height * 0.5 + 0.105
+	var surface_z := _front_camera_screen_surface_z(0.0, center_y, screen_width, screen_height)
+	var flat_z := surface_z + 0.0012
+
+	var icon_material := StandardMaterial3D.new()
+	icon_material.albedo_color = Color("#aebbc8")
+	icon_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	icon_material.roughness = 0.9
 
 	if home_button_type == "Recent · Home · Back (Physical)":
-		# Classic Android hardware navigation row: Recent on the left,
-		# Home in the centre, and Back on the right, all outside the display.
-		var recent_material := StandardMaterial3D.new()
-		recent_material.albedo_color = Color("#c5d0da")
-		recent_material.roughness = 0.7
+		# Classic navigation symbols, kept flat against the same glass surface.
 		for line_index in range(3):
 			var recent_line := MeshInstance3D.new()
 			recent_line.name = "RecentNavigationLine"
 			var line_mesh := BoxMesh.new()
-			line_mesh.size = Vector3(0.075, 0.009, 0.003)
+			line_mesh.size = Vector3(0.075, 0.009, 0.0008)
 			recent_line.mesh = line_mesh
-			recent_line.position = Vector3(-0.34, center_y + (float(line_index) - 1.0) * 0.025, front_z + 0.006)
-			recent_line.material_override = recent_material
+			recent_line.position = Vector3(-0.34, center_y + (float(line_index) - 1.0) * 0.025, flat_z)
+			recent_line.material_override = icon_material
 			button_root.add_child(recent_line)
 
 		var home_key := MeshInstance3D.new()
@@ -2048,75 +2035,45 @@ func _refresh_phone_home_button() -> void:
 		var home_mesh := CylinderMesh.new()
 		home_mesh.top_radius = 0.044
 		home_mesh.bottom_radius = 0.044
-		home_mesh.height = 0.006
+		home_mesh.height = 0.0008
 		home_mesh.radial_segments = 32
 		home_key.mesh = home_mesh
 		home_key.rotation_degrees.x = 90.0
-		home_key.position = Vector3(0.0, center_y, front_z + 0.007)
-		home_key.material_override = recent_material
+		home_key.position = Vector3(0.0, center_y, flat_z)
+		home_key.material_override = icon_material
 		button_root.add_child(home_key)
 
 		for segment in range(2):
 			var back_stroke := MeshInstance3D.new()
 			back_stroke.name = "BackNavigationChevron"
 			var stroke_mesh := BoxMesh.new()
-			stroke_mesh.size = Vector3(0.055, 0.009, 0.003)
+			stroke_mesh.size = Vector3(0.055, 0.009, 0.0008)
 			back_stroke.mesh = stroke_mesh
-			back_stroke.position = Vector3(0.34 + (0.008 if segment == 0 else -0.008), center_y + (0.018 if segment == 0 else -0.018), front_z + 0.006)
+			back_stroke.position = Vector3(0.34 + (0.008 if segment == 0 else -0.008), center_y + (0.018 if segment == 0 else -0.018), flat_z)
 			back_stroke.rotation_degrees.z = -35.0 if segment == 0 else 35.0
-			back_stroke.material_override = recent_material
+			back_stroke.material_override = icon_material
 			button_root.add_child(back_stroke)
 		return
 
+	var home_mark := MeshInstance3D.new()
+	home_mark.name = "FlatHomeButtonMark"
 	if home_button_type == "Circle Home Button":
-		var ring := MeshInstance3D.new()
-		ring.name = "RoundHomeButtonBezel"
-		var ring_mesh := CylinderMesh.new()
-		ring_mesh.top_radius = 0.092
-		ring_mesh.bottom_radius = 0.092
-		ring_mesh.height = 0.014
-		ring_mesh.radial_segments = 48
-		ring.mesh = ring_mesh
-		ring.rotation_degrees.x = 90.0
-		ring.position = Vector3(0.0, center_y, front_z + 0.006)
-		ring.material_override = button_material
-		button_root.add_child(ring)
-		var face := MeshInstance3D.new()
-		face.name = "RoundHomeButtonFace"
-		var face_mesh := CylinderMesh.new()
-		face_mesh.top_radius = 0.073
-		face_mesh.bottom_radius = 0.073
-		face_mesh.height = 0.010
-		face_mesh.radial_segments = 48
-		face.mesh = face_mesh
-		face.rotation_degrees.x = 90.0
-		face.position = Vector3(0.0, center_y, front_z + 0.014)
-		face.material_override = dark_material
-		button_root.add_child(face)
+		var circle_mesh := CylinderMesh.new()
+		circle_mesh.top_radius = 0.073
+		circle_mesh.bottom_radius = 0.073
+		circle_mesh.height = 0.0008
+		circle_mesh.radial_segments = 48
+		home_mark.mesh = circle_mesh
+		home_mark.rotation_degrees.x = 90.0
 	else:
-		# The oval follows the OPPO F1s-style pill; the square is a distinct
-		# squared physical key. Both sit entirely within the lower bezel.
-		var backing := MeshInstance3D.new()
-		backing.name = "HomeButtonBezel"
 		var is_oval := home_button_type == "Oval Home Button"
-		var is_square := home_button_type == "Square Home Button"
-		var backing_width := 0.25 if is_oval else 0.15
-		var backing_height := 0.105 if is_oval else 0.15
-		var backing_radius := backing_height * 0.48 if is_oval else (0.012 if is_square else 0.035)
-		backing.mesh = _create_rounded_panel_mesh(backing_width, backing_height, 0.012, backing_radius)
-		backing.position = Vector3(0.0, center_y, front_z + 0.004)
-		backing.material_override = button_material
-		button_root.add_child(backing)
-
-		var face := MeshInstance3D.new()
-		face.name = "HomeButtonFace"
-		var face_width := 0.21 if is_oval else 0.11
-		var face_height := 0.065 if is_oval else 0.11
-		var face_radius := face_height * 0.48 if is_oval else (0.008 if is_square else 0.026)
-		face.mesh = _create_rounded_panel_mesh(face_width, face_height, 0.010, face_radius)
-		face.position = Vector3(0.0, center_y, front_z + 0.012)
-		face.material_override = dark_material
-		button_root.add_child(face)
+		var mark_width := 0.21 if is_oval else 0.11
+		var mark_height := 0.065 if is_oval else 0.11
+		var mark_radius := mark_height * 0.48 if is_oval else (0.008 if home_button_type == "Square Home Button" else 0.026)
+		home_mark.mesh = _create_rounded_panel_mesh(mark_width, mark_height, 0.0008, mark_radius)
+	home_mark.position = Vector3(0.0, center_y, flat_z)
+	home_mark.material_override = icon_material
+	button_root.add_child(home_mark)
 
 
 func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
