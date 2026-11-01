@@ -1305,6 +1305,12 @@ func _refresh_phone_screen() -> void:
 	# Symmetrical bezels consume the outer edges; the display fills the remaining area.
 	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
 	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+	# A bezel-mounted selfie camera needs a permanent strip of handset frame.
+	# Reserve that space at the TOP only, shifting the display down so maximum
+	# screen-height settings can never push the camera beyond the phone body.
+	var bezel_camera_top_reserve := 0.14 if front_camera_enabled and front_camera_style == "Bezel Camera" else 0.0
+	if bezel_camera_top_reserve > 0.0:
+		screen_height = minf(screen_height, PHONE_SIZE.y - bezel_camera_top_reserve)
 	# The display inherits the phone's exact outer corner radius so curved
 	# glass and frame stay visually aligned as Border Radius is upgraded.
 	var screen_radius := 0.32 * float(border_radius_level) / 6.0
@@ -1355,7 +1361,7 @@ func _refresh_phone_screen() -> void:
 	display.material_override = display_material
 	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
-	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
+	display.position = Vector3(0.0, -bezel_camera_top_reserve * 0.5, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
@@ -1511,8 +1517,12 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 
 	match front_camera_style:
 		"Bezel Camera":
-			# Early smartphones placed a small lens in the upper display bezel.
-			_add_front_camera_lens(camera_root, Vector3(0.0, top_edge + maxf(bezel_height * 0.24, 0.045), front_z), 0.032, cutout_material, lens_material, ring_material)
+			# Keep the lens fixed in the reserved handset-top strip, independent
+			# of the display height and bezel slider. camera_root inherits the
+			# display's downward offset, so this local position maps to the
+			# centre of the reserved physical bezel area.
+			var bezel_camera_y := PHONE_SIZE.y * 0.5
+			_add_front_camera_lens(camera_root, Vector3(0.0, bezel_camera_y, front_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
 			# Restore the original compact oval glass with the selfie camera
 			# sitting just beneath its centre; no oversized teardrop geometry.
