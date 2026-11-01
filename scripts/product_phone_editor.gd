@@ -1504,6 +1504,24 @@ func _front_camera_screen_surface_z(x: float, y: float, screen_width: float, scr
 	return -maxf(side_drop, vertical_drop)
 
 
+func _side_camera_safe_y(x: float, screen_width: float, screen_height: float, lens_radius: float, fallback_y: float) -> float:
+	# Find the highest safe point for a side camera inside the rounded top
+	# corner. Using the lens' own radius prevents an oversized blanket inset
+	# from pushing the camera unnecessarily far down the display.
+	var corner_radius := 0.32 * float(border_radius_level) / 6.0
+	if corner_radius <= 0.001:
+		return fallback_y
+	var safe_radius := maxf(0.0, corner_radius - lens_radius - 0.012)
+	var corner_center_x := -screen_width * 0.5 + corner_radius
+	var corner_center_y := screen_height * 0.5 - corner_radius
+	var horizontal_offset := absf(x - corner_center_x)
+	if horizontal_offset >= safe_radius:
+		return fallback_y
+	var vertical_reach := sqrt(maxf(0.0, safe_radius * safe_radius - horizontal_offset * horizontal_offset))
+	var highest_safe_y := corner_center_y + vertical_reach - 0.008
+	return maxf(fallback_y, highest_safe_y)
+
+
 func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
 	if not front_camera_enabled:
 		return
@@ -1564,21 +1582,24 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# of using a fixed edge inset that changes its apparent position when
 			# the screen expands for a side curve.
 			var side_lens_radius := 0.037
-			var side_camera_x := -screen_width * 0.36
-			var side_camera_z := front_z + _front_camera_screen_surface_z(side_camera_x, camera_y, screen_width, screen_height)
-			_add_front_camera_lens(camera_root, Vector3(side_camera_x, camera_y, side_camera_z), side_lens_radius, cutout_material, lens_material, ring_material)
+ 			var side_camera_x := -screen_width * (0.40 if border_radius_level == 0 else 0.36)
+			var side_camera_y := _side_camera_safe_y(side_camera_x, screen_width, screen_height, side_lens_radius, camera_y)
+			var side_camera_z := front_z + _front_camera_screen_surface_z(side_camera_x, side_camera_y, screen_width, screen_height)
+			_add_front_camera_lens(camera_root, Vector3(side_camera_x, side_camera_y, side_camera_z), side_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Side Punch-Hole":
 			# Both lenses share the same normalized side anchor and follow the
 			# curved glass depth, so curving cannot drag them toward screen centre.
 			var dual_lens_radius := 0.027
-			var dual_camera_x := -screen_width * 0.36
+			var dual_camera_x := -screen_width * (0.40 if border_radius_level == 0 else 0.36)
 			var dual_side_spacing := 0.050
 			var dual_left_x := dual_camera_x - dual_side_spacing * 0.5
 			var dual_right_x := dual_camera_x + dual_side_spacing * 0.5
-			var dual_left_z := front_z + _front_camera_screen_surface_z(dual_left_x, camera_y, screen_width, screen_height)
-			var dual_right_z := front_z + _front_camera_screen_surface_z(dual_right_x, camera_y, screen_width, screen_height)
-			_add_front_camera_lens(camera_root, Vector3(dual_left_x, camera_y, dual_left_z), dual_lens_radius, cutout_material, lens_material, ring_material)
-			_add_front_camera_lens(camera_root, Vector3(dual_right_x, camera_y, dual_right_z), dual_lens_radius, cutout_material, lens_material, ring_material)
+			var dual_left_y := _side_camera_safe_y(dual_left_x, screen_width, screen_height, dual_lens_radius, camera_y)
+			var dual_right_y := _side_camera_safe_y(dual_right_x, screen_width, screen_height, dual_lens_radius, camera_y)
+			var dual_left_z := front_z + _front_camera_screen_surface_z(dual_left_x, dual_left_y, screen_width, screen_height)
+			var dual_right_z := front_z + _front_camera_screen_surface_z(dual_right_x, dual_right_y, screen_width, screen_height)
+			_add_front_camera_lens(camera_root, Vector3(dual_left_x, dual_left_y, dual_left_z), dual_lens_radius, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(dual_right_x, dual_right_y, dual_right_z), dual_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Punch-Hole":
 			# Two distinct, evenly spaced circular openings centred at the top.
 			var dual_spacing := 0.052
