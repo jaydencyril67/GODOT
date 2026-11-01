@@ -1326,7 +1326,8 @@ func _refresh_phone_screen() -> void:
 	display_material.emission_energy_multiplier = 0.025
 	display.material_override = display_material
 	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
-	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + 0.0035)
+	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
+	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
