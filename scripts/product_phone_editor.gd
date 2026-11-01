@@ -1568,11 +1568,38 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			camera_root.add_child(popup_housing)
 			_add_front_camera_lens(camera_root, Vector3(0.0, popup_y, front_z + 0.022), 0.038, cutout_material, lens_material, ring_material)
 		"Dynamic Island":
-			# Long pill cutout with a camera lens and a separate sensor window.
-			var island_width := minf(0.43, screen_width * 0.40)
-			_add_camera_cutout(camera_root, "DynamicIslandCutout", Vector2(island_width, 0.105), Vector2(0.0, 0.0), front_z, cutout_material)
-			_add_front_camera_lens(camera_root, Vector3(island_width * 0.29, camera_y, front_z + 0.008), 0.025, cutout_material, lens_material, ring_material)
-			_add_camera_sensor_dot(camera_root, Vector3(-island_width * 0.25, camera_y, front_z + 0.009), 0.011, ring_material)
+			# iPhone 17 Pro Max-inspired compact, deep-black capsule. Keep the
+			# opening narrow relative to the display, with a true semicircular end.
+			var island_height := 0.105
+			var island_width := minf(0.36, screen_width * 0.34)
+			var island_y := top_edge - top_inset
+			var island_glass := StandardMaterial3D.new()
+			island_glass.albedo_color = Color("#010204")
+			island_glass.metallic = 0.12
+			island_glass.roughness = 0.12
+			island_glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+			var island_mesh := MeshInstance3D.new()
+			island_mesh.name = "DynamicIslandCutout"
+			island_mesh.mesh = _create_rounded_panel_mesh(island_width, island_height, 0.008, island_height * 0.5)
+			island_mesh.position = Vector3(0.0, island_y, front_z)
+			island_mesh.material_override = island_glass
+			island_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			camera_root.add_child(island_mesh)
+			# The camera glass is almost invisible inside the black capsule;
+				# avoid the bright metallic lens ring used by ordinary punch-holes.
+			var island_lens_ring := StandardMaterial3D.new()
+			island_lens_ring.albedo_color = Color("#05080d")
+			island_lens_ring.metallic = 0.18
+			island_lens_ring.roughness = 0.16
+			var island_lens := StandardMaterial3D.new()
+			island_lens.albedo_color = Color("#10223a")
+			island_lens.metallic = 0.58
+			island_lens.roughness = 0.10
+			island_lens.emission_enabled = true
+			island_lens.emission = Color("#07172b")
+			island_lens.emission_energy_multiplier = 0.06
+			_add_front_camera_lens(camera_root, Vector3(island_width * 0.28, island_y, front_z + 0.014), 0.023, island_glass, island_lens, island_lens_ring)
+			_add_camera_sensor_dot(camera_root, Vector3(-island_width * 0.25, island_y, front_z + 0.014), 0.009, island_lens_ring)
 		"Under-Display Camera":
 			# The lens sits beneath the panel: show only a very subtle optical
 			# window, not a punched-out black hole.
