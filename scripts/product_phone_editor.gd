@@ -766,7 +766,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1221,6 +1221,44 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		var back_b := Vector3(b.x, b.y, back_z)
 		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, normal)
 		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, normal)
+	return surface.commit()
+
+
+func _create_curved_screen_mesh(width: float, height: float, _corner_radius: float, curve_sides: bool, curve_vertical: bool) -> ArrayMesh:
+	# Subdivided glass surface: the selected edges gently roll down toward the
+	# handset frame instead of ending as a flat panel.
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	const X_SEGMENTS := 24
+	const Y_SEGMENTS := 40
+	const SIDE_BEND := 0.028
+	const VERTICAL_BEND := 0.028
+	var points: Array[Vector3] = []
+	for y_index in range(Y_SEGMENTS + 1):
+		var v := float(y_index) / float(Y_SEGMENTS)
+		var y := (0.5 - v) * height
+		for x_index in range(X_SEGMENTS + 1):
+			var u := float(x_index) / float(X_SEGMENTS)
+			var x := (u - 0.5) * width
+			var z := 0.0
+			if curve_sides:
+				z -= SIDE_BEND * pow(abs(x / maxf(width * 0.5, 0.001)), 6.0)
+			if curve_vertical:
+				z -= VERTICAL_BEND * pow(abs(y / maxf(height * 0.5, 0.001)), 6.0)
+			points.append(Vector3(x, y, z))
+	for y_index in range(Y_SEGMENTS):
+		for x_index in range(X_SEGMENTS):
+			var top_left := y_index * (X_SEGMENTS + 1) + x_index
+			var top_right := top_left + 1
+			var bottom_left := top_left + X_SEGMENTS + 1
+			var bottom_right := bottom_left + 1
+			surface.add_vertex(points[top_left])
+			surface.add_vertex(points[bottom_left])
+			surface.add_vertex(points[top_right])
+			surface.add_vertex(points[top_right])
+			surface.add_vertex(points[bottom_left])
+			surface.add_vertex(points[bottom_right])
+	surface.generate_normals()
 	return surface.commit()
 
 
