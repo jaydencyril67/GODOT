@@ -17,7 +17,7 @@ class DeviceColorSpectrum extends Control:
 	var dragging := false
 
 	func _ready() -> void:
-		custom_minimum_size = Vector2(180, 150)
+		custom_minimum_size = Vector2(0, 110)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		_rebuild_spectrum()
 		queue_redraw()
@@ -936,7 +936,8 @@ func _show_device_color_controls() -> void:
 	active_feature_panel.name = "DeviceColorControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 10)
+	var compact_color_ui := get_viewport().get_visible_rect().size.y < 820.0 or get_viewport().get_visible_rect().size.x < 900.0
+	active_feature_panel.add_theme_constant_override("separation", 5 if compact_color_ui else 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("DEVICE COLOR", 18, Color("#c7eaff"))
@@ -952,7 +953,7 @@ func _show_device_color_controls() -> void:
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spectrum.custom_minimum_size = Vector2(180, 164)
+	spectrum.custom_minimum_size = Vector2(0, clampf(get_viewport().get_visible_rect().size.y * 0.17, 88.0, 126.0))
 	spectrum.set_color_value(device_body_color)
 	spectrum.color_changed.connect(_on_device_body_color_changed)
 	active_feature_panel.add_child(spectrum)
@@ -973,7 +974,7 @@ func _show_device_color_controls() -> void:
 	active_feature_panel.add_child(selected_row)
 	var selected_swatch := ColorRect.new()
 	selected_swatch.name = "SelectedColorSwatch"
-	selected_swatch.custom_minimum_size = Vector2(42, 32)
+	selected_swatch.custom_minimum_size = Vector2(34, 26)
 	selected_swatch.color = device_body_color
 	selected_row.add_child(selected_swatch)
 	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 14, Color("#e5f6ff"))
@@ -1003,7 +1004,7 @@ func _show_device_color_controls() -> void:
 		channel_input.max_value = 255
 		channel_input.step = 1
 		channel_input.value = roundi(device_body_color.r * 255.0) if channel == "R" else (roundi(device_body_color.g * 255.0) if channel == "G" else roundi(device_body_color.b * 255.0))
-		channel_input.custom_minimum_size = Vector2(0, 36)
+		channel_input.custom_minimum_size = Vector2(0, 30)
 		channel_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		channel_input.add_theme_color_override("font_color", Color("#eaf7ff"))
 		var channel_editor := channel_input.get_line_edit()
@@ -1036,7 +1037,7 @@ func _show_device_color_controls() -> void:
 	hex_input.text = device_body_color.to_html(false).to_upper()
 	hex_input.max_length = 7
 	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hex_input.custom_minimum_size = Vector2(0, 38)
+	hex_input.custom_minimum_size = Vector2(0, 32)
 	hex_input.clear_button_enabled = true
 	hex_input.add_theme_color_override("font_color", Color("#edf8ff"))
 	hex_input.add_theme_color_override("font_placeholder_color", Color("#7893a5"))
@@ -1058,7 +1059,7 @@ func _show_device_color_controls() -> void:
 	var apply_button := Button.new()
 	apply_button.name = "ApplyDeviceHex"
 	apply_button.text = "APPLY"
-	apply_button.custom_minimum_size = Vector2(68, 38)
+	apply_button.custom_minimum_size = Vector2(64, 32)
 	apply_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(apply_button, 10)
 	var apply_normal := StyleBoxFlat.new()
@@ -2368,8 +2369,21 @@ func _refresh_phone_home_button() -> void:
 	# and on the darker display without becoming raised physical keys.
 	var icon_material := StandardMaterial3D.new()
 	icon_material.albedo_color = Color("#263746")
-	icon_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	icon_material.roughness = 0.9
+	icon_material.roughness = 0.48
+	icon_material.metallic = 0.12
+	icon_material.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+	var bezel_material := StandardMaterial3D.new()
+	bezel_material.albedo_color = Color("#aebdca")
+	bezel_material.metallic = 0.78
+	bezel_material.roughness = 0.24
+	var inset_material := StandardMaterial3D.new()
+	inset_material.albedo_color = Color("#101c28")
+	inset_material.metallic = 0.32
+	inset_material.roughness = 0.28
+	var highlight_material := StandardMaterial3D.new()
+	highlight_material.albedo_color = Color("#e2f1fb")
+	highlight_material.metallic = 0.82
+	highlight_material.roughness = 0.18
 
 	if home_button_type == "Recent · Home · Back (Physical)":
 		for line_index in range(3):
@@ -2410,23 +2424,60 @@ func _refresh_phone_home_button() -> void:
 			button_root.add_child(back_stroke)
 		return
 
+	var is_circle := home_button_type == "Circle Home Button"
+	var is_oval := home_button_type == "Oval Home Button"
+	var mark_width := 0.21 if is_oval else (0.146 if is_circle else 0.11)
+	var mark_height := 0.065 if is_oval else (0.146 if is_circle else 0.11)
+	var mark_radius := mark_height * 0.48 if is_oval or is_circle else 0.008
+	# A thin metallic bezel, recessed dark insert and glass-like key face give
+	# the original button silhouette a tactile, manufactured finish.
+	var bezel := MeshInstance3D.new()
+	bezel.name = "HomeButtonMetalBezel"
+	if is_circle:
+		var bezel_mesh := CylinderMesh.new()
+		bezel_mesh.top_radius = 0.082
+		bezel_mesh.bottom_radius = 0.082
+		bezel_mesh.height = 0.010
+		bezel_mesh.radial_segments = 64
+		bezel.mesh = bezel_mesh
+		bezel.rotation_degrees.x = 90.0
+	else:
+		bezel.mesh = _create_rounded_panel_mesh(mark_width + 0.014, mark_height + 0.014, 0.010, mark_radius + 0.007)
+	bezel.position = Vector3(0.0, center_y, button_surface_z + 0.004)
+	bezel.material_override = bezel_material
+	bezel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	button_root.add_child(bezel)
+
+	var inset := MeshInstance3D.new()
+	inset.name = "HomeButtonRecess"
+	if is_circle:
+		var inset_mesh := CylinderMesh.new()
+		inset_mesh.top_radius = 0.075
+		inset_mesh.bottom_radius = 0.075
+		inset_mesh.height = 0.006
+		inset_mesh.radial_segments = 64
+		inset.mesh = inset_mesh
+		inset.rotation_degrees.x = 90.0
+	else:
+		inset.mesh = _create_rounded_panel_mesh(mark_width + 0.002, mark_height + 0.002, 0.006, mark_radius + 0.001)
+	inset.position = Vector3(0.0, center_y, button_surface_z + 0.009)
+	inset.material_override = inset_material
+	inset.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	button_root.add_child(inset)
+
 	var home_mark := MeshInstance3D.new()
 	home_mark.name = "FlatHomeButtonMark"
-	if home_button_type == "Circle Home Button":
+	if is_circle:
 		var circle_mesh := CylinderMesh.new()
-		circle_mesh.top_radius = 0.073
-		circle_mesh.bottom_radius = 0.073
-		circle_mesh.height = 0.0008
-		circle_mesh.radial_segments = 48
+		circle_mesh.top_radius = 0.068
+		circle_mesh.bottom_radius = 0.068
+		circle_mesh.height = 0.003
+		circle_mesh.radial_segments = 64
 		home_mark.mesh = circle_mesh
 		home_mark.rotation_degrees.x = 90.0
 	else:
-		var is_oval := home_button_type == "Oval Home Button"
-		var mark_width := 0.21 if is_oval else 0.11
-		var mark_height := 0.065 if is_oval else 0.11
-		var mark_radius := mark_height * 0.48 if is_oval else (0.008 if home_button_type == "Square Home Button" else 0.026)
-		home_mark.mesh = _create_rounded_panel_mesh(mark_width, mark_height, 0.0008, mark_radius)
-	home_mark.position = Vector3(0.0, center_y, button_surface_z)
+		home_mark.mesh = _create_rounded_panel_mesh(mark_width - 0.008, mark_height - 0.008, 0.003, maxf(0.004, mark_radius - 0.004))
+	home_mark.position = Vector3(0.0, center_y, button_surface_z + 0.013)
 	home_mark.material_override = icon_material
 	home_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	button_root.add_child(home_mark)
