@@ -2921,7 +2921,7 @@ func _rear_module_position_is_free(candidate_position: Vector2, module_size: flo
 		var other: Dictionary = rear_flash_modules[index]
 		var other_position: Vector2 = other["position"]
 		var other_size := float(other["size"])
-		if position.distance_to(other_position) < (module_size + other_size) * 1.18 + 0.025:
+		if candidate_position.distance_to(other_position) < (module_size + other_size) * 1.18 + 0.025:
 			return false
 	return true
 
