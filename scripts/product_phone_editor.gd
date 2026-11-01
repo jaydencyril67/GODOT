@@ -2493,7 +2493,11 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# The camera assembly is parented to the raised display mesh. Offset
 			# its lens back through that display offset so the bezel ring seats on
 			# the handset's actual front plane instead of hovering above it.
-			var bezel_seated_z := -display.position.z - 0.006
+			# Seat the bezel lens on the handset's front face. The display is
+			# raised above that face (and may be raised further for curved screens),
+			# so cancel only that display offset rather than moving behind the body.
+			var phone_front_z := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0) * 0.5
+			var bezel_seated_z := phone_front_z - display.position.z
 			_add_front_camera_lens(camera_root, Vector3(0.0, bezel_camera_y, bezel_seated_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
 			# Restore the original compact oval glass with the selfie camera
@@ -3049,21 +3053,23 @@ func _refresh_rear_hardware_visuals() -> void:
 		var module_size := float(module["size"])
 		var support_z := _rear_hardware_support_surface_z(module_position, module_size)
 		var is_selected := rear_hardware_mode == "CAMERA" and camera_index == rear_camera_selected_index
+		# Samsung Galaxy-inspired dark camera stack: graphite housing,
+		# near-black polished lens glass and restrained cool reflections.
 		var housing_material := StandardMaterial3D.new()
-		housing_material.albedo_color = Color("#111820")
-		housing_material.metallic = 0.72
-		housing_material.roughness = 0.28
+		housing_material.albedo_color = Color("#080b10")
+		housing_material.metallic = 0.84
+		housing_material.roughness = 0.22
 		var ring_material := StandardMaterial3D.new()
-		ring_material.albedo_color = Color("#65caff") if is_selected else Color("#8996a2")
-		ring_material.metallic = 0.88
-		ring_material.roughness = 0.20
+		ring_material.albedo_color = Color("#65caff") if is_selected else Color("#252c35")
+		ring_material.metallic = 0.92
+		ring_material.roughness = 0.17
 		var lens_material := StandardMaterial3D.new()
-		lens_material.albedo_color = Color("#102b4d")
-		lens_material.metallic = 0.78
-		lens_material.roughness = 0.12
-		lens_material.emission_enabled = true
-		lens_material.emission = Color("#164c75") if is_selected else Color("#0b2848")
-		lens_material.emission_energy_multiplier = 0.16 if is_selected else 0.12
+		lens_material.albedo_color = Color("#03070d")
+		lens_material.metallic = 0.62
+		lens_material.roughness = 0.075
+		lens_material.clearcoat_enabled = true
+		lens_material.clearcoat = 0.9
+		lens_material.clearcoat_roughness = 0.06
 		var module_id := int(module["id"])
 		# Layer the housing, machined metal rim, dark optical gasket and lens
 		# outward from the support face. Every part physically touches the layer
@@ -3073,14 +3079,17 @@ func _refresh_rear_hardware_visuals() -> void:
 		_add_rear_hardware_disc(root, "RearCamera_%d_Gasket" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.025), module_size * 0.88, 0.003, housing_material)
 		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.030), module_size * 0.72, 0.007, lens_material)
 		var optical_core := StandardMaterial3D.new()
-		optical_core.albedo_color = Color("#050b13")
-		optical_core.metallic = 0.28
-		optical_core.roughness = 0.10
+		optical_core.albedo_color = Color("#010308")
+		optical_core.metallic = 0.18
+		optical_core.roughness = 0.045
+		optical_core.clearcoat_enabled = true
+		optical_core.clearcoat = 1.0
+		optical_core.clearcoat_roughness = 0.035
 		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.034), module_size * 0.38, 0.0025, optical_core)
 		var lens_glint := StandardMaterial3D.new()
-		lens_glint.albedo_color = Color(0.43, 0.66, 0.83, 0.38)
-		lens_glint.metallic = 0.35
-		lens_glint.roughness = 0.12
+		lens_glint.albedo_color = Color(0.30, 0.43, 0.58, 0.24)
+		lens_glint.metallic = 0.22
+		lens_glint.roughness = 0.055
 		lens_glint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(module_position.x - module_size * 0.13, module_position.y + module_size * 0.13, support_z - 0.036), module_size * 0.12, 0.001, lens_glint)
 
