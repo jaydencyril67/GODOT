@@ -953,7 +953,7 @@ func _show_device_color_controls() -> void:
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spectrum.custom_minimum_size = Vector2(0, clampf(get_viewport().get_visible_rect().size.y * 0.22, 145.0, 190.0))
+	spectrum.custom_minimum_size = Vector2(0, clampf(get_viewport().get_visible_rect().size.y * 0.22, 145.0, 190.0) * 1.5)
 	spectrum.set_color_value(device_body_color)
 	spectrum.color_changed.connect(_on_device_body_color_changed)
 	active_feature_panel.add_child(spectrum)
