@@ -1298,8 +1298,9 @@ func _show_back_design_controls() -> void:
 	active_feature_panel.add_child(back_design_selection_button)
 	back_design_selection_popup = PanelContainer.new()
 	back_design_selection_popup.name = "BackDesignCustomDropdown"
-	back_design_selection_popup.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_selection_popup.visible = false
+	back_design_selection_popup.z_index = 100
+	back_design_selection_popup.mouse_filter = Control.MOUSE_FILTER_STOP
 	var dropdown_panel_style := StyleBoxFlat.new()
 	dropdown_panel_style.bg_color = Color("#071d2d")
 	dropdown_panel_style.border_color = Color("#65caff")
@@ -1313,7 +1314,12 @@ func _show_back_design_controls() -> void:
 	back_design_selection_items = VBoxContainer.new()
 	back_design_selection_items.add_theme_constant_override("separation", 7)
 	back_design_selection_popup.add_child(back_design_selection_items)
-	active_feature_panel.add_child(back_design_selection_popup)
+	# Keep the dropdown outside the VBox layout so it overlays the panel.
+	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if is_instance_valid(editor_root):
+		editor_root.add_child(back_design_selection_popup)
+	else:
+		active_feature_panel.add_child(back_design_selection_popup)
 	_add_back_design_flexible_space(active_feature_panel)
 
 	var modes := HBoxContainer.new()
@@ -1402,6 +1408,28 @@ func _toggle_back_design_selection_popup() -> void:
 	if not is_instance_valid(back_design_selection_popup):
 		return
 	back_design_selection_popup.visible = not back_design_selection_popup.visible
+	if back_design_selection_popup.visible:
+		call_deferred("_position_back_design_selection_popup")
+
+
+func _position_back_design_selection_popup() -> void:
+	if not is_instance_valid(back_design_selection_popup) or not is_instance_valid(back_design_selection_button):
+		return
+	if not back_design_selection_popup.visible:
+		return
+	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if not is_instance_valid(editor_root):
+		return
+	var viewport_rect := get_viewport().get_visible_rect()
+	var button_rect := back_design_selection_button.get_global_rect()
+	var content_height := back_design_selection_popup.get_combined_minimum_size().y
+	var popup_height := minf(content_height, viewport_rect.size.y * 0.45)
+	var popup_width := button_rect.size.x
+	back_design_selection_popup.size = Vector2(popup_width, popup_height)
+	var popup_global_position := Vector2(button_rect.position.x, button_rect.position.y - popup_height - 6.0)
+	popup_global_position.x = clampf(popup_global_position.x, viewport_rect.position.x + 6.0, viewport_rect.end.x - popup_width - 6.0)
+	popup_global_position.y = maxf(viewport_rect.position.y + 6.0, popup_global_position.y)
+	back_design_selection_popup.position = editor_root.to_local(popup_global_position)
 
 
 func _rebuild_back_design_selection_popup() -> void:
@@ -1441,6 +1469,8 @@ func _rebuild_back_design_selection_popup() -> void:
 	if back_design_boxes.is_empty():
 		back_design_selection_button.text = "ADD A BOX TO SELECT"
 		back_design_selection_popup.visible = false
+	elif back_design_selection_popup.visible:
+		call_deferred("_position_back_design_selection_popup")
 
 
 func _style_back_design_slider(slider: HSlider) -> void:
