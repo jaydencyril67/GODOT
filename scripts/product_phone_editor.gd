@@ -19,6 +19,12 @@ var bezel_width := 0.10
 var bezel_height := 0.20
 var bezel_width_value_label: Label
 var bezel_height_value_label: Label
+var screen_shape_mode := "Flat screen"
+var side_curve_enabled := false
+var vertical_curve_enabled := false
+var screen_shape_buttons: Dictionary = {}
+var side_curve_toggle: Button
+var vertical_curve_toggle: Button
 var selected_screen_type := "TFT LCD"
 var screen_enable_checkbox: CheckBox
 var screen_type_buttons: Dictionary = {}
@@ -771,6 +777,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_screen_tech_controls()
 	elif feature_name == "Screen Size":
 		_show_screen_size_controls()
+	elif feature_name == "Screen Type":
+		_show_screen_type_controls()
 	elif feature_name == "Border Radius":
 		_show_border_radius_controls()
 	elif feature_name == "Thickness":
@@ -877,6 +885,7 @@ func _show_screen_size_controls() -> void:
 	bezel_width = 0.17 - width_slider.value
 	bezel_height = 0.345 - height_slider.value
 	_update_bezel_value_labels()
+	_refresh_screen_type_controls()
 
 
 func _on_bezel_width_changed(value: float) -> void:
@@ -884,6 +893,7 @@ func _on_bezel_width_changed(value: float) -> void:
 	bezel_width = clampf(0.17 - value, 0.02, 0.15)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
+	_refresh_screen_type_controls()
 
 
 func _on_bezel_height_changed(value: float) -> void:
@@ -891,6 +901,7 @@ func _on_bezel_height_changed(value: float) -> void:
 	bezel_height = clampf(0.345 - value, 0.02, 0.325)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
+	_refresh_screen_type_controls()
 
 
 func _update_bezel_value_labels() -> void:
@@ -900,6 +911,136 @@ func _update_bezel_value_labels() -> void:
 		bezel_width_value_label.text = "%.1f mm" % ((PHONE_SIZE.x - bezel_width * 2.0) * MODEL_UNITS_TO_MM)
 	if is_instance_valid(bezel_height_value_label):
 		bezel_height_value_label.text = "%.1f mm" % ((PHONE_SIZE.y - bezel_height * 2.0) * MODEL_UNITS_TO_MM)
+
+
+func _show_screen_type_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ScreenTypeControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 12)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("SCREEN TYPE", 18, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+	var description := _make_label("Choose a flat display or a curved edge design.", 12, Color("#d8eaf5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	var choices := VBoxContainer.new()
+	choices.name = "ScreenShapeChoices"
+	choices.add_theme_constant_override("separation", 8)
+	active_feature_panel.add_child(choices)
+	screen_shape_buttons.clear()
+	for mode in ["Flat screen", "Curve screen"]:
+		var option := Button.new()
+		option.name = mode.replace(" ", "") + "Option"
+		option.text = mode
+		option.custom_minimum_size = Vector2(0, 44)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		option.toggle_mode = true
+		option.button_pressed = screen_shape_mode == mode
+		_apply_research_typography(option, 13)
+		_style_screen_type_option(option, 0 if mode == "Flat screen" else 5, screen_shape_mode == mode)
+		option.pressed.connect(_on_screen_shape_selected.bind(mode))
+		choices.add_child(option)
+		screen_shape_buttons[mode] = option
+
+	var curve_options := VBoxContainer.new()
+	curve_options.name = "CurveOptions"
+	curve_options.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_child(curve_options)
+
+	side_curve_toggle = _make_curve_toggle("SideCurveToggle", "Side curve", side_curve_enabled)
+	curve_options.add_child(side_curve_toggle)
+	side_curve_toggle.toggled.connect(_on_side_curve_toggled)
+	vertical_curve_toggle = _make_curve_toggle("VerticalCurveToggle", "Up & bottom curve", vertical_curve_enabled)
+	curve_options.add_child(vertical_curve_toggle)
+	vertical_curve_toggle.toggled.connect(_on_vertical_curve_toggled)
+
+	_refresh_screen_type_controls()
+
+
+func _make_curve_toggle(node_name: String, label_text: String, enabled: bool) -> Button:
+	var toggle := Button.new()
+	toggle.name = node_name
+	toggle.text = ("✓  " if enabled else "□  ") + label_text
+	toggle.toggle_mode = true
+	toggle.button_pressed = enabled
+	toggle.custom_minimum_size = Vector2(0, 40)
+	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	toggle.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(toggle, 12)
+	return toggle
+
+
+func _on_screen_shape_selected(mode: String) -> void:
+	if mode == "Curve screen" and not (_is_screen_width_max() or _is_screen_height_max()):
+		return
+	screen_shape_mode = mode
+	if mode == "Flat screen":
+		side_curve_enabled = false
+		vertical_curve_enabled = false
+	_refresh_screen_type_controls()
+	_refresh_phone_screen()
+
+
+func _on_side_curve_toggled(enabled: bool) -> void:
+	if enabled and not _is_screen_width_max():
+		_refresh_screen_type_controls()
+		return
+	side_curve_enabled = enabled
+	_refresh_screen_type_controls()
+	_refresh_phone_screen()
+
+
+func _on_vertical_curve_toggled(enabled: bool) -> void:
+	if enabled and not _is_screen_height_max():
+		_refresh_screen_type_controls()
+		return
+	vertical_curve_enabled = enabled
+	_refresh_screen_type_controls()
+	_refresh_phone_screen()
+
+
+func _is_screen_width_max() -> bool:
+	return bezel_width <= 0.0205
+
+
+func _is_screen_height_max() -> bool:
+	return bezel_height <= 0.0205
+
+
+func _refresh_screen_type_controls() -> void:
+	if not is_instance_valid(active_feature_panel) or active_feature_panel.name != "ScreenTypeControls":
+		return
+	var width_max := _is_screen_width_max()
+	var height_max := _is_screen_height_max()
+	var curve_allowed := width_max or height_max
+	if screen_shape_mode == "Curve screen" and not curve_allowed:
+		screen_shape_mode = "Flat screen"
+		side_curve_enabled = false
+		vertical_curve_enabled = false
+	for mode in screen_shape_buttons:
+		var option: Button = screen_shape_buttons[mode]
+		option.button_pressed = screen_shape_mode == mode
+		option.disabled = mode == "Curve screen" and not curve_allowed
+		_style_screen_type_option(option, 0 if mode == "Flat screen" else 5, screen_shape_mode == mode)
+	if is_instance_valid(side_curve_toggle):
+		side_curve_toggle.disabled = screen_shape_mode != "Curve screen" or not width_max
+		side_curve_toggle.button_pressed = side_curve_enabled
+		side_curve_toggle.text = ("✓  " if side_curve_enabled else "□  ") + "Side curve"
+	if is_instance_valid(vertical_curve_toggle):
+		vertical_curve_toggle.disabled = screen_shape_mode != "Curve screen" or not height_max
+		vertical_curve_toggle.button_pressed = vertical_curve_enabled
+		vertical_curve_toggle.text = ("✓  " if vertical_curve_enabled else "□  ") + "Up & bottom curve"
 
 
 func _show_screen_tech_controls() -> void:
@@ -1098,10 +1239,13 @@ func _refresh_phone_screen() -> void:
 	# Keep a consistent, slimmer lower rail for physical keys and give the
 	# top rail the exact same height. The glass is inset evenly on all sides.
 	# Symmetrical bezels consume the outer edges; the display fills the remaining area.
-	var screen_width := maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
-	var screen_height := maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
+	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
 	var screen_radius := maxf(0.018, 0.32 * float(border_radius_level) / 6.0 - 0.04)
-	display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
+	if screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled):
+		display.mesh = _create_curved_screen_mesh(screen_width, screen_height, screen_radius, side_curve_enabled, vertical_curve_enabled)
+	else:
+		display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
 
 	var display_material := StandardMaterial3D.new()
 	display_material.metallic = 0.02
