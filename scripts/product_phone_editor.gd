@@ -86,7 +86,8 @@ class DeviceHueBar extends Control:
 	var dragging := false
 
 	func _ready() -> void:
-		custom_minimum_size = Vector2(0, 22)
+		# 1.5x the original 22 px hue strip height for a taller, easier target.
+		custom_minimum_size = Vector2(0, 33)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		queue_redraw()
 
@@ -2824,7 +2825,12 @@ func _refresh_phone_side_buttons() -> void:
 	if camera_side_button_enabled:
 		_add_phone_side_button(button_root, "QuickCameraSideButton", 1.0, camera_side_button_y, 0.19, key_radius * 0.88, frame_material, key_material)
 	if sound_button_enabled:
-		_add_phone_side_button(button_root, "SoundActionButton", -1.0, volume_button_y + single_key_length + 0.15, 0.105, key_radius * 0.78, frame_material, key_material)
+		# Reduce the complete rounded key length (including its capsule ends)
+		# by 1.2x, rather than only shortening the straight center section.
+		var sound_button_radius := key_radius * 0.78
+		var sound_button_width := maxf(sound_button_radius * 1.35, 0.024)
+		var sound_button_length := maxf(0.0, (0.105 + sound_button_width) / 1.2 - sound_button_width)
+		_add_phone_side_button(button_root, "SoundActionButton", -1.0, volume_button_y + single_key_length + 0.15, sound_button_length, sound_button_radius, frame_material, key_material)
 	if sim_tray_enabled:
 		_add_phone_sim_tray(button_root, -1.0, sim_tray_y, frame_material, key_material)
 
@@ -3558,7 +3564,10 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array)
 		for corner_index in range(4):
 			var center: Vector2 = corner_centers[corner_index]
 			var start_angle := float(corner_index) * PI * 0.5
-			for segment in range(corner_segments):
+			# Include both tangent endpoints of every quarter-circle. These
+			# exact points create the straight bottom rail segment that the
+			# charging-port aperture cuts into at every border-radius level.
+			for segment in range(corner_segments + 1):
 				var angle := start_angle + float(segment) / float(corner_segments) * PI * 0.5
 				outline.append(center + Vector2(cos(angle), sin(angle)) * corner_radius)
 
