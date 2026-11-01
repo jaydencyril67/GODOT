@@ -3076,10 +3076,10 @@ func _refresh_rear_hardware_visuals() -> void:
 		# a little more relief and smaller modules become flatter.
 		var camera_depth_scale := (module_size / 0.08) / 1.5
 		var camera_layer := func(depth: float) -> float: return depth * camera_depth_scale
-		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer(0.010)), module_size * 1.22, camera_layer(0.020), housing_material)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Rim" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer(0.021)), module_size * 1.04, camera_layer(0.006), ring_material)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Gasket" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer(0.025)), module_size * 0.88, camera_layer(0.003), housing_material)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer(0.030)), module_size * 0.72, camera_layer(0.007), lens_material)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer.call(0.010)), module_size * 1.22, camera_layer.call(0.020), housing_material)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Rim" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer.call(0.021)), module_size * 1.04, camera_layer.call(0.006), ring_material)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Gasket" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer.call(0.025)), module_size * 0.88, camera_layer.call(0.003), housing_material)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer.call(0.030)), module_size * 0.72, camera_layer.call(0.007), lens_material)
 		var optical_core := StandardMaterial3D.new()
 		optical_core.albedo_color = Color("#010308")
 		optical_core.metallic = 0.18
@@ -3087,13 +3087,13 @@ func _refresh_rear_hardware_visuals() -> void:
 		optical_core.clearcoat_enabled = true
 		optical_core.clearcoat = 1.0
 		optical_core.clearcoat_roughness = 0.035
-		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer(0.034)), module_size * 0.38, camera_layer(0.0025), optical_core)
+		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(module_position.x, module_position.y, support_z - camera_layer.call(0.034)), module_size * 0.38, camera_layer.call(0.0025), optical_core)
 		var lens_glint := StandardMaterial3D.new()
 		lens_glint.albedo_color = Color(0.30, 0.43, 0.58, 0.24)
 		lens_glint.metallic = 0.22
 		lens_glint.roughness = 0.055
 		lens_glint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(module_position.x - module_size * 0.13, module_position.y + module_size * 0.13, support_z - camera_layer(0.036)), module_size * 0.12, camera_layer(0.001), lens_glint)
+		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(module_position.x - module_size * 0.13, module_position.y + module_size * 0.13, support_z - camera_layer.call(0.036)), module_size * 0.12, camera_layer.call(0.001), lens_glint)
 
 	for flash_index in range(rear_flash_modules.size()):
 		var flash_module: Dictionary = rear_flash_modules[flash_index]
@@ -3119,17 +3119,17 @@ func _refresh_rear_hardware_visuals() -> void:
 		# Match the camera's reduced, size-responsive shallow profile.
 		var flash_depth_scale := (flash_size / 0.08) / 1.5
 		var flash_layer := func(depth: float) -> float: return depth * flash_depth_scale
-		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer(0.009)), flash_size * 1.22, flash_layer(0.018), flash_housing_material)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer(0.019)), flash_size * 1.04, flash_layer(0.006), flash_rim_material)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Gasket" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer(0.022)), flash_size * 0.86, flash_layer(0.0025), flash_housing_material)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer(0.027)), flash_size * 0.70, flash_layer(0.006), flash_diffuser_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer.call(0.009)), flash_size * 1.22, flash_layer.call(0.018), flash_housing_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer.call(0.019)), flash_size * 1.04, flash_layer.call(0.006), flash_rim_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Gasket" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer.call(0.022)), flash_size * 0.86, flash_layer.call(0.0025), flash_housing_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer.call(0.027)), flash_size * 0.70, flash_layer.call(0.006), flash_diffuser_material)
 		var led_center_material := StandardMaterial3D.new()
 		led_center_material.albedo_color = Color("#fff9e9")
 		led_center_material.roughness = 0.18
 		led_center_material.emission_enabled = true
 		led_center_material.emission = Color("#fff0c8")
 		led_center_material.emission_energy_multiplier = 0.32
-		_add_rear_hardware_disc(root, "RearFlash_%d_LEDCore" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer(0.031)), flash_size * 0.38, flash_layer(0.002), led_center_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_LEDCore" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - flash_layer.call(0.031)), flash_size * 0.38, flash_layer.call(0.002), led_center_material)
 
 
 func _add_rear_hardware_disc(parent: Node3D, node_name: String, disc_position: Vector3, radius: float, height: float, material: Material) -> void:
