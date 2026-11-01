@@ -1588,14 +1588,17 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			var popup_x := 0.0
 			var popup_y := PHONE_SIZE.y * 0.5 + 0.055
 			var popup_width := 0.15
+			# camera_root is parented to the display, so cancel the display front-face offset.
+			# This places the pop-up housing on the phone body\'s Z centre.
+			var popup_center_z := -display.position.z
 			var popup_housing := MeshInstance3D.new()
 			popup_housing.name = "PopUpCameraHousing"
 			popup_housing.mesh = _create_rounded_panel_mesh(popup_width, 0.13, 0.035, 0.045)
-			popup_housing.position = Vector3(popup_x, popup_y, front_z)
+			popup_housing.position = Vector3(popup_x, popup_y, popup_center_z)
 			popup_housing.material_override = ring_material
 			popup_housing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			camera_root.add_child(popup_housing)
-			_add_front_camera_lens(camera_root, Vector3(popup_x, popup_y, front_z + 0.022), 0.038, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(popup_x, popup_y, popup_center_z + 0.022), 0.038, cutout_material, lens_material, ring_material)
 		"Dynamic Island":
 			# iPhone 17 Pro Max-inspired compact, deep-black capsule. Keep the
 			# opening narrow relative to the display, with a true semicircular end.
