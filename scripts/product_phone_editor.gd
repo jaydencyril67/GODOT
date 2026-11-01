@@ -14,7 +14,7 @@ var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
 var front_camera_style := "Punch-Hole"
-const FRONT_CAMERA_STYLES := ["Bezel Camera", "Wide Notch", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole (Left)", "Side Punch-Hole (Right)", "Dual Side Punch-Hole (Left)", "Dual Side Punch-Hole (Right)", "Dual Punch-Hole", "Dynamic Island", "Under-Display Camera"]
+const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole (Left)", "Side Punch-Hole (Right)", "Dual Side Punch-Hole (Left)", "Dual Side Punch-Hole (Right)", "Dual Punch-Hole", "Dynamic Island", "Under-Display Camera"]
 var front_camera_option_buttons: Dictionary = {}
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
@@ -1395,11 +1395,6 @@ func _show_front_camera_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Enable the selfie camera and choose its physical placement on the display.", 12, Color("#d8eaf5"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
-
 	var enable_row := HBoxContainer.new()
 	enable_row.name = "FrontCameraEnablementRow"
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1430,10 +1425,6 @@ func _show_front_camera_controls() -> void:
 	var enable_label := _make_label("Front Camera Enablement", 14, Color.WHITE)
 	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	enable_row.add_child(enable_label)
-
-	var style_title := _make_label("CAMERA PLACEMENT STYLE", 13, Color("#b9eaff"))
-	style_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(style_title)
 
 	var style_list := VBoxContainer.new()
 	style_list.name = "FrontCameraStyles"
@@ -1518,10 +1509,6 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 		"Bezel Camera":
 			# Early smartphones placed a small lens in the upper display bezel.
 			_add_front_camera_lens(camera_root, Vector3(0.0, top_edge + maxf(bezel_height * 0.24, 0.045), front_z), 0.032, cutout_material, lens_material, ring_material)
-		"Wide Notch":
-			# Wide, top-centred notch popularised by early all-screen phones.
-			var notch_width := minf(0.48, screen_width * 0.42)
-			_add_camera_cutout(camera_root, "WideNotchCutout", Vector2(notch_width, 0.145), Vector2(0.055, 0.0), front_z, cutout_material)
 			_add_front_camera_lens(camera_root, Vector3(-notch_width * 0.27, camera_y - 0.004, front_z + 0.008), 0.026, cutout_material, lens_material, ring_material)
 			_add_camera_sensor_dot(camera_root, Vector3(notch_width * 0.20, camera_y - 0.004, front_z + 0.009), 0.010, ring_material)
 		"Waterdrop Notch":
