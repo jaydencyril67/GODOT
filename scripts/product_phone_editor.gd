@@ -207,6 +207,7 @@ var back_design_size_label: Label
 var back_design_border_label: Label
 var back_design_border_slider: HSlider
 var back_design_mode := "MOVE"
+var back_design_size_action := "EXPAND"
 
 
 func _ready() -> void:
@@ -1208,6 +1209,15 @@ func _show_back_design_controls() -> void:
 		_style_staff_button(mode_button, back_design_mode == mode)
 		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
 		modes.add_child(mode_button)
+	if back_design_mode == "SIZE":
+		var resize_action_button := Button.new()
+		resize_action_button.text = "RESIZE: " + back_design_size_action
+		resize_action_button.custom_minimum_size.y = 48
+		resize_action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(resize_action_button, 16)
+		_style_staff_button(resize_action_button, back_design_size_action == "EXPAND")
+		resize_action_button.pressed.connect(_toggle_back_design_size_action)
+		active_feature_panel.add_child(resize_action_button)
 	var pad := GridContainer.new()
 	pad.columns = 3
 	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -1256,6 +1266,10 @@ func _add_back_design_pad_button(parent: GridContainer, caption: String, directi
 
 func _set_back_design_mode(mode: String) -> void:
 	back_design_mode = mode
+	_show_back_design_controls()
+
+func _toggle_back_design_size_action() -> void:
+	back_design_size_action = "SHRINK" if back_design_size_action == "EXPAND" else "EXPAND"
 	_show_back_design_controls()
 
 func _add_back_design_box() -> void:
@@ -1315,7 +1329,7 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 		var half := box_size * 0.5
 		var next_position := box_position
 		var next_half := half
-		var step := 0.025
+		var step := 0.025 * (1.0 if back_design_size_action == "EXPAND" else -1.0)
 		if direction.x < 0:
 			next_position.x -= step * 0.5
 			next_half.x += step * 0.5
@@ -1329,7 +1343,7 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 			next_position.y -= step * 0.5
 			next_half.y += step * 0.5
 		var next_size := next_half * 2.0
-		if next_size.x <= 0.78 and next_size.y <= 1.65 and _back_design_position_is_free(next_position, next_size, selected_back_design_box):
+		if next_size.x >= 0.08 and next_size.y >= 0.08 and next_size.x <= 0.78 and next_size.y <= 1.65 and _back_design_position_is_free(next_position, next_size, selected_back_design_box):
 			box["position"] = next_position
 			box["size"] = next_size
 	back_design_boxes[selected_back_design_box] = box
