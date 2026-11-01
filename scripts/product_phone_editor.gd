@@ -1171,6 +1171,7 @@ func _show_back_design_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BackDesignControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 6)
 	right_tools_content.add_child(active_feature_panel)
 	var heading := _make_label("BACK DESIGN", 18, Color("#c7eaff"))
@@ -1202,6 +1203,9 @@ func _show_back_design_controls() -> void:
 	_apply_research_typography(back_design_selection_list, 13)
 	back_design_selection_list.item_selected.connect(_select_back_design_box)
 	active_feature_panel.add_child(back_design_selection_list)
+	var top_flex_space := Control.new()
+	top_flex_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(top_flex_space)
 	var modes := HBoxContainer.new()
 	active_feature_panel.add_child(modes)
 	for mode in ["SIZE", "MOVE"]:
@@ -1217,7 +1221,7 @@ func _show_back_design_controls() -> void:
 	pad.columns = 3
 	pad.add_theme_constant_override("h_separation", 8)
 	pad.add_theme_constant_override("v_separation", 8)
-	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(pad)
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "↑", Vector2i(0, 1))
@@ -1242,6 +1246,9 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "↓", Vector2i(0, -1))
 	_add_back_design_pad_spacer(pad)
+	var bottom_flex_space := Control.new()
+	bottom_flex_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(bottom_flex_space)
 	back_design_size_label = _make_label("", 12, Color("#d8eaf5"))
 	active_feature_panel.add_child(back_design_size_label)
 	active_feature_panel.add_child(_make_label("CORNER BORDER", 12, Color("#a9e3ff")))
@@ -1260,12 +1267,14 @@ func _show_back_design_controls() -> void:
 func _add_back_design_pad_spacer(parent: GridContainer) -> void:
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(52, 44)
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(spacer)
 
 func _add_back_design_pad_button(parent: GridContainer, caption: String, direction: Vector2i) -> void:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size = Vector2(52, 44)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(button, 21)
 	_style_staff_button(button, true)
 	button.pressed.connect(_on_back_design_pad_pressed.bind(direction))
