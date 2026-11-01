@@ -15,6 +15,10 @@ var home_button_enabled := false
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
 var screen_enabled := false
+var bezel_width := 0.10
+var bezel_height := 0.20
+var bezel_width_value_label: Label
+var bezel_height_value_label: Label
 var selected_screen_type := "TFT LCD"
 var screen_enable_checkbox: CheckBox
 var screen_type_buttons: Dictionary = {}
@@ -319,8 +323,8 @@ func _build_design_research_content(parent: Control) -> void:
 
 func _get_hardware_research_features() -> Array:
 	return [
-		"Screen Tech", "Power/Volume Buttons", "Thickness", "Screen Width",
-		"Screen Height", "Screen Type", "Border Radius", "Speakers",
+		"Screen Tech", "Power/Volume Buttons", "Thickness", "Bezel Width",
+		"Bezel Height", "Screen Type", "Border Radius", "Speakers",
 		"Charge Port", "Front Camera", "Rare Camera", "Style Pen",
 		"Side Button", "Home Button", "Body Frame", "Phone Width",
 		"Phone Height", "Sim/Memory Slot", "Protection", "Refresh Rate",
@@ -756,7 +760,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
+	if feature_name in ["Screen Tech", "Bezel Width", "Bezel Height", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -765,6 +769,8 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 func _on_tool_feature_pressed(feature_name: String) -> void:
 	if feature_name == "Screen Tech":
 		_show_screen_tech_controls()
+	elif feature_name in ["Bezel Width", "Bezel Height"]:
+		_show_bezel_controls()
 	elif feature_name == "Border Radius":
 		_show_border_radius_controls()
 	elif feature_name == "Thickness":
@@ -778,6 +784,81 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	elif feature_name == "Home Button":
 		_show_home_button_controls()
 
+
+
+func _show_bezel_controls() -> void:
+	# One compact panel controls both symmetrical bezel dimensions. The screen
+	# automatically expands or contracts to occupy the remaining front surface.
+	for child in right_tools_content.get_children():
+		right_tools_content.remove_child(child)
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "BezelDesignControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 12)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("BEZEL DESIGN", 18, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var explanation := _make_label("Adjust the phone's border. The screen resizes automatically.", 12, Color("#d8eaf5"))
+	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(explanation)
+
+	var width_heading := _make_label("BEZEL WIDTH", 14, Color.WHITE)
+	active_feature_panel.add_child(width_heading)
+	bezel_width_value_label = _make_label("", 12, Color("#b9eaff"))
+	active_feature_panel.add_child(bezel_width_value_label)
+	var width_slider := HSlider.new()
+	width_slider.name = "BezelWidthSlider"
+	width_slider.min_value = 0.02
+	width_slider.max_value = 0.30
+	width_slider.step = 0.005
+	width_slider.value = bezel_width
+	width_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	width_slider.custom_minimum_size.y = 28
+	width_slider.value_changed.connect(_on_bezel_width_changed)
+	active_feature_panel.add_child(width_slider)
+
+	var height_heading := _make_label("BEZEL HEIGHT", 14, Color.WHITE)
+	active_feature_panel.add_child(height_heading)
+	bezel_height_value_label = _make_label("", 12, Color("#b9eaff"))
+	active_feature_panel.add_child(bezel_height_value_label)
+	var height_slider := HSlider.new()
+	height_slider.name = "BezelHeightSlider"
+	height_slider.min_value = 0.04
+	height_slider.max_value = 0.65
+	height_slider.step = 0.005
+	height_slider.value = bezel_height
+	height_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	height_slider.custom_minimum_size.y = 28
+	height_slider.value_changed.connect(_on_bezel_height_changed)
+	active_feature_panel.add_child(height_slider)
+
+	_update_bezel_value_labels()
+
+
+func _on_bezel_width_changed(value: float) -> void:
+	bezel_width = clampf(value, 0.02, 0.30)
+	_update_bezel_value_labels()
+	_refresh_phone_screen()
+
+
+func _on_bezel_height_changed(value: float) -> void:
+	bezel_height = clampf(value, 0.04, 0.65)
+	_update_bezel_value_labels()
+	_refresh_phone_screen()
+
+
+func _update_bezel_value_labels() -> void:
+	# PHONE_SIZE maps to an approximately 75 mm-wide handset.
+	const MODEL_UNITS_TO_MM := 75.0 / 1.45
+	if is_instance_valid(bezel_width_value_label):
+		bezel_width_value_label.text = "Each side: %.1f mm" % (bezel_width * MODEL_UNITS_TO_MM)
+	if is_instance_valid(bezel_height_value_label):
+		bezel_height_value_label.text = "Top and bottom: %.1f mm" % (bezel_height * MODEL_UNITS_TO_MM)
 
 
 func _show_screen_tech_controls() -> void:
@@ -975,8 +1056,9 @@ func _refresh_phone_screen() -> void:
 	display.name = "PhoneDisplayPanel"
 	# Keep a consistent, slimmer lower rail for physical keys and give the
 	# top rail the exact same height. The glass is inset evenly on all sides.
-	var screen_width := PHONE_SIZE.x - 0.20
-	var screen_height := PHONE_SIZE.y - 0.40
+	# Symmetrical bezels consume the outer edges; the display fills the remaining area.
+	var screen_width := maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
+	var screen_height := maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
 	var screen_radius := maxf(0.018, 0.32 * float(border_radius_level) / 6.0 - 0.04)
 	display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
 
