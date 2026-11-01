@@ -9,6 +9,11 @@ const ROTATION_STEP := deg_to_rad(10.0)
 const DRAG_SENSITIVITY := 0.0024
 
 var phone_body: MeshInstance3D
+var phone_screen: MeshInstance3D
+var screen_enabled := false
+var selected_screen_type := "AMOLED"
+var screen_enable_checkbox: CheckBox
+var screen_type_buttons: Dictionary = {}
 var preview_camera: Camera3D
 var preview_container: SubViewportContainer
 var research_mode := false
@@ -174,12 +179,22 @@ func _build_editor_ui() -> void:
 	right_tools_panel.custom_minimum_size.x = 190.0 if compact_layout else 245.0
 	right_tools_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_child(right_tools_panel)
+	var right_tools_scroll := ScrollContainer.new()
+	right_tools_scroll.name = "PhoneEditorRightToolsScroll"
+	right_tools_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	right_tools_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var right_scroll_bar := right_tools_scroll.get_v_scroll_bar()
+	right_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	right_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	right_tools_panel.add_child(right_tools_scroll)
 	right_tools_content = VBoxContainer.new()
 	right_tools_content.name = "PhoneEditorRightToolsContent"
 	right_tools_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_tools_content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	right_tools_content.add_theme_constant_override("separation", 14)
-	right_tools_panel.add_child(right_tools_content)
+	right_tools_scroll.add_child(right_tools_content)
 	var initial_hint := _make_label("SELECT A FEATURE", 18, Color("#c7eaff"))
 	initial_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	initial_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -681,6 +696,7 @@ func _get_preview_viewport() -> SubViewport:
 	body_material.cull_mode = BaseMaterial3D.CULL_BACK
 	phone_body.material_override = body_material
 	_refresh_phone_side_buttons()
+	_refresh_phone_screen()
 	# The preview contains only the phone body, so it has no useful external
 	# shadow to cast. Prevent the custom rounded perimeter from self-shadowing
 	# and producing large shadow-map artifacts as its radius changes.
@@ -744,14 +760,16 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons"]:
+	if feature_name in ["Screen Type", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
 
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
-	if feature_name == "Border Radius":
+	if feature_name == "Screen Type":
+		_show_screen_type_controls()
+	elif feature_name == "Border Radius":
 		_show_border_radius_controls()
 	elif feature_name == "Thickness":
 		_show_thickness_controls()
@@ -761,6 +779,162 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_charge_port_controls()
 	elif feature_name == "Power/Volume Buttons":
 		_show_power_volume_controls()
+
+
+
+func _show_screen_type_controls() -> void:
+	if is_instance_valid(active_feature_panel):
+		active_feature_panel.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ScreenTypeControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("SCREEN DISPLAY", 18, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var description := _make_label("Enable the display, then choose the panel technology used on this phone.", 12, Color("#d5eaf5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	screen_enable_checkbox = CheckBox.new()
+	screen_enable_checkbox.name = "ScreenEnablement"
+	screen_enable_checkbox.text = "Screen Enablement"
+	screen_enable_checkbox.button_pressed = screen_enabled
+	screen_enable_checkbox.add_theme_font_size_override("font_size", 15)
+	screen_enable_checkbox.add_theme_color_override("font_color", Color.WHITE)
+	screen_enable_checkbox.toggled.connect(_on_screen_enablement_toggled)
+	active_feature_panel.add_child(screen_enable_checkbox)
+
+	var type_title := _make_label("AVAILABLE SCREEN TYPES", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(type_title)
+
+	var type_scroll := ScrollContainer.new()
+	type_scroll.name = "ScreenTypeOptionsScroll"
+	type_scroll.custom_minimum_size.y = 230.0
+	type_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	type_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	type_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	active_feature_panel.add_child(type_scroll)
+
+	var type_list := VBoxContainer.new()
+	type_list.name = "ScreenTypeOptions"
+	type_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_list.add_theme_constant_override("separation", 7)
+	type_scroll.add_child(type_list)
+
+	screen_type_buttons.clear()
+	var screen_types := [
+		"AMOLED",
+		"Super AMOLED",
+		"Dynamic AMOLED",
+		"LTPO AMOLED",
+		"OLED",
+		"IPS LCD",
+		"TFT LCD",
+		"LED-LCD",
+		"Mini-LED LCD",
+		"MicroLED"
+	]
+	for type_name in screen_types:
+		var option := Button.new()
+		option.name = "ScreenType_" + type_name.replace(" ", "").replace("-", "")
+		option.text = type_name
+		option.custom_minimum_size.y = 42.0
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(option, 13)
+		_style_staff_button(option, type_name == selected_screen_type)
+		option.pressed.connect(_on_screen_type_selected.bind(type_name))
+		type_list.add_child(option)
+		screen_type_buttons[type_name] = option
+	_refresh_screen_type_buttons()
+
+
+func _on_screen_enablement_toggled(enabled: bool) -> void:
+	screen_enabled = enabled
+	_refresh_phone_screen()
+	_refresh_screen_type_buttons()
+
+
+func _on_screen_type_selected(type_name: String) -> void:
+	selected_screen_type = type_name
+	_refresh_phone_screen()
+	_refresh_screen_type_buttons()
+
+
+func _refresh_screen_type_buttons() -> void:
+	for type_name in screen_type_buttons:
+		var option: Button = screen_type_buttons[type_name]
+		_style_staff_button(option, type_name == selected_screen_type)
+		option.disabled = not screen_enabled
+
+
+func _refresh_phone_screen() -> void:
+	if not is_instance_valid(phone_body):
+		return
+	var previous := phone_body.get_node_or_null("PhoneDisplayPanel")
+	if is_instance_valid(previous):
+		previous.free()
+	phone_screen = null
+	if not screen_enabled:
+		return
+
+	var display := MeshInstance3D.new()
+	display.name = "PhoneDisplayPanel"
+	var display_mesh := BoxMesh.new()
+	display_mesh.size = Vector3(PHONE_SIZE.x - 0.16, PHONE_SIZE.y - 0.22, 0.006)
+	display.mesh = display_mesh
+
+	var display_material := StandardMaterial3D.new()
+	display_material.metallic = 0.02
+	display_material.roughness = 0.20
+	display_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	display_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	match selected_screen_type:
+		"AMOLED":
+			display_material.albedo_color = Color("#080d13")
+			display_material.roughness = 0.12
+		"Super AMOLED":
+			display_material.albedo_color = Color("#05090e")
+			display_material.roughness = 0.10
+		"Dynamic AMOLED":
+			display_material.albedo_color = Color("#080b14")
+			display_material.roughness = 0.09
+		"LTPO AMOLED":
+			display_material.albedo_color = Color("#070b12")
+			display_material.roughness = 0.11
+		"OLED":
+			display_material.albedo_color = Color("#10131a")
+			display_material.roughness = 0.16
+		"IPS LCD":
+			display_material.albedo_color = Color("#182b3b")
+			display_material.roughness = 0.24
+		"TFT LCD":
+			display_material.albedo_color = Color("#263746")
+			display_material.roughness = 0.30
+		"LED-LCD":
+			display_material.albedo_color = Color("#1c3041")
+			display_material.roughness = 0.26
+		"Mini-LED LCD":
+			display_material.albedo_color = Color("#111f30")
+			display_material.roughness = 0.20
+		"MicroLED":
+			display_material.albedo_color = Color("#080e14")
+			display_material.roughness = 0.10
+	display_material.emission_enabled = true
+	display_material.emission = display_material.albedo_color
+	display_material.emission_energy_multiplier = 0.025
+	display.material_override = display_material
+	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + 0.0035)
+	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	phone_body.add_child(display)
+	phone_screen = display
 
 
 func _style_feature_slider(meter: VSlider) -> void:
@@ -1750,6 +1924,7 @@ func _refresh_phone_mesh() -> void:
 	_refresh_phone_charge_port()
 	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
 	_refresh_phone_side_buttons()
+	_refresh_phone_screen()
 func _on_border_radius_level_changed(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
 	if is_instance_valid(border_radius_value_label):
