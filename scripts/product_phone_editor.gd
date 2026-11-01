@@ -787,15 +787,14 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 func _show_bezel_controls() -> void:
-	# One compact panel controls both symmetrical bezel dimensions. The screen
-	# automatically expands or contracts to occupy the remaining front surface.
+	if not is_instance_valid(right_tools_content):
+		return
 	for child in right_tools_content.get_children():
-		right_tools_content.remove_child(child)
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BezelDesignControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
@@ -803,51 +802,94 @@ func _show_bezel_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var explanation := _make_label("Adjust the phone's border. The screen resizes automatically.", 12, Color("#d8eaf5"))
+	var explanation := _make_label("Adjust the borders. The screen resizes automatically.", 12, Color("#d8eaf5"))
 	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(explanation)
 
-	var width_heading := _make_label("BEZEL WIDTH", 14, Color.WHITE)
-	active_feature_panel.add_child(width_heading)
+	# Match the Border Radius panel: two tall, custom-styled vertical sliders.
+	# Width controls sit on the left and height controls on the right.
+	var meter_row := HBoxContainer.new()
+	meter_row.name = "BezelSliderRow"
+	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	meter_row.add_theme_constant_override("separation", 18)
+	active_feature_panel.add_child(meter_row)
+
+	var width_column := VBoxContainer.new()
+	width_column.name = "BezelWidthColumn"
+	width_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	width_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	width_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	width_column.add_theme_constant_override("separation", 6)
+	meter_row.add_child(width_column)
+
+	var width_heading := _make_label("BEZEL WIDTH", 13, Color.WHITE)
+	width_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	width_column.add_child(width_heading)
 	bezel_width_value_label = _make_label("", 12, Color("#b9eaff"))
-	active_feature_panel.add_child(bezel_width_value_label)
-	var width_slider := HSlider.new()
-	width_slider.name = "BezelWidthSlider"
-	width_slider.min_value = 0.02
-	width_slider.max_value = 0.30
-	width_slider.step = 0.005
-	width_slider.value = bezel_width
-	width_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	width_slider.custom_minimum_size.y = 28
-	width_slider.value_changed.connect(_on_bezel_width_changed)
-	active_feature_panel.add_child(width_slider)
+	bezel_width_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	width_column.add_child(bezel_width_value_label)
 
-	var height_heading := _make_label("BEZEL HEIGHT", 14, Color.WHITE)
-	active_feature_panel.add_child(height_heading)
+	var width_meter := VSlider.new()
+	width_meter.name = "BezelWidthSlider"
+	width_meter.min_value = 0.02
+	width_meter.max_value = 0.15
+	width_meter.step = 0.001
+	width_meter.value = clampf(bezel_width, 0.02, 0.15)
+	width_meter.tick_count = 14
+	width_meter.custom_minimum_size = Vector2(76, 250)
+	width_meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	width_meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	width_meter.value_changed.connect(_on_bezel_width_changed)
+	_style_feature_slider(width_meter)
+	width_column.add_child(width_meter)
+
+	var height_column := VBoxContainer.new()
+	height_column.name = "BezelHeightColumn"
+	height_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	height_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	height_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	height_column.add_theme_constant_override("separation", 6)
+	meter_row.add_child(height_column)
+
+	var height_heading := _make_label("BEZEL HEIGHT", 13, Color.WHITE)
+	height_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	height_column.add_child(height_heading)
 	bezel_height_value_label = _make_label("", 12, Color("#b9eaff"))
-	active_feature_panel.add_child(bezel_height_value_label)
-	var height_slider := HSlider.new()
-	height_slider.name = "BezelHeightSlider"
-	height_slider.min_value = 0.04
-	height_slider.max_value = 0.65
-	height_slider.step = 0.005
-	height_slider.value = bezel_height
-	height_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	height_slider.custom_minimum_size.y = 28
-	height_slider.value_changed.connect(_on_bezel_height_changed)
-	active_feature_panel.add_child(height_slider)
+	bezel_height_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	height_column.add_child(bezel_height_value_label)
 
+	var height_meter := VSlider.new()
+	height_meter.name = "BezelHeightSlider"
+	height_meter.min_value = 0.02
+	height_meter.max_value = 0.325
+	height_meter.step = 0.001
+	height_meter.value = clampf(bezel_height, 0.02, 0.325)
+	height_meter.tick_count = 14
+	height_meter.custom_minimum_size = Vector2(76, 250)
+	height_meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	height_meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	height_meter.value_changed.connect(_on_bezel_height_changed)
+	_style_feature_slider(height_meter)
+	height_column.add_child(height_meter)
+
+	# Keep the stored values inside the new slider limits if they were set
+	# before these tighter maximums were introduced.
+	bezel_width = width_meter.value
+	bezel_height = height_meter.value
 	_update_bezel_value_labels()
 
 
 func _on_bezel_width_changed(value: float) -> void:
-	bezel_width = clampf(value, 0.02, 0.30)
+	bezel_width = clampf(value, 0.02, 0.15)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 
 
 func _on_bezel_height_changed(value: float) -> void:
-	bezel_height = clampf(value, 0.04, 0.65)
+	bezel_height = clampf(value, 0.02, 0.325)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 
