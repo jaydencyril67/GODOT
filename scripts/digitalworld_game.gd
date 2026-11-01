@@ -2392,6 +2392,8 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	selector.add_theme_color_override("font_pressed_color", Color.WHITE)
 	selector.add_theme_color_override("font_focus_color", Color.WHITE)
 	var popup := selector.get_popup()
+	popup.min_size = Vector2i(maxi(roundi(selector.custom_minimum_size.x), 260), 0)
+	popup.add_theme_font_size_override("font_size", 16)
 	var panel := StyleBoxFlat.new()
 	panel.bg_color = Color("#081c2b")
 	panel.border_color = Color("#4db9ed")
@@ -2401,12 +2403,16 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	var item_hover := StyleBoxFlat.new()
 	item_hover.bg_color = Color("#155477")
 	item_hover.set_corner_radius_all(5)
+	item_hover.content_margin_left = 12
+	item_hover.content_margin_right = 12
+	item_hover.content_margin_top = 10
+	item_hover.content_margin_bottom = 10
 	popup.add_theme_stylebox_override("hover", item_hover)
 	popup.add_theme_stylebox_override("pressed", item_hover)
 	popup.add_theme_color_override("font_color", Color("#dff4ff"))
 	popup.add_theme_color_override("font_hover_color", Color.WHITE)
 	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
-	popup.add_theme_constant_override("v_separation", 7)
+	popup.add_theme_constant_override("v_separation", 10)
 	popup.add_theme_constant_override("outline_size", 1)
 	popup.add_theme_color_override("font_outline_color", Color("#061522"))
 
