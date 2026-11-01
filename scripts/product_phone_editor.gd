@@ -208,6 +208,7 @@ var back_design_border_label: Label
 var back_design_border_slider: HSlider
 var back_design_mode := "MOVE"
 var back_design_size_action := "EXPAND"
+var back_design_color_mode := false
 
 
 func _ready() -> void:
@@ -949,6 +950,7 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 func _show_device_color_controls(return_to_back_design: bool = false) -> void:
+	back_design_color_mode = return_to_back_design
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
@@ -981,7 +983,20 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		var title := _make_label("DEVICE COLOR", 18, Color("#c7eaff"))
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(title)
-	var description := _make_label("Fine-tune the finish of your phone body.", 12, Color("#d8eaf5"))
+	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		var use_device_color := CheckBox.new()
+		use_device_color.name = "UseDeviceColor"
+		use_device_color.text = "USE DEVICE COLOR"
+		use_device_color.button_pressed = bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))
+		use_device_color.add_theme_color_override("font_color", Color("#d8eaf5"))
+		use_device_color.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		use_device_color.toggled.connect(_on_back_design_use_device_color_toggled)
+		active_feature_panel.add_child(use_device_color)
+		var color_hint := _make_label("On: matches phone body  •  Off: custom box color", 11, Color("#91b8cf"))
+		color_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(color_hint)
+		_set_back_design_custom_color_controls_enabled(not use_device_color.button_pressed)
+	var description := _make_label("Choose the custom finish for this raised box.", 12, Color("#d8eaf5"))
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
@@ -992,7 +1007,7 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spectrum.custom_minimum_size = Vector2(0, clampf(get_viewport().get_visible_rect().size.y * 0.22, 145.0, 190.0) * 1.5)
-	spectrum.set_color_value(device_body_color)
+	spectrum.set_color_value(_get_active_color_picker_color())
 	spectrum.color_changed.connect(_on_device_body_color_changed)
 	active_feature_panel.add_child(spectrum)
 
@@ -1001,7 +1016,7 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	var hue_bar := DeviceHueBar.new()
 	hue_bar.name = "DeviceColorHue"
 	hue_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hue_bar.set_hue(device_body_color.h)
+	hue_bar.set_hue(_get_active_color_picker_color().h)
 	hue_bar.hue_changed.connect(_on_device_color_hue_changed)
 	active_feature_panel.add_child(hue_bar)
 
@@ -1013,9 +1028,9 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	var selected_swatch := ColorRect.new()
 	selected_swatch.name = "SelectedColorSwatch"
 	selected_swatch.custom_minimum_size = Vector2(42, 34)
-	selected_swatch.color = device_body_color
+	selected_swatch.color = _get_active_color_picker_color()
 	selected_row.add_child(selected_swatch)
-	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 14, Color("#e5f6ff"))
+	device_color_hex_label = _make_label("#" + _get_active_color_picker_color().to_html(false).to_upper(), 14, Color("#e5f6ff"))
 	device_color_hex_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	device_color_hex_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	selected_row.add_child(device_color_hex_label)
@@ -1041,7 +1056,7 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		channel_input.min_value = 0
 		channel_input.max_value = 255
 		channel_input.step = 1
-		channel_input.value = roundi(device_body_color.r * 255.0) if channel == "R" else (roundi(device_body_color.g * 255.0) if channel == "G" else roundi(device_body_color.b * 255.0))
+		channel_input.value = roundi(_get_active_color_picker_color().r * 255.0) if channel == "R" else (roundi(_get_active_color_picker_color().g * 255.0) if channel == "G" else roundi(_get_active_color_picker_color().b * 255.0))
 		channel_input.custom_minimum_size = Vector2(0, 40)
 		channel_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		channel_input.add_theme_color_override("font_color", Color("#eaf7ff"))
@@ -1072,7 +1087,7 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	var hex_input := LineEdit.new()
 	hex_input.name = "DeviceColorHexInput"
 	hex_input.placeholder_text = "#RRGGBB"
-	hex_input.text = device_body_color.to_html(false).to_upper()
+	hex_input.text = _get_active_color_picker_color().to_html(false).to_upper()
 	hex_input.max_length = 7
 	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hex_input.custom_minimum_size = Vector2(0, 40)
@@ -1115,6 +1130,32 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	hex_input.text_submitted.connect(_on_device_color_hex_text_submitted)
 
 
+func _get_active_color_picker_color() -> Color:
+	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		var box: Dictionary = back_design_boxes[selected_back_design_box]
+		return device_body_color if bool(box.get("use_device_color", true)) else Color(box.get("custom_color", device_body_color))
+	return device_body_color
+
+
+func _set_back_design_custom_color_controls_enabled(enabled: bool) -> void:
+	if not is_instance_valid(active_feature_panel): return
+	for node_name in ["DeviceColorSpectrum", "DeviceColorHue", "DeviceColorRGB", "CustomHexEntry"]:
+		var control := active_feature_panel.get_node_or_null(node_name) as Control
+		if is_instance_valid(control):
+			control.modulate.a = 1.0 if enabled else 0.38
+			control.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+
+
+func _on_back_design_use_device_color_toggled(enabled: bool) -> void:
+	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
+	back_design_boxes[selected_back_design_box]["use_device_color"] = enabled
+	_set_back_design_custom_color_controls_enabled(not enabled)
+	_refresh_back_design_boxes()
+	var swatch := active_feature_panel.get_node_or_null("SelectedDeviceColor/SelectedColorSwatch") as ColorRect
+	if is_instance_valid(swatch): swatch.color = _get_active_color_picker_color()
+	if is_instance_valid(device_color_hex_label): device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
+
+
 func _on_device_color_hue_changed(hue: float) -> void:
 	var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(spectrum):
@@ -1153,28 +1194,35 @@ func _apply_device_color_hex(value: String) -> void:
 
 
 func _on_device_body_color_changed(color: Color) -> void:
-	device_body_color = Color(color.r, color.g, color.b, 1.0)
-	if is_instance_valid(phone_body):
+	var selected_color := Color(color.r, color.g, color.b, 1.0)
+	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		if bool(back_design_boxes[selected_back_design_box].get("use_device_color", true)): return
+		back_design_boxes[selected_back_design_box]["custom_color"] = selected_color
+		_refresh_back_design_boxes()
+	else:
+		device_body_color = selected_color
+	if not back_design_color_mode and is_instance_valid(phone_body):
 		var body_material := phone_body.material_override as StandardMaterial3D
 		if is_instance_valid(body_material):
 			body_material.albedo_color = device_body_color
 	if is_instance_valid(device_color_hex_label):
-		device_color_hex_label.text = "#" + device_body_color.to_html(false).to_upper()
+		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
 	if is_instance_valid(active_feature_panel):
 		var swatch := active_feature_panel.get_node_or_null("SelectedDeviceColor/SelectedColorSwatch") as ColorRect
 		if is_instance_valid(swatch):
-			swatch.color = device_body_color
+			swatch.color = _get_active_color_picker_color()
 		var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
 		if is_instance_valid(spectrum):
-			spectrum.set_color_value(device_body_color)
+			spectrum.set_color_value(_get_active_color_picker_color())
 		var hue_bar := active_feature_panel.get_node_or_null("DeviceColorHue") as DeviceHueBar
 		if is_instance_valid(hue_bar):
-			hue_bar.set_hue(device_body_color.h)
+			hue_bar.set_hue(_get_active_color_picker_color().h)
 		for channel in ["R", "G", "B"]:
 			var channel_input := active_feature_panel.get_node_or_null("DeviceColorRGB/" + channel + "Column/DeviceColor" + channel) as SpinBox
 			if is_instance_valid(channel_input):
-				var channel_value := device_body_color.r if channel == "R" else (device_body_color.g if channel == "G" else device_body_color.b)
+				var active_color := _get_active_color_picker_color()
+				var channel_value := active_color.r if channel == "R" else (active_color.g if channel == "G" else active_color.b)
 				channel_input.set_value_no_signal(roundi(channel_value * 255.0))
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
@@ -1398,7 +1446,7 @@ func _add_back_design_box() -> void:
 		while x <= max_x and not placed:
 			var box_position := Vector2(x, y)
 			if _back_design_position_is_free(box_position, box_size, -1):
-				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08})
+				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08, "use_device_color": true, "custom_color": device_body_color})
 				selected_back_design_box = back_design_boxes.size() - 1
 				next_back_design_box_id += 1
 				placed = true
@@ -1546,7 +1594,9 @@ func _refresh_back_design_boxes() -> void:
 		raised.name = "RaisedBackBox_%d" % int(box["id"])
 		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035)
 		var material := StandardMaterial3D.new()
-		material.albedo_color = device_body_color.lightened(0.045) if index == selected_back_design_box else device_body_color.darkened(0.10)
+		var box_uses_device_color := bool(box.get("use_device_color", true))
+		var box_color: Color = device_body_color if box_uses_device_color else Color(box.get("custom_color", device_body_color))
+		material.albedo_color = box_color.lightened(0.045) if index == selected_back_design_box else box_color.darkened(0.10)
 		material.metallic = 0.34
 		material.roughness = 0.48
 		raised.material_override = material
