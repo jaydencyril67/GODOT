@@ -2871,12 +2871,17 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 
 	var key := MeshInstance3D.new()
 	key.name = node_name
-	var key_mesh := BoxMesh.new()
-	key_mesh.size = Vector3(button_depth, maxf(length, radius * 2.0), button_width)
+	# A flattened capsule gives the button the softly rounded ends and edges
+	# of a real handset key instead of the sharp corners of a plain box.
+	var key_mesh := CapsuleMesh.new()
+	key_mesh.radius = button_width * 0.5
+	key_mesh.height = maxf(length + button_width, button_width * 2.0)
+	key_mesh.radial_segments = 24
+	key_mesh.rings = 6
 	key.mesh = key_mesh
+	key.scale = Vector3(button_depth / button_width, 1.0, 1.0)
 	key.material_override = key_material
-	# Center the thin key just beyond the side plane, leaving only a shallow
-	# tactile surface exposed rather than a raised block.
+	# Center the shallow rounded key just beyond the side plane.
 	key.position = Vector3(side_sign * (side_edge + button_depth * 0.45), position_y, 0.0)
 	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(key)
