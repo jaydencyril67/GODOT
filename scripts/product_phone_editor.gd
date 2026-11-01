@@ -10,6 +10,9 @@ const DRAG_SENSITIVITY := 0.0024
 
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
+var home_button_type := "Round Physical"
+const HOME_BUTTON_TYPES := ["Round Physical", "Oval Physical", "Rectangular Physical", "Recessed Physical", "Capacitive Touch", "On-screen"]
+var home_button_option_buttons: Dictionary = {}
 var screen_enabled := false
 var selected_screen_type := "AMOLED"
 var screen_enable_checkbox: CheckBox
@@ -318,7 +321,7 @@ func _get_hardware_research_features() -> Array:
 		"Screen Tech", "Power/Volume Buttons", "Thickness", "Screen Width",
 		"Screen Height", "Screen Type", "Border Radius", "Speakers",
 		"Charge Port", "Front Camera", "Rare Camera", "Style Pen",
-		"Side Button", "Audio Output", "Body Frame", "Phone Width",
+		"Side Button", "Home Button", "Body Frame", "Phone Width",
 		"Phone Height", "Sim/Memory Slot", "Protection", "Refresh Rate",
 		"Back Panel Material", "Frame Material", "Body Finish & Colour",
 		"Cooling System Design"
@@ -687,6 +690,7 @@ func _get_preview_viewport() -> SubViewport:
 	body_material.cull_mode = BaseMaterial3D.CULL_BACK
 	phone_body.material_override = body_material
 	_refresh_phone_side_buttons()
+	_refresh_phone_home_button()
 	_refresh_phone_screen()
 	# The preview contains only the phone body, so it has no useful external
 	# shadow to cast. Prevent the custom rounded perimeter from self-shadowing
@@ -751,7 +755,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons"]:
+	if feature_name in ["Screen Tech", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -770,6 +774,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_charge_port_controls()
 	elif feature_name == "Power/Volume Buttons":
 		_show_power_volume_controls()
+	elif feature_name == "Home Button":
+		_show_home_button_controls()
 
 
 
@@ -1156,6 +1162,135 @@ func _show_power_volume_controls() -> void:
 	side_button_length_label = _make_label("LENGTH  %d%%" % roundi(side_button_length_scale * 100.0), 17, Color("#a9e3ff"))
 	side_button_length_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(side_button_length_label)
+
+
+func _show_home_button_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "HomeButtonControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("HOME BUTTON", 19, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var type_grid := GridContainer.new()
+	type_grid.name = "HomeButtonTypes"
+	type_grid.columns = 1
+	type_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_grid.add_theme_constant_override("v_separation", 7)
+	active_feature_panel.add_child(type_grid)
+
+	home_button_option_buttons.clear()
+	for index in range(HOME_BUTTON_TYPES.size()):
+		var type_name: String = HOME_BUTTON_TYPES[index]
+		var option := Button.new()
+		option.name = "HomeButton_" + type_name.replace(" ", "")
+		option.text = type_name
+		option.custom_minimum_size = Vector2(0, 44)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(option, 13)
+		_style_screen_type_option(option, mini(index, 9), type_name == home_button_type)
+		option.pressed.connect(_on_home_button_type_selected.bind(type_name))
+		type_grid.add_child(option)
+		home_button_option_buttons[type_name] = option
+
+
+func _on_home_button_type_selected(type_name: String) -> void:
+	home_button_type = type_name
+	_refresh_phone_home_button()
+	for option_name in home_button_option_buttons:
+		var option: Button = home_button_option_buttons[option_name]
+		_style_screen_type_option(option, mini(HOME_BUTTON_TYPES.find(option_name), 9), option_name == home_button_type)
+
+
+func _refresh_phone_home_button() -> void:
+	if not is_instance_valid(phone_body):
+		return
+	var previous := phone_body.get_node_or_null("PhoneHomeButton")
+	if is_instance_valid(previous):
+		previous.free()
+	# "On-screen" is a single generic choice. OS-specific navigation styles
+	# belong to the later operating-system creation system, not hardware design.
+	if home_button_type == "On-screen":
+		return
+
+	var button_root := Node3D.new()
+	button_root.name = "PhoneHomeButton"
+	phone_body.add_child(button_root)
+	var center_y := -PHONE_SIZE.y * 0.5 + 0.31
+	var front_z := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0) * 0.5
+	var button_material := StandardMaterial3D.new()
+	button_material.albedo_color = Color("#7e8994")
+	button_material.metallic = 0.32
+	button_material.roughness = 0.42
+	var dark_material := StandardMaterial3D.new()
+	dark_material.albedo_color = Color("#202a34")
+	dark_material.metallic = 0.18
+	dark_material.roughness = 0.58
+
+	if home_button_type == "Round Physical":
+		var ring := MeshInstance3D.new()
+		ring.name = "RoundHomeButtonBezel"
+		var ring_mesh := CylinderMesh.new()
+		ring_mesh.top_radius = 0.092
+		ring_mesh.bottom_radius = 0.092
+		ring_mesh.height = 0.012
+		ring_mesh.radial_segments = 48
+		ring.mesh = ring_mesh
+		ring.rotation_degrees.x = 90.0
+		ring.position = Vector3(0.0, center_y, front_z + 0.006)
+		ring.material_override = button_material
+		button_root.add_child(ring)
+		var face := MeshInstance3D.new()
+		face.name = "RoundHomeButtonFace"
+		var face_mesh := CylinderMesh.new()
+		face_mesh.top_radius = 0.073
+		face_mesh.bottom_radius = 0.073
+		face_mesh.height = 0.014
+		face_mesh.radial_segments = 48
+		face.mesh = face_mesh
+		face.rotation_degrees.x = 90.0
+		face.position = Vector3(0.0, center_y, front_z + 0.014)
+		face.material_override = dark_material
+		button_root.add_child(face)
+	else:
+		var backing := MeshInstance3D.new()
+		backing.name = "HomeButtonBezel"
+		var backing_mesh := BoxMesh.new()
+		var backing_size := Vector3(0.23, 0.105, 0.012)
+		if home_button_type == "Oval Physical":
+			backing_size = Vector3(0.25, 0.105, 0.012)
+		elif home_button_type == "Recessed Physical":
+			backing_size = Vector3(0.22, 0.095, 0.006)
+		elif home_button_type == "Capacitive Touch":
+			backing_size = Vector3(0.20, 0.075, 0.004)
+		backing_mesh.size = backing_size
+		backing.mesh = backing_mesh
+		backing.position = Vector3(0.0, center_y, front_z + 0.004)
+		backing.material_override = button_material if home_button_type != "Recessed Physical" else dark_material
+		button_root.add_child(backing)
+		if home_button_type != "Capacitive Touch":
+			var face := MeshInstance3D.new()
+			face.name = "HomeButtonFace"
+			var face_mesh := BoxMesh.new()
+			var face_size := Vector3(0.19, 0.070, 0.010)
+			if home_button_type == "Oval Physical":
+				face_size = Vector3(0.21, 0.065, 0.010)
+			elif home_button_type == "Recessed Physical":
+				face_size = Vector3(0.17, 0.055, 0.004)
+			face_mesh.size = face_size
+			face.mesh = face_mesh
+			face.position = Vector3(0.0, center_y, front_z + 0.012)
+			face.material_override = dark_material if home_button_type != "Recessed Physical" else button_material
+			button_root.add_child(face)
 
 
 func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
@@ -1955,6 +2090,7 @@ func _refresh_phone_mesh() -> void:
 	_refresh_phone_charge_port()
 	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
 	_refresh_phone_side_buttons()
+	_refresh_phone_home_button()
 	_refresh_phone_screen()
 func _on_border_radius_level_changed(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
