@@ -1518,7 +1518,11 @@ func _side_camera_safe_y(x: float, screen_width: float, screen_height: float, le
 		return fallback_y
 	var vertical_reach := sqrt(maxf(0.0, safe_radius * safe_radius - horizontal_offset * horizontal_offset))
 	var highest_safe_y := corner_center_y + vertical_reach - 0.008
-	return minf(fallback_y, highest_safe_y)
+	# Limit the extra downward correction to a small, predictable step per
+	# border level so the lens does not jump when the corner radius increases.
+	var max_gradual_drop := 0.012 * float(border_radius_level)
+	var corner_safe_y := minf(fallback_y, highest_safe_y)
+	return maxf(corner_safe_y, fallback_y - max_gradual_drop)
 
 
 func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
@@ -1582,7 +1586,10 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# the screen expands for a side curve.
 			var side_lens_radius := 0.037
 			var side_camera_x := -screen_width * (0.40 if border_radius_level == 0 else 0.36)
-			var side_camera_y := _side_camera_safe_y(side_camera_x, screen_width, screen_height, side_lens_radius, camera_y)
+			# Side-camera positioning starts from the unbordered top inset.
+			# The helper then applies only a gradual, capped correction per level.
+			var side_camera_base_y := top_edge - top_inset
+			var side_camera_y := _side_camera_safe_y(side_camera_x, screen_width, screen_height, side_lens_radius, side_camera_base_y)
 			var side_camera_z := front_z + _front_camera_screen_surface_z(side_camera_x, side_camera_y, screen_width, screen_height)
 			_add_front_camera_lens(camera_root, Vector3(side_camera_x, side_camera_y, side_camera_z), side_lens_radius, cutout_material, lens_material, ring_material)
 		"Dual Punch-Hole":
