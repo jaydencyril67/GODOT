@@ -14,6 +14,8 @@ var screen_enabled := false
 var selected_screen_type := "AMOLED"
 var screen_enable_checkbox: CheckBox
 var screen_type_buttons: Dictionary = {}
+var screen_type_feedback_label: Label
+const SCREEN_TYPE_ORDER := ["TFT LCD", "LED-LCD", "IPS LCD", "Mini-LED LCD", "OLED", "AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"]
 var preview_camera: Camera3D
 var preview_container: SubViewportContainer
 var research_mode := false
@@ -823,8 +825,13 @@ func _show_screen_tech_controls() -> void:
 	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	enable_row.add_child(enable_label)
 
-	var type_title := _make_label("AVAILABLE SCREEN TYPES", 13, Color("#a9e3ff"))
+	var type_title := _make_label("AVAILABLE SCREEN TYPES  ·  BASIC → FLAGSHIP", 12, Color("#a9e3ff"))
 	active_feature_panel.add_child(type_title)
+
+	screen_type_feedback_label = _make_label("SELECT A DISPLAY TECHNOLOGY", 11, Color("#b9dff2"))
+	screen_type_feedback_label.name = "ScreenTypeSelectionFeedback"
+	screen_type_feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(screen_type_feedback_label)
 
 	var type_grid := GridContainer.new()
 	type_grid.name = "ScreenTypeOptions"
@@ -835,27 +842,16 @@ func _show_screen_tech_controls() -> void:
 	active_feature_panel.add_child(type_grid)
 
 	screen_type_buttons.clear()
-	var screen_types := [
-		"AMOLED",
-		"Super AMOLED",
-		"Dynamic AMOLED",
-		"LTPO AMOLED",
-		"OLED",
-		"IPS LCD",
-		"TFT LCD",
-		"LED-LCD",
-		"Mini-LED LCD",
-		"MicroLED"
-	]
-	for type_name in screen_types:
+	for index in range(SCREEN_TYPE_ORDER.size()):
+		var type_name: String = SCREEN_TYPE_ORDER[index]
 		var option := Button.new()
 		option.name = "ScreenType_" + type_name.replace(" ", "").replace("-", "")
-		option.text = type_name
+		option.text = "%02d   %s" % [index + 1, type_name]
 		option.custom_minimum_size = Vector2(0, 42.0)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(option, 12)
-		_style_staff_button(option, type_name == selected_screen_type)
+		_style_screen_type_option(option, index, type_name == selected_screen_type)
 		option.pressed.connect(_on_screen_type_selected.bind(type_name))
 		type_grid.add_child(option)
 		screen_type_buttons[type_name] = option
@@ -871,15 +867,61 @@ func _on_screen_enablement_toggled(enabled: bool) -> void:
 
 
 func _on_screen_type_selected(type_name: String) -> void:
+	var previous_index := SCREEN_TYPE_ORDER.find(selected_screen_type)
+	var selected_index := SCREEN_TYPE_ORDER.find(type_name)
 	selected_screen_type = type_name
+	if is_instance_valid(screen_type_feedback_label):
+		if selected_index > previous_index:
+			screen_type_feedback_label.text = "UPGRADED  ·  %s → %s" % [SCREEN_TYPE_ORDER[previous_index], type_name]
+			screen_type_feedback_label.add_theme_color_override("font_color", Color("#8fffd0"))
+		elif selected_index < previous_index:
+			screen_type_feedback_label.text = "CHANGED  ·  %s → %s" % [SCREEN_TYPE_ORDER[previous_index], type_name]
+			screen_type_feedback_label.add_theme_color_override("font_color", Color("#c7eaff"))
+		else:
+			screen_type_feedback_label.text = "%s  ·  CURRENT SELECTION" % type_name
 	_refresh_phone_screen()
 	_refresh_screen_type_buttons()
 
 
+func _style_screen_type_option(option: Button, rank: int, selected: bool) -> void:
+	var tier_colors := [
+		Color("#315064"), Color("#2c485c"), Color("#273f54"), Color("#20364b"),
+		Color("#192d42"), Color("#14263a"), Color("#102136"), Color("#0c1c30"),
+		Color("#09172a"), Color("#071426")
+	]
+	var accent := Color("#79b9d8").lerp(Color("#b9a0ff"), float(rank) / 9.0)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = tier_colors[rank]
+		if selected:
+			style.bg_color = tier_colors[rank].lightened(0.24)
+		if state == "hover":
+			style.bg_color = tier_colors[rank].lightened(0.16)
+		elif state == "pressed":
+			style.bg_color = tier_colors[rank].lightened(0.30)
+		elif state == "disabled":
+			style.bg_color = tier_colors[rank].darkened(0.25)
+		style.border_color = accent if not selected else Color("#e4f7ff")
+		style.set_border_width_all(2 if selected else 1)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.10, 0.22, 0.38)
+		style.shadow_size = 9 if selected else 5
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		option.add_theme_stylebox_override(state, style)
+	option.add_theme_color_override("font_color", Color.WHITE)
+	option.add_theme_color_override("font_hover_color", Color.WHITE)
+	option.add_theme_color_override("font_pressed_color", Color.WHITE)
+	option.add_theme_color_override("font_disabled_color", Color("#8da8b8"))
+
+
 func _refresh_screen_type_buttons() -> void:
-	for type_name in screen_type_buttons:
+	for index in range(SCREEN_TYPE_ORDER.size()):
+		var type_name: String = SCREEN_TYPE_ORDER[index]
+		if not screen_type_buttons.has(type_name):
+			continue
 		var option: Button = screen_type_buttons[type_name]
-		_style_staff_button(option, type_name == selected_screen_type)
+		_style_screen_type_option(option, index, type_name == selected_screen_type)
 		option.disabled = not screen_enabled
 
 
@@ -904,37 +946,37 @@ func _refresh_phone_screen() -> void:
 	display_material.roughness = 0.20
 	display_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	display_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	match selected_screen_type:
-		"AMOLED":
-			display_material.albedo_color = Color("#080d13")
-			display_material.roughness = 0.12
-		"Super AMOLED":
-			display_material.albedo_color = Color("#05090e")
-			display_material.roughness = 0.10
-		"Dynamic AMOLED":
-			display_material.albedo_color = Color("#080b14")
-			display_material.roughness = 0.09
-		"LTPO AMOLED":
-			display_material.albedo_color = Color("#070b12")
-			display_material.roughness = 0.11
-		"OLED":
-			display_material.albedo_color = Color("#10131a")
-			display_material.roughness = 0.16
-		"IPS LCD":
-			display_material.albedo_color = Color("#182b3b")
-			display_material.roughness = 0.24
-		"TFT LCD":
-			display_material.albedo_color = Color("#263746")
-			display_material.roughness = 0.30
-		"LED-LCD":
-			display_material.albedo_color = Color("#1c3041")
-			display_material.roughness = 0.26
-		"Mini-LED LCD":
-			display_material.albedo_color = Color("#111f30")
-			display_material.roughness = 0.20
-		"MicroLED":
-			display_material.albedo_color = Color("#080e14")
-			display_material.roughness = 0.10
+	# The panel gets progressively darker as the technology tier rises.
+	# Flagship OLED-family and MicroLED finishes stay close in tone but use
+	# lower roughness and stronger specular response for a polished black-glass look.
+	var screen_colors := {
+		"TFT LCD": Color("#263746"),
+		"LED-LCD": Color("#223342"),
+		"IPS LCD": Color("#1d2d3d"),
+		"Mini-LED LCD": Color("#172535"),
+		"OLED": Color("#111b28"),
+		"AMOLED": Color("#0e1723"),
+		"Super AMOLED": Color("#0b131f"),
+		"Dynamic AMOLED": Color("#09111d"),
+		"LTPO AMOLED": Color("#080f1b"),
+		"MicroLED": Color("#070d18")
+	}
+	var screen_roughness := {
+		"TFT LCD": 0.30,
+		"LED-LCD": 0.27,
+		"IPS LCD": 0.24,
+		"Mini-LED LCD": 0.19,
+		"OLED": 0.15,
+		"AMOLED": 0.11,
+		"Super AMOLED": 0.075,
+		"Dynamic AMOLED": 0.060,
+		"LTPO AMOLED": 0.045,
+		"MicroLED": 0.035
+	}
+	display_material.albedo_color = screen_colors.get(selected_screen_type, Color("#0e1723"))
+	display_material.roughness = screen_roughness.get(selected_screen_type, 0.12)
+	display_material.metallic = 0.18 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.04
+	display_material.metallic_specular = 0.85 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.55
 	display_material.emission_enabled = true
 	display_material.emission = display_material.albedo_color
 	display_material.emission_energy_multiplier = 0.025
