@@ -14,7 +14,7 @@ var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
 var front_camera_style := "Punch-Hole"
-const FRONT_CAMERA_STYLES := ["Dynamic Island", "Punch-Hole", "Waterdrop Notch", "Wide Notch", "Under-Display Camera", "Bezel Camera"]
+const FRONT_CAMERA_STYLES := ["Bezel Camera", "Wide Notch", "Waterdrop Notch", "Punch-Hole", "Dual Punch-Hole", "Dynamic Island", "Under-Display Camera"]
 var front_camera_option_buttons: Dictionary = {}
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
@@ -1481,79 +1481,114 @@ func _on_front_camera_style_selected(style_name: String) -> void:
 func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
 	if not front_camera_enabled:
 		return
+
 	var camera_root := Node3D.new()
 	camera_root.name = "FrontCameraAssembly"
 	display.add_child(camera_root)
 
-	var front_z := 0.010
-	var dark_material := StandardMaterial3D.new()
-	dark_material.albedo_color = Color("#02060b")
-	dark_material.roughness = 0.16
-	dark_material.metallic = 0.12
-	dark_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# All placements use the actual screen's top edge and a small, consistent
+	# stand-off from the glass. This keeps the camera centred and aligned when
+	# the user changes screen dimensions or bezel settings.
+	var top_edge := screen_height * 0.5
+	var top_inset := clampf(screen_height * 0.035, 0.055, 0.095)
+	var camera_y := top_edge - top_inset
+	camera_root.set_meta("camera_y", camera_y)
+	var front_z := 0.014
+
+	var cutout_material := StandardMaterial3D.new()
+	cutout_material.albedo_color = Color("#020407")
+	cutout_material.roughness = 0.20
+	cutout_material.metallic = 0.08
+	cutout_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
 	var lens_material := StandardMaterial3D.new()
-	lens_material.albedo_color = Color("#142b45")
-	lens_material.metallic = 0.62
-	lens_material.roughness = 0.16
+	lens_material.albedo_color = Color("#142d49")
+	lens_material.metallic = 0.72
+	lens_material.roughness = 0.13
 	lens_material.emission_enabled = true
-	lens_material.emission = Color("#102f50")
-	lens_material.emission_energy_multiplier = 0.12
+	lens_material.emission = Color("#102c4c")
+	lens_material.emission_energy_multiplier = 0.10
+
 	var ring_material := StandardMaterial3D.new()
-	ring_material.albedo_color = Color("#536171")
-	ring_material.metallic = 0.78
-	ring_material.roughness = 0.28
+	ring_material.albedo_color = Color("#46515e")
+	ring_material.metallic = 0.82
+	ring_material.roughness = 0.24
 
-	if front_camera_style == "Under-Display Camera":
-		# The lens is concealed beneath the panel; no visible cutout is drawn.
-		return
+	match front_camera_style:
+		"Bezel Camera":
+			# Early smartphones placed a small lens in the upper display bezel.
+			_add_front_camera_lens(camera_root, Vector3(0.0, top_edge + maxf(bezel_height * 0.24, 0.045), front_z), 0.032, cutout_material, lens_material, ring_material)
+		"Wide Notch":
+			# Wide, top-centred notch popularised by early all-screen phones.
+			var notch_width := minf(0.48, screen_width * 0.42)
+			_add_camera_cutout(camera_root, "WideNotchCutout", Vector2(notch_width, 0.145), Vector2(0.055, 0.0), front_z, cutout_material)
+			_add_front_camera_lens(camera_root, Vector3(-notch_width * 0.27, camera_y - 0.004, front_z + 0.008), 0.026, cutout_material, lens_material, ring_material)
+			_add_camera_sensor_dot(camera_root, Vector3(notch_width * 0.20, camera_y - 0.004, front_z + 0.009), 0.010, ring_material)
+		"Waterdrop Notch":
+			# Compact teardrop-style notch: narrow at its lower end.
+			_add_camera_cutout(camera_root, "WaterdropNotchCutout", Vector2(0.19, 0.115), Vector2(0.0, 0.012), front_z, cutout_material)
+			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y - 0.020, front_z + 0.008), 0.027, cutout_material, lens_material, ring_material)
+		"Punch-Hole":
+			# Single, small circular opening centred on the top safe area.
+			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y, front_z), 0.038, cutout_material, lens_material, ring_material)
+		"Dual Punch-Hole":
+			# Two distinct, evenly spaced circular openings for dual selfie optics.
+			var dual_spacing := 0.052
+			_add_front_camera_lens(camera_root, Vector3(-dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
+			_add_front_camera_lens(camera_root, Vector3(dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
+		"Dynamic Island":
+			# Long pill cutout with a camera lens and a separate sensor window.
+			var island_width := minf(0.43, screen_width * 0.40)
+			_add_camera_cutout(camera_root, "DynamicIslandCutout", Vector2(island_width, 0.105), Vector2(0.0, 0.0), front_z, cutout_material)
+			_add_front_camera_lens(camera_root, Vector3(island_width * 0.29, camera_y, front_z + 0.008), 0.025, cutout_material, lens_material, ring_material)
+			_add_camera_sensor_dot(camera_root, Vector3(-island_width * 0.25, camera_y, front_z + 0.009), 0.011, ring_material)
+		"Under-Display Camera":
+			# The lens sits beneath the panel: show only a very subtle optical
+			# window, not a punched-out black hole.
+			var hidden_lens := MeshInstance3D.new()
+			hidden_lens.name = "UnderDisplayCameraOpticalWindow"
+			var hidden_mesh := CylinderMesh.new()
+			hidden_mesh.top_radius = 0.026
+			hidden_mesh.bottom_radius = 0.026
+			hidden_mesh.height = 0.0015
+			hidden_mesh.radial_segments = 40
+			hidden_lens.mesh = hidden_mesh
+			hidden_lens.rotation_degrees.x = 90.0
+			hidden_lens.position = Vector3(0.0, camera_y, front_z)
+			var hidden_material := StandardMaterial3D.new()
+			hidden_material.albedo_color = Color(0.025, 0.055, 0.085, 0.22)
+			hidden_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			hidden_material.roughness = 0.28
+			hidden_lens.material_override = hidden_material
+			camera_root.add_child(hidden_lens)
 
-	if front_camera_style == "Bezel Camera":
-		var bezel_y := screen_height * 0.5 + minf(bezel_height * 0.42, 0.075)
-		_add_front_camera_lens(camera_root, Vector3(0.0, bezel_y, front_z), 0.034, dark_material, lens_material, ring_material)
-		return
 
-	if front_camera_style == "Punch-Hole":
-		_add_front_camera_lens(camera_root, Vector3(0.0, screen_height * 0.5 - 0.075, front_z), 0.043, dark_material, lens_material, ring_material)
-		return
+func _add_camera_cutout(parent: Node3D, node_name: String, cutout_size: Vector2, offset: Vector2, front_z: float, material: Material) -> void:
+	var cutout := MeshInstance3D.new()
+	cutout.name = node_name
+	cutout.mesh = _create_rounded_panel_mesh(cutout_size.x, cutout_size.y, 0.006, cutout_size.y * 0.49)
+	cutout.position = Vector3(offset.x, 0.0, front_z)
+	# The parent is attached to the screen mesh; its vertical offset is supplied
+	# by the caller through the cutout's local position.
+	cutout.position.y = parent.get_meta("camera_y", 0.0) + offset.y
+	cutout.material_override = material
+	cutout.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(cutout)
 
-	if front_camera_style == "Waterdrop Notch":
-		var drop := MeshInstance3D.new()
-		drop.name = "WaterdropCameraCutout"
-		drop.mesh = _create_rounded_panel_mesh(0.19, 0.105, 0.006, 0.052)
-		drop.position = Vector3(0.0, screen_height * 0.5 - 0.040, front_z)
-		drop.material_override = dark_material
-		camera_root.add_child(drop)
-		_add_front_camera_lens(camera_root, Vector3(0.0, screen_height * 0.5 - 0.043, front_z + 0.005), 0.025, dark_material, lens_material, ring_material)
-		return
 
-	if front_camera_style == "Wide Notch":
-		var notch := MeshInstance3D.new()
-		notch.name = "WideNotchCameraCutout"
-		notch.mesh = _create_rounded_panel_mesh(minf(0.48, screen_width * 0.48), 0.14, 0.006, 0.055)
-		notch.position = Vector3(0.0, screen_height * 0.5 - 0.055, front_z)
-		notch.material_override = dark_material
-		camera_root.add_child(notch)
-		_add_front_camera_lens(camera_root, Vector3(0.105, screen_height * 0.5 - 0.052, front_z + 0.005), 0.027, dark_material, lens_material, ring_material)
-		return
-
-	if front_camera_style == "Dynamic Island":
-		var island_width := minf(0.43, screen_width * 0.46)
-		var island := MeshInstance3D.new()
-		island.name = "DynamicIslandCameraCutout"
-		island.mesh = _create_rounded_panel_mesh(island_width, 0.105, 0.008, 0.052)
-		island.position = Vector3(0.0, screen_height * 0.5 - 0.060, front_z)
-		island.material_override = dark_material
-		camera_root.add_child(island)
-		_add_front_camera_lens(camera_root, Vector3(island_width * 0.31, screen_height * 0.5 - 0.060, front_z + 0.006), 0.026, dark_material, lens_material, ring_material)
-		var sensor := MeshInstance3D.new()
-		sensor.name = "DynamicIslandSensor"
-		var sensor_mesh := SphereMesh.new()
-		sensor_mesh.radius = 0.012
-		sensor_mesh.height = 0.024
-		sensor.mesh = sensor_mesh
-		sensor.position = Vector3(-island_width * 0.25, screen_height * 0.5 - 0.060, front_z + 0.006)
-		sensor.material_override = ring_material
-		camera_root.add_child(sensor)
+func _add_camera_sensor_dot(parent: Node3D, dot_position: Vector3, radius: float, material: Material) -> void:
+	var dot := MeshInstance3D.new()
+	dot.name = "FrontCameraProximitySensor"
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 24
+	mesh.rings = 12
+	dot.mesh = mesh
+	dot.position = dot_position
+	dot.material_override = material
+	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(dot)
 
 
 func _add_front_camera_lens(parent: Node3D, lens_position: Vector3, radius: float, dark_material: Material, lens_material: Material, ring_material: Material) -> void:
