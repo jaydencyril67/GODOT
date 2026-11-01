@@ -1209,15 +1209,6 @@ func _show_back_design_controls() -> void:
 		_style_staff_button(mode_button, back_design_mode == mode)
 		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
 		modes.add_child(mode_button)
-	if back_design_mode == "SIZE":
-		var resize_action_button := Button.new()
-		resize_action_button.text = "RESIZE: " + back_design_size_action
-		resize_action_button.custom_minimum_size.y = 48
-		resize_action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(resize_action_button, 16)
-		_style_staff_button(resize_action_button, back_design_size_action == "EXPAND")
-		resize_action_button.pressed.connect(_toggle_back_design_size_action)
-		active_feature_panel.add_child(resize_action_button)
 	var pad := GridContainer.new()
 	pad.columns = 3
 	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -1226,11 +1217,21 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_button(pad, "↑", Vector2i(0, 1))
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "←", Vector2i(-1, 0))
-	var center := _make_label(back_design_mode, 14, Color("#c7eaff"))
-	center.custom_minimum_size = Vector2(68, 60)
-	center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pad.add_child(center)
+	if back_design_mode == "SIZE":
+		var center_button := Button.new()
+		center_button.text = back_design_size_action
+		center_button.custom_minimum_size = Vector2(68, 60)
+		center_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		_apply_research_typography(center_button, 12)
+		_style_staff_button(center_button, back_design_size_action == "EXPAND")
+		center_button.pressed.connect(_toggle_back_design_size_action)
+		pad.add_child(center_button)
+	else:
+		var center := _make_label("MOVE", 14, Color("#c7eaff"))
+		center.custom_minimum_size = Vector2(68, 60)
+		center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pad.add_child(center)
 	_add_back_design_pad_button(pad, "→", Vector2i(1, 0))
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "↓", Vector2i(0, -1))
