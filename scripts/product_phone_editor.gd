@@ -1505,9 +1505,8 @@ func _front_camera_screen_surface_z(x: float, y: float, screen_width: float, scr
 
 
 func _side_camera_safe_y(x: float, screen_width: float, screen_height: float, lens_radius: float, fallback_y: float) -> float:
-	# Find the highest safe point for a side camera inside the rounded top
-	# corner. Using the lens' own radius prevents an oversized blanket inset
-	# from pushing the camera unnecessarily far down the display.
+	# Keep the side camera at its normal top inset unless the rounded
+	# corner forces it farther down. Never move it upward as the radius grows.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
 	if corner_radius <= 0.001:
 		return fallback_y
@@ -1519,7 +1518,7 @@ func _side_camera_safe_y(x: float, screen_width: float, screen_height: float, le
 		return fallback_y
 	var vertical_reach := sqrt(maxf(0.0, safe_radius * safe_radius - horizontal_offset * horizontal_offset))
 	var highest_safe_y := corner_center_y + vertical_reach - 0.008
-	return maxf(fallback_y, highest_safe_y)
+	return minf(fallback_y, highest_safe_y)
 
 
 func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
