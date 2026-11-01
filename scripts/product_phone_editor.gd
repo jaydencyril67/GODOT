@@ -1318,9 +1318,10 @@ func _show_back_design_controls() -> void:
 	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(pad)
 	_add_back_design_pad_spacer(pad)
-	_add_back_design_pad_button(pad, "↑", Vector2i(0, 1))
+	var shrinking := back_design_mode == "SIZE" and back_design_size_action == "SHRINK"
+	_add_back_design_pad_button(pad, "↓" if shrinking else "↑", Vector2i(0, 1))
 	_add_back_design_pad_spacer(pad)
-	_add_back_design_pad_button(pad, "←", Vector2i(-1, 0))
+	_add_back_design_pad_button(pad, "→" if shrinking else "←", Vector2i(-1, 0))
 	if back_design_mode == "SIZE":
 		var center_button := Button.new()
 		center_button.text = back_design_size_action
@@ -1336,9 +1337,9 @@ func _show_back_design_controls() -> void:
 		center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		pad.add_child(center)
-	_add_back_design_pad_button(pad, "→", Vector2i(1, 0))
+	_add_back_design_pad_button(pad, "←" if shrinking else "→", Vector2i(1, 0))
 	_add_back_design_pad_spacer(pad)
-	_add_back_design_pad_button(pad, "↓", Vector2i(0, -1))
+	_add_back_design_pad_button(pad, "↑" if shrinking else "↓", Vector2i(0, -1))
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_flexible_space(active_feature_panel)
 
@@ -1536,7 +1537,7 @@ func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 		var half := box_size * 0.5
 		var next_position := box_position
 		var next_half := half
-		var step := 0.025 * (1.0 if back_design_size_action == "EXPAND" else -1.0)
+		var step := 0.025 * (-1.0 if back_design_size_action == "EXPAND" else 1.0)
 		if direction.x < 0:
 			next_position.x -= step * 0.5
 			next_half.x += step * 0.5
@@ -1631,7 +1632,7 @@ func _refresh_back_design_boxes() -> void:
 		var size: Vector2 = box["size"]
 		var raised := MeshInstance3D.new()
 		raised.name = "RaisedBackBox_%d" % int(box["id"])
-		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035)
+		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035 / 1.10)
 		var material := StandardMaterial3D.new()
 		var box_uses_device_color := bool(box.get("use_device_color", true))
 		var box_color: Color = device_body_color if box_uses_device_color else Color(box.get("custom_color", device_body_color))
