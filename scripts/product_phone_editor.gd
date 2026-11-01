@@ -1258,10 +1258,10 @@ func _add_back_design_box() -> void:
 	var placed := false
 	for row in range(6):
 		for column in range(3):
-			var position := Vector2(-0.43 + float(column) * 0.43, 1.05 - float(row) * 0.40)
+			var box_position := Vector2(-0.43 + float(column) * 0.43, 1.05 - float(row) * 0.40)
 			var box_size := Vector2(0.34, 0.34)
-			if _back_design_position_is_free(position, box_size, -1):
-				back_design_boxes.append({"id": next_back_design_box_id, "position": position, "size": box_size, "border": 0.08})
+			if _back_design_position_is_free(box_position, box_size, -1):
+				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08})
 				selected_back_design_box = back_design_boxes.size() - 1
 				next_back_design_box_id += 1
 				placed = true
@@ -1284,32 +1284,32 @@ func _select_back_design_box(index: int) -> void:
 	_refresh_back_design_boxes()
 	_refresh_back_design_panel()
 
-func _back_design_position_is_free(position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
+func _back_design_position_is_free(box_position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
 	var half := box_size * 0.5
-	if absf(position.x) + half.x > PHONE_SIZE.x * 0.5 - 0.07: return false
-	if absf(position.y) + half.y > PHONE_SIZE.y * 0.5 - 0.07: return false
+	if absf(box_position.x) + half.x > PHONE_SIZE.x * 0.5 - 0.07: return false
+	if absf(box_position.y) + half.y > PHONE_SIZE.y * 0.5 - 0.07: return false
 	for index in range(back_design_boxes.size()):
 		if index == ignore_index: continue
 		var other: Dictionary = back_design_boxes[index]
 		var other_half: Vector2 = other["size"] * 0.5
 		var other_position: Vector2 = other["position"]
-		if absf(position.x - other_position.x) < half.x + other_half.x + 0.035 and absf(position.y - other_position.y) < half.y + other_half.y + 0.035: return false
+		if absf(box_position.x - other_position.x) < half.x + other_half.x + 0.035 and absf(position.y - other_position.y) < half.y + other_half.y + 0.035: return false
 	return true
 
 func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
 	var box: Dictionary = back_design_boxes[selected_back_design_box]
-	var position: Vector2 = box["position"]
+	var box_position: Vector2 = box["position"]
 	var box_size: Vector2 = box["size"]
 	if back_design_mode == "MOVE":
-		var next_position := position + Vector2(direction) * 0.04
+		var next_position := box_position + Vector2(direction) * 0.04
 		if _back_design_position_is_free(next_position, box_size, selected_back_design_box): box["position"] = next_position
 	else:
 		var change := 0.025 if direction.x + direction.y > 0 else -0.025
 		var next_size := box_size + Vector2(change, change)
 		next_size.x = clampf(next_size.x, 0.20, 0.76)
 		next_size.y = clampf(next_size.y, 0.20, 0.76)
-		if _back_design_position_is_free(position, next_size, selected_back_design_box): box["size"] = next_size
+		if _back_design_position_is_free(box_position, next_size, selected_back_design_box): box["size"] = next_size
 	back_design_boxes[selected_back_design_box] = box
 	_refresh_back_design_boxes()
 	_refresh_back_design_panel()
@@ -1399,7 +1399,7 @@ func _refresh_back_design_boxes() -> void:
 		raised.material_override = material
 		raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var position: Vector2 = box["position"]
-		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5)
+		raised.position = Vector3(box_position.x, box_position.y, -phone_depth * 0.5)
 		root.add_child(raised)
 
 func _show_screen_size_controls() -> void:
