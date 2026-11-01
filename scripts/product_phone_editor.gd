@@ -1703,7 +1703,7 @@ func _refresh_back_design_boxes() -> void:
 		var size: Vector2 = box["size"]
 		var raised := MeshInstance3D.new()
 		raised.name = "RaisedBackBox_%d" % int(box["id"])
-		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035 / 1.10)
+		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035 / 1.10 / 1.5)
 		var material := StandardMaterial3D.new()
 		var box_uses_device_color := bool(box.get("use_device_color", true))
 		var box_color: Color = device_body_color if box_uses_device_color else Color(box.get("custom_color", device_body_color))
