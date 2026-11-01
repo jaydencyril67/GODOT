@@ -2359,6 +2359,7 @@ func _show_settings() -> void:
 		quality.add_item(option)
 	quality.select(0 if graphics_quality == "High" else (1 if graphics_quality == "Balanced" else 2))
 	quality.item_selected.connect(func(index: int): graphics_quality = quality.get_item_text(index))
+	_style_settings_dropdown(quality)
 	stack.add_child(quality)
 	var sound := CheckButton.new()
 	sound.text = "Sound enabled"
@@ -2369,6 +2370,46 @@ func _show_settings() -> void:
 	_apply_shared_page_typography(quality, 15)
 	_apply_shared_page_typography(sound, 15)
 	done_button.pressed.connect(_close_settings_overlay.bind(shade, center))
+
+func _style_settings_dropdown(selector: OptionButton) -> void:
+	var field := StyleBoxFlat.new()
+	field.bg_color = Color("#102b3b")
+	field.border_color = Color("#4db9ed")
+	field.set_border_width_all(1)
+	field.set_corner_radius_all(9)
+	field.content_margin_left = 12
+	field.content_margin_right = 12
+	field.content_margin_top = 8
+	field.content_margin_bottom = 8
+	var field_hover := field.duplicate() as StyleBoxFlat
+	field_hover.bg_color = Color("#17445b")
+	var field_pressed := field.duplicate() as StyleBoxFlat
+	field_pressed.bg_color = Color("#0b2030")
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		selector.add_theme_stylebox_override(state, field if state == "normal" or state == "focus" else field_hover if state == "hover" else field_pressed)
+	selector.add_theme_color_override("font_color", Color("#e8f7ff"))
+	selector.add_theme_color_override("font_hover_color", Color.WHITE)
+	selector.add_theme_color_override("font_pressed_color", Color.WHITE)
+	selector.add_theme_color_override("font_focus_color", Color.WHITE)
+	var popup := selector.get_popup()
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color("#081c2b")
+	panel.border_color = Color("#4db9ed")
+	panel.set_border_width_all(1)
+	panel.set_corner_radius_all(9)
+	popup.add_theme_stylebox_override("panel", panel)
+	var item_hover := StyleBoxFlat.new()
+	item_hover.bg_color = Color("#155477")
+	item_hover.set_corner_radius_all(5)
+	popup.add_theme_stylebox_override("hover", item_hover)
+	popup.add_theme_stylebox_override("pressed", item_hover)
+	popup.add_theme_color_override("font_color", Color("#dff4ff"))
+	popup.add_theme_color_override("font_hover_color", Color.WHITE)
+	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
+	popup.add_theme_constant_override("v_separation", 7)
+	popup.add_theme_constant_override("outline_size", 1)
+	popup.add_theme_color_override("font_outline_color", Color("#061522"))
+
 
 func _close_settings_overlay(shade: Control, center: Control) -> void:
 	if is_instance_valid(shade):
