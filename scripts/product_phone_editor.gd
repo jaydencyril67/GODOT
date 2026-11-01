@@ -10,7 +10,7 @@ const DRAG_SENSITIVITY := 0.0024
 
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
-var home_button_type := "Round Physical"
+var home_button_type := "Circle Home Button"
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
 var screen_enabled := false
@@ -911,6 +911,55 @@ func _refresh_screen_type_buttons() -> void:
 		option.disabled = not screen_enabled
 
 
+func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float) -> Mesh:
+	# A true rounded-rectangle extrusion keeps the glass and button outlines
+	# smooth instead of placing square BoxMeshes over the curved phone face.
+	var half_width := width * 0.5
+	var half_height := height * 0.5
+	var radius := clampf(corner_radius, 0.001, minf(half_width, half_height))
+	var centers := [
+		Vector2(half_width - radius, half_height - radius),
+		Vector2(-half_width + radius, half_height - radius),
+		Vector2(-half_width + radius, -half_height + radius),
+		Vector2(half_width - radius, -half_height + radius)
+	]
+	var outline := PackedVector2Array()
+	for corner_index in range(4):
+		var center: Vector2 = centers[corner_index]
+		var start_angle := float(corner_index) * PI * 0.5
+		for segment in range(8):
+			var angle := start_angle + float(segment) / 8.0 * PI * 0.5
+			outline.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	var indices := Geometry2D.triangulate_polygon(outline)
+	if indices.is_empty():
+		var fallback := BoxMesh.new()
+		fallback.size = Vector3(width, height, depth)
+		return fallback
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var front_z := depth * 0.5
+	var back_z := -depth * 0.5
+	for index in range(0, indices.size(), 3):
+		var a: Vector2 = outline[indices[index]]
+		var b: Vector2 = outline[indices[index + 1]]
+		var c: Vector2 = outline[indices[index + 2]]
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, front_z), Vector3(b.x, b.y, front_z), Vector3(c.x, c.y, front_z), Vector3.FORWARD)
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, back_z), Vector3(c.x, c.y, back_z), Vector3(b.x, b.y, back_z), Vector3.BACK)
+	for index in range(outline.size()):
+		var next_index := (index + 1) % outline.size()
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[next_index]
+		var edge := b - a
+		var normal := Vector3(edge.y, -edge.x, 0.0).normalized()
+		var front_a := Vector3(a.x, a.y, front_z)
+		var front_b := Vector3(b.x, b.y, front_z)
+		var back_a := Vector3(a.x, a.y, back_z)
+		var back_b := Vector3(b.x, b.y, back_z)
+		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, normal)
+		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, normal)
+	return surface.commit()
+
+
 func _refresh_phone_screen() -> void:
 	if not is_instance_valid(phone_body):
 		return
@@ -923,10 +972,13 @@ func _refresh_phone_screen() -> void:
 
 	var display := MeshInstance3D.new()
 	display.name = "PhoneDisplayPanel"
-	var display_mesh := BoxMesh.new()
 	var has_external_home_button := home_button_type != "On-screen"
-	display_mesh.size = Vector3(PHONE_SIZE.x - 0.16, PHONE_SIZE.y - (0.40 if has_external_home_button else 0.22), 0.006)
-	display.mesh = display_mesh
+	# Keep a consistent, slimmer lower rail for physical keys and give the
+	# top rail the exact same height. The glass is inset evenly on all sides.
+	var screen_width := PHONE_SIZE.x - 0.08
+	var screen_height := PHONE_SIZE.y - 0.40
+	var screen_radius := maxf(0.018, 0.32 * float(border_radius_level) / 6.0 - 0.04)
+	display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
 
 	var display_material := StandardMaterial3D.new()
 	display_material.metallic = 0.02
@@ -969,7 +1021,7 @@ func _refresh_phone_screen() -> void:
 	display_material.emission_energy_multiplier = 0.025
 	display.material_override = display_material
 	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
-	display.position = Vector3(0.0, 0.09 if has_external_home_button else 0.0, current_depth * 0.5 + 0.0035)
+	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + 0.0035)
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
@@ -987,7 +1039,7 @@ func _refresh_phone_screen() -> void:
 		indicator_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		indicator_material.roughness = 0.8
 		home_indicator.material_override = indicator_material
-		home_indicator.position = Vector3(0.0, -display_mesh.size.y * 0.5 + 0.075, 0.004)
+		home_indicator.position = Vector3(0.0, -screen_height * 0.5 + 0.075, 0.004)
 		home_indicator.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		display.add_child(home_indicator)
 
@@ -1243,7 +1295,7 @@ func _refresh_phone_home_button() -> void:
 	var button_root := Node3D.new()
 	button_root.name = "PhoneHomeButton"
 	phone_body.add_child(button_root)
-	var center_y := -PHONE_SIZE.y * 0.5 + 0.16
+	var center_y := -PHONE_SIZE.y * 0.5 + 0.10
 	var front_z := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0) * 0.5
 	var button_material := StandardMaterial3D.new()
 	button_material.albedo_color = Color("#89939e")
@@ -1325,18 +1377,22 @@ func _refresh_phone_home_button() -> void:
 		# squared physical key. Both sit entirely within the lower bezel.
 		var backing := MeshInstance3D.new()
 		backing.name = "HomeButtonBezel"
-		var backing_mesh := BoxMesh.new()
-		backing_mesh.size = Vector3(0.25, 0.105, 0.012) if home_button_type == "Oval Home Button" else Vector3(0.15, 0.15, 0.012)
-		backing.mesh = backing_mesh
+		var is_oval := home_button_type == "Oval Home Button"
+		var is_square := home_button_type == "Square Home Button"
+		var backing_width := 0.25 if is_oval else 0.15
+		var backing_height := 0.105 if is_oval else 0.15
+		var backing_radius := backing_height * 0.48 if is_oval else (0.012 if is_square else 0.035)
+		backing.mesh = _create_rounded_panel_mesh(backing_width, backing_height, 0.012, backing_radius)
 		backing.position = Vector3(0.0, center_y, front_z + 0.004)
 		backing.material_override = button_material
 		button_root.add_child(backing)
 
 		var face := MeshInstance3D.new()
 		face.name = "HomeButtonFace"
-		var face_mesh := BoxMesh.new()
-		face_mesh.size = Vector3(0.21, 0.065, 0.010) if home_button_type == "Oval Home Button" else Vector3(0.11, 0.11, 0.010)
-		face.mesh = face_mesh
+		var face_width := 0.21 if is_oval else 0.11
+		var face_height := 0.065 if is_oval else 0.11
+		var face_radius := face_height * 0.48 if is_oval else (0.008 if is_square else 0.026)
+		face.mesh = _create_rounded_panel_mesh(face_width, face_height, 0.010, face_radius)
 		face.position = Vector3(0.0, center_y, front_z + 0.012)
 		face.material_override = dark_material
 		button_root.add_child(face)
