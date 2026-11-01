@@ -1470,7 +1470,7 @@ func _refresh_phone_home_button() -> void:
 	var center_y := -PHONE_SIZE.y * 0.5 + 0.10
 	# Nudge only the circular and square physical keys very slightly upward.
 	if home_button_type == "Circle Home Button" or home_button_type == "Square Home Button":
-		center_y += 0.01
+		center_y += 0.02
 	var front_z := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0) * 0.5
 	var button_material := StandardMaterial3D.new()
 	button_material.albedo_color = Color("#89939e")
