@@ -202,7 +202,7 @@ var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
 var next_back_design_box_id := 1
-var back_design_selection_list: VBoxContainer
+var back_design_selection_list: OptionButton
 var back_design_size_label: Label
 var back_design_border_label: Label
 var back_design_border_slider: HSlider
@@ -1171,32 +1171,36 @@ func _show_back_design_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BackDesignControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 13)
+	active_feature_panel.add_theme_constant_override("separation", 6)
 	right_tools_content.add_child(active_feature_panel)
-	var heading := _make_label("BACK DESIGN", 23, Color("#c7eaff"))
+	var heading := _make_label("BACK DESIGN", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var actions := HBoxContainer.new()
 	active_feature_panel.add_child(actions)
 	var add_button := Button.new()
 	add_button.text = "+ ADD BOX"
-	add_button.custom_minimum_size.y = 54
+	add_button.custom_minimum_size.y = 38
 	add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_research_typography(add_button, 17)
+	_apply_research_typography(add_button, 13)
 	_style_staff_button(add_button, true)
 	add_button.pressed.connect(_add_back_design_box)
 	actions.add_child(add_button)
 	var remove_button := Button.new()
 	remove_button.text = "− REMOVE"
-	remove_button.custom_minimum_size.y = 54
+	remove_button.custom_minimum_size.y = 38
 	remove_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_research_typography(remove_button, 17)
+	_apply_research_typography(remove_button, 13)
 	_style_staff_button(remove_button, false)
 	remove_button.pressed.connect(_remove_selected_back_design_box)
 	actions.add_child(remove_button)
-	active_feature_panel.add_child(_make_label("RAISED SECTIONS · TAP TO SELECT", 14, Color("#a9e3ff")))
-	back_design_selection_list = VBoxContainer.new()
-	back_design_selection_list.name = "BackDesignBoxList"
+	active_feature_panel.add_child(_make_label("SELECT RAISED SECTION", 12, Color("#a9e3ff")))
+	back_design_selection_list = OptionButton.new()
+	back_design_selection_list.name = "BackDesignBoxSelector"
+	back_design_selection_list.custom_minimum_size.y = 36
+	back_design_selection_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_research_typography(back_design_selection_list, 13)
+	back_design_selection_list.item_selected.connect(_select_back_design_box)
 	active_feature_panel.add_child(back_design_selection_list)
 	var modes := HBoxContainer.new()
 	active_feature_panel.add_child(modes)
@@ -1204,15 +1208,15 @@ func _show_back_design_controls() -> void:
 		var mode_button := Button.new()
 		mode_button.text = mode
 		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		mode_button.custom_minimum_size.y = 48
-		_apply_research_typography(mode_button, 16)
+		mode_button.custom_minimum_size.y = 36
+		_apply_research_typography(mode_button, 13)
 		_style_staff_button(mode_button, back_design_mode == mode)
 		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
 		modes.add_child(mode_button)
 	var pad := GridContainer.new()
 	pad.columns = 3
-	pad.add_theme_constant_override("h_separation", 14)
-	pad.add_theme_constant_override("v_separation", 14)
+	pad.add_theme_constant_override("h_separation", 8)
+	pad.add_theme_constant_override("v_separation", 8)
 	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	active_feature_panel.add_child(pad)
 	_add_back_design_pad_spacer(pad)
@@ -1222,7 +1226,7 @@ func _show_back_design_controls() -> void:
 	if back_design_mode == "SIZE":
 		var center_button := Button.new()
 		center_button.text = back_design_size_action
-		center_button.custom_minimum_size = Vector2(68, 60)
+		center_button.custom_minimum_size = Vector2(52, 44)
 		center_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		_apply_research_typography(center_button, 12)
 		_style_staff_button(center_button, back_design_size_action == "EXPAND")
@@ -1230,7 +1234,7 @@ func _show_back_design_controls() -> void:
 		pad.add_child(center_button)
 	else:
 		var center := _make_label("MOVE", 14, Color("#c7eaff"))
-		center.custom_minimum_size = Vector2(68, 60)
+		center.custom_minimum_size = Vector2(52, 44)
 		center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		pad.add_child(center)
@@ -1238,31 +1242,31 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "↓", Vector2i(0, -1))
 	_add_back_design_pad_spacer(pad)
-	back_design_size_label = _make_label("", 14, Color("#d8eaf5"))
+	back_design_size_label = _make_label("", 12, Color("#d8eaf5"))
 	active_feature_panel.add_child(back_design_size_label)
-	active_feature_panel.add_child(_make_label("CORNER BORDER", 15, Color("#a9e3ff")))
+	active_feature_panel.add_child(_make_label("CORNER BORDER", 12, Color("#a9e3ff")))
 	back_design_border_slider = HSlider.new()
 	back_design_border_slider.min_value = 0.0
 	back_design_border_slider.max_value = 0.45
 	back_design_border_slider.step = 0.01
-	back_design_border_slider.custom_minimum_size = Vector2(0, 48)
+	back_design_border_slider.custom_minimum_size = Vector2(0, 32)
 	back_design_border_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	active_feature_panel.add_child(back_design_border_slider)
-	back_design_border_label = _make_label("", 14, Color("#d8eaf5"))
+	back_design_border_label = _make_label("", 12, Color("#d8eaf5"))
 	active_feature_panel.add_child(back_design_border_label)
 	_refresh_back_design_panel()
 
 func _add_back_design_pad_spacer(parent: GridContainer) -> void:
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(68, 60)
+	spacer.custom_minimum_size = Vector2(52, 44)
 	parent.add_child(spacer)
 
 func _add_back_design_pad_button(parent: GridContainer, caption: String, direction: Vector2i) -> void:
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size = Vector2(68, 60)
-	_apply_research_typography(button, 26)
+	button.custom_minimum_size = Vector2(52, 44)
+	_apply_research_typography(button, 21)
 	_style_staff_button(button, true)
 	button.pressed.connect(_on_back_design_pad_pressed.bind(direction))
 	parent.add_child(button)
@@ -1361,18 +1365,15 @@ func _on_back_design_border_changed(value: float) -> void:
 
 func _refresh_back_design_panel() -> void:
 	if not is_instance_valid(back_design_selection_list): return
-	for child in back_design_selection_list.get_children(): child.queue_free()
+	back_design_selection_list.clear()
 	for index in range(back_design_boxes.size()):
 		var box: Dictionary = back_design_boxes[index]
-		var selector := Button.new()
-		selector.text = ("●  " if index == selected_back_design_box else "○  ") + "RAISED BOX %d" % int(box["id"])
-		selector.custom_minimum_size.y = 48
-		selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		selector.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		_apply_research_typography(selector, 15)
-		_style_staff_button(selector, index == selected_back_design_box)
-		selector.pressed.connect(_select_back_design_box.bind(index))
-		back_design_selection_list.add_child(selector)
+		back_design_selection_list.add_item("RAISED BOX %d" % int(box["id"]))
+		back_design_selection_list.set_item_metadata(index, index)
+	if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		back_design_selection_list.select(selected_back_design_box)
+	else:
+		back_design_selection_list.select(-1)
 	var has_box := selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size()
 	if has_box:
 		var selected: Dictionary = back_design_boxes[selected_back_design_box]
