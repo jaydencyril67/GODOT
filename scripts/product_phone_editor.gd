@@ -12,6 +12,10 @@ var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
 var home_button_type := "Circle Home Button"
 var home_button_enabled := false
+var front_camera_enabled := false
+var front_camera_style := "Punch-Hole"
+const FRONT_CAMERA_STYLES := ["Dynamic Island", "Punch-Hole", "Waterdrop Notch", "Wide Notch", "Under-Display Camera", "Bezel Camera"]
+var front_camera_option_buttons: Dictionary = {}
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
 var screen_enabled := false
@@ -766,7 +770,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button", "Front Camera"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -791,6 +795,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_power_volume_controls()
 	elif feature_name == "Home Button":
 		_show_home_button_controls()
+	elif feature_name == "Front Camera":
+		_show_front_camera_controls()
 
 
 
@@ -1353,6 +1359,7 @@ func _refresh_phone_screen() -> void:
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
+	_refresh_front_camera(display, screen_width, screen_height)
 	if home_button_enabled and home_button_type == "On-screen":
 		# Keep the on-screen navigation control generic; OS-specific styles
 		# are intentionally reserved for the later operating-system system.
@@ -1370,6 +1377,211 @@ func _refresh_phone_screen() -> void:
 		home_indicator.position = Vector3(0.0, -screen_height * 0.5 + 0.075, 0.004)
 		home_indicator.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		display.add_child(home_indicator)
+
+
+func _show_front_camera_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "FrontCameraControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("FRONT CAMERA", 19, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var description := _make_label("Enable the selfie camera and choose its physical placement on the display.", 12, Color("#d8eaf5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "FrontCameraEnablementRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_child(enable_row)
+
+	var enable_toggle := Button.new()
+	enable_toggle.name = "FrontCameraEnablement"
+	enable_toggle.toggle_mode = true
+	enable_toggle.button_pressed = front_camera_enabled
+	enable_toggle.text = "✓" if front_camera_enabled else ""
+	enable_toggle.custom_minimum_size = Vector2(30, 30)
+	enable_toggle.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(enable_toggle, 17)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var toggle_style := StyleBoxFlat.new()
+		toggle_style.bg_color = Color("#17415b") if state != "hover" else Color("#205a78")
+		if state == "pressed" or state == "focus":
+			toggle_style.bg_color = Color("#147eaa")
+		toggle_style.border_color = Color("#8fd8ff")
+		toggle_style.set_border_width_all(2)
+		toggle_style.set_corner_radius_all(7)
+		enable_toggle.add_theme_stylebox_override(state, toggle_style)
+	enable_toggle.add_theme_color_override("font_color", Color.WHITE)
+	enable_toggle.toggled.connect(_on_front_camera_enablement_toggled)
+	enable_row.add_child(enable_toggle)
+
+	var enable_label := _make_label("Front Camera Enablement", 14, Color.WHITE)
+	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	enable_row.add_child(enable_label)
+
+	var style_title := _make_label("CAMERA PLACEMENT STYLE", 13, Color("#b9eaff"))
+	style_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(style_title)
+
+	var style_list := VBoxContainer.new()
+	style_list.name = "FrontCameraStyles"
+	style_list.add_theme_constant_override("separation", 7)
+	active_feature_panel.add_child(style_list)
+
+	front_camera_option_buttons.clear()
+	for index in range(FRONT_CAMERA_STYLES.size()):
+		var style_name: String = FRONT_CAMERA_STYLES[index]
+		var option := Button.new()
+		option.name = "FrontCamera_" + style_name.replace(" ", "").replace("-", "")
+		option.text = style_name
+		option.custom_minimum_size = Vector2(0, 42)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(option, 12)
+		_style_screen_type_option(option, mini(index + 2, 9), style_name == front_camera_style)
+		option.disabled = not front_camera_enabled
+		option.pressed.connect(_on_front_camera_style_selected.bind(style_name))
+		style_list.add_child(option)
+		front_camera_option_buttons[style_name] = option
+
+
+func _on_front_camera_enablement_toggled(enabled: bool) -> void:
+	front_camera_enabled = enabled
+	_refresh_phone_screen()
+	var toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(toggle):
+		toggle.text = "✓" if enabled else ""
+	for style_name in front_camera_option_buttons:
+		var option: Button = front_camera_option_buttons[style_name]
+		option.disabled = not enabled
+
+
+func _on_front_camera_style_selected(style_name: String) -> void:
+	if not FRONT_CAMERA_STYLES.has(style_name):
+		return
+	front_camera_style = style_name
+	_refresh_phone_screen()
+	for option_name in front_camera_option_buttons:
+		var option: Button = front_camera_option_buttons[option_name]
+		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(option_name) + 2, 9), option_name == front_camera_style)
+
+
+func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
+	if not front_camera_enabled:
+		return
+	var camera_root := Node3D.new()
+	camera_root.name = "FrontCameraAssembly"
+	display.add_child(camera_root)
+
+	var front_z := 0.010
+	var dark_material := StandardMaterial3D.new()
+	dark_material.albedo_color = Color("#02060b")
+	dark_material.roughness = 0.16
+	dark_material.metallic = 0.12
+	dark_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var lens_material := StandardMaterial3D.new()
+	lens_material.albedo_color = Color("#142b45")
+	lens_material.metallic = 0.62
+	lens_material.roughness = 0.16
+	lens_material.emission_enabled = true
+	lens_material.emission = Color("#102f50")
+	lens_material.emission_energy_multiplier = 0.12
+	var ring_material := StandardMaterial3D.new()
+	ring_material.albedo_color = Color("#536171")
+	ring_material.metallic = 0.78
+	ring_material.roughness = 0.28
+
+	if front_camera_style == "Under-Display Camera":
+		# The lens is concealed beneath the panel; no visible cutout is drawn.
+		return
+
+	if front_camera_style == "Bezel Camera":
+		var bezel_y := screen_height * 0.5 + minf(bezel_height * 0.42, 0.075)
+		_add_front_camera_lens(camera_root, Vector3(0.0, bezel_y, front_z), 0.034, dark_material, lens_material, ring_material)
+		return
+
+	if front_camera_style == "Punch-Hole":
+		_add_front_camera_lens(camera_root, Vector3(0.0, screen_height * 0.5 - 0.075, front_z), 0.043, dark_material, lens_material, ring_material)
+		return
+
+	if front_camera_style == "Waterdrop Notch":
+		var drop := MeshInstance3D.new()
+		drop.name = "WaterdropCameraCutout"
+		drop.mesh = _create_rounded_panel_mesh(0.19, 0.105, 0.006, 0.052)
+		drop.position = Vector3(0.0, screen_height * 0.5 - 0.040, front_z)
+		drop.material_override = dark_material
+		camera_root.add_child(drop)
+		_add_front_camera_lens(camera_root, Vector3(0.0, screen_height * 0.5 - 0.043, front_z + 0.005), 0.025, dark_material, lens_material, ring_material)
+		return
+
+	if front_camera_style == "Wide Notch":
+		var notch := MeshInstance3D.new()
+		notch.name = "WideNotchCameraCutout"
+		notch.mesh = _create_rounded_panel_mesh(minf(0.48, screen_width * 0.48), 0.14, 0.006, 0.055)
+		notch.position = Vector3(0.0, screen_height * 0.5 - 0.055, front_z)
+		notch.material_override = dark_material
+		camera_root.add_child(notch)
+		_add_front_camera_lens(camera_root, Vector3(0.105, screen_height * 0.5 - 0.052, front_z + 0.005), 0.027, dark_material, lens_material, ring_material)
+		return
+
+	if front_camera_style == "Dynamic Island":
+		var island_width := minf(0.43, screen_width * 0.46)
+		var island := MeshInstance3D.new()
+		island.name = "DynamicIslandCameraCutout"
+		island.mesh = _create_rounded_panel_mesh(island_width, 0.105, 0.008, 0.052)
+		island.position = Vector3(0.0, screen_height * 0.5 - 0.060, front_z)
+		island.material_override = dark_material
+		camera_root.add_child(island)
+		_add_front_camera_lens(camera_root, Vector3(island_width * 0.31, screen_height * 0.5 - 0.060, front_z + 0.006), 0.026, dark_material, lens_material, ring_material)
+		var sensor := MeshInstance3D.new()
+		sensor.name = "DynamicIslandSensor"
+		var sensor_mesh := SphereMesh.new()
+		sensor_mesh.radius = 0.012
+		sensor_mesh.height = 0.024
+		sensor.mesh = sensor_mesh
+		sensor.position = Vector3(-island_width * 0.25, screen_height * 0.5 - 0.060, front_z + 0.006)
+		sensor.material_override = ring_material
+		camera_root.add_child(sensor)
+
+
+func _add_front_camera_lens(parent: Node3D, lens_position: Vector3, radius: float, dark_material: Material, lens_material: Material, ring_material: Material) -> void:
+	var ring := MeshInstance3D.new()
+	ring.name = "FrontCameraLensRing"
+	var ring_mesh := CylinderMesh.new()
+	ring_mesh.top_radius = radius
+	ring_mesh.bottom_radius = radius
+	ring_mesh.height = 0.008
+	ring_mesh.radial_segments = 32
+	ring.mesh = ring_mesh
+	ring.rotation_degrees.x = 90.0
+	ring.position = lens_position
+	ring.material_override = ring_material
+	parent.add_child(ring)
+
+	var lens := MeshInstance3D.new()
+	lens.name = "FrontCameraLens"
+	var lens_mesh := CylinderMesh.new()
+	lens_mesh.top_radius = radius * 0.68
+	lens_mesh.bottom_radius = radius * 0.68
+	lens_mesh.height = 0.006
+	lens_mesh.radial_segments = 32
+	lens.mesh = lens_mesh
+	lens.rotation_degrees.x = 90.0
+	lens.position = lens_position + Vector3(0.0, 0.0, 0.006)
+	lens.material_override = lens_material
+	parent.add_child(lens)
 
 
 func _style_feature_slider(meter: VSlider) -> void:
