@@ -2077,8 +2077,12 @@ func _refresh_phone_home_button() -> void:
 	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
 	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
 	var center_y := -screen_height * 0.5 + 0.105
+	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	var surface_z := _front_camera_screen_surface_z(0.0, center_y, screen_width, screen_height)
-	var flat_z := surface_z + 0.0012
+	# Flat display panels are 0.006 units thick, so place the thin marking
+	# directly on their +Z glass face. Curved displays are zero-thickness
+	# surfaces and use a small offset above their sampled curved profile.
+	var flat_z := surface_z + (0.0034 if not curved_display else 0.0006)
 
 	var icon_material := StandardMaterial3D.new()
 	icon_material.albedo_color = Color("#aebbc8")
