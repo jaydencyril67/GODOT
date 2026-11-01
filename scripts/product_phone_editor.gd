@@ -1365,7 +1365,7 @@ func _show_back_design_controls() -> void:
 	_refresh_back_design_panel()
 
 
-func _add_back_design_flexible_space(parent: VBoxContainer) -> void:
+func _add_back_design_flexible_space(parent: Control) -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
