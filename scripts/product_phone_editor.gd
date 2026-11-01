@@ -14,7 +14,6 @@ var screen_enabled := false
 var selected_screen_type := "AMOLED"
 var screen_enable_checkbox: CheckBox
 var screen_type_buttons: Dictionary = {}
-var screen_type_feedback_label: Label
 const SCREEN_TYPE_ORDER := ["TFT LCD", "LED-LCD", "IPS LCD", "Mini-LED LCD", "OLED", "AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"]
 var preview_camera: Camera3D
 var preview_container: SubViewportContainer
@@ -825,14 +824,6 @@ func _show_screen_tech_controls() -> void:
 	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	enable_row.add_child(enable_label)
 
-	var type_title := _make_label("AVAILABLE SCREEN TYPES  ·  BASIC → FLAGSHIP", 12, Color("#a9e3ff"))
-	active_feature_panel.add_child(type_title)
-
-	screen_type_feedback_label = _make_label("SELECT A DISPLAY TECHNOLOGY", 11, Color("#b9dff2"))
-	screen_type_feedback_label.name = "ScreenTypeSelectionFeedback"
-	screen_type_feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(screen_type_feedback_label)
-
 	var type_grid := GridContainer.new()
 	type_grid.name = "ScreenTypeOptions"
 	type_grid.columns = 1
@@ -867,18 +858,7 @@ func _on_screen_enablement_toggled(enabled: bool) -> void:
 
 
 func _on_screen_type_selected(type_name: String) -> void:
-	var previous_index := SCREEN_TYPE_ORDER.find(selected_screen_type)
-	var selected_index := SCREEN_TYPE_ORDER.find(type_name)
 	selected_screen_type = type_name
-	if is_instance_valid(screen_type_feedback_label):
-		if selected_index > previous_index:
-			screen_type_feedback_label.text = "UPGRADED  ·  %s → %s" % [SCREEN_TYPE_ORDER[previous_index], type_name]
-			screen_type_feedback_label.add_theme_color_override("font_color", Color("#8fffd0"))
-		elif selected_index < previous_index:
-			screen_type_feedback_label.text = "CHANGED  ·  %s → %s" % [SCREEN_TYPE_ORDER[previous_index], type_name]
-			screen_type_feedback_label.add_theme_color_override("font_color", Color("#c7eaff"))
-		else:
-			screen_type_feedback_label.text = "%s  ·  CURRENT SELECTION" % type_name
 	_refresh_phone_screen()
 	_refresh_screen_type_buttons()
 
