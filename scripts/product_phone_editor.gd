@@ -1007,7 +1007,7 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var spectrum_height := clampf(color_viewport_size.y * 0.18, 120.0, 165.0) if return_to_back_design else clampf(color_viewport_size.y * 0.22, 145.0, 190.0) * 1.5
+	var spectrum_height := clampf(color_viewport_size.y * 0.22, 145.0, 190.0) * 1.5
 	spectrum.custom_minimum_size = Vector2(0, spectrum_height)
 	spectrum.set_color_value(_get_active_color_picker_color())
 	spectrum.color_changed.connect(_on_device_body_color_changed)
