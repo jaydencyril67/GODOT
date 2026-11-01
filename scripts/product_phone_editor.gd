@@ -3014,15 +3014,17 @@ func _refresh_rear_hardware_visuals() -> void:
 	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var back_surface_z := -phone_depth * 0.5
 
-	for module in rear_camera_modules:
+	for camera_index in range(rear_camera_modules.size()):
+		var module: Dictionary = rear_camera_modules[camera_index]
 		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
+		var is_selected := rear_hardware_mode == "CAMERA" and camera_index == rear_camera_selected_index
 		var housing_material := StandardMaterial3D.new()
 		housing_material.albedo_color = Color("#111820")
 		housing_material.metallic = 0.72
 		housing_material.roughness = 0.28
 		var ring_material := StandardMaterial3D.new()
-		ring_material.albedo_color = Color("#8996a2")
+		ring_material.albedo_color = Color("#65caff") if is_selected else Color("#8996a2")
 		ring_material.metallic = 0.88
 		ring_material.roughness = 0.20
 		var lens_material := StandardMaterial3D.new()
@@ -3030,22 +3032,24 @@ func _refresh_rear_hardware_visuals() -> void:
 		lens_material.metallic = 0.78
 		lens_material.roughness = 0.12
 		lens_material.emission_enabled = true
-		lens_material.emission = Color("#0b2848")
-		lens_material.emission_energy_multiplier = 0.12
+		lens_material.emission = Color("#164c75") if is_selected else Color("#0b2848")
+		lens_material.emission_energy_multiplier = 0.16 if is_selected else 0.12
 		var module_id := int(module["id"])
 		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.006), module_size * 1.18, 0.018, housing_material)
 		_add_rear_hardware_disc(root, "RearCamera_%d_Ring" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.014), module_size, 0.007, ring_material)
 		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.021), module_size * 0.68, 0.006, lens_material)
 
-	for module in rear_flash_modules:
+	for flash_index in range(rear_flash_modules.size()):
+		var module: Dictionary = rear_flash_modules[flash_index]
 		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
+		var is_selected := rear_hardware_mode == "FLASH" and flash_index == rear_flash_selected_index
 		var housing_material := StandardMaterial3D.new()
 		housing_material.albedo_color = Color("#303943")
 		housing_material.metallic = 0.78
 		housing_material.roughness = 0.24
 		var rim_material := StandardMaterial3D.new()
-		rim_material.albedo_color = Color("#aab4bd")
+		rim_material.albedo_color = Color("#65caff") if is_selected else Color("#aab4bd")
 		rim_material.metallic = 0.76
 		rim_material.roughness = 0.24
 		var diffuser_material := StandardMaterial3D.new()
