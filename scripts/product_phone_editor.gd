@@ -923,6 +923,22 @@ func _apply_device_color_hex(value: String) -> void:
 		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
 
 
+func _on_device_body_color_changed(color: Color) -> void:
+	device_body_color = Color(color.r, color.g, color.b, 1.0)
+	if is_instance_valid(phone_body):
+		var body_material := phone_body.material_override as StandardMaterial3D
+		if is_instance_valid(body_material):
+			body_material.albedo_color = device_body_color
+	if is_instance_valid(device_color_hex_label):
+		device_color_hex_label.text = "#" + device_body_color.to_html(false).to_upper()
+		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
+	var hex_input: LineEdit
+	if is_instance_valid(active_feature_panel):
+		hex_input = active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
+	if is_instance_valid(hex_input):
+		hex_input.text = device_body_color.to_html(false).to_upper()
+
+
 func _show_screen_size_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
