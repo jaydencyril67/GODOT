@@ -1731,6 +1731,7 @@ func _refresh_back_design_boxes() -> void:
 		var position: Vector2 = box["position"]
 		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5)
 		root.add_child(raised)
+	_refresh_rear_hardware_visuals()
 
 func _show_screen_size_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -2487,7 +2488,11 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# edge and handset edge. The height slider is capped so this strip
 			# always remains available without shifting or clipping the display.
 			var bezel_camera_y := top_edge + bezel_height * 0.5
-			_add_front_camera_lens(camera_root, Vector3(0.0, bezel_camera_y, front_z), 0.032, cutout_material, lens_material, ring_material)
+			# The camera assembly is parented to the raised display mesh. Offset
+			# its lens back through that display offset so the bezel ring seats on
+			# the handset's actual front plane instead of hovering above it.
+			var bezel_seated_z := -display.position.z - 0.006
+			_add_front_camera_lens(camera_root, Vector3(0.0, bezel_camera_y, bezel_seated_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
 			# Restore the original compact oval glass with the selfie camera
 			# sitting just beneath its centre; no oversized teardrop geometry.
@@ -2905,8 +2910,18 @@ func _rear_module_position_is_free(candidate_position: Vector2, module_size: flo
 		return false
 	if absf(candidate_position.y) + extent > PHONE_SIZE.y * 0.5 - 0.025:
 		return false
-	if not _back_design_position_is_free(candidate_position, Vector2(extent * 2.0, extent * 2.0), -1):
-		return false
+	# A camera/flash may sit directly on the phone back, or fully on top of
+	# one raised Back Design box. Partial intersections are rejected so the
+	# hardware never bridges a box edge and appears to float.
+	for box in back_design_boxes:
+		var box_position: Vector2 = box["position"]
+		var box_size: Vector2 = box["size"]
+		var half := box_size * 0.5
+		var overlaps_box := absf(candidate_position.x - box_position.x) < extent + half.x and absf(candidate_position.y - box_position.y) < extent + half.y
+		if overlaps_box:
+			var fully_on_box := absf(candidate_position.x - box_position.x) + extent <= half.x and absf(candidate_position.y - box_position.y) + extent <= half.y
+			if not fully_on_box:
+				return false
 	for index in range(rear_camera_modules.size()):
 		if kind == "CAMERA" and index == ignore_index:
 			continue
@@ -3000,6 +3015,21 @@ func _refresh_rear_hardware_panel() -> void:
 	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
 
 
+func _rear_hardware_support_surface_z(module_position: Vector2, module_size: float) -> float:
+	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var surface_z := -phone_depth * 0.5
+	var extent := module_size * 1.22
+	for box in back_design_boxes:
+		var box_position: Vector2 = box["position"]
+		var box_size: Vector2 = box["size"]
+		var half := box_size * 0.5
+		var fully_on_box := absf(module_position.x - box_position.x) + extent <= half.x and absf(module_position.y - box_position.y) + extent <= half.y
+		if fully_on_box:
+			# Raised Back Design mesh extrudes toward the outside of the rear face.
+			return surface_z - (0.035 / 1.10 / 1.5)
+	return surface_z
+
+
 func _refresh_rear_hardware_visuals() -> void:
 	if not is_instance_valid(phone_body):
 		return
@@ -3011,13 +3041,11 @@ func _refresh_rear_hardware_visuals() -> void:
 	var root := Node3D.new()
 	root.name = "RearCameraFlashHardware"
 	phone_body.add_child(root)
-	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
-	var back_surface_z := -phone_depth * 0.5
-
 	for camera_index in range(rear_camera_modules.size()):
 		var module: Dictionary = rear_camera_modules[camera_index]
 		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
+		var support_z := _rear_hardware_support_surface_z(module_position, module_size)
 		var is_selected := rear_hardware_mode == "CAMERA" and camera_index == rear_camera_selected_index
 		var housing_material := StandardMaterial3D.new()
 		housing_material.albedo_color = Color("#111820")
@@ -3035,14 +3063,31 @@ func _refresh_rear_hardware_visuals() -> void:
 		lens_material.emission = Color("#164c75") if is_selected else Color("#0b2848")
 		lens_material.emission_energy_multiplier = 0.16 if is_selected else 0.12
 		var module_id := int(module["id"])
-		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.006), module_size * 1.18, 0.018, housing_material)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Ring" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.014), module_size, 0.007, ring_material)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.021), module_size * 0.68, 0.006, lens_material)
+		# Layer the housing, machined metal rim, dark optical gasket and lens
+		# outward from the support face. Every part physically touches the layer
+		# below it; the stack is seated on either the phone or a raised box.
+		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.010), module_size * 1.22, 0.020, housing_material)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Rim" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.021), module_size * 1.04, 0.006, ring_material)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Gasket" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.025), module_size * 0.88, 0.003, housing_material)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.030), module_size * 0.72, 0.007, lens_material)
+		var optical_core := StandardMaterial3D.new()
+		optical_core.albedo_color = Color("#050b13")
+		optical_core.metallic = 0.28
+		optical_core.roughness = 0.10
+		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.034), module_size * 0.38, 0.0025, optical_core)
+		var lens_glint := StandardMaterial3D.new()
+		lens_glint.albedo_color = Color("#6da8d4")
+		lens_glint.metallic = 0.35
+		lens_glint.roughness = 0.12
+		lens_glint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		lens_glint.albedo_color.a = 0.38
+		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(module_position.x - module_size * 0.13, module_position.y + module_size * 0.13, support_z - 0.036), module_size * 0.12, 0.001, lens_glint)
 
 	for flash_index in range(rear_flash_modules.size()):
 		var flash_module: Dictionary = rear_flash_modules[flash_index]
 		var flash_position: Vector2 = flash_module["position"]
 		var flash_size := float(flash_module["size"])
+		var flash_support_z := _rear_hardware_support_surface_z(flash_position, flash_size)
 		var flash_is_selected := rear_hardware_mode == "FLASH" and flash_index == rear_flash_selected_index
 		var flash_housing_material := StandardMaterial3D.new()
 		flash_housing_material.albedo_color = Color("#303943")
@@ -3059,9 +3104,18 @@ func _refresh_rear_hardware_visuals() -> void:
 		flash_diffuser_material.emission = Color("#ffe5ad")
 		flash_diffuser_material.emission_energy_multiplier = 0.18
 		var flash_module_id := int(flash_module["id"])
-		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % flash_module_id, Vector3(flash_position.x, flash_position.y, back_surface_z - 0.006), flash_size * 1.16, 0.016, flash_housing_material)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % flash_module_id, Vector3(flash_position.x, flash_position.y, back_surface_z - 0.014), flash_size, 0.007, flash_rim_material)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % flash_module_id, Vector3(flash_position.x, flash_position.y, back_surface_z - 0.020), flash_size * 0.72, 0.006, flash_diffuser_material)
+		# A stepped metal bezel surrounds a recessed-looking opal LED diffuser.
+		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - 0.009), flash_size * 1.22, 0.018, flash_housing_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - 0.019), flash_size * 1.04, 0.006, flash_rim_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Gasket" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - 0.022), flash_size * 0.86, 0.0025, flash_housing_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - 0.027), flash_size * 0.70, 0.006, flash_diffuser_material)
+		var led_center_material := StandardMaterial3D.new()
+		led_center_material.albedo_color = Color("#fff9e9")
+		led_center_material.roughness = 0.18
+		led_center_material.emission_enabled = true
+		led_center_material.emission = Color("#fff0c8")
+		led_center_material.emission_energy_multiplier = 0.32
+		_add_rear_hardware_disc(root, "RearFlash_%d_LEDCore" % flash_module_id, Vector3(flash_position.x, flash_position.y, flash_support_z - 0.031), flash_size * 0.38, 0.002, led_center_material)
 
 
 func _add_rear_hardware_disc(parent: Node3D, node_name: String, disc_position: Vector3, radius: float, height: float, material: Material) -> void:
