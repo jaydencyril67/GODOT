@@ -827,13 +827,6 @@ func _show_device_color_controls() -> void:
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	var preview_swatch := ColorRect.new()
-	preview_swatch.name = "DeviceColorPreview"
-	preview_swatch.color = device_body_color
-	preview_swatch.custom_minimum_size = Vector2(0, 34)
-	preview_swatch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(preview_swatch)
-
 	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 13, Color("#a9e3ff"))
 	device_color_hex_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(device_color_hex_label)
@@ -845,7 +838,7 @@ func _show_device_color_controls() -> void:
 	device_color_picker.hex_visible = true
 	device_color_picker.color_modes_visible = true
 	device_color_picker.sliders_visible = true
-	device_color_picker.presets_visible = true
+	device_color_picker.presets_visible = false
 	device_color_picker.sampler_visible = false
 	device_color_picker.custom_minimum_size = Vector2(180, 300)
 	device_color_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -862,10 +855,6 @@ func _on_device_body_color_changed(color: Color) -> void:
 			body_material.albedo_color = device_body_color
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + device_body_color.to_html(false).to_upper()
-	if is_instance_valid(active_feature_panel):
-		var swatch := active_feature_panel.get_node_or_null("DeviceColorPreview") as ColorRect
-		if is_instance_valid(swatch):
-			swatch.color = device_body_color
 
 
 func _show_screen_size_controls() -> void:
