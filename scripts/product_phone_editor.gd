@@ -2397,16 +2397,44 @@ func _refresh_phone_home_button() -> void:
 			recent_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			button_root.add_child(recent_line)
 
+		var home_key_bezel := MeshInstance3D.new()
+		home_key_bezel.name = "PhysicalNavigationHomeKeyBezel"
+		var home_bezel_mesh := CylinderMesh.new()
+		home_bezel_mesh.top_radius = 0.051
+		home_bezel_mesh.bottom_radius = 0.051
+		home_bezel_mesh.height = 0.010
+		home_bezel_mesh.radial_segments = 48
+		home_key_bezel.mesh = home_bezel_mesh
+		home_key_bezel.rotation_degrees.x = 90.0
+		home_key_bezel.position = Vector3(0.0, center_y, button_surface_z + 0.004)
+		home_key_bezel.material_override = bezel_material
+		home_key_bezel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		button_root.add_child(home_key_bezel)
+
+		var home_key_inset := MeshInstance3D.new()
+		home_key_inset.name = "PhysicalNavigationHomeKeyInset"
+		var home_inset_mesh := CylinderMesh.new()
+		home_inset_mesh.top_radius = 0.046
+		home_inset_mesh.bottom_radius = 0.046
+		home_inset_mesh.height = 0.006
+		home_inset_mesh.radial_segments = 48
+		home_key_inset.mesh = home_inset_mesh
+		home_key_inset.rotation_degrees.x = 90.0
+		home_key_inset.position = Vector3(0.0, center_y, button_surface_z + 0.009)
+		home_key_inset.material_override = inset_material
+		home_key_inset.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		button_root.add_child(home_key_inset)
+
 		var home_key := MeshInstance3D.new()
 		home_key.name = "PhysicalNavigationHomeKey"
 		var home_mesh := CylinderMesh.new()
-		home_mesh.top_radius = 0.044
-		home_mesh.bottom_radius = 0.044
-		home_mesh.height = 0.0008
-		home_mesh.radial_segments = 32
+		home_mesh.top_radius = 0.041
+		home_mesh.bottom_radius = 0.041
+		home_mesh.height = 0.003
+		home_mesh.radial_segments = 48
 		home_key.mesh = home_mesh
 		home_key.rotation_degrees.x = 90.0
-		home_key.position = Vector3(0.0, center_y, button_surface_z)
+		home_key.position = Vector3(0.0, center_y, button_surface_z + 0.013)
 		home_key.material_override = icon_material
 		home_key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		button_root.add_child(home_key)
