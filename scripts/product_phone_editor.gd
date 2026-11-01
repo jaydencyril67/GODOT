@@ -1371,7 +1371,7 @@ func _refresh_phone_screen() -> void:
 	display_material.emission = display_material.albedo_color
 	display_material.emission_energy_multiplier = 0.025
 	display.material_override = display_material
-	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -2033,7 +2033,7 @@ func _refresh_phone_home_button() -> void:
 	# Nudge only the circular and square physical keys very slightly upward.
 	if home_button_type == "Circle Home Button" or home_button_type == "Square Home Button":
 		center_y += 0.02
-	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var front_z := current_depth * 0.5
 	# Curved glass reaches farther over the lower bezel than a flat display.
 	# Lift physical keys above the display surface so they remain visible
@@ -2300,7 +2300,7 @@ func _refresh_phone_side_buttons() -> void:
 	key_material.albedo_color = Color("#a8b0b9")
 	key_material.metallic = 0.08
 	key_material.roughness = 0.82
-	var current_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
 	var key_length := 0.30 * side_button_length_scale
 	var single_key_length := key_length * 0.46
@@ -2781,7 +2781,7 @@ func _refresh_phone_charge_port() -> void:
 
 	# Fit the complete mouth and its metal lip inside the handset's actual
 	# bottom rail. If the frame is very thin, the whole aperture scales evenly.
-	var current_phone_depth := lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	var current_phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var half_phone_depth := current_phone_depth * 0.5
 	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var flat_bottom_half_width := PHONE_SIZE.x * 0.5 - current_corner_radius
@@ -2976,7 +2976,7 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array) -> Mesh:
 	var phone_size := PHONE_SIZE
 	# Level 10 reaches an ultra-slim 0.08-unit body.
-	phone_size.z = lerpf(PHONE_SIZE.z, 0.08, float(phone_thickness_level) / 10.0)
+	phone_size.z = lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var half_size := phone_size * 0.5
 	var outline := PackedVector2Array()
 
