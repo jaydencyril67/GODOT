@@ -1399,7 +1399,7 @@ func _refresh_back_design_boxes() -> void:
 		raised.material_override = material
 		raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var position: Vector2 = box["position"]
-		raised.position = Vector3(box_position.x, box_position.y, -phone_depth * 0.5)
+		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5)
 		root.add_child(raised)
 
 func _show_screen_size_controls() -> void:
