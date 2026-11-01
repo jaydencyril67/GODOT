@@ -3040,28 +3040,28 @@ func _refresh_rear_hardware_visuals() -> void:
 		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.021), module_size * 0.68, 0.006, lens_material)
 
 	for flash_index in range(rear_flash_modules.size()):
-		var module: Dictionary = rear_flash_modules[flash_index]
-		var module_position: Vector2 = module["position"]
-		var module_size := float(module["size"])
-		var is_selected := rear_hardware_mode == "FLASH" and flash_index == rear_flash_selected_index
-		var housing_material := StandardMaterial3D.new()
-		housing_material.albedo_color = Color("#303943")
-		housing_material.metallic = 0.78
-		housing_material.roughness = 0.24
-		var rim_material := StandardMaterial3D.new()
-		rim_material.albedo_color = Color("#65caff") if is_selected else Color("#aab4bd")
-		rim_material.metallic = 0.76
-		rim_material.roughness = 0.24
-		var diffuser_material := StandardMaterial3D.new()
-		diffuser_material.albedo_color = Color("#fff1cf")
-		diffuser_material.roughness = 0.24
-		diffuser_material.emission_enabled = true
-		diffuser_material.emission = Color("#ffe5ad")
-		diffuser_material.emission_energy_multiplier = 0.18
-		var module_id := int(module["id"])
-		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.006), module_size * 1.16, 0.016, housing_material)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.014), module_size, 0.007, rim_material)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % module_id, Vector3(module_position.x, module_position.y, back_surface_z - 0.020), module_size * 0.72, 0.006, diffuser_material)
+		var flash_module: Dictionary = rear_flash_modules[flash_index]
+		var flash_position: Vector2 = flash_module["position"]
+		var flash_size := float(flash_module["size"])
+		var flash_is_selected := rear_hardware_mode == "FLASH" and flash_index == rear_flash_selected_index
+		var flash_housing_material := StandardMaterial3D.new()
+		flash_housing_material.albedo_color = Color("#303943")
+		flash_housing_material.metallic = 0.78
+		flash_housing_material.roughness = 0.24
+		var flash_rim_material := StandardMaterial3D.new()
+		flash_rim_material.albedo_color = Color("#65caff") if flash_is_selected else Color("#aab4bd")
+		flash_rim_material.metallic = 0.76
+		flash_rim_material.roughness = 0.24
+		var flash_diffuser_material := StandardMaterial3D.new()
+		flash_diffuser_material.albedo_color = Color("#fff1cf")
+		flash_diffuser_material.roughness = 0.24
+		flash_diffuser_material.emission_enabled = true
+		flash_diffuser_material.emission = Color("#ffe5ad")
+		flash_diffuser_material.emission_energy_multiplier = 0.18
+		var flash_module_id := int(flash_module["id"])
+		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % flash_module_id, Vector3(flash_position.x, flash_position.y, back_surface_z - 0.006), flash_size * 1.16, 0.016, flash_housing_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % flash_module_id, Vector3(flash_position.x, flash_position.y, back_surface_z - 0.014), flash_size, 0.007, flash_rim_material)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % flash_module_id, Vector3(flash_position.x, flash_position.y, back_surface_z - 0.020), flash_size * 0.72, 0.006, flash_diffuser_material)
 
 
 func _add_rear_hardware_disc(parent: Node3D, node_name: String, disc_position: Vector3, radius: float, height: float, material: Material) -> void:
