@@ -1510,9 +1510,32 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Early smartphones placed a small lens in the upper display bezel.
 			_add_front_camera_lens(camera_root, Vector3(0.0, top_edge + maxf(bezel_height * 0.24, 0.045), front_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
-			# Compact teardrop-style notch: narrow at its lower end.
-			_add_camera_cutout(camera_root, "WaterdropNotchCutout", Vector2(0.19, 0.115), Vector2(0.0, 0.012), front_z, cutout_material)
-			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y - 0.020, front_z + 0.008), 0.027, cutout_material, lens_material, ring_material)
+			# Rounded upper shoulder with a soft inverted point below the lens.
+			var drop_cap := MeshInstance3D.new()
+			drop_cap.name = "WaterdropNotchUpperCurve"
+			var cap_mesh := SphereMesh.new()
+			cap_mesh.radius = 0.095
+			cap_mesh.height = 0.095
+			cap_mesh.radial_segments = 32
+			cap_mesh.rings = 16
+			drop_cap.mesh = cap_mesh
+			drop_cap.scale = Vector3(1.0, 0.62, 0.035)
+			drop_cap.position = Vector3(0.0, camera_y + 0.012, front_z)
+			drop_cap.material_override = cutout_material
+			camera_root.add_child(drop_cap)
+			var drop_tip := MeshInstance3D.new()
+			drop_tip.name = "WaterdropNotchLowerCurve"
+			var tip_mesh := SphereMesh.new()
+			tip_mesh.radius = 0.060
+			tip_mesh.height = 0.12
+			tip_mesh.radial_segments = 32
+			tip_mesh.rings = 16
+			drop_tip.mesh = tip_mesh
+			drop_tip.scale = Vector3(0.72, 0.78, 0.035)
+			drop_tip.position = Vector3(0.0, camera_y - 0.035, front_z)
+			drop_tip.material_override = cutout_material
+			camera_root.add_child(drop_tip)
+			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y + 0.008, front_z + 0.008), 0.027, cutout_material, lens_material, ring_material)
 		"Punch-Hole":
 			# Single, small circular opening centred on the top safe area.
 			_add_front_camera_lens(camera_root, Vector3(0.0, camera_y, front_z), 0.038, cutout_material, lens_material, ring_material)
@@ -1533,6 +1556,17 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			var dual_spacing := 0.052
 			_add_front_camera_lens(camera_root, Vector3(-dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
 			_add_front_camera_lens(camera_root, Vector3(dual_spacing, camera_y, front_z), 0.030, cutout_material, lens_material, ring_material)
+		"Pop-Up Camera":
+			# Motorised selfie camera housing raised above the top edge.
+			var popup_y := top_edge + 0.045
+			var popup_housing := MeshInstance3D.new()
+			popup_housing.name = "PopUpCameraHousing"
+			popup_housing.mesh = _create_rounded_panel_mesh(0.30, 0.13, 0.035, 0.045)
+			popup_housing.position = Vector3(0.0, popup_y, front_z)
+			popup_housing.material_override = ring_material
+			popup_housing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			camera_root.add_child(popup_housing)
+			_add_front_camera_lens(camera_root, Vector3(0.0, popup_y, front_z + 0.022), 0.038, cutout_material, lens_material, ring_material)
 		"Dynamic Island":
 			# Long pill cutout with a camera lens and a separate sensor window.
 			var island_width := minf(0.43, screen_width * 0.40)
