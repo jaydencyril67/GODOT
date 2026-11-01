@@ -1290,7 +1290,7 @@ func _show_back_design_controls() -> void:
 	back_design_selection_list.custom_minimum_size.y = control_height
 	back_design_selection_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(back_design_selection_list, button_font_size)
-	_style_back_design_selector(back_design_selection_list)
+	_style_custom_dropdown(back_design_selection_list)
 	back_design_selection_list.item_selected.connect(_select_back_design_box)
 	active_feature_panel.add_child(back_design_selection_list)
 	_add_back_design_flexible_space(active_feature_panel)
@@ -1377,7 +1377,7 @@ func _add_back_design_flexible_space(parent: Control) -> void:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(spacer)
 
-func _style_back_design_selector(selector: OptionButton) -> void:
+func _style_custom_dropdown(selector: OptionButton) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.035, 0.12, 0.19, 0.92)
 	normal.border_color = Color("#65caff")
@@ -1408,11 +1408,20 @@ func _style_back_design_selector(selector: OptionButton) -> void:
 	var popup_hover := StyleBoxFlat.new()
 	popup_hover.bg_color = Color(0.12, 0.39, 0.55, 0.98)
 	popup_hover.set_corner_radius_all(5)
+	var popup_pressed := popup_hover.duplicate() as StyleBoxFlat
+	popup_pressed.bg_color = Color("#155477")
+	var popup_focus := popup_hover.duplicate() as StyleBoxFlat
+	popup_focus.bg_color = Color(0.10, 0.30, 0.43, 0.98)
 	popup.add_theme_stylebox_override("hover", popup_hover)
+	popup.add_theme_stylebox_override("pressed", popup_pressed)
+	popup.add_theme_stylebox_override("focus", popup_focus)
 	popup.add_theme_color_override("font_color", Color("#dff4ff"))
 	popup.add_theme_color_override("font_hover_color", Color.WHITE)
+	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
 	popup.add_theme_color_override("font_accelerator_color", Color("#9bcce5"))
-	popup.add_theme_constant_override("v_separation", 5)
+	popup.add_theme_constant_override("v_separation", 7)
+	popup.add_theme_constant_override("outline_size", 1)
+	popup.add_theme_color_override("font_outline_color", Color("#061522"))
 
 
 func _style_back_design_slider(slider: HSlider) -> void:
