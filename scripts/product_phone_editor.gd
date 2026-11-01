@@ -3078,11 +3078,10 @@ func _refresh_rear_hardware_visuals() -> void:
 		optical_core.roughness = 0.10
 		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(module_position.x, module_position.y, support_z - 0.034), module_size * 0.38, 0.0025, optical_core)
 		var lens_glint := StandardMaterial3D.new()
-		lens_glint.albedo_color = Color("#6da8d4")
+		lens_glint.albedo_color = Color(0.43, 0.66, 0.83, 0.38)
 		lens_glint.metallic = 0.35
 		lens_glint.roughness = 0.12
 		lens_glint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		lens_glint.albedo_color.a = 0.38
 		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(module_position.x - module_size * 0.13, module_position.y + module_size * 0.13, support_z - 0.036), module_size * 0.12, 0.001, lens_glint)
 
 	for flash_index in range(rear_flash_modules.size()):
