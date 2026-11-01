@@ -67,6 +67,9 @@ var volume_button_position_label: Label
 var side_button_length_label: Label
 var active_feature_panel: Control
 var right_tools_content: VBoxContainer
+var device_body_color := Color("#a5adb6")
+var device_color_picker: ColorPicker
+var device_color_hex_label: Label
 
 
 func _ready() -> void:
@@ -334,7 +337,7 @@ func _build_design_research_content(parent: Control) -> void:
 
 func _get_hardware_research_features() -> Array:
 	return [
-		"Screen Tech", "Power/Volume Buttons", "Thickness", "Screen Width",
+		"Screen Tech", "Power/Volume Buttons", "Thickness", "Device Color",
 		"Screen Size", "Screen Type", "Border Radius", "Speakers",
 		"Charge Port", "Front Camera", "Rare Camera", "Style Pen",
 		"Side Button", "Home Button", "Body Frame", "Phone Width",
@@ -696,7 +699,7 @@ func _get_preview_viewport() -> SubViewport:
 	var body_material := StandardMaterial3D.new()
 	# Use a restrained silver-white base. Preview lighting is balanced below
 	# so the rendered face keeps this colour instead of clipping to pure white.
-	body_material.albedo_color = Color("#a5adb6")
+	body_material.albedo_color = device_body_color
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
 	body_material.roughness = 0.94
@@ -771,7 +774,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button", "Front Camera"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Home Button", "Front Camera"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -788,6 +791,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_border_radius_controls()
 	elif feature_name == "Thickness":
 		_show_thickness_controls()
+	elif feature_name == "Device Color":
+		_show_device_color_controls()
 	elif feature_name == "Speakers":
 		_show_speaker_controls()
 	elif feature_name == "Charge Port":
@@ -799,6 +804,68 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	elif feature_name == "Front Camera":
 		_show_front_camera_controls()
 
+
+
+func _show_device_color_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "DeviceColorControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var title := _make_label("DEVICE COLOR", 18, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(title)
+
+	var description := _make_label("Choose any body color or enter its HEX value.", 12, Color("#d8eaf5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	var preview_swatch := ColorRect.new()
+	preview_swatch.name = "DeviceColorPreview"
+	preview_swatch.color = device_body_color
+	preview_swatch.custom_minimum_size = Vector2(0, 34)
+	preview_swatch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(preview_swatch)
+
+	device_color_hex_label = _make_label("#" + device_body_color.to_html(false).to_upper(), 13, Color("#a9e3ff"))
+	device_color_hex_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(device_color_hex_label)
+
+	device_color_picker = ColorPicker.new()
+	device_color_picker.name = "DeviceBodyColorPicker"
+	device_color_picker.color = device_body_color
+	device_color_picker.edit_alpha = false
+	device_color_picker.hex_visible = true
+	device_color_picker.color_modes_visible = true
+	device_color_picker.sliders_visible = true
+	device_color_picker.presets_visible = true
+	device_color_picker.sampler_visible = false
+	device_color_picker.custom_minimum_size = Vector2(180, 300)
+	device_color_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	device_color_picker.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	device_color_picker.color_changed.connect(_on_device_body_color_changed)
+	active_feature_panel.add_child(device_color_picker)
+
+
+func _on_device_body_color_changed(color: Color) -> void:
+	device_body_color = Color(color.r, color.g, color.b, 1.0)
+	if is_instance_valid(phone_body):
+		var body_material := phone_body.material_override as StandardMaterial3D
+		if is_instance_valid(body_material):
+			body_material.albedo_color = device_body_color
+	if is_instance_valid(device_color_hex_label):
+		device_color_hex_label.text = "#" + device_body_color.to_html(false).to_upper()
+	if is_instance_valid(active_feature_panel):
+		var swatch := active_feature_panel.get_node_or_null("DeviceColorPreview") as ColorRect
+		if is_instance_valid(swatch):
+			swatch.color = device_body_color
 
 
 func _show_screen_size_controls() -> void:
