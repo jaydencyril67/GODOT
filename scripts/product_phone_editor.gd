@@ -5870,7 +5870,7 @@ func _show_mobile_network_controls() -> void:
 
 	var options := GridContainer.new()
 	options.name = "MobileNetworkOptions"
-	options.columns = 2
+	options.columns = 1
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	options.add_theme_constant_override("h_separation", 6)
