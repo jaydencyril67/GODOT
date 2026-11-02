@@ -5773,7 +5773,7 @@ func _show_bluetooth_controls() -> void:
 	for version in ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]:
 		var option := Button.new()
 		option.name = "BluetoothOption_" + version.replace(" ", "").replace("+", "").replace(".", "_")
-		var button_label := version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS")
+		var button_label: String = version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS")
 		option.text = button_label + ("  ✓" if selected_bluetooth_version == version else "")
 		option.tooltip_text = version
 		option.custom_minimum_size = Vector2(0, 42)
@@ -5827,7 +5827,7 @@ func _show_wifi_controls() -> void:
 	for standard in ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]:
 		var option := Button.new()
 		option.name = "WiFiOption_" + standard.replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace(",", "")
-		var button_label := "Wi-Fi " + standard.get_slice(" ", 1).split(" ")[0]
+		var button_label: String = "Wi-Fi " + standard.get_slice(" ", 1).split(" ")[0]
 		option.text = button_label + ("  ✓" if selected_wifi_standard == standard else "")
 		option.tooltip_text = standard
 		option.custom_minimum_size = Vector2(0, 42)
@@ -5889,7 +5889,7 @@ func _show_mobile_network_controls() -> void:
 	for network in networks:
 		var option := Button.new()
 		option.name = "MobileNetworkOption_" + network.replace(" ", "").replace("/", "_").replace("(", "").replace(")", "").replace("+", "Plus")
-		var display_name := network
+		var display_name: String = network
 		match network:
 			"2G (GSM / EDGE)":
 				display_name = "2G"
