@@ -3145,8 +3145,10 @@ func _rebuild_charger_preview() -> void:
 			_add_charger_box(charger_preview, "UKNeutralProng", Vector3(0.035, 0.105, 0.035), Vector3(0.96, 0.0, -0.135), metal_material)
 			_add_charger_box(charger_preview, "UKEarthProng", Vector3(0.035, 0.12, 0.035), Vector3(0.88, 0.105, -0.135), metal_material)
 		"EU":
-			_add_charger_cylinder(charger_preview, "EUProngLeft", 0.025, 0.115, Vector3(0.82, 0.0, -0.145), metal_material)
-			_add_charger_cylinder(charger_preview, "EUProngRight", 0.025, 0.115, Vector3(0.94, 0.0, -0.145), metal_material)
+			var eu_left := _add_charger_cylinder(charger_preview, "EUProngLeft", 0.025, 0.115, Vector3(0.82, 0.0, -0.145), metal_material)
+			var eu_right := _add_charger_cylinder(charger_preview, "EUProngRight", 0.025, 0.115, Vector3(0.94, 0.0, -0.145), metal_material)
+			eu_left.rotation_degrees.x = 90.0
+			eu_right.rotation_degrees.x = 90.0
 		"US":
 			_add_charger_box(charger_preview, "USProngLeft", Vector3(0.025, 0.105, 0.025), Vector3(0.82, 0.0, -0.14), metal_material)
 			_add_charger_box(charger_preview, "USProngRight", Vector3(0.025, 0.105, 0.025), Vector3(0.94, 0.0, -0.14), metal_material)
