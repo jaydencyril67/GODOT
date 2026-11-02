@@ -139,6 +139,7 @@ var front_camera_enabled := false
 var front_camera_megapixels := 12
 var front_camera_secondary_megapixels := 12
 const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
+const MEMORY_CLOCK_STEPS := [400, 533, 667, 800, 933, 1067, 1200, 1375, 1600, 1867, 2133, 2750, 3200, 3733, 4267]
 const MAX_REAR_CAMERAS := 5
 const MAX_REAR_FLASHES := 5
 var front_camera_style := "Punch-Hole"
@@ -184,6 +185,8 @@ var software_value_labels: Dictionary = {}
 var selected_ram_capacity := "Not set"
 var selected_refresh_rate := "Not set"
 var selected_memory_clock := "Not set"
+var memory_clock_slider: VSlider
+var memory_clock_value_label: Label
 var selected_cooling_system := "Not set"
 var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
@@ -5700,51 +5703,68 @@ func _show_memory_clock_controls() -> void:
 	active_feature_panel.name = "MemoryClockSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
 	var heading := _make_label("MEMORY CLOCK", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var current := _make_label("CURRENT: " + selected_memory_clock.to_upper(), 14, Color("#d8f1ff"))
-	current.name = "CurrentMemoryClockLabel"
-	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(current)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "MemoryClockOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	active_feature_panel.add_child(scroll)
-	var options := VBoxContainer.new()
-	options.name = "MemoryClockOptions"
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
+	memory_clock_value_label = _make_label("CURRENT: " + selected_memory_clock.to_upper(), 16, Color("#d8f1ff"))
+	memory_clock_value_label.name = "CurrentMemoryClockLabel"
+	memory_clock_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(memory_clock_value_label)
 
-	for frequency in [400, 533, 667, 800, 933, 1067, 1200, 1375, 1600, 1867, 2133, 2750, 3200, 3733, 4267]:
-		var clock_text := "%d MHz" % frequency
-		var option := Button.new()
-		option.name = "MemoryClockOption_%dMHz" % frequency
-		option.text = clock_text + ("   ✓ SELECTED" if selected_memory_clock == clock_text else "")
-		option.custom_minimum_size.y = 43
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_memory_clock == clock_text)
-		option.pressed.connect(_on_memory_clock_selected.bind(clock_text))
-		options.add_child(option)
+	var range_heading := _make_label("4267 MHz", 13, Color("#a9e3ff"))
+	range_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(range_heading)
+
+	var slider_center := CenterContainer.new()
+	slider_center.name = "MemoryClockSliderCenter"
+	slider_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(slider_center)
+
+	memory_clock_slider = VSlider.new()
+	memory_clock_slider.name = "MemoryClockSlider"
+	memory_clock_slider.min_value = 0
+	memory_clock_slider.max_value = MEMORY_CLOCK_STEPS.size() - 1
+	memory_clock_slider.step = 1
+	memory_clock_slider.tick_count = MEMORY_CLOCK_STEPS.size()
+	memory_clock_slider.tick_texture = null
+	memory_clock_slider.custom_minimum_size = Vector2(76, 230)
+	memory_clock_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	memory_clock_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	memory_clock_slider.value = maxf(0.0, float(_get_memory_clock_index()))
+	memory_clock_slider.value_changed.connect(_on_memory_clock_slider_changed)
+	_style_feature_slider(memory_clock_slider)
+	slider_center.add_child(memory_clock_slider)
+
+	var minimum_label := _make_label("400 MHz", 13, Color("#a9e3ff"))
+	minimum_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(minimum_label)
+
+	var instruction := _make_label("DRAG THE SLIDER TO SET THE MEMORY CLOCK", 12, Color("#91b8ce"))
+	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(instruction)
 
 
-func _on_memory_clock_selected(clock_text: String) -> void:
-	if not ["400 MHz", "533 MHz", "667 MHz", "800 MHz", "933 MHz", "1067 MHz", "1200 MHz", "1375 MHz", "1600 MHz", "1867 MHz", "2133 MHz", "2750 MHz", "3200 MHz", "3733 MHz", "4267 MHz"].has(clock_text):
-		return
-	selected_memory_clock = clock_text
+func _get_memory_clock_index() -> int:
+	for index in range(MEMORY_CLOCK_STEPS.size()):
+		if selected_memory_clock == "%d MHz" % MEMORY_CLOCK_STEPS[index]:
+			return index
+	return -1
+
+
+func _on_memory_clock_slider_changed(value: float) -> void:
+	var index := clampi(int(round(value)), 0, MEMORY_CLOCK_STEPS.size() - 1)
+	selected_memory_clock = "%d MHz" % MEMORY_CLOCK_STEPS[index]
+	if is_instance_valid(memory_clock_value_label):
+		memory_clock_value_label.text = "CURRENT: " + selected_memory_clock
 	if software_value_labels.has("MEMORY CLOCK") and is_instance_valid(software_value_labels["MEMORY CLOCK"]):
 		var clock_label: Label = software_value_labels["MEMORY CLOCK"]
 		clock_label.text = selected_memory_clock
-	_show_memory_clock_controls()
 
 
 func _show_cooling_system_controls() -> void:
