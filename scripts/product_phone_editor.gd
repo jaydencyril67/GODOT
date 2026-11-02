@@ -203,6 +203,7 @@ var camera_side_button_y := 0.12
 var sound_button_enabled := false
 var sim_tray_enabled := false
 var sim_tray_y := -0.58
+var style_pen_enabled := false
 var camera_side_button_position_label: Label
 var sim_tray_position_label: Label
 var side_button_length_scale := 1.35
@@ -495,7 +496,7 @@ func _get_hardware_research_features() -> Array:
 	return [
 		"Screen Tech", "Power/Volume Buttons", "Thickness", "Device Color",
 		"Screen Size", "Screen Type", "Border Radius", "Speakers",
-		"Charge Port", "Front Camera", "Rare Camera", "Style Pen",
+		"Charge Port", "Front Camera", "Rare Camera",
 		"Side Button", "Home Button", "Back Design", "Phone Width",
 		"Phone Height", "Sim/Memory Slot", "Protection", "Refresh Rate",
 		"Back Panel Material", "Frame Material", "Body Finish & Colour",
@@ -3783,6 +3784,7 @@ func _show_side_button_controls() -> void:
 	_add_optional_side_feature_row("SIDE BUTTON", "camera", camera_side_button_enabled, true, camera_side_button_y)
 	_add_optional_side_feature_row("SOUND BUTTON", "sound", sound_button_enabled, false, volume_button_y)
 	_add_optional_side_feature_row("SIM TRAY", "sim", sim_tray_enabled, true, sim_tray_y)
+	_add_optional_side_feature_row("STYLE PEN (S PEN)", "style_pen", style_pen_enabled, false, 0.0)
 
 
 func _add_optional_side_feature_row(caption: String, feature: String, enabled: bool, with_position: bool, position_y: float) -> void:
@@ -3873,6 +3875,8 @@ func _on_optional_side_feature_toggled(enabled: bool, feature: String) -> void:
 			sound_button_enabled = enabled
 		"sim":
 			sim_tray_enabled = enabled
+		"style_pen":
+			style_pen_enabled = enabled
 	_refresh_phone_side_buttons()
 
 
@@ -3950,6 +3954,68 @@ func _refresh_phone_side_buttons() -> void:
 		_add_phone_side_button(button_root, "SoundActionButton", -1.0, volume_button_y + single_key_length + 0.15, sound_button_length, sound_button_radius, frame_material, key_material)
 	if sim_tray_enabled:
 		_add_phone_sim_tray(button_root, -1.0, sim_tray_y, frame_material, key_material)
+	if style_pen_enabled:
+		_add_phone_style_pen(button_root, current_depth, frame_material, key_material)
+
+
+func _add_phone_style_pen(parent: Node3D, current_depth: float, frame_material: Material, key_material: Material) -> void:
+	# The S-Pen sits in its own slim channel along the extreme-left end of
+	# the bottom speaker row. Recalculate from the live corner radius so it
+	# stays on the straight bottom rail as the phone is bordered.
+	var corner_radius := 0.32 * float(border_radius_level) / 6.0
+	var pen_length := 0.245
+	var pen_radius := 0.014
+	var bottom_y := -PHONE_SIZE.y * 0.5
+	var left_edge := -PHONE_SIZE.x * 0.5
+	var pen_x := left_edge + corner_radius + pen_length * 0.5 + 0.018
+	var pen_z := current_depth * 0.5 + 0.003
+
+	var channel := MeshInstance3D.new()
+	channel.name = "StylePenChannel"
+	var channel_mesh := CapsuleMesh.new()
+	channel_mesh.radius = pen_radius * 1.28
+	channel_mesh.height = pen_length + pen_radius * 2.0
+	channel_mesh.radial_segments = 24
+	channel_mesh.rings = 6
+	channel.mesh = channel_mesh
+	channel.rotation_degrees.z = 90.0
+	channel.position = Vector3(pen_x, bottom_y + 0.004, pen_z)
+	channel.material_override = frame_material
+	channel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(channel)
+
+	var pen := MeshInstance3D.new()
+	pen.name = "StylePen"
+	var pen_mesh := CapsuleMesh.new()
+	pen_mesh.radius = pen_radius
+	pen_mesh.height = pen_length
+	pen_mesh.radial_segments = 32
+	pen_mesh.rings = 8
+	pen.mesh = pen_mesh
+	pen.rotation_degrees.z = 90.0
+	pen.position = Vector3(pen_x, bottom_y + 0.004, pen_z + 0.006)
+	pen.material_override = key_material
+	pen.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(pen)
+
+	# Small metallic end cap makes the accessory read as a removable stylus.
+	var cap := MeshInstance3D.new()
+	cap.name = "StylePenEndCap"
+	var cap_mesh := CylinderMesh.new()
+	cap_mesh.top_radius = pen_radius * 0.72
+	cap_mesh.bottom_radius = pen_radius * 0.72
+	cap_mesh.height = 0.012
+	cap_mesh.radial_segments = 24
+	cap.mesh = cap_mesh
+	cap.rotation_degrees.z = 90.0
+	cap.position = Vector3(pen_x - pen_length * 0.43, bottom_y + 0.004, pen_z + 0.008)
+	var cap_material := StandardMaterial3D.new()
+	cap_material.albedo_color = Color("#aebdca")
+	cap_material.metallic = 0.88
+	cap_material.roughness = 0.22
+	cap.material_override = cap_material
+	cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(cap)
 
 
 func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, frame_material: Material, key_material: Material) -> void:
@@ -4621,6 +4687,7 @@ func _refresh_phone_mesh() -> void:
 	_refresh_phone_side_buttons()
 	_refresh_phone_home_button()
 	_refresh_phone_screen()
+	_refresh_phone_speakers()
 	_refresh_back_design_boxes()
 	_refresh_rear_hardware_visuals()
 func _on_border_radius_level_changed(value: float) -> void:
