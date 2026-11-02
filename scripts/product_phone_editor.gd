@@ -3356,7 +3356,7 @@ func _show_screen_protector_controls() -> void:
 	var thickness_heading := _make_label("GLASS THICKNESS", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(thickness_heading)
 	screen_protector_thickness_label = _make_label("", 12, Color("#d8eaf5"))
-	screen_protector_thickness_label.horizontal_alignment = HORIZONTAL_ALIGNMENT.CENTER
+	screen_protector_thickness_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(screen_protector_thickness_label)
 	var thickness_slider := HSlider.new()
 	thickness_slider.name = "ProtectionGlassThicknessSlider"
