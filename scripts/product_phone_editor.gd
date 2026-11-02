@@ -2905,25 +2905,36 @@ func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, h
 	return Vector3(x, y, surface_z + thickness)
 
 
+func _add_screen_protector_edge(surface: SurfaceTool, base_a: Vector3, base_b: Vector3, top_a: Vector3, top_b: Vector3, outward_normal: Vector3) -> void:
+	# Build the clear-glass sidewall between the fitted underside and polished top.
+	_add_phone_mesh_triangle(surface, base_a, top_a, top_b, outward_normal)
+	_add_phone_mesh_triangle(surface, base_a, top_b, base_b, outward_normal)
+
+
 func _create_screen_protector_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	# A dense conforming grid follows the display's rounded perimeter and
-	# curved edge profile. Cells inside camera apertures are omitted entirely.
+	# The dense grid follows the exact screen outline and curve. The top and
+	# underside are separated by the real modelled protector thickness.
 	const X_SEGMENTS := 128
 	const Y_SEGMENTS := 216
+	const EDGE_GAP := 0.00025
 	var half_width := width * 0.5
 	var half_height := height * 0.5
 	var radius := clampf(corner_radius, 0.0, minf(half_width, half_height))
-	var points: Array[Vector3] = []
+	var base_points: Array[Vector3] = []
+	var top_points: Array[Vector3] = []
 	for y_index in range(Y_SEGMENTS + 1):
 		var v := float(y_index) / float(Y_SEGMENTS)
 		var raw_y := (0.5 - v) * height
 		for x_index in range(X_SEGMENTS + 1):
 			var u := float(x_index) / float(X_SEGMENTS)
 			var raw_x := (u - 0.5) * width
-			points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, thickness))
+			base_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP))
+			top_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP + thickness))
 
+	var cutout_mask := PackedByteArray()
+	cutout_mask.resize(X_SEGMENTS * Y_SEGMENTS)
 	for y_index in range(Y_SEGMENTS):
 		for x_index in range(X_SEGMENTS):
 			var top_left := y_index * (X_SEGMENTS + 1) + x_index
@@ -2931,17 +2942,54 @@ func _create_screen_protector_mesh(width: float, height: float, corner_radius: f
 			var bottom_left := top_left + X_SEGMENTS + 1
 			var bottom_right := bottom_left + 1
 			var cell_center := Vector2(
-				(points[top_left].x + points[top_right].x + points[bottom_left].x + points[bottom_right].x) * 0.25,
-				(points[top_left].y + points[top_right].y + points[bottom_left].y + points[bottom_right].y) * 0.25
+				(top_points[top_left].x + top_points[top_right].x + top_points[bottom_left].x + top_points[bottom_right].x) * 0.25,
+				(top_points[top_left].y + top_points[top_right].y + top_points[bottom_left].y + top_points[bottom_right].y) * 0.25
 			)
+			var cell_index := y_index * X_SEGMENTS + x_index
 			if _screen_protector_point_is_cut_out(cell_center, cutouts):
+				cutout_mask[cell_index] = 1
 				continue
-			surface.add_vertex(points[top_left])
-			surface.add_vertex(points[bottom_left])
-			surface.add_vertex(points[top_right])
-			surface.add_vertex(points[top_right])
-			surface.add_vertex(points[bottom_left])
-			surface.add_vertex(points[bottom_right])
+			surface.add_vertex(top_points[top_left])
+			surface.add_vertex(top_points[bottom_left])
+			surface.add_vertex(top_points[top_right])
+			surface.add_vertex(top_points[top_right])
+			surface.add_vertex(top_points[bottom_left])
+			surface.add_vertex(top_points[bottom_right])
+
+	# Close the outer glass perimeter so the thickness is visible edge-on.
+	for x_index in range(X_SEGMENTS):
+		var top_left := x_index
+		var top_right := top_left + 1
+		_add_screen_protector_edge(surface, base_points[top_left], base_points[top_right], top_points[top_left], top_points[top_right], Vector3.UP)
+		var bottom_left := Y_SEGMENTS * (X_SEGMENTS + 1) + x_index
+		var bottom_right := bottom_left + 1
+		_add_screen_protector_edge(surface, base_points[bottom_right], base_points[bottom_left], top_points[bottom_right], top_points[bottom_left], Vector3.DOWN)
+	for y_index in range(Y_SEGMENTS):
+		var left_top := y_index * (X_SEGMENTS + 1)
+		var left_bottom := left_top + X_SEGMENTS + 1
+		_add_screen_protector_edge(surface, base_points[left_bottom], base_points[left_top], top_points[left_bottom], top_points[left_top], Vector3.LEFT)
+		var right_top := y_index * (X_SEGMENTS + 1) + X_SEGMENTS
+		var right_bottom := right_top + X_SEGMENTS + 1
+		_add_screen_protector_edge(surface, base_points[right_top], base_points[right_bottom], top_points[right_top], top_points[right_bottom], Vector3.RIGHT)
+
+	# Add the inner cut walls around each camera/sensor opening. This gives
+	# the laser-cut apertures a real glass edge rather than a floating decal.
+	for y_index in range(Y_SEGMENTS):
+		for x_index in range(X_SEGMENTS):
+			var cell_index := y_index * X_SEGMENTS + x_index
+			if cutout_mask[cell_index] == 0:
+				continue
+			var row_start := y_index * (X_SEGMENTS + 1)
+			var row_below := row_start + X_SEGMENTS + 1
+			if x_index > 0 and cutout_mask[cell_index - 1] == 0:
+				_add_screen_protector_edge(surface, base_points[row_start + x_index], base_points[row_below + x_index], top_points[row_start + x_index], top_points[row_below + x_index], Vector3.RIGHT)
+			if x_index < X_SEGMENTS - 1 and cutout_mask[cell_index + 1] == 0:
+				_add_screen_protector_edge(surface, base_points[row_below + x_index + 1], base_points[row_start + x_index + 1], top_points[row_below + x_index + 1], top_points[row_start + x_index + 1], Vector3.LEFT)
+			if y_index > 0 and cutout_mask[cell_index - X_SEGMENTS] == 0:
+				_add_screen_protector_edge(surface, base_points[row_start + x_index + 1], base_points[row_start + x_index], top_points[row_start + x_index + 1], top_points[row_start + x_index], Vector3.DOWN)
+			if y_index < Y_SEGMENTS - 1 and cutout_mask[cell_index + X_SEGMENTS] == 0:
+				_add_screen_protector_edge(surface, base_points[row_below + x_index], base_points[row_below + x_index + 1], top_points[row_below + x_index], top_points[row_below + x_index + 1], Vector3.UP)
+
 	surface.index()
 	surface.generate_normals()
 	return surface.commit()
