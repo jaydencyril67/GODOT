@@ -2406,9 +2406,11 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	item_idle.content_margin_bottom = 10
 	popup.add_theme_stylebox_override("hover", item_idle)
 	popup.add_theme_stylebox_override("pressed", item_idle)
+	popup.add_theme_stylebox_override("focus", item_idle)
 	popup.add_theme_color_override("font_color", Color("#dff4ff"))
 	popup.add_theme_color_override("font_hover_color", Color("#dff4ff"))
 	popup.add_theme_color_override("font_pressed_color", Color("#dff4ff"))
+	popup.add_theme_color_override("font_focus_color", Color("#dff4ff"))
 	popup.add_theme_constant_override("v_separation", 10)
 	popup.add_theme_constant_override("outline_size", 1)
 	popup.add_theme_color_override("font_outline_color", Color("#061522"))
