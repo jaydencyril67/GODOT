@@ -1306,10 +1306,9 @@ void vertex() {
 	local_normal = NORMAL;
 }
 void fragment() {
-	// The front-facing chassis is the face looking toward the preview camera
-	// (its authored normal points toward -Z). Rear and perimeter faces share
-	// one local-space gradient so the finish remains continuous around edges.
-	if (local_normal.z < -0.5 || !gradient_enabled) {
+	// The front face is authored with an outward +Z normal and stays solid.
+	// The rear (-Z) face and all perimeter faces receive the gradient.
+	if (local_normal.z > 0.5 || !gradient_enabled) {
 		ALBEDO = solid_color.rgb;
 	} else {
 		vec2 p = local_position.xy / vec2(0.95, 2.0) + vec2(0.5);
