@@ -216,6 +216,7 @@ var device_body_color := Color("#a5adb6")
 var device_gradient_enabled := false
 var device_gradient_color := Color("#536dfe")
 var device_gradient_direction := 0 # 0 vertical, 1 horizontal, 2 diagonal, 3 radial
+var gradient_color_edit_mode := false
 var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
@@ -1033,24 +1034,55 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		_set_back_design_custom_color_controls_enabled(not use_device_color.button_pressed)
 
 	if not return_to_back_design:
-		var gradient_toggle := CheckBox.new()
+		var gradient_toggle_row := HBoxContainer.new()
+		gradient_toggle_row.name = "EnableDeviceGradientRow"
+		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		gradient_toggle_row.add_theme_constant_override("separation", 8)
+		active_feature_panel.add_child(gradient_toggle_row)
+		var gradient_toggle_label := _make_label("ENABLE GRADIENT", 13, Color("#d8eaf5"))
+		gradient_toggle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		gradient_toggle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		gradient_toggle_row.add_child(gradient_toggle_label)
+		var gradient_toggle := TextureButton.new()
 		gradient_toggle.name = "EnableDeviceGradient"
-		gradient_toggle.text = "ENABLE GRADIENT"
+		gradient_toggle.custom_minimum_size = Vector2(36, 36)
+		gradient_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+		gradient_toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		gradient_toggle.ignore_texture_size = true
+		gradient_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		gradient_toggle.texture_normal = _make_side_button_checkbox_icon(false)
+		gradient_toggle.texture_hover = _make_side_button_checkbox_icon(false)
+		gradient_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+		gradient_toggle.toggle_mode = true
 		gradient_toggle.button_pressed = device_gradient_enabled
-		gradient_toggle.add_theme_color_override("font_color", Color("#d8eaf5"))
-		gradient_toggle.toggled.connect(_on_device_gradient_toggled)
-		active_feature_panel.add_child(gradient_toggle)
-		var gradient_row := HBoxContainer.new()
-		gradient_row.name = "GradientOptions"
-		gradient_row.add_theme_constant_override("separation", 8)
-		active_feature_panel.add_child(gradient_row)
-		var secondary_picker := ColorPickerButton.new()
-		secondary_picker.name = "GradientSecondaryColor"
-		secondary_picker.color = device_gradient_color
-		secondary_picker.custom_minimum_size = Vector2(72, 36)
-		secondary_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		secondary_picker.color_changed.connect(_on_device_gradient_color_changed)
-		gradient_row.add_child(secondary_picker)
+		gradient_toggle.focus_mode = Control.FOCUS_NONE
+		gradient_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+		gradient_toggle.pressed.connect(_on_device_gradient_toggle_pressed.bind(gradient_toggle))
+		gradient_toggle_row.add_child(gradient_toggle)
+		var gradient_options := VBoxContainer.new()
+		gradient_options.name = "GradientOptions"
+		gradient_options.add_theme_constant_override("separation", 7)
+		active_feature_panel.add_child(gradient_options)
+		var color_target_row := HBoxContainer.new()
+		color_target_row.name = "GradientColorTargets"
+		color_target_row.add_theme_constant_override("separation", 7)
+		gradient_options.add_child(color_target_row)
+		var base_color_target := Button.new()
+		base_color_target.name = "EditDeviceColor"
+		base_color_target.text = "DEVICE COLOR"
+		base_color_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		base_color_target.custom_minimum_size.y = 38
+		_style_staff_button(base_color_target, not gradient_color_edit_mode)
+		base_color_target.pressed.connect(_on_gradient_color_target_selected.bind(false))
+		color_target_row.add_child(base_color_target)
+		var gradient_color_target := Button.new()
+		gradient_color_target.name = "EditGradientColor"
+		gradient_color_target.text = "GRADIENT COLOR"
+		gradient_color_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		gradient_color_target.custom_minimum_size.y = 38
+		_style_staff_button(gradient_color_target, gradient_color_edit_mode)
+		gradient_color_target.pressed.connect(_on_gradient_color_target_selected.bind(true))
+		color_target_row.add_child(gradient_color_target)
 		var direction_picker := OptionButton.new()
 		direction_picker.name = "GradientDirection"
 		direction_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1058,8 +1090,8 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 			direction_picker.add_item(direction_name)
 		direction_picker.select(clampi(device_gradient_direction, 0, 3))
 		direction_picker.item_selected.connect(_on_device_gradient_direction_changed)
-		gradient_row.add_child(direction_picker)
-		gradient_row.visible = device_gradient_enabled
+		gradient_options.add_child(direction_picker)
+		gradient_options.visible = device_gradient_enabled
 
 	var spectrum_heading := _make_label("COLOR SPECTRUM", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(spectrum_heading)
@@ -1197,6 +1229,8 @@ func _get_active_color_picker_color() -> Color:
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		var box: Dictionary = back_design_boxes[selected_back_design_box]
 		return device_body_color if bool(box.get("use_device_color", true)) else Color(box.get("custom_color", device_body_color))
+	if gradient_color_edit_mode and not back_design_color_mode:
+		return device_gradient_color
 	return device_body_color
 
 
@@ -1253,7 +1287,7 @@ func _apply_device_color_hex(value: String) -> void:
 			device_color_hex_label.text = "INVALID HEX CODE"
 			device_color_hex_label.add_theme_color_override("font_color", Color("#ff7373"))
 		return
-	_on_device_body_color_changed(Color.from_string("#" + hex_value, device_body_color))
+	_on_device_body_color_changed(Color.from_string("#" + hex_value, _get_active_color_picker_color()))
 
 
 func _create_device_body_material() -> ShaderMaterial:
@@ -1303,18 +1337,44 @@ void fragment() {
 	return material
 
 
+func _on_device_gradient_toggle_pressed(toggle: TextureButton) -> void:
+	_on_device_gradient_toggled(toggle.button_pressed)
+
+
+func _on_gradient_color_target_selected(use_gradient_color: bool) -> void:
+	gradient_color_edit_mode = use_gradient_color
+	_refresh_device_color_editor_controls()
+
+
+func _refresh_device_color_editor_controls() -> void:
+	if not is_instance_valid(active_feature_panel): return
+	var selected_color := _get_active_color_picker_color()
+	var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
+	if is_instance_valid(spectrum): spectrum.set_color_value(selected_color)
+	var hue_bar := active_feature_panel.get_node_or_null("DeviceColorHue") as DeviceHueBar
+	if is_instance_valid(hue_bar): hue_bar.set_hue(selected_color.h)
+	var swatch := active_feature_panel.get_node_or_null("SelectedDeviceColor/SelectedColorSwatch") as ColorRect
+	if is_instance_valid(swatch): swatch.color = selected_color
+	if is_instance_valid(device_color_hex_label):
+		device_color_hex_label.text = "#" + selected_color.to_html(false).to_upper()
+		device_color_hex_label.add_theme_color_override("font_color", Color("#e5f6ff"))
+	for channel in ["R", "G", "B"]:
+		var input := active_feature_panel.get_node_or_null("DeviceColorRGB/" + channel + "Column/DeviceColor" + channel) as SpinBox
+		if is_instance_valid(input):
+			var component := selected_color.r if channel == "R" else (selected_color.g if channel == "G" else selected_color.b)
+			input.set_value_no_signal(roundi(component * 255.0))
+	var base_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditDeviceColor") as Button
+	var gradient_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditGradientColor") as Button
+	if is_instance_valid(base_button): _style_staff_button(base_button, not gradient_color_edit_mode)
+	if is_instance_valid(gradient_button): _style_staff_button(gradient_button, gradient_color_edit_mode)
+
+
 func _on_device_gradient_toggled(enabled: bool) -> void:
 	device_gradient_enabled = enabled
 	if is_instance_valid(active_feature_panel):
 		var options := active_feature_panel.get_node_or_null("GradientOptions") as Control
 		if is_instance_valid(options):
 			options.visible = enabled
-	if is_instance_valid(phone_body):
-		phone_body.material_override = _create_device_body_material()
-
-
-func _on_device_gradient_color_changed(color: Color) -> void:
-	device_gradient_color = Color(color.r, color.g, color.b, 1.0)
 	if is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
 
@@ -1331,6 +1391,8 @@ func _on_device_body_color_changed(color: Color) -> void:
 		if bool(back_design_boxes[selected_back_design_box].get("use_device_color", true)): return
 		back_design_boxes[selected_back_design_box]["custom_color"] = selected_color
 		_refresh_back_design_boxes()
+	elif gradient_color_edit_mode:
+		device_gradient_color = selected_color
 	else:
 		device_body_color = selected_color
 	if not back_design_color_mode and is_instance_valid(phone_body):
