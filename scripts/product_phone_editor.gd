@@ -4044,13 +4044,19 @@ func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Ma
 	circle_material.roughness = 1.0
 	circle_material.disable_receive_shadows = true
 	circle_material.disable_fog = true
+	# The marker can be seen from either side while the phone is rotated.
+	circle_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var end_marker := MeshInstance3D.new()
 	end_marker.name = "StylePenBlackCircleEnd"
 	var circle_mesh := CylinderMesh.new()
 	circle_mesh.top_radius = circle_radius
 	circle_mesh.bottom_radius = circle_radius
-	circle_mesh.height = 0.008
+	# The center is inset by 0.004 from the perimeter. Make the cylinder
+	# slightly thicker than twice that inset so its outer cap projects about
+	# 0.003 beyond the bottom edge instead of sitting coplanar with the body.
+	# This removes depth-buffer fighting as the unbordered phone is tilted.
+	circle_mesh.height = 0.014
 	circle_mesh.radial_segments = 40
 	end_marker.mesh = circle_mesh
 	# Keep the S-Pen marker on the phone's bottom edge, centered through
