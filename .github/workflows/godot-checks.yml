@@ -33,8 +33,10 @@ jobs:
         shell: bash
         run: |
           set +e
-          # Run the editor import pipeline explicitly so clean CI checkouts
-          # generate .godot/imported resources (including dynamic font data).
+          # Verify the font source is present before asking Godot to import it.
+          test -s "assets/fonts/STIXTwoText[wght].ttf"
+          # Run the editor import pipeline so clean CI checkouts generate
+          # .godot/imported resources (including dynamic font data).
           godot --headless --editor --path . --import --quit 2>&1 | tee godot-import.log
           godot_status=${PIPESTATUS[0]}
           set -e
@@ -44,6 +46,10 @@ jobs:
           fi
           if grep -E 'Parse Error:|SCRIPT ERROR:' godot-import.log; then
             echo "Godot reported a script error during import/parse."
+            exit 1
+          fi
+          if ! find .godot/imported -maxdepth 1 -type f -name 'STIXTwoText*.fontdata' -print -quit | grep -q .; then
+            echo "Godot did not generate the imported STIX Two Text font resource."
             exit 1
           fi
 
