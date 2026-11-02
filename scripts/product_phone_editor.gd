@@ -3422,24 +3422,6 @@ func _charger_device_connector() -> String:
 	return str(parts[1])
 
 
-func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
-	charger_cable_enabled = enabled
-	_rebuild_charger_preview()
-
-
-func _rebuild_charger_preview() -> void:
-	if not is_instance_valid(charger_preview):
-		return
-	for child in charger_preview.get_children():
-		child.free()
-
-	# Keep all adapter geometry in a centred local pivot. The outer preview node
-	# can now rotate exactly like the phone without orbiting around an offset.
-	var charger_geometry := Node3D.new()
-	charger_geometry.name = "ChargerGeometry"
-	charger_geometry.position = Vector3(-0.88, 0.0, 0.0)
-	charger_preview.add_child(charger_geometry)
-
 func _rebuild_charger_preview() -> void:
 	if not is_instance_valid(charger_preview):
 		return
@@ -3569,11 +3551,6 @@ func _on_charger_plug_selected(value: String) -> void:
 
 func _charger_output_connector() -> String:
 	return "USB-A" if charger_cable_type.begins_with("USB-A") else "USB-C"
-
-
-func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
-	charger_cable_enabled = enabled
-	_rebuild_charger_preview()
 
 
 func _on_charger_cable_selected(value: String) -> void:
