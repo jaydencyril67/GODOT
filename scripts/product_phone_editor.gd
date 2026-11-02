@@ -3959,72 +3959,36 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Material) -> void:
-	# Samsung-style S-Pen silo: a short, flush rounded slot on the bottom
-	# edge, immediately to the left of the speaker openings. The pen itself
-	# stays inside the chassis; only its small removable end cap is visible.
+	# Minimal S-Pen marker: one bold black circular end at the far-left
+	# end of the bottom rail. Keep it on the straight section as the corner
+	# radius grows so it never gets clipped by the rounded phone corner.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var left_edge := -PHONE_SIZE.x * 0.5
-	var slot_length := 0.132
-	var slot_radius := clampf(current_depth * 0.075, 0.012, 0.018)
-	# Start just beyond the straight-edge tangent so the slot follows the
-	# rounded bottom corner at every border-radius setting.
-	var slot_x := left_edge + corner_radius + slot_length * 0.5 + 0.018
-	var slot_y := bottom_y - 0.001
-	var slot_z := 0.0
+	var circle_radius := 0.025
+	var circle_x := left_edge + corner_radius + circle_radius + 0.012
+	var circle_y := bottom_y - 0.002
+	var circle_z := 0.0
 
-	var recess_material := StandardMaterial3D.new()
-	recess_material.albedo_color = Color("#111820")
-	recess_material.metallic = 0.18
-	recess_material.roughness = 0.72
+	var circle_material := StandardMaterial3D.new()
+	circle_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	circle_material.albedo_color = Color("#050505")
+	circle_material.metallic = 0.0
+	circle_material.roughness = 1.0
+	circle_material.disable_receive_shadows = true
 
-	var recess := MeshInstance3D.new()
-	recess.name = "StylePenSlotRecess"
-	var recess_mesh := CapsuleMesh.new()
-	recess_mesh.radius = slot_radius
-	recess_mesh.height = slot_length
-	recess_mesh.radial_segments = 32
-	recess_mesh.rings = 8
-	recess.mesh = recess_mesh
-	recess.rotation_degrees.z = 90.0
-	recess.position = Vector3(slot_x, slot_y, slot_z)
-	recess.material_override = recess_material
-	recess.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(recess)
-
-	# A narrow inset face sits almost flush inside the dark perimeter seam.
-	var insert := MeshInstance3D.new()
-	insert.name = "StylePenSlotInsert"
-	var insert_mesh := CapsuleMesh.new()
-	insert_mesh.radius = slot_radius * 0.68
-	insert_mesh.height = slot_length * 0.78
-	insert_mesh.radial_segments = 32
-	insert_mesh.rings = 8
-	insert.mesh = insert_mesh
-	insert.rotation_degrees.z = 90.0
-	insert.position = Vector3(slot_x, slot_y - 0.0015, slot_z)
-	insert.material_override = key_material
-	insert.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(insert)
-
-	# The small rounded ejectable end is the only visible hint of the stored
-	# stylus, rather than exposing a long pen-shaped bar on the phone exterior.
-	var end_cap := MeshInstance3D.new()
-	end_cap.name = "StylePenEndCap"
-	var cap_mesh := SphereMesh.new()
-	cap_mesh.radius = slot_radius * 0.62
-	cap_mesh.height = slot_radius * 1.24
-	cap_mesh.radial_segments = 24
-	cap_mesh.rings = 8
-	end_cap.mesh = cap_mesh
-	end_cap.position = Vector3(slot_x - slot_length * 0.31, slot_y - 0.003, slot_z)
-	var cap_material := StandardMaterial3D.new()
-	cap_material.albedo_color = Color("#aebdca")
-	cap_material.metallic = 0.88
-	cap_material.roughness = 0.24
-	end_cap.material_override = cap_material
-	end_cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(end_cap)
+	var end_marker := MeshInstance3D.new()
+	end_marker.name = "StylePenBlackCircleEnd"
+	var circle_mesh := CylinderMesh.new()
+	circle_mesh.top_radius = circle_radius
+	circle_mesh.bottom_radius = circle_radius
+	circle_mesh.height = 0.008
+	circle_mesh.radial_segments = 40
+	end_marker.mesh = circle_mesh
+	end_marker.position = Vector3(circle_x, circle_y, circle_z)
+	end_marker.material_override = circle_material
+	end_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(end_marker)
 
 
 func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, frame_material: Material, key_material: Material) -> void:
