@@ -841,7 +841,8 @@ func _get_preview_viewport() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
 	viewport.size = Vector2i(1600, 1200)
-	# Keep MSAA disabled for compatibility with lower-end mobile GPUs.
+	# Smooth the preview silhouette without reducing its render resolution.
+	viewport.msaa_3d = Viewport.MSAA_4X
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	viewport.own_world_3d = true
 
@@ -5217,10 +5218,38 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array)
 			var front_b := Vector3(b.x, b.y, front_z)
 			var back_a := Vector3(a.x, a.y, back_z)
 			var back_b := Vector3(b.x, b.y, back_z)
-			_add_phone_mesh_triangle(surface, front_a, back_a, back_b, side_normal)
-			_add_phone_mesh_triangle(surface, front_a, back_b, front_b, side_normal)
+			# Blend adjacent perimeter normals at rounded-corner vertices. This
+			# keeps the side rail visually continuous instead of faceted per segment.
+			var normal_a := side_normal
+			var normal_b := side_normal
+			if radius > 0.0001:
+				var previous_a: Vector2 = outline[(index - 1 + outline.size()) % outline.size()]
+				var previous_edge_a := a - previous_a
+				var previous_normal_a := Vector3(previous_edge_a.y, -previous_edge_a.x, 0.0).normalized()
+				var next_b: Vector2 = outline[(next_index + 1) % outline.size()]
+				var next_edge_b := next_b - b
+				var next_normal_b := Vector3(next_edge_b.y, -next_edge_b.x, 0.0).normalized()
+				normal_a = (previous_normal_a + side_normal).normalized()
+				normal_b = (side_normal + next_normal_b).normalized()
+			_add_phone_mesh_triangle_with_normals(surface, front_a, back_a, back_b, normal_a, normal_a, normal_b)
+			_add_phone_mesh_triangle_with_normals(surface, front_a, back_b, front_b, normal_a, normal_b, normal_b)
 
 	return surface.commit()
+
+func _add_phone_mesh_triangle_with_normals(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, normal_a: Vector3, normal_b: Vector3, normal_c: Vector3) -> void:
+	if (b - a).cross(c - a).dot(normal_a + normal_b + normal_c) > 0.0:
+		var swap_vertex := b
+		b = c
+		c = swap_vertex
+		var swap_normal := normal_b
+		normal_b = normal_c
+		normal_c = swap_normal
+	surface.set_normal(normal_a.normalized())
+	surface.add_vertex(a)
+	surface.set_normal(normal_b.normalized())
+	surface.add_vertex(b)
+	surface.set_normal(normal_c.normalized())
+	surface.add_vertex(c)
 
 func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward_normal: Vector3) -> void:
 	var normal := outward_normal.normalized()
