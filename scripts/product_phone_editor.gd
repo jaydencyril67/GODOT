@@ -4602,11 +4602,8 @@ func _refresh_phone_side_buttons() -> void:
 	_queue_phone_case_sync()
 
 
-func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: Material) -> void:
-	# Keep every speaker at its authored position. Move only the S-Pen marker
-	# along the bottom-left perimeter until it clears the left speaker row.
-	# At larger corner radii it follows the rounded corner, with its circular
-	# face kept tangent to the frame instead of hanging outside the chassis.
+func _get_style_pen_marker_layout() -> Dictionary:
+	# Keep the marker and the pouch opening on the exact same calculated point.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var left_edge := -PHONE_SIZE.x * 0.5
@@ -4617,9 +4614,6 @@ func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: 
 	var marker_position := Vector2(left_edge + corner_radius + circle_radius + 0.012, bottom_y + edge_inset)
 	var marker_rotation := 0.0
 	var found_position := false
-
-	# Recalculate the existing left-speaker coordinates only for collision
-	# testing; this does not change, move, or resize any speaker opening.
 	var left_count := int(ceil(float(speaker_count) * 0.5))
 	var reserved_port_half_width := 0.115
 	var edge_margin := 0.035
@@ -4627,15 +4621,12 @@ func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: 
 	var left_speaker_positions: Array[float] = []
 	for index in range(left_count):
 		left_speaker_positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * hole_spacing))
-
 	var required_clearance := circle_radius + speaker_radius + speaker_clearance
 	if corner_radius > 0.08:
-		# Walk from the bottom tangent around the lower-left corner toward the
-		# left rail. Each candidate remains inset from the rounded body outline.
 		var arc_center := Vector2(left_edge + corner_radius, bottom_y + corner_radius)
 		var arc_path_radius := corner_radius - edge_inset
 		for step in range(1, 91):
-			var angle := -PI * 0.5 - deg_to_rad(float(step) * 1.0)
+			var angle := -PI * 0.5 - deg_to_rad(float(step))
 			var candidate := arc_center + Vector2(cos(angle), sin(angle)) * arc_path_radius
 			var clear := true
 			for speaker_x in left_speaker_positions:
@@ -4648,16 +4639,10 @@ func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: 
 				marker_rotation = rad_to_deg(angle - PI * 0.5)
 				found_position = true
 				break
-
-	# On square/small-radius phones, or if the arc is not needed, use the
-	# straight bottom rail. If a future speaker layout blocks it, keep trying
-	# progressively farther along the rail without changing speaker positions.
 	if not found_position:
 		var straight_start_x := left_edge + corner_radius + circle_radius + 0.012
-		var straight_end_x := 0.0
-		var candidate_steps := 80
-		for step in range(candidate_steps + 1):
-			var candidate_x := lerpf(straight_start_x, straight_end_x, float(step) / float(candidate_steps))
+		for step in range(81):
+			var candidate_x := lerpf(straight_start_x, 0.0, float(step) / 80.0)
 			var candidate := Vector2(candidate_x, bottom_y + edge_inset)
 			var clear := true
 			for speaker_x in left_speaker_positions:
@@ -4670,44 +4655,37 @@ func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: 
 				marker_rotation = 0.0
 				found_position = true
 				break
+	return {"position": marker_position, "rotation": marker_rotation, "valid": found_position}
 
-	# Never draw the marker in an invalid location. Hiding it is safer than
-	# letting it overlap a speaker or protrude beyond the phone body.
-	if not found_position and speaker_count > 0:
+
+func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: Material) -> void:
+	var layout := _get_style_pen_marker_layout()
+	if not bool(layout["valid"]):
 		return
-
+	var marker_position: Vector2 = layout["position"]
+	var marker_rotation: float = layout["rotation"]
+	var circle_radius := 0.025
 	var circle_material := StandardMaterial3D.new()
-	# The S-Pen end is a fixed black hardware detail, not a surface that
-	# participates in the phone's front-light ray, scene lighting, or fog.
 	circle_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	circle_material.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
 	circle_material.metallic = 0.0
 	circle_material.roughness = 1.0
 	circle_material.disable_receive_shadows = true
 	circle_material.disable_fog = true
-	# The marker can be seen from either side while the phone is rotated.
 	circle_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-
 	var end_marker := MeshInstance3D.new()
 	end_marker.name = "StylePenBlackCircleEnd"
 	var circle_mesh := CylinderMesh.new()
 	circle_mesh.top_radius = circle_radius
 	circle_mesh.bottom_radius = circle_radius
-	# The center is inset by 0.004 from the perimeter. Make the cylinder
-	# slightly thicker than twice that inset so its outer cap projects about
-	# 0.003 beyond the bottom edge instead of sitting coplanar with the body.
-	# This removes depth-buffer fighting as the unbordered phone is tilted.
 	circle_mesh.height = 0.014
 	circle_mesh.radial_segments = 40
 	end_marker.mesh = circle_mesh
-	# Keep the S-Pen marker on the phone's bottom edge, centered through
-	# the frame thickness. Its orientation follows the bottom/rounded edge.
 	end_marker.position = Vector3(marker_position.x, marker_position.y, 0.0)
 	end_marker.rotation_degrees.z = marker_rotation
 	end_marker.material_override = circle_material
 	end_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(end_marker)
-
 
 func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, frame_material: Material, key_material: Material) -> void:
 	var edge := PHONE_SIZE.x * 0.5
@@ -6729,7 +6707,7 @@ func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: 
 	opening.name = opening_name
 	# The cutter crosses only the narrow side rail. Its Z span is limited to
 	# the actual button/recess band, so it cannot tunnel across the rear panel.
-	opening.size = Vector3(wall*2.0+0.055,maxf(length+0.035,0.055),0.072)
+	opening.size = Vector3(wall*2.0+0.055,maxf(length+0.008,0.045),0.072)
 	opening.position = Vector3(side*PHONE_SIZE.x*0.5,y,0.0)
 	_case_subtract(combiner,opening)
 
@@ -6823,6 +6801,20 @@ func _rebuild_phone_case_geometry() -> void:
 		port_cut.position = Vector3((low_port.x+high_port.x)*0.5,-PHONE_SIZE.y*0.5,(low_port.y+high_port.y)*0.5)
 		_case_subtract(combiner,port_cut)
 
+	# S-Pen access follows the exact same collision-aware position as the
+	# handset's black end marker, so the case slot stays aligned as the layout changes.
+	if style_pen_enabled:
+		var pen_layout := _get_style_pen_marker_layout()
+		if bool(pen_layout["valid"]):
+			var pen_position: Vector2 = pen_layout["position"]
+			var pen_cut := CSGCylinder3D.new()
+			pen_cut.name = "StylePenSlotOpening"
+			pen_cut.radius = 0.029
+			pen_cut.height = wall*2.0+0.045
+			pen_cut.sides = 40
+			pen_cut.position = Vector3(pen_position.x, -PHONE_SIZE.y*0.5, 0.0)
+			_case_subtract(combiner,pen_cut)
+
 	# Bottom speaker openings are placed from the same formula as the live phone.
 	if speaker_count>0:
 		var reserved := 0.115
@@ -6850,8 +6842,11 @@ func _rebuild_phone_case_geometry() -> void:
 		_case_side_opening(combiner,1.0,power_button_y,key_length+0.06,depth,wall,"PowerButtonOpening")
 	if volume_button_enabled:
 		var gap := 0.018
-		_case_side_opening(combiner,-1.0,volume_button_y+key_length*0.52+gap,key_length+0.055,depth,wall,"VolumeUpOpening")
-		_case_side_opening(combiner,-1.0,volume_button_y-key_length*0.52-gap,key_length+0.055,depth,wall,"VolumeDownOpening")
+		# Keep the two volume-key apertures separate, with a visible bridge of
+		# case material between them so each key has its own defined outline.
+		var volume_key_length := key_length*0.46
+		_case_side_opening(combiner,-1.0,volume_button_y+volume_key_length*0.52+gap,volume_key_length,depth,wall,"VolumeUpOpening")
+		_case_side_opening(combiner,-1.0,volume_button_y-volume_key_length*0.52-gap,volume_key_length,depth,wall,"VolumeDownOpening")
 	if camera_side_button_enabled:
 		_case_side_opening(combiner,1.0,camera_side_button_y,0.25,depth,wall,"CameraSideButtonOpening")
 	if sound_button_enabled:
