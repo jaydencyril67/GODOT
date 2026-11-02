@@ -3734,20 +3734,39 @@ func _refresh_rear_hardware_panel() -> void:
 	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
 
 
+func _rear_hardware_back_design_index(module_position: Vector2) -> int:
+	# Match the hardware support rule exactly: a module belongs to a raised
+	# back-design panel when its centre is inside that panel's live rectangle.
+	for index in range(back_design_boxes.size()):
+		var box: Dictionary = back_design_boxes[index]
+		var box_position: Vector2 = box["position"]
+		var half: Vector2 = box["size"] * 0.5
+		if absf(module_position.x - box_position.x) <= half.x and absf(module_position.y - box_position.y) <= half.y:
+			return index
+	return -1
+
+
+func _back_design_box_has_rear_hardware(box_index: int) -> bool:
+	if box_index < 0 or box_index >= back_design_boxes.size():
+		return false
+	for module in rear_camera_modules:
+		var module_position: Vector2 = module["position"]
+		if _rear_hardware_back_design_index(module_position) == box_index:
+			return true
+	for module in rear_flash_modules:
+		var module_position: Vector2 = module["position"]
+		if _rear_hardware_back_design_index(module_position) == box_index:
+			return true
+	return false
+
+
 func _rear_hardware_support_surface_z(module_position: Vector2, _module_size: float) -> float:
 	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var surface_z := -phone_depth * 0.5
-	# Let the module climb onto / descend from a raised box as its centre
-	# crosses the box edge. Do not require its whole footprint to fit inside.
-	for box in back_design_boxes:
-		var box_position: Vector2 = box["position"]
-		var half: Vector2 = box["size"] * 0.5
-		var centre_is_over_box := absf(module_position.x - box_position.x) <= half.x and absf(module_position.y - box_position.y) <= half.y
-		if centre_is_over_box:
-			# Raised Back Design mesh extrudes toward the outside of the rear face.
-			return surface_z - (0.035 / 1.10 / 1.5)
+	if _rear_hardware_back_design_index(module_position) >= 0:
+		# Raised Back Design mesh extrudes toward the outside of the rear face.
+		return surface_z - (0.035 / 1.10 / 1.5)
 	return surface_z
-
 
 func _refresh_rear_hardware_visuals() -> void:
 	if not is_instance_valid(phone_body):
@@ -6661,7 +6680,71 @@ func _case_rounded_cutout(width: float, height: float, radius: float) -> PackedV
 	return points
 
 
-func _create_phone_case_material() -> ShaderMaterial:
+func _case_circle_outline(radius: float, segments: int = 56) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var segment_count := maxi(segments, 12)
+	for index in range(segment_count):
+		var angle := TAU * float(index) / float(segment_count)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _create_case_camera_trim_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color("#c6a04b")
+	material.metallic = 0.88
+	material.roughness = 0.22
+	material.clearcoat_enabled = true
+	material.clearcoat = 0.28
+	material.clearcoat_roughness = 0.20
+	return material
+
+
+func _add_phone_case_camera_trim(parent: Node3D, centre: Vector2, inner_outline: PackedVector2Array, outer_outline: PackedVector2Array, surface_z: float, node_name: String, trim_material: Material) -> void:
+	if inner_outline.size() < 12 or inner_outline.size() != outer_outline.size():
+		return
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rear_normal := Vector3(0.0, 0.0, -1.0)
+	for index in range(inner_outline.size()):
+		var next := (index + 1) % inner_outline.size()
+		var inner_a: Vector2 = inner_outline[index]
+		var inner_b: Vector2 = inner_outline[next]
+		var outer_a: Vector2 = outer_outline[index]
+		var outer_b: Vector2 = outer_outline[next]
+		_add_phone_mesh_triangle(surface, Vector3(inner_a.x, inner_a.y, 0.0), Vector3(outer_a.x, outer_a.y, 0.0), Vector3(outer_b.x, outer_b.y, 0.0), rear_normal)
+		_add_phone_mesh_triangle(surface, Vector3(inner_a.x, inner_a.y, 0.0), Vector3(outer_b.x, outer_b.y, 0.0), Vector3(inner_b.x, inner_b.y, 0.0), rear_normal)
+	var trim := MeshInstance3D.new()
+	trim.name = node_name
+	trim.mesh = surface.commit()
+	trim.material_override = trim_material
+	trim.position = Vector3(centre.x, centre.y, surface_z)
+	trim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(trim)
+
+
+func _add_phone_case_camera_aperture(combiner: CSGCombiner3D, centre: Vector2, module_size: float, depth: float, wall: float, opening_name: String, trim_material: Material) -> void:
+	# The widest camera/flash housing tier uses radius module_size * 1.22.
+	# Add a small clearance so the pouch never touches the raised housing.
+	var housing_radius := module_size * 1.22
+	var aperture_radius := housing_radius + 0.010
+	var opening := CSGPolygon3D.new()
+	opening.name = opening_name
+	opening.polygon = _case_circle_outline(aperture_radius)
+	opening.depth = wall * 3.0 + 0.02
+	opening.position = Vector3(centre.x, centre.y, -depth * 0.5 + wall * 1.5)
+	opening.smooth_faces = true
+	_case_subtract(combiner, opening)
+
+	# A fine metallic lip follows the circular cut, with a small air gap left
+	# between the gold edge and the camera/flash body.
+	var inner_outline := _case_circle_outline(aperture_radius - 0.001)
+	var outer_outline := _case_circle_outline(aperture_radius + 0.007)
+	var rear_case_surface_z := -depth * 0.5 - wall - 0.001
+	_add_phone_case_camera_trim(phone_case_preview, centre, inner_outline, outer_outline, rear_case_surface_z, opening_name + "GoldTrim", trim_material)
+
+
+func _create_phone_case_material() -> ShaderMaterial:func _create_phone_case_material() -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
@@ -6782,45 +6865,41 @@ func _rebuild_phone_case_geometry() -> void:
 	cavity.position.z = depth*0.5+wall+0.020
 	_case_subtract(combiner,cavity)
 
-	# Camera/flash opening is derived from every live rear module position and diameter.
-	if not rear_camera_modules.is_empty() or not rear_flash_modules.is_empty():
-		var low := Vector2(INF,INF)
-		var high := Vector2(-INF,-INF)
-		for module in rear_camera_modules:
-			var p: Vector2 = module["position"]
-			var extent := float(module["size"])*0.61+0.035
-			low.x = minf(low.x,p.x-extent)
-			low.y = minf(low.y,p.y-extent)
-			high.x = maxf(high.x,p.x+extent)
-			high.y = maxf(high.y,p.y+extent)
-		for module in rear_flash_modules:
-			var p: Vector2 = module["position"]
-			var extent := float(module["size"])*0.61+0.035
-			low.x = minf(low.x,p.x-extent)
-			low.y = minf(low.y,p.y-extent)
-			high.x = maxf(high.x,p.x+extent)
-			high.y = maxf(high.y,p.y+extent)
-		var cut_w := high.x-low.x
-		var cut_h := high.y-low.y
-		if cut_w>0.025 and cut_h>0.025:
-			var camera_cut := CSGPolygon3D.new()
-			camera_cut.name = "RearCameraAndFlashOpening"
-			camera_cut.polygon = _case_rounded_cutout(cut_w,cut_h,minf(0.065,minf(cut_w,cut_h)*0.22))
-			camera_cut.depth = wall*3.0+0.02
-			camera_cut.position = Vector3((low.x+high.x)*0.5,(low.y+high.y)*0.5,-depth*0.5+wall*1.5)
-			_case_subtract(combiner,camera_cut)
+	# Flat-back camera and flash units get individual circular apertures.
+	# Hardware mounted on a raised Back Design panel is handled by that panel's
+	# own rounded opening below, leaving the case filled across the flat back.
+	var camera_trim_material := _create_case_camera_trim_material()
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_module: Dictionary = rear_camera_modules[camera_index]
+		var camera_position: Vector2 = camera_module["position"]
+		if _rear_hardware_back_design_index(camera_position) < 0:
+			_add_phone_case_camera_aperture(combiner, camera_position, float(camera_module["size"]), depth, wall, "RearCameraOpening_%02d" % int(camera_module.get("id", camera_index + 1)), camera_trim_material)
+	for flash_index in range(rear_flash_modules.size()):
+		var flash_module: Dictionary = rear_flash_modules[flash_index]
+		var flash_position: Vector2 = flash_module["position"]
+		if _rear_hardware_back_design_index(flash_position) < 0:
+			_add_phone_case_camera_aperture(combiner, flash_position, float(flash_module["size"]), depth, wall, "RearFlashOpening_%02d" % int(flash_module.get("id", flash_index + 1)), camera_trim_material)
 
-	# Preserve any raised back-design geometry without covering it.
+	# A raised back-design panel keeps its existing shaped opening. Add gold
+	# trim only when camera or flash hardware is actually mounted on that panel.
 	for i in range(back_design_boxes.size()):
 		var item: Dictionary = back_design_boxes[i]
 		var size: Vector2 = item["size"]
 		var p: Vector2 = item["position"]
+		var cut_width := size.x + 0.045
+		var cut_height := size.y + 0.045
+		var cut_radius := minf(size.x, size.y) * float(item.get("border", 0.0)) + 0.018
 		var cut := CSGPolygon3D.new()
-		cut.name = "BackDesignClearance_%02d" % (i+1)
-		cut.polygon = _case_rounded_cutout(size.x+0.045,size.y+0.045,minf(size.x,size.y)*float(item.get("border",0.0))+0.018)
-		cut.depth = wall*3.0+0.02
-		cut.position = Vector3(p.x,p.y,-depth*0.5+wall*1.5)
-		_case_subtract(combiner,cut)
+		cut.name = "BackDesignClearance_%02d" % (i + 1)
+		cut.polygon = _case_rounded_cutout(cut_width, cut_height, cut_radius)
+		cut.depth = wall * 3.0 + 0.02
+		cut.position = Vector3(p.x, p.y, -depth * 0.5 + wall * 1.5)
+		_case_subtract(combiner, cut)
+		if _back_design_box_has_rear_hardware(i):
+			var trim_inner := _case_rounded_cutout(cut_width - 0.002, cut_height - 0.002, maxf(0.002, cut_radius - 0.001))
+			var trim_outer := _case_rounded_cutout(cut_width + 0.014, cut_height + 0.014, cut_radius + 0.007)
+			var rear_case_surface_z := -depth * 0.5 - wall - 0.001
+			_add_phone_case_camera_trim(phone_case_preview, p, trim_inner, trim_outer, rear_case_surface_z, "BackDesignCameraGoldTrim_%02d" % (i + 1), camera_trim_material)
 
 	# Charging-port aperture follows the active connector profile stored by the phone.
 	if charge_port_type!="None" and charge_port_opening_points.size()>=3:
