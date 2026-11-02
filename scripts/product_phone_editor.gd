@@ -3106,7 +3106,6 @@ func _on_screen_protector_toggled(enabled: bool) -> void:
 	screen_protector_building = enabled
 	_refresh_phone_screen()
 	_show_screen_protector_controls()
-	_show_screen_protector_controls()
 
 
 func _on_screen_protector_finish_selected(finish_name: String) -> void:
@@ -3255,7 +3254,9 @@ func _on_charger_enabled_toggled(enabled: bool) -> void:
 
 
 func _on_charger_wattage_selected(value: int) -> void:
-	charger_wattage = value
+	charger_wattage = clampi(value, 2, 200)
+	selected_charging_speed = charger_wattage
+	_update_charging_speed_controls()
 	_rebuild_charger_preview()
 	_show_charger_controls()
 
@@ -3435,7 +3436,7 @@ func _show_charger_controls() -> void:
 	var heading := _make_label("CHARGER ADAPTER", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var description := _make_label("Configure a USB-C wall adapter and inspect its separate 3D product preview beside the phone.", 12, Color("#d5e9f5"))
+	var description := _make_label("Configure a USB-C wall adapter and inspect it alone in the center preview.", 12, Color("#d5e9f5"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
 
@@ -7822,7 +7823,7 @@ func _rebuild_phone_case_geometry() -> void:
 		popup_cut.size = Vector3(0.22,0.16,depth+wall*2.0+0.08)
 		popup_cut.position = Vector3(0.0,PHONE_SIZE.y*0.5+0.045,0.0)
 		_case_subtract(combiner,popup_cut)
-	phone_case_preview.visible = left_tools_page==2
+	phone_case_preview.visible = left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not charger_preview_mode
 
 
 func _queue_phone_case_sync() -> void:
@@ -8056,7 +8057,7 @@ func _complete_phone_case_build(token: int) -> void:
 	_rebuild_phone_case_geometry()
 	phone_case_built=true
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible=left_tools_page!=1
+		phone_case_preview.visible=left_tools_page!=1 and not charger_preview_mode
 	_show_phone_case_controls()
 
 
