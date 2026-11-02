@@ -863,7 +863,7 @@ func _get_preview_viewport() -> SubViewport:
 	studio_sky_material.ground_bottom_color = Color("#102236")
 	studio_sky_material.sky_energy_multiplier = 0.85
 	studio_sky_material.ground_energy_multiplier = 0.65
-	studio_sky_material.sun_angle_max = 4.0
+	studio_sky_material.sun_angle_max = 0.0
 	studio_sky_material.sun_curve = 0.08
 	studio_sky.sky_material = studio_sky_material
 	studio_sky.radiance_size = Sky.RADIANCE_SIZE_128
