@@ -5883,7 +5883,19 @@ func _show_mobile_network_controls() -> void:
 	for network in networks:
 		var option := Button.new()
 		option.name = "MobileNetworkOption_" + network.replace(" ", "").replace("/", "_").replace("(", "").replace(")", "").replace("+", "Plus")
-		option.text = network + ("  ✓" if selected_mobile_network == network else "")
+		var display_name := network
+		match network:
+			"2G (GSM / EDGE)":
+				display_name = "2G"
+			"3G (UMTS / HSPA)":
+				display_name = "3G"
+			"4G (LTE)":
+				display_name = "4G LTE"
+			"4G+ (LTE-Advanced)":
+				display_name = "4G+"
+			"5G-Advanced":
+				display_name = "5G-A"
+		option.text = display_name + ("  ✓" if selected_mobile_network == network else "")
 		option.tooltip_text = network
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
