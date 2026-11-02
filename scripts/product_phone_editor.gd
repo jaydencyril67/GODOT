@@ -3420,11 +3420,11 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	var route := PackedVector3Array()
 	# Both cable tails begin exactly behind their strain-relief boots. The
 	# Bézier joins and coil share endpoints, eliminating visible mesh breaks.
-	route = _append_charger_bezier(route, Vector3(-0.43, -0.43, 0.39), Vector3(-0.48, -0.27, 0.39), Vector3(-0.40, -0.16, 0.39), Vector3(-0.28, -0.12, 0.39), 20)
+	route = _append_charger_bezier(route, Vector3(-0.43, -0.43, 0.39), Vector3(-0.48, -0.20, 0.39), Vector3(-0.40, 0.08, 0.39), Vector3(-0.28, 0.08, 0.39), 20)
 	var coil_steps := 120
 	for step in range(coil_steps + 1):
 		var progress := float(step) / float(coil_steps)
-		var angle := atan2(-0.20, -0.28) + progress * TAU * 1.5
+		var angle := PI + progress * TAU * 1.5
 		var point := Vector3(cos(angle) * 0.28, sin(angle) * 0.19 + 0.08, 0.39 + sin(angle * 2.0) * 0.006)
 		if route.is_empty() or route[route.size() - 1].distance_to(point) > 0.0001:
 			route.append(point)
