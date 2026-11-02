@@ -3539,14 +3539,12 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 
 
 func _on_charger_wattage_changed(value: float) -> void:
-	selected_charging_speed = clampi(roundi(value), 2, 200)
-	charger_wattage = selected_charging_speed
-	_update_charging_speed_controls()
-	_rebuild_charger_preview()
+	# Adapter output is an independent product specification; it must never
+	# change the phone's own wired charging capability.
+	charger_wattage = clampi(roundi(value), 2, 200)
 	if is_instance_valid(charger_wattage_label):
 		charger_wattage_label.text = "%d W" % charger_wattage
-	if is_instance_valid(charger_wattage_slider):
-		charger_wattage_slider.set_value_no_signal(charger_wattage)
+	_rebuild_charger_preview()
 
 
 func _on_charger_enabled_toggled(enabled: bool) -> void:
@@ -3556,10 +3554,8 @@ func _on_charger_enabled_toggled(enabled: bool) -> void:
 
 func _on_charger_wattage_selected(value: int) -> void:
 	charger_wattage = clampi(value, 2, 200)
-	selected_charging_speed = charger_wattage
-	_update_charging_speed_controls()
 	_rebuild_charger_preview()
-	_show_charger_controls()
+	_show_charger_controls("POWER")
 
 
 func _on_charger_plug_selected(value: String) -> void:
@@ -3835,7 +3831,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				charger_wattage_label.name = "ChargerOutputWattageValue"
 				charger_wattage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				active_feature_panel.add_child(charger_wattage_label)
-				var wattage_range := _make_label("2W  —  200W  ·  SYNCHRONIZED WITH PHONE", 11, Color("#a9c9dc"))
+				var wattage_range := _make_label("2W  —  200W  ·  INDEPENDENT ADAPTER OUTPUT", 11, Color("#a9c9dc"))
 				wattage_range.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				active_feature_panel.add_child(wattage_range)
 				var slider_row := HBoxContainer.new()
@@ -3853,8 +3849,9 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				charger_wattage_slider.max_value = 200
 				charger_wattage_slider.step = 1
 				charger_wattage_slider.value = charger_wattage
-				charger_wattage_slider.custom_minimum_size = Vector2(52, 190)
+				charger_wattage_slider.custom_minimum_size = Vector2(52, 245)
 				charger_wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+				charger_wattage_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 				charger_wattage_slider.focus_mode = Control.FOCUS_NONE
 				charger_wattage_slider.tick_count = 0
 				charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
@@ -7485,14 +7482,9 @@ func _show_charging_speed_controls() -> void:
 
 
 func _on_charging_speed_changed(value: float) -> void:
+	# Phone charging capability is independent from the adapter's maximum output.
 	selected_charging_speed = clampi(roundi(value), 2, 200)
-	charger_wattage = selected_charging_speed
 	_update_charging_speed_controls()
-	_rebuild_charger_preview()
-	if is_instance_valid(charger_wattage_label):
-		charger_wattage_label.text = "%d W" % charger_wattage
-	if is_instance_valid(charger_wattage_slider):
-		charger_wattage_slider.set_value_no_signal(charger_wattage)
 
 
 func _adjust_charging_speed(amount: int) -> void:
