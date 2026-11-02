@@ -2912,6 +2912,9 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	var value_label := _make_label("%d MP" % current_mp, 13, Color.WHITE)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(value_label)
+	var high_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1], 10, Color("#91b8cc"))
+	high_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card.add_child(high_label)
 	var slider := VSlider.new()
 	slider.min_value = 0
 	slider.max_value = CAMERA_MEGAPIXEL_STEPS.size() - 1
