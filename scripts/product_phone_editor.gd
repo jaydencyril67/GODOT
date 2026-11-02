@@ -192,6 +192,8 @@ var phone_case_gradient_color := Color("#3d77a8")
 var phone_case_gradient_enabled := false
 var phone_case_gradient_direction := 0
 var phone_case_gradient_color_edit_mode := false
+const PHONE_CASE_DESIGN_NAMES := ["Smooth", "Carbon Weave", "Hex Pattern", "Racing Stripes", "Grip Ridges"]
+var phone_case_design_style := 0
 var preview_stack: VBoxContainer
 var software_summary_panel: PanelContainer
 var software_value_labels: Dictionary = {}
@@ -6668,17 +6670,53 @@ uniform vec4 solid_color : source_color = vec4(0.16, 0.22, 0.28, 1.0);
 uniform vec4 gradient_color : source_color = vec4(0.24, 0.46, 0.66, 1.0);
 uniform bool gradient_enabled = false;
 uniform int gradient_direction : hint_range(0, 3) = 0;
+uniform int design_style : hint_range(0, 4) = 0;
 varying vec3 case_pos;
-void vertex() { case_pos = VERTEX; }
+varying vec3 case_normal;
+void vertex() {
+	case_pos = VERTEX;
+	case_normal = NORMAL;
+}
 void fragment() {
 	vec2 p = case_pos.xy / vec2(0.95, 1.9) + vec2(0.5);
 	float t = p.y;
 	if (gradient_direction == 1) { t = p.x; }
 	else if (gradient_direction == 2) { t = clamp((p.x+p.y)*0.5,0.0,1.0); }
 	else if (gradient_direction == 3) { t = clamp(length((p-vec2(0.5))*vec2(1.0,1.8))*1.4142,0.0,1.0); }
-	ALBEDO = gradient_enabled ? mix(solid_color.rgb,gradient_color.rgb,clamp(t,0.0,1.0)) : solid_color.rgb;
+	vec3 base_color = gradient_enabled ? mix(solid_color.rgb,gradient_color.rgb,clamp(t,0.0,1.0)) : solid_color.rgb;
+	vec3 case_color = base_color;
+
+	// Procedural finishes are applied only to the rear-facing case surface.
+	if (case_normal.z < -0.5 && design_style > 0) {
+		float luminance = dot(base_color, vec3(0.299, 0.587, 0.114));
+		vec3 detail_color = mix(base_color * 0.38, min(base_color + vec3(0.30), vec3(1.0)), step(0.45, luminance));
+		float detail = 0.0;
+		if (design_style == 1) {
+			// Alternating diagonal fibers create a carbon-weave finish.
+			vec2 tile = fract(p * vec2(34.0, 58.0));
+			float diagonal_a = 1.0 - smoothstep(0.12, 0.42, abs(tile.x - tile.y));
+			float diagonal_b = 1.0 - smoothstep(0.12, 0.42, abs(tile.x + tile.y - 1.0));
+			detail = mix(diagonal_a, diagonal_b, step(0.5, mod(floor(p.x * 34.0) + floor(p.y * 58.0), 2.0)));
+		} else if (design_style == 2) {
+			// Fine hexagonal outlines give the back a technical panel texture.
+			vec2 hex_uv = p * vec2(20.0, 34.0);
+			vec2 cell = abs(fract(hex_uv) - vec2(0.5));
+			float edge = abs(max(cell.x * 0.8660254 + cell.y * 0.5, cell.y) - 0.36);
+			detail = 1.0 - smoothstep(0.018, 0.055, edge);
+		} else if (design_style == 3) {
+			// Two slim diagonal racing lines run the length of the rear panel.
+			float stripe_a = 1.0 - smoothstep(0.018, 0.045, abs(p.x - (0.27 + (p.y - 0.5) * 0.10)));
+			float stripe_b = 1.0 - smoothstep(0.018, 0.045, abs(p.x - (0.36 + (p.y - 0.5) * 0.10)));
+			detail = max(stripe_a, stripe_b);
+		} else if (design_style == 4) {
+			// Closely spaced ridges add a subtle grippy rear texture.
+			detail = 1.0 - smoothstep(0.08, 0.19, abs(fract(p.x * 24.0) - 0.5));
+		}
+		case_color = mix(base_color, detail_color, clamp(detail * 0.58, 0.0, 0.58));
+	}
+	ALBEDO = case_color;
 	METALLIC = 0.04;
-	ROUGHNESS = 0.46;
+	ROUGHNESS = (case_normal.z < -0.5 && design_style == 4) ? 0.62 : 0.46;
 	SPECULAR = 0.78;
 }
 """
@@ -6688,6 +6726,7 @@ void fragment() {
 	material.set_shader_parameter("gradient_color",phone_case_gradient_color)
 	material.set_shader_parameter("gradient_enabled",phone_case_gradient_enabled)
 	material.set_shader_parameter("gradient_direction",phone_case_gradient_direction)
+	material.set_shader_parameter("design_style",phone_case_design_style)
 	return material
 
 
@@ -6998,11 +7037,75 @@ void fragment(){
 		_style_staff_button(color_button,true)
 		color_button.pressed.connect(_show_device_color_controls.bind(false,true))
 		active_feature_panel.add_child(color_button)
+
+		var design_button:=Button.new()
+		design_button.name="EditPhoneCaseDesign"
+		design_button.text="CHANGE CASE DESIGN"
+		design_button.custom_minimum_size.y=44
+		design_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		design_button.focus_mode=Control.FOCUS_NONE
+		_apply_research_typography(design_button,13)
+		_style_staff_button(design_button,false)
+		design_button.pressed.connect(_show_phone_case_design_controls)
+		active_feature_panel.add_child(design_button)
 	else:
 		var disabled_note:=_make_label("Enable the custom case to generate the fitted 3D shell.",12,Color("#a9c9dc"))
 		disabled_note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 		disabled_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		active_feature_panel.add_child(disabled_note)
+
+
+func _show_phone_case_design_controls() -> void:
+	if not is_instance_valid(right_tools_content) or not phone_case_custom_enabled or not phone_case_built:
+		return
+	phone_case_color_mode=false
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel=VBoxContainer.new()
+	active_feature_panel.name="PhoneCaseDesignControls"
+	active_feature_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation",9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var header:=HBoxContainer.new()
+	header.add_theme_constant_override("separation",7)
+	active_feature_panel.add_child(header)
+	var back_button:=Button.new()
+	back_button.name="BackToPhoneCaseControls"
+	back_button.text="‹"
+	back_button.custom_minimum_size=Vector2(36,36)
+	back_button.focus_mode=Control.FOCUS_NONE
+	_apply_research_typography(back_button,24)
+	_style_staff_button(back_button,false)
+	back_button.pressed.connect(_show_phone_case_controls)
+	header.add_child(back_button)
+	var title:=_make_label("CASE BACK DESIGN",16,Color("#c7eaff"))
+	title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	title.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+
+	var note:=_make_label("Choose a finish for the pouch back. Your selected color and gradient stay unchanged.",12,Color("#b9d8e9"))
+	note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(note)
+
+	for index in range(PHONE_CASE_DESIGN_NAMES.size()):
+		var option:=Button.new()
+		option.name="PhoneCaseDesignOption_%02d" % index
+		option.text=PHONE_CASE_DESIGN_NAMES[index].to_upper() + ("   ✓ ACTIVE" if index==phone_case_design_style else "")
+		option.custom_minimum_size=Vector2(0,48)
+		option.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		option.focus_mode=Control.FOCUS_NONE
+		_apply_research_typography(option,13)
+		_style_staff_button(option,index==phone_case_design_style)
+		option.pressed.connect(_on_phone_case_design_selected.bind(index))
+		active_feature_panel.add_child(option)
+
+
+func _on_phone_case_design_selected(index: int) -> void:
+	phone_case_design_style=clampi(index,0,PHONE_CASE_DESIGN_NAMES.size()-1)
+	_refresh_phone_case_material()
+	_show_phone_case_design_controls()
 
 
 func _on_phone_case_custom_toggled(enabled: bool) -> void:
