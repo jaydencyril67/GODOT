@@ -842,20 +842,38 @@ func _make_glass_panel(fill_color: Color) -> PanelContainer:
 func _get_preview_viewport() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
-	viewport.size = Vector2i(1600, 1200)
-	# Keep MSAA disabled for compatibility with low-end Android GPUs.
-	# The phone mesh keeps its 48-segment corners and smoothed side normals.
+	# SubViewportContainer.stretch sizes this viewport to the actual preview panel.
+	# Render the 3D buffer slightly above panel resolution, then downsample for
+	# cleaner edges without re-enabling the MSAA mode that caused mobile flicker.
 	viewport.msaa_3d = Viewport.MSAA_DISABLED
+	viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	viewport.scaling_3d_scale = 1.25
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	viewport.own_world_3d = true
 
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
+	# Keep the preview background navy, but use a separate studio sky for
+	# image-based ambient light and PBR reflections on the frame and glass.
+	var studio_sky := Sky.new()
+	var studio_sky_material := ProceduralSkyMaterial.new()
+	studio_sky_material.sky_top_color = Color("#1b3e5c")
+	studio_sky_material.sky_horizon_color = Color("#dceaf5")
+	studio_sky_material.ground_horizon_color = Color("#718ba4")
+	studio_sky_material.ground_bottom_color = Color("#102236")
+	studio_sky_material.sky_energy_multiplier = 0.85
+	studio_sky_material.ground_energy_multiplier = 0.65
+	studio_sky_material.sun_angle_max = 4.0
+	studio_sky_material.sun_curve = 0.08
+	studio_sky.sky_material = studio_sky_material
+	studio_sky.radiance_size = Sky.RADIANCE_SIZE_128
+
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color(0.035, 0.13, 0.22, 0.0)
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#c7e8ff")
-	environment.ambient_light_energy = 0.24
+	environment.sky = studio_sky
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 0.42
+	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	environment_node.environment = environment
 	viewport.add_child(environment_node)
 
@@ -884,18 +902,24 @@ func _get_preview_viewport() -> SubViewport:
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
-	# Keep the key light soft enough to avoid a sharp reflected streak
-	# across the silver-white front face.
-	key_light.light_energy = 0.62
-	key_light.shadow_enabled = true
+	key_light.light_color = Color("#f3f8ff")
+	key_light.light_energy = 0.82
+	# The preview parts do not cast shadows, so a shadow map adds cost without
+	# improving the product silhouette.
+	key_light.shadow_enabled = false
 	preview_world.add_child(key_light)
+
+	var rim_light := DirectionalLight3D.new()
+	rim_light.rotation_degrees = Vector3(18.0, 142.0, -8.0)
+	rim_light.light_color = Color("#80caff")
+	rim_light.light_energy = 0.28
+	rim_light.shadow_enabled = false
+	preview_world.add_child(rim_light)
 
 	var fill_light := OmniLight3D.new()
 	fill_light.position = Vector3(-2.2, 1.4, 2.8)
 	fill_light.light_color = Color("#83cfff")
-	# A restrained fill preserves edge definition without adding a
-	# second bright reflection across the body.
-	fill_light.light_energy = 0.12
+	fill_light.light_energy = 0.16
 	fill_light.omni_range = 8.0
 	preview_world.add_child(fill_light)
 
@@ -1401,8 +1425,12 @@ void fragment() {
 		vec3 gradient_rgb = mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0));
 		ALBEDO = gradient_rgb;
 	}
-	METALLIC = 0.0;
-	ROUGHNESS = 0.72;
+	// Separate the satin back/front finish from the polished metal rail.
+	// The side-wall normals are smoothly interpolated by the phone mesh.
+	float edge_factor = 1.0 - smoothstep(0.05, 0.95, abs(local_normal.z));
+	METALLIC = mix(0.16, 0.78, edge_factor);
+	ROUGHNESS = mix(0.42, 0.25, edge_factor);
+	SPECULAR = mix(0.62, 0.90, edge_factor);
 }
 """
 	var material := ShaderMaterial.new()
@@ -2586,11 +2614,12 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		Vector2(half_width - radius, -half_height + radius)
 	]
 	var outline := PackedVector2Array()
+	const CORNER_SEGMENTS := 24
 	for corner_index in range(4):
 		var center: Vector2 = centers[corner_index]
 		var start_angle := float(corner_index) * PI * 0.5
-		for segment in range(8):
-			var angle := start_angle + float(segment) / 8.0 * PI * 0.5
+		for segment in range(CORNER_SEGMENTS + 1):
+			var angle := start_angle + float(segment) / float(CORNER_SEGMENTS) * PI * 0.5
 			outline.append(center + Vector2(cos(angle), sin(angle)) * radius)
 	var indices := Geometry2D.triangulate_polygon(outline)
 	if indices.is_empty():
@@ -2612,13 +2641,21 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		var a: Vector2 = outline[index]
 		var b: Vector2 = outline[next_index]
 		var edge := b - a
-		var normal := Vector3(edge.y, -edge.x, 0.0).normalized()
+		var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
+		var previous_a: Vector2 = outline[(index - 1 + outline.size()) % outline.size()]
+		var previous_edge := a - previous_a
+		var previous_normal := Vector3(previous_edge.y, -previous_edge.x, 0.0).normalized()
+		var next_b: Vector2 = outline[(next_index + 1) % outline.size()]
+		var next_edge := next_b - b
+		var next_normal := Vector3(next_edge.y, -next_edge.x, 0.0).normalized()
+		var normal_a := (previous_normal + side_normal).normalized()
+		var normal_b := (side_normal + next_normal).normalized()
 		var front_a := Vector3(a.x, a.y, front_z)
 		var front_b := Vector3(b.x, b.y, front_z)
 		var back_a := Vector3(a.x, a.y, back_z)
 		var back_b := Vector3(b.x, b.y, back_z)
-		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, normal)
-		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, normal)
+		_add_phone_mesh_triangle_with_normals(surface, front_a, back_a, back_b, normal_a, normal_a, normal_b)
+		_add_phone_mesh_triangle_with_normals(surface, front_a, back_b, front_b, normal_a, normal_b, normal_b)
 	return surface.commit()
 
 
@@ -2676,6 +2713,9 @@ func _create_curved_screen_mesh(width: float, height: float, corner_radius: floa
 			surface.add_vertex(points[top_right])
 			surface.add_vertex(points[bottom_left])
 			surface.add_vertex(points[bottom_right])
+	# Merge identical grid vertices before normal generation so adjacent
+	# triangles share averaged normals instead of producing a faceted glass panel.
+	surface.index()
 	surface.generate_normals()
 	return surface.commit()
 
