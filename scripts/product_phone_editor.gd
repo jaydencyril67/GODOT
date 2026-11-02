@@ -3312,6 +3312,7 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	connector.basis = Basis.looking_at(forward, up)
 	parent.add_child(connector)
 
+	# Compact moulded grip, soft overmould and stepped strain relief.
 	var tip_width := 0.142
 	var tip_height := 0.044
 	match connector_type:
@@ -3324,143 +3325,114 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 		"Micro-USB":
 			tip_width = 0.088
 			tip_height = 0.027
-
-	var body_depth := 0.18 if adapter_end else 0.14
-	var body_offset := 0.09 if adapter_end else 0.07
-	var body := MeshInstance3D.new()
-	body.name = "ConnectorMouldedHousing"
-	body.mesh = _create_rounded_panel_mesh(0.17, 0.085, body_depth, 0.028)
-	body.material_override = shell_material
-	body.position = Vector3(0.0, 0.0, body_offset)
-	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	connector.add_child(body)
-
-	var tip_depth := 0.072 if adapter_end else 0.068
-	var tip_offset := 0.215 if adapter_end else 0.155
-	var terminal := MeshInstance3D.new()
-	terminal.name = connector_type.replace("-", "") + "MetalConnectorShell"
-	terminal.mesh = _create_rounded_panel_mesh(tip_width, tip_height, tip_depth, minf(tip_height * 0.42, tip_width * 0.22))
-	terminal.material_override = metal_material
-	terminal.position = Vector3(0.0, 0.0, -tip_offset)
-	terminal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	connector.add_child(terminal)
-
-	# Recessed dark mouth, inner insulating tongue and tiny gold contacts make
-	# the actual connector face readable when viewed straight-on.
-	var face_z := -tip_offset - tip_depth * 0.505
-	var cavity_material := _charger_material(Color("#101820"), 0.12, 0.30)
-	var tongue_material := _charger_material(Color("#293744"), 0.30, 0.28)
-	var contact_material := _charger_material(Color("#d7b66b"), 0.78, 0.22)
-	var cavity_width := tip_width * 0.76
-	var cavity_height := tip_height * 0.62
-	var cavity := MeshInstance3D.new()
-	cavity.name = "DeepRecessedConnectorMouth"
-	cavity.mesh = _create_rounded_panel_mesh(cavity_width, cavity_height, 0.003, minf(cavity_height * 0.40, 0.009))
-	cavity.material_override = cavity_material
-	cavity.position = Vector3(0.0, 0.0, face_z)
-	cavity.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	connector.add_child(cavity)
-
-	if connector_type == "USB-C":
-		var tongue := MeshInstance3D.new()
-		tongue.name = "USBCTongue"
-		tongue.mesh = _create_rounded_panel_mesh(cavity_width * 0.72, maxf(0.004, cavity_height * 0.22), 0.004, 0.003)
-		tongue.material_override = tongue_material
-		tongue.position = Vector3(0.0, 0.0, face_z - 0.003)
-		connector.add_child(tongue)
-		for contact_index in range(8):
-			var contact := MeshInstance3D.new()
-			contact.name = "USBCTerminalContact_%02d" % contact_index
-			contact.mesh = _create_rounded_panel_mesh(0.0032, 0.0018, 0.001, 0.0008)
-			contact.material_override = contact_material
-			contact.position = Vector3(-cavity_width * 0.29 + float(contact_index) * cavity_width * 0.58 / 7.0, 0.0, face_z - 0.006)
-			connector.add_child(contact)
-	elif connector_type == "USB-A":
-		var tongue := MeshInstance3D.new()
-		tongue.name = "USBAInsulatingTongue"
-		tongue.mesh = _create_rounded_panel_mesh(cavity_width * 0.68, cavity_height * 0.34, 0.004, 0.003)
-		tongue.material_override = tongue_material
-		tongue.position = Vector3(0.0, -cavity_height * 0.16, face_z - 0.003)
-		connector.add_child(tongue)
-		for contact_index in range(4):
-			var contact := MeshInstance3D.new()
-			contact.name = "USBAContact_%02d" % contact_index
-			contact.mesh = _create_rounded_panel_mesh(0.009, 0.0025, 0.001, 0.001)
-			contact.material_override = contact_material
-			contact.position = Vector3(-0.035 + float(contact_index) * 0.023, -cavity_height * 0.16, face_z - 0.006)
-			connector.add_child(contact)
-	elif connector_type == "Lightning":
-		for contact_index in range(8):
-			var contact := MeshInstance3D.new()
-			contact.name = "LightningContact_%02d" % contact_index
-			contact.mesh = _create_rounded_panel_mesh(0.006, 0.003, 0.001, 0.001)
-			contact.material_override = contact_material
-			contact.position = Vector3(-0.024 + float(contact_index) * 0.0068, 0.0, face_z - 0.003)
-			connector.add_child(contact)
-	else:
-		var tongue := MeshInstance3D.new()
-		tongue.name = "MicroUSBInnerTongue"
-		tongue.mesh = _create_rounded_panel_mesh(cavity_width * 0.64, cavity_height * 0.25, 0.003, 0.002)
-		tongue.material_override = tongue_material
-		tongue.position = Vector3(0.0, 0.0, face_z - 0.003)
-		connector.add_child(tongue)
-
+	var grip := MeshInstance3D.new()
+	grip.name = "MouldedConnectorGrip"
+	grip.mesh = _create_rounded_panel_mesh(0.112, 0.064, 0.13, 0.024)
+	grip.material_override = shell_material
+	grip.position = Vector3(0.0, 0.0, 0.115)
+	connector.add_child(grip)
 	var relief := MeshInstance3D.new()
-	relief.name = "FlexibleRubberStrainRelief"
-	relief.mesh = _create_rounded_panel_mesh(0.105, 0.074, 0.12, 0.026)
+	relief.name = "FlexibleCableStrainRelief"
+	relief.mesh = _create_rounded_panel_mesh(0.078, 0.050, 0.13, 0.021)
 	relief.material_override = shell_material
-	relief.position = Vector3(0.0, 0.0, 0.105)
-	relief.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	relief.position = Vector3(0.0, 0.0, 0.235)
 	connector.add_child(relief)
 	for groove_index in range(4):
 		var groove := MeshInstance3D.new()
-		groove.name = "StrainReliefGroove_%d" % groove_index
-		groove.mesh = _create_rounded_panel_mesh(0.108, 0.077, 0.006, 0.028)
-		groove.material_override = _charger_material(Color("#303942"), 0.0, 0.82)
-		groove.position = Vector3(0.0, 0.0, 0.065 + float(groove_index) * 0.022)
-		groove.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		groove.name = "StrainReliefFlexGroove_%d" % groove_index
+		groove.mesh = _create_rounded_panel_mesh(0.080, 0.052, 0.005, 0.023)
+		groove.material_override = _charger_material(Color("#202832"), 0.02, 0.82)
+		groove.position = Vector3(0.0, 0.0, 0.19 + float(groove_index) * 0.025)
 		connector.add_child(groove)
+
+	# A real open metal shell: a machined ring around a recessed mouth rather
+	# than a solid silver block with a dark decal painted over its front.
+	var port_root := Node3D.new()
+	port_root.name = connector_type.replace("-", "") + "MalePlugFace"
+	port_root.position = Vector3(0.0, 0.0, -0.025)
+	connector.add_child(port_root)
+	var port_width := tip_width
+	var port_height := tip_height
+	var outline := _make_port_outline(port_width, port_height, tip_height * 0.34, 12)
+	var inner_outline := _make_port_outline(port_width * 0.78, port_height * 0.64, tip_height * 0.25, 10)
+	var dark_material := _charger_material(Color("#080d12"), 0.02, 0.92)
+	var inner_metal := _charger_material(Color("#8f9ba5"), 0.88, 0.25)
+	var contact_material := _charger_material(Color("#d9b66d"), 0.90, 0.22)
+	_add_port_ring(port_root, "ContinuousMachinedMetalPlugShell", outline, 1.0, 0.0, metal_material)
+	_add_port_detail(port_root, "DeepDarkPlugInterior", inner_outline, 0.002, dark_material)
+
+	if connector_type == "USB-C":
+		var tongue_points := _make_port_outline(port_width * 0.70, port_height * 0.20, port_height * 0.095, 8)
+		_add_port_detail(port_root, "USBCTongueInsideOpenMetalShell", tongue_points, 0.004, inner_metal)
+		for row in range(2):
+			for contact_index in range(12):
+				var x := (float(contact_index) - 5.5) * (port_width * 0.62 / 12.0)
+				var y := (1.0 if row == 0 else -1.0) * port_height * 0.105
+				var pad := _make_port_outline(port_width * 0.026, port_height * 0.035, port_height * 0.012, 3)
+				var shifted := PackedVector2Array()
+				for point in pad:
+					shifted.append(point + Vector2(x, y))
+				_add_port_detail(port_root, "USBPlugContact_%d_%d" % [row, contact_index], shifted, 0.006, contact_material)
+	elif connector_type == "USB-A":
+		var tongue_points := _make_port_outline(port_width * 0.70, port_height * 0.30, port_height * 0.12, 7)
+		var shifted_tongue := PackedVector2Array()
+		for point in tongue_points:
+			shifted_tongue.append(point + Vector2(0.0, -port_height * 0.15))
+		_add_port_detail(port_root, "USBAInsulatingTongue", shifted_tongue, 0.004, inner_metal)
+		for contact_index in range(4):
+			var x := (float(contact_index) - 1.5) * port_width * 0.145
+			var pad := _make_port_outline(port_width * 0.10, port_height * 0.065, port_height * 0.022, 3)
+			var shifted := PackedVector2Array()
+			for point in pad:
+				shifted.append(point + Vector2(x, -port_height * 0.15))
+			_add_port_detail(port_root, "USBAPlugContact_%d" % contact_index, shifted, 0.006, contact_material)
+	elif connector_type == "Lightning":
+		for contact_index in range(8):
+			var x := (float(contact_index) - 3.5) * port_width * 0.105
+			var pad := _make_port_outline(port_width * 0.075, port_height * 0.30, port_height * 0.12, 3)
+			var shifted := PackedVector2Array()
+			for point in pad:
+				shifted.append(point + Vector2(x, 0.0))
+			_add_port_detail(port_root, "LightningBladeContact_%d" % contact_index, shifted, 0.003, contact_material)
+	else:
+		var tongue_points := _make_port_outline(port_width * 0.66, port_height * 0.25, port_height * 0.10, 7)
+		_add_port_detail(port_root, "MicroUSBPlugTongue", tongue_points, 0.004, inner_metal)
 	return connector
 
 
 func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) -> void:
-	# The cable is a standalone accessory: it is deliberately detached from
-	# the adapter and displayed as a long, tightly coiled lead with both ends
-	# turned toward the preview camera.
+	# Compact standalone coiled cable. One continuous tube runs from the rear
+	# of the first connector, around the coil, and into the second connector.
 	var cable_group := Node3D.new()
-	cable_group.name = "StandaloneCoiledChargingCable"
-	cable_group.position = Vector3(0.0, 0.0, 0.0)
+	cable_group.name = "StandaloneShortCoiledChargingCable"
 	geometry_parent.add_child(cable_group)
 
 	var cable_material := _charger_material(Color("#202832"), 0.08, 0.48)
 	var connector_shell := _charger_material(Color("#343e48"), 0.22, 0.34)
-	var connector_metal := _charger_material(Color("#c8d1d9"), 0.92, 0.18)
-
+	var connector_metal := _charger_material(Color("#c8d1d9"), 0.94, 0.16)
 	var device_connector := _charger_device_connector()
 	var output_connector := _charger_output_connector()
-	var left_head_position := Vector3(-0.73, -0.83, 0.12)
-	var right_head_position := Vector3(0.73, -0.83, 0.12)
-	_add_charger_cable_connector(cable_group, "First_" + output_connector.replace("-", "") + "_CableHead", output_connector, left_head_position, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal, false)
-	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head_position, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal, false)
+	var left_head := Vector3(-0.43, -0.43, 0.16)
+	var right_head := Vector3(0.43, -0.43, 0.16)
+	_add_charger_cable_connector(cable_group, "First_" + output_connector.replace("-", "") + "_CableHead", output_connector, left_head, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal)
+	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal)
 
 	var route := PackedVector3Array()
-	# Leave the first connector, rise into a broad oval coil, wind around it
-	# for two and a half turns, then return to the second connector.
-	route = _append_charger_bezier(route, Vector3(-0.73, -0.68, 0.36), Vector3(-0.78, -0.42, 0.39), Vector3(-0.84, -0.18, 0.39), Vector3(-0.72, 0.08, 0.38), 18)
-	var coil_steps := 180
+	# Both cable tails begin exactly behind their strain-relief boots. The
+	# Bézier joins and coil share endpoints, eliminating visible mesh breaks.
+	route = _append_charger_bezier(route, Vector3(-0.43, -0.43, 0.39), Vector3(-0.48, -0.27, 0.39), Vector3(-0.40, -0.16, 0.39), Vector3(-0.28, -0.12, 0.39), 20)
+	var coil_steps := 120
 	for step in range(coil_steps + 1):
 		var progress := float(step) / float(coil_steps)
-		var angle := PI + progress * TAU * 2.5
-		var radius_x := lerpf(0.42, 0.72, progress)
-		var radius_y := lerpf(0.28, 0.48, progress)
-		var point := Vector3(cos(angle) * radius_x, 0.08 + sin(angle) * radius_y, 0.38 + sin(angle * 2.0) * 0.012)
-		if route.is_empty() or route[route.size() - 1].distance_to(point) > 0.0005:
+		var angle := PI + progress * TAU * 1.5
+		var point := Vector3(cos(angle) * 0.28, sin(angle) * 0.19 + 0.08, 0.39 + sin(angle * 2.0) * 0.006)
+		if route.is_empty() or route[route.size() - 1].distance_to(point) > 0.0001:
 			route.append(point)
-	route = _append_charger_bezier(route, route[route.size() - 1], Vector3(0.82, -0.18, 0.39), Vector3(0.78, -0.45, 0.39), Vector3(0.73, -0.68, 0.36), 18)
+	route = _append_charger_bezier(route, route[route.size() - 1], Vector3(0.40, -0.16, 0.39), Vector3(0.48, -0.27, 0.39), Vector3(0.43, -0.43, 0.39), 20)
 
 	var cable := MeshInstance3D.new()
-	cable.name = "LongContinuousCoiledCableJacket"
-	cable.mesh = _create_charger_cable_tube_mesh(route, 0.023, 18)
+	cable.name = "SingleUnbrokenShortCoiledCableJacket"
+	cable.mesh = _create_charger_cable_tube_mesh(route, 0.020, 20)
 	cable.material_override = cable_material
 	cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cable_group.add_child(cable)
