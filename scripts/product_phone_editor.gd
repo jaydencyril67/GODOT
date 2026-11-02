@@ -5760,26 +5760,29 @@ func _show_bluetooth_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "BluetoothOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	active_feature_panel.add_child(scroll)
-
-	var options := VBoxContainer.new()
+	# Non-scrollable two-column grid. Short BT labels keep every option readable.
+	var options := GridContainer.new()
 	options.name = "BluetoothVersionOptions"
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
+	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	options.add_theme_constant_override("h_separation", 6)
+	options.add_theme_constant_override("v_separation", 6)
+	active_feature_panel.add_child(options)
 
 	for version in ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]:
 		var option := Button.new()
 		option.name = "BluetoothOption_" + version.replace(" ", "").replace("+", "").replace(".", "_")
-		option.text = version + ("   ✓ SELECTED" if selected_bluetooth_version == version else "")
-		option.custom_minimum_size.y = 43
+		var button_label := version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS")
+		option.text = button_label + ("  ✓" if selected_bluetooth_version == version else "")
+		option.tooltip_text = version
+		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
+		_apply_research_typography(option, 15)
+		var option_font := FontVariation.new()
+		option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		option_font.variation_embolden = 1.5
+		option.add_theme_font_override("font", option_font)
 		_style_staff_button(option, selected_bluetooth_version == version)
 		option.pressed.connect(_on_bluetooth_version_selected.bind(version))
 		options.add_child(option)
@@ -5811,26 +5814,29 @@ func _show_wifi_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "WiFiOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	active_feature_panel.add_child(scroll)
-
-	var options := VBoxContainer.new()
+	# Non-scrollable two-column grid for all Wi-Fi standards.
+	var options := GridContainer.new()
 	options.name = "WiFiStandardOptions"
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
+	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	options.add_theme_constant_override("h_separation", 6)
+	options.add_theme_constant_override("v_separation", 6)
+	active_feature_panel.add_child(options)
 
 	for standard in ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]:
 		var option := Button.new()
 		option.name = "WiFiOption_" + standard.replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace(",", "")
-		option.text = standard + ("   ✓ SELECTED" if selected_wifi_standard == standard else "")
-		option.custom_minimum_size.y = 43
+		var button_label := "Wi-Fi " + standard.get_slice(" ", 1).split(" ")[0]
+		option.text = button_label + ("  ✓" if selected_wifi_standard == standard else "")
+		option.tooltip_text = standard
+		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
+		_apply_research_typography(option, 15)
+		var option_font := FontVariation.new()
+		option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		option_font.variation_embolden = 1.5
+		option.add_theme_font_override("font", option_font)
 		_style_staff_button(option, selected_wifi_standard == standard)
 		option.pressed.connect(_on_wifi_standard_selected.bind(standard))
 		options.add_child(option)
