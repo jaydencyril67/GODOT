@@ -6724,10 +6724,12 @@ func _case_subtract(combiner: CSGCombiner3D, cutter: CSGShape3D) -> void:
 	combiner.add_child(cutter)
 
 
-func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: float, depth: float, wall: float, opening_name: String) -> void:
+func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: float, _depth: float, wall: float, opening_name: String) -> void:
 	var opening := CSGBox3D.new()
 	opening.name = opening_name
-	opening.size = Vector3(wall*5.0+0.08,maxf(length,0.045),depth+wall*2.0+0.08)
+	# The cutter crosses only the narrow side rail. Its Z span is limited to
+	# the actual button/recess band, so it cannot tunnel across the rear panel.
+	opening.size = Vector3(wall*2.0+0.055,maxf(length+0.035,0.055),0.072)
 	opening.position = Vector3(side*PHONE_SIZE.x*0.5,y,0.0)
 	_case_subtract(combiner,opening)
 
@@ -6814,7 +6816,10 @@ func _rebuild_phone_case_geometry() -> void:
 			high_port.y = maxf(high_port.y,point.y)
 		var port_cut := CSGBox3D.new()
 		port_cut.name = "ChargingPortOpening"
-		port_cut.size = Vector3(high_port.x-low_port.x+0.026,0.16,high_port.y-low_port.y+0.026)
+		# Cut through the bottom rim only. The old 0.16 Y span reached too far
+		# inward and removed part of the rear skin behind the connector.
+		var port_wall_span := wall*2.0+0.035
+		port_cut.size = Vector3(high_port.x-low_port.x+0.026,port_wall_span,high_port.y-low_port.y+0.026)
 		port_cut.position = Vector3((low_port.x+high_port.x)*0.5,-PHONE_SIZE.y*0.5,(low_port.y+high_port.y)*0.5)
 		_case_subtract(combiner,port_cut)
 
