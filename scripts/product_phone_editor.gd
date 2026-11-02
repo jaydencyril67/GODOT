@@ -841,6 +841,8 @@ func _get_preview_viewport() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
 	viewport.size = Vector2i(1600, 1200)
+	# Smooth the phone silhouette without introducing FXAA-style image softening.
+	viewport.msaa_3d = Viewport.MSAA_4X
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	viewport.own_world_3d = true
 
@@ -5162,7 +5164,8 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array)
 			Vector2(-half_size.x + corner_radius, -half_size.y + corner_radius),
 			Vector2(half_size.x - corner_radius, -half_size.y + corner_radius)
 		]
-		var corner_segments := 8
+		# Dense quarter-circle tessellation keeps the chassis silhouette smooth at oblique rotation angles.
+		var corner_segments := 48
 		for corner_index in range(4):
 			var center: Vector2 = corner_centers[corner_index]
 			var start_angle := float(corner_index) * PI * 0.5
