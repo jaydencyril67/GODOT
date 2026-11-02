@@ -3451,8 +3451,8 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	for step in range(coil_steps + 1):
 		var progress := float(step) / float(coil_steps)
 		var angle := PI + progress * TAU * 2.5
-		var radius_x := lerpf(0.72, 0.70, progress)
-		var radius_y := lerpf(0.48, 0.46, progress)
+		var radius_x := lerpf(0.42, 0.72, progress)
+		var radius_y := lerpf(0.28, 0.48, progress)
 		var point := Vector3(cos(angle) * radius_x, 0.08 + sin(angle) * radius_y, 0.38 + sin(angle * 2.0) * 0.012)
 		if route.is_empty() or route[route.size() - 1].distance_to(point) > 0.0005:
 			route.append(point)
@@ -3871,7 +3871,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 					_style_staff_button(cable_button, charger_cable_type == cable_name)
 					cable_button.pressed.connect(_on_charger_cable_selected.bind(cable_name))
 					active_feature_panel.add_child(cable_button)
-				var cable_note := _make_label("The first connector plugs into the adapter; the second connector is the phone end. The 3D cable, strain reliefs and both connector heads update together.", 11, Color("#a9c9dc"))
+				var cable_note := _make_label("A separate long coiled cable with both connector heads facing forward. Connector openings, inner tongues, contacts and flexible strain reliefs update with the selected cable type.", 11, Color("#a9c9dc"))
 				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(cable_note)
 			"POWER":
