@@ -6850,7 +6850,14 @@ func _rebuild_phone_case_geometry() -> void:
 	if camera_side_button_enabled:
 		_case_side_opening(combiner,1.0,camera_side_button_y,0.25,depth,wall,"CameraSideButtonOpening")
 	if sound_button_enabled:
-		_case_side_opening(combiner,-1.0,volume_button_y+key_length+0.15,0.17,depth,wall,"SoundButtonOpening")
+		# Match the actual smaller sound-action key, not a long generic slot.
+		# This leaves a clear case-material border around it above Volume Up.
+		var case_phone_depth := lerpf(0.08,PHONE_SIZE.z,float(phone_thickness_level)/10.0)
+		var case_key_radius := clampf(case_phone_depth*0.27,0.018,0.036)*0.78
+		var sound_key_width := maxf(case_key_radius*1.35,0.024)
+		var sound_key_length := maxf(0.0,(0.105+sound_key_width)/1.2-sound_key_width)
+		var sound_key_total_height := maxf(sound_key_length+sound_key_width,sound_key_width*2.0)
+		_case_side_opening(combiner,-1.0,volume_button_y+key_length+0.15,sound_key_total_height+0.012,depth,wall,"SoundButtonOpening")
 	if sim_tray_enabled:
 		_case_side_opening(combiner,-1.0,sim_tray_y,0.25,depth,wall,"SIMTrayOpening")
 
