@@ -840,7 +840,7 @@ func _make_glass_panel(fill_color: Color) -> PanelContainer:
 func _get_preview_viewport() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
-	viewport.size = Vector2i(720, 900)
+	viewport.size = Vector2i(1200, 900)
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	viewport.own_world_3d = true
 
