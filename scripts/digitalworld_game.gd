@@ -2372,6 +2372,7 @@ func _show_settings() -> void:
 	done_button.pressed.connect(_close_settings_overlay.bind(shade, center))
 
 func _style_settings_dropdown(selector: OptionButton) -> void:
+	selector.focus_mode = Control.FOCUS_NONE
 	var field := StyleBoxFlat.new()
 	field.bg_color = Color("#102b3b")
 	field.border_color = Color("#4db9ed")
@@ -2381,16 +2382,12 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	field.content_margin_right = 12
 	field.content_margin_top = 8
 	field.content_margin_bottom = 8
-	var field_hover := field.duplicate() as StyleBoxFlat
-	field_hover.bg_color = Color("#17445b")
-	var field_pressed := field.duplicate() as StyleBoxFlat
-	field_pressed.bg_color = Color("#0b2030")
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		selector.add_theme_stylebox_override(state, field if state == "normal" or state == "focus" else field_hover if state == "hover" else field_pressed)
+		selector.add_theme_stylebox_override(state, field)
 	selector.add_theme_color_override("font_color", Color("#e8f7ff"))
-	selector.add_theme_color_override("font_hover_color", Color.WHITE)
-	selector.add_theme_color_override("font_pressed_color", Color.WHITE)
-	selector.add_theme_color_override("font_focus_color", Color.WHITE)
+	selector.add_theme_color_override("font_hover_color", Color("#e8f7ff"))
+	selector.add_theme_color_override("font_pressed_color", Color("#e8f7ff"))
+	selector.add_theme_color_override("font_focus_color", Color("#e8f7ff"))
 	var popup := selector.get_popup()
 	popup.min_size = Vector2i(maxi(roundi(selector.custom_minimum_size.x), 260), 0)
 	popup.add_theme_font_size_override("font_size", 16)
@@ -2400,18 +2397,18 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	panel.set_border_width_all(1)
 	panel.set_corner_radius_all(9)
 	popup.add_theme_stylebox_override("panel", panel)
-	var item_hover := StyleBoxFlat.new()
-	item_hover.bg_color = Color("#155477")
-	item_hover.set_corner_radius_all(5)
-	item_hover.content_margin_left = 12
-	item_hover.content_margin_right = 12
-	item_hover.content_margin_top = 10
-	item_hover.content_margin_bottom = 10
-	popup.add_theme_stylebox_override("hover", item_hover)
-	popup.add_theme_stylebox_override("pressed", item_hover)
+	var item_idle := StyleBoxFlat.new()
+	item_idle.bg_color = Color("#081c2b")
+	item_idle.set_corner_radius_all(5)
+	item_idle.content_margin_left = 12
+	item_idle.content_margin_right = 12
+	item_idle.content_margin_top = 10
+	item_idle.content_margin_bottom = 10
+	popup.add_theme_stylebox_override("hover", item_idle)
+	popup.add_theme_stylebox_override("pressed", item_idle)
 	popup.add_theme_color_override("font_color", Color("#dff4ff"))
-	popup.add_theme_color_override("font_hover_color", Color.WHITE)
-	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
+	popup.add_theme_color_override("font_hover_color", Color("#dff4ff"))
+	popup.add_theme_color_override("font_pressed_color", Color("#dff4ff"))
 	popup.add_theme_constant_override("v_separation", 10)
 	popup.add_theme_constant_override("outline_size", 1)
 	popup.add_theme_color_override("font_outline_color", Color("#061522"))
