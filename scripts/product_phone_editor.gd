@@ -6658,6 +6658,33 @@ func _refresh_phone_case_preview() -> void:
 	guard_material.albedo_color = color.darkened(0.28)
 	camera_guard.material_override = guard_material
 	phone_case_frame.add_child(camera_guard)
+	if str(design["name"]) == "Rugged Dual-Layer Case":
+		for corner in [Vector2(-0.72, 1.40), Vector2(0.72, 1.40), Vector2(-0.72, -1.40), Vector2(0.72, -1.40)]:
+			var bumper := MeshInstance3D.new()
+			var bumper_mesh := BoxMesh.new()
+			bumper_mesh.size = Vector3(0.16, 0.18, 0.13)
+			bumper.mesh = bumper_mesh
+			bumper.position = Vector3(corner.x, corner.y, 0.005)
+			bumper.material_override = rail_material
+			phone_case_frame.add_child(bumper)
+	elif str(design["name"]) == "Battery Case":
+		var battery_hump := MeshInstance3D.new()
+		battery_hump.name = "IntegratedBatteryPack"
+		var battery_mesh := BoxMesh.new()
+		battery_mesh.size = Vector3(1.18, 0.56, 0.12)
+		battery_hump.mesh = battery_mesh
+		battery_hump.position = Vector3(0, -1.10, 0.045)
+		battery_hump.material_override = rail_material
+		phone_case_frame.add_child(battery_hump)
+	elif str(design["name"]) == "Wallet / Folio Case":
+		var folio_hinge := MeshInstance3D.new()
+		folio_hinge.name = "FolioCoverHinge"
+		var hinge_mesh := BoxMesh.new()
+		hinge_mesh.size = Vector3(0.075, 2.75, 0.10)
+		folio_hinge.mesh = hinge_mesh
+		folio_hinge.position = Vector3(-0.77, 0, 0)
+		folio_hinge.material_override = rail_material
+		phone_case_frame.add_child(folio_hinge)
 	for i in range(3):
 		var lens := MeshInstance3D.new()
 		var lens_mesh := CylinderMesh.new()
