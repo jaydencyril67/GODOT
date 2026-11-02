@@ -221,7 +221,6 @@ var back_design_gradient_color_edit_mode := false
 var gradient_direction_button: Button
 var gradient_direction_popup: PanelContainer
 var gradient_direction_items: VBoxContainer
-var editor_loading_layer: CanvasLayer
 var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
@@ -242,36 +241,7 @@ func _ready() -> void:
 	if research_mode:
 		_build_research_ui()
 	else:
-		_show_editor_loading_screen()
-		await get_tree().process_frame
 		_build_editor_ui()
-		if is_instance_valid(editor_loading_layer):
-			editor_loading_layer.queue_free()
-			editor_loading_layer = null
-
-
-func _show_editor_loading_screen() -> void:
-	editor_loading_layer = CanvasLayer.new()
-	editor_loading_layer.name = "PhoneEditorLoadingLayer"
-	editor_loading_layer.layer = 100
-	add_child(editor_loading_layer)
-	var overlay := ColorRect.new()
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color("#071522")
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	editor_loading_layer.add_child(overlay)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 12)
-	center.add_child(stack)
-	var title := _make_label("DIGITALWORLD", 25, Color("#e5f6ff"))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(title)
-	var status := _make_label("PREPARING PHONE STUDIO…", 13, Color("#8edaff"))
-	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(status)
 
 
 func _build_editor_ui() -> void:
