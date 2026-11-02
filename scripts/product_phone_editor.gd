@@ -5406,7 +5406,7 @@ func _show_ram_controls() -> void:
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.add_theme_constant_override("separation", 7)
 	scroll.add_child(options)
-	for capacity in ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]:
+	for capacity in ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]:
 		var option := Button.new()
 		option.name = "RAMOption_" + capacity.replace(" ", "")
 		option.text = capacity + ("   ✓ SELECTED" if selected_ram_capacity == capacity else "")
@@ -5419,7 +5419,7 @@ func _show_ram_controls() -> void:
 
 
 func _on_ram_capacity_selected(capacity: String) -> void:
-	if not ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"].has(capacity):
+	if not ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"].has(capacity):
 		return
 	selected_ram_capacity = capacity
 	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
