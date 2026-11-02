@@ -3959,16 +3959,17 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_style_pen(parent: Node3D, current_depth: float, frame_material: Material, key_material: Material) -> void:
-	# The S-Pen sits in its own slim channel along the extreme-left end of
-	# the bottom speaker row. Recalculate from the live corner radius so it
-	# stays on the straight bottom rail as the phone is bordered.
+	# Seat the S-Pen vertically in the extreme-left side rail, beside the
+	# outermost speaker opening. As corner radius grows, move it upward by
+	# the same amount so the complete stylus clears the rounded bottom corner.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var pen_length := 0.245
 	var pen_radius := 0.014
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var left_edge := -PHONE_SIZE.x * 0.5
-	var pen_x := left_edge + corner_radius + pen_length * 0.5 + 0.018
-	var pen_z := current_depth * 0.5 + 0.003
+	var pen_x := left_edge - 0.004
+	var pen_y := bottom_y + corner_radius + pen_length * 0.5 + 0.018
+	var pen_z := 0.0
 
 	var channel := MeshInstance3D.new()
 	channel.name = "StylePenChannel"
@@ -3978,8 +3979,7 @@ func _add_phone_style_pen(parent: Node3D, current_depth: float, frame_material: 
 	channel_mesh.radial_segments = 24
 	channel_mesh.rings = 6
 	channel.mesh = channel_mesh
-	channel.rotation_degrees.z = 90.0
-	channel.position = Vector3(pen_x, bottom_y + 0.004, pen_z)
+	channel.position = Vector3(pen_x, pen_y, pen_z)
 	channel.material_override = frame_material
 	channel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(channel)
@@ -3992,23 +3992,21 @@ func _add_phone_style_pen(parent: Node3D, current_depth: float, frame_material: 
 	pen_mesh.radial_segments = 32
 	pen_mesh.rings = 8
 	pen.mesh = pen_mesh
-	pen.rotation_degrees.z = 90.0
-	pen.position = Vector3(pen_x, bottom_y + 0.004, pen_z + 0.006)
+	pen.position = Vector3(pen_x - 0.006, pen_y, pen_z)
 	pen.material_override = key_material
 	pen.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(pen)
 
-	# Small metallic end cap makes the accessory read as a removable stylus.
+	# Metallic end cap gives the removable stylus a finished S-Pen detail.
 	var cap := MeshInstance3D.new()
 	cap.name = "StylePenEndCap"
-	var cap_mesh := CylinderMesh.new()
-	cap_mesh.top_radius = pen_radius * 0.72
-	cap_mesh.bottom_radius = pen_radius * 0.72
-	cap_mesh.height = 0.012
+	var cap_mesh := SphereMesh.new()
+	cap_mesh.radius = pen_radius * 0.72
+	cap_mesh.height = pen_radius * 1.44
 	cap_mesh.radial_segments = 24
+	cap_mesh.rings = 8
 	cap.mesh = cap_mesh
-	cap.rotation_degrees.z = 90.0
-	cap.position = Vector3(pen_x - pen_length * 0.43, bottom_y + 0.004, pen_z + 0.008)
+	cap.position = Vector3(pen_x - 0.006, pen_y - pen_length * 0.43, pen_z)
 	var cap_material := StandardMaterial3D.new()
 	cap_material.albedo_color = Color("#aebdca")
 	cap_material.metallic = 0.88
@@ -4016,7 +4014,6 @@ func _add_phone_style_pen(parent: Node3D, current_depth: float, frame_material: 
 	cap.material_override = cap_material
 	cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(cap)
-
 
 func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, frame_material: Material, key_material: Material) -> void:
 	var edge := PHONE_SIZE.x * 0.5
