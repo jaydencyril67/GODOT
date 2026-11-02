@@ -179,6 +179,7 @@ var software_value_labels: Dictionary = {}
 var selected_ram_capacity := "Not set"
 var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
+var selected_battery_capacity := "Not set"
 var research_mode := false
 var research_content_panel: Control
 var research_balance_label: Label
@@ -970,7 +971,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1012,6 +1013,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_ram_technology_controls()
 	elif feature_name in ["ROM", "Internal Storage", "Storage"]:
 		_show_rom_controls()
+	elif feature_name == "Battery":
+		_show_battery_controls()
 
 
 
@@ -5352,7 +5355,7 @@ func _build_software_summary_panel() -> void:
 	var specifications := [
 		["RAM", selected_ram_capacity],
 		["ROM", selected_rom_capacity],
-		["BATTERY", "Not set"],
+		["BATTERY", selected_battery_capacity],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
 		["RAM TECHNOLOGY", selected_ram_technology],
@@ -5555,6 +5558,55 @@ func _on_rom_capacity_selected(capacity: String) -> void:
 		var rom_label: Label = software_value_labels["ROM"]
 		rom_label.text = capacity
 	_show_rom_controls()
+
+
+func _show_battery_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "BatterySelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SELECT BATTERY CAPACITY", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+
+	# A fixed two-column grid keeps all fifteen capacities visible at once.
+	# No ScrollContainer is used, so the battery panel itself never scrolls.
+	var options := GridContainer.new()
+	options.name = "BatteryCapacityGrid"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	options.add_theme_constant_override("h_separation", 7)
+	options.add_theme_constant_override("v_separation", 7)
+	active_feature_panel.add_child(options)
+
+	for capacity in ["1,000 mAh", "1,500 mAh", "2,000 mAh", "2,500 mAh", "3,000 mAh", "3,500 mAh", "4,000 mAh", "4,500 mAh", "5,000 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"]:
+		var option := Button.new()
+		option.name = "BatteryOption_" + capacity.replace(",", "").replace(" ", "")
+		option.text = capacity + ("  ✓" if selected_battery_capacity == capacity else "")
+		option.custom_minimum_size = Vector2(0, 39)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 12)
+		_style_staff_button(option, selected_battery_capacity == capacity)
+		option.pressed.connect(_on_battery_capacity_selected.bind(capacity))
+		options.add_child(option)
+
+
+func _on_battery_capacity_selected(capacity: String) -> void:
+	if not ["1,000 mAh", "1,500 mAh", "2,000 mAh", "2,500 mAh", "3,000 mAh", "3,500 mAh", "4,000 mAh", "4,500 mAh", "5,000 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"].has(capacity):
+		return
+	selected_battery_capacity = capacity
+	if software_value_labels.has("BATTERY") and is_instance_valid(software_value_labels["BATTERY"]):
+		var battery_label: Label = software_value_labels["BATTERY"]
+		battery_label.text = capacity
+	_show_battery_controls()
 
 
 func _on_left_tools_previous_pressed() -> void:
