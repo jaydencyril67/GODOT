@@ -5576,7 +5576,7 @@ func _show_battery_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# A fixed two-column grid keeps all fifteen capacities visible at once.
+	# A fixed two-column grid presents all 24 capacities in twelve rows.
 	# No ScrollContainer is used, so the battery panel itself never scrolls.
 	var options := GridContainer.new()
 	options.name = "BatteryCapacityGrid"
@@ -5587,7 +5587,7 @@ func _show_battery_controls() -> void:
 	options.add_theme_constant_override("v_separation", 7)
 	active_feature_panel.add_child(options)
 
-	for capacity in ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "5,750 mAh", "6,000 mAh", "6,250 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"]:
+	for capacity in ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"]:
 		var option := Button.new()
 		option.name = "BatteryOption_" + capacity.replace(",", "").replace(" ", "")
 		option.text = capacity + ("  ✓" if selected_battery_capacity == capacity else "")
@@ -5604,7 +5604,7 @@ func _show_battery_controls() -> void:
 
 
 func _on_battery_capacity_selected(capacity: String) -> void:
-	if not ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "5,750 mAh", "6,000 mAh", "6,250 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"].has(capacity):
+	if not ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"].has(capacity):
 		return
 	selected_battery_capacity = capacity
 	if software_value_labels.has("BATTERY") and is_instance_valid(software_value_labels["BATTERY"]):
