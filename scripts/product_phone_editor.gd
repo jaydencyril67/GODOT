@@ -3955,10 +3955,10 @@ func _refresh_phone_side_buttons() -> void:
 	if sim_tray_enabled:
 		_add_phone_sim_tray(button_root, -1.0, sim_tray_y, frame_material, key_material)
 	if style_pen_enabled:
-		_add_phone_style_pen(button_root, current_depth, frame_material, key_material)
+		_add_phone_style_pen(button_root, current_depth, key_material)
 
 
-func _add_phone_style_pen(parent: Node3D, current_depth: float, frame_material: Material, key_material: Material) -> void:
+func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Material) -> void:
 	# Samsung-style S-Pen silo: a short, flush rounded slot on the bottom
 	# edge, immediately to the left of the speaker openings. The pen itself
 	# stays inside the chassis; only its small removable end cap is visible.
