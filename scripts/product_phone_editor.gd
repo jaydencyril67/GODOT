@@ -556,9 +556,8 @@ func _get_software_research_features() -> Array:
 	return [
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
-		"Network", "NFC", "GPS", "USB Connectivity", "Sensors",
-		"Front Camera MP", "Rear Camera MP", "Memory Clock", "AI Processing",
-		"Data Encryption"
+		"Network", "NFC", "GPS", "Sensors",
+		"Front Camera MP", "Rear Camera MP", "Memory Clock"
 	]
 
 
