@@ -1112,6 +1112,38 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 			_style_staff_button(box_gradient_target, back_design_gradient_color_edit_mode)
 			box_gradient_target.pressed.connect(_on_back_box_gradient_color_target_selected.bind(true))
 			box_target_row.add_child(box_gradient_target)
+			gradient_direction_button = Button.new()
+			gradient_direction_button.name = "BackBoxGradientDirection"
+			gradient_direction_button.text = _gradient_direction_name(int(back_design_boxes[selected_back_design_box].get("gradient_direction", 0))) + "  ▼"
+			gradient_direction_button.custom_minimum_size.y = 40
+			gradient_direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			gradient_direction_button.focus_mode = Control.FOCUS_NONE
+			_apply_research_typography(gradient_direction_button, 13)
+			_style_staff_button(gradient_direction_button, false)
+			gradient_direction_button.pressed.connect(_toggle_gradient_direction_popup)
+			box_gradient_options.add_child(gradient_direction_button)
+			gradient_direction_popup = PanelContainer.new()
+			gradient_direction_popup.name = "GradientDirectionCustomDropdown"
+			gradient_direction_popup.visible = false
+			gradient_direction_popup.z_index = 110
+			gradient_direction_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+			var box_popup_style := StyleBoxFlat.new()
+			box_popup_style.bg_color = Color("#071d2d")
+			box_popup_style.border_color = Color("#65caff")
+			box_popup_style.set_border_width_all(2)
+			box_popup_style.set_corner_radius_all(12)
+			box_popup_style.content_margin_left = 8
+			box_popup_style.content_margin_right = 8
+			box_popup_style.content_margin_top = 8
+			box_popup_style.content_margin_bottom = 8
+			gradient_direction_popup.add_theme_stylebox_override("panel", box_popup_style)
+			gradient_direction_items = VBoxContainer.new()
+			gradient_direction_items.add_theme_constant_override("separation", 6)
+			gradient_direction_popup.add_child(gradient_direction_items)
+			var box_editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+			if is_instance_valid(box_editor_root): box_editor_root.add_child(gradient_direction_popup)
+			else: active_feature_panel.add_child(gradient_direction_popup)
+			_rebuild_gradient_direction_popup()
 			box_gradient_options.visible = bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false))
 			if not box_gradient_options.visible:
 				back_design_gradient_color_edit_mode = false
@@ -1407,6 +1439,21 @@ void fragment() {
 	return material
 
 
+func _on_back_box_gradient_toggled(enabled: bool) -> void:
+	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
+	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
+	if not enabled: back_design_gradient_color_edit_mode = false
+	_refresh_back_design_boxes()
+	var options := active_feature_panel.get_node_or_null("BackBoxGradientOptions") as Control
+	if is_instance_valid(options): options.visible = enabled
+	_refresh_device_color_editor_controls()
+
+
+func _on_back_box_gradient_color_target_selected(use_gradient_color: bool) -> void:
+	back_design_gradient_color_edit_mode = use_gradient_color
+	_refresh_device_color_editor_controls()
+
+
 func _on_device_gradient_toggle_pressed(toggle: TextureButton) -> void:
 	_on_device_gradient_toggled(toggle.button_pressed)
 
@@ -1432,11 +1479,21 @@ func _refresh_device_color_editor_controls() -> void:
 	var gradient_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditGradientColor") as Button
 	if is_instance_valid(base_button): _style_staff_button(base_button, not gradient_color_edit_mode)
 	if is_instance_valid(gradient_button): _style_staff_button(gradient_button, gradient_color_edit_mode)
+	var box_base_button := active_feature_panel.get_node_or_null("BackBoxGradientOptions/BackBoxGradientColorTargets/EditBackBoxColor") as Button
+	var box_gradient_button := active_feature_panel.get_node_or_null("BackBoxGradientOptions/BackBoxGradientColorTargets/EditBackBoxGradientColor") as Button
+	if is_instance_valid(box_base_button): _style_staff_button(box_base_button, not back_design_gradient_color_edit_mode)
+	if is_instance_valid(box_gradient_button): _style_staff_button(box_gradient_button, back_design_gradient_color_edit_mode)
 
 
 func _gradient_direction_name(index: int) -> String:
 	var names := ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]
 	return names[clampi(index, 0, names.size() - 1)]
+
+
+func _get_active_gradient_direction() -> int:
+	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		return int(back_design_boxes[selected_back_design_box].get("gradient_direction", 0))
+	return device_gradient_direction
 
 
 func _toggle_gradient_direction_popup() -> void:
@@ -1475,7 +1532,7 @@ func _rebuild_gradient_direction_popup() -> void:
 	var names := ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]
 	for index in range(names.size()):
 		var item := Button.new()
-		item.text = names[index] + ("   ✓ SELECTED" if index == device_gradient_direction else "")
+		item.text = names[index] + ("   ✓ SELECTED" if index == _get_active_gradient_direction() else "")
 		item.custom_minimum_size = Vector2(0, 46)
 		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -1495,14 +1552,19 @@ func _rebuild_gradient_direction_popup() -> void:
 
 
 func _select_gradient_direction(index: int) -> void:
-	device_gradient_direction = clampi(index, 0, 3)
+	var selected_direction := clampi(index, 0, 3)
+	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		back_design_boxes[selected_back_design_box]["gradient_direction"] = selected_direction
+		_refresh_back_design_boxes()
+	else:
+		device_gradient_direction = selected_direction
+		if is_instance_valid(phone_body):
+			phone_body.material_override = _create_device_body_material()
 	if is_instance_valid(gradient_direction_button):
-		gradient_direction_button.text = _gradient_direction_name(device_gradient_direction) + "  ▼"
+		gradient_direction_button.text = _gradient_direction_name(selected_direction) + "  ▼"
 	_rebuild_gradient_direction_popup()
 	if is_instance_valid(gradient_direction_popup):
 		gradient_direction_popup.visible = false
-	if is_instance_valid(phone_body):
-		phone_body.material_override = _create_device_body_material()
 
 
 func _on_device_gradient_toggled(enabled: bool) -> void:
