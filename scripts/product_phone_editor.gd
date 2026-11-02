@@ -3615,20 +3615,50 @@ func _show_screen_protector_controls() -> void:
 	_update_screen_protector_thickness_label()
 
 	if screen_protector_building:
-		var build_status := _make_label("PRECISION GLASS FITTING  ·  BUILDING", 12, Color("#8ed6ff"))
-		build_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		active_feature_panel.add_child(build_status)
-		var progress := ProgressBar.new()
-		progress.name = "ProtectionGlassBuildProgress"
-		progress.min_value = 0.0
-		progress.max_value = 100.0
-		progress.value = 72.0
-		progress.custom_minimum_size = Vector2(0, 12)
-		active_feature_panel.add_child(progress)
-		var progress_tween := create_tween()
-		progress_tween.set_loops()
-		progress_tween.tween_property(progress, "value", 96.0, 0.7)
-		progress_tween.tween_property(progress, "value", 72.0, 0.7)
+		# Match the Phone Case build card exactly: same framed panel, typography,
+		# animated shader shimmer and supporting build note.
+		var panel := PanelContainer.new()
+		panel.name = "ProtectionGlassBuildLoading"
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#0c2639")
+		style.border_color = Color("#2d6d91")
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(10)
+		style.content_margin_left = 12
+		style.content_margin_right = 12
+		style.content_margin_top = 12
+		style.content_margin_bottom = 12
+		panel.add_theme_stylebox_override("panel", style)
+		active_feature_panel.add_child(panel)
+		var loading := VBoxContainer.new()
+		loading.add_theme_constant_override("separation", 9)
+		panel.add_child(loading)
+		var text_label := _make_label("Building protection glass", 16, Color("#eaf8ff"))
+		text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		loading.add_child(text_label)
+		var shimmer := ColorRect.new()
+		shimmer.name = "ProtectionGlassBuildShimmer"
+		shimmer.custom_minimum_size = Vector2(0, 12)
+		shimmer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var shader := Shader.new()
+		shader.code = """
+shader_type canvas_item;
+uniform vec4 base_color : source_color = vec4(0.10,0.30,0.44,1.0);
+uniform vec4 shine_color : source_color = vec4(0.48,0.82,1.0,1.0);
+void fragment(){
+	float sweep=fract(UV.x*1.25-TIME*0.72);
+	float shine=smoothstep(0.02,0.18,sweep)*(1.0-smoothstep(0.22,0.42,sweep));
+	COLOR=mix(base_color,shine_color,shine*0.9);
+}
+"""
+		var shimmer_material := ShaderMaterial.new()
+		shimmer_material.shader = shader
+		shimmer.material = shimmer_material
+		loading.add_child(shimmer)
+		var building_note := _make_label("Matching the display shape, curves and front-camera cutouts…", 11, Color("#9dc7df"))
+		building_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		loading.add_child(building_note)
 	var cutout_note := _make_label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#8ed6ff"))
 	cutout_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
