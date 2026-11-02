@@ -6606,9 +6606,6 @@ func _set_left_tools_page(requested_page: int) -> void:
 	_update_left_tools_navigation_buttons()
 	if is_instance_valid(preview_container):
 		preview_container.visible = left_tools_page != 1
-	var preview_navigation := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhonePreviewCard/PhonePreviewPanelNavigation")
-	if is_instance_valid(preview_navigation):
-		preview_navigation.visible = left_tools_page != 1
 	if is_instance_valid(software_summary_panel):
 		software_summary_panel.visible = left_tools_page == 1
 		if left_tools_page == 1:
