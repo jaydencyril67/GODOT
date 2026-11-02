@@ -1327,8 +1327,17 @@ func _show_back_design_controls() -> void:
 	back_design_selection_button.text = "CHOOSE RAISED BOX  ▼"
 	back_design_selection_button.custom_minimum_size.y = control_height
 	back_design_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_design_selection_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(back_design_selection_button, button_font_size)
 	_style_staff_button(back_design_selection_button, true)
+	var selector_idle := StyleBoxFlat.new()
+	selector_idle.bg_color = Color("#10334a")
+	selector_idle.border_color = Color("#65a9ca")
+	selector_idle.set_border_width_all(1)
+	selector_idle.set_corner_radius_all(9)
+	back_design_selection_button.add_theme_stylebox_override("hover", selector_idle)
+	back_design_selection_button.add_theme_stylebox_override("pressed", selector_idle)
+	back_design_selection_button.add_theme_stylebox_override("focus", selector_idle)
 	back_design_selection_button.pressed.connect(_toggle_back_design_selection_popup)
 	active_feature_panel.add_child(back_design_selection_button)
 	back_design_selection_popup = PanelContainer.new()
@@ -1352,6 +1361,10 @@ func _show_back_design_controls() -> void:
 	back_design_selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	back_design_selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	back_design_selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	back_design_selection_scroll.follow_focus = false
+	back_design_selection_scroll.scroll_deadzone = 8
+	back_design_selection_scroll.clip_contents = true
+	back_design_selection_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	var dropdown_scroll_bar := back_design_selection_scroll.get_v_scroll_bar()
 	dropdown_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	dropdown_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1490,7 +1503,10 @@ func _position_back_design_selection_popup() -> void:
 		back_design_selection_popup.visible = false
 		return
 
+	back_design_selection_popup.custom_minimum_size = Vector2(popup_width, popup_height)
 	back_design_selection_popup.size = Vector2(popup_width, popup_height)
+	if is_instance_valid(back_design_selection_scroll):
+		back_design_selection_scroll.custom_minimum_size.y = maxf(40.0, popup_height - 20.0)
 	var popup_y := button_bottom + side_gap if open_below else button_rect.position.y - popup_height - side_gap
 	var max_popup_x := viewport_rect.end.x - popup_width - viewport_padding
 	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + viewport_padding, max_popup_x)
@@ -1513,6 +1529,8 @@ func _rebuild_back_design_selection_popup() -> void:
 		item.custom_minimum_size = Vector2(0, 48)
 		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		item.focus_mode = Control.FOCUS_NONE
+		item.mouse_filter = Control.MOUSE_FILTER_STOP
 		item.add_theme_font_size_override("font_size", 15)
 		var normal := StyleBoxFlat.new()
 		normal.bg_color = Color("#10334a")
@@ -1520,12 +1538,10 @@ func _rebuild_back_design_selection_popup() -> void:
 		normal.set_border_width_all(1)
 		normal.set_corner_radius_all(8)
 		normal.content_margin_left = 14
-		var hover := normal.duplicate() as StyleBoxFlat
-		hover.bg_color = Color("#155477")
-		hover.border_color = Color("#a9e7ff")
 		item.add_theme_stylebox_override("normal", normal)
-		item.add_theme_stylebox_override("hover", hover)
-		item.add_theme_stylebox_override("pressed", hover)
+		item.add_theme_stylebox_override("hover", normal)
+		item.add_theme_stylebox_override("pressed", normal)
+		item.add_theme_stylebox_override("focus", normal)
 		item.add_theme_color_override("font_color", Color("#e8f7ff"))
 		item.pressed.connect(_select_back_design_box.bind(index))
 		back_design_selection_items.add_child(item)
