@@ -185,6 +185,11 @@ var preview_camera: Camera3D
 var preview_container: SubViewportContainer
 var phone_case_preview: Node3D
 var phone_case_shell: CSGPolygon3D
+var charger_preview: Node3D
+var charger_enabled := false
+var charger_wattage := 30
+var charger_plug_type := "UK"
+var charger_body_color := Color("#e8edf2")
 var phone_case_custom_enabled := false
 var phone_case_building := false
 var phone_case_built := false
@@ -960,6 +965,11 @@ func _get_preview_viewport() -> SubViewport:
 	phone_body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	preview_world.add_child(phone_body)
 	_build_phone_case_preview(phone_body)
+	charger_preview = Node3D.new()
+	charger_preview.name = "ChargerAccessoryPreview"
+	charger_preview.visible = false
+	preview_world.add_child(charger_preview)
+	_rebuild_charger_preview()
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
@@ -1024,7 +1034,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1037,6 +1047,9 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		return
 	if feature_name == "Protection Glass":
 		_show_screen_protector_controls()
+		return
+	if feature_name == "Charger":
+		_show_charger_controls()
 		return
 	if feature_name == "Screen Tech":
 		_show_screen_tech_controls()
@@ -3059,6 +3072,213 @@ func _update_screen_protector_thickness_label() -> void:
 	if is_instance_valid(screen_protector_thickness_label):
 		var thickness_mm := screen_protector_thickness * 75.0 / PHONE_SIZE.x
 		screen_protector_thickness_label.text = "GLASS THICKNESS  %.2f mm" % thickness_mm
+
+
+func _charger_material(color: Color, metallic: float = 0.0, roughness: float = 0.32) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.metallic = metallic
+	material.roughness = roughness
+	material.clearcoat_enabled = true
+	material.clearcoat = 0.35
+	material.clearcoat_roughness = 0.18
+	return material
+
+
+func _add_charger_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, material: Material) -> MeshInstance3D:
+	var part := MeshInstance3D.new()
+	part.name = node_name
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	part.mesh = mesh
+	part.material_override = material
+	part.position = position
+	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(part)
+	return part
+
+
+func _add_charger_cylinder(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, material: Material, radial_segments: int = 24) -> MeshInstance3D:
+	var part := MeshInstance3D.new()
+	part.name = node_name
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = radial_segments
+	part.mesh = mesh
+	part.material_override = material
+	part.position = position
+	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(part)
+	return part
+
+
+func _rebuild_charger_preview() -> void:
+	if not is_instance_valid(charger_preview):
+		return
+	for child in charger_preview.get_children():
+		child.free()
+	var shell_material := _charger_material(charger_body_color, 0.04, 0.25)
+	var seam_material := _charger_material(Color("#aab5bf"), 0.28, 0.30)
+	var dark_material := _charger_material(Color("#111820"), 0.12, 0.28)
+	var metal_material := _charger_material(Color("#c8d1d9"), 0.82, 0.22)
+
+	# Compact adapter body, shown beside the handset as a separate product.
+	var body := _add_charger_box(charger_preview, "ChargerAdapterBody", Vector3(0.39, 0.57, 0.205), Vector3(0.88, 0.0, 0.0), shell_material)
+	body.rotation_degrees.z = -7.0
+	_add_charger_box(charger_preview, "AdapterFacePlate", Vector3(0.345, 0.515, 0.012), Vector3(0.88, 0.0, 0.109), shell_material)
+
+	# USB-C receptacle: dark inset, metallic inner tongue and subtle port rim.
+	_add_charger_box(charger_preview, "USBCPortRecess", Vector3(0.105, 0.044, 0.008), Vector3(0.88, 0.0, 0.117), dark_material)
+	_add_charger_box(charger_preview, "USBCPortTongue", Vector3(0.054, 0.009, 0.003), Vector3(0.88, -0.001, 0.122), metal_material)
+	_add_charger_box(charger_preview, "PortInnerShadow", Vector3(0.075, 0.026, 0.002), Vector3(0.88, 0.0, 0.119), dark_material)
+
+	# Small status mark and restrained perimeter seam.
+	_add_charger_cylinder(charger_preview, "StatusIndicator", 0.009, 0.003, Vector3(0.88, 0.19, 0.118), _charger_material(Color("#78d9ff"), 0.12, 0.18), 20)
+	_add_charger_box(charger_preview, "HousingSeam", Vector3(0.392, 0.008, 0.208), Vector3(0.88, -0.22, 0.0), seam_material)
+
+	# Mains prongs are oriented toward the rear of the adapter (negative Z).
+	match charger_plug_type:
+		"UK":
+			_add_charger_box(charger_preview, "UKLiveProng", Vector3(0.035, 0.105, 0.035), Vector3(0.80, 0.0, -0.135), metal_material)
+			_add_charger_box(charger_preview, "UKNeutralProng", Vector3(0.035, 0.105, 0.035), Vector3(0.96, 0.0, -0.135), metal_material)
+			_add_charger_box(charger_preview, "UKEarthProng", Vector3(0.035, 0.12, 0.035), Vector3(0.88, 0.105, -0.135), metal_material)
+		"EU":
+			_add_charger_cylinder(charger_preview, "EUProngLeft", 0.025, 0.115, Vector3(0.82, 0.0, -0.145), metal_material)
+			_add_charger_cylinder(charger_preview, "EUProngRight", 0.025, 0.115, Vector3(0.94, 0.0, -0.145), metal_material)
+		"US":
+			_add_charger_box(charger_preview, "USProngLeft", Vector3(0.025, 0.105, 0.025), Vector3(0.82, 0.0, -0.14), metal_material)
+			_add_charger_box(charger_preview, "USProngRight", Vector3(0.025, 0.105, 0.025), Vector3(0.94, 0.0, -0.14), metal_material)
+		# User-selectable universal profile keeps the model visually distinct.
+		"Universal":
+			_add_charger_box(charger_preview, "UniversalProngLeft", Vector3(0.025, 0.105, 0.025), Vector3(0.82, 0.0, -0.14), metal_material)
+			_add_charger_box(charger_preview, "UniversalProngRight", Vector3(0.025, 0.105, 0.025), Vector3(0.94, 0.0, -0.14), metal_material)
+
+	var wattage_label := Label3D.new()
+	wattage_label.name = "ChargerWattageMark"
+	wattage_label.text = "%dW" % charger_wattage
+	wattage_label.font_size = 48
+	wattage_label.pixel_size = 0.0015
+	wattage_label.modulate = Color("#687786")
+	wattage_label.position = Vector3(0.88, -0.15, 0.119)
+	wattage_label.rotation_degrees = Vector3(0.0, 0.0, -7.0)
+	wattage_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	charger_preview.add_child(wattage_label)
+	charger_preview.visible = charger_enabled
+
+
+func _on_charger_enabled_toggled(enabled: bool) -> void:
+	charger_enabled = enabled
+	_rebuild_charger_preview()
+
+
+func _on_charger_wattage_selected(value: int) -> void:
+	charger_wattage = value
+	_rebuild_charger_preview()
+	_show_charger_controls()
+
+
+func _on_charger_plug_selected(value: String) -> void:
+	if not ["UK", "EU", "US", "Universal"].has(value):
+		return
+	charger_plug_type = value
+	_rebuild_charger_preview()
+	_show_charger_controls()
+
+
+func _on_charger_color_selected(value: String) -> void:
+	match value:
+		"Pearl White":
+			charger_body_color = Color("#e8edf2")
+		"Graphite":
+			charger_body_color = Color("#303943")
+		"Midnight Black":
+			charger_body_color = Color("#111820")
+	_rebuild_charger_preview()
+	_show_charger_controls()
+
+
+func _show_charger_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ChargerControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("CHARGER ADAPTER", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Configure a USB-C wall adapter and inspect its separate 3D product preview beside the phone.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(enable_row)
+	var enable_label := _make_label("SHOW CHARGER MODEL", 13, Color("#e6f5ff"))
+	enable_row.add_child(enable_label)
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var toggle := TextureButton.new()
+	toggle.name = "EnableChargerPreview"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
+	toggle.button_pressed = charger_enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.toggled.connect(_on_charger_enabled_toggled)
+	enable_row.add_child(toggle)
+
+	var plug_heading := _make_label("PLUG STANDARD", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(plug_heading)
+	for plug_name in ["UK", "EU", "US", "Universal"]:
+		var plug_button := Button.new()
+		plug_button.name = "ChargerPlug_" + plug_name
+		plug_button.text = plug_name + ("   ✓" if charger_plug_type == plug_name else "")
+		plug_button.custom_minimum_size = Vector2(0, 38)
+		plug_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		plug_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(plug_button, 12)
+		_style_staff_button(plug_button, charger_plug_type == plug_name)
+		plug_button.pressed.connect(_on_charger_plug_selected.bind(plug_name))
+		active_feature_panel.add_child(plug_button)
+
+	var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(wattage_heading)
+	for wattage in [20, 25, 30, 45, 65, 100]:
+		var watt_button := Button.new()
+		watt_button.name = "ChargerOutput_%dW" % wattage
+		watt_button.text = "%d W" % wattage + ("   ✓" if charger_wattage == wattage else "")
+		watt_button.custom_minimum_size = Vector2(0, 38)
+		watt_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		watt_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(watt_button, 12)
+		_style_staff_button(watt_button, charger_wattage == wattage)
+		watt_button.pressed.connect(_on_charger_wattage_selected.bind(wattage))
+		active_feature_panel.add_child(watt_button)
+
+	var color_heading := _make_label("ADAPTER FINISH", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(color_heading)
+	for color_name in ["Pearl White", "Graphite", "Midnight Black"]:
+		var color_button := Button.new()
+		color_button.name = "ChargerColor_" + color_name.replace(" ", "")
+		color_button.text = color_name + ("   ✓" if charger_body_color == {"Pearl White": Color("#e8edf2"), "Graphite": Color("#303943"), "Midnight Black": Color("#111820")}[color_name] else "")
+		color_button.custom_minimum_size = Vector2(0, 38)
+		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		color_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(color_button, 12)
+		_style_staff_button(color_button, color_button.text.contains("✓"))
+		color_button.pressed.connect(_on_charger_color_selected.bind(color_name))
+		active_feature_panel.add_child(color_button)
 
 
 func _show_screen_protector_controls() -> void:
