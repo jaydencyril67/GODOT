@@ -33,7 +33,9 @@ jobs:
         shell: bash
         run: |
           set +e
-          godot --headless --import --path . 2>&1 | tee godot-import.log
+          # Run the editor import pipeline explicitly so clean CI checkouts
+          # generate .godot/imported resources (including dynamic font data).
+          godot --headless --editor --path . --import --quit 2>&1 | tee godot-import.log
           godot_status=${PIPESTATUS[0]}
           set -e
           if [ "$godot_status" -ne 0 ]; then

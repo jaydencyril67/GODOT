@@ -3574,6 +3574,12 @@ func _charger_output_connector() -> String:
 	return "USB-A" if charger_cable_type.begins_with("USB-A") else "USB-C"
 
 
+func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
+	charger_cable_enabled = enabled
+	_rebuild_charger_preview()
+	_show_charger_controls("CABLE")
+
+
 func _on_charger_cable_selected(value: String) -> void:
 	if not ["USB-C to USB-C", "USB-A to USB-C", "USB-C to Lightning", "USB-A to Lightning", "USB-C to Micro-USB", "USB-A to Micro-USB"].has(value):
 		return
