@@ -182,6 +182,7 @@ var preview_stack: VBoxContainer
 var software_summary_panel: PanelContainer
 var software_value_labels: Dictionary = {}
 var selected_ram_capacity := "Not set"
+var selected_refresh_rate := "Not set"
 var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
 var selected_battery_capacity := "Not set"
@@ -546,8 +547,7 @@ func _get_hardware_research_features() -> Array:
 		"Screen Size", "Screen Type", "Border Radius", "Speakers",
 		"Charge Port", "Front Camera", "Rare Camera",
 		"Side Button", "Home Button", "Back Design", "Phone Width",
-		"Phone Height", "Protection", "Refresh Rate",
-		"Cooling System Design"
+		"Refresh Rate", "Cooling System Design"
 	]
 
 
@@ -999,7 +999,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1059,6 +1059,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_mobile_network_controls()
 	elif feature_name == "Sensors":
 		_show_sensor_controls()
+	elif feature_name == "Refresh Rate":
+		_show_refresh_rate_controls()
 
 
 
@@ -5584,6 +5586,7 @@ func _build_software_summary_panel() -> void:
 		["RAM", selected_ram_capacity],
 		["ROM", selected_rom_capacity],
 		["BATTERY", selected_battery_capacity],
+		["REFRESH RATE", selected_refresh_rate],
 		["CHARGING SPEED", str(selected_charging_speed) + "W"],
 		["WIRELESS CHARGING", (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")],
 		["BLUETOOTH", selected_bluetooth_version],
@@ -5662,6 +5665,64 @@ func _update_camera_software_summary() -> void:
 	if software_value_labels.has("REAR CAMERAS") and is_instance_valid(software_value_labels["REAR CAMERAS"]):
 		var rear_label: Label = software_value_labels["REAR CAMERAS"]
 		rear_label.text = _get_rear_camera_mp_summary()
+
+
+func _show_refresh_rate_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "RefreshRateSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("DISPLAY REFRESH RATE", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+
+	var current := _make_label("CURRENT: " + (selected_refresh_rate.to_upper() if selected_refresh_rate != "Not set" else "NOT SET"), 14, Color("#d8f1ff"))
+	current.name = "CurrentRefreshRateLabel"
+	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(current)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "RefreshRateOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	active_feature_panel.add_child(scroll)
+
+	var options := VBoxContainer.new()
+	options.name = "RefreshRateOptions"
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+
+	for rate in [60, 90, 120, 144, 165, 240]:
+		var rate_text := "%d Hz" % rate
+		var option := Button.new()
+		option.name = "RefreshRateOption_%dHz" % rate
+		option.text = rate_text + ("   ✓ SELECTED" if selected_refresh_rate == rate_text else "")
+		option.custom_minimum_size.y = 43
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_refresh_rate == rate_text)
+		option.pressed.connect(_on_refresh_rate_selected.bind(rate_text))
+		options.add_child(option)
+
+
+func _on_refresh_rate_selected(rate_text: String) -> void:
+	if not ["60 Hz", "90 Hz", "120 Hz", "144 Hz", "165 Hz", "240 Hz"].has(rate_text):
+		return
+	selected_refresh_rate = rate_text
+	if software_value_labels.has("REFRESH RATE") and is_instance_valid(software_value_labels["REFRESH RATE"]):
+		var refresh_label: Label = software_value_labels["REFRESH RATE"]
+		refresh_label.text = selected_refresh_rate
+	_show_refresh_rate_controls()
 
 
 func _show_ram_controls() -> void:
