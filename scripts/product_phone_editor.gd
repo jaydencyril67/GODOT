@@ -207,7 +207,9 @@ var selected_phone_sensors: Dictionary = {
 	"Hall-effect Sensor": false,
 	"Color Temperature Sensor": false,
 	"Laser Autofocus / ToF Sensor": false,
-	"Ultrasonic Sensor": false
+	"Ultrasonic Sensor": false,
+	"GNSS / GPS Receiver": true,
+	"Pedometer / Step Counter": false
 }
 var charging_speed_value_label: Label
 var charging_speed_slider: VSlider
@@ -5651,7 +5653,7 @@ func _get_enabled_sensor_summary() -> String:
 			enabled_sensors.append(str(sensor_name))
 	if enabled_sensors.is_empty():
 		return "None enabled"
-	return "%d enabled" % enabled_sensors.size()
+	return "%d enabled — %s" % [enabled_sensors.size(), ", ".join(enabled_sensors)]
 
 
 func _update_sensor_software_summary() -> void:
