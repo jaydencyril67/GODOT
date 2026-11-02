@@ -5731,7 +5731,6 @@ func _show_memory_clock_controls() -> void:
 	memory_clock_slider.max_value = MEMORY_CLOCK_STEPS.size() - 1
 	memory_clock_slider.step = 1
 	memory_clock_slider.tick_count = MEMORY_CLOCK_STEPS.size()
-	memory_clock_slider.tick_texture = null
 	memory_clock_slider.custom_minimum_size = Vector2(76, 230)
 	memory_clock_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	memory_clock_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
