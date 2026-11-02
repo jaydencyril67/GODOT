@@ -192,6 +192,7 @@ var charger_enabled := false
 var charger_wattage := 30
 var charger_plug_type := "UK"
 var charger_cable_type := "USB-C to USB-C"
+var charger_cable_enabled := false
 var charger_body_color := Color("#e8edf2")
 var charger_wattage_label: Label
 var charger_wattage_slider: VSlider
@@ -603,9 +604,9 @@ func _get_software_research_features() -> Array:
 
 func _get_extras_research_features() -> Array:
 	return [
-		"Box Package", "Phone Case", "Charger", "Charger Speed",
-		"Protection Glass", "Wireless Earbuds", "Smartwatch", "Power Bank",
-		"USB Cable", "Camera Lens Protector", "Phone Stand", "SIM Ejector Tool"
+		"Box Package", "Phone Case", "Charger", "Charging Cable",
+		"Charger Speed", "Protection Glass", "Wireless Earbuds", "Smartwatch",
+		"Power Bank", "Camera Lens Protector", "Phone Stand", "SIM Ejector Tool"
 	]
 
 
@@ -1046,7 +1047,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Camera Lens Protector"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Camera Lens Protector"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1064,6 +1065,13 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	if feature_name == "Charger":
 		_set_charger_preview_mode(true)
 		_show_charger_controls()
+		return
+	if feature_name == "Charging Cable":
+		charger_enabled = true
+		charger_cable_enabled = true
+		_set_charger_preview_mode(true)
+		_rebuild_charger_preview()
+		_show_charger_controls("CABLE")
 		return
 	if feature_name == "Camera Lens Protector":
 		_show_camera_lens_protector_controls()
@@ -1147,7 +1155,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	active_feature_panel.add_theme_constant_override("separation", 6 if compact_color_ui else 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	if return_to_back_design or for_phone_case:
+	if return_to_back_design or for_phone_case or for_charger:
 		var color_header := HBoxContainer.new()
 		color_header.add_theme_constant_override("separation", 6)
 		active_feature_panel.add_child(color_header)
@@ -3177,6 +3185,261 @@ func _add_charger_cylinder(parent: Node3D, node_name: String, radius: float, hei
 	return part
 
 
+func _add_charger_recessed_port(parent: Node3D, output_connector: String, face_position: Vector3, metal_material: Material) -> void:
+	# Use the same machined lip, gasket, extruded cavity walls and recessed
+	# contact floor as the phone's charging port. Rotate the phone-port
+	# construction axis so its opening faces the charger's front (+Z).
+	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var port_width := 8.34 * unit_per_mm if output_connector == "USB-C" else 12.0 * unit_per_mm
+	var port_height := 2.56 * unit_per_mm if output_connector == "USB-C" else 4.5 * unit_per_mm
+	var inner_points := _make_port_outline(port_width * 0.96, port_height * 0.88, port_height * 0.30, 10)
+
+	var port_root := Node3D.new()
+	port_root.name = "ChargerRecessedOutputPort"
+	port_root.position = face_position
+	port_root.rotation.x = deg_to_rad(-90.0)
+	parent.add_child(port_root)
+
+	var bezel_material := _charger_material(Color("#aeb9c3"), 0.90, 0.24)
+	var gasket_material := _charger_material(Color("#252c34"), 0.16, 0.72)
+	var cavity_wall_material := _charger_material(Color("#59636d"), 0.82, 0.40)
+	var cavity_material := _charger_material(Color("#030609"), 0.0, 0.98)
+	var tongue_material := _charger_material(Color("#414b55"), 0.06, 0.70)
+	var contact_material := _charger_material(Color("#d8ad5b"), 0.82, 0.26)
+
+	var mouth_depth := 0.0001
+	var recess_depth := 0.088
+	var contact_depth := recess_depth * 0.56
+	_add_port_ring(port_root, "MachinedPortMetalLip", inner_points, 1.16, -0.0007, bezel_material)
+	_add_port_ring(port_root, "PortDarkInsulatingGasket", inner_points, 1.045, -0.0004, gasket_material)
+	_add_port_cavity_walls(port_root, "DeepRecessedPortSideWalls", inner_points, mouth_depth, recess_depth, cavity_wall_material)
+	_add_port_detail(port_root, "DeepBlackPortFloor", inner_points, recess_depth + 0.0002, cavity_material)
+
+	if output_connector == "USB-C":
+		var tongue_points := _make_port_outline(port_width * 0.72, port_height * 0.20, port_height * 0.095, 8)
+		_add_port_detail(port_root, "USBCTongue", tongue_points, contact_depth, tongue_material)
+		for row in range(2):
+			for contact_index in range(12):
+				var x := (float(contact_index) - 5.5) * (port_width * 0.66 / 12.0)
+				var vertical := (1.0 if row == 0 else -1.0) * port_height * 0.105
+				var pad := _make_port_outline(port_width * 0.035, port_height * 0.055, port_height * 0.018, 3)
+				var shifted := PackedVector2Array()
+				for point in pad:
+					shifted.append(point + Vector2(x, vertical))
+				_add_port_detail(port_root, "USBCRecessContact_%d_%d" % [row, contact_index], shifted, contact_depth - 0.0002, contact_material)
+	else:
+		# USB-A has a wider rectangular cavity and a low insulating contact bed.
+		var tongue_points := _make_port_outline(port_width * 0.72, port_height * 0.30, port_height * 0.12, 7)
+		var tongue_shifted := PackedVector2Array()
+		for point in tongue_points:
+			tongue_shifted.append(point + Vector2(0.0, -port_height * 0.16))
+		_add_port_detail(port_root, "USBAInsulatingTongue", tongue_shifted, contact_depth, tongue_material)
+		for contact_index in range(4):
+			var x := (float(contact_index) - 1.5) * port_width * 0.145
+			var pad := _make_port_outline(port_width * 0.105, port_height * 0.075, port_height * 0.025, 3)
+			var shifted := PackedVector2Array()
+			for point in pad:
+				shifted.append(point + Vector2(x, -port_height * 0.16))
+			_add_port_detail(port_root, "USBARecessContact_%d" % contact_index, shifted, contact_depth - 0.0002, contact_material)
+
+
+func _append_charger_bezier(points: PackedVector3Array, start: Vector3, control_a: Vector3, control_b: Vector3, finish: Vector3, steps: int = 16) -> PackedVector3Array:
+	var result := points
+	for step in range(steps + 1):
+		if not result.is_empty() and step == 0:
+			continue
+		var t := float(step) / float(steps)
+		var inverse := 1.0 - t
+		var point := start * (inverse * inverse * inverse)
+		point += control_a * (3.0 * inverse * inverse * t)
+		point += control_b * (3.0 * inverse * t * t)
+		point += finish * (t * t * t)
+		result.append(point)
+	return result
+
+
+func _create_charger_cable_tube_mesh(points: PackedVector3Array, radius: float, radial_segments: int = 14) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	if points.size() < 2:
+		return mesh
+	var rings: Array[PackedVector3Array] = []
+	var ring_normals: Array[PackedVector3Array] = []
+	for index in range(points.size()):
+		var previous := points[maxi(index - 1, 0)]
+		var following := points[mini(index + 1, points.size() - 1)]
+		var tangent := (following - previous).normalized()
+		if tangent.length_squared() < 0.000001:
+			tangent = Vector3.FORWARD
+		var reference := Vector3.UP
+		if absf(tangent.dot(reference)) > 0.92:
+			reference = Vector3.RIGHT
+		var axis_a := tangent.cross(reference).normalized()
+		var axis_b := tangent.cross(axis_a).normalized()
+		var ring := PackedVector3Array()
+		var normals := PackedVector3Array()
+		for side in range(radial_segments):
+			var angle := TAU * float(side) / float(radial_segments)
+			var normal := (axis_a * cos(angle) + axis_b * sin(angle)).normalized()
+			ring.append(points[index] + normal * radius)
+			normals.append(normal)
+		rings.append(ring)
+		ring_normals.append(normals)
+
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(rings.size() - 1):
+		for side in range(radial_segments):
+			var next_side := (side + 1) % radial_segments
+			var a: Vector3 = rings[index][side]
+			var b: Vector3 = rings[index + 1][side]
+			var c: Vector3 = rings[index + 1][next_side]
+			var d: Vector3 = rings[index][next_side]
+			var normal_ab := (ring_normals[index][side] + ring_normals[index + 1][side] + ring_normals[index + 1][next_side]).normalized()
+			var normal_ac := (ring_normals[index][side] + ring_normals[index + 1][next_side] + ring_normals[index][next_side]).normalized()
+			_add_phone_mesh_triangle(surface, a, b, c, normal_ab)
+			_add_phone_mesh_triangle(surface, a, c, d, normal_ac)
+	return surface.commit()
+
+
+func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_type: String, position: Vector3, direction: Vector3, shell_material: Material, metal_material: Material, adapter_end: bool = false) -> Node3D:
+	var connector := Node3D.new()
+	connector.name = node_name
+	connector.position = position
+	var forward := direction.normalized()
+	var up := Vector3.UP
+	if absf(forward.dot(up)) > 0.94:
+		up = Vector3.FORWARD
+	connector.basis = Basis.looking_at(forward, up)
+	parent.add_child(connector)
+
+	var tip_width := 0.142
+	var tip_height := 0.044
+	match connector_type:
+		"USB-A":
+			tip_width = 0.205
+			tip_height = 0.060
+		"Lightning":
+			tip_width = 0.070
+			tip_height = 0.018
+		"Micro-USB":
+			tip_width = 0.088
+			tip_height = 0.027
+
+	var body_depth := 0.18 if adapter_end else 0.10
+	var body_offset := 0.09 if adapter_end else 0.05
+	var body := MeshInstance3D.new()
+	body.name = "ConnectorMouldedHousing"
+	body.mesh = _create_rounded_panel_mesh(0.17, 0.085, body_depth, 0.028)
+	body.material_override = shell_material
+	body.position = Vector3(0.0, 0.0, -body_offset)
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	connector.add_child(body)
+
+	var tip_depth := 0.072 if adapter_end else 0.060
+	var tip_offset := 0.215 if adapter_end else 0.125
+	var terminal := MeshInstance3D.new()
+	terminal.name = connector_type.replace("-", "") + "MetalConnectorTip"
+	terminal.mesh = _create_rounded_panel_mesh(tip_width, tip_height, tip_depth, minf(tip_height * 0.42, tip_width * 0.22))
+	terminal.material_override = metal_material
+	terminal.position = Vector3(0.0, 0.0, -tip_offset)
+	terminal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	connector.add_child(terminal)
+
+	var relief := MeshInstance3D.new()
+	relief.name = "FlexibleRubberStrainRelief"
+	relief.mesh = _create_rounded_panel_mesh(0.105, 0.074, 0.12, 0.026)
+	relief.material_override = shell_material
+	relief.position = Vector3(0.0, 0.0, 0.055)
+	relief.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	connector.add_child(relief)
+	for groove_index in range(3):
+		var groove := MeshInstance3D.new()
+		groove.name = "StrainReliefGroove_%d" % groove_index
+		groove.mesh = _create_rounded_panel_mesh(0.108, 0.077, 0.006, 0.028)
+		groove.material_override = _charger_material(Color("#303942"), 0.0, 0.82)
+		groove.position = Vector3(0.0, 0.0, 0.015 + float(groove_index) * 0.025)
+		groove.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		connector.add_child(groove)
+	return connector
+
+
+func _build_charger_cable(geometry_parent: Node3D, output_connector: String) -> void:
+	var cable_group := Node3D.new()
+	cable_group.name = "ChargingCableAssembly"
+	cable_group.position = Vector3(-0.88, 0.0, 0.0)
+	geometry_parent.add_child(cable_group)
+
+	var cable_material := _charger_material(Color("#222a33"), 0.04, 0.58)
+	var connector_shell := _charger_material(Color("#343e48"), 0.18, 0.38)
+	var connector_metal := _charger_material(Color("#c8d1d9"), 0.90, 0.22)
+
+	# The adapter-side plug is inserted into the recessed socket. Its tip size
+	# follows the selected adapter connector (USB-C or USB-A).
+	_add_charger_cable_connector(
+		cable_group,
+		"AdapterSideCablePlug",
+		output_connector,
+		Vector3(0.88, 0.015, 0.34),
+		Vector3(0.0, 0.0, -1.0),
+		connector_shell,
+		connector_metal,
+		true
+	)
+
+	var route := PackedVector3Array()
+	route = _append_charger_bezier(route, Vector3(0.88, 0.015, 0.46), Vector3(1.04, -0.025, 0.46), Vector3(1.17, -0.13, 0.46), Vector3(1.14, -0.36, 0.45), 16)
+	route = _append_charger_bezier(route, Vector3(1.14, -0.36, 0.45), Vector3(1.18, -0.56, 0.45), Vector3(1.14, -0.73, 0.44), Vector3(0.94, -0.84, 0.43), 16)
+	route = _append_charger_bezier(route, Vector3(0.94, -0.84, 0.43), Vector3(0.72, -0.99, 0.42), Vector3(0.43, -0.96, 0.42), Vector3(0.22, -0.81, 0.41), 16)
+	route = _append_charger_bezier(route, Vector3(0.22, -0.81, 0.41), Vector3(0.10, -0.70, 0.41), Vector3(0.055, -0.60, 0.40), Vector3(0.08, -0.51, 0.40), 16)
+
+	var cable := MeshInstance3D.new()
+	cable.name = "ContinuousFlexibleCableJacket"
+	cable.mesh = _create_charger_cable_tube_mesh(route, 0.024, 16)
+	cable.material_override = cable_material
+	cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cable_group.add_child(cable)
+
+	var final_index := route.size() - 1
+	var end_direction := (route[final_index] - route[final_index - 1]).normalized()
+	var end_connector_position := route[final_index] + end_direction * 0.075
+	var device_connector := _charger_device_connector()
+	_add_charger_cable_connector(
+		cable_group,
+		"DeviceSide_" + device_connector.replace("-", "") + "_Plug",
+		device_connector,
+		end_connector_position,
+		end_direction,
+		connector_shell,
+		connector_metal,
+		false
+	)
+
+
+func _charger_device_connector() -> String:
+	var parts := charger_cable_type.split(" to ")
+	if parts.size() != 2:
+		return "USB-C"
+	return str(parts[1])
+
+
+func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
+	charger_cable_enabled = enabled
+	_rebuild_charger_preview()
+
+
+func _rebuild_charger_preview() -> void:
+	if not is_instance_valid(charger_preview):
+		return
+	for child in charger_preview.get_children():
+		child.free()
+
+	# Keep all adapter geometry in a centred local pivot. The outer preview node
+	# can now rotate exactly like the phone without orbiting around an offset.
+	var charger_geometry := Node3D.new()
+	charger_geometry.name = "ChargerGeometry"
+	charger_geometry.position = Vector3(-0.88, 0.0, 0.0)
+	charger_preview.add_child(charger_geometry)
+
 func _rebuild_charger_preview() -> void:
 	if not is_instance_valid(charger_preview):
 		return
@@ -3216,29 +3479,9 @@ func _rebuild_charger_preview() -> void:
 	charger_geometry.add_child(face)
 	_add_charger_box(charger_geometry, "HousingSeam", Vector3(0.535, 0.009, 0.008), Vector3(0.88, -0.255, 0.158), seam_material)
 
-	# Recessed adapter socket. The dark rounded cavity sits behind a four-sided
-	# metal lip (not a solid plate), so the opening reads as a real port.
+	# Machined socket built with the same true-depth port geometry used by the phone.
 	var output_connector := _charger_output_connector()
-	var port_width := 0.132 if output_connector == "USB-C" else 0.168
-	var port_height := 0.052 if output_connector == "USB-C" else 0.072
-	var port_center := Vector3(0.88, 0.015, 0.159)
-	var cavity := MeshInstance3D.new()
-	cavity.name = "ChargerPortDarkCavity"
-	cavity.mesh = _create_rounded_panel_mesh(port_width, port_height, 0.003, 0.018)
-	cavity.material_override = dark_material
-	cavity.position = port_center
-	cavity.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	charger_geometry.add_child(cavity)
-	var lip_z := 0.164
-	var lip := 0.008
-	_add_charger_box(charger_geometry, "PortLipTop", Vector3(port_width + lip * 2.0, lip, 0.006), Vector3(0.88, 0.015 + port_height * 0.5 + lip * 0.5, lip_z), seam_material)
-	_add_charger_box(charger_geometry, "PortLipBottom", Vector3(port_width + lip * 2.0, lip, 0.006), Vector3(0.88, 0.015 - port_height * 0.5 - lip * 0.5, lip_z), seam_material)
-	_add_charger_box(charger_geometry, "PortLipLeft", Vector3(lip, port_height, 0.006), Vector3(0.88 - port_width * 0.5 - lip * 0.5, 0.015, lip_z), seam_material)
-	_add_charger_box(charger_geometry, "PortLipRight", Vector3(lip, port_height, 0.006), Vector3(0.88 + port_width * 0.5 + lip * 0.5, 0.015, lip_z), seam_material)
-	if output_connector == "USB-C":
-		_add_charger_box(charger_geometry, "USBCPortTongue", Vector3(0.074, 0.010, 0.004), Vector3(0.88, 0.014, 0.166), metal_material)
-	else:
-		_add_charger_box(charger_geometry, "USBAInternalTongue", Vector3(0.142, 0.009, 0.004), Vector3(0.88, 0.004, 0.166), metal_material)
+	_add_charger_recessed_port(charger_geometry, output_connector, Vector3(0.88, 0.015, 0.159), metal_material)
 
 	# A restrained status LED and clear wattage marking on the front fascia.
 	_add_charger_cylinder(charger_geometry, "StatusIndicator", 0.012, 0.004, Vector3(0.88, 0.245, 0.160), accent_material, 24)
@@ -3270,7 +3513,10 @@ func _rebuild_charger_preview() -> void:
 			_add_charger_box(charger_geometry, "UniversalProngLeft", Vector3(0.035, 0.15, 0.17), Vector3(0.81, 0.0, -0.23), metal_material)
 			_add_charger_box(charger_geometry, "UniversalProngRight", Vector3(0.035, 0.15, 0.17), Vector3(0.95, 0.0, -0.23), metal_material)
 
-	charger_preview.visible = charger_enabled and charger_preview_mode
+	charger_geometry.visible = charger_enabled
+	if charger_cable_enabled:
+		_build_charger_cable(charger_preview, output_connector)
+	charger_preview.visible = (charger_enabled or charger_cable_enabled) and charger_preview_mode
 
 
 func _set_charger_preview_mode(enabled: bool) -> void:
@@ -3284,9 +3530,9 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 		charger_preview.scale = Vector3.ONE * (1.8 if enabled else 1.0)
 		if not enabled:
 			charger_preview.rotation = Vector3.ZERO
-		charger_preview.visible = enabled and charger_enabled
+		charger_preview.visible = enabled and (charger_enabled or charger_cable_enabled)
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 3.65 if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, (4.25 if charger_cable_enabled else 3.65) if enabled else 5.2)
 
 
 func _on_charger_wattage_changed(value: float) -> void:
@@ -3323,6 +3569,11 @@ func _on_charger_plug_selected(value: String) -> void:
 
 func _charger_output_connector() -> String:
 	return "USB-A" if charger_cable_type.begins_with("USB-A") else "USB-C"
+
+
+func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
+	charger_cable_enabled = enabled
+	_rebuild_charger_preview()
 
 
 func _on_charger_cable_selected(value: String) -> void:
@@ -3535,8 +3786,30 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(plug_note)
 			"CABLE":
-				var cable_heading := _make_label("CABLE CONNECTION", 13, Color("#a9e3ff"))
+				var cable_heading := _make_label("PHYSICAL CHARGING CABLE", 13, Color("#a9e3ff"))
 				active_feature_panel.add_child(cable_heading)
+				var cable_enable_row := HBoxContainer.new()
+				cable_enable_row.name = "ChargingCableEnableRow"
+				cable_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				active_feature_panel.add_child(cable_enable_row)
+				var cable_enable_label := _make_label("SHOW 3D CABLE", 13, Color("#e6f5ff"))
+				cable_enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				cable_enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				cable_enable_row.add_child(cable_enable_label)
+				var cable_toggle := TextureButton.new()
+				cable_toggle.name = "EnableChargingCableModel"
+				cable_toggle.custom_minimum_size = Vector2(40, 40)
+				cable_toggle.ignore_texture_size = true
+				cable_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+				cable_toggle.texture_normal = _make_side_button_checkbox_icon(false)
+				cable_toggle.texture_hover = _make_side_button_checkbox_icon(false)
+				cable_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+				cable_toggle.toggle_mode = true
+				cable_toggle.button_pressed = charger_cable_enabled
+				cable_toggle.focus_mode = Control.FOCUS_NONE
+				cable_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+				cable_toggle.toggled.connect(_on_charger_cable_enabled_toggled)
+				cable_enable_row.add_child(cable_toggle)
 				for cable_name in ["USB-C to USB-C", "USB-A to USB-C", "USB-C to Lightning", "USB-A to Lightning", "USB-C to Micro-USB", "USB-A to Micro-USB"]:
 					var cable_button := Button.new()
 					cable_button.name = "ChargerCable_" + cable_name.replace(" ", "").replace("-", "")
@@ -3548,7 +3821,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 					_style_staff_button(cable_button, charger_cable_type == cable_name)
 					cable_button.pressed.connect(_on_charger_cable_selected.bind(cable_name))
 					active_feature_panel.add_child(cable_button)
-				var cable_note := _make_label("The first connector is the charger end. The 3D adapter socket changes between USB-C and USB-A to match it.", 11, Color("#a9c9dc"))
+				var cable_note := _make_label("The first connector plugs into the adapter; the second connector is the phone end. The 3D cable, strain reliefs and both connector heads update together.", 11, Color("#a9c9dc"))
 				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(cable_note)
 			"POWER":
