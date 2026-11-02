@@ -137,6 +137,7 @@ var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
 var front_camera_megapixels := 12
+var front_camera_secondary_megapixels := 12
 const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
 const MAX_REAR_CAMERAS := 5
 const MAX_REAR_FLASHES := 5
@@ -2963,10 +2964,15 @@ func _show_front_camera_mp_controls() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 2)
 	active_feature_panel.add_child(row)
 	row.add_child(_make_camera_mp_slider_card("01", front_camera_megapixels, func(megapixels: int) -> void:
 		front_camera_megapixels = megapixels
 	))
+	if front_camera_style == "Dual Punch-Hole":
+		row.add_child(_make_camera_mp_slider_card("02", front_camera_secondary_megapixels, func(megapixels: int) -> void:
+			front_camera_secondary_megapixels = megapixels
+		))
 
 
 func _show_rear_camera_mp_controls() -> void:
