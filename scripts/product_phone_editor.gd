@@ -5542,13 +5542,18 @@ func _build_software_summary_panel() -> void:
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	# Keep vertical scrolling active while hiding its visual scrollbar.
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	software_summary_panel.add_child(scroll)
 
 	var content := VBoxContainer.new()
 	content.name = "SoftwareSpecificationContent"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	# Guarantee overflow in the middle panel so touch/mouse scrolling always
+	# has a real vertical range, even on tall displays.
+	content.custom_minimum_size.y = 900.0
 	content.add_theme_constant_override("separation", 14)
 	scroll.add_child(content)
 
