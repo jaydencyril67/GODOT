@@ -1362,7 +1362,7 @@ func _show_back_design_controls() -> void:
 	back_design_selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	back_design_selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	back_design_selection_scroll.follow_focus = false
-	back_design_selection_scroll.scroll_deadzone = 8
+	back_design_selection_scroll.scroll_deadzone = 2
 	back_design_selection_scroll.clip_contents = true
 	back_design_selection_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	var dropdown_scroll_bar := back_design_selection_scroll.get_v_scroll_bar()
@@ -1530,7 +1530,7 @@ func _rebuild_back_design_selection_popup() -> void:
 		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		item.focus_mode = Control.FOCUS_NONE
-		item.mouse_filter = Control.MOUSE_FILTER_STOP
+		item.mouse_filter = Control.MOUSE_FILTER_PASS
 		item.add_theme_font_size_override("font_size", 15)
 		var normal := StyleBoxFlat.new()
 		normal.bg_color = Color("#10334a")
