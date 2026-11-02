@@ -213,6 +213,9 @@ var side_button_length_label: Label
 var active_feature_panel: Control
 var right_tools_content: VBoxContainer
 var device_body_color := Color("#a5adb6")
+var device_gradient_enabled := false
+var device_gradient_color := Color("#536dfe")
+var device_gradient_direction := 0 # 0 vertical, 1 horizontal, 2 diagonal, 3 radial
 var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
@@ -853,13 +856,8 @@ func _get_preview_viewport() -> SubViewport:
 	phone_body = MeshInstance3D.new()
 	phone_body.name = "Plain_Phone_Body"
 	phone_body.mesh = _create_rounded_phone_mesh(0.0, PackedVector2Array())
-	var body_material := StandardMaterial3D.new()
-	# Use a restrained silver-white base. Preview lighting is balanced below
-	# so the rendered face keeps this colour instead of clipping to pure white.
-	body_material.albedo_color = device_body_color
-	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
-	body_material.metallic = 0.0
-	body_material.roughness = 0.94
+	var body_material := _create_device_body_material()
+
 	# The phone body is generated dynamically from a triangulated outline.
 	# Keep both sides drawable so a winding/triangulation edge case at the
 	# unrounded (level 0) rectangle cannot make the chassis vanish while rotating.
@@ -1034,6 +1032,35 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		use_device_color.toggled.connect(_on_back_design_use_device_color_toggled)
 		use_device_color_row.add_child(use_device_color)
 		_set_back_design_custom_color_controls_enabled(not use_device_color.button_pressed)
+
+	if not return_to_back_design:
+		var gradient_toggle := CheckBox.new()
+		gradient_toggle.name = "EnableDeviceGradient"
+		gradient_toggle.text = "ENABLE GRADIENT"
+		gradient_toggle.button_pressed = device_gradient_enabled
+		gradient_toggle.add_theme_color_override("font_color", Color("#d8eaf5"))
+		gradient_toggle.toggled.connect(_on_device_gradient_toggled)
+		active_feature_panel.add_child(gradient_toggle)
+		var gradient_row := HBoxContainer.new()
+		gradient_row.name = "GradientOptions"
+		gradient_row.add_theme_constant_override("separation", 8)
+		active_feature_panel.add_child(gradient_row)
+		var secondary_picker := ColorPickerButton.new()
+		secondary_picker.name = "GradientSecondaryColor"
+		secondary_picker.color = device_gradient_color
+		secondary_picker.custom_minimum_size = Vector2(72, 36)
+		secondary_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		secondary_picker.color_changed.connect(_on_device_gradient_color_changed)
+		gradient_row.add_child(secondary_picker)
+		var direction_picker := OptionButton.new()
+		direction_picker.name = "GradientDirection"
+		direction_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for direction_name in ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]:
+			direction_picker.add_item(direction_name)
+		direction_picker.select(clampi(device_gradient_direction, 0, 3))
+		direction_picker.item_selected.connect(_on_device_gradient_direction_changed)
+		gradient_row.add_child(direction_picker)
+		gradient_row.visible = device_gradient_enabled
 
 	var spectrum_heading := _make_label("COLOR SPECTRUM", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(spectrum_heading)
@@ -1230,6 +1257,75 @@ func _apply_device_color_hex(value: String) -> void:
 	_on_device_body_color_changed(Color.from_string("#" + hex_value, device_body_color))
 
 
+func _create_device_body_material() -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_burley;
+uniform vec4 solid_color : source_color = vec4(0.647, 0.678, 0.714, 1.0);
+uniform vec4 gradient_color : source_color = vec4(0.325, 0.427, 0.996, 1.0);
+uniform bool gradient_enabled = false;
+uniform int gradient_direction : hint_range(0, 3) = 0;
+varying vec3 local_position;
+varying vec3 local_normal;
+void vertex() {
+	local_position = VERTEX;
+	local_normal = NORMAL;
+}
+void fragment() {
+	// The front-facing chassis is the face looking toward the preview camera
+	// (its authored normal points toward -Z). Rear and perimeter faces share
+	// one local-space gradient so the finish remains continuous around edges.
+	if (local_normal.z < -0.5 || !gradient_enabled) {
+		ALBEDO = solid_color.rgb;
+	} else {
+		vec2 p = local_position.xy / vec2(0.95, 2.0) + vec2(0.5);
+		float t = p.y;
+		if (gradient_direction == 1) {
+			t = p.x;
+		} else if (gradient_direction == 2) {
+			t = clamp((p.x + p.y) * 0.5, 0.0, 1.0);
+		} else if (gradient_direction == 3) {
+			t = clamp(length((p - vec2(0.5)) * vec2(1.0, 1.8)) * 1.4142, 0.0, 1.0);
+		}
+		vec3 gradient_rgb = mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0));
+		ALBEDO = gradient_rgb;
+	}
+	METALLIC = 0.0;
+	ROUGHNESS = 0.72;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("solid_color", device_body_color)
+	material.set_shader_parameter("gradient_color", device_gradient_color)
+	material.set_shader_parameter("gradient_enabled", device_gradient_enabled)
+	material.set_shader_parameter("gradient_direction", device_gradient_direction)
+	return material
+
+
+func _on_device_gradient_toggled(enabled: bool) -> void:
+	device_gradient_enabled = enabled
+	if is_instance_valid(active_feature_panel):
+		var options := active_feature_panel.get_node_or_null("GradientOptions") as Control
+		if is_instance_valid(options):
+			options.visible = enabled
+	if is_instance_valid(phone_body):
+		phone_body.material_override = _create_device_body_material()
+
+
+func _on_device_gradient_color_changed(color: Color) -> void:
+	device_gradient_color = Color(color.r, color.g, color.b, 1.0)
+	if is_instance_valid(phone_body):
+		phone_body.material_override = _create_device_body_material()
+
+
+func _on_device_gradient_direction_changed(index: int) -> void:
+	device_gradient_direction = clampi(index, 0, 3)
+	if is_instance_valid(phone_body):
+		phone_body.material_override = _create_device_body_material()
+
+
 func _on_device_body_color_changed(color: Color) -> void:
 	var selected_color := Color(color.r, color.g, color.b, 1.0)
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
@@ -1239,9 +1335,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 	else:
 		device_body_color = selected_color
 	if not back_design_color_mode and is_instance_valid(phone_body):
-		var body_material := phone_body.material_override as StandardMaterial3D
-		if is_instance_valid(body_material):
-			body_material.albedo_color = device_body_color
+		phone_body.material_override = _create_device_body_material()
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
