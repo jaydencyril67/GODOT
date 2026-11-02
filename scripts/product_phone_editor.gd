@@ -2904,17 +2904,18 @@ func _style_camera_mp_slider(slider: VSlider) -> void:
 
 func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable) -> VBoxContainer:
 	var card := VBoxContainer.new()
-	card.custom_minimum_size = Vector2(72, 0)
+	card.custom_minimum_size = Vector2(34, 0)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_constant_override("separation", 5)
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.add_theme_constant_override("separation", 2)
 	var title := _make_label(title_text, 11, Color("#c7eaff"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.clip_text = true
 	card.add_child(title)
-	var value_label := _make_label("%d MP" % current_mp, 13, Color.WHITE)
+	var value_label := _make_label("%d MP" % current_mp, 12, Color.WHITE)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(value_label)
-	var high_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1], 10, Color("#91b8cc"))
+	var high_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1], 9, Color("#91b8cc"))
 	high_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(high_label)
 	var slider := VSlider.new()
@@ -2922,7 +2923,7 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	slider.max_value = CAMERA_MEGAPIXEL_STEPS.size() - 1
 	slider.step = 1
 	slider.value = _camera_mp_slider_index(current_mp)
-	slider.custom_minimum_size = Vector2(52, 245)
+	slider.custom_minimum_size = Vector2(30, 245)
 	slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_style_camera_mp_slider(slider)
@@ -2932,7 +2933,7 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 		callback.call(megapixels)
 	)
 	card.add_child(slider)
-	var low_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[0], 10, Color("#91b8cc"))
+	var low_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[0], 9, Color("#91b8cc"))
 	low_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(low_label)
 	return card
@@ -2946,24 +2947,24 @@ func _show_front_camera_mp_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "FrontCameraMegapixelControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 10)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 6)
 	right_tools_content.add_child(active_feature_panel)
-	var heading := _make_label("FRONT CAMERA  /  IMAGE SENSOR", 16, Color("#c7eaff"))
+	var heading := _make_label("FRONT CAMERA MP", 16, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	if not front_camera_enabled:
-		var hint := _make_label("Enable the front camera in HARDWARE to configure its megapixels.", 13, Color("#d8eaf5"))
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var hint := _make_label("Enable the front camera in HARDWARE.", 13, Color("#d8eaf5"))
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(hint)
 		return
-	var explanation := _make_label("Select the front sensor resolution independently.", 11, Color("#91b8cc"))
-	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(explanation)
 	var row := HBoxContainer.new()
+	row.name = "FrontCameraMegapixelSliderRow"
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(row)
-	row.add_child(_make_camera_mp_slider_card("SELFIE CAMERA", front_camera_megapixels, func(megapixels: int) -> void:
+	row.add_child(_make_camera_mp_slider_card("01", front_camera_megapixels, func(megapixels: int) -> void:
 		front_camera_megapixels = megapixels
 	))
 
@@ -2976,36 +2977,29 @@ func _show_rear_camera_mp_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "RearCameraMegapixelControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 4)
 	right_tools_content.add_child(active_feature_panel)
-	var heading := _make_label("REAR CAMERA  /  IMAGE SENSORS", 16, Color("#c7eaff"))
+	var heading := _make_label("REAR CAMERA MP", 16, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var count_label := _make_label("%d PHYSICAL REAR CAMERA(S) CONFIGURED" % rear_camera_modules.size(), 11, Color("#91b8cc"))
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(count_label)
 	if rear_camera_modules.is_empty():
-		var hint := _make_label("Add rear cameras in HARDWARE → Rare Camera. Each physical camera will get its own megapixel slider here.", 13, Color("#d8eaf5"))
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var hint := _make_label("Add rear cameras in HARDWARE.", 13, Color("#d8eaf5"))
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(hint)
 		return
-	var slider_scroll := ScrollContainer.new()
-	slider_scroll.name = "RearCameraMegapixelSliderScroll"
-	slider_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider_scroll.custom_minimum_size = Vector2(0, 285)
-	slider_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	slider_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	active_feature_panel.add_child(slider_scroll)
 	var slider_row := HBoxContainer.new()
 	slider_row.name = "RearCameraMegapixelSliders"
 	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider_row.add_theme_constant_override("separation", 8)
-	slider_scroll.add_child(slider_row)
+	slider_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	slider_row.add_theme_constant_override("separation", 2)
+	active_feature_panel.add_child(slider_row)
 	for camera_index in range(rear_camera_modules.size()):
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
 		var camera_id := int(camera_data.get("id", camera_index + 1))
 		var megapixels := int(camera_data.get("mp", 12))
-		slider_row.add_child(_make_camera_mp_slider_card("REAR %02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
+		slider_row.add_child(_make_camera_mp_slider_card("%02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
 			for module_index in range(rear_camera_modules.size()):
 				if int(rear_camera_modules[module_index].get("id", -1)) == camera_id:
 					rear_camera_modules[module_index]["mp"] = next_mp
