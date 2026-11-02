@@ -5386,8 +5386,10 @@ func _refresh_phone_mesh() -> void:
 	_refresh_phone_speakers()
 	_refresh_back_design_boxes()
 	_refresh_rear_hardware_visuals()
-func _on_border_radius_level_changed(value: float) -> void:
 	_queue_phone_case_sync()
+
+
+func _on_border_radius_level_changed(value: float) -> void:
 	border_radius_level = clampi(roundi(value), 0, 6)
 	if is_instance_valid(border_radius_value_label):
 		border_radius_value_label.text = "LEVEL %d / 6" % border_radius_level
@@ -6718,9 +6720,9 @@ func _case_subtract(combiner: CSGCombiner3D, cutter: CSGShape3D) -> void:
 	combiner.add_child(cutter)
 
 
-func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: float, depth: float, wall: float, name: String) -> void:
+func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: float, depth: float, wall: float, opening_name: String) -> void:
 	var opening := CSGBox3D.new()
-	opening.name = name
+	opening.name = opening_name
 	opening.size = Vector3(wall*5.0+0.08,maxf(length,0.045),depth+wall*2.0+0.08)
 	opening.position = Vector3(side*PHONE_SIZE.x*0.5,y,0.0)
 	_case_subtract(combiner,opening)
