@@ -546,8 +546,7 @@ func _get_hardware_research_features() -> Array:
 		"Screen Size", "Screen Type", "Border Radius", "Speakers",
 		"Charge Port", "Front Camera", "Rare Camera",
 		"Side Button", "Home Button", "Back Design", "Phone Width",
-		"Phone Height", "Sim/Memory Slot", "Protection", "Refresh Rate",
-		"Back Panel Material", "Frame Material", "Body Finish & Colour",
+		"Phone Height", "Protection", "Refresh Rate",
 		"Cooling System Design"
 	]
 
