@@ -5461,7 +5461,7 @@ func _show_rom_controls() -> void:
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.add_theme_constant_override("separation", 7)
 	scroll.add_child(options)
-	for capacity in ["16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"]:
+	for capacity in ["4 GB", "8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"]:
 		var option := Button.new()
 		option.name = "ROMOption_" + capacity.replace(" ", "")
 		option.text = capacity + ("   ✓ SELECTED" if selected_rom_capacity == capacity else "")
@@ -5474,7 +5474,7 @@ func _show_rom_controls() -> void:
 
 
 func _on_rom_capacity_selected(capacity: String) -> void:
-	if not ["16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"].has(capacity):
+	if not ["4 GB", "8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"].has(capacity):
 		return
 	selected_rom_capacity = capacity
 	if software_value_labels.has("ROM") and is_instance_valid(software_value_labels["ROM"]):
