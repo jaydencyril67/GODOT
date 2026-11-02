@@ -2865,15 +2865,15 @@ func _screen_protector_point_is_cut_out(point: Vector2, cutouts: Array[Dictionar
 	for cutout in cutouts:
 		var centre: Vector2 = cutout["center"]
 		if str(cutout["shape"]) == "circle":
-			var radius := float(cutout["radius"])
-			if point.distance_squared_to(centre) <= radius * radius:
+			var circle_radius := float(cutout["radius"])
+			if point.distance_squared_to(centre) <= circle_radius * circle_radius:
 				return true
 		else:
 			var size: Vector2 = cutout["size"]
-			var radius := float(cutout["radius"])
+			var corner_radius := float(cutout["radius"])
 			var delta := (point - centre).abs()
-			var corner_delta := Vector2(maxf(delta.x - size.x * 0.5 + radius, 0.0), maxf(delta.y - size.y * 0.5 + radius, 0.0))
-			if corner_delta.length_squared() <= radius * radius:
+			var corner_delta := Vector2(maxf(delta.x - size.x * 0.5 + corner_radius, 0.0), maxf(delta.y - size.y * 0.5 + corner_radius, 0.0))
+			if corner_delta.length_squared() <= corner_radius * corner_radius:
 				return true
 	return false
 
