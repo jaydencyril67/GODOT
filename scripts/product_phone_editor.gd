@@ -6744,7 +6744,7 @@ func _add_phone_case_camera_aperture(combiner: CSGCombiner3D, centre: Vector2, m
 	_add_phone_case_camera_trim(phone_case_preview, centre, inner_outline, outer_outline, rear_case_surface_z, opening_name + "GoldTrim", trim_material)
 
 
-func _create_phone_case_material() -> ShaderMaterial:func _create_phone_case_material() -> ShaderMaterial:
+func _create_phone_case_material() -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
