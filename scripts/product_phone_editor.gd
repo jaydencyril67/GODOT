@@ -4035,11 +4035,14 @@ func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Ma
 		return
 
 	var circle_material := StandardMaterial3D.new()
+	# The S-Pen end is a fixed black hardware detail, not a surface that
+	# participates in the phone's front-light ray, scene lighting, or fog.
 	circle_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	circle_material.albedo_color = Color("#050505")
+	circle_material.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
 	circle_material.metallic = 0.0
 	circle_material.roughness = 1.0
 	circle_material.disable_receive_shadows = true
+	circle_material.disable_fog = true
 
 	var end_marker := MeshInstance3D.new()
 	end_marker.name = "StylePenBlackCircleEnd"
