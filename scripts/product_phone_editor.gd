@@ -179,6 +179,24 @@ var screen_type_buttons: Dictionary = {}
 const SCREEN_TYPE_ORDER := ["TFT LCD", "LED-LCD", "IPS LCD", "Mini-LED LCD", "OLED", "AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"]
 var preview_camera: Camera3D
 var preview_container: SubViewportContainer
+var phone_case_preview: Node3D
+var phone_case_back: MeshInstance3D
+var phone_case_frame: Node3D
+var phone_case_selected := 0
+const PHONE_CASE_DESIGNS := [
+	{"name":"Leather Pouch / Holster","era":"EARLY MOBILE ERA","description":"Classic padded leather carry case","color":"#76513b","roughness":0.88,"thickness":1.18},
+	{"name":"Hard Plastic Shell","era":"EARLY SNAP-ON CASES","description":"Rigid molded polycarbonate shell","color":"#26394c","roughness":0.28,"thickness":1.08},
+	{"name":"Silicone / Rubber Case","era":"SOFT-TOUCH CASES","description":"Flexible grippy silicone with a matte finish","color":"#202a35","roughness":0.82,"thickness":1.16},
+	{"name":"TPU Flexible Case","era":"FLEXIBLE CLEAR CASES","description":"Shock-absorbing flexible polyurethane","color":"#a8c6d6","roughness":0.38,"thickness":1.12},
+	{"name":"Wallet / Folio Case","era":"BOOK-STYLE PROTECTION","description":"Folding cover with a leather-like exterior","color":"#563b31","roughness":0.78,"thickness":1.22},
+	{"name":"Rugged Dual-Layer Case","era":"HEAVY-DUTY PROTECTION","description":"Reinforced armor with cushioned inner protection","color":"#263b31","roughness":0.72,"thickness":1.34},
+	{"name":"Transparent Clear Case","era":"SHOWCASE DESIGNS","description":"Transparent shell that shows the phone finish","color":"#b9e4f5","roughness":0.16,"thickness":1.10,"clear":true},
+	{"name":"Fabric / Woven Case","era":"TEXTILE FINISHES","description":"Textile-inspired tactile exterior","color":"#66717b","roughness":0.94,"thickness":1.14},
+	{"name":"Battery Case","era":"POWER CASES","description":"Protective shell with integrated battery bulge","color":"#303943","roughness":0.48,"thickness":1.48},
+	{"name":"Ultra-Slim Aramid Case","era":"THIN MODERN CASES","description":"Lightweight thin technical-fiber shell","color":"#252a30","roughness":0.58,"thickness":1.035},
+	{"name":"Magnetic Accessory Case","era":"MAGNETIC ACCESSORY ERA","description":"Modern case with a magnetic accessory ring","color":"#394957","roughness":0.42,"thickness":1.13,"magnetic":true},
+	{"name":"Recycled Bio-Based Case","era":"RECENT SUSTAINABLE DESIGNS","description":"Contemporary recycled or plant-based style","color":"#68785a","roughness":0.86,"thickness":1.12}
+]
 var preview_stack: VBoxContainer
 var software_summary_panel: PanelContainer
 var software_value_labels: Dictionary = {}
@@ -940,6 +958,7 @@ func _get_preview_viewport() -> SubViewport:
 	# and producing large shadow-map artifacts as its radius changes.
 	phone_body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	preview_world.add_child(phone_body)
+	_build_phone_case_preview(preview_world)
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
@@ -1004,7 +1023,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1012,6 +1031,9 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
 	_close_back_design_selection_popup()
+	if feature_name == "Phone Case":
+		_show_phone_case_controls()
+		return
 	if feature_name == "Screen Tech":
 		_show_screen_tech_controls()
 	elif feature_name == "Screen Size":
@@ -6570,6 +6592,7 @@ func _update_left_tools_navigation_buttons() -> void:
 func _set_left_tools_page(requested_page: int) -> void:
 	left_tools_page = clampi(requested_page, 0, 2)
 	_update_left_tools_navigation_buttons()
+	_update_phone_case_preview_mode()
 	if is_instance_valid(preview_container):
 		preview_container.visible = left_tools_page != 1
 	if is_instance_valid(software_summary_panel):
@@ -6586,6 +6609,166 @@ func _set_left_tools_page(requested_page: int) -> void:
 		var page_grid := tools_content.get_node_or_null("PhoneEditorLeftToolsCardButtonPage" + str(page_index + 1))
 		if is_instance_valid(page_grid):
 			page_grid.visible = page_index == left_tools_page
+
+
+func _build_phone_case_preview(parent: Node3D) -> void:
+	phone_case_preview = Node3D.new()
+	phone_case_preview.name = "PhoneCasePreview"
+	phone_case_preview.visible = false
+	parent.add_child(phone_case_preview)
+	phone_case_back = MeshInstance3D.new()
+	phone_case_back.name = "CaseBackShell"
+	phone_case_back.mesh = _create_rounded_phone_mesh(0.22, PackedVector2Array())
+	phone_case_back.scale = Vector3(1.045, 1.035, 0.42)
+	phone_case_preview.add_child(phone_case_back)
+	phone_case_frame = Node3D.new()
+	phone_case_frame.name = "CaseProtectiveRails"
+	phone_case_preview.add_child(phone_case_frame)
+	_refresh_phone_case_preview()
+
+
+func _refresh_phone_case_preview() -> void:
+	if not is_instance_valid(phone_case_preview) or not is_instance_valid(phone_case_back):
+		return
+	var design: Dictionary = PHONE_CASE_DESIGNS[phone_case_selected]
+	var color := Color(str(design["color"]))
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(color, 0.48) if bool(design.get("clear", false)) else color
+	material.roughness = float(design["roughness"])
+	if bool(design.get("clear", false)):
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	phone_case_back.material_override = material
+	var thickness := float(design["thickness"])
+	phone_case_back.scale = Vector3(1.045, 1.035, 0.42 * thickness)
+	for child in phone_case_frame.get_children():
+		child.queue_free()
+	var rail_material := material.duplicate() as StandardMaterial3D
+	var depth := 0.105 * thickness
+	_add_case_rail(phone_case_frame, "LeftCaseRail", Vector3(-0.755, 0, 0), Vector3(0.055, 2.96, depth), rail_material)
+	_add_case_rail(phone_case_frame, "RightCaseRail", Vector3(0.755, 0, 0), Vector3(0.055, 2.96, depth), rail_material)
+	_add_case_rail(phone_case_frame, "TopCaseRail", Vector3(0, 1.475, 0), Vector3(1.48, 0.055, depth), rail_material)
+	_add_case_rail(phone_case_frame, "BottomCaseRail", Vector3(0, -1.475, 0), Vector3(1.48, 0.055, depth), rail_material)
+	var camera_guard := MeshInstance3D.new()
+	camera_guard.name = "CaseCameraGuard"
+	var guard_mesh := BoxMesh.new()
+	guard_mesh.size = Vector3(0.48, 0.48, 0.025)
+	camera_guard.mesh = guard_mesh
+	camera_guard.position = Vector3(-0.43, 1.12, 0.055)
+	var guard_material := StandardMaterial3D.new()
+	guard_material.albedo_color = color.darkened(0.28)
+	camera_guard.material_override = guard_material
+	phone_case_frame.add_child(camera_guard)
+	for i in range(3):
+		var lens := MeshInstance3D.new()
+		var lens_mesh := CylinderMesh.new()
+		lens_mesh.top_radius = 0.055
+		lens_mesh.bottom_radius = 0.055
+		lens_mesh.height = 0.018
+		lens.mesh = lens_mesh
+		lens.rotation_degrees.x = 90
+		lens.position = Vector3(-0.54 + float(i % 2) * 0.18, 1.25 - floor(float(i) / 2.0) * 0.18, 0.073)
+		var lens_material := StandardMaterial3D.new()
+		lens_material.albedo_color = Color("#101820")
+		lens_material.roughness = 0.2
+		lens.material_override = lens_material
+		phone_case_frame.add_child(lens)
+	if bool(design.get("magnetic", false)):
+		var ring := MeshInstance3D.new()
+		ring.name = "MagneticAccessoryRing"
+		var ring_mesh := TorusMesh.new()
+		ring_mesh.inner_radius = 0.34
+		ring_mesh.outer_radius = 0.37
+		ring.mesh = ring_mesh
+		ring.position = Vector3(0, -0.25, 0.075)
+		var ring_material := StandardMaterial3D.new()
+		ring_material.albedo_color = Color("#c4d4df")
+		ring_material.metallic = 0.82
+		ring_material.roughness = 0.24
+		ring.material_override = ring_material
+		phone_case_frame.add_child(ring)
+
+
+func _add_case_rail(parent: Node3D, rail_name: String, rail_position: Vector3, rail_size: Vector3, material: Material) -> void:
+	var rail := MeshInstance3D.new()
+	rail.name = rail_name
+	var mesh := BoxMesh.new()
+	mesh.size = rail_size
+	rail.mesh = mesh
+	rail.position = rail_position
+	rail.material_override = material
+	parent.add_child(rail)
+
+
+func _update_phone_case_preview_mode() -> void:
+	var show_case := left_tools_page == 2
+	if is_instance_valid(phone_body):
+		phone_body.visible = not show_case
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.visible = show_case
+	if show_case:
+		_show_phone_case_controls()
+	else:
+		preview_mouse_dragging = false
+
+
+func _show_phone_case_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "PhoneCaseControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 7)
+	right_tools_content.add_child(active_feature_panel)
+	var heading := _make_label("PHONE CASE DESIGNS", 17, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var selected: Dictionary = PHONE_CASE_DESIGNS[phone_case_selected]
+	var era := _make_label(str(selected["era"]), 11, Color("#9edcff"))
+	era.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	era.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(era)
+	var description := _make_label(str(selected["description"]), 12, Color("#d5e9f5"))
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+	var prompt := _make_label("SELECT A CASE STYLE", 12, Color("#a9e3ff"))
+	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(prompt)
+	var scroll := ScrollContainer.new()
+	scroll.name = "PhoneCaseDesignScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	active_feature_panel.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 6)
+	scroll.add_child(list)
+	for index in range(PHONE_CASE_DESIGNS.size()):
+		var design: Dictionary = PHONE_CASE_DESIGNS[index]
+		var option := Button.new()
+		option.name = "PhoneCaseOption" + str(index + 1)
+		option.text = "%02d  %s%s" % [index + 1, design["name"], "  ✓" if index == phone_case_selected else ""]
+		option.tooltip_text = str(design["description"])
+		option.custom_minimum_size = Vector2(0, 43)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_research_typography(option, 12)
+		_style_staff_button(option, index == phone_case_selected)
+		option.pressed.connect(_on_phone_case_selected.bind(index))
+		list.add_child(option)
+
+
+func _on_phone_case_selected(index: int) -> void:
+	if index < 0 or index >= PHONE_CASE_DESIGNS.size():
+		return
+	phone_case_selected = index
+	_refresh_phone_case_preview()
+	_show_phone_case_controls()
+
 
 func _make_label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
@@ -6615,6 +6798,12 @@ func _input(event: InputEvent) -> void:
 
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
+	if left_tools_page == 2 and is_instance_valid(phone_case_preview):
+		if absf(delta.x) >= absf(delta.y):
+			phone_case_preview.rotation.y += delta.x * DRAG_SENSITIVITY
+		else:
+			phone_case_preview.rotation.x += delta.y * DRAG_SENSITIVITY
+		return
 	if not is_instance_valid(phone_body):
 		return
 
@@ -6628,6 +6817,12 @@ func _rotate_phone_from_drag(delta: Vector2) -> void:
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
+	if left_tools_page == 2 and is_instance_valid(phone_case_preview):
+		if axis == Vector3.RIGHT:
+			phone_case_preview.rotation.x += ROTATION_STEP * direction
+		elif axis == Vector3.UP:
+			phone_case_preview.rotation.y += ROTATION_STEP * direction
+		return
 	if not is_instance_valid(phone_body):
 		return
 	if axis == Vector3.RIGHT:
@@ -6637,6 +6832,13 @@ func _rotate_axis(axis: Vector3, direction: float) -> void:
 
 
 func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
+	if left_tools_page == 2 and is_instance_valid(phone_case_preview):
+		var fine_step := deg_to_rad(5.0)
+		if axis == Vector3.RIGHT:
+			phone_case_preview.rotation.x += fine_step * direction
+		elif axis == Vector3.UP:
+			phone_case_preview.rotation.y += fine_step * direction
+		return
 	if not is_instance_valid(phone_body):
 		return
 	var fine_step := deg_to_rad(5.0)
@@ -6647,7 +6849,9 @@ func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
 
 
 func _reset_phone_rotation() -> void:
-	if is_instance_valid(phone_body):
+	if left_tools_page == 2 and is_instance_valid(phone_case_preview):
+		phone_case_preview.rotation = Vector3.ZERO
+	elif is_instance_valid(phone_body):
 		phone_body.rotation = Vector3.ZERO
 
 
