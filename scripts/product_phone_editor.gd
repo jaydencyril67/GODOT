@@ -3497,12 +3497,19 @@ func _rebuild_charger_preview() -> void:
 	var combined_layout := charger_enabled and charger_cable_enabled
 	var charger_scale := 0.72 if combined_layout else 1.0
 	var charger_geometry := Node3D.new()
-	charger_geometry.name = "ChargerGeometry"
+	charger_geometry.name = "ChargerGeometryPivot"
 	charger_geometry.scale = Vector3.ONE * charger_scale
-	charger_geometry.position = Vector3(-0.88 * charger_scale - (0.62 if combined_layout else 0.0), 0.27 if combined_layout else 0.0, 0.0)
+	charger_geometry.position = Vector3(-0.62, 0.27, 0.0) if combined_layout else Vector3.ZERO
 	if combined_layout:
 		charger_geometry.rotation_degrees = Vector3(-12.0, -20.0, -22.0)
 	charger_preview.add_child(charger_geometry)
+
+	# The actual mesh coordinates are centred at local X=0.88. Put them under
+	# a centred child so combined-view rotation turns the adapter in place.
+	var charger_model := Node3D.new()
+	charger_model.name = "ChargerModelGeometry"
+	charger_model.position = Vector3(-0.88, 0.0, 0.0)
+	charger_geometry.add_child(charger_model)
 
 	var shell_material := _charger_material(charger_body_color, 0.02, 0.22)
 	var face_material := _charger_material(charger_body_color.lightened(0.035), 0.03, 0.20)
@@ -3520,7 +3527,7 @@ func _rebuild_charger_preview() -> void:
 	shell_combiner.name = "ChargerHousingWithRealPortCutout"
 	shell_combiner.use_collision = false
 	shell_combiner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	charger_geometry.add_child(shell_combiner)
+	charger_model.add_child(shell_combiner)
 
 	var body_shell := CSGMesh3D.new()
 	body_shell.name = "ChargerAdapterBody"
@@ -3545,13 +3552,13 @@ func _rebuild_charger_preview() -> void:
 	port_cutter.position = Vector3(0.88, 0.015, 0.16)
 	shell_combiner.add_child(port_cutter)
 
-	_add_charger_box(charger_geometry, "HousingSeam", Vector3(0.535, 0.009, 0.008), Vector3(0.88, -0.255, 0.158), seam_material)
+	_add_charger_box(charger_model, "HousingSeam", Vector3(0.535, 0.009, 0.008), Vector3(0.88, -0.255, 0.158), seam_material)
 
 	# Machined socket walls and contacts are nested inside the newly cut opening.
-	_add_charger_recessed_port(charger_geometry, output_connector, Vector3(0.88, 0.015, 0.159), metal_material)
+	_add_charger_recessed_port(charger_model, output_connector, Vector3(0.88, 0.015, 0.159), metal_material)
 
 	# A restrained status LED and clear wattage marking on the front fascia.
-	_add_charger_cylinder(charger_geometry, "StatusIndicator", 0.012, 0.004, Vector3(0.88, 0.245, 0.160), accent_material, 24)
+	_add_charger_cylinder(charger_model, "StatusIndicator", 0.012, 0.004, Vector3(0.88, 0.245, 0.160), accent_material, 24)
 	var wattage_label := Label3D.new()
 	wattage_label.name = "ChargerWattageMark"
 	wattage_label.text = "%dW" % charger_wattage
@@ -3560,25 +3567,25 @@ func _rebuild_charger_preview() -> void:
 	wattage_label.modulate = Color("#687786")
 	wattage_label.position = Vector3(0.88, -0.145, 0.160)
 	wattage_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	charger_geometry.add_child(wattage_label)
+	charger_model.add_child(wattage_label)
 
 	# Real plug geometry sits on the rear face and projects away from the shell.
 	match charger_plug_type:
 		"UK":
-			_add_charger_box(charger_geometry, "UKLiveProng", Vector3(0.042, 0.145, 0.17), Vector3(0.78, -0.105, -0.23), metal_material)
-			_add_charger_box(charger_geometry, "UKNeutralProng", Vector3(0.042, 0.145, 0.17), Vector3(0.98, -0.105, -0.23), metal_material)
-			_add_charger_box(charger_geometry, "UKEarthProng", Vector3(0.042, 0.155, 0.17), Vector3(0.88, 0.135, -0.23), metal_material)
+			_add_charger_box(charger_model, "UKLiveProng", Vector3(0.042, 0.145, 0.17), Vector3(0.78, -0.105, -0.23), metal_material)
+			_add_charger_box(charger_model, "UKNeutralProng", Vector3(0.042, 0.145, 0.17), Vector3(0.98, -0.105, -0.23), metal_material)
+			_add_charger_box(charger_model, "UKEarthProng", Vector3(0.042, 0.155, 0.17), Vector3(0.88, 0.135, -0.23), metal_material)
 		"EU":
-			var eu_left := _add_charger_cylinder(charger_geometry, "EUProngLeft", 0.029, 0.17, Vector3(0.81, 0.0, -0.225), metal_material, 32)
-			var eu_right := _add_charger_cylinder(charger_geometry, "EUProngRight", 0.029, 0.17, Vector3(0.95, 0.0, -0.225), metal_material, 32)
+			var eu_left := _add_charger_cylinder(charger_model, "EUProngLeft", 0.029, 0.17, Vector3(0.81, 0.0, -0.225), metal_material, 32)
+			var eu_right := _add_charger_cylinder(charger_model, "EUProngRight", 0.029, 0.17, Vector3(0.95, 0.0, -0.225), metal_material, 32)
 			eu_left.rotation_degrees.x = 90.0
 			eu_right.rotation_degrees.x = 90.0
 		"US":
-			_add_charger_box(charger_geometry, "USProngLeft", Vector3(0.035, 0.15, 0.17), Vector3(0.81, 0.0, -0.23), metal_material)
-			_add_charger_box(charger_geometry, "USProngRight", Vector3(0.035, 0.15, 0.17), Vector3(0.95, 0.0, -0.23), metal_material)
+			_add_charger_box(charger_model, "USProngLeft", Vector3(0.035, 0.15, 0.17), Vector3(0.81, 0.0, -0.23), metal_material)
+			_add_charger_box(charger_model, "USProngRight", Vector3(0.035, 0.15, 0.17), Vector3(0.95, 0.0, -0.23), metal_material)
 		"Universal":
-			_add_charger_box(charger_geometry, "UniversalProngLeft", Vector3(0.035, 0.15, 0.17), Vector3(0.81, 0.0, -0.23), metal_material)
-			_add_charger_box(charger_geometry, "UniversalProngRight", Vector3(0.035, 0.15, 0.17), Vector3(0.95, 0.0, -0.23), metal_material)
+			_add_charger_box(charger_model, "UniversalProngLeft", Vector3(0.035, 0.15, 0.17), Vector3(0.81, 0.0, -0.23), metal_material)
+			_add_charger_box(charger_model, "UniversalProngRight", Vector3(0.035, 0.15, 0.17), Vector3(0.95, 0.0, -0.23), metal_material)
 
 	# The wall adapter and cable are independent systems. In the complete-set
 	# view the cable sits lower-right; alone it is centred and enlarged.
