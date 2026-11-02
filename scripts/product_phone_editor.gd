@@ -194,6 +194,21 @@ var wireless_charging_speed_value_label: Label
 var selected_bluetooth_version := "Not set"
 var selected_wifi_standard := "Not set"
 var selected_mobile_network := "Not set"
+var selected_phone_sensors: Dictionary = {
+	"Fingerprint Sensor": true,
+	"3D Face Recognition / IR Sensor": false,
+	"NFC Controller": false,
+	"Accelerometer": true,
+	"Gyroscope": true,
+	"Proximity Sensor": true,
+	"Ambient Light Sensor": true,
+	"Magnetometer / Compass": true,
+	"Barometer": false,
+	"Hall-effect Sensor": false,
+	"Color Temperature Sensor": false,
+	"Laser Autofocus / ToF Sensor": false,
+	"Ultrasonic Sensor": false
+}
 var charging_speed_value_label: Label
 var charging_speed_slider: VSlider
 var charging_speed_decrease_button: Button
@@ -989,7 +1004,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1047,6 +1062,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_wifi_controls()
 	elif feature_name == "Network":
 		_show_mobile_network_controls()
+	elif feature_name == "Sensors":
+		_show_sensor_controls()
 
 
 
@@ -5583,7 +5600,8 @@ func _build_software_summary_panel() -> void:
 		["OPERATING SYSTEM", "Not set"],
 		["RAM TECHNOLOGY", selected_ram_technology],
 		["STORAGE TYPE", "Not set"],
-		["CONNECTIVITY", "Not set"]
+		["CONNECTIVITY", "Not set"],
+		["SENSORS", _get_enabled_sensor_summary()]
 	]
 	for specification in specifications:
 		var row := HBoxContainer.new()
@@ -5624,6 +5642,22 @@ func _get_rear_camera_mp_summary() -> String:
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
 		megapixel_values.append("%d MP" % int(camera_data.get("mp", 12)))
 	return "%d cameras — %s" % [rear_camera_modules.size(), " / ".join(megapixel_values)]
+
+
+func _get_enabled_sensor_summary() -> String:
+	var enabled_sensors: Array[String] = []
+	for sensor_name in selected_phone_sensors.keys():
+		if bool(selected_phone_sensors[sensor_name]):
+			enabled_sensors.append(str(sensor_name))
+	if enabled_sensors.is_empty():
+		return "None enabled"
+	return "%d enabled" % enabled_sensors.size()
+
+
+func _update_sensor_software_summary() -> void:
+	if software_value_labels.has("SENSORS") and is_instance_valid(software_value_labels["SENSORS"]):
+		var sensor_label: Label = software_value_labels["SENSORS"]
+		sensor_label.text = _get_enabled_sensor_summary()
 
 
 func _update_camera_software_summary() -> void:
@@ -6183,6 +6217,91 @@ func _on_wifi_standard_selected(standard: String) -> void:
 	_show_wifi_controls()
 
 
+func _show_sensor_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "PhoneSensorSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 8)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("PHONE SENSORS", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var subtitle := _make_label("ENABLE OR DISABLE INDIVIDUAL COMPONENTS", 11, Color("#a9c9dc"))
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(subtitle)
+
+	var count_label := _make_label("", 13, Color("#d8f1ff"))
+	count_label.name = "EnabledSensorCount"
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(count_label)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "PhoneSensorOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	active_feature_panel.add_child(scroll)
+
+	var options := VBoxContainer.new()
+	options.name = "PhoneSensorOptions"
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+
+	for sensor_name in selected_phone_sensors.keys():
+		var row := HBoxContainer.new()
+		row.name = "SensorRow_" + str(sensor_name).replace(" ", "_").replace("/", "_")
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 8)
+		options.add_child(row)
+
+		var sensor_label := _make_label(str(sensor_name), 13, Color("#e7f6ff"))
+		sensor_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sensor_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		sensor_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(sensor_label)
+
+		var toggle := CheckBox.new()
+		toggle.name = "SensorEnabledToggle"
+		toggle.button_pressed = bool(selected_phone_sensors[sensor_name])
+		toggle.tooltip_text = "Enable or disable " + str(sensor_name)
+		toggle.focus_mode = Control.FOCUS_NONE
+		toggle.custom_minimum_size = Vector2(34, 38)
+		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+		_apply_research_typography(toggle, 13)
+		toggle.toggled.connect(_on_phone_sensor_toggled.bind(str(sensor_name), count_label))
+		row.add_child(toggle)
+
+	_update_sensor_count_label(count_label)
+
+
+func _update_sensor_count_label(count_label: Label) -> void:
+	if not is_instance_valid(count_label):
+		return
+	var enabled_count := 0
+	for sensor_name in selected_phone_sensors.keys():
+		if bool(selected_phone_sensors[sensor_name]):
+			enabled_count += 1
+	count_label.text = "%d OF %d SENSORS ENABLED" % [enabled_count, selected_phone_sensors.size()]
+
+
+func _on_phone_sensor_toggled(enabled: bool, sensor_name: String, count_label: Label) -> void:
+	if not selected_phone_sensors.has(sensor_name):
+		return
+	selected_phone_sensors[sensor_name] = enabled
+	_update_sensor_count_label(count_label)
+	_update_sensor_software_summary()
+
+
 func _show_mobile_network_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -6280,6 +6399,7 @@ func _set_left_tools_page(requested_page: int) -> void:
 		software_summary_panel.visible = left_tools_page == 1
 		if left_tools_page == 1:
 			_update_camera_software_summary()
+			_update_sensor_software_summary()
 	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
 	if not is_instance_valid(tools_content):
 		return
