@@ -860,10 +860,11 @@ func _get_preview_viewport() -> SubViewport:
 	body_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	body_material.metallic = 0.0
 	body_material.roughness = 0.94
-	# This is a closed solid mesh with outward-facing, correctly wound
-	# triangles. Cull its back faces instead of shading interior backfaces
-	# with automatically inverted normals.
-	body_material.cull_mode = BaseMaterial3D.CULL_BACK
+	# The phone body is generated dynamically from a triangulated outline.
+	# Keep both sides drawable so a winding/triangulation edge case at the
+	# unrounded (level 0) rectangle cannot make the chassis vanish while rotating.
+	# Depth testing still ensures only the nearest visible surface is shown.
+	body_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	phone_body.material_override = body_material
 	_refresh_phone_side_buttons()
 	_refresh_phone_home_button()
