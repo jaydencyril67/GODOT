@@ -196,7 +196,7 @@ var selected_wifi_standard := "Not set"
 var selected_mobile_network := "Not set"
 var selected_phone_sensors: Dictionary = {
 	"Fingerprint Sensor": true,
-	"3D Face Recognition / IR Sensor": false,
+	"Face Recognition / Face ID": false,
 	"NFC Controller": false,
 	"Accelerometer": true,
 	"Gyroscope": true,
@@ -204,12 +204,7 @@ var selected_phone_sensors: Dictionary = {
 	"Ambient Light Sensor": true,
 	"Magnetometer / Compass": true,
 	"Barometer": false,
-	"Hall-effect Sensor": false,
-	"Color Temperature Sensor": false,
-	"Laser Autofocus / ToF Sensor": false,
-	"Ultrasonic Sensor": false,
-	"GNSS / GPS Receiver": true,
-	"Pedometer / Step Counter": false
+	"GNSS / GPS Receiver": true
 }
 var charging_speed_value_label: Label
 var charging_speed_slider: VSlider
@@ -1135,7 +1130,7 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		if not use_device_color.button_pressed:
 			var box_gradient_toggle_row := HBoxContainer.new()
 			box_gradient_toggle_row.name = "BackBoxGradientToggleRow"
-			box_gradient_toggle_row.add_theme_constant_override("separation", 8)
+			box_gradient_toggle_row.add_theme_constant_override("separation", 12)
 			active_feature_panel.add_child(box_gradient_toggle_row)
 			var box_gradient_label := _make_label("ENABLE GRADIENT", 13, Color("#d8eaf5"))
 			box_gradient_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1156,7 +1151,7 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 			box_gradient_toggle_row.add_child(box_gradient_toggle)
 			var box_gradient_options := VBoxContainer.new()
 			box_gradient_options.name = "BackBoxGradientOptions"
-			box_gradient_options.add_theme_constant_override("separation", 7)
+			box_gradient_options.add_theme_constant_override("separation", 10)
 			active_feature_panel.add_child(box_gradient_options)
 			var box_target_row := HBoxContainer.new()
 			box_target_row.name = "BackBoxGradientColorTargets"
@@ -6232,15 +6227,15 @@ func _show_sensor_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("PHONE SENSORS", 18, Color("#c7eaff"))
+	var heading := _make_label("PHONE SENSORS", 21, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var subtitle := _make_label("ENABLE OR DISABLE INDIVIDUAL COMPONENTS", 11, Color("#a9c9dc"))
+	var subtitle := _make_label("ENABLE OR DISABLE INDIVIDUAL COMPONENTS", 13, Color("#a9c9dc"))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(subtitle)
 
-	var count_label := _make_label("", 13, Color("#d8f1ff"))
+	var count_label := _make_label("", 15, Color("#d8f1ff"))
 	count_label.name = "EnabledSensorCount"
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(count_label)
@@ -6266,21 +6261,29 @@ func _show_sensor_controls() -> void:
 		row.add_theme_constant_override("separation", 8)
 		options.add_child(row)
 
-		var sensor_label := _make_label(str(sensor_name), 13, Color("#e7f6ff"))
+		var sensor_label := _make_label(str(sensor_name), 16, Color("#e7f6ff"))
 		sensor_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		sensor_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		sensor_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.add_child(sensor_label)
 
-		var toggle := CheckBox.new()
+		var toggle := TextureButton.new()
 		toggle.name = "SensorEnabledToggle"
+		toggle.custom_minimum_size = Vector2(42, 42)
+		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+		toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		toggle.ignore_texture_size = true
+		toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		toggle.texture_normal = _make_side_button_checkbox_icon(bool(selected_phone_sensors[sensor_name]))
+		toggle.texture_hover = _make_side_button_checkbox_icon(bool(selected_phone_sensors[sensor_name]))
+		toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+		toggle.texture_disabled = _make_side_button_checkbox_icon(false)
+		toggle.toggle_mode = true
 		toggle.button_pressed = bool(selected_phone_sensors[sensor_name])
 		toggle.tooltip_text = "Enable or disable " + str(sensor_name)
 		toggle.focus_mode = Control.FOCUS_NONE
-		toggle.custom_minimum_size = Vector2(34, 38)
-		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-		_apply_research_typography(toggle, 13)
-		toggle.toggled.connect(_on_phone_sensor_toggled.bind(str(sensor_name), count_label))
+		toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+		toggle.toggled.connect(_on_phone_sensor_toggled.bind(str(sensor_name), count_label, toggle))
 		row.add_child(toggle)
 
 	_update_sensor_count_label(count_label)
@@ -6296,10 +6299,15 @@ func _update_sensor_count_label(count_label: Label) -> void:
 	count_label.text = "%d OF %d SENSORS ENABLED" % [enabled_count, selected_phone_sensors.size()]
 
 
-func _on_phone_sensor_toggled(enabled: bool, sensor_name: String, count_label: Label) -> void:
+func _on_phone_sensor_toggled(enabled: bool, sensor_name: String, count_label: Label, toggle: TextureButton) -> void:
 	if not selected_phone_sensors.has(sensor_name):
 		return
 	selected_phone_sensors[sensor_name] = enabled
+	if is_instance_valid(toggle):
+		var icon := _make_side_button_checkbox_icon(enabled)
+		toggle.texture_normal = icon
+		toggle.texture_hover = icon
+		toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 	_update_sensor_count_label(count_label)
 	_update_sensor_software_summary()
 
