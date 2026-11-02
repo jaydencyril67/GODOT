@@ -1006,29 +1006,39 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(title)
 	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		var use_device_color := CheckBox.new()
+		var use_device_color_row := HBoxContainer.new()
+		use_device_color_row.name = "UseDeviceColorRow"
+		use_device_color_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		use_device_color_row.add_theme_constant_override("separation", 9)
+		active_feature_panel.add_child(use_device_color_row)
+		var use_device_color_label := _make_label("USE DEVICE COLOR", 13, Color("#d8eaf5"))
+		use_device_color_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		use_device_color_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		use_device_color_row.add_child(use_device_color_label)
+		var use_device_color := TextureButton.new()
 		use_device_color.name = "UseDeviceColor"
-		use_device_color.text = "USE DEVICE COLOR"
+		use_device_color.custom_minimum_size = Vector2(36, 36)
+		use_device_color.size_flags_horizontal = Control.SIZE_SHRINK_END
+		use_device_color.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		use_device_color.ignore_texture_size = true
+		use_device_color.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		use_device_color.texture_normal = _make_side_button_checkbox_icon(false)
+		use_device_color.texture_hover = _make_side_button_checkbox_icon(false)
+		use_device_color.texture_pressed = _make_side_button_checkbox_icon(true)
+		use_device_color.toggle_mode = true
 		use_device_color.button_pressed = bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))
-		use_device_color.add_theme_color_override("font_color", Color("#d8eaf5"))
-		use_device_color.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		use_device_color.focus_mode = Control.FOCUS_NONE
+		use_device_color.mouse_filter = Control.MOUSE_FILTER_STOP
 		use_device_color.toggled.connect(_on_back_design_use_device_color_toggled)
-		active_feature_panel.add_child(use_device_color)
-		var color_hint := _make_label("On: matches phone body  •  Off: custom box color", 11, Color("#91b8cf"))
-		color_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		active_feature_panel.add_child(color_hint)
+		use_device_color_row.add_child(use_device_color)
 		_set_back_design_custom_color_controls_enabled(not use_device_color.button_pressed)
-	var description := _make_label("Choose the custom finish for this raised box.", 12, Color("#d8eaf5"))
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
 
 	var spectrum_heading := _make_label("COLOR SPECTRUM", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(spectrum_heading)
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var spectrum_height := clampf(color_viewport_size.y * 0.22, 145.0, 190.0) * 1.5
+	var spectrum_height := clampf(color_viewport_size.y * 0.22, 145.0, 190.0) * 1.5 / 1.3
 	spectrum.custom_minimum_size = Vector2(0, spectrum_height)
 	spectrum.set_color_value(_get_active_color_picker_color())
 	spectrum.color_changed.connect(_on_device_body_color_changed)
