@@ -138,6 +138,7 @@ var home_button_enabled := false
 var front_camera_enabled := false
 var front_camera_megapixels := 12
 const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
+const MAX_REAR_CAMERAS := 5
 var front_camera_style := "Punch-Hole"
 const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
 var front_camera_option_buttons: Dictionary = {}
@@ -2902,7 +2903,7 @@ func _style_camera_mp_slider(slider: VSlider) -> void:
 
 func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable) -> VBoxContainer:
 	var card := VBoxContainer.new()
-	card.custom_minimum_size = Vector2(104, 0)
+	card.custom_minimum_size = Vector2(72, 0)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_constant_override("separation", 5)
 	var title := _make_label(title_text, 11, Color("#c7eaff"))
@@ -2920,7 +2921,7 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	slider.max_value = CAMERA_MEGAPIXEL_STEPS.size() - 1
 	slider.step = 1
 	slider.value = _camera_mp_slider_index(current_mp)
-	slider.custom_minimum_size = Vector2(42, 176)
+	slider.custom_minimum_size = Vector2(52, 245)
 	slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_style_camera_mp_slider(slider)
@@ -2987,18 +2988,23 @@ func _show_rear_camera_mp_controls() -> void:
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		active_feature_panel.add_child(hint)
 		return
-	var grid := GridContainer.new()
-	grid.name = "RearCameraMegapixelSliders"
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 10)
-	active_feature_panel.add_child(grid)
+	var slider_scroll := ScrollContainer.new()
+	slider_scroll.name = "RearCameraMegapixelSliderScroll"
+	slider_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_scroll.custom_minimum_size = Vector2(0, 285)
+	slider_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	slider_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	active_feature_panel.add_child(slider_scroll)
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "RearCameraMegapixelSliders"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.add_theme_constant_override("separation", 8)
+	slider_scroll.add_child(slider_row)
 	for camera_index in range(rear_camera_modules.size()):
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
 		var camera_id := int(camera_data.get("id", camera_index + 1))
 		var megapixels := int(camera_data.get("mp", 12))
-		grid.add_child(_make_camera_mp_slider_card("REAR CAMERA %02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
+		slider_row.add_child(_make_camera_mp_slider_card("REAR %02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
 			for module_index in range(rear_camera_modules.size()):
 				if int(rear_camera_modules[module_index].get("id", -1)) == camera_id:
 					rear_camera_modules[module_index]["mp"] = next_mp
@@ -3530,6 +3536,9 @@ func _get_rear_hardware_default_size() -> float:
 
 
 func _add_rear_hardware_module() -> void:
+	if rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS:
+		_refresh_rear_hardware_panel()
+		return
 	var module_size := _get_rear_hardware_default_size()
 	var spawn_position := _find_rear_hardware_spawn_position(rear_hardware_mode, module_size)
 	if spawn_position.x > 900.0:
@@ -3684,7 +3693,9 @@ func _refresh_rear_hardware_panel() -> void:
 	rear_hardware_remove_button.disabled = not has_selection
 	rear_hardware_previous_button.disabled = modules.size() < 2
 	rear_hardware_next_button.disabled = modules.size() < 2
-	rear_hardware_add_button.text = "+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"
+	var camera_limit_reached := rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS
+	rear_hardware_add_button.text = "MAX 5 CAMERAS" if camera_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH")
+	rear_hardware_add_button.disabled = camera_limit_reached
 	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
 
 
