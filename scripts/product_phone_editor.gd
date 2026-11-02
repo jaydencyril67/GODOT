@@ -191,6 +191,7 @@ var charger_preview: Node3D
 var charger_enabled := false
 var charger_wattage := 30
 var charger_plug_type := "UK"
+var charger_cable_type := "USB-C to USB-C"
 var charger_body_color := Color("#e8edf2")
 var charger_wattage_label: Label
 var charger_wattage_slider: VSlider
@@ -3215,11 +3216,29 @@ func _rebuild_charger_preview() -> void:
 	charger_geometry.add_child(face)
 	_add_charger_box(charger_geometry, "HousingSeam", Vector3(0.535, 0.009, 0.008), Vector3(0.88, -0.255, 0.158), seam_material)
 
-	# Proper USB-C socket: rounded dark mouth, recessed cavity and visible tongue.
-	_add_charger_box(charger_geometry, "USBCPortBezel", Vector3(0.155, 0.071, 0.009), Vector3(0.88, 0.015, 0.160), seam_material)
-	_add_charger_box(charger_geometry, "USBCPortRecess", Vector3(0.132, 0.052, 0.008), Vector3(0.88, 0.015, 0.166), dark_material)
-	_add_charger_box(charger_geometry, "PortInnerShadow", Vector3(0.105, 0.034, 0.002), Vector3(0.88, 0.015, 0.169), dark_material)
-	_add_charger_box(charger_geometry, "USBCPortTongue", Vector3(0.074, 0.012, 0.004), Vector3(0.88, 0.014, 0.172), metal_material)
+	# Recessed adapter socket. The dark rounded cavity sits behind a four-sided
+	# metal lip (not a solid plate), so the opening reads as a real port.
+	var output_connector := _charger_output_connector()
+	var port_width := 0.132 if output_connector == "USB-C" else 0.168
+	var port_height := 0.052 if output_connector == "USB-C" else 0.072
+	var port_center := Vector3(0.88, 0.015, 0.159)
+	var cavity := MeshInstance3D.new()
+	cavity.name = "ChargerPortDarkCavity"
+	cavity.mesh = _create_rounded_panel_mesh(port_width, port_height, 0.003, 0.018)
+	cavity.material_override = dark_material
+	cavity.position = port_center
+	cavity.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	charger_geometry.add_child(cavity)
+	var lip_z := 0.164
+	var lip := 0.008
+	_add_charger_box(charger_geometry, "PortLipTop", Vector3(port_width + lip * 2.0, lip, 0.006), Vector3(0.88, 0.015 + port_height * 0.5 + lip * 0.5, lip_z), seam_material)
+	_add_charger_box(charger_geometry, "PortLipBottom", Vector3(port_width + lip * 2.0, lip, 0.006), Vector3(0.88, 0.015 - port_height * 0.5 - lip * 0.5, lip_z), seam_material)
+	_add_charger_box(charger_geometry, "PortLipLeft", Vector3(lip, port_height, 0.006), Vector3(0.88 - port_width * 0.5 - lip * 0.5, 0.015, lip_z), seam_material)
+	_add_charger_box(charger_geometry, "PortLipRight", Vector3(lip, port_height, 0.006), Vector3(0.88 + port_width * 0.5 + lip * 0.5, 0.015, lip_z), seam_material)
+	if output_connector == "USB-C":
+		_add_charger_box(charger_geometry, "USBCPortTongue", Vector3(0.074, 0.010, 0.004), Vector3(0.88, 0.014, 0.166), metal_material)
+	else:
+		_add_charger_box(charger_geometry, "USBAInternalTongue", Vector3(0.142, 0.009, 0.004), Vector3(0.88, 0.004, 0.166), metal_material)
 
 	# A restrained status LED and clear wattage marking on the front fascia.
 	_add_charger_cylinder(charger_geometry, "StatusIndicator", 0.012, 0.004, Vector3(0.88, 0.245, 0.160), accent_material, 24)
@@ -3300,6 +3319,18 @@ func _on_charger_plug_selected(value: String) -> void:
 	charger_plug_type = value
 	_rebuild_charger_preview()
 	_show_charger_controls("PLUG")
+
+
+func _charger_output_connector() -> String:
+	return "USB-A" if charger_cable_type.begins_with("USB-A") else "USB-C"
+
+
+func _on_charger_cable_selected(value: String) -> void:
+	if not ["USB-C to USB-C", "USB-A to USB-C", "USB-C to Lightning", "USB-A to Lightning", "USB-C to Micro-USB", "USB-A to Micro-USB"].has(value):
+		return
+	charger_cable_type = value
+	_rebuild_charger_preview()
+	_show_charger_controls("CABLE")
 
 
 func _on_charger_color_selected(value: String) -> void:
@@ -3503,6 +3534,23 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				var plug_note := _make_label("Changes the physical wall-pin layout on the 3D adapter.", 11, Color("#a9c9dc"))
 				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(plug_note)
+			"CABLE":
+				var cable_heading := _make_label("CABLE CONNECTION", 13, Color("#a9e3ff"))
+				active_feature_panel.add_child(cable_heading)
+				for cable_name in ["USB-C to USB-C", "USB-A to USB-C", "USB-C to Lightning", "USB-A to Lightning", "USB-C to Micro-USB", "USB-A to Micro-USB"]:
+					var cable_button := Button.new()
+					cable_button.name = "ChargerCable_" + cable_name.replace(" ", "").replace("-", "")
+					cable_button.text = cable_name + ("   ✓  SELECTED" if charger_cable_type == cable_name else "")
+					cable_button.custom_minimum_size = Vector2(0, 48)
+					cable_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					cable_button.focus_mode = Control.FOCUS_NONE
+					_apply_research_typography(cable_button, 13)
+					_style_staff_button(cable_button, charger_cable_type == cable_name)
+					cable_button.pressed.connect(_on_charger_cable_selected.bind(cable_name))
+					active_feature_panel.add_child(cable_button)
+				var cable_note := _make_label("The first connector is the charger end. The 3D adapter socket changes between USB-C and USB-A to match it.", 11, Color("#a9c9dc"))
+				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				active_feature_panel.add_child(cable_note)
 			"POWER":
 				var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#a9e3ff"))
 				active_feature_panel.add_child(wattage_heading)
@@ -3578,6 +3626,17 @@ func _show_charger_controls(page: String = "HOME") -> void:
 	_style_staff_button(plug_option, false)
 	plug_option.pressed.connect(_show_charger_controls.bind("PLUG"))
 	active_feature_panel.add_child(plug_option)
+
+	var cable_option := Button.new()
+	cable_option.name = "OpenChargerCableSettings"
+	cable_option.text = "CABLE TYPE     ›     " + charger_cable_type
+	cable_option.custom_minimum_size = Vector2(0, 48)
+	cable_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cable_option.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(cable_option, 13)
+	_style_staff_button(cable_option, false)
+	cable_option.pressed.connect(_show_charger_controls.bind("CABLE"))
+	active_feature_panel.add_child(cable_option)
 
 	var power_option := Button.new()
 	power_option.name = "OpenChargerPowerSettings"
