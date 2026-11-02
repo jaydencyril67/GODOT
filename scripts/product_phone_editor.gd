@@ -3959,61 +3959,73 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_style_pen(parent: Node3D, current_depth: float, frame_material: Material, key_material: Material) -> void:
-	# Seat the S-Pen vertically in the extreme-left side rail, beside the
-	# outermost speaker opening. As corner radius grows, move it upward by
-	# the same amount so the complete stylus clears the rounded bottom corner.
+	# Samsung-style S-Pen silo: a short, flush rounded slot on the bottom
+	# edge, immediately to the left of the speaker openings. The pen itself
+	# stays inside the chassis; only its small removable end cap is visible.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
-	var pen_length := 0.245
-	var pen_radius := 0.014
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var left_edge := -PHONE_SIZE.x * 0.5
-	var pen_x := left_edge - 0.004
-	var pen_y := bottom_y + corner_radius + pen_length * 0.5 + 0.018
-	var pen_z := 0.0
+	var slot_length := 0.132
+	var slot_radius := clampf(current_depth * 0.075, 0.012, 0.018)
+	# Start just beyond the straight-edge tangent so the slot follows the
+	# rounded bottom corner at every border-radius setting.
+	var slot_x := left_edge + corner_radius + slot_length * 0.5 + 0.018
+	var slot_y := bottom_y - 0.001
+	var slot_z := 0.0
 
-	var channel := MeshInstance3D.new()
-	channel.name = "StylePenChannel"
-	var channel_mesh := CapsuleMesh.new()
-	channel_mesh.radius = pen_radius * 1.28
-	channel_mesh.height = pen_length + pen_radius * 2.0
-	channel_mesh.radial_segments = 24
-	channel_mesh.rings = 6
-	channel.mesh = channel_mesh
-	channel.position = Vector3(pen_x, pen_y, pen_z)
-	channel.material_override = frame_material
-	channel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(channel)
+	var recess_material := StandardMaterial3D.new()
+	recess_material.albedo_color = Color("#111820")
+	recess_material.metallic = 0.18
+	recess_material.roughness = 0.72
 
-	var pen := MeshInstance3D.new()
-	pen.name = "StylePen"
-	var pen_mesh := CapsuleMesh.new()
-	pen_mesh.radius = pen_radius
-	pen_mesh.height = pen_length
-	pen_mesh.radial_segments = 32
-	pen_mesh.rings = 8
-	pen.mesh = pen_mesh
-	pen.position = Vector3(pen_x - 0.006, pen_y, pen_z)
-	pen.material_override = key_material
-	pen.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(pen)
+	var recess := MeshInstance3D.new()
+	recess.name = "StylePenSlotRecess"
+	var recess_mesh := CapsuleMesh.new()
+	recess_mesh.radius = slot_radius
+	recess_mesh.height = slot_length
+	recess_mesh.radial_segments = 32
+	recess_mesh.rings = 8
+	recess.mesh = recess_mesh
+	recess.rotation_degrees.z = 90.0
+	recess.position = Vector3(slot_x, slot_y, slot_z)
+	recess.material_override = recess_material
+	recess.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(recess)
 
-	# Metallic end cap gives the removable stylus a finished S-Pen detail.
-	var cap := MeshInstance3D.new()
-	cap.name = "StylePenEndCap"
+	# A narrow inset face sits almost flush inside the dark perimeter seam.
+	var insert := MeshInstance3D.new()
+	insert.name = "StylePenSlotInsert"
+	var insert_mesh := CapsuleMesh.new()
+	insert_mesh.radius = slot_radius * 0.68
+	insert_mesh.height = slot_length * 0.78
+	insert_mesh.radial_segments = 32
+	insert_mesh.rings = 8
+	insert.mesh = insert_mesh
+	insert.rotation_degrees.z = 90.0
+	insert.position = Vector3(slot_x, slot_y - 0.0015, slot_z)
+	insert.material_override = key_material
+	insert.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(insert)
+
+	# The small rounded ejectable end is the only visible hint of the stored
+	# stylus, rather than exposing a long pen-shaped bar on the phone exterior.
+	var end_cap := MeshInstance3D.new()
+	end_cap.name = "StylePenEndCap"
 	var cap_mesh := SphereMesh.new()
-	cap_mesh.radius = pen_radius * 0.72
-	cap_mesh.height = pen_radius * 1.44
+	cap_mesh.radius = slot_radius * 0.62
+	cap_mesh.height = slot_radius * 1.24
 	cap_mesh.radial_segments = 24
 	cap_mesh.rings = 8
-	cap.mesh = cap_mesh
-	cap.position = Vector3(pen_x - 0.006, pen_y - pen_length * 0.43, pen_z)
+	end_cap.mesh = cap_mesh
+	end_cap.position = Vector3(slot_x - slot_length * 0.31, slot_y - 0.003, slot_z)
 	var cap_material := StandardMaterial3D.new()
 	cap_material.albedo_color = Color("#aebdca")
 	cap_material.metallic = 0.88
-	cap_material.roughness = 0.22
-	cap.material_override = cap_material
-	cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(cap)
+	cap_material.roughness = 0.24
+	end_cap.material_override = cap_material
+	end_cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(end_cap)
+
 
 func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, frame_material: Material, key_material: Material) -> void:
 	var edge := PHONE_SIZE.x * 0.5
