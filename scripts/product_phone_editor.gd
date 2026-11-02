@@ -136,6 +136,8 @@ var phone_screen: MeshInstance3D
 var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
+var front_camera_megapixels := 12
+const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
 var front_camera_style := "Punch-Hole"
 const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
 var front_camera_option_buttons: Dictionary = {}
@@ -540,7 +542,7 @@ func _get_software_research_features() -> Array:
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
 		"Network", "NFC", "GPS", "USB Connectivity", "Sensors",
-		"Front Camera", "Rare Camera", "Memory Clock", "AI Processing",
+		"Front Camera MP", "Rear Camera MP", "Memory Clock", "AI Processing",
 		"Data Encryption"
 	]
 
@@ -984,7 +986,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1018,6 +1020,10 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_front_camera_controls()
 	elif feature_name in ["Rare Camera", "Rear Camera"]:
 		_show_rear_camera_controls()
+	elif feature_name == "Front Camera MP":
+		_show_front_camera_mp_controls()
+	elif feature_name == "Rear Camera MP":
+		_show_rear_camera_mp_controls()
 	elif feature_name == "Back Design":
 		_show_back_design_controls()
 	elif feature_name == "RAM":
@@ -2852,6 +2858,151 @@ func _refresh_phone_screen() -> void:
 
 	_refresh_phone_home_button()
 
+func _camera_mp_from_slider_index(index: int) -> int:
+	return CAMERA_MEGAPIXEL_STEPS[clampi(index, 0, CAMERA_MEGAPIXEL_STEPS.size() - 1)]
+
+
+func _camera_mp_slider_index(megapixels: int) -> int:
+	var closest_index := 0
+	var closest_distance := 2147483647
+	for index in range(CAMERA_MEGAPIXEL_STEPS.size()):
+		var distance := absi(CAMERA_MEGAPIXEL_STEPS[index] - megapixels)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest_index = index
+	return closest_index
+
+
+func _style_camera_mp_slider(slider: VSlider) -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("#102f46")
+	track.border_color = Color("#477f9e")
+	track.set_border_width_all(1)
+	track.set_corner_radius_all(8)
+	track.content_margin_left = 4
+	track.content_margin_right = 4
+	slider.add_theme_stylebox_override("slider", track)
+	var grabber := StyleBoxFlat.new()
+	grabber.bg_color = Color("#a9e7ff")
+	grabber.border_color = Color.WHITE
+	grabber.set_border_width_all(2)
+	grabber.set_corner_radius_all(20)
+	grabber.content_margin_left = 5
+	grabber.content_margin_right = 5
+	grabber.content_margin_top = 5
+	grabber.content_margin_bottom = 5
+	slider.add_theme_stylebox_override("grabber", grabber)
+	var hover := grabber.duplicate() as StyleBoxFlat
+	hover.bg_color = Color.WHITE
+	hover.border_color = Color("#65caff")
+	slider.add_theme_stylebox_override("grabber_highlight", hover)
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable) -> VBoxContainer:
+	var card := VBoxContainer.new()
+	card.custom_minimum_size = Vector2(104, 0)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_constant_override("separation", 5)
+	var title := _make_label(title_text, 11, Color("#c7eaff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(title)
+	var value_label := _make_label("%d MP" % current_mp, 13, Color.WHITE)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card.add_child(value_label)
+	var slider := VSlider.new()
+	slider.min_value = 0
+	slider.max_value = CAMERA_MEGAPIXEL_STEPS.size() - 1
+	slider.step = 1
+	slider.value = _camera_mp_slider_index(current_mp)
+	slider.custom_minimum_size = Vector2(42, 176)
+	slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_style_camera_mp_slider(slider)
+	slider.value_changed.connect(func(value: float) -> void:
+		var megapixels := _camera_mp_from_slider_index(roundi(value))
+		value_label.text = "%d MP" % megapixels
+		callback.call(megapixels)
+	)
+	card.add_child(slider)
+	var low_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[0], 10, Color("#91b8cc"))
+	low_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card.add_child(low_label)
+	return card
+
+
+func _show_front_camera_mp_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "FrontCameraMegapixelControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+	var heading := _make_label("FRONT CAMERA  /  IMAGE SENSOR", 16, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	if not front_camera_enabled:
+		var hint := _make_label("Enable the front camera in HARDWARE to configure its megapixels.", 13, Color("#d8eaf5"))
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(hint)
+		return
+	var explanation := _make_label("Select the front sensor resolution independently.", 11, Color("#91b8cc"))
+	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(explanation)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(row)
+	row.add_child(_make_camera_mp_slider_card("SELFIE CAMERA", front_camera_megapixels, func(megapixels: int) -> void:
+		front_camera_megapixels = megapixels
+	))
+
+
+func _show_rear_camera_mp_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "RearCameraMegapixelControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+	var heading := _make_label("REAR CAMERA  /  IMAGE SENSORS", 16, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var count_label := _make_label("%d PHYSICAL REAR CAMERA(S) CONFIGURED" % rear_camera_modules.size(), 11, Color("#91b8cc"))
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(count_label)
+	if rear_camera_modules.is_empty():
+		var hint := _make_label("Add rear cameras in HARDWARE → Rare Camera. Each physical camera will get its own megapixel slider here.", 13, Color("#d8eaf5"))
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(hint)
+		return
+	var grid := GridContainer.new()
+	grid.name = "RearCameraMegapixelSliders"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 10)
+	active_feature_panel.add_child(grid)
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		var camera_id := int(camera_data.get("id", camera_index + 1))
+		var megapixels := int(camera_data.get("mp", 12))
+		grid.add_child(_make_camera_mp_slider_card("REAR CAMERA %02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
+			for module_index in range(rear_camera_modules.size()):
+				if int(rear_camera_modules[module_index].get("id", -1)) == camera_id:
+					rear_camera_modules[module_index]["mp"] = next_mp
+					break
+		))
+
+
 func _show_front_camera_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -3385,7 +3536,7 @@ func _add_rear_hardware_module() -> void:
 		rear_flash_selected_index = rear_flash_modules.size() - 1
 		next_rear_flash_id += 1
 	else:
-		rear_camera_modules.append({"id": next_rear_camera_id, "position": spawn_position, "size": module_size})
+		rear_camera_modules.append({"id": next_rear_camera_id, "position": spawn_position, "size": module_size, "mp": 12})
 		rear_camera_selected_index = rear_camera_modules.size() - 1
 		next_rear_camera_id += 1
 	_refresh_rear_hardware_visuals()
