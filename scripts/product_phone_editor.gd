@@ -862,7 +862,6 @@ func _get_preview_viewport() -> SubViewport:
 	# Keep both sides drawable so a winding/triangulation edge case at the
 	# unrounded (level 0) rectangle cannot make the chassis vanish while rotating.
 	# Depth testing still ensures only the nearest visible surface is shown.
-	body_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	phone_body.material_override = body_material
 	_refresh_phone_side_buttons()
 	_refresh_phone_home_button()
@@ -1261,7 +1260,7 @@ func _create_device_body_material() -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
-render_mode diffuse_burley;
+render_mode diffuse_burley, cull_disabled;
 uniform vec4 solid_color : source_color = vec4(0.647, 0.678, 0.714, 1.0);
 uniform vec4 gradient_color : source_color = vec4(0.325, 0.427, 0.996, 1.0);
 uniform bool gradient_enabled = false;
