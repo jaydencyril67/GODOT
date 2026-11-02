@@ -6658,7 +6658,9 @@ func _case_outline(expansion: float) -> PackedVector2Array:
 	var centers := [Vector2(half_w-radius,half_h-radius),Vector2(-half_w+radius,half_h-radius),Vector2(-half_w+radius,-half_h+radius),Vector2(half_w-radius,-half_h+radius)]
 	var points := PackedVector2Array()
 	for corner in range(4):
-		for step in range(17):
+		var first_step := 0 if corner == 0 else 1
+		var last_step := 16 if corner < 3 else 15
+		for step in range(first_step,last_step+1):
 			var angle := float(corner) * PI * 0.5 + float(step) / 16.0 * PI * 0.5
 			points.append(centers[corner] + Vector2(cos(angle),sin(angle))*radius)
 	return points
@@ -6671,7 +6673,9 @@ func _case_rounded_cutout(width: float, height: float, radius: float) -> PackedV
 	var centers := [Vector2(x-r,y-r),Vector2(-x+r,y-r),Vector2(-x+r,-y+r),Vector2(x-r,-y+r)]
 	var points := PackedVector2Array()
 	for corner in range(4):
-		for step in range(5):
+		var first_step := 0 if corner == 0 else 1
+		var last_step := 4 if corner < 3 else 3
+		for step in range(first_step,last_step+1):
 			var angle := float(corner)*PI*0.5+float(step)/4.0*PI*0.5
 			points.append(centers[corner]+Vector2(cos(angle),sin(angle))*r)
 	return points
@@ -6766,13 +6770,17 @@ func _rebuild_phone_case_geometry() -> void:
 		for module in rear_camera_modules:
 			var p: Vector2 = module["position"]
 			var extent := float(module["size"])*0.61+0.035
-			low.x=minf(low.x,p.x-extent); low.y=minf(low.y,p.y-extent)
-			high.x=maxf(high.x,p.x+extent); high.y=maxf(high.y,p.y+extent)
+			low.x = minf(low.x,p.x-extent)
+			low.y = minf(low.y,p.y-extent)
+			high.x = maxf(high.x,p.x+extent)
+			high.y = maxf(high.y,p.y+extent)
 		for module in rear_flash_modules:
 			var p: Vector2 = module["position"]
 			var extent := float(module["size"])*0.61+0.035
-			low.x=minf(low.x,p.x-extent); low.y=minf(low.y,p.y-extent)
-			high.x=maxf(high.x,p.x+extent); high.y=maxf(high.y,p.y+extent)
+			low.x = minf(low.x,p.x-extent)
+			low.y = minf(low.y,p.y-extent)
+			high.x = maxf(high.x,p.x+extent)
+			high.y = maxf(high.y,p.y+extent)
 		var cut_w := high.x-low.x
 		var cut_h := high.y-low.y
 		if cut_w>0.025 and cut_h>0.025:
@@ -6800,8 +6808,10 @@ func _rebuild_phone_case_geometry() -> void:
 		var low_port := Vector2(INF,INF)
 		var high_port := Vector2(-INF,-INF)
 		for point in charge_port_opening_points:
-			low_port.x=minf(low_port.x,point.x); low_port.y=minf(low_port.y,point.y)
-			high_port.x=maxf(high_port.x,point.x); high_port.y=maxf(high_port.y,point.y)
+			low_port.x = minf(low_port.x,point.x)
+			low_port.y = minf(low_port.y,point.y)
+			high_port.x = maxf(high_port.x,point.x)
+			high_port.y = maxf(high_port.y,point.y)
 		var port_cut := CSGBox3D.new()
 		port_cut.name = "ChargingPortOpening"
 		port_cut.size = Vector3(high_port.x-low_port.x+0.026,0.16,high_port.y-low_port.y+0.026)
@@ -6963,10 +6973,10 @@ void fragment(){
 		shimmer_material.shader=shader
 		shimmer.material=shimmer_material
 		loading.add_child(shimmer)
-		var note:=_make_label("Matching the cameras, speaker openings, port and buttons…",11,Color("#9dc7df"))
-		note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-		note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		loading.add_child(note)
+		var building_note:=_make_label("Matching the cameras, speaker openings, port and buttons…",11,Color("#9dc7df"))
+		building_note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+		building_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		loading.add_child(building_note)
 	elif phone_case_custom_enabled and phone_case_built:
 		var ready:=_make_label("CUSTOM CASE FITTED TO CURRENT DEVICE",12,Color("#8ed6ff"))
 		ready.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -6982,10 +6992,10 @@ void fragment(){
 		color_button.pressed.connect(_show_device_color_controls.bind(false,true))
 		active_feature_panel.add_child(color_button)
 	else:
-		var note:=_make_label("Enable the custom case to generate the fitted 3D shell.",12,Color("#a9c9dc"))
-		note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-		note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		active_feature_panel.add_child(note)
+		var disabled_note:=_make_label("Enable the custom case to generate the fitted 3D shell.",12,Color("#a9c9dc"))
+		disabled_note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+		disabled_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(disabled_note)
 
 
 func _on_phone_case_custom_toggled(enabled: bool) -> void:
