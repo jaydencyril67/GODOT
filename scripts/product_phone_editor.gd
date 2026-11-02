@@ -183,6 +183,7 @@ var selected_battery_capacity := "Not set"
 var selected_charging_speed := 2
 var selected_bluetooth_version := "Not set"
 var selected_wifi_standard := "Not set"
+var selected_mobile_network := "Not set"
 var charging_speed_value_label: Label
 var charging_speed_slider: VSlider
 var charging_speed_decrease_button: Button
@@ -978,7 +979,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Bluetooth", "WiFi"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Bluetooth", "WiFi", "Network"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1028,6 +1029,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_bluetooth_controls()
 	elif feature_name == "WiFi":
 		_show_wifi_controls()
+	elif feature_name == "Network":
+		_show_mobile_network_controls()
 
 
 
@@ -5372,6 +5375,7 @@ func _build_software_summary_panel() -> void:
 		["CHARGING SPEED", str(selected_charging_speed) + "W"],
 		["BLUETOOTH", selected_bluetooth_version],
 		["WI-FI", selected_wifi_standard],
+		["MOBILE NETWORK", selected_mobile_network],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
 		["RAM TECHNOLOGY", selected_ram_technology],
@@ -5840,6 +5844,67 @@ func _on_wifi_standard_selected(standard: String) -> void:
 		var wifi_label: Label = software_value_labels["WI-FI"]
 		wifi_label.text = standard
 	_show_wifi_controls()
+
+
+func _show_mobile_network_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "MobileNetworkSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SELECT MOBILE NETWORK", 17, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+
+	var options := GridContainer.new()
+	options.name = "MobileNetworkOptions"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	options.add_theme_constant_override("h_separation", 6)
+	options.add_theme_constant_override("v_separation", 6)
+	active_feature_panel.add_child(options)
+
+	var networks := [
+		"2G (GSM / EDGE)",
+		"3G (UMTS / HSPA)",
+		"4G (LTE)",
+		"4G+ (LTE-Advanced)",
+		"5G NSA",
+		"5G SA",
+		"5G-Advanced"
+	]
+	for network in networks:
+		var option := Button.new()
+		option.name = "MobileNetworkOption_" + network.replace(" ", "").replace("/", "_").replace("(", "").replace(")", "").replace("+", "Plus")
+		option.text = network + ("  ✓" if selected_mobile_network == network else "")
+		option.tooltip_text = network
+		option.custom_minimum_size = Vector2(0, 42)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 15)
+		var option_font := FontVariation.new()
+		option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		option_font.variation_embolden = 1.5
+		option.add_theme_font_override("font", option_font)
+		_style_staff_button(option, selected_mobile_network == network)
+		option.pressed.connect(_on_mobile_network_selected.bind(network))
+		options.add_child(option)
+
+
+func _on_mobile_network_selected(network: String) -> void:
+	if not ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"].has(network):
+		return
+	selected_mobile_network = network
+	if software_value_labels.has("MOBILE NETWORK") and is_instance_valid(software_value_labels["MOBILE NETWORK"]):
+		var network_label: Label = software_value_labels["MOBILE NETWORK"]
+		network_label.text = network
+	_show_mobile_network_controls()
 
 
 func _on_left_tools_previous_pressed() -> void:
