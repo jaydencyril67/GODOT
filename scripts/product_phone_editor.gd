@@ -841,8 +841,7 @@ func _get_preview_viewport() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
 	viewport.size = Vector2i(1600, 1200)
-	# Smooth the phone silhouette without introducing FXAA-style image softening.
-	viewport.msaa_3d = Viewport.MSAA_4X
+	# Keep MSAA disabled for compatibility with lower-end mobile GPUs.
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	viewport.own_world_3d = true
 
