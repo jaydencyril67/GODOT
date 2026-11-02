@@ -5391,11 +5391,6 @@ func _show_ram_controls() -> void:
 	var heading := _make_label("SELECT RAM", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var current := _make_label("CURRENT: " + selected_ram_capacity.to_upper(), 13, Color.WHITE)
-	current.name = "CurrentRAMSelectionLabel"
-	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(current)
-
 	var scroll := ScrollContainer.new()
 	scroll.name = "RAMOptionsScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -5530,11 +5525,6 @@ func _show_rom_controls() -> void:
 	var heading := _make_label("SELECT ROM", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var current := _make_label("CURRENT: " + selected_rom_capacity.to_upper(), 13, Color.WHITE)
-	current.name = "CurrentROMSelectionLabel"
-	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(current)
-
 	var scroll := ScrollContainer.new()
 	scroll.name = "ROMOptionsScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
