@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          godot --headless --editor --path . --quit 2>&1 | tee godot-import.log
+          godot --headless --import --path . 2>&1 | tee godot-import.log
           godot_status=${PIPESTATUS[0]}
           set -e
           if [ "$godot_status" -ne 0 ]; then

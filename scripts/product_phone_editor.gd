@@ -3492,29 +3492,29 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				active_feature_panel.add_child(wattage_range)
 				var slider_row := HBoxContainer.new()
 				slider_row.name = "ChargerWattageVerticalSliderRow"
-			slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
-			slider_row.add_theme_constant_override("separation", 12)
-			active_feature_panel.add_child(slider_row)
-			var minimum := _make_label("2W", 11, Color("#a9c9dc"))
-			minimum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			slider_row.add_child(minimum)
-			charger_wattage_slider = VSlider.new()
-			charger_wattage_slider.name = "ChargerOutputVerticalSlider"
-			charger_wattage_slider.min_value = 2
-			charger_wattage_slider.max_value = 200
-			charger_wattage_slider.step = 1
-			charger_wattage_slider.value = charger_wattage
-			charger_wattage_slider.custom_minimum_size = Vector2(52, 190)
-			charger_wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			charger_wattage_slider.focus_mode = Control.FOCUS_NONE
-			charger_wattage_slider.tick_count = 0
-			charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
-			_style_custom_slider(charger_wattage_slider)
-			slider_row.add_child(charger_wattage_slider)
-			var maximum := _make_label("200W", 11, Color("#a9c9dc"))
-			maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			slider_row.add_child(maximum)
+				slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+				slider_row.add_theme_constant_override("separation", 12)
+				active_feature_panel.add_child(slider_row)
+				var minimum := _make_label("2W", 11, Color("#a9c9dc"))
+				minimum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				slider_row.add_child(minimum)
+				charger_wattage_slider = VSlider.new()
+				charger_wattage_slider.name = "ChargerOutputVerticalSlider"
+				charger_wattage_slider.min_value = 2
+				charger_wattage_slider.max_value = 200
+				charger_wattage_slider.step = 1
+				charger_wattage_slider.value = charger_wattage
+				charger_wattage_slider.custom_minimum_size = Vector2(52, 190)
+				charger_wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+				charger_wattage_slider.focus_mode = Control.FOCUS_NONE
+				charger_wattage_slider.tick_count = 0
+				charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
+				_style_custom_slider(charger_wattage_slider)
+				slider_row.add_child(charger_wattage_slider)
+				var maximum := _make_label("200W", 11, Color("#a9c9dc"))
+				maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				slider_row.add_child(maximum)
 			"FINISH":
 				_show_device_color_controls(false, false, true)
 		return
