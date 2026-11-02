@@ -622,13 +622,10 @@ func _style_create_glass_button(button: Button) -> void:
 
 
 func _style_option_button(button: OptionButton) -> void:
+	button.focus_mode = Control.FOCUS_NONE
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.34, 0.68, 0.88, 0.24)
-		if state == "hover":
-			style.bg_color = Color(0.48, 0.78, 0.96, 0.34)
-		elif state == "pressed":
-			style.bg_color = Color(0.25, 0.58, 0.82, 0.42)
 		style.border_color = Color(0.86, 0.97, 1.0, 0.82)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(10)
@@ -646,15 +643,15 @@ func _style_option_button(button: OptionButton) -> void:
 	panel.set_border_width_all(1)
 	panel.set_corner_radius_all(9)
 	popup.add_theme_stylebox_override("panel", panel)
-	var item_hover := StyleBoxFlat.new()
-	item_hover.bg_color = Color("#155477")
-	item_hover.set_corner_radius_all(5)
-	item_hover.content_margin_left = 12
-	item_hover.content_margin_right = 12
-	item_hover.content_margin_top = 10
-	item_hover.content_margin_bottom = 10
-	popup.add_theme_stylebox_override("hover", item_hover)
-	popup.add_theme_stylebox_override("pressed", item_hover)
+	var item_idle := StyleBoxFlat.new()
+	item_idle.bg_color = Color("#092235")
+	item_idle.set_corner_radius_all(5)
+	item_idle.content_margin_left = 12
+	item_idle.content_margin_right = 12
+	item_idle.content_margin_top = 10
+	item_idle.content_margin_bottom = 10
+	popup.add_theme_stylebox_override("hover", item_idle)
+	popup.add_theme_stylebox_override("pressed", item_idle)
 	popup.add_theme_color_override("font_color", Color("#dff4ff"))
 	popup.add_theme_color_override("font_hover_color", WHITE)
 	popup.add_theme_color_override("font_pressed_color", WHITE)
