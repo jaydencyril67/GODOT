@@ -3424,7 +3424,7 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	var coil_steps := 120
 	for step in range(coil_steps + 1):
 		var progress := float(step) / float(coil_steps)
-		var angle := PI + progress * TAU * 1.5
+		var angle := atan2(-0.20, -0.28) + progress * TAU * 1.5
 		var point := Vector3(cos(angle) * 0.28, sin(angle) * 0.19 + 0.08, 0.39 + sin(angle * 2.0) * 0.006)
 		if route.is_empty() or route[route.size() - 1].distance_to(point) > 0.0001:
 			route.append(point)
@@ -3540,7 +3540,7 @@ func _rebuild_charger_preview() -> void:
 		_build_charger_cable(charger_preview, output_connector)
 	charger_preview.visible = (charger_enabled or charger_cable_enabled) and charger_preview_mode
 	if charger_preview_mode and is_instance_valid(preview_camera):
-		preview_camera.position.z = 4.7 if charger_cable_enabled else 3.65
+		preview_camera.position.z = 4.25 if charger_cable_enabled else 3.65
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
@@ -3557,7 +3557,7 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 			charger_preview.rotation = Vector3.ZERO
 		charger_preview.visible = enabled and (charger_enabled or charger_cable_enabled)
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, (4.7 if charger_cable_enabled else 3.65) if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, (4.25 if charger_cable_enabled else 3.65) if enabled else 5.2)
 
 
 func _on_charger_wattage_changed(value: float) -> void:
