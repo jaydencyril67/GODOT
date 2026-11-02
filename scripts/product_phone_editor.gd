@@ -3470,7 +3470,6 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	for lane_index in range(lane_count):
 		var lane_y := first_lane_y + float(lane_index) * lane_spacing
 		var travels_right := lane_index % 2 == 0
-		var lane_start := Vector3(lane_left if travels_right else lane_right, lane_y, fold_plane_z)
 		var lane_end := Vector3(lane_right if travels_right else lane_left, lane_y, fold_plane_z)
 		var control_a_x := -0.12 if travels_right else 0.12
 		var control_b_x := 0.12 if travels_right else -0.12
