@@ -3445,7 +3445,7 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	# each connector's moulded boot exits along world -Z. The old cable ran
 	# toward +Z and left a large visible gap behind both connector heads.
 	# Start/end 0.015 units inside the boot's rear face for a solid overlap.
-	var boot_exit_z := -0.155
+	var boot_exit_z := -0.125
 	var fold_plane_z := -0.245
 	var lane_left := -0.35
 	var lane_right := 0.35
