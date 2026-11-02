@@ -177,6 +177,7 @@ var preview_stack: VBoxContainer
 var software_summary_panel: PanelContainer
 var software_value_labels: Dictionary = {}
 var selected_ram_capacity := "Not set"
+var selected_rom_capacity := "Not set"
 var research_mode := false
 var research_content_panel: Control
 var research_balance_label: Label
@@ -1006,6 +1007,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_back_design_controls()
 	elif feature_name == "RAM":
 		_show_ram_controls()
+	elif feature_name in ["ROM", "Internal Storage", "Storage"]:
+		_show_rom_controls()
 
 
 
@@ -5345,7 +5348,7 @@ func _build_software_summary_panel() -> void:
 	software_value_labels.clear()
 	var specifications := [
 		["RAM", selected_ram_capacity],
-		["ROM", "Not set"],
+		["ROM", selected_rom_capacity],
 		["BATTERY", "Not set"],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
@@ -5423,6 +5426,61 @@ func _on_ram_capacity_selected(capacity: String) -> void:
 		var ram_label: Label = software_value_labels["RAM"]
 		ram_label.text = capacity
 	_show_ram_controls()
+
+
+func _show_rom_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ROMSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SELECT ROM", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Internal storage capacity", 11, Color("#a9c9dc"))
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+	var current := _make_label("CURRENT: " + selected_rom_capacity.to_upper(), 13, Color.WHITE)
+	current.name = "CurrentROMSelectionLabel"
+	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(current)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "ROMOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	active_feature_panel.add_child(scroll)
+	var options := VBoxContainer.new()
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+	for capacity in ["16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"]:
+		var option := Button.new()
+		option.name = "ROMOption_" + capacity.replace(" ", "")
+		option.text = capacity + ("   ✓ SELECTED" if selected_rom_capacity == capacity else "")
+		option.custom_minimum_size.y = 43
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_rom_capacity == capacity)
+		option.pressed.connect(_on_rom_capacity_selected.bind(capacity))
+		options.add_child(option)
+
+
+func _on_rom_capacity_selected(capacity: String) -> void:
+	if not ["16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"].has(capacity):
+		return
+	selected_rom_capacity = capacity
+	if software_value_labels.has("ROM") and is_instance_valid(software_value_labels["ROM"]):
+		var rom_label: Label = software_value_labels["ROM"]
+		rom_label.text = capacity
+	_show_rom_controls()
 
 
 func _on_left_tools_previous_pressed() -> void:
