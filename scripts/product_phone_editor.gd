@@ -162,6 +162,10 @@ var rear_hardware_next_button: Button
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 var home_button_option_buttons: Dictionary = {}
 var screen_enabled := false
+var screen_protector_enabled := false
+var screen_protector_finish := "Ultra Clear"
+var screen_protector_thickness := 0.006
+var screen_protector_thickness_label: Label
 var bezel_width := 0.10
 var bezel_height := 0.20
 var bezel_width_value_label: Label
@@ -1020,7 +1024,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1030,6 +1034,9 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	_close_back_design_selection_popup()
 	if feature_name == "Phone Case":
 		_show_phone_case_controls()
+		return
+	if feature_name == "Protection Glass":
+		_show_screen_protector_controls()
 		return
 	if feature_name == "Screen Tech":
 		_show_screen_tech_controls()
@@ -2813,6 +2820,293 @@ func _create_curved_screen_mesh(width: float, height: float, corner_radius: floa
 	return surface.commit()
 
 
+func _get_screen_protector_cutouts(screen_width: float, screen_height: float) -> Array[Dictionary]:
+	var cutouts: Array[Dictionary] = []
+	if not front_camera_enabled:
+		return cutouts
+
+	var top_edge := screen_height * 0.5
+	var top_inset := clampf(screen_height * 0.035, 0.055, 0.095)
+	var camera_y := top_edge - top_inset
+	match front_camera_style:
+		"Waterdrop Notch":
+			cutouts.append({
+				"shape": "rounded_rect",
+				"center": Vector2(0.0, camera_y),
+				"size": Vector2(0.198, 0.113),
+				"radius": 0.052
+			})
+		"Punch-Hole":
+			cutouts.append({"shape": "circle", "center": Vector2(0.0, camera_y), "radius": 0.044})
+		"Side Punch-Hole":
+			var side_camera_x := -screen_width * (0.40 if border_radius_level == 0 else 0.36)
+			var side_camera_y := _side_camera_safe_y(camera_y)
+			cutouts.append({"shape": "circle", "center": Vector2(side_camera_x, side_camera_y), "radius": 0.043})
+		"Dual Punch-Hole":
+			var dual_spacing := 0.052
+			cutouts.append({"shape": "circle", "center": Vector2(-dual_spacing, camera_y), "radius": 0.036})
+			cutouts.append({"shape": "circle", "center": Vector2(dual_spacing, camera_y), "radius": 0.036})
+		"Dynamic Island":
+			var island_height := 0.113
+			var island_width := minf(0.368, screen_width * 0.34 + 0.008)
+			var island_y := top_edge - top_inset
+			cutouts.append({
+				"shape": "rounded_rect",
+				"center": Vector2(0.0, island_y),
+				"size": Vector2(island_width, island_height),
+				"radius": island_height * 0.5
+			})
+		# Bezel and pop-up cameras sit outside the display. Under-display
+		# cameras need no physical protector opening.
+	return cutouts
+
+
+func _screen_protector_point_is_cut_out(point: Vector2, cutouts: Array[Dictionary]) -> bool:
+	for cutout in cutouts:
+		var centre: Vector2 = cutout["center"]
+		if str(cutout["shape"]) == "circle":
+			var radius := float(cutout["radius"])
+			if point.distance_squared_to(centre) <= radius * radius:
+				return true
+		else:
+			var size: Vector2 = cutout["size"]
+			var radius := float(cutout["radius"])
+			var delta := (point - centre).abs()
+			var corner_delta := Vector2(maxf(delta.x - size.x * 0.5 + radius, 0.0), maxf(delta.y - size.y * 0.5 + radius, 0.0))
+			if corner_delta.length_squared() <= radius * radius:
+				return true
+	return false
+
+
+func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, height: float, radius: float, curve_sides: bool, curve_vertical: bool, thickness: float) -> Vector3:
+	var half_width := width * 0.5
+	var half_height := height * 0.5
+	var x := raw_x
+	var y := raw_y
+	var corner_x := half_width - radius
+	var corner_y := half_height - radius
+	if radius > 0.0001 and absf(raw_x) > corner_x and absf(raw_y) > corner_y:
+		var corner_center := Vector2(signf(raw_x) * corner_x, signf(raw_y) * corner_y)
+		var corner_offset := Vector2(raw_x, raw_y) - corner_center
+		if corner_offset.length_squared() > radius * radius:
+			corner_offset = corner_offset.normalized() * radius
+			x = corner_center.x + corner_offset.x
+			y = corner_center.y + corner_offset.y
+	var side_drop := 0.0
+	var vertical_drop := 0.0
+	if curve_sides:
+		side_drop = 0.028 * pow(absf(x / maxf(half_width, 0.001)), 6.0)
+	if curve_vertical:
+		vertical_drop = 0.028 * pow(absf(y / maxf(half_height, 0.001)), 6.0)
+	var surface_z := -maxf(side_drop, vertical_drop)
+	if not curve_sides and not curve_vertical:
+		# The flat display is a 0.006-unit panel; its front face is at +0.003.
+		surface_z = 0.003
+	return Vector3(x, y, surface_z + thickness)
+
+
+func _create_screen_protector_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# A dense conforming grid follows the display's rounded perimeter and
+	# curved edge profile. Cells inside camera apertures are omitted entirely.
+	const X_SEGMENTS := 128
+	const Y_SEGMENTS := 216
+	var half_width := width * 0.5
+	var half_height := height * 0.5
+	var radius := clampf(corner_radius, 0.0, minf(half_width, half_height))
+	var points: Array[Vector3] = []
+	for y_index in range(Y_SEGMENTS + 1):
+		var v := float(y_index) / float(Y_SEGMENTS)
+		var raw_y := (0.5 - v) * height
+		for x_index in range(X_SEGMENTS + 1):
+			var u := float(x_index) / float(X_SEGMENTS)
+			var raw_x := (u - 0.5) * width
+			points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, thickness))
+
+	for y_index in range(Y_SEGMENTS):
+		for x_index in range(X_SEGMENTS):
+			var top_left := y_index * (X_SEGMENTS + 1) + x_index
+			var top_right := top_left + 1
+			var bottom_left := top_left + X_SEGMENTS + 1
+			var bottom_right := bottom_left + 1
+			var cell_center := Vector2(
+				(points[top_left].x + points[top_right].x + points[bottom_left].x + points[bottom_right].x) * 0.25,
+				(points[top_left].y + points[top_right].y + points[bottom_left].y + points[bottom_right].y) * 0.25
+			)
+			if _screen_protector_point_is_cut_out(cell_center, cutouts):
+				continue
+			surface.add_vertex(points[top_left])
+			surface.add_vertex(points[bottom_left])
+			surface.add_vertex(points[top_right])
+			surface.add_vertex(points[top_right])
+			surface.add_vertex(points[bottom_left])
+			surface.add_vertex(points[bottom_right])
+	surface.index()
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _create_screen_protector_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.albedo_color = Color(0.82, 0.93, 1.0, 0.085)
+	material.metallic = 0.025
+	material.roughness = 0.055
+	material.metallic_specular = 0.92
+	material.clearcoat_enabled = true
+	material.clearcoat = 0.95
+	material.clearcoat_roughness = 0.035
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	match screen_protector_finish:
+		"Matte":
+			material.albedo_color = Color(0.80, 0.90, 0.98, 0.11)
+			material.roughness = 0.24
+			material.clearcoat = 0.42
+			material.clearcoat_roughness = 0.16
+		"Anti-Reflective":
+			material.albedo_color = Color(0.78, 0.91, 1.0, 0.07)
+			material.roughness = 0.095
+			material.clearcoat = 0.78
+			material.clearcoat_roughness = 0.055
+	return material
+
+
+func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool) -> void:
+	if not screen_protector_enabled or not is_instance_valid(display):
+		return
+	var protector := MeshInstance3D.new()
+	protector.name = "TemperedGlassScreenProtector"
+	var curve_sides := curved_display and side_curve_enabled
+	var curve_vertical := curved_display and vertical_curve_enabled
+	var cutouts := _get_screen_protector_cutouts(screen_width, screen_height)
+	protector.mesh = _create_screen_protector_mesh(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness)
+	protector.material_override = _create_screen_protector_material()
+	protector.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	protector.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	display.add_child(protector)
+
+
+func _on_screen_protector_toggled(enabled: bool) -> void:
+	screen_protector_enabled = enabled
+	_refresh_phone_screen()
+	_show_screen_protector_controls()
+
+
+func _on_screen_protector_finish_selected(finish_name: String) -> void:
+	if not ["Ultra Clear", "Matte", "Anti-Reflective"].has(finish_name):
+		return
+	screen_protector_finish = finish_name
+	_refresh_phone_screen()
+	_show_screen_protector_controls()
+
+
+func _on_screen_protector_thickness_changed(value: float) -> void:
+	screen_protector_thickness = clampf(value, 0.003, 0.009)
+	_update_screen_protector_thickness_label()
+	_refresh_phone_screen()
+
+
+func _update_screen_protector_thickness_label() -> void:
+	if is_instance_valid(screen_protector_thickness_label):
+		var thickness_mm := screen_protector_thickness * 75.0 / PHONE_SIZE.x
+		screen_protector_thickness_label.text = "GLASS THICKNESS  %.2f mm" % thickness_mm
+
+
+func _show_screen_protector_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ScreenProtectorControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("PROTECTION GLASS", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("A precision-cut tempered-glass layer fitted to the active display and front-camera layout.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "ScreenProtectorEnableRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_child(enable_row)
+	var enable_label := _make_label("INSTALL PROTECTION GLASS", 13, Color("#e6f5ff"))
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_label)
+	var toggle := TextureButton.new()
+	toggle.name = "EnableProtectionGlass"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
+	toggle.button_pressed = screen_protector_enabled
+	toggle.disabled = not screen_enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.toggled.connect(_on_screen_protector_toggled)
+	enable_row.add_child(toggle)
+
+	if not screen_enabled:
+		var screen_hint := _make_label("Enable the phone display first. The protector will then match its size, corner radius and curves.", 12, Color("#f1ca82"))
+		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(screen_hint)
+		return
+
+	if not screen_protector_enabled:
+		var disabled_note := _make_label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#a9c9dc"))
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(disabled_note)
+		return
+
+	var finish_heading := _make_label("GLASS FINISH", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(finish_heading)
+	for finish_name in ["Ultra Clear", "Matte", "Anti-Reflective"]:
+		var finish_button := Button.new()
+		finish_button.name = "ProtectorFinish_" + finish_name.replace("-", "").replace(" ", "")
+		finish_button.text = finish_name.to_upper() + ("   ✓" if screen_protector_finish == finish_name else "")
+		finish_button.custom_minimum_size = Vector2(0, 42)
+		finish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		finish_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(finish_button, 12)
+		_style_staff_button(finish_button, screen_protector_finish == finish_name)
+		finish_button.pressed.connect(_on_screen_protector_finish_selected.bind(finish_name))
+		active_feature_panel.add_child(finish_button)
+
+	var thickness_heading := _make_label("GLASS THICKNESS", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(thickness_heading)
+	screen_protector_thickness_label = _make_label("", 12, Color("#d8eaf5"))
+	screen_protector_thickness_label.horizontal_alignment = HORIZONTAL_ALIGNMENT.CENTER
+	active_feature_panel.add_child(screen_protector_thickness_label)
+	var thickness_slider := HSlider.new()
+	thickness_slider.name = "ProtectionGlassThicknessSlider"
+	thickness_slider.min_value = 0.003
+	thickness_slider.max_value = 0.009
+	thickness_slider.step = 0.0005
+	thickness_slider.value = screen_protector_thickness
+	thickness_slider.custom_minimum_size = Vector2(0, 38)
+	thickness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_custom_slider(thickness_slider)
+	thickness_slider.value_changed.connect(_on_screen_protector_thickness_changed)
+	active_feature_panel.add_child(thickness_slider)
+	_update_screen_protector_thickness_label()
+
+	var cutout_note := _make_label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#8ed6ff"))
+	cutout_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(cutout_note)
+
+
 func _refresh_phone_screen() -> void:
 	if not is_instance_valid(phone_body):
 		return
@@ -2886,6 +3180,8 @@ func _refresh_phone_screen() -> void:
 	phone_body.add_child(display)
 	phone_screen = display
 	_refresh_front_camera(display, screen_width, screen_height)
+	if screen_protector_enabled:
+		_build_screen_protector(display, screen_width, screen_height, screen_radius, curved_display)
 	if home_button_enabled and home_button_type == "On-screen":
 		# Keep the on-screen navigation control generic; OS-specific styles
 		# are intentionally reserved for the later operating-system system.
