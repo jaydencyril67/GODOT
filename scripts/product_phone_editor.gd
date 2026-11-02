@@ -1067,8 +1067,7 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_charger_controls()
 		return
 	if feature_name == "Charging Cable":
-		charger_enabled = true
-		charger_cable_enabled = true
+		# Opening the cable editor must not silently enable the charger.
 		_set_charger_preview_mode(true)
 		_rebuild_charger_preview()
 		_show_charger_controls("CABLE")
@@ -3400,16 +3399,18 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	return connector
 
 
-func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) -> void:
-	# Compact standalone coiled cable. One continuous tube runs from the rear
-	# of the first connector, around the coil, and into the second connector.
+func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) -> Node3D:
+	# One continuous jacket is routed from each connector boot around a neat,
+	# multi-turn oval coil and back into the opposite connector.
 	var cable_group := Node3D.new()
-	cable_group.name = "StandaloneShortCoiledChargingCable"
+	cable_group.name = "StandaloneBundledChargingCable"
 	geometry_parent.add_child(cable_group)
 
-	var cable_material := _charger_material(Color("#202832"), 0.08, 0.48)
+	var cable_material := _charger_material(Color("#252d36"), 0.06, 0.38)
 	var connector_shell := _charger_material(Color("#343e48"), 0.22, 0.34)
 	var connector_metal := _charger_material(Color("#c8d1d9"), 0.94, 0.16)
+	var strap_material := _charger_material(Color("#3b424a"), 0.02, 0.92)
+	var strap_stitch_material := _charger_material(Color("#626b74"), 0.02, 0.86)
 	var device_connector := _charger_device_connector()
 	var output_connector := _charger_output_connector()
 	var left_head := Vector3(-0.43, -0.43, 0.16)
@@ -3418,24 +3419,63 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal)
 
 	var route := PackedVector3Array()
-	# Both cable tails begin exactly behind their strain-relief boots. The
-	# Bézier joins and coil share endpoints, eliminating visible mesh breaks.
-	route = _append_charger_bezier(route, Vector3(-0.43, -0.43, 0.39), Vector3(-0.48, -0.20, 0.39), Vector3(-0.40, 0.08, 0.39), Vector3(-0.28, 0.08, 0.39), 20)
-	var coil_steps := 120
+	# The cable enters each moulded strain-relief boot on its rear axis. The
+	# first few millimetres stay straight before the cable bends into the coil.
+	route = _append_charger_bezier(
+		route,
+		Vector3(-0.43, -0.43, 0.46),
+		Vector3(-0.43, -0.43, 0.56),
+		Vector3(-0.28, -0.08, 0.53),
+		Vector3(-0.37, 0.055, 0.53),
+		24
+	)
+
+	# A gently expanding oval spiral gives the bundled cord separate visible
+	# loops instead of overlapping a single ellipse several times.
+	var coil_steps := 240
+	var coil_turns := 2.5
 	for step in range(coil_steps + 1):
 		var progress := float(step) / float(coil_steps)
-		var angle := PI + progress * TAU * 1.5
-		var point := Vector3(cos(angle) * 0.28, sin(angle) * 0.19 + 0.08, 0.39 + sin(angle * 2.0) * 0.006)
+		var angle := PI - progress * TAU * coil_turns
+		var radius_x := lerpf(0.37, 0.46, progress)
+		var radius_y := lerpf(0.135, 0.19, progress)
+		var point := Vector3(cos(angle) * radius_x, sin(angle) * radius_y + 0.055, 0.53)
 		if route.is_empty() or route[route.size() - 1].distance_to(point) > 0.0001:
 			route.append(point)
-	route = _append_charger_bezier(route, route[route.size() - 1], Vector3(0.40, -0.16, 0.39), Vector3(0.48, -0.27, 0.39), Vector3(0.43, -0.43, 0.39), 20)
+
+	route = _append_charger_bezier(
+		route,
+		route[route.size() - 1],
+		Vector3(0.48, -0.10, 0.53),
+		Vector3(0.43, -0.43, 0.56),
+		Vector3(0.43, -0.43, 0.46),
+		24
+	)
 
 	var cable := MeshInstance3D.new()
-	cable.name = "SingleUnbrokenShortCoiledCableJacket"
-	cable.mesh = _create_charger_cable_tube_mesh(route, 0.020, 20)
+	cable.name = "SingleContinuousCoiledCableJacket"
+	cable.mesh = _create_charger_cable_tube_mesh(route, 0.022, 24)
 	cable.material_override = cable_material
 	cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cable_group.add_child(cable)
+
+	# A separate woven retaining band wraps around the middle of the bundle.
+	# Four rounded panels form the closed band around the cable loops.
+	_add_charger_box(cable_group, "CableTieFrontWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.055, 0.566), strap_material)
+	_add_charger_box(cable_group, "CableTieRearWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.055, 0.494), strap_material)
+	_add_charger_box(cable_group, "CableTieUpperReturn", Vector3(0.14, 0.018, 0.072), Vector3(0.0, 0.285, 0.53), strap_material)
+	_add_charger_box(cable_group, "CableTieLowerReturn", Vector3(0.14, 0.018, 0.072), Vector3(0.0, -0.175, 0.53), strap_material)
+	for stitch_index in range(7):
+		var stitch_x := (float(stitch_index) - 3.0) * 0.018
+		_add_charger_box(
+			cable_group,
+			"CableTieWovenStitch_%d" % stitch_index,
+			Vector3(0.004, 0.36, 0.002),
+			Vector3(stitch_x, 0.055, 0.577),
+			strap_stitch_material
+		)
+
+	return cable_group
 
 
 func _charger_device_connector() -> String:
@@ -3451,11 +3491,17 @@ func _rebuild_charger_preview() -> void:
 	for child in charger_preview.get_children():
 		child.free()
 
-	# Keep all adapter geometry in a centred local pivot. The outer preview node
-	# can now rotate exactly like the phone without orbiting around an offset.
+	# Keep the adapter and cable on independent local pivots. Their transforms
+	# switch between bold single-product framing and the diagonal complete-set
+	# composition used by the product reference.
+	var combined_layout := charger_enabled and charger_cable_enabled
+	var charger_scale := 0.72 if combined_layout else 1.0
 	var charger_geometry := Node3D.new()
 	charger_geometry.name = "ChargerGeometry"
-	charger_geometry.position = Vector3(-0.88, 0.0, 0.0)
+	charger_geometry.scale = Vector3.ONE * charger_scale
+	charger_geometry.position = Vector3(-0.88 * charger_scale - (0.62 if combined_layout else 0.0), 0.27 if combined_layout else 0.0, 0.0)
+	if combined_layout:
+		charger_geometry.rotation_degrees = Vector3(-12.0, -20.0, -22.0)
 	charger_preview.add_child(charger_geometry)
 
 	var shell_material := _charger_material(charger_body_color, 0.02, 0.22)
@@ -3534,14 +3580,34 @@ func _rebuild_charger_preview() -> void:
 			_add_charger_box(charger_geometry, "UniversalProngLeft", Vector3(0.035, 0.15, 0.17), Vector3(0.81, 0.0, -0.23), metal_material)
 			_add_charger_box(charger_geometry, "UniversalProngRight", Vector3(0.035, 0.15, 0.17), Vector3(0.95, 0.0, -0.23), metal_material)
 
-	# Keep the wall adapter and cable as two separate products in the preview.
+	# The wall adapter and cable are independent systems. In the complete-set
+	# view the cable sits lower-right; alone it is centred and enlarged.
 	charger_geometry.visible = charger_enabled
 	if charger_cable_enabled:
-		_build_charger_cable(charger_preview, output_connector)
-	charger_preview.visible = (charger_enabled or charger_cable_enabled) and charger_preview_mode
-	if charger_preview_mode and is_instance_valid(preview_camera):
-		preview_camera.position.z = 4.25 if charger_cable_enabled else 3.65
-		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
+		var cable_group := _build_charger_cable(charger_preview, output_connector)
+		if combined_layout:
+			cable_group.position = Vector3(0.62, -0.34, 0.015)
+			cable_group.scale = Vector3.ONE * 0.84
+			cable_group.rotation_degrees = Vector3(0.0, 0.0, -3.0)
+		else:
+			cable_group.position = Vector3.ZERO
+			cable_group.scale = Vector3.ONE * (1.08 if not charger_enabled else 1.0)
+			cable_group.rotation = Vector3.ZERO
+	_update_charger_preview_framing()
+
+
+func _update_charger_preview_framing() -> void:
+	if not is_instance_valid(charger_preview):
+		return
+	var combined_layout := charger_enabled and charger_cable_enabled
+	charger_preview.scale = Vector3.ONE * (1.45 if combined_layout else 1.8)
+	charger_preview.visible = charger_preview_mode and (charger_enabled or charger_cable_enabled)
+	if not is_instance_valid(preview_camera):
+		return
+	preview_camera.fov = 42.0 if combined_layout else 38.0
+	var camera_distance := 4.45 if combined_layout else (4.0 if charger_cable_enabled and not charger_enabled else 3.65)
+	preview_camera.position = Vector3(0.0, 0.0, camera_distance if charger_preview_mode else 5.2)
+	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
 func _set_charger_preview_mode(enabled: bool) -> void:
@@ -3552,12 +3618,9 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
 	if is_instance_valid(charger_preview):
 		charger_preview.position = Vector3.ZERO
-		charger_preview.scale = Vector3.ONE * (1.8 if enabled else 1.0)
 		if not enabled:
 			charger_preview.rotation = Vector3.ZERO
-		charger_preview.visible = enabled and (charger_enabled or charger_cable_enabled)
-	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, (4.25 if charger_cable_enabled else 3.65) if enabled else 5.2)
+	_update_charger_preview_framing()
 
 
 func _on_charger_wattage_changed(value: float) -> void:
@@ -3595,7 +3658,8 @@ func _charger_output_connector() -> String:
 func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
 	charger_cable_enabled = enabled
 	_rebuild_charger_preview()
-	_show_charger_controls("CABLE")
+	var return_page := "HOME" if charger_controls_page == "HOME" else "CABLE"
+	_show_charger_controls(return_page)
 
 
 func _on_charger_cable_selected(value: String) -> void:
@@ -3814,7 +3878,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				cable_enable_row.name = "ChargingCableEnableRow"
 				cable_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				active_feature_panel.add_child(cable_enable_row)
-				var cable_enable_label := _make_label("SHOW 3D CABLE", 13, Color("#e6f5ff"))
+				var cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e6f5ff"))
 				cable_enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				cable_enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				cable_enable_row.add_child(cable_enable_label)
@@ -3843,7 +3907,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 					_style_staff_button(cable_button, charger_cable_type == cable_name)
 					cable_button.pressed.connect(_on_charger_cable_selected.bind(cable_name))
 					active_feature_panel.add_child(cable_button)
-				var cable_note := _make_label("A separate long coiled cable with both connector heads facing forward. Connector openings, inner tongues, contacts and flexible strain reliefs update with the selected cable type.", 11, Color("#a9c9dc"))
+				var cable_note := _make_label("A continuous, neatly bundled 3D cable with two visible connector heads and a woven retaining strap. Both connector designs update with the selected cable type.", 11, Color("#a9c9dc"))
 				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(cable_note)
 			"POWER":
@@ -3895,7 +3959,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 	var enable_row := HBoxContainer.new()
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("SHOW CHARGER MODEL", 13, Color("#e6f5ff"))
+	var enable_label := _make_label("ENABLE CHARGER MODEL", 13, Color("#e6f5ff"))
 	enable_row.add_child(enable_label)
 	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var toggle := TextureButton.new()
@@ -3911,6 +3975,28 @@ func _show_charger_controls(page: String = "HOME") -> void:
 	toggle.focus_mode = Control.FOCUS_NONE
 	toggle.toggled.connect(_on_charger_enabled_toggled)
 	enable_row.add_child(toggle)
+
+	var home_cable_enable_row := HBoxContainer.new()
+	home_cable_enable_row.name = "HomeChargingCableEnableRow"
+	home_cable_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(home_cable_enable_row)
+	var home_cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e6f5ff"))
+	home_cable_enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home_cable_enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	home_cable_enable_row.add_child(home_cable_enable_label)
+	var home_cable_toggle := TextureButton.new()
+	home_cable_toggle.name = "EnableChargingCableModelHome"
+	home_cable_toggle.custom_minimum_size = Vector2(40, 40)
+	home_cable_toggle.ignore_texture_size = true
+	home_cable_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	home_cable_toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	home_cable_toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	home_cable_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	home_cable_toggle.toggle_mode = true
+	home_cable_toggle.button_pressed = charger_cable_enabled
+	home_cable_toggle.focus_mode = Control.FOCUS_NONE
+	home_cable_toggle.toggled.connect(_on_charger_cable_enabled_toggled)
+	home_cable_enable_row.add_child(home_cable_toggle)
 
 	var plug_option := Button.new()
 	plug_option.name = "OpenChargerPlugSettings"
