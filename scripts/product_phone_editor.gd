@@ -969,7 +969,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -5388,9 +5388,6 @@ func _show_ram_controls() -> void:
 	var heading := _make_label("SELECT RAM", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var description := _make_label("Physical memory capacity", 11, Color("#a9c9dc"))
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
 	var current := _make_label("CURRENT: " + selected_ram_capacity.to_upper(), 13, Color.WHITE)
 	current.name = "CurrentRAMSelectionLabel"
 	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -5443,9 +5440,6 @@ func _show_rom_controls() -> void:
 	var heading := _make_label("SELECT ROM", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var description := _make_label("Internal storage capacity", 11, Color("#a9c9dc"))
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
 	var current := _make_label("CURRENT: " + selected_rom_capacity.to_upper(), 13, Color.WHITE)
 	current.name = "CurrentROMSelectionLabel"
 	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
