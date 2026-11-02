@@ -3232,7 +3232,7 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(phone_case_preview):
 		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
 	if is_instance_valid(charger_preview):
-		charger_preview.position = Vector3(-0.88, 0.0, 0.0) if enabled else Vector3.ZERO
+		charger_preview.position = Vector3(-1.276, 0.0, 0.0) if enabled else Vector3.ZERO
 		charger_preview.scale = Vector3.ONE * (1.45 if enabled else 1.0)
 		charger_preview.rotation = Vector3.ZERO if not enabled else charger_preview.rotation
 		charger_preview.visible = enabled and charger_enabled
