@@ -2306,7 +2306,7 @@ func _show_screen_size_controls() -> void:
 	width_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	width_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	width_slider.value_changed.connect(_on_bezel_width_changed)
-	_style_feature_slider(width_slider)
+	_style_custom_slider(width_slider)
 	width_column.add_child(width_slider)
 
 	var height_column := VBoxContainer.new()
@@ -2337,7 +2337,7 @@ func _show_screen_size_controls() -> void:
 	bezel_height_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bezel_height_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	bezel_height_slider.value_changed.connect(_on_bezel_height_changed)
-	_style_feature_slider(bezel_height_slider)
+	_style_custom_slider(bezel_height_slider)
 	height_column.add_child(bezel_height_slider)
 
 	bezel_width = 0.17 - width_slider.value
@@ -3865,7 +3865,7 @@ func _show_border_radius_controls() -> void:
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_border_radius_level_changed)
-	_style_feature_slider(meter)
+	_style_custom_slider(meter)
 	meter_row.add_child(meter)
 
 	border_radius_value_label = _make_label("LEVEL %d / 6" % border_radius_level, 16, Color("#a9e3ff"))
@@ -3925,7 +3925,7 @@ func _show_thickness_controls() -> void:
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_phone_thickness_level_changed)
-	_style_feature_slider(meter)
+	_style_custom_slider(meter)
 	meter_row.add_child(meter)
 
 	phone_thickness_value_label = _make_label("LEVEL %d / 10" % phone_thickness_level, 16, Color("#a9e3ff"))
@@ -4785,7 +4785,7 @@ func _show_speaker_controls() -> void:
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_speaker_count_changed)
-	_style_feature_slider(meter)
+	_style_custom_slider(meter)
 	meter_row.add_child(meter)
 
 	speaker_count_value_label = _make_label("SPEAKERS %d / 12" % speaker_count, 16, Color("#a9e3ff"))
@@ -5681,7 +5681,7 @@ func _show_memory_clock_controls() -> void:
 	memory_clock_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	memory_clock_slider.value = maxf(0.0, float(_get_memory_clock_index()))
 	memory_clock_slider.value_changed.connect(_on_memory_clock_slider_changed)
-	_style_feature_slider(memory_clock_slider)
+	_style_custom_slider(memory_clock_slider)
 	slider_center.add_child(memory_clock_slider)
 
 	var minimum_label := _make_label("400 MHz", 13, Color("#a9e3ff"))
