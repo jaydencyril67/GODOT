@@ -3261,19 +3261,39 @@ func _create_charger_cable_tube_mesh(points: PackedVector3Array, radius: float, 
 	var mesh := ArrayMesh.new()
 	if points.size() < 2:
 		return mesh
+
+	# Parallel-transport the tube frame along the whole route. Rebuilding the
+	# frame from UP at every point caused sudden 90-degree twists near bends,
+	# which can look like cuts or pinched sections in a continuous cable.
 	var rings: Array[PackedVector3Array] = []
 	var ring_normals: Array[PackedVector3Array] = []
+	var previous_tangent := Vector3.ZERO
+	var axis_a := Vector3.ZERO
 	for index in range(points.size()):
-		var previous := points[maxi(index - 1, 0)]
-		var following := points[mini(index + 1, points.size() - 1)]
-		var tangent := (following - previous).normalized()
+		var previous_point := points[maxi(index - 1, 0)]
+		var following_point := points[mini(index + 1, points.size() - 1)]
+		var tangent := (following_point - previous_point).normalized()
 		if tangent.length_squared() < 0.000001:
-			tangent = Vector3.FORWARD
-		var reference := Vector3.UP
-		if absf(tangent.dot(reference)) > 0.92:
-			reference = Vector3.RIGHT
-		var axis_a := tangent.cross(reference).normalized()
+			tangent = previous_tangent if previous_tangent.length_squared() > 0.000001 else Vector3.FORWARD
+
+		if index == 0:
+			var reference := Vector3.UP
+			if absf(tangent.dot(reference)) > 0.92:
+				reference = Vector3.RIGHT
+			axis_a = tangent.cross(reference).normalized()
+		else:
+			var turn_axis := previous_tangent.cross(tangent)
+			var turn_length := turn_axis.length()
+			var tangent_dot := clampf(previous_tangent.dot(tangent), -1.0, 1.0)
+			if turn_length > 0.000001:
+				axis_a = axis_a.rotated(turn_axis / turn_length, atan2(turn_length, tangent_dot))
+			axis_a = (axis_a - tangent * axis_a.dot(tangent)).normalized()
+			if axis_a.length_squared() < 0.000001:
+				var fallback := Vector3.UP if absf(tangent.dot(Vector3.UP)) < 0.92 else Vector3.RIGHT
+				axis_a = tangent.cross(fallback).normalized()
+
 		var axis_b := tangent.cross(axis_a).normalized()
+		previous_tangent = tangent
 		var ring := PackedVector3Array()
 		var normals := PackedVector3Array()
 		for side in range(radial_segments):
@@ -3284,6 +3304,9 @@ func _create_charger_cable_tube_mesh(points: PackedVector3Array, radius: float, 
 		rings.append(ring)
 		ring_normals.append(normals)
 
+	# One connected strip of quad faces links every ring to its neighbour.
+	# Both ends are embedded inside the connector boots, so no exposed caps
+	# or visible seams are left at either cable head.
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for index in range(rings.size() - 1):
@@ -3400,13 +3423,13 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 
 
 func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) -> Node3D:
-	# One continuous jacket is routed from each connector boot around a neat,
-	# multi-turn oval coil and back into the opposite connector.
+	# One uninterrupted cable jacket leaves the back of the first connector,
+	# folds into five clean rounded lanes, and returns into the second boot.
 	var cable_group := Node3D.new()
-	cable_group.name = "StandaloneBundledChargingCable"
+	cable_group.name = "StandaloneHybridFoldChargingCable"
 	geometry_parent.add_child(cable_group)
 
-	var cable_material := _charger_material(Color("#252d36"), 0.06, 0.38)
+	var cable_material := _charger_material(Color("#252d36"), 0.04, 0.34)
 	var connector_shell := _charger_material(Color("#343e48"), 0.22, 0.34)
 	var connector_metal := _charger_material(Color("#c8d1d9"), 0.94, 0.16)
 	var strap_material := _charger_material(Color("#3b424a"), 0.02, 0.92)
@@ -3418,60 +3441,101 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	_add_charger_cable_connector(cable_group, "First_" + output_connector.replace("-", "") + "_CableHead", output_connector, left_head, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal)
 	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal)
 
+	# Basis.looking_at makes local -Z face the viewer (+Z here), which means
+	# each connector's moulded boot exits along world -Z. The old cable ran
+	# toward +Z and left a large visible gap behind both connector heads.
+	# Start/end 0.015 units inside the boot's rear face for a solid overlap.
+	var boot_exit_z := -0.155
+	var fold_plane_z := -0.245
+	var lane_left := -0.35
+	var lane_right := 0.35
+	var first_lane_y := -0.12
+	var lane_spacing := 0.095
+	var lane_count := 5
 	var route := PackedVector3Array()
-	# The cable enters each moulded strain-relief boot on its rear axis. The
-	# first few millimetres stay straight before the cable bends into the coil.
+
+	# Lead from the left boot: leave straight along -Z before curving smoothly
+	# upward into the first folded lane. The endpoint tangent aligns with +X.
 	route = _append_charger_bezier(
 		route,
-		Vector3(-0.43, -0.43, 0.46),
-		Vector3(-0.43, -0.43, 0.56),
-		Vector3(-0.28, -0.08, 0.53),
-		Vector3(-0.37, 0.055, 0.53),
-		24
+		Vector3(-0.43, -0.43, boot_exit_z),
+		Vector3(-0.43, -0.43, -0.265),
+		Vector3(-0.49, first_lane_y, fold_plane_z),
+		Vector3(lane_left, first_lane_y, fold_plane_z),
+		36
 	)
 
-	# A gently expanding oval spiral gives the bundled cord separate visible
-	# loops instead of overlapping a single ellipse several times.
-	var coil_steps := 240
-	var coil_turns := 2.5
-	for step in range(coil_steps + 1):
-		var progress := float(step) / float(coil_steps)
-		var angle := PI - progress * TAU * coil_turns
-		var radius_x := lerpf(0.37, 0.46, progress)
-		var radius_y := lerpf(0.135, 0.19, progress)
-		var point := Vector3(cos(angle) * radius_x, sin(angle) * radius_y + 0.055, 0.53)
-		if route.is_empty() or route[route.size() - 1].distance_to(point) > 0.0001:
-			route.append(point)
+	# A continuous serpentine racetrack fold. Each rounded U-turn is wider
+	# than the jacket, so neighbouring runs stay visibly separate.
+	for lane_index in range(lane_count):
+		var lane_y := first_lane_y + float(lane_index) * lane_spacing
+		var travels_right := lane_index % 2 == 0
+		var lane_start := Vector3(lane_left if travels_right else lane_right, lane_y, fold_plane_z)
+		var lane_end := Vector3(lane_right if travels_right else lane_left, lane_y, fold_plane_z)
+		var control_a_x := -0.12 if travels_right else 0.12
+		var control_b_x := 0.12 if travels_right else -0.12
+		route = _append_charger_bezier(
+			route,
+			lane_start,
+			Vector3(control_a_x, lane_y, fold_plane_z),
+			Vector3(control_b_x, lane_y, fold_plane_z),
+			lane_end,
+			32
+		)
+		if lane_index < lane_count - 1:
+			var next_y := first_lane_y + float(lane_index + 1) * lane_spacing
+			var next_start := Vector3(lane_right if travels_right else lane_left, next_y, fold_plane_z)
+			if travels_right:
+				route = _append_charger_bezier(
+					route,
+					lane_end,
+					Vector3(0.415, lane_y, fold_plane_z),
+					Vector3(0.415, next_y, fold_plane_z),
+					next_start,
+					24
+				)
+			else:
+				route = _append_charger_bezier(
+					route,
+					lane_end,
+					Vector3(-0.415, lane_y, fold_plane_z),
+					Vector3(-0.415, next_y, fold_plane_z),
+					next_start,
+					24
+				)
 
+	# The last lane ends on the right. Route the final tail around the outside
+	# of the bundle, then into the rear of the right connector without crossing
+	# any of the folded runs.
 	route = _append_charger_bezier(
 		route,
 		route[route.size() - 1],
-		Vector3(0.48, -0.10, 0.53),
-		Vector3(0.43, -0.43, 0.56),
-		Vector3(0.43, -0.43, 0.46),
-		24
+		Vector3(0.48, first_lane_y + float(lane_count - 1) * lane_spacing, fold_plane_z),
+		Vector3(0.43, -0.43, -0.265),
+		Vector3(0.43, -0.43, boot_exit_z),
+		36
 	)
 
 	var cable := MeshInstance3D.new()
-	cable.name = "SingleContinuousCoiledCableJacket"
-	cable.mesh = _create_charger_cable_tube_mesh(route, 0.022, 24)
+	cable.name = "SingleUnbrokenHybridFoldCableJacket"
+	cable.mesh = _create_charger_cable_tube_mesh(route, 0.022, 28)
 	cable.material_override = cable_material
 	cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cable_group.add_child(cable)
 
-	# A separate woven retaining band wraps around the middle of the bundle.
-	# Four rounded panels form the closed band around the cable loops.
-	_add_charger_box(cable_group, "CableTieFrontWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.055, 0.566), strap_material)
-	_add_charger_box(cable_group, "CableTieRearWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.055, 0.494), strap_material)
-	_add_charger_box(cable_group, "CableTieUpperReturn", Vector3(0.14, 0.018, 0.072), Vector3(0.0, 0.285, 0.53), strap_material)
-	_add_charger_box(cable_group, "CableTieLowerReturn", Vector3(0.14, 0.018, 0.072), Vector3(0.0, -0.175, 0.53), strap_material)
+	# A broad soft retaining strap wraps across the centre of the folded bundle.
+	# Front/back faces and the top/bottom returns form one visually closed band.
+	_add_charger_box(cable_group, "CableTieFrontWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.07, -0.216), strap_material)
+	_add_charger_box(cable_group, "CableTieRearWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.07, -0.274), strap_material)
+	_add_charger_box(cable_group, "CableTieUpperReturn", Vector3(0.14, 0.018, 0.058), Vector3(0.0, 0.31, -0.245), strap_material)
+	_add_charger_box(cable_group, "CableTieLowerReturn", Vector3(0.14, 0.018, 0.058), Vector3(0.0, -0.17, -0.245), strap_material)
 	for stitch_index in range(7):
 		var stitch_x := (float(stitch_index) - 3.0) * 0.018
 		_add_charger_box(
 			cable_group,
 			"CableTieWovenStitch_%d" % stitch_index,
 			Vector3(0.004, 0.36, 0.002),
-			Vector3(stitch_x, 0.055, 0.577),
+			Vector3(stitch_x, 0.07, -0.204),
 			strap_stitch_material
 		)
 
@@ -3499,7 +3563,7 @@ func _rebuild_charger_preview() -> void:
 	var charger_geometry := Node3D.new()
 	charger_geometry.name = "ChargerGeometryPivot"
 	charger_geometry.scale = Vector3.ONE * charger_scale
-	charger_geometry.position = Vector3(-0.62, 0.27, 0.0) if combined_layout else Vector3.ZERO
+	charger_geometry.position = Vector3(-0.43, 0.27, 0.0) if combined_layout else Vector3.ZERO
 	if combined_layout:
 		charger_geometry.rotation_degrees = Vector3(-12.0, -20.0, -22.0)
 	charger_preview.add_child(charger_geometry)
@@ -3593,7 +3657,7 @@ func _rebuild_charger_preview() -> void:
 	if charger_cable_enabled:
 		var cable_group := _build_charger_cable(charger_preview, output_connector)
 		if combined_layout:
-			cable_group.position = Vector3(0.62, -0.34, 0.015)
+			cable_group.position = Vector3(0.42, -0.31, 0.015)
 			cable_group.scale = Vector3.ONE * 0.84
 			cable_group.rotation_degrees = Vector3(0.0, 0.0, -3.0)
 		else:
