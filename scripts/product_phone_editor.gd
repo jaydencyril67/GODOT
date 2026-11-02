@@ -190,6 +190,10 @@ var charger_enabled := false
 var charger_wattage := 30
 var charger_plug_type := "UK"
 var charger_body_color := Color("#e8edf2")
+var camera_lens_protector_enabled := false
+var camera_lens_protector_finish := "Ultra Clear"
+var camera_lens_protector_thickness := 0.0025
+var camera_lens_protector_thickness_label: Label
 var phone_case_custom_enabled := false
 var phone_case_building := false
 var phone_case_built := false
@@ -1034,7 +1038,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Camera Lens Protector"]: 
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1050,6 +1054,9 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		return
 	if feature_name == "Charger":
 		_show_charger_controls()
+		return
+	if feature_name == "Camera Lens Protector":
+		_show_camera_lens_protector_controls()
 		return
 	if feature_name == "Screen Tech":
 		_show_screen_tech_controls()
@@ -3201,6 +3208,146 @@ func _on_charger_color_selected(value: String) -> void:
 	_show_charger_controls()
 
 
+func _camera_lens_protector_material() -> StandardMaterial3D:
+	var glass := StandardMaterial3D.new()
+	match camera_lens_protector_finish:
+		"Blue AR":
+			glass.albedo_color = Color(0.46, 0.72, 0.92, 0.24)
+			glass.metallic = 0.20
+			glass.roughness = 0.055
+		"Sapphire":
+			glass.albedo_color = Color(0.22, 0.38, 0.62, 0.32)
+			glass.metallic = 0.28
+			glass.roughness = 0.045
+		_:
+			glass.albedo_color = Color(0.88, 0.96, 1.0, 0.17)
+			glass.metallic = 0.08
+			glass.roughness = 0.04
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.clearcoat_enabled = true
+	glass.clearcoat = 0.95
+	glass.clearcoat_roughness = 0.025
+	glass.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return glass
+
+
+func _on_camera_lens_protector_toggled(enabled: bool) -> void:
+	camera_lens_protector_enabled = enabled
+	_refresh_rear_hardware_visuals()
+	_show_camera_lens_protector_controls()
+
+
+func _on_camera_lens_protector_finish_selected(finish_name: String) -> void:
+	if not ["Ultra Clear", "Blue AR", "Sapphire"].has(finish_name):
+		return
+	camera_lens_protector_finish = finish_name
+	_refresh_rear_hardware_visuals()
+	_show_camera_lens_protector_controls()
+
+
+func _on_camera_lens_protector_thickness_changed(value: float) -> void:
+	camera_lens_protector_thickness = clampf(value, 0.0015, 0.0045)
+	_update_camera_lens_protector_thickness_label()
+	_refresh_rear_hardware_visuals()
+
+
+func _update_camera_lens_protector_thickness_label() -> void:
+	if is_instance_valid(camera_lens_protector_thickness_label):
+		var thickness_mm := camera_lens_protector_thickness * 75.0 / PHONE_SIZE.x
+		camera_lens_protector_thickness_label.text = "PROTECTOR THICKNESS  %.2f mm" % thickness_mm
+
+
+func _show_camera_lens_protector_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "CameraLensProtectorControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("CAMERA LENS PROTECTOR", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Individual transparent glass caps fitted over every rear camera lens. They follow camera position and size changes automatically.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "CameraLensProtectorEnableRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_child(enable_row)
+	var enable_label := _make_label("INSTALL LENS PROTECTORS", 13, Color("#e6f5ff"))
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_label)
+	var toggle := TextureButton.new()
+	toggle.name = "EnableCameraLensProtector"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(camera_lens_protector_enabled)
+	toggle.texture_hover = _make_side_button_checkbox_icon(camera_lens_protector_enabled)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
+	toggle.button_pressed = camera_lens_protector_enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.toggled.connect(_on_camera_lens_protector_toggled)
+	enable_row.add_child(toggle)
+
+	var camera_count := _make_label("REAR CAMERA LENSES  ·  %d" % rear_camera_modules.size(), 12, Color("#8ed6ff"))
+	camera_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(camera_count)
+	if rear_camera_modules.is_empty():
+		var camera_hint := _make_label("No rear cameras are installed yet. Enable the protector now and it will be fitted automatically when you add cameras in HARDWARE.", 12, Color("#f1ca82"))
+		camera_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(camera_hint)
+
+	var finish_heading := _make_label("PROTECTOR GLASS FINISH", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(finish_heading)
+	for finish_name in ["Ultra Clear", "Blue AR", "Sapphire"]:
+		var finish_button := Button.new()
+		finish_button.name = "CameraLensProtectorFinish_" + finish_name.replace(" ", "")
+		finish_button.text = finish_name.to_upper() + ("   ✓" if camera_lens_protector_finish == finish_name else "")
+		finish_button.custom_minimum_size = Vector2(0, 42)
+		finish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		finish_button.focus_mode = Control.FOCUS_NONE
+		finish_button.disabled = not camera_lens_protector_enabled
+		_apply_research_typography(finish_button, 12)
+		_style_staff_button(finish_button, camera_lens_protector_finish == finish_name)
+		finish_button.pressed.connect(_on_camera_lens_protector_finish_selected.bind(finish_name))
+		active_feature_panel.add_child(finish_button)
+
+	var thickness_heading := _make_label("GLASS THICKNESS", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(thickness_heading)
+	camera_lens_protector_thickness_label = _make_label("", 12, Color("#d8eaf5"))
+	camera_lens_protector_thickness_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(camera_lens_protector_thickness_label)
+	var thickness_slider := HSlider.new()
+	thickness_slider.name = "CameraLensProtectorThicknessSlider"
+	thickness_slider.min_value = 0.0015
+	thickness_slider.max_value = 0.0045
+	thickness_slider.step = 0.00025
+	thickness_slider.value = camera_lens_protector_thickness
+	thickness_slider.custom_minimum_size = Vector2(0, 38)
+	thickness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	thickness_slider.disabled = not camera_lens_protector_enabled
+	_style_custom_slider(thickness_slider)
+	thickness_slider.value_changed.connect(_on_camera_lens_protector_thickness_changed)
+	active_feature_panel.add_child(thickness_slider)
+	_update_camera_lens_protector_thickness_label()
+
+	var fit_note := _make_label("PRECISION FIT  ·  ONE GLASS CAP PER REAR LENS", 11, Color("#8ed6ff"))
+	fit_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fit_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(fit_note)
+
+
 func _show_charger_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -4392,6 +4539,13 @@ func _refresh_rear_hardware_visuals() -> void:
 		lens_glint.roughness = 0.055
 		lens_glint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(module_position.x - module_size * 0.13, module_position.y + module_size * 0.13, support_z - camera_layer.call(0.036)), module_size * 0.12, camera_layer.call(0.001), lens_glint)
+		if camera_lens_protector_enabled:
+			# The glass cap sits just beyond the existing optical stack, facing outward
+			# from the rear panel. Its radius covers the complete camera lens without
+			# extending over the surrounding camera housing.
+			var protector_glass := _camera_lens_protector_material()
+			var protector_center_z := support_z - camera_layer.call(0.037) - camera_lens_protector_thickness * 0.5
+			_add_rear_hardware_disc(root, "RearCamera_%d_LensProtector" % module_id, Vector3(module_position.x, module_position.y, protector_center_z), module_size * 0.75, camera_lens_protector_thickness, protector_glass)
 
 	for flash_index in range(rear_flash_modules.size()):
 		var flash_module: Dictionary = rear_flash_modules[flash_index]
