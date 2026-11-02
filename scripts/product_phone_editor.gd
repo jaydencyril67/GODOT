@@ -195,6 +195,7 @@ var charger_body_color := Color("#e8edf2")
 var charger_wattage_label: Label
 var charger_wattage_slider: VSlider
 var charger_preview_mode := false
+var charger_controls_page := "HOME"
 var camera_lens_protector_enabled := false
 var camera_lens_protector_finish := "Ultra Clear"
 var camera_lens_protector_thickness := 0.0025
@@ -3232,9 +3233,11 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
 	if is_instance_valid(charger_preview):
 		charger_preview.position = Vector3(-0.88, 0.0, 0.0) if enabled else Vector3.ZERO
+		charger_preview.scale = Vector3.ONE * (1.45 if enabled else 1.0)
+		charger_preview.rotation = Vector3.ZERO if not enabled else charger_preview.rotation
 		charger_preview.visible = enabled and charger_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 4.25 if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, 3.65 if enabled else 5.2)
 
 
 func _on_charger_wattage_changed(value: float) -> void:
@@ -3266,7 +3269,7 @@ func _on_charger_plug_selected(value: String) -> void:
 		return
 	charger_plug_type = value
 	_rebuild_charger_preview()
-	_show_charger_controls()
+	_show_charger_controls("PLUG")
 
 
 func _on_charger_color_selected(value: String) -> void:
@@ -3278,7 +3281,7 @@ func _on_charger_color_selected(value: String) -> void:
 		"Midnight Black":
 			charger_body_color = Color("#111820")
 	_rebuild_charger_preview()
-	_show_charger_controls()
+	_show_charger_controls("FINISH")
 
 
 func _camera_lens_protector_material() -> StandardMaterial3D:
@@ -3421,9 +3424,10 @@ func _show_camera_lens_protector_controls() -> void:
 	active_feature_panel.add_child(fit_note)
 
 
-func _show_charger_controls() -> void:
+func _show_charger_controls(page: String = "HOME") -> void:
 	if not is_instance_valid(right_tools_content):
 		return
+	charger_controls_page = page
 	for child in right_tools_content.get_children():
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
@@ -3433,13 +3437,100 @@ func _show_charger_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
+	if page != "HOME":
+		var header := HBoxContainer.new()
+		header.add_theme_constant_override("separation", 8)
+		active_feature_panel.add_child(header)
+		var back := Button.new()
+		back.name = "ChargerSettingsBack"
+		back.text = "‹"
+		back.custom_minimum_size = Vector2(42, 40)
+		back.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(back, 24)
+		_style_staff_button(back, false)
+		back.pressed.connect(_show_charger_controls.bind("HOME"))
+		header.add_child(back)
+		var page_title := _make_label("CHARGER " + page, 16, Color("#c7eaff"))
+		page_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		page_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		header.add_child(page_title)
+
+		match page:
+			"PLUG":
+				var plug_heading := _make_label("WALL PLUG STANDARD", 13, Color("#a9e3ff"))
+				active_feature_panel.add_child(plug_heading)
+				for plug_name in ["UK", "EU", "US", "Universal"]:
+					var plug_button := Button.new()
+					plug_button.name = "ChargerPlug_" + plug_name
+					plug_button.text = plug_name + ("   ✓  SELECTED" if charger_plug_type == plug_name else "")
+					plug_button.custom_minimum_size = Vector2(0, 48)
+					plug_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					plug_button.focus_mode = Control.FOCUS_NONE
+					_apply_research_typography(plug_button, 13)
+					_style_staff_button(plug_button, charger_plug_type == plug_name)
+					plug_button.pressed.connect(_on_charger_plug_selected.bind(plug_name))
+					active_feature_panel.add_child(plug_button)
+				var plug_note := _make_label("Changes the physical wall-pin layout on the 3D adapter.", 11, Color("#a9c9dc"))
+				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				active_feature_panel.add_child(plug_note)
+			"POWER":
+				var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#a9e3ff"))
+				active_feature_panel.add_child(wattage_heading)
+				charger_wattage_label = _make_label("%d W" % charger_wattage, 32, Color.WHITE)
+				charger_wattage_label.name = "ChargerOutputWattageValue"
+				charger_wattage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				active_feature_panel.add_child(charger_wattage_label)
+				var wattage_range := _make_label("2W  —  200W  ·  SYNCHRONIZED WITH PHONE", 11, Color("#a9c9dc"))
+				wattage_range.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				active_feature_panel.add_child(wattage_range)
+				var slider_row := HBoxContainer.new()
+				slider_row.name = "ChargerWattageVerticalSliderRow"
+			slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+			slider_row.add_theme_constant_override("separation", 12)
+			active_feature_panel.add_child(slider_row)
+			var minimum := _make_label("2W", 11, Color("#a9c9dc"))
+			minimum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			slider_row.add_child(minimum)
+			charger_wattage_slider = VSlider.new()
+			charger_wattage_slider.name = "ChargerOutputVerticalSlider"
+			charger_wattage_slider.min_value = 2
+			charger_wattage_slider.max_value = 200
+			charger_wattage_slider.step = 1
+			charger_wattage_slider.value = charger_wattage
+			charger_wattage_slider.custom_minimum_size = Vector2(52, 190)
+			charger_wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			charger_wattage_slider.focus_mode = Control.FOCUS_NONE
+			charger_wattage_slider.tick_count = 0
+			charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
+			_style_custom_slider(charger_wattage_slider)
+			slider_row.add_child(charger_wattage_slider)
+			var maximum := _make_label("200W", 11, Color("#a9c9dc"))
+			maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			slider_row.add_child(maximum)
+			"FINISH":
+				var color_heading := _make_label("ADAPTER FINISH", 13, Color("#a9e3ff"))
+				active_feature_panel.add_child(color_heading)
+				for color_name in ["Pearl White", "Graphite", "Midnight Black"]:
+					var color_button := Button.new()
+					color_button.name = "ChargerColor_" + color_name.replace(" ", "")
+					var color_value: Color = {"Pearl White": Color("#e8edf2"), "Graphite": Color("#303943"), "Midnight Black": Color("#111820")}[color_name]
+					color_button.text = color_name + ("   ✓  SELECTED" if charger_body_color == color_value else "")
+					color_button.custom_minimum_size = Vector2(0, 48)
+					color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					color_button.focus_mode = Control.FOCUS_NONE
+					_apply_research_typography(color_button, 13)
+					_style_staff_button(color_button, charger_body_color == color_value)
+					color_button.pressed.connect(_on_charger_color_selected.bind(color_name))
+					active_feature_panel.add_child(color_button)
+		return
+
 	var heading := _make_label("CHARGER ADAPTER", 18, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var description := _make_label("Configure a USB-C wall adapter and inspect it alone in the center preview.", 12, Color("#d5e9f5"))
+	var description := _make_label("Configure the adapter one setting at a time. Drag the centre preview to inspect every side.", 12, Color("#d5e9f5"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
-
 	var enable_row := HBoxContainer.new()
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(enable_row)
@@ -3460,70 +3551,39 @@ func _show_charger_controls() -> void:
 	toggle.toggled.connect(_on_charger_enabled_toggled)
 	enable_row.add_child(toggle)
 
-	var plug_heading := _make_label("PLUG STANDARD", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(plug_heading)
-	for plug_name in ["UK", "EU", "US", "Universal"]:
-		var plug_button := Button.new()
-		plug_button.name = "ChargerPlug_" + plug_name
-		plug_button.text = plug_name + ("   ✓" if charger_plug_type == plug_name else "")
-		plug_button.custom_minimum_size = Vector2(0, 38)
-		plug_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		plug_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(plug_button, 12)
-		_style_staff_button(plug_button, charger_plug_type == plug_name)
-		plug_button.pressed.connect(_on_charger_plug_selected.bind(plug_name))
-		active_feature_panel.add_child(plug_button)
+	var plug_option := Button.new()
+	plug_option.name = "OpenChargerPlugSettings"
+	plug_option.text = "PLUG STANDARD     ›     " + charger_plug_type
+	plug_option.custom_minimum_size = Vector2(0, 48)
+	plug_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	plug_option.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(plug_option, 13)
+	_style_staff_button(plug_option, false)
+	plug_option.pressed.connect(_show_charger_controls.bind("PLUG"))
+	active_feature_panel.add_child(plug_option)
 
-	var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(wattage_heading)
-	charger_wattage_label = _make_label("%d W" % charger_wattage, 29, Color.WHITE)
-	charger_wattage_label.name = "ChargerOutputWattageValue"
-	charger_wattage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(charger_wattage_label)
-	var wattage_range := _make_label("2W  —  200W  ·  SYNCHRONIZED WITH PHONE", 11, Color("#a9c9dc"))
-	wattage_range.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(wattage_range)
-	var wattage_slider_row := HBoxContainer.new()
-	wattage_slider_row.name = "ChargerWattageVerticalSliderRow"
-	wattage_slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wattage_slider_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	wattage_slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	wattage_slider_row.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(wattage_slider_row)
-	var min_wattage_label := _make_label("2W", 11, Color("#a9c9dc"))
-	min_wattage_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	wattage_slider_row.add_child(min_wattage_label)
-	charger_wattage_slider = VSlider.new()
-	charger_wattage_slider.name = "ChargerOutputVerticalSlider"
-	charger_wattage_slider.min_value = 2
-	charger_wattage_slider.max_value = 200
-	charger_wattage_slider.step = 1
-	charger_wattage_slider.value = charger_wattage
-	charger_wattage_slider.custom_minimum_size = Vector2(52, 210)
-	charger_wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	charger_wattage_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	charger_wattage_slider.focus_mode = Control.FOCUS_NONE
-	charger_wattage_slider.tick_count = 0
-	charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
-	_style_custom_slider(charger_wattage_slider)
-	wattage_slider_row.add_child(charger_wattage_slider)
-	var max_wattage_label := _make_label("200W", 11, Color("#a9c9dc"))
-	max_wattage_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	wattage_slider_row.add_child(max_wattage_label)
+	var power_option := Button.new()
+	power_option.name = "OpenChargerPowerSettings"
+	power_option.text = "OUTPUT POWER     ›     %d W" % charger_wattage
+	power_option.custom_minimum_size = Vector2(0, 48)
+	power_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_option.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(power_option, 13)
+	_style_staff_button(power_option, false)
+	power_option.pressed.connect(_show_charger_controls.bind("POWER"))
+	active_feature_panel.add_child(power_option)
 
-	var color_heading := _make_label("ADAPTER FINISH", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(color_heading)
-	for color_name in ["Pearl White", "Graphite", "Midnight Black"]:
-		var color_button := Button.new()
-		color_button.name = "ChargerColor_" + color_name.replace(" ", "")
-		color_button.text = color_name + ("   ✓" if charger_body_color == {"Pearl White": Color("#e8edf2"), "Graphite": Color("#303943"), "Midnight Black": Color("#111820")}[color_name] else "")
-		color_button.custom_minimum_size = Vector2(0, 38)
-		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		color_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(color_button, 12)
-		_style_staff_button(color_button, color_button.text.contains("✓"))
-		color_button.pressed.connect(_on_charger_color_selected.bind(color_name))
-		active_feature_panel.add_child(color_button)
+	var finish_name := "Pearl White" if charger_body_color == Color("#e8edf2") else ("Graphite" if charger_body_color == Color("#303943") else "Midnight Black")
+	var finish_option := Button.new()
+	finish_option.name = "OpenChargerFinishSettings"
+	finish_option.text = "ADAPTER FINISH     ›     " + finish_name
+	finish_option.custom_minimum_size = Vector2(0, 48)
+	finish_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	finish_option.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(finish_option, 13)
+	_style_staff_button(finish_option, false)
+	finish_option.pressed.connect(_show_charger_controls.bind("FINISH"))
+	active_feature_panel.add_child(finish_option)
 
 
 func _show_screen_protector_controls() -> void:
@@ -8119,6 +8179,12 @@ func _input(event: InputEvent) -> void:
 
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
+	if charger_preview_mode and is_instance_valid(charger_preview):
+		if absf(delta.x) >= absf(delta.y):
+			charger_preview.rotation.y += delta.x * DRAG_SENSITIVITY
+		else:
+			charger_preview.rotation.x += delta.y * DRAG_SENSITIVITY
+		return
 	if not is_instance_valid(phone_body):
 		return
 
