@@ -180,6 +180,11 @@ var selected_ram_capacity := "Not set"
 var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
 var selected_battery_capacity := "Not set"
+var selected_charging_speed := 2
+var charging_speed_value_label: Label
+var charging_speed_slider: VSlider
+var charging_speed_decrease_button: Button
+var charging_speed_increase_button: Button
 var research_mode := false
 var research_content_panel: Control
 var research_balance_label: Label
@@ -971,7 +976,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1015,6 +1020,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_rom_controls()
 	elif feature_name == "Battery":
 		_show_battery_controls()
+	elif feature_name == "Charging Speed":
+		_show_charging_speed_controls()
 
 
 
@@ -5356,6 +5363,7 @@ func _build_software_summary_panel() -> void:
 		["RAM", selected_ram_capacity],
 		["ROM", selected_rom_capacity],
 		["BATTERY", selected_battery_capacity],
+		["CHARGING SPEED", str(selected_charging_speed) + "W"],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
 		["RAM TECHNOLOGY", selected_ram_technology],
@@ -5611,6 +5619,117 @@ func _on_battery_capacity_selected(capacity: String) -> void:
 		var battery_label: Label = software_value_labels["BATTERY"]
 		battery_label.text = capacity
 	_show_battery_controls()
+
+
+func _show_charging_speed_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "ChargingSpeedControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("WIRED CHARGING SPEED", 17, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+
+	charging_speed_value_label = _make_label(str(selected_charging_speed) + "W", 31, Color.WHITE)
+	charging_speed_value_label.name = "ChargingSpeedValue"
+	charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(charging_speed_value_label)
+
+	var range_hint := _make_label("2W  —  200W", 12, Color("#a9c9dc"))
+	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(range_hint)
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "ChargingSpeedSliderRow"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	slider_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(slider_row)
+
+	var minimum_label := _make_label("2W", 11, Color("#a9c9dc"))
+	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(minimum_label)
+
+	charging_speed_slider = VSlider.new()
+	charging_speed_slider.name = "ChargingSpeedVerticalSlider"
+	charging_speed_slider.min_value = 2
+	charging_speed_slider.max_value = 200
+	charging_speed_slider.step = 1
+	charging_speed_slider.value = selected_charging_speed
+	charging_speed_slider.custom_minimum_size = Vector2(52, 245)
+	charging_speed_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	charging_speed_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	charging_speed_slider.focus_mode = Control.FOCUS_NONE
+	charging_speed_slider.tick_count = 0
+	charging_speed_slider.value_changed.connect(_on_charging_speed_changed)
+	slider_row.add_child(charging_speed_slider)
+
+	var maximum_label := _make_label("200W", 11, Color("#a9c9dc"))
+	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(maximum_label)
+
+	var adjustment_row := HBoxContainer.new()
+	adjustment_row.name = "ChargingSpeedFineAdjustment"
+	adjustment_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	adjustment_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	adjustment_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(adjustment_row)
+
+	charging_speed_decrease_button = Button.new()
+	charging_speed_decrease_button.name = "DecreaseChargingSpeed"
+	charging_speed_decrease_button.text = "−  1W"
+	charging_speed_decrease_button.custom_minimum_size = Vector2(76, 42)
+	charging_speed_decrease_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(charging_speed_decrease_button, 14)
+	_style_staff_button(charging_speed_decrease_button, false)
+	charging_speed_decrease_button.pressed.connect(_adjust_charging_speed.bind(-1))
+	adjustment_row.add_child(charging_speed_decrease_button)
+
+	charging_speed_increase_button = Button.new()
+	charging_speed_increase_button.name = "IncreaseChargingSpeed"
+	charging_speed_increase_button.text = "+  1W"
+	charging_speed_increase_button.custom_minimum_size = Vector2(76, 42)
+	charging_speed_increase_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(charging_speed_increase_button, 14)
+	_style_staff_button(charging_speed_increase_button, false)
+	charging_speed_increase_button.pressed.connect(_adjust_charging_speed.bind(1))
+	adjustment_row.add_child(charging_speed_increase_button)
+
+	_update_charging_speed_controls()
+
+
+func _on_charging_speed_changed(value: float) -> void:
+	selected_charging_speed = clampi(roundi(value), 2, 200)
+	_update_charging_speed_controls()
+
+
+func _adjust_charging_speed(amount: int) -> void:
+	selected_charging_speed = clampi(selected_charging_speed + amount, 2, 200)
+	if is_instance_valid(charging_speed_slider):
+		charging_speed_slider.set_value_no_signal(selected_charging_speed)
+	_update_charging_speed_controls()
+
+
+func _update_charging_speed_controls() -> void:
+	if is_instance_valid(charging_speed_value_label):
+		charging_speed_value_label.text = str(selected_charging_speed) + "W"
+	if is_instance_valid(charging_speed_slider) and not is_equal_approx(charging_speed_slider.value, float(selected_charging_speed)):
+		charging_speed_slider.set_value_no_signal(selected_charging_speed)
+	if is_instance_valid(charging_speed_decrease_button):
+		charging_speed_decrease_button.disabled = selected_charging_speed <= 2
+	if is_instance_valid(charging_speed_increase_button):
+		charging_speed_increase_button.disabled = selected_charging_speed >= 200
+	if software_value_labels.has("CHARGING SPEED") and is_instance_valid(software_value_labels["CHARGING SPEED"]):
+		var speed_label: Label = software_value_labels["CHARGING SPEED"]
+		speed_label.text = str(selected_charging_speed) + "W"
 
 
 func _on_left_tools_previous_pressed() -> void:
