@@ -1961,19 +1961,55 @@ func _on_create_category_pressed(category: String) -> void:
 
 
 func _show_phone_editor() -> void:
+	# Ignore duplicate activation while the Phone Editor is already open.
+	# Re-instantiating a CanvasLayer every time the button receives input can
+	# briefly leave overlapping UI layers on mobile.
+	if current_screen == "phone_editor" and is_instance_valid(phone_editor):
+		phone_editor.show()
+		var existing_interface := phone_editor.get_node_or_null("PhoneEditorInterface") as CanvasLayer
+		if is_instance_valid(existing_interface):
+			existing_interface.show()
+		return
+
 	_dispose_phone_editor()
-	phone_editor = PhoneEditorScene.instantiate() as Node3D
-	phone_editor.name = "Phone_Product_Editor"
-	phone_editor.connect("back_requested", Callable(self, "_return_from_phone_editor"))
+
+	# Make the Phone Editor an exclusive screen. Hide every persistent screen
+	# layer that can outlive a page transition, not only the Create page.
+	if is_instance_valid(ui_layer):
+		ui_layer.hide()
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.hide()
-	add_child(phone_editor)
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.hide()
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(false)
+
+	ui_layer = null
+	ui_root = null
 	current_screen = "phone_editor"
+
+	phone_editor = PhoneEditorScene.instantiate() as Node3D
+	if not is_instance_valid(phone_editor):
+		current_screen = "create"
+		if is_instance_valid(create_ui_layer):
+			create_ui_layer.show()
+			ui_layer = create_ui_layer
+			ui_root = create_ui_root
+		push_error("Phone Editor scene could not be instantiated.")
+		return
+
+	phone_editor.name = "Phone_Product_Editor"
+	phone_editor.connect("back_requested", Callable(self, "_return_from_phone_editor"))
+	add_child(phone_editor)
 
 
 func _return_from_phone_editor() -> void:
-	_dispose_phone_editor()
+	# Switch the state before removing the editor so no frame treats the
+	# outgoing screen as active while the Create page is being restored.
 	current_screen = "create"
+	_dispose_phone_editor()
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.show()
 		ui_layer = create_ui_layer
@@ -2222,6 +2258,8 @@ func _open_staff_screen(screen_mode: String) -> void:
 	ui_layer = null
 	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
 		_prepare_staff_scenes()
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.show()
 	staff_market_screen.hide()
 	staff_management_screen.hide()
 	staff_screen = staff_market_screen if screen_mode == "market" else staff_management_screen
