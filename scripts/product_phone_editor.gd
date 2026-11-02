@@ -2990,6 +2990,27 @@ func _rear_module_position_is_free(candidate_position: Vector2, module_size: flo
 	return true
 
 
+func _snap_rear_hardware_step_onto_box(candidate_position: Vector2, module_size: float, kind: String, ignore_index: int) -> Vector2:
+	var extent := module_size * 1.22
+	for box in back_design_boxes:
+		var box_position: Vector2 = box["position"]
+		var half: Vector2 = box["size"] * 0.5
+		var overlaps_box := absf(candidate_position.x - box_position.x) < extent + half.x and absf(candidate_position.y - box_position.y) < extent + half.y
+		if not overlaps_box:
+			continue
+		# The full camera/flash footprint must fit inside the raised box.
+		var available := half - Vector2.ONE * extent
+		if available.x < 0.0 or available.y < 0.0:
+			continue
+		var snapped := box_position + Vector2(
+			clampf(candidate_position.x - box_position.x, -available.x, available.x),
+			clampf(candidate_position.y - box_position.y, -available.y, available.y)
+		)
+		if _rear_module_position_is_free(snapped, module_size, kind, ignore_index):
+			return snapped
+	return Vector2(1000.0, 1000.0)
+
+
 func _on_rear_hardware_pad_pressed(direction: Vector2i) -> void:
 	var modules := _get_rear_hardware_modules()
 	var selected_index := _get_rear_hardware_selected_index()
@@ -3010,7 +3031,15 @@ func _on_rear_hardware_pad_pressed(direction: Vector2i) -> void:
 	local_direction = local_direction.normalized()
 	var next_position := module_position + local_direction * 0.04
 	if not _rear_module_position_is_free(next_position, module_size, rear_hardware_mode, selected_index):
-		return
+		# A strict no-partial-overlap rule otherwise traps hardware at the
+		# raised box edge: every intermediate step overlaps only part of it.
+		# Snap that attempted step onto the nearest valid top-surface position.
+		var snapped_position := _snap_rear_hardware_step_onto_box(next_position, module_size, rear_hardware_mode, selected_index)
+		if snapped_position.x > 900.0:
+			return
+		next_position = snapped_position
+		if not _rear_module_position_is_free(next_position, module_size, rear_hardware_mode, selected_index):
+			return
 	module["position"] = next_position
 	if rear_hardware_mode == "FLASH":
 		rear_flash_modules[selected_index] = module
