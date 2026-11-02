@@ -2968,10 +2968,12 @@ func _show_front_camera_mp_controls() -> void:
 	active_feature_panel.add_child(row)
 	row.add_child(_make_camera_mp_slider_card("01", front_camera_megapixels, func(megapixels: int) -> void:
 		front_camera_megapixels = megapixels
+		_update_camera_software_summary()
 	))
 	if front_camera_style == "Dual Punch-Hole":
 		row.add_child(_make_camera_mp_slider_card("02", front_camera_secondary_megapixels, func(megapixels: int) -> void:
 			front_camera_secondary_megapixels = megapixels
+			_update_camera_software_summary()
 		))
 
 
@@ -3010,6 +3012,7 @@ func _show_rear_camera_mp_controls() -> void:
 				if int(rear_camera_modules[module_index].get("id", -1)) == camera_id:
 					rear_camera_modules[module_index]["mp"] = next_mp
 					break
+			_update_camera_software_summary()
 		))
 
 
@@ -3086,6 +3089,7 @@ func _on_front_camera_enablement_toggled(enabled: bool) -> void:
 	front_camera_enabled = enabled
 	_update_bezel_height_slider_limit()
 	_refresh_phone_screen()
+	_update_camera_software_summary()
 	var toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
 		toggle.text = "✓" if enabled else ""
@@ -3100,6 +3104,7 @@ func _on_front_camera_style_selected(style_name: String) -> void:
 	front_camera_style = style_name
 	_update_bezel_height_slider_limit()
 	_refresh_phone_screen()
+	_update_camera_software_summary()
 	for option_name in front_camera_option_buttons:
 		var option: Button = front_camera_option_buttons[option_name]
 		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(option_name) + 2, 9), option_name == front_camera_style)
@@ -3557,6 +3562,7 @@ func _add_rear_hardware_module() -> void:
 		next_rear_camera_id += 1
 	_refresh_rear_hardware_visuals()
 	_refresh_rear_hardware_panel()
+	_update_camera_software_summary()
 
 
 func _remove_rear_hardware_module() -> void:
@@ -3572,6 +3578,7 @@ func _remove_rear_hardware_module() -> void:
 		rear_camera_modules = modules
 	_refresh_rear_hardware_visuals()
 	_refresh_rear_hardware_panel()
+	_update_camera_software_summary()
 
 
 func _cycle_rear_hardware_selection(direction: int) -> void:
