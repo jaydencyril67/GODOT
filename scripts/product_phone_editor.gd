@@ -2167,8 +2167,8 @@ func _refresh_back_design_boxes() -> void:
 		else:
 			raised.material_override = _create_back_design_box_material(box, size, index == selected_back_design_box)
 		raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var position: Vector2 = box["position"]
-		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5)
+		var box_center: Vector2 = box["position"]
+		raised.position = Vector3(box_center.x, box_center.y, -phone_depth * 0.5)
 		root.add_child(raised)
 	_refresh_rear_hardware_visuals()
 
@@ -3060,7 +3060,7 @@ func _add_camera_sensor_dot(parent: Node3D, dot_position: Vector3, radius: float
 	parent.add_child(dot)
 
 
-func _add_front_camera_lens(parent: Node3D, lens_position: Vector3, radius: float, dark_material: Material, lens_material: Material, ring_material: Material) -> void:
+func _add_front_camera_lens(parent: Node3D, lens_position: Vector3, radius: float, _dark_material: Material, lens_material: Material, ring_material: Material) -> void:
 	var ring := MeshInstance3D.new()
 	ring.name = "FrontCameraLensRing"
 	var ring_mesh := CylinderMesh.new()
@@ -3452,7 +3452,7 @@ func _refresh_rear_hardware_panel() -> void:
 	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
 
 
-func _rear_hardware_support_surface_z(module_position: Vector2, module_size: float) -> float:
+func _rear_hardware_support_surface_z(module_position: Vector2, _module_size: float) -> float:
 	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var surface_z := -phone_depth * 0.5
 	# Let the module climb onto / descend from a raised box as its centre
@@ -4327,7 +4327,7 @@ func _refresh_phone_side_buttons() -> void:
 		_add_phone_style_pen(button_root, current_depth, key_material)
 
 
-func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Material) -> void:
+func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: Material) -> void:
 	# Keep every speaker at its authored position. Move only the S-Pen marker
 	# along the bottom-left perimeter until it clears the left speaker row.
 	# At larger corner radii it follows the rounded corner, with its circular
