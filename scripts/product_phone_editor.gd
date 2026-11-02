@@ -196,6 +196,7 @@ var charger_wattage_label: Label
 var charger_wattage_slider: VSlider
 var charger_preview_mode := false
 var charger_controls_page := "HOME"
+var charger_color_mode := false
 var camera_lens_protector_enabled := false
 var camera_lens_protector_finish := "Ultra Clear"
 var camera_lens_protector_thickness := 0.0025
@@ -1127,16 +1128,17 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 
-func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false) -> void:
+func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false) -> void:
 	_close_back_design_selection_popup()
 	back_design_color_mode = return_to_back_design
 	phone_case_color_mode = for_phone_case
+	charger_color_mode = for_charger
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "PhoneCaseColorControls" if for_phone_case else "DeviceColorControls"
+	active_feature_panel.name = "ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else "DeviceColorControls")
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if return_to_back_design else Control.SIZE_SHRINK_BEGIN
 	var color_viewport_size := get_viewport().get_visible_rect().size
@@ -1154,9 +1156,9 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		back_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(back_button, 25)
 		_style_staff_button(back_button, false)
-		back_button.pressed.connect(_show_phone_case_controls if for_phone_case else _show_back_design_controls)
+		back_button.pressed.connect(_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else _show_back_design_controls))
 		color_header.add_child(back_button)
-		var color_title := _make_label("CASE COLOR" if for_phone_case else "BACK DESIGN COLOR", 16, Color("#c7eaff"))
+		var color_title := _make_label("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else "BACK DESIGN COLOR"), 16, Color("#c7eaff"))
 		color_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		color_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		color_header.add_child(color_title)
@@ -1273,7 +1275,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 			if not box_gradient_options.visible:
 				back_design_gradient_color_edit_mode = false
 
-	if not return_to_back_design:
+	if not return_to_back_design and not for_charger:
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1450,6 +1452,8 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 
 
 func _get_active_color_picker_color() -> Color:
+	if charger_color_mode:
+		return charger_body_color
 	if phone_case_color_mode:
 		return phone_case_gradient_color if phone_case_gradient_color_edit_mode else phone_case_color
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
@@ -1726,7 +1730,10 @@ func _on_device_gradient_toggled(enabled: bool) -> void:
 
 func _on_device_body_color_changed(color: Color) -> void:
 	var selected_color := Color(color.r, color.g, color.b, 1.0)
-	if phone_case_color_mode:
+	if charger_color_mode:
+		charger_body_color = selected_color
+		_rebuild_charger_preview()
+	elif phone_case_color_mode:
 		if phone_case_gradient_color_edit_mode:
 			phone_case_gradient_color = selected_color
 		else:
@@ -1743,7 +1750,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_gradient_color = selected_color
 	else:
 		device_body_color = selected_color
-	if not phone_case_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
+	if not phone_case_color_mode and not charger_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
@@ -1761,7 +1768,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = _get_active_color_picker_color().to_html(false).to_upper()
-	if not phone_case_color_mode:
+	if not phone_case_color_mode and not charger_color_mode:
 		_refresh_back_design_boxes()
 		_refresh_phone_side_buttons()
 
@@ -3509,20 +3516,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 			maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			slider_row.add_child(maximum)
 			"FINISH":
-				var color_heading := _make_label("ADAPTER FINISH", 13, Color("#a9e3ff"))
-				active_feature_panel.add_child(color_heading)
-				for color_name in ["Pearl White", "Graphite", "Midnight Black"]:
-					var color_button := Button.new()
-					color_button.name = "ChargerColor_" + color_name.replace(" ", "")
-					var color_value: Color = {"Pearl White": Color("#e8edf2"), "Graphite": Color("#303943"), "Midnight Black": Color("#111820")}[color_name]
-					color_button.text = color_name + ("   ✓  SELECTED" if charger_body_color == color_value else "")
-					color_button.custom_minimum_size = Vector2(0, 48)
-					color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					color_button.focus_mode = Control.FOCUS_NONE
-					_apply_research_typography(color_button, 13)
-					_style_staff_button(color_button, charger_body_color == color_value)
-					color_button.pressed.connect(_on_charger_color_selected.bind(color_name))
-					active_feature_panel.add_child(color_button)
+				_show_device_color_controls(false, false, true)
 		return
 
 	var heading := _make_label("CHARGER ADAPTER", 18, Color("#c7eaff"))
@@ -3576,13 +3570,13 @@ func _show_charger_controls(page: String = "HOME") -> void:
 	var finish_name := "Pearl White" if charger_body_color == Color("#e8edf2") else ("Graphite" if charger_body_color == Color("#303943") else "Midnight Black")
 	var finish_option := Button.new()
 	finish_option.name = "OpenChargerFinishSettings"
-	finish_option.text = "ADAPTER FINISH     ›     " + finish_name
+	finish_option.text = "ADAPTER COLOR     ›     " + finish_name
 	finish_option.custom_minimum_size = Vector2(0, 48)
 	finish_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	finish_option.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(finish_option, 13)
 	_style_staff_button(finish_option, false)
-	finish_option.pressed.connect(_show_charger_controls.bind("FINISH"))
+	finish_option.pressed.connect(_show_device_color_controls.bind(false, false, true))
 	active_feature_panel.add_child(finish_option)
 
 
