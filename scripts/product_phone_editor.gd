@@ -2980,23 +2980,15 @@ func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vec
 
 
 func _rear_module_position_is_free(candidate_position: Vector2, module_size: float, kind: String, ignore_index: int) -> bool:
+	# The only placement limits are the physical phone-back boundary and
+	# keeping every camera/flash separate from every other hardware module.
+	# Back Design boxes are NOT placement zones or obstacles: hardware can
+	# cross their edges freely in either direction.
 	var extent := module_size * 1.22
 	if absf(candidate_position.x) + extent > PHONE_SIZE.x * 0.5 - 0.025:
 		return false
 	if absf(candidate_position.y) + extent > PHONE_SIZE.y * 0.5 - 0.025:
 		return false
-	# A camera/flash may sit directly on the phone back, or fully on top of
-	# one raised Back Design box. Partial intersections are rejected so the
-	# hardware never bridges a box edge and appears to float.
-	for box in back_design_boxes:
-		var box_position: Vector2 = box["position"]
-		var box_size: Vector2 = box["size"]
-		var half := box_size * 0.5
-		var overlaps_box := absf(candidate_position.x - box_position.x) < extent + half.x and absf(candidate_position.y - box_position.y) < extent + half.y
-		if overlaps_box:
-			var fully_on_box := absf(candidate_position.x - box_position.x) + extent <= half.x and absf(candidate_position.y - box_position.y) + extent <= half.y
-			if not fully_on_box:
-				return false
 	for index in range(rear_camera_modules.size()):
 		if kind == "CAMERA" and index == ignore_index:
 			continue
@@ -3014,27 +3006,6 @@ func _rear_module_position_is_free(candidate_position: Vector2, module_size: flo
 		if candidate_position.distance_to(other_position) < (module_size + other_size) * 1.18 + 0.025:
 			return false
 	return true
-
-
-func _snap_rear_hardware_step_onto_box(candidate_position: Vector2, module_size: float, kind: String, ignore_index: int) -> Vector2:
-	var extent := module_size * 1.22
-	for box in back_design_boxes:
-		var box_position: Vector2 = box["position"]
-		var half: Vector2 = box["size"] * 0.5
-		var overlaps_box := absf(candidate_position.x - box_position.x) < extent + half.x and absf(candidate_position.y - box_position.y) < extent + half.y
-		if not overlaps_box:
-			continue
-		# The full camera/flash footprint must fit inside the raised box.
-		var available := half - Vector2.ONE * extent
-		if available.x < 0.0 or available.y < 0.0:
-			continue
-		var snapped := box_position + Vector2(
-			clampf(candidate_position.x - box_position.x, -available.x, available.x),
-			clampf(candidate_position.y - box_position.y, -available.y, available.y)
-		)
-		if _rear_module_position_is_free(snapped, module_size, kind, ignore_index):
-			return snapped
-	return Vector2(1000.0, 1000.0)
 
 
 func _on_rear_hardware_pad_pressed(direction: Vector2i) -> void:
@@ -3056,16 +3027,10 @@ func _on_rear_hardware_pad_pressed(direction: Vector2i) -> void:
 		return
 	local_direction = local_direction.normalized()
 	var next_position := module_position + local_direction * 0.04
+	# Move in small continuous steps across the flat back and raised
+	# Back Design geometry. Only the phone edge and other hardware can block it.
 	if not _rear_module_position_is_free(next_position, module_size, rear_hardware_mode, selected_index):
-		# A strict no-partial-overlap rule otherwise traps hardware at the
-		# raised box edge: every intermediate step overlaps only part of it.
-		# Snap that attempted step onto the nearest valid top-surface position.
-		var snapped_position := _snap_rear_hardware_step_onto_box(next_position, module_size, rear_hardware_mode, selected_index)
-		if snapped_position.x > 900.0:
-			return
-		next_position = snapped_position
-		if not _rear_module_position_is_free(next_position, module_size, rear_hardware_mode, selected_index):
-			return
+		return
 	module["position"] = next_position
 	if rear_hardware_mode == "FLASH":
 		rear_flash_modules[selected_index] = module
@@ -3122,13 +3087,13 @@ func _refresh_rear_hardware_panel() -> void:
 func _rear_hardware_support_surface_z(module_position: Vector2, module_size: float) -> float:
 	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var surface_z := -phone_depth * 0.5
-	var extent := module_size * 1.22
+	# Let the module climb onto / descend from a raised box as its centre
+	# crosses the box edge. Do not require its whole footprint to fit inside.
 	for box in back_design_boxes:
 		var box_position: Vector2 = box["position"]
-		var box_size: Vector2 = box["size"]
-		var half := box_size * 0.5
-		var fully_on_box := absf(module_position.x - box_position.x) + extent <= half.x and absf(module_position.y - box_position.y) + extent <= half.y
-		if fully_on_box:
+		var half: Vector2 = box["size"] * 0.5
+		var centre_is_over_box := absf(module_position.x - box_position.x) <= half.x and absf(module_position.y - box_position.y) <= half.y
+		if centre_is_over_box:
 			# Raised Back Design mesh extrudes toward the outside of the rear face.
 			return surface_z - (0.035 / 1.10 / 1.5)
 	return surface_z
