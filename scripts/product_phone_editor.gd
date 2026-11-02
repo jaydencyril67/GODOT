@@ -139,6 +139,7 @@ var front_camera_enabled := false
 var front_camera_megapixels := 12
 const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
 const MAX_REAR_CAMERAS := 5
+const MAX_REAR_FLASHES := 5
 var front_camera_style := "Punch-Hole"
 const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
 var front_camera_option_buttons: Dictionary = {}
@@ -3539,6 +3540,9 @@ func _add_rear_hardware_module() -> void:
 	if rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS:
 		_refresh_rear_hardware_panel()
 		return
+	if rear_hardware_mode == "FLASH" and rear_flash_modules.size() >= MAX_REAR_FLASHES:
+		_refresh_rear_hardware_panel()
+		return
 	var module_size := _get_rear_hardware_default_size()
 	var spawn_position := _find_rear_hardware_spawn_position(rear_hardware_mode, module_size)
 	if spawn_position.x > 900.0:
@@ -3694,8 +3698,9 @@ func _refresh_rear_hardware_panel() -> void:
 	rear_hardware_previous_button.disabled = modules.size() < 2
 	rear_hardware_next_button.disabled = modules.size() < 2
 	var camera_limit_reached := rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS
-	rear_hardware_add_button.text = "MAX 5 CAMERAS" if camera_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH")
-	rear_hardware_add_button.disabled = camera_limit_reached
+	var flash_limit_reached := rear_hardware_mode == "FLASH" and rear_flash_modules.size() >= MAX_REAR_FLASHES
+	rear_hardware_add_button.text = "MAX 5 CAMERAS" if camera_limit_reached else ("MAX 5 FLASHES" if flash_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"))
+	rear_hardware_add_button.disabled = camera_limit_reached or flash_limit_reached
 	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
 
 
