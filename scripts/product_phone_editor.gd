@@ -3961,15 +3961,78 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Material) -> void:
-	# One black circular end, seated flush against the bottom rail.
-	# Its center follows the straight section beyond the rounded corner.
+	# Keep every speaker at its authored position. Move only the S-Pen marker
+	# along the bottom-left perimeter until it clears the left speaker row.
+	# At larger corner radii it follows the rounded corner, with its circular
+	# face kept tangent to the frame instead of hanging outside the chassis.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var left_edge := -PHONE_SIZE.x * 0.5
 	var circle_radius := 0.025
-	var circle_x := left_edge + corner_radius + circle_radius + 0.012
-	var circle_y := bottom_y + 0.0035
-	var circle_z := 0.0
+	var edge_inset := 0.004
+	var speaker_radius := 0.012
+	var speaker_clearance := 0.008
+	var marker_position := Vector2(left_edge + corner_radius + circle_radius + 0.012, bottom_y + edge_inset)
+	var marker_rotation := 0.0
+	var found_position := false
+
+	# Recalculate the existing left-speaker coordinates only for collision
+	# testing; this does not change, move, or resize any speaker opening.
+	var left_count := int(ceil(float(speaker_count) * 0.5))
+	var reserved_port_half_width := 0.115
+	var edge_margin := 0.035
+	var hole_spacing := 0.045
+	var left_speaker_positions: Array[float] = []
+	for index in range(left_count):
+		left_speaker_positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * hole_spacing))
+
+	var required_clearance := circle_radius + speaker_radius + speaker_clearance
+	if corner_radius > 0.08:
+		# Walk from the bottom tangent around the lower-left corner toward the
+		# left rail. Each candidate remains inset from the rounded body outline.
+		var arc_center := Vector2(left_edge + corner_radius, bottom_y + corner_radius)
+		var arc_path_radius := corner_radius - edge_inset
+		for step in range(1, 91):
+			var angle := -PI * 0.5 - deg_to_rad(float(step) * 1.0)
+			var candidate := arc_center + Vector2(cos(angle), sin(angle)) * arc_path_radius
+			var clear := true
+			for speaker_x in left_speaker_positions:
+				var speaker_center := Vector2(speaker_x, bottom_y + 0.0045)
+				if candidate.distance_to(speaker_center) < required_clearance:
+					clear = false
+					break
+			if clear:
+				marker_position = candidate
+				marker_rotation = rad_to_deg(angle - PI * 0.5)
+				found_position = true
+				break
+
+	# On square/small-radius phones, or if the arc is not needed, use the
+	# straight bottom rail. If a future speaker layout blocks it, keep trying
+	# progressively farther along the rail without changing speaker positions.
+	if not found_position:
+		var straight_start_x := left_edge + corner_radius + circle_radius + 0.012
+		var straight_end_x := 0.0
+		var candidate_steps := 80
+		for step in range(candidate_steps + 1):
+			var candidate_x := lerpf(straight_start_x, straight_end_x, float(step) / float(candidate_steps))
+			var candidate := Vector2(candidate_x, bottom_y + edge_inset)
+			var clear := true
+			for speaker_x in left_speaker_positions:
+				var speaker_center := Vector2(speaker_x, bottom_y + 0.0045)
+				if candidate.distance_to(speaker_center) < required_clearance:
+					clear = false
+					break
+			if clear:
+				marker_position = candidate
+				marker_rotation = 0.0
+				found_position = true
+				break
+
+	# Never draw the marker in an invalid location. Hiding it is safer than
+	# letting it overlap a speaker or protrude beyond the phone body.
+	if not found_position and speaker_count > 0:
+		return
 
 	var circle_material := StandardMaterial3D.new()
 	circle_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -3986,7 +4049,8 @@ func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Ma
 	circle_mesh.height = 0.008
 	circle_mesh.radial_segments = 40
 	end_marker.mesh = circle_mesh
-	end_marker.position = Vector3(circle_x, circle_y, circle_z)
+	end_marker.position = Vector3(marker_position.x, marker_position.y, 0.0)
+	end_marker.rotation_degrees.z = marker_rotation
 	end_marker.material_override = circle_material
 	end_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(end_marker)
