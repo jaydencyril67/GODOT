@@ -3201,7 +3201,7 @@ func _rebuild_charger_preview() -> void:
 	body.name = "ChargerAdapterBody"
 	body.mesh = _create_rounded_panel_mesh(0.58, 0.78, 0.29, 0.105)
 	body.material_override = shell_material
-	body.position = Vector3.ZERO
+	body.position = Vector3(0.88, 0.0, 0.0)
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	charger_geometry.add_child(body)
 
@@ -3210,7 +3210,7 @@ func _rebuild_charger_preview() -> void:
 	face.name = "AdapterFacePlate"
 	face.mesh = _create_rounded_panel_mesh(0.535, 0.725, 0.012, 0.088)
 	face.material_override = face_material
-	face.position = Vector3(0.0, 0.0, 0.151)
+	face.position = Vector3(0.88, 0.0, 0.151)
 	face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	charger_geometry.add_child(face)
 	_add_charger_box(charger_geometry, "HousingSeam", Vector3(0.535, 0.009, 0.008), Vector3(0.88, -0.255, 0.158), seam_material)
