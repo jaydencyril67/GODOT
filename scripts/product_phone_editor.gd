@@ -217,6 +217,10 @@ var device_gradient_enabled := false
 var device_gradient_color := Color("#536dfe")
 var device_gradient_direction := 0 # 0 vertical, 1 horizontal, 2 diagonal, 3 radial
 var gradient_color_edit_mode := false
+var gradient_direction_button: Button
+var gradient_direction_popup: PanelContainer
+var gradient_direction_items: VBoxContainer
+var editor_loading_layer: CanvasLayer
 var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
@@ -237,7 +241,36 @@ func _ready() -> void:
 	if research_mode:
 		_build_research_ui()
 	else:
+		_show_editor_loading_screen()
+		await get_tree().process_frame
 		_build_editor_ui()
+		if is_instance_valid(editor_loading_layer):
+			editor_loading_layer.queue_free()
+			editor_loading_layer = null
+
+
+func _show_editor_loading_screen() -> void:
+	editor_loading_layer = CanvasLayer.new()
+	editor_loading_layer.name = "PhoneEditorLoadingLayer"
+	editor_loading_layer.layer = 100
+	add_child(editor_loading_layer)
+	var overlay := ColorRect.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color("#071522")
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	editor_loading_layer.add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 12)
+	center.add_child(stack)
+	var title := _make_label("DIGITALWORLD", 25, Color("#e5f6ff"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stack.add_child(title)
+	var status := _make_label("PREPARING PHONE STUDIO…", 13, Color("#8edaff"))
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stack.add_child(status)
 
 
 func _build_editor_ui() -> void:
@@ -836,8 +869,8 @@ func _make_glass_panel(fill_color: Color) -> PanelContainer:
 func _get_preview_viewport() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
-	viewport.size = Vector2i(1200, 900)
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.size = Vector2i(720, 900)
+	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	viewport.own_world_3d = true
 
 	var environment_node := WorldEnvironment.new()
@@ -1083,14 +1116,40 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		_style_staff_button(gradient_color_target, gradient_color_edit_mode)
 		gradient_color_target.pressed.connect(_on_gradient_color_target_selected.bind(true))
 		color_target_row.add_child(gradient_color_target)
-		var direction_picker := OptionButton.new()
-		direction_picker.name = "GradientDirection"
-		direction_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		for direction_name in ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]:
-			direction_picker.add_item(direction_name)
-		direction_picker.select(clampi(device_gradient_direction, 0, 3))
-		direction_picker.item_selected.connect(_on_device_gradient_direction_changed)
-		gradient_options.add_child(direction_picker)
+		gradient_direction_button = Button.new()
+		gradient_direction_button.name = "GradientDirection"
+		gradient_direction_button.text = _gradient_direction_name(device_gradient_direction) + "  ▼"
+		gradient_direction_button.custom_minimum_size.y = 40
+		gradient_direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		gradient_direction_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(gradient_direction_button, 13)
+		_style_staff_button(gradient_direction_button, false)
+		gradient_direction_button.pressed.connect(_toggle_gradient_direction_popup)
+		gradient_options.add_child(gradient_direction_button)
+		gradient_direction_popup = PanelContainer.new()
+		gradient_direction_popup.name = "GradientDirectionCustomDropdown"
+		gradient_direction_popup.visible = false
+		gradient_direction_popup.z_index = 110
+		gradient_direction_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+		var direction_popup_style := StyleBoxFlat.new()
+		direction_popup_style.bg_color = Color("#071d2d")
+		direction_popup_style.border_color = Color("#65caff")
+		direction_popup_style.set_border_width_all(2)
+		direction_popup_style.set_corner_radius_all(12)
+		direction_popup_style.content_margin_left = 8
+		direction_popup_style.content_margin_right = 8
+		direction_popup_style.content_margin_top = 8
+		direction_popup_style.content_margin_bottom = 8
+		gradient_direction_popup.add_theme_stylebox_override("panel", direction_popup_style)
+		gradient_direction_items = VBoxContainer.new()
+		gradient_direction_items.add_theme_constant_override("separation", 6)
+		gradient_direction_popup.add_child(gradient_direction_items)
+		var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+		if is_instance_valid(editor_root):
+			editor_root.add_child(gradient_direction_popup)
+		else:
+			active_feature_panel.add_child(gradient_direction_popup)
+		_rebuild_gradient_direction_popup()
 		gradient_options.visible = device_gradient_enabled
 
 	var spectrum_heading := _make_label("COLOR SPECTRUM", 13, Color("#a9e3ff"))
@@ -1127,48 +1186,6 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 	device_color_hex_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	device_color_hex_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	selected_row.add_child(device_color_hex_label)
-
-	var rgb_heading := _make_label("RGB VALUES", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(rgb_heading)
-	var rgb_row := HBoxContainer.new()
-	rgb_row.name = "DeviceColorRGB"
-	rgb_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rgb_row.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(rgb_row)
-	for channel in ["R", "G", "B"]:
-		var channel_column := VBoxContainer.new()
-		channel_column.name = channel + "Column"
-		channel_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		channel_column.add_theme_constant_override("separation", 3)
-		rgb_row.add_child(channel_column)
-		var channel_label := _make_label(channel, 12, Color("#91b8cf"))
-		channel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		channel_column.add_child(channel_label)
-		var channel_input := SpinBox.new()
-		channel_input.name = "DeviceColor" + channel
-		channel_input.min_value = 0
-		channel_input.max_value = 255
-		channel_input.step = 1
-		channel_input.value = roundi(_get_active_color_picker_color().r * 255.0) if channel == "R" else (roundi(_get_active_color_picker_color().g * 255.0) if channel == "G" else roundi(_get_active_color_picker_color().b * 255.0))
-		channel_input.custom_minimum_size = Vector2(0, 40)
-		channel_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		channel_input.add_theme_color_override("font_color", Color("#eaf7ff"))
-		var channel_editor := channel_input.get_line_edit()
-		var channel_normal := StyleBoxFlat.new()
-		channel_normal.bg_color = Color("#101d29")
-		channel_normal.set_corner_radius_all(6)
-		channel_normal.set_border_width_all(1)
-		channel_normal.border_color = Color("#31516a")
-		channel_normal.content_margin_left = 5.0
-		channel_normal.content_margin_right = 5.0
-		var channel_focus := channel_normal.duplicate() as StyleBoxFlat
-		channel_focus.border_color = Color("#64caff")
-		channel_focus.set_border_width_all(2)
-		channel_editor.add_theme_stylebox_override("normal", channel_normal)
-		channel_editor.add_theme_stylebox_override("focus", channel_focus)
-		channel_editor.add_theme_color_override("font_color", Color("#eaf7ff"))
-		channel_column.add_child(channel_input)
-		channel_input.value_changed.connect(_on_device_rgb_channel_changed.bind(channel))
 
 	var hex_heading := _make_label("HEX CODE", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(hex_heading)
@@ -1236,7 +1253,7 @@ func _get_active_color_picker_color() -> Color:
 
 func _set_back_design_custom_color_controls_enabled(enabled: bool) -> void:
 	if not is_instance_valid(active_feature_panel): return
-	for node_name in ["DeviceColorSpectrum", "DeviceColorHue", "DeviceColorRGB", "CustomHexEntry"]:
+	for node_name in ["DeviceColorSpectrum", "DeviceColorHue", "CustomHexEntry"]:
 		var control := active_feature_panel.get_node_or_null(node_name) as Control
 		if is_instance_valid(control):
 			control.modulate.a = 1.0 if enabled else 0.38
@@ -1357,15 +1374,81 @@ func _refresh_device_color_editor_controls() -> void:
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + selected_color.to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#e5f6ff"))
-	for channel in ["R", "G", "B"]:
-		var input := active_feature_panel.get_node_or_null("DeviceColorRGB/" + channel + "Column/DeviceColor" + channel) as SpinBox
-		if is_instance_valid(input):
-			var component := selected_color.r if channel == "R" else (selected_color.g if channel == "G" else selected_color.b)
-			input.set_value_no_signal(roundi(component * 255.0))
 	var base_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditDeviceColor") as Button
 	var gradient_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditGradientColor") as Button
 	if is_instance_valid(base_button): _style_staff_button(base_button, not gradient_color_edit_mode)
 	if is_instance_valid(gradient_button): _style_staff_button(gradient_button, gradient_color_edit_mode)
+
+
+func _gradient_direction_name(index: int) -> String:
+	var names := ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]
+	return names[clampi(index, 0, names.size() - 1)]
+
+
+func _toggle_gradient_direction_popup() -> void:
+	if not is_instance_valid(gradient_direction_popup): return
+	gradient_direction_popup.visible = not gradient_direction_popup.visible
+	if gradient_direction_popup.visible:
+		call_deferred("_position_gradient_direction_popup")
+
+
+func _position_gradient_direction_popup() -> void:
+	if not is_instance_valid(gradient_direction_popup) or not is_instance_valid(gradient_direction_button):
+		return
+	if not gradient_direction_popup.visible: return
+	var viewport_rect := get_viewport().get_visible_rect()
+	var button_rect := gradient_direction_button.get_global_rect()
+	var popup_width := minf(button_rect.size.x, viewport_rect.size.x - 12.0)
+	var popup_height := minf(gradient_direction_items.get_combined_minimum_size().y + 20.0, viewport_rect.size.y * 0.4)
+	var below := viewport_rect.end.y - (button_rect.position.y + button_rect.size.y) - 8.0
+	var above := button_rect.position.y - viewport_rect.position.y - 8.0
+	var open_below := below >= popup_height or below >= above
+	var available := below if open_below else above
+	popup_height = minf(popup_height, available)
+	if popup_height <= 0.0:
+		gradient_direction_popup.visible = false
+		return
+	gradient_direction_popup.custom_minimum_size = Vector2(popup_width, popup_height)
+	gradient_direction_popup.size = Vector2(popup_width, popup_height)
+	var popup_y := button_rect.end.y + 6.0 if open_below else button_rect.position.y - popup_height - 6.0
+	gradient_direction_popup.global_position = Vector2(clampf(button_rect.position.x, viewport_rect.position.x + 6.0, viewport_rect.end.x - popup_width - 6.0), popup_y)
+
+
+func _rebuild_gradient_direction_popup() -> void:
+	if not is_instance_valid(gradient_direction_items): return
+	for child in gradient_direction_items.get_children():
+		child.queue_free()
+	var names := ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]
+	for index in range(names.size()):
+		var item := Button.new()
+		item.text = names[index] + ("   ✓ SELECTED" if index == device_gradient_direction else "")
+		item.custom_minimum_size = Vector2(0, 46)
+		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		item.focus_mode = Control.FOCUS_NONE
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#10334a")
+		style.border_color = Color("#285b78")
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(8)
+		style.content_margin_left = 12
+		item.add_theme_stylebox_override("normal", style)
+		item.add_theme_stylebox_override("hover", style)
+		item.add_theme_stylebox_override("pressed", style)
+		item.add_theme_color_override("font_color", Color("#e8f7ff"))
+		item.pressed.connect(_select_gradient_direction.bind(index))
+		gradient_direction_items.add_child(item)
+
+
+func _select_gradient_direction(index: int) -> void:
+	device_gradient_direction = clampi(index, 0, 3)
+	if is_instance_valid(gradient_direction_button):
+		gradient_direction_button.text = _gradient_direction_name(device_gradient_direction) + "  ▼"
+	_rebuild_gradient_direction_popup()
+	if is_instance_valid(gradient_direction_popup):
+		gradient_direction_popup.visible = false
+	if is_instance_valid(phone_body):
+		phone_body.material_override = _create_device_body_material()
 
 
 func _on_device_gradient_toggled(enabled: bool) -> void:
@@ -1374,12 +1457,6 @@ func _on_device_gradient_toggled(enabled: bool) -> void:
 		var options := active_feature_panel.get_node_or_null("GradientOptions") as Control
 		if is_instance_valid(options):
 			options.visible = enabled
-	if is_instance_valid(phone_body):
-		phone_body.material_override = _create_device_body_material()
-
-
-func _on_device_gradient_direction_changed(index: int) -> void:
-	device_gradient_direction = clampi(index, 0, 3)
 	if is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
 
@@ -1409,12 +1486,6 @@ func _on_device_body_color_changed(color: Color) -> void:
 		var hue_bar := active_feature_panel.get_node_or_null("DeviceColorHue") as DeviceHueBar
 		if is_instance_valid(hue_bar):
 			hue_bar.set_hue(_get_active_color_picker_color().h)
-		for channel in ["R", "G", "B"]:
-			var channel_input := active_feature_panel.get_node_or_null("DeviceColorRGB/" + channel + "Column/DeviceColor" + channel) as SpinBox
-			if is_instance_valid(channel_input):
-				var active_color := _get_active_color_picker_color()
-				var channel_value := active_color.r if channel == "R" else (active_color.g if channel == "G" else active_color.b)
-				channel_input.set_value_no_signal(roundi(channel_value * 255.0))
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = _get_active_color_picker_color().to_html(false).to_upper()
