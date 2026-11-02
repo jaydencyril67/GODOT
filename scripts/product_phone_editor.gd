@@ -217,6 +217,7 @@ var device_gradient_enabled := false
 var device_gradient_color := Color("#536dfe")
 var device_gradient_direction := 0 # 0 vertical, 1 horizontal, 2 diagonal, 3 radial
 var gradient_color_edit_mode := false
+var back_design_gradient_color_edit_mode := false
 var gradient_direction_button: Button
 var gradient_direction_popup: PanelContainer
 var gradient_direction_items: VBoxContainer
@@ -1065,6 +1066,55 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 		use_device_color.toggled.connect(_on_back_design_use_device_color_toggled)
 		use_device_color_row.add_child(use_device_color)
 		_set_back_design_custom_color_controls_enabled(not use_device_color.button_pressed)
+		if not use_device_color.button_pressed:
+			var box_gradient_toggle_row := HBoxContainer.new()
+			box_gradient_toggle_row.name = "BackBoxGradientToggleRow"
+			box_gradient_toggle_row.add_theme_constant_override("separation", 8)
+			active_feature_panel.add_child(box_gradient_toggle_row)
+			var box_gradient_label := _make_label("ENABLE GRADIENT", 13, Color("#d8eaf5"))
+			box_gradient_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			box_gradient_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			box_gradient_toggle_row.add_child(box_gradient_label)
+			var box_gradient_toggle := TextureButton.new()
+			box_gradient_toggle.name = "EnableBackBoxGradient"
+			box_gradient_toggle.custom_minimum_size = Vector2(36, 36)
+			box_gradient_toggle.ignore_texture_size = true
+			box_gradient_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			box_gradient_toggle.texture_normal = _make_side_button_checkbox_icon(false)
+			box_gradient_toggle.texture_hover = _make_side_button_checkbox_icon(false)
+			box_gradient_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+			box_gradient_toggle.toggle_mode = true
+			box_gradient_toggle.button_pressed = bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false))
+			box_gradient_toggle.focus_mode = Control.FOCUS_NONE
+			box_gradient_toggle.toggled.connect(_on_back_box_gradient_toggled)
+			box_gradient_toggle_row.add_child(box_gradient_toggle)
+			var box_gradient_options := VBoxContainer.new()
+			box_gradient_options.name = "BackBoxGradientOptions"
+			box_gradient_options.add_theme_constant_override("separation", 7)
+			active_feature_panel.add_child(box_gradient_options)
+			var box_target_row := HBoxContainer.new()
+			box_target_row.name = "BackBoxGradientColorTargets"
+			box_target_row.add_theme_constant_override("separation", 7)
+			box_gradient_options.add_child(box_target_row)
+			var box_base_target := Button.new()
+			box_base_target.name = "EditBackBoxColor"
+			box_base_target.text = "BOX COLOR"
+			box_base_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			box_base_target.custom_minimum_size.y = 38
+			_style_staff_button(box_base_target, not back_design_gradient_color_edit_mode)
+			box_base_target.pressed.connect(_on_back_box_gradient_color_target_selected.bind(false))
+			box_target_row.add_child(box_base_target)
+			var box_gradient_target := Button.new()
+			box_gradient_target.name = "EditBackBoxGradientColor"
+			box_gradient_target.text = "GRADIENT COLOR"
+			box_gradient_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			box_gradient_target.custom_minimum_size.y = 38
+			_style_staff_button(box_gradient_target, back_design_gradient_color_edit_mode)
+			box_gradient_target.pressed.connect(_on_back_box_gradient_color_target_selected.bind(true))
+			box_target_row.add_child(box_gradient_target)
+			box_gradient_options.visible = bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false))
+			if not box_gradient_options.visible:
+				back_design_gradient_color_edit_mode = false
 
 	if not return_to_back_design:
 		var gradient_toggle_row := HBoxContainer.new()
@@ -1245,7 +1295,11 @@ func _show_device_color_controls(return_to_back_design: bool = false) -> void:
 func _get_active_color_picker_color() -> Color:
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		var box: Dictionary = back_design_boxes[selected_back_design_box]
-		return device_body_color if bool(box.get("use_device_color", true)) else Color(box.get("custom_color", device_body_color))
+		if bool(box.get("use_device_color", true)):
+			return device_body_color
+		if back_design_gradient_color_edit_mode:
+			return Color(box.get("gradient_color", Color("#536dfe")))
+		return Color(box.get("custom_color", device_body_color))
 	if gradient_color_edit_mode and not back_design_color_mode:
 		return device_gradient_color
 	return device_body_color
@@ -1465,7 +1519,10 @@ func _on_device_body_color_changed(color: Color) -> void:
 	var selected_color := Color(color.r, color.g, color.b, 1.0)
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		if bool(back_design_boxes[selected_back_design_box].get("use_device_color", true)): return
-		back_design_boxes[selected_back_design_box]["custom_color"] = selected_color
+		if back_design_gradient_color_edit_mode:
+			back_design_boxes[selected_back_design_box]["gradient_color"] = selected_color
+		else:
+			back_design_boxes[selected_back_design_box]["custom_color"] = selected_color
 		_refresh_back_design_boxes()
 	elif gradient_color_edit_mode:
 		device_gradient_color = selected_color
@@ -2001,6 +2058,53 @@ func _make_back_design_mesh(box_size: Vector2, corner_radius: float, depth: floa
 		_add_phone_mesh_triangle(surface, fa, bb, fb, normal)
 	return surface.commit()
 
+func _create_back_design_box_material(box: Dictionary, box_size: Vector2, selected: bool) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, cull_disabled;
+uniform vec4 solid_color : source_color = vec4(0.2, 0.3, 0.4, 1.0);
+uniform vec4 gradient_color : source_color = vec4(0.325, 0.427, 0.996, 1.0);
+uniform bool gradient_enabled = false;
+uniform int gradient_direction : hint_range(0, 3) = 0;
+uniform vec2 box_size = vec2(0.8, 0.8);
+varying vec3 local_position;
+varying vec3 local_normal;
+void vertex() {
+	local_position = VERTEX;
+	local_normal = NORMAL;
+}
+void fragment() {
+	if (local_normal.z > 0.5 || !gradient_enabled) {
+		ALBEDO = solid_color.rgb;
+	} else {
+		vec2 p = local_position.xy / max(box_size, vec2(0.001)) + vec2(0.5);
+		float t = p.y;
+		if (gradient_direction == 1) {
+			t = p.x;
+		} else if (gradient_direction == 2) {
+			t = clamp((p.x + p.y) * 0.5, 0.0, 1.0);
+		} else if (gradient_direction == 3) {
+			t = clamp(length((p - vec2(0.5)) * vec2(1.0, 1.8)) * 1.4142, 0.0, 1.0);
+		}
+		ALBEDO = mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0));
+	}
+	METALLIC = 0.34;
+	ROUGHNESS = 0.48;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	var base_color: Color = Color(box.get("custom_color", device_body_color))
+	base_color = base_color.lightened(0.045) if selected else base_color.darkened(0.10)
+	material.set_shader_parameter("solid_color", base_color)
+	material.set_shader_parameter("gradient_color", Color(box.get("gradient_color", Color("#536dfe"))))
+	material.set_shader_parameter("gradient_enabled", bool(box.get("gradient_enabled", false)))
+	material.set_shader_parameter("gradient_direction", int(box.get("gradient_direction", 0)))
+	material.set_shader_parameter("box_size", box_size)
+	return material
+
+
 func _refresh_back_design_boxes() -> void:
 	if not is_instance_valid(phone_body): return
 	var old_root := phone_body.get_node_or_null("BackDesignRaisedSections")
@@ -2021,10 +2125,13 @@ func _refresh_back_design_boxes() -> void:
 		var material := StandardMaterial3D.new()
 		var box_uses_device_color := bool(box.get("use_device_color", true))
 		var box_color: Color = device_body_color if box_uses_device_color else Color(box.get("custom_color", device_body_color))
-		material.albedo_color = box_color.lightened(0.045) if index == selected_back_design_box else box_color.darkened(0.10)
-		material.metallic = 0.34
-		material.roughness = 0.48
-		raised.material_override = material
+		if box_uses_device_color:
+			material.albedo_color = box_color.lightened(0.045) if index == selected_back_design_box else box_color.darkened(0.10)
+			material.metallic = 0.34
+			material.roughness = 0.48
+			raised.material_override = material
+		else:
+			raised.material_override = _create_back_design_box_material(box, size, index == selected_back_design_box)
 		raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var position: Vector2 = box["position"]
 		raised.position = Vector3(position.x, position.y, -phone_depth * 0.5)
