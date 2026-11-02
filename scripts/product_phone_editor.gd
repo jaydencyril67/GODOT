@@ -5440,11 +5440,6 @@ func _update_left_tools_navigation_buttons() -> void:
 		left_tools_next_button.disabled = left_tools_page >= 2
 
 
-	if is_instance_valid(preview_container):
-		preview_container.visible = left_tools_page != 1
-	if is_instance_valid(software_summary_panel):
-		software_summary_panel.visible = left_tools_page == 1
-
 func _set_left_tools_page(requested_page: int) -> void:
 	left_tools_page = clampi(requested_page, 0, 2)
 	_update_left_tools_navigation_buttons()
