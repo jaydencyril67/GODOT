@@ -183,7 +183,7 @@ var selected_battery_capacity := "Not set"
 var selected_charging_speed := 2
 var selected_wireless_charge_enabled := false
 var selected_wireless_charging_speed := 5
-var wireless_charge_enable_checkbox: CheckBox
+var wireless_charge_enable_checkbox: Button
 var wireless_charging_speed_slider: VSlider
 var wireless_charging_speed_value_label: Label
 var selected_bluetooth_version := "Not set"
@@ -5768,10 +5768,13 @@ func _show_wireless_charge_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	wireless_charge_enable_checkbox = CheckBox.new()
-	wireless_charge_enable_checkbox.name = "EnableWirelessCharging"
-	wireless_charge_enable_checkbox.text = "Enable"
+	wireless_charge_enable_checkbox = Button.new()
+	wireless_charge_enable_checkbox.name = "CustomWirelessChargeCheckbox"
+	wireless_charge_enable_checkbox.toggle_mode = true
 	wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
+	wireless_charge_enable_checkbox.text = ("☑  ENABLE WIRELESS CHARGING" if selected_wireless_charge_enabled else "□  ENABLE WIRELESS CHARGING")
+	wireless_charge_enable_checkbox.custom_minimum_size = Vector2(0, 48)
+	wireless_charge_enable_checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wireless_charge_enable_checkbox.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(wireless_charge_enable_checkbox, 15)
 	_style_staff_button(wireless_charge_enable_checkbox, selected_wireless_charge_enabled)
@@ -5829,6 +5832,10 @@ func _on_wireless_charging_speed_changed(value: float) -> void:
 
 
 func _update_wireless_charge_controls() -> void:
+	if is_instance_valid(wireless_charge_enable_checkbox):
+		wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
+		wireless_charge_enable_checkbox.text = ("☑  ENABLE WIRELESS CHARGING" if selected_wireless_charge_enabled else "□  ENABLE WIRELESS CHARGING")
+		_style_staff_button(wireless_charge_enable_checkbox, selected_wireless_charge_enabled)
 	if is_instance_valid(wireless_charging_speed_slider):
 		wireless_charging_speed_slider.editable = selected_wireless_charge_enabled
 		if not is_equal_approx(wireless_charging_speed_slider.value, float(selected_wireless_charging_speed)):
