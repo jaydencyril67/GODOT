@@ -181,6 +181,8 @@ var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
 var selected_battery_capacity := "Not set"
 var selected_charging_speed := 2
+var selected_bluetooth_version := "Not set"
+var selected_wifi_standard := "Not set"
 var charging_speed_value_label: Label
 var charging_speed_slider: VSlider
 var charging_speed_decrease_button: Button
@@ -976,7 +978,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Bluetooth", "WiFi"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1022,6 +1024,10 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_battery_controls()
 	elif feature_name == "Charging Speed":
 		_show_charging_speed_controls()
+	elif feature_name == "Bluetooth":
+		_show_bluetooth_controls()
+	elif feature_name == "WiFi":
+		_show_wifi_controls()
 
 
 
@@ -5364,6 +5370,8 @@ func _build_software_summary_panel() -> void:
 		["ROM", selected_rom_capacity],
 		["BATTERY", selected_battery_capacity],
 		["CHARGING SPEED", str(selected_charging_speed) + "W"],
+		["BLUETOOTH", selected_bluetooth_version],
+		["WI-FI", selected_wifi_standard],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
 		["RAM TECHNOLOGY", selected_ram_technology],
@@ -5730,6 +5738,108 @@ func _update_charging_speed_controls() -> void:
 	if software_value_labels.has("CHARGING SPEED") and is_instance_valid(software_value_labels["CHARGING SPEED"]):
 		var speed_label: Label = software_value_labels["CHARGING SPEED"]
 		speed_label.text = str(selected_charging_speed) + "W"
+
+
+func _show_bluetooth_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "BluetoothSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SELECT BLUETOOTH VERSION", 17, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "BluetoothOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	active_feature_panel.add_child(scroll)
+
+	var options := VBoxContainer.new()
+	options.name = "BluetoothVersionOptions"
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+
+	for version in ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]:
+		var option := Button.new()
+		option.name = "BluetoothOption_" + version.replace(" ", "").replace("+", "").replace(".", "_")
+		option.text = version + ("   ✓ SELECTED" if selected_bluetooth_version == version else "")
+		option.custom_minimum_size.y = 43
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_bluetooth_version == version)
+		option.pressed.connect(_on_bluetooth_version_selected.bind(version))
+		options.add_child(option)
+
+
+func _on_bluetooth_version_selected(version: String) -> void:
+	if not ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"].has(version):
+		return
+	selected_bluetooth_version = version
+	if software_value_labels.has("BLUETOOTH") and is_instance_valid(software_value_labels["BLUETOOTH"]):
+		var bluetooth_label: Label = software_value_labels["BLUETOOTH"]
+		bluetooth_label.text = version
+	_show_bluetooth_controls()
+
+
+func _show_wifi_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "WiFiSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SELECT WI-FI STANDARD", 17, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "WiFiOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	active_feature_panel.add_child(scroll)
+
+	var options := VBoxContainer.new()
+	options.name = "WiFiStandardOptions"
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+
+	for standard in ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]:
+		var option := Button.new()
+		option.name = "WiFiOption_" + standard.replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace(",", "")
+		option.text = standard + ("   ✓ SELECTED" if selected_wifi_standard == standard else "")
+		option.custom_minimum_size.y = 43
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_wifi_standard == standard)
+		option.pressed.connect(_on_wifi_standard_selected.bind(standard))
+		options.add_child(option)
+
+
+func _on_wifi_standard_selected(standard: String) -> void:
+	if not ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"].has(standard):
+		return
+	selected_wifi_standard = standard
+	if software_value_labels.has("WI-FI") and is_instance_valid(software_value_labels["WI-FI"]):
+		var wifi_label: Label = software_value_labels["WI-FI"]
+		wifi_label.text = standard
+	_show_wifi_controls()
 
 
 func _on_left_tools_previous_pressed() -> void:
