@@ -177,6 +177,7 @@ var preview_stack: VBoxContainer
 var software_summary_panel: PanelContainer
 var software_value_labels: Dictionary = {}
 var selected_ram_capacity := "Not set"
+var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
 var research_mode := false
 var research_content_panel: Control
@@ -969,7 +970,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1007,6 +1008,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_back_design_controls()
 	elif feature_name == "RAM":
 		_show_ram_controls()
+	elif feature_name == "RAM Technology":
+		_show_ram_technology_controls()
 	elif feature_name in ["ROM", "Internal Storage", "Storage"]:
 		_show_rom_controls()
 
@@ -5352,7 +5355,7 @@ func _build_software_summary_panel() -> void:
 		["BATTERY", "Not set"],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
-		["RAM TECHNOLOGY", "Not set"],
+		["RAM TECHNOLOGY", selected_ram_technology],
 		["STORAGE TYPE", "Not set"],
 		["CONNECTIVITY", "Not set"]
 	]
@@ -5403,7 +5406,7 @@ func _show_ram_controls() -> void:
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.add_theme_constant_override("separation", 7)
 	scroll.add_child(options)
-	for capacity in ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]:
+	for capacity in _get_supported_ram_capacities(selected_ram_technology):
 		var option := Button.new()
 		option.name = "RAMOption_" + capacity.replace(" ", "")
 		option.text = capacity + ("   ✓ SELECTED" if selected_ram_capacity == capacity else "")
@@ -5416,13 +5419,100 @@ func _show_ram_controls() -> void:
 
 
 func _on_ram_capacity_selected(capacity: String) -> void:
-	if not ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"].has(capacity):
+	if not _get_supported_ram_capacities(selected_ram_technology).has(capacity):
 		return
 	selected_ram_capacity = capacity
 	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
 		var ram_label: Label = software_value_labels["RAM"]
 		ram_label.text = capacity
 	_show_ram_controls()
+
+
+func _get_supported_ram_capacities(technology: String) -> Array:
+	var all_capacities := ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
+	match technology:
+		"LPDDR3":
+			return ["1 GB", "2 GB", "3 GB", "4 GB"]
+		"LPDDR4":
+			return ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB"]
+		"LPDDR4X":
+			return ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB"]
+		"LPDDR5":
+			return ["4 GB", "6 GB", "8 GB", "12 GB", "16 GB"]
+		"LPDDR5X":
+			return ["8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
+		"LPDDR5T":
+			return ["12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
+		_:
+			return all_capacities
+
+
+func _show_ram_technology_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "RAMTechnologySelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SELECT RAM TECHNOLOGY", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var current := _make_label("CURRENT: " + selected_ram_technology.to_upper(), 13, Color.WHITE)
+	current.name = "CurrentRAMTechnologyLabel"
+	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(current)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "RAMTechnologyOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	active_feature_panel.add_child(scroll)
+	var options := VBoxContainer.new()
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+	for technology in ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"]:
+		var option := Button.new()
+		option.name = "RAMTechnologyOption_" + technology
+		option.text = technology + ("   ✓ SELECTED" if selected_ram_technology == technology else "")
+		option.custom_minimum_size.y = 43
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_ram_technology == technology)
+		option.pressed.connect(_on_ram_technology_selected.bind(technology))
+		options.add_child(option)
+
+
+func _on_ram_technology_selected(technology: String) -> void:
+	if not ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"].has(technology):
+		return
+	selected_ram_technology = technology
+	var compatible_capacities := _get_supported_ram_capacities(technology)
+	if selected_ram_capacity != "Not set" and not compatible_capacities.has(selected_ram_capacity):
+		var previous_amount := int(selected_ram_capacity.replace(" GB", ""))
+		var closest_capacity: String = str(compatible_capacities[0])
+		var closest_distance := 2147483647
+		for capacity_value in compatible_capacities:
+			var candidate := str(capacity_value)
+			var candidate_amount := int(candidate.replace(" GB", ""))
+			var distance := absi(candidate_amount - previous_amount)
+			if distance < closest_distance:
+				closest_distance = distance
+				closest_capacity = candidate
+		selected_ram_capacity = closest_capacity
+		if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
+			var ram_label: Label = software_value_labels["RAM"]
+			ram_label.text = selected_ram_capacity
+	if software_value_labels.has("RAM TECHNOLOGY") and is_instance_valid(software_value_labels["RAM TECHNOLOGY"]):
+		var technology_label: Label = software_value_labels["RAM TECHNOLOGY"]
+		technology_label.text = selected_ram_technology
+	_show_ram_technology_controls()
 
 
 func _show_rom_controls() -> void:
