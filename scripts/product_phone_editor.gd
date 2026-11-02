@@ -181,6 +181,11 @@ var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
 var selected_battery_capacity := "Not set"
 var selected_charging_speed := 2
+var selected_wireless_charge_enabled := false
+var selected_wireless_charging_speed := 5
+var wireless_charge_enable_checkbox: CheckBox
+var wireless_charging_speed_slider: VSlider
+var wireless_charging_speed_value_label: Label
 var selected_bluetooth_version := "Not set"
 var selected_wifi_standard := "Not set"
 var selected_mobile_network := "Not set"
@@ -979,7 +984,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Bluetooth", "WiFi", "Network"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1025,6 +1030,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_battery_controls()
 	elif feature_name == "Charging Speed":
 		_show_charging_speed_controls()
+	elif feature_name == "Wireless Charge":
+		_show_wireless_charge_controls()
 	elif feature_name == "Bluetooth":
 		_show_bluetooth_controls()
 	elif feature_name == "WiFi":
@@ -5373,6 +5380,7 @@ func _build_software_summary_panel() -> void:
 		["ROM", selected_rom_capacity],
 		["BATTERY", selected_battery_capacity],
 		["CHARGING SPEED", str(selected_charging_speed) + "W"],
+		["WIRELESS CHARGING", (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")],
 		["BLUETOOTH", selected_bluetooth_version],
 		["WI-FI", selected_wifi_standard],
 		["MOBILE NETWORK", selected_mobile_network],
@@ -5742,6 +5750,94 @@ func _update_charging_speed_controls() -> void:
 	if software_value_labels.has("CHARGING SPEED") and is_instance_valid(software_value_labels["CHARGING SPEED"]):
 		var speed_label: Label = software_value_labels["CHARGING SPEED"]
 		speed_label.text = str(selected_charging_speed) + "W"
+
+
+func _show_wireless_charge_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "WirelessChargeControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("WIRELESS CHARGING", 17, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+
+	wireless_charge_enable_checkbox = CheckBox.new()
+	wireless_charge_enable_checkbox.name = "EnableWirelessCharging"
+	wireless_charge_enable_checkbox.text = "Enable"
+	wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
+	wireless_charge_enable_checkbox.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(wireless_charge_enable_checkbox, 15)
+	_style_staff_button(wireless_charge_enable_checkbox, selected_wireless_charge_enabled)
+	wireless_charge_enable_checkbox.toggled.connect(_on_wireless_charge_enabled_changed)
+	active_feature_panel.add_child(wireless_charge_enable_checkbox)
+
+	wireless_charging_speed_value_label = _make_label(str(selected_wireless_charging_speed) + "W", 29, Color.WHITE)
+	wireless_charging_speed_value_label.name = "WirelessChargingSpeedValue"
+	wireless_charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(wireless_charging_speed_value_label)
+
+	var range_hint := _make_label("5W  —  80W", 12, Color("#a9c9dc"))
+	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(range_hint)
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "WirelessChargingSliderRow"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	active_feature_panel.add_child(slider_row)
+
+	var minimum_label := _make_label("5W", 11, Color("#a9c9dc"))
+	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(minimum_label)
+
+	wireless_charging_speed_slider = VSlider.new()
+	wireless_charging_speed_slider.name = "WirelessChargingVerticalSlider"
+	wireless_charging_speed_slider.min_value = 5
+	wireless_charging_speed_slider.max_value = 80
+	wireless_charging_speed_slider.step = 1
+	wireless_charging_speed_slider.value = selected_wireless_charging_speed
+	wireless_charging_speed_slider.custom_minimum_size = Vector2(52, 245)
+	wireless_charging_speed_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	wireless_charging_speed_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	wireless_charging_speed_slider.focus_mode = Control.FOCUS_NONE
+	wireless_charging_speed_slider.value_changed.connect(_on_wireless_charging_speed_changed)
+	slider_row.add_child(wireless_charging_speed_slider)
+
+	var maximum_label := _make_label("80W", 11, Color("#a9c9dc"))
+	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(maximum_label)
+
+	_update_wireless_charge_controls()
+
+
+func _on_wireless_charge_enabled_changed(enabled: bool) -> void:
+	selected_wireless_charge_enabled = enabled
+	_update_wireless_charge_controls()
+
+
+func _on_wireless_charging_speed_changed(value: float) -> void:
+	selected_wireless_charging_speed = clampi(roundi(value), 5, 80)
+	_update_wireless_charge_controls()
+
+
+func _update_wireless_charge_controls() -> void:
+	if is_instance_valid(wireless_charging_speed_slider):
+		wireless_charging_speed_slider.editable = selected_wireless_charge_enabled
+		if not is_equal_approx(wireless_charging_speed_slider.value, float(selected_wireless_charging_speed)):
+			wireless_charging_speed_slider.set_value_no_signal(selected_wireless_charging_speed)
+	if is_instance_valid(wireless_charging_speed_value_label):
+		wireless_charging_speed_value_label.text = (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
+	if software_value_labels.has("WIRELESS CHARGING") and is_instance_valid(software_value_labels["WIRELESS CHARGING"]):
+		var wireless_label: Label = software_value_labels["WIRELESS CHARGING"]
+		wireless_label.text = (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
 
 
 func _show_bluetooth_controls() -> void:
