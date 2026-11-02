@@ -3438,31 +3438,47 @@ func _rebuild_charger_preview() -> void:
 	var shell_material := _charger_material(charger_body_color, 0.02, 0.22)
 	var face_material := _charger_material(charger_body_color.lightened(0.035), 0.03, 0.20)
 	var seam_material := _charger_material(Color("#8795a3"), 0.42, 0.27)
-	var dark_material := _charger_material(Color("#080d13"), 0.08, 0.24)
 	var metal_material := _charger_material(Color("#c8d1d9"), 0.88, 0.19)
 	var accent_material := _charger_material(Color("#78d9ff"), 0.18, 0.16)
 
-	# Full-size rounded adapter shell with a continuous curved perimeter.
-	var body := MeshInstance3D.new()
-	body.name = "ChargerAdapterBody"
-	body.mesh = _create_rounded_panel_mesh(0.58, 0.78, 0.29, 0.105)
-	body.material_override = shell_material
-	body.position = Vector3(0.88, 0.0, 0.0)
-	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	charger_geometry.add_child(body)
+	# Build the housing as a CSG shell so the adapter socket is a genuine
+	# aperture through the front fascia, not a dark panel laid over solid plastic.
+	var output_connector := _charger_output_connector()
+	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var port_width := 8.34 * unit_per_mm if output_connector == "USB-C" else 12.0 * unit_per_mm
+	var port_height := 2.56 * unit_per_mm if output_connector == "USB-C" else 4.5 * unit_per_mm
+	var shell_combiner := CSGCombiner3D.new()
+	shell_combiner.name = "ChargerHousingWithRealPortCutout"
+	shell_combiner.use_collision = false
+	shell_combiner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	charger_geometry.add_child(shell_combiner)
 
-	# Slightly inset front fascia and fine lower housing split.
-	var face := MeshInstance3D.new()
-	face.name = "AdapterFacePlate"
-	face.mesh = _create_rounded_panel_mesh(0.535, 0.725, 0.012, 0.088)
-	face.material_override = face_material
-	face.position = Vector3(0.88, 0.0, 0.151)
-	face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	charger_geometry.add_child(face)
+	var body_shell := CSGMesh3D.new()
+	body_shell.name = "ChargerAdapterBody"
+	body_shell.operation = CSGShape3D.OPERATION_UNION
+	body_shell.mesh = _create_rounded_panel_mesh(0.58, 0.78, 0.29, 0.105)
+	body_shell.material = shell_material
+	body_shell.position = Vector3(0.88, 0.0, 0.0)
+	shell_combiner.add_child(body_shell)
+
+	var front_fascia := CSGMesh3D.new()
+	front_fascia.name = "AdapterFacePlate"
+	front_fascia.operation = CSGShape3D.OPERATION_UNION
+	front_fascia.mesh = _create_rounded_panel_mesh(0.535, 0.725, 0.012, 0.088)
+	front_fascia.material = face_material
+	front_fascia.position = Vector3(0.88, 0.0, 0.151)
+	shell_combiner.add_child(front_fascia)
+
+	var port_cutter := CSGMesh3D.new()
+	port_cutter.name = "RoundedPhysicalChargingPortCut"
+	port_cutter.operation = CSGShape3D.OPERATION_SUBTRACTION
+	port_cutter.mesh = _create_rounded_panel_mesh(port_width * 0.96, port_height * 0.88, 0.22, port_height * 0.30)
+	port_cutter.position = Vector3(0.88, 0.015, 0.16)
+	shell_combiner.add_child(port_cutter)
+
 	_add_charger_box(charger_geometry, "HousingSeam", Vector3(0.535, 0.009, 0.008), Vector3(0.88, -0.255, 0.158), seam_material)
 
-	# Machined socket built with the same true-depth port geometry used by the phone.
-	var output_connector := _charger_output_connector()
+	# Machined socket walls and contacts are nested inside the newly cut opening.
 	_add_charger_recessed_port(charger_geometry, output_connector, Vector3(0.88, 0.015, 0.159), metal_material)
 
 	# A restrained status LED and clear wattage marking on the front fascia.
