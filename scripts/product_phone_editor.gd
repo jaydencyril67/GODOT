@@ -5587,20 +5587,24 @@ func _show_battery_controls() -> void:
 	options.add_theme_constant_override("v_separation", 7)
 	active_feature_panel.add_child(options)
 
-	for capacity in ["1,000 mAh", "1,500 mAh", "2,000 mAh", "2,500 mAh", "3,000 mAh", "3,500 mAh", "4,000 mAh", "4,500 mAh", "5,000 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"]:
+	for capacity in ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "5,750 mAh", "6,000 mAh", "6,250 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"]:
 		var option := Button.new()
 		option.name = "BatteryOption_" + capacity.replace(",", "").replace(" ", "")
 		option.text = capacity + ("  ✓" if selected_battery_capacity == capacity else "")
 		option.custom_minimum_size = Vector2(0, 39)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 12)
+		_apply_research_typography(option, 15)
+		var battery_option_font := FontVariation.new()
+		battery_option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		battery_option_font.variation_embolden = 1.5
+		option.add_theme_font_override("font", battery_option_font)
 		_style_staff_button(option, selected_battery_capacity == capacity)
 		option.pressed.connect(_on_battery_capacity_selected.bind(capacity))
 		options.add_child(option)
 
 
 func _on_battery_capacity_selected(capacity: String) -> void:
-	if not ["1,000 mAh", "1,500 mAh", "2,000 mAh", "2,500 mAh", "3,000 mAh", "3,500 mAh", "4,000 mAh", "4,500 mAh", "5,000 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"].has(capacity):
+	if not ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "5,750 mAh", "6,000 mAh", "6,250 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"].has(capacity):
 		return
 	selected_battery_capacity = capacity
 	if software_value_labels.has("BATTERY") and is_instance_valid(software_value_labels["BATTERY"]):
