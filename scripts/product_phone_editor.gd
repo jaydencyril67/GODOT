@@ -4655,7 +4655,7 @@ func _refresh_rear_hardware_visuals() -> void:
 			# from the rear panel. Its radius covers the complete camera lens without
 			# extending over the surrounding camera housing.
 			var protector_glass := _camera_lens_protector_material()
-			var protector_center_z := support_z - camera_layer.call(0.037) - camera_lens_protector_thickness * 0.5
+			var protector_center_z: float = support_z - float(camera_layer.call(0.037)) - camera_lens_protector_thickness * 0.5
 			_add_rear_hardware_disc(root, "RearCamera_%d_LensProtector" % module_id, Vector3(module_position.x, module_position.y, protector_center_z), module_size * 0.75, camera_lens_protector_thickness, protector_glass)
 
 	for flash_index in range(rear_flash_modules.size()):
