@@ -1979,30 +1979,7 @@ func _rebuild_back_design_selection_popup() -> void:
 
 
 func _style_back_design_slider(slider: HSlider) -> void:
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color("#102f46")
-	track.border_color = Color("#477f9e")
-	track.set_border_width_all(1)
-	track.set_corner_radius_all(8)
-	track.content_margin_top = 4
-	track.content_margin_bottom = 4
-	slider.add_theme_stylebox_override("slider", track)
-	var grabber := StyleBoxFlat.new()
-	grabber.bg_color = Color("#a9e7ff")
-	grabber.border_color = Color.WHITE
-	grabber.set_border_width_all(2)
-	grabber.set_corner_radius_all(20)
-	grabber.content_margin_left = 5
-	grabber.content_margin_right = 5
-	grabber.content_margin_top = 5
-	grabber.content_margin_bottom = 5
-	var grabber_hover := grabber.duplicate() as StyleBoxFlat
-	grabber_hover.bg_color = Color.WHITE
-	grabber_hover.border_color = Color("#65caff")
-	slider.add_theme_stylebox_override("grabber", grabber)
-	slider.add_theme_stylebox_override("grabber_highlight", grabber_hover)
-	slider.focus_mode = Control.FOCUS_NONE
-	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+	_style_custom_slider(slider)
 
 
 func _add_back_design_pad_spacer(parent: GridContainer) -> void:
@@ -2900,30 +2877,7 @@ func _camera_mp_slider_index(megapixels: int) -> int:
 
 
 func _style_camera_mp_slider(slider: VSlider) -> void:
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color("#102f46")
-	track.border_color = Color("#477f9e")
-	track.set_border_width_all(1)
-	track.set_corner_radius_all(8)
-	track.content_margin_left = 4
-	track.content_margin_right = 4
-	slider.add_theme_stylebox_override("slider", track)
-	var grabber := StyleBoxFlat.new()
-	grabber.bg_color = Color("#a9e7ff")
-	grabber.border_color = Color.WHITE
-	grabber.set_border_width_all(2)
-	grabber.set_corner_radius_all(20)
-	grabber.content_margin_left = 5
-	grabber.content_margin_right = 5
-	grabber.content_margin_top = 5
-	grabber.content_margin_bottom = 5
-	slider.add_theme_stylebox_override("grabber", grabber)
-	var hover := grabber.duplicate() as StyleBoxFlat
-	hover.bg_color = Color.WHITE
-	hover.border_color = Color("#65caff")
-	slider.add_theme_stylebox_override("grabber_highlight", hover)
-	slider.focus_mode = Control.FOCUS_NONE
-	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+	_style_custom_slider(slider)
 
 
 func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable) -> VBoxContainer:
@@ -3359,35 +3313,35 @@ func _add_front_camera_lens(parent: Node3D, lens_position: Vector3, radius: floa
 	parent.add_child(lens)
 
 
-func _style_feature_slider(meter: VSlider) -> void:
-	# A high-contrast vertical track and a large silver-blue draggable thumb.
+func _style_custom_slider(slider: Slider) -> void:
+	# One premium DigitalWorld slider treatment for every horizontal and vertical control.
 	var track := StyleBoxFlat.new()
-	track.bg_color = Color("#173d59")
+	track.bg_color = Color("#12334b")
 	track.border_color = Color("#8fd8ff")
 	track.set_border_width_all(2)
-	track.set_corner_radius_all(8)
-	track.content_margin_left = 5
-	track.content_margin_right = 5
-	track.content_margin_top = 5
-	track.content_margin_bottom = 5
-	meter.add_theme_stylebox_override("slider", track)
+	track.set_corner_radius_all(12)
+	track.content_margin_left = 6
+	track.content_margin_right = 6
+	track.content_margin_top = 6
+	track.content_margin_bottom = 6
+	slider.add_theme_stylebox_override("slider", track)
 
 	var grabber_gradient := Gradient.new()
-	grabber_gradient.set_color(0, Color("#f4fbff"))
+	grabber_gradient.set_color(0, Color("#ffffff"))
 	grabber_gradient.set_color(1, Color("#65bce9"))
 	var grabber_texture := GradientTexture2D.new()
 	grabber_texture.gradient = grabber_gradient
-	grabber_texture.width = 28
-	grabber_texture.height = 28
+	grabber_texture.width = 32
+	grabber_texture.height = 32
 	grabber_texture.fill_from = Vector2(0.0, 0.0)
 	grabber_texture.fill_to = Vector2(1.0, 1.0)
-	meter.add_theme_icon_override("grabber", grabber_texture)
-	meter.add_theme_icon_override("grabber_highlight", grabber_texture)
-	meter.add_theme_stylebox_override("grabber_area", StyleBoxEmpty.new())
-	meter.add_theme_stylebox_override("grabber_area_highlight", StyleBoxEmpty.new())
-	meter.focus_mode = Control.FOCUS_NONE
-	meter.mouse_filter = Control.MOUSE_FILTER_STOP
-	meter.editable = true
+	slider.add_theme_icon_override("grabber", grabber_texture)
+	slider.add_theme_icon_override("grabber_highlight", grabber_texture)
+	slider.add_theme_stylebox_override("grabber_area", StyleBoxEmpty.new())
+	slider.add_theme_stylebox_override("grabber_area_highlight", StyleBoxEmpty.new())
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+	slider.editable = true
 
 
 
@@ -4552,16 +4506,7 @@ func _on_side_button_length_changed(value: float) -> void:
 
 
 func _style_horizontal_feature_slider(meter: HSlider) -> void:
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color("#173d59")
-	track.border_color = Color("#8fd8ff")
-	track.set_border_width_all(2)
-	track.set_corner_radius_all(8)
-	track.content_margin_top = 7
-	track.content_margin_bottom = 7
-	meter.add_theme_stylebox_override("slider", track)
-	meter.focus_mode = Control.FOCUS_NONE
-	meter.mouse_filter = Control.MOUSE_FILTER_STOP
+	_style_custom_slider(meter)
 
 
 func _refresh_phone_side_buttons() -> void:
@@ -5731,7 +5676,7 @@ func _show_memory_clock_controls() -> void:
 	memory_clock_slider.max_value = MEMORY_CLOCK_STEPS.size() - 1
 	memory_clock_slider.step = 1
 	memory_clock_slider.tick_count = MEMORY_CLOCK_STEPS.size()
-	memory_clock_slider.custom_minimum_size = Vector2(76, 230)
+	memory_clock_slider.custom_minimum_size = Vector2(76, 330)
 	memory_clock_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	memory_clock_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	memory_clock_slider.value = maxf(0.0, float(_get_memory_clock_index()))
@@ -6174,6 +6119,7 @@ func _show_charging_speed_controls() -> void:
 	charging_speed_slider.focus_mode = Control.FOCUS_NONE
 	charging_speed_slider.tick_count = 0
 	charging_speed_slider.value_changed.connect(_on_charging_speed_changed)
+	_style_custom_slider(charging_speed_slider)
 	slider_row.add_child(charging_speed_slider)
 
 	var maximum_label := _make_label("200W", 11, Color("#a9c9dc"))
@@ -6296,6 +6242,7 @@ func _show_wireless_charge_controls() -> void:
 	wireless_charging_speed_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	wireless_charging_speed_slider.focus_mode = Control.FOCUS_NONE
 	wireless_charging_speed_slider.value_changed.connect(_on_wireless_charging_speed_changed)
+	_style_custom_slider(wireless_charging_speed_slider)
 	slider_row.add_child(wireless_charging_speed_slider)
 
 	var maximum_label := _make_label("80W", 11, Color("#a9c9dc"))
