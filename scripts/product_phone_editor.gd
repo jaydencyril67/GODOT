@@ -3181,54 +3181,76 @@ func _rebuild_charger_preview() -> void:
 		return
 	for child in charger_preview.get_children():
 		child.free()
-	var shell_material := _charger_material(charger_body_color, 0.04, 0.25)
-	var seam_material := _charger_material(Color("#aab5bf"), 0.28, 0.30)
-	var dark_material := _charger_material(Color("#111820"), 0.12, 0.28)
-	var metal_material := _charger_material(Color("#c8d1d9"), 0.82, 0.22)
 
-	# Compact adapter body, shown beside the handset as a separate product.
-	var body := _add_charger_box(charger_preview, "ChargerAdapterBody", Vector3(0.39, 0.57, 0.205), Vector3(0.88, 0.0, 0.0), shell_material)
-	body.rotation_degrees.z = -7.0
-	_add_charger_box(charger_preview, "AdapterFacePlate", Vector3(0.345, 0.515, 0.012), Vector3(0.88, 0.0, 0.109), shell_material)
+	# Keep all adapter geometry in a centred local pivot. The outer preview node
+	# can now rotate exactly like the phone without orbiting around an offset.
+	var charger_geometry := Node3D.new()
+	charger_geometry.name = "ChargerGeometry"
+	charger_geometry.position = Vector3(-0.88, 0.0, 0.0)
+	charger_preview.add_child(charger_geometry)
 
-	# USB-C receptacle: dark inset, metallic inner tongue and subtle port rim.
-	_add_charger_box(charger_preview, "USBCPortRecess", Vector3(0.105, 0.044, 0.008), Vector3(0.88, 0.0, 0.117), dark_material)
-	_add_charger_box(charger_preview, "USBCPortTongue", Vector3(0.054, 0.009, 0.003), Vector3(0.88, -0.001, 0.122), metal_material)
-	_add_charger_box(charger_preview, "PortInnerShadow", Vector3(0.075, 0.026, 0.002), Vector3(0.88, 0.0, 0.119), dark_material)
+	var shell_material := _charger_material(charger_body_color, 0.02, 0.22)
+	var face_material := _charger_material(charger_body_color.lightened(0.035), 0.03, 0.20)
+	var seam_material := _charger_material(Color("#8795a3"), 0.42, 0.27)
+	var dark_material := _charger_material(Color("#080d13"), 0.08, 0.24)
+	var metal_material := _charger_material(Color("#c8d1d9"), 0.88, 0.19)
+	var accent_material := _charger_material(Color("#78d9ff"), 0.18, 0.16)
 
-	# Small status mark and restrained perimeter seam.
-	_add_charger_cylinder(charger_preview, "StatusIndicator", 0.009, 0.003, Vector3(0.88, 0.19, 0.118), _charger_material(Color("#78d9ff"), 0.12, 0.18), 20)
-	_add_charger_box(charger_preview, "HousingSeam", Vector3(0.392, 0.008, 0.208), Vector3(0.88, -0.22, 0.0), seam_material)
+	# Full-size rounded adapter shell with a continuous curved perimeter.
+	var body := MeshInstance3D.new()
+	body.name = "ChargerAdapterBody"
+	body.mesh = _create_rounded_panel_mesh(0.58, 0.78, 0.29, 0.105)
+	body.material_override = shell_material
+	body.position = Vector3.ZERO
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	charger_geometry.add_child(body)
 
-	# Mains prongs are oriented toward the rear of the adapter (negative Z).
-	match charger_plug_type:
-		"UK":
-			_add_charger_box(charger_preview, "UKLiveProng", Vector3(0.035, 0.105, 0.035), Vector3(0.80, 0.0, -0.135), metal_material)
-			_add_charger_box(charger_preview, "UKNeutralProng", Vector3(0.035, 0.105, 0.035), Vector3(0.96, 0.0, -0.135), metal_material)
-			_add_charger_box(charger_preview, "UKEarthProng", Vector3(0.035, 0.12, 0.035), Vector3(0.88, 0.105, -0.135), metal_material)
-		"EU":
-			var eu_left := _add_charger_cylinder(charger_preview, "EUProngLeft", 0.025, 0.115, Vector3(0.82, 0.0, -0.145), metal_material)
-			var eu_right := _add_charger_cylinder(charger_preview, "EUProngRight", 0.025, 0.115, Vector3(0.94, 0.0, -0.145), metal_material)
-			eu_left.rotation_degrees.x = 90.0
-			eu_right.rotation_degrees.x = 90.0
-		"US":
-			_add_charger_box(charger_preview, "USProngLeft", Vector3(0.025, 0.105, 0.025), Vector3(0.82, 0.0, -0.14), metal_material)
-			_add_charger_box(charger_preview, "USProngRight", Vector3(0.025, 0.105, 0.025), Vector3(0.94, 0.0, -0.14), metal_material)
-		# User-selectable universal profile keeps the model visually distinct.
-		"Universal":
-			_add_charger_box(charger_preview, "UniversalProngLeft", Vector3(0.025, 0.105, 0.025), Vector3(0.82, 0.0, -0.14), metal_material)
-			_add_charger_box(charger_preview, "UniversalProngRight", Vector3(0.025, 0.105, 0.025), Vector3(0.94, 0.0, -0.14), metal_material)
+	# Slightly inset front fascia and fine lower housing split.
+	var face := MeshInstance3D.new()
+	face.name = "AdapterFacePlate"
+	face.mesh = _create_rounded_panel_mesh(0.535, 0.725, 0.012, 0.088)
+	face.material_override = face_material
+	face.position = Vector3(0.0, 0.0, 0.151)
+	face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	charger_geometry.add_child(face)
+	_add_charger_box(charger_geometry, "HousingSeam", Vector3(0.535, 0.009, 0.008), Vector3(0.88, -0.255, 0.158), seam_material)
 
+	# Proper USB-C socket: rounded dark mouth, recessed cavity and visible tongue.
+	_add_charger_box(charger_geometry, "USBCPortBezel", Vector3(0.155, 0.071, 0.009), Vector3(0.88, 0.015, 0.160), seam_material)
+	_add_charger_box(charger_geometry, "USBCPortRecess", Vector3(0.132, 0.052, 0.008), Vector3(0.88, 0.015, 0.166), dark_material)
+	_add_charger_box(charger_geometry, "USBCPortTongue", Vector3(0.074, 0.012, 0.004), Vector3(0.88, 0.014, 0.171), metal_material)
+	_add_charger_box(charger_geometry, "PortInnerShadow", Vector3(0.105, 0.034, 0.002), Vector3(0.88, 0.015, 0.169), dark_material)
+
+	# A restrained status LED and clear wattage marking on the front fascia.
+	_add_charger_cylinder(charger_geometry, "StatusIndicator", 0.012, 0.004, Vector3(0.88, 0.245, 0.160), accent_material, 24)
 	var wattage_label := Label3D.new()
 	wattage_label.name = "ChargerWattageMark"
 	wattage_label.text = "%dW" % charger_wattage
-	wattage_label.font_size = 48
-	wattage_label.pixel_size = 0.0015
+	wattage_label.font_size = 54
+	wattage_label.pixel_size = 0.0017
 	wattage_label.modulate = Color("#687786")
-	wattage_label.position = Vector3(0.88, -0.15, 0.119)
-	wattage_label.rotation_degrees = Vector3(0.0, 0.0, -7.0)
+	wattage_label.position = Vector3(0.88, -0.145, 0.160)
 	wattage_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	charger_preview.add_child(wattage_label)
+	charger_geometry.add_child(wattage_label)
+
+	# Real plug geometry sits on the rear face and projects away from the shell.
+	match charger_plug_type:
+		"UK":
+			_add_charger_box(charger_geometry, "UKLiveProng", Vector3(0.042, 0.145, 0.045), Vector3(0.78, -0.105, -0.218), metal_material)
+			_add_charger_box(charger_geometry, "UKNeutralProng", Vector3(0.042, 0.145, 0.045), Vector3(0.98, -0.105, -0.218), metal_material)
+			_add_charger_box(charger_geometry, "UKEarthProng", Vector3(0.042, 0.155, 0.045), Vector3(0.88, 0.135, -0.218), metal_material)
+		"EU":
+			var eu_left := _add_charger_cylinder(charger_geometry, "EUProngLeft", 0.029, 0.17, Vector3(0.81, 0.0, -0.225), metal_material, 32)
+			var eu_right := _add_charger_cylinder(charger_geometry, "EUProngRight", 0.029, 0.17, Vector3(0.95, 0.0, -0.225), metal_material, 32)
+			eu_left.rotation_degrees.x = 90.0
+			eu_right.rotation_degrees.x = 90.0
+		"US":
+			_add_charger_box(charger_geometry, "USProngLeft", Vector3(0.035, 0.15, 0.045), Vector3(0.81, 0.0, -0.225), metal_material)
+			_add_charger_box(charger_geometry, "USProngRight", Vector3(0.035, 0.15, 0.045), Vector3(0.95, 0.0, -0.225), metal_material)
+		"Universal":
+			_add_charger_box(charger_geometry, "UniversalProngLeft", Vector3(0.035, 0.15, 0.045), Vector3(0.81, 0.0, -0.225), metal_material)
+			_add_charger_box(charger_geometry, "UniversalProngRight", Vector3(0.035, 0.15, 0.045), Vector3(0.95, 0.0, -0.225), metal_material)
+
 	charger_preview.visible = charger_enabled and charger_preview_mode
 
 
@@ -3240,8 +3262,9 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
 	if is_instance_valid(charger_preview):
 		charger_preview.position = Vector3(-1.276, 0.0, 0.0) if enabled else Vector3.ZERO
-		charger_preview.scale = Vector3.ONE * (1.45 if enabled else 1.0)
-		charger_preview.rotation = Vector3.ZERO if not enabled else charger_preview.rotation
+		charger_preview.scale = Vector3.ONE * (1.8 if enabled else 1.0)
+		if not enabled:
+			charger_preview.rotation = Vector3.ZERO
 		charger_preview.visible = enabled and charger_enabled
 	if is_instance_valid(preview_camera):
 		preview_camera.position = Vector3(0.0, 0.0, 3.65 if enabled else 5.2)
@@ -8173,22 +8196,17 @@ func _input(event: InputEvent) -> void:
 
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
-	if charger_preview_mode and is_instance_valid(charger_preview):
-		if absf(delta.x) >= absf(delta.y):
-			charger_preview.rotation.y += delta.x * DRAG_SENSITIVITY
-		else:
-			charger_preview.rotation.x += delta.y * DRAG_SENSITIVITY
+	# Use one identical two-axis drag rule for both products.
+	# The charger has its own centred pivot, so it turns in place like the phone.
+	var rotation_target: Node3D = charger_preview if charger_preview_mode else phone_body
+	if not is_instance_valid(rotation_target):
 		return
-	if not is_instance_valid(phone_body):
-		return
-
 	# Lock each movement to one of four directions: left/right OR up/down.
-	# Horizontal drag turns the front toward the drag; vertical drag tilts
-	# the top edge down when dragging down, and up when dragging up.
+	# Horizontal drag turns around Y; vertical drag tilts around X.
 	if absf(delta.x) >= absf(delta.y):
-		phone_body.rotation.y += delta.x * DRAG_SENSITIVITY
+		rotation_target.rotation.y += delta.x * DRAG_SENSITIVITY
 	else:
-		phone_body.rotation.x += delta.y * DRAG_SENSITIVITY
+		rotation_target.rotation.x += delta.y * DRAG_SENSITIVITY
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
