@@ -183,6 +183,8 @@ var software_summary_panel: PanelContainer
 var software_value_labels: Dictionary = {}
 var selected_ram_capacity := "Not set"
 var selected_refresh_rate := "Not set"
+var selected_memory_clock := "Not set"
+var selected_cooling_system := "Not set"
 var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
 var selected_battery_capacity := "Not set"
@@ -555,7 +557,7 @@ func _get_software_research_features() -> Array:
 	return [
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
-		"Network", "NFC", "GPS", "Sensors",
+		"Network", "Sensors",
 		"Front Camera MP", "Rear Camera MP", "Memory Clock"
 	]
 
@@ -999,7 +1001,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1061,6 +1063,10 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_sensor_controls()
 	elif feature_name == "Refresh Rate":
 		_show_refresh_rate_controls()
+	elif feature_name == "Memory Clock":
+		_show_memory_clock_controls()
+	elif feature_name == "Cooling System Design":
+		_show_cooling_system_controls()
 
 
 
@@ -5547,6 +5553,8 @@ func _build_software_summary_panel() -> void:
 	software_summary_panel.name = "PhoneSoftwareSpecificationPanel"
 	software_summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	software_summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	software_summary_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	software_summary_panel.clip_contents = true
 	software_summary_panel.visible = false
 	preview_stack.add_child(software_summary_panel)
 
@@ -5587,6 +5595,8 @@ func _build_software_summary_panel() -> void:
 		["ROM", selected_rom_capacity],
 		["BATTERY", selected_battery_capacity],
 		["REFRESH RATE", selected_refresh_rate],
+		["MEMORY CLOCK", selected_memory_clock],
+		["COOLING SYSTEM", selected_cooling_system],
 		["CHARGING SPEED", str(selected_charging_speed) + "W"],
 		["WIRELESS CHARGING", (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")],
 		["BLUETOOTH", selected_bluetooth_version],
@@ -5658,6 +5668,20 @@ func _update_sensor_software_summary() -> void:
 		sensor_label.text = _get_enabled_sensor_summary()
 
 
+
+
+func _update_memory_clock_software_summary() -> void:
+	if software_value_labels.has("MEMORY CLOCK") and is_instance_valid(software_value_labels["MEMORY CLOCK"]):
+		var clock_label: Label = software_value_labels["MEMORY CLOCK"]
+		clock_label.text = selected_memory_clock
+
+
+func _update_cooling_software_summary() -> void:
+	if software_value_labels.has("COOLING SYSTEM") and is_instance_valid(software_value_labels["COOLING SYSTEM"]):
+		var cooling_label: Label = software_value_labels["COOLING SYSTEM"]
+		cooling_label.text = selected_cooling_system
+
+
 func _update_camera_software_summary() -> void:
 	if software_value_labels.has("FRONT CAMERAS") and is_instance_valid(software_value_labels["FRONT CAMERAS"]):
 		var front_label: Label = software_value_labels["FRONT CAMERAS"]
@@ -5665,6 +5689,129 @@ func _update_camera_software_summary() -> void:
 	if software_value_labels.has("REAR CAMERAS") and is_instance_valid(software_value_labels["REAR CAMERAS"]):
 		var rear_label: Label = software_value_labels["REAR CAMERAS"]
 		rear_label.text = _get_rear_camera_mp_summary()
+
+
+func _show_memory_clock_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "MemoryClockSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("MEMORY CLOCK", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var current := _make_label("CURRENT: " + selected_memory_clock.to_upper(), 14, Color("#d8f1ff"))
+	current.name = "CurrentMemoryClockLabel"
+	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(current)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "MemoryClockOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	active_feature_panel.add_child(scroll)
+	var options := VBoxContainer.new()
+	options.name = "MemoryClockOptions"
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+
+	for frequency in [400, 533, 667, 800, 933, 1067, 1200, 1375, 1600, 1867, 2133, 2750, 3200, 3733, 4267]:
+		var clock_text := "%d MHz" % frequency
+		var option := Button.new()
+		option.name = "MemoryClockOption_%dMHz" % frequency
+		option.text = clock_text + ("   ✓ SELECTED" if selected_memory_clock == clock_text else "")
+		option.custom_minimum_size.y = 43
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_memory_clock == clock_text)
+		option.pressed.connect(_on_memory_clock_selected.bind(clock_text))
+		options.add_child(option)
+
+
+func _on_memory_clock_selected(clock_text: String) -> void:
+	if not ["400 MHz", "533 MHz", "667 MHz", "800 MHz", "933 MHz", "1067 MHz", "1200 MHz", "1375 MHz", "1600 MHz", "1867 MHz", "2133 MHz", "2750 MHz", "3200 MHz", "3733 MHz", "4267 MHz"].has(clock_text):
+		return
+	selected_memory_clock = clock_text
+	if software_value_labels.has("MEMORY CLOCK") and is_instance_valid(software_value_labels["MEMORY CLOCK"]):
+		var clock_label: Label = software_value_labels["MEMORY CLOCK"]
+		clock_label.text = selected_memory_clock
+	_show_memory_clock_controls()
+
+
+func _show_cooling_system_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "CoolingSystemSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("COOLING SYSTEM", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var current := _make_label("CURRENT: " + selected_cooling_system.to_upper(), 14, Color("#d8f1ff"))
+	current.name = "CurrentCoolingSystemLabel"
+	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	current.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(current)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "CoolingSystemOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	active_feature_panel.add_child(scroll)
+	var options := VBoxContainer.new()
+	options.name = "CoolingSystemOptions"
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+
+	var cooling_options := [
+		"No Dedicated Cooling",
+		"Graphite Sheet",
+		"Graphite + Copper Foil",
+		"Graphene Composite",
+		"Heat Pipe",
+		"Vapor Chamber",
+		"Dual Vapor Chamber",
+		"Vapor Chamber + Graphite Stack"
+	]
+	for cooling_type in cooling_options:
+		var option := Button.new()
+		option.name = "CoolingSystemOption_" + cooling_type.replace(" ", "").replace("+", "Plus")
+		option.text = cooling_type + ("   ✓ SELECTED" if selected_cooling_system == cooling_type else "")
+		option.custom_minimum_size.y = 46
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_cooling_system == cooling_type)
+		option.pressed.connect(_on_cooling_system_selected.bind(cooling_type))
+		options.add_child(option)
+
+
+func _on_cooling_system_selected(cooling_type: String) -> void:
+	if not ["No Dedicated Cooling", "Graphite Sheet", "Graphite + Copper Foil", "Graphene Composite", "Heat Pipe", "Vapor Chamber", "Dual Vapor Chamber", "Vapor Chamber + Graphite Stack"].has(cooling_type):
+		return
+	selected_cooling_system = cooling_type
+	if software_value_labels.has("COOLING SYSTEM") and is_instance_valid(software_value_labels["COOLING SYSTEM"]):
+		var cooling_label: Label = software_value_labels["COOLING SYSTEM"]
+		cooling_label.text = selected_cooling_system
+	_show_cooling_system_controls()
 
 
 func _show_refresh_rate_controls() -> void:
@@ -6459,11 +6606,16 @@ func _set_left_tools_page(requested_page: int) -> void:
 	_update_left_tools_navigation_buttons()
 	if is_instance_valid(preview_container):
 		preview_container.visible = left_tools_page != 1
+	var preview_navigation := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhonePreviewCard/PhonePreviewPanelNavigation")
+	if is_instance_valid(preview_navigation):
+		preview_navigation.visible = left_tools_page != 1
 	if is_instance_valid(software_summary_panel):
 		software_summary_panel.visible = left_tools_page == 1
 		if left_tools_page == 1:
 			_update_camera_software_summary()
 			_update_sensor_software_summary()
+			_update_memory_clock_software_summary()
+			_update_cooling_software_summary()
 	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
 	if not is_instance_valid(tools_content):
 		return
@@ -6481,7 +6633,7 @@ func _make_label(caption: String, font_size: int, color: Color) -> Label:
 
 
 func _input(event: InputEvent) -> void:
-	if research_mode or not is_instance_valid(preview_container):
+	if research_mode or left_tools_page == 1 or not is_instance_valid(preview_container) or not preview_container.is_visible_in_tree():
 		return
 
 	var preview_rect := preview_container.get_global_rect()
