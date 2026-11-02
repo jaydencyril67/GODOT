@@ -4053,11 +4053,10 @@ func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Ma
 	circle_mesh.height = 0.008
 	circle_mesh.radial_segments = 40
 	end_marker.mesh = circle_mesh
-	# CylinderMesh is Y-axis aligned by default. Turn its circular face toward
-	# the phone's front (+Z), then sit it just above the chassis face. Keeping
-	# it on the visible surface prevents it being hidden as the phone tilts.
-	end_marker.position = Vector3(marker_position.x, marker_position.y, current_depth * 0.5 + 0.002)
-	end_marker.rotation_degrees = Vector3(90.0, 0.0, marker_rotation)
+	# Keep the S-Pen marker on the phone's bottom edge, centered through
+	# the frame thickness. Its orientation follows the bottom/rounded edge.
+	end_marker.position = Vector3(marker_position.x, marker_position.y, 0.0)
+	end_marker.rotation_degrees.z = marker_rotation
 	end_marker.material_override = circle_material
 	end_marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(end_marker)
