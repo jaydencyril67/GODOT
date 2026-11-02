@@ -841,8 +841,8 @@ func _get_preview_viewport() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
 	viewport.size = Vector2i(1600, 1200)
-	# Smooth the preview silhouette without reducing its render resolution.
-	viewport.msaa_3d = Viewport.MSAA_4X
+	# Use lighter 2x MSAA to smooth preview edges with less GPU overhead.
+	viewport.msaa_3d = Viewport.MSAA_2X
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	viewport.own_world_3d = true
 
