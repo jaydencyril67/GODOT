@@ -173,6 +173,10 @@ var screen_type_buttons: Dictionary = {}
 const SCREEN_TYPE_ORDER := ["TFT LCD", "LED-LCD", "IPS LCD", "Mini-LED LCD", "OLED", "AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"]
 var preview_camera: Camera3D
 var preview_container: SubViewportContainer
+var preview_stack: VBoxContainer
+var software_summary_panel: PanelContainer
+var software_value_labels: Dictionary = {}
+var selected_ram_capacity := "Not set"
 var research_mode := false
 var research_content_panel: Control
 var research_balance_label: Label
@@ -309,11 +313,12 @@ func _build_editor_ui() -> void:
 	preview_panel.size_flags_stretch_ratio = 1.45
 	layout.add_child(preview_panel)
 
-	var preview_stack := VBoxContainer.new()
+	preview_stack = VBoxContainer.new()
 	preview_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	preview_stack.add_theme_constant_override("separation", 8)
 	preview_panel.add_child(preview_stack)
+	_build_software_summary_panel()
 
 	preview_container = SubViewportContainer.new()
 	preview_container.name = "RotatablePhonePreview"
@@ -963,7 +968,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Back Design", "RAM"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -999,6 +1004,8 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_rear_camera_controls()
 	elif feature_name == "Back Design":
 		_show_back_design_controls()
+	elif feature_name == "RAM":
+		_show_ram_controls()
 
 
 
@@ -5311,6 +5318,113 @@ func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: V
 	surface.add_vertex(c)
 
 
+
+func _build_software_summary_panel() -> void:
+	software_summary_panel = _make_glass_panel(Color(0.10, 0.31, 0.48, 0.58))
+	software_summary_panel.name = "PhoneSoftwareSpecificationPanel"
+	software_summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	software_summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	software_summary_panel.visible = false
+	preview_stack.add_child(software_summary_panel)
+
+	var content := VBoxContainer.new()
+	content.name = "SoftwareSpecificationContent"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
+	software_summary_panel.add_child(content)
+
+	var heading := _make_label("SOFTWARE SPECIFICATIONS", 19, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(heading)
+	var subtitle := _make_label("DEVICE CONFIGURATION", 11, Color("#a9c9dc"))
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(subtitle)
+	content.add_child(HSeparator.new())
+
+	software_value_labels.clear()
+	var specifications := [
+		["RAM", selected_ram_capacity],
+		["ROM", "Not set"],
+		["BATTERY", "Not set"],
+		["CHIPSET", "Not set"],
+		["OPERATING SYSTEM", "Not set"],
+		["RAM TECHNOLOGY", "Not set"],
+		["STORAGE TYPE", "Not set"],
+		["CONNECTIVITY", "Not set"]
+	]
+	for specification in specifications:
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 8)
+		content.add_child(row)
+		var name_label := _make_label(str(specification[0]) + ":", 13, Color("#d8f1ff"))
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_label)
+		var value_label := _make_label(str(specification[1]), 13, Color.WHITE)
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(value_label)
+		software_value_labels[str(specification[0])] = value_label
+	var hint := _make_label("Choose a software feature from the left panel to configure this device.", 11, Color("#a9c9dc"))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(hint)
+
+
+func _show_ram_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "RAMSelectionControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SELECT RAM", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Physical memory capacity", 11, Color("#a9c9dc"))
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+	var current := _make_label("CURRENT: " + selected_ram_capacity.to_upper(), 13, Color.WHITE)
+	current.name = "CurrentRAMSelectionLabel"
+	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(current)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "RAMOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	active_feature_panel.add_child(scroll)
+	var options := VBoxContainer.new()
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+	for capacity in ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]:
+		var option := Button.new()
+		option.name = "RAMOption_" + capacity.replace(" ", "")
+		option.text = capacity + ("   ✓ SELECTED" if selected_ram_capacity == capacity else "")
+		option.custom_minimum_size.y = 43
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_ram_capacity == capacity)
+		option.pressed.connect(_on_ram_capacity_selected.bind(capacity))
+		options.add_child(option)
+
+
+func _on_ram_capacity_selected(capacity: String) -> void:
+	if not ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"].has(capacity):
+		return
+	selected_ram_capacity = capacity
+	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
+		var ram_label: Label = software_value_labels["RAM"]
+		ram_label.text = capacity
+	_show_ram_controls()
+
+
 func _on_left_tools_previous_pressed() -> void:
 	_set_left_tools_page(left_tools_page - 1)
 
@@ -5326,9 +5440,18 @@ func _update_left_tools_navigation_buttons() -> void:
 		left_tools_next_button.disabled = left_tools_page >= 2
 
 
+	if is_instance_valid(preview_container):
+		preview_container.visible = left_tools_page != 1
+	if is_instance_valid(software_summary_panel):
+		software_summary_panel.visible = left_tools_page == 1
+
 func _set_left_tools_page(requested_page: int) -> void:
 	left_tools_page = clampi(requested_page, 0, 2)
 	_update_left_tools_navigation_buttons()
+	if is_instance_valid(preview_container):
+		preview_container.visible = left_tools_page != 1
+	if is_instance_valid(software_summary_panel):
+		software_summary_panel.visible = left_tools_page == 1
 	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
 	if not is_instance_valid(tools_content):
 		return
