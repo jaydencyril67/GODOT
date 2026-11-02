@@ -166,6 +166,8 @@ var screen_protector_enabled := false
 var screen_protector_finish := "Ultra Clear"
 var screen_protector_thickness := 0.006
 var screen_protector_thickness_label: Label
+var screen_protector_building := false
+var screen_protector_build_token := 0
 var bezel_width := 0.10
 var bezel_height := 0.20
 var bezel_width_value_label: Label
@@ -190,6 +192,9 @@ var charger_enabled := false
 var charger_wattage := 30
 var charger_plug_type := "UK"
 var charger_body_color := Color("#e8edf2")
+var charger_wattage_label: Label
+var charger_wattage_slider: VSlider
+var charger_preview_mode := false
 var camera_lens_protector_enabled := false
 var camera_lens_protector_finish := "Ultra Clear"
 var camera_lens_protector_thickness := 0.0025
@@ -1046,6 +1051,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
 	_close_back_design_selection_popup()
+	_set_charger_preview_mode(false)
 	if feature_name == "Phone Case":
 		_show_phone_case_controls()
 		return
@@ -1053,6 +1059,7 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_show_screen_protector_controls()
 		return
 	if feature_name == "Charger":
+		_set_charger_preview_mode(true)
 		_show_charger_controls()
 		return
 	if feature_name == "Camera Lens Protector":
@@ -2931,13 +2938,13 @@ func _add_screen_protector_edge(surface: SurfaceTool, base_a: Vector3, base_b: V
 	_add_phone_mesh_triangle(surface, base_a, top_b, base_b, outward_normal)
 
 
-func _create_screen_protector_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float) -> ArrayMesh:
+func _create_screen_protector_mesh_async(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	# The dense grid follows the exact screen outline and curve. The top and
 	# underside are separated by the real modelled protector thickness.
-	const X_SEGMENTS := 128
-	const Y_SEGMENTS := 216
+	const X_SEGMENTS := 88
+	const Y_SEGMENTS := 148
 	const EDGE_GAP := 0.00025
 	var half_width := width * 0.5
 	var half_height := height * 0.5
@@ -2952,6 +2959,8 @@ func _create_screen_protector_mesh(width: float, height: float, corner_radius: f
 			var raw_x := (u - 0.5) * width
 			base_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP))
 			top_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP + thickness))
+		if y_index % 8 == 7:
+			await get_tree().process_frame
 
 	var cutout_mask := PackedByteArray()
 	cutout_mask.resize(X_SEGMENTS * Y_SEGMENTS)
@@ -2975,6 +2984,8 @@ func _create_screen_protector_mesh(width: float, height: float, corner_radius: f
 			surface.add_vertex(top_points[top_right])
 			surface.add_vertex(top_points[bottom_left])
 			surface.add_vertex(top_points[bottom_right])
+		if y_index % 8 == 7:
+			await get_tree().process_frame
 
 	# Close the outer glass perimeter so the thickness is visible edge-on.
 	for x_index in range(X_SEGMENTS):
@@ -3018,46 +3029,83 @@ func _create_screen_protector_mesh(width: float, height: float, corner_radius: f
 func _create_screen_protector_material() -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.albedo_color = Color(0.82, 0.93, 1.0, 0.085)
-	material.metallic = 0.025
-	material.roughness = 0.055
-	material.metallic_specular = 0.92
-	material.clearcoat_enabled = true
-	material.clearcoat = 0.95
-	material.clearcoat_roughness = 0.035
+	material.albedo_color = Color(0.94, 0.98, 1.0, 0.055)
+	material.metallic = 0.0
+	material.roughness = 0.12
+	material.metallic_specular = 0.22
+	material.clearcoat_enabled = false
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	match screen_protector_finish:
 		"Matte":
-			material.albedo_color = Color(0.80, 0.90, 0.98, 0.11)
-			material.roughness = 0.24
-			material.clearcoat = 0.42
-			material.clearcoat_roughness = 0.16
+			material.albedo_color = Color(0.83, 0.91, 0.97, 0.10)
+			material.roughness = 0.78
+			material.metallic_specular = 0.08
+			material.clearcoat_enabled = false
 		"Anti-Reflective":
-			material.albedo_color = Color(0.78, 0.91, 1.0, 0.07)
-			material.roughness = 0.095
-			material.clearcoat = 0.78
-			material.clearcoat_roughness = 0.055
+			material.albedo_color = Color(0.90, 0.96, 1.0, 0.045)
+			material.roughness = 0.62
+			material.metallic_specular = 0.035
+			material.metallic = 0.0
+			material.clearcoat_enabled = false
+		_:
+			material.roughness = 0.12
+			material.metallic_specular = 0.22
 	return material
 
 
 func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool) -> void:
 	if not screen_protector_enabled or not is_instance_valid(display):
 		return
-	var protector := MeshInstance3D.new()
-	protector.name = "TemperedGlassScreenProtector"
+	screen_protector_build_token += 1
+	screen_protector_building = true
+	var token := screen_protector_build_token
+	var placeholder := MeshInstance3D.new()
+	placeholder.name = "TemperedGlassBuildPreview"
+	placeholder.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.002, screen_radius)
+	var preview_material := StandardMaterial3D.new()
+	preview_material.albedo_color = Color(0.45, 0.78, 0.96, 0.10)
+	preview_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	preview_material.roughness = 0.8
+	preview_material.metallic_specular = 0.04
+	preview_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	placeholder.material_override = preview_material
+	placeholder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	display.add_child(placeholder)
+	var build_tween := create_tween()
+	build_tween.set_loops()
+	build_tween.tween_property(placeholder, "scale", Vector3(1.0, 0.985, 1.0), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	build_tween.tween_property(placeholder, "scale", Vector3.ONE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	call_deferred("_build_screen_protector_async", display, screen_width, screen_height, screen_radius, curved_display, token, placeholder, build_tween)
+
+
+func _build_screen_protector_async(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, token: int, placeholder: MeshInstance3D, build_tween: Tween) -> void:
 	var curve_sides := curved_display and side_curve_enabled
 	var curve_vertical := curved_display and vertical_curve_enabled
 	var cutouts := _get_screen_protector_cutouts(screen_width, screen_height)
-	protector.mesh = _create_screen_protector_mesh(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness)
+	var generated_mesh: ArrayMesh = await _create_screen_protector_mesh_async(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness)
+	if token != screen_protector_build_token or not screen_protector_enabled or not is_instance_valid(display):
+		return
+	if build_tween.is_running():
+		build_tween.kill()
+	if is_instance_valid(placeholder):
+		placeholder.queue_free()
+	var protector := MeshInstance3D.new()
+	protector.name = "TemperedGlassScreenProtector"
+	protector.mesh = generated_mesh
 	protector.material_override = _create_screen_protector_material()
 	protector.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	protector.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	display.add_child(protector)
+	screen_protector_building = false
+	_show_screen_protector_controls()
 
 
 func _on_screen_protector_toggled(enabled: bool) -> void:
 	screen_protector_enabled = enabled
+	screen_protector_build_token += 1
+	screen_protector_building = enabled
 	_refresh_phone_screen()
+	_show_screen_protector_controls()
 	_show_screen_protector_controls()
 
 
@@ -3174,7 +3222,31 @@ func _rebuild_charger_preview() -> void:
 	wattage_label.rotation_degrees = Vector3(0.0, 0.0, -7.0)
 	wattage_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	charger_preview.add_child(wattage_label)
-	charger_preview.visible = charger_enabled
+	charger_preview.visible = charger_enabled and charger_preview_mode
+
+
+func _set_charger_preview_mode(enabled: bool) -> void:
+	charger_preview_mode = enabled
+	if is_instance_valid(phone_body):
+		phone_body.visible = not enabled
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+	if is_instance_valid(charger_preview):
+		charger_preview.position = Vector3(-0.88, 0.0, 0.0) if enabled else Vector3.ZERO
+		charger_preview.visible = enabled and charger_enabled
+	if is_instance_valid(preview_camera):
+		preview_camera.position = Vector3(0.0, 0.0, 4.25 if enabled else 5.2)
+
+
+func _on_charger_wattage_changed(value: float) -> void:
+	selected_charging_speed = clampi(roundi(value), 2, 200)
+	charger_wattage = selected_charging_speed
+	_update_charging_speed_controls()
+	_rebuild_charger_preview()
+	if is_instance_valid(charger_wattage_label):
+		charger_wattage_label.text = "%d W" % charger_wattage
+	if is_instance_valid(charger_wattage_slider):
+		charger_wattage_slider.set_value_no_signal(charger_wattage)
 
 
 func _on_charger_enabled_toggled(enabled: bool) -> void:
@@ -3403,17 +3475,40 @@ func _show_charger_controls() -> void:
 
 	var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(wattage_heading)
-	for wattage in [20, 25, 30, 45, 65, 100]:
-		var watt_button := Button.new()
-		watt_button.name = "ChargerOutput_%dW" % wattage
-		watt_button.text = "%d W" % wattage + ("   ✓" if charger_wattage == wattage else "")
-		watt_button.custom_minimum_size = Vector2(0, 38)
-		watt_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		watt_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(watt_button, 12)
-		_style_staff_button(watt_button, charger_wattage == wattage)
-		watt_button.pressed.connect(_on_charger_wattage_selected.bind(wattage))
-		active_feature_panel.add_child(watt_button)
+	charger_wattage_label = _make_label("%d W" % charger_wattage, 29, Color.WHITE)
+	charger_wattage_label.name = "ChargerOutputWattageValue"
+	charger_wattage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(charger_wattage_label)
+	var wattage_range := _make_label("2W  —  200W  ·  SYNCHRONIZED WITH PHONE", 11, Color("#a9c9dc"))
+	wattage_range.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(wattage_range)
+	var wattage_slider_row := HBoxContainer.new()
+	wattage_slider_row.name = "ChargerWattageVerticalSliderRow"
+	wattage_slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wattage_slider_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	wattage_slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	wattage_slider_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(wattage_slider_row)
+	var min_wattage_label := _make_label("2W", 11, Color("#a9c9dc"))
+	min_wattage_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	wattage_slider_row.add_child(min_wattage_label)
+	charger_wattage_slider = VSlider.new()
+	charger_wattage_slider.name = "ChargerOutputVerticalSlider"
+	charger_wattage_slider.min_value = 2
+	charger_wattage_slider.max_value = 200
+	charger_wattage_slider.step = 1
+	charger_wattage_slider.value = charger_wattage
+	charger_wattage_slider.custom_minimum_size = Vector2(52, 210)
+	charger_wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	charger_wattage_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	charger_wattage_slider.focus_mode = Control.FOCUS_NONE
+	charger_wattage_slider.tick_count = 0
+	charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
+	_style_custom_slider(charger_wattage_slider)
+	wattage_slider_row.add_child(charger_wattage_slider)
+	var max_wattage_label := _make_label("200W", 11, Color("#a9c9dc"))
+	max_wattage_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	wattage_slider_row.add_child(max_wattage_label)
 
 	var color_heading := _make_label("ADAPTER FINISH", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(color_heading)
@@ -3518,6 +3613,21 @@ func _show_screen_protector_controls() -> void:
 	active_feature_panel.add_child(thickness_slider)
 	_update_screen_protector_thickness_label()
 
+	if screen_protector_building:
+		var build_status := _make_label("PRECISION GLASS FITTING  ·  BUILDING", 12, Color("#8ed6ff"))
+		build_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		active_feature_panel.add_child(build_status)
+		var progress := ProgressBar.new()
+		progress.name = "ProtectionGlassBuildProgress"
+		progress.min_value = 0.0
+		progress.max_value = 100.0
+		progress.value = 72.0
+		progress.custom_minimum_size = Vector2(0, 12)
+		active_feature_panel.add_child(progress)
+		var progress_tween := create_tween()
+		progress_tween.set_loops()
+		progress_tween.tween_property(progress, "value", 96.0, 0.7)
+		progress_tween.tween_property(progress, "value", 72.0, 0.7)
 	var cutout_note := _make_label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#8ed6ff"))
 	cutout_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -6932,7 +7042,13 @@ func _show_charging_speed_controls() -> void:
 
 func _on_charging_speed_changed(value: float) -> void:
 	selected_charging_speed = clampi(roundi(value), 2, 200)
+	charger_wattage = selected_charging_speed
 	_update_charging_speed_controls()
+	_rebuild_charger_preview()
+	if is_instance_valid(charger_wattage_label):
+		charger_wattage_label.text = "%d W" % charger_wattage
+	if is_instance_valid(charger_wattage_slider):
+		charger_wattage_slider.set_value_no_signal(charger_wattage)
 
 
 func _adjust_charging_speed(amount: int) -> void:
@@ -7725,10 +7841,13 @@ func _sync_phone_case_geometry() -> void:
 
 
 func _update_phone_case_preview_mode() -> void:
+	if charger_preview_mode:
+		_set_charger_preview_mode(true)
+		return
 	if is_instance_valid(phone_body):
 		phone_body.visible=true
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible=left_tools_page==2 and phone_case_custom_enabled and phone_case_built and not phone_case_building
+		phone_case_preview.visible=left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building
 	if left_tools_page==2:
 		_show_phone_case_controls()
 	else:
@@ -7937,7 +8056,7 @@ func _complete_phone_case_build(token: int) -> void:
 	_rebuild_phone_case_geometry()
 	phone_case_built=true
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible=left_tools_page==2
+		phone_case_preview.visible=left_tools_page!=1
 	_show_phone_case_controls()
 
 
