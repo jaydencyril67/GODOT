@@ -3878,6 +3878,8 @@ func _on_optional_side_feature_toggled(enabled: bool, feature: String) -> void:
 		"style_pen":
 			style_pen_enabled = enabled
 	_refresh_phone_side_buttons()
+	if feature == "style_pen":
+		_refresh_phone_speakers()
 
 
 func _on_optional_side_feature_position_step(feature: String, direction: int) -> void:
@@ -3959,15 +3961,14 @@ func _refresh_phone_side_buttons() -> void:
 
 
 func _add_phone_style_pen(parent: Node3D, current_depth: float, key_material: Material) -> void:
-	# Minimal S-Pen marker: one bold black circular end at the far-left
-	# end of the bottom rail. Keep it on the straight section as the corner
-	# radius grows so it never gets clipped by the rounded phone corner.
+	# One black circular end, seated flush against the bottom rail.
+	# Its center follows the straight section beyond the rounded corner.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var left_edge := -PHONE_SIZE.x * 0.5
 	var circle_radius := 0.025
 	var circle_x := left_edge + corner_radius + circle_radius + 0.012
-	var circle_y := bottom_y - 0.002
+	var circle_y := bottom_y + 0.0035
 	var circle_z := 0.0
 
 	var circle_material := StandardMaterial3D.new()
@@ -4156,8 +4157,24 @@ func _refresh_phone_speakers() -> void:
 	var right_count := speaker_count - left_count
 	var positions: Array[float] = []
 
-	for index in range(left_count):
-		positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * hole_spacing))
+	# Reserve a collision-free pocket for the S-Pen marker at the far-left
+	# end. When many speakers are enabled or the corner radius grows, compress
+	# only the left speaker run toward its normal inner endpoint; never let a
+	# speaker overlap or sit underneath the black marker.
+	var leftmost_speaker_x := -(reserved_port_half_width + edge_margin + float(maxi(left_count - 1, 0)) * hole_spacing)
+	if style_pen_enabled and left_count > 0:
+		var corner_radius := 0.32 * float(border_radius_level) / 6.0
+		var marker_x := -PHONE_SIZE.x * 0.5 + corner_radius + 0.025 + 0.012
+		var marker_clearance_x := marker_x + 0.025 + hole_radius + 0.008
+		if leftmost_speaker_x < marker_clearance_x:
+			leftmost_speaker_x = marker_clearance_x
+		var inner_speaker_x := -(reserved_port_half_width + edge_margin)
+		for index in range(left_count):
+			var t := 0.0 if left_count <= 1 else float(index) / float(left_count - 1)
+			positions.append(lerpf(leftmost_speaker_x, inner_speaker_x, t))
+	else:
+		for index in range(left_count):
+			positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * hole_spacing))
 	for index in range(right_count):
 		positions.append(reserved_port_half_width + edge_margin + float(index) * hole_spacing)
 
