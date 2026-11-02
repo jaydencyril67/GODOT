@@ -5529,18 +5529,29 @@ func _build_software_summary_panel() -> void:
 	software_summary_panel.visible = false
 	preview_stack.add_child(software_summary_panel)
 
+	# The middle preview card becomes a real vertical specification view.
+	var scroll := ScrollContainer.new()
+	scroll.name = "SoftwareSpecificationsVerticalScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	software_summary_panel.add_child(scroll)
+
 	var content := VBoxContainer.new()
 	content.name = "SoftwareSpecificationContent"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
-	software_summary_panel.add_child(content)
+	content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	content.add_theme_constant_override("separation", 14)
+	scroll.add_child(content)
 
-	var heading := _make_label("SOFTWARE SPECIFICATIONS", 19, Color("#c7eaff"))
+	var heading := _make_label("SOFTWARE SPECIFICATIONS", 21, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_research_typography(heading, 21)
 	content.add_child(heading)
-	var subtitle := _make_label("DEVICE CONFIGURATION", 11, Color("#a9c9dc"))
+	var subtitle := _make_label("DEVICE CONFIGURATION", 14, Color("#a9c9dc"))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_research_typography(subtitle, 14)
 	content.add_child(subtitle)
 	content.add_child(HSeparator.new())
 
@@ -5554,6 +5565,8 @@ func _build_software_summary_panel() -> void:
 		["BLUETOOTH", selected_bluetooth_version],
 		["WI-FI", selected_wifi_standard],
 		["MOBILE NETWORK", selected_mobile_network],
+		["FRONT CAMERAS", _get_front_camera_mp_summary()],
+		["REAR CAMERAS", _get_rear_camera_mp_summary()],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
 		["RAM TECHNOLOGY", selected_ram_technology],
@@ -5565,16 +5578,49 @@ func _build_software_summary_panel() -> void:
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_theme_constant_override("separation", 8)
 		content.add_child(row)
-		var name_label := _make_label(str(specification[0]) + ":", 13, Color("#d8f1ff"))
+		var name_label := _make_label(str(specification[0]) + ":", 15, Color("#d8f1ff"))
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(name_label, 15)
 		row.add_child(name_label)
-		var value_label := _make_label(str(specification[1]), 13, Color.WHITE)
+		var value_label := _make_label(str(specification[1]), 15, Color.WHITE)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(value_label, 15)
 		row.add_child(value_label)
 		software_value_labels[str(specification[0])] = value_label
-	var hint := _make_label("Choose a software feature from the left panel to configure this device.", 11, Color("#a9c9dc"))
+	var hint := _make_label("Choose a software feature from the left panel to configure this device.", 13, Color("#a9c9dc"))
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_research_typography(hint, 13)
 	content.add_child(hint)
+	_update_camera_software_summary()
+
+
+func _get_front_camera_mp_summary() -> String:
+	if not front_camera_enabled:
+		return "0 cameras"
+	if front_camera_style == "Dual Punch-Hole":
+		return "2 cameras — %d MP / %d MP" % [front_camera_megapixels, front_camera_secondary_megapixels]
+	return "1 camera — %d MP" % front_camera_megapixels
+
+
+func _get_rear_camera_mp_summary() -> String:
+	if rear_camera_modules.is_empty():
+		return "0 cameras"
+	var megapixel_values: Array[String] = []
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		megapixel_values.append("%d MP" % int(camera_data.get("mp", 12)))
+	return "%d cameras — %s" % [rear_camera_modules.size(), " / ".join(megapixel_values)]
+
+
+func _update_camera_software_summary() -> void:
+	if software_value_labels.has("FRONT CAMERAS") and is_instance_valid(software_value_labels["FRONT CAMERAS"]):
+		var front_label: Label = software_value_labels["FRONT CAMERAS"]
+		front_label.text = _get_front_camera_mp_summary()
+	if software_value_labels.has("REAR CAMERAS") and is_instance_valid(software_value_labels["REAR CAMERAS"]):
+		var rear_label: Label = software_value_labels["REAR CAMERAS"]
+		rear_label.text = _get_rear_camera_mp_summary()
 
 
 func _show_ram_controls() -> void:
@@ -6220,6 +6266,8 @@ func _set_left_tools_page(requested_page: int) -> void:
 		preview_container.visible = left_tools_page != 1
 	if is_instance_valid(software_summary_panel):
 		software_summary_panel.visible = left_tools_page == 1
+		if left_tools_page == 1:
+			_update_camera_software_summary()
 	var tools_content := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot/PhoneEditorPageMargin/PhoneEditorMainLayout/PhoneEditorLeftToolsCard/PhoneEditorLeftToolsCardScroll/PhoneEditorLeftToolsCardPages")
 	if not is_instance_valid(tools_content):
 		return
