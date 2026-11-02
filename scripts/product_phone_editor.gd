@@ -3511,10 +3511,15 @@ func _rebuild_charger_preview() -> void:
 			_add_charger_box(charger_geometry, "UniversalProngLeft", Vector3(0.035, 0.15, 0.17), Vector3(0.81, 0.0, -0.23), metal_material)
 			_add_charger_box(charger_geometry, "UniversalProngRight", Vector3(0.035, 0.15, 0.17), Vector3(0.95, 0.0, -0.23), metal_material)
 
-	charger_geometry.visible = charger_enabled
+	# The cable's adapter-side plug must never float by itself: keep the
+	# matching adapter visible whenever its physical cable is installed.
+	charger_geometry.visible = charger_enabled or charger_cable_enabled
 	if charger_cable_enabled:
 		_build_charger_cable(charger_preview, output_connector)
 	charger_preview.visible = (charger_enabled or charger_cable_enabled) and charger_preview_mode
+	if charger_preview_mode and is_instance_valid(preview_camera):
+		preview_camera.position.z = 4.25 if charger_cable_enabled else 3.65
+		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
 func _set_charger_preview_mode(enabled: bool) -> void:
