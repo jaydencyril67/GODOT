@@ -6229,11 +6229,6 @@ func _show_sensor_controls() -> void:
 	var heading := _make_label("PHONE SENSORS", 21, Color("#c7eaff"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var subtitle := _make_label("ENABLE OR DISABLE INDIVIDUAL COMPONENTS", 13, Color("#a9c9dc"))
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(subtitle)
-
 	var count_label := _make_label("", 15, Color("#d8f1ff"))
 	count_label.name = "EnabledSensorCount"
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
