@@ -8076,6 +8076,22 @@ func _refresh_foldable_frame_materials() -> void:
 		fixed_frame.material_override = _create_device_body_material(Vector2(fixed_frame.position.x, fixed_frame.position.y))
 	if is_instance_valid(moving_frame):
 		moving_frame.material_override = _create_device_body_material(Vector2(moving_frame.position.x, moving_frame.position.y))
+	var hinge_root := phone_body.get_node_or_null("PhoneFoldableHinge")
+	var hinge_spine := hinge_root.get_node_or_null("SeamlessHingeCover") as MeshInstance3D if is_instance_valid(hinge_root) else null
+	if is_instance_valid(hinge_spine):
+		var hinge_material := StandardMaterial3D.new()
+		hinge_material.albedo_color = device_body_color.lightened(0.10)
+		hinge_material.metallic = 0.72
+		hinge_material.roughness = 0.27
+		hinge_material.metallic_specular = 0.82
+		hinge_spine.material_override = hinge_material
+	var hinge_edge := hinge_root.get_node_or_null("HingeEdgeHighlight") as MeshInstance3D if is_instance_valid(hinge_root) else null
+	if is_instance_valid(hinge_edge):
+		var edge_material := StandardMaterial3D.new()
+		edge_material.albedo_color = device_body_color.lightened(0.36)
+		edge_material.metallic = 0.78
+		edge_material.roughness = 0.22
+		hinge_edge.material_override = edge_material
 
 
 func _refresh_foldable_hardware() -> void:
@@ -9681,9 +9697,9 @@ func _refresh_phone_case_material() -> void:
 		var hinge_bridge := phone_case_preview.get_node_or_null("FlexibleCaseHingeBridge") as MeshInstance3D
 		if is_instance_valid(hinge_bridge):
 			var bridge_material := StandardMaterial3D.new()
-			bridge_material.albedo_color = phone_case_color.darkened(0.48)
-			bridge_material.roughness = 0.78
-			bridge_material.metallic = 0.04
+			bridge_material.albedo_color = phone_case_color.darkened(0.32)
+			bridge_material.roughness = 0.86
+			bridge_material.metallic = 0.01
 			hinge_bridge.material_override = bridge_material
 	elif is_instance_valid(phone_case_shell):
 		phone_case_shell.material = _create_phone_case_material()
