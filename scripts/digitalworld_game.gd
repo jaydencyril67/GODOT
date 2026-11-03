@@ -936,7 +936,7 @@ func _open_logo_picker() -> void:
 	var scrim := ColorRect.new()
 	scrim.name = "ModalScrim"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.005, 0.025, 0.045, 0.84)
+	scrim.color = Color(0.004, 0.020, 0.009, 0.88)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
 
@@ -950,7 +950,7 @@ func _open_logo_picker() -> void:
 	logo_picker_layer.add_child(center)
 
 	# The dialog has a screen-bounded size; the grid scrolls inside it.
-	var panel := _panel(Color(0.025, 0.105, 0.17, 0.97), Color(0.72, 0.88, 0.96, 0.34), 18)
+	var panel := _panel(Color(0.018, 0.065, 0.039, 0.98), Color(0.58, 0.82, 0.63, 0.52), 18)
 	panel.name = "InsigniaDialog"
 	panel.custom_minimum_size = Vector2(dialog_width, dialog_height)
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -959,8 +959,8 @@ func _open_logo_picker() -> void:
 	center.add_child(panel)
 
 	var panel_style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
-	panel_style.bg_color = Color(0.025, 0.105, 0.17, 0.97)
-	panel_style.border_color = Color(0.48, 0.82, 1.0, 0.92)
+	panel_style.bg_color = Color(0.018, 0.065, 0.039, 0.98)
+	panel_style.border_color = Color(0.62, 0.88, 0.67, 0.82)
 	panel_style.set_border_width_all(3)
 	panel_style.shadow_size = 0
 	panel_style.set_corner_radius_all(18)
@@ -1027,13 +1027,18 @@ func _open_logo_picker() -> void:
 
 
 func _style_company_glass_button(button: Button, _selected: bool = false) -> void:
-	# Keep every visual state identical: no hover, pressed, focus, or selection flash.
+	# Emerald frosted glass with a clean highlight; interactions never flash.
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.48, 0.78, 0.92, 0.10)
-	style.border_color = Color(0.78, 0.92, 1.0, 0.26)
+	style.bg_color = Color(0.18, 0.46, 0.24, 0.34)
+	style.border_color = Color(0.72, 0.91, 0.75, 0.54)
 	style.set_border_width_all(1)
+	style.border_width_top = 2
 	style.set_corner_radius_all(12)
-	style.shadow_size = 0
+	style.shadow_color = Color(0.0, 0.025, 0.008, 0.24)
+	style.shadow_size = 7
+	style.shadow_offset = Vector2(0, 3)
 	style.anti_aliasing = true
 	style.content_margin_left = 12
 	style.content_margin_right = 12
@@ -1041,12 +1046,12 @@ func _style_company_glass_button(button: Button, _selected: bool = false) -> voi
 	style.content_margin_bottom = 9
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#f2faff"))
-	button.add_theme_color_override("font_hover_color", Color("#f2faff"))
-	button.add_theme_color_override("font_pressed_color", Color("#f2faff"))
-	button.add_theme_color_override("font_focus_color", Color("#f2faff"))
-	button.add_theme_color_override("font_disabled_color", Color("#f2faff"))
-	button.add_theme_color_override("font_outline_color", Color(0.0, 0.08, 0.14, 0.0))
+	button.add_theme_color_override("font_color", Color("#f3faf3"))
+	button.add_theme_color_override("font_hover_color", Color("#f3faf3"))
+	button.add_theme_color_override("font_pressed_color", Color("#f3faf3"))
+	button.add_theme_color_override("font_focus_color", Color("#f3faf3"))
+	button.add_theme_color_override("font_disabled_color", Color("#f3faf3"))
+	button.add_theme_color_override("font_outline_color", Color(0.0, 0.08, 0.03, 0.0))
 	button.add_theme_constant_override("outline_size", 0)
 	button.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
 	button.add_theme_constant_override("shadow_offset_x", 0)
@@ -1156,8 +1161,8 @@ func _animate_logo_picker_scroll(target: int, duration: float) -> void:
 
 func _logo_option_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.20, 0.58, 0.78, 0.25) if selected else Color(0.48, 0.78, 0.92, 0.10)
-	style.border_color = Color(0.78, 0.92, 1.0, 0.56) if selected else Color(0.78, 0.92, 1.0, 0.26)
+	style.bg_color = Color(0.20, 0.52, 0.27, 0.38) if selected else Color(0.18, 0.46, 0.24, 0.24)
+	style.border_color = Color(0.76, 0.94, 0.79, 0.70) if selected else Color(0.72, 0.91, 0.75, 0.36)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(10)
 	style.shadow_size = 0
@@ -1169,7 +1174,7 @@ func _logo_option_style(selected: bool) -> StyleBoxFlat:
 
 func _select_company_logo(logo_id: int) -> void:
 	selected_logo_id = clampi(logo_id, 1, 50)
-	logo_option.text = "%02d   %s     ·     CHANGE" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1]]
+	logo_option.text = "CHANGE INSIGNIA  ›"
 	insignia_preview.texture = _company_logo_texture(selected_logo_id)
 	var preview_row := insignia_preview.get_parent()
 	var preview_copy := preview_row.get_node_or_null("PreviewCopy/SelectedInsigniaName") as Label
