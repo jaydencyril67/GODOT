@@ -8288,12 +8288,21 @@ func _foldable_inward_rotation(angle_radians: float) -> Vector3:
 func _apply_phone_fold_angle() -> void:
 	var angle_radians := deg_to_rad(clampf(fold_angle_degrees, 0.0, MAX_FOLD_ANGLE_DEGREES))
 	var inward_rotation := _foldable_inward_rotation(angle_radians)
+	# Both leaves originally rotate around the same centre plane. At 180
+	# degrees their solid thickness therefore occupies identical space and
+	# they visually collapse into one slab. Raise the moving leaf through the
+	# closing arc so its inner glass meets the fixed inner glass while the
+	# two chassis remain physically layered. Zero offset when fully open;
+	# one complete body depth when fully closed.
+	var layer_offset := _phone_depth_for_thickness_level() * sin(angle_radians * 0.5)
 	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf") if is_instance_valid(phone_body) else null
 	if is_instance_valid(moving_half):
 		moving_half.rotation = inward_rotation
+		moving_half.position.z = layer_offset
 	var case_moving := phone_case_preview.get_node_or_null("PhoneCaseMovingHalf") if is_instance_valid(phone_case_preview) else null
 	if is_instance_valid(case_moving):
 		case_moving.rotation = inward_rotation
+		case_moving.position.z = layer_offset
 
 
 func _set_fold_angle_from_pinch(distance: float) -> void:
