@@ -928,8 +928,8 @@ func _open_logo_picker() -> void:
 	var bottom_margin := 12.0 if compact else 22.0
 	var grid_gap := 4 if compact else 7
 	var available_width := maxf(1.0, viewport_size.x - side_margin * 2.0)
-	var header_space := 66.0 if compact else 82.0
-	var footer_space := 44.0 if compact else 52.0
+	var header_space := 78.0 if compact else 108.0
+	var footer_space := 46.0 if compact else 58.0
 	var grid_area_height := maxf(64.0, viewport_size.y - top_margin - bottom_margin - header_space - footer_space - 24.0)
 
 	# Pick the column count that gives all 50 marks the largest possible square footprint.
@@ -960,10 +960,10 @@ func _open_logo_picker() -> void:
 	var center := CenterContainer.new()
 	center.name = "InsigniaDirectContent"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.add_theme_constant_override("margin_left", int(side_margin))
-	center.add_theme_constant_override("margin_right", int(side_margin))
-	center.add_theme_constant_override("margin_top", int(top_margin))
-	center.add_theme_constant_override("margin_bottom", int(bottom_margin))
+	center.offset_left = side_margin
+	center.offset_right = -side_margin
+	center.offset_top = top_margin
+	center.offset_bottom = -bottom_margin
 	logo_picker_layer.add_child(center)
 
 	var stack := VBoxContainer.new()
