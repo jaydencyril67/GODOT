@@ -3473,7 +3473,6 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 		var t := float(point_index) / float(coil_point_count)
 		var angle := lerpf(start_angle, end_angle, t)
 		var radius_x := lerpf(outer_radius_x, inner_radius_x, t)
-		var radius_y := lerpf(outer_radius_y, inner_radius_y, t)
 		coil_route.append(Vector3(
 			coil_center.x + cos(angle) * radius_x,
 			coil_plane_y,
