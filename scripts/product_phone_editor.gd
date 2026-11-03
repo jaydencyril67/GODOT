@@ -347,6 +347,28 @@ var back_design_border_slider: HSlider
 var back_design_mode := "MOVE"
 var back_design_size_action := "EXPAND"
 var back_design_color_mode := false
+var box_package_preview: Node3D
+var box_package_preview_mode := false
+var box_package_enabled := true
+var box_package_color_mode := false
+var box_package_color := Color("#e8edf2")
+var box_package_logo_visible := true
+var box_package_name_visible := true
+var box_company_name := "YOUR COMPANY"
+var box_company_logo_id := 1
+var box_package_logo_position := Vector2(0.0, 0.66)
+var box_package_name_position := Vector2(0.0, -0.62)
+var box_package_logo_sprite: Sprite3D
+var box_package_name_label: Label3D
+
+
+func set_company_branding(company_name: String, logo_id: int) -> void:
+	box_company_name = company_name.strip_edges()
+	if box_company_name.is_empty():
+		box_company_name = "YOUR COMPANY"
+	box_company_logo_id = clampi(logo_id, 1, 50)
+	if is_instance_valid(box_package_preview):
+		_refresh_box_package_branding()
 
 
 func _ready() -> void:
@@ -357,7 +379,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if selected_phone_type == "Standard":
+	if box_package_preview_mode or selected_phone_type == "Standard":
 		return
 	var angle_difference := fold_target_angle_degrees - fold_angle_degrees
 	if absf(angle_difference) <= 0.02:
@@ -1042,10 +1064,12 @@ func _get_preview_viewport() -> SubViewport:
 	wireless_earbuds_preview.name = "WirelessEarbudsAccessoryPreview"
 	wireless_earbuds_preview.visible = false
 	preview_world.add_child(wireless_earbuds_preview)
+	_build_box_package_preview(preview_world)
 	_rebuild_charger_preview()
 	_rebuild_smartwatch_preview()
 	_rebuild_power_bank_preview()
 	_rebuild_earbuds_preview()
+	_rebuild_box_package_preview()
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
@@ -1110,7 +1134,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Type", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank", "Wireless Earbuds"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Type", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank", "Wireless Earbuds", "Box Package"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1119,6 +1143,12 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 func _on_tool_feature_pressed(feature_name: String) -> void:
 	_close_back_design_selection_popup()
 	_set_charger_preview_mode(false)
+	if feature_name == "Box Package":
+		_set_box_package_preview_mode(true)
+		_show_box_package_controls()
+		return
+	if box_package_preview_mode:
+		_set_box_package_preview_mode(false)
 	if feature_name == "Wireless Earbuds":
 		_set_smartwatch_preview_mode(false)
 		_set_power_bank_preview_mode(false)
@@ -1270,7 +1300,7 @@ func _on_phone_type_selected(phone_type: String) -> void:
 	_refresh_screen_type_buttons()
 
 
-func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false) -> void:
+func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false, for_box_package: bool = false) -> void:
 	_close_back_design_selection_popup()
 	back_design_color_mode = return_to_back_design
 	phone_case_color_mode = for_phone_case
@@ -1278,12 +1308,13 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	smartwatch_color_mode = for_smartwatch
 	power_bank_color_mode = for_power_bank
 	wireless_earbuds_color_mode = for_earbuds
+	box_package_color_mode = for_box_package
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else ("SmartwatchColorControls" if for_smartwatch else ("PowerBankColorControls" if for_power_bank else ("WirelessEarbudsColorControls" if for_earbuds else "DeviceColorControls"))))
+	active_feature_panel.name = "BoxPackageColorControls" if for_box_package else ("ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else ("SmartwatchColorControls" if for_smartwatch else ("PowerBankColorControls" if for_power_bank else ("WirelessEarbudsColorControls" if for_earbuds else "DeviceColorControls")))))
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if return_to_back_design else Control.SIZE_SHRINK_BEGIN
 	var color_viewport_size := get_viewport().get_visible_rect().size
@@ -1291,7 +1322,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	active_feature_panel.add_theme_constant_override("separation", 6 if compact_color_ui else 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	if return_to_back_design or for_phone_case or for_charger or for_smartwatch or for_power_bank or for_earbuds:
+	if return_to_back_design or for_phone_case or for_charger or for_smartwatch or for_power_bank or for_earbuds or for_box_package:
 		var color_header := HBoxContainer.new()
 		color_header.add_theme_constant_override("separation", 6)
 		active_feature_panel.add_child(color_header)
@@ -1301,9 +1332,9 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		back_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(back_button, 25)
 		_style_staff_button(back_button, false)
-		back_button.pressed.connect(_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else (_show_earbuds_controls if for_earbuds else _show_back_design_controls)))))
+		back_button.pressed.connect(_show_box_package_controls if for_box_package else (_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else (_show_earbuds_controls if for_earbuds else _show_back_design_controls))))))
 		color_header.add_child(back_button)
-		var color_title := _make_label("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else ("WIRELESS EARBUDS COLOR" if for_earbuds else "BACK DESIGN COLOR")))), 16, Color("#c7eaff"))
+		var color_title := _make_label("BOX PACKAGE COLOR" if for_box_package else ("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else ("WIRELESS EARBUDS COLOR" if for_earbuds else "BACK DESIGN COLOR"))))), 16, Color("#c7eaff"))
 		color_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		color_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		color_header.add_child(color_title)
@@ -1420,7 +1451,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 			if not box_gradient_options.visible:
 				back_design_gradient_color_edit_mode = false
 
-	if not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank:
+	if not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package:
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1597,6 +1628,8 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 
 
 func _get_active_color_picker_color() -> Color:
+	if box_package_color_mode:
+		return box_package_color
 	if charger_color_mode:
 		return charger_body_color
 	if smartwatch_color_mode:
@@ -1897,6 +1930,9 @@ func _on_device_body_color_changed(color: Color) -> void:
 	elif wireless_earbuds_color_mode:
 		wireless_earbuds_body_color = selected_color
 		_rebuild_earbuds_preview()
+	elif box_package_color_mode:
+		box_package_color = selected_color
+		_refresh_box_package_material()
 	elif phone_case_color_mode:
 		if phone_case_gradient_color_edit_mode:
 			phone_case_gradient_color = selected_color
@@ -1914,7 +1950,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_gradient_color = selected_color
 	else:
 		device_body_color = selected_color
-	if not phone_case_color_mode and not charger_color_mode and not power_bank_color_mode and not smartwatch_color_mode and not wireless_earbuds_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
+	if not phone_case_color_mode and not box_package_color_mode and not charger_color_mode and not power_bank_color_mode and not smartwatch_color_mode and not wireless_earbuds_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
 		_refresh_foldable_frame_materials()
 	if is_instance_valid(device_color_hex_label):
@@ -1933,7 +1969,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = _get_active_color_picker_color().to_html(false).to_upper()
-	if not phone_case_color_mode and not charger_color_mode:
+	if not phone_case_color_mode and not box_package_color_mode and not charger_color_mode:
 		_refresh_back_design_boxes()
 		_refresh_phone_side_buttons()
 
@@ -9838,6 +9874,8 @@ func _update_left_tools_navigation_buttons() -> void:
 func _set_left_tools_page(requested_page: int) -> void:
 	left_tools_page = clampi(requested_page, 0, 2)
 	_update_left_tools_navigation_buttons()
+	if left_tools_page != 2 and box_package_preview_mode:
+		_set_box_package_preview_mode(false)
 	_update_phone_case_preview_mode()
 	if is_instance_valid(preview_container):
 		preview_container.visible = left_tools_page != 1
@@ -9862,6 +9900,13 @@ func _build_phone_case_preview(parent: Node3D) -> void:
 	phone_case_preview.name = "PhoneCasePreview"
 	phone_case_preview.visible = false
 	parent.add_child(phone_case_preview)
+
+
+func _build_box_package_preview(parent: Node3D) -> void:
+	box_package_preview = Node3D.new()
+	box_package_preview.name = "BoxPackagePreview"
+	box_package_preview.visible = false
+	parent.add_child(box_package_preview)
 
 
 func _case_outline(expansion: float) -> PackedVector2Array:
@@ -10536,6 +10581,284 @@ func _update_phone_case_preview_mode() -> void:
 		preview_mouse_dragging=false
 
 
+func _show_box_package_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	box_package_color_mode = false
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "BoxPackageControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 7)
+	right_tools_content.add_child(active_feature_panel)
+
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
+	var heading := _make_label("BOX PACKAGE", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Design the retail box for this phone. Drag the centre preview to inspect the packaging from every angle.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	_add_box_package_toggle(active_feature_panel, "ShowBoxPackage", "SHOW BOX PACKAGE", box_package_enabled, Callable(self, "_on_box_package_enabled_toggled"))
+
+	var color_button := Button.new()
+	color_button.name = "EditBoxPackageColor"
+	color_button.text = "CHANGE BOX COLOUR"
+	color_button.custom_minimum_size.y = 42 if compact else 46
+	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	color_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(color_button, 13)
+	_style_staff_button(color_button, true)
+	color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, false, false, false, true))
+	active_feature_panel.add_child(color_button)
+
+	var branding_heading := _make_label("COMPANY BRANDING", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(branding_heading)
+	_add_box_package_toggle(active_feature_panel, "ShowCompanyLogo", "SHOW COMPANY LOGO", box_package_logo_visible, Callable(self, "_on_box_package_logo_visibility_toggled"))
+	_add_box_package_toggle(active_feature_panel, "ShowCompanyName", "SHOW COMPANY NAME", box_package_name_visible, Callable(self, "_on_box_package_name_visibility_toggled"))
+
+	var position_heading := _make_label("BRANDING POSITION", 13, Color("#a9e3ff"))
+	active_feature_panel.add_child(position_heading)
+	_add_box_package_position_slider(active_feature_panel, "LOGO HORIZONTAL", true, "X")
+	_add_box_package_position_slider(active_feature_panel, "LOGO VERTICAL", true, "Y")
+	_add_box_package_position_slider(active_feature_panel, "NAME HORIZONTAL", false, "X")
+	_add_box_package_position_slider(active_feature_panel, "NAME VERTICAL", false, "Y")
+
+
+func _add_box_package_toggle(parent: Control, control_name: String, caption: String, enabled: bool, callback: Callable) -> void:
+	var row := HBoxContainer.new()
+	row.name = control_name + "Row"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+	var label := _make_label(caption, 12, Color("#e6f5ff"))
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	var toggle := TextureButton.new()
+	toggle.name = control_name
+	toggle.custom_minimum_size = Vector2(38, 38)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
+	toggle.button_pressed = enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.toggled.connect(callback)
+	row.add_child(toggle)
+
+
+func _add_box_package_position_slider(parent: Control, caption: String, is_logo: bool, axis: String) -> void:
+	var group := VBoxContainer.new()
+	group.name = caption.replace(" ", "") + "PositionControl"
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.add_theme_constant_override("separation", 1)
+	parent.add_child(group)
+
+	var header := HBoxContainer.new()
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.add_child(header)
+	var title := _make_label(caption, 10, Color("#d7eaf5"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+
+	var current_value := 0.0
+	if is_logo:
+		current_value = box_package_logo_position.x if axis == "X" else box_package_logo_position.y
+	else:
+		current_value = box_package_name_position.x if axis == "X" else box_package_name_position.y
+	var value_label := _make_label("%+.2f" % current_value, 10, Color("#9edcff"))
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	header.add_child(value_label)
+
+	var slider := HSlider.new()
+	slider.name = caption.replace(" ", "") + "Slider"
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.custom_minimum_size = Vector2(0, 25)
+	slider.min_value = -0.55 if axis == "X" else -1.20
+	slider.max_value = 0.55 if axis == "X" else 1.20
+	slider.step = 0.01
+	slider.value = current_value
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.value_changed.connect(_on_box_package_position_changed.bind(is_logo, axis, value_label))
+	group.add_child(slider)
+
+
+func _on_box_package_position_changed(value: float, is_logo: bool, axis: String, value_label: Label) -> void:
+	if is_logo:
+		var next_logo_position := box_package_logo_position
+		if axis == "X":
+			next_logo_position.x = value
+		else:
+			next_logo_position.y = value
+		box_package_logo_position = next_logo_position
+	else:
+		var next_name_position := box_package_name_position
+		if axis == "X":
+			next_name_position.x = value
+		else:
+			next_name_position.y = value
+		box_package_name_position = next_name_position
+	if is_instance_valid(value_label):
+		value_label.text = "%+.2f" % value
+	_refresh_box_package_branding()
+
+
+func _on_box_package_enabled_toggled(enabled: bool) -> void:
+	box_package_enabled = enabled
+	if is_instance_valid(box_package_preview):
+		box_package_preview.visible = box_package_preview_mode and box_package_enabled
+	if is_instance_valid(phone_body):
+		phone_body.visible = not box_package_preview_mode or not box_package_enabled
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.visible = not box_package_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+
+
+func _on_box_package_logo_visibility_toggled(enabled: bool) -> void:
+	box_package_logo_visible = enabled
+	_refresh_box_package_branding()
+
+
+func _on_box_package_name_visibility_toggled(enabled: bool) -> void:
+	box_package_name_visible = enabled
+	_refresh_box_package_branding()
+
+
+func _set_box_package_preview_mode(enabled: bool) -> void:
+	var entering := enabled and not box_package_preview_mode
+	box_package_preview_mode = enabled
+	if entering and is_instance_valid(box_package_preview):
+		box_package_preview.rotation_degrees = Vector3(-7.0, -16.0, 0.0)
+	if is_instance_valid(phone_body):
+		phone_body.visible = not enabled or not box_package_enabled
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+	if is_instance_valid(charger_preview):
+		charger_preview.visible = false
+	if is_instance_valid(smartwatch_preview):
+		smartwatch_preview.visible = false
+	if is_instance_valid(power_bank_preview):
+		power_bank_preview.visible = false
+	if is_instance_valid(wireless_earbuds_preview):
+		wireless_earbuds_preview.visible = false
+	wireless_earbuds_preview_mode = false
+	smartwatch_preview_mode = false
+	power_bank_preview_mode = false
+	charger_preview_mode = false
+	if is_instance_valid(box_package_preview):
+		box_package_preview.visible = enabled and box_package_enabled
+	if is_instance_valid(preview_camera):
+		preview_camera.position = Vector3(0.0, 0.0, 5.55 if enabled else 5.2)
+		preview_camera.fov = 38.0
+		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
+
+
+func _make_box_package_material(color: Color, roughness: float, metallic: float = 0.02) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = roughness
+	material.metallic = metallic
+	material.metallic_specular = 0.42
+	return material
+
+
+func _add_box_package_part(parent: Node3D, node_name: String, dimensions: Vector3, part_position: Vector3, color: Color, roughness: float, metallic: float = 0.02) -> MeshInstance3D:
+	var part := MeshInstance3D.new()
+	part.name = node_name
+	part.mesh = _create_rounded_panel_mesh(dimensions.x, dimensions.y, dimensions.z, 0.055)
+	part.position = part_position
+	part.material_override = _make_box_package_material(color, roughness, metallic)
+	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(part)
+	return part
+
+
+func _rebuild_box_package_preview() -> void:
+	if not is_instance_valid(box_package_preview):
+		return
+	for child in box_package_preview.get_children():
+		child.free()
+
+	# A two-piece rigid retail carton: a close-fitting base tray and a deeper
+	# outer lid. The fine seam at their join remains visible when the model turns.
+	_add_box_package_part(box_package_preview, "PackageCore", Vector3(1.82, 3.32, 0.46), Vector3.ZERO, box_package_color.darkened(0.10), 0.52, 0.01)
+	_add_box_package_part(box_package_preview, "PackageLid", Vector3(1.86, 3.36, 0.25), Vector3(0.0, 0.0, 0.105), box_package_color, 0.38, 0.025)
+	_add_box_package_part(box_package_preview, "PackageBaseTray", Vector3(1.80, 3.30, 0.22), Vector3(0.0, 0.0, -0.12), box_package_color.darkened(0.13), 0.55, 0.01)
+	_add_box_package_part(box_package_preview, "PackageLidSeam", Vector3(1.865, 3.365, 0.012), Vector3(0.0, 0.0, -0.018), box_package_color.darkened(0.34), 0.66, 0.01)
+	_add_box_package_part(box_package_preview, "PackageFrontFinish", Vector3(1.76, 3.26, 0.008), Vector3(0.0, 0.0, 0.232), box_package_color.lightened(0.025), 0.44, 0.01)
+
+	box_package_logo_sprite = Sprite3D.new()
+	box_package_logo_sprite.name = "CompanyLogoPrint"
+	box_package_logo_sprite.pixel_size = 0.003
+	box_package_logo_sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	box_package_preview.add_child(box_package_logo_sprite)
+
+	box_package_name_label = Label3D.new()
+	box_package_name_label.name = "CompanyNamePrint"
+	box_package_name_label.font = load("res://assets/fonts/STIXTwoText[wght].ttf") as Font
+	box_package_name_label.font_size = 46
+	box_package_name_label.pixel_size = 0.00135
+	box_package_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box_package_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	box_package_name_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	box_package_preview.add_child(box_package_name_label)
+
+	_refresh_box_package_material()
+	_refresh_box_package_branding()
+	box_package_preview.visible = box_package_preview_mode and box_package_enabled
+
+
+func _refresh_box_package_material() -> void:
+	if not is_instance_valid(box_package_preview):
+		return
+	for child in box_package_preview.get_children():
+		if not (child is MeshInstance3D):
+			continue
+		var part := child as MeshInstance3D
+		match part.name:
+			"PackageCore":
+				part.material_override = _make_box_package_material(box_package_color.darkened(0.10), 0.52, 0.01)
+			"PackageLid":
+				part.material_override = _make_box_package_material(box_package_color, 0.38, 0.025)
+			"PackageBaseTray":
+				part.material_override = _make_box_package_material(box_package_color.darkened(0.13), 0.55, 0.01)
+			"PackageLidSeam":
+				part.material_override = _make_box_package_material(box_package_color.darkened(0.34), 0.66, 0.01)
+			"PackageFrontFinish":
+				part.material_override = _make_box_package_material(box_package_color.lightened(0.025), 0.44, 0.01)
+	_refresh_box_package_branding()
+
+
+func _refresh_box_package_branding() -> void:
+	if not is_instance_valid(box_package_preview):
+		return
+	var ink_color := Color("#202a34") if box_package_color.get_luminance() > 0.52 else Color("#f4f7fa")
+	var logo_atlas := load("res://assets/company_logos.svg") as Texture2D
+	if is_instance_valid(box_package_logo_sprite):
+		if is_instance_valid(logo_atlas):
+			var logo_texture := AtlasTexture.new()
+			logo_texture.atlas = logo_atlas
+			var logo_index := clampi(box_company_logo_id, 1, 50) - 1
+			logo_texture.region = Rect2(Vector2(float(logo_index % 10) * 100.0, floorf(float(logo_index) / 10.0) * 100.0), Vector2(100.0, 100.0))
+			box_package_logo_sprite.texture = logo_texture
+		box_package_logo_sprite.modulate = ink_color
+		box_package_logo_sprite.position = Vector3(box_package_logo_position.x, box_package_logo_position.y, 0.244)
+		box_package_logo_sprite.visible = box_package_logo_visible
+	if is_instance_valid(box_package_name_label):
+		box_package_name_label.text = box_company_name.to_upper()
+		box_package_name_label.font_size = 46 if box_company_name.length() <= 14 else (38 if box_company_name.length() <= 22 else 30)
+		box_package_name_label.modulate = ink_color
+		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.244)
+		box_package_name_label.visible = box_package_name_visible
+
+
 func _show_phone_case_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -10767,7 +11090,7 @@ func _input(event: InputEvent) -> void:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and preview_rect.has_point(touch.position):
 			preview_touch_points[touch.index] = touch.position
-			if preview_touch_points.size() >= 2 and selected_phone_type != "Standard":
+			if preview_touch_points.size() >= 2 and selected_phone_type != "Standard" and not box_package_preview_mode:
 				_begin_fold_pinch()
 		else:
 			preview_touch_points.erase(touch.index)
@@ -10777,13 +11100,13 @@ func _input(event: InputEvent) -> void:
 		var screen_drag := event as InputEventScreenDrag
 		if preview_touch_points.has(screen_drag.index):
 			preview_touch_points[screen_drag.index] = screen_drag.position
-		if preview_touch_points.size() >= 2 and selected_phone_type != "Standard":
+		if preview_touch_points.size() >= 2 and selected_phone_type != "Standard" and not box_package_preview_mode:
 			if not fold_pinch_active:
 				_begin_fold_pinch()
 			_update_fold_pinch()
 		elif preview_rect.has_point(screen_drag.position):
 			_rotate_phone_from_drag(screen_drag.relative)
-	elif event is InputEventMagnifyGesture and selected_phone_type != "Standard" and preview_rect.has_point(event.position):
+	elif event is InputEventMagnifyGesture and selected_phone_type != "Standard" and not box_package_preview_mode and preview_rect.has_point(event.position):
 		fold_target_angle_degrees = clampf(fold_target_angle_degrees - (event.factor - 1.0) * 105.0, 0.0, MAX_FOLD_ANGLE_DEGREES)
 
 
@@ -10813,7 +11136,7 @@ func _update_fold_pinch() -> void:
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
 	# Each accessory owns an independent preview pivot.
-	var rotation_target: Node3D = wireless_earbuds_preview if wireless_earbuds_preview_mode else (power_bank_preview if power_bank_preview_mode else (smartwatch_preview if smartwatch_preview_mode else (charger_preview if charger_preview_mode else phone_body)))
+	var rotation_target: Node3D = box_package_preview if box_package_preview_mode else (wireless_earbuds_preview if wireless_earbuds_preview_mode else (power_bank_preview if power_bank_preview_mode else (smartwatch_preview if smartwatch_preview_mode else (charger_preview if charger_preview_mode else phone_body))))
 	if not is_instance_valid(rotation_target):
 		return
 	# Lock each movement to one of four directions: left/right OR up/down.
@@ -10826,23 +11149,25 @@ func _rotate_phone_from_drag(delta: Vector2) -> void:
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
-	if not is_instance_valid(phone_body):
+	var rotation_target: Node3D = box_package_preview if box_package_preview_mode else phone_body
+	if not is_instance_valid(rotation_target):
 		return
 	if axis == Vector3.RIGHT:
-		phone_body.rotation.x += ROTATION_STEP * direction
+		rotation_target.rotation.x += ROTATION_STEP * direction
 	elif axis == Vector3.UP:
-		phone_body.rotation.y += ROTATION_STEP * direction
+		rotation_target.rotation.y += ROTATION_STEP * direction
 	# PhoneCasePreview inherits PhoneBody rotation as a child; no second rotation is needed.
 
 
 func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
-	if not is_instance_valid(phone_body):
+	var rotation_target: Node3D = box_package_preview if box_package_preview_mode else phone_body
+	if not is_instance_valid(rotation_target):
 		return
 	var fine_step := deg_to_rad(5.0)
 	if axis == Vector3.RIGHT:
-		phone_body.rotation.x += fine_step * direction
+		rotation_target.rotation.x += fine_step * direction
 	elif axis == Vector3.UP:
-		phone_body.rotation.y += fine_step * direction
+		rotation_target.rotation.y += fine_step * direction
 	# PhoneCasePreview inherits PhoneBody rotation as a child; no second rotation is needed.
 
 
@@ -10851,6 +11176,8 @@ func _reset_phone_rotation() -> void:
 		phone_body.rotation = Vector3.ZERO
 	if is_instance_valid(phone_case_preview):
 		phone_case_preview.rotation = Vector3.ZERO
+	if is_instance_valid(box_package_preview):
+		box_package_preview.rotation = Vector3.ZERO
 
 
 func _zoom_camera(distance_change: float) -> void:
