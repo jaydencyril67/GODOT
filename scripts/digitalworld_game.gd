@@ -1520,7 +1520,7 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 		header.offset_left = 12.0
 		header.offset_top = 12.0
 		header.offset_right = -12.0
-		header.offset_bottom = 142.0
+		header.offset_bottom = 152.0
 	else:
 		var aligned_header := HBoxContainer.new()
 		header = aligned_header
@@ -1639,6 +1639,7 @@ func _make_home_identity_card(compact: bool) -> PanelContainer:
 	insignia.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	insignia.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	insignia.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	insignia.custom_minimum_size = Vector2(38.0, 38.0)
 	mark_tile.add_child(insignia)
 
 	var identity_copy := VBoxContainer.new()
