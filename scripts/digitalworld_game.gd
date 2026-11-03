@@ -2634,6 +2634,7 @@ func _assign_staff_department(employee_id: String, department: String) -> void:
 func _show_settings() -> void:
 	if not is_instance_valid(ui_root):
 		_new_screen()
+	var compact := get_viewport().get_visible_rect().size.y < 520.0
 	var shade := ColorRect.new()
 	shade.name = "Settings_Dim_Backdrop"
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -2646,14 +2647,14 @@ func _show_settings() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.add_theme_constant_override("margin_left", 28)
 	center.add_theme_constant_override("margin_right", 28)
-	center.add_theme_constant_override("margin_top", 24)
-	center.add_theme_constant_override("margin_bottom", 24)
+	center.add_theme_constant_override("margin_top", 16 if compact else 24)
+	center.add_theme_constant_override("margin_bottom", 16 if compact else 24)
 	ui_root.add_child(center)
 
 	var stack := VBoxContainer.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.custom_minimum_size.x = minf(560.0, maxf(280.0, get_viewport().get_visible_rect().size.x - 56.0))
-	stack.add_theme_constant_override("separation", 20)
+	stack.custom_minimum_size.x = minf(560.0, maxf(260.0, get_viewport().get_visible_rect().size.x - 56.0))
+	stack.add_theme_constant_override("separation", 11 if compact else 18)
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(stack)
 
@@ -2662,40 +2663,40 @@ func _show_settings() -> void:
 	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	accent.color = Color("#a9d9ad")
 	stack.add_child(accent)
-	var eyebrow := _label("DIGITAL WORLD MOBILES", 16, Color("#a9d9ad"), HORIZONTAL_ALIGNMENT_CENTER)
+	var eyebrow := _label("DIGITAL WORLD MOBILES", 13 if compact else 16, Color("#a9d9ad"), HORIZONTAL_ALIGNMENT_CENTER)
 	stack.add_child(eyebrow)
-	var heading := _label("SETTINGS", 34, Color("#f4fff3"), HORIZONTAL_ALIGNMENT_CENTER)
+	var heading := _label("SETTINGS", 28 if compact else 34, Color("#f4fff3"), HORIZONTAL_ALIGNMENT_CENTER)
 	_apply_menu_3d_label(heading, 2)
 	stack.add_child(heading)
-	var description := _label("Personalise the presentation and sound of your game.", 20, Color("#dcebdd"), HORIZONTAL_ALIGNMENT_CENTER)
+	var description := _label("Personalise the presentation and sound of your game.", 16 if compact else 20, Color("#dcebdd"), HORIZONTAL_ALIGNMENT_CENTER)
 	stack.add_child(description)
 
-	var quality_label := _label("GRAPHICS QUALITY", 19, Color("#f0fff0"))
+	var quality_label := _label("GRAPHICS QUALITY", 16 if compact else 19, Color("#f0fff0"))
 	stack.add_child(quality_label)
 	var quality := OptionButton.new()
-	quality.custom_minimum_size = Vector2(0, 58)
+	quality.custom_minimum_size = Vector2(0, 48 if compact else 58)
 	quality.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for option in ["High", "Balanced", "Performance"]:
 		quality.add_item(option)
 	quality.select(0 if graphics_quality == "High" else (1 if graphics_quality == "Balanced" else 2))
 	quality.item_selected.connect(func(index: int): graphics_quality = quality.get_item_text(index))
 	_style_settings_dropdown(quality)
-	_apply_shared_page_typography(quality, 21)
+	_apply_shared_page_typography(quality, 18 if compact else 21)
 	stack.add_child(quality)
 
 	var sound := CheckButton.new()
 	sound.text = "SOUND ENABLED"
-	sound.custom_minimum_size.y = 52
+	sound.custom_minimum_size.y = 42 if compact else 52
 	sound.button_pressed = sound_enabled
 	sound.toggled.connect(func(enabled: bool): sound_enabled = enabled)
-	_apply_shared_page_typography(sound, 20)
+	_apply_shared_page_typography(sound, 18 if compact else 20)
 	sound.add_theme_color_override("font_color", Color("#f1fff1"))
 	stack.add_child(sound)
 
 	var done_button := _add_action_button(stack, "DONE", true, Callable())
-	done_button.custom_minimum_size = Vector2(0, 62)
+	done_button.custom_minimum_size = Vector2(0, 52 if compact else 62)
 	_style_landing_command_button(done_button, true)
-	_apply_shared_page_typography(done_button, 21)
+	_apply_shared_page_typography(done_button, 18 if compact else 21)
 	done_button.pressed.connect(_close_settings_overlay.bind(shade, center))
 
 func _style_settings_dropdown(selector: OptionButton) -> void:
