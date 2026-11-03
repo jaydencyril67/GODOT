@@ -3289,7 +3289,7 @@ func _rebuild_smartwatch_preview() -> void:
 	var hole_material := _charger_material(Color("#17212a"), 0.0, 0.92)
 	for hole_index in range(6):
 		var hole_y := 0.30 - float(hole_index) * 0.12
-		var adjustment_hole := _add_charger_cylinder(smartwatch_preview, "BandAdjustmentHole_%d" % hole_index, 0.014, 0.010, Vector3(0.0, hole_y, -0.925), hole_material, 20)
+		var adjustment_hole := _add_charger_cylinder(smartwatch_preview, "BandAdjustmentHole_%d" % hole_index, 0.014, 0.010, Vector3(0.0, hole_y, -0.912), hole_material, 20)
 		adjustment_hole.rotation_degrees.x = 90.0
 
 
@@ -3440,8 +3440,6 @@ func _rebuild_power_bank_preview() -> void:
 	var screen_material := _charger_material(Color("#101923"), 0.10, 0.13)
 	var glass_material := _charger_material(Color("#050a10"), 0.08, 0.075)
 	var metal_material := _charger_material(Color("#abb8c4"), 0.88, 0.23)
-	var dark_port_material := _charger_material(Color("#070c12"), 0.12, 0.78)
-	var tongue_material := _charger_material(Color("#7b8792"), 0.72, 0.38)
 	var indicator_material := _charger_material(Color("#6ed8c4"), 0.22, 0.28)
 
 	var housing := MeshInstance3D.new()
