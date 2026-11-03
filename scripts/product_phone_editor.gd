@@ -1259,6 +1259,7 @@ func _on_phone_type_selected(phone_type: String) -> void:
 		_show_phone_type_controls()
 		return
 	selected_phone_type = phone_type
+	fold_target_angle_degrees = fold_angle_degrees
 	fold_pinch_active = false
 	preview_touch_points.clear()
 	_refresh_phone_mesh()
@@ -8171,8 +8172,6 @@ func _refresh_foldable_hardware() -> void:
 	var hinge_root := Node3D.new()
 	hinge_root.name = "PhoneFoldableHinge"
 	phone_body.add_child(hinge_root)
-	var rear_z := -current_depth * 0.5 - 0.022
-
 	# A narrow, flush hinge spine follows the center seam. Its shallow,
 	# rounded plate reads as an integrated Armor Aluminum cover, not a barrel.
 	var hinge_material := StandardMaterial3D.new()
