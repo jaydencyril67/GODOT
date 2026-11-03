@@ -1426,13 +1426,37 @@ func _apply_home_button_typography(button: Control, font_size: int) -> void:
 
 
 func _show_home_navigation() -> void:
-	# Let _new_screen() retire the previous screen before creating Home UI.
-	# Clearing ui_layer here would orphan the previous CanvasLayer on screen.
+	# The headquarters 3D scene remains untouched beneath this CanvasLayer.
+	# Home now uses the same emerald glass language as the landing and company setup pages.
 	var root := _new_screen()
 	ui_layer.layer = 30
 	home_navigation_layer = ui_layer
 
-	_build_home_status_bar(root)
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.x < 1000.0 or viewport_size.y < 560.0
+
+	var atmosphere := ColorRect.new()
+	atmosphere.name = "Home_Emerald_Atmosphere"
+	atmosphere.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var atmosphere_shader := Shader.new()
+	atmosphere_shader.code = """
+shader_type canvas_item;
+void fragment() {
+	vec2 p = UV - vec2(0.5);
+	float edge = smoothstep(0.22, 0.88, length(p));
+	float top_shade = 1.0 - smoothstep(0.0, 0.42, UV.y);
+	float bottom_shade = smoothstep(0.68, 1.0, UV.y);
+	float shade = edge * 0.18 + top_shade * 0.055 + bottom_shade * 0.075;
+	COLOR = vec4(vec3(0.002, 0.014, 0.006), shade);
+}
+"""
+	var atmosphere_material := ShaderMaterial.new()
+	atmosphere_material.shader = atmosphere_shader
+	atmosphere.material = atmosphere_material
+	root.add_child(atmosphere)
+
+	_build_home_status_bar(root, compact)
 
 	var bottom_panel := PanelContainer.new()
 	bottom_panel.name = "Home_Bottom_Navigation"
@@ -1440,17 +1464,22 @@ func _show_home_navigation() -> void:
 	bottom_panel.anchor_top = 1.0
 	bottom_panel.anchor_right = 1.0
 	bottom_panel.anchor_bottom = 1.0
-	bottom_panel.offset_left = 8.0
-	bottom_panel.offset_top = -78.0
-	bottom_panel.offset_right = -8.0
-	bottom_panel.offset_bottom = -8.0
+	bottom_panel.offset_left = 18.0 if not compact else 10.0
+	bottom_panel.offset_top = -86.0 if not compact else -78.0
+	bottom_panel.offset_right = -18.0 if not compact else -10.0
+	bottom_panel.offset_bottom = -12.0 if not compact else -10.0
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#102638")
-	panel_style.border_color = Color("#397da5")
+	panel_style.bg_color = Color(0.018, 0.065, 0.039, 0.88)
+	panel_style.border_color = Color(0.58, 0.82, 0.63, 0.66)
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
-	panel_style.content_margin_left = 7.0
-	panel_style.content_margin_right = 7.0
+	panel_style.border_width_top = 2
+	panel_style.set_corner_radius_all(18)
+	panel_style.shadow_color = Color(0.0, 0.025, 0.008, 0.56)
+	panel_style.shadow_size = 18
+	panel_style.shadow_offset = Vector2(0.0, 6.0)
+	panel_style.anti_aliasing = true
+	panel_style.content_margin_left = 8.0
+	panel_style.content_margin_right = 8.0
 	panel_style.content_margin_top = 6.0
 	panel_style.content_margin_bottom = 6.0
 	bottom_panel.add_theme_stylebox_override("panel", panel_style)
@@ -1458,7 +1487,7 @@ func _show_home_navigation() -> void:
 
 	var row := HBoxContainer.new()
 	row.name = "Home_Navigation_Buttons_Row"
-	row.add_theme_constant_override("separation", 5)
+	row.add_theme_constant_override("separation", 6)
 	bottom_panel.add_child(row)
 	for button_name in ["Create", "Products", "Research", "Marketing", "Media", "Office", "Statistics"]:
 		var button := Button.new()
@@ -1466,139 +1495,239 @@ func _show_home_navigation() -> void:
 		button.text = button_name
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, 54.0)
-		_apply_home_button_typography(button, 14)
-		_style_button(button, false)
+		button.custom_minimum_size = Vector2(0.0, 48.0 if compact else 52.0)
+		_style_landing_command_button(button, false)
+		_apply_shared_page_typography(button, 13 if compact else 15)
+		row.add_child(button)
 		if button_name == "Create":
 			button.pressed.connect(_show_create_scene)
 		elif button_name == "Research":
 			button.pressed.connect(_show_research_scene)
 		elif button_name == "Office":
 			button.pressed.connect(_show_office_hub)
-		row.add_child(button)
+
+	var entrance := create_tween()
+	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	entrance.tween_property(root, "modulate:a", 1.0, 0.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
-func _build_home_status_bar(root: Control) -> void:
-	var cards_row := HBoxContainer.new()
-	cards_row.name = "Home_Individual_Glass_Cards"
-	cards_row.anchor_left = 0.0
-	cards_row.anchor_top = 0.0
-	cards_row.anchor_right = 1.0
-	cards_row.anchor_bottom = 0.0
-	cards_row.offset_left = 12.0
-	cards_row.offset_top = 10.0
-	cards_row.offset_right = -12.0
-	cards_row.offset_bottom = 78.0
-	cards_row.add_theme_constant_override("separation", 10)
-	cards_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	root.add_child(cards_row)
+func _build_home_status_bar(root: Control, compact: bool = false) -> void:
+	var header: Control
+	if compact:
+		var stacked_header := VBoxContainer.new()
+		header = stacked_header
+		header.add_theme_constant_override("separation", 7)
+		header.offset_left = 12.0
+		header.offset_top = 12.0
+		header.offset_right = -12.0
+		header.offset_bottom = 142.0
+	else:
+		var aligned_header := HBoxContainer.new()
+		header = aligned_header
+		aligned_header.add_theme_constant_override("separation", 14)
+		aligned_header.offset_left = 22.0
+		aligned_header.offset_top = 16.0
+		aligned_header.offset_right = -22.0
+		aligned_header.offset_bottom = 98.0
 
-	# Each status item is an independent glass card with its own spacing,
-	# border and highlight. There is deliberately no shared parent panel.
-	var company_card := _make_home_status_glass_card("Company_Name_Card")
-	company_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	company_card.custom_minimum_size = Vector2(0.0, 62.0)
-	cards_row.add_child(company_card)
-	home_company_label = Label.new()
-	home_company_label.name = "Company_Name"
-	home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
-	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_company_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	home_company_label.clip_text = false
-	home_company_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	home_company_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	home_company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	home_company_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_apply_shared_page_typography(home_company_label, 19)
-	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
-	company_card.add_child(home_company_label)
+	header.name = "Home_Premium_Header"
+	header.anchor_left = 0.0
+	header.anchor_top = 0.0
+	header.anchor_right = 1.0
+	header.anchor_bottom = 0.0
+	root.add_child(header)
 
-	# Push the financial, date and clock cards together to the far right.
-	var status_spacer := Control.new()
-	status_spacer.name = "Home_Status_Flexible_Spacer"
-	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards_row.add_child(status_spacer)
+	var company_card := _make_home_identity_card(compact)
+	header.add_child(company_card)
 
-	var balance_card := _make_home_status_glass_card("Company_Balance_Card")
-	balance_card.custom_minimum_size = Vector2(150.0, 62.0)
-	cards_row.add_child(balance_card)
-	home_balance_label = Label.new()
-	home_balance_label.name = "Company_Balance"
-	home_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	home_balance_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_apply_shared_page_typography(home_balance_label, 18)
-	home_balance_label.add_theme_color_override("font_color", Color("#b8f6df"))
-	balance_card.add_child(home_balance_label)
+	if not compact:
+		var status_spacer := Control.new()
+		status_spacer.name = "Home_Header_Flexible_Spacer"
+		status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header.add_child(status_spacer)
 
-	var research_points_card := _make_home_status_glass_card("Research_Points_Card")
-	research_points_card.custom_minimum_size = Vector2(150.0, 62.0)
-	cards_row.add_child(research_points_card)
-	home_research_points_label = Label.new()
-	home_research_points_label.name = "Research_Points"
-	home_research_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	home_research_points_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_apply_shared_page_typography(home_research_points_label, 14)
-	home_research_points_label.add_theme_color_override("font_color", Color("#d8e6ff"))
-	research_points_card.add_child(home_research_points_label)
+	var metrics_row := HBoxContainer.new()
+	metrics_row.name = "Home_Status_Metrics"
+	metrics_row.add_theme_constant_override("separation", 8)
+	if compact:
+		metrics_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header.add_child(metrics_row)
+	else:
+		metrics_row.size_flags_horizontal = Control.SIZE_SHRINK_END
+		header.add_child(metrics_row)
 
-	var date_card := _make_home_status_glass_card("Game_Date_Card")
-	date_card.custom_minimum_size = Vector2(154.0, 62.0)
-	cards_row.add_child(date_card)
-	home_date_label = Label.new()
-	home_date_label.name = "Game_Date"
-	home_date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	home_date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_apply_shared_page_typography(home_date_label, 17)
-	home_date_label.add_theme_color_override("font_color", Color("#c8edff"))
-	date_card.add_child(home_date_label)
+	home_balance_label = _make_home_metric_card(
+		metrics_row, "Company_Balance_Card", "AVAILABLE BALANCE", 148.0, 18, Color("#b8f6c8"), compact
+	)
+	home_research_points_label = _make_home_metric_card(
+		metrics_row, "Research_Points_Card", "RESEARCH POINTS", 138.0, 14, Color("#e1f2e3"), compact
+	)
+	home_date_label = _make_home_metric_card(
+		metrics_row, "Game_Date_Card", "IN-GAME DATE", 142.0, 16, Color("#f0f8ef"), compact
+	)
 
 	var clock_card := _make_home_status_glass_card("Game_Clock_Card")
-	clock_card.custom_minimum_size = Vector2(118.0, 62.0)
-	cards_row.add_child(clock_card)
+	clock_card.custom_minimum_size = Vector2(0.0 if compact else 118.0, 60.0 if compact else 76.0)
+	clock_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_END
+	metrics_row.add_child(clock_card)
+
+	var clock_content := VBoxContainer.new()
+	clock_content.add_theme_constant_override("separation", 2)
+	clock_content.alignment = BoxContainer.ALIGNMENT_CENTER
+	clock_card.add_child(clock_content)
+
+	var clock_caption := _label("GAME CLOCK", 9, Color("#a8d5b0"), HORIZONTAL_ALIGNMENT_CENTER)
+	clock_content.add_child(clock_caption)
+
 	home_time_button = Button.new()
 	home_time_button.name = "Game_Time_Control"
+	home_time_button.custom_minimum_size = Vector2(0.0, 32.0)
 	home_time_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_time_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_apply_home_button_typography(home_time_button, 15)
+	home_time_button.focus_mode = Control.FOCUS_NONE
+	home_time_button.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	_apply_shared_page_typography(home_time_button, 13)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var button_style := StyleBoxFlat.new()
-		button_style.bg_color = Color(0.10, 0.48, 0.70, 0.24)
-		if state == "hover":
-			button_style.bg_color = Color(0.20, 0.68, 0.88, 0.38)
-		elif state == "pressed":
-			button_style.bg_color = Color(0.04, 0.32, 0.52, 0.42)
-		elif state == "disabled":
-			button_style.bg_color = Color(0.10, 0.20, 0.27, 0.18)
-		button_style.set_corner_radius_all(11)
-		button_style.border_color = Color(0.60, 0.88, 1.0, 0.46)
+		button_style.bg_color = Color(0.16, 0.43, 0.23, 0.78)
+		button_style.border_color = Color(0.76, 0.94, 0.79, 0.74)
 		button_style.set_border_width_all(1)
+		button_style.set_corner_radius_all(9)
+		button_style.content_margin_left = 7
+		button_style.content_margin_right = 7
+		button_style.content_margin_top = 4
+		button_style.content_margin_bottom = 4
+		button_style.anti_aliasing = true
 		home_time_button.add_theme_stylebox_override(state, button_style)
-	home_time_button.add_theme_color_override("font_color", Color("#ffffff"))
-	home_time_button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	home_time_button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	home_time_button.add_theme_color_override("font_color", Color("#f4fbf4"))
+	home_time_button.add_theme_color_override("font_hover_color", Color("#f4fbf4"))
+	home_time_button.add_theme_color_override("font_pressed_color", Color("#f4fbf4"))
+	home_time_button.add_theme_color_override("font_focus_color", Color("#f4fbf4"))
+	home_time_button.add_theme_color_override("font_disabled_color", Color("#f4fbf4"))
 	home_time_button.pressed.connect(_toggle_game_clock)
-	clock_card.add_child(home_time_button)
+	clock_content.add_child(home_time_button)
 
 	_update_home_status_bar()
+
+
+func _make_home_identity_card(compact: bool) -> PanelContainer:
+	var card := _make_home_status_glass_card("Company_Identity_Card")
+	card.custom_minimum_size = Vector2(0.0, 62.0) if compact else Vector2(316.0, 76.0)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_BEGIN
+
+	var identity_row := HBoxContainer.new()
+	identity_row.add_theme_constant_override("separation", 12)
+	identity_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	card.add_child(identity_row)
+
+	var mark_tile := PanelContainer.new()
+	mark_tile.custom_minimum_size = Vector2(48.0, 48.0)
+	var mark_style := StyleBoxFlat.new()
+	mark_style.bg_color = Color(0.30, 0.62, 0.36, 0.16)
+	mark_style.border_color = Color(0.72, 0.91, 0.75, 0.38)
+	mark_style.set_border_width_all(1)
+	mark_style.set_corner_radius_all(12)
+	mark_style.content_margin_left = 4
+	mark_style.content_margin_right = 4
+	mark_style.content_margin_top = 4
+	mark_style.content_margin_bottom = 4
+	mark_tile.add_theme_stylebox_override("panel", mark_style)
+	identity_row.add_child(mark_tile)
+
+	var insignia := TextureRect.new()
+	insignia.name = "Home_Company_Insignia"
+	insignia.texture = _company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50))
+	insignia.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	insignia.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	insignia.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark_tile.add_child(insignia)
+
+	var identity_copy := VBoxContainer.new()
+	identity_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity_copy.add_theme_constant_override("separation", 1)
+	identity_copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	identity_row.add_child(identity_copy)
+
+	var brand_line := _label("DIGITAL WORLD MOBILES  /  POWERED BY KINGSHALL", 9, Color("#a9d9ad"))
+	brand_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	brand_line.clip_text = true
+	identity_copy.add_child(brand_line)
+
+	home_company_label = _label(str(career.get("company_name", "YOUR COMPANY")), 20 if not compact else 18, Color("#f3faf3"))
+	home_company_label.name = "Company_Name"
+	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	home_company_label.clip_text = true
+	home_company_label.tooltip_text = str(career.get("company_name", "YOUR COMPANY"))
+	_apply_shared_page_typography(home_company_label, 20 if not compact else 18)
+	identity_copy.add_child(home_company_label)
+
+	var founder_name := str(career.get("full_name", "FOUNDER")).strip_edges()
+	if founder_name.is_empty():
+		founder_name = "FOUNDER"
+	var office_detail := "NO HEADQUARTERS OWNED" if upgrade_level <= 0 else "HEADQUARTERS  /  LEVEL %02d" % upgrade_level
+	var detail_line := _label("%s  •  FOUNDER: %s" % [office_detail, founder_name], 8, Color("#a8c9ad"))
+	detail_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	detail_line.clip_text = true
+	identity_copy.add_child(detail_line)
+
+	return card
+
+
+func _make_home_metric_card(
+	parent: Control,
+	card_name: String,
+	caption: String,
+	width: float,
+	value_font_size: int,
+	value_color: Color,
+	compact: bool
+) -> Label:
+	var card := _make_home_status_glass_card(card_name)
+	card.custom_minimum_size = Vector2(0.0 if compact else width, 60.0 if compact else 76.0)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_END
+	parent.add_child(card)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 2)
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	card.add_child(content)
+
+	var caption_label := _label(caption, 8, Color("#a8d5b0"), HORIZONTAL_ALIGNMENT_CENTER)
+	content.add_child(caption_label)
+
+	var value_label := Label.new()
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_label.custom_minimum_size = Vector2(0.0, 25.0)
+	_apply_shared_page_typography(value_label, value_font_size if not compact else mini(value_font_size, 14))
+	value_label.add_theme_color_override("font_color", value_color)
+	value_label.add_theme_color_override("font_outline_color", Color("#06180b"))
+	value_label.add_theme_constant_override("outline_size", 1)
+	content.add_child(value_label)
+	return value_label
 
 
 func _make_home_status_glass_card(card_name: String) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = card_name
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.10, 0.28, 0.40, 0.38)
-	style.border_color = Color(0.58, 0.84, 0.98, 0.66)
+	style.bg_color = Color(0.018, 0.065, 0.039, 0.82)
+	style.border_color = Color(0.58, 0.82, 0.63, 0.58)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(13)
-	style.shadow_color = Color(0.0, 0.04, 0.12, 0.34)
-	style.shadow_size = 8
-	style.shadow_offset = Vector2(0.0, 3.0)
-	style.content_margin_left = 10.0
-	style.content_margin_right = 10.0
-	style.content_margin_top = 5.0
-	style.content_margin_bottom = 5.0
+	style.border_width_top = 2
+	style.set_corner_radius_all(16)
+	style.shadow_color = Color(0.0, 0.025, 0.008, 0.48)
+	style.shadow_size = 14
+	style.shadow_offset = Vector2(0.0, 5.0)
+	style.anti_aliasing = true
+	style.content_margin_left = 11.0
+	style.content_margin_right = 11.0
+	style.content_margin_top = 7.0
+	style.content_margin_bottom = 7.0
 	card.add_theme_stylebox_override("panel", style)
 	return card
+
 
 func _format_game_date(timestamp: float) -> String:
 	var date := Time.get_datetime_dict_from_unix_time(floori(timestamp))
@@ -1679,28 +1808,12 @@ func _update_home_status_bar() -> void:
 	if is_instance_valid(home_balance_label):
 		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
 	if is_instance_valid(home_research_points_label):
-		home_research_points_label.text = "%s RESEARCH PTS" % _format_count(int(career.get("research_points", 0)))
+		home_research_points_label.text = "%s RP" % _format_count(int(career.get("research_points", 0)))
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
-		var company_card := home_company_label.get_parent() as PanelContainer
-		var cards_row := company_card.get_parent() as HBoxContainer if is_instance_valid(company_card) else null
-		if is_instance_valid(company_card):
-			var company_font := home_company_label.get_theme_font("font")
-			var text_width := company_font.get_string_size(home_company_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
-			# Reserve room for the four fixed status cards, their gaps and the row margins.
-			# The company card uses the remaining width, growing naturally for longer names.
-			var viewport_width := get_viewport().get_visible_rect().size.x
-			var maximum_company_width := maxf(110.0, viewport_width - 636.0)
-			var company_width := minf(text_width + 24.0, maximum_company_width)
-			var usable_text_width := maxf(1.0, company_width - 24.0)
-			var estimated_lines := maxi(1, ceili(text_width / usable_text_width))
-			var company_height := maxf(62.0, float(estimated_lines) * 23.0 + 20.0)
-			company_card.custom_minimum_size = Vector2(company_width, company_height)
-			home_company_label.custom_minimum_size.y = maxf(42.0, float(estimated_lines) * 23.0)
-			if is_instance_valid(cards_row):
-				cards_row.offset_bottom = 10.0 + company_height
+		home_company_label.tooltip_text = home_company_label.text
 	if is_instance_valid(home_time_button):
-		home_time_button.text = "▶ PLAY" if game_clock_paused else "Ⅱ PAUSE"
+		home_time_button.text = "▶  PLAY" if game_clock_paused else "Ⅱ  PAUSE"
 
 
 func _show_finance_toast(amount: float, activity: String) -> void:
