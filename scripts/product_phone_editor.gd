@@ -5413,11 +5413,12 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	panel_width = maxf(0.28, panel_width)
 	panel_height = maxf(0.42, panel_height)
 	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var outer_corner_mask := _foldable_half_corner_mask(true)
 	var radius := minf(0.32 * float(border_radius_level) / 6.0, minf(panel_width, panel_height) * 0.45)
 
 	var bezel := MeshInstance3D.new()
 	bezel.name = "OuterDisplayBezel"
-	bezel.mesh = _create_rounded_panel_mesh(panel_width + 0.035, panel_height + 0.035, 0.008, radius + 0.012)
+	bezel.mesh = _create_rounded_panel_mesh(panel_width + 0.035, panel_height + 0.035, 0.008, radius + 0.012, outer_corner_mask)
 	var bezel_material := StandardMaterial3D.new()
 	bezel_material.albedo_color = Color("#202b36")
 	bezel_material.metallic = 0.44
@@ -5430,7 +5431,7 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 
 	var glass := MeshInstance3D.new()
 	glass.name = "OuterDisplayGlass"
-	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius)
+	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius, outer_corner_mask)
 	var glass_material := StandardMaterial3D.new()
 	var screen_colors := {
 		"TFT LCD": Color("#263746"), "LED-LCD": Color("#223342"),
@@ -5453,7 +5454,7 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	outer_root.add_child(glass)
 	if screen_protector_enabled:
-		_build_screen_protector(glass, panel_width, panel_height, radius, false, shared_protector_token, false)
+		_build_screen_protector(glass, panel_width, panel_height, radius, false, shared_protector_token, false, outer_corner_mask)
 
 	var cover_camera := MeshInstance3D.new()
 	cover_camera.name = "OuterDisplayCamera"
