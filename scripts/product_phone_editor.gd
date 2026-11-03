@@ -5335,12 +5335,12 @@ func _add_foldable_inner_crease(display: MeshInstance3D, screen_width: float, sc
 	crease.name = "FoldableInnerDisplayCrease"
 	var crease_mesh := BoxMesh.new()
 	if selected_phone_type == "Fold":
-		crease_mesh.size = Vector3(0.012, screen_height * 0.97, 0.002)
+		crease_mesh.size = Vector3(0.009, screen_height * 0.97, 0.002)
 	else:
-		crease_mesh.size = Vector3(screen_width * 0.97, 0.012, 0.002)
+		crease_mesh.size = Vector3(screen_width * 0.97, 0.009, 0.002)
 	crease.mesh = crease_mesh
 	var crease_material := StandardMaterial3D.new()
-	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.32)
+	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.23)
 	crease_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	crease_material.roughness = 0.18
 	crease_material.metallic = 0.12
@@ -5353,14 +5353,14 @@ func _add_foldable_inner_crease(display: MeshInstance3D, screen_width: float, sc
 	highlight.name = "FoldableCreaseHighlight"
 	var highlight_mesh := BoxMesh.new()
 	if selected_phone_type == "Fold":
-		highlight_mesh.size = Vector3(0.002, screen_height * 0.94, 0.001)
+		highlight_mesh.size = Vector3(0.0015, screen_height * 0.94, 0.001)
 		highlight.position.x = 0.009
 	else:
-		highlight_mesh.size = Vector3(screen_width * 0.94, 0.002, 0.001)
+		highlight_mesh.size = Vector3(screen_width * 0.94, 0.0015, 0.001)
 		highlight.position.y = 0.009
 	highlight.mesh = highlight_mesh
 	var highlight_material := StandardMaterial3D.new()
-	highlight_material.albedo_color = Color(0.56, 0.78, 0.91, 0.34)
+	highlight_material.albedo_color = Color(0.56, 0.78, 0.91, 0.22)
 	highlight_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	highlight_material.roughness = 0.22
 	highlight.material_override = highlight_material
@@ -5530,12 +5530,12 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	crease.name = "PhoneFoldableInnerCrease"
 	var crease_mesh := BoxMesh.new()
 	if selected_phone_type == "Fold":
-		crease_mesh.size = Vector3(0.008, segment_height * 0.96, 0.002)
+		crease_mesh.size = Vector3(0.006, segment_height * 0.96, 0.002)
 	else:
-		crease_mesh.size = Vector3(segment_width * 0.96, 0.008, 0.002)
+		crease_mesh.size = Vector3(segment_width * 0.96, 0.006, 0.002)
 	crease.mesh = crease_mesh
 	var crease_material := StandardMaterial3D.new()
-	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.42)
+	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.29)
 	crease_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	crease_material.roughness = 0.24
 	crease_material.metallic = 0.08
@@ -5547,14 +5547,14 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	crease_glint.name = "PhoneFoldableCreaseHighlight"
 	var glint_mesh := BoxMesh.new()
 	if selected_phone_type == "Fold":
-		glint_mesh.size = Vector3(0.0018, segment_height * 0.94, 0.001)
+		glint_mesh.size = Vector3(0.0014, segment_height * 0.94, 0.001)
 		crease_glint.position.x = 0.0055
 	else:
-		glint_mesh.size = Vector3(segment_width * 0.94, 0.0018, 0.001)
+		glint_mesh.size = Vector3(segment_width * 0.94, 0.0014, 0.001)
 		crease_glint.position.y = 0.0055
 	crease_glint.mesh = glint_mesh
 	var glint_material := StandardMaterial3D.new()
-	glint_material.albedo_color = Color(0.56, 0.78, 0.91, 0.30)
+	glint_material.albedo_color = Color(0.56, 0.78, 0.91, 0.20)
 	glint_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	glint_material.roughness = 0.24
 	crease_glint.material_override = glint_material
