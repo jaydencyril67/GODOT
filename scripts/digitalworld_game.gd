@@ -268,21 +268,46 @@ func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
 	var root := _new_screen()
-	# Match the founder setup page's exact background image and overlay.
-	var background := TextureRect.new()
-	background.name = "DigitalWorld_Shared_Background"
+	# Animated green-to-black gradient replaces the old landing photograph.
+	# The shader shifts the colour field very slowly for a calm, living backdrop.
+	var background := ColorRect.new()
+	background.name = "Animated_Green_Landing_Gradient"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.texture = load("res://assets/digitalworld-landing.png")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(background)
 
-	var shade := ColorRect.new()
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.008, 0.035, 0.065, 0.78)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(shade)
+	var gradient_shader := Shader.new()
+	gradient_shader.code = """
+shader_type canvas_item;
+
+void fragment() {
+	vec2 uv = SCREEN_UV;
+	float t = TIME * 0.10;
+	float drift = sin(uv.x * 2.1 + t) * 0.035 + cos(uv.x * 1.25 - t * 0.7) * 0.025;
+	float y = clamp(uv.y + drift + sin(t * 0.55) * 0.018, 0.0, 1.0);
+
+	vec3 green = vec3(0.055, 0.48, 0.22);
+	vec3 dark_green = vec3(0.018, 0.27, 0.12);
+	vec3 darker_green = vec3(0.006, 0.12, 0.065);
+	vec3 darkest_green = vec3(0.002, 0.045, 0.027);
+	vec3 black = vec3(0.0, 0.0, 0.0);
+
+	vec3 colour = mix(green, dark_green, smoothstep(0.02, 0.29, y));
+	colour = mix(colour, darker_green, smoothstep(0.29, 0.53, y));
+	colour = mix(colour, darkest_green, smoothstep(0.53, 0.77, y));
+	colour = mix(colour, black, smoothstep(0.77, 1.0, y));
+
+	float glow_x = 0.5 + sin(t * 0.8) * 0.22;
+	float glow_y = 0.30 + cos(t * 0.6) * 0.08;
+	float glow = exp(-((uv.x - glow_x) * (uv.x - glow_x) * 5.0 + (uv.y - glow_y) * (uv.y - glow_y) * 11.0)) * 0.075;
+	colour += vec3(0.025, 0.11, 0.045) * glow;
+
+	COLOR = vec4(colour, 1.0);
+}
+"""
+	var gradient_material := ShaderMaterial.new()
+	gradient_material.shader = gradient_shader
+	background.material = gradient_material
+	root.add_child(background)
 
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
