@@ -787,15 +787,11 @@ void fragment() {
 	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu.add_theme_constant_override("separation", 9)
 	command_panel.add_child(menu)
-	menu.add_child(_label("FOUNDER SETUP", 10 if compact else 11, Color("#a8d5b0"), HORIZONTAL_ALIGNMENT_CENTER))
 	menu.add_child(_label("CREATE YOUR COMPANY", 21 if compact else 23, Color("#f1f7f0"), HORIZONTAL_ALIGNMENT_CENTER))
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
 	menu_rule.color = Color(0.58, 0.82, 0.63, 0.48)
 	menu.add_child(menu_rule)
-	var form_caption := _label("Start with your founder details and company insignia.", 12 if compact else 13, Color("#b5c7b9"), HORIZONTAL_ALIGNMENT_CENTER)
-	form_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	menu.add_child(form_caption)
 
 	menu.add_child(_label("FOUNDER NAME", 11, Color("#c9e5cd")))
 	full_name_input = LineEdit.new()
@@ -921,56 +917,73 @@ func _open_logo_picker() -> void:
 		logo_picker_layer.queue_free()
 
 	logo_picker_layer = Control.new()
-	logo_picker_layer.name = "CompanyInsigniaModal"
+	logo_picker_layer.name = "CompanyInsigniaSelection"
 	logo_picker_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui_root.add_child(logo_picker_layer)
 
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 700.0
-	var side_margin := 8.0 if compact else 28.0
-	var vertical_margin := 8.0 if compact else 24.0
-	var dialog_width := maxf(1.0, minf(viewport_size.x - side_margin * 2.0, 760.0))
-	var dialog_height := maxf(1.0, minf(viewport_size.y - vertical_margin * 2.0, 680.0))
+	var side_margin := 18.0 if compact else 48.0
+	var vertical_margin := 14.0 if compact else 28.0
 	var columns := 2 if viewport_size.x < 420.0 else (3 if viewport_size.x < 640.0 else (4 if viewport_size.x < 900.0 else 5))
 
+	# Dim the existing company page, but do not put the insignias inside a card.
 	var scrim := ColorRect.new()
-	scrim.name = "ModalScrim"
+	scrim.name = "InsigniaDarkScreen"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.004, 0.020, 0.009, 0.88)
+	scrim.color = Color(0.003, 0.014, 0.007, 0.94)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
 
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center.add_theme_constant_override("margin_left", int(side_margin))
-	center.add_theme_constant_override("margin_right", int(side_margin))
-	center.add_theme_constant_override("margin_top", int(vertical_margin))
-	center.add_theme_constant_override("margin_bottom", int(vertical_margin))
-	logo_picker_layer.add_child(center)
+	var frame := MarginContainer.new()
+	frame.name = "InsigniaScreenFrame"
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	frame.add_theme_constant_override("margin_left", int(side_margin))
+	frame.add_theme_constant_override("margin_right", int(side_margin))
+	frame.add_theme_constant_override("margin_top", int(vertical_margin))
+	frame.add_theme_constant_override("margin_bottom", int(vertical_margin))
+	logo_picker_layer.add_child(frame)
 
-	# The dialog has a screen-bounded size; the grid scrolls inside it.
-	var panel := _panel(Color(0.018, 0.065, 0.039, 0.98), Color(0.58, 0.82, 0.63, 0.52), 18)
-	panel.name = "InsigniaDialog"
-	panel.custom_minimum_size = Vector2(dialog_width, dialog_height)
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	logo_picker_panel = panel
-	center.add_child(panel)
+	var content := VBoxContainer.new()
+	content.name = "InsigniaScreenContent"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12 if compact else 18)
+	frame.add_child(content)
+	logo_picker_panel = content
 
-	var panel_style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
-	panel_style.bg_color = Color(0.018, 0.065, 0.039, 0.98)
-	panel_style.border_color = Color(0.62, 0.88, 0.67, 0.82)
-	panel_style.set_border_width_all(3)
-	panel_style.shadow_size = 0
-	panel_style.set_corner_radius_all(18)
-	panel.add_theme_stylebox_override("panel", panel_style)
+	var header := HBoxContainer.new()
+	header.name = "InsigniaScreenHeader"
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+	header.add_theme_constant_override("separation", 12)
+	content.add_child(header)
 
-	var inset := 10 if compact else 18
-	var margin := _margin(panel, inset, inset, inset, inset)
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# Scrolling stays enabled, but Godot's scrollbar is explicitly hidden.
+	var heading := _label("CHOOSE COMPANY INSIGNIA", 17 if compact else 21, Color("#f3faf3"))
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_apply_menu_3d_label(heading, 1)
+	header.add_child(heading)
+
+	var close_button := Button.new()
+	close_button.name = "CloseInsigniaSelection"
+	close_button.text = "CLOSE  X"
+	close_button.custom_minimum_size = Vector2(94 if compact else 112, 42)
+	close_button.focus_mode = Control.FOCUS_NONE
+	_apply_shared_page_typography(close_button, 12)
+	_style_company_glass_button(close_button)
+	close_button.pressed.connect(_close_logo_picker)
+	header.add_child(close_button)
+
+	var hint := _label("Select a mark for your company", 12 if compact else 13, Color("#a9c6ae"))
+	content.add_child(hint)
+
+	var separator := ColorRect.new()
+	separator.custom_minimum_size = Vector2(0, 1)
+	separator.color = Color(0.60, 0.84, 0.64, 0.36)
+	content.add_child(separator)
+
+	# The transparent scroll region sits directly on the dimmed screen.
 	var scroll := ScrollContainer.new()
 	scroll.name = "InsigniaGridScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -981,17 +994,15 @@ func _open_logo_picker() -> void:
 	scroll.scroll_deadzone = 8
 	scroll.clip_contents = true
 	logo_picker_scroll = scroll
-	margin.add_child(scroll)
+	content.add_child(scroll)
 
 	var grid := GridContainer.new()
 	grid.name = "InsigniaGrid"
 	grid.columns = columns
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var grid_gap := 7 if compact else 10
+	var grid_gap := 9 if compact else 14
 	grid.add_theme_constant_override("h_separation", grid_gap)
 	grid.add_theme_constant_override("v_separation", grid_gap)
-	# Keep the grid taller than the viewport on every device size so the
-	# ScrollContainer always has a real vertical range to move through.
 	var tile_height := 94 if compact else 112
 	var grid_rows := int(ceil(50.0 / float(columns)))
 	grid.custom_minimum_size.y = float(grid_rows * tile_height + (grid_rows - 1) * grid_gap)
@@ -1002,7 +1013,7 @@ func _open_logo_picker() -> void:
 		var logo_id := index + 1
 		var option := Button.new()
 		option.name = "InsigniaOption_%02d" % logo_id
-		option.custom_minimum_size = Vector2(0, 94 if compact else 112)
+		option.custom_minimum_size = Vector2(0, tile_height)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.toggle_mode = false
 		option.focus_mode = Control.FOCUS_NONE
@@ -1022,8 +1033,6 @@ func _open_logo_picker() -> void:
 		logo_center.add_child(mark)
 		option.add_child(logo_center)
 		grid.add_child(option)
-
-
 
 
 func _style_company_glass_button(button: Button, _selected: bool = false) -> void:
