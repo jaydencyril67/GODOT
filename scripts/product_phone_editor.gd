@@ -3547,7 +3547,7 @@ func _rebuild_earbuds_preview() -> void:
 		port_height * 0.36
 	)
 	port_cutter.rotation.x = PI * 0.5
-	# Extend 12 mm in scene units past the outer skin to avoid a coplanar CSG cap.
+	# Extend slightly past the outer skin to avoid a coplanar CSG cap.
 	port_cutter.position = Vector3(0.0, bottom_edge_y + port_cut_depth * 0.5 - 0.012, 0.0)
 	housing.add_child(port_cutter)
 
