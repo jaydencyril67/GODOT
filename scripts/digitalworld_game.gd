@@ -535,17 +535,16 @@ func _build_landing_showroom() -> Node3D:
 	return scene
 
 func _style_landing_command_button(button: Button, primary: bool) -> void:
+	# Landing menu controls remain visually still during hover, click and focus.
+	# Input continues to work; only the interaction highlight is removed.
 	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	var base_fill := Color(0.16, 0.43, 0.23, 0.82) if primary else Color(0.11, 0.24, 0.15, 0.64)
+	var base_edge := Color(0.76, 0.94, 0.79, 0.82) if primary else Color(0.55, 0.76, 0.59, 0.54)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.16, 0.43, 0.23, 0.82) if primary else Color(0.11, 0.24, 0.15, 0.64)
-		if state == "hover":
-			style.bg_color = Color(0.22, 0.55, 0.30, 0.94) if primary else Color(0.17, 0.36, 0.22, 0.82)
-		elif state == "pressed":
-			style.bg_color = Color(0.07, 0.25, 0.12, 0.94)
-		elif state == "disabled":
-			style.bg_color = Color(0.08, 0.15, 0.10, 0.42)
-		style.border_color = Color(0.76, 0.94, 0.79, 0.82) if primary else Color(0.55, 0.76, 0.59, 0.54)
+		style.bg_color = base_fill
+		style.border_color = base_edge
 		style.set_border_width_all(1)
 		style.border_width_top = 2
 		style.border_width_left = 2 if primary else 1
@@ -560,9 +559,10 @@ func _style_landing_command_button(button: Button, primary: bool) -> void:
 		style.content_margin_bottom = 11
 		button.add_theme_stylebox_override(state, style)
 	button.add_theme_color_override("font_color", Color("#f4fbf4"))
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color("#d4efd9"))
-	button.add_theme_color_override("font_disabled_color", Color("#78917d"))
+	button.add_theme_color_override("font_hover_color", Color("#f4fbf4"))
+	button.add_theme_color_override("font_pressed_color", Color("#f4fbf4"))
+	button.add_theme_color_override("font_focus_color", Color("#f4fbf4"))
+	button.add_theme_color_override("font_disabled_color", Color("#f4fbf4"))
 	_apply_shared_page_typography(button, 16)
 	button.add_theme_color_override("font_outline_color", Color("#07170b"))
 	button.add_theme_constant_override("outline_size", 1)
