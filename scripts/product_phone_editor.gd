@@ -4,6 +4,13 @@ signal back_requested
 signal research_upgrade_requested(research_id: String)
 
 const PHONE_SIZE := Vector3(1.45, 2.92, 0.22)
+
+
+func _active_phone_size() -> Vector3:
+	var size := PHONE_SIZE
+	if selected_phone_type == "Fold":
+		size.x *= 1.5
+	return size
 const ROTATION_STEP := deg_to_rad(10.0)
 # Deliberately low so a normal finger movement makes a controlled turn.
 const DRAG_SENSITIVITY := 0.0024
@@ -2238,7 +2245,7 @@ func _toggle_back_design_size_action() -> void:
 func _add_back_design_box() -> void:
 	var box_size := Vector2(0.34, 0.34)
 	var half := box_size * 0.5
-	var body_half := Vector2(PHONE_SIZE.x * 0.5, PHONE_SIZE.y * 0.5)
+	var body_half := Vector2(_active_phone_size().x * 0.5, _active_phone_size().y * 0.5)
 	var min_x := -body_half.x + half.x
 	var max_x := body_half.x - half.x
 	var min_y := -body_half.y + half.y
@@ -2280,8 +2287,8 @@ func _select_back_design_box(index: int) -> void:
 func _back_design_position_is_free(box_position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
 	var half := box_size * 0.5
 	# The phone body and other raised boxes are the only placement constraints.
-	if absf(box_position.x) + half.x > PHONE_SIZE.x * 0.5: return false
-	if absf(box_position.y) + half.y > PHONE_SIZE.y * 0.5: return false
+	if absf(box_position.x) + half.x > _active_phone_size().x * 0.5: return false
+	if absf(box_position.y) + half.y > _active_phone_size().y * 0.5: return false
 	for index in range(back_design_boxes.size()):
 		if index == ignore_index: continue
 		var other: Dictionary = back_design_boxes[index]
@@ -2453,7 +2460,7 @@ func _refresh_back_design_boxes() -> void:
 	var root := Node3D.new()
 	root.name = "BackDesignRaisedSections"
 	phone_body.add_child(root)
-	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var phone_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	for index in range(back_design_boxes.size()):
 		var box: Dictionary = back_design_boxes[index]
 		var size: Vector2 = box["size"]
@@ -2587,12 +2594,12 @@ func _on_bezel_height_changed(value: float) -> void:
 
 
 func _update_bezel_value_labels() -> void:
-	# PHONE_SIZE maps to an approximately 75 mm-wide handset.
+	# _active_phone_size() maps to an approximately 75 mm-wide handset.
 	const MODEL_UNITS_TO_MM := 75.0 / 1.45
 	if is_instance_valid(bezel_width_value_label):
-		bezel_width_value_label.text = "%.1f mm" % ((PHONE_SIZE.x - bezel_width * 2.0) * MODEL_UNITS_TO_MM)
+		bezel_width_value_label.text = "%.1f mm" % ((_active_phone_size().x - bezel_width * 2.0) * MODEL_UNITS_TO_MM)
 	if is_instance_valid(bezel_height_value_label):
-		bezel_height_value_label.text = "%.1f mm" % ((PHONE_SIZE.y - bezel_height * 2.0) * MODEL_UNITS_TO_MM)
+		bezel_height_value_label.text = "%.1f mm" % ((_active_phone_size().y - bezel_height * 2.0) * MODEL_UNITS_TO_MM)
 
 
 func _show_screen_type_controls() -> void:
@@ -3295,7 +3302,7 @@ func _on_screen_protector_thickness_changed(value: float) -> void:
 
 func _update_screen_protector_thickness_label() -> void:
 	if is_instance_valid(screen_protector_thickness_label):
-		var thickness_mm := screen_protector_thickness * 75.0 / PHONE_SIZE.x
+		var thickness_mm := screen_protector_thickness * 75.0 / _active_phone_size().x
 		screen_protector_thickness_label.text = "GLASS THICKNESS  %.2f mm" % thickness_mm
 
 
@@ -4121,7 +4128,7 @@ func _add_charger_recessed_port(parent: Node3D, output_connector: String, face_p
 	# Use the same machined lip, gasket, extruded cavity walls and recessed
 	# contact floor as the phone's charging port. Rotate the phone-port
 	# construction axis so its opening faces the charger's front (+Z).
-	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var unit_per_mm := _active_phone_size().y / 150.0
 	var default_width := 8.34 * unit_per_mm if output_connector == "USB-C" else 12.0 * unit_per_mm
 	var default_height := 2.56 * unit_per_mm if output_connector == "USB-C" else 4.5 * unit_per_mm
 	var port_width := port_dimensions.x if port_dimensions.x > 0.0 else default_width
@@ -4433,7 +4440,7 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 		# This single continuous shell replaces the detached short cylinder.
 		var barrel := MeshInstance3D.new()
 		barrel.name = "ContinuousHollowDCBarrelSleeve"
-		var dc_socket_inner_diameter := 3.5 * (PHONE_SIZE.y / 150.0) * 0.62
+		var dc_socket_inner_diameter := 3.5 * (_active_phone_size().y / 150.0) * 0.62
 		var dc_outer_radius := dc_socket_inner_diameter * 0.94 * 0.5
 		var dc_inner_radius := dc_outer_radius * 0.54
 		barrel.mesh = _create_charger_dc_barrel_mesh(dc_outer_radius, dc_inner_radius, -0.195, 0.055, 48)
@@ -4641,7 +4648,7 @@ func _rebuild_charger_preview() -> void:
 	# Build the housing as a CSG shell so the adapter socket is a genuine
 	# aperture through the front fascia, not a dark panel laid over solid plastic.
 	var output_connector := _charger_output_connector()
-	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var unit_per_mm := _active_phone_size().y / 150.0
 	var port_width := 8.34 * unit_per_mm if output_connector == "USB-C" else 12.0 * unit_per_mm
 	var port_height := 2.56 * unit_per_mm if output_connector == "USB-C" else 4.5 * unit_per_mm
 	var shell_combiner := CSGCombiner3D.new()
@@ -5236,8 +5243,8 @@ func _refresh_phone_screen() -> void:
 	# Keep a consistent, slimmer lower rail for physical keys and give the
 	# top rail the exact same height. The glass is inset evenly on all sides.
 	# Symmetrical bezels consume the outer edges; the display fills the remaining area.
-	var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
-	var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+	var screen_width := _active_phone_size().x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, _active_phone_size().x - bezel_width * 2.0)
+	var screen_height := _active_phone_size().y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, _active_phone_size().y - bezel_height * 2.0)
 	# The display inherits the phone's exact outer corner radius so curved
 	# glass and frame stay visually aligned as Border Radius is upgraded.
 	var screen_radius := 0.32 * float(border_radius_level) / 6.0
@@ -5286,7 +5293,7 @@ func _refresh_phone_screen() -> void:
 	display_material.emission = display_material.albedo_color
 	display_material.emission_energy_multiplier = 0.025
 	display.material_override = display_material
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -5376,16 +5383,16 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	var center_x := 0.0
 	var center_y := 0.0
 	if selected_phone_type == "Fold":
-		panel_width = (PHONE_SIZE.x - 0.014) * 0.5 - 0.12
-		panel_height = PHONE_SIZE.y - 0.20
-		center_x = PHONE_SIZE.x * 0.25
+		panel_width = (_active_phone_size().x - 0.014) * 0.5 - 0.12
+		panel_height = _active_phone_size().y - 0.20
+		center_x = _active_phone_size().x * 0.25
 	else:
-		panel_width = PHONE_SIZE.x - 0.18
-		panel_height = (PHONE_SIZE.y - 0.014) * 0.5 - 0.12
-		center_y = PHONE_SIZE.y * 0.25
+		panel_width = _active_phone_size().x - 0.18
+		panel_height = (_active_phone_size().y - 0.014) * 0.5 - 0.12
+		center_y = _active_phone_size().y * 0.25
 	panel_width = maxf(0.28, panel_width)
 	panel_height = maxf(0.42, panel_height)
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var radius := minf(0.10, minf(panel_width, panel_height) * 0.18)
 
 	var bezel := MeshInstance3D.new()
@@ -5458,8 +5465,8 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	if not is_instance_valid(fixed_half) or not is_instance_valid(moving_half):
 		return
 
-	var full_width := maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
-	var full_height := maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+	var full_width := maxf(0.30, _active_phone_size().x - bezel_width * 2.0)
+	var full_height := maxf(0.60, _active_phone_size().y - bezel_height * 2.0)
 	var segment_width := full_width
 	var segment_height := full_height
 	var fixed_offset := Vector3.ZERO
@@ -5473,7 +5480,7 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 		fixed_offset.y = -(segment_height * 0.5 + 0.009)
 		moving_offset.y = segment_height * 0.5 + 0.009
 
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var glass_z := current_depth * 0.5 + 0.0035
 	var screen_radius := minf(0.12, 0.32 * float(border_radius_level) / 6.0)
 	var colors := {
@@ -5862,7 +5869,7 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Seat the bezel lens on the handset's front face. The display is
 			# raised above that face (and may be raised further for curved screens),
 			# so cancel only that display offset rather than moving behind the body.
-			var phone_front_z := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0) * 0.5
+			var phone_front_z := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0) * 0.5
 			var bezel_seated_z := phone_front_z - display.position.z
 			_add_front_camera_lens(camera_root, Vector3(0.0, bezel_camera_y, bezel_seated_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
@@ -5894,7 +5901,7 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Centre the physical module on the handset's top edge and reduce
 			# its previous width by exactly 50%.
 			var popup_x := 0.0
-			var popup_y := PHONE_SIZE.y * 0.5 + 0.055
+			var popup_y := _active_phone_size().y * 0.5 + 0.055
 			var popup_width := 0.15
 			# camera_root is parented to the display, so cancel the display front-face offset.
 			# This places the pop-up housing on the phone body\'s Z centre.
@@ -6290,9 +6297,9 @@ func _rear_module_position_is_free(candidate_position: Vector2, module_size: flo
 	# Back Design boxes are NOT placement zones or obstacles: hardware can
 	# cross their edges freely in either direction.
 	var extent := module_size * 1.22
-	if absf(candidate_position.x) + extent > PHONE_SIZE.x * 0.5 - 0.025:
+	if absf(candidate_position.x) + extent > _active_phone_size().x * 0.5 - 0.025:
 		return false
-	if absf(candidate_position.y) + extent > PHONE_SIZE.y * 0.5 - 0.025:
+	if absf(candidate_position.y) + extent > _active_phone_size().y * 0.5 - 0.025:
 		return false
 	for index in range(rear_camera_modules.size()):
 		if kind == "CAMERA" and index == ignore_index:
@@ -6419,7 +6426,7 @@ func _back_design_box_has_rear_hardware(box_index: int) -> bool:
 
 
 func _rear_hardware_support_surface_z(module_position: Vector2, _module_size: float) -> float:
-	var phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var phone_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var surface_z := -phone_depth * 0.5
 	if _rear_hardware_back_design_index(module_position) >= 0:
 		# Raised Back Design mesh extrudes toward the outside of the rear face.
@@ -6807,16 +6814,16 @@ func _refresh_phone_home_button() -> void:
 	button_root.name = "PhoneHomeButton"
 	phone_body.add_child(button_root)
 	# Keep the home marking close to the handset's bottom edge.
-	var center_y := -PHONE_SIZE.y * 0.5 + 0.11
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var center_y := -_active_phone_size().y * 0.5 + 0.11
+	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var body_front_z := current_depth * 0.5
 	var button_surface_z := body_front_z + 0.0008
 
 	# When the screen reaches this fixed device position, rest the marking on
 	# the actual glass surface. Otherwise it sits directly on the exposed body.
 	if is_instance_valid(phone_screen):
-		var screen_width := PHONE_SIZE.x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
-		var screen_height := PHONE_SIZE.y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+		var screen_width := _active_phone_size().x if screen_shape_mode == "Curve screen" and side_curve_enabled else maxf(0.30, _active_phone_size().x - bezel_width * 2.0)
+		var screen_height := _active_phone_size().y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, _active_phone_size().y - bezel_height * 2.0)
 		var is_over_screen := absf(center_y) <= screen_height * 0.5
 		if is_over_screen:
 			var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
@@ -7255,7 +7262,7 @@ func _refresh_phone_side_buttons() -> void:
 	key_material.metallic = 0.32
 	key_material.roughness = 0.30
 
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
 	var key_length := 0.30 * side_button_length_scale
 	var single_key_length := key_length * 0.46
@@ -7284,8 +7291,8 @@ func _refresh_phone_side_buttons() -> void:
 func _get_style_pen_marker_layout() -> Dictionary:
 	# Keep the marker and the pouch opening on the exact same calculated point.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
-	var bottom_y := -PHONE_SIZE.y * 0.5
-	var left_edge := -PHONE_SIZE.x * 0.5
+	var bottom_y := -_active_phone_size().y * 0.5
+	var left_edge := -_active_phone_size().x * 0.5
 	var circle_radius := 0.025
 	var edge_inset := 0.004
 	var speaker_radius := 0.012
@@ -7367,7 +7374,7 @@ func _add_phone_style_pen(parent: Node3D, _current_depth: float, _key_material: 
 	parent.add_child(end_marker)
 
 func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, frame_material: Material, key_material: Material) -> void:
-	var edge := PHONE_SIZE.x * 0.5
+	var edge := _active_phone_size().x * 0.5
 	var slot := MeshInstance3D.new()
 	slot.name = "SimTrayOuterSeam"
 	var slot_mesh := BoxMesh.new()
@@ -7407,10 +7414,10 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	# Keep the recess below the frame surface and give the actual key a
 	# clearly visible, subtle 1.2 mm stand-off. The previous 0.5 mm projection
 	# was too shallow to read in the 3D preview, making the buttons look flush.
-	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var unit_per_mm := _active_phone_size().y / 150.0
 	var button_depth := (1.2 * unit_per_mm) / 0.95
 	var button_width := maxf(radius * 1.35, 0.024)
-	var side_edge := PHONE_SIZE.x * 0.5
+	var side_edge := _active_phone_size().x * 0.5
 
 	var backing := MeshInstance3D.new()
 	backing.name = node_name + "Recess"
@@ -7523,7 +7530,7 @@ func _refresh_phone_speakers() -> void:
 	# Fixed center clearance for every supported connector. Speaker placement
 	# never reads charge_port_type or port dimensions, so port edits cannot
 	# move, resize, or reshape these circles.
-	var bottom_y := -PHONE_SIZE.y * 0.5
+	var bottom_y := -_active_phone_size().y * 0.5
 	var reserved_port_half_width := 0.115
 	var edge_margin := 0.035
 	var hole_spacing := 0.045
@@ -7810,7 +7817,7 @@ func _refresh_phone_charge_port() -> void:
 
 	# Connector openings are sized from published receptacle dimensions and
 	# scaled against a 150 mm reference handset height.
-	var unit_per_mm := PHONE_SIZE.y / 150.0
+	var unit_per_mm := _active_phone_size().y / 150.0
 	var port_width := 8.34 * unit_per_mm
 	var port_height := 2.56 * unit_per_mm
 	var shape := "rounded"
@@ -7884,10 +7891,10 @@ func _refresh_phone_charge_port() -> void:
 
 	# Fit the complete mouth and its metal lip inside the handset's actual
 	# bottom rail. If the frame is very thin, the whole aperture scales evenly.
-	var current_phone_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var current_phone_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var half_phone_depth := current_phone_depth * 0.5
 	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
-	var flat_bottom_half_width := PHONE_SIZE.x * 0.5 - current_corner_radius
+	var flat_bottom_half_width := _active_phone_size().x * 0.5 - current_corner_radius
 	var profile_fit := 1.0
 	for point in inner_points:
 		if absf(point.x) > 0.00001:
@@ -7909,11 +7916,11 @@ func _refresh_phone_charge_port() -> void:
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
 	if selected_phone_type == "Fold":
-		port_root.position.x = -PHONE_SIZE.x * 0.25
+		port_root.position.x = -_active_phone_size().x * 0.25
 	phone_body.add_child(port_root)
-	var bottom_y := -PHONE_SIZE.y * 0.5
+	var bottom_y := -_active_phone_size().y * 0.5
 	var mouth_y := bottom_y + 0.0001
-	var recess_depth := minf(6.2 * unit_per_mm, PHONE_SIZE.y * 0.08)
+	var recess_depth := minf(6.2 * unit_per_mm, _active_phone_size().y * 0.08)
 	var back_y := bottom_y + recess_depth
 	var contact_face_y := bottom_y + recess_depth * 0.54
 
@@ -8099,7 +8106,7 @@ func _refresh_foldable_hardware() -> void:
 
 	phone_body.mesh = null
 	var radius := 0.32 * float(border_radius_level) / 6.0
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var panels := Node3D.new()
 	panels.name = "PhoneFoldablePanels"
 	phone_body.add_child(panels)
@@ -8114,13 +8121,13 @@ func _refresh_foldable_hardware() -> void:
 	var fixed_offset := Vector3.ZERO
 	var moving_offset := Vector3.ZERO
 	if selected_phone_type == "Fold":
-		var half_width := (PHONE_SIZE.x - 0.014) * 0.5
-		segment_size = Vector3(half_width, PHONE_SIZE.y, PHONE_SIZE.z)
+		var half_width := (_active_phone_size().x - 0.014) * 0.5
+		segment_size = Vector3(half_width, _active_phone_size().y, _active_phone_size().z)
 		fixed_offset = Vector3(-half_width * 0.5 - 0.007, 0.0, 0.0)
 		moving_offset = Vector3(half_width * 0.5 + 0.007, 0.0, 0.0)
 	else:
-		var half_height := (PHONE_SIZE.y - 0.014) * 0.5
-		segment_size = Vector3(PHONE_SIZE.x, half_height, PHONE_SIZE.z)
+		var half_height := (_active_phone_size().y - 0.014) * 0.5
+		segment_size = Vector3(_active_phone_size().x, half_height, _active_phone_size().z)
 		fixed_offset = Vector3(0.0, -half_height * 0.5 - 0.007, 0.0)
 		moving_offset = Vector3(0.0, half_height * 0.5 + 0.007, 0.0)
 
@@ -8143,44 +8150,48 @@ func _refresh_foldable_hardware() -> void:
 	hinge_root.name = "PhoneFoldableHinge"
 	phone_body.add_child(hinge_root)
 	var rear_z := -current_depth * 0.5 - 0.022
+
+	# Consumer-style continuous hinge cover: no exposed hinge barrels, bolt
+	# heads or repeated mechanical blocks on the rear of the handset.
 	var hinge_material := StandardMaterial3D.new()
-	hinge_material.albedo_color = device_body_color.darkened(0.38)
-	hinge_material.metallic = 0.88
-	hinge_material.roughness = 0.22
-	hinge_material.metallic_specular = 0.92
-	var hinge_highlight := StandardMaterial3D.new()
-	hinge_highlight.albedo_color = device_body_color.lightened(0.22)
-	hinge_highlight.metallic = 0.94
-	hinge_highlight.roughness = 0.16
+	hinge_material.albedo_color = device_body_color.lightened(0.10)
+	hinge_material.metallic = 0.72
+	hinge_material.roughness = 0.27
+	hinge_material.metallic_specular = 0.82
 	var spine := MeshInstance3D.new()
-	spine.name = "HingeSpine"
-	var spine_mesh := BoxMesh.new()
-	spine_mesh.size = Vector3(0.088, PHONE_SIZE.y * 0.90, 0.036) if selected_phone_type == "Fold" else Vector3(PHONE_SIZE.x * 0.88, 0.088, 0.036)
+	spine.name = "SeamlessHingeCover"
+	var spine_mesh := CapsuleMesh.new()
+	spine_mesh.radius = 0.047 if selected_phone_type == "Fold" else 0.044
+	spine_mesh.height = (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.96
+	spine_mesh.radial_segments = 48
+	spine_mesh.rings = 12
 	spine.mesh = spine_mesh
 	spine.material_override = hinge_material
-	spine.position = Vector3(0.0, 0.0, rear_z)
+	if selected_phone_type == "Flip":
+		spine.rotation.z = PI * 0.5
+	spine.position = Vector3(0.0, 0.0, rear_z - 0.012)
 	spine.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	hinge_root.add_child(spine)
-	var barrel_count := 5 if selected_phone_type == "Fold" else 4
-	for index in range(barrel_count):
-		var barrel := MeshInstance3D.new()
-		barrel.name = "HingeBarrel_%02d" % index
-		var cylinder := CylinderMesh.new()
-		cylinder.top_radius = 0.043
-		cylinder.bottom_radius = 0.043
-		cylinder.radial_segments = 40
-		cylinder.rings = 8
-		if selected_phone_type == "Fold":
-			cylinder.height = PHONE_SIZE.y * 0.145
-			barrel.position = Vector3(0.0, -PHONE_SIZE.y * 0.36 + float(index) * PHONE_SIZE.y * 0.18, rear_z - 0.025)
-		else:
-			cylinder.height = PHONE_SIZE.x * 0.205
-			barrel.rotation.z = PI * 0.5
-			barrel.position = Vector3(-PHONE_SIZE.x * 0.30 + float(index) * PHONE_SIZE.x * 0.20, 0.0, rear_z - 0.025)
-		barrel.mesh = cylinder
-		barrel.material_override = hinge_highlight if index % 2 == 0 else hinge_material
-		barrel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		hinge_root.add_child(barrel)
+
+	# One fine machined edge highlight replaces the exposed barrel/bolt pattern.
+	var hinge_highlight := MeshInstance3D.new()
+	hinge_highlight.name = "HingeEdgeHighlight"
+	var highlight_mesh := CapsuleMesh.new()
+	highlight_mesh.radius = 0.0022
+	highlight_mesh.height = (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.90
+	highlight_mesh.radial_segments = 24
+	highlight_mesh.rings = 8
+	hinge_highlight.mesh = highlight_mesh
+	var highlight_material := StandardMaterial3D.new()
+	highlight_material.albedo_color = device_body_color.lightened(0.36)
+	highlight_material.metallic = 0.78
+	highlight_material.roughness = 0.22
+	hinge_highlight.material_override = highlight_material
+	if selected_phone_type == "Flip":
+		hinge_highlight.rotation.z = PI * 0.5
+	hinge_highlight.position = Vector3(0.0, 0.0, rear_z - 0.058)
+	hinge_highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	hinge_root.add_child(hinge_highlight)
 	_apply_phone_fold_angle()
 
 
@@ -8261,12 +8272,12 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 
 
 func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array, size_override: Vector3 = Vector3.ZERO) -> Mesh:
-	var phone_size := PHONE_SIZE
+	var phone_size := _active_phone_size()
 	if size_override.x > 0.0 and size_override.y > 0.0:
 		phone_size.x = size_override.x
 		phone_size.y = size_override.y
 	# Level 10 reaches an ultra-slim 0.08-unit body.
-	phone_size.z = lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	phone_size.z = lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var half_size := phone_size * 0.5
 	var outline := PackedVector2Array()
 
@@ -9497,8 +9508,8 @@ func _build_phone_case_preview(parent: Node3D) -> void:
 
 
 func _case_outline(expansion: float) -> PackedVector2Array:
-	var half_w := PHONE_SIZE.x * 0.5 + expansion
-	var half_h := PHONE_SIZE.y * 0.5 + expansion
+	var half_w := _active_phone_size().x * 0.5 + expansion
+	var half_h := _active_phone_size().y * 0.5 + expansion
 	var radius := clampf(0.32 * float(border_radius_level) / 6.0 + expansion, 0.001, minf(half_w, half_h) - 0.001)
 	var centers := [Vector2(half_w-radius,half_h-radius),Vector2(-half_w+radius,half_h-radius),Vector2(-half_w+radius,-half_h+radius),Vector2(half_w-radius,-half_h+radius)]
 	var points := PackedVector2Array()
@@ -9690,7 +9701,7 @@ func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: 
 	# The cutter crosses only the narrow side rail. Its Z span is limited to
 	# the actual button/recess band, so it cannot tunnel across the rear panel.
 	opening.size = Vector3(wall*2.0+0.055,maxf(length+0.008,0.045),0.072)
-	opening.position = Vector3(side*PHONE_SIZE.x*0.5,y,0.0)
+	opening.position = Vector3(side*_active_phone_size().x*0.5,y,0.0)
 	_case_subtract(combiner,opening)
 
 
@@ -9816,7 +9827,7 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 	for child in phone_case_preview.get_children():
 		child.free()
 	phone_case_shell = null
-	var depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var wall := clampf(depth * 0.15, 0.018, 0.034)
 	var moving_case := Node3D.new()
 	moving_case.name = "PhoneCaseMovingHalf"
@@ -9825,14 +9836,14 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 	var fixed_centre := Vector2.ZERO
 	var moving_centre := Vector2.ZERO
 	if selected_phone_type == "Fold":
-		var half_width := (PHONE_SIZE.x - 0.020) * 0.5
-		segment_size = Vector2(half_width, PHONE_SIZE.y)
+		var half_width := (_active_phone_size().x - 0.020) * 0.5
+		segment_size = Vector2(half_width, _active_phone_size().y)
 		fixed_centre = Vector2(-half_width * 0.5 - 0.010, 0.0)
 		moving_centre = Vector2(half_width * 0.5 + 0.010, 0.0)
 	else:
 		# Equal upper/lower clamshell halves; the divider is locked to the exact centre.
-		var half_height := (PHONE_SIZE.y - 0.020) * 0.5
-		segment_size = Vector2(PHONE_SIZE.x, half_height)
+		var half_height := (_active_phone_size().y - 0.020) * 0.5
+		segment_size = Vector2(_active_phone_size().x, half_height)
 		fixed_centre = Vector2(0.0, -half_height * 0.5 - 0.010)
 		moving_centre = Vector2(0.0, half_height * 0.5 + 0.010)
 
@@ -9842,7 +9853,7 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 	var hinge_bridge := MeshInstance3D.new()
 	hinge_bridge.name = "FlexibleCaseHingeBridge"
 	var bridge_mesh := BoxMesh.new()
-	bridge_mesh.size = Vector3(0.040, PHONE_SIZE.y * 0.90, 0.010) if selected_phone_type == "Fold" else Vector3(PHONE_SIZE.x * 0.90, 0.040, 0.010)
+	bridge_mesh.size = Vector3(0.040, _active_phone_size().y * 0.90, 0.010) if selected_phone_type == "Fold" else Vector3(_active_phone_size().x * 0.90, 0.040, 0.010)
 	hinge_bridge.mesh = bridge_mesh
 	var bridge_material := StandardMaterial3D.new()
 	bridge_material.albedo_color = phone_case_color.darkened(0.48)
@@ -9865,7 +9876,7 @@ func _rebuild_phone_case_geometry() -> void:
 	for child in phone_case_preview.get_children():
 		child.free()
 	phone_case_shell = null
-	var depth := lerpf(0.08,PHONE_SIZE.z,float(phone_thickness_level)/10.0)
+	var depth := lerpf(0.08,_active_phone_size().z,float(phone_thickness_level)/10.0)
 	var wall := clampf(depth*0.15,0.018,0.034)
 	var combiner := CSGCombiner3D.new()
 	combiner.name = "LiveFittedPhoneCase"
@@ -9941,7 +9952,7 @@ func _rebuild_phone_case_geometry() -> void:
 		# inward and removed part of the rear skin behind the connector.
 		var port_wall_span := wall*2.0+0.035
 		port_cut.size = Vector3(high_port.x-low_port.x+0.026,port_wall_span,high_port.y-low_port.y+0.026)
-		port_cut.position = Vector3((low_port.x+high_port.x)*0.5,-PHONE_SIZE.y*0.5,(low_port.y+high_port.y)*0.5)
+		port_cut.position = Vector3((low_port.x+high_port.x)*0.5,-_active_phone_size().y*0.5,(low_port.y+high_port.y)*0.5)
 		_case_subtract(combiner,port_cut)
 
 	# S-Pen access follows the exact same collision-aware position as the
@@ -9955,7 +9966,7 @@ func _rebuild_phone_case_geometry() -> void:
 			pen_cut.radius = 0.029
 			pen_cut.height = wall*2.0+0.045
 			pen_cut.sides = 40
-			pen_cut.position = Vector3(pen_position.x, -PHONE_SIZE.y*0.5, 0.0)
+			pen_cut.position = Vector3(pen_position.x, -_active_phone_size().y*0.5, 0.0)
 			_case_subtract(combiner,pen_cut)
 
 	# Bottom speaker openings are placed from the same formula as the live phone.
@@ -9976,7 +9987,7 @@ func _rebuild_phone_case_geometry() -> void:
 			speaker_cut.radius = 0.016
 			speaker_cut.height = 0.16
 			speaker_cut.sides = 32
-			speaker_cut.position = Vector3(xs[i],-PHONE_SIZE.y*0.5,0.0)
+			speaker_cut.position = Vector3(xs[i],-_active_phone_size().y*0.5,0.0)
 			_case_subtract(combiner,speaker_cut)
 
 	# Side button, SIM tray and optional side controls track their live positions.
@@ -9995,7 +10006,7 @@ func _rebuild_phone_case_geometry() -> void:
 	if sound_button_enabled:
 		# Match the actual smaller sound-action key, not a long generic slot.
 		# This leaves a clear case-material border around it above Volume Up.
-		var case_phone_depth := lerpf(0.08,PHONE_SIZE.z,float(phone_thickness_level)/10.0)
+		var case_phone_depth := lerpf(0.08,_active_phone_size().z,float(phone_thickness_level)/10.0)
 		var case_key_radius := clampf(case_phone_depth*0.27,0.018,0.036)*0.78
 		var sound_key_width := maxf(case_key_radius*1.35,0.024)
 		var sound_key_length := maxf(0.0,(0.105+sound_key_width)/1.2-sound_key_width)
@@ -10009,7 +10020,7 @@ func _rebuild_phone_case_geometry() -> void:
 		var popup_cut := CSGBox3D.new()
 		popup_cut.name = "PopUpCameraOpening"
 		popup_cut.size = Vector3(0.22,0.16,depth+wall*2.0+0.08)
-		popup_cut.position = Vector3(0.0,PHONE_SIZE.y*0.5+0.045,0.0)
+		popup_cut.position = Vector3(0.0,_active_phone_size().y*0.5+0.045,0.0)
 		_case_subtract(combiner,popup_cut)
 	phone_case_preview.visible = left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not charger_preview_mode
 
