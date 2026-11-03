@@ -8074,7 +8074,7 @@ func _phone_depth_for_thickness_level(level: int = -1) -> float:
 func _on_phone_thickness_level_changed(value: float) -> void:
 	phone_thickness_level = clampi(roundi(value), 0, 12)
 	if is_instance_valid(phone_thickness_value_label):
-		phone_thickness_value_label.text = "LEVEL %d / 10" % phone_thickness_level
+		phone_thickness_value_label.text = "LEVEL %d / 12" % phone_thickness_level
 	_refresh_phone_mesh()
 
 
@@ -8339,7 +8339,7 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array,
 	if size_override.x > 0.0 and size_override.y > 0.0:
 		phone_size.x = size_override.x
 		phone_size.y = size_override.y
-	# Level 10 reaches an ultra-slim 0.08-unit body.
+	# The former minimum 0.08-unit body is preserved at new level 2.
 	phone_size.z = _phone_depth_for_thickness_level()
 	var half_size := phone_size * 0.5
 	var outline := PackedVector2Array()
