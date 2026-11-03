@@ -7964,11 +7964,23 @@ func _refresh_phone_charge_port() -> void:
 	var half_phone_depth := current_phone_depth * 0.5
 	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var port_frame_half_width := _active_phone_size().x * 0.5
+	var port_local_offset := Vector2.ZERO
+	var flat_bottom_half_width := maxf(0.02, port_frame_half_width - current_corner_radius)
 	if selected_phone_type == "Fold":
 		var port_fit_layout := _get_foldable_segment_layout()
 		var fold_segment_size: Vector3 = port_fit_layout["segment_size"]
 		port_frame_half_width = fold_segment_size.x * 0.5
-	var flat_bottom_half_width := maxf(0.02, port_frame_half_width - current_corner_radius)
+		# The fixed Fold leaf rounds its OUTER left corners, leaving a
+		# straight bottom rail from (-half_width + radius) to (+half_width).
+		# Centre the connector on that asymmetric straight rail.
+		var actual_fold_radius := minf(
+			current_corner_radius,
+			minf(port_frame_half_width, _active_phone_size().y * 0.5) - 0.001
+		)
+		var rail_left := -port_frame_half_width + actual_fold_radius
+		var rail_right := port_frame_half_width
+		port_local_offset.x = (rail_left + rail_right) * 0.5
+		flat_bottom_half_width = maxf(0.002, minf(port_local_offset.x - rail_left, rail_right - port_local_offset.x))
 	var profile_fit := 1.0
 	for point in inner_points:
 		if absf(point.x) > 0.00001:
@@ -7985,15 +7997,18 @@ func _refresh_phone_charge_port() -> void:
 	# Add points along the connector profile so the full bottom-edge surface
 	# can wrap cleanly around small trapezoidal and stepped receptacle shapes.
 	inner_points = _resample_port_outline_by_angle(inner_points, flat_bottom_half_width, half_phone_depth)
-	charge_port_opening_points = inner_points.duplicate()
+	charge_port_opening_points = PackedVector2Array()
+	for point in inner_points:
+		charge_port_opening_points.append(point + port_local_offset)
 
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
 	if selected_phone_type == "Fold":
-		# Match the fixed Fold frame's exact saved chassis centre.
+		# Keep connector internals centred while positioning the assembly
+		# over the real straight rail on the fixed leaf.
 		var port_root_layout := _get_foldable_segment_layout()
 		var fixed_offset: Vector3 = port_root_layout["fixed_offset"]
-		port_root.position = fixed_offset
+		port_root.position = fixed_offset + Vector3(port_local_offset.x, 0.0, 0.0)
 	phone_body.add_child(port_root)
 	var bottom_y := -_active_phone_size().y * 0.5
 	var mouth_y := bottom_y + 0.0001
@@ -8452,7 +8467,7 @@ func _add_phone_bottom_edge_rectangle(surface: SurfaceTool, x_min: float, x_max:
 	_add_phone_mesh_triangle(surface, a, c, d, normal)
 
 
-func _add_foldable_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float) -> void:
+func _add_foldable_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_left: float, flat_bottom_right: float) -> void:
 	if port_opening.size() < 3:
 		return
 	var half_size := phone_size * 0.5
@@ -8472,7 +8487,11 @@ func _add_foldable_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vecto
 	# Keep the triangulation local to the actual connector. The small border
 	# is enough for the opening's transition ring; the far rail is filled with
 	# rectangular strips that stay exactly inside the saved half-frame bounds.
-	var box_half_x := minf((high.x - low.x) * 0.5 + 0.004, maxf(0.002, flat_bottom_half_width - 0.002))
+	# Limit the port transition to the closest REAL straight-edge endpoint.
+	# Fold's outer bottom-left corner is rounded, while its hinge-side corner is square.
+	var left_clearance := maxf(0.002, centre.x - flat_bottom_left - 0.002)
+	var right_clearance := maxf(0.002, flat_bottom_right - centre.x - 0.002)
+	var box_half_x := minf((high.x - low.x) * 0.5 + 0.004, minf(left_clearance, right_clearance))
 	var box_half_z := minf((high.y - low.y) * 0.5 + 0.004, maxf(0.002, half_size.z - 0.002))
 	var angles: Array[float] = []
 	const PORT_RING_SAMPLES := 64
@@ -8514,19 +8533,17 @@ func _add_foldable_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vecto
 	var box_right := centre.x + box_half_x
 	var box_bottom := centre.y - box_half_z
 	var box_top := centre.y + box_half_z
-	_add_phone_bottom_edge_rectangle(surface, -flat_bottom_half_width, box_left, -half_size.z, half_size.z, face_y)
-	_add_phone_bottom_edge_rectangle(surface, box_right, flat_bottom_half_width, -half_size.z, half_size.z, face_y)
+	_add_phone_bottom_edge_rectangle(surface, flat_bottom_left, box_left, -half_size.z, half_size.z, face_y)
+	_add_phone_bottom_edge_rectangle(surface, box_right, flat_bottom_right, -half_size.z, half_size.z, face_y)
 	_add_phone_bottom_edge_rectangle(surface, box_left, box_right, box_top, half_size.z, face_y)
 	_add_phone_bottom_edge_rectangle(surface, box_left, box_right, -half_size.z, box_bottom, face_y)
 
 
-func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float) -> void:
+func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float, flat_bottom_left: float, flat_bottom_right: float) -> void:
 	if selected_phone_type == "Fold":
-		# Fold's charging port belongs to one half-frame only. Build the
-		# opening locally around that half's port and fill the remaining rail
-		# as four bounded strips; do not fan long triangles from the aperture
-		# to the entire half-width (the source of the stray plate-like shading).
-		_add_foldable_bottom_edge_with_port(surface, phone_size, port_opening, flat_bottom_half_width)
+		# Fold's port belongs to the asymmetrically rounded fixed leaf.
+		# Fill only the straight rail between its actual edge endpoints.
+		_add_foldable_bottom_edge_with_port(surface, phone_size, port_opening, flat_bottom_left, flat_bottom_right)
 		return
 	var half_size := phone_size * 0.5
 	var opening := port_opening
@@ -8642,7 +8659,9 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array,
 		var is_bottom_edge := absf(a.y + half_size.y) < 0.0001 and absf(b.y + half_size.y) < 0.0001
 		if is_bottom_edge and port_opening.size() >= 3:
 			var flat_bottom_half_width := maxf(absf(a.x), absf(b.x))
-			_add_phone_bottom_edge_with_port(surface, phone_size, port_opening, flat_bottom_half_width)
+			var flat_bottom_left := minf(a.x, b.x)
+			var flat_bottom_right := maxf(a.x, b.x)
+			_add_phone_bottom_edge_with_port(surface, phone_size, port_opening, flat_bottom_half_width, flat_bottom_left, flat_bottom_right)
 		else:
 			var edge := b - a
 			var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
@@ -10021,6 +10040,20 @@ func _case_outline_for_size(size: Vector2, expansion: float, corner_mask: int = 
 	return points
 
 
+func _add_phone_case_back_plate(combiner: CSGCombiner3D, size: Vector2, centre: Vector2, depth: float, wall: float, corner_mask: int) -> void:
+	# Build the rear skin as an explicit union, not as a fragile remnant of
+	# the shell-hollowing boolean.
+	var back_plate := CSGPolygon3D.new()
+	back_plate.name = "ProtectiveBackPlate"
+	back_plate.operation = CSGShape3D.OPERATION_UNION
+	back_plate.polygon = _case_outline_for_size(size, wall, corner_mask)
+	back_plate.depth = wall
+	back_plate.position = Vector3(centre.x, centre.y, -depth * 0.5)
+	back_plate.material = _create_phone_case_material()
+	back_plate.smooth_faces = true
+	combiner.add_child(back_plate)
+
+
 func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: Vector2, depth: float, wall: float, segment_name: String, include_port: bool, corner_mask: int) -> void:
 	var combiner := CSGCombiner3D.new()
 	combiner.name = segment_name
@@ -10047,11 +10080,13 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 	# expansion entirely, leaving the cavity no wider than the handset and
 	# causing the case lip to intersect/mis-seat around the device.
 	cavity.polygon = _case_outline_for_size(segment_size, 0.003, corner_mask)
-	# This cutter starts just beyond the screen-side lip and extrudes inward
-	# to the phone's rear plane. The remaining wall is the protective back.
-	cavity.depth = depth + wall + 0.040
+	# Hollow the side shell fully through its rear, then union a separate
+	# backing plate. This guarantees a real back skin instead of relying on
+	# the remaining sliver from a deep CSG subtraction.
+	cavity.depth = depth + wall * 2.0 + 0.080
 	cavity.position = Vector3(centre.x, centre.y, depth * 0.5 + wall + 0.040)
 	_case_subtract(combiner, cavity)
+	_add_phone_case_back_plate(combiner, segment_size, centre, depth, wall, corner_mask)
 
 	# Fold and Flip cover displays live on the outside/back face. Leave a
 	# precision window in the matching case half so the case never covers
@@ -10292,11 +10327,16 @@ func _rebuild_phone_case_geometry() -> void:
 	var cavity := CSGPolygon3D.new()
 	cavity.name = "DeviceClearanceCavity"
 	cavity.polygon = _case_outline(0.003)
-	# Run the cutter from beyond the front lip down to the phone's rear plane,
-	# leaving exactly the designed rear protective skin.
-	cavity.depth = depth+wall+0.040
+	# Hollow the shell fully through its rear, then add a separate backing
+	# plate so the case always has a continuous physical back.
+	cavity.depth = depth+wall*2.0+0.080
 	cavity.position.z = depth*0.5+wall+0.040
 	_case_subtract(combiner,cavity)
+	var case_back_size := _active_phone_size()
+	_add_phone_case_back_plate(
+		combiner, Vector2(case_back_size.x, case_back_size.y), Vector2.ZERO,
+		depth, wall, 15
+	)
 
 	# Flat-back camera and flash units get individual circular apertures.
 	# Hardware mounted on a raised Back Design panel is handled by that panel's
