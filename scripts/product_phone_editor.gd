@@ -8225,22 +8225,27 @@ func _route_foldable_accessories() -> void:
 				item.reparent(moving_half, false)
 
 
+func _foldable_inward_rotation(angle_radians: float) -> Vector3:
+	# The moving Fold leaf starts on +X, so rotate it around Y toward -X.
+	# The moving Flip leaf starts on +Y, so rotate it around X toward -Y.
+	# These opposite axis signs keep the inner glass aimed at the fixed leaf
+	# throughout the hinge travel, including the partially-open positions.
+	if selected_phone_type == "Fold":
+		return Vector3(0.0, -angle_radians, 0.0)
+	if selected_phone_type == "Flip":
+		return Vector3(angle_radians, 0.0, 0.0)
+	return Vector3.ZERO
+
+
 func _apply_phone_fold_angle() -> void:
 	var angle_radians := deg_to_rad(clampf(fold_angle_degrees, 0.0, MAX_FOLD_ANGLE_DEGREES))
+	var inward_rotation := _foldable_inward_rotation(angle_radians)
 	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf") if is_instance_valid(phone_body) else null
 	if is_instance_valid(moving_half):
-		# The moving leaf must rotate toward the fixed leaf so the inner
-		# glass faces inward when the device closes, never outward.
-		if selected_phone_type == "Fold":
-			moving_half.rotation = Vector3(0.0, -angle_radians, 0.0)
-		elif selected_phone_type == "Flip":
-			moving_half.rotation = Vector3(-angle_radians, 0.0, 0.0)
+		moving_half.rotation = inward_rotation
 	var case_moving := phone_case_preview.get_node_or_null("PhoneCaseMovingHalf") if is_instance_valid(phone_case_preview) else null
 	if is_instance_valid(case_moving):
-		if selected_phone_type == "Fold":
-			case_moving.rotation = Vector3(0.0, -angle_radians, 0.0)
-		elif selected_phone_type == "Flip":
-			case_moving.rotation = Vector3(-angle_radians, 0.0, 0.0)
+		case_moving.rotation = inward_rotation
 
 
 func _set_fold_angle_from_pinch(distance: float) -> void:
