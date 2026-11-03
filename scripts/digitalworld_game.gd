@@ -84,6 +84,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if is_instance_valid(landing_device) and current_screen == "menu":
+		landing_device.rotation.y = sin(Time.get_ticks_msec() * 0.00022) * 0.16
 	if career.is_empty() or str(career.get("company_name", "")).is_empty() or game_clock_paused:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
@@ -105,8 +107,6 @@ func _process(delta: float) -> void:
 		_save_career()
 		last_saved_game_day = current_day
 	_update_home_status_bar()
-	if is_instance_valid(landing_device) and current_screen == "menu":
-		landing_device.rotation.y = sin(Time.get_ticks_msec() * 0.00022) * 0.16
 
 
 func _get_game_month_key(timestamp: float) -> String:
@@ -239,6 +239,10 @@ func _dispose_phone_editor() -> void:
 
 
 func _clear_world() -> void:
+	if is_instance_valid(landing_environment):
+		landing_environment.queue_free()
+	landing_environment = null
+	landing_device = null
 	if is_instance_valid(world_root):
 		world_root.queue_free()
 	world_root = null
@@ -515,6 +519,7 @@ func _build_landing_showroom() -> Node3D:
 	var glow_mesh := PlaneMesh.new()
 	glow_mesh.size = Vector2(0.76, 1.62)
 	screen_glow.mesh = glow_mesh
+	screen_glow.rotation_degrees.x = 90.0
 	screen_glow.position = Vector3(0.0, 0.0, 0.112)
 	var glow_material := StandardMaterial3D.new()
 	glow_material.albedo_color = Color("#123c20")
