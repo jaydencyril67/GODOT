@@ -1415,6 +1415,14 @@ func _apply_headquarters_downgrade(requested_level: int, refund_percent: int) ->
 	_update_home_status_bar()
 	_show_finance_toast(refund_amount, "HEADQUARTERS REFUND")
 
+func _apply_home_bold_typography(control: Control, font_size: int) -> void:
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 1.1
+	control.add_theme_font_override("font", stix_font)
+	control.add_theme_font_size_override("font_size", font_size)
+
+
 func _apply_home_button_typography(button: Control, font_size: int) -> void:
 	# Use the project STIX variable font explicitly and strengthen its weight
 	# without changing any button dimensions, layout, or visual styling.
@@ -1435,7 +1443,7 @@ func _show_home_navigation() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 1000.0 or viewport_size.y < 560.0
 
-	_build_home_status_bar(root, compact)
+	_build_home_status_bar(root, compact, viewport_size.x < 640.0 or viewport_size.x < viewport_size.y * 1.1)
 
 	# A floating command dock keeps navigation consistent with the emerald glass
 	# styling while leaving the building visible through the centre of the screen.
@@ -1490,7 +1498,7 @@ func _show_home_navigation() -> void:
 		button.custom_minimum_size = Vector2(0.0, 48.0 if compact else 54.0)
 		button.focus_mode = Control.FOCUS_NONE
 		_style_landing_command_button(button, false)
-		_apply_shared_page_typography(button, 11 if compact else 14)
+		_apply_home_bold_typography(button, 12 if compact else 15)
 		row.add_child(button)
 
 		if button_name == "Create":
@@ -1505,9 +1513,9 @@ func _show_home_navigation() -> void:
 	entrance.tween_property(root, "modulate:a", 1.0, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
-func _build_home_status_bar(root: Control, compact: bool = false) -> void:
+func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool = false) -> void:
 	var header: Control
-	if compact:
+	if stacked:
 		var stacked_header := VBoxContainer.new()
 		header = stacked_header
 		stacked_header.add_theme_constant_override("separation", 8)
@@ -1518,11 +1526,11 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 	else:
 		var aligned_header := HBoxContainer.new()
 		header = aligned_header
-		aligned_header.add_theme_constant_override("separation", 18)
-		aligned_header.offset_left = 26.0
-		aligned_header.offset_top = 18.0
-		aligned_header.offset_right = -26.0
-		aligned_header.offset_bottom = 100.0
+		aligned_header.add_theme_constant_override("separation", 14 if compact else 18)
+		aligned_header.offset_left = 14.0 if compact else 26.0
+		aligned_header.offset_top = 12.0 if compact else 18.0
+		aligned_header.offset_right = -14.0 if compact else -26.0
+		aligned_header.offset_bottom = 88.0 if compact else 100.0
 
 	header.name = "Home_Premium_Header"
 	header.anchor_left = 0.0
@@ -1531,10 +1539,10 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 	header.anchor_bottom = 0.0
 	root.add_child(header)
 
-	var identity := _make_home_identity_card(compact)
+	var identity := _make_home_identity_card(compact, stacked)
 	header.add_child(identity)
 
-	if not compact:
+	if not compact and not stacked:
 		var spacer := Control.new()
 		spacer.name = "Home_Header_Flexible_Spacer"
 		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1573,7 +1581,7 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 	home_time_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	home_time_button.focus_mode = Control.FOCUS_NONE
 	home_time_button.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	_apply_shared_page_typography(home_time_button, 14)
+	_apply_home_bold_typography(home_time_button, 15)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var clock_style := StyleBoxFlat.new()
 		clock_style.bg_color = Color(0.14, 0.40, 0.21, 0.88)
@@ -1597,13 +1605,13 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 	_update_home_status_bar()
 
 
-func _make_home_identity_card(compact: bool) -> Control:
+func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	# Keep the company name in its own guaranteed-width label beside the mark.
 	# No nested panel container can consume the label's horizontal space.
 	var identity := HBoxContainer.new()
 	identity.name = "Company_Identity_Block"
 	identity.custom_minimum_size = Vector2(0.0 if compact else 340.0, 64.0 if compact else 76.0)
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_BEGIN
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL if stacked else Control.SIZE_SHRINK_BEGIN
 	identity.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	identity.add_theme_constant_override("separation", 12)
 
@@ -1666,7 +1674,7 @@ func _make_home_identity_card(compact: bool) -> Control:
 	home_company_label.clip_text = true
 	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	home_company_label.tooltip_text = home_company_label.text
-	_apply_shared_page_typography(home_company_label, 24 if not compact else 21)
+	_apply_home_bold_typography(home_company_label, 25 if not compact else 22)
 	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
 	home_company_label.add_theme_color_override("font_outline_color", Color("#041509"))
 	home_company_label.add_theme_constant_override("outline_size", 2)
@@ -1716,7 +1724,7 @@ func _make_home_metric_card(
 	value_label.custom_minimum_size = Vector2(0.0, 26.0)
 	value_label.clip_text = true
 	value_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_apply_shared_page_typography(value_label, value_font_size if not compact else mini(value_font_size, 14))
+	_apply_home_bold_typography(value_label, value_font_size if not compact else mini(value_font_size, 14))
 	value_label.add_theme_color_override("font_color", value_color)
 	value_label.add_theme_color_override("font_outline_color", Color("#041509"))
 	value_label.add_theme_constant_override("outline_size", 1)
