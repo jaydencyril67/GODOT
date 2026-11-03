@@ -1441,7 +1441,7 @@ func _show_home_navigation() -> void:
 	home_navigation_layer = ui_layer
 
 	var viewport_size := get_viewport().get_visible_rect().size
-	var compact := viewport_size.x < 1000.0 or viewport_size.y < 560.0
+	var compact := viewport_size.x < 1180.0 or viewport_size.y < 640.0
 
 	_build_home_status_bar(root, compact, viewport_size.x < 640.0 or viewport_size.x < viewport_size.y * 1.1)
 
