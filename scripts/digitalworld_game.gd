@@ -2001,6 +2001,7 @@ func _show_phone_editor() -> void:
 		return
 
 	phone_editor.name = "Phone_Product_Editor"
+	phone_editor.call("set_company_branding", str(career.get("company_name", "YOUR COMPANY")), int(career.get("logo_id", 1)))
 	phone_editor.connect("back_requested", Callable(self, "_return_from_phone_editor"))
 	add_child(phone_editor)
 
