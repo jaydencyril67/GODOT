@@ -3994,8 +3994,7 @@ func _set_smartwatch_preview_mode(enabled: bool) -> void:
 
 func _set_charger_preview_mode(enabled: bool) -> void:
 	charger_preview_mode = enabled
-	if enabled:
-		_set_smartwatch_preview_mode(false)
+	_set_smartwatch_preview_mode(false)
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled
 	if is_instance_valid(phone_case_preview):
