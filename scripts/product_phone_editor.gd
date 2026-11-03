@@ -209,6 +209,7 @@ var charger_preview_mode := false
 var charger_controls_page := "HOME"
 var charger_color_mode := false
 var power_bank_color_mode := false
+var smartwatch_color_mode := false
 var camera_lens_protector_enabled := false
 var camera_lens_protector_finish := "Ultra Clear"
 var camera_lens_protector_thickness := 0.0025
@@ -1167,17 +1168,19 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 
-func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false) -> void:
+func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false) -> void:
 	_close_back_design_selection_popup()
 	back_design_color_mode = return_to_back_design
 	phone_case_color_mode = for_phone_case
 	charger_color_mode = for_charger
+	smartwatch_color_mode = for_smartwatch
+	power_bank_color_mode = for_power_bank
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else "DeviceColorControls")
+	active_feature_panel.name = "ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else ("SmartwatchColorControls" if for_smartwatch else ("PowerBankColorControls" if for_power_bank else "DeviceColorControls")))
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if return_to_back_design else Control.SIZE_SHRINK_BEGIN
 	var color_viewport_size := get_viewport().get_visible_rect().size
@@ -1185,7 +1188,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	active_feature_panel.add_theme_constant_override("separation", 6 if compact_color_ui else 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	if return_to_back_design or for_phone_case or for_charger:
+	if return_to_back_design or for_phone_case or for_charger or for_smartwatch or for_power_bank:
 		var color_header := HBoxContainer.new()
 		color_header.add_theme_constant_override("separation", 6)
 		active_feature_panel.add_child(color_header)
@@ -1195,9 +1198,9 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		back_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(back_button, 25)
 		_style_staff_button(back_button, false)
-		back_button.pressed.connect(_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else _show_back_design_controls))
+		back_button.pressed.connect(_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else _show_back_design_controls))))
 		color_header.add_child(back_button)
-		var color_title := _make_label("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else "BACK DESIGN COLOR"), 16, Color("#c7eaff"))
+		var color_title := _make_label("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else "BACK DESIGN COLOR"))), 16, Color("#c7eaff"))
 		color_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		color_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		color_header.add_child(color_title)
@@ -1314,7 +1317,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 			if not box_gradient_options.visible:
 				back_design_gradient_color_edit_mode = false
 
-	if not return_to_back_design and not for_charger:
+	if not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank:
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1493,6 +1496,10 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 func _get_active_color_picker_color() -> Color:
 	if charger_color_mode:
 		return charger_body_color
+	if smartwatch_color_mode:
+		return smartwatch_body_color
+	if power_bank_color_mode:
+		return power_bank_body_color
 	if phone_case_color_mode:
 		return phone_case_gradient_color if phone_case_gradient_color_edit_mode else phone_case_color
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
@@ -1772,6 +1779,9 @@ func _on_device_body_color_changed(color: Color) -> void:
 	if charger_color_mode:
 		charger_body_color = selected_color
 		_rebuild_charger_preview()
+	elif smartwatch_color_mode:
+		smartwatch_body_color = selected_color
+		_rebuild_smartwatch_preview()
 	elif power_bank_color_mode:
 		power_bank_body_color = selected_color
 		_rebuild_power_bank_preview()
@@ -1792,7 +1802,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_gradient_color = selected_color
 	else:
 		device_body_color = selected_color
-	if not phone_case_color_mode and not charger_color_mode and not power_bank_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
+	if not phone_case_color_mode and not charger_color_mode and not power_bank_color_mode and not smartwatch_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
@@ -3300,25 +3310,15 @@ func _show_smartwatch_controls() -> void:
 	enable_row.add_child(toggle)
 
 	if smartwatch_enabled:
-		var color_heading := _make_label("SMART WATCH COLOR", 13, Color("#a9e3ff"))
-		active_feature_panel.add_child(color_heading)
-		for color_entry in [
-			["Graphite", Color("#303943")],
-			["Midnight Black", Color("#111820")],
-			["Silver", Color("#c5cbd1")],
-			["Pearl White", Color("#e8edf2")],
-			["Navy Blue", Color("#263f67")],
-			["Rose Gold", Color("#b87968")]
-		]:
-			var color_button := Button.new()
-			color_button.text = str(color_entry[0]) + ("   ✓  SELECTED" if smartwatch_color_name == str(color_entry[0]) else "")
-			color_button.custom_minimum_size = Vector2(0, 44)
-			color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			color_button.focus_mode = Control.FOCUS_NONE
-			_apply_research_typography(color_button, 13)
-			_style_staff_button(color_button, smartwatch_color_name == str(color_entry[0]))
-			color_button.pressed.connect(_on_smartwatch_color_selected.bind(str(color_entry[0]), color_entry[1]))
-			active_feature_panel.add_child(color_button)
+		var color_button := Button.new()
+		color_button.name = "OpenSmartwatchDeviceColorEditor"
+		color_button.text = "CUSTOMIZE SMART WATCH COLOR  ›"
+		color_button.custom_minimum_size = Vector2(0, 46)
+		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(color_button, 13)
+		_style_staff_button(color_button, false)
+		color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, true, false))
+		active_feature_panel.add_child(color_button)
 
 
 func _on_smartwatch_enabled_toggled(enabled: bool) -> void:
@@ -3333,7 +3333,7 @@ func _on_smartwatch_color_selected(color_name: String, color: Color) -> void:
 	smartwatch_body_color = color
 	_rebuild_smartwatch_preview()
 	_set_smartwatch_preview_mode(true)
-	_show_smartwatch_controls()
+	_show_device_color_controls(false, false, false, true, false)
 
 
 func _rebuild_power_bank_preview() -> void:
@@ -3448,25 +3448,15 @@ func _show_power_bank_controls() -> void:
 	enable_row.add_child(toggle)
 
 	if power_bank_enabled:
-		var color_heading := _make_label("POWER BANK COLOR", 13, Color("#a9e3ff"))
-		active_feature_panel.add_child(color_heading)
-		for color_entry in [
-			["Graphite", Color("#303943")],
-			["Midnight Black", Color("#111820")],
-			["Silver", Color("#c5cbd1")],
-			["Pearl White", Color("#e8edf2")],
-			["Navy Blue", Color("#263f67")],
-			["Rose Gold", Color("#b87968")]
-		]:
-			var color_button := Button.new()
-			color_button.text = str(color_entry[0]) + ("   ✓  SELECTED" if power_bank_color_name == str(color_entry[0]) else "")
-			color_button.custom_minimum_size = Vector2(0, 44)
-			color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			color_button.focus_mode = Control.FOCUS_NONE
-			_apply_research_typography(color_button, 13)
-			_style_staff_button(color_button, power_bank_color_name == str(color_entry[0]))
-			color_button.pressed.connect(_on_power_bank_color_selected.bind(str(color_entry[0]), color_entry[1]))
-			active_feature_panel.add_child(color_button)
+		var color_button := Button.new()
+		color_button.name = "OpenPowerBankDeviceColorEditor"
+		color_button.text = "CUSTOMIZE POWER BANK COLOR  ›"
+		color_button.custom_minimum_size = Vector2(0, 46)
+		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(color_button, 13)
+		_style_staff_button(color_button, false)
+		color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, false, true))
+		active_feature_panel.add_child(color_button)
 
 
 func _on_power_bank_enabled_toggled(enabled: bool) -> void:
@@ -3481,7 +3471,7 @@ func _on_power_bank_color_selected(color_name: String, color: Color) -> void:
 	power_bank_body_color = color
 	_rebuild_power_bank_preview()
 	_set_power_bank_preview_mode(true)
-	_show_power_bank_controls()
+	_show_device_color_controls(false, false, false, false, true)
 
 
 func _charger_material(color: Color, metallic: float = 0.0, roughness: float = 0.32) -> StandardMaterial3D:
