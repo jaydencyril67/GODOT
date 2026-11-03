@@ -5423,7 +5423,10 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	# The cover display is rotated 180 degrees to face outward. That
 	# rotation mirrors left/right corner indices, so Fold must use the
 	# opposite half-mask; Flip's top/bottom mask is unchanged by it.
-	var outer_corner_mask := _foldable_half_corner_mask(selected_phone_type == "Flip")
+	# The cover glass is turned outward. Fold's cover is now on the fixed
+	# leaf, so its local corner mask must be the opposite of the fixed frame;
+	# Flip remains on the moving leaf and uses that leaf's own outside corners.
+	var outer_corner_mask := _foldable_half_corner_mask(true)
 	var radius := minf(0.32 * float(border_radius_level) / 6.0, minf(panel_width, panel_height) * 0.45)
 
 	var bezel := MeshInstance3D.new()
@@ -7938,7 +7941,10 @@ func _refresh_phone_charge_port() -> void:
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
 	if selected_phone_type == "Fold":
-		port_root.position.x = -_active_phone_size().x * 0.25
+		# Match the fixed Fold frame's exact local centre. Keeping the port
+		# hardware on this same coordinate prevents a lip/edge overhang.
+		var fold_half_width := (_active_phone_size().x - 0.014) * 0.5
+		port_root.position.x = -fold_half_width * 0.5 - 0.007
 	phone_body.add_child(port_root)
 	var bottom_y := -_active_phone_size().y * 0.5
 	var mouth_y := bottom_y + 0.0001
@@ -8255,49 +8261,54 @@ func _build_folded_chassis_division_seam() -> void:
 		return
 	var previous := phone_body.get_node_or_null("FoldedChassisDivisionSeam")
 	if is_instance_valid(previous):
-		previous.queue_free()
+		previous.free()
 	var seam_root := Node3D.new()
 	seam_root.name = "FoldedChassisDivisionSeam"
 	phone_body.add_child(seam_root)
+
 	var phone_size := _active_phone_size()
 	var depth := _phone_depth_for_thickness_level()
 	var corner_radius := minf(0.32 * float(border_radius_level) / 6.0, minf(phone_size.x, phone_size.y) * 0.45)
 	var seam_material := StandardMaterial3D.new()
 	seam_material.albedo_color = Color("#101820", 0.0)
-	seam_material.roughness = 0.72
-	seam_material.metallic = 0.12
+	seam_material.roughness = 0.78
+	seam_material.metallic = 0.06
 	seam_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	seam_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	seam_root.set_meta("seam_material", seam_material)
 	seam_root.set_meta("seam_color", Color("#101820"))
-	var line_width := 0.0022
-	var straight_width := maxf(0.1, phone_size.x - corner_radius * 2.0)
-	var straight_height := maxf(0.1, phone_size.y - corner_radius * 2.0)
-	var edge_offset := 0.0015
-	var seam_z := depth * 0.5 + 0.001
+
+	# The two leaves meet at the fixed leaf's front plane when fully closed.
+	# Put the dark hairline on the SIDE WALLS at that contact plane, not on
+	# either broad front/back face. It is therefore visible from an edge view.
+	var seam_depth := 0.0032
+	var side_band := 0.0045
+	var contact_plane_z := depth * 0.5
+	var horizontal_length := maxf(0.1, phone_size.x - corner_radius * 2.0)
+	var vertical_length := maxf(0.1, phone_size.y - corner_radius * 2.0)
+	var edge_offset := 0.0008
 	var bars := [
-		Vector3(straight_width, line_width, line_width),
-		Vector3(straight_width, line_width, line_width),
-		Vector3(line_width, straight_height, line_width),
-		Vector3(line_width, straight_height, line_width)
+		Vector3(horizontal_length, side_band, seam_depth),
+		Vector3(horizontal_length, side_band, seam_depth),
+		Vector3(side_band, vertical_length, seam_depth),
+		Vector3(side_band, vertical_length, seam_depth)
 	]
 	var positions := [
-		Vector3(0.0, phone_size.y * 0.5 - edge_offset, seam_z),
-		Vector3(0.0, -phone_size.y * 0.5 + edge_offset, seam_z),
-		Vector3(phone_size.x * 0.5 - edge_offset, 0.0, seam_z),
-		Vector3(-phone_size.x * 0.5 + edge_offset, 0.0, seam_z)
+		Vector3(0.0, phone_size.y * 0.5 + edge_offset, contact_plane_z),
+		Vector3(0.0, -phone_size.y * 0.5 - edge_offset, contact_plane_z),
+		Vector3(phone_size.x * 0.5 + edge_offset, 0.0, contact_plane_z),
+		Vector3(-phone_size.x * 0.5 - edge_offset, 0.0, contact_plane_z)
 	]
 	for index in range(bars.size()):
-		var mesh_instance := MeshInstance3D.new()
-		mesh_instance.name = "ChassisDivisionEdge%d" % index
+		var seam_segment := MeshInstance3D.new()
+		seam_segment.name = "ChassisSideDivisionSeam_%d" % index
 		var box := BoxMesh.new()
 		box.size = bars[index]
-		mesh_instance.mesh = box
-		mesh_instance.position = positions[index]
-		mesh_instance.material_override = seam_material
-		mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		seam_root.add_child(mesh_instance)
-
+		seam_segment.mesh = box
+		seam_segment.position = positions[index]
+		seam_segment.material_override = seam_material
+		seam_segment.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		seam_root.add_child(seam_segment)
 
 func _route_foldable_accessories() -> void:
 	if selected_phone_type == "Standard" or not is_instance_valid(phone_body):
@@ -8350,7 +8361,9 @@ func _apply_phone_fold_angle() -> void:
 	if is_instance_valid(division_seam):
 		var seam_material := division_seam.get_meta("seam_material") as StandardMaterial3D
 		if is_instance_valid(seam_material):
-			var seam_visibility := clampf((fold_angle_degrees - 105.0) / 75.0, 0.0, 1.0)
+			# Reveal the side-wall joint only as the two chassis leaves
+			# approach their fully stacked/closed position.
+			var seam_visibility := clampf((fold_angle_degrees - 155.0) / 25.0, 0.0, 1.0)
 			var seam_color: Color = division_seam.get_meta("seam_color", Color("#101820"))
 			seam_color.a = seam_visibility * 0.88
 			seam_material.albedo_color = seam_color
@@ -8396,20 +8409,10 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 		var inner_b := Vector3(opening[next_index].x, mouth_y, opening[next_index].y)
 		_add_phone_mesh_triangle(surface, outer_a, outer_b, inner_b, bottom_normal)
 		_add_phone_mesh_triangle(surface, outer_a, inner_b, inner_a, bottom_normal)
-		# The charging aperture is a real cut through the bottom rail. Close
-		# its inner perimeter with frame-material side walls so the machined
-		# edge/border continues cleanly around the connector instead of
-		# appearing as an unbordered dark line. This is especially important
-		# on Fold/Flip, where the port sits in one independently modelled leaf.
-		var inner_next := Vector3(opening[next_index].x, mouth_y, opening[next_index].y)
-		var inner_current := Vector3(opening[index].x, mouth_y, opening[index].y)
-		var wall_normal := Vector3((inner_current.x + inner_next.x) * 0.5, 0.0, (inner_current.z + inner_next.z) * 0.5).normalized()
-		var front_a := Vector3(inner_current.x, inner_current.y, half_size.z)
-		var front_b := Vector3(inner_next.x, inner_next.y, half_size.z)
-		var back_a := Vector3(inner_current.x, inner_current.y, -half_size.z)
-		var back_b := Vector3(inner_next.x, inner_next.y, -half_size.z)
-		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, wall_normal)
-		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, wall_normal)
+		# The connector's recessed tunnel walls are generated by
+		# _add_port_cavity_walls(). Do not bridge each aperture edge to the
+		# full front/back thickness here: that incorrectly creates long flat
+		# plates/extensions from the charging-port opening on Fold frames.
 
 
 func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array, size_override: Vector3 = Vector3.ZERO, corner_mask: int = 15) -> Mesh:
