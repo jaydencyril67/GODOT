@@ -2984,7 +2984,7 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		_add_phone_mesh_triangle_with_normals(surface, front_a, back_b, front_b, normal_a, normal_b, normal_b)
 	return surface.commit()
 
-func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true) -> ArrayMesh:
+func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true, corner_mask: int = 15) -> ArrayMesh:
 	# Keep the curved glass on the same rounded-rectangle footprint as the
 	# handset. The edge bend changes depth only; it must not square off corners.
 	var surface := SurfaceTool.new()
@@ -3010,7 +3010,8 @@ func _create_curved_screen_mesh(width: float, height: float, corner_radius: floa
 			# Project grid samples outside the rounded corner arcs onto the
 			# exact radius. This gives the curved mesh the same corner profile
 			# as the phone body instead of a rectangular glass silhouette.
-			if radius > 0.0001 and absf(raw_x) > corner_x and absf(raw_y) > corner_y:
+			var corner_index := 0 if raw_x > 0.0 and raw_y > 0.0 else 1 if raw_x < 0.0 and raw_y > 0.0 else 2 if raw_x < 0.0 and raw_y < 0.0 else 3
+			if radius > 0.0001 and (corner_mask & (1 << corner_index)) != 0 and absf(raw_x) > corner_x and absf(raw_y) > corner_y:
 				var corner_center := Vector2(signf(raw_x) * corner_x, signf(raw_y) * corner_y)
 				var corner_offset := Vector2(raw_x, raw_y) - corner_center
 				if corner_offset.length_squared() > radius * radius:
@@ -5569,12 +5570,14 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	phone_body.add_child(display_root)
 	var fixed_display := MeshInstance3D.new()
 	fixed_display.name = "FixedInnerDisplay"
+	# Curves belong only to the outside perimeter of the complete handset.
+	# The edge touching the hinge must stay flat on both halves.
 	var fixed_curve_left := selected_phone_type == "Flip" or selected_phone_type == "Fold"
 	var fixed_curve_right := selected_phone_type == "Flip"
-	var fixed_curve_top := selected_phone_type == "Fold"
-	var fixed_curve_bottom := selected_phone_type == "Fold" or selected_phone_type == "Flip"
+	var fixed_curve_top := selected_phone_type == "Flip"
+	var fixed_curve_bottom := selected_phone_type == "Fold"
 	if foldable_curve_active:
-		fixed_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, fixed_curve_left, fixed_curve_right, fixed_curve_top, fixed_curve_bottom)
+		fixed_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, fixed_curve_left, fixed_curve_right, fixed_curve_top, fixed_curve_bottom, fixed_corner_mask)
 	else:
 		fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, fixed_corner_mask)
 	fixed_display.material_override = display_material
@@ -5585,10 +5588,10 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	moving_display.name = "PhoneFoldableMovingDisplay"
 	var moving_curve_left := selected_phone_type == "Flip"
 	var moving_curve_right := selected_phone_type == "Fold" or selected_phone_type == "Flip"
-	var moving_curve_top := selected_phone_type == "Fold" or selected_phone_type == "Flip"
-	var moving_curve_bottom := selected_phone_type == "Fold"
+	var moving_curve_top := selected_phone_type == "Fold"
+	var moving_curve_bottom := selected_phone_type == "Flip"
 	if foldable_curve_active:
-		moving_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, moving_curve_left, moving_curve_right, moving_curve_top, moving_curve_bottom)
+		moving_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, moving_curve_left, moving_curve_right, moving_curve_top, moving_curve_bottom, moving_corner_mask)
 	else:
 		moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, moving_corner_mask)
 	moving_display.material_override = display_material
