@@ -2472,6 +2472,7 @@ void fragment() {
 
 func _refresh_back_design_boxes() -> void:
 	if not is_instance_valid(phone_body): return
+	_restore_foldable_accessories_from_group("BackDesignRaisedSections")
 	var old_root := phone_body.get_node_or_null("BackDesignRaisedSections")
 	if is_instance_valid(old_root): old_root.free()
 	if back_design_boxes.is_empty():
@@ -6507,6 +6508,7 @@ func _rear_hardware_support_surface_z(module_position: Vector2, _module_size: fl
 func _refresh_rear_hardware_visuals() -> void:
 	if not is_instance_valid(phone_body):
 		return
+	_restore_foldable_accessories_from_group("RearCameraFlashHardware")
 	var previous := phone_body.get_node_or_null("RearCameraFlashHardware")
 	if is_instance_valid(previous):
 		previous.free()
@@ -7315,9 +7317,38 @@ func _style_horizontal_feature_slider(meter: HSlider) -> void:
 	_style_custom_slider(meter)
 
 
+func _restore_foldable_accessories_from_group(group_name: String) -> void:
+	if selected_phone_type == "Standard" or not is_instance_valid(phone_body):
+		return
+	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf") as Node3D
+	if not is_instance_valid(moving_half):
+		return
+
+	# Old accessories may already have been reparented out of their feature
+	# group. Return only the matching group's parts to neutral phone space
+	# before that group is freed, otherwise they survive as ghost geometry.
+	moving_half.rotation = Vector3.ZERO
+	moving_half.position = Vector3.ZERO
+	moving_half.scale = Vector3.ONE
+	var original_group := phone_body.get_node_or_null(group_name)
+	for routed_item in moving_half.get_children():
+		if not routed_item.has_meta("foldable_routed_accessory"):
+			continue
+		if str(routed_item.get_meta("foldable_original_group", "")) != group_name:
+			continue
+		if is_instance_valid(original_group):
+			routed_item.reparent(original_group, true)
+		else:
+			routed_item.queue_free()
+		routed_item.remove_meta("foldable_routed_accessory")
+		routed_item.remove_meta("foldable_original_group")
+	_apply_phone_fold_angle()
+
+
 func _refresh_phone_side_buttons() -> void:
 	if not is_instance_valid(phone_body):
 		return
+	_restore_foldable_accessories_from_group("PhoneSideButtons")
 	var previous := phone_body.get_node_or_null("PhoneSideButtons")
 	if is_instance_valid(previous):
 		previous.free()
@@ -7590,6 +7621,7 @@ func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
 		return
 
+	_restore_foldable_accessories_from_group("PhoneSpeakerOpenings")
 	var previous_set := phone_body.get_node_or_null("PhoneSpeakerOpenings")
 	if is_instance_valid(previous_set):
 		previous_set.free()
