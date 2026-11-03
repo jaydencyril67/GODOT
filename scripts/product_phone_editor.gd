@@ -299,7 +299,7 @@ var preview_mouse_dragging := false
 var smartwatch_preview_mode := false
 var border_radius_level := 0
 var border_radius_value_label: Label
-var phone_thickness_level := 10
+var phone_thickness_level := 12
 var phone_thickness_value_label: Label
 var speaker_count := 0
 var speaker_count_value_label: Label
@@ -2480,7 +2480,7 @@ func _refresh_back_design_boxes() -> void:
 	var root := Node3D.new()
 	root.name = "BackDesignRaisedSections"
 	phone_body.add_child(root)
-	var phone_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var phone_depth := _phone_depth_for_thickness_level()
 	for index in range(back_design_boxes.size()):
 		var box: Dictionary = back_design_boxes[index]
 		var size: Vector2 = box["size"]
@@ -5313,7 +5313,7 @@ func _refresh_phone_screen() -> void:
 	display_material.emission = display_material.albedo_color
 	display_material.emission_energy_multiplier = 0.025
 	display.material_override = display_material
-	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var current_depth := _phone_depth_for_thickness_level()
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -5412,7 +5412,7 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 		center_y = _active_phone_size().y * 0.25
 	panel_width = maxf(0.28, panel_width)
 	panel_height = maxf(0.42, panel_height)
-	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var current_depth := _phone_depth_for_thickness_level()
 	# The cover display is rotated 180 degrees to face outward. That
 	# rotation mirrors left/right corner indices, so Fold must use the
 	# opposite half-mask; Flip's top/bottom mask is unchanged by it.
@@ -5504,7 +5504,7 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 		fixed_offset.y = -(segment_height * 0.5 + 0.009)
 		moving_offset.y = segment_height * 0.5 + 0.009
 
-	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var current_depth := _phone_depth_for_thickness_level()
 	var glass_z := current_depth * 0.5 + 0.0035
 	var screen_radius := 0.32 * float(border_radius_level) / 6.0
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
@@ -5895,7 +5895,7 @@ func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_
 			# Seat the bezel lens on the handset's front face. The display is
 			# raised above that face (and may be raised further for curved screens),
 			# so cancel only that display offset rather than moving behind the body.
-			var phone_front_z := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0) * 0.5
+			var phone_front_z := _phone_depth_for_thickness_level() * 0.5
 			var bezel_seated_z := phone_front_z - display.position.z
 			_add_front_camera_lens(camera_root, Vector3(0.0, bezel_camera_y, bezel_seated_z), 0.032, cutout_material, lens_material, ring_material)
 		"Waterdrop Notch":
@@ -6452,7 +6452,7 @@ func _back_design_box_has_rear_hardware(box_index: int) -> bool:
 
 
 func _rear_hardware_support_surface_z(module_position: Vector2, _module_size: float) -> float:
-	var phone_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var phone_depth := _phone_depth_for_thickness_level()
 	var surface_z := -phone_depth * 0.5
 	if _rear_hardware_back_design_index(module_position) >= 0:
 		# Raised Back Design mesh extrudes toward the outside of the rear face.
@@ -6667,7 +6667,7 @@ func _show_thickness_controls() -> void:
 	level_labels.add_theme_constant_override("separation", 0)
 	meter_row.add_child(level_labels)
 
-	for level in range(10, -1, -1):
+	for level in range(12, -1, -1):
 		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -6676,10 +6676,10 @@ func _show_thickness_controls() -> void:
 	var meter := VSlider.new()
 	meter.name = "PhoneThicknessLevelMeter"
 	meter.min_value = 0
-	meter.max_value = 10
+	meter.max_value = 12
 	meter.step = 1
 	meter.value = phone_thickness_level
-	meter.tick_count = 11
+	meter.tick_count = 13
 	meter.custom_minimum_size = Vector2(64, 290)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -6687,7 +6687,7 @@ func _show_thickness_controls() -> void:
 	_style_custom_slider(meter)
 	meter_row.add_child(meter)
 
-	phone_thickness_value_label = _make_label("LEVEL %d / 10" % phone_thickness_level, 16, Color("#a9e3ff"))
+	phone_thickness_value_label = _make_label("LEVEL %d / 12" % phone_thickness_level, 16, Color("#a9e3ff"))
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
 
@@ -6841,7 +6841,7 @@ func _refresh_phone_home_button() -> void:
 	phone_body.add_child(button_root)
 	# Keep the home marking close to the handset's bottom edge.
 	var center_y := -_active_phone_size().y * 0.5 + 0.11
-	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var current_depth := _phone_depth_for_thickness_level()
 	var body_front_z := current_depth * 0.5
 	var button_surface_z := body_front_z + 0.0008
 
@@ -7288,7 +7288,7 @@ func _refresh_phone_side_buttons() -> void:
 	key_material.metallic = 0.32
 	key_material.roughness = 0.30
 
-	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var current_depth := _phone_depth_for_thickness_level()
 	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
 	var key_length := 0.30 * side_button_length_scale
 	var single_key_length := key_length * 0.46
@@ -7917,7 +7917,7 @@ func _refresh_phone_charge_port() -> void:
 
 	# Fit the complete mouth and its metal lip inside the handset's actual
 	# bottom rail. If the frame is very thin, the whole aperture scales evenly.
-	var current_phone_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var current_phone_depth := _phone_depth_for_thickness_level()
 	var half_phone_depth := current_phone_depth * 0.5
 	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var flat_bottom_half_width := _active_phone_size().x * 0.5 - current_corner_radius
@@ -8060,8 +8060,19 @@ func _refresh_phone_charge_port() -> void:
 		port_root.add_child(barrel_pin)
 
 
+func _phone_depth_for_thickness_level(level: int = -1) -> float:
+	# Preserve the complete original 0-10 thickness curve at levels 2-12.
+	# The former level 10 (thickest) is now level 12 without changing its
+	# physical depth. Levels 1 and 0 add two thinner settings below the
+	# former minimum depth.
+	var resolved_level := phone_thickness_level if level < 0 else clampi(level, 0, 12)
+	if resolved_level <= 2:
+		return lerpf(0.04, 0.08, float(resolved_level) / 2.0)
+	return lerpf(0.08, _active_phone_size().z, float(resolved_level - 2) / 10.0)
+
+
 func _on_phone_thickness_level_changed(value: float) -> void:
-	phone_thickness_level = clampi(roundi(value), 0, 10)
+	phone_thickness_level = clampi(roundi(value), 0, 12)
 	if is_instance_valid(phone_thickness_value_label):
 		phone_thickness_value_label.text = "LEVEL %d / 10" % phone_thickness_level
 	_refresh_phone_mesh()
@@ -8160,7 +8171,7 @@ func _refresh_foldable_hardware() -> void:
 
 	phone_body.mesh = null
 	var radius := 0.32 * float(border_radius_level) / 6.0
-	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var current_depth := _phone_depth_for_thickness_level()
 	var panels := Node3D.new()
 	panels.name = "PhoneFoldablePanels"
 	phone_body.add_child(panels)
@@ -8329,7 +8340,7 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array,
 		phone_size.x = size_override.x
 		phone_size.y = size_override.y
 	# Level 10 reaches an ultra-slim 0.08-unit body.
-	phone_size.z = lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	phone_size.z = _phone_depth_for_thickness_level()
 	var half_size := phone_size * 0.5
 	var outline := PackedVector2Array()
 	var rounded_outline_points: Array[bool] = []
@@ -9881,7 +9892,7 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 	for child in phone_case_preview.get_children():
 		child.free()
 	phone_case_shell = null
-	var depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
+	var depth := _phone_depth_for_thickness_level()
 	var wall := clampf(depth * 0.15, 0.018, 0.034)
 	var moving_case := Node3D.new()
 	moving_case.name = "PhoneCaseMovingHalf"
@@ -9931,7 +9942,7 @@ func _rebuild_phone_case_geometry() -> void:
 	for child in phone_case_preview.get_children():
 		child.free()
 	phone_case_shell = null
-	var depth := lerpf(0.08,_active_phone_size().z,float(phone_thickness_level)/10.0)
+	var depth := _phone_depth_for_thickness_level()
 	var wall := clampf(depth*0.15,0.018,0.034)
 	var combiner := CSGCombiner3D.new()
 	combiner.name = "LiveFittedPhoneCase"
@@ -10061,7 +10072,7 @@ func _rebuild_phone_case_geometry() -> void:
 	if sound_button_enabled:
 		# Match the actual smaller sound-action key, not a long generic slot.
 		# This leaves a clear case-material border around it above Volume Up.
-		var case_phone_depth := lerpf(0.08,_active_phone_size().z,float(phone_thickness_level)/10.0)
+		var case_phone_depth := _phone_depth_for_thickness_level()
 		var case_key_radius := clampf(case_phone_depth*0.27,0.018,0.036)*0.78
 		var sound_key_width := maxf(case_key_radius*1.35,0.024)
 		var sound_key_length := maxf(0.0,(0.105+sound_key_width)/1.2-sound_key_width)
