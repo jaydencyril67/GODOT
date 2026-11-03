@@ -5393,9 +5393,16 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	var outer_root := Node3D.new()
 	outer_root.name = "PhoneOuterDisplayPanel"
 	var outer_parent: Node = phone_body
-	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf")
-	if is_instance_valid(moving_half):
-		outer_parent = moving_half
+	if selected_phone_type == "Fold":
+		# Place the Fold cover display on the fixed (left) chassis leaf.
+		var fixed_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableFixedHalf")
+		if is_instance_valid(fixed_half):
+			outer_parent = fixed_half
+	else:
+		# Flip keeps its cover display attached to the moving leaf.
+		var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf")
+		if is_instance_valid(moving_half):
+			outer_parent = moving_half
 	outer_parent.add_child(outer_root)
 
 	var panel_width: float
@@ -5405,7 +5412,7 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	if selected_phone_type == "Fold":
 		panel_width = (_active_phone_size().x - 0.014) * 0.5 - 0.12
 		panel_height = _active_phone_size().y - 0.20
-		center_x = _active_phone_size().x * 0.25
+		center_x = -_active_phone_size().x * 0.25
 	else:
 		panel_width = _active_phone_size().x - 0.18
 		panel_height = (_active_phone_size().y - 0.014) * 0.5 - 0.12
