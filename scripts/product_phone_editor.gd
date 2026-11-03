@@ -3353,6 +3353,12 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 		"Micro-USB":
 			tip_width = 0.088
 			tip_height = 0.027
+		"Mini-USB":
+			tip_width = 0.112
+			tip_height = 0.038
+		"DC Barrel":
+			tip_width = 0.074
+			tip_height = 0.074
 
 	# Build the connector as three physically overlapping sections: a metal
 	# plug shell, a moulded grip, and a flexible strain-relief boot.
@@ -3407,7 +3413,14 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	var inner_metal := _charger_material(Color("#909da7"), 0.82, 0.26)
 	var contact_material := _charger_material(Color("#d9b66d"), 0.90, 0.22)
 
-	if connector_type == "Lightning":
+	if connector_type == "DC Barrel":
+		var barrel := _add_charger_cylinder(connector, "DCBarrelOuterSleeve", 0.037, 0.125, Vector3(0.0, 0.0, front_face_z + 0.012), metal_material, 32)
+		barrel.rotation_degrees.x = 90.0
+		var barrel_inner := _add_charger_cylinder(connector, "DCBarrelDarkInsulator", 0.024, 0.006, Vector3(0.0, 0.0, front_face_z - 0.050), face_material, 32)
+		barrel_inner.rotation_degrees.x = 90.0
+		var centre_pin := _add_charger_cylinder(connector, "DCBarrelCentreContact", 0.006, 0.075, Vector3(0.0, 0.0, front_face_z - 0.018), contact_material, 20)
+		centre_pin.rotation_degrees.x = 90.0
+	elif connector_type == "Lightning":
 		var blade := MeshInstance3D.new()
 		blade.name = "LightningMetalBlade"
 		blade.mesh = _create_rounded_panel_mesh(tip_width * 0.88, tip_height * 0.80, 0.004, tip_height * 0.20)
@@ -3460,7 +3473,7 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 				contact.position = Vector3(contact_x, -tip_height * 0.12, front_face_z - 0.0044)
 				contact.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				connector.add_child(contact)
-		else:
+		elif connector_type in ["Micro-USB", "Mini-USB"]:
 			var tongue := MeshInstance3D.new()
 			tongue.name = "MicroUSBPlugTongue"
 			tongue.mesh = _create_rounded_panel_mesh(tip_width * 0.68, tip_height * 0.24, 0.002, 0.002)
@@ -3526,10 +3539,28 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 
 
 func _charger_device_connector() -> String:
-	var parts := charger_cable_type.split(" to ")
-	if parts.size() != 2:
-		return "USB-C"
-	return str(parts[1])
+	# The phone's actual charging-port selection is authoritative. The cable's
+	# device-side plug must never be inferred from a stale cable menu choice.
+	match charge_port_type:
+		"USB Type-C":
+			return "USB-C"
+		"Apple Lightning":
+			return "Lightning"
+		"Micro-USB (Micro-B)":
+			return "Micro-USB"
+		"Mini-USB (Mini-B)":
+			return "Mini-USB"
+		"DC Barrel Jack":
+			return "DC Barrel"
+		_:
+			return ""
+
+
+func _charger_cable_options_for_phone() -> Array[String]:
+	var phone_connector := _charger_device_connector()
+	if phone_connector.is_empty():
+		return []
+	return ["USB-C to " + phone_connector, "USB-A to " + phone_connector]
 
 
 func _rebuild_charger_preview() -> void:
@@ -3637,7 +3668,7 @@ func _rebuild_charger_preview() -> void:
 	# The wall adapter and cable are independent systems. In the complete-set
 	# view the cable sits lower-right; alone it is centred and enlarged.
 	charger_geometry.visible = charger_enabled
-	if charger_cable_enabled:
+	if charger_cable_enabled and not _charger_device_connector().is_empty():
 		var cable_group := _build_charger_cable(charger_preview, output_connector)
 		if combined_layout:
 			cable_group.position = Vector3(0.42, -0.31, 0.015)
@@ -3710,14 +3741,14 @@ func _charger_output_connector() -> String:
 
 
 func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
-	charger_cable_enabled = enabled
+	charger_cable_enabled = enabled and not _charger_device_connector().is_empty()
 	_rebuild_charger_preview()
 	var return_page := "HOME" if charger_controls_page == "HOME" else "CABLE"
 	_show_charger_controls(return_page)
 
 
 func _on_charger_cable_selected(value: String) -> void:
-	if not ["USB-C to USB-C", "USB-A to USB-C", "USB-C to Lightning", "USB-A to Lightning", "USB-C to Micro-USB", "USB-A to Micro-USB"].has(value):
+	if not _charger_cable_options_for_phone().has(value):
 		return
 	charger_cable_type = value
 	_rebuild_charger_preview()
@@ -3950,7 +3981,8 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				cable_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 				cable_toggle.toggled.connect(_on_charger_cable_enabled_toggled)
 				cable_enable_row.add_child(cable_toggle)
-				for cable_name in ["USB-C to USB-C", "USB-A to USB-C", "USB-C to Lightning", "USB-A to Lightning", "USB-C to Micro-USB", "USB-A to Micro-USB"]:
+				var compatible_cable_options := _charger_cable_options_for_phone()
+				for cable_name in compatible_cable_options:
 					var cable_button := Button.new()
 					cable_button.name = "ChargerCable_" + cable_name.replace(" ", "").replace("-", "")
 					cable_button.text = cable_name + ("   ✓  SELECTED" if charger_cable_type == cable_name else "")
@@ -3961,7 +3993,10 @@ func _show_charger_controls(page: String = "HOME") -> void:
 					_style_staff_button(cable_button, charger_cable_type == cable_name)
 					cable_button.pressed.connect(_on_charger_cable_selected.bind(cable_name))
 					active_feature_panel.add_child(cable_button)
-				var cable_note := _make_label("A short, continuous U-shaped 3D cable with two fully joined connector heads. Both connector designs update with the selected cable type.", 11, Color("#a9c9dc"))
+				var cable_note_text := "A short U-shaped cable with a phone-side plug that matches the selected charging port."
+				if charge_port_type == "None":
+					cable_note_text = "Choose a phone charging port first. The cable connector options will then match it automatically."
+				var cable_note := _make_label(cable_note_text, 11, Color("#a9c9dc"))
 				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(cable_note)
 			"POWER":
@@ -6408,6 +6443,12 @@ func _show_charge_port_controls() -> void:
 
 func _on_charge_port_selected(port_type: String) -> void:
 	charge_port_type = port_type
+	# Keep the selected adapter-side plug (USB-A or USB-C), but always replace
+	# the phone-side connector with the exact selected phone port standard.
+	var adapter_connector := _charger_output_connector()
+	var phone_connector := _charger_device_connector()
+	if not phone_connector.is_empty():
+		charger_cable_type = adapter_connector + " to " + phone_connector
 	if is_instance_valid(charge_port_value_label):
 		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
 	# Rebuild the receptacle first so its exact aperture is used when the
