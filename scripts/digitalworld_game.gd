@@ -54,7 +54,7 @@ var logo_option: Button
 var selected_logo_id := 1
 var insignia_preview: TextureRect
 var logo_picker_layer: Control
-var logo_picker_panel: PanelContainer
+var logo_picker_panel: Control
 var logo_picker_grid: GridContainer
 var logo_picker_scroll: ScrollContainer
 var logo_picker_scroll_tween: Tween
