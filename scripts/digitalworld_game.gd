@@ -923,87 +923,42 @@ func _open_logo_picker() -> void:
 
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 700.0
-	var side_margin := 18.0 if compact else 48.0
-	var vertical_margin := 14.0 if compact else 28.0
-	var columns := 2 if viewport_size.x < 420.0 else (3 if viewport_size.x < 640.0 else (4 if viewport_size.x < 900.0 else 5))
+	var columns := 4 if viewport_size.x < 520.0 else (5 if viewport_size.x < 760.0 else (6 if viewport_size.x < 1040.0 else 7))
+	var side_margin := 10 if compact else 22
+	var vertical_margin := 8 if compact else 16
 
-	# Dim the existing company page, but do not put the insignias inside a card.
+	# The insignias sit directly on a plain dark screen: no title, card, or modal controls.
 	var scrim := ColorRect.new()
 	scrim.name = "InsigniaDarkScreen"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.003, 0.014, 0.007, 0.94)
+	scrim.color = Color(0.003, 0.014, 0.007, 0.96)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
 
-	var frame := MarginContainer.new()
-	frame.name = "InsigniaScreenFrame"
-	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	frame.add_theme_constant_override("margin_left", int(side_margin))
-	frame.add_theme_constant_override("margin_right", int(side_margin))
-	frame.add_theme_constant_override("margin_top", int(vertical_margin))
-	frame.add_theme_constant_override("margin_bottom", int(vertical_margin))
-	logo_picker_layer.add_child(frame)
-
-	var content := VBoxContainer.new()
-	content.name = "InsigniaScreenContent"
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12 if compact else 18)
-	frame.add_child(content)
-	logo_picker_panel = content
-
-	var header := HBoxContainer.new()
-	header.name = "InsigniaScreenHeader"
-	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.alignment = BoxContainer.ALIGNMENT_CENTER
-	header.add_theme_constant_override("separation", 12)
-	content.add_child(header)
-
-	var heading := _label("CHOOSE COMPANY INSIGNIA", 17 if compact else 21, Color("#f3faf3"))
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_apply_menu_3d_label(heading, 1)
-	header.add_child(heading)
-
-	var close_button := Button.new()
-	close_button.name = "CloseInsigniaSelection"
-	close_button.text = "CLOSE  X"
-	close_button.custom_minimum_size = Vector2(94 if compact else 112, 42)
-	close_button.focus_mode = Control.FOCUS_NONE
-	_apply_shared_page_typography(close_button, 12)
-	_style_company_glass_button(close_button)
-	close_button.pressed.connect(_close_logo_picker)
-	header.add_child(close_button)
-
-	var hint := _label("Select a mark for your company", 12 if compact else 13, Color("#a9c6ae"))
-	content.add_child(hint)
-
-	var separator := ColorRect.new()
-	separator.custom_minimum_size = Vector2(0, 1)
-	separator.color = Color(0.60, 0.84, 0.64, 0.36)
-	content.add_child(separator)
-
-	# The transparent scroll region sits directly on the dimmed screen.
 	var scroll := ScrollContainer.new()
 	scroll.name = "InsigniaGridScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_left = side_margin
+	scroll.offset_right = -side_margin
+	scroll.offset_top = vertical_margin
+	scroll.offset_bottom = -vertical_margin
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.follow_focus = false
 	scroll.scroll_deadzone = 8
 	scroll.clip_contents = true
 	logo_picker_scroll = scroll
-	content.add_child(scroll)
+	logo_picker_panel = scroll
+	logo_picker_layer.add_child(scroll)
 
 	var grid := GridContainer.new()
 	grid.name = "InsigniaGrid"
 	grid.columns = columns
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var grid_gap := 9 if compact else 14
+	var grid_gap := 6 if compact else 9
 	grid.add_theme_constant_override("h_separation", grid_gap)
 	grid.add_theme_constant_override("v_separation", grid_gap)
-	var tile_height := 94 if compact else 112
+	var tile_height := 62 if compact else 72
 	var grid_rows := int(ceil(50.0 / float(columns)))
 	grid.custom_minimum_size.y = float(grid_rows * tile_height + (grid_rows - 1) * grid_gap)
 	logo_picker_grid = grid
@@ -1026,14 +981,13 @@ func _open_logo_picker() -> void:
 		logo_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		logo_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var mark := TextureRect.new()
-		mark.custom_minimum_size = Vector2(56, 56) if compact else Vector2(72, 72)
+		mark.custom_minimum_size = Vector2(36, 36) if compact else Vector2(42, 42)
 		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		mark.texture = _company_logo_texture(logo_id)
 		logo_center.add_child(mark)
 		option.add_child(logo_center)
 		grid.add_child(option)
-
 
 func _style_company_glass_button(button: Button, _selected: bool = false) -> void:
 	# Emerald frosted glass with a clean highlight; interactions never flash.
