@@ -3330,7 +3330,7 @@ func _create_charger_cable_tube_mesh(points: PackedVector3Array, radius: float, 
 	return surface.commit()
 
 
-func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_type: String, position: Vector3, direction: Vector3, shell_material: Material, metal_material: Material, adapter_end: bool = false) -> Node3D:
+func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_type: String, position: Vector3, direction: Vector3, shell_material: Material, metal_material: Material) -> Node3D:
 	var connector := Node3D.new()
 	connector.name = node_name
 	connector.position = position
@@ -3957,7 +3957,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 					_style_staff_button(cable_button, charger_cable_type == cable_name)
 					cable_button.pressed.connect(_on_charger_cable_selected.bind(cable_name))
 					active_feature_panel.add_child(cable_button)
-				var cable_note := _make_label("A continuous, neatly bundled 3D cable with two visible connector heads and a woven retaining strap. Both connector designs update with the selected cable type.", 11, Color("#a9c9dc"))
+				var cable_note := _make_label("A short, continuous U-shaped 3D cable with two fully joined connector heads. Both connector designs update with the selected cable type.", 11, Color("#a9c9dc"))
 				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(cable_note)
 			"POWER":
