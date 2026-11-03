@@ -3467,6 +3467,8 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 
 	# A continuous serpentine racetrack fold. Each rounded U-turn is wider
 	# than the jacket, so neighbouring runs stay visibly separate.
+	# The lead-in ends at the left edge of the first lane.
+	var lane_start := Vector3(lane_left, first_lane_y, fold_plane_z)
 	for lane_index in range(lane_count):
 		var lane_y := first_lane_y + float(lane_index) * lane_spacing
 		var travels_right := lane_index % 2 == 0
@@ -3502,6 +3504,7 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 					next_start,
 					24
 				)
+			lane_start = next_start
 
 	# The last lane ends on the right. Route the final tail around the outside
 	# of the bundle, then into the rear of the right connector without crossing
