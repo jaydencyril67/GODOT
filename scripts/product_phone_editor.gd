@@ -3333,24 +3333,25 @@ func _create_charger_cable_tube_mesh(points: PackedVector3Array, radius: float, 
 func _create_charger_connector_profile_mesh(width: float, height: float, depth: float, connector_type: String) -> ArrayMesh:
 	var outline := PackedVector2Array()
 	if connector_type == "Micro-USB":
+		# Micro-B is shallow with near-straight sides and a slight taper.
 		outline = PackedVector2Array([
-			Vector2(-width * 0.50, -height * 0.24),
-			Vector2(-width * 0.36, -height * 0.50),
-			Vector2(width * 0.36, -height * 0.50),
-			Vector2(width * 0.50, -height * 0.24),
-			Vector2(width * 0.43, height * 0.50),
-			Vector2(-width * 0.43, height * 0.50)
+			Vector2(-width * 0.46, -height * 0.42),
+			Vector2(width * 0.46, -height * 0.42),
+			Vector2(width * 0.43, height * 0.24),
+			Vector2(width * 0.37, height * 0.50),
+			Vector2(-width * 0.37, height * 0.50),
+			Vector2(-width * 0.43, height * 0.24)
 		])
 	else:
+		# Mini-B is taller and more strongly trapezoidal, unlike the rounded
+		# capsule silhouette reserved for USB-C.
 		outline = PackedVector2Array([
-			Vector2(-width * 0.39, -height * 0.50),
-			Vector2(width * 0.39, -height * 0.50),
-			Vector2(width * 0.50, -height * 0.25),
-			Vector2(width * 0.50, height * 0.25),
-			Vector2(width * 0.39, height * 0.50),
-			Vector2(-width * 0.39, height * 0.50),
-			Vector2(-width * 0.50, height * 0.25),
-			Vector2(-width * 0.50, -height * 0.25)
+			Vector2(-width * 0.45, -height * 0.50),
+			Vector2(width * 0.45, -height * 0.50),
+			Vector2(width * 0.42, -height * 0.32),
+			Vector2(width * 0.31, height * 0.50),
+			Vector2(-width * 0.31, height * 0.50),
+			Vector2(-width * 0.42, -height * 0.32)
 		])
 	var indices := Geometry2D.triangulate_polygon(outline)
 	var surface := SurfaceTool.new()
@@ -3426,11 +3427,11 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 			tip_width = 0.070
 			tip_height = 0.018
 		"Micro-USB":
-			tip_width = 0.100
-			tip_height = 0.030
+			tip_width = 0.130
+			tip_height = 0.035
 		"Mini-USB":
-			tip_width = 0.118
-			tip_height = 0.050
+			tip_width = 0.132
+			tip_height = 0.060
 		"DC Barrel":
 			tip_width = 0.074
 			tip_height = 0.074
@@ -3497,13 +3498,16 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 		# This single continuous shell replaces the detached short cylinder.
 		var barrel := MeshInstance3D.new()
 		barrel.name = "ContinuousHollowDCBarrelSleeve"
-		barrel.mesh = _create_charger_dc_barrel_mesh(0.037, 0.021, -0.235, 0.055, 48)
+		var dc_socket_inner_diameter := 3.5 * (PHONE_SIZE.y / 150.0) * 0.62
+		var dc_outer_radius := dc_socket_inner_diameter * 0.94 * 0.5
+		var dc_inner_radius := dc_outer_radius * 0.54
+		barrel.mesh = _create_charger_dc_barrel_mesh(dc_outer_radius, dc_inner_radius, -0.195, 0.055, 48)
 		barrel.material_override = metal_material
 		barrel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		connector.add_child(barrel)
-		var barrel_insulator := _add_charger_cylinder(connector, "DCBarrelDarkInsulator", 0.020, 0.004, Vector3(0.0, 0.0, -0.190), face_material, 32)
+		var barrel_insulator := _add_charger_cylinder(connector, "DCBarrelDarkInsulator", dc_inner_radius * 0.92, 0.004, Vector3(0.0, 0.0, -0.170), face_material, 32)
 		barrel_insulator.rotation_degrees.x = 90.0
-		var centre_pin := _add_charger_cylinder(connector, "DCBarrelCentreContact", 0.0055, 0.155, Vector3(0.0, 0.0, -0.155), contact_material, 24)
+		var centre_pin := _add_charger_cylinder(connector, "DCBarrelCentreContact", dc_inner_radius * 0.36, 0.135, Vector3(0.0, 0.0, -0.1275), contact_material, 24)
 		centre_pin.rotation_degrees.x = 90.0
 	elif connector_type == "Lightning":
 		var blade := MeshInstance3D.new()
