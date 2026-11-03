@@ -5490,18 +5490,30 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 
 	var full_width := maxf(0.30, _active_phone_size().x - bezel_width * 2.0)
 	var full_height := maxf(0.60, _active_phone_size().y - bezel_height * 2.0)
+	# Keep the two inner glass edges anchored to the hinge. Screen WIDTH may
+	# move only the outside edges; it must never pull either hinge-side edge
+	# away from the centre seam. Screen HEIGHT keeps its existing behaviour.
+	const INNER_HINGE_SCREEN_GAP := 0.018
+	var hinge_half_gap := INNER_HINGE_SCREEN_GAP * 0.5
 	var segment_width := full_width
 	var segment_height := full_height
 	var fixed_offset := Vector3.ZERO
 	var moving_offset := Vector3.ZERO
 	if selected_phone_type == "Fold":
-		segment_width = maxf(0.30, (full_width - 0.018) * 0.5)
-		fixed_offset.x = -(segment_width * 0.5 + 0.009)
-		moving_offset.x = segment_width * 0.5 + 0.009
+		# Book-style Fold: anchor the left/right inner edges at +/- hinge_half_gap.
+		segment_width = maxf(0.30, (full_width - INNER_HINGE_SCREEN_GAP) * 0.5)
+		var fixed_inner_edge := -hinge_half_gap
+		var moving_inner_edge := hinge_half_gap
+		fixed_offset.x = fixed_inner_edge - segment_width * 0.5
+		moving_offset.x = moving_inner_edge + segment_width * 0.5
 	else:
-		segment_height = maxf(0.60, (full_height - 0.018) * 0.5)
-		fixed_offset.y = -(segment_height * 0.5 + 0.009)
-		moving_offset.y = segment_height * 0.5 + 0.009
+		# Clamshell Flip: preserve the existing height split and its hinge gap.
+		# Width changes only the two outside (left/right) edges of both displays.
+		segment_height = maxf(0.60, (full_height - INNER_HINGE_SCREEN_GAP) * 0.5)
+		var fixed_inner_edge := -hinge_half_gap
+		var moving_inner_edge := hinge_half_gap
+		fixed_offset.y = fixed_inner_edge - segment_height * 0.5
+		moving_offset.y = moving_inner_edge + segment_height * 0.5
 
 	var current_depth := _phone_depth_for_thickness_level()
 	var glass_z := current_depth * 0.5 + 0.0035
