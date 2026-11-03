@@ -923,9 +923,11 @@ func _open_logo_picker() -> void:
 
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 700.0
-	var columns := 4 if viewport_size.x < 520.0 else (5 if viewport_size.x < 760.0 else (6 if viewport_size.x < 1040.0 else 7))
 	var side_margin := 10 if compact else 22
 	var vertical_margin := 8 if compact else 16
+	var grid_gap := 7 if compact else 9
+	var columns := clampi(int(floor((viewport_size.x - side_margin * 2 + grid_gap) / 81.0)), 4, 10)
+	var tile_size := mini(72, int(floor((viewport_size.x - side_margin * 2 - grid_gap * (columns - 1)) / columns)))
 
 	# The insignias sit directly on a plain dark screen: no title, card, or modal controls.
 	var scrim := ColorRect.new()
@@ -955,12 +957,10 @@ func _open_logo_picker() -> void:
 	grid.name = "InsigniaGrid"
 	grid.columns = columns
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var grid_gap := 6 if compact else 9
 	grid.add_theme_constant_override("h_separation", grid_gap)
 	grid.add_theme_constant_override("v_separation", grid_gap)
-	var tile_height := 62 if compact else 72
 	var grid_rows := int(ceil(50.0 / float(columns)))
-	grid.custom_minimum_size.y = float(grid_rows * tile_height + (grid_rows - 1) * grid_gap)
+	grid.custom_minimum_size.y = float(grid_rows * tile_size + (grid_rows - 1) * grid_gap)
 	logo_picker_grid = grid
 	scroll.add_child(grid)
 
@@ -968,20 +968,35 @@ func _open_logo_picker() -> void:
 		var logo_id := index + 1
 		var option := Button.new()
 		option.name = "InsigniaOption_%02d" % logo_id
-		option.custom_minimum_size = Vector2(0, tile_height)
+		option.custom_minimum_size = Vector2(tile_size, tile_size)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.toggle_mode = false
 		option.focus_mode = Control.FOCUS_NONE
 		option.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		option.mouse_default_cursor_shape = Control.CURSOR_ARROW
 		option.clip_contents = true
-		_style_company_glass_button(option)
+		var circle_style := StyleBoxFlat.new()
+		circle_style.bg_color = Color(0.18, 0.46, 0.24, 0.34)
+		circle_style.border_color = Color(0.72, 0.91, 0.75, 0.58)
+		circle_style.set_border_width_all(1)
+		circle_style.set_corner_radius_all(int(tile_size / 2))
+		circle_style.shadow_color = Color(0.0, 0.025, 0.008, 0.22)
+		circle_style.shadow_size = 5
+		circle_style.shadow_offset = Vector2(0, 2)
+		circle_style.anti_aliasing = true
+		circle_style.content_margin_left = 0
+		circle_style.content_margin_right = 0
+		circle_style.content_margin_top = 0
+		circle_style.content_margin_bottom = 0
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+			option.add_theme_stylebox_override(state, circle_style)
 
 		var logo_center := CenterContainer.new()
 		logo_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		logo_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var mark := TextureRect.new()
-		mark.custom_minimum_size = Vector2(36, 36) if compact else Vector2(42, 42)
+		var mark_size := mini(42, int(tile_size * 0.56))
+		mark.custom_minimum_size = Vector2(mark_size, mark_size)
 		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		mark.texture = _company_logo_texture(logo_id)
