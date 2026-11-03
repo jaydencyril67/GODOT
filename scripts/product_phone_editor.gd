@@ -8440,7 +8440,94 @@ func _create_phone_chassis_mesh(radius: float, port_opening: PackedVector2Array)
 	return _create_rounded_phone_mesh(radius, port_opening)
 
 
+func _add_phone_bottom_edge_rectangle(surface: SurfaceTool, x_min: float, x_max: float, z_min: float, z_max: float, face_y: float) -> void:
+	if x_max - x_min <= 0.00001 or z_max - z_min <= 0.00001:
+		return
+	var a := Vector3(x_min, face_y, z_min)
+	var b := Vector3(x_max, face_y, z_min)
+	var c := Vector3(x_max, face_y, z_max)
+	var d := Vector3(x_min, face_y, z_max)
+	var normal := Vector3(0.0, -1.0, 0.0)
+	_add_phone_mesh_triangle(surface, a, b, c, normal)
+	_add_phone_mesh_triangle(surface, a, c, d, normal)
+
+
+func _add_foldable_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float) -> void:
+	if port_opening.size() < 3:
+		return
+	var half_size := phone_size * 0.5
+	var face_y := -half_size.y
+	var low := Vector2(INF, INF)
+	var high := Vector2(-INF, -INF)
+	for point in port_opening:
+		low.x = minf(low.x, point.x)
+		low.y = minf(low.y, point.y)
+		high.x = maxf(high.x, point.x)
+		high.y = maxf(high.y, point.y)
+	var centre := (low + high) * 0.5
+	var centred_opening := PackedVector2Array()
+	for point in port_opening:
+		centred_opening.append(point - centre)
+
+	# Keep the triangulation local to the actual connector. The small border
+	# is enough for the opening's transition ring; the far rail is filled with
+	# rectangular strips that stay exactly inside the saved half-frame bounds.
+	var box_half_x := minf((high.x - low.x) * 0.5 + 0.004, maxf(0.002, flat_bottom_half_width - 0.002))
+	var box_half_z := minf((high.y - low.y) * 0.5 + 0.004, maxf(0.002, half_size.z - 0.002))
+	var angles: Array[float] = []
+	const PORT_RING_SAMPLES := 64
+	for sample in range(PORT_RING_SAMPLES):
+		angles.append(TAU * float(sample) / float(PORT_RING_SAMPLES))
+	var corner_angle := atan2(box_half_z, box_half_x)
+	angles.append(corner_angle)
+	angles.append(PI - corner_angle)
+	angles.append(PI + corner_angle)
+	angles.append(TAU - corner_angle)
+	angles.sort()
+
+	var inner_points := PackedVector3Array()
+	var outer_points := PackedVector3Array()
+	var previous_angle := -1.0
+	for angle in angles:
+		if absf(angle - previous_angle) < 0.00001:
+			continue
+		previous_angle = angle
+		var direction := Vector2(cos(angle), sin(angle))
+		var inner_local := _port_polygon_ray_intersection(centred_opening, direction)
+		if inner_local == Vector2.ZERO:
+			continue
+		var scale_x := box_half_x / maxf(absf(direction.x), 0.000001)
+		var scale_z := box_half_z / maxf(absf(direction.y), 0.000001)
+		var outer_local := direction * minf(scale_x, scale_z)
+		var inner := centre + inner_local
+		var outer := centre + outer_local
+		inner_points.append(Vector3(inner.x, face_y, inner.y))
+		outer_points.append(Vector3(outer.x, face_y, outer.y))
+
+	var normal := Vector3(0.0, -1.0, 0.0)
+	for index in range(mini(inner_points.size(), outer_points.size())):
+		var next_index := (index + 1) % inner_points.size()
+		_add_phone_mesh_triangle(surface, outer_points[index], outer_points[next_index], inner_points[next_index], normal)
+		_add_phone_mesh_triangle(surface, outer_points[index], inner_points[next_index], inner_points[index], normal)
+
+	var box_left := centre.x - box_half_x
+	var box_right := centre.x + box_half_x
+	var box_bottom := centre.y - box_half_z
+	var box_top := centre.y + box_half_z
+	_add_phone_bottom_edge_rectangle(surface, -flat_bottom_half_width, box_left, -half_size.z, half_size.z, face_y)
+	_add_phone_bottom_edge_rectangle(surface, box_right, flat_bottom_half_width, -half_size.z, half_size.z, face_y)
+	_add_phone_bottom_edge_rectangle(surface, box_left, box_right, box_top, half_size.z, face_y)
+	_add_phone_bottom_edge_rectangle(surface, box_left, box_right, -half_size.z, box_bottom, face_y)
+
+
 func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float) -> void:
+	if selected_phone_type == "Fold":
+		# Fold's charging port belongs to one half-frame only. Build the
+		# opening locally around that half's port and fill the remaining rail
+		# as four bounded strips; do not fan long triangles from the aperture
+		# to the entire half-width (the source of the stray plate-like shading).
+		_add_foldable_bottom_edge_with_port(surface, phone_size, port_opening, flat_bottom_half_width)
+		return
 	var half_size := phone_size * 0.5
 	var opening := port_opening
 	var mouth_y := -half_size.y
