@@ -5512,6 +5512,9 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	# Keep the two inner glass edges anchored to the hinge. Screen WIDTH may
 	# move only the outside edges; it must never pull either hinge-side edge
 	# away from the centre seam. Screen HEIGHT keeps its existing behaviour.
+	# Keep only a physically plausible hairline at the fold. The matching
+	# OLED bridge below fills this tolerance so the open device reads as one
+	# continuous panel instead of two separate screens.
 	const INNER_HINGE_SCREEN_GAP := 0.018
 	var hinge_half_gap := INNER_HINGE_SCREEN_GAP * 0.5
 	var segment_width := full_width
@@ -5610,19 +5613,36 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	moving_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	moving_half.add_child(moving_display)
 	phone_screen = fixed_display
+
+	# The two physical display leaves retain their own meshes for folding, but
+	# a glass-matched OLED bridge fills the tiny hinge tolerance when fully
+	# open. This removes the dark chassis/hinge stripe from the viewing area.
+	var inner_bridge := MeshInstance3D.new()
+	inner_bridge.name = "ContinuousInnerDisplayBridge"
+	if selected_phone_type == "Fold":
+		inner_bridge.mesh = _create_rounded_panel_mesh(INNER_HINGE_SCREEN_GAP, segment_height, 0.006, 0.001, 0)
+	else:
+		inner_bridge.mesh = _create_rounded_panel_mesh(segment_width, INNER_HINGE_SCREEN_GAP, 0.006, 0.001, 0)
+	inner_bridge.material_override = display_material
+	inner_bridge.position = Vector3(0.0, 0.0, glass_z)
+	inner_bridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	display_root.add_child(inner_bridge)
+
+	# Keep a natural fold line, but reduce it to a very fine, low-contrast
+	# crease. The previous broad dark strip made the two panels look detached.
 	var crease := MeshInstance3D.new()
 	crease.name = "PhoneFoldableInnerCrease"
 	var crease_mesh := BoxMesh.new()
 	if selected_phone_type == "Fold":
-		crease_mesh.size = Vector3(0.006, segment_height * 0.96, 0.002)
+		crease_mesh.size = Vector3(0.0012, segment_height * 0.96, 0.001)
 	else:
-		crease_mesh.size = Vector3(segment_width * 0.96, 0.006, 0.002)
+		crease_mesh.size = Vector3(segment_width * 0.96, 0.0012, 0.001)
 	crease.mesh = crease_mesh
 	var crease_material := StandardMaterial3D.new()
-	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.29)
+	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.12)
 	crease_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	crease_material.roughness = 0.24
-	crease_material.metallic = 0.08
+	crease_material.metallic = 0.04
 	crease.material_override = crease_material
 	crease.position = Vector3(0.0, 0.0, glass_z + 0.004)
 	crease.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -5631,14 +5651,14 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	crease_glint.name = "PhoneFoldableCreaseHighlight"
 	var glint_mesh := BoxMesh.new()
 	if selected_phone_type == "Fold":
-		glint_mesh.size = Vector3(0.0014, segment_height * 0.94, 0.001)
-		crease_glint.position.x = 0.0055
+		glint_mesh.size = Vector3(0.00045, segment_height * 0.94, 0.0005)
+		crease_glint.position.x = 0.0010
 	else:
-		glint_mesh.size = Vector3(segment_width * 0.94, 0.0014, 0.001)
-		crease_glint.position.y = 0.0055
+		glint_mesh.size = Vector3(segment_width * 0.94, 0.00045, 0.0005)
+		crease_glint.position.y = 0.0010
 	crease_glint.mesh = glint_mesh
 	var glint_material := StandardMaterial3D.new()
-	glint_material.albedo_color = Color(0.56, 0.78, 0.91, 0.20)
+	glint_material.albedo_color = Color(0.56, 0.78, 0.91, 0.08)
 	glint_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	glint_material.roughness = 0.24
 	crease_glint.material_override = glint_material
@@ -8505,6 +8525,11 @@ func _apply_phone_fold_angle() -> void:
 	if is_instance_valid(moving_half):
 		moving_half.rotation = inward_rotation
 		moving_half.position.z = layer_offset
+	# The bridge is coplanar with both leaves only in the flat-open posture.
+	# Hide it as soon as the hinge bends so no floating glass appears in motion.
+	var inner_bridge := phone_body.get_node_or_null("PhoneDisplayPanel/ContinuousInnerDisplayBridge") if is_instance_valid(phone_body) else null
+	if is_instance_valid(inner_bridge):
+		inner_bridge.visible = fold_angle_degrees <= 2.0
 	var division_seam := phone_body.get_node_or_null("FoldedChassisDivisionSeam") if is_instance_valid(phone_body) else null
 	if is_instance_valid(division_seam):
 		division_seam.visible = fold_angle_degrees >= 158.0
