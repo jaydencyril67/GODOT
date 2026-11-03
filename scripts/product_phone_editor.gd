@@ -3204,7 +3204,6 @@ func _rebuild_smartwatch_preview() -> void:
 	var screen_material := _charger_material(Color("#050b13"), 0.04, 0.10)
 	var steel_material := _charger_material(Color("#b9c4ce"), 0.91, 0.22)
 	var dark_steel_material := _charger_material(Color("#48535e"), 0.86, 0.30)
-	var white_material := _charger_material(Color("#e9f3ff"), 0.12, 0.25)
 	var accent_material := _charger_material(Color("#65d7c4"), 0.28, 0.22)
 
 	# Main case and the very small step that separates the metal chassis from
@@ -3292,8 +3291,8 @@ func _rebuild_smartwatch_preview() -> void:
 	for hole_index in range(5):
 		var hole_y := -0.735 - float(hole_index) * 0.075
 		var hole_z := -0.145 - float(hole_index) * 0.009
-		var hole := _add_charger_cylinder(smartwatch_preview, "BandAdjustmentHole_%d" % hole_index, 0.014, 0.009, Vector3(0.0, hole_y, hole_z), _charger_material(Color("#17212a"), 0.0, 0.92), 20)
-		hole.rotation_degrees.x = 90.0
+		var adjustment_hole := _add_charger_cylinder(smartwatch_preview, "BandAdjustmentHole_%d" % hole_index, 0.014, 0.009, Vector3(0.0, hole_y, hole_z), _charger_material(Color("#17212a"), 0.0, 0.92), 20)
+		adjustment_hole.rotation_degrees.x = 90.0
 	var buckle_y := -1.105
 	var buckle_z := -0.145
 	_add_charger_box(smartwatch_preview, "BandBuckleTop", Vector3(0.43, 0.022, 0.028), Vector3(0.0, buckle_y + 0.115, buckle_z), steel_material)
@@ -3310,7 +3309,6 @@ func _create_smartwatch_band_mesh(points: PackedVector3Array, width: float, thic
 	const BAND_SEGMENTS := 16
 	var rings: Array[PackedVector3Array] = []
 	var ring_normals: Array[PackedVector3Array] = []
-	var previous_tangent := Vector3.ZERO
 	for point_index in range(points.size()):
 		var previous_point := points[maxi(point_index - 1, 0)]
 		var following_point := points[mini(point_index + 1, points.size() - 1)]
@@ -3321,7 +3319,6 @@ func _create_smartwatch_band_mesh(points: PackedVector3Array, width: float, thic
 		var thickness_axis := tangent.cross(width_axis).normalized()
 		if thickness_axis.length_squared() < 0.000001:
 			thickness_axis = Vector3.BACK
-		previous_tangent = tangent
 		var taper := lerpf(1.0, 0.91, float(point_index) / float(points.size() - 1))
 		var ring := PackedVector3Array()
 		var normals := PackedVector3Array()
