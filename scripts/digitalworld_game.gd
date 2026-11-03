@@ -1964,10 +1964,14 @@ func _finish_headquarters_loading() -> void:
 	# Prepare both staff pages while the HQ loading screen is still active.
 	# HQ buttons will only reveal these already-built controls.
 	_prepare_staff_scenes()
+	if loading_progress_tween != null and loading_progress_tween.is_running():
+		loading_progress_tween.kill()
+	loading_progress_tween = null
 	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
 	loading_status_label = null
+	loading_percent_label = null
 	loading_progress_bar = null
 
 	_show_home_navigation()
