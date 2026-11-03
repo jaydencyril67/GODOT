@@ -21,6 +21,8 @@ const PALE := Color("#e8eee8")
 const MUTED := Color("#a6b5b1")
 const ACCENT := Color("#d8e6bd")
 
+var landing_environment: Node3D
+var landing_device: Node3D
 var ui_layer: CanvasLayer
 var ui_root: Control
 var create_ui_layer: CanvasLayer
@@ -103,6 +105,8 @@ func _process(delta: float) -> void:
 		_save_career()
 		last_saved_game_day = current_day
 	_update_home_status_bar()
+	if is_instance_valid(landing_device) and current_screen == "menu":
+		landing_device.rotation.y = sin(Time.get_ticks_msec() * 0.00022) * 0.16
 
 
 func _get_game_month_key(timestamp: float) -> String:
@@ -267,71 +271,301 @@ func _new_screen() -> Control:
 func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
+	if is_instance_valid(landing_environment):
+		landing_environment.queue_free()
+	landing_environment = _build_landing_showroom()
+	add_child(landing_environment)
 	var root := _new_screen()
-	# Animated green-to-black gradient replaces the old landing photograph.
-	# The shader shifts the colour field very slowly for a calm, living backdrop.
-	var background := ColorRect.new()
-	background.name = "Animated_Green_Landing_Gradient"
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var gradient_shader := Shader.new()
-	gradient_shader.code = """
+	# The landing screen is a game front-end: cinematic showroom on the left,
+	# with a compact command console on the right.
+	var vignette := ColorRect.new()
+	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vignette_shader := Shader.new()
+	vignette_shader.code = """
 shader_type canvas_item;
-
 void fragment() {
-	vec2 uv = SCREEN_UV;
-	float t = TIME * 0.10;
-	float drift = sin(uv.x * 2.1 + t) * 0.035 + cos(uv.x * 1.25 - t * 0.7) * 0.025;
-	float y = clamp(uv.y + drift + sin(t * 0.55) * 0.018, 0.0, 1.0);
-
-	vec3 green = vec3(0.055, 0.48, 0.22);
-	vec3 dark_green = vec3(0.018, 0.27, 0.12);
-	vec3 darker_green = vec3(0.006, 0.12, 0.065);
-	vec3 darkest_green = vec3(0.002, 0.045, 0.027);
-	vec3 black = vec3(0.0, 0.0, 0.0);
-
-	vec3 colour = mix(green, dark_green, smoothstep(0.02, 0.29, y));
-	colour = mix(colour, darker_green, smoothstep(0.29, 0.53, y));
-	colour = mix(colour, darkest_green, smoothstep(0.53, 0.77, y));
-	colour = mix(colour, black, smoothstep(0.77, 1.0, y));
-
-	float glow_x = 0.5 + sin(t * 0.8) * 0.22;
-	float glow_y = 0.30 + cos(t * 0.6) * 0.08;
-	float glow = exp(-((uv.x - glow_x) * (uv.x - glow_x) * 5.0 + (uv.y - glow_y) * (uv.y - glow_y) * 11.0)) * 0.075;
-	colour += vec3(0.025, 0.11, 0.045) * glow;
-
-	COLOR = vec4(colour, 1.0);
+	vec2 p = SCREEN_UV - vec2(0.5);
+	float shade = smoothstep(0.25, 0.82, length(p));
+	COLOR = vec4(vec3(0.0), shade * 0.56);
 }
 """
-	var gradient_material := ShaderMaterial.new()
-	gradient_material.shader = gradient_shader
-	background.material = gradient_material
-	root.add_child(background)
+	var vignette_material := ShaderMaterial.new()
+	vignette_material.shader = vignette_shader
+	vignette.material = vignette_material
+	root.add_child(vignette)
 
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center.mouse_filter = Control.MOUSE_FILTER_PASS
-	root.add_child(center)
+	var layout := HBoxContainer.new()
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layout.add_theme_constant_override("separation", 0)
+	layout.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(layout)
+
+	var showcase := Control.new()
+	showcase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	showcase.size_flags_stretch_ratio = 1.35
+	showcase.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layout.add_child(showcase)
+
+	var brand := VBoxContainer.new()
+	brand.position = Vector2(54, 42)
+	brand.custom_minimum_size = Vector2(460, 100)
+	brand.add_theme_constant_override("separation", 2)
+	showcase.add_child(brand)
+	var brand_name := _label("DIGITAL WORLD", 27, Color("#f2f7f2"))
+	_apply_menu_3d_label(brand_name, 2)
+	brand.add_child(brand_name)
+	var brand_subtitle := _label("MOBILES  /  POWERED BY KINGSHALL", 11, Color("#9bc6a8"))
+	brand.add_theme_constant_override("separation", 4)
+	brand.add_child(brand_subtitle)
+
+	var welcome := VBoxContainer.new()
+	welcome.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	welcome.position = Vector2(52, 112)
+	welcome.custom_minimum_size = Vector2(390, 112)
+	welcome.add_theme_constant_override("separation", 4)
+	showcase.add_child(welcome)
+	var welcome_title := _label("BUILD THE\nNEXT GENERATION.", 29, Color("#f4f7f1"))
+	welcome_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_apply_menu_3d_label(welcome_title, 2)
+	welcome.add_child(welcome_title)
+	var welcome_caption := _label("Design. Innovate. Lead the mobile industry.", 13, Color("#a9b9ae"))
+	welcome.add_child(welcome_caption)
+
+	var command_area := CenterContainer.new()
+	command_area.size_flags_horizontal = Control.SIZE_SHRINK_END
+	command_area.custom_minimum_size.x = 360
+	command_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layout.add_child(command_area)
+
+	var command_panel := PanelContainer.new()
+	command_panel.custom_minimum_size = Vector2(320, 0)
+	command_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.015, 0.045, 0.035, 0.78)
+	panel_style.border_color = Color(0.35, 0.66, 0.43, 0.58)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(18)
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.38)
+	panel_style.shadow_size = 22
+	panel_style.content_margin_left = 24
+	panel_style.content_margin_right = 24
+	panel_style.content_margin_top = 28
+	panel_style.content_margin_bottom = 28
+	command_panel.add_theme_stylebox_override("panel", panel_style)
+	command_area.add_child(command_panel)
 
 	var menu := VBoxContainer.new()
-	menu.name = "Minimal_3D_Command_Menu"
-	menu.custom_minimum_size = Vector2(440, 0)
-	menu.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	menu.add_theme_constant_override("separation", 18)
-	menu.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(menu)
+	menu.add_theme_constant_override("separation", 13)
+	command_panel.add_child(menu)
+	var menu_heading := _label("MAIN MENU", 11, Color("#8dbd98"), HORIZONTAL_ALIGNMENT_CENTER)
+	menu.add_child(menu_heading)
+	var menu_rule := ColorRect.new()
+	menu_rule.custom_minimum_size = Vector2(0, 1)
+	menu_rule.color = Color(0.40, 0.70, 0.47, 0.52)
+	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-
 	for button in [new_game, continue_game, settings, exit_game]:
-		button.custom_minimum_size = Vector2(0, 68)
+		button.custom_minimum_size = Vector2(0, 58)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_style_command_menu_button(button, button == new_game)
+		_style_landing_command_button(button, button == new_game)
+
+	var footer := _label("A KINGS HALL SIMULATION", 9, Color("#718b78"), HORIZONTAL_ALIGNMENT_CENTER)
+	menu.add_child(footer)
+
+
+func _build_landing_showroom() -> Node3D:
+	var scene := Node3D.new()
+	scene.name = "Landing_Showroom_Environment"
+	scene.position = Vector3.ZERO
+
+	var world_environment := WorldEnvironment.new()
+	var environment := Environment.new()
+	environment.background_mode = Environment.BG_COLOR
+	environment.background_color = Color("#020906")
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color("#7fa88a")
+	environment.ambient_light_energy = 0.38
+	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	world_environment.environment = environment
+	scene.add_child(world_environment)
+
+	var camera := Camera3D.new()
+	camera.position = Vector3(0.0, 3.25, 11.8)
+	camera.rotation_degrees = Vector3(-9.0, 0.0, 0.0)
+	camera.fov = 43.0
+	camera.current = true
+	scene.add_child(camera)
+
+	var key_light := DirectionalLight3D.new()
+	key_light.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
+	key_light.light_color = Color("#d8f4dc")
+	key_light.light_energy = 1.35
+	scene.add_child(key_light)
+
+	var green_light := OmniLight3D.new()
+	green_light.position = Vector3(-3.5, 3.5, 1.5)
+	green_light.light_color = Color("#28a957")
+	green_light.light_energy = 3.0
+	green_light.omni_range = 9.0
+	scene.add_child(green_light)
+
+	var floor := MeshInstance3D.new()
+	var floor_mesh := PlaneMesh.new()
+	floor_mesh.size = Vector2(40.0, 40.0)
+	floor.mesh = floor_mesh
+	floor.position = Vector3(0.0, -0.08, 0.0)
+	var floor_material := StandardMaterial3D.new()
+	floor_material.albedo_color = Color("#07120c")
+	floor_material.metallic = 0.48
+	floor_material.roughness = 0.28
+	floor.material_override = floor_material
+	scene.add_child(floor)
+
+	# Tall architectural fins create a premium technology showroom silhouette.
+	for i in range(9):
+		var fin := MeshInstance3D.new()
+		var fin_mesh := BoxMesh.new()
+		fin_mesh.size = Vector3(0.13, 5.2, 0.32)
+		fin.mesh = fin_mesh
+		fin.position = Vector3(-5.0 + float(i) * 1.22, 2.5, -2.8)
+		var fin_material := StandardMaterial3D.new()
+		fin_material.albedo_color = Color("#10291a")
+		fin_material.metallic = 0.62
+		fin_material.roughness = 0.3
+		fin.material_override = fin_material
+		scene.add_child(fin)
+
+	var rear_wall := MeshInstance3D.new()
+	var wall_mesh := BoxMesh.new()
+	wall_mesh.size = Vector3(13.0, 6.0, 0.35)
+	rear_wall.mesh = wall_mesh
+	rear_wall.position = Vector3(0.0, 2.7, -3.15)
+	var wall_material := StandardMaterial3D.new()
+	wall_material.albedo_color = Color("#06140c")
+	wall_material.metallic = 0.34
+	wall_material.roughness = 0.42
+	rear_wall.material_override = wall_material
+	scene.add_child(rear_wall)
+
+	# A raised circular plinth and a clean, abstract flagship handset anchor the scene.
+	var plinth := MeshInstance3D.new()
+	var plinth_mesh := CylinderMesh.new()
+	plinth_mesh.top_radius = 1.52
+	plinth_mesh.bottom_radius = 1.58
+	plinth_mesh.height = 0.30
+	plinth.mesh = plinth_mesh
+	plinth.position = Vector3(-1.35, 0.13, -0.15)
+	var plinth_material := StandardMaterial3D.new()
+	plinth_material.albedo_color = Color("#14251a")
+	plinth_material.metallic = 0.78
+	plinth_material.roughness = 0.22
+	plinth.material_override = plinth_material
+	scene.add_child(plinth)
+
+	var rim := MeshInstance3D.new()
+	var rim_mesh := TorusMesh.new()
+	rim_mesh.inner_radius = 1.49
+	rim_mesh.outer_radius = 1.55
+	rim.mesh = rim_mesh
+	rim.position = Vector3(-1.35, 0.30, -0.15)
+	var rim_material := StandardMaterial3D.new()
+	rim_material.albedo_color = Color("#5acb79")
+	rim_material.emission_enabled = true
+	rim_material.emission = Color("#164d28")
+	rim_material.metallic = 0.7
+	rim.material_override = rim_material
+	scene.add_child(rim)
+
+	var device := Node3D.new()
+	device.name = "Landing_Flagship_Device"
+	device.position = Vector3(-1.35, 1.73, -0.15)
+	scene.add_child(device)
+	var handset := MeshInstance3D.new()
+	var handset_mesh := BoxMesh.new()
+	handset_mesh.size = Vector3(1.18, 2.35, 0.16)
+	handset.mesh = handset_mesh
+	var handset_material := StandardMaterial3D.new()
+	handset_material.albedo_color = Color("#b9c8bd")
+	handset_material.metallic = 0.82
+	handset_material.roughness = 0.22
+	handset.material_override = handset_material
+	device.add_child(handset)
+
+	var display := MeshInstance3D.new()
+	var display_mesh := BoxMesh.new()
+	display_mesh.size = Vector3(1.08, 2.23, 0.025)
+	display.mesh = display_mesh
+	display.position = Vector3(0.0, 0.0, 0.094)
+	var display_material := StandardMaterial3D.new()
+	display_material.albedo_color = Color("#071b10")
+	display_material.emission_enabled = true
+	display_material.emission = Color("#0b3219")
+	display_material.metallic = 0.25
+	display_material.roughness = 0.16
+	display.material_override = display_material
+	device.add_child(display)
+
+	var screen_glow := MeshInstance3D.new()
+	var glow_mesh := PlaneMesh.new()
+	glow_mesh.size = Vector2(0.76, 1.62)
+	screen_glow.mesh = glow_mesh
+	screen_glow.position = Vector3(0.0, 0.0, 0.112)
+	var glow_material := StandardMaterial3D.new()
+	glow_material.albedo_color = Color("#123c20")
+	glow_material.emission_enabled = true
+	glow_material.emission = Color("#0c4c20")
+	glow_material.emission_energy_multiplier = 0.55
+	screen_glow.material_override = glow_material
+	device.add_child(screen_glow)
+	landing_device = device
+
+	# Subtle floor guide lines add depth without turning the screen into a HUD.
+	for i in range(7):
+		var line := MeshInstance3D.new()
+		var line_mesh := BoxMesh.new()
+		line_mesh.size = Vector3(0.018, 0.012, 10.0)
+		line.mesh = line_mesh
+		line.position = Vector3(-5.5 + float(i) * 1.8, 0.005, 1.2)
+		var line_material := StandardMaterial3D.new()
+		line_material.albedo_color = Color("#173b24")
+		line_material.emission_enabled = true
+		line_material.emission = Color("#09200f")
+		line.material_override = line_material
+		scene.add_child(line)
+
+	return scene
+
+
+func _style_landing_command_button(button: Button, primary: bool) -> void:
+	button.focus_mode = Control.FOCUS_NONE
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.10, 0.32, 0.17, 0.96) if primary else Color(0.035, 0.095, 0.055, 0.72)
+		if state == "hover":
+			style.bg_color = Color(0.15, 0.43, 0.23, 0.98) if primary else Color(0.08, 0.19, 0.10, 0.9)
+		elif state == "pressed":
+			style.bg_color = Color(0.045, 0.19, 0.09, 1.0)
+		style.border_color = Color(0.48, 0.76, 0.54, 0.78) if primary else Color(0.30, 0.50, 0.35, 0.58)
+		style.set_border_width_all(1)
+		style.border_width_left = 3 if primary else 1
+		style.set_corner_radius_all(9)
+		style.content_margin_left = 18
+		style.content_margin_right = 18
+		style.content_margin_top = 10
+		style.content_margin_bottom = 10
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#f1f8f0"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color("#d2ecd7"))
+	_apply_shared_page_typography(button, 17)
+	button.add_theme_color_override("font_outline_color", Color("#06150a"))
+	button.add_theme_constant_override("outline_size", 1)
 
 
 func _style_command_menu_button(button: Button, primary: bool) -> void:
