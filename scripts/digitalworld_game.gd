@@ -67,6 +67,8 @@ var logo_picker_mouse_logo_id := 0
 var profile_status: Label
 var loading_status_label: Label
 var loading_progress_bar: ProgressBar
+var loading_percent_label: Label
+var loading_progress_tween: Tween
 var graphics_quality := "High"
 var sound_enabled := true
 
@@ -1766,90 +1768,196 @@ func _toggle_game_clock() -> void:
 func _show_headquarters_loading_screen() -> void:
 	var root := _new_screen()
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.modulate.a = 0.0
 
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.y < 540.0 or viewport_size.x < 920.0
+	var content_width := minf(620.0, maxf(270.0, viewport_size.x - (56.0 if compact else 88.0)))
+
+	# The preparation page now uses the same deep emerald atmosphere as the
+	# landing, Settings, and insignia screens instead of the old blue panel.
 	var background := ColorRect.new()
 	background.name = "Headquarters_Preparation_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color("#071b2c")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var background_shader := Shader.new()
+	background_shader.code = """
+shader_type canvas_item;
+void fragment() {
+	vec2 p = UV - vec2(0.5);
+	vec2 stretched = p * vec2(1.0, 1.25);
+	float glow = exp(-dot(stretched, stretched) * 5.0);
+	float edge = smoothstep(0.12, 0.82, length(p));
+	vec3 emerald = vec3(0.018, 0.105, 0.043);
+	vec3 deep = vec3(0.004, 0.018, 0.009);
+	vec3 base = mix(emerald, deep, edge * 0.88);
+	base += vec3(0.006, 0.025, 0.010) * glow;
+	COLOR = vec4(base, 1.0);
+}
+"""
+	var background_material := ShaderMaterial.new()
+	background_material.shader = background_shader
+	background.material = background_material
 	root.add_child(background)
 
-	var accent := ColorRect.new()
-	accent.name = "Preparation_Accent"
-	accent.anchor_left = 0.0
-	accent.anchor_top = 0.0
-	accent.anchor_right = 1.0
-	accent.anchor_bottom = 0.0
-	accent.offset_bottom = 5.0
-	accent.color = Color("#249bd3")
-	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(accent)
-
 	var center := CenterContainer.new()
+	center.name = "Headquarters_Preparation_Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(center)
 
 	var content := VBoxContainer.new()
 	content.name = "Headquarters_Preparation_Content"
-	content.custom_minimum_size = Vector2(420.0, 0.0)
+	content.custom_minimum_size = Vector2(content_width, 0.0)
 	content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	content.add_theme_constant_override("separation", 18)
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 10 if compact else 15)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.modulate.a = 0.0
+	content.pivot_offset = Vector2(content_width * 0.5, 132.0 if compact else 154.0)
 	center.add_child(content)
+
+	var accent := ColorRect.new()
+	accent.name = "Preparation_Accent"
+	accent.custom_minimum_size = Vector2(96.0, 4.0)
+	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	accent.color = Color("#a9d9ad")
+	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(accent)
 
 	var brand := Label.new()
 	brand.text = "DIGITAL WORLD MOBILES"
 	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_home_button_typography(brand, 18)
-	brand.add_theme_color_override("font_color", Color("#72cfff"))
+	brand.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_home_button_typography(brand, 16 if compact else 18)
+	brand.add_theme_color_override("font_color", Color("#b4e0b7"))
+	brand.add_theme_color_override("font_outline_color", Color("#06180b"))
+	brand.add_theme_constant_override("outline_size", 1)
 	content.add_child(brand)
 
 	var title := Label.new()
-	title.text = "Preparing your headquarters"
+	title.name = "Preparation_Title"
+	title.text = "PREPARING YOUR HEADQUARTERS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_home_button_typography(title, 32)
-	title.add_theme_color_override("font_color", Color("#ffffff"))
+	title.custom_minimum_size = Vector2(0.0, 58.0 if compact else 70.0)
+	_apply_home_button_typography(title, 29 if compact else 36)
+	title.add_theme_color_override("font_color", Color("#f5fff4"))
+	title.add_theme_color_override("font_outline_color", Color("#031008"))
+	title.add_theme_constant_override("outline_size", 2)
+	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.008, 0.9))
+	title.add_theme_constant_override("shadow_offset_x", 2)
+	title.add_theme_constant_override("shadow_offset_y", 3)
 	content.add_child(title)
 
 	var company_label := Label.new()
+	company_label.name = "Preparation_Company"
 	company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 	company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_home_button_typography(company_label, 19)
-	company_label.add_theme_color_override("font_color", Color("#b9dff3"))
+	company_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	company_label.custom_minimum_size = Vector2(0.0, 34.0)
+	_apply_home_button_typography(company_label, 20 if compact else 23)
+	company_label.add_theme_color_override("font_color", Color("#d8efd9"))
+	company_label.add_theme_color_override("font_outline_color", Color("#06180b"))
+	company_label.add_theme_constant_override("outline_size", 1)
 	content.add_child(company_label)
 
-	loading_status_label = Label.new()
+	var loading_status_label_new := Label.new()
+	loading_status_label = loading_status_label_new
 	loading_status_label.name = "Preparation_Status"
 	loading_status_label.text = "Initializing game..."
 	loading_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_home_button_typography(loading_status_label, 18)
-	loading_status_label.add_theme_color_override("font_color", Color("#e3f4ff"))
+	loading_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	loading_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	loading_status_label.custom_minimum_size = Vector2(0.0, 42.0)
+	_apply_home_button_typography(loading_status_label, 17 if compact else 19)
+	loading_status_label.add_theme_color_override("font_color", Color("#f0fff0"))
+	loading_status_label.add_theme_color_override("font_outline_color", Color("#06180b"))
+	loading_status_label.add_theme_constant_override("outline_size", 1)
 	content.add_child(loading_status_label)
+
+	var progress_heading := HBoxContainer.new()
+	progress_heading.name = "Preparation_Progress_Heading"
+	progress_heading.add_theme_constant_override("separation", 8)
+	content.add_child(progress_heading)
+
+	var progress_caption := Label.new()
+	progress_caption.text = "SETUP PROGRESS"
+	progress_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	progress_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_apply_home_button_typography(progress_caption, 12 if compact else 14)
+	progress_caption.add_theme_color_override("font_color", Color("#a9d9ad"))
+	progress_heading.add_child(progress_caption)
+
+	loading_percent_label = Label.new()
+	loading_percent_label.name = "Preparation_Percentage"
+	loading_percent_label.text = "5%"
+	loading_percent_label.custom_minimum_size = Vector2(58.0, 0.0)
+	loading_percent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_apply_home_button_typography(loading_percent_label, 14 if compact else 16)
+	loading_percent_label.add_theme_color_override("font_color", Color("#f4fff3"))
+	progress_heading.add_child(loading_percent_label)
 
 	loading_progress_bar = ProgressBar.new()
 	loading_progress_bar.name = "Preparation_Progress"
-	loading_progress_bar.custom_minimum_size = Vector2(0.0, 9.0)
+	loading_progress_bar.custom_minimum_size = Vector2(0.0, 12.0 if compact else 14.0)
 	loading_progress_bar.min_value = 0.0
 	loading_progress_bar.max_value = 100.0
 	loading_progress_bar.value = 5.0
 	loading_progress_bar.show_percentage = false
-	var progress_style := StyleBoxFlat.new()
-	progress_style.bg_color = Color("#1c3b50")
-	progress_style.set_corner_radius_all(6)
-	loading_progress_bar.add_theme_stylebox_override("background", progress_style)
-	var fill_style := StyleBoxFlat.new()
-	fill_style.bg_color = Color("#35b7ee")
-	fill_style.set_corner_radius_all(6)
-	loading_progress_bar.add_theme_stylebox_override("fill", fill_style)
+	loading_progress_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var progress_track := StyleBoxFlat.new()
+	progress_track.bg_color = Color(0.025, 0.075, 0.038, 0.96)
+	progress_track.border_color = Color(0.42, 0.68, 0.47, 0.72)
+	progress_track.set_border_width_all(1)
+	progress_track.set_corner_radius_all(8)
+	loading_progress_bar.add_theme_stylebox_override("background", progress_track)
+	var progress_fill := StyleBoxFlat.new()
+	progress_fill.bg_color = Color("#8fce96")
+	progress_fill.border_color = Color("#b9e8b9")
+	progress_fill.set_border_width_all(1)
+	progress_fill.set_corner_radius_all(8)
+	loading_progress_bar.add_theme_stylebox_override("fill", progress_fill)
 	content.add_child(loading_progress_bar)
+
+	var footer := Label.new()
+	footer.text = "POWERED BY KINGSHALL"
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_home_button_typography(footer, 11 if compact else 12)
+	footer.add_theme_color_override("font_color", Color("#91b99a"))
+	content.add_child(footer)
+
+	# A restrained entrance and breathing accent keep the screen polished
+	# without distracting from the live preparation status.
+	var entrance := create_tween()
+	entrance.set_parallel(true)
+	entrance.tween_property(root, "modulate:a", 1.0, 0.42).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	entrance.tween_property(content, "modulate:a", 1.0, 0.52).set_delay(0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	entrance.tween_property(content, "scale", Vector2.ONE, 0.5).from(Vector2(0.985, 0.985)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	var accent_pulse := create_tween()
+	accent_pulse.set_loops()
+	accent_pulse.tween_property(accent, "modulate:a", 0.58, 0.95).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	accent_pulse.tween_property(accent, "modulate:a", 1.0, 0.95).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _update_headquarters_loading(message: String, progress: float) -> void:
-	if is_instance_valid(loading_status_label):
-		loading_status_label.text = message
+	var safe_progress := clampf(progress, 0.0, 100.0)
+	if is_instance_valid(loading_status_label) and loading_status_label.text != message:
+		var status_fade := create_tween()
+		status_fade.tween_property(loading_status_label, "modulate:a", 0.35, 0.07)
+		status_fade.tween_callback(func():
+			if is_instance_valid(loading_status_label):
+				loading_status_label.text = message
+		)
+		status_fade.tween_property(loading_status_label, "modulate:a", 1.0, 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if is_instance_valid(loading_percent_label):
+		loading_percent_label.text = "%d%%" % roundi(safe_progress)
 	if is_instance_valid(loading_progress_bar):
-		loading_progress_bar.value = clampf(progress, 0.0, 100.0)
+		if loading_progress_tween != null and loading_progress_tween.is_running():
+			loading_progress_tween.kill()
+		loading_progress_tween = create_tween()
+		loading_progress_tween.tween_property(loading_progress_bar, "value", safe_progress, 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 func _finish_headquarters_loading() -> void:
