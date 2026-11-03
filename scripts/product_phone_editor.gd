@@ -3987,7 +3987,7 @@ func _set_smartwatch_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(smartwatch_preview):
 		smartwatch_preview.visible = enabled and smartwatch_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 3.25 if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, 4.05 if enabled else 5.2)
 		preview_camera.fov = 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
