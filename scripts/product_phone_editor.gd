@@ -133,6 +133,8 @@ class DeviceHueBar extends Control:
 
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
+var selected_phone_type := "Standard"
+var outer_screen_enabled := false
 var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
@@ -600,11 +602,10 @@ func _build_design_research_content(parent: Control) -> void:
 
 func _get_hardware_research_features() -> Array:
 	return [
-		"Screen Tech", "Power/Volume Buttons", "Thickness", "Device Color",
-		"Screen Size", "Screen Type", "Border Radius", "Speakers",
-		"Charge Port", "Front Camera", "Rare Camera",
-		"Side Button", "Home Button", "Back Design",
-		"Refresh Rate", "Cooling System Design"
+		"Phone Type", "Screen Tech", "Power/Volume Buttons", "Thickness",
+		"Device Color", "Screen Size", "Screen Type", "Border Radius",
+		"Speakers", "Charge Port", "Front Camera", "Rare Camera",
+		"Side Button", "Home Button", "Back Design"
 	]
 
 
@@ -612,8 +613,8 @@ func _get_software_research_features() -> Array:
 	return [
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
-		"Network", "Sensors",
-		"Front Camera MP", "Rear Camera MP", "Memory Clock"
+		"Network", "Sensors", "Front Camera MP", "Rear Camera MP",
+		"Memory Clock", "Refresh Rate", "Cooling System Design"
 	]
 
 
@@ -975,7 +976,7 @@ func _get_preview_viewport() -> SubViewport:
 
 	phone_body = MeshInstance3D.new()
 	phone_body.name = "Plain_Phone_Body"
-	phone_body.mesh = _create_rounded_phone_mesh(0.0, PackedVector2Array())
+	phone_body.mesh = _create_phone_chassis_mesh(0.0, PackedVector2Array())
 	var body_material := _create_device_body_material()
 
 	# The phone body is generated dynamically from a triangulated outline.
@@ -1076,7 +1077,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank", "Wireless Earbuds"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Type", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank", "Wireless Earbuds"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1117,7 +1118,9 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_rebuild_charger_preview()
 		_show_charger_controls("CABLE")
 		return
-	if feature_name == "Screen Tech":
+	if feature_name == "Phone Type":
+		_show_phone_type_controls()
+	elif feature_name == "Screen Tech":
 		_show_screen_tech_controls()
 	elif feature_name == "Screen Size":
 		_show_screen_size_controls()
@@ -1176,6 +1179,56 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	elif feature_name == "Cooling System Design":
 		_show_cooling_system_controls()
 
+
+
+func _show_phone_type_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "PhoneTypeControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("PHONE TYPE", 19, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Choose the chassis architecture. Foldables get a separated frame, a precision hinge and independent inner / outer displays.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	for phone_type in ["Standard", "Flip", "Fold"]:
+		var option := Button.new()
+		option.name = "PhoneType_" + phone_type
+		option.text = phone_type.to_upper() + ("     ✓ SELECTED" if selected_phone_type == phone_type else "")
+		option.custom_minimum_size = Vector2(0, 50)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_phone_type == phone_type)
+		option.pressed.connect(_on_phone_type_selected.bind(phone_type))
+		active_feature_panel.add_child(option)
+
+	var note_text := "Standard uses one rigid display chassis." if selected_phone_type == "Standard" else ("Flip uses a horizontal clamshell hinge and a compact cover display." if selected_phone_type == "Flip" else "Fold uses a book-style centre hinge, a wide inner display and a full-height cover display.")
+	var note := _make_label(note_text, 12, Color("#9edcff"))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(note)
+
+
+func _on_phone_type_selected(phone_type: String) -> void:
+	if not ["Standard", "Flip", "Fold"].has(phone_type):
+		return
+	if selected_phone_type == phone_type:
+		_show_phone_type_controls()
+		return
+	selected_phone_type = phone_type
+	_refresh_phone_mesh()
+	_show_phone_type_controls()
+	_refresh_screen_type_buttons()
 
 
 func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false) -> void:
@@ -2672,11 +2725,46 @@ func _refresh_screen_type_controls() -> void:
 		vertical_curve_toggle.text = ("✓  " if vertical_curve_enabled else "□  ") + "Up & bottom curve"
 
 
+func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: String, label_text: String, enabled: bool, callback: Callable) -> void:
+	var row := HBoxContainer.new()
+	row.name = row_name
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 9)
+	parent.add_child(row)
+
+	var toggle := Button.new()
+	toggle.name = toggle_name
+	toggle.toggle_mode = true
+	toggle.button_pressed = enabled
+	toggle.text = "✓" if enabled else ""
+	toggle.custom_minimum_size = Vector2(34, 34)
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toggle.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(toggle, 17)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#17415b") if state != "hover" else Color("#205a78")
+		if state == "pressed" or state == "focus":
+			style.bg_color = Color("#147eaa")
+		style.border_color = Color("#8fd8ff")
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(7)
+		toggle.add_theme_stylebox_override(state, style)
+	toggle.add_theme_color_override("font_color", Color.WHITE)
+	toggle.toggled.connect(callback)
+	row.add_child(toggle)
+
+	var label := _make_label(label_text, 14, Color.WHITE)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(label)
+
+
 func _show_screen_tech_controls() -> void:
-	# Remove the full-height empty-state hint and any previous feature controls
-	# so Screen Tech starts at the top of the right-hand panel.
+	if not is_instance_valid(right_tools_content):
+		return
 	for child in right_tools_content.get_children():
-		right_tools_content.remove_child(child)
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "ScreenTechControls"
@@ -2689,39 +2777,14 @@ func _show_screen_tech_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	# Custom checkbox: a compact toggle square beside its label, styled to
-	# match the editor rather than using Godot's default CheckBox artwork.
-	var enable_row := HBoxContainer.new()
-	enable_row.name = "ScreenEnablementRow"
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enable_row.add_theme_constant_override("separation", 9)
-	active_feature_panel.add_child(enable_row)
-
-	var enable_toggle := Button.new()
-	enable_toggle.name = "ScreenEnablement"
-	enable_toggle.toggle_mode = true
-	enable_toggle.button_pressed = screen_enabled
-	enable_toggle.text = "✓" if screen_enabled else ""
-	enable_toggle.custom_minimum_size = Vector2(30, 30)
-	enable_toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	enable_toggle.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(enable_toggle, 17)
-	for state in ["normal", "hover", "pressed", "focus"]:
-		var toggle_style := StyleBoxFlat.new()
-		toggle_style.bg_color = Color("#17415b") if state != "hover" else Color("#205a78")
-		if state == "pressed" or state == "focus":
-			toggle_style.bg_color = Color("#147eaa")
-		toggle_style.border_color = Color("#8fd8ff")
-		toggle_style.set_border_width_all(2)
-		toggle_style.set_corner_radius_all(7)
-		enable_toggle.add_theme_stylebox_override(state, toggle_style)
-	enable_toggle.add_theme_color_override("font_color", Color.WHITE)
-	enable_toggle.toggled.connect(_on_screen_enablement_toggled)
-	enable_row.add_child(enable_toggle)
-
-	var enable_label := _make_label("Screen Enablement", 14, Color.WHITE)
-	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	enable_row.add_child(enable_label)
+	if selected_phone_type == "Standard":
+		_add_screen_enablement_row(active_feature_panel, "ScreenEnablementRow", "ScreenEnablement", "Screen Enablement", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
+	else:
+		_add_screen_enablement_row(active_feature_panel, "InnerScreenEnablementRow", "InnerScreenEnablement", "Inner Screen Enablement", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
+		_add_screen_enablement_row(active_feature_panel, "OuterScreenEnablementRow", "OuterScreenEnablement", "Outer Screen Enablement", outer_screen_enabled, Callable(self, "_on_outer_screen_enablement_toggled"))
+		var dual_hint := _make_label("Inner glass and outer cover display are controlled independently.", 11, Color("#9edcff"))
+		dual_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(dual_hint)
 
 	var type_grid := GridContainer.new()
 	type_grid.name = "ScreenTypeOptions"
@@ -2747,10 +2810,21 @@ func _show_screen_tech_controls() -> void:
 		screen_type_buttons[type_name] = option
 	_refresh_screen_type_buttons()
 
+
 func _on_screen_enablement_toggled(enabled: bool) -> void:
 	screen_enabled = enabled
 	_refresh_phone_screen()
-	var toggle := active_feature_panel.get_node_or_null("ScreenEnablementRow/ScreenEnablement") if is_instance_valid(active_feature_panel) else null
+	var toggle_path := "ScreenEnablementRow/ScreenEnablement" if selected_phone_type == "Standard" else "InnerScreenEnablementRow/InnerScreenEnablement"
+	var toggle := active_feature_panel.get_node_or_null(toggle_path) if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(toggle):
+		toggle.text = "✓" if enabled else ""
+	_refresh_screen_type_buttons()
+
+
+func _on_outer_screen_enablement_toggled(enabled: bool) -> void:
+	outer_screen_enabled = enabled
+	_refresh_phone_screen()
+	var toggle := active_feature_panel.get_node_or_null("OuterScreenEnablementRow/OuterScreenEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
 		toggle.text = "✓" if enabled else ""
 	_refresh_screen_type_buttons()
@@ -2801,7 +2875,7 @@ func _refresh_screen_type_buttons() -> void:
 			continue
 		var option: Button = screen_type_buttons[type_name]
 		_style_screen_type_option(option, index, type_name == selected_screen_type)
-		option.disabled = not screen_enabled
+		option.disabled = not (screen_enabled or (selected_phone_type != "Standard" and outer_screen_enabled))
 
 
 func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float) -> Mesh:
@@ -5112,9 +5186,13 @@ func _refresh_phone_screen() -> void:
 	var previous := phone_body.get_node_or_null("PhoneDisplayPanel")
 	if is_instance_valid(previous):
 		previous.free()
+	var previous_outer := phone_body.get_node_or_null("PhoneOuterDisplayPanel")
+	if is_instance_valid(previous_outer):
+		previous_outer.free()
 	phone_screen = null
 	if not screen_enabled:
 		_refresh_phone_home_button()
+		_build_phone_outer_display()
 		return
 
 	var display := MeshInstance3D.new()
@@ -5178,6 +5256,8 @@ func _refresh_phone_screen() -> void:
 	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_body.add_child(display)
 	phone_screen = display
+	if selected_phone_type != "Standard":
+		_add_foldable_inner_crease(display, screen_width, screen_height)
 	_refresh_front_camera(display, screen_width, screen_height)
 	if screen_protector_enabled:
 		_build_screen_protector(display, screen_width, screen_height, screen_radius, curved_display)
@@ -5200,7 +5280,128 @@ func _refresh_phone_screen() -> void:
 		display.add_child(home_indicator)
 
 	_refresh_phone_home_button()
+	_build_phone_outer_display()
 	_queue_phone_case_sync()
+
+
+func _add_foldable_inner_crease(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
+	var crease := MeshInstance3D.new()
+	crease.name = "FoldableInnerDisplayCrease"
+	var crease_mesh := BoxMesh.new()
+	if selected_phone_type == "Fold":
+		crease_mesh.size = Vector3(0.012, screen_height * 0.97, 0.002)
+	else:
+		crease_mesh.size = Vector3(screen_width * 0.97, 0.012, 0.002)
+	crease.mesh = crease_mesh
+	var crease_material := StandardMaterial3D.new()
+	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.32)
+	crease_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	crease_material.roughness = 0.18
+	crease_material.metallic = 0.12
+	crease.material_override = crease_material
+	crease.position.z = 0.004
+	crease.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	display.add_child(crease)
+
+	var highlight := MeshInstance3D.new()
+	highlight.name = "FoldableCreaseHighlight"
+	var highlight_mesh := BoxMesh.new()
+	if selected_phone_type == "Fold":
+		highlight_mesh.size = Vector3(0.002, screen_height * 0.94, 0.001)
+		highlight.position.x = 0.009
+	else:
+		highlight_mesh.size = Vector3(screen_width * 0.94, 0.002, 0.001)
+		highlight.position.y = 0.009
+	highlight.mesh = highlight_mesh
+	var highlight_material := StandardMaterial3D.new()
+	highlight_material.albedo_color = Color(0.56, 0.78, 0.91, 0.34)
+	highlight_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	highlight_material.roughness = 0.22
+	highlight.material_override = highlight_material
+	highlight.position.z = 0.0055
+	highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	display.add_child(highlight)
+
+
+func _build_phone_outer_display() -> void:
+	if not is_instance_valid(phone_body) or not outer_screen_enabled or selected_phone_type == "Standard":
+		return
+	var outer_root := Node3D.new()
+	outer_root.name = "PhoneOuterDisplayPanel"
+	phone_body.add_child(outer_root)
+
+	var panel_width: float
+	var panel_height: float
+	var center_x := 0.0
+	var center_y := 0.0
+	if selected_phone_type == "Fold":
+		panel_width = (PHONE_SIZE.x - 0.014) * 0.5 - 0.12
+		panel_height = PHONE_SIZE.y - 0.20
+		center_x = PHONE_SIZE.x * 0.25
+	else:
+		panel_width = PHONE_SIZE.x - 0.18
+		panel_height = (PHONE_SIZE.y - 0.014) * 0.5 - 0.12
+		center_y = PHONE_SIZE.y * 0.25
+	panel_width = maxf(0.28, panel_width)
+	panel_height = maxf(0.42, panel_height)
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var radius := minf(0.10, minf(panel_width, panel_height) * 0.18)
+
+	var bezel := MeshInstance3D.new()
+	bezel.name = "OuterDisplayBezel"
+	bezel.mesh = _create_rounded_panel_mesh(panel_width + 0.035, panel_height + 0.035, 0.008, radius + 0.012)
+	var bezel_material := StandardMaterial3D.new()
+	bezel_material.albedo_color = Color("#202b36")
+	bezel_material.metallic = 0.44
+	bezel_material.roughness = 0.25
+	bezel.material_override = bezel_material
+	bezel.rotation.y = PI
+	bezel.position = Vector3(center_x, center_y, -current_depth * 0.5 - 0.002)
+	bezel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	outer_root.add_child(bezel)
+
+	var glass := MeshInstance3D.new()
+	glass.name = "OuterDisplayGlass"
+	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius)
+	var glass_material := StandardMaterial3D.new()
+	var screen_colors := {
+		"TFT LCD": Color("#263746"), "LED-LCD": Color("#223342"),
+		"IPS LCD": Color("#1d2d3d"), "Mini-LED LCD": Color("#172535"),
+		"OLED": Color("#111b28"), "AMOLED": Color("#0e1723"),
+		"Super AMOLED": Color("#0b131f"), "Dynamic AMOLED": Color("#09111d"),
+		"LTPO AMOLED": Color("#080f1b"), "MicroLED": Color("#070d18")
+	}
+	glass_material.albedo_color = screen_colors.get(selected_screen_type, Color("#0e1723"))
+	glass_material.roughness = 0.075 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.15
+	glass_material.metallic = 0.10
+	glass_material.metallic_specular = 0.82
+	glass_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	glass_material.emission_enabled = true
+	glass_material.emission = glass_material.albedo_color
+	glass_material.emission_energy_multiplier = 0.025
+	glass.material_override = glass_material
+	glass.rotation.y = PI
+	glass.position = Vector3(center_x, center_y, -current_depth * 0.5 - 0.008)
+	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	outer_root.add_child(glass)
+
+	var cover_camera := MeshInstance3D.new()
+	cover_camera.name = "OuterDisplayCamera"
+	var camera_mesh := SphereMesh.new()
+	camera_mesh.radius = 0.014
+	camera_mesh.height = 0.014
+	camera_mesh.radial_segments = 20
+	camera_mesh.rings = 10
+	cover_camera.mesh = camera_mesh
+	var camera_material := StandardMaterial3D.new()
+	camera_material.albedo_color = Color("#050a12")
+	camera_material.metallic = 0.28
+	camera_material.roughness = 0.18
+	cover_camera.material_override = camera_material
+	cover_camera.position = Vector3(center_x, center_y + panel_height * 0.5 - 0.055, -current_depth * 0.5 - 0.013)
+	cover_camera.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	outer_root.add_child(cover_camera)
+
 
 func _camera_mp_from_slider_index(index: int) -> int:
 	return CAMERA_MEGAPIXEL_STEPS[clampi(index, 0, CAMERA_MEGAPIXEL_STEPS.size() - 1)]
@@ -7284,7 +7485,7 @@ func _on_charge_port_selected(port_type: String) -> void:
 	# phone's bottom frame mesh is regenerated.
 	_refresh_phone_charge_port()
 	var radius := 0.32 * float(border_radius_level) / 6.0
-	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
+	phone_body.mesh = _create_phone_chassis_mesh(radius, charge_port_opening_points)
 	_queue_phone_case_sync()
 
 
@@ -7549,6 +7750,10 @@ func _refresh_phone_charge_port() -> void:
 
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
+	if selected_phone_type == "Fold":
+		port_root.position.x = -PHONE_SIZE.x * 0.25
+	elif selected_phone_type == "Flip":
+		port_root.position.y = PHONE_SIZE.y * 0.25
 	phone_body.add_child(port_root)
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var mouth_y := bottom_y + 0.0001
@@ -7680,7 +7885,8 @@ func _refresh_phone_mesh() -> void:
 	# Refresh the fitted aperture first: thickness upgrades can change how much
 	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
-	phone_body.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points)
+	phone_body.mesh = _create_phone_chassis_mesh(radius, charge_port_opening_points)
+	_refresh_foldable_hardware()
 	_refresh_back_design_boxes()
 	_refresh_phone_side_buttons()
 	_refresh_phone_home_button()
@@ -7696,6 +7902,89 @@ func _on_border_radius_level_changed(value: float) -> void:
 	if is_instance_valid(border_radius_value_label):
 		border_radius_value_label.text = "LEVEL %d / 6" % border_radius_level
 	_refresh_phone_mesh()
+
+
+func _refresh_foldable_hardware() -> void:
+	if not is_instance_valid(phone_body):
+		return
+	var previous := phone_body.get_node_or_null("PhoneFoldableHinge")
+	if is_instance_valid(previous):
+		previous.free()
+	if selected_phone_type == "Standard":
+		return
+
+	var hinge_root := Node3D.new()
+	hinge_root.name = "PhoneFoldableHinge"
+	phone_body.add_child(hinge_root)
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var rear_z := -current_depth * 0.5 - 0.022
+
+	var hinge_material := StandardMaterial3D.new()
+	hinge_material.albedo_color = device_body_color.darkened(0.38)
+	hinge_material.metallic = 0.88
+	hinge_material.roughness = 0.22
+	hinge_material.metallic_specular = 0.92
+	var hinge_highlight := StandardMaterial3D.new()
+	hinge_highlight.albedo_color = device_body_color.lightened(0.22)
+	hinge_highlight.metallic = 0.94
+	hinge_highlight.roughness = 0.16
+
+	var spine := MeshInstance3D.new()
+	spine.name = "HingeSpine"
+	var spine_mesh := BoxMesh.new()
+	if selected_phone_type == "Fold":
+		spine_mesh.size = Vector3(0.088, PHONE_SIZE.y * 0.90, 0.036)
+	else:
+		spine_mesh.size = Vector3(PHONE_SIZE.x * 0.88, 0.088, 0.036)
+	spine.mesh = spine_mesh
+	spine.material_override = hinge_material
+	spine.position = Vector3(0.0, 0.0, rear_z)
+	spine.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	hinge_root.add_child(spine)
+
+	var barrel_count := 5 if selected_phone_type == "Fold" else 4
+	for index in range(barrel_count):
+		var barrel := MeshInstance3D.new()
+		barrel.name = "HingeBarrel_%02d" % index
+		var cylinder := CylinderMesh.new()
+		cylinder.top_radius = 0.043
+		cylinder.bottom_radius = 0.043
+		cylinder.radial_segments = 40
+		cylinder.rings = 8
+		if selected_phone_type == "Fold":
+			cylinder.height = PHONE_SIZE.y * 0.145
+			barrel.position = Vector3(0.0, -PHONE_SIZE.y * 0.36 + float(index) * PHONE_SIZE.y * 0.18, rear_z - 0.025)
+		else:
+			cylinder.height = PHONE_SIZE.x * 0.205
+			barrel.rotation.z = PI * 0.5
+			barrel.position = Vector3(-PHONE_SIZE.x * 0.30 + float(index) * PHONE_SIZE.x * 0.20, 0.0, rear_z - 0.025)
+		barrel.mesh = cylinder
+		barrel.material_override = hinge_highlight if index % 2 == 0 else hinge_material
+		barrel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		hinge_root.add_child(barrel)
+
+
+func _create_phone_chassis_mesh(radius: float, port_opening: PackedVector2Array) -> Mesh:
+	if selected_phone_type == "Standard":
+		return _create_rounded_phone_mesh(radius, port_opening)
+	const HINGE_CLEARANCE := 0.014
+	var combined := SurfaceTool.new()
+	combined.begin(Mesh.PRIMITIVE_TRIANGLES)
+	if selected_phone_type == "Fold":
+		var half_width := (PHONE_SIZE.x - HINGE_CLEARANCE) * 0.5
+		var segment_size := Vector3(half_width, PHONE_SIZE.y, PHONE_SIZE.z)
+		var port_half := _create_rounded_phone_mesh(radius, port_opening, segment_size)
+		var far_half := _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size)
+		combined.append_from(port_half, 0, Transform3D(Basis.IDENTITY, Vector3(-half_width * 0.5 - HINGE_CLEARANCE * 0.5, 0.0, 0.0)))
+		combined.append_from(far_half, 0, Transform3D(Basis.IDENTITY, Vector3(half_width * 0.5 + HINGE_CLEARANCE * 0.5, 0.0, 0.0)))
+	else:
+		var half_height := (PHONE_SIZE.y - HINGE_CLEARANCE) * 0.5
+		var segment_size := Vector3(PHONE_SIZE.x, half_height, PHONE_SIZE.z)
+		var lower_half := _create_rounded_phone_mesh(radius, port_opening, segment_size)
+		var upper_half := _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size)
+		combined.append_from(lower_half, 0, Transform3D(Basis.IDENTITY, Vector3(0.0, -half_height * 0.5 - HINGE_CLEARANCE * 0.5, 0.0)))
+		combined.append_from(upper_half, 0, Transform3D(Basis.IDENTITY, Vector3(0.0, half_height * 0.5 + HINGE_CLEARANCE * 0.5, 0.0)))
+	return combined.commit()
 
 
 func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float) -> void:
@@ -7724,8 +8013,11 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 		_add_phone_mesh_triangle(surface, outer_a, inner_b, inner_a, bottom_normal)
 
 
-func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array) -> Mesh:
+func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array, size_override: Vector3 = Vector3.ZERO) -> Mesh:
 	var phone_size := PHONE_SIZE
+	if size_override.x > 0.0 and size_override.y > 0.0:
+		phone_size.x = size_override.x
+		phone_size.y = size_override.y
 	# Level 10 reaches an ultra-slim 0.08-unit body.
 	phone_size.z = lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var half_size := phone_size * 0.5
@@ -7899,6 +8191,7 @@ func _build_software_summary_panel() -> void:
 		["RAM", selected_ram_capacity],
 		["ROM", selected_rom_capacity],
 		["BATTERY", selected_battery_capacity],
+		["PHONE TYPE", selected_phone_type],
 		["REFRESH RATE", selected_refresh_rate],
 		["MEMORY CLOCK", selected_memory_clock],
 		["COOLING SYSTEM", selected_cooling_system],
