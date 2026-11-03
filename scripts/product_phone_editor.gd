@@ -8413,59 +8413,6 @@ func _refresh_foldable_hardware() -> void:
 	_apply_phone_fold_angle()
 
 
-func _build_folded_chassis_division_seam() -> void:
-	if not is_instance_valid(phone_body) or selected_phone_type == "Standard":
-		return
-	var previous := phone_body.get_node_or_null("FoldedChassisDivisionSeam")
-	if is_instance_valid(previous):
-		previous.free()
-	var seam_root := Node3D.new()
-	seam_root.name = "FoldedChassisDivisionSeam"
-	phone_body.add_child(seam_root)
-
-	var phone_size := _active_phone_size()
-	var depth := _phone_depth_for_thickness_level()
-	var corner_radius := minf(0.32 * float(border_radius_level) / 6.0, minf(phone_size.x, phone_size.y) * 0.45)
-	var seam_material := StandardMaterial3D.new()
-	seam_material.albedo_color = Color("#101820")
-	seam_material.roughness = 0.82
-	seam_material.metallic = 0.02
-	seam_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	seam_root.visible = false
-	seam_root.set_meta("seam_material", seam_material)
-
-	# The two leaves meet at the fixed leaf's front plane when fully closed.
-	# Put the dark hairline on the SIDE WALLS at that contact plane, not on
-	# either broad front/back face. It is therefore visible from an edge view.
-	var seam_depth := 0.0055
-	var side_band := 0.0075
-	var contact_plane_z := depth * 0.5
-	var horizontal_length := maxf(0.1, phone_size.x - corner_radius * 2.0)
-	var vertical_length := maxf(0.1, phone_size.y - corner_radius * 2.0)
-	var edge_offset := 0.0008
-	var bars := [
-		Vector3(horizontal_length, side_band, seam_depth),
-		Vector3(horizontal_length, side_band, seam_depth),
-		Vector3(side_band, vertical_length, seam_depth),
-		Vector3(side_band, vertical_length, seam_depth)
-	]
-	var positions := [
-		Vector3(0.0, phone_size.y * 0.5 + edge_offset, contact_plane_z),
-		Vector3(0.0, -phone_size.y * 0.5 - edge_offset, contact_plane_z),
-		Vector3(phone_size.x * 0.5 + edge_offset, 0.0, contact_plane_z),
-		Vector3(-phone_size.x * 0.5 - edge_offset, 0.0, contact_plane_z)
-	]
-	for index in range(bars.size()):
-		var seam_segment := MeshInstance3D.new()
-		seam_segment.name = "ChassisSideDivisionSeam_%d" % index
-		var box := BoxMesh.new()
-		box.size = bars[index]
-		seam_segment.mesh = box
-		seam_segment.position = positions[index]
-		seam_segment.material_override = seam_material
-		seam_segment.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		seam_root.add_child(seam_segment)
-
 func _route_foldable_accessories() -> void:
 	if selected_phone_type == "Standard" or not is_instance_valid(phone_body):
 		return
