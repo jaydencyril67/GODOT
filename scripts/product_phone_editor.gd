@@ -5528,8 +5528,11 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 		moving_offset.y = moving_inner_edge + segment_height * 0.5
 
 	var current_depth := _phone_depth_for_thickness_level()
-	var glass_z := current_depth * 0.5 + 0.0035
 	var screen_radius := 0.32 * float(border_radius_level) / 6.0
+	var foldable_curve_active := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
+	# Raise curved glass by the bend depth so its outer edges remain seated on
+	# the same front-face plane as the flat display and do not sink into the frame.
+	var glass_z := current_depth * 0.5 + (0.0315 if foldable_curve_active else 0.0035)
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
 	var moving_corner_mask := _foldable_half_corner_mask(true)
 	var colors := {
@@ -5560,7 +5563,6 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	phone_body.add_child(display_root)
 	var fixed_display := MeshInstance3D.new()
 	fixed_display.name = "FixedInnerDisplay"
-	var foldable_curve_active := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	var fixed_curve_left := selected_phone_type == "Flip" or selected_phone_type == "Fold"
 	var fixed_curve_right := selected_phone_type == "Flip"
 	var fixed_curve_top := selected_phone_type == "Fold"
