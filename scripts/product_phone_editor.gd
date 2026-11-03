@@ -9831,7 +9831,11 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 
 	var cavity := CSGPolygon3D.new()
 	cavity.name = "DeviceClearanceCavity"
-	cavity.polygon = _case_outline_for_size(Vector2(maxf(0.1, segment_size.x - 0.008), maxf(0.1, segment_size.y - 0.008)), 0.004)
+	# Match the actual phone leaf dimensions, then add 4 mm clearance on
+	# every side. The previous -0.008 size adjustment cancelled the outline
+	# expansion entirely, leaving the cavity no wider than the handset and
+	# causing the case lip to intersect/mis-seat around the device.
+	cavity.polygon = _case_outline_for_size(segment_size, 0.004)
 	cavity.depth = depth + wall + 0.018
 	cavity.position = Vector3(centre.x, centre.y, depth * 0.5 + wall + 0.020)
 	_case_subtract(combiner, cavity)
@@ -9924,16 +9928,16 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 	var fixed_centre := Vector2.ZERO
 	var moving_centre := Vector2.ZERO
 	if selected_phone_type == "Fold":
-		var half_width := (_active_phone_size().x - 0.020) * 0.5
+		var half_width := (_active_phone_size().x - 0.014) * 0.5
 		segment_size = Vector2(half_width, _active_phone_size().y)
-		fixed_centre = Vector2(-half_width * 0.5 - 0.010, 0.0)
-		moving_centre = Vector2(half_width * 0.5 + 0.010, 0.0)
+		fixed_centre = Vector2(-half_width * 0.5 - 0.007, 0.0)
+		moving_centre = Vector2(half_width * 0.5 + 0.007, 0.0)
 	else:
 		# Equal upper/lower clamshell halves; the divider is locked to the exact centre.
-		var half_height := (_active_phone_size().y - 0.020) * 0.5
+		var half_height := (_active_phone_size().y - 0.014) * 0.5
 		segment_size = Vector2(_active_phone_size().x, half_height)
-		fixed_centre = Vector2(0.0, -half_height * 0.5 - 0.010)
-		moving_centre = Vector2(0.0, half_height * 0.5 + 0.010)
+		fixed_centre = Vector2(0.0, -half_height * 0.5 - 0.007)
+		moving_centre = Vector2(0.0, half_height * 0.5 + 0.007)
 
 	_add_foldable_case_segment(phone_case_preview, segment_size, fixed_centre, depth, wall, "PhoneCaseFixedHalf", true)
 	_add_foldable_case_segment(moving_case, segment_size, moving_centre, depth, wall, "PhoneCaseMovingHalfShell", false)
