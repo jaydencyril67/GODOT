@@ -8348,8 +8348,6 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 		# on Fold/Flip, where the port sits in one independently modelled leaf.
 		var inner_next := Vector3(opening[next_index].x, mouth_y, opening[next_index].y)
 		var inner_current := Vector3(opening[index].x, mouth_y, opening[index].y)
-		var inner_back_next := Vector3(opening[next_index].x, mouth_y + phone_size.y * 0.0, opening[next_index].y)
-		var inner_back_current := Vector3(opening[index].x, mouth_y + phone_size.y * 0.0, opening[index].y)
 		var wall_normal := Vector3((inner_current.x + inner_next.x) * 0.5, 0.0, (inner_current.z + inner_next.z) * 0.5).normalized()
 		var front_a := Vector3(inner_current.x, inner_current.y, half_size.z)
 		var front_b := Vector3(inner_next.x, inner_next.y, half_size.z)
