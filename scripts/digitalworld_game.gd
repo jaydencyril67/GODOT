@@ -926,7 +926,8 @@ func _open_logo_picker() -> void:
 	var side_margin := 10 if compact else 22
 	var vertical_margin := 8 if compact else 16
 	var grid_gap := 7 if compact else 10
-	var columns := clampi(int(floor((viewport_size.x - side_margin * 2 + grid_gap) / 112.0)), 3, 8)
+	var available_width := maxf(1.0, viewport_size.x - side_margin * 2)
+	var columns := clampi(int(floor((available_width + grid_gap) / 112.0)), 2, 8)
 	var tile_size := mini(104, int(floor((viewport_size.x - side_margin * 2 - grid_gap * (columns - 1)) / columns)))
 
 	# The insignias sit directly on a plain dark screen: no title, card, or modal controls.
@@ -956,13 +957,20 @@ func _open_logo_picker() -> void:
 	var grid := GridContainer.new()
 	grid.name = "InsigniaGrid"
 	grid.columns = columns
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	grid.add_theme_constant_override("h_separation", grid_gap)
 	grid.add_theme_constant_override("v_separation", grid_gap)
 	var grid_rows := int(ceil(50.0 / float(columns)))
-	grid.custom_minimum_size.y = float(grid_rows * tile_size + (grid_rows - 1) * grid_gap)
+	grid.custom_minimum_size = Vector2(float(columns * tile_size + (columns - 1) * grid_gap), float(grid_rows * tile_size + (grid_rows - 1) * grid_gap))
 	logo_picker_grid = grid
-	scroll.add_child(grid)
+
+	# A full-width centering container keeps the grid centred at every viewport size.
+	var grid_alignment := CenterContainer.new()
+	grid_alignment.name = "InsigniaGridAlignment"
+	grid_alignment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid_alignment.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	grid_alignment.add_child(grid)
+	scroll.add_child(grid_alignment)
 
 	for index in range(50):
 		var logo_id := index + 1
