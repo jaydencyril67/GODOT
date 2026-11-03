@@ -3596,10 +3596,12 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	cable_group.name = "StandaloneShortUCable"
 	geometry_parent.add_child(cable_group)
 
-	# Use a mid-graphite jacket so the cable remains readable against the navy
-	# preview while retaining a realistic dark rubber appearance.
-	var cable_material := _charger_material(Color("#46515d"), 0.16, 0.30)
-	var connector_shell := _charger_material(Color("#35414d"), 0.18, 0.34)
+	# The adapter and cable share one finish source. Changing the charger
+	# colour therefore recolours the rubber jacket and both moulded connector
+	# housings on the next preview rebuild; metal contacts remain metallic.
+	var shared_finish := charger_body_color
+	var cable_material := _charger_material(shared_finish, 0.0, 0.48)
+	var connector_shell := _charger_material(shared_finish, 0.0, 0.34)
 	var connector_metal := _charger_material(Color("#c8d1d9"), 0.94, 0.16)
 	var device_connector := _charger_device_connector()
 	var output_connector := _charger_output_connector()
