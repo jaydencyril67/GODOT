@@ -3372,29 +3372,35 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	var port_root := Node3D.new()
 	port_root.name = connector_type.replace("-", "") + "MalePlugFace"
 	port_root.position = Vector3(0.0, 0.0, -0.025)
+	# Port helper meshes are authored in an X/Z plane facing -Y. Rotate that
+	# plane onto the connector's forward-facing X/Y plane (local -Z).
+	port_root.rotation.x = PI * 0.5
 	connector.add_child(port_root)
 	var port_width := tip_width
 	var port_height := tip_height
-	var outline := _make_port_outline(port_width, port_height, tip_height * 0.34, 12)
-	var inner_outline := _make_port_outline(port_width * 0.78, port_height * 0.64, tip_height * 0.25, 10)
+	var outline := _make_port_outline(port_width, port_height, tip_height * 0.34, 16)
+	var inner_outline := _make_port_outline(port_width * 0.78, port_height * 0.64, tip_height * 0.25, 14)
 	var dark_material := _charger_material(Color("#080d12"), 0.02, 0.92)
 	var inner_metal := _charger_material(Color("#8f9ba5"), 0.88, 0.25)
 	var contact_material := _charger_material(Color("#d9b66d"), 0.90, 0.22)
-	_add_port_ring(port_root, "ContinuousMachinedMetalPlugShell", outline, 1.0, 0.0, metal_material)
-	_add_port_detail(port_root, "DeepDarkPlugInterior", inner_outline, 0.002, dark_material)
+	# A scaled outer contour gives the metal lip a real visible wall thickness;
+	# the recessed cavity walls add depth instead of a flat dark face decal.
+	_add_port_ring(port_root, "ContinuousMachinedMetalPlugShell", outline, 1.16, 0.0, metal_material)
+	_add_port_cavity_walls(port_root, "RecessedMetalPlugCavityWalls", inner_outline, 0.001, 0.014, inner_metal)
+	_add_port_detail(port_root, "DeepDarkPlugInterior", inner_outline, 0.014, dark_material)
 
 	if connector_type == "USB-C":
-		var tongue_points := _make_port_outline(port_width * 0.70, port_height * 0.20, port_height * 0.095, 8)
-		_add_port_detail(port_root, "USBCTongueInsideOpenMetalShell", tongue_points, 0.004, inner_metal)
-		for row in range(2):
-			for contact_index in range(12):
-				var x := (float(contact_index) - 5.5) * (port_width * 0.62 / 12.0)
-				var y := (1.0 if row == 0 else -1.0) * port_height * 0.105
-				var pad := _make_port_outline(port_width * 0.026, port_height * 0.035, port_height * 0.012, 3)
-				var shifted := PackedVector2Array()
-				for point in pad:
-					shifted.append(point + Vector2(x, y))
-				_add_port_detail(port_root, "USBPlugContact_%d_%d" % [row, contact_index], shifted, 0.006, contact_material)
+		var tongue_points := _make_port_outline(port_width * 0.70, port_height * 0.20, port_height * 0.095, 10)
+		_add_port_detail(port_root, "USBCTongueInsideOpenMetalShell", tongue_points, 0.006, inner_metal)
+		# Twelve fine contact pads sit in one visible row on the tongue.
+		# The opposite-side contacts are real but hidden on the reverse face.
+		for contact_index in range(12):
+			var x := (float(contact_index) - 5.5) * (port_width * 0.62 / 12.0)
+			var pad := _make_port_outline(port_width * 0.026, port_height * 0.035, port_height * 0.012, 4)
+			var shifted := PackedVector2Array()
+			for point in pad:
+				shifted.append(point + Vector2(x, 0.0))
+			_add_port_detail(port_root, "USBPlugContact_%d" % contact_index, shifted, 0.004, contact_material)
 	elif connector_type == "USB-A":
 		var tongue_points := _make_port_outline(port_width * 0.70, port_height * 0.30, port_height * 0.12, 7)
 		var shifted_tongue := PackedVector2Array()
