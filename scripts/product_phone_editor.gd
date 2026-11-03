@@ -8372,7 +8372,7 @@ func _refresh_foldable_hardware() -> void:
 	moving_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	moving_half.add_child(moving_frame)
 
-	_build_folded_chassis_division_seam()
+	# Do not add a synthetic dark outline around the folded chassis.
 
 	var hinge_root := Node3D.new()
 	hinge_root.name = "PhoneFoldableHinge"
@@ -8530,9 +8530,7 @@ func _apply_phone_fold_angle() -> void:
 	var inner_bridge := phone_body.get_node_or_null("PhoneDisplayPanel/ContinuousInnerDisplayBridge") if is_instance_valid(phone_body) else null
 	if is_instance_valid(inner_bridge):
 		inner_bridge.visible = fold_angle_degrees <= 2.0
-	var division_seam := phone_body.get_node_or_null("FoldedChassisDivisionSeam") if is_instance_valid(phone_body) else null
-	if is_instance_valid(division_seam):
-		division_seam.visible = fold_angle_degrees >= 158.0
+	# Closed-pose separation comes from the two real chassis layers, not a dark overlay.
 	var case_moving := phone_case_preview.get_node_or_null("PhoneCaseMovingHalf") if is_instance_valid(phone_case_preview) else null
 	if is_instance_valid(case_moving):
 		case_moving.rotation = inward_rotation
