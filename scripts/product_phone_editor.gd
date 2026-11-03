@@ -3423,17 +3423,14 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 
 
 func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) -> Node3D:
-	# One uninterrupted cable jacket leaves the back of the first connector,
-	# folds into five clean rounded lanes, and returns into the second boot.
+	# One uninterrupted cable jacket forms the reference-matched oval coil.
 	var cable_group := Node3D.new()
-	cable_group.name = "StandaloneHybridFoldChargingCable"
+	cable_group.name = "StandaloneOvalCoilChargingCable"
 	geometry_parent.add_child(cable_group)
 
 	var cable_material := _charger_material(Color("#252d36"), 0.04, 0.34)
 	var connector_shell := _charger_material(Color("#343e48"), 0.22, 0.34)
 	var connector_metal := _charger_material(Color("#c8d1d9"), 0.94, 0.16)
-	var strap_material := _charger_material(Color("#3b424a"), 0.02, 0.92)
-	var strap_stitch_material := _charger_material(Color("#626b74"), 0.02, 0.86)
 	var device_connector := _charger_device_connector()
 	var output_connector := _charger_output_connector()
 	# Reference-matched oval coil: a single uninterrupted cable follows a
