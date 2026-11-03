@@ -188,6 +188,10 @@ var preview_container: SubViewportContainer
 var phone_case_preview: Node3D
 var phone_case_shell: CSGPolygon3D
 var charger_preview: Node3D
+var smartwatch_preview: Node3D
+var smartwatch_enabled := false
+var smartwatch_body_color := Color("#303943")
+var smartwatch_color_name := "Graphite"
 var charger_enabled := false
 var charger_wattage := 30
 var charger_plug_type := "UK"
@@ -265,6 +269,7 @@ var left_tools_previous_button: Button
 var left_tools_next_button: Button
 var left_tools_scroll: ScrollContainer
 var preview_mouse_dragging := false
+var smartwatch_preview_mode := false
 var border_radius_level := 0
 var border_radius_value_label: Label
 var phone_thickness_level := 10
@@ -982,7 +987,12 @@ func _get_preview_viewport() -> SubViewport:
 	charger_preview.name = "ChargerAccessoryPreview"
 	charger_preview.visible = false
 	preview_world.add_child(charger_preview)
+	smartwatch_preview = Node3D.new()
+	smartwatch_preview.name = "SmartwatchAccessoryPreview"
+	smartwatch_preview.visible = false
+	preview_world.add_child(smartwatch_preview)
 	_rebuild_charger_preview()
+	_rebuild_smartwatch_preview()
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
@@ -1047,7 +1057,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Camera Lens Protector"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Camera Lens Protector", "Smartwatch"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1056,6 +1066,10 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 func _on_tool_feature_pressed(feature_name: String) -> void:
 	_close_back_design_selection_popup()
 	_set_charger_preview_mode(false)
+	if feature_name == "Smartwatch":
+		_set_smartwatch_preview_mode(true)
+		_show_smartwatch_controls()
+		return
 	if feature_name == "Phone Case":
 		_show_phone_case_controls()
 		return
@@ -3144,6 +3158,164 @@ func _update_screen_protector_thickness_label() -> void:
 		screen_protector_thickness_label.text = "GLASS THICKNESS  %.2f mm" % thickness_mm
 
 
+func _rebuild_smartwatch_preview() -> void:
+	if not is_instance_valid(smartwatch_preview):
+		return
+	for child in smartwatch_preview.get_children():
+		child.free()
+	var case_material := _charger_material(smartwatch_body_color, 0.42, 0.24)
+	var edge_material := _charger_material(smartwatch_body_color.darkened(0.22), 0.58, 0.22)
+	var glass_material := _charger_material(Color("#101a27"), 0.12, 0.10)
+	var strap_material := _charger_material(smartwatch_body_color.darkened(0.08), 0.0, 0.58)
+	var display_material := _charger_material(Color("#071522"), 0.08, 0.12)
+
+	# A compact rounded-square watch case, raised bezel and inset glass face.
+	var watch_case := MeshInstance3D.new()
+	watch_case.name = "SmartwatchRoundedCase"
+	watch_case.mesh = _create_rounded_panel_mesh(0.82, 0.96, 0.19, 0.17)
+	watch_case.material_override = case_material
+	watch_case.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	smartwatch_preview.add_child(watch_case)
+
+	var bezel := MeshInstance3D.new()
+	bezel.name = "PolishedDisplayBezel"
+	bezel.mesh = _create_rounded_panel_mesh(0.755, 0.895, 0.025, 0.145)
+	bezel.position.z = 0.102
+	bezel.material_override = edge_material
+	bezel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	smartwatch_preview.add_child(bezel)
+
+	var glass := MeshInstance3D.new()
+	glass.name = "InsetSmartwatchDisplay"
+	glass.mesh = _create_rounded_panel_mesh(0.704, 0.842, 0.012, 0.125)
+	glass.position.z = 0.119
+	glass.material_override = glass_material
+	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	smartwatch_preview.add_child(glass)
+
+	# Simple luminous dial graphics make the display read as a watch.
+	var dial_ring := _add_charger_torus(smartwatch_preview, "WatchDialRing", 0.205, 0.009, Vector3(0.0, 0.015, 0.129), _charger_material(Color("#79d8ff"), 0.42, 0.18))
+	dial_ring.rotation = Vector3.ZERO
+	_add_charger_box(smartwatch_preview, "WatchHourHand", Vector3(0.014, 0.125, 0.004), Vector3(-0.012, 0.055, 0.133), _charger_material(Color("#eaf7ff"), 0.25, 0.2))
+	_add_charger_box(smartwatch_preview, "WatchMinuteHand", Vector3(0.105, 0.012, 0.004), Vector3(0.042, -0.015, 0.134), _charger_material(Color("#eaf7ff"), 0.25, 0.2))
+	_add_charger_cylinder(smartwatch_preview, "WatchCrown", 0.052, 0.105, Vector3(0.445, 0.10, 0.0), edge_material, 32).rotation_degrees.z = 90.0
+	_add_charger_box(smartwatch_preview, "WatchSideButton", Vector3(0.075, 0.13, 0.075), Vector3(0.438, -0.13, 0.0), case_material)
+
+	# Continuous curved upper and lower strap sections, each overlapping the case.
+	var upper_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, 0.43, -0.015), Vector3(0.0, 0.78, -0.02), Vector3(0.0, 1.04, -0.02), Vector3(0.0, 1.22, -0.015), 40)
+	var lower_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, -0.43, -0.015), Vector3(0.0, -0.78, -0.02), Vector3(0.0, -1.04, -0.02), Vector3(0.0, -1.22, -0.015), 40)
+	var upper_strap := MeshInstance3D.new()
+	upper_strap.name = "UpperCurvedWatchStrap"
+	upper_strap.mesh = _create_charger_cable_tube_mesh(upper_route, 0.105, 32)
+	upper_strap.material_override = strap_material
+	upper_strap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	smartwatch_preview.add_child(upper_strap)
+	var lower_strap := MeshInstance3D.new()
+	lower_strap.name = "LowerCurvedWatchStrap"
+	lower_strap.mesh = _create_charger_cable_tube_mesh(lower_route, 0.105, 32)
+	lower_strap.material_override = strap_material
+	lower_strap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	smartwatch_preview.add_child(lower_strap)
+
+	# A short buckle and strap pin add recognisable hardware to the wristband.
+	_add_charger_box(smartwatch_preview, "WatchBuckle", Vector3(0.22, 0.045, 0.035), Vector3(0.0, -1.245, 0.0), edge_material)
+	_add_charger_cylinder(smartwatch_preview, "WatchBucklePin", 0.012, 0.19, Vector3(0.0, -1.245, 0.021), case_material, 16)
+
+
+func _add_charger_torus(parent: Node3D, node_name: String, major_radius: float, minor_radius: float, position: Vector3, material: Material) -> MeshInstance3D:
+	var ring := MeshInstance3D.new()
+	ring.name = node_name
+	var torus := TorusMesh.new()
+	torus.inner_radius = major_radius - minor_radius
+	torus.outer_radius = major_radius + minor_radius
+	torus.rings = 48
+	torus.ring_segments = 12
+	ring.mesh = torus
+	ring.position = position
+	ring.material_override = material
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(ring)
+	return ring
+
+
+func _show_smartwatch_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "SmartwatchControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("SMART WATCH", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Add a 3D smartwatch accessory to the product preview. Drag the centre preview to inspect it.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "SmartwatchEnableRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(enable_row)
+	var enable_label := _make_label("ENABLE SMART WATCH", 13, Color("#e6f5ff"))
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_label)
+	var toggle := TextureButton.new()
+	toggle.name = "EnableSmartwatchModel"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
+	toggle.button_pressed = smartwatch_enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.toggled.connect(_on_smartwatch_enabled_toggled)
+	enable_row.add_child(toggle)
+
+	if smartwatch_enabled:
+		var color_heading := _make_label("SMART WATCH COLOR", 13, Color("#a9e3ff"))
+		active_feature_panel.add_child(color_heading)
+		for color_entry in [
+			["Graphite", Color("#303943")],
+			["Midnight Black", Color("#111820")],
+			["Silver", Color("#c5cbd1")],
+			["Pearl White", Color("#e8edf2")],
+			["Navy Blue", Color("#263f67")],
+			["Rose Gold", Color("#b87968")]
+		]:
+			var color_button := Button.new()
+			color_button.text = str(color_entry[0]) + ("   ✓  SELECTED" if smartwatch_color_name == str(color_entry[0]) else "")
+			color_button.custom_minimum_size = Vector2(0, 44)
+			color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			color_button.focus_mode = Control.FOCUS_NONE
+			_apply_research_typography(color_button, 13)
+			_style_staff_button(color_button, smartwatch_color_name == str(color_entry[0]))
+			color_button.pressed.connect(_on_smartwatch_color_selected.bind(str(color_entry[0]), color_entry[1]))
+			active_feature_panel.add_child(color_button)
+
+
+func _on_smartwatch_enabled_toggled(enabled: bool) -> void:
+	smartwatch_enabled = enabled
+	_rebuild_smartwatch_preview()
+	_set_smartwatch_preview_mode(true)
+	_show_smartwatch_controls()
+
+
+func _on_smartwatch_color_selected(color_name: String, color: Color) -> void:
+	smartwatch_color_name = color_name
+	smartwatch_body_color = color
+	_rebuild_smartwatch_preview()
+	_set_smartwatch_preview_mode(true)
+	_show_smartwatch_controls()
+
+
 func _charger_material(color: Color, metallic: float = 0.0, roughness: float = 0.32) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
@@ -3804,8 +3976,26 @@ func _update_charger_preview_framing() -> void:
 	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
+func _set_smartwatch_preview_mode(enabled: bool) -> void:
+	smartwatch_preview_mode = enabled
+	if is_instance_valid(phone_body):
+		phone_body.visible = not enabled and not charger_preview_mode
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.visible = not enabled and not charger_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+	if is_instance_valid(charger_preview):
+		charger_preview.visible = not enabled and charger_preview_mode and (charger_enabled or (charger_cable_enabled and not _charger_device_connector().is_empty()))
+	if is_instance_valid(smartwatch_preview):
+		smartwatch_preview.visible = enabled and smartwatch_enabled
+	if is_instance_valid(preview_camera):
+		preview_camera.position = Vector3(0.0, 0.0, 3.25 if enabled else 5.2)
+		preview_camera.fov = 38.0
+		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
+
+
 func _set_charger_preview_mode(enabled: bool) -> void:
 	charger_preview_mode = enabled
+	if enabled:
+		_set_smartwatch_preview_mode(false)
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled
 	if is_instance_valid(phone_case_preview):
@@ -8838,9 +9028,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
-	# Use one identical two-axis drag rule for both products.
-	# The charger has its own centred pivot, so it turns in place like the phone.
-	var rotation_target: Node3D = charger_preview if charger_preview_mode else phone_body
+	# Each accessory owns an independent preview pivot.
+	var rotation_target: Node3D = smartwatch_preview if smartwatch_preview_mode else (charger_preview if charger_preview_mode else phone_body)
 	if not is_instance_valid(rotation_target):
 		return
 	# Lock each movement to one of four directions: left/right OR up/down.
