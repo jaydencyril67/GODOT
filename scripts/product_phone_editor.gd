@@ -5421,14 +5421,17 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	var panel_height: float
 	var center_x := 0.0
 	var center_y := 0.0
+	var chassis_layout := _get_foldable_segment_layout()
+	var fixed_offset: Vector3 = chassis_layout["fixed_offset"]
+	var moving_offset: Vector3 = chassis_layout["moving_offset"]
 	if selected_phone_type == "Fold":
 		panel_width = (_active_phone_size().x - 0.014) * 0.5 - 0.12
 		panel_height = _active_phone_size().y - 0.20
-		center_x = -_active_phone_size().x * 0.25
+		center_x = fixed_offset.x
 	else:
 		panel_width = _active_phone_size().x - 0.18
 		panel_height = (_active_phone_size().y - 0.014) * 0.5 - 0.12
-		center_y = _active_phone_size().y * 0.25
+		center_y = moving_offset.y
 	panel_width = maxf(0.28, panel_width)
 	panel_height = maxf(0.42, panel_height)
 	var current_depth := _phone_depth_for_thickness_level()
@@ -7960,7 +7963,12 @@ func _refresh_phone_charge_port() -> void:
 	var current_phone_depth := _phone_depth_for_thickness_level()
 	var half_phone_depth := current_phone_depth * 0.5
 	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
-	var flat_bottom_half_width := _active_phone_size().x * 0.5 - current_corner_radius
+	var port_frame_half_width := _active_phone_size().x * 0.5
+	if selected_phone_type == "Fold":
+		var chassis_layout := _get_foldable_segment_layout()
+		var fold_segment_size: Vector3 = chassis_layout["segment_size"]
+		port_frame_half_width = fold_segment_size.x * 0.5
+	var flat_bottom_half_width := maxf(0.02, port_frame_half_width - current_corner_radius)
 	var profile_fit := 1.0
 	for point in inner_points:
 		if absf(point.x) > 0.00001:
@@ -7982,10 +7990,10 @@ func _refresh_phone_charge_port() -> void:
 	var port_root := Node3D.new()
 	port_root.name = "PhoneChargingPort"
 	if selected_phone_type == "Fold":
-		# Match the fixed Fold frame's exact local centre. Keeping the port
-		# hardware on this same coordinate prevents a lip/edge overhang.
-		var fold_half_width := (_active_phone_size().x - 0.014) * 0.5
-		port_root.position.x = -fold_half_width * 0.5 - 0.007
+		# Match the fixed Fold frame's exact saved chassis centre.
+		var chassis_layout := _get_foldable_segment_layout()
+		var fixed_offset: Vector3 = chassis_layout["fixed_offset"]
+		port_root.position = fixed_offset
 	phone_body.add_child(port_root)
 	var bottom_y := -_active_phone_size().y * 0.5
 	var mouth_y := bottom_y + 0.0001
@@ -8174,6 +8182,29 @@ func _refresh_foldable_frame_materials() -> void:
 		hinge_edge.material_override = edge_material
 
 
+func _get_foldable_segment_layout() -> Dictionary:
+	# Shared saved chassis structure for frame, port, cover display and case.
+	var phone_size := _active_phone_size()
+	var segment_size := Vector3.ZERO
+	var fixed_offset := Vector3.ZERO
+	var moving_offset := Vector3.ZERO
+	if selected_phone_type == "Fold":
+		var half_width := (phone_size.x - 0.014) * 0.5
+		segment_size = Vector3(half_width, phone_size.y, phone_size.z)
+		fixed_offset = Vector3(-half_width * 0.5 - 0.007, 0.0, 0.0)
+		moving_offset = Vector3(half_width * 0.5 + 0.007, 0.0, 0.0)
+	else:
+		var half_height := (phone_size.y - 0.014) * 0.5
+		segment_size = Vector3(phone_size.x, half_height, phone_size.z)
+		fixed_offset = Vector3(0.0, -half_height * 0.5 - 0.007, 0.0)
+		moving_offset = Vector3(0.0, half_height * 0.5 + 0.007, 0.0)
+	return {
+		"segment_size": segment_size,
+		"fixed_offset": fixed_offset,
+		"moving_offset": moving_offset
+	}
+
+
 func _foldable_half_corner_mask(is_moving_half: bool) -> int:
 	# Corner order matches both mesh builders: top-right, top-left,
 	# bottom-left, bottom-right. Only the outside corners of the complete
@@ -8225,19 +8256,10 @@ func _refresh_foldable_hardware() -> void:
 	moving_half.name = "PhoneFoldableMovingHalf"
 	panels.add_child(moving_half)
 
-	var segment_size: Vector3
-	var fixed_offset := Vector3.ZERO
-	var moving_offset := Vector3.ZERO
-	if selected_phone_type == "Fold":
-		var half_width := (_active_phone_size().x - 0.014) * 0.5
-		segment_size = Vector3(half_width, _active_phone_size().y, _active_phone_size().z)
-		fixed_offset = Vector3(-half_width * 0.5 - 0.007, 0.0, 0.0)
-		moving_offset = Vector3(half_width * 0.5 + 0.007, 0.0, 0.0)
-	else:
-		var half_height := (_active_phone_size().y - 0.014) * 0.5
-		segment_size = Vector3(_active_phone_size().x, half_height, _active_phone_size().z)
-		fixed_offset = Vector3(0.0, -half_height * 0.5 - 0.007, 0.0)
-		moving_offset = Vector3(0.0, half_height * 0.5 + 0.007, 0.0)
+	var chassis_layout := _get_foldable_segment_layout()
+	var segment_size: Vector3 = chassis_layout["segment_size"]
+	var fixed_offset: Vector3 = chassis_layout["fixed_offset"]
+	var moving_offset: Vector3 = chassis_layout["moving_offset"]
 
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
 	var moving_corner_mask := _foldable_half_corner_mask(true)
@@ -8311,19 +8333,18 @@ func _build_folded_chassis_division_seam() -> void:
 	var depth := _phone_depth_for_thickness_level()
 	var corner_radius := minf(0.32 * float(border_radius_level) / 6.0, minf(phone_size.x, phone_size.y) * 0.45)
 	var seam_material := StandardMaterial3D.new()
-	seam_material.albedo_color = Color("#101820", 0.0)
-	seam_material.roughness = 0.78
-	seam_material.metallic = 0.06
+	seam_material.albedo_color = Color("#101820")
+	seam_material.roughness = 0.82
+	seam_material.metallic = 0.02
 	seam_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	seam_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	seam_root.visible = false
 	seam_root.set_meta("seam_material", seam_material)
-	seam_root.set_meta("seam_color", Color("#101820"))
 
 	# The two leaves meet at the fixed leaf's front plane when fully closed.
 	# Put the dark hairline on the SIDE WALLS at that contact plane, not on
 	# either broad front/back face. It is therefore visible from an edge view.
-	var seam_depth := 0.0032
-	var side_band := 0.0045
+	var seam_depth := 0.0055
+	var side_band := 0.0075
 	var contact_plane_z := depth * 0.5
 	var horizontal_length := maxf(0.1, phone_size.x - corner_radius * 2.0)
 	var vertical_length := maxf(0.1, phone_size.y - corner_radius * 2.0)
@@ -8400,14 +8421,7 @@ func _apply_phone_fold_angle() -> void:
 		moving_half.position.z = layer_offset
 	var division_seam := phone_body.get_node_or_null("FoldedChassisDivisionSeam") if is_instance_valid(phone_body) else null
 	if is_instance_valid(division_seam):
-		var seam_material := division_seam.get_meta("seam_material") as StandardMaterial3D
-		if is_instance_valid(seam_material):
-			# Reveal the side-wall joint only as the two chassis leaves
-			# approach their fully stacked/closed position.
-			var seam_visibility := clampf((fold_angle_degrees - 155.0) / 25.0, 0.0, 1.0)
-			var seam_color: Color = division_seam.get_meta("seam_color", Color("#101820"))
-			seam_color.a = seam_visibility * 0.88
-			seam_material.albedo_color = seam_color
+		division_seam.visible = fold_angle_degrees >= 158.0
 	var case_moving := phone_case_preview.get_node_or_null("PhoneCaseMovingHalf") if is_instance_valid(phone_case_preview) else null
 	if is_instance_valid(case_moving):
 		case_moving.rotation = inward_rotation
@@ -9704,18 +9718,8 @@ func _build_phone_case_preview(parent: Node3D) -> void:
 
 
 func _case_outline(expansion: float) -> PackedVector2Array:
-	var half_w := _active_phone_size().x * 0.5 + expansion
-	var half_h := _active_phone_size().y * 0.5 + expansion
-	var radius := clampf(0.32 * float(border_radius_level) / 6.0 + expansion, 0.001, minf(half_w, half_h) - 0.001)
-	var centers := [Vector2(half_w-radius,half_h-radius),Vector2(-half_w+radius,half_h-radius),Vector2(-half_w+radius,-half_h+radius),Vector2(half_w-radius,-half_h+radius)]
-	var points := PackedVector2Array()
-	for corner in range(4):
-		var first_step := 0 if corner == 0 else 1
-		var last_step := 16 if corner < 3 else 15
-		for step in range(first_step,last_step+1):
-			var angle := float(corner) * PI * 0.5 + float(step) / 16.0 * PI * 0.5
-			points.append(centers[corner] + Vector2(cos(angle),sin(angle))*radius)
-	return points
+	var phone_size := _active_phone_size()
+	return _case_outline_for_size(Vector2(phone_size.x, phone_size.y), expansion, 15)
 
 
 func _case_rounded_cutout(width: float, height: float, radius: float) -> PackedVector2Array:
@@ -9901,34 +9905,43 @@ func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: 
 	_case_subtract(combiner,opening)
 
 
-func _case_outline_for_size(size: Vector2, expansion: float) -> PackedVector2Array:
+func _case_outline_for_size(size: Vector2, expansion: float, corner_mask: int = 15) -> PackedVector2Array:
+	# Use the same corner order and 48-segment arcs as the saved chassis mesh.
+	# Fold/Flip case lips remain square at hinge-side corners.
 	var half_w := size.x * 0.5 + expansion
 	var half_h := size.y * 0.5 + expansion
 	var radius := clampf(0.32 * float(border_radius_level) / 6.0 + expansion, 0.001, minf(half_w, half_h) - 0.001)
-	var centers := [
-		Vector2(half_w - radius, half_h - radius),
-		Vector2(-half_w + radius, half_h - radius),
-		Vector2(-half_w + radius, -half_h + radius),
-		Vector2(half_w - radius, -half_h + radius)
+	var corner_points := [
+		Vector2(half_w, half_h), Vector2(-half_w, half_h),
+		Vector2(-half_w, -half_h), Vector2(half_w, -half_h)
 	]
 	var points := PackedVector2Array()
+	const CASE_CORNER_SEGMENTS := 48
 	for corner in range(4):
-		var first_step := 0 if corner == 0 else 1
-		var last_step := 16 if corner < 3 else 15
-		for step in range(first_step, last_step + 1):
-			var angle := float(corner) * PI * 0.5 + float(step) / 16.0 * PI * 0.5
-			points.append(centers[corner] + Vector2(cos(angle), sin(angle)) * radius)
+		var corner_point: Vector2 = corner_points[corner]
+		var should_round := (corner_mask & (1 << corner)) != 0 and radius > 0.0001
+		if not should_round:
+			points.append(corner_point)
+			continue
+		var centre := Vector2(
+			signf(corner_point.x) * (half_w - radius),
+			signf(corner_point.y) * (half_h - radius)
+		)
+		var start_angle := float(corner) * PI * 0.5
+		for step in range(CASE_CORNER_SEGMENTS + 1):
+			var angle := start_angle + float(step) / float(CASE_CORNER_SEGMENTS) * PI * 0.5
+			points.append(centre + Vector2(cos(angle), sin(angle)) * radius)
 	return points
 
 
-func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: Vector2, depth: float, wall: float, segment_name: String, include_port: bool) -> void:
+func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: Vector2, depth: float, wall: float, segment_name: String, include_port: bool, corner_mask: int) -> void:
 	var combiner := CSGCombiner3D.new()
 	combiner.name = segment_name
 	combiner.use_collision = false
 	parent.add_child(combiner)
 	var shell := CSGPolygon3D.new()
 	shell.name = "ProtectiveOuterShell"
-	shell.polygon = _case_outline_for_size(segment_size, wall)
+	shell.polygon = _case_outline_for_size(segment_size, wall, corner_mask)
 	shell.depth = depth + wall * 2.0
 	shell.position = Vector3(centre.x, centre.y, -depth * 0.5 - wall)
 	shell.material = _create_phone_case_material()
@@ -9943,7 +9956,7 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 	# every side. The previous -0.008 size adjustment cancelled the outline
 	# expansion entirely, leaving the cavity no wider than the handset and
 	# causing the case lip to intersect/mis-seat around the device.
-	cavity.polygon = _case_outline_for_size(segment_size, 0.003)
+	cavity.polygon = _case_outline_for_size(segment_size, 0.003, corner_mask)
 	# Keep a 12 mm rear skin, then hollow forward through the device volume
 	# and beyond the screen plane so the front of the case remains open.
 	cavity.depth = depth + wall + 0.040
@@ -10034,23 +10047,22 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 	var moving_case := Node3D.new()
 	moving_case.name = "PhoneCaseMovingHalf"
 	phone_case_preview.add_child(moving_case)
-	var segment_size: Vector2
-	var fixed_centre := Vector2.ZERO
-	var moving_centre := Vector2.ZERO
-	if selected_phone_type == "Fold":
-		var half_width := (_active_phone_size().x - 0.014) * 0.5
-		segment_size = Vector2(half_width, _active_phone_size().y)
-		fixed_centre = Vector2(-half_width * 0.5 - 0.007, 0.0)
-		moving_centre = Vector2(half_width * 0.5 + 0.007, 0.0)
-	else:
-		# Equal upper/lower clamshell halves; the divider is locked to the exact centre.
-		var half_height := (_active_phone_size().y - 0.014) * 0.5
-		segment_size = Vector2(_active_phone_size().x, half_height)
-		fixed_centre = Vector2(0.0, -half_height * 0.5 - 0.007)
-		moving_centre = Vector2(0.0, half_height * 0.5 + 0.007)
+	var chassis_layout := _get_foldable_segment_layout()
+	var chassis_segment: Vector3 = chassis_layout["segment_size"]
+	var fixed_offset: Vector3 = chassis_layout["fixed_offset"]
+	var moving_offset: Vector3 = chassis_layout["moving_offset"]
+	var segment_size := Vector2(chassis_segment.x, chassis_segment.y)
+	var fixed_centre := Vector2(fixed_offset.x, fixed_offset.y)
+	var moving_centre := Vector2(moving_offset.x, moving_offset.y)
 
-	_add_foldable_case_segment(phone_case_preview, segment_size, fixed_centre, depth, wall, "PhoneCaseFixedHalf", true)
-	_add_foldable_case_segment(moving_case, segment_size, moving_centre, depth, wall, "PhoneCaseMovingHalfShell", false)
+	_add_foldable_case_segment(
+		phone_case_preview, segment_size, fixed_centre, depth, wall,
+		"PhoneCaseFixedHalf", true, _foldable_half_corner_mask(false)
+	)
+	_add_foldable_case_segment(
+		moving_case, segment_size, moving_centre, depth, wall,
+		"PhoneCaseMovingHalfShell", false, _foldable_half_corner_mask(true)
+	)
 
 	var hinge_bridge := MeshInstance3D.new()
 	hinge_bridge.name = "FlexibleCaseHingeBridge"
@@ -10544,8 +10556,7 @@ func _rotate_phone_from_drag(delta: Vector2) -> void:
 		rotation_target.rotation.y += delta.x * DRAG_SENSITIVITY
 	else:
 		rotation_target.rotation.x += delta.y * DRAG_SENSITIVITY
-	if rotation_target == phone_body and is_instance_valid(phone_case_preview):
-		phone_case_preview.rotation = phone_body.rotation
+	# PhoneCasePreview inherits PhoneBody rotation as a child; no second rotation is needed.
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
@@ -10555,8 +10566,7 @@ func _rotate_axis(axis: Vector3, direction: float) -> void:
 		phone_body.rotation.x += ROTATION_STEP * direction
 	elif axis == Vector3.UP:
 		phone_body.rotation.y += ROTATION_STEP * direction
-	if is_instance_valid(phone_case_preview):
-		phone_case_preview.rotation = phone_body.rotation
+	# PhoneCasePreview inherits PhoneBody rotation as a child; no second rotation is needed.
 
 
 func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
@@ -10567,8 +10577,7 @@ func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
 		phone_body.rotation.x += fine_step * direction
 	elif axis == Vector3.UP:
 		phone_body.rotation.y += fine_step * direction
-	if is_instance_valid(phone_case_preview):
-		phone_case_preview.rotation = phone_body.rotation
+	# PhoneCasePreview inherits PhoneBody rotation as a child; no second rotation is needed.
 
 
 func _reset_phone_rotation() -> void:
