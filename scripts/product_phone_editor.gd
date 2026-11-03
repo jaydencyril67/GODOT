@@ -10809,6 +10809,9 @@ func _rebuild_box_package_preview() -> void:
 	_add_box_package_part(box_package_preview, "TrayRightWall", Vector3(wall, 3.20, 0.43), Vector3(half_width - wall * 0.5, 0.0, base_z + 0.22), box_package_color.darkened(0.10))
 	_add_box_package_part(box_package_preview, "TrayTopWall", Vector3(1.78, wall, 0.43), Vector3(0.0, half_height - wall * 0.5, base_z + 0.22), box_package_color.darkened(0.10))
 	_add_box_package_part(box_package_preview, "TrayBottomWall", Vector3(1.78, wall, 0.43), Vector3(0.0, -half_height + wall * 0.5, base_z + 0.22), box_package_color.darkened(0.10))
+	# A fitted inner board and dark phone-shaped recess make the open carton read as retail packaging.
+	_add_box_package_part(box_package_preview, "InnerCardboardInsert", Vector3(1.62, 3.02, 0.045), Vector3(0.0, 0.0, 0.015), box_package_color.lightened(0.06))
+	_add_box_package_part(box_package_preview, "PhoneRecess", Vector3(1.38, 2.78, 0.025), Vector3(0.0, 0.0, 0.052), Color("#26313b"), 0.94)
 
 	box_package_lid = Node3D.new()
 	box_package_lid.name = "RemovableBoxLid"
@@ -10867,8 +10870,8 @@ func _collect_box_package_meshes(root: Node) -> Array[MeshInstance3D]:
 func _refresh_box_package_lid_transform() -> void:
 	if not is_instance_valid(box_package_lid):
 		return
-	box_package_lid.position = Vector3(0.0, 0.0, 1.12 if box_package_open else 0.0)
-	box_package_lid.rotation_degrees = Vector3(-7.0 if box_package_open else 0.0, 0.0, 0.0)
+	box_package_lid.position = Vector3(0.0, 2.10 if box_package_open else 0.0, 0.10 if box_package_open else 0.0)
+	box_package_lid.rotation_degrees = Vector3(-8.0 if box_package_open else 0.0, 0.0, 0.0)
 
 
 func _refresh_box_package_branding() -> void:
