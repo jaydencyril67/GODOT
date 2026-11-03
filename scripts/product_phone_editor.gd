@@ -135,6 +135,13 @@ var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
 var selected_phone_type := "Standard"
 var outer_screen_enabled := false
+var fold_angle_degrees := 0.0
+var preview_touch_points: Dictionary = {}
+var fold_pinch_active := false
+var fold_pinch_start_distance := 0.0
+var fold_pinch_start_angle := 0.0
+const MAX_FOLD_ANGLE_DEGREES := 175.0
+const FOLD_PINCH_ANGLE_SENSITIVITY := 115.0
 var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
@@ -3208,12 +3215,14 @@ func _create_screen_protector_material() -> StandardMaterial3D:
 	return material
 
 
-func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool) -> void:
+func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, shared_token: int = -1, include_camera_cutouts: bool = true) -> void:
 	if not screen_protector_enabled or not is_instance_valid(display):
 		return
-	screen_protector_build_token += 1
+	if shared_token < 0:
+		screen_protector_build_token += 1
+		shared_token = screen_protector_build_token
 	screen_protector_building = true
-	var token := screen_protector_build_token
+	var token := shared_token
 	var placeholder := MeshInstance3D.new()
 	placeholder.name = "TemperedGlassBuildPreview"
 	placeholder.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.002, screen_radius)
@@ -3230,13 +3239,13 @@ func _build_screen_protector(display: MeshInstance3D, screen_width: float, scree
 	build_tween.set_loops()
 	build_tween.tween_property(placeholder, "scale", Vector3(1.0, 0.985, 1.0), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	build_tween.tween_property(placeholder, "scale", Vector3.ONE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	call_deferred("_build_screen_protector_async", display, screen_width, screen_height, screen_radius, curved_display, token, placeholder, build_tween)
+	call_deferred("_build_screen_protector_async", display, screen_width, screen_height, screen_radius, curved_display, token, placeholder, build_tween, include_camera_cutouts)
 
 
-func _build_screen_protector_async(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, token: int, placeholder: MeshInstance3D, build_tween: Tween) -> void:
+func _build_screen_protector_async(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, token: int, placeholder: MeshInstance3D, build_tween: Tween, include_camera_cutouts: bool = true) -> void:
 	var curve_sides := curved_display and side_curve_enabled
 	var curve_vertical := curved_display and vertical_curve_enabled
-	var cutouts := _get_screen_protector_cutouts(screen_width, screen_height)
+	var cutouts := _get_screen_protector_cutouts(screen_width, screen_height) if include_camera_cutouts else []
 	var generated_mesh: ArrayMesh = await _create_screen_protector_mesh_async(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness)
 	if token != screen_protector_build_token or not screen_protector_enabled or not is_instance_valid(display):
 		return
@@ -5191,13 +5200,24 @@ func _refresh_phone_screen() -> void:
 	var previous := phone_body.get_node_or_null("PhoneDisplayPanel")
 	if is_instance_valid(previous):
 		previous.free()
-	var previous_outer := phone_body.get_node_or_null("PhoneOuterDisplayPanel")
+	var old_moving_display := phone_body.find_child("PhoneFoldableMovingDisplay", true, false)
+	if is_instance_valid(old_moving_display):
+		old_moving_display.free()
+	var previous_outer := phone_body.find_child("PhoneOuterDisplayPanel", true, false)
 	if is_instance_valid(previous_outer):
 		previous_outer.free()
 	phone_screen = null
 	if not screen_enabled:
 		_refresh_phone_home_button()
 		_build_phone_outer_display()
+		return
+	if selected_phone_type != "Standard":
+		_build_foldable_inner_screens()
+		_refresh_phone_home_button()
+		_build_phone_outer_display()
+		_route_foldable_accessories()
+		_apply_phone_fold_angle()
+		_queue_phone_case_sync()
 		return
 
 	var display := MeshInstance3D.new()
@@ -5286,6 +5306,7 @@ func _refresh_phone_screen() -> void:
 
 	_refresh_phone_home_button()
 	_build_phone_outer_display()
+	_route_foldable_accessories()
 	_queue_phone_case_sync()
 
 
@@ -5406,6 +5427,85 @@ func _build_phone_outer_display() -> void:
 	cover_camera.position = Vector3(center_x, center_y + panel_height * 0.5 - 0.055, -current_depth * 0.5 - 0.013)
 	cover_camera.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	outer_root.add_child(cover_camera)
+
+
+func _build_foldable_inner_screens() -> void:
+	var panels := phone_body.get_node_or_null("PhoneFoldablePanels")
+	if not is_instance_valid(panels):
+		_refresh_foldable_hardware()
+		panels = phone_body.get_node_or_null("PhoneFoldablePanels")
+	if not is_instance_valid(panels):
+		return
+	var fixed_half := panels.get_node_or_null("PhoneFoldableFixedHalf")
+	var moving_half := panels.get_node_or_null("PhoneFoldableMovingHalf")
+	if not is_instance_valid(fixed_half) or not is_instance_valid(moving_half):
+		return
+
+	var full_width := maxf(0.30, PHONE_SIZE.x - bezel_width * 2.0)
+	var full_height := maxf(0.60, PHONE_SIZE.y - bezel_height * 2.0)
+	var segment_width := full_width
+	var segment_height := full_height
+	var fixed_offset := Vector3.ZERO
+	var moving_offset := Vector3.ZERO
+	if selected_phone_type == "Fold":
+		segment_width = maxf(0.30, (full_width - 0.018) * 0.5)
+		fixed_offset.x = -(segment_width * 0.5 + 0.009)
+		moving_offset.x = segment_width * 0.5 + 0.009
+	else:
+		segment_height = maxf(0.60, (full_height - 0.018) * 0.5)
+		fixed_offset.y = -(segment_height * 0.5 + 0.009)
+		moving_offset.y = segment_height * 0.5 + 0.009
+
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var glass_z := current_depth * 0.5 + 0.0035
+	var screen_radius := minf(0.12, 0.32 * float(border_radius_level) / 6.0)
+	var colors := {
+		"TFT LCD": Color("#263746"), "LED-LCD": Color("#223342"),
+		"IPS LCD": Color("#1d2d3d"), "Mini-LED LCD": Color("#172535"),
+		"OLED": Color("#111b28"), "AMOLED": Color("#0e1723"),
+		"Super AMOLED": Color("#0b131f"), "Dynamic AMOLED": Color("#09111d"),
+		"LTPO AMOLED": Color("#080f1b"), "MicroLED": Color("#070d18")
+	}
+	var roughness := {
+		"TFT LCD": 0.30, "LED-LCD": 0.27, "IPS LCD": 0.24,
+		"Mini-LED LCD": 0.19, "OLED": 0.15, "AMOLED": 0.11,
+		"Super AMOLED": 0.075, "Dynamic AMOLED": 0.060,
+		"LTPO AMOLED": 0.045, "MicroLED": 0.035
+	}
+	var display_material := StandardMaterial3D.new()
+	display_material.albedo_color = colors.get(selected_screen_type, Color("#0e1723"))
+	display_material.roughness = roughness.get(selected_screen_type, 0.12)
+	display_material.metallic = 0.18 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.04
+	display_material.metallic_specular = 0.85 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.55
+	display_material.emission_enabled = true
+	display_material.emission = display_material.albedo_color
+	display_material.emission_energy_multiplier = 0.025
+	display_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var display_root := Node3D.new()
+	display_root.name = "PhoneDisplayPanel"
+	phone_body.add_child(display_root)
+	var fixed_display := MeshInstance3D.new()
+	fixed_display.name = "FixedInnerDisplay"
+	fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius)
+	fixed_display.material_override = display_material
+	fixed_display.position = fixed_offset + Vector3(0.0, 0.0, glass_z)
+	fixed_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	display_root.add_child(fixed_display)
+	var moving_display := MeshInstance3D.new()
+	moving_display.name = "PhoneFoldableMovingDisplay"
+	moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius)
+	moving_display.material_override = display_material
+	moving_display.position = moving_offset + Vector3(0.0, 0.0, glass_z)
+	moving_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	moving_half.add_child(moving_display)
+	phone_screen = fixed_display
+	_refresh_front_camera(fixed_display, segment_width, segment_height)
+	if screen_protector_enabled:
+		screen_protector_build_token += 1
+		var shared_token := screen_protector_build_token
+		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, false, shared_token, true)
+		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, false, shared_token, false)
 
 
 func _camera_mp_from_slider_index(index: int) -> int:
@@ -7888,7 +7988,6 @@ func _refresh_phone_mesh() -> void:
 	# Refresh the fitted aperture first: thickness upgrades can change how much
 	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
-	phone_body.mesh = _create_phone_chassis_mesh(radius, charge_port_opening_points)
 	_refresh_foldable_hardware()
 	_refresh_back_design_boxes()
 	_refresh_phone_side_buttons()
@@ -7897,6 +7996,8 @@ func _refresh_phone_mesh() -> void:
 	_refresh_phone_speakers()
 	_refresh_back_design_boxes()
 	_refresh_rear_hardware_visuals()
+	_route_foldable_accessories()
+	_apply_phone_fold_angle()
 	_queue_phone_case_sync()
 
 
@@ -7910,18 +8011,68 @@ func _on_border_radius_level_changed(value: float) -> void:
 func _refresh_foldable_hardware() -> void:
 	if not is_instance_valid(phone_body):
 		return
-	var previous := phone_body.get_node_or_null("PhoneFoldableHinge")
-	if is_instance_valid(previous):
-		previous.free()
+	var previous_panels := phone_body.get_node_or_null("PhoneFoldablePanels")
+	if is_instance_valid(previous_panels):
+		var previous_moving := previous_panels.get_node_or_null("PhoneFoldableMovingHalf")
+		if is_instance_valid(previous_moving):
+			for routed_item in previous_moving.get_children():
+				if routed_item.has_meta("foldable_routed_accessory"):
+					routed_item.reparent(phone_body, true)
+		previous_panels.free()
+	var previous_hinge := phone_body.get_node_or_null("PhoneFoldableHinge")
+	if is_instance_valid(previous_hinge):
+		previous_hinge.free()
 	if selected_phone_type == "Standard":
+		phone_body.mesh = _create_rounded_phone_mesh(0.32 * float(border_radius_level) / 6.0, charge_port_opening_points)
+		fold_angle_degrees = 0.0
 		return
+
+	phone_body.mesh = null
+	var radius := 0.32 * float(border_radius_level) / 6.0
+	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var panels := Node3D.new()
+	panels.name = "PhoneFoldablePanels"
+	phone_body.add_child(panels)
+	var fixed_half := Node3D.new()
+	fixed_half.name = "PhoneFoldableFixedHalf"
+	panels.add_child(fixed_half)
+	var moving_half := Node3D.new()
+	moving_half.name = "PhoneFoldableMovingHalf"
+	panels.add_child(moving_half)
+
+	var segment_size: Vector3
+	var fixed_offset := Vector3.ZERO
+	var moving_offset := Vector3.ZERO
+	if selected_phone_type == "Fold":
+		var half_width := (PHONE_SIZE.x - 0.014) * 0.5
+		segment_size = Vector3(half_width, PHONE_SIZE.y, PHONE_SIZE.z)
+		fixed_offset = Vector3(-half_width * 0.5 - 0.007, 0.0, 0.0)
+		moving_offset = Vector3(half_width * 0.5 + 0.007, 0.0, 0.0)
+	else:
+		var half_height := (PHONE_SIZE.y - 0.014) * 0.5
+		segment_size = Vector3(PHONE_SIZE.x, half_height, PHONE_SIZE.z)
+		fixed_offset = Vector3(0.0, -half_height * 0.5 - 0.007, 0.0)
+		moving_offset = Vector3(0.0, half_height * 0.5 + 0.007, 0.0)
+
+	var fixed_frame := MeshInstance3D.new()
+	fixed_frame.name = "PhoneFoldableFixedFrame"
+	fixed_frame.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points, segment_size)
+	fixed_frame.material_override = phone_body.material_override
+	fixed_frame.position = fixed_offset
+	fixed_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fixed_half.add_child(fixed_frame)
+	var moving_frame := MeshInstance3D.new()
+	moving_frame.name = "PhoneFoldableMovingFrame"
+	moving_frame.mesh = _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size)
+	moving_frame.material_override = phone_body.material_override
+	moving_frame.position = moving_offset
+	moving_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	moving_half.add_child(moving_frame)
 
 	var hinge_root := Node3D.new()
 	hinge_root.name = "PhoneFoldableHinge"
 	phone_body.add_child(hinge_root)
-	var current_depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
 	var rear_z := -current_depth * 0.5 - 0.022
-
 	var hinge_material := StandardMaterial3D.new()
 	hinge_material.albedo_color = device_body_color.darkened(0.38)
 	hinge_material.metallic = 0.88
@@ -7931,20 +8082,15 @@ func _refresh_foldable_hardware() -> void:
 	hinge_highlight.albedo_color = device_body_color.lightened(0.22)
 	hinge_highlight.metallic = 0.94
 	hinge_highlight.roughness = 0.16
-
 	var spine := MeshInstance3D.new()
 	spine.name = "HingeSpine"
 	var spine_mesh := BoxMesh.new()
-	if selected_phone_type == "Fold":
-		spine_mesh.size = Vector3(0.088, PHONE_SIZE.y * 0.90, 0.036)
-	else:
-		spine_mesh.size = Vector3(PHONE_SIZE.x * 0.88, 0.088, 0.036)
+	spine_mesh.size = Vector3(0.088, PHONE_SIZE.y * 0.90, 0.036) if selected_phone_type == "Fold" else Vector3(PHONE_SIZE.x * 0.88, 0.088, 0.036)
 	spine.mesh = spine_mesh
 	spine.material_override = hinge_material
 	spine.position = Vector3(0.0, 0.0, rear_z)
 	spine.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	hinge_root.add_child(spine)
-
 	var barrel_count := 5 if selected_phone_type == "Fold" else 4
 	for index in range(barrel_count):
 		var barrel := MeshInstance3D.new()
@@ -7965,29 +8111,56 @@ func _refresh_foldable_hardware() -> void:
 		barrel.material_override = hinge_highlight if index % 2 == 0 else hinge_material
 		barrel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		hinge_root.add_child(barrel)
+	_apply_phone_fold_angle()
+
+
+func _route_foldable_accessories() -> void:
+	if selected_phone_type == "Standard" or not is_instance_valid(phone_body):
+		return
+	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf") as Node3D
+	if not is_instance_valid(moving_half):
+		return
+	var moving_axis := Vector3.RIGHT if selected_phone_type == "Fold" else Vector3.UP
+	for group_name in ["PhoneSideButtons", "PhoneSpeakerOpenings", "RearCameraFlashHardware", "BackDesignRaisedSections"]:
+		var group := phone_body.get_node_or_null(group_name)
+		if not is_instance_valid(group):
+			continue
+		for item in group.get_children():
+			if not item is Node3D or item.has_meta("foldable_routed_accessory"):
+				continue
+			var axis_position := (item as Node3D).position.dot(moving_axis)
+			if axis_position > 0.008:
+				item.set_meta("foldable_routed_accessory", true)
+				item.reparent(moving_half, true)
+
+
+func _apply_phone_fold_angle() -> void:
+	var angle_radians := deg_to_rad(clampf(fold_angle_degrees, 0.0, MAX_FOLD_ANGLE_DEGREES))
+	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf") if is_instance_valid(phone_body) else null
+	if is_instance_valid(moving_half):
+		if selected_phone_type == "Fold":
+			moving_half.rotation = Vector3(0.0, angle_radians, 0.0)
+		elif selected_phone_type == "Flip":
+			moving_half.rotation = Vector3(angle_radians, 0.0, 0.0)
+	var case_moving := phone_case_preview.get_node_or_null("PhoneCaseMovingHalf") if is_instance_valid(phone_case_preview) else null
+	if is_instance_valid(case_moving):
+		if selected_phone_type == "Fold":
+			case_moving.rotation = Vector3(0.0, angle_radians, 0.0)
+		elif selected_phone_type == "Flip":
+			case_moving.rotation = Vector3(angle_radians, 0.0, 0.0)
+
+
+func _set_fold_angle_from_pinch(distance: float) -> void:
+	if selected_phone_type == "Standard" or not fold_pinch_active:
+		return
+	var distance_change := distance - fold_pinch_start_distance
+	fold_angle_degrees = clampf(fold_pinch_start_angle - distance_change * FOLD_PINCH_ANGLE_SENSITIVITY, 0.0, MAX_FOLD_ANGLE_DEGREES)
+	_apply_phone_fold_angle()
 
 
 func _create_phone_chassis_mesh(radius: float, port_opening: PackedVector2Array) -> Mesh:
-	if selected_phone_type == "Standard":
-		return _create_rounded_phone_mesh(radius, port_opening)
-	const HINGE_CLEARANCE := 0.014
-	var combined := SurfaceTool.new()
-	combined.begin(Mesh.PRIMITIVE_TRIANGLES)
-	if selected_phone_type == "Fold":
-		var half_width := (PHONE_SIZE.x - HINGE_CLEARANCE) * 0.5
-		var segment_size := Vector3(half_width, PHONE_SIZE.y, PHONE_SIZE.z)
-		var port_half := _create_rounded_phone_mesh(radius, port_opening, segment_size)
-		var far_half := _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size)
-		combined.append_from(port_half, 0, Transform3D(Basis.IDENTITY, Vector3(-half_width * 0.5 - HINGE_CLEARANCE * 0.5, 0.0, 0.0)))
-		combined.append_from(far_half, 0, Transform3D(Basis.IDENTITY, Vector3(half_width * 0.5 + HINGE_CLEARANCE * 0.5, 0.0, 0.0)))
-	else:
-		var half_height := (PHONE_SIZE.y - HINGE_CLEARANCE) * 0.5
-		var segment_size := Vector3(PHONE_SIZE.x, half_height, PHONE_SIZE.z)
-		var lower_half := _create_rounded_phone_mesh(radius, port_opening, segment_size)
-		var upper_half := _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size)
-		combined.append_from(lower_half, 0, Transform3D(Basis.IDENTITY, Vector3(0.0, -half_height * 0.5 - HINGE_CLEARANCE * 0.5, 0.0)))
-		combined.append_from(upper_half, 0, Transform3D(Basis.IDENTITY, Vector3(0.0, half_height * 0.5 + HINGE_CLEARANCE * 0.5, 0.0)))
-	return combined.commit()
+	# Foldable handsets are assembled as independently transformable halves.
+	return _create_rounded_phone_mesh(radius, port_opening)
 
 
 func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3, port_opening: PackedVector2Array, flat_bottom_half_width: float) -> void:
@@ -9847,10 +10020,52 @@ func _input(event: InputEvent) -> void:
 		var mouse_motion := event as InputEventMouseMotion
 		if preview_mouse_dragging and (mouse_motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 			_rotate_phone_from_drag(mouse_motion.relative)
+	elif event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed and preview_rect.has_point(touch.position):
+			preview_touch_points[touch.index] = touch.position
+			if preview_touch_points.size() >= 2 and selected_phone_type != "Standard":
+				_begin_fold_pinch()
+		else:
+			preview_touch_points.erase(touch.index)
+			if preview_touch_points.size() < 2:
+				fold_pinch_active = false
 	elif event is InputEventScreenDrag:
 		var screen_drag := event as InputEventScreenDrag
-		if preview_rect.has_point(screen_drag.position):
+		if preview_touch_points.has(screen_drag.index):
+			preview_touch_points[screen_drag.index] = screen_drag.position
+		if preview_touch_points.size() >= 2 and selected_phone_type != "Standard":
+			if not fold_pinch_active:
+				_begin_fold_pinch()
+			_update_fold_pinch()
+		elif preview_rect.has_point(screen_drag.position):
 			_rotate_phone_from_drag(screen_drag.relative)
+	elif event is InputEventMagnifyGesture and selected_phone_type != "Standard" and preview_rect.has_point(event.position):
+		fold_angle_degrees = clampf(fold_angle_degrees - (event.factor - 1.0) * 105.0, 0.0, MAX_FOLD_ANGLE_DEGREES)
+		_apply_phone_fold_angle()
+
+
+func _begin_fold_pinch() -> void:
+	var touch_ids := preview_touch_points.keys()
+	if touch_ids.size() < 2:
+		return
+	var first: Vector2 = preview_touch_points[touch_ids[0]]
+	var second: Vector2 = preview_touch_points[touch_ids[1]]
+	fold_pinch_start_distance = first.distance_to(second)
+	fold_pinch_start_angle = fold_angle_degrees
+	fold_pinch_active = true
+
+
+func _update_fold_pinch() -> void:
+	if not fold_pinch_active:
+		return
+	var touch_ids := preview_touch_points.keys()
+	if touch_ids.size() < 2:
+		fold_pinch_active = false
+		return
+	var first: Vector2 = preview_touch_points[touch_ids[0]]
+	var second: Vector2 = preview_touch_points[touch_ids[1]]
+	_set_fold_angle_from_pinch(first.distance_to(second))
 
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
