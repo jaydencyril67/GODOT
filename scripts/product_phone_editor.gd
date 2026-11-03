@@ -8341,6 +8341,22 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 		var inner_b := Vector3(opening[next_index].x, mouth_y, opening[next_index].y)
 		_add_phone_mesh_triangle(surface, outer_a, outer_b, inner_b, bottom_normal)
 		_add_phone_mesh_triangle(surface, outer_a, inner_b, inner_a, bottom_normal)
+		# The charging aperture is a real cut through the bottom rail. Close
+		# its inner perimeter with frame-material side walls so the machined
+		# edge/border continues cleanly around the connector instead of
+		# appearing as an unbordered dark line. This is especially important
+		# on Fold/Flip, where the port sits in one independently modelled leaf.
+		var inner_next := Vector3(opening[next_index].x, mouth_y, opening[next_index].y)
+		var inner_current := Vector3(opening[index].x, mouth_y, opening[index].y)
+		var inner_back_next := Vector3(opening[next_index].x, mouth_y + phone_size.y * 0.0, opening[next_index].y)
+		var inner_back_current := Vector3(opening[index].x, mouth_y + phone_size.y * 0.0, opening[index].y)
+		var wall_normal := Vector3((inner_current.x + inner_next.x) * 0.5, 0.0, (inner_current.z + inner_next.z) * 0.5).normalized()
+		var front_a := Vector3(inner_current.x, inner_current.y, half_size.z)
+		var front_b := Vector3(inner_next.x, inner_next.y, half_size.z)
+		var back_a := Vector3(inner_current.x, inner_current.y, -half_size.z)
+		var back_b := Vector3(inner_next.x, inner_next.y, -half_size.z)
+		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, wall_normal)
+		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, wall_normal)
 
 
 func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array, size_override: Vector3 = Vector3.ZERO, corner_mask: int = 15) -> Mesh:
