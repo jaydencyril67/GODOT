@@ -10056,6 +10056,8 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		var camera_position: Vector2 = camera_data["position"]
 		if absf(camera_position.x - centre.x) > segment_size.x * 0.5 or absf(camera_position.y - centre.y) > segment_size.y * 0.5:
 			continue
+		if _rear_hardware_back_design_index(camera_position) >= 0:
+			continue
 		var camera_cut := CSGPolygon3D.new()
 		camera_cut.name = "RearCameraOpening_%02d" % (camera_index + 1)
 		camera_cut.polygon = _case_circle_outline(float(camera_data["size"]) * 1.22 + 0.010)
@@ -10068,6 +10070,8 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		var flash_position: Vector2 = flash_data["position"]
 		if absf(flash_position.x - centre.x) > segment_size.x * 0.5 or absf(flash_position.y - centre.y) > segment_size.y * 0.5:
 			continue
+		if _rear_hardware_back_design_index(flash_position) >= 0:
+			continue
 		var flash_cut := CSGPolygon3D.new()
 		flash_cut.name = "RearFlashOpening_%02d" % (flash_index + 1)
 		flash_cut.polygon = _case_circle_outline(float(flash_data["size"]) * 1.22 + 0.010)
@@ -10075,6 +10079,30 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		flash_cut.position = Vector3(flash_position.x, flash_position.y, -depth * 0.5 + wall * 1.5)
 		flash_cut.smooth_faces = true
 		_case_subtract(combiner, flash_cut)
+
+	# Raised back-design panels must pass through the pouch without pressing
+	# against the phone's own geometry. Keep each clearance on its actual half.
+	var camera_trim_material := _create_case_camera_trim_material()
+	for box_index in range(back_design_boxes.size()):
+		var box_data: Dictionary = back_design_boxes[box_index]
+		var box_position: Vector2 = box_data["position"]
+		if absf(box_position.x - centre.x) > segment_size.x * 0.5 or absf(box_position.y - centre.y) > segment_size.y * 0.5:
+			continue
+		var box_size: Vector2 = box_data["size"]
+		var cut_width := box_size.x + 0.045
+		var cut_height := box_size.y + 0.045
+		var cut_radius := minf(box_size.x, box_size.y) * float(box_data.get("border", 0.0)) + 0.018
+		var design_cut := CSGPolygon3D.new()
+		design_cut.name = "BackDesignClearance_%02d" % (box_index + 1)
+		design_cut.polygon = _case_rounded_cutout(cut_width, cut_height, cut_radius)
+		design_cut.depth = wall * 3.0 + 0.02
+		design_cut.position = Vector3(box_position.x, box_position.y, -depth * 0.5 + wall * 1.5)
+		_case_subtract(combiner, design_cut)
+		if _back_design_box_has_rear_hardware(box_index):
+			var trim_inner := _case_rounded_cutout(cut_width - 0.002, cut_height - 0.002, maxf(0.002, cut_radius - 0.001))
+			var trim_outer := _case_rounded_cutout(cut_width + 0.014, cut_height + 0.014, cut_radius + 0.007)
+			var rear_case_surface_z := -depth * 0.5 - wall - 0.001
+			_add_phone_case_camera_trim(phone_case_preview, box_position, trim_inner, trim_outer, rear_case_surface_z, "BackDesignCameraGoldTrim_%02d" % (box_index + 1), camera_trim_material)
 
 	if include_port and charge_port_type != "None" and charge_port_opening_points.size() >= 3:
 		var low := Vector2(INF, INF)
@@ -10090,6 +10118,20 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		port_cut.position = Vector3(centre.x + (low.x + high.x) * 0.5, centre.y - segment_size.y * 0.5, (low.y + high.y) * 0.5)
 		_case_subtract(combiner, port_cut)
 
+	# S-Pen access follows the phone's live collision-aware marker position.
+	if style_pen_enabled:
+		var pen_layout := _get_style_pen_marker_layout()
+		if bool(pen_layout["valid"]):
+			var pen_position: Vector2 = pen_layout["position"]
+			if absf(pen_position.x - centre.x) <= segment_size.x * 0.5 and absf(pen_position.y - centre.y) <= segment_size.y * 0.5:
+				var pen_cut := CSGCylinder3D.new()
+				pen_cut.name = "StylePenSlotOpening"
+				pen_cut.radius = 0.029
+				pen_cut.height = wall * 2.0 + 0.045
+				pen_cut.sides = 40
+				pen_cut.position = Vector3(pen_position.x, centre.y - segment_size.y * 0.5, 0.0)
+				_case_subtract(combiner, pen_cut)
+
 	var key_length := 0.30 * side_button_length_scale * 0.46
 	if power_button_enabled:
 		_case_side_opening(combiner, 1.0, power_button_y, key_length + 0.06, depth, wall, "PowerButtonOpening")
@@ -10099,6 +10141,13 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		_case_side_opening(combiner, -1.0, volume_button_y - volume_key_length * 0.52 - 0.018, volume_key_length, depth, wall, "VolumeDownOpening")
 	if camera_side_button_enabled:
 		_case_side_opening(combiner, 1.0, camera_side_button_y, 0.25, depth, wall, "CameraSideButtonOpening")
+	if sound_button_enabled:
+		var case_phone_depth := _phone_depth_for_thickness_level()
+		var case_key_radius := clampf(case_phone_depth * 0.27, 0.018, 0.036) * 0.78
+		var sound_key_width := maxf(case_key_radius * 1.35, 0.024)
+		var sound_key_length := maxf(0.0, (0.105 + sound_key_width) / 1.2 - sound_key_width)
+		var sound_key_total_height := maxf(sound_key_length + sound_key_width, sound_key_width * 2.0)
+		_case_side_opening(combiner, -1.0, volume_button_y + key_length + 0.15, sound_key_total_height + 0.012, depth, wall, "SoundButtonOpening")
 	if sim_tray_enabled:
 		_case_side_opening(combiner, -1.0, sim_tray_y, 0.25, depth, wall, "SIMTrayOpening")
 
@@ -10121,6 +10170,16 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 			speaker_cut.sides = 32
 			speaker_cut.position = Vector3(speaker_x, centre.y - segment_size.y * 0.5, 0.0)
 			_case_subtract(combiner, speaker_cut)
+
+	# A pop-up camera gets an edge slot only on the leaf that contains the top edge.
+	if front_camera_enabled and front_camera_style == "Pop-Up Camera":
+		var popup_y := _active_phone_size().y * 0.5 + 0.045
+		if absf(centre.x) <= segment_size.x * 0.5 and absf(popup_y - centre.y) <= segment_size.y * 0.5 + 0.08:
+			var popup_cut := CSGBox3D.new()
+			popup_cut.name = "PopUpCameraOpening"
+			popup_cut.size = Vector3(0.22, 0.16, depth + wall * 2.0 + 0.08)
+			popup_cut.position = Vector3(0.0, popup_y, 0.0)
+			_case_subtract(combiner, popup_cut)
 
 
 func _rebuild_foldable_phone_case_geometry() -> void:
