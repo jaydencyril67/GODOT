@@ -190,6 +190,11 @@ var phone_case_shell: CSGPolygon3D
 var charger_preview: Node3D
 var smartwatch_preview: Node3D
 var power_bank_preview: Node3D
+var wireless_earbuds_preview: Node3D
+var wireless_earbuds_enabled := false
+var wireless_earbuds_preview_mode := false
+var wireless_earbuds_body_color := Color("#e8edf2")
+var wireless_earbuds_color_mode := false
 var power_bank_preview_mode := false
 var power_bank_enabled := false
 var power_bank_capacity_mah := 10000
@@ -999,9 +1004,14 @@ func _get_preview_viewport() -> SubViewport:
 	power_bank_preview.name = "PowerBankAccessoryPreview"
 	power_bank_preview.visible = false
 	preview_world.add_child(power_bank_preview)
+	wireless_earbuds_preview = Node3D.new()
+	wireless_earbuds_preview.name = "WirelessEarbudsAccessoryPreview"
+	wireless_earbuds_preview.visible = false
+	preview_world.add_child(wireless_earbuds_preview)
 	_rebuild_charger_preview()
 	_rebuild_smartwatch_preview()
 	_rebuild_power_bank_preview()
+	_rebuild_earbuds_preview()
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
@@ -1066,7 +1076,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank", "Wireless Earbuds"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1075,6 +1085,12 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 func _on_tool_feature_pressed(feature_name: String) -> void:
 	_close_back_design_selection_popup()
 	_set_charger_preview_mode(false)
+	if feature_name == "Wireless Earbuds":
+		_set_smartwatch_preview_mode(false)
+		_set_power_bank_preview_mode(false)
+		_set_earbuds_preview_mode(true)
+		_show_earbuds_controls()
+		return
 	if feature_name == "Smartwatch":
 		_set_power_bank_preview_mode(false)
 		_set_smartwatch_preview_mode(true)
@@ -1162,19 +1178,20 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 
 
 
-func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false) -> void:
+func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false) -> void:
 	_close_back_design_selection_popup()
 	back_design_color_mode = return_to_back_design
 	phone_case_color_mode = for_phone_case
 	charger_color_mode = for_charger
 	smartwatch_color_mode = for_smartwatch
 	power_bank_color_mode = for_power_bank
+	wireless_earbuds_color_mode = for_earbuds
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else ("SmartwatchColorControls" if for_smartwatch else ("PowerBankColorControls" if for_power_bank else "DeviceColorControls")))
+	active_feature_panel.name = "ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else ("SmartwatchColorControls" if for_smartwatch else ("PowerBankColorControls" if for_power_bank else ("WirelessEarbudsColorControls" if for_earbuds else "DeviceColorControls"))))
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if return_to_back_design else Control.SIZE_SHRINK_BEGIN
 	var color_viewport_size := get_viewport().get_visible_rect().size
@@ -1182,7 +1199,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	active_feature_panel.add_theme_constant_override("separation", 6 if compact_color_ui else 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	if return_to_back_design or for_phone_case or for_charger or for_smartwatch or for_power_bank:
+	if return_to_back_design or for_phone_case or for_charger or for_smartwatch or for_power_bank or for_earbuds:
 		var color_header := HBoxContainer.new()
 		color_header.add_theme_constant_override("separation", 6)
 		active_feature_panel.add_child(color_header)
@@ -1192,9 +1209,9 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		back_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(back_button, 25)
 		_style_staff_button(back_button, false)
-		back_button.pressed.connect(_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else _show_back_design_controls))))
+		back_button.pressed.connect(_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else (_show_earbuds_controls if for_earbuds else _show_back_design_controls)))))
 		color_header.add_child(back_button)
-		var color_title := _make_label("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else "BACK DESIGN COLOR"))), 16, Color("#c7eaff"))
+		var color_title := _make_label("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else ("WIRELESS EARBUDS COLOR" if for_earbuds else "BACK DESIGN COLOR")))), 16, Color("#c7eaff"))
 		color_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		color_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		color_header.add_child(color_title)
@@ -1494,6 +1511,8 @@ func _get_active_color_picker_color() -> Color:
 		return smartwatch_body_color
 	if power_bank_color_mode:
 		return power_bank_body_color
+	if wireless_earbuds_color_mode:
+		return wireless_earbuds_body_color
 	if phone_case_color_mode:
 		return phone_case_gradient_color if phone_case_gradient_color_edit_mode else phone_case_color
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
@@ -1779,6 +1798,9 @@ func _on_device_body_color_changed(color: Color) -> void:
 	elif power_bank_color_mode:
 		power_bank_body_color = selected_color
 		_rebuild_power_bank_preview()
+	elif wireless_earbuds_color_mode:
+		wireless_earbuds_body_color = selected_color
+		_rebuild_earbuds_preview()
 	elif phone_case_color_mode:
 		if phone_case_gradient_color_edit_mode:
 			phone_case_gradient_color = selected_color
@@ -1796,7 +1818,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_gradient_color = selected_color
 	else:
 		device_body_color = selected_color
-	if not phone_case_color_mode and not charger_color_mode and not power_bank_color_mode and not smartwatch_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
+	if not phone_case_color_mode and not charger_color_mode and not power_bank_color_mode and not smartwatch_color_mode and not wireless_earbuds_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
@@ -3476,6 +3498,149 @@ func _on_smartwatch_color_selected(color_name: String, color: Color) -> void:
 	_show_device_color_controls(false, false, false, true, false)
 
 
+func _rebuild_earbuds_preview() -> void:
+	if not is_instance_valid(wireless_earbuds_preview):
+		return
+	for child in wireless_earbuds_preview.get_children():
+		child.free()
+
+	var shell_material := _charger_material(wireless_earbuds_body_color, 0.22, 0.30)
+	var lid_material := _charger_material(wireless_earbuds_body_color.lightened(0.075), 0.18, 0.24)
+	var seam_material := _charger_material(wireless_earbuds_body_color.darkened(0.30), 0.12, 0.62)
+	var inner_material := _charger_material(Color("#171d25"), 0.08, 0.72)
+	var stem_material := _charger_material(wireless_earbuds_body_color.lightened(0.035), 0.12, 0.28)
+	var speaker_material := _charger_material(Color("#252d36"), 0.18, 0.52)
+	var indicator_material := _charger_material(Color("#69e6b4"), 0.12, 0.20)
+
+	# Compact open charging case: rounded lower shell, dark inner tray and raised lid.
+	var case_base := MeshInstance3D.new()
+	case_base.name = "EarbudsChargingCaseLowerShell"
+	case_base.mesh = _create_rounded_panel_mesh(1.28, 0.78, 0.30, 0.22)
+	case_base.material_override = shell_material
+	case_base.position = Vector3(0.0, -0.28, 0.0)
+	wireless_earbuds_preview.add_child(case_base)
+
+	var inner_tray := _add_charger_box(wireless_earbuds_preview, "EarbudsChargingTray", Vector3(1.04, 0.045, 0.19), Vector3(0.0, -0.115, 0.155), inner_material)
+	var lid := MeshInstance3D.new()
+	lid.name = "EarbudsChargingCaseLid"
+	lid.mesh = _create_rounded_panel_mesh(1.28, 0.76, 0.105, 0.22)
+	lid.material_override = lid_material
+	lid.position = Vector3(0.0, 0.38, -0.025)
+	wireless_earbuds_preview.add_child(lid)
+	_add_charger_box(wireless_earbuds_preview, "EarbudsCaseHinge", Vector3(0.70, 0.075, 0.11), Vector3(0.0, 0.015, -0.015), seam_material)
+	_add_charger_box(wireless_earbuds_preview, "EarbudsLidInnerPanel", Vector3(0.94, 0.025, 0.025), Vector3(0.0, 0.39, 0.04), inner_material)
+	_add_charger_cylinder(wireless_earbuds_preview, "EarbudsCaseStatusLED", 0.018, 0.012, Vector3(0.0, -0.29, 0.158), indicator_material, 24)
+
+	# Two independent in-ear buds seated in the charging wells.
+	for side in range(2):
+		var x := -0.29 if side == 0 else 0.29
+		var bud := Node3D.new()
+		bud.name = "LeftEarbud" if side == 0 else "RightEarbud"
+		bud.position = Vector3(x, -0.055, 0.225)
+		wireless_earbuds_preview.add_child(bud)
+		var head := MeshInstance3D.new()
+		head.name = "EarbudAcousticHead"
+		var head_mesh := SphereMesh.new()
+		head_mesh.radius = 0.145
+		head_mesh.height = 0.27
+		head_mesh.radial_segments = 32
+		head_mesh.rings = 20
+		head.mesh = head_mesh
+		head.material_override = stem_material
+		head.scale = Vector3(1.0, 1.0, 0.76)
+		bud.add_child(head)
+		var nozzle := _add_charger_cylinder(bud, "EarbudSiliconeNozzle", 0.052, 0.105, Vector3(0.0, -0.035, 0.095), speaker_material, 28)
+		nozzle.rotation_degrees.x = 90.0
+		var stem := _add_charger_box(bud, "EarbudTouchStem", Vector3(0.105, 0.28, 0.105), Vector3(0.0, -0.19, -0.025), stem_material)
+		stem.rotation_degrees.z = -8.0 if side == 0 else 8.0
+		var mic := _add_charger_cylinder(bud, "EarbudMicrophonePort", 0.012, 0.008, Vector3(0.0, -0.255, 0.035), speaker_material, 16)
+		mic.rotation_degrees.x = 90.0
+		var touch := _add_charger_cylinder(bud, "EarbudTouchSurface", 0.035, 0.008, Vector3(0.0, -0.16, 0.035), lid_material, 24)
+		touch.rotation_degrees.x = 90.0
+
+	# The open case and both buds remain one rotatable accessory assembly.
+	wireless_earbuds_preview.position = Vector3(0.0, -0.03, 0.0)
+
+
+func _set_earbuds_preview_mode(enabled: bool) -> void:
+	wireless_earbuds_preview_mode = enabled
+	_set_charger_preview_mode(false)
+	_set_smartwatch_preview_mode(false)
+	_set_power_bank_preview_mode(false)
+	if is_instance_valid(phone_body):
+		phone_body.visible = not enabled
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+	if is_instance_valid(charger_preview):
+		charger_preview.visible = not enabled and charger_preview_mode and (charger_enabled or (charger_cable_enabled and not _charger_device_connector().is_empty()))
+	if is_instance_valid(wireless_earbuds_preview):
+		wireless_earbuds_preview.visible = enabled and wireless_earbuds_enabled
+	if is_instance_valid(preview_camera):
+		preview_camera.position = Vector3(0.0, 0.0, 4.15 if enabled else 5.2)
+		preview_camera.fov = 38.0
+		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
+
+
+func _show_earbuds_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "WirelessEarbudsControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("WIRELESS EARBUDS", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Add a rotatable 3D pair of wireless earbuds with an open charging case.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "WirelessEarbudsEnableRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(enable_row)
+	var enable_label := _make_label("ENABLE WIRELESS EARBUDS", 13, Color("#e6f5ff"))
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_label)
+	var toggle := TextureButton.new()
+	toggle.name = "EnableWirelessEarbudsModel"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
+	toggle.button_pressed = wireless_earbuds_enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.toggled.connect(_on_earbuds_enabled_toggled)
+	enable_row.add_child(toggle)
+
+	if wireless_earbuds_enabled:
+		var color_button := Button.new()
+		color_button.name = "OpenWirelessEarbudsDeviceColorEditor"
+		color_button.text = "CUSTOMIZE EARBUDS COLOR  ›"
+		color_button.custom_minimum_size = Vector2(0, 46)
+		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(color_button, 13)
+		_style_staff_button(color_button, false)
+		color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, false, false, true))
+		active_feature_panel.add_child(color_button)
+
+
+func _on_earbuds_enabled_toggled(enabled: bool) -> void:
+	wireless_earbuds_enabled = enabled
+	_rebuild_earbuds_preview()
+	_set_earbuds_preview_mode(true)
+	_show_earbuds_controls()
+
+
 func _rebuild_power_bank_preview() -> void:
 	if not is_instance_valid(power_bank_preview):
 		return
@@ -3580,6 +3745,9 @@ func _rebuild_power_bank_preview() -> void:
 
 func _set_power_bank_preview_mode(enabled: bool) -> void:
 	power_bank_preview_mode = enabled
+	if is_instance_valid(wireless_earbuds_preview):
+		wireless_earbuds_preview.visible = false
+	wireless_earbuds_preview_mode = false
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled and not smartwatch_preview_mode and not charger_preview_mode
 	if is_instance_valid(phone_case_preview):
@@ -4404,6 +4572,9 @@ func _update_charger_preview_framing() -> void:
 
 func _set_smartwatch_preview_mode(enabled: bool) -> void:
 	_set_power_bank_preview_mode(false)
+	if is_instance_valid(wireless_earbuds_preview):
+		wireless_earbuds_preview.visible = false
+	wireless_earbuds_preview_mode = false
 	smartwatch_preview_mode = enabled
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled and not charger_preview_mode
@@ -4421,6 +4592,9 @@ func _set_smartwatch_preview_mode(enabled: bool) -> void:
 
 func _set_charger_preview_mode(enabled: bool) -> void:
 	charger_preview_mode = enabled
+	if is_instance_valid(wireless_earbuds_preview):
+		wireless_earbuds_preview.visible = false
+	wireless_earbuds_preview_mode = false
 	_set_power_bank_preview_mode(false)
 	_set_smartwatch_preview_mode(false)
 	if is_instance_valid(phone_body):
