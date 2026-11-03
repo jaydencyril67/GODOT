@@ -149,17 +149,27 @@ func _create_environment() -> void:
 	sky_material.ground_horizon_color = Color("#89999a")
 	sky_material.sun_angle_max = 18.0
 	sky.sky_material = sky_material
-	environment.background_mode = Environment.BG_SKY
+
+	# Home gets a clean deep-emerald world background, not a blue studio sky.
+	# Keep the original sky as the ambient/reflection source so the building's
+	# material response and natural colour remain the same.
+	if home_mode:
+		environment.background_mode = Environment.BG_COLOR
+		environment.background_color = Color("#07170b")
+	else:
+		environment.background_mode = Environment.BG_SKY
+
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	environment.ambient_light_energy = 0.72
 	environment.ambient_light_sky_contribution = 0.88
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.tonemap_exposure = 1.0
-	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
+	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY if home_mode else Environment.REFLECTION_SOURCE_BG
 	world.environment = environment
 	add_child(world)
 
+	# The original key and fill lights are deliberately unchanged.
 	var sun := DirectionalLight3D.new()
 	sun.name = "Headquarters_Key_Light"
 	sun.rotation_degrees = Vector3(-43.0, -31.0, 0.0)
@@ -181,7 +191,26 @@ func _create_environment() -> void:
 	fill.shadow_enabled = false
 	add_child(fill)
 
+
 func _create_presentation_stage() -> void:
+	if home_mode:
+		# Replace the raised blue showroom plinth with one continuous matte
+		# emerald ground plane. The building mesh and its own foundation stay intact.
+		var ground_mesh := PlaneMesh.new()
+		ground_mesh.size = Vector2(120.0, 120.0)
+		var ground := MeshInstance3D.new()
+		ground.name = "Home_Emerald_Ground"
+		ground.mesh = ground_mesh
+		ground.position = Vector3(0.0, -0.035, 0.0)
+		var ground_material := StandardMaterial3D.new()
+		ground_material.albedo_color = Color("#1b2c1e")
+		ground_material.metallic = 0.04
+		ground_material.roughness = 0.96
+		ground.material_override = ground_material
+		ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(ground)
+		return
+
 	var ground := _box(self, "Headquarters_Studio_Ground", Vector3(90.0, 0.7, 90.0), Vector3(0.0, -0.55, 0.0), materials["stage_ground"])
 	ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_box(self, "Headquarters_Presentation_Deck", Vector3(34.0, 0.24, 30.0), Vector3(0.0, -0.12, 0.0), materials["stage_deck"])
@@ -189,6 +218,7 @@ func _create_presentation_stage() -> void:
 	_box(self, "Deck_Trim_Back", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, -15.0), materials["stage_trim"])
 	_box(self, "Deck_Trim_Left", Vector3(0.14, 0.07, 30.1), Vector3(-17.0, 0.035, 0.0), materials["stage_trim"])
 	_box(self, "Deck_Trim_Right", Vector3(0.14, 0.07, 30.1), Vector3(17.0, 0.035, 0.0), materials["stage_trim"])
+
 
 func _create_camera(building_height: float) -> void:
 	_configure_camera_framing(building_height)
