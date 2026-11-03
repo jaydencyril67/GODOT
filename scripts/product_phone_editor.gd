@@ -2822,10 +2822,6 @@ func _show_screen_tech_controls() -> void:
 	active_feature_panel.add_child(title)
 
 	_add_screen_enablement_row(active_feature_panel, "ScreenEnablementRow", "ScreenEnablement", "Enable Screen", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
-	if selected_phone_type != "Standard":
-		var foldable_screen_note := _make_label("The inner display and one outer front cover display are included automatically.", 11, Color("#9edcff"))
-		foldable_screen_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		active_feature_panel.add_child(foldable_screen_note)
 
 	var type_grid := GridContainer.new()
 	type_grid.name = "ScreenTypeOptions"
@@ -8233,16 +8229,18 @@ func _apply_phone_fold_angle() -> void:
 	var angle_radians := deg_to_rad(clampf(fold_angle_degrees, 0.0, MAX_FOLD_ANGLE_DEGREES))
 	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf") if is_instance_valid(phone_body) else null
 	if is_instance_valid(moving_half):
+		# The moving leaf must rotate toward the fixed leaf so the inner
+		# glass faces inward when the device closes, never outward.
 		if selected_phone_type == "Fold":
-			moving_half.rotation = Vector3(0.0, angle_radians, 0.0)
+			moving_half.rotation = Vector3(0.0, -angle_radians, 0.0)
 		elif selected_phone_type == "Flip":
-			moving_half.rotation = Vector3(angle_radians, 0.0, 0.0)
+			moving_half.rotation = Vector3(-angle_radians, 0.0, 0.0)
 	var case_moving := phone_case_preview.get_node_or_null("PhoneCaseMovingHalf") if is_instance_valid(phone_case_preview) else null
 	if is_instance_valid(case_moving):
 		if selected_phone_type == "Fold":
-			case_moving.rotation = Vector3(0.0, angle_radians, 0.0)
+			case_moving.rotation = Vector3(0.0, -angle_radians, 0.0)
 		elif selected_phone_type == "Flip":
-			case_moving.rotation = Vector3(angle_radians, 0.0, 0.0)
+			case_moving.rotation = Vector3(-angle_radians, 0.0, 0.0)
 
 
 func _set_fold_angle_from_pinch(distance: float) -> void:
