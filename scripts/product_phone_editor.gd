@@ -5537,8 +5537,19 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var current_depth := _phone_depth_for_thickness_level()
 	var screen_radius := 0.32 * float(border_radius_level) / 6.0
 	var foldable_curve_active := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
-	# Raise curved glass by the bend depth so its outer edges remain seated on
-	# the same front-face plane as the flat display and do not sink into the frame.
+	# Match Standard-phone Curve screen sizing: enabled curve directions run
+	# right to the physical outer chassis edge (no inset bezel). The hinge-side
+	# edge remains a straight seam between the two independent display halves.
+	if foldable_curve_active:
+		if selected_phone_type == "Fold" and side_curve_enabled:
+			segment_height = full_height
+			fixed_offset.y = 0.0
+			moving_offset.y = 0.0
+		elif selected_phone_type == "Flip" and vertical_curve_enabled:
+			segment_width = full_width
+			fixed_offset.x = 0.0
+			moving_offset.x = 0.0
+	# Standard's curved display sits at this same front-glass offset.
 	var glass_z := current_depth * 0.5 + (0.0315 if foldable_curve_active else 0.0035)
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
 	var moving_corner_mask := _foldable_half_corner_mask(true)
