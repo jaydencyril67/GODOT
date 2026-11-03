@@ -3656,29 +3656,10 @@ func _rebuild_earbuds_preview() -> void:
 
 
 func _set_earbuds_preview_mode(enabled: bool) -> void:
-	wireless_earbuds_preview_mode = enabled
 	_set_charger_preview_mode(false)
 	_set_smartwatch_preview_mode(false)
 	_set_power_bank_preview_mode(false)
-	if is_instance_valid(phone_body):
-		phone_body.visible = not enabled
-	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
-	if is_instance_valid(charger_preview):
-		charger_preview.visible = not enabled and charger_preview_mode and (charger_enabled or (charger_cable_enabled and not _charger_device_connector().is_empty()))
-	if is_instance_valid(wireless_earbuds_preview):
-		wireless_earbuds_preview.visible = enabled and wireless_earbuds_enabled
-	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 4.15 if enabled else 5.2)
-		preview_camera.fov = 38.0
-		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
-
-
-func _set_earbuds_preview_mode(enabled: bool) -> void:
 	wireless_earbuds_preview_mode = enabled
-	_set_charger_preview_mode(false)
-	_set_smartwatch_preview_mode(false)
-	_set_power_bank_preview_mode(false)
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled
 	if is_instance_valid(phone_case_preview):
