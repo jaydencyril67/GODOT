@@ -2874,6 +2874,8 @@ func _refresh_screen_type_buttons() -> void:
 		if not screen_type_buttons.has(type_name):
 			continue
 		var option: Button = screen_type_buttons[type_name]
+		if not is_instance_valid(option):
+			continue
 		_style_screen_type_option(option, index, type_name == selected_screen_type)
 		option.disabled = not (screen_enabled or (selected_phone_type != "Standard" and outer_screen_enabled))
 
@@ -7752,8 +7754,6 @@ func _refresh_phone_charge_port() -> void:
 	port_root.name = "PhoneChargingPort"
 	if selected_phone_type == "Fold":
 		port_root.position.x = -PHONE_SIZE.x * 0.25
-	elif selected_phone_type == "Flip":
-		port_root.position.y = PHONE_SIZE.y * 0.25
 	phone_body.add_child(port_root)
 	var bottom_y := -PHONE_SIZE.y * 0.5
 	var mouth_y := bottom_y + 0.0001
