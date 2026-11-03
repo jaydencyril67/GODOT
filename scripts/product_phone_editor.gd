@@ -2913,7 +2913,7 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 	# the complete device perimeter are rounded; hinge-side corners stay square.
 	var half_width := width * 0.5
 	var half_height := height * 0.5
-	var radius := clampf(corner_radius, 0.0, minf(half_width, half_height))
+	var radius := clampf(corner_radius, 0.001, minf(half_width, half_height))
 	var corner_points := [
 		Vector2(half_width, half_height),
 		Vector2(-half_width, half_height),
