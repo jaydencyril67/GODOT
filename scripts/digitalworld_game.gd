@@ -953,7 +953,7 @@ func _open_logo_picker() -> void:
 	var scrim := ColorRect.new()
 	scrim.name = "InsigniaDarkScreen"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.002, 0.018, 0.009, 0.96)
+	scrim.color = Color(0.002, 0.018, 0.009, 0.86)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
 
