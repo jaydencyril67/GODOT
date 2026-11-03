@@ -3436,110 +3436,76 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	var strap_stitch_material := _charger_material(Color("#626b74"), 0.02, 0.86)
 	var device_connector := _charger_device_connector()
 	var output_connector := _charger_output_connector()
+	# Reference-matched oval coil: a single uninterrupted cable follows a
+	# broad, gently tightening spiral. Both USB-C heads rest at the lower
+	# corners and angle outward, just like the real-world reference.
 	var left_head := Vector3(-0.43, -0.43, 0.16)
 	var right_head := Vector3(0.43, -0.43, 0.16)
-	_add_charger_cable_connector(cable_group, "First_" + output_connector.replace("-", "") + "_CableHead", output_connector, left_head, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal)
-	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, Vector3(0.0, 0.0, 1.0), connector_shell, connector_metal)
+	var left_forward := Vector3(-0.28, -0.12, 1.0).normalized()
+	var right_forward := Vector3(0.28, -0.12, 1.0).normalized()
+	_add_charger_cable_connector(cable_group, "First_" + output_connector.replace("-", "") + "_CableHead", output_connector, left_head, left_forward, connector_shell, connector_metal)
+	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, right_forward, connector_shell, connector_metal)
 
-	# Basis.looking_at makes local -Z face the viewer (+Z here), which means
-	# each connector's moulded boot exits along world -Z. The old cable ran
-	# toward +Z and left a large visible gap behind both connector heads.
-	# Start/end 0.015 units inside the boot's rear face for a solid overlap.
-	var boot_exit_z := -0.125
-	var fold_plane_z := -0.245
-	var lane_left := -0.35
-	var lane_right := 0.35
-	var first_lane_y := -0.12
-	var lane_spacing := 0.095
-	var lane_count := 5
-	var route := PackedVector3Array()
+	# The rear of each angled connector points inward toward the cable coil.
+	# Start and finish the jacket slightly inside each strain-relief boot.
+	var boot_exit_distance := 0.285
+	var left_boot_exit := left_head - left_forward * boot_exit_distance
+	var right_boot_exit := right_head - right_forward * boot_exit_distance
+	var coil_center := Vector3(0.0, 0.035, -0.245)
+	var outer_radius_x := 0.68
+	var outer_radius_y := 0.43
+	var inner_radius_x := 0.50
+	var inner_radius_y := 0.31
+	var start_angle := deg_to_rad(225.0)
+	var end_angle := deg_to_rad(-405.0)
+	var coil_point_count := 240
+	var coil_route := PackedVector3Array()
 
-	# Lead from the left boot: leave straight along -Z before curving smoothly
-	# upward into the first folded lane. The endpoint tangent aligns with +X.
-	route = _append_charger_bezier(
-		route,
-		Vector3(-0.43, -0.43, boot_exit_z),
-		Vector3(-0.43, -0.43, -0.265),
-		Vector3(-0.49, first_lane_y, fold_plane_z),
-		Vector3(lane_left, first_lane_y, fold_plane_z),
-		36
+	# One smooth 1.75-turn oval spiral creates the two close parallel arcs.
+	# The changing radii keep the loops evenly separated without crossings.
+	for point_index in range(coil_point_count + 1):
+		var t := float(point_index) / float(coil_point_count)
+		var angle := lerpf(start_angle, end_angle, t)
+		var radius_x := lerpf(outer_radius_x, inner_radius_x, t)
+		var radius_y := lerpf(outer_radius_y, inner_radius_y, t)
+		coil_route.append(Vector3(
+			coil_center.x + cos(angle) * radius_x,
+			coil_center.y + sin(angle) * radius_y,
+			coil_center.z
+		))
+
+	# Smooth lead-in from the left plug into the outer oval, then a matching
+	# lead-out from the inner oval into the right plug. The whole jacket is
+	# still built as one continuous tube mesh.
+	var first_coil_tangent := (coil_route[1] - coil_route[0]).normalized()
+	var route := _append_charger_bezier(
+		PackedVector3Array(),
+		left_boot_exit,
+		left_boot_exit + (-left_forward) * 0.12,
+		coil_route[0] - first_coil_tangent * 0.12,
+		coil_route[0],
+		32
 	)
+	for point_index in range(1, coil_route.size()):
+		route.append(coil_route[point_index])
 
-	# A continuous serpentine racetrack fold. Each rounded U-turn is wider
-	# than the jacket, so neighbouring runs stay visibly separate.
-	# The lead-in ends at the left edge of the first lane.
-	var lane_start := Vector3(lane_left, first_lane_y, fold_plane_z)
-	for lane_index in range(lane_count):
-		var lane_y := first_lane_y + float(lane_index) * lane_spacing
-		var travels_right := lane_index % 2 == 0
-		var lane_end := Vector3(lane_right if travels_right else lane_left, lane_y, fold_plane_z)
-		var control_a_x := -0.12 if travels_right else 0.12
-		var control_b_x := 0.12 if travels_right else -0.12
-		route = _append_charger_bezier(
-			route,
-			lane_start,
-			Vector3(control_a_x, lane_y, fold_plane_z),
-			Vector3(control_b_x, lane_y, fold_plane_z),
-			lane_end,
-			32
-		)
-		if lane_index < lane_count - 1:
-			var next_y := first_lane_y + float(lane_index + 1) * lane_spacing
-			var next_start := Vector3(lane_right if travels_right else lane_left, next_y, fold_plane_z)
-			if travels_right:
-				route = _append_charger_bezier(
-					route,
-					lane_end,
-					Vector3(0.415, lane_y, fold_plane_z),
-					Vector3(0.415, next_y, fold_plane_z),
-					next_start,
-					24
-				)
-			else:
-				route = _append_charger_bezier(
-					route,
-					lane_end,
-					Vector3(-0.415, lane_y, fold_plane_z),
-					Vector3(-0.415, next_y, fold_plane_z),
-					next_start,
-					24
-				)
-			lane_start = next_start
-
-	# The last lane ends on the right. Route the final tail around the outside
-	# of the bundle, then into the rear of the right connector without crossing
-	# any of the folded runs.
+	var last_coil_index := coil_route.size() - 1
+	var last_coil_tangent := (coil_route[last_coil_index] - coil_route[last_coil_index - 1]).normalized()
 	route = _append_charger_bezier(
 		route,
-		route[route.size() - 1],
-		Vector3(0.48, first_lane_y + float(lane_count - 1) * lane_spacing, fold_plane_z),
-		Vector3(0.43, -0.43, -0.265),
-		Vector3(0.43, -0.43, boot_exit_z),
-		36
+		coil_route[last_coil_index],
+		coil_route[last_coil_index] + last_coil_tangent * 0.12,
+		right_boot_exit - last_coil_tangent * 0.12,
+		right_boot_exit,
+		32
 	)
 
 	var cable := MeshInstance3D.new()
-	cable.name = "SingleUnbrokenHybridFoldCableJacket"
+	cable.name = "SingleUnbrokenOvalCoilCableJacket"
 	cable.mesh = _create_charger_cable_tube_mesh(route, 0.022, 28)
 	cable.material_override = cable_material
 	cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cable_group.add_child(cable)
-
-	# A broad soft retaining strap wraps across the centre of the folded bundle.
-	# Front/back faces and the top/bottom returns form one visually closed band.
-	_add_charger_box(cable_group, "CableTieFrontWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.07, -0.216), strap_material)
-	_add_charger_box(cable_group, "CableTieRearWovenBand", Vector3(0.14, 0.46, 0.018), Vector3(0.0, 0.07, -0.274), strap_material)
-	_add_charger_box(cable_group, "CableTieUpperReturn", Vector3(0.14, 0.018, 0.058), Vector3(0.0, 0.31, -0.245), strap_material)
-	_add_charger_box(cable_group, "CableTieLowerReturn", Vector3(0.14, 0.018, 0.058), Vector3(0.0, -0.17, -0.245), strap_material)
-	for stitch_index in range(7):
-		var stitch_x := (float(stitch_index) - 3.0) * 0.018
-		_add_charger_box(
-			cable_group,
-			"CableTieWovenStitch_%d" % stitch_index,
-			Vector3(0.004, 0.36, 0.002),
-			Vector3(stitch_x, 0.07, -0.204),
-			strap_stitch_material
-		)
 
 	return cable_group
 
