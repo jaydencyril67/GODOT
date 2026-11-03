@@ -969,7 +969,6 @@ func _open_logo_picker() -> void:
 		var option := Button.new()
 		option.name = "InsigniaOption_%02d" % logo_id
 		option.custom_minimum_size = Vector2(tile_size, tile_size)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.toggle_mode = false
 		option.focus_mode = Control.FOCUS_NONE
 		option.mouse_filter = Control.MOUSE_FILTER_IGNORE
