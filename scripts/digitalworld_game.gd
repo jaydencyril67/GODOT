@@ -940,7 +940,7 @@ func _open_logo_picker() -> void:
 		var candidate_rows := int(ceil(50.0 / float(candidate_columns)))
 		var width_fit := int(floor((available_width - grid_gap * (candidate_columns - 1)) / candidate_columns))
 		var height_fit := int(floor((grid_area_height - grid_gap * (candidate_rows - 1)) / candidate_rows))
-		var candidate_size := mini(104, mini(width_fit, height_fit))
+		var candidate_size := mini(104, mini(maxi(1, width_fit), maxi(1, height_fit)))
 		if candidate_size > tile_size:
 			columns = candidate_columns
 			tile_size = candidate_size
