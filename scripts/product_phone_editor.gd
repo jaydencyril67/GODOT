@@ -348,8 +348,10 @@ var back_design_mode := "MOVE"
 var back_design_size_action := "EXPAND"
 var back_design_color_mode := false
 var box_package_preview: Node3D
+var box_package_lid: Node3D
 var box_package_preview_mode := false
 var box_package_enabled := true
+var box_package_open := false
 var box_package_color_mode := false
 var box_package_color := Color("#e8edf2")
 var box_package_logo_visible := true
@@ -10604,6 +10606,7 @@ func _show_box_package_controls() -> void:
 	active_feature_panel.add_child(description)
 
 	_add_box_package_toggle(active_feature_panel, "ShowBoxPackage", "SHOW BOX PACKAGE", box_package_enabled, Callable(self, "_on_box_package_enabled_toggled"))
+	_add_box_package_toggle(active_feature_panel, "OpenBoxPackage", "OPEN BOX LID", box_package_open, Callable(self, "_on_box_package_open_toggled"))
 
 	var color_button := Button.new()
 	color_button.name = "EditBoxPackageColor"
@@ -10722,6 +10725,11 @@ func _on_box_package_enabled_toggled(enabled: bool) -> void:
 		phone_case_preview.visible = not box_package_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
 
 
+func _on_box_package_open_toggled(enabled: bool) -> void:
+	box_package_open = enabled
+	_refresh_box_package_lid_transform()
+
+
 func _on_box_package_logo_visibility_toggled(enabled: bool) -> void:
 	box_package_logo_visible = enabled
 	_refresh_box_package_branding()
@@ -10761,22 +10769,24 @@ func _set_box_package_preview_mode(enabled: bool) -> void:
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
-func _make_box_package_material(color: Color, roughness: float, metallic: float = 0.02) -> StandardMaterial3D:
+func _make_box_package_material(color: Color, roughness: float = 0.82) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = roughness
-	material.metallic = metallic
-	material.metallic_specular = 0.42
+	material.metallic = 0.0
+	material.metallic_specular = 0.0
 	return material
 
 
-func _add_box_package_part(parent: Node3D, node_name: String, dimensions: Vector3, part_position: Vector3, color: Color, roughness: float, metallic: float = 0.02) -> MeshInstance3D:
+func _add_box_package_part(parent: Node3D, node_name: String, dimensions: Vector3, part_position: Vector3, color: Color, roughness: float = 0.82) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
 	part.name = node_name
-	part.mesh = _create_rounded_panel_mesh(dimensions.x, dimensions.y, dimensions.z, 0.055)
+	var mesh := BoxMesh.new()
+	mesh.size = dimensions
+	part.mesh = mesh
 	part.position = part_position
-	part.material_override = _make_box_package_material(color, roughness, metallic)
-	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	part.material_override = _make_box_package_material(color, roughness)
+	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	parent.add_child(part)
 	return part
 
@@ -10787,19 +10797,33 @@ func _rebuild_box_package_preview() -> void:
 	for child in box_package_preview.get_children():
 		child.free()
 
-	# A two-piece rigid retail carton: a close-fitting base tray and a deeper
-	# outer lid. The fine seam at their join remains visible when the model turns.
-	_add_box_package_part(box_package_preview, "PackageCore", Vector3(1.82, 3.32, 0.46), Vector3.ZERO, box_package_color.darkened(0.10), 0.52, 0.01)
-	_add_box_package_part(box_package_preview, "PackageLid", Vector3(1.86, 3.36, 0.25), Vector3(0.0, 0.0, 0.105), box_package_color, 0.38, 0.025)
-	_add_box_package_part(box_package_preview, "PackageBaseTray", Vector3(1.80, 3.30, 0.22), Vector3(0.0, 0.0, -0.12), box_package_color.darkened(0.13), 0.55, 0.01)
-	_add_box_package_part(box_package_preview, "PackageLidSeam", Vector3(1.865, 3.365, 0.012), Vector3(0.0, 0.0, -0.018), box_package_color.darkened(0.34), 0.66, 0.01)
-	_add_box_package_part(box_package_preview, "PackageFrontFinish", Vector3(1.76, 3.26, 0.008), Vector3(0.0, 0.0, 0.232), box_package_color.lightened(0.025), 0.44, 0.01)
+	# A real two-piece rigid phone carton: the base tray has a bottom and four
+	# upright walls. The lid is a separate shallow cap with its own four skirts.
+	# The cap lifts away as one piece, exposing the open tray instead of a solid block.
+	var half_width := 0.91
+	var half_height := 1.66
+	var wall := 0.075
+	var base_z := -0.23
+	_add_box_package_part(box_package_preview, "TrayBottom", Vector3(1.78, 3.22, wall), Vector3(0.0, 0.0, base_z), box_package_color.darkened(0.16))
+	_add_box_package_part(box_package_preview, "TrayLeftWall", Vector3(wall, 3.20, 0.43), Vector3(-half_width + wall * 0.5, 0.0, base_z + 0.22), box_package_color.darkened(0.10))
+	_add_box_package_part(box_package_preview, "TrayRightWall", Vector3(wall, 3.20, 0.43), Vector3(half_width - wall * 0.5, 0.0, base_z + 0.22), box_package_color.darkened(0.10))
+	_add_box_package_part(box_package_preview, "TrayTopWall", Vector3(1.78, wall, 0.43), Vector3(0.0, half_height - wall * 0.5, base_z + 0.22), box_package_color.darkened(0.10))
+	_add_box_package_part(box_package_preview, "TrayBottomWall", Vector3(1.78, wall, 0.43), Vector3(0.0, -half_height + wall * 0.5, base_z + 0.22), box_package_color.darkened(0.10))
+
+	box_package_lid = Node3D.new()
+	box_package_lid.name = "RemovableBoxLid"
+	box_package_preview.add_child(box_package_lid)
+	_add_box_package_part(box_package_lid, "LidTopPanel", Vector3(1.86, 3.36, wall), Vector3(0.0, 0.0, 0.245), box_package_color)
+	_add_box_package_part(box_package_lid, "LidLeftSkirt", Vector3(wall, 3.36, 0.30), Vector3(-0.93 + wall * 0.5, 0.0, 0.075), box_package_color.darkened(0.07))
+	_add_box_package_part(box_package_lid, "LidRightSkirt", Vector3(wall, 3.36, 0.30), Vector3(0.93 - wall * 0.5, 0.0, 0.075), box_package_color.darkened(0.07))
+	_add_box_package_part(box_package_lid, "LidTopSkirt", Vector3(1.86, wall, 0.30), Vector3(0.0, 1.68 - wall * 0.5, 0.075), box_package_color.darkened(0.07))
+	_add_box_package_part(box_package_lid, "LidBottomSkirt", Vector3(1.86, wall, 0.30), Vector3(0.0, -1.68 + wall * 0.5, 0.075), box_package_color.darkened(0.07))
 
 	box_package_logo_sprite = Sprite3D.new()
 	box_package_logo_sprite.name = "CompanyLogoPrint"
 	box_package_logo_sprite.pixel_size = 0.003
 	box_package_logo_sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	box_package_preview.add_child(box_package_logo_sprite)
+	box_package_lid.add_child(box_package_logo_sprite)
 
 	box_package_name_label = Label3D.new()
 	box_package_name_label.name = "CompanyNamePrint"
@@ -10809,32 +10833,42 @@ func _rebuild_box_package_preview() -> void:
 	box_package_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box_package_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	box_package_name_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	box_package_preview.add_child(box_package_name_label)
+	box_package_lid.add_child(box_package_name_label)
 
 	_refresh_box_package_material()
 	_refresh_box_package_branding()
+	_refresh_box_package_lid_transform()
 	box_package_preview.visible = box_package_preview_mode and box_package_enabled
 
 
 func _refresh_box_package_material() -> void:
 	if not is_instance_valid(box_package_preview):
 		return
-	for child in box_package_preview.get_children():
-		if not (child is MeshInstance3D):
-			continue
-		var part := child as MeshInstance3D
-		match part.name:
-			"PackageCore":
-				part.material_override = _make_box_package_material(box_package_color.darkened(0.10), 0.52, 0.01)
-			"PackageLid":
-				part.material_override = _make_box_package_material(box_package_color, 0.38, 0.025)
-			"PackageBaseTray":
-				part.material_override = _make_box_package_material(box_package_color.darkened(0.13), 0.55, 0.01)
-			"PackageLidSeam":
-				part.material_override = _make_box_package_material(box_package_color.darkened(0.34), 0.66, 0.01)
-			"PackageFrontFinish":
-				part.material_override = _make_box_package_material(box_package_color.lightened(0.025), 0.44, 0.01)
+	for part in _collect_box_package_meshes(box_package_preview):
+		var shade := box_package_color
+		if part.name.contains("Wall") or part.name.contains("Skirt"):
+			shade = box_package_color.darkened(0.09)
+		elif part.name == "TrayBottom":
+			shade = box_package_color.darkened(0.15)
+		part.material_override = _make_box_package_material(shade)
 	_refresh_box_package_branding()
+
+
+func _collect_box_package_meshes(root: Node) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	for child in root.get_children():
+		if child is MeshInstance3D:
+			found.append(child as MeshInstance3D)
+		elif child is Node:
+			found.append_array(_collect_box_package_meshes(child))
+	return found
+
+
+func _refresh_box_package_lid_transform() -> void:
+	if not is_instance_valid(box_package_lid):
+		return
+	box_package_lid.position = Vector3(0.0, 0.0, 1.12 if box_package_open else 0.0)
+	box_package_lid.rotation_degrees = Vector3(-7.0 if box_package_open else 0.0, 0.0, 0.0)
 
 
 func _refresh_box_package_branding() -> void:
@@ -10850,13 +10884,13 @@ func _refresh_box_package_branding() -> void:
 			logo_texture.region = Rect2(Vector2(float(logo_index % 10) * 100.0, floorf(float(logo_index) / 10.0) * 100.0), Vector2(100.0, 100.0))
 			box_package_logo_sprite.texture = logo_texture
 		box_package_logo_sprite.modulate = ink_color
-		box_package_logo_sprite.position = Vector3(box_package_logo_position.x, box_package_logo_position.y, 0.244)
+		box_package_logo_sprite.position = Vector3(box_package_logo_position.x, box_package_logo_position.y, 0.292)
 		box_package_logo_sprite.visible = box_package_logo_visible
 	if is_instance_valid(box_package_name_label):
 		box_package_name_label.text = box_company_name.to_upper()
 		box_package_name_label.font_size = 46 if box_company_name.length() <= 14 else (38 if box_company_name.length() <= 22 else 30)
 		box_package_name_label.modulate = ink_color
-		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.244)
+		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.292)
 		box_package_name_label.visible = box_package_name_visible
 
 
