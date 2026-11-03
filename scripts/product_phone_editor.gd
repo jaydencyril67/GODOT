@@ -141,14 +141,15 @@ class DeviceHueBar extends Control:
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
 var selected_phone_type := "Standard"
-var outer_screen_enabled := false
 var fold_angle_degrees := 0.0
+var fold_target_angle_degrees := 0.0
 var preview_touch_points: Dictionary = {}
 var fold_pinch_active := false
 var fold_pinch_start_distance := 0.0
 var fold_pinch_start_angle := 0.0
-const MAX_FOLD_ANGLE_DEGREES := 175.0
+const MAX_FOLD_ANGLE_DEGREES := 180.0
 const FOLD_PINCH_ANGLE_SENSITIVITY := 115.0
+const FOLD_ANGLE_SMOOTHING := 20.0
 var home_button_type := "Circle Home Button"
 var home_button_enabled := false
 var front_camera_enabled := false
@@ -353,6 +354,24 @@ func _ready() -> void:
 		_build_research_ui()
 	else:
 		_build_editor_ui()
+
+
+func _process(delta: float) -> void:
+	if selected_phone_type == "Standard":
+		return
+	var angle_difference := fold_target_angle_degrees - fold_angle_degrees
+	if absf(angle_difference) <= 0.02:
+		if not is_equal_approx(fold_angle_degrees, fold_target_angle_degrees):
+			fold_angle_degrees = fold_target_angle_degrees
+			_apply_phone_fold_angle()
+		return
+	# Exponential damping gives the fold a smooth, frame-rate-independent
+	# response while still allowing the two-finger gesture to control the angle.
+	var blend := 1.0 - exp(-FOLD_ANGLE_SMOOTHING * delta)
+	fold_angle_degrees = lerpf(fold_angle_degrees, fold_target_angle_degrees, blend)
+	if absf(fold_target_angle_degrees - fold_angle_degrees) < 0.12:
+		fold_angle_degrees = fold_target_angle_degrees
+	_apply_phone_fold_angle()
 
 
 func _build_editor_ui() -> void:
@@ -2801,14 +2820,11 @@ func _show_screen_tech_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	if selected_phone_type == "Standard":
-		_add_screen_enablement_row(active_feature_panel, "ScreenEnablementRow", "ScreenEnablement", "Screen Enablement", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
-	else:
-		_add_screen_enablement_row(active_feature_panel, "InnerScreenEnablementRow", "InnerScreenEnablement", "Inner Screen Enablement", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
-		_add_screen_enablement_row(active_feature_panel, "OuterScreenEnablementRow", "OuterScreenEnablement", "Outer Screen Enablement", outer_screen_enabled, Callable(self, "_on_outer_screen_enablement_toggled"))
-		var dual_hint := _make_label("Inner glass and outer cover display are controlled independently.", 11, Color("#9edcff"))
-		dual_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		active_feature_panel.add_child(dual_hint)
+	_add_screen_enablement_row(active_feature_panel, "ScreenEnablementRow", "ScreenEnablement", "Enable Screen", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
+	if selected_phone_type != "Standard":
+		var foldable_screen_note := _make_label("The inner display and one outer front cover display are included automatically.", 11, Color("#9edcff"))
+		foldable_screen_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		active_feature_panel.add_child(foldable_screen_note)
 
 	var type_grid := GridContainer.new()
 	type_grid.name = "ScreenTypeOptions"
@@ -2838,17 +2854,7 @@ func _show_screen_tech_controls() -> void:
 func _on_screen_enablement_toggled(enabled: bool) -> void:
 	screen_enabled = enabled
 	_refresh_phone_screen()
-	var toggle_path := "ScreenEnablementRow/ScreenEnablement" if selected_phone_type == "Standard" else "InnerScreenEnablementRow/InnerScreenEnablement"
-	var toggle := active_feature_panel.get_node_or_null(toggle_path) if is_instance_valid(active_feature_panel) else null
-	if is_instance_valid(toggle):
-		toggle.text = "✓" if enabled else ""
-	_refresh_screen_type_buttons()
-
-
-func _on_outer_screen_enablement_toggled(enabled: bool) -> void:
-	outer_screen_enabled = enabled
-	_refresh_phone_screen()
-	var toggle := active_feature_panel.get_node_or_null("OuterScreenEnablementRow/OuterScreenEnablement") if is_instance_valid(active_feature_panel) else null
+	var toggle := active_feature_panel.get_node_or_null("ScreenEnablementRow/ScreenEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
 		toggle.text = "✓" if enabled else ""
 	_refresh_screen_type_buttons()
@@ -2901,7 +2907,7 @@ func _refresh_screen_type_buttons() -> void:
 		if not is_instance_valid(option):
 			continue
 		_style_screen_type_option(option, index, type_name == selected_screen_type)
-		option.disabled = not (screen_enabled or (selected_phone_type != "Standard" and outer_screen_enabled))
+		option.disabled = not screen_enabled
 
 
 func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float) -> Mesh:
@@ -5107,14 +5113,14 @@ func _show_screen_protector_controls() -> void:
 	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 	toggle.toggle_mode = true
 	toggle.button_pressed = screen_protector_enabled
-	toggle.disabled = not (screen_enabled or (selected_phone_type != "Standard" and outer_screen_enabled))
+	toggle.disabled = not screen_enabled
 	toggle.focus_mode = Control.FOCUS_NONE
 	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	toggle.toggled.connect(_on_screen_protector_toggled)
 	enable_row.add_child(toggle)
 
-	if not (screen_enabled or (selected_phone_type != "Standard" and outer_screen_enabled)):
-		var screen_hint := _make_label("Enable an inner or outer display first. Protection glass will fit the active foldable panels.", 12, Color("#f1ca82"))
+	if not screen_enabled:
+		var screen_hint := _make_label("Enable the screen first. Protection glass will fit the active display surfaces.", 12, Color("#f1ca82"))
 		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		active_feature_panel.add_child(screen_hint)
 		return
@@ -5227,7 +5233,6 @@ func _refresh_phone_screen() -> void:
 	phone_screen = null
 	if not screen_enabled:
 		_refresh_phone_home_button()
-		_build_phone_outer_display(foldable_protector_token)
 		return
 	if selected_phone_type != "Standard":
 		_build_foldable_inner_screens(foldable_protector_token)
@@ -5368,7 +5373,7 @@ func _add_foldable_inner_crease(display: MeshInstance3D, screen_width: float, sc
 
 
 func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
-	if not is_instance_valid(phone_body) or not outer_screen_enabled or selected_phone_type == "Standard":
+	if not is_instance_valid(phone_body) or not screen_enabled or selected_phone_type == "Standard":
 		return
 	var outer_root := Node3D.new()
 	outer_root.name = "PhoneOuterDisplayPanel"
@@ -8118,6 +8123,7 @@ func _refresh_foldable_hardware() -> void:
 	if selected_phone_type == "Standard":
 		phone_body.mesh = _create_rounded_phone_mesh(0.32 * float(border_radius_level) / 6.0, charge_port_opening_points)
 		fold_angle_degrees = 0.0
+		fold_target_angle_degrees = 0.0
 		return
 
 	phone_body.mesh = null
@@ -8167,45 +8173,37 @@ func _refresh_foldable_hardware() -> void:
 	phone_body.add_child(hinge_root)
 	var rear_z := -current_depth * 0.5 - 0.022
 
-	# Consumer-style continuous hinge cover: no exposed hinge barrels, bolt
-	# heads or repeated mechanical blocks on the rear of the handset.
+	# A narrow, flush hinge spine follows the center seam. Its shallow,
+	# rounded plate reads as an integrated Armor Aluminum cover, not a barrel.
 	var hinge_material := StandardMaterial3D.new()
-	hinge_material.albedo_color = device_body_color.lightened(0.10)
-	hinge_material.metallic = 0.72
-	hinge_material.roughness = 0.27
-	hinge_material.metallic_specular = 0.82
+	hinge_material.albedo_color = device_body_color.lightened(0.08)
+	hinge_material.metallic = 0.68
+	hinge_material.roughness = 0.30
+	hinge_material.metallic_specular = 0.78
+	var hinge_length := (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.92
+	var hinge_band_width := 0.020
 	var spine := MeshInstance3D.new()
 	spine.name = "SeamlessHingeCover"
-	var spine_mesh := CapsuleMesh.new()
-	spine_mesh.radius = 0.047 if selected_phone_type == "Fold" else 0.044
-	spine_mesh.height = (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.96
-	spine_mesh.radial_segments = 48
-	spine_mesh.rings = 12
-	spine.mesh = spine_mesh
+	spine.mesh = _create_rounded_panel_mesh(hinge_band_width, hinge_length, 0.004, 0.009)
 	spine.material_override = hinge_material
 	if selected_phone_type == "Flip":
 		spine.rotation.z = PI * 0.5
-	spine.position = Vector3(0.0, 0.0, rear_z - 0.012)
+	spine.position = Vector3(0.0, 0.0, -current_depth * 0.5 - 0.002)
 	spine.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	hinge_root.add_child(spine)
 
-	# One fine machined edge highlight replaces the exposed barrel/bolt pattern.
+	# A single hairline finish catches light along the center of the hinge cap.
 	var hinge_highlight := MeshInstance3D.new()
 	hinge_highlight.name = "HingeEdgeHighlight"
-	var highlight_mesh := CapsuleMesh.new()
-	highlight_mesh.radius = 0.0022
-	highlight_mesh.height = (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.90
-	highlight_mesh.radial_segments = 24
-	highlight_mesh.rings = 8
-	hinge_highlight.mesh = highlight_mesh
+	hinge_highlight.mesh = _create_rounded_panel_mesh(0.0012, hinge_length * 0.86, 0.001, 0.0005)
 	var highlight_material := StandardMaterial3D.new()
-	highlight_material.albedo_color = device_body_color.lightened(0.36)
-	highlight_material.metallic = 0.78
-	highlight_material.roughness = 0.22
+	highlight_material.albedo_color = device_body_color.lightened(0.30)
+	highlight_material.metallic = 0.72
+	highlight_material.roughness = 0.24
 	hinge_highlight.material_override = highlight_material
 	if selected_phone_type == "Flip":
 		hinge_highlight.rotation.z = PI * 0.5
-	hinge_highlight.position = Vector3(0.0, 0.0, rear_z - 0.058)
+	hinge_highlight.position = Vector3(0.0, 0.0, -current_depth * 0.5 - 0.0045)
 	hinge_highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	hinge_root.add_child(hinge_highlight)
 	_apply_phone_fold_angle()
@@ -8252,8 +8250,7 @@ func _set_fold_angle_from_pinch(distance: float) -> void:
 	if selected_phone_type == "Standard" or not fold_pinch_active:
 		return
 	var distance_change := distance - fold_pinch_start_distance
-	fold_angle_degrees = clampf(fold_pinch_start_angle - distance_change * FOLD_PINCH_ANGLE_SENSITIVITY, 0.0, MAX_FOLD_ANGLE_DEGREES)
-	_apply_phone_fold_angle()
+	fold_target_angle_degrees = clampf(fold_pinch_start_angle - distance_change * FOLD_PINCH_ANGLE_SENSITIVITY, 0.0, MAX_FOLD_ANGLE_DEGREES)
 
 
 func _create_phone_chassis_mesh(radius: float, port_opening: PackedVector2Array) -> Mesh:
@@ -9868,20 +9865,16 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 
 	var hinge_bridge := MeshInstance3D.new()
 	hinge_bridge.name = "FlexibleCaseHingeBridge"
-	var bridge_mesh := CapsuleMesh.new()
-	bridge_mesh.radius = 0.020
-	bridge_mesh.height = (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.90
-	bridge_mesh.radial_segments = 32
-	bridge_mesh.rings = 8
-	hinge_bridge.mesh = bridge_mesh
+	var bridge_length := (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.90
+	hinge_bridge.mesh = _create_rounded_panel_mesh(0.024, bridge_length, 0.005, 0.010)
 	if selected_phone_type == "Flip":
 		hinge_bridge.rotation.z = PI * 0.5
 	var bridge_material := StandardMaterial3D.new()
-	bridge_material.albedo_color = phone_case_color.darkened(0.32)
-	bridge_material.roughness = 0.86
-	bridge_material.metallic = 0.01
+	bridge_material.albedo_color = phone_case_color.darkened(0.20)
+	bridge_material.roughness = 0.78
+	bridge_material.metallic = 0.02
 	hinge_bridge.material_override = bridge_material
-	hinge_bridge.position = Vector3(0.0, 0.0, -depth * 0.5 - wall - 0.004)
+	hinge_bridge.position = Vector3(0.0, 0.0, -depth * 0.5 - wall - 0.0025)
 	hinge_bridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_case_preview.add_child(hinge_bridge)
 	_apply_phone_fold_angle()
@@ -10323,8 +10316,7 @@ func _input(event: InputEvent) -> void:
 		elif preview_rect.has_point(screen_drag.position):
 			_rotate_phone_from_drag(screen_drag.relative)
 	elif event is InputEventMagnifyGesture and selected_phone_type != "Standard" and preview_rect.has_point(event.position):
-		fold_angle_degrees = clampf(fold_angle_degrees - (event.factor - 1.0) * 105.0, 0.0, MAX_FOLD_ANGLE_DEGREES)
-		_apply_phone_fold_angle()
+		fold_target_angle_degrees = clampf(fold_target_angle_degrees - (event.factor - 1.0) * 105.0, 0.0, MAX_FOLD_ANGLE_DEGREES)
 
 
 func _begin_fold_pinch() -> void:
@@ -10334,6 +10326,7 @@ func _begin_fold_pinch() -> void:
 	var first: Vector2 = preview_touch_points[touch_ids[0]]
 	var second: Vector2 = preview_touch_points[touch_ids[1]]
 	fold_pinch_start_distance = first.distance_to(second)
+	fold_target_angle_degrees = fold_angle_degrees
 	fold_pinch_start_angle = fold_angle_degrees
 	fold_pinch_active = true
 
