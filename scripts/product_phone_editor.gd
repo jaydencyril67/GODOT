@@ -5541,11 +5541,11 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	# right to the physical outer chassis edge (no inset bezel). The hinge-side
 	# edge remains a straight seam between the two independent display halves.
 	if foldable_curve_active:
-		if selected_phone_type == "Fold" and side_curve_enabled:
+		if selected_phone_type == "Fold" and vertical_curve_enabled:
 			segment_height = full_height
 			fixed_offset.y = 0.0
 			moving_offset.y = 0.0
-		elif selected_phone_type == "Flip" and vertical_curve_enabled:
+		elif selected_phone_type == "Flip" and side_curve_enabled:
 			segment_width = full_width
 			fixed_offset.x = 0.0
 			moving_offset.x = 0.0
@@ -5583,10 +5583,10 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	fixed_display.name = "FixedInnerDisplay"
 	# Curves belong only to the outside perimeter of the complete handset.
 	# The edge touching the hinge must stay flat on both halves.
-	var fixed_curve_left := selected_phone_type == "Flip" or selected_phone_type == "Fold"
+	var fixed_curve_left := selected_phone_type == "Fold"
 	var fixed_curve_right := selected_phone_type == "Flip"
 	var fixed_curve_top := selected_phone_type == "Flip"
-	var fixed_curve_bottom := selected_phone_type == "Fold"
+	var fixed_curve_bottom := selected_phone_type == "Flip"
 	if foldable_curve_active:
 		fixed_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, fixed_curve_left, fixed_curve_right, fixed_curve_top, fixed_curve_bottom, fixed_corner_mask)
 	else:
@@ -5598,8 +5598,8 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var moving_display := MeshInstance3D.new()
 	moving_display.name = "PhoneFoldableMovingDisplay"
 	var moving_curve_left := selected_phone_type == "Flip"
-	var moving_curve_right := selected_phone_type == "Fold" or selected_phone_type == "Flip"
-	var moving_curve_top := selected_phone_type == "Fold"
+	var moving_curve_right := selected_phone_type == "Fold"
+	var moving_curve_top := selected_phone_type == "Flip"
 	var moving_curve_bottom := selected_phone_type == "Flip"
 	if foldable_curve_active:
 		moving_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, moving_curve_left, moving_curve_right, moving_curve_top, moving_curve_bottom, moving_corner_mask)
