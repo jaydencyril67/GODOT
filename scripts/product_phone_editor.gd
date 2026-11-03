@@ -3330,6 +3330,81 @@ func _create_charger_cable_tube_mesh(points: PackedVector3Array, radius: float, 
 	return surface.commit()
 
 
+func _create_charger_connector_profile_mesh(width: float, height: float, depth: float, connector_type: String) -> ArrayMesh:
+	var outline := PackedVector2Array()
+	if connector_type == "Micro-USB":
+		outline = PackedVector2Array([
+			Vector2(-width * 0.50, -height * 0.24),
+			Vector2(-width * 0.36, -height * 0.50),
+			Vector2(width * 0.36, -height * 0.50),
+			Vector2(width * 0.50, -height * 0.24),
+			Vector2(width * 0.43, height * 0.50),
+			Vector2(-width * 0.43, height * 0.50)
+		])
+	else:
+		outline = PackedVector2Array([
+			Vector2(-width * 0.39, -height * 0.50),
+			Vector2(width * 0.39, -height * 0.50),
+			Vector2(width * 0.50, -height * 0.25),
+			Vector2(width * 0.50, height * 0.25),
+			Vector2(width * 0.39, height * 0.50),
+			Vector2(-width * 0.39, height * 0.50),
+			Vector2(-width * 0.50, height * 0.25),
+			Vector2(-width * 0.50, -height * 0.25)
+		])
+	var indices := Geometry2D.triangulate_polygon(outline)
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var front_z := depth * 0.5
+	var back_z := -depth * 0.5
+	for index in range(0, indices.size(), 3):
+		var a: Vector2 = outline[indices[index]]
+		var b: Vector2 = outline[indices[index + 1]]
+		var d: Vector2 = outline[indices[index + 2]]
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, front_z), Vector3(b.x, b.y, front_z), Vector3(d.x, d.y, front_z), Vector3.BACK)
+		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, back_z), Vector3(d.x, d.y, back_z), Vector3(b.x, b.y, back_z), Vector3.FORWARD)
+	for index in range(outline.size()):
+		var next_index := (index + 1) % outline.size()
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[next_index]
+		var edge := b - a
+		var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
+		var front_a := Vector3(a.x, a.y, front_z)
+		var front_b := Vector3(b.x, b.y, front_z)
+		var back_a := Vector3(a.x, a.y, back_z)
+		var back_b := Vector3(b.x, b.y, back_z)
+		_add_phone_mesh_triangle(surface, front_a, back_a, back_b, side_normal)
+		_add_phone_mesh_triangle(surface, front_a, back_b, front_b, side_normal)
+	return surface.commit()
+
+
+func _create_charger_dc_barrel_mesh(outer_radius: float, inner_radius: float, front_z: float, rear_z: float, radial_segments: int = 40) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(radial_segments):
+		var next_index := (index + 1) % radial_segments
+		var angle_a := TAU * float(index) / float(radial_segments)
+		var angle_b := TAU * float(next_index) / float(radial_segments)
+		var outer_normal := Vector3(cos((angle_a + angle_b) * 0.5), sin((angle_a + angle_b) * 0.5), 0.0)
+		var ofa := Vector3(cos(angle_a) * outer_radius, sin(angle_a) * outer_radius, front_z)
+		var ofb := Vector3(cos(angle_b) * outer_radius, sin(angle_b) * outer_radius, front_z)
+		var ora := Vector3(cos(angle_a) * outer_radius, sin(angle_a) * outer_radius, rear_z)
+		var orb := Vector3(cos(angle_b) * outer_radius, sin(angle_b) * outer_radius, rear_z)
+		_add_phone_mesh_triangle(surface, ofa, ora, orb, outer_normal)
+		_add_phone_mesh_triangle(surface, ofa, orb, ofb, outer_normal)
+		var ifa := Vector3(cos(angle_a) * inner_radius, sin(angle_a) * inner_radius, front_z)
+		var ifb := Vector3(cos(angle_b) * inner_radius, sin(angle_b) * inner_radius, front_z)
+		var ira := Vector3(cos(angle_a) * inner_radius, sin(angle_a) * inner_radius, rear_z)
+		var irb := Vector3(cos(angle_b) * inner_radius, sin(angle_b) * inner_radius, rear_z)
+		_add_phone_mesh_triangle(surface, ifa, ifb, irb, -outer_normal)
+		_add_phone_mesh_triangle(surface, ifa, irb, ira, -outer_normal)
+		_add_phone_mesh_triangle(surface, ofa, ofb, ifb, Vector3.BACK)
+		_add_phone_mesh_triangle(surface, ofa, ifb, ifa, Vector3.BACK)
+		_add_phone_mesh_triangle(surface, ora, irb, orb, Vector3.FORWARD)
+		_add_phone_mesh_triangle(surface, ora, ira, irb, Vector3.FORWARD)
+	return surface.commit()
+
+
 func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_type: String, position: Vector3, direction: Vector3, shell_material: Material, metal_material: Material) -> Node3D:
 	var connector := Node3D.new()
 	connector.name = node_name
@@ -3351,11 +3426,11 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 			tip_width = 0.070
 			tip_height = 0.018
 		"Micro-USB":
-			tip_width = 0.088
-			tip_height = 0.027
+			tip_width = 0.100
+			tip_height = 0.030
 		"Mini-USB":
-			tip_width = 0.112
-			tip_height = 0.038
+			tip_width = 0.118
+			tip_height = 0.050
 		"DC Barrel":
 			tip_width = 0.074
 			tip_height = 0.074
@@ -3403,7 +3478,10 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	var shell_depth := 0.120
 	var shell := MeshInstance3D.new()
 	shell.name = "ContinuousMetalPlugShell"
-	shell.mesh = _create_rounded_panel_mesh(tip_width, tip_height, shell_depth, minf(tip_height * 0.40, tip_width * 0.22))
+	if connector_type in ["Micro-USB", "Mini-USB"]:
+		shell.mesh = _create_charger_connector_profile_mesh(tip_width, tip_height, shell_depth, connector_type)
+	else:
+		shell.mesh = _create_rounded_panel_mesh(tip_width, tip_height, shell_depth, minf(tip_height * 0.40, tip_width * 0.22))
 	shell.material_override = metal_material
 	shell.visible = connector_type != "DC Barrel"
 	shell.position = Vector3(0.0, 0.0, front_face_z + shell_depth * 0.5)
@@ -3415,11 +3493,17 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	var contact_material := _charger_material(Color("#d9b66d"), 0.90, 0.22)
 
 	if connector_type == "DC Barrel":
-		var barrel := _add_charger_cylinder(connector, "DCBarrelOuterSleeve", 0.037, 0.125, Vector3(0.0, 0.0, front_face_z + 0.012), metal_material, 32)
-		barrel.rotation_degrees.x = 90.0
-		var barrel_inner := _add_charger_cylinder(connector, "DCBarrelDarkInsulator", 0.024, 0.006, Vector3(0.0, 0.0, front_face_z - 0.050), face_material, 32)
-		barrel_inner.rotation_degrees.x = 90.0
-		var centre_pin := _add_charger_cylinder(connector, "DCBarrelCentreContact", 0.006, 0.075, Vector3(0.0, 0.0, front_face_z - 0.018), contact_material, 20)
+		# Hollow sleeve runs from the exposed nose back inside the rubber grip.
+		# This single continuous shell replaces the detached short cylinder.
+		var barrel := MeshInstance3D.new()
+		barrel.name = "ContinuousHollowDCBarrelSleeve"
+		barrel.mesh = _create_charger_dc_barrel_mesh(0.037, 0.021, -0.235, 0.055, 48)
+		barrel.material_override = metal_material
+		barrel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		connector.add_child(barrel)
+		var barrel_insulator := _add_charger_cylinder(connector, "DCBarrelDarkInsulator", 0.020, 0.004, Vector3(0.0, 0.0, -0.190), face_material, 32)
+		barrel_insulator.rotation_degrees.x = 90.0
+		var centre_pin := _add_charger_cylinder(connector, "DCBarrelCentreContact", 0.0055, 0.155, Vector3(0.0, 0.0, -0.155), contact_material, 24)
 		centre_pin.rotation_degrees.x = 90.0
 	elif connector_type == "Lightning":
 		var blade := MeshInstance3D.new()
@@ -3475,13 +3559,29 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 				contact.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				connector.add_child(contact)
 		elif connector_type in ["Micro-USB", "Mini-USB"]:
+			var inset := MeshInstance3D.new()
+			inset.name = "TrapezoidPlugRecess"
+			inset.mesh = _create_charger_connector_profile_mesh(tip_width * 0.76, tip_height * 0.58, 0.003, connector_type)
+			inset.material_override = face_material
+			inset.position = Vector3(0.0, 0.0, front_face_z - 0.0005)
+			inset.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			connector.add_child(inset)
 			var tongue := MeshInstance3D.new()
-			tongue.name = "MicroUSBPlugTongue"
-			tongue.mesh = _create_rounded_panel_mesh(tip_width * 0.68, tip_height * 0.24, 0.002, 0.002)
+			tongue.name = "FiveContactInsulatingTongue"
+			tongue.mesh = _create_rounded_panel_mesh(tip_width * 0.55, tip_height * 0.16, 0.0025, 0.0015)
 			tongue.material_override = inner_metal
-			tongue.position = Vector3(0.0, 0.0, front_face_z - 0.0025)
+			tongue.position = Vector3(0.0, 0.0, front_face_z - 0.003)
 			tongue.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			connector.add_child(tongue)
+			for contact_index in range(5):
+				var contact := MeshInstance3D.new()
+				contact.name = "USBContact_%d" % contact_index
+				contact.mesh = _create_rounded_panel_mesh(tip_width * 0.045, tip_height * 0.10, 0.0012, 0.0008)
+				contact.material_override = contact_material
+				var contact_x := (float(contact_index) - 2.0) * (tip_width * 0.55 / 5.0)
+				contact.position = Vector3(contact_x, 0.0, front_face_z - 0.005)
+				contact.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				connector.add_child(contact)
 
 	return connector
 
