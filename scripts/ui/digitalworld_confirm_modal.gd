@@ -7,7 +7,6 @@ var _title: Label
 var _message: Label
 var _confirm_button: Button
 var _cancel_button: Button
-var _notice_mode := false
 
 
 func _ready() -> void:
@@ -18,7 +17,6 @@ func _ready() -> void:
 
 func show_confirmation(title_text: String, message_text: String, action_text: String, action: Callable) -> void:
 	_pending_action = action
-	_notice_mode = false
 	_title.text = title_text.to_upper()
 	_message.text = message_text
 	_confirm_button.text = action_text.to_upper()
@@ -28,7 +26,6 @@ func show_confirmation(title_text: String, message_text: String, action_text: St
 
 func show_notice(title_text: String, message_text: String) -> void:
 	_pending_action = Callable()
-	_notice_mode = true
 	_title.text = title_text.to_upper()
 	_message.text = message_text
 	_confirm_button.text = "GOT IT"
@@ -70,7 +67,7 @@ func _build_modal() -> void:
 	_content = VBoxContainer.new()
 	_content.name = "DimPage_AlertContent"
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_content.custom_minimum_size.x = minf(720.0, maxf(280.0, get_viewport().get_visible_rect().size.x - 52.0))
+	_content.custom_minimum_size.x = minf(720.0, maxf(220.0, get_viewport().get_visible_rect().size.x - 52.0))
 	_content.add_theme_constant_override("separation", 22)
 	_content.alignment = BoxContainer.ALIGNMENT_CENTER
 	_content.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -140,7 +137,7 @@ func _refresh_responsive_type() -> void:
 		button.add_theme_font_override("font", font)
 		button.add_theme_font_size_override("font_size", 19 if compact else 21)
 		button.custom_minimum_size.y = 56 if compact else 64
-		button.custom_minimum_size.x = 132 if compact else 170
+		button.custom_minimum_size.x = 104 if compact else 170
 
 
 func _style_button(button: Button, primary: bool) -> void:
