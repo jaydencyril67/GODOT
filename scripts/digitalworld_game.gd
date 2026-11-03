@@ -922,55 +922,104 @@ func _open_logo_picker() -> void:
 	ui_root.add_child(logo_picker_layer)
 
 	var viewport_size := get_viewport().get_visible_rect().size
-	var compact := viewport_size.x < 700.0
-	var side_margin := 10 if compact else 22
-	var vertical_margin := 8 if compact else 16
-	var grid_gap := 7 if compact else 10
-	var available_width := maxf(1.0, viewport_size.x - side_margin * 2)
-	var columns := clampi(int(floor((available_width + grid_gap) / 112.0)), 2, 8)
-	var tile_size := mini(104, int(floor((viewport_size.x - side_margin * 2 - grid_gap * (columns - 1)) / columns)))
+	var compact := viewport_size.x < 760.0 or viewport_size.y < 560.0
+	var side_margin := 18.0 if compact else 34.0
+	var top_margin := 12.0 if compact else 22.0
+	var bottom_margin := 12.0 if compact else 22.0
+	var grid_gap := 4 if compact else 7
+	var available_width := maxf(1.0, viewport_size.x - side_margin * 2.0)
+	var header_space := 66.0 if compact else 82.0
+	var footer_space := 44.0 if compact else 52.0
+	var grid_area_height := maxf(64.0, viewport_size.y - top_margin - bottom_margin - header_space - footer_space - 24.0)
 
-	# The insignias sit directly on a plain dark screen: no title, card, or modal controls.
+	# Pick the column count that gives all 50 marks the largest possible square footprint.
+	# This makes the complete selection fit on screen without a scroll container.
+	var columns := 2
+	var tile_size := 1
+	for candidate_columns in range(2, 15):
+		var candidate_rows := int(ceil(50.0 / float(candidate_columns)))
+		var width_fit := int(floor((available_width - grid_gap * (candidate_columns - 1)) / candidate_columns))
+		var height_fit := int(floor((grid_area_height - grid_gap * (candidate_rows - 1)) / candidate_rows))
+		var candidate_size := mini(104, mini(width_fit, height_fit))
+		if candidate_size > tile_size:
+			columns = candidate_columns
+			tile_size = candidate_size
+
+	var rows := int(ceil(50.0 / float(columns)))
+	var grid_width := float(columns * tile_size + (columns - 1) * grid_gap)
+	var grid_height := float(rows * tile_size + (rows - 1) * grid_gap)
+
+	# Match Settings and Exit: a dedicated deep-emerald screen with centred content.
 	var scrim := ColorRect.new()
 	scrim.name = "InsigniaDarkScreen"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.003, 0.014, 0.007, 0.96)
+	scrim.color = Color(0.002, 0.018, 0.009, 0.96)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "InsigniaGridScroll"
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.offset_left = side_margin
-	scroll.offset_right = -side_margin
-	scroll.offset_top = vertical_margin
-	scroll.offset_bottom = -vertical_margin
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	scroll.follow_focus = false
-	scroll.scroll_deadzone = 8
-	scroll.clip_contents = true
-	logo_picker_scroll = scroll
-	logo_picker_panel = scroll
-	logo_picker_layer.add_child(scroll)
+	var center := CenterContainer.new()
+	center.name = "InsigniaDirectContent"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.add_theme_constant_override("margin_left", int(side_margin))
+	center.add_theme_constant_override("margin_right", int(side_margin))
+	center.add_theme_constant_override("margin_top", int(top_margin))
+	center.add_theme_constant_override("margin_bottom", int(bottom_margin))
+	logo_picker_layer.add_child(center)
+
+	var stack := VBoxContainer.new()
+	stack.name = "InsigniaScreenLayout"
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	stack.custom_minimum_size.x = minf(1240.0, available_width)
+	stack.add_theme_constant_override("separation", 8 if compact else 12)
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_child(stack)
+
+	var accent := ColorRect.new()
+	accent.name = "InsigniaAccent"
+	accent.custom_minimum_size = Vector2(76 if compact else 96, 3)
+	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	accent.color = Color("#a9d9ad")
+	stack.add_child(accent)
+
+	var eyebrow := _label("DIGITAL WORLD MOBILES", 10 if compact else 13, Color("#a9d9ad"), HORIZONTAL_ALIGNMENT_CENTER)
+	stack.add_child(eyebrow)
+	var heading := _label("CHOOSE YOUR INSIGNIA", 22 if compact else 30, Color("#f4fff3"), HORIZONTAL_ALIGNMENT_CENTER)
+	_apply_menu_3d_label(heading, 2)
+	stack.add_child(heading)
+	var description := _label("50 distinctive marks  ·  Select one to represent your company", 11 if compact else 14, Color("#c4d9c7"), HORIZONTAL_ALIGNMENT_CENTER)
+	stack.add_child(description)
+
+	# This fixed-height viewport is intentionally non-scrollable; every logo is visible.
+	var grid_viewport := ScrollContainer.new()
+	grid_viewport.name = "InsigniaGridViewport"
+	grid_viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid_viewport.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	grid_viewport.custom_minimum_size = Vector2(0.0, grid_height)
+	grid_viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	grid_viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	grid_viewport.follow_focus = false
+	grid_viewport.clip_contents = true
+	logo_picker_scroll = grid_viewport
+	logo_picker_panel = logo_picker_layer
+	stack.add_child(grid_viewport)
+
+	var grid_alignment := CenterContainer.new()
+	grid_alignment.name = "InsigniaGridAlignment"
+	grid_alignment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid_alignment.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid_viewport.add_child(grid_alignment)
 
 	var grid := GridContainer.new()
 	grid.name = "InsigniaGrid"
 	grid.columns = columns
 	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	grid.custom_minimum_size = Vector2(grid_width, grid_height)
 	grid.add_theme_constant_override("h_separation", grid_gap)
 	grid.add_theme_constant_override("v_separation", grid_gap)
-	var grid_rows := int(ceil(50.0 / float(columns)))
-	grid.custom_minimum_size = Vector2(float(columns * tile_size + (columns - 1) * grid_gap), float(grid_rows * tile_size + (grid_rows - 1) * grid_gap))
 	logo_picker_grid = grid
-
-	# A full-width centering container keeps the grid centred at every viewport size.
-	var grid_alignment := CenterContainer.new()
-	grid_alignment.name = "InsigniaGridAlignment"
-	grid_alignment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid_alignment.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	grid_alignment.add_child(grid)
-	scroll.add_child(grid_alignment)
 
 	for index in range(50):
 		var logo_id := index + 1
@@ -982,7 +1031,6 @@ func _open_logo_picker() -> void:
 		option.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		option.mouse_default_cursor_shape = Control.CURSOR_ARROW
 		option.clip_contents = true
-		# Keep the Button only as an invisible touch/mouse hit target.
 		option.flat = true
 		var no_style := StyleBoxEmpty.new()
 		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
@@ -992,7 +1040,7 @@ func _open_logo_picker() -> void:
 		logo_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		logo_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var mark := TextureRect.new()
-		var mark_size := mini(84, int(tile_size * 0.82))
+		var mark_size := mini(84, maxi(1, int(tile_size * 0.84)))
 		mark.custom_minimum_size = Vector2(mark_size, mark_size)
 		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -1000,6 +1048,19 @@ func _open_logo_picker() -> void:
 		logo_center.add_child(mark)
 		option.add_child(logo_center)
 		grid.add_child(option)
+
+	var footer := Button.new()
+	footer.name = "InsigniaCancelButton"
+	footer.text = "CANCEL"
+	footer.custom_minimum_size = Vector2(0.0, 38 if compact else 46)
+	footer.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	footer.focus_mode = Control.FOCUS_NONE
+	footer.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	footer.pressed.connect(_close_logo_picker)
+	_style_landing_command_button(footer, false)
+	_apply_shared_page_typography(footer, 13 if compact else 16)
+	stack.add_child(footer)
+
 
 func _style_company_glass_button(button: Button, _selected: bool = false) -> void:
 	# Emerald frosted glass with a clean highlight; interactions never flash.
