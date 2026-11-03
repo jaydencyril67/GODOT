@@ -3451,7 +3451,9 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, right_forward, connector_shell, connector_metal)
 
 	# Start and finish well inside each flexible strain-relief boot.
-	var boot_overlap := 0.34
+	# The boot body ends around local +Z 0.30. Stop the cable inside it,
+	# not beyond it, so the jacket visibly enters both strain-relief boots.
+	var boot_overlap := 0.20
 	var left_boot_exit := left_head - left_forward * boot_overlap
 	var right_boot_exit := right_head - right_forward * boot_overlap
 
