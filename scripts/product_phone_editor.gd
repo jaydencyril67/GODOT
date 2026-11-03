@@ -192,6 +192,8 @@ var smartwatch_preview: Node3D
 var power_bank_preview: Node3D
 var power_bank_preview_mode := false
 var power_bank_enabled := false
+var power_bank_capacity_mah := 10000
+var power_bank_capacity_value_label: Label
 var power_bank_body_color := Color("#303943")
 var power_bank_color_name := "Graphite"
 var smartwatch_enabled := false
@@ -3561,7 +3563,7 @@ func _rebuild_power_bank_preview() -> void:
 		var indicator := _add_charger_cylinder(power_bank_preview, "PowerBankStatusLED_%d" % indicator_index, 0.012, 0.008, Vector3(-0.045 + float(indicator_index) * 0.03, 0.385, 0.151), indicator_material if indicator_index < 3 else frame_material, 20)
 		indicator.rotation_degrees.x = 90.0
 
-	_add_accessory_label(power_bank_preview, "PowerBankProductMark", "PORTABLE POWER", 11, 0.0035, Color("#83909d"), Vector3(0.0, -0.64, 0.147))
+	_add_accessory_label(power_bank_preview, "PowerBankCapacityMark", _format_power_bank_capacity(power_bank_capacity_mah), 13, 0.0035, Color("#a9c7d9"), Vector3(0.0, -0.64, 0.147))
 
 	# A small tactile power key is fitted to the side wall, with a metal edge.
 	var side_button := _add_charger_cylinder(power_bank_preview, "PowerBankSidePowerButton", 0.043, 0.032, Vector3(0.574, 0.39, 0.0), frame_material, 32)
@@ -3636,6 +3638,42 @@ func _show_power_bank_controls() -> void:
 	enable_row.add_child(toggle)
 
 	if power_bank_enabled:
+		var capacity_heading := _make_label("BATTERY CAPACITY", 14, Color("#a9e3ff"))
+		capacity_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		active_feature_panel.add_child(capacity_heading)
+
+		power_bank_capacity_value_label = _make_label(_format_power_bank_capacity(power_bank_capacity_mah), 22, Color("#e6f5ff"))
+		power_bank_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		active_feature_panel.add_child(power_bank_capacity_value_label)
+
+		var capacity_slider := VSlider.new()
+		capacity_slider.name = "PowerBankCapacitySlider"
+		capacity_slider.min_value = 10000
+		capacity_slider.max_value = 25000
+		capacity_slider.step = 500
+		capacity_slider.value = power_bank_capacity_mah
+		capacity_slider.tick_count = 31
+		capacity_slider.custom_minimum_size = Vector2(76, 270)
+		capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		capacity_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		capacity_slider.focus_mode = Control.FOCUS_NONE
+		capacity_slider.value_changed.connect(_on_power_bank_capacity_changed)
+		_style_custom_slider(capacity_slider)
+		active_feature_panel.add_child(capacity_slider)
+
+		var range_row := HBoxContainer.new()
+		range_row.name = "PowerBankCapacityRange"
+		range_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		range_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		var minimum := _make_label("10,000 mAh", 11, Color("#a9c9dc"))
+		minimum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		range_row.add_child(minimum)
+		var maximum := _make_label("25,000 mAh", 11, Color("#a9c9dc"))
+		maximum.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		maximum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		range_row.add_child(maximum)
+		active_feature_panel.add_child(range_row)
+
 		var color_button := Button.new()
 		color_button.name = "OpenPowerBankDeviceColorEditor"
 		color_button.text = "CUSTOMIZE POWER BANK COLOR  ›"
@@ -3652,6 +3690,28 @@ func _on_power_bank_enabled_toggled(enabled: bool) -> void:
 	_rebuild_power_bank_preview()
 	_set_power_bank_preview_mode(true)
 	_show_power_bank_controls()
+
+
+func _format_power_bank_capacity(capacity: int) -> String:
+	return "%s mAh" % _format_integer_with_commas(capacity)
+
+
+func _format_integer_with_commas(value: int) -> String:
+	var digits := str(value)
+	var formatted := ""
+	for index in range(digits.length()):
+		if index > 0 and (digits.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += digits.substr(index, 1)
+	return formatted
+
+
+func _on_power_bank_capacity_changed(value: float) -> void:
+	power_bank_capacity_mah = clampi(roundi(value / 500.0) * 500, 10000, 25000)
+	if is_instance_valid(power_bank_capacity_value_label):
+		power_bank_capacity_value_label.text = _format_power_bank_capacity(power_bank_capacity_mah)
+	_rebuild_power_bank_preview()
+	_set_power_bank_preview_mode(true)
 
 
 func _on_power_bank_color_selected(color_name: String, color: Color) -> void:
