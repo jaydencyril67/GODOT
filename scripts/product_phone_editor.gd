@@ -3429,9 +3429,9 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 
 
 func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) -> Node3D:
-	# One uninterrupted cable jacket forms the reference-matched oval coil.
+	# Short, simple U-shaped cable: no coil or extra winding.
 	var cable_group := Node3D.new()
-	cable_group.name = "StandaloneOvalCoilChargingCable"
+	cable_group.name = "StandaloneShortUCable"
 	geometry_parent.add_child(cable_group)
 
 	var cable_material := _charger_material(Color("#252d36"), 0.04, 0.34)
@@ -3439,75 +3439,39 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	var connector_metal := _charger_material(Color("#c8d1d9"), 0.94, 0.16)
 	var device_connector := _charger_device_connector()
 	var output_connector := _charger_output_connector()
-	# Reference-matched oval coil: a single uninterrupted cable follows a
-	# broad, gently tightening spiral. Both USB-C heads rest at the lower
-	# corners and angle outward, just like the real-world reference.
-	# Keep the entire cable resting on one horizontal plane (constant Y).
-	# The oval is laid out in X/Z; using X/Y here would stand the coil upright.
-	var coil_plane_y := 0.035
-	var left_head := Vector3(-0.43, coil_plane_y, 0.16)
-	var right_head := Vector3(0.43, coil_plane_y, 0.16)
-	var left_forward := Vector3(-0.28, 0.0, 1.0).normalized()
-	var right_forward := Vector3(0.28, 0.0, 1.0).normalized()
+
+	# Keep both plugs and the cord on the same level. The connector boots
+	# overlap the cable ends so the jacket cannot look detached at either end.
+	var cable_plane_y := 0.035
+	var left_head := Vector3(-0.34, cable_plane_y, 0.16)
+	var right_head := Vector3(0.34, cable_plane_y, 0.16)
+	var left_forward := Vector3(-0.22, 0.0, 1.0).normalized()
+	var right_forward := Vector3(0.22, 0.0, 1.0).normalized()
 	_add_charger_cable_connector(cable_group, "First_" + output_connector.replace("-", "") + "_CableHead", output_connector, left_head, left_forward, connector_shell, connector_metal)
 	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, right_forward, connector_shell, connector_metal)
 
-	# The rear of each angled connector points inward toward the cable coil.
-	# Start and finish the jacket slightly inside each strain-relief boot.
-	var boot_exit_distance := 0.285
-	var left_boot_exit := left_head - left_forward * boot_exit_distance
-	var right_boot_exit := right_head - right_forward * boot_exit_distance
-	var coil_center := Vector3(0.0, coil_plane_y, -0.245)
-	var outer_radius_x := 0.68
-	var outer_radius_z := 0.43
-	var inner_radius_x := 0.50
-	var inner_radius_z := 0.31
-	var start_angle := deg_to_rad(225.0)
-	var end_angle := deg_to_rad(-405.0)
-	var coil_point_count := 240
-	var coil_route := PackedVector3Array()
+	# Start and finish well inside each flexible strain-relief boot.
+	var boot_overlap := 0.34
+	var left_boot_exit := left_head - left_forward * boot_overlap
+	var right_boot_exit := right_head - right_forward * boot_overlap
 
-	# One smooth 1.75-turn oval spiral creates the two close parallel arcs.
-	# The changing radii keep the loops evenly separated without crossings.
-	for point_index in range(coil_point_count + 1):
-		var t := float(point_index) / float(coil_point_count)
-		var angle := lerpf(start_angle, end_angle, t)
-		var radius_x := lerpf(outer_radius_x, inner_radius_x, t)
-		coil_route.append(Vector3(
-			coil_center.x + cos(angle) * radius_x,
-			coil_plane_y,
-			coil_center.z + sin(angle) * lerpf(outer_radius_z, inner_radius_z, t)
-		))
-
-	# Smooth lead-in from the left plug into the outer oval, then a matching
-	# lead-out from the inner oval into the right plug. The whole jacket is
-	# still built as one continuous tube mesh.
-	var first_coil_tangent := (coil_route[1] - coil_route[0]).normalized()
+	# A single broad cubic bend creates a compact U. Both control points sit
+	# behind the plugs, making the middle dip smoothly away from the heads.
+	var u_depth := 0.42
+	var control_a := left_boot_exit + Vector3(-0.035, 0.0, -u_depth)
+	var control_b := right_boot_exit + Vector3(0.035, 0.0, -u_depth)
 	var route := _append_charger_bezier(
 		PackedVector3Array(),
 		left_boot_exit,
-		left_boot_exit + (-left_forward) * 0.12,
-		coil_route[0] - first_coil_tangent * 0.12,
-		coil_route[0],
-		32
-	)
-	for point_index in range(1, coil_route.size()):
-		route.append(coil_route[point_index])
-
-	var last_coil_index := coil_route.size() - 1
-	var last_coil_tangent := (coil_route[last_coil_index] - coil_route[last_coil_index - 1]).normalized()
-	route = _append_charger_bezier(
-		route,
-		coil_route[last_coil_index],
-		coil_route[last_coil_index] + last_coil_tangent * 0.12,
-		right_boot_exit - last_coil_tangent * 0.12,
+		control_a,
+		control_b,
 		right_boot_exit,
-		32
+		96
 	)
 
 	var cable := MeshInstance3D.new()
-	cable.name = "SingleUnbrokenOvalCoilCableJacket"
-	cable.mesh = _create_charger_cable_tube_mesh(route, 0.022, 28)
+	cable.name = "SingleUnbrokenShortUCableJacket"
+	cable.mesh = _create_charger_cable_tube_mesh(route, 0.022, 32)
 	cable.material_override = cable_material
 	cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	cable_group.add_child(cable)
