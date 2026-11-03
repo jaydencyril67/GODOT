@@ -8209,6 +8209,8 @@ func _refresh_foldable_hardware() -> void:
 	moving_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	moving_half.add_child(moving_frame)
 
+	_build_folded_chassis_division_seam()
+
 	var hinge_root := Node3D.new()
 	hinge_root.name = "PhoneFoldableHinge"
 	phone_body.add_child(hinge_root)
@@ -8246,6 +8248,55 @@ func _refresh_foldable_hardware() -> void:
 	hinge_highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	hinge_root.add_child(hinge_highlight)
 	_apply_phone_fold_angle()
+
+
+func _build_folded_chassis_division_seam() -> void:
+	if not is_instance_valid(phone_body) or selected_phone_type == "Standard":
+		return
+	var previous := phone_body.get_node_or_null("FoldedChassisDivisionSeam")
+	if is_instance_valid(previous):
+		previous.queue_free()
+	var seam_root := Node3D.new()
+	seam_root.name = "FoldedChassisDivisionSeam"
+	phone_body.add_child(seam_root)
+	var phone_size := _active_phone_size()
+	var depth := _phone_depth_for_thickness_level()
+	var corner_radius := minf(0.32 * float(border_radius_level) / 6.0, minf(phone_size.x, phone_size.y) * 0.45)
+	var seam_material := StandardMaterial3D.new()
+	seam_material.albedo_color = Color("#101820", 0.0)
+	seam_material.roughness = 0.72
+	seam_material.metallic = 0.12
+	seam_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	seam_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	seam_root.set_meta("seam_material", seam_material)
+	seam_root.set_meta("seam_color", Color("#101820"))
+	var line_width := 0.0022
+	var straight_width := maxf(0.1, phone_size.x - corner_radius * 2.0)
+	var straight_height := maxf(0.1, phone_size.y - corner_radius * 2.0)
+	var edge_offset := 0.0015
+	var seam_z := depth * 0.5 + 0.001
+	var bars := [
+		Vector3(straight_width, line_width, line_width),
+		Vector3(straight_width, line_width, line_width),
+		Vector3(line_width, straight_height, line_width),
+		Vector3(line_width, straight_height, line_width)
+	]
+	var positions := [
+		Vector3(0.0, phone_size.y * 0.5 - edge_offset, seam_z),
+		Vector3(0.0, -phone_size.y * 0.5 + edge_offset, seam_z),
+		Vector3(phone_size.x * 0.5 - edge_offset, 0.0, seam_z),
+		Vector3(-phone_size.x * 0.5 + edge_offset, 0.0, seam_z)
+	]
+	for index in range(bars.size()):
+		var mesh_instance := MeshInstance3D.new()
+		mesh_instance.name = "ChassisDivisionEdge%d" % index
+		var box := BoxMesh.new()
+		box.size = bars[index]
+		mesh_instance.mesh = box
+		mesh_instance.position = positions[index]
+		mesh_instance.material_override = seam_material
+		mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		seam_root.add_child(mesh_instance)
 
 
 func _route_foldable_accessories() -> void:
@@ -8295,6 +8346,14 @@ func _apply_phone_fold_angle() -> void:
 	if is_instance_valid(moving_half):
 		moving_half.rotation = inward_rotation
 		moving_half.position.z = layer_offset
+	var division_seam := phone_body.get_node_or_null("FoldedChassisDivisionSeam") if is_instance_valid(phone_body) else null
+	if is_instance_valid(division_seam):
+		var seam_material := division_seam.get_meta("seam_material") as StandardMaterial3D
+		if is_instance_valid(seam_material):
+			var seam_visibility := clampf((fold_angle_degrees - 105.0) / 75.0, 0.0, 1.0)
+			var seam_color: Color = division_seam.get_meta("seam_color", Color("#101820"))
+			seam_color.a = seam_visibility * 0.88
+			seam_material.albedo_color = seam_color
 	var case_moving := phone_case_preview.get_node_or_null("PhoneCaseMovingHalf") if is_instance_valid(phone_case_preview) else null
 	if is_instance_valid(case_moving):
 		case_moving.rotation = inward_rotation
