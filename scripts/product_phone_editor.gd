@@ -2476,6 +2476,7 @@ func _refresh_back_design_boxes() -> void:
 	if is_instance_valid(old_root): old_root.free()
 	if back_design_boxes.is_empty():
 		_refresh_rear_hardware_visuals()
+		_route_foldable_accessories()
 		return
 	var root := Node3D.new()
 	root.name = "BackDesignRaisedSections"
@@ -2502,6 +2503,7 @@ func _refresh_back_design_boxes() -> void:
 		raised.position = Vector3(box_center.x, box_center.y, -phone_depth * 0.5)
 		root.add_child(raised)
 	_refresh_rear_hardware_visuals()
+	_route_foldable_accessories()
 
 func _show_screen_size_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -6510,6 +6512,7 @@ func _refresh_rear_hardware_visuals() -> void:
 		previous.free()
 	if rear_camera_modules.is_empty() and rear_flash_modules.is_empty():
 		_queue_phone_case_sync()
+		_route_foldable_accessories()
 		return
 	var root := Node3D.new()
 	root.name = "RearCameraFlashHardware"
@@ -6599,6 +6602,7 @@ func _refresh_rear_hardware_visuals() -> void:
 
 
 	_queue_phone_case_sync()
+	_route_foldable_accessories()
 
 func _add_rear_hardware_disc(parent: Node3D, node_name: String, disc_position: Vector3, radius: float, height: float, material: Material) -> void:
 	var disc := MeshInstance3D.new()
@@ -7355,6 +7359,7 @@ func _refresh_phone_side_buttons() -> void:
 	if style_pen_enabled:
 		_add_phone_style_pen(button_root, current_depth, key_material)
 	_queue_phone_case_sync()
+	_route_foldable_accessories()
 
 
 func _get_style_pen_marker_layout() -> Dictionary:
@@ -7590,6 +7595,7 @@ func _refresh_phone_speakers() -> void:
 		previous_set.free()
 	if speaker_count <= 0:
 		_queue_phone_case_sync()
+		_route_foldable_accessories()
 		return
 
 	var speaker_set := Node3D.new()
@@ -7642,6 +7648,7 @@ func _refresh_phone_speakers() -> void:
 
 
 	_queue_phone_case_sync()
+	_route_foldable_accessories()
 
 func _show_charge_port_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -8236,16 +8243,22 @@ func _refresh_foldable_hardware() -> void:
 		return
 	var previous_panels := phone_body.get_node_or_null("PhoneFoldablePanels")
 	if is_instance_valid(previous_panels):
-		var previous_moving := previous_panels.get_node_or_null("PhoneFoldableMovingHalf")
+		var previous_moving := previous_panels.get_node_or_null("PhoneFoldableMovingHalf") as Node3D
 		if is_instance_valid(previous_moving):
+			# Rebuilds can be triggered while the phone is closed. First return
+			# the moving parent to its neutral pose so routed parts are restored
+			# to their original phone-body coordinates without leaving a ghost.
+			previous_moving.rotation = Vector3.ZERO
+			previous_moving.position = Vector3.ZERO
+			previous_moving.scale = Vector3.ONE
 			for routed_item in previous_moving.get_children():
 				if routed_item.has_meta("foldable_routed_accessory"):
 					var original_group_name := str(routed_item.get_meta("foldable_original_group", ""))
 					var original_group := phone_body.get_node_or_null(original_group_name) if not original_group_name.is_empty() else null
 					if is_instance_valid(original_group):
-						routed_item.reparent(original_group, false)
+						routed_item.reparent(original_group, true)
 					else:
-						routed_item.reparent(phone_body, false)
+						routed_item.reparent(phone_body, true)
 					routed_item.remove_meta("foldable_routed_accessory")
 					routed_item.remove_meta("foldable_original_group")
 		previous_panels.free()
@@ -8393,6 +8406,14 @@ func _route_foldable_accessories() -> void:
 	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf") as Node3D
 	if not is_instance_valid(moving_half):
 		return
+
+	# UI edits can rebuild a side-button/SIM/speaker group while the device is
+	# already folded. Route in the neutral phone coordinate space, not through
+	# the current rotated parent transform.
+	moving_half.rotation = Vector3.ZERO
+	moving_half.position = Vector3.ZERO
+	moving_half.scale = Vector3.ONE
+
 	var moving_axis := Vector3.RIGHT if selected_phone_type == "Fold" else Vector3.UP
 	for group_name in ["PhoneSideButtons", "PhoneSpeakerOpenings", "RearCameraFlashHardware", "BackDesignRaisedSections"]:
 		var group := phone_body.get_node_or_null(group_name)
@@ -8405,7 +8426,11 @@ func _route_foldable_accessories() -> void:
 			if axis_position > 0.008:
 				item.set_meta("foldable_routed_accessory", true)
 				item.set_meta("foldable_original_group", group_name)
-				item.reparent(moving_half, false)
+				# Keep the original open-pose transform when changing parent.
+				item.reparent(moving_half, true)
+
+	# Put the moving frame and all routed hardware back at the live hinge angle.
+	_apply_phone_fold_angle()
 
 
 func _foldable_inward_rotation(angle_radians: float) -> Vector3:
@@ -10003,14 +10028,16 @@ func _case_subtract(combiner: CSGCombiner3D, cutter: CSGShape3D) -> void:
 	combiner.add_child(cutter)
 
 
-func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: float, _depth: float, wall: float, opening_name: String) -> void:
+func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: float, depth: float, wall: float, opening_name: String) -> void:
 	var opening := CSGBox3D.new()
 	opening.name = opening_name
-	# The cutter crosses only the narrow side rail. Its Z span is limited to
-	# the actual button/recess band, so it cannot tunnel across the rear panel.
-	opening.size = Vector3(wall*2.0+0.055,maxf(length+0.008,0.045),0.072)
-	opening.position = Vector3(side*_active_phone_size().x*0.5,y,0.0)
-	_case_subtract(combiner,opening)
+	# Cut only a button-width band through the side wall. The former fixed
+	# 72 mm depth spanned the complete phone thickness and could open the back.
+	# Leave a case-material margin on both the front and rear faces.
+	var side_cut_depth := minf(0.056, maxf(0.026, depth * 0.50))
+	opening.size = Vector3(wall * 2.0 + 0.055, maxf(length + 0.008, 0.045), side_cut_depth)
+	opening.position = Vector3(side * _active_phone_size().x * 0.5, y, 0.0)
+	_case_subtract(combiner, opening)
 
 
 func _case_outline_for_size(size: Vector2, expansion: float, corner_mask: int = 15) -> PackedVector2Array:
