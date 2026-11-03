@@ -352,6 +352,8 @@ var box_package_lid: Node3D
 var box_package_preview_mode := false
 var box_package_enabled := true
 var box_package_open := false
+var box_package_position_target := "LOGO"
+var box_package_position_step := 0.08
 var box_package_color_mode := false
 var box_package_color := Color("#e8edf2")
 var box_package_logo_visible := true
@@ -10626,10 +10628,57 @@ func _show_box_package_controls() -> void:
 
 	var position_heading := _make_label("BRANDING POSITION", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(position_heading)
-	_add_box_package_position_slider(active_feature_panel, "LOGO HORIZONTAL", true, "X")
-	_add_box_package_position_slider(active_feature_panel, "LOGO VERTICAL", true, "Y")
-	_add_box_package_position_slider(active_feature_panel, "NAME HORIZONTAL", false, "X")
-	_add_box_package_position_slider(active_feature_panel, "NAME VERTICAL", false, "Y")
+	var target_row := HBoxContainer.new()
+	target_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	target_row.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(target_row)
+	for target in ["LOGO", "NAME"]:
+		var target_button := Button.new()
+		target_button.text = target
+		target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		target_button.custom_minimum_size.y = 40 if compact else 44
+		_apply_research_typography(target_button, 12)
+		_style_staff_button(target_button, box_package_position_target == target)
+		target_button.pressed.connect(_set_box_package_position_target.bind(target))
+		target_row.add_child(target_button)
+	var position_pad := GridContainer.new()
+	position_pad.name = "BoxPackagePositionPad"
+	position_pad.columns = 3
+	position_pad.add_theme_constant_override("h_separation", 6)
+	position_pad.add_theme_constant_override("v_separation", 5)
+	position_pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(position_pad)
+	_add_box_package_position_pad_spacer(position_pad)
+	_add_box_package_position_button(position_pad, "↑", Vector2i(0, 1), compact)
+	_add_box_package_position_pad_spacer(position_pad)
+	_add_box_package_position_button(position_pad, "←", Vector2i(-1, 0), compact)
+	var position_center := Button.new()
+	position_center.text = "RESET"
+	position_center.custom_minimum_size = Vector2(54, 42)
+	_apply_research_typography(position_center, 10)
+	_style_staff_button(position_center, true)
+	position_center.pressed.connect(_reset_box_package_position)
+	position_pad.add_child(position_center)
+	_add_box_package_position_button(position_pad, "→", Vector2i(1, 0), compact)
+	_add_box_package_position_pad_spacer(position_pad)
+	_add_box_package_position_button(position_pad, "↓", Vector2i(0, -1), compact)
+	_add_box_package_position_pad_spacer(position_pad)
+	var step_row := HBoxContainer.new()
+	step_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	step_row.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(step_row)
+	var step_label := _make_label("MOVEMENT", 10, Color("#d7eaf5"))
+	step_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	step_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	step_row.add_child(step_label)
+	for step in [0.03, 0.08, 0.16]:
+		var step_button := Button.new()
+		step_button.text = "SMALL" if is_equal_approx(step, 0.03) else ("MED" if is_equal_approx(step, 0.08) else "LARGE")
+		step_button.custom_minimum_size = Vector2(54, 36)
+		_apply_research_typography(step_button, 10)
+		_style_staff_button(step_button, is_equal_approx(box_package_position_step, step))
+		step_button.pressed.connect(_set_box_package_position_step.bind(step))
+		step_row.add_child(step_button)
 
 
 func _add_box_package_toggle(parent: Control, control_name: String, caption: String, enabled: bool, callback: Callable) -> void:
@@ -10659,59 +10708,50 @@ func _add_box_package_toggle(parent: Control, control_name: String, caption: Str
 	row.add_child(toggle)
 
 
-func _add_box_package_position_slider(parent: Control, caption: String, is_logo: bool, axis: String) -> void:
-	var group := VBoxContainer.new()
-	group.name = caption.replace(" ", "") + "PositionControl"
-	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	group.add_theme_constant_override("separation", 1)
-	parent.add_child(group)
+func _add_box_package_position_pad_spacer(parent: GridContainer) -> void:
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(48, 40)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(spacer)
 
-	var header := HBoxContainer.new()
-	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	group.add_child(header)
-	var title := _make_label(caption, 10, Color("#d7eaf5"))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(title)
 
-	var current_value := 0.0
-	if is_logo:
-		current_value = box_package_logo_position.x if axis == "X" else box_package_logo_position.y
+func _add_box_package_position_button(parent: GridContainer, caption: String, direction: Vector2i, compact: bool) -> void:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(48, 40) if compact else Vector2(54, 44)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_research_typography(button, 20)
+	_style_staff_button(button, true)
+	button.pressed.connect(_move_box_package_branding.bind(direction))
+	parent.add_child(button)
+
+
+func _set_box_package_position_target(target: String) -> void:
+	box_package_position_target = target
+	_show_box_package_controls()
+
+
+func _set_box_package_position_step(step: float) -> void:
+	box_package_position_step = step
+	_show_box_package_controls()
+
+
+func _move_box_package_branding(direction: Vector2i) -> void:
+	var offset := Vector2(direction) * box_package_position_step
+	if box_package_position_target == "LOGO":
+		box_package_logo_position.x = clampf(box_package_logo_position.x + offset.x, -0.55, 0.55)
+		box_package_logo_position.y = clampf(box_package_logo_position.y + offset.y, -1.20, 1.20)
 	else:
-		current_value = box_package_name_position.x if axis == "X" else box_package_name_position.y
-	var value_label := _make_label("%+.2f" % current_value, 10, Color("#9edcff"))
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	header.add_child(value_label)
-
-	var slider := HSlider.new()
-	slider.name = caption.replace(" ", "") + "Slider"
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.custom_minimum_size = Vector2(0, 25)
-	slider.min_value = -0.55 if axis == "X" else -1.20
-	slider.max_value = 0.55 if axis == "X" else 1.20
-	slider.step = 0.01
-	slider.value = current_value
-	slider.focus_mode = Control.FOCUS_NONE
-	slider.value_changed.connect(_on_box_package_position_changed.bind(is_logo, axis, value_label))
-	group.add_child(slider)
+		box_package_name_position.x = clampf(box_package_name_position.x + offset.x, -0.55, 0.55)
+		box_package_name_position.y = clampf(box_package_name_position.y + offset.y, -1.20, 1.20)
+	_refresh_box_package_branding()
 
 
-func _on_box_package_position_changed(value: float, is_logo: bool, axis: String, value_label: Label) -> void:
-	if is_logo:
-		var next_logo_position := box_package_logo_position
-		if axis == "X":
-			next_logo_position.x = value
-		else:
-			next_logo_position.y = value
-		box_package_logo_position = next_logo_position
+func _reset_box_package_position() -> void:
+	if box_package_position_target == "LOGO":
+		box_package_logo_position = Vector2(0.0, 0.66)
 	else:
-		var next_name_position := box_package_name_position
-		if axis == "X":
-			next_name_position.x = value
-		else:
-			next_name_position.y = value
-		box_package_name_position = next_name_position
-	if is_instance_valid(value_label):
-		value_label.text = "%+.2f" % value
+		box_package_name_position = Vector2(0.0, -0.62)
 	_refresh_box_package_branding()
 
 
