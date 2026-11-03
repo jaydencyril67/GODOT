@@ -5512,14 +5512,17 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	moving_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	moving_half.add_child(moving_display)
 	phone_screen = fixed_display
-	_refresh_front_camera(fixed_display, segment_width, segment_height)
+	var camera_display := moving_display if selected_phone_type == "Flip" else fixed_display
+	_refresh_front_camera(camera_display, segment_width, segment_height)
 	if screen_protector_enabled:
 		var shared_token := shared_protector_token
 		if shared_token < 0:
 			screen_protector_build_token += 1
 			shared_token = screen_protector_build_token
-		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, false, shared_token, true)
-		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, false, shared_token, false)
+		var fixed_has_camera_cutout := selected_phone_type != "Flip"
+		var moving_has_camera_cutout := selected_phone_type == "Flip"
+		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, false, shared_token, fixed_has_camera_cutout)
+		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, false, shared_token, moving_has_camera_cutout)
 
 
 func _camera_mp_from_slider_index(index: int) -> int:
@@ -8030,7 +8033,14 @@ func _refresh_foldable_hardware() -> void:
 		if is_instance_valid(previous_moving):
 			for routed_item in previous_moving.get_children():
 				if routed_item.has_meta("foldable_routed_accessory"):
-					routed_item.reparent(phone_body, false)
+					var original_group_name := str(routed_item.get_meta("foldable_original_group", ""))
+					var original_group := phone_body.get_node_or_null(original_group_name) if not original_group_name.is_empty() else null
+					if is_instance_valid(original_group):
+						routed_item.reparent(original_group, false)
+					else:
+						routed_item.reparent(phone_body, false)
+					routed_item.remove_meta("foldable_routed_accessory")
+					routed_item.remove_meta("foldable_original_group")
 		previous_panels.free()
 	var previous_hinge := phone_body.get_node_or_null("PhoneFoldableHinge")
 	if is_instance_valid(previous_hinge):
@@ -8144,6 +8154,7 @@ func _route_foldable_accessories() -> void:
 			var axis_position := (item as Node3D).position.dot(moving_axis)
 			if axis_position > 0.008:
 				item.set_meta("foldable_routed_accessory", true)
+				item.set_meta("foldable_original_group", group_name)
 				item.reparent(moving_half, false)
 
 
@@ -10268,6 +10279,8 @@ func _rotate_axis(axis: Vector3, direction: float) -> void:
 		phone_body.rotation.x += ROTATION_STEP * direction
 	elif axis == Vector3.UP:
 		phone_body.rotation.y += ROTATION_STEP * direction
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.rotation = phone_body.rotation
 
 
 func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
@@ -10278,11 +10291,15 @@ func _rotate_axis_fine(axis: Vector3, direction: float) -> void:
 		phone_body.rotation.x += fine_step * direction
 	elif axis == Vector3.UP:
 		phone_body.rotation.y += fine_step * direction
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.rotation = phone_body.rotation
 
 
 func _reset_phone_rotation() -> void:
 	if is_instance_valid(phone_body):
 		phone_body.rotation = Vector3.ZERO
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.rotation = Vector3.ZERO
 
 
 func _zoom_camera(distance_change: float) -> void:
