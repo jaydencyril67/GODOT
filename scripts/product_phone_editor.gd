@@ -3603,7 +3603,7 @@ func _rebuild_earbuds_preview() -> void:
 	port_bezel.name = "BottomUSBCMetalBezel"
 	port_bezel.mesh = _create_rounded_panel_mesh(0.245, 0.092, 0.014, 0.044)
 	port_bezel.material_override = metal_material
-	port_bezel.position = Vector3(0.0, -0.422, 0.0)
+	port_bezel.position = Vector3(0.0, -0.426, 0.0)
 	port_bezel.rotation.x = deg_to_rad(90.0)
 	wireless_earbuds_preview.add_child(port_bezel)
 
@@ -3611,7 +3611,7 @@ func _rebuild_earbuds_preview() -> void:
 	port_cavity.name = "BottomUSBCRecess"
 	port_cavity.mesh = _create_rounded_panel_mesh(0.205, 0.058, 0.008, 0.028)
 	port_cavity.material_override = recess_material
-	port_cavity.position = Vector3(0.0, -0.431, 0.0)
+	port_cavity.position = Vector3(0.0, -0.424, 0.0)
 	port_cavity.rotation.x = deg_to_rad(90.0)
 	wireless_earbuds_preview.add_child(port_cavity)
 
@@ -3619,7 +3619,7 @@ func _rebuild_earbuds_preview() -> void:
 	port_tongue.name = "BottomUSBCContactTongue"
 	port_tongue.mesh = _create_rounded_panel_mesh(0.142, 0.013, 0.006, 0.006)
 	port_tongue.material_override = contact_material
-	port_tongue.position = Vector3(0.0, -0.435, 0.0)
+	port_tongue.position = Vector3(0.0, -0.420, 0.0)
 	port_tongue.rotation.x = deg_to_rad(90.0)
 	wireless_earbuds_preview.add_child(port_tongue)
 
@@ -3627,10 +3627,14 @@ func _rebuild_earbuds_preview() -> void:
 	wireless_earbuds_preview.position = Vector3(0.0, -0.015, 0.0)
 
 func _set_earbuds_preview_mode(enabled: bool) -> void:
+	var entering_earbuds_preview := enabled and not wireless_earbuds_preview_mode
 	_set_charger_preview_mode(false)
 	_set_smartwatch_preview_mode(false)
 	_set_power_bank_preview_mode(false)
 	wireless_earbuds_preview_mode = enabled
+	if entering_earbuds_preview and is_instance_valid(wireless_earbuds_preview):
+		# Start on a three-quarter product angle; subsequent touch drags remain free.
+		wireless_earbuds_preview.rotation_degrees = Vector3(-7.0, -16.0, 0.0)
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled
 	if is_instance_valid(phone_case_preview):
@@ -3640,8 +3644,8 @@ func _set_earbuds_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(wireless_earbuds_preview):
 		wireless_earbuds_preview.visible = enabled and wireless_earbuds_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 4.15 if enabled else 5.2)
-		preview_camera.fov = 38.0
+		preview_camera.position = Vector3(0.0, 0.0, 3.55 if enabled else 5.2)
+		preview_camera.fov = 35.0 if enabled else 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
