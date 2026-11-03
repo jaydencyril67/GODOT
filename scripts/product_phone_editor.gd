@@ -2981,7 +2981,7 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		_add_phone_mesh_triangle_with_normals(surface, front_a, back_b, front_b, normal_a, normal_b, normal_b)
 	return surface.commit()
 
-func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool) -> ArrayMesh:
+func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true) -> ArrayMesh:
 	# Keep the curved glass on the same rounded-rectangle footprint as the
 	# handset. The edge bend changes depth only; it must not square off corners.
 	var surface := SurfaceTool.new()
@@ -3017,9 +3017,15 @@ func _create_curved_screen_mesh(width: float, height: float, corner_radius: floa
 			var side_drop := 0.0
 			var vertical_drop := 0.0
 			if curve_sides:
-				side_drop = SIDE_BEND * pow(absf(x / maxf(half_width, 0.001)), 6.0)
+				if curve_left and x < 0.0:
+					side_drop = maxf(side_drop, SIDE_BEND * pow(absf(x / maxf(half_width, 0.001)), 6.0))
+				if curve_right and x > 0.0:
+					side_drop = maxf(side_drop, SIDE_BEND * pow(absf(x / maxf(half_width, 0.001)), 6.0))
 			if curve_vertical:
-				vertical_drop = VERTICAL_BEND * pow(absf(y / maxf(half_height, 0.001)), 6.0)
+				if curve_top and y > 0.0:
+					vertical_drop = maxf(vertical_drop, VERTICAL_BEND * pow(absf(y / maxf(half_height, 0.001)), 6.0))
+				if curve_bottom and y < 0.0:
+					vertical_drop = maxf(vertical_drop, VERTICAL_BEND * pow(absf(y / maxf(half_height, 0.001)), 6.0))
 			# Blend the two edge curves instead of stacking their depth.
 			var z := -maxf(side_drop, vertical_drop)
 			points.append(Vector3(x, y, z))
@@ -3100,7 +3106,7 @@ func _screen_protector_point_is_cut_out(point: Vector2, cutouts: Array[Dictionar
 	return false
 
 
-func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, height: float, radius: float, curve_sides: bool, curve_vertical: bool, thickness: float, corner_mask: int = 15) -> Vector3:
+func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, height: float, radius: float, curve_sides: bool, curve_vertical: bool, thickness: float, corner_mask: int = 15, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true) -> Vector3:
 	var half_width := width * 0.5
 	var half_height := height * 0.5
 	var x := raw_x
@@ -3122,9 +3128,15 @@ func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, h
 	var side_drop := 0.0
 	var vertical_drop := 0.0
 	if curve_sides:
-		side_drop = 0.028 * pow(absf(x / maxf(half_width, 0.001)), 6.0)
+		if curve_left and x < 0.0:
+			side_drop = maxf(side_drop, 0.028 * pow(absf(x / maxf(half_width, 0.001)), 6.0))
+		if curve_right and x > 0.0:
+			side_drop = maxf(side_drop, 0.028 * pow(absf(x / maxf(half_width, 0.001)), 6.0))
 	if curve_vertical:
-		vertical_drop = 0.028 * pow(absf(y / maxf(half_height, 0.001)), 6.0)
+		if curve_top and y > 0.0:
+			vertical_drop = maxf(vertical_drop, 0.028 * pow(absf(y / maxf(half_height, 0.001)), 6.0))
+		if curve_bottom and y < 0.0:
+			vertical_drop = maxf(vertical_drop, 0.028 * pow(absf(y / maxf(half_height, 0.001)), 6.0))
 	var surface_z := -maxf(side_drop, vertical_drop)
 	if not curve_sides and not curve_vertical:
 		# The flat display is a 0.006-unit panel; its front face is at +0.003.
@@ -3137,7 +3149,7 @@ func _add_screen_protector_edge(surface: SurfaceTool, base_a: Vector3, base_b: V
 	_add_phone_mesh_triangle(surface, base_a, top_b, base_b, outward_normal)
 
 
-func _create_screen_protector_mesh_async(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float, corner_mask: int = 15) -> ArrayMesh:
+func _create_screen_protector_mesh_async(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float, corner_mask: int = 15, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	# The dense grid follows the exact screen outline and curve. The top and
@@ -3156,8 +3168,8 @@ func _create_screen_protector_mesh_async(width: float, height: float, corner_rad
 		for x_index in range(X_SEGMENTS + 1):
 			var u := float(x_index) / float(X_SEGMENTS)
 			var raw_x := (u - 0.5) * width
-			base_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP, corner_mask))
-			top_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP + thickness, corner_mask))
+			base_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP, corner_mask, curve_left, curve_right, curve_top, curve_bottom))
+			top_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP + thickness, corner_mask, curve_left, curve_right, curve_top, curve_bottom))
 		if y_index % 8 == 7:
 			await get_tree().process_frame
 
@@ -3250,7 +3262,7 @@ func _create_screen_protector_material() -> StandardMaterial3D:
 	return material
 
 
-func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, shared_token: int = -1, include_camera_cutouts: bool = true, corner_mask: int = 15) -> void:
+func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, shared_token: int = -1, include_camera_cutouts: bool = true, corner_mask: int = 15, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true) -> void:
 	if not screen_protector_enabled or not is_instance_valid(display):
 		return
 	if shared_token < 0:
@@ -3274,14 +3286,14 @@ func _build_screen_protector(display: MeshInstance3D, screen_width: float, scree
 	build_tween.set_loops()
 	build_tween.tween_property(placeholder, "scale", Vector3(1.0, 0.985, 1.0), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	build_tween.tween_property(placeholder, "scale", Vector3.ONE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	call_deferred("_build_screen_protector_async", display, screen_width, screen_height, screen_radius, curved_display, token, placeholder, build_tween, include_camera_cutouts, corner_mask)
+	call_deferred("_build_screen_protector_async", display, screen_width, screen_height, screen_radius, curved_display, token, placeholder, build_tween, include_camera_cutouts, corner_mask, curve_left, curve_right, curve_top, curve_bottom)
 
 
-func _build_screen_protector_async(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, token: int, placeholder: MeshInstance3D, build_tween: Tween, include_camera_cutouts: bool = true, corner_mask: int = 15) -> void:
+func _build_screen_protector_async(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, token: int, placeholder: MeshInstance3D, build_tween: Tween, include_camera_cutouts: bool = true, corner_mask: int = 15, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true) -> void:
 	var curve_sides := curved_display and side_curve_enabled
 	var curve_vertical := curved_display and vertical_curve_enabled
 	var cutouts := _get_screen_protector_cutouts(screen_width, screen_height) if include_camera_cutouts else []
-	var generated_mesh: ArrayMesh = await _create_screen_protector_mesh_async(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness, corner_mask)
+	var generated_mesh: ArrayMesh = await _create_screen_protector_mesh_async(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness, corner_mask, curve_left, curve_right, curve_top, curve_bottom)
 	if token != screen_protector_build_token or not screen_protector_enabled or not is_instance_valid(display):
 		return
 	if build_tween.is_running():
@@ -5548,14 +5560,29 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	phone_body.add_child(display_root)
 	var fixed_display := MeshInstance3D.new()
 	fixed_display.name = "FixedInnerDisplay"
-	fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, fixed_corner_mask)
+	var foldable_curve_active := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
+	var fixed_curve_left := selected_phone_type == "Flip" or selected_phone_type == "Fold"
+	var fixed_curve_right := selected_phone_type == "Flip"
+	var fixed_curve_top := selected_phone_type == "Fold"
+	var fixed_curve_bottom := selected_phone_type == "Fold" or selected_phone_type == "Flip"
+	if foldable_curve_active:
+		fixed_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, fixed_curve_left, fixed_curve_right, fixed_curve_top, fixed_curve_bottom)
+	else:
+		fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, fixed_corner_mask)
 	fixed_display.material_override = display_material
 	fixed_display.position = fixed_offset + Vector3(0.0, 0.0, glass_z)
 	fixed_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	display_root.add_child(fixed_display)
 	var moving_display := MeshInstance3D.new()
 	moving_display.name = "PhoneFoldableMovingDisplay"
-	moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, moving_corner_mask)
+	var moving_curve_left := selected_phone_type == "Flip"
+	var moving_curve_right := selected_phone_type == "Fold" or selected_phone_type == "Flip"
+	var moving_curve_top := selected_phone_type == "Fold" or selected_phone_type == "Flip"
+	var moving_curve_bottom := selected_phone_type == "Fold"
+	if foldable_curve_active:
+		moving_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, moving_curve_left, moving_curve_right, moving_curve_top, moving_curve_bottom)
+	else:
+		moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, moving_corner_mask)
 	moving_display.material_override = display_material
 	moving_display.position = moving_offset + Vector3(0.0, 0.0, glass_z)
 	moving_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -5605,8 +5632,8 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 			shared_token = screen_protector_build_token
 		var fixed_has_camera_cutout := selected_phone_type != "Flip"
 		var moving_has_camera_cutout := selected_phone_type == "Flip"
-		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, false, shared_token, fixed_has_camera_cutout, fixed_corner_mask)
-		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, false, shared_token, moving_has_camera_cutout, moving_corner_mask)
+		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, foldable_curve_active, shared_token, fixed_has_camera_cutout, fixed_corner_mask, fixed_curve_left, fixed_curve_right, fixed_curve_top, fixed_curve_bottom)
+		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, foldable_curve_active, shared_token, moving_has_camera_cutout, moving_corner_mask, moving_curve_left, moving_curve_right, moving_curve_top, moving_curve_bottom)
 
 
 func _camera_mp_from_slider_index(index: int) -> int:
