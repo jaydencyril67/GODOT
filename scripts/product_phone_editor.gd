@@ -3504,127 +3504,132 @@ func _rebuild_earbuds_preview() -> void:
 	for child in wireless_earbuds_preview.get_children():
 		child.free()
 
-	# Premium closed wireless-earbuds case. The shell is one continuous,
-	# softly radiused body; the separate upper lid, lid break, hinge and
-	# charging port provide the details that make it read as a real product.
-	var shell_material := _charger_material(wireless_earbuds_body_color, 0.18, 0.24)
-	var face_material := _charger_material(wireless_earbuds_body_color.lightened(0.025), 0.12, 0.22)
-	var lid_edge_material := _charger_material(wireless_earbuds_body_color.darkened(0.10), 0.24, 0.28)
-	var lid_material := _charger_material(wireless_earbuds_body_color.lightened(0.045), 0.14, 0.20)
-	var seam_material := _charger_material(wireless_earbuds_body_color.darkened(0.42), 0.12, 0.42)
-	var recess_material := _charger_material(Color("#080d13"), 0.04, 0.82)
-	var metal_material := _charger_material(Color("#aebdca"), 0.86, 0.22)
-	var contact_material := _charger_material(Color("#d1dbe3"), 0.92, 0.18)
-	var led_material := _charger_material(Color("#9bffd6"), 0.03, 0.18)
+	# Compact, softly rounded closed AirPods-style charging case. Keep the
+	# housing continuous and cut the USB-C mouth out of the bottom wall itself.
+	var shell_material := _charger_material(wireless_earbuds_body_color, 0.15, 0.26)
+	var lid_edge_material := _charger_material(wireless_earbuds_body_color.darkened(0.10), 0.22, 0.30)
+	var lid_material := _charger_material(wireless_earbuds_body_color.lightened(0.035), 0.12, 0.22)
+	var seam_material := _charger_material(Color("#111820"), 0.08, 0.76)
+	var metal_material := _charger_material(Color("#b8c4ce"), 0.88, 0.22)
+	var led_material := _charger_material(Color("#e9f3e8"), 0.04, 0.20)
 	led_material.emission_enabled = true
-	led_material.emission = Color("#55ffc0")
-	led_material.emission_energy_multiplier = 0.20
+	led_material.emission = Color("#eaffdf")
+	led_material.emission_energy_multiplier = 0.12
 
-	var case_body := MeshInstance3D.new()
+	# The CSG combiner makes the port a true opening through the lower shell.
+	# A dark insert alone would leave the original plastic wall blocking it.
+	var housing := CSGCombiner3D.new()
+	housing.name = "ClosedAirPodsStyleHousingWithCutUSBPort"
+	housing.use_collision = false
+	housing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	wireless_earbuds_preview.add_child(housing)
+
+	var case_body := CSGMesh3D.new()
 	case_body.name = "ClosedEarbudsCaseMainShell"
-	case_body.mesh = _create_rounded_panel_mesh(1.34, 0.86, 0.40, 0.30)
-	case_body.material_override = shell_material
-	case_body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	wireless_earbuds_preview.add_child(case_body)
+	case_body.operation = CSGShape3D.OPERATION_UNION
+	case_body.mesh = _create_rounded_panel_mesh(1.30, 1.08, 0.42, 0.34)
+	case_body.material = shell_material
+	housing.add_child(case_body)
 
-	# A shallow face skin gives the front a subtle moulded perimeter rather
-	# than the appearance of a single flat box.
-	var front_skin := MeshInstance3D.new()
-	front_skin.name = "MouldedFrontShellFace"
-	front_skin.mesh = _create_rounded_panel_mesh(1.305, 0.825, 0.018, 0.285)
-	front_skin.material_override = face_material
-	front_skin.position = Vector3(0.0, 0.0, 0.205)
-	wireless_earbuds_preview.add_child(front_skin)
+	# USB-C dimensions are kept proportional to the case. The cutter passes
+	# from the outside bottom edge into the body, leaving room for a deep insert.
+	var port_width := 0.205
+	var port_height := 0.064
+	var port_cut_depth := 0.30
+	var bottom_edge_y := -0.54
+	var port_cutter := CSGMesh3D.new()
+	port_cutter.name = "BottomUSBCThroughHousingCut"
+	port_cutter.operation = CSGShape3D.OPERATION_SUBTRACTION
+	port_cutter.mesh = _create_rounded_panel_mesh(
+		port_width * 1.04,
+		port_height * 1.08,
+		port_cut_depth,
+		port_height * 0.36
+	)
+	port_cutter.rotation.x = PI * 0.5
+	port_cutter.position = Vector3(0.0, bottom_edge_y + port_cut_depth * 0.5, 0.0)
+	housing.add_child(port_cutter)
 
-	# Closed lid: a darker precision edge underneath a softly raised outer face.
+	# The lid sits flush to the rounded body and has a fine perimeter break.
+	# Its slightly crowned-looking edge and thin dark split keep the silhouette
+	# close to a real compact wireless-earbuds charging case.
 	var lid_bezel := MeshInstance3D.new()
 	lid_bezel.name = "ClosedLidPerimeterBezel"
-	lid_bezel.mesh = _create_rounded_panel_mesh(1.315, 0.455, 0.026, 0.205)
+	lid_bezel.mesh = _create_rounded_panel_mesh(1.275, 0.545, 0.022, 0.255)
 	lid_bezel.material_override = lid_edge_material
-	lid_bezel.position = Vector3(0.0, 0.185, 0.218)
+	lid_bezel.position = Vector3(0.0, 0.226, 0.211)
 	wireless_earbuds_preview.add_child(lid_bezel)
 
 	var lid_face := MeshInstance3D.new()
 	lid_face.name = "ClosedLidSatinFace"
-	lid_face.mesh = _create_rounded_panel_mesh(1.285, 0.425, 0.026, 0.195)
+	lid_face.mesh = _create_rounded_panel_mesh(1.245, 0.518, 0.018, 0.242)
 	lid_face.material_override = lid_material
-	lid_face.position = Vector3(0.0, 0.185, 0.242)
+	lid_face.position = Vector3(0.0, 0.229, 0.232)
 	wireless_earbuds_preview.add_child(lid_face)
 
-	# Fine, continuous lid split with rounded ends; no open tray or exposed buds.
 	var lid_seam := MeshInstance3D.new()
 	lid_seam.name = "ContinuousClosedLidSeam"
-	lid_seam.mesh = _create_rounded_panel_mesh(1.075, 0.009, 0.004, 0.004)
+	lid_seam.mesh = _create_rounded_panel_mesh(1.105, 0.008, 0.004, 0.004)
 	lid_seam.material_override = seam_material
-	lid_seam.position = Vector3(0.0, -0.047, 0.257)
+	lid_seam.position = Vector3(0.0, -0.050, 0.238)
 	wireless_earbuds_preview.add_child(lid_seam)
 
-	# Rear hinge barrel and end collars, visible when the user rotates the case.
-	var hinge := _add_charger_cylinder(wireless_earbuds_preview, "RearLidHingeBarrel", 0.026, 0.58, Vector3(0.0, 0.275, -0.165), metal_material, 40)
+	# Rear hinge barrel and two end collars are visible from a rotated view.
+	var hinge := _add_charger_cylinder(
+		wireless_earbuds_preview, "RearLidHingeBarrel", 0.022, 0.70,
+		Vector3(0.0, 0.468, -0.190), metal_material, 40
+	)
 	hinge.rotation_degrees.z = 90.0
 	for hinge_side in range(2):
 		var hinge_cap := _add_charger_cylinder(
 			wireless_earbuds_preview,
 			"RearHingeEndCap_%d" % hinge_side,
-			0.034,
-			0.052,
-			Vector3(-0.285 if hinge_side == 0 else 0.285, 0.275, -0.165),
+			0.030,
+			0.045,
+			Vector3(-0.355 if hinge_side == 0 else 0.355, 0.468, -0.190),
 			lid_edge_material,
 			32
 		)
 		hinge_cap.rotation_degrees.z = 90.0
 
-	# A small recessed pairing button belongs on the rear face, not the front.
+	# Small rear setup button and subtle front battery indicator.
 	var pairing_button_ring := _add_charger_cylinder(
-		wireless_earbuds_preview, "RearPairingButtonBezel", 0.044, 0.012,
-		Vector3(0.0, -0.225, -0.207), seam_material, 32
+		wireless_earbuds_preview, "RearPairingButtonBezel", 0.041, 0.010,
+		Vector3(0.0, -0.245, -0.212), seam_material, 32
 	)
 	pairing_button_ring.rotation_degrees.x = -90.0
 	var pairing_button := _add_charger_cylinder(
-		wireless_earbuds_preview, "RearPairingButton", 0.027, 0.008,
-		Vector3(0.0, -0.225, -0.216), lid_material, 32
+		wireless_earbuds_preview, "RearPairingButton", 0.025, 0.008,
+		Vector3(0.0, -0.245, -0.220), lid_material, 32
 	)
 	pairing_button.rotation_degrees.x = -90.0
 
-	# Discreet front status light with a dark optical surround.
 	var led_bezel := _add_charger_cylinder(
-		wireless_earbuds_preview, "FrontStatusLightRecess", 0.024, 0.010,
-		Vector3(0.0, -0.205, 0.215), seam_material, 32
+		wireless_earbuds_preview, "FrontStatusLightRecess", 0.022, 0.008,
+		Vector3(0.0, -0.342, 0.211), seam_material, 32
 	)
 	led_bezel.rotation_degrees.x = 90.0
 	var status_led := _add_charger_cylinder(
-		wireless_earbuds_preview, "FrontBatteryStatusLED", 0.011, 0.008,
-		Vector3(0.0, -0.205, 0.224), led_material, 32
+		wireless_earbuds_preview, "FrontBatteryStatusLED", 0.009, 0.006,
+		Vector3(0.0, -0.342, 0.218), led_material, 32
 	)
 	status_led.rotation_degrees.x = 90.0
 
-	# Recessed USB-C opening on the bottom edge, with a visible metal tongue.
-	var port_bezel := MeshInstance3D.new()
-	port_bezel.name = "BottomUSBCMetalBezel"
-	port_bezel.mesh = _create_rounded_panel_mesh(0.245, 0.092, 0.014, 0.044)
-	port_bezel.material_override = metal_material
-	port_bezel.position = Vector3(0.0, -0.426, 0.0)
-	port_bezel.rotation.x = deg_to_rad(90.0)
-	wireless_earbuds_preview.add_child(port_bezel)
+	# Reuse the same machined lip, deep cavity walls, black floor, USB-C
+	# insulating tongue and contact details as the phone/charger port system.
+	_add_charger_recessed_port(
+		wireless_earbuds_preview,
+		"USB-C",
+		Vector3(0.0, bottom_edge_y, 0.0),
+		metal_material,
+		Vector3.ZERO,
+		"BottomUSBCDeepRecessedPort",
+		Vector2(port_width, port_height),
+		0.115
+	)
 
-	var port_cavity := MeshInstance3D.new()
-	port_cavity.name = "BottomUSBCRecess"
-	port_cavity.mesh = _create_rounded_panel_mesh(0.205, 0.058, 0.008, 0.028)
-	port_cavity.material_override = recess_material
-	port_cavity.position = Vector3(0.0, -0.424, 0.0)
-	port_cavity.rotation.x = deg_to_rad(90.0)
-	wireless_earbuds_preview.add_child(port_cavity)
-
-	var port_tongue := MeshInstance3D.new()
-	port_tongue.name = "BottomUSBCContactTongue"
-	port_tongue.mesh = _create_rounded_panel_mesh(0.142, 0.013, 0.006, 0.006)
-	port_tongue.material_override = contact_material
-	port_tongue.position = Vector3(0.0, -0.420, 0.0)
-	port_tongue.rotation.x = deg_to_rad(90.0)
-	wireless_earbuds_preview.add_child(port_tongue)
-
-	# Keep the case centred in the product viewport for a balanced 3D preview.
 	wireless_earbuds_preview.position = Vector3(0.0, -0.015, 0.0)
+
 
 func _set_earbuds_preview_mode(enabled: bool) -> void:
 	var entering_earbuds_preview := enabled and not wireless_earbuds_preview_mode
