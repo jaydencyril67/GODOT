@@ -3239,7 +3239,7 @@ func _rebuild_smartwatch_preview() -> void:
 	_add_accessory_label(smartwatch_preview, "WatchFaceDate", "TUE 03", 15, 0.0040, Color("#9fb4c8"), Vector3(0.0, 0.315, 0.156))
 	_add_accessory_label(smartwatch_preview, "WatchFaceTime", "10:09", 55, 0.0037, Color("#f4f8ff"), Vector3(0.0, 0.075, 0.157))
 	_add_accessory_label(smartwatch_preview, "WatchFaceMetric", "ACTIVITY     76%", 10, 0.0037, Color("#9eb0c4"), Vector3(0.035, -0.285, 0.157))
-	var activity_ring := _add_charger_torus(smartwatch_preview, "ActivityRing", 0.063, 0.009, Vector3(-0.245, -0.285, 0.159), accent_material)
+	var activity_ring: MeshInstance3D = _add_charger_torus(smartwatch_preview, "ActivityRing", 0.063, 0.009, Vector3(-0.245, -0.285, 0.159), accent_material)
 	activity_ring.rotation = Vector3.ZERO
 	_add_charger_box(smartwatch_preview, "WatchFaceSeparator", Vector3(0.53, 0.004, 0.002), Vector3(0.0, -0.185, 0.158), _charger_material(Color("#273747"), 0.08, 0.54))
 
@@ -3247,7 +3247,7 @@ func _rebuild_smartwatch_preview() -> void:
 	# elongated action button, both seated into the case flank.
 	var crown := _add_charger_cylinder(smartwatch_preview, "DigitalCrown", 0.045, 0.092, Vector3(0.465, 0.115, 0.006), steel_material, 40)
 	crown.rotation_degrees.z = 90.0
-	var crown_rim := _add_charger_torus(smartwatch_preview, "DigitalCrownRim", 0.044, 0.0045, Vector3(0.465, 0.115, 0.006), dark_steel_material)
+	var crown_rim: MeshInstance3D = _add_charger_torus(smartwatch_preview, "DigitalCrownRim", 0.044, 0.0045, Vector3(0.465, 0.115, 0.006), dark_steel_material)
 	crown_rim.rotation.y = PI * 0.5
 	var crown_cap := _add_charger_cylinder(smartwatch_preview, "DigitalCrownEndCap", 0.035, 0.008, Vector3(0.514, 0.115, 0.006), steel_material, 36)
 	crown_cap.rotation_degrees.z = 90.0
@@ -3626,6 +3626,24 @@ func _charger_material(color: Color, metallic: float = 0.0, roughness: float = 0
 	material.clearcoat = 0.35
 	material.clearcoat_roughness = 0.18
 	return material
+
+
+func _add_charger_torus(parent: Node3D, node_name: String, radius: float, tube_radius: float, position: Vector3, material: Material) -> MeshInstance3D:
+	# A real swept torus keeps the smartwatch activity ring and crown rim
+	# continuous and smooth instead of approximating them with flat geometry.
+	var part := MeshInstance3D.new()
+	part.name = node_name
+	var mesh := TorusMesh.new()
+	mesh.inner_radius = maxf(0.001, radius - tube_radius)
+	mesh.outer_radius = radius + tube_radius
+	mesh.rings = 48
+	mesh.ring_segments = 12
+	part.mesh = mesh
+	part.material_override = material
+	part.position = position
+	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(part)
+	return part
 
 
 func _add_charger_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, material: Material) -> MeshInstance3D:
