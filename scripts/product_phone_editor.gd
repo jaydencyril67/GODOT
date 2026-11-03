@@ -10029,8 +10029,11 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 	var shell := CSGPolygon3D.new()
 	shell.name = "ProtectiveOuterShell"
 	shell.polygon = _case_outline_for_size(segment_size, wall, corner_mask)
+	# CSGPolygon3D extrudes from its local XY plane toward negative Z.
+	# Start at the outside/front lip, then extrude through the phone depth
+	# and finish at the rear outside face. This wraps the actual chassis.
 	shell.depth = depth + wall * 2.0
-	shell.position = Vector3(centre.x, centre.y, -depth * 0.5 - wall)
+	shell.position = Vector3(centre.x, centre.y, depth * 0.5 + wall)
 	shell.material = _create_phone_case_material()
 	shell.smooth_faces = true
 	combiner.add_child(shell)
@@ -10044,10 +10047,10 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 	# expansion entirely, leaving the cavity no wider than the handset and
 	# causing the case lip to intersect/mis-seat around the device.
 	cavity.polygon = _case_outline_for_size(segment_size, 0.003, corner_mask)
-	# Keep a 12 mm rear skin, then hollow forward through the device volume
-	# and beyond the screen plane so the front of the case remains open.
+	# This cutter starts just beyond the screen-side lip and extrudes inward
+	# to the phone's rear plane. The remaining wall is the protective back.
 	cavity.depth = depth + wall + 0.040
-	cavity.position = Vector3(centre.x, centre.y, -depth * 0.5 + 0.012)
+	cavity.position = Vector3(centre.x, centre.y, depth * 0.5 + wall + 0.040)
 	_case_subtract(combiner, cavity)
 
 	# Rear camera apertures are allocated to the half that actually contains each module.
@@ -10247,8 +10250,11 @@ func _rebuild_phone_case_geometry() -> void:
 	var shell := CSGPolygon3D.new()
 	shell.name = "ProtectiveOuterShell"
 	shell.polygon = _case_outline(wall)
+	# CSGPolygon3D extrudes toward negative Z from its local XY plane.
+	# Begin beyond the phone's screen-side face so the shell surrounds the
+	# complete chassis depth instead of sitting behind the handset.
 	shell.depth = depth+wall*2.0
-	shell.position.z = -depth*0.5-wall
+	shell.position.z = depth*0.5+wall
 	shell.material = _create_phone_case_material()
 	shell.smooth_faces = true
 	combiner.add_child(shell)
@@ -10258,9 +10264,10 @@ func _rebuild_phone_case_geometry() -> void:
 	var cavity := CSGPolygon3D.new()
 	cavity.name = "DeviceClearanceCavity"
 	cavity.polygon = _case_outline(0.003)
-	# Preserve a slim rear panel while opening the cavity through the front.
+	# Run the cutter from beyond the front lip down to the phone's rear plane,
+	# leaving exactly the designed rear protective skin.
 	cavity.depth = depth+wall+0.040
-	cavity.position.z = -depth*0.5+0.012
+	cavity.position.z = depth*0.5+wall+0.040
 	_case_subtract(combiner,cavity)
 
 	# Flat-back camera and flash units get individual circular apertures.
