@@ -3405,6 +3405,7 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	shell.name = "ContinuousMetalPlugShell"
 	shell.mesh = _create_rounded_panel_mesh(tip_width, tip_height, shell_depth, minf(tip_height * 0.40, tip_width * 0.22))
 	shell.material_override = metal_material
+	shell.visible = connector_type != "DC Barrel"
 	shell.position = Vector3(0.0, 0.0, front_face_z + shell_depth * 0.5)
 	shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	connector.add_child(shell)
@@ -3572,7 +3573,8 @@ func _rebuild_charger_preview() -> void:
 	# Keep the adapter and cable on independent local pivots. Their transforms
 	# switch between bold single-product framing and the diagonal complete-set
 	# composition used by the product reference.
-	var combined_layout := charger_enabled and charger_cable_enabled
+	var cable_is_compatible := charger_cable_enabled and not _charger_device_connector().is_empty()
+	var combined_layout := charger_enabled and cable_is_compatible
 	var charger_scale := 0.72 if combined_layout else 1.0
 	var charger_geometry := Node3D.new()
 	charger_geometry.name = "ChargerGeometryPivot"
@@ -3668,7 +3670,7 @@ func _rebuild_charger_preview() -> void:
 	# The wall adapter and cable are independent systems. In the complete-set
 	# view the cable sits lower-right; alone it is centred and enlarged.
 	charger_geometry.visible = charger_enabled
-	if charger_cable_enabled and not _charger_device_connector().is_empty():
+	if cable_is_compatible:
 		var cable_group := _build_charger_cable(charger_preview, output_connector)
 		if combined_layout:
 			cable_group.position = Vector3(0.42, -0.31, 0.015)
@@ -3684,13 +3686,14 @@ func _rebuild_charger_preview() -> void:
 func _update_charger_preview_framing() -> void:
 	if not is_instance_valid(charger_preview):
 		return
-	var combined_layout := charger_enabled and charger_cable_enabled
+	var cable_is_compatible := charger_cable_enabled and not _charger_device_connector().is_empty()
+	var combined_layout := charger_enabled and cable_is_compatible
 	charger_preview.scale = Vector3.ONE * (1.45 if combined_layout else 1.8)
-	charger_preview.visible = charger_preview_mode and (charger_enabled or charger_cable_enabled)
+	charger_preview.visible = charger_preview_mode and (charger_enabled or cable_is_compatible)
 	if not is_instance_valid(preview_camera):
 		return
 	preview_camera.fov = 42.0 if combined_layout else 38.0
-	var camera_distance := 4.45 if combined_layout else (4.0 if charger_cable_enabled and not charger_enabled else 3.65)
+	var camera_distance := 4.45 if combined_layout else (4.0 if cable_is_compatible and not charger_enabled else 3.65)
 	preview_camera.position = Vector3(0.0, 0.0, camera_distance if charger_preview_mode else 5.2)
 	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
@@ -6443,6 +6446,8 @@ func _show_charge_port_controls() -> void:
 
 func _on_charge_port_selected(port_type: String) -> void:
 	charge_port_type = port_type
+	if charge_port_type == "None":
+		charger_cable_enabled = false
 	# Keep the selected adapter-side plug (USB-A or USB-C), but always replace
 	# the phone-side connector with the exact selected phone port standard.
 	var adapter_connector := _charger_output_connector()
