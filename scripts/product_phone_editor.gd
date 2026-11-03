@@ -3563,13 +3563,13 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 				contact.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				connector.add_child(contact)
 		elif connector_type in ["Micro-USB", "Mini-USB"]:
-			var inset := MeshInstance3D.new()
-			inset.name = "TrapezoidPlugRecess"
-			inset.mesh = _create_charger_connector_profile_mesh(tip_width * 0.76, tip_height * 0.58, 0.003, connector_type)
-			inset.material_override = face_material
-			inset.position = Vector3(0.0, 0.0, front_face_z - 0.0005)
-			inset.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			connector.add_child(inset)
+			var trapezoid_recess := MeshInstance3D.new()
+			trapezoid_recess.name = "TrapezoidPlugRecess"
+			trapezoid_recess.mesh = _create_charger_connector_profile_mesh(tip_width * 0.76, tip_height * 0.58, 0.003, connector_type)
+			trapezoid_recess.material_override = face_material
+			trapezoid_recess.position = Vector3(0.0, 0.0, front_face_z - 0.0005)
+			trapezoid_recess.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			connector.add_child(trapezoid_recess)
 			var tongue := MeshInstance3D.new()
 			tongue.name = "FiveContactInsulatingTongue"
 			tongue.mesh = _create_rounded_panel_mesh(tip_width * 0.55, tip_height * 0.16, 0.0025, 0.0015)
