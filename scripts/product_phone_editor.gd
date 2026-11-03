@@ -189,6 +189,11 @@ var phone_case_preview: Node3D
 var phone_case_shell: CSGPolygon3D
 var charger_preview: Node3D
 var smartwatch_preview: Node3D
+var power_bank_preview: Node3D
+var power_bank_preview_mode := false
+var power_bank_enabled := false
+var power_bank_body_color := Color("#303943")
+var power_bank_color_name := "Graphite"
 var smartwatch_enabled := false
 var smartwatch_body_color := Color("#303943")
 var smartwatch_color_name := "Graphite"
@@ -203,6 +208,7 @@ var charger_wattage_slider: VSlider
 var charger_preview_mode := false
 var charger_controls_page := "HOME"
 var charger_color_mode := false
+var power_bank_color_mode := false
 var camera_lens_protector_enabled := false
 var camera_lens_protector_finish := "Ultra Clear"
 var camera_lens_protector_thickness := 0.0025
@@ -991,8 +997,13 @@ func _get_preview_viewport() -> SubViewport:
 	smartwatch_preview.name = "SmartwatchAccessoryPreview"
 	smartwatch_preview.visible = false
 	preview_world.add_child(smartwatch_preview)
+	power_bank_preview = Node3D.new()
+	power_bank_preview.name = "PowerBankAccessoryPreview"
+	power_bank_preview.visible = false
+	preview_world.add_child(power_bank_preview)
 	_rebuild_charger_preview()
 	_rebuild_smartwatch_preview()
+	_rebuild_power_bank_preview()
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
@@ -1057,7 +1068,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Camera Lens Protector", "Smartwatch"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Camera Lens Protector", "Smartwatch", "Power Bank"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -1067,8 +1078,14 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	_close_back_design_selection_popup()
 	_set_charger_preview_mode(false)
 	if feature_name == "Smartwatch":
+		_set_power_bank_preview_mode(false)
 		_set_smartwatch_preview_mode(true)
 		_show_smartwatch_controls()
+		return
+	if feature_name == "Power Bank":
+		_set_smartwatch_preview_mode(false)
+		_set_power_bank_preview_mode(true)
+		_show_power_bank_controls()
 		return
 	if feature_name == "Phone Case":
 		_show_phone_case_controls()
@@ -1755,6 +1772,9 @@ func _on_device_body_color_changed(color: Color) -> void:
 	if charger_color_mode:
 		charger_body_color = selected_color
 		_rebuild_charger_preview()
+	elif power_bank_color_mode:
+		power_bank_body_color = selected_color
+		_rebuild_power_bank_preview()
 	elif phone_case_color_mode:
 		if phone_case_gradient_color_edit_mode:
 			phone_case_gradient_color = selected_color
@@ -1772,7 +1792,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_gradient_color = selected_color
 	else:
 		device_body_color = selected_color
-	if not phone_case_color_mode and not charger_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
+	if not phone_case_color_mode and not charger_color_mode and not power_bank_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
@@ -3316,6 +3336,154 @@ func _on_smartwatch_color_selected(color_name: String, color: Color) -> void:
 	_show_smartwatch_controls()
 
 
+func _rebuild_power_bank_preview() -> void:
+	if not is_instance_valid(power_bank_preview):
+		return
+	for child in power_bank_preview.get_children():
+		child.free()
+	var body_material := _charger_material(power_bank_body_color, 0.18, 0.30)
+	var edge_material := _charger_material(power_bank_body_color.darkened(0.24), 0.52, 0.24)
+	var face_material := _charger_material(power_bank_body_color.lightened(0.045), 0.08, 0.26)
+	var screen_material := _charger_material(Color("#101c29"), 0.08, 0.12)
+	var metal_material := _charger_material(Color("#aebbc7"), 0.86, 0.19)
+	var accent_material := _charger_material(Color("#79d9ff"), 0.24, 0.16)
+
+	# Rounded, slim rectangular power bank with a raised perimeter and inset
+	# information display. The model is centred on its own rotation pivot.
+	var body := MeshInstance3D.new()
+	body.name = "PowerBankRoundedHousing"
+	body.mesh = _create_rounded_panel_mesh(1.10, 1.88, 0.25, 0.20)
+	body.material_override = body_material
+	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	power_bank_preview.add_child(body)
+
+	var front_face := MeshInstance3D.new()
+	front_face.name = "PowerBankFrontFace"
+	front_face.mesh = _create_rounded_panel_mesh(1.045, 1.825, 0.018, 0.16)
+	front_face.position.z = 0.128
+	front_face.material_override = face_material
+	front_face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	power_bank_preview.add_child(front_face)
+
+	var display := MeshInstance3D.new()
+	display.name = "PowerBankStatusDisplay"
+	display.mesh = _create_rounded_panel_mesh(0.54, 0.27, 0.035, 0.07)
+	display.position = Vector3(0.0, 0.49, 0.151)
+	display.material_override = screen_material
+	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	power_bank_preview.add_child(display)
+	_add_charger_box(power_bank_preview, "PowerBankBatteryLevel", Vector3(0.30, 0.035, 0.006), Vector3(0.0, 0.49, 0.173), accent_material)
+	_add_charger_box(power_bank_preview, "PowerBankCapacityMark", Vector3(0.31, 0.018, 0.006), Vector3(0.0, 0.40, 0.173), metal_material)
+
+	# Four subtle charge indicators and a side power button.
+	for i in range(4):
+		_add_charger_cylinder(power_bank_preview, "ChargeIndicator_%d" % i, 0.018, 0.008, Vector3(-0.105 + float(i) * 0.07, -0.54, 0.145), accent_material if i < 3 else edge_material, 20)
+	_add_charger_box(power_bank_preview, "PowerBankSideButton", Vector3(0.045, 0.18, 0.07), Vector3(0.565, 0.25, 0.0), edge_material)
+
+	# USB-C input/output and USB-A output ports on the top edge.
+	var port_dark := _charger_material(Color("#10151c"), 0.12, 0.22)
+	_add_charger_box(power_bank_preview, "USBCPortRecess", Vector3(0.17, 0.075, 0.012), Vector3(-0.22, 0.948, 0.0), port_dark)
+	_add_charger_box(power_bank_preview, "USBCPortTongue", Vector3(0.105, 0.018, 0.012), Vector3(-0.22, 0.948, 0.008), metal_material)
+	_add_charger_box(power_bank_preview, "USBAOutputRecess", Vector3(0.23, 0.085, 0.012), Vector3(0.20, 0.948, 0.0), port_dark)
+	_add_charger_box(power_bank_preview, "USBAOutputTongue", Vector3(0.15, 0.018, 0.012), Vector3(0.20, 0.948, 0.008), metal_material)
+
+
+func _set_power_bank_preview_mode(enabled: bool) -> void:
+	power_bank_preview_mode = enabled
+	if is_instance_valid(phone_body):
+		phone_body.visible = not enabled and not smartwatch_preview_mode and not charger_preview_mode
+	if is_instance_valid(phone_case_preview):
+		phone_case_preview.visible = not enabled and not smartwatch_preview_mode and not charger_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+	if is_instance_valid(charger_preview):
+		charger_preview.visible = not enabled and not smartwatch_preview_mode and charger_preview_mode and (charger_enabled or (charger_cable_enabled and not _charger_device_connector().is_empty()))
+	if is_instance_valid(smartwatch_preview):
+		smartwatch_preview.visible = not enabled and smartwatch_preview_mode and smartwatch_enabled
+	if is_instance_valid(power_bank_preview):
+		power_bank_preview.visible = enabled and power_bank_enabled
+	if is_instance_valid(preview_camera):
+		preview_camera.position = Vector3(0.0, 0.0, 4.15 if enabled else 5.2)
+		preview_camera.fov = 38.0
+		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
+
+
+func _show_power_bank_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "PowerBankControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("POWER BANK", 18, Color("#c7eaff"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Add a rotatable 3D power bank to the centre preview. Choose its finish below.", 12, Color("#d5e9f5"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "PowerBankEnableRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(enable_row)
+	var enable_label := _make_label("ENABLE POWER BANK", 13, Color("#e6f5ff"))
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_label)
+	var toggle := TextureButton.new()
+	toggle.name = "EnablePowerBankModel"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle.texture_normal = _make_side_button_checkbox_icon(false)
+	toggle.texture_hover = _make_side_button_checkbox_icon(false)
+	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+	toggle.toggle_mode = true
+	toggle.button_pressed = power_bank_enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.toggled.connect(_on_power_bank_enabled_toggled)
+	enable_row.add_child(toggle)
+
+	if power_bank_enabled:
+		var color_heading := _make_label("POWER BANK COLOR", 13, Color("#a9e3ff"))
+		active_feature_panel.add_child(color_heading)
+		for color_entry in [
+			["Graphite", Color("#303943")],
+			["Midnight Black", Color("#111820")],
+			["Silver", Color("#c5cbd1")],
+			["Pearl White", Color("#e8edf2")],
+			["Navy Blue", Color("#263f67")],
+			["Rose Gold", Color("#b87968")]
+		]:
+			var color_button := Button.new()
+			color_button.text = str(color_entry[0]) + ("   ✓  SELECTED" if power_bank_color_name == str(color_entry[0]) else "")
+			color_button.custom_minimum_size = Vector2(0, 44)
+			color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			color_button.focus_mode = Control.FOCUS_NONE
+			_apply_research_typography(color_button, 13)
+			_style_staff_button(color_button, power_bank_color_name == str(color_entry[0]))
+			color_button.pressed.connect(_on_power_bank_color_selected.bind(str(color_entry[0]), color_entry[1]))
+			active_feature_panel.add_child(color_button)
+
+
+func _on_power_bank_enabled_toggled(enabled: bool) -> void:
+	power_bank_enabled = enabled
+	_rebuild_power_bank_preview()
+	_set_power_bank_preview_mode(true)
+	_show_power_bank_controls()
+
+
+func _on_power_bank_color_selected(color_name: String, color: Color) -> void:
+	power_bank_color_name = color_name
+	power_bank_body_color = color
+	_rebuild_power_bank_preview()
+	_set_power_bank_preview_mode(true)
+	_show_power_bank_controls()
+
+
 func _charger_material(color: Color, metallic: float = 0.0, roughness: float = 0.32) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
@@ -3977,6 +4145,7 @@ func _update_charger_preview_framing() -> void:
 
 
 func _set_smartwatch_preview_mode(enabled: bool) -> void:
+	_set_power_bank_preview_mode(false)
 	smartwatch_preview_mode = enabled
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled and not charger_preview_mode
@@ -3994,6 +4163,7 @@ func _set_smartwatch_preview_mode(enabled: bool) -> void:
 
 func _set_charger_preview_mode(enabled: bool) -> void:
 	charger_preview_mode = enabled
+	_set_power_bank_preview_mode(false)
 	_set_smartwatch_preview_mode(false)
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled
@@ -7914,6 +8084,24 @@ func _show_charging_speed_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
+	var wireless_toggle := Button.new()
+	wireless_toggle.name = "EnableWirelessChargingFromSpeedPanel"
+	wireless_toggle.toggle_mode = true
+	wireless_toggle.button_pressed = selected_wireless_charge_enabled
+	wireless_toggle.text = ("☑  ENABLE WIRELESS CHARGING" if selected_wireless_charge_enabled else "□  ENABLE WIRELESS CHARGING")
+	wireless_toggle.custom_minimum_size = Vector2(0, 46)
+	wireless_toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wireless_toggle.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(wireless_toggle, 14)
+	_style_staff_button(wireless_toggle, selected_wireless_charge_enabled)
+	wireless_toggle.toggled.connect(_on_wireless_charge_enabled_changed)
+	active_feature_panel.add_child(wireless_toggle)
+
+	var wireless_status := _make_label(("WIRELESS OUTPUT  " + str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "WIRELESS CHARGING DISABLED"), 12, Color("#a9c9dc"))
+	wireless_status.name = "WirelessChargingStatusInSpeedPanel"
+	wireless_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(wireless_status)
+
 	charging_speed_value_label = _make_label(str(selected_charging_speed) + "W", 31, Color.WHITE)
 	charging_speed_value_label.name = "ChargingSpeedValue"
 	charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -8084,6 +8272,8 @@ func _show_wireless_charge_controls() -> void:
 func _on_wireless_charge_enabled_changed(enabled: bool) -> void:
 	selected_wireless_charge_enabled = enabled
 	_update_wireless_charge_controls()
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "ChargingSpeedControls":
+		_show_charging_speed_controls()
 
 
 func _on_wireless_charging_speed_changed(value: float) -> void:
@@ -9028,7 +9218,7 @@ func _input(event: InputEvent) -> void:
 
 func _rotate_phone_from_drag(delta: Vector2) -> void:
 	# Each accessory owns an independent preview pivot.
-	var rotation_target: Node3D = smartwatch_preview if smartwatch_preview_mode else (charger_preview if charger_preview_mode else phone_body)
+	var rotation_target: Node3D = power_bank_preview if power_bank_preview_mode else (smartwatch_preview if smartwatch_preview_mode else (charger_preview if charger_preview_mode else phone_body))
 	if not is_instance_valid(rotation_target):
 		return
 	# Lock each movement to one of four directions: left/right OR up/down.
