@@ -9980,6 +9980,8 @@ func _refresh_phone_case_material() -> void:
 	if is_instance_valid(phone_case_preview):
 		var case_material := _create_phone_case_material()
 		var case_shells := phone_case_preview.find_children("ProtectiveOuterShell", "CSGPolygon3D", true, false)
+		var case_back_plates := phone_case_preview.find_children("ProtectiveBackPlate", "CSGPolygon3D", true, false)
+		case_shells.append_array(case_back_plates)
 		for shell_node in case_shells:
 			var shell := shell_node as CSGPolygon3D
 			if is_instance_valid(shell):
