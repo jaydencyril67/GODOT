@@ -3442,10 +3442,13 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	# Reference-matched oval coil: a single uninterrupted cable follows a
 	# broad, gently tightening spiral. Both USB-C heads rest at the lower
 	# corners and angle outward, just like the real-world reference.
-	var left_head := Vector3(-0.43, -0.43, 0.16)
-	var right_head := Vector3(0.43, -0.43, 0.16)
-	var left_forward := Vector3(-0.28, -0.12, 1.0).normalized()
-	var right_forward := Vector3(0.28, -0.12, 1.0).normalized()
+	# Keep the entire cable resting on one horizontal plane (constant Y).
+	# The oval is laid out in X/Z; using X/Y here would stand the coil upright.
+	var coil_plane_y := 0.035
+	var left_head := Vector3(-0.43, coil_plane_y, 0.16)
+	var right_head := Vector3(0.43, coil_plane_y, 0.16)
+	var left_forward := Vector3(-0.28, 0.0, 1.0).normalized()
+	var right_forward := Vector3(0.28, 0.0, 1.0).normalized()
 	_add_charger_cable_connector(cable_group, "First_" + output_connector.replace("-", "") + "_CableHead", output_connector, left_head, left_forward, connector_shell, connector_metal)
 	_add_charger_cable_connector(cable_group, "Second_" + device_connector.replace("-", "") + "_CableHead", device_connector, right_head, right_forward, connector_shell, connector_metal)
 
@@ -3454,11 +3457,11 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 	var boot_exit_distance := 0.285
 	var left_boot_exit := left_head - left_forward * boot_exit_distance
 	var right_boot_exit := right_head - right_forward * boot_exit_distance
-	var coil_center := Vector3(0.0, 0.035, -0.245)
+	var coil_center := Vector3(0.0, coil_plane_y, -0.245)
 	var outer_radius_x := 0.68
-	var outer_radius_y := 0.43
+	var outer_radius_z := 0.43
 	var inner_radius_x := 0.50
-	var inner_radius_y := 0.31
+	var inner_radius_z := 0.31
 	var start_angle := deg_to_rad(225.0)
 	var end_angle := deg_to_rad(-405.0)
 	var coil_point_count := 240
@@ -3473,8 +3476,8 @@ func _build_charger_cable(geometry_parent: Node3D, _output_connector: String) ->
 		var radius_y := lerpf(outer_radius_y, inner_radius_y, t)
 		coil_route.append(Vector3(
 			coil_center.x + cos(angle) * radius_x,
-			coil_center.y + sin(angle) * radius_y,
-			coil_center.z
+			coil_plane_y,
+			coil_center.z + sin(angle) * lerpf(outer_radius_z, inner_radius_z, t)
 		))
 
 	# Smooth lead-in from the left plug into the outer oval, then a matching
