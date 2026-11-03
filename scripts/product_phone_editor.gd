@@ -5459,22 +5459,11 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	if screen_protector_enabled:
 		_build_screen_protector(glass, panel_width, panel_height, radius, false, shared_protector_token, false, outer_corner_mask)
 
-	var cover_camera := MeshInstance3D.new()
-	cover_camera.name = "OuterDisplayCamera"
-	var camera_mesh := SphereMesh.new()
-	camera_mesh.radius = 0.014
-	camera_mesh.height = 0.014
-	camera_mesh.radial_segments = 20
-	camera_mesh.rings = 10
-	cover_camera.mesh = camera_mesh
-	var camera_material := StandardMaterial3D.new()
-	camera_material.albedo_color = Color("#050a12")
-	camera_material.metallic = 0.28
-	camera_material.roughness = 0.18
-	cover_camera.material_override = camera_material
-	cover_camera.position = Vector3(center_x, center_y + panel_height * 0.5 - 0.055, -current_depth * 0.5 - 0.013)
-	cover_camera.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	outer_root.add_child(cover_camera)
+	# Use the same configurable front-camera assembly as the inner display.
+	# Because the cover glass is rotated 180 degrees to face outward, parenting
+	# the assembly to the glass keeps the lens, notch, island and sensors on the
+	# visible outer-screen surface with the selected camera style and dimensions.
+	_refresh_front_camera(glass, panel_width, panel_height)
 
 
 func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
