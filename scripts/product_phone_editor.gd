@@ -3362,7 +3362,9 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	grip.name = "MouldedConnectorGrip"
 	grip.mesh = _create_rounded_panel_mesh(grip_width, grip_height, 0.135, minf(grip_height * 0.36, 0.025))
 	grip.material_override = shell_material
-	grip.position = Vector3(0.0, 0.0, 0.112)
+	# Pull the moulded rubber grip forward so it visibly overlaps the
+	# shortened metal shell instead of leaving a long exposed metal neck.
+	grip.position = Vector3(0.0, 0.0, 0.085)
 	grip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	connector.add_child(grip)
 
@@ -3372,7 +3374,7 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 	relief.name = "FlexibleCableStrainRelief"
 	relief.mesh = _create_rounded_panel_mesh(relief_width, relief_height, 0.145, minf(relief_height * 0.40, 0.022))
 	relief.material_override = shell_material
-	relief.position = Vector3(0.0, 0.0, 0.245)
+	relief.position = Vector3(0.0, 0.0, 0.215)
 	relief.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	connector.add_child(relief)
 
@@ -3382,23 +3384,25 @@ func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_t
 		groove.name = "StrainReliefFlexGroove_%d" % groove_index
 		groove.mesh = _create_rounded_panel_mesh(relief_width * 1.025, relief_height * 1.035, 0.006, minf(relief_height * 0.42, 0.023))
 		groove.material_override = groove_material
-		groove.position = Vector3(0.0, 0.0, 0.190 + float(groove_index) * 0.035)
+		groove.position = Vector3(0.0, 0.0, 0.160 + float(groove_index) * 0.035)
 		groove.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		connector.add_child(groove)
 
 	# The old plug detail was a flat outline with no shell depth, which rendered
 	# like a disconnected silver sliver. This rounded extrusion now runs back
 	# into the grip, while its inset face and contacts sit directly on the tip.
-	var shell_depth := 0.160
+	# Shorten the exposed metal plug by 25%, keeping its front face fixed.
+	# The rubber grip now reaches farther over the rear of the metal shell.
+	var front_face_z := -0.106
+	var shell_depth := 0.120
 	var shell := MeshInstance3D.new()
 	shell.name = "ContinuousMetalPlugShell"
 	shell.mesh = _create_rounded_panel_mesh(tip_width, tip_height, shell_depth, minf(tip_height * 0.40, tip_width * 0.22))
 	shell.material_override = metal_material
-	shell.position = Vector3(0.0, 0.0, -0.025)
+	shell.position = Vector3(0.0, 0.0, front_face_z + shell_depth * 0.5)
 	shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	connector.add_child(shell)
 
-	var front_face_z := -0.106
 	var face_material := _charger_material(Color("#080d12"), 0.02, 0.94)
 	var inner_metal := _charger_material(Color("#909da7"), 0.82, 0.26)
 	var contact_material := _charger_material(Color("#d9b66d"), 0.90, 0.22)
