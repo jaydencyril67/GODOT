@@ -1426,8 +1426,8 @@ func _apply_home_button_typography(button: Control, font_size: int) -> void:
 
 
 func _show_home_navigation() -> void:
-	# The headquarters 3D scene remains untouched beneath this CanvasLayer.
-	# Home now uses the same emerald glass language as the landing and company setup pages.
+	# Home UI is a transparent overlay: it frames the live headquarters without
+	# placing a tint, backdrop, or panel over the 3D building.
 	var root := _new_screen()
 	ui_layer.layer = 30
 	home_navigation_layer = ui_layer
@@ -1435,29 +1435,10 @@ func _show_home_navigation() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 1000.0 or viewport_size.y < 560.0
 
-	var atmosphere := ColorRect.new()
-	atmosphere.name = "Home_Emerald_Atmosphere"
-	atmosphere.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var atmosphere_shader := Shader.new()
-	atmosphere_shader.code = """
-shader_type canvas_item;
-void fragment() {
-	vec2 p = UV - vec2(0.5);
-	float edge = smoothstep(0.22, 0.88, length(p));
-	float top_shade = 1.0 - smoothstep(0.0, 0.42, UV.y);
-	float bottom_shade = smoothstep(0.68, 1.0, UV.y);
-	float shade = edge * 0.18 + top_shade * 0.055 + bottom_shade * 0.075;
-	COLOR = vec4(vec3(0.002, 0.014, 0.006), shade);
-}
-"""
-	var atmosphere_material := ShaderMaterial.new()
-	atmosphere_material.shader = atmosphere_shader
-	atmosphere.material = atmosphere_material
-	root.add_child(atmosphere)
-
 	_build_home_status_bar(root, compact)
 
+	# A floating command dock keeps navigation consistent with the emerald glass
+	# styling while leaving the building visible through the centre of the screen.
 	var bottom_panel := PanelContainer.new()
 	bottom_panel.name = "Home_Bottom_Navigation"
 	bottom_panel.anchor_left = 0.0
@@ -1465,18 +1446,18 @@ void fragment() {
 	bottom_panel.anchor_right = 1.0
 	bottom_panel.anchor_bottom = 1.0
 	bottom_panel.offset_left = 18.0 if not compact else 10.0
-	bottom_panel.offset_top = -86.0 if not compact else -78.0
+	bottom_panel.offset_top = -88.0 if not compact else -78.0
 	bottom_panel.offset_right = -18.0 if not compact else -10.0
 	bottom_panel.offset_bottom = -12.0 if not compact else -10.0
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.018, 0.065, 0.039, 0.88)
-	panel_style.border_color = Color(0.58, 0.82, 0.63, 0.66)
+	panel_style.bg_color = Color(0.008, 0.035, 0.018, 0.76)
+	panel_style.border_color = Color(0.62, 0.86, 0.66, 0.72)
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
-	panel_style.set_corner_radius_all(18)
-	panel_style.shadow_color = Color(0.0, 0.025, 0.008, 0.56)
-	panel_style.shadow_size = 18
-	panel_style.shadow_offset = Vector2(0.0, 6.0)
+	panel_style.set_corner_radius_all(17)
+	panel_style.shadow_color = Color(0.0, 0.025, 0.008, 0.52)
+	panel_style.shadow_size = 16
+	panel_style.shadow_offset = Vector2(0.0, 5.0)
 	panel_style.anti_aliasing = true
 	panel_style.content_margin_left = 8.0
 	panel_style.content_margin_right = 8.0
@@ -1489,16 +1470,29 @@ void fragment() {
 	row.name = "Home_Navigation_Buttons_Row"
 	row.add_theme_constant_override("separation", 6)
 	bottom_panel.add_child(row)
-	for button_name in ["Create", "Products", "Research", "Marketing", "Media", "Office", "Statistics"]:
+
+	var nav_items := [
+		{"name": "Create", "index": "01"},
+		{"name": "Products", "index": "02"},
+		{"name": "Research", "index": "03"},
+		{"name": "Marketing", "index": "04"},
+		{"name": "Media", "index": "05"},
+		{"name": "Office", "index": "06"},
+		{"name": "Statistics", "index": "07"}
+	]
+	for item in nav_items:
+		var button_name := str(item["name"])
 		var button := Button.new()
 		button.name = button_name + "_Button"
-		button.text = button_name
+		button.text = "%s   %s" % [str(item["index"]), button_name.to_upper()]
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, 48.0 if compact else 52.0)
+		button.custom_minimum_size = Vector2(0.0, 48.0 if compact else 54.0)
+		button.focus_mode = Control.FOCUS_NONE
 		_style_landing_command_button(button, false)
-		_apply_shared_page_typography(button, 13 if compact else 15)
+		_apply_shared_page_typography(button, 11 if compact else 14)
 		row.add_child(button)
+
 		if button_name == "Create":
 			button.pressed.connect(_show_create_scene)
 		elif button_name == "Research":
@@ -1508,7 +1502,7 @@ void fragment() {
 
 	var entrance := create_tween()
 	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	entrance.tween_property(root, "modulate:a", 1.0, 0.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	entrance.tween_property(root, "modulate:a", 1.0, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 func _build_home_status_bar(root: Control, compact: bool = false) -> void:
@@ -1516,19 +1510,19 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 	if compact:
 		var stacked_header := VBoxContainer.new()
 		header = stacked_header
-		header.add_theme_constant_override("separation", 7)
-		header.offset_left = 12.0
-		header.offset_top = 12.0
-		header.offset_right = -12.0
-		header.offset_bottom = 152.0
+		stacked_header.add_theme_constant_override("separation", 8)
+		stacked_header.offset_left = 14.0
+		stacked_header.offset_top = 12.0
+		stacked_header.offset_right = -14.0
+		stacked_header.offset_bottom = 146.0
 	else:
 		var aligned_header := HBoxContainer.new()
 		header = aligned_header
-		aligned_header.add_theme_constant_override("separation", 14)
-		aligned_header.offset_left = 22.0
-		aligned_header.offset_top = 16.0
-		aligned_header.offset_right = -22.0
-		aligned_header.offset_bottom = 98.0
+		aligned_header.add_theme_constant_override("separation", 18)
+		aligned_header.offset_left = 26.0
+		aligned_header.offset_top = 18.0
+		aligned_header.offset_right = -26.0
+		aligned_header.offset_bottom = 100.0
 
 	header.name = "Home_Premium_Header"
 	header.anchor_left = 0.0
@@ -1537,47 +1531,41 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 	header.anchor_bottom = 0.0
 	root.add_child(header)
 
-	var company_card := _make_home_identity_card(compact)
-	header.add_child(company_card)
+	var identity := _make_home_identity_card(compact)
+	header.add_child(identity)
 
 	if not compact:
-		var status_spacer := Control.new()
-		status_spacer.name = "Home_Header_Flexible_Spacer"
-		status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		header.add_child(status_spacer)
+		var spacer := Control.new()
+		spacer.name = "Home_Header_Flexible_Spacer"
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header.add_child(spacer)
 
-	var metrics_row := HBoxContainer.new()
-	metrics_row.name = "Home_Status_Metrics"
-	metrics_row.add_theme_constant_override("separation", 8)
-	if compact:
-		metrics_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		header.add_child(metrics_row)
-	else:
-		metrics_row.size_flags_horizontal = Control.SIZE_SHRINK_END
-		header.add_child(metrics_row)
+	var metrics := HBoxContainer.new()
+	metrics.name = "Home_Status_Metrics"
+	metrics.add_theme_constant_override("separation", 8)
+	metrics.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_END
+	header.add_child(metrics)
 
 	home_balance_label = _make_home_metric_card(
-		metrics_row, "Company_Balance_Card", "AVAILABLE BALANCE", 148.0, 18, Color("#b8f6c8"), compact
+		metrics, "Company_Balance_Card", "AVAILABLE BALANCE", 166.0, 18, Color("#c4f5c9"), compact
 	)
 	home_research_points_label = _make_home_metric_card(
-		metrics_row, "Research_Points_Card", "RESEARCH POINTS", 138.0, 14, Color("#e1f2e3"), compact
+		metrics, "Research_Points_Card", "RESEARCH POINTS", 148.0, 16, Color("#e6f4e6"), compact
 	)
 	home_date_label = _make_home_metric_card(
-		metrics_row, "Game_Date_Card", "IN-GAME DATE", 142.0, 16, Color("#f0f8ef"), compact
+		metrics, "Game_Date_Card", "IN-GAME DATE", 148.0, 16, Color("#f4fbf3"), compact
 	)
 
 	var clock_card := _make_home_status_glass_card("Game_Clock_Card")
-	clock_card.custom_minimum_size = Vector2(0.0 if compact else 118.0, 60.0 if compact else 76.0)
+	clock_card.custom_minimum_size = Vector2(0.0 if compact else 126.0, 60.0 if compact else 76.0)
 	clock_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_END
-	metrics_row.add_child(clock_card)
+	metrics.add_child(clock_card)
 
 	var clock_content := VBoxContainer.new()
 	clock_content.add_theme_constant_override("separation", 2)
 	clock_content.alignment = BoxContainer.ALIGNMENT_CENTER
 	clock_card.add_child(clock_content)
-
-	var clock_caption := _label("GAME CLOCK", 9, Color("#a8d5b0"), HORIZONTAL_ALIGNMENT_CENTER)
-	clock_content.add_child(clock_caption)
+	clock_content.add_child(_label("GAME CLOCK", 9, Color("#addbb0"), HORIZONTAL_ALIGNMENT_CENTER))
 
 	home_time_button = Button.new()
 	home_time_button.name = "Game_Time_Control"
@@ -1585,93 +1573,116 @@ func _build_home_status_bar(root: Control, compact: bool = false) -> void:
 	home_time_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	home_time_button.focus_mode = Control.FOCUS_NONE
 	home_time_button.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	_apply_shared_page_typography(home_time_button, 13)
+	_apply_shared_page_typography(home_time_button, 14)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var button_style := StyleBoxFlat.new()
-		button_style.bg_color = Color(0.16, 0.43, 0.23, 0.78)
-		button_style.border_color = Color(0.76, 0.94, 0.79, 0.74)
-		button_style.set_border_width_all(1)
-		button_style.set_corner_radius_all(9)
-		button_style.content_margin_left = 7
-		button_style.content_margin_right = 7
-		button_style.content_margin_top = 4
-		button_style.content_margin_bottom = 4
-		button_style.anti_aliasing = true
-		home_time_button.add_theme_stylebox_override(state, button_style)
-	home_time_button.add_theme_color_override("font_color", Color("#f4fbf4"))
-	home_time_button.add_theme_color_override("font_hover_color", Color("#f4fbf4"))
-	home_time_button.add_theme_color_override("font_pressed_color", Color("#f4fbf4"))
-	home_time_button.add_theme_color_override("font_focus_color", Color("#f4fbf4"))
-	home_time_button.add_theme_color_override("font_disabled_color", Color("#f4fbf4"))
+		var clock_style := StyleBoxFlat.new()
+		clock_style.bg_color = Color(0.14, 0.40, 0.21, 0.88)
+		clock_style.border_color = Color(0.72, 0.92, 0.74, 0.76)
+		clock_style.set_border_width_all(1)
+		clock_style.set_corner_radius_all(9)
+		clock_style.content_margin_left = 7
+		clock_style.content_margin_right = 7
+		clock_style.content_margin_top = 4
+		clock_style.content_margin_bottom = 4
+		clock_style.anti_aliasing = true
+		home_time_button.add_theme_stylebox_override(state, clock_style)
+	home_time_button.add_theme_color_override("font_color", Color("#f5fff4"))
+	home_time_button.add_theme_color_override("font_hover_color", Color("#f5fff4"))
+	home_time_button.add_theme_color_override("font_pressed_color", Color("#f5fff4"))
+	home_time_button.add_theme_color_override("font_focus_color", Color("#f5fff4"))
+	home_time_button.add_theme_color_override("font_disabled_color", Color("#f5fff4"))
 	home_time_button.pressed.connect(_toggle_game_clock)
 	clock_content.add_child(home_time_button)
 
 	_update_home_status_bar()
 
 
-func _make_home_identity_card(compact: bool) -> PanelContainer:
-	var card := _make_home_status_glass_card("Company_Identity_Card")
-	card.custom_minimum_size = Vector2(0.0, 62.0) if compact else Vector2(316.0, 76.0)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_BEGIN
+func _make_home_identity_card(compact: bool) -> Control:
+	# Keep the company name in its own guaranteed-width label beside the mark.
+	# No nested panel container can consume the label's horizontal space.
+	var identity := HBoxContainer.new()
+	identity.name = "Company_Identity_Block"
+	identity.custom_minimum_size = Vector2(0.0 if compact else 340.0, 64.0 if compact else 76.0)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_BEGIN
+	identity.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	identity.add_theme_constant_override("separation", 12)
 
-	var identity_row := HBoxContainer.new()
-	identity_row.add_theme_constant_override("separation", 12)
-	identity_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	card.add_child(identity_row)
-
-	var mark_tile := PanelContainer.new()
-	mark_tile.custom_minimum_size = Vector2(48.0, 48.0)
-	var mark_style := StyleBoxFlat.new()
-	mark_style.bg_color = Color(0.30, 0.62, 0.36, 0.16)
-	mark_style.border_color = Color(0.72, 0.91, 0.75, 0.38)
-	mark_style.set_border_width_all(1)
-	mark_style.set_corner_radius_all(12)
-	mark_style.content_margin_left = 4
-	mark_style.content_margin_right = 4
-	mark_style.content_margin_top = 4
-	mark_style.content_margin_bottom = 4
-	mark_tile.add_theme_stylebox_override("panel", mark_style)
-	identity_row.add_child(mark_tile)
+	var insignia_frame := PanelContainer.new()
+	insignia_frame.name = "Home_Insignia_Frame"
+	insignia_frame.custom_minimum_size = Vector2(54.0, 54.0)
+	insignia_frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	insignia_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var insignia_style := StyleBoxFlat.new()
+	insignia_style.bg_color = Color(0.12, 0.34, 0.17, 0.58)
+	insignia_style.border_color = Color(0.66, 0.90, 0.69, 0.72)
+	insignia_style.set_border_width_all(1)
+	insignia_style.set_corner_radius_all(14)
+	insignia_style.content_margin_left = 5
+	insignia_style.content_margin_right = 5
+	insignia_style.content_margin_top = 5
+	insignia_style.content_margin_bottom = 5
+	insignia_frame.add_theme_stylebox_override("panel", insignia_style)
+	identity.add_child(insignia_frame)
 
 	var insignia := TextureRect.new()
 	insignia.name = "Home_Company_Insignia"
 	insignia.texture = _company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50))
+	insignia.custom_minimum_size = Vector2(42.0, 42.0)
 	insignia.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	insignia.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	insignia.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	insignia.custom_minimum_size = Vector2(38.0, 38.0)
-	mark_tile.add_child(insignia)
+	insignia_frame.add_child(insignia)
 
-	var identity_copy := VBoxContainer.new()
-	identity_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity_copy.add_theme_constant_override("separation", 1)
-	identity_copy.alignment = BoxContainer.ALIGNMENT_CENTER
-	identity_row.add_child(identity_copy)
+	var accent := ColorRect.new()
+	accent.name = "Identity_Emerald_Accent"
+	accent.custom_minimum_size = Vector2(3.0, 48.0)
+	accent.color = Color("#8bd696")
+	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	identity.add_child(accent)
+
+	var copy := VBoxContainer.new()
+	copy.name = "Company_Identity_Copy"
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	copy.add_theme_constant_override("separation", 2)
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	identity.add_child(copy)
 
 	var brand_line := _label("DIGITAL WORLD MOBILES  /  POWERED BY KINGSHALL", 9, Color("#a9d9ad"))
+	brand_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	brand_line.clip_text = true
-	identity_copy.add_child(brand_line)
+	_apply_shared_page_typography(brand_line, 10)
+	copy.add_child(brand_line)
 
-	home_company_label = _label(str(career.get("company_name", "YOUR COMPANY")), 20 if not compact else 18, Color("#f3faf3"))
+	home_company_label = Label.new()
 	home_company_label.name = "Company_Name"
+	home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
+	home_company_label.custom_minimum_size = Vector2(180.0, 30.0)
 	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	home_company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	home_company_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	home_company_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	home_company_label.clip_text = true
-	home_company_label.tooltip_text = str(career.get("company_name", "YOUR COMPANY"))
-	_apply_shared_page_typography(home_company_label, 20 if not compact else 18)
-	identity_copy.add_child(home_company_label)
+	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	home_company_label.tooltip_text = home_company_label.text
+	_apply_shared_page_typography(home_company_label, 24 if not compact else 21)
+	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
+	home_company_label.add_theme_color_override("font_outline_color", Color("#041509"))
+	home_company_label.add_theme_constant_override("outline_size", 2)
+	copy.add_child(home_company_label)
 
 	var founder_name := str(career.get("full_name", "FOUNDER")).strip_edges()
 	if founder_name.is_empty():
 		founder_name = "FOUNDER"
 	var office_detail := "NO HEADQUARTERS OWNED" if upgrade_level <= 0 else "HEADQUARTERS  /  LEVEL %02d" % upgrade_level
-	var detail_line := _label("%s  •  FOUNDER: %s" % [office_detail, founder_name], 8, Color("#a8c9ad"))
-	detail_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	detail_line.clip_text = true
-	identity_copy.add_child(detail_line)
+	var detail := _label("%s   •   FOUNDER: %s" % [office_detail, founder_name], 8, Color("#b5d5ba"))
+	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	detail.clip_text = true
+	copy.add_child(detail)
 
-	return card
+	return identity
 
 
 func _make_home_metric_card(
@@ -1693,17 +1704,21 @@ func _make_home_metric_card(
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(content)
 
-	var caption_label := _label(caption, 8, Color("#a8d5b0"), HORIZONTAL_ALIGNMENT_CENTER)
+	var caption_label := _label(caption, 8, Color("#addbb0"), HORIZONTAL_ALIGNMENT_CENTER)
+	caption_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	caption_label.clip_text = true
 	content.add_child(caption_label)
 
 	var value_label := Label.new()
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value_label.custom_minimum_size = Vector2(0.0, 25.0)
+	value_label.custom_minimum_size = Vector2(0.0, 26.0)
+	value_label.clip_text = true
+	value_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_apply_shared_page_typography(value_label, value_font_size if not compact else mini(value_font_size, 14))
 	value_label.add_theme_color_override("font_color", value_color)
-	value_label.add_theme_color_override("font_outline_color", Color("#06180b"))
+	value_label.add_theme_color_override("font_outline_color", Color("#041509"))
 	value_label.add_theme_constant_override("outline_size", 1)
 	content.add_child(value_label)
 	return value_label
@@ -1713,19 +1728,19 @@ func _make_home_status_glass_card(card_name: String) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = card_name
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.018, 0.065, 0.039, 0.82)
-	style.border_color = Color(0.58, 0.82, 0.63, 0.58)
+	style.bg_color = Color(0.008, 0.035, 0.018, 0.78)
+	style.border_color = Color(0.56, 0.82, 0.61, 0.68)
 	style.set_border_width_all(1)
 	style.border_width_top = 2
-	style.set_corner_radius_all(16)
-	style.shadow_color = Color(0.0, 0.025, 0.008, 0.48)
-	style.shadow_size = 14
-	style.shadow_offset = Vector2(0.0, 5.0)
+	style.set_corner_radius_all(14)
+	style.shadow_color = Color(0.0, 0.025, 0.008, 0.40)
+	style.shadow_size = 10
+	style.shadow_offset = Vector2(0.0, 4.0)
 	style.anti_aliasing = true
-	style.content_margin_left = 11.0
-	style.content_margin_right = 11.0
-	style.content_margin_top = 7.0
-	style.content_margin_bottom = 7.0
+	style.content_margin_left = 9.0
+	style.content_margin_right = 9.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
 	card.add_theme_stylebox_override("panel", style)
 	return card
 
