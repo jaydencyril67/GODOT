@@ -5512,6 +5512,41 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	moving_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	moving_half.add_child(moving_display)
 	phone_screen = fixed_display
+	var crease := MeshInstance3D.new()
+	crease.name = "PhoneFoldableInnerCrease"
+	var crease_mesh := BoxMesh.new()
+	if selected_phone_type == "Fold":
+		crease_mesh.size = Vector3(0.008, segment_height * 0.96, 0.002)
+	else:
+		crease_mesh.size = Vector3(segment_width * 0.96, 0.008, 0.002)
+	crease.mesh = crease_mesh
+	var crease_material := StandardMaterial3D.new()
+	crease_material.albedo_color = Color(0.018, 0.030, 0.045, 0.42)
+	crease_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	crease_material.roughness = 0.24
+	crease_material.metallic = 0.08
+	crease.material_override = crease_material
+	crease.position = Vector3(0.0, 0.0, glass_z + 0.004)
+	crease.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	display_root.add_child(crease)
+	var crease_glint := MeshInstance3D.new()
+	crease_glint.name = "PhoneFoldableCreaseHighlight"
+	var glint_mesh := BoxMesh.new()
+	if selected_phone_type == "Fold":
+		glint_mesh.size = Vector3(0.0018, segment_height * 0.94, 0.001)
+		crease_glint.position.x = 0.0055
+	else:
+		glint_mesh.size = Vector3(segment_width * 0.94, 0.0018, 0.001)
+		crease_glint.position.y = 0.0055
+	crease_glint.mesh = glint_mesh
+	var glint_material := StandardMaterial3D.new()
+	glint_material.albedo_color = Color(0.56, 0.78, 0.91, 0.30)
+	glint_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glint_material.roughness = 0.24
+	crease_glint.material_override = glint_material
+	crease_glint.position.z = glass_z + 0.006
+	crease_glint.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	display_root.add_child(crease_glint)
 	var camera_display := moving_display if selected_phone_type == "Flip" else fixed_display
 	_refresh_front_camera(camera_display, segment_width, segment_height)
 	if screen_protector_enabled:
@@ -9613,7 +9648,21 @@ void fragment() {
 
 
 func _refresh_phone_case_material() -> void:
-	if is_instance_valid(phone_case_shell):
+	if is_instance_valid(phone_case_preview):
+		var case_material := _create_phone_case_material()
+		var case_shells := phone_case_preview.find_children("ProtectiveOuterShell", "CSGPolygon3D", true, false)
+		for shell_node in case_shells:
+			var shell := shell_node as CSGPolygon3D
+			if is_instance_valid(shell):
+				shell.material = case_material
+		var hinge_bridge := phone_case_preview.get_node_or_null("FlexibleCaseHingeBridge") as MeshInstance3D
+		if is_instance_valid(hinge_bridge):
+			var bridge_material := StandardMaterial3D.new()
+			bridge_material.albedo_color = phone_case_color.darkened(0.48)
+			bridge_material.roughness = 0.78
+			bridge_material.metallic = 0.04
+			hinge_bridge.material_override = bridge_material
+	elif is_instance_valid(phone_case_shell):
 		phone_case_shell.material = _create_phone_case_material()
 
 
