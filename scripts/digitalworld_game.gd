@@ -925,9 +925,9 @@ func _open_logo_picker() -> void:
 	var compact := viewport_size.x < 700.0
 	var side_margin := 10 if compact else 22
 	var vertical_margin := 8 if compact else 16
-	var grid_gap := 7 if compact else 9
-	var columns := clampi(int(floor((viewport_size.x - side_margin * 2 + grid_gap) / 81.0)), 4, 10)
-	var tile_size := mini(72, int(floor((viewport_size.x - side_margin * 2 - grid_gap * (columns - 1)) / columns)))
+	var grid_gap := 7 if compact else 10
+	var columns := clampi(int(floor((viewport_size.x - side_margin * 2 + grid_gap) / 112.0)), 3, 8)
+	var tile_size := mini(104, int(floor((viewport_size.x - side_margin * 2 - grid_gap * (columns - 1)) / columns)))
 
 	# The insignias sit directly on a plain dark screen: no title, card, or modal controls.
 	var scrim := ColorRect.new()
@@ -974,27 +974,17 @@ func _open_logo_picker() -> void:
 		option.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		option.mouse_default_cursor_shape = Control.CURSOR_ARROW
 		option.clip_contents = true
-		var circle_style := StyleBoxFlat.new()
-		circle_style.bg_color = Color(0.18, 0.46, 0.24, 0.34)
-		circle_style.border_color = Color(0.72, 0.91, 0.75, 0.58)
-		circle_style.set_border_width_all(1)
-		circle_style.set_corner_radius_all(int(tile_size / 2))
-		circle_style.shadow_color = Color(0.0, 0.025, 0.008, 0.22)
-		circle_style.shadow_size = 5
-		circle_style.shadow_offset = Vector2(0, 2)
-		circle_style.anti_aliasing = true
-		circle_style.content_margin_left = 0
-		circle_style.content_margin_right = 0
-		circle_style.content_margin_top = 0
-		circle_style.content_margin_bottom = 0
+		# Keep the Button only as an invisible touch/mouse hit target.
+		option.flat = true
+		var no_style := StyleBoxEmpty.new()
 		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-			option.add_theme_stylebox_override(state, circle_style)
+			option.add_theme_stylebox_override(state, no_style)
 
 		var logo_center := CenterContainer.new()
 		logo_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		logo_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var mark := TextureRect.new()
-		var mark_size := mini(42, int(tile_size * 0.56))
+		var mark_size := mini(84, int(tile_size * 0.82))
 		mark.custom_minimum_size = Vector2(mark_size, mark_size)
 		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
