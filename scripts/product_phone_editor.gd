@@ -1648,7 +1648,7 @@ func _apply_device_color_hex(value: String) -> void:
 	_on_device_body_color_changed(Color.from_string("#" + hex_value, _get_active_color_picker_color()))
 
 
-func _create_device_body_material() -> ShaderMaterial:
+func _create_device_body_material(geometry_offset: Vector2 = Vector2.ZERO) -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
@@ -1657,6 +1657,7 @@ uniform vec4 solid_color : source_color = vec4(0.647, 0.678, 0.714, 1.0);
 uniform vec4 gradient_color : source_color = vec4(0.325, 0.427, 0.996, 1.0);
 uniform bool gradient_enabled = false;
 uniform int gradient_direction : hint_range(0, 3) = 0;
+uniform vec2 geometry_offset = vec2(0.0);
 varying vec3 local_position;
 varying vec3 local_normal;
 void vertex() {
@@ -1669,7 +1670,7 @@ void fragment() {
 	if (local_normal.z > 0.5 || !gradient_enabled) {
 		ALBEDO = solid_color.rgb;
 	} else {
-		vec2 p = local_position.xy / vec2(0.95, 2.0) + vec2(0.5);
+		vec2 p = (local_position.xy + geometry_offset) / vec2(0.95, 2.0) + vec2(0.5);
 		float t = p.y;
 		if (gradient_direction == 1) {
 			t = p.x;
@@ -1695,6 +1696,7 @@ void fragment() {
 	material.set_shader_parameter("gradient_color", device_gradient_color)
 	material.set_shader_parameter("gradient_enabled", device_gradient_enabled)
 	material.set_shader_parameter("gradient_direction", device_gradient_direction)
+	material.set_shader_parameter("geometry_offset", geometry_offset)
 	return material
 
 
@@ -1828,6 +1830,7 @@ func _select_gradient_direction(index: int) -> void:
 		device_gradient_direction = selected_direction
 		if is_instance_valid(phone_body):
 			phone_body.material_override = _create_device_body_material()
+			_refresh_foldable_frame_materials()
 	if is_instance_valid(gradient_direction_button):
 		gradient_direction_button.text = _gradient_direction_name(selected_direction) + "  ▼"
 	_rebuild_gradient_direction_popup()
@@ -1845,6 +1848,7 @@ func _on_device_gradient_toggled(enabled: bool) -> void:
 		device_gradient_enabled = enabled
 		if is_instance_valid(phone_body):
 			phone_body.material_override = _create_device_body_material()
+			_refresh_foldable_frame_materials()
 	if is_instance_valid(active_feature_panel):
 		var options := active_feature_panel.get_node_or_null("GradientOptions") as Control
 		if is_instance_valid(options):
@@ -1885,6 +1889,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_body_color = selected_color
 	if not phone_case_color_mode and not charger_color_mode and not power_bank_color_mode and not smartwatch_color_mode and not wireless_earbuds_color_mode and not back_design_color_mode and is_instance_valid(phone_body):
 		phone_body.material_override = _create_device_body_material()
+		_refresh_foldable_frame_materials()
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
@@ -7638,12 +7643,8 @@ func _on_charge_port_selected(port_type: String) -> void:
 		charger_cable_type = adapter_connector + " to " + phone_connector
 	if is_instance_valid(charge_port_value_label):
 		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
-	# Rebuild the receptacle first so its exact aperture is used when the
-	# phone's bottom frame mesh is regenerated.
-	_refresh_phone_charge_port()
-	var radius := 0.32 * float(border_radius_level) / 6.0
-	phone_body.mesh = _create_phone_chassis_mesh(radius, charge_port_opening_points)
-	_queue_phone_case_sync()
+	# Rebuild both the receptacle and whichever chassis architecture is active.
+	_refresh_phone_mesh()
 
 
 
@@ -8059,6 +8060,17 @@ func _on_border_radius_level_changed(value: float) -> void:
 	_refresh_phone_mesh()
 
 
+func _refresh_foldable_frame_materials() -> void:
+	if not is_instance_valid(phone_body) or selected_phone_type == "Standard":
+		return
+	var fixed_frame := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableFixedHalf/PhoneFoldableFixedFrame") as MeshInstance3D
+	var moving_frame := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf/PhoneFoldableMovingFrame") as MeshInstance3D
+	if is_instance_valid(fixed_frame):
+		fixed_frame.material_override = _create_device_body_material(Vector2(fixed_frame.position.x, fixed_frame.position.y))
+	if is_instance_valid(moving_frame):
+		moving_frame.material_override = _create_device_body_material(Vector2(moving_frame.position.x, moving_frame.position.y))
+
+
 func _refresh_foldable_hardware() -> void:
 	if not is_instance_valid(phone_body):
 		return
@@ -8115,14 +8127,14 @@ func _refresh_foldable_hardware() -> void:
 	var fixed_frame := MeshInstance3D.new()
 	fixed_frame.name = "PhoneFoldableFixedFrame"
 	fixed_frame.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points, segment_size)
-	fixed_frame.material_override = phone_body.material_override
+	fixed_frame.material_override = _create_device_body_material(Vector2(fixed_offset.x, fixed_offset.y))
 	fixed_frame.position = fixed_offset
 	fixed_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	fixed_half.add_child(fixed_frame)
 	var moving_frame := MeshInstance3D.new()
 	moving_frame.name = "PhoneFoldableMovingFrame"
 	moving_frame.mesh = _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size)
-	moving_frame.material_override = phone_body.material_override
+	moving_frame.material_override = _create_device_body_material(Vector2(moving_offset.x, moving_offset.y))
 	moving_frame.position = moving_offset
 	moving_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	moving_half.add_child(moving_frame)
