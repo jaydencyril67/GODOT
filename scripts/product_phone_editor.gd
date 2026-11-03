@@ -1233,6 +1233,8 @@ func _on_phone_type_selected(phone_type: String) -> void:
 		_show_phone_type_controls()
 		return
 	selected_phone_type = phone_type
+	fold_pinch_active = false
+	preview_touch_points.clear()
 	_refresh_phone_mesh()
 	if software_value_labels.has("PHONE TYPE") and is_instance_valid(software_value_labels["PHONE TYPE"]):
 		var phone_type_label: Label = software_value_labels["PHONE TYPE"]
@@ -5093,14 +5095,14 @@ func _show_screen_protector_controls() -> void:
 	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 	toggle.toggle_mode = true
 	toggle.button_pressed = screen_protector_enabled
-	toggle.disabled = not screen_enabled
+	toggle.disabled = not (screen_enabled or (selected_phone_type != "Standard" and outer_screen_enabled))
 	toggle.focus_mode = Control.FOCUS_NONE
 	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	toggle.toggled.connect(_on_screen_protector_toggled)
 	enable_row.add_child(toggle)
 
-	if not screen_enabled:
-		var screen_hint := _make_label("Enable the phone display first. The protector will then match its size, corner radius and curves.", 12, Color("#f1ca82"))
+	if not (screen_enabled or (selected_phone_type != "Standard" and outer_screen_enabled)):
+		var screen_hint := _make_label("Enable an inner or outer display first. Protection glass will fit the active foldable panels.", 12, Color("#f1ca82"))
 		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		active_feature_panel.add_child(screen_hint)
 		return
@@ -5197,6 +5199,10 @@ void fragment(){
 func _refresh_phone_screen() -> void:
 	if not is_instance_valid(phone_body):
 		return
+	var foldable_protector_token := -1
+	if selected_phone_type != "Standard" and screen_protector_enabled:
+		screen_protector_build_token += 1
+		foldable_protector_token = screen_protector_build_token
 	var previous := phone_body.get_node_or_null("PhoneDisplayPanel")
 	if is_instance_valid(previous):
 		previous.free()
@@ -5209,12 +5215,12 @@ func _refresh_phone_screen() -> void:
 	phone_screen = null
 	if not screen_enabled:
 		_refresh_phone_home_button()
-		_build_phone_outer_display()
+		_build_phone_outer_display(foldable_protector_token)
 		return
 	if selected_phone_type != "Standard":
-		_build_foldable_inner_screens()
+		_build_foldable_inner_screens(foldable_protector_token)
 		_refresh_phone_home_button()
-		_build_phone_outer_display()
+		_build_phone_outer_display(foldable_protector_token)
 		_route_foldable_accessories()
 		_apply_phone_fold_angle()
 		_queue_phone_case_sync()
@@ -5349,12 +5355,16 @@ func _add_foldable_inner_crease(display: MeshInstance3D, screen_width: float, sc
 	display.add_child(highlight)
 
 
-func _build_phone_outer_display() -> void:
+func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	if not is_instance_valid(phone_body) or not outer_screen_enabled or selected_phone_type == "Standard":
 		return
 	var outer_root := Node3D.new()
 	outer_root.name = "PhoneOuterDisplayPanel"
-	phone_body.add_child(outer_root)
+	var outer_parent: Node = phone_body
+	var moving_half := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf")
+	if is_instance_valid(moving_half):
+		outer_parent = moving_half
+	outer_parent.add_child(outer_root)
 
 	var panel_width: float
 	var panel_height: float
@@ -5410,6 +5420,8 @@ func _build_phone_outer_display() -> void:
 	glass.position = Vector3(center_x, center_y, -current_depth * 0.5 - 0.008)
 	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	outer_root.add_child(glass)
+	if screen_protector_enabled:
+		_build_screen_protector(glass, panel_width, panel_height, radius, false, shared_protector_token, false)
 
 	var cover_camera := MeshInstance3D.new()
 	cover_camera.name = "OuterDisplayCamera"
@@ -5429,7 +5441,7 @@ func _build_phone_outer_display() -> void:
 	outer_root.add_child(cover_camera)
 
 
-func _build_foldable_inner_screens() -> void:
+func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var panels := phone_body.get_node_or_null("PhoneFoldablePanels")
 	if not is_instance_valid(panels):
 		_refresh_foldable_hardware()
@@ -5502,8 +5514,10 @@ func _build_foldable_inner_screens() -> void:
 	phone_screen = fixed_display
 	_refresh_front_camera(fixed_display, segment_width, segment_height)
 	if screen_protector_enabled:
-		screen_protector_build_token += 1
-		var shared_token := screen_protector_build_token
+		var shared_token := shared_protector_token
+		if shared_token < 0:
+			screen_protector_build_token += 1
+			shared_token = screen_protector_build_token
 		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, false, shared_token, true)
 		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, false, shared_token, false)
 
@@ -7984,7 +7998,6 @@ func _on_phone_thickness_level_changed(value: float) -> void:
 func _refresh_phone_mesh() -> void:
 	if not is_instance_valid(phone_body):
 		return
-	var radius := 0.32 * float(border_radius_level) / 6.0
 	# Refresh the fitted aperture first: thickness upgrades can change how much
 	# room a connector has inside the bottom rail.
 	_refresh_phone_charge_port()
@@ -8017,7 +8030,7 @@ func _refresh_foldable_hardware() -> void:
 		if is_instance_valid(previous_moving):
 			for routed_item in previous_moving.get_children():
 				if routed_item.has_meta("foldable_routed_accessory"):
-					routed_item.reparent(phone_body, true)
+					routed_item.reparent(phone_body, false)
 		previous_panels.free()
 	var previous_hinge := phone_body.get_node_or_null("PhoneFoldableHinge")
 	if is_instance_valid(previous_hinge):
@@ -8131,7 +8144,7 @@ func _route_foldable_accessories() -> void:
 			var axis_position := (item as Node3D).position.dot(moving_axis)
 			if axis_position > 0.008:
 				item.set_meta("foldable_routed_accessory", true)
-				item.reparent(moving_half, true)
+				item.reparent(moving_half, false)
 
 
 func _apply_phone_fold_angle() -> void:
@@ -9689,10 +9702,22 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		var port_cut := CSGBox3D.new()
 		port_cut.name = "ChargingPortOpening"
 		port_cut.size = Vector3(high.x - low.x + 0.026, wall * 2.0 + 0.035, high.y - low.y + 0.026)
-		port_cut.position = Vector3((low.x + high.x) * 0.5, centre.y - segment_size.y * 0.5, (low.y + high.y) * 0.5)
+		port_cut.position = Vector3(centre.x + (low.x + high.x) * 0.5, centre.y - segment_size.y * 0.5, (low.y + high.y) * 0.5)
 		_case_subtract(combiner, port_cut)
 
-	if include_port and speaker_count > 0:
+	var key_length := 0.30 * side_button_length_scale * 0.46
+	if power_button_enabled:
+		_case_side_opening(combiner, 1.0, power_button_y, key_length + 0.06, depth, wall, "PowerButtonOpening")
+	if volume_button_enabled:
+		var volume_key_length := key_length * 0.46
+		_case_side_opening(combiner, -1.0, volume_button_y + volume_key_length * 0.52 + 0.018, volume_key_length, depth, wall, "VolumeUpOpening")
+		_case_side_opening(combiner, -1.0, volume_button_y - volume_key_length * 0.52 - 0.018, volume_key_length, depth, wall, "VolumeDownOpening")
+	if camera_side_button_enabled:
+		_case_side_opening(combiner, 1.0, camera_side_button_y, 0.25, depth, wall, "CameraSideButtonOpening")
+	if sim_tray_enabled:
+		_case_side_opening(combiner, -1.0, sim_tray_y, 0.25, depth, wall, "SIMTrayOpening")
+
+	if speaker_count > 0 and (selected_phone_type == "Fold" or include_port):
 		var left_count := int(ceil(float(speaker_count) * 0.5))
 		var right_count := speaker_count - left_count
 		var speaker_xs: Array[float] = []
@@ -10232,6 +10257,8 @@ func _rotate_phone_from_drag(delta: Vector2) -> void:
 		rotation_target.rotation.y += delta.x * DRAG_SENSITIVITY
 	else:
 		rotation_target.rotation.x += delta.y * DRAG_SENSITIVITY
+	if rotation_target == phone_body and is_instance_valid(phone_case_preview):
+		phone_case_preview.rotation = phone_body.rotation
 
 
 func _rotate_axis(axis: Vector3, direction: float) -> void:
