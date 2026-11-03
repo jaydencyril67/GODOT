@@ -5413,7 +5413,10 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	panel_width = maxf(0.28, panel_width)
 	panel_height = maxf(0.42, panel_height)
 	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
-	var outer_corner_mask := _foldable_half_corner_mask(true)
+	# The cover display is rotated 180 degrees to face outward. That
+	# rotation mirrors left/right corner indices, so Fold must use the
+	# opposite half-mask; Flip's top/bottom mask is unchanged by it.
+	var outer_corner_mask := _foldable_half_corner_mask(selected_phone_type == "Flip")
 	var radius := minf(0.32 * float(border_radius_level) / 6.0, minf(panel_width, panel_height) * 0.45)
 
 	var bezel := MeshInstance3D.new()
