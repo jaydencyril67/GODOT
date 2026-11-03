@@ -3193,79 +3193,181 @@ func _rebuild_smartwatch_preview() -> void:
 		return
 	for child in smartwatch_preview.get_children():
 		child.free()
-	var case_material := _charger_material(smartwatch_body_color, 0.42, 0.24)
-	var edge_material := _charger_material(smartwatch_body_color.darkened(0.22), 0.58, 0.22)
-	var glass_material := _charger_material(Color("#101a27"), 0.12, 0.10)
-	var strap_material := _charger_material(smartwatch_body_color.darkened(0.08), 0.0, 0.58)
-	var display_material := _charger_material(Color("#071522"), 0.08, 0.12)
 
-	# A compact rounded-square watch case, raised bezel and inset glass face.
-	var watch_case := MeshInstance3D.new()
-	watch_case.name = "SmartwatchRoundedCase"
-	watch_case.mesh = _create_rounded_panel_mesh(0.82, 0.96, 0.19, 0.17)
-	watch_case.material_override = case_material
-	watch_case.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	smartwatch_preview.add_child(watch_case)
+	# Premium smartwatch CMF: anodised metal shell, a separate polished
+	# display lip, deep OLED glass and a soft-touch elastomer strap.
+	var case_material := _charger_material(smartwatch_body_color, 0.68, 0.27)
+	var bezel_material := _charger_material(smartwatch_body_color.lightened(0.075), 0.82, 0.20)
+	var case_shadow_material := _charger_material(smartwatch_body_color.darkened(0.28), 0.72, 0.31)
+	var strap_material := _charger_material(smartwatch_body_color.darkened(0.035), 0.0, 0.76)
+	var glass_material := _charger_material(Color("#03070c"), 0.08, 0.065)
+	var screen_material := _charger_material(Color("#050b13"), 0.04, 0.10)
+	var steel_material := _charger_material(Color("#b9c4ce"), 0.91, 0.22)
+	var dark_steel_material := _charger_material(Color("#48535e"), 0.86, 0.30)
+	var white_material := _charger_material(Color("#e9f3ff"), 0.12, 0.25)
+	var accent_material := _charger_material(Color("#65d7c4"), 0.28, 0.22)
 
-	var bezel := MeshInstance3D.new()
-	bezel.name = "PolishedDisplayBezel"
-	bezel.mesh = _create_rounded_panel_mesh(0.755, 0.895, 0.025, 0.145)
-	bezel.position.z = 0.102
-	bezel.material_override = edge_material
-	bezel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	smartwatch_preview.add_child(bezel)
+	# Main case and the very small step that separates the metal chassis from
+	# the glass. The screen is intentionally almost edge-to-edge.
+	var case := MeshInstance3D.new()
+	case.name = "SmartwatchAnodisedCase"
+	case.mesh = _create_rounded_panel_mesh(0.88, 1.06, 0.235, 0.225)
+	case.material_override = case_material
+	smartwatch_preview.add_child(case)
+
+	var case_midframe := MeshInstance3D.new()
+	case_midframe.name = "SmartwatchCaseMidframe"
+	case_midframe.mesh = _create_rounded_panel_mesh(0.884, 1.045, 0.055, 0.215)
+	case_midframe.position.z = -0.012
+	case_midframe.material_override = case_shadow_material
+	smartwatch_preview.add_child(case_midframe)
+
+	var display_lip := MeshInstance3D.new()
+	display_lip.name = "PrecisionMachinedDisplayLip"
+	display_lip.mesh = _create_rounded_panel_mesh(0.825, 1.005, 0.024, 0.195)
+	display_lip.position.z = 0.122
+	display_lip.material_override = bezel_material
+	smartwatch_preview.add_child(display_lip)
 
 	var glass := MeshInstance3D.new()
-	glass.name = "InsetSmartwatchDisplay"
-	glass.mesh = _create_rounded_panel_mesh(0.704, 0.842, 0.012, 0.125)
-	glass.position.z = 0.119
+	glass.name = "EdgeToEdgeOLEDGlass"
+	glass.mesh = _create_rounded_panel_mesh(0.795, 0.972, 0.012, 0.183)
+	glass.position.z = 0.141
 	glass.material_override = glass_material
-	glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	smartwatch_preview.add_child(glass)
 
-	# Simple luminous dial graphics make the display read as a watch.
-	var dial_ring := _add_charger_torus(smartwatch_preview, "WatchDialRing", 0.205, 0.009, Vector3(0.0, 0.015, 0.129), _charger_material(Color("#79d8ff"), 0.42, 0.18))
-	dial_ring.rotation = Vector3.ZERO
-	_add_charger_box(smartwatch_preview, "WatchHourHand", Vector3(0.014, 0.125, 0.004), Vector3(-0.012, 0.055, 0.133), _charger_material(Color("#eaf7ff"), 0.25, 0.2))
-	_add_charger_box(smartwatch_preview, "WatchMinuteHand", Vector3(0.105, 0.012, 0.004), Vector3(0.042, -0.015, 0.134), _charger_material(Color("#eaf7ff"), 0.25, 0.2))
-	_add_charger_cylinder(smartwatch_preview, "WatchCrown", 0.052, 0.105, Vector3(0.445, 0.10, 0.0), edge_material, 32).rotation_degrees.z = 90.0
-	_add_charger_box(smartwatch_preview, "WatchSideButton", Vector3(0.075, 0.13, 0.075), Vector3(0.438, -0.13, 0.0), case_material)
+	var screen := MeshInstance3D.new()
+	screen.name = "OLEDDisplaySurface"
+	screen.mesh = _create_rounded_panel_mesh(0.774, 0.951, 0.003, 0.177)
+	screen.position.z = 0.149
+	screen.material_override = screen_material
+	smartwatch_preview.add_child(screen)
 
-	# Continuous curved upper and lower strap sections, each overlapping the case.
-	var upper_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, 0.43, -0.015), Vector3(0.0, 0.78, -0.02), Vector3(0.0, 1.04, -0.02), Vector3(0.0, 1.22, -0.015), 40)
-	var lower_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, -0.43, -0.015), Vector3(0.0, -0.78, -0.02), Vector3(0.0, -1.04, -0.02), Vector3(0.0, -1.22, -0.015), 40)
-	var upper_strap := MeshInstance3D.new()
-	upper_strap.name = "UpperCurvedWatchStrap"
-	upper_strap.mesh = _create_charger_cable_tube_mesh(upper_route, 0.105, 32)
-	upper_strap.material_override = strap_material
-	upper_strap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	smartwatch_preview.add_child(upper_strap)
-	var lower_strap := MeshInstance3D.new()
-	lower_strap.name = "LowerCurvedWatchStrap"
-	lower_strap.mesh = _create_charger_cable_tube_mesh(lower_route, 0.105, 32)
-	lower_strap.material_override = strap_material
-	lower_strap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	smartwatch_preview.add_child(lower_strap)
+	# A restrained digital watch face replaces the oversized floating analogue
+	# dial. Labels are genuine 3D text and remain part of the rotating model.
+	_add_accessory_label(smartwatch_preview, "WatchFaceDate", "TUE 03", 15, 0.0040, Color("#9fb4c8"), Vector3(0.0, 0.315, 0.156))
+	_add_accessory_label(smartwatch_preview, "WatchFaceTime", "10:09", 55, 0.0037, Color("#f4f8ff"), Vector3(0.0, 0.075, 0.157))
+	_add_accessory_label(smartwatch_preview, "WatchFaceMetric", "ACTIVITY     76%", 10, 0.0037, Color("#9eb0c4"), Vector3(0.035, -0.285, 0.157))
+	var activity_ring := _add_charger_torus(smartwatch_preview, "ActivityRing", 0.063, 0.009, Vector3(-0.245, -0.285, 0.159), accent_material)
+	activity_ring.rotation = Vector3.ZERO
+	_add_charger_box(smartwatch_preview, "WatchFaceSeparator", Vector3(0.53, 0.004, 0.002), Vector3(0.0, -0.185, 0.158), _charger_material(Color("#273747"), 0.08, 0.54))
 
-	# A short buckle and strap pin add recognisable hardware to the wristband.
-	_add_charger_box(smartwatch_preview, "WatchBuckle", Vector3(0.22, 0.045, 0.035), Vector3(0.0, -1.245, 0.0), edge_material)
-	_add_charger_cylinder(smartwatch_preview, "WatchBucklePin", 0.012, 0.19, Vector3(0.0, -1.245, 0.021), case_material, 16)
+	# Realistic side controls: a small knurled digital crown and a separate
+	# elongated action button, both seated into the case flank.
+	var crown := _add_charger_cylinder(smartwatch_preview, "DigitalCrown", 0.045, 0.092, Vector3(0.465, 0.115, 0.006), steel_material, 40)
+	crown.rotation_degrees.z = 90.0
+	var crown_rim := _add_charger_torus(smartwatch_preview, "DigitalCrownRim", 0.044, 0.0045, Vector3(0.465, 0.115, 0.006), dark_steel_material)
+	crown_rim.rotation.y = PI * 0.5
+	var crown_cap := _add_charger_cylinder(smartwatch_preview, "DigitalCrownEndCap", 0.035, 0.008, Vector3(0.514, 0.115, 0.006), steel_material, 36)
+	crown_cap.rotation_degrees.z = 90.0
+	var side_button := MeshInstance3D.new()
+	side_button.name = "SmartwatchActionButton"
+	side_button.mesh = _create_rounded_panel_mesh(0.042, 0.145, 0.040, 0.019)
+	side_button.position = Vector3(0.459, -0.175, 0.004)
+	side_button.material_override = dark_steel_material
+	smartwatch_preview.add_child(side_button)
+	_add_charger_box(smartwatch_preview, "ActionButtonInset", Vector3(0.008, 0.085, 0.006), Vector3(0.481, -0.175, 0.004), steel_material)
+
+	# Integrated attachment pins and flat, softly rounded silicone bands.
+	# The cross-section is deliberately wide and flat, never cable-like.
+	var upper_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, 0.485, -0.035), Vector3(0.0, 0.66, -0.105), Vector3(0.0, 1.00, -0.205), Vector3(0.0, 1.205, -0.19), 40)
+	var lower_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, -0.485, -0.035), Vector3(0.0, -0.66, -0.105), Vector3(0.0, -1.00, -0.205), Vector3(0.0, -1.205, -0.19), 40)
+	var upper_band := MeshInstance3D.new()
+	upper_band.name = "UpperMouldedFluoroelastomerBand"
+	upper_band.mesh = _create_smartwatch_band_mesh(upper_route, 0.455, 0.075)
+	upper_band.material_override = strap_material
+	smartwatch_preview.add_child(upper_band)
+	var lower_band := MeshInstance3D.new()
+	lower_band.name = "LowerMouldedFluoroelastomerBand"
+	lower_band.mesh = _create_smartwatch_band_mesh(lower_route, 0.455, 0.075)
+	lower_band.material_override = strap_material
+	smartwatch_preview.add_child(lower_band)
+
+	var upper_pin := _add_charger_cylinder(smartwatch_preview, "UpperBandSpringBar", 0.018, 0.47, Vector3(0.0, 0.485, -0.018), steel_material, 24)
+	upper_pin.rotation_degrees.z = 90.0
+	var lower_pin := _add_charger_cylinder(smartwatch_preview, "LowerBandSpringBar", 0.018, 0.47, Vector3(0.0, -0.485, -0.018), steel_material, 24)
+	lower_pin.rotation_degrees.z = 90.0
+
+	# Adjustment holes and a proper metal pin buckle on the lower strap.
+	for hole_index in range(5):
+		var hole_y := -0.735 - float(hole_index) * 0.075
+		var hole_z := -0.145 - float(hole_index) * 0.009
+		var hole := _add_charger_cylinder(smartwatch_preview, "BandAdjustmentHole_%d" % hole_index, 0.014, 0.009, Vector3(0.0, hole_y, hole_z), _charger_material(Color("#17212a"), 0.0, 0.92), 20)
+		hole.rotation_degrees.x = 90.0
+	var buckle_y := -1.105
+	var buckle_z := -0.145
+	_add_charger_box(smartwatch_preview, "BandBuckleTop", Vector3(0.43, 0.022, 0.028), Vector3(0.0, buckle_y + 0.115, buckle_z), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBuckleBottom", Vector3(0.43, 0.022, 0.028), Vector3(0.0, buckle_y - 0.115, buckle_z), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBuckleLeft", Vector3(0.022, 0.23, 0.028), Vector3(-0.204, buckle_y, buckle_z), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBuckleRight", Vector3(0.022, 0.23, 0.028), Vector3(0.204, buckle_y, buckle_z), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBucklePin", Vector3(0.30, 0.014, 0.018), Vector3(0.0, buckle_y, buckle_z + 0.018), dark_steel_material)
 
 
-func _add_charger_torus(parent: Node3D, node_name: String, major_radius: float, minor_radius: float, position: Vector3, material: Material) -> MeshInstance3D:
-	var ring := MeshInstance3D.new()
-	ring.name = node_name
-	var torus := TorusMesh.new()
-	torus.inner_radius = major_radius - minor_radius
-	torus.outer_radius = major_radius + minor_radius
-	torus.rings = 48
-	torus.ring_segments = 12
-	ring.mesh = torus
-	ring.position = position
-	ring.material_override = material
-	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(ring)
-	return ring
+func _create_smartwatch_band_mesh(points: PackedVector3Array, width: float, thickness: float) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	if points.size() < 2:
+		return mesh
+	const BAND_SEGMENTS := 16
+	var rings: Array[PackedVector3Array] = []
+	var ring_normals: Array[PackedVector3Array] = []
+	var previous_tangent := Vector3.ZERO
+	for point_index in range(points.size()):
+		var previous_point := points[maxi(point_index - 1, 0)]
+		var following_point := points[mini(point_index + 1, points.size() - 1)]
+		var tangent := (following_point - previous_point).normalized()
+		if tangent.length_squared() < 0.000001:
+			tangent = Vector3.UP
+		var width_axis := Vector3.RIGHT
+		var thickness_axis := tangent.cross(width_axis).normalized()
+		if thickness_axis.length_squared() < 0.000001:
+			thickness_axis = Vector3.BACK
+		previous_tangent = tangent
+		var taper := lerpf(1.0, 0.91, float(point_index) / float(points.size() - 1))
+		var ring := PackedVector3Array()
+		var normals := PackedVector3Array()
+		for side in range(BAND_SEGMENTS):
+			var angle := TAU * float(side) / float(BAND_SEGMENTS)
+			var radial := (width_axis * cos(angle) + thickness_axis * sin(angle)).normalized()
+			var offset := width_axis * cos(angle) * width * 0.5 * taper
+			offset += thickness_axis * sin(angle) * thickness * 0.5
+			ring.append(points[point_index] + offset)
+			normals.append(radial)
+		rings.append(ring)
+		ring_normals.append(normals)
+
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for ring_index in range(rings.size() - 1):
+		for side in range(BAND_SEGMENTS):
+			var next_side := (side + 1) % BAND_SEGMENTS
+			var a: Vector3 = rings[ring_index][side]
+			var b: Vector3 = rings[ring_index + 1][side]
+			var c: Vector3 = rings[ring_index + 1][next_side]
+			var d: Vector3 = rings[ring_index][next_side]
+			var normal_ab := (ring_normals[ring_index][side] + ring_normals[ring_index + 1][side] + ring_normals[ring_index + 1][next_side]).normalized()
+			var normal_ac := (ring_normals[ring_index][side] + ring_normals[ring_index + 1][next_side] + ring_normals[ring_index][next_side]).normalized()
+			_add_phone_mesh_triangle(surface, a, b, c, normal_ab)
+			_add_phone_mesh_triangle(surface, a, c, d, normal_ac)
+	for side in range(BAND_SEGMENTS):
+		var next_side := (side + 1) % BAND_SEGMENTS
+		_add_phone_mesh_triangle(surface, points[0], rings[0][next_side], rings[0][side], -Vector3.UP)
+		var last_ring := rings.size() - 1
+		_add_phone_mesh_triangle(surface, points[points.size() - 1], rings[last_ring][side], rings[last_ring][next_side], Vector3.UP)
+	return surface.commit()
+
+
+func _add_accessory_label(parent: Node3D, node_name: String, label_text: String, font_size_value: int, pixel_scale: float, text_color: Color, label_position: Vector3) -> Label3D:
+	var label := Label3D.new()
+	label.name = node_name
+	label.text = label_text
+	label.font_size = font_size_value
+	label.pixel_size = pixel_scale
+	label.modulate = text_color
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.position = label_position
+	parent.add_child(label)
+	return label
 
 
 func _show_smartwatch_controls() -> void:
@@ -3341,52 +3443,104 @@ func _rebuild_power_bank_preview() -> void:
 		return
 	for child in power_bank_preview.get_children():
 		child.free()
-	var body_material := _charger_material(power_bank_body_color, 0.18, 0.30)
-	var edge_material := _charger_material(power_bank_body_color.darkened(0.24), 0.52, 0.24)
-	var face_material := _charger_material(power_bank_body_color.lightened(0.045), 0.08, 0.26)
-	var screen_material := _charger_material(Color("#101c29"), 0.08, 0.12)
-	var metal_material := _charger_material(Color("#aebbc7"), 0.86, 0.19)
-	var accent_material := _charger_material(Color("#79d9ff"), 0.24, 0.16)
 
-	# Rounded, slim rectangular power bank with a raised perimeter and inset
-	# information display. The model is centred on its own rotation pivot.
-	var body := MeshInstance3D.new()
-	body.name = "PowerBankRoundedHousing"
-	body.mesh = _create_rounded_panel_mesh(1.10, 1.88, 0.25, 0.20)
-	body.material_override = body_material
-	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	power_bank_preview.add_child(body)
+	# A slim consumer power bank needs a continuous rounded shell, a visible
+	# housing seam and restrained controls—not a stack of flat display slabs.
+	var housing_material := _charger_material(power_bank_body_color, 0.20, 0.36)
+	var cover_material := _charger_material(power_bank_body_color.lightened(0.035), 0.12, 0.43)
+	var frame_material := _charger_material(power_bank_body_color.darkened(0.25), 0.52, 0.30)
+	var screen_material := _charger_material(Color("#101923"), 0.10, 0.13)
+	var glass_material := _charger_material(Color("#050a10"), 0.08, 0.075)
+	var metal_material := _charger_material(Color("#abb8c4"), 0.88, 0.23)
+	var dark_port_material := _charger_material(Color("#070c12"), 0.12, 0.78)
+	var tongue_material := _charger_material(Color("#7b8792"), 0.72, 0.38)
+	var indicator_material := _charger_material(Color("#6ed8c4"), 0.22, 0.28)
 
-	var front_face := MeshInstance3D.new()
-	front_face.name = "PowerBankFrontFace"
-	front_face.mesh = _create_rounded_panel_mesh(1.045, 1.825, 0.018, 0.16)
-	front_face.position.z = 0.128
-	front_face.material_override = face_material
-	front_face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	power_bank_preview.add_child(front_face)
+	var housing := MeshInstance3D.new()
+	housing.name = "PowerBankRoundedAluminiumHousing"
+	housing.mesh = _create_rounded_panel_mesh(1.14, 1.96, 0.255, 0.235)
+	housing.material_override = housing_material
+	power_bank_preview.add_child(housing)
+
+	var lower_frame := MeshInstance3D.new()
+	lower_frame.name = "PowerBankPerimeterMidframe"
+	lower_frame.mesh = _create_rounded_panel_mesh(1.145, 1.95, 0.055, 0.225)
+	lower_frame.position.z = -0.012
+	lower_frame.material_override = frame_material
+	power_bank_preview.add_child(lower_frame)
+
+	var front_cover := MeshInstance3D.new()
+	front_cover.name = "PowerBankSoftTouchFrontCover"
+	front_cover.mesh = _create_rounded_panel_mesh(1.105, 1.925, 0.022, 0.218)
+	front_cover.position.z = 0.132
+	front_cover.material_override = cover_material
+	power_bank_preview.add_child(front_cover)
+
+	# Subtle recessed charge readout, with a real percentage label and small
+	# status indicators. The screen remains small relative to the full body.
+	var display_bezel := MeshInstance3D.new()
+	display_bezel.name = "PowerBankDisplayBezel"
+	display_bezel.mesh = _create_rounded_panel_mesh(0.43, 0.225, 0.018, 0.065)
+	display_bezel.position = Vector3(0.0, 0.605, 0.151)
+	display_bezel.material_override = frame_material
+	power_bank_preview.add_child(display_bezel)
 
 	var display := MeshInstance3D.new()
-	display.name = "PowerBankStatusDisplay"
-	display.mesh = _create_rounded_panel_mesh(0.54, 0.27, 0.035, 0.07)
-	display.position = Vector3(0.0, 0.49, 0.151)
+	display.name = "PowerBankInsetOLED"
+	display.mesh = _create_rounded_panel_mesh(0.397, 0.192, 0.008, 0.052)
+	display.position = Vector3(0.0, 0.605, 0.165)
 	display.material_override = screen_material
-	display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	power_bank_preview.add_child(display)
-	_add_charger_box(power_bank_preview, "PowerBankBatteryLevel", Vector3(0.30, 0.035, 0.006), Vector3(0.0, 0.49, 0.173), accent_material)
-	_add_charger_box(power_bank_preview, "PowerBankCapacityMark", Vector3(0.31, 0.018, 0.006), Vector3(0.0, 0.40, 0.173), metal_material)
+	_add_accessory_label(power_bank_preview, "PowerBankChargePercentage", "86%", 25, 0.0030, Color("#e9f4ff"), Vector3(0.0, 0.605, 0.173))
 
-	# Four subtle charge indicators and a side power button.
-	for i in range(4):
-		_add_charger_cylinder(power_bank_preview, "ChargeIndicator_%d" % i, 0.018, 0.008, Vector3(-0.105 + float(i) * 0.07, -0.54, 0.145), accent_material if i < 3 else edge_material, 20)
-	_add_charger_box(power_bank_preview, "PowerBankSideButton", Vector3(0.045, 0.18, 0.07), Vector3(0.565, 0.25, 0.0), edge_material)
+	for indicator_index in range(4):
+		var indicator := _add_charger_cylinder(power_bank_preview, "PowerBankStatusLED_%d" % indicator_index, 0.012, 0.008, Vector3(-0.045 + float(indicator_index) * 0.03, 0.385, 0.151), indicator_material if indicator_index < 3 else frame_material, 20)
+		indicator.rotation_degrees.x = 90.0
 
-	# USB-C input/output and USB-A output ports on the top edge.
-	var port_dark := _charger_material(Color("#10151c"), 0.12, 0.22)
-	_add_charger_box(power_bank_preview, "USBCPortRecess", Vector3(0.17, 0.075, 0.012), Vector3(-0.22, 0.948, 0.0), port_dark)
-	_add_charger_box(power_bank_preview, "USBCPortTongue", Vector3(0.105, 0.018, 0.012), Vector3(-0.22, 0.948, 0.008), metal_material)
-	_add_charger_box(power_bank_preview, "USBAOutputRecess", Vector3(0.23, 0.085, 0.012), Vector3(0.20, 0.948, 0.0), port_dark)
-	_add_charger_box(power_bank_preview, "USBAOutputTongue", Vector3(0.15, 0.018, 0.012), Vector3(0.20, 0.948, 0.008), metal_material)
+	_add_accessory_label(power_bank_preview, "PowerBankProductMark", "PORTABLE POWER", 11, 0.0035, Color("#83909d"), Vector3(0.0, -0.64, 0.147))
 
+	# A small tactile power key is fitted to the side wall, with a metal edge.
+	var side_button := _add_charger_cylinder(power_bank_preview, "PowerBankSidePowerButton", 0.043, 0.032, Vector3(0.574, 0.39, 0.0), frame_material, 32)
+	side_button.rotation_degrees.z = 90.0
+	var side_button_face := _add_charger_cylinder(power_bank_preview, "PowerBankSideButtonFace", 0.028, 0.008, Vector3(0.594, 0.39, 0.0), metal_material, 32)
+	side_button_face.rotation_degrees.z = 90.0
+
+	# Ports are modelled on the short end face, with a metal lip, dark cavity
+	# and separate inner contact tongue. Rotating the rounded-profile mesh
+	# makes its opening face out of the end of the power bank.
+	var usb_c_lip := MeshInstance3D.new()
+	usb_c_lip.name = "PowerBankUSBCMachinedLip"
+	usb_c_lip.mesh = _create_rounded_panel_mesh(0.17, 0.075, 0.012, 0.034)
+	usb_c_lip.rotation.x = -PI * 0.5
+	usb_c_lip.position = Vector3(-0.245, 0.985, 0.0)
+	usb_c_lip.material_override = metal_material
+	power_bank_preview.add_child(usb_c_lip)
+
+	var usb_c_recess := MeshInstance3D.new()
+	usb_c_recess.name = "PowerBankUSBCCavity"
+	usb_c_recess.mesh = _create_rounded_panel_mesh(0.139, 0.047, 0.010, 0.021)
+	usb_c_recess.rotation.x = -PI * 0.5
+	usb_c_recess.position = Vector3(-0.245, 0.994, 0.0)
+	usb_c_recess.material_override = dark_port_material
+	power_bank_preview.add_child(usb_c_recess)
+	_add_charger_box(power_bank_preview, "PowerBankUSBCTongue", Vector3(0.092, 0.007, 0.012), Vector3(-0.245, 1.001, 0.0), tongue_material)
+
+	var usb_a_lip := MeshInstance3D.new()
+	usb_a_lip.name = "PowerBankUSBAReinforcedLip"
+	usb_a_lip.mesh = _create_rounded_panel_mesh(0.235, 0.092, 0.014, 0.025)
+	usb_a_lip.rotation.x = -PI * 0.5
+	usb_a_lip.position = Vector3(0.205, 0.985, 0.0)
+	usb_a_lip.material_override = metal_material
+	power_bank_preview.add_child(usb_a_lip)
+
+	var usb_a_recess := MeshInstance3D.new()
+	usb_a_recess.name = "PowerBankUSBACavity"
+	usb_a_recess.mesh = _create_rounded_panel_mesh(0.202, 0.063, 0.010, 0.014)
+	usb_a_recess.rotation.x = -PI * 0.5
+	usb_a_recess.position = Vector3(0.205, 0.995, 0.0)
+	usb_a_recess.material_override = dark_port_material
+	power_bank_preview.add_child(usb_a_recess)
+	_add_charger_box(power_bank_preview, "PowerBankUSBAInsulator", Vector3(0.152, 0.007, 0.012), Vector3(0.205, 1.001, -0.008), tongue_material)
 
 func _set_power_bank_preview_mode(enabled: bool) -> void:
 	power_bank_preview_mode = enabled
