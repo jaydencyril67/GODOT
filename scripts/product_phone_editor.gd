@@ -3333,6 +3333,8 @@ func _create_smartwatch_smooth_route(anchors: PackedVector3Array, steps_per_segm
 			var point := (p1 * 2.0 + (p2 - p0) * t + (p0 * 2.0 - p1 * 5.0 + p2 * 4.0 - p3) * t2 + (-p0 + p1 * 3.0 - p2 * 3.0 + p3) * t3) * 0.5
 			route.append(point)
 	return route
+
+
 func _create_smartwatch_band_mesh(points: PackedVector3Array, width: float, thickness: float) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	if points.size() < 2:
@@ -3380,11 +3382,13 @@ func _create_smartwatch_band_mesh(points: PackedVector3Array, width: float, thic
 			var normal_d: Vector3 = ring_normals[ring_index][next_side]
 			_add_phone_mesh_triangle_with_normals(surface, a, b, c, normal_a, normal_b, normal_c)
 			_add_phone_mesh_triangle_with_normals(surface, a, c, d, normal_a, normal_c, normal_d)
+	var start_tangent := (points[1] - points[0]).normalized()
+	var end_tangent := (points[points.size() - 1] - points[points.size() - 2]).normalized()
 	for side in range(BAND_SEGMENTS):
 		var next_side := (side + 1) % BAND_SEGMENTS
-		_add_phone_mesh_triangle(surface, points[0], rings[0][next_side], rings[0][side], -Vector3.UP)
+		_add_phone_mesh_triangle(surface, points[0], rings[0][next_side], rings[0][side], -start_tangent)
 		var last_ring := rings.size() - 1
-		_add_phone_mesh_triangle(surface, points[points.size() - 1], rings[last_ring][side], rings[last_ring][next_side], Vector3.UP)
+		_add_phone_mesh_triangle(surface, points[points.size() - 1], rings[last_ring][side], rings[last_ring][next_side], end_tangent)
 	return surface.commit()
 
 
