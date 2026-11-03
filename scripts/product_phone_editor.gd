@@ -4,6 +4,9 @@ signal back_requested
 signal research_upgrade_requested(research_id: String)
 
 const PHONE_SIZE := Vector3(1.45, 2.92, 0.22)
+const ROTATION_STEP := deg_to_rad(10.0)
+# Deliberately low so a normal finger movement makes a controlled turn.
+const DRAG_SENSITIVITY := 0.0024
 
 
 func _active_phone_size() -> Vector3:
@@ -11,9 +14,6 @@ func _active_phone_size() -> Vector3:
 	if selected_phone_type == "Fold":
 		size.x *= 1.5
 	return size
-const ROTATION_STEP := deg_to_rad(10.0)
-# Deliberately low so a normal finger movement makes a controlled turn.
-const DRAG_SENSITIVITY := 0.0024
 
 class DeviceColorSpectrum extends Control:
 	signal color_changed(color: Color)
@@ -9852,13 +9852,18 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 
 	var hinge_bridge := MeshInstance3D.new()
 	hinge_bridge.name = "FlexibleCaseHingeBridge"
-	var bridge_mesh := BoxMesh.new()
-	bridge_mesh.size = Vector3(0.040, _active_phone_size().y * 0.90, 0.010) if selected_phone_type == "Fold" else Vector3(_active_phone_size().x * 0.90, 0.040, 0.010)
+	var bridge_mesh := CapsuleMesh.new()
+	bridge_mesh.radius = 0.020
+	bridge_mesh.height = (_active_phone_size().y if selected_phone_type == "Fold" else _active_phone_size().x) * 0.90
+	bridge_mesh.radial_segments = 32
+	bridge_mesh.rings = 8
 	hinge_bridge.mesh = bridge_mesh
+	if selected_phone_type == "Flip":
+		hinge_bridge.rotation.z = PI * 0.5
 	var bridge_material := StandardMaterial3D.new()
-	bridge_material.albedo_color = phone_case_color.darkened(0.48)
-	bridge_material.roughness = 0.78
-	bridge_material.metallic = 0.04
+	bridge_material.albedo_color = phone_case_color.darkened(0.32)
+	bridge_material.roughness = 0.86
+	bridge_material.metallic = 0.01
 	hinge_bridge.material_override = bridge_material
 	hinge_bridge.position = Vector3(0.0, 0.0, -depth * 0.5 - wall - 0.004)
 	hinge_bridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
