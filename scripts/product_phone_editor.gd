@@ -1227,6 +1227,9 @@ func _on_phone_type_selected(phone_type: String) -> void:
 		return
 	selected_phone_type = phone_type
 	_refresh_phone_mesh()
+	if software_value_labels.has("PHONE TYPE") and is_instance_valid(software_value_labels["PHONE TYPE"]):
+		var phone_type_label: Label = software_value_labels["PHONE TYPE"]
+		phone_type_label.text = selected_phone_type
 	_show_phone_type_controls()
 	_refresh_screen_type_buttons()
 
