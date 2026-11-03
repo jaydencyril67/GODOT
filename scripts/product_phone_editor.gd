@@ -7965,8 +7965,8 @@ func _refresh_phone_charge_port() -> void:
 	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
 	var port_frame_half_width := _active_phone_size().x * 0.5
 	if selected_phone_type == "Fold":
-		var chassis_layout := _get_foldable_segment_layout()
-		var fold_segment_size: Vector3 = chassis_layout["segment_size"]
+		var port_fit_layout := _get_foldable_segment_layout()
+		var fold_segment_size: Vector3 = port_fit_layout["segment_size"]
 		port_frame_half_width = fold_segment_size.x * 0.5
 	var flat_bottom_half_width := maxf(0.02, port_frame_half_width - current_corner_radius)
 	var profile_fit := 1.0
@@ -7991,8 +7991,8 @@ func _refresh_phone_charge_port() -> void:
 	port_root.name = "PhoneChargingPort"
 	if selected_phone_type == "Fold":
 		# Match the fixed Fold frame's exact saved chassis centre.
-		var chassis_layout := _get_foldable_segment_layout()
-		var fixed_offset: Vector3 = chassis_layout["fixed_offset"]
+		var port_root_layout := _get_foldable_segment_layout()
+		var fixed_offset: Vector3 = port_root_layout["fixed_offset"]
 		port_root.position = fixed_offset
 	phone_body.add_child(port_root)
 	var bottom_y := -_active_phone_size().y * 0.5
