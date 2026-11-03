@@ -3259,39 +3259,38 @@ func _rebuild_smartwatch_preview() -> void:
 	smartwatch_preview.add_child(side_button)
 	_add_charger_box(smartwatch_preview, "ActionButtonInset", Vector3(0.008, 0.085, 0.006), Vector3(0.481, -0.175, 0.004), steel_material)
 
-	# Integrated attachment pins and flat, softly rounded silicone bands.
-	# The cross-section is deliberately wide and flat, never cable-like.
-	var upper_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, 0.485, -0.035), Vector3(0.0, 0.66, -0.105), Vector3(0.0, 1.00, -0.205), Vector3(0.0, 1.205, -0.19), 40)
-	var lower_route := _append_charger_bezier(PackedVector3Array(), Vector3(0.0, -0.485, -0.035), Vector3(0.0, -0.66, -0.105), Vector3(0.0, -1.00, -0.205), Vector3(0.0, -1.205, -0.19), 40)
-	var upper_band := MeshInstance3D.new()
-	upper_band.name = "UpperMouldedFluoroelastomerBand"
-	upper_band.mesh = _create_smartwatch_band_mesh(upper_route, 0.455, 0.075)
-	upper_band.material_override = strap_material
-	smartwatch_preview.add_child(upper_band)
-	var lower_band := MeshInstance3D.new()
-	lower_band.name = "LowerMouldedFluoroelastomerBand"
-	lower_band.mesh = _create_smartwatch_band_mesh(lower_route, 0.455, 0.075)
-	lower_band.material_override = strap_material
-	smartwatch_preview.add_child(lower_band)
+	# A continuous closed strap now wraps around the back of the wrist rather
+	# than ending as two visibly open tails. Its broad moulded section remains
+	# flat and watch-like, with a metal buckle and adjustment holes on the rear.
+	var band_route := PackedVector3Array()
+	band_route = _append_charger_bezier(band_route, Vector3(0.0, 0.485, -0.035), Vector3(0.0, 0.68, -0.085), Vector3(0.0, 0.84, -0.27), Vector3(0.0, 0.78, -0.49), 20)
+	band_route = _append_charger_bezier(band_route, Vector3(0.0, 0.78, -0.49), Vector3(0.0, 0.72, -0.70), Vector3(0.0, 0.43, -0.86), Vector3(0.0, 0.20, -0.88), 20)
+	band_route = _append_charger_bezier(band_route, Vector3(0.0, 0.20, -0.88), Vector3(0.0, -0.20, -0.88), Vector3(0.0, -0.43, -0.86), Vector3(0.0, -0.78, -0.49), 20)
+	band_route = _append_charger_bezier(band_route, Vector3(0.0, -0.78, -0.49), Vector3(0.0, -0.84, -0.27), Vector3(0.0, -0.68, -0.085), Vector3(0.0, -0.485, -0.035), 20)
+	var closed_band := MeshInstance3D.new()
+	closed_band.name = "ClosedBuckledFluoroelastomerBand"
+	closed_band.mesh = _create_smartwatch_band_mesh(band_route, 0.455, 0.075)
+	closed_band.material_override = strap_material
+	smartwatch_preview.add_child(closed_band)
 
 	var upper_pin := _add_charger_cylinder(smartwatch_preview, "UpperBandSpringBar", 0.018, 0.47, Vector3(0.0, 0.485, -0.018), steel_material, 24)
 	upper_pin.rotation_degrees.z = 90.0
 	var lower_pin := _add_charger_cylinder(smartwatch_preview, "LowerBandSpringBar", 0.018, 0.47, Vector3(0.0, -0.485, -0.018), steel_material, 24)
 	lower_pin.rotation_degrees.z = 90.0
 
-	# Adjustment holes and a proper metal pin buckle on the lower strap.
-	for hole_index in range(5):
-		var hole_y := -0.735 - float(hole_index) * 0.075
-		var hole_z := -0.145 - float(hole_index) * 0.009
-		var adjustment_hole := _add_charger_cylinder(smartwatch_preview, "BandAdjustmentHole_%d" % hole_index, 0.014, 0.009, Vector3(0.0, hole_y, hole_z), _charger_material(Color("#17212a"), 0.0, 0.92), 20)
+	# Rear-side fastening hardware: a proper rectangular metal buckle frame
+	# surrounds the strap, with a central pin and a row of sizing holes.
+	var buckle_center := Vector3(0.0, 0.0, -0.88)
+	_add_charger_box(smartwatch_preview, "BandBuckleUpperRail", Vector3(0.52, 0.022, 0.022), buckle_center + Vector3(0.0, 0.0, 0.09), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBuckleLowerRail", Vector3(0.52, 0.022, 0.022), buckle_center - Vector3(0.0, 0.0, 0.09), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBuckleLeftRail", Vector3(0.022, 0.022, 0.18), buckle_center + Vector3(-0.249, 0.0, 0.0), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBuckleRightRail", Vector3(0.022, 0.022, 0.18), buckle_center + Vector3(0.249, 0.0, 0.0), steel_material)
+	_add_charger_box(smartwatch_preview, "BandBuckleTongue", Vector3(0.34, 0.014, 0.014), buckle_center + Vector3(0.0, -0.018, 0.0), dark_steel_material)
+	var hole_material := _charger_material(Color("#17212a"), 0.0, 0.92)
+	for hole_index in range(6):
+		var hole_y := 0.30 - float(hole_index) * 0.12
+		var adjustment_hole := _add_charger_cylinder(smartwatch_preview, "BandAdjustmentHole_%d" % hole_index, 0.014, 0.010, Vector3(0.0, hole_y, -0.925), hole_material, 20)
 		adjustment_hole.rotation_degrees.x = 90.0
-	var buckle_y := -1.105
-	var buckle_z := -0.145
-	_add_charger_box(smartwatch_preview, "BandBuckleTop", Vector3(0.43, 0.022, 0.028), Vector3(0.0, buckle_y + 0.115, buckle_z), steel_material)
-	_add_charger_box(smartwatch_preview, "BandBuckleBottom", Vector3(0.43, 0.022, 0.028), Vector3(0.0, buckle_y - 0.115, buckle_z), steel_material)
-	_add_charger_box(smartwatch_preview, "BandBuckleLeft", Vector3(0.022, 0.23, 0.028), Vector3(-0.204, buckle_y, buckle_z), steel_material)
-	_add_charger_box(smartwatch_preview, "BandBuckleRight", Vector3(0.022, 0.23, 0.028), Vector3(0.204, buckle_y, buckle_z), steel_material)
-	_add_charger_box(smartwatch_preview, "BandBucklePin", Vector3(0.30, 0.014, 0.018), Vector3(0.0, buckle_y, buckle_z + 0.018), dark_steel_material)
 
 
 func _create_smartwatch_band_mesh(points: PackedVector3Array, width: float, thickness: float) -> ArrayMesh:
@@ -3494,42 +3493,12 @@ func _rebuild_power_bank_preview() -> void:
 	var side_button_face := _add_charger_cylinder(power_bank_preview, "PowerBankSideButtonFace", 0.028, 0.008, Vector3(0.594, 0.39, 0.0), metal_material, 32)
 	side_button_face.rotation_degrees.z = 90.0
 
-	# Ports are modelled on the short end face, with a metal lip, dark cavity
-	# and separate inner contact tongue. Rotating the rounded-profile mesh
-	# makes its opening face out of the end of the power bank.
-	var usb_c_lip := MeshInstance3D.new()
-	usb_c_lip.name = "PowerBankUSBCMachinedLip"
-	usb_c_lip.mesh = _create_rounded_panel_mesh(0.17, 0.075, 0.012, 0.034)
-	usb_c_lip.rotation.x = -PI * 0.5
-	usb_c_lip.position = Vector3(-0.245, 0.985, 0.0)
-	usb_c_lip.material_override = metal_material
-	power_bank_preview.add_child(usb_c_lip)
-
-	var usb_c_recess := MeshInstance3D.new()
-	usb_c_recess.name = "PowerBankUSBCCavity"
-	usb_c_recess.mesh = _create_rounded_panel_mesh(0.139, 0.047, 0.010, 0.021)
-	usb_c_recess.rotation.x = -PI * 0.5
-	usb_c_recess.position = Vector3(-0.245, 0.994, 0.0)
-	usb_c_recess.material_override = dark_port_material
-	power_bank_preview.add_child(usb_c_recess)
-	_add_charger_box(power_bank_preview, "PowerBankUSBCTongue", Vector3(0.092, 0.007, 0.012), Vector3(-0.245, 1.001, 0.0), tongue_material)
-
-	var usb_a_lip := MeshInstance3D.new()
-	usb_a_lip.name = "PowerBankUSBAReinforcedLip"
-	usb_a_lip.mesh = _create_rounded_panel_mesh(0.235, 0.092, 0.014, 0.025)
-	usb_a_lip.rotation.x = -PI * 0.5
-	usb_a_lip.position = Vector3(0.205, 0.985, 0.0)
-	usb_a_lip.material_override = metal_material
-	power_bank_preview.add_child(usb_a_lip)
-
-	var usb_a_recess := MeshInstance3D.new()
-	usb_a_recess.name = "PowerBankUSBACavity"
-	usb_a_recess.mesh = _create_rounded_panel_mesh(0.202, 0.063, 0.010, 0.014)
-	usb_a_recess.rotation.x = -PI * 0.5
-	usb_a_recess.position = Vector3(0.205, 0.995, 0.0)
-	usb_a_recess.material_override = dark_port_material
-	power_bank_preview.add_child(usb_a_recess)
-	_add_charger_box(power_bank_preview, "PowerBankUSBAInsulator", Vector3(0.152, 0.007, 0.012), Vector3(0.205, 1.001, -0.008), tongue_material)
+	# Reuse the real deep-port construction used by the charger and phone:
+	# machined metal ring, insulating gasket, extruded cavity walls, recessed
+	# black floor and connector-specific tongue/contact details. The local port
+	# normal is flipped toward the power bank's +Y end face.
+	_add_charger_recessed_port(power_bank_preview, "USB-C", Vector3(-0.235, 0.985, 0.0), metal_material, Vector3(0.0, 0.0, PI), "PowerBankUSBCRecessedPort")
+	_add_charger_recessed_port(power_bank_preview, "USB-A", Vector3(0.205, 0.985, 0.0), metal_material, Vector3(0.0, 0.0, PI), "PowerBankUSBARecessedPort")
 
 func _set_power_bank_preview_mode(enabled: bool) -> void:
 	power_bank_preview_mode = enabled
@@ -3675,7 +3644,7 @@ func _add_charger_cylinder(parent: Node3D, node_name: String, radius: float, hei
 	return part
 
 
-func _add_charger_recessed_port(parent: Node3D, output_connector: String, face_position: Vector3, metal_material: Material) -> void:
+func _add_charger_recessed_port(parent: Node3D, output_connector: String, face_position: Vector3, metal_material: Material, face_rotation: Vector3 = Vector3(-1.5707963, 0.0, 0.0), port_node_name: String = "ChargerRecessedOutputPort") -> void:
 	# Use the same machined lip, gasket, extruded cavity walls and recessed
 	# contact floor as the phone's charging port. Rotate the phone-port
 	# construction axis so its opening faces the charger's front (+Z).
@@ -3685,9 +3654,9 @@ func _add_charger_recessed_port(parent: Node3D, output_connector: String, face_p
 	var inner_points := _make_port_outline(port_width * 0.96, port_height * 0.88, port_height * 0.30, 10)
 
 	var port_root := Node3D.new()
-	port_root.name = "ChargerRecessedOutputPort"
+	port_root.name = port_node_name
 	port_root.position = face_position
-	port_root.rotation.x = deg_to_rad(-90.0)
+	port_root.rotation = face_rotation
 	parent.add_child(port_root)
 
 	var bezel_material := _charger_material(Color("#aeb9c3"), 0.90, 0.24)
