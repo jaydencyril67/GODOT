@@ -2907,26 +2907,39 @@ func _refresh_screen_type_buttons() -> void:
 		option.disabled = not screen_enabled
 
 
-func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float) -> Mesh:
+func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float, corner_mask: int = 15) -> Mesh:
 	# A true rounded-rectangle extrusion keeps the glass and button outlines
-	# smooth instead of placing square BoxMeshes over the curved phone face.
+	# smooth. Foldable halves pass a corner mask so only the four corners on
+	# the complete device perimeter are rounded; hinge-side corners stay square.
 	var half_width := width * 0.5
 	var half_height := height * 0.5
-	var radius := clampf(corner_radius, 0.001, minf(half_width, half_height))
-	var centers := [
-		Vector2(half_width - radius, half_height - radius),
-		Vector2(-half_width + radius, half_height - radius),
-		Vector2(-half_width + radius, -half_height + radius),
-		Vector2(half_width - radius, -half_height + radius)
+	var radius := clampf(corner_radius, 0.0, minf(half_width, half_height))
+	var corner_points := [
+		Vector2(half_width, half_height),
+		Vector2(-half_width, half_height),
+		Vector2(-half_width, -half_height),
+		Vector2(half_width, -half_height)
 	]
 	var outline := PackedVector2Array()
+	var rounded_outline_points: Array[bool] = []
 	const CORNER_SEGMENTS := 24
 	for corner_index in range(4):
-		var center: Vector2 = centers[corner_index]
-		var start_angle := float(corner_index) * PI * 0.5
-		for segment in range(CORNER_SEGMENTS + 1):
-			var angle := start_angle + float(segment) / float(CORNER_SEGMENTS) * PI * 0.5
-			outline.append(center + Vector2(cos(angle), sin(angle)) * radius)
+		var corner_point: Vector2 = corner_points[corner_index]
+		var should_round := (corner_mask & (1 << corner_index)) != 0 and radius > 0.0001
+		if should_round:
+			var center := Vector2(
+				signf(corner_point.x) * (half_width - radius),
+				signf(corner_point.y) * (half_height - radius)
+			)
+			var start_angle := float(corner_index) * PI * 0.5
+			for segment in range(CORNER_SEGMENTS + 1):
+				var angle := start_angle + float(segment) / float(CORNER_SEGMENTS) * PI * 0.5
+				outline.append(center + Vector2(cos(angle), sin(angle)) * radius)
+				rounded_outline_points.append(true)
+		else:
+			outline.append(corner_point)
+			rounded_outline_points.append(false)
+
 	var indices := Geometry2D.triangulate_polygon(outline)
 	if indices.is_empty():
 		var fallback := BoxMesh.new()
@@ -2948,14 +2961,18 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		var b: Vector2 = outline[next_index]
 		var edge := b - a
 		var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
-		var previous_a: Vector2 = outline[(index - 1 + outline.size()) % outline.size()]
-		var previous_edge := a - previous_a
-		var previous_normal := Vector3(previous_edge.y, -previous_edge.x, 0.0).normalized()
-		var next_b: Vector2 = outline[(next_index + 1) % outline.size()]
-		var next_edge := next_b - b
-		var next_normal := Vector3(next_edge.y, -next_edge.x, 0.0).normalized()
-		var normal_a := (previous_normal + side_normal).normalized()
-		var normal_b := (side_normal + next_normal).normalized()
+		var normal_a := side_normal
+		var normal_b := side_normal
+		if rounded_outline_points[index]:
+			var previous_a: Vector2 = outline[(index - 1 + outline.size()) % outline.size()]
+			var previous_edge := a - previous_a
+			var previous_normal := Vector3(previous_edge.y, -previous_edge.x, 0.0).normalized()
+			normal_a = (previous_normal + side_normal).normalized()
+		if rounded_outline_points[next_index]:
+			var next_b: Vector2 = outline[(next_index + 1) % outline.size()]
+			var next_edge := next_b - b
+			var next_normal := Vector3(next_edge.y, -next_edge.x, 0.0).normalized()
+			normal_b = (side_normal + next_normal).normalized()
 		var front_a := Vector3(a.x, a.y, front_z)
 		var front_b := Vector3(b.x, b.y, front_z)
 		var back_a := Vector3(a.x, a.y, back_z)
@@ -2963,7 +2980,6 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		_add_phone_mesh_triangle_with_normals(surface, front_a, back_a, back_b, normal_a, normal_a, normal_b)
 		_add_phone_mesh_triangle_with_normals(surface, front_a, back_b, front_b, normal_a, normal_b, normal_b)
 	return surface.commit()
-
 
 func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool) -> ArrayMesh:
 	# Keep the curved glass on the same rounded-rectangle footprint as the
@@ -3084,14 +3100,19 @@ func _screen_protector_point_is_cut_out(point: Vector2, cutouts: Array[Dictionar
 	return false
 
 
-func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, height: float, radius: float, curve_sides: bool, curve_vertical: bool, thickness: float) -> Vector3:
+func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, height: float, radius: float, curve_sides: bool, curve_vertical: bool, thickness: float, corner_mask: int = 15) -> Vector3:
 	var half_width := width * 0.5
 	var half_height := height * 0.5
 	var x := raw_x
 	var y := raw_y
 	var corner_x := half_width - radius
 	var corner_y := half_height - radius
-	if radius > 0.0001 and absf(raw_x) > corner_x and absf(raw_y) > corner_y:
+	var in_top_right := raw_x > corner_x and raw_y > corner_y and (corner_mask & 1) != 0
+	var in_top_left := raw_x < -corner_x and raw_y > corner_y and (corner_mask & 2) != 0
+	var in_bottom_left := raw_x < -corner_x and raw_y < -corner_y and (corner_mask & 4) != 0
+	var in_bottom_right := raw_x > corner_x and raw_y < -corner_y and (corner_mask & 8) != 0
+	var should_round := radius > 0.0001 and (in_top_right or in_top_left or in_bottom_left or in_bottom_right)
+	if should_round:
 		var corner_center := Vector2(signf(raw_x) * corner_x, signf(raw_y) * corner_y)
 		var corner_offset := Vector2(raw_x, raw_y) - corner_center
 		if corner_offset.length_squared() > radius * radius:
@@ -3110,14 +3131,13 @@ func _screen_protector_surface_point(raw_x: float, raw_y: float, width: float, h
 		surface_z = 0.003
 	return Vector3(x, y, surface_z + thickness)
 
-
 func _add_screen_protector_edge(surface: SurfaceTool, base_a: Vector3, base_b: Vector3, top_a: Vector3, top_b: Vector3, outward_normal: Vector3) -> void:
 	# Build the clear-glass sidewall between the fitted underside and polished top.
 	_add_phone_mesh_triangle(surface, base_a, top_a, top_b, outward_normal)
 	_add_phone_mesh_triangle(surface, base_a, top_b, base_b, outward_normal)
 
 
-func _create_screen_protector_mesh_async(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float) -> ArrayMesh:
+func _create_screen_protector_mesh_async(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, cutouts: Array[Dictionary], thickness: float, corner_mask: int = 15) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	# The dense grid follows the exact screen outline and curve. The top and
@@ -3136,8 +3156,8 @@ func _create_screen_protector_mesh_async(width: float, height: float, corner_rad
 		for x_index in range(X_SEGMENTS + 1):
 			var u := float(x_index) / float(X_SEGMENTS)
 			var raw_x := (u - 0.5) * width
-			base_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP))
-			top_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP + thickness))
+			base_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP, corner_mask))
+			top_points.append(_screen_protector_surface_point(raw_x, raw_y, width, height, radius, curve_sides, curve_vertical, EDGE_GAP + thickness, corner_mask))
 		if y_index % 8 == 7:
 			await get_tree().process_frame
 
@@ -3182,8 +3202,7 @@ func _create_screen_protector_mesh_async(width: float, height: float, corner_rad
 		var right_bottom := right_top + X_SEGMENTS + 1
 		_add_screen_protector_edge(surface, base_points[right_top], base_points[right_bottom], top_points[right_top], top_points[right_bottom], Vector3.RIGHT)
 
-	# Add the inner cut walls around each camera/sensor opening. This gives
-	# the laser-cut apertures a real glass edge rather than a floating decal.
+	# Add the inner cut walls around each camera/sensor opening.
 	for y_index in range(Y_SEGMENTS):
 		for x_index in range(X_SEGMENTS):
 			var cell_index := y_index * X_SEGMENTS + x_index
@@ -3203,7 +3222,6 @@ func _create_screen_protector_mesh_async(width: float, height: float, corner_rad
 	surface.index()
 	surface.generate_normals()
 	return surface.commit()
-
 
 func _create_screen_protector_material() -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -3232,7 +3250,7 @@ func _create_screen_protector_material() -> StandardMaterial3D:
 	return material
 
 
-func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, shared_token: int = -1, include_camera_cutouts: bool = true) -> void:
+func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, shared_token: int = -1, include_camera_cutouts: bool = true, corner_mask: int = 15) -> void:
 	if not screen_protector_enabled or not is_instance_valid(display):
 		return
 	if shared_token < 0:
@@ -3242,7 +3260,7 @@ func _build_screen_protector(display: MeshInstance3D, screen_width: float, scree
 	var token := shared_token
 	var placeholder := MeshInstance3D.new()
 	placeholder.name = "TemperedGlassBuildPreview"
-	placeholder.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.002, screen_radius)
+	placeholder.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.002, screen_radius, corner_mask)
 	var preview_material := StandardMaterial3D.new()
 	preview_material.albedo_color = Color(0.45, 0.78, 0.96, 0.10)
 	preview_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -3256,14 +3274,14 @@ func _build_screen_protector(display: MeshInstance3D, screen_width: float, scree
 	build_tween.set_loops()
 	build_tween.tween_property(placeholder, "scale", Vector3(1.0, 0.985, 1.0), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	build_tween.tween_property(placeholder, "scale", Vector3.ONE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	call_deferred("_build_screen_protector_async", display, screen_width, screen_height, screen_radius, curved_display, token, placeholder, build_tween, include_camera_cutouts)
+	call_deferred("_build_screen_protector_async", display, screen_width, screen_height, screen_radius, curved_display, token, placeholder, build_tween, include_camera_cutouts, corner_mask)
 
 
-func _build_screen_protector_async(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, token: int, placeholder: MeshInstance3D, build_tween: Tween, include_camera_cutouts: bool = true) -> void:
+func _build_screen_protector_async(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, token: int, placeholder: MeshInstance3D, build_tween: Tween, include_camera_cutouts: bool = true, corner_mask: int = 15) -> void:
 	var curve_sides := curved_display and side_curve_enabled
 	var curve_vertical := curved_display and vertical_curve_enabled
 	var cutouts := _get_screen_protector_cutouts(screen_width, screen_height) if include_camera_cutouts else []
-	var generated_mesh: ArrayMesh = await _create_screen_protector_mesh_async(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness)
+	var generated_mesh: ArrayMesh = await _create_screen_protector_mesh_async(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness, corner_mask)
 	if token != screen_protector_build_token or not screen_protector_enabled or not is_instance_valid(display):
 		return
 	if build_tween.is_running():
@@ -5395,7 +5413,7 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	panel_width = maxf(0.28, panel_width)
 	panel_height = maxf(0.42, panel_height)
 	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
-	var radius := minf(0.10, minf(panel_width, panel_height) * 0.18)
+	var radius := minf(0.32 * float(border_radius_level) / 6.0, minf(panel_width, panel_height) * 0.45)
 
 	var bezel := MeshInstance3D.new()
 	bezel.name = "OuterDisplayBezel"
@@ -5484,7 +5502,9 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 
 	var current_depth := lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var glass_z := current_depth * 0.5 + 0.0035
-	var screen_radius := minf(0.12, 0.32 * float(border_radius_level) / 6.0)
+	var screen_radius := 0.32 * float(border_radius_level) / 6.0
+	var fixed_corner_mask := _foldable_half_corner_mask(false)
+	var moving_corner_mask := _foldable_half_corner_mask(true)
 	var colors := {
 		"TFT LCD": Color("#263746"), "LED-LCD": Color("#223342"),
 		"IPS LCD": Color("#1d2d3d"), "Mini-LED LCD": Color("#172535"),
@@ -5513,14 +5533,14 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	phone_body.add_child(display_root)
 	var fixed_display := MeshInstance3D.new()
 	fixed_display.name = "FixedInnerDisplay"
-	fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius)
+	fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, fixed_corner_mask)
 	fixed_display.material_override = display_material
 	fixed_display.position = fixed_offset + Vector3(0.0, 0.0, glass_z)
 	fixed_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	display_root.add_child(fixed_display)
 	var moving_display := MeshInstance3D.new()
 	moving_display.name = "PhoneFoldableMovingDisplay"
-	moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius)
+	moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, moving_corner_mask)
 	moving_display.material_override = display_material
 	moving_display.position = moving_offset + Vector3(0.0, 0.0, glass_z)
 	moving_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -5570,8 +5590,8 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 			shared_token = screen_protector_build_token
 		var fixed_has_camera_cutout := selected_phone_type != "Flip"
 		var moving_has_camera_cutout := selected_phone_type == "Flip"
-		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, false, shared_token, fixed_has_camera_cutout)
-		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, false, shared_token, moving_has_camera_cutout)
+		_build_screen_protector(fixed_display, segment_width, segment_height, screen_radius, false, shared_token, fixed_has_camera_cutout, fixed_corner_mask)
+		_build_screen_protector(moving_display, segment_width, segment_height, screen_radius, false, shared_token, moving_has_camera_cutout, moving_corner_mask)
 
 
 func _camera_mp_from_slider_index(index: int) -> int:
@@ -8096,6 +8116,17 @@ func _refresh_foldable_frame_materials() -> void:
 		hinge_edge.material_override = edge_material
 
 
+func _foldable_half_corner_mask(is_moving_half: bool) -> int:
+	# Corner order matches both mesh builders: top-right, top-left,
+	# bottom-left, bottom-right. Only the outside corners of the complete
+	# foldable handset receive the Standard phone's border radius.
+	if selected_phone_type == "Fold":
+		return 9 if is_moving_half else 6
+	if selected_phone_type == "Flip":
+		return 3 if is_moving_half else 12
+	return 15
+
+
 func _refresh_foldable_hardware() -> void:
 	if not is_instance_valid(phone_body):
 		return
@@ -8150,16 +8181,18 @@ func _refresh_foldable_hardware() -> void:
 		fixed_offset = Vector3(0.0, -half_height * 0.5 - 0.007, 0.0)
 		moving_offset = Vector3(0.0, half_height * 0.5 + 0.007, 0.0)
 
+	var fixed_corner_mask := _foldable_half_corner_mask(false)
+	var moving_corner_mask := _foldable_half_corner_mask(true)
 	var fixed_frame := MeshInstance3D.new()
 	fixed_frame.name = "PhoneFoldableFixedFrame"
-	fixed_frame.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points, segment_size)
+	fixed_frame.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points, segment_size, fixed_corner_mask)
 	fixed_frame.material_override = _create_device_body_material(Vector2(fixed_offset.x, fixed_offset.y))
 	fixed_frame.position = fixed_offset
 	fixed_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	fixed_half.add_child(fixed_frame)
 	var moving_frame := MeshInstance3D.new()
 	moving_frame.name = "PhoneFoldableMovingFrame"
-	moving_frame.mesh = _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size)
+	moving_frame.mesh = _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size, moving_corner_mask)
 	moving_frame.material_override = _create_device_body_material(Vector2(moving_offset.x, moving_offset.y))
 	moving_frame.position = moving_offset
 	moving_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -8286,7 +8319,7 @@ func _add_phone_bottom_edge_with_port(surface: SurfaceTool, phone_size: Vector3,
 		_add_phone_mesh_triangle(surface, outer_a, inner_b, inner_a, bottom_normal)
 
 
-func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array, size_override: Vector3 = Vector3.ZERO) -> Mesh:
+func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array, size_override: Vector3 = Vector3.ZERO, corner_mask: int = 15) -> Mesh:
 	var phone_size := _active_phone_size()
 	if size_override.x > 0.0 and size_override.y > 0.0:
 		phone_size.x = size_override.x
@@ -8295,35 +8328,39 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array,
 	phone_size.z = lerpf(0.08, _active_phone_size().z, float(phone_thickness_level) / 10.0)
 	var half_size := phone_size * 0.5
 	var outline := PackedVector2Array()
+	var rounded_outline_points: Array[bool] = []
 
+	var corner_points := [
+		Vector2(half_size.x, half_size.y),
+		Vector2(-half_size.x, half_size.y),
+		Vector2(-half_size.x, -half_size.y),
+		Vector2(half_size.x, -half_size.y)
+	]
 	if radius <= 0.0001:
-		outline = PackedVector2Array([
-			Vector2(half_size.x, half_size.y),
-			Vector2(-half_size.x, half_size.y),
-			Vector2(-half_size.x, -half_size.y),
-			Vector2(half_size.x, -half_size.y)
-		])
+		for corner_point in corner_points:
+			outline.append(corner_point)
+			rounded_outline_points.append(false)
 	else:
-		# Round only the phone's front/back outline. Keep the front and rear
-		# faces flat and preserve a straight extrusion through the thickness.
+		# Round only selected outer corners. The two corners beside a fold
+		# hinge remain square so both leaves form one continuous perimeter.
 		var corner_radius := clampf(radius, 0.0, minf(half_size.x, half_size.y) - 0.001)
-		var corner_centers := [
-			Vector2(half_size.x - corner_radius, half_size.y - corner_radius),
-			Vector2(-half_size.x + corner_radius, half_size.y - corner_radius),
-			Vector2(-half_size.x + corner_radius, -half_size.y + corner_radius),
-			Vector2(half_size.x - corner_radius, -half_size.y + corner_radius)
-		]
-		# Dense quarter-circle tessellation keeps the chassis silhouette smooth at oblique rotation angles.
 		var corner_segments := 48
 		for corner_index in range(4):
-			var center: Vector2 = corner_centers[corner_index]
-			var start_angle := float(corner_index) * PI * 0.5
-			# Include both tangent endpoints of every quarter-circle. These
-			# exact points create the straight bottom rail segment that the
-			# charging-port aperture cuts into at every border-radius level.
-			for segment in range(corner_segments + 1):
-				var angle := start_angle + float(segment) / float(corner_segments) * PI * 0.5
-				outline.append(center + Vector2(cos(angle), sin(angle)) * corner_radius)
+			var corner_point: Vector2 = corner_points[corner_index]
+			var should_round := (corner_mask & (1 << corner_index)) != 0 and corner_radius > 0.0001
+			if should_round:
+				var center := Vector2(
+					signf(corner_point.x) * (half_size.x - corner_radius),
+					signf(corner_point.y) * (half_size.y - corner_radius)
+				)
+				var start_angle := float(corner_index) * PI * 0.5
+				for segment in range(corner_segments + 1):
+					var angle := start_angle + float(segment) / float(corner_segments) * PI * 0.5
+					outline.append(center + Vector2(cos(angle), sin(angle)) * corner_radius)
+					rounded_outline_points.append(true)
+			else:
+				outline.append(corner_point)
+				rounded_outline_points.append(false)
 
 	var triangle_indices: PackedInt32Array = Geometry2D.triangulate_polygon(outline)
 	if triangle_indices.is_empty():
@@ -8350,8 +8387,7 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array,
 		_add_phone_mesh_triangle(surface, front_a, front_b, front_c, Vector3(0.0, 0.0, 1.0))
 		_add_phone_mesh_triangle(surface, back_a, back_c, back_b, Vector3(0.0, 0.0, -1.0))
 
-	# Build the perimeter. Only the straight bottom rail is interrupted by
-	# the connector aperture; all other sides remain continuous.
+	# Build the perimeter with crisp hinge-side corners and smooth outside arcs.
 	for index in range(outline.size()):
 		var next_index := (index + 1) % outline.size()
 		var a: Vector2 = outline[index]
@@ -8363,23 +8399,22 @@ func _create_rounded_phone_mesh(radius: float, port_opening: PackedVector2Array,
 		else:
 			var edge := b - a
 			var side_normal := Vector3(edge.y, -edge.x, 0.0).normalized()
+			var normal_a := side_normal
+			var normal_b := side_normal
+			if rounded_outline_points[index]:
+				var previous_a: Vector2 = outline[(index - 1 + outline.size()) % outline.size()]
+				var previous_edge_a := a - previous_a
+				var previous_normal_a := Vector3(previous_edge_a.y, -previous_edge_a.x, 0.0).normalized()
+				normal_a = (previous_normal_a + side_normal).normalized()
+			if rounded_outline_points[next_index]:
+				var next_b: Vector2 = outline[(next_index + 1) % outline.size()]
+				var next_edge_b := next_b - b
+				var next_normal_b := Vector3(next_edge_b.y, -next_edge_b.x, 0.0).normalized()
+				normal_b = (side_normal + next_normal_b).normalized()
 			var front_a := Vector3(a.x, a.y, front_z)
 			var front_b := Vector3(b.x, b.y, front_z)
 			var back_a := Vector3(a.x, a.y, back_z)
 			var back_b := Vector3(b.x, b.y, back_z)
-			# Blend adjacent perimeter normals at rounded-corner vertices. This
-			# keeps the side rail visually continuous instead of faceted per segment.
-			var normal_a := side_normal
-			var normal_b := side_normal
-			if radius > 0.0001:
-				var previous_a: Vector2 = outline[(index - 1 + outline.size()) % outline.size()]
-				var previous_edge_a := a - previous_a
-				var previous_normal_a := Vector3(previous_edge_a.y, -previous_edge_a.x, 0.0).normalized()
-				var next_b: Vector2 = outline[(next_index + 1) % outline.size()]
-				var next_edge_b := next_b - b
-				var next_normal_b := Vector3(next_edge_b.y, -next_edge_b.x, 0.0).normalized()
-				normal_a = (previous_normal_a + side_normal).normalized()
-				normal_b = (side_normal + next_normal_b).normalized()
 			_add_phone_mesh_triangle_with_normals(surface, front_a, back_a, back_b, normal_a, normal_a, normal_b)
 			_add_phone_mesh_triangle_with_normals(surface, front_a, back_b, front_b, normal_a, normal_b, normal_b)
 
