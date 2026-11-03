@@ -10053,6 +10053,34 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 	cavity.position = Vector3(centre.x, centre.y, depth * 0.5 + wall + 0.040)
 	_case_subtract(combiner, cavity)
 
+	# Fold and Flip cover displays live on the outside/back face. Leave a
+	# precision window in the matching case half so the case never covers
+	# the actual outer glass, bezel or selected front-camera assembly.
+	var has_outer_display := (
+		(selected_phone_type == "Fold" and segment_name == "PhoneCaseFixedHalf")
+		or (selected_phone_type == "Flip" and segment_name == "PhoneCaseMovingHalfShell")
+	)
+	if screen_enabled and has_outer_display:
+		var outer_panel_width: float
+		var outer_panel_height: float
+		if selected_phone_type == "Fold":
+			outer_panel_width = (_active_phone_size().x - 0.014) * 0.5 - 0.12
+			outer_panel_height = _active_phone_size().y - 0.20
+		else:
+			outer_panel_width = _active_phone_size().x - 0.18
+			outer_panel_height = (_active_phone_size().y - 0.014) * 0.5 - 0.12
+		var outer_window := CSGPolygon3D.new()
+		outer_window.name = "OuterDisplayClearanceWindow"
+		# The window follows the outer bezel footprint plus a small fitting gap.
+		outer_window.polygon = _case_outline_for_size(
+			Vector2(outer_panel_width + 0.07, outer_panel_height + 0.07),
+			0.035,
+			_foldable_half_corner_mask(true)
+		)
+		outer_window.depth = wall + 0.050
+		outer_window.position = Vector3(centre.x, centre.y, -depth * 0.5 + 0.025)
+		_case_subtract(combiner, outer_window)
+
 	# Rear camera apertures are allocated to the half that actually contains each module.
 	for camera_index in range(rear_camera_modules.size()):
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
