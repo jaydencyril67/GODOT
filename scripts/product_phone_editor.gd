@@ -9609,8 +9609,161 @@ func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: 
 	_case_subtract(combiner,opening)
 
 
+func _case_outline_for_size(size: Vector2, expansion: float) -> PackedVector2Array:
+	var half_w := size.x * 0.5 + expansion
+	var half_h := size.y * 0.5 + expansion
+	var radius := clampf(0.32 * float(border_radius_level) / 6.0 + expansion, 0.001, minf(half_w, half_h) - 0.001)
+	var centers := [
+		Vector2(half_w - radius, half_h - radius),
+		Vector2(-half_w + radius, half_h - radius),
+		Vector2(-half_w + radius, -half_h + radius),
+		Vector2(half_w - radius, -half_h + radius)
+	]
+	var points := PackedVector2Array()
+	for corner in range(4):
+		var first_step := 0 if corner == 0 else 1
+		var last_step := 16 if corner < 3 else 15
+		for step in range(first_step, last_step + 1):
+			var angle := float(corner) * PI * 0.5 + float(step) / 16.0 * PI * 0.5
+			points.append(centers[corner] + Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: Vector2, depth: float, wall: float, segment_name: String, include_port: bool) -> void:
+	var combiner := CSGCombiner3D.new()
+	combiner.name = segment_name
+	combiner.use_collision = false
+	parent.add_child(combiner)
+	var shell := CSGPolygon3D.new()
+	shell.name = "ProtectiveOuterShell"
+	shell.polygon = _case_outline_for_size(segment_size, wall)
+	shell.depth = depth + wall * 2.0
+	shell.position = Vector3(centre.x, centre.y, depth * 0.5 + wall)
+	shell.material = _create_phone_case_material()
+	shell.smooth_faces = true
+	combiner.add_child(shell)
+	if segment_name == "PhoneCaseFixedHalf":
+		phone_case_shell = shell
+
+	var cavity := CSGPolygon3D.new()
+	cavity.name = "DeviceClearanceCavity"
+	cavity.polygon = _case_outline_for_size(Vector2(maxf(0.1, segment_size.x - 0.008), maxf(0.1, segment_size.y - 0.008)), 0.004)
+	cavity.depth = depth + wall + 0.018
+	cavity.position = Vector3(centre.x, centre.y, depth * 0.5 + wall + 0.020)
+	_case_subtract(combiner, cavity)
+
+	# Rear camera apertures are allocated to the half that actually contains each module.
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		var camera_position: Vector2 = camera_data["position"]
+		if absf(camera_position.x - centre.x) > segment_size.x * 0.5 or absf(camera_position.y - centre.y) > segment_size.y * 0.5:
+			continue
+		var camera_cut := CSGPolygon3D.new()
+		camera_cut.name = "RearCameraOpening_%02d" % (camera_index + 1)
+		camera_cut.polygon = _case_circle_outline(float(camera_data["size"]) * 1.22 + 0.010)
+		camera_cut.depth = wall * 3.0 + 0.02
+		camera_cut.position = Vector3(camera_position.x, camera_position.y, -depth * 0.5 + wall * 1.5)
+		camera_cut.smooth_faces = true
+		_case_subtract(combiner, camera_cut)
+	for flash_index in range(rear_flash_modules.size()):
+		var flash_data: Dictionary = rear_flash_modules[flash_index]
+		var flash_position: Vector2 = flash_data["position"]
+		if absf(flash_position.x - centre.x) > segment_size.x * 0.5 or absf(flash_position.y - centre.y) > segment_size.y * 0.5:
+			continue
+		var flash_cut := CSGPolygon3D.new()
+		flash_cut.name = "RearFlashOpening_%02d" % (flash_index + 1)
+		flash_cut.polygon = _case_circle_outline(float(flash_data["size"]) * 1.22 + 0.010)
+		flash_cut.depth = wall * 3.0 + 0.02
+		flash_cut.position = Vector3(flash_position.x, flash_position.y, -depth * 0.5 + wall * 1.5)
+		flash_cut.smooth_faces = true
+		_case_subtract(combiner, flash_cut)
+
+	if include_port and charge_port_type != "None" and charge_port_opening_points.size() >= 3:
+		var low := Vector2(INF, INF)
+		var high := Vector2(-INF, -INF)
+		for point in charge_port_opening_points:
+			low.x = minf(low.x, point.x)
+			low.y = minf(low.y, point.y)
+			high.x = maxf(high.x, point.x)
+			high.y = maxf(high.y, point.y)
+		var port_cut := CSGBox3D.new()
+		port_cut.name = "ChargingPortOpening"
+		port_cut.size = Vector3(high.x - low.x + 0.026, wall * 2.0 + 0.035, high.y - low.y + 0.026)
+		port_cut.position = Vector3((low.x + high.x) * 0.5, centre.y - segment_size.y * 0.5, (low.y + high.y) * 0.5)
+		_case_subtract(combiner, port_cut)
+
+	if include_port and speaker_count > 0:
+		var left_count := int(ceil(float(speaker_count) * 0.5))
+		var right_count := speaker_count - left_count
+		var speaker_xs: Array[float] = []
+		for index in range(left_count):
+			speaker_xs.append(-(0.115 + 0.035 + float(left_count - 1 - index) * 0.045))
+		for index in range(right_count):
+			speaker_xs.append(0.115 + 0.035 + float(index) * 0.045)
+		for index in range(speaker_xs.size()):
+			var speaker_x := speaker_xs[index]
+			if absf(speaker_x - centre.x) > segment_size.x * 0.5:
+				continue
+			var speaker_cut := CSGCylinder3D.new()
+			speaker_cut.name = "SpeakerOpening_%02d" % (index + 1)
+			speaker_cut.radius = 0.016
+			speaker_cut.height = 0.16
+			speaker_cut.sides = 32
+			speaker_cut.position = Vector3(speaker_x, centre.y - segment_size.y * 0.5, 0.0)
+			_case_subtract(combiner, speaker_cut)
+
+
+func _rebuild_foldable_phone_case_geometry() -> void:
+	if not is_instance_valid(phone_case_preview):
+		return
+	for child in phone_case_preview.get_children():
+		child.free()
+	phone_case_shell = null
+	var depth := lerpf(0.08, PHONE_SIZE.z, float(phone_thickness_level) / 10.0)
+	var wall := clampf(depth * 0.15, 0.018, 0.034)
+	var moving_case := Node3D.new()
+	moving_case.name = "PhoneCaseMovingHalf"
+	phone_case_preview.add_child(moving_case)
+	var segment_size: Vector2
+	var fixed_centre := Vector2.ZERO
+	var moving_centre := Vector2.ZERO
+	if selected_phone_type == "Fold":
+		var half_width := (PHONE_SIZE.x - 0.020) * 0.5
+		segment_size = Vector2(half_width, PHONE_SIZE.y)
+		fixed_centre = Vector2(-half_width * 0.5 - 0.010, 0.0)
+		moving_centre = Vector2(half_width * 0.5 + 0.010, 0.0)
+	else:
+		# Equal upper/lower clamshell halves; the divider is locked to the exact centre.
+		var half_height := (PHONE_SIZE.y - 0.020) * 0.5
+		segment_size = Vector2(PHONE_SIZE.x, half_height)
+		fixed_centre = Vector2(0.0, -half_height * 0.5 - 0.010)
+		moving_centre = Vector2(0.0, half_height * 0.5 + 0.010)
+
+	_add_foldable_case_segment(phone_case_preview, segment_size, fixed_centre, depth, wall, "PhoneCaseFixedHalf", true)
+	_add_foldable_case_segment(moving_case, segment_size, moving_centre, depth, wall, "PhoneCaseMovingHalfShell", false)
+
+	var hinge_bridge := MeshInstance3D.new()
+	hinge_bridge.name = "FlexibleCaseHingeBridge"
+	var bridge_mesh := BoxMesh.new()
+	bridge_mesh.size = Vector3(0.040, PHONE_SIZE.y * 0.90, 0.010) if selected_phone_type == "Fold" else Vector3(PHONE_SIZE.x * 0.90, 0.040, 0.010)
+	hinge_bridge.mesh = bridge_mesh
+	var bridge_material := StandardMaterial3D.new()
+	bridge_material.albedo_color = phone_case_color.darkened(0.48)
+	bridge_material.roughness = 0.78
+	bridge_material.metallic = 0.04
+	hinge_bridge.material_override = bridge_material
+	hinge_bridge.position = Vector3(0.0, 0.0, -depth * 0.5 - wall - 0.004)
+	hinge_bridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	phone_case_preview.add_child(hinge_bridge)
+	_apply_phone_fold_angle()
+	phone_case_preview.visible = left_tools_page != 1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not charger_preview_mode
+
+
 func _rebuild_phone_case_geometry() -> void:
 	if not is_instance_valid(phone_case_preview) or not phone_case_custom_enabled:
+		return
+	if selected_phone_type != "Standard":
+		_rebuild_foldable_phone_case_geometry()
 		return
 	for child in phone_case_preview.get_children():
 		child.free()
