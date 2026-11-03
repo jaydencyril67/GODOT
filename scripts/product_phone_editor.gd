@@ -604,8 +604,8 @@ func _get_software_research_features() -> Array:
 
 func _get_extras_research_features() -> Array:
 	return [
-		"Box Package", "Phone Case", "Charger", "Charging Cable",
-		"Charger Speed", "Protection Glass", "Wireless Earbuds", "Smartwatch",
+		"Box Package", "Phone Case", "Charger",
+		"Protection Glass", "Wireless Earbuds", "Smartwatch",
 		"Power Bank", "Camera Lens Protector", "Phone Stand", "SIM Ejector Tool"
 	]
 
