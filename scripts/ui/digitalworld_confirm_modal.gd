@@ -37,11 +37,9 @@ func _open_overlay() -> void:
 	show()
 	_shade.modulate.a = 0.0
 	_content.modulate.a = 0.0
-	_content.position.y += 14.0
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(_shade, "modulate:a", 1.0, 0.2)
 	tween.tween_property(_content, "modulate:a", 1.0, 0.24)
-	tween.tween_property(_content, "position:y", _content.position.y - 14.0, 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 func _build_modal() -> void:
@@ -66,7 +64,8 @@ func _build_modal() -> void:
 
 	_content = VBoxContainer.new()
 	_content.name = "DimPage_AlertContent"
-	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_content.custom_minimum_size.x = minf(720.0, maxf(220.0, get_viewport().get_visible_rect().size.x - 52.0))
 	_content.add_theme_constant_override("separation", 22)
 	_content.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -99,14 +98,19 @@ func _build_modal() -> void:
 	_message.custom_minimum_size.y = 54
 	_content.add_child(_message)
 
-	var actions := HBoxContainer.new()
+	var compact := get_viewport().get_visible_rect().size.x < 600.0
+	var actions: BoxContainer
+	if compact:
+		actions = VBoxContainer.new()
+	else:
+		actions = HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	actions.add_theme_constant_override("separation", 14)
+	actions.add_theme_constant_override("separation", 12 if compact else 14)
 	_content.add_child(actions)
 
 	_cancel_button = Button.new()
 	_cancel_button.text = "CANCEL"
-	_cancel_button.custom_minimum_size = Vector2(150, 58)
+	_cancel_button.custom_minimum_size = Vector2(0, 56 if compact else 58)
 	_cancel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(_cancel_button, false)
 	_cancel_button.pressed.connect(_cancel)
@@ -114,7 +118,7 @@ func _build_modal() -> void:
 
 	_confirm_button = Button.new()
 	_confirm_button.text = "CONFIRM"
-	_confirm_button.custom_minimum_size = Vector2(170, 58)
+	_confirm_button.custom_minimum_size = Vector2(0, 56 if compact else 58)
 	_confirm_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(_confirm_button, true)
 	_confirm_button.pressed.connect(_confirm)
@@ -137,7 +141,7 @@ func _refresh_responsive_type() -> void:
 		button.add_theme_font_override("font", font)
 		button.add_theme_font_size_override("font_size", 19 if compact else 21)
 		button.custom_minimum_size.y = 56 if compact else 64
-		button.custom_minimum_size.x = 104 if compact else 170
+		button.custom_minimum_size.x = 0 if compact else 170
 
 
 func _style_button(button: Button, primary: bool) -> void:
