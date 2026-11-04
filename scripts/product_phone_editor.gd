@@ -1594,7 +1594,7 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	var heading := _make_label("GRADIENT" if use_gradient_color else "NORMAL", 14, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	picker.add_child(heading)
-	var special_color_mode := return_to_back_design or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
+	var special_color_mode := back_design_color_mode or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
 	var selected_color := _get_active_color_picker_color() if special_color_mode else (phone_case_gradient_color if phone_case_color_mode and use_gradient_color else (phone_case_color if phone_case_color_mode else (device_gradient_color if use_gradient_color else device_body_color)))
 	picker.add_child(_make_label("COLOR SPECTRUM", 11, Color("#a9e3ff")))
 	var spectrum := DeviceColorSpectrum.new()
@@ -1981,7 +1981,7 @@ func _refresh_device_color_editor_controls() -> void:
 		var picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/" + picker_name)
 		if not is_instance_valid(picker):
 			continue
-		var special_color_mode := return_to_back_design or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
+		var special_color_mode := back_design_color_mode or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
 		var selected_color := _get_active_color_picker_color() if special_color_mode else (phone_case_gradient_color if phone_case_color_mode and use_gradient_color else (phone_case_color if phone_case_color_mode else (device_gradient_color if use_gradient_color else device_body_color)))
 		var spectrum := picker.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
 		if is_instance_valid(spectrum): spectrum.set_color_value(selected_color)
