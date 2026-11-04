@@ -6874,28 +6874,54 @@ func _show_power_volume_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y)
-	_add_side_button_controls("VOLUME ROCKER", "left", volume_button_enabled, volume_button_y)
+	# Compact button cards share the left side; one vertical length slider
+	# sits alongside them and continues to control both physical buttons.
+	var controls_row := HBoxContainer.new()
+	controls_row.name = "PowerVolumeControlsRow"
+	controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	controls_row.add_theme_constant_override("separation", 10)
+	active_feature_panel.add_child(controls_row)
 
-	var divider := HSeparator.new()
-	active_feature_panel.add_child(divider)
-	var length_title := _make_label("BUTTON LENGTH", 17, Color("#d8f1ff"))
+	var cards_column := VBoxContainer.new()
+	cards_column.name = "ButtonCardsColumn"
+	cards_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cards_column.size_flags_stretch_ratio = 3.2
+	cards_column.add_theme_constant_override("separation", 10)
+	controls_row.add_child(cards_column)
+	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y, cards_column)
+	_add_side_button_controls("VOLUME ROCKER", "left", volume_button_enabled, volume_button_y, cards_column)
+
+	var length_column := VBoxContainer.new()
+	length_column.name = "ButtonLengthColumn"
+	length_column.custom_minimum_size = Vector2(72, 0)
+	length_column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	length_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	length_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	length_column.add_theme_constant_override("separation", 8)
+	controls_row.add_child(length_column)
+
+	var length_title := _make_label("LENGTH", 15, Color("#d8f1ff"))
 	length_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(length_title)
-	var length_slider := HSlider.new()
+	length_column.add_child(length_title)
+
+	var length_slider := VSlider.new()
 	length_slider.name = "BothSideButtonLengthSlider"
 	length_slider.min_value = 0.55
 	length_slider.max_value = 1.35
 	length_slider.step = 0.05
 	length_slider.value = side_button_length_scale
-	length_slider.custom_minimum_size = Vector2(0, 54)
-	length_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	length_slider.custom_minimum_size = Vector2(64, 300)
+	length_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	length_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	length_slider.value_changed.connect(_on_side_button_length_changed)
-	_style_horizontal_feature_slider(length_slider)
-	active_feature_panel.add_child(length_slider)
-	side_button_length_label = _make_label("LENGTH  %d%%" % roundi(side_button_length_scale * 100.0), 17, Color("#a9e3ff"))
+	_style_custom_slider(length_slider)
+	length_column.add_child(length_slider)
+
+	side_button_length_label = _make_label("%d%%" % roundi(side_button_length_scale * 100.0), 15, Color("#a9e3ff"))
 	side_button_length_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(side_button_length_label)
+	length_column.add_child(side_button_length_label)
 
 
 func _show_home_button_controls() -> void:
@@ -7182,7 +7208,7 @@ func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
-func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float) -> void:
+func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float, parent: Control) -> void:
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -7199,7 +7225,7 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	section_style.content_margin_top = 9
 	section_style.content_margin_bottom = 9
 	section.add_theme_stylebox_override("panel", section_style)
-	active_feature_panel.add_child(section)
+	parent.add_child(section)
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
