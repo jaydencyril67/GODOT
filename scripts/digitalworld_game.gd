@@ -324,7 +324,7 @@ func _show_menu() -> void:
 	welcome_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_apply_menu_3d_label(welcome_title, 1)
 	welcome.add_child(welcome_title)
-	var welcome_caption := _label("Design the devices. Develop the campus.\nLead the next generation of mobile technology.", 12 if compact else 15, Color("#d1c8b6"))
+	var welcome_caption := _label("Design the devices. Build your company.\nLead the next generation of mobile technology.", 12 if compact else 15, Color("#d1c8b6"))
 	welcome_caption.add_theme_constant_override("line_separation", 4)
 	welcome.add_child(welcome_caption)
 
@@ -362,7 +362,7 @@ func _show_menu() -> void:
 	command_panel.add_child(menu)
 	var menu_heading := _label("DIGITAL WORLD MOBILES", 9 if compact else 10, Color("#e2bf78"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_heading)
-	var menu_title := _label("YOUR CAMPUS AWAITS", 16 if compact else 19, Color("#fff7e6"), HORIZONTAL_ALIGNMENT_CENTER)
+	var menu_title := _label("YOUR COMPANY STARTS HERE", 16 if compact else 19, Color("#fff7e6"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_title)
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
