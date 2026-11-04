@@ -315,7 +315,7 @@ func _show_menu() -> void:
 	welcome.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	showcase.add_child(welcome)
 
-	var eyebrow := _label("A KINGS HALL TECHNOLOGY WORLD", 9 if compact else 11, Color("#a9d9ad"))
+	var eyebrow := _label("DIGITAL WORLD MOBILES", 9 if compact else 11, Color("#a9d9ad"))
 	eyebrow.name = "Landing_Eyebrow"
 	welcome.add_child(eyebrow)
 
@@ -413,6 +413,7 @@ func _animate_landing_menu(root: Control, welcome: Control, command_area: Contro
 	_animate_landing_text_label(welcome.get_node_or_null("Landing_Hero_Line_Two") as Label, 1.05, 1.08, 0.035)
 	_animate_landing_text_label(welcome.get_node_or_null("Landing_Caption_Line_One") as Label, 0.88, 2.18, 0.018)
 	_animate_landing_text_label(welcome.get_node_or_null("Landing_Caption_Line_Two") as Label, 1.12, 2.82, 0.016)
+	_run_landing_copy_cycle(welcome)
 
 	command_panel.pivot_offset = command_panel.size * 0.5
 	var intro := create_tween().set_parallel(true)
@@ -438,6 +439,48 @@ func _animate_landing_text_label(label: Label, duration: float, delay: float, ch
 	reveal.set_parallel(true)
 	reveal.tween_property(label, "visible_characters", label.text.length(), reveal_duration).set_trans(Tween.TRANS_LINEAR)
 	reveal.tween_property(label, "modulate:a", 1.0, minf(0.28, duration * 0.45)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+func _run_landing_copy_cycle(welcome: Control) -> void:
+	var hero_one := welcome.get_node_or_null("Landing_Hero_Line_One") as Label
+	var hero_two := welcome.get_node_or_null("Landing_Hero_Line_Two") as Label
+	var caption_one := welcome.get_node_or_null("Landing_Caption_Line_One") as Label
+	var caption_two := welcome.get_node_or_null("Landing_Caption_Line_Two") as Label
+	if not is_instance_valid(hero_one) or not is_instance_valid(hero_two) or not is_instance_valid(caption_one) or not is_instance_valid(caption_two):
+		return
+
+	var slides: Array[Dictionary] = [
+		{"headline_one": "BUILD YOUR", "headline_two": "TECHNOLOGY EMPIRE.", "caption_one": "Design the devices. Build your company.", "caption_two": "Lead the next generation of mobile technology."},
+		{"headline_one": "DREAM BIGGER.", "headline_two": "BUILD WHAT'S NEXT.", "caption_one": "Turn bold ideas into remarkable devices.", "caption_two": "Shape the future of mobile technology."},
+		{"headline_one": "FROM WORKSHOP", "headline_two": "TO WORLDWIDE.", "caption_one": "Grow a company from its very first product.", "caption_two": "Create. Innovate. Expand your reach."},
+		{"headline_one": "ENGINEER THE", "headline_two": "EXTRAORDINARY.", "caption_one": "Explore hardware, software and design.", "caption_two": "Make every generation of devices your own."},
+		{"headline_one": "YOUR VISION.", "headline_two": "YOUR EMPIRE.", "caption_one": "Build teams. Develop products. Lead markets.", "caption_two": "Every great technology company starts somewhere."}
+	]
+	var slide_index := 0
+	while is_instance_valid(welcome) and current_screen == "menu":
+		await get_tree().create_timer(5.0).timeout
+		if not is_instance_valid(welcome) or current_screen != "menu":
+			return
+		var fade := create_tween().set_parallel(true)
+		for label in [hero_one, hero_two, caption_one, caption_two]:
+			if is_instance_valid(label):
+				fade.tween_property(label, "modulate:a", 0.0, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		await fade.finished
+		if not is_instance_valid(welcome) or current_screen != "menu":
+			return
+		var slide: Dictionary = slides[slide_index]
+		hero_one.text = str(slide["headline_one"])
+		hero_two.text = str(slide["headline_two"])
+		caption_one.text = str(slide["caption_one"])
+		caption_two.text = str(slide["caption_two"])
+		for label in [hero_one, hero_two, caption_one, caption_two]:
+			label.visible_characters = 0
+			label.modulate.a = 1.0
+		_animate_landing_text_label(hero_one, 0.78, 0.0, 0.035)
+		_animate_landing_text_label(hero_two, 0.92, 0.34, 0.032)
+		_animate_landing_text_label(caption_one, 0.82, 1.02, 0.018)
+		_animate_landing_text_label(caption_two, 0.92, 1.42, 0.016)
+		slide_index = (slide_index + 1) % slides.size()
 
 
 func _style_landing_command_button(button: Button, primary: bool) -> void:
