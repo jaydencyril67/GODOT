@@ -4154,7 +4154,7 @@ func _charger_material(color: Color, metallic: float = 0.0, roughness: float = 0
 	return material
 
 
-func _add_charger_torus(parent: Node3D, node_name: String, radius: float, tube_radius: float, position: Vector3, material: Material) -> MeshInstance3D:
+func _add_charger_torus(parent: Node3D, node_name: String, radius: float, tube_radius: float, local_position: Vector3, material: Material) -> MeshInstance3D:
 	# A real swept torus keeps the smartwatch activity ring and crown rim
 	# continuous and smooth instead of approximating them with flat geometry.
 	var part := MeshInstance3D.new()
@@ -4166,26 +4166,26 @@ func _add_charger_torus(parent: Node3D, node_name: String, radius: float, tube_r
 	mesh.ring_segments = 12
 	part.mesh = mesh
 	part.material_override = material
-	part.position = position
+	part.position = local_position
 	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(part)
 	return part
 
 
-func _add_charger_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, material: Material) -> MeshInstance3D:
+func _add_charger_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, material: Material) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
 	part.name = node_name
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	part.mesh = mesh
 	part.material_override = material
-	part.position = position
+	part.position = local_position
 	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(part)
 	return part
 
 
-func _add_charger_cylinder(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, material: Material, radial_segments: int = 24) -> MeshInstance3D:
+func _add_charger_cylinder(parent: Node3D, node_name: String, radius: float, height: float, local_position: Vector3, material: Material, radial_segments: int = 24) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
 	part.name = node_name
 	var mesh := CylinderMesh.new()
@@ -4195,7 +4195,7 @@ func _add_charger_cylinder(parent: Node3D, node_name: String, radius: float, hei
 	mesh.radial_segments = radial_segments
 	part.mesh = mesh
 	part.material_override = material
-	part.position = position
+	part.position = local_position
 	part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(part)
 	return part
@@ -4218,7 +4218,7 @@ func _add_charger_recessed_port(parent: Node3D, output_connector: String, face_p
 	port_root.rotation = face_rotation
 	parent.add_child(port_root)
 
-	var bezel_material := _charger_material(Color("#aeb9c3"), 0.90, 0.24)
+	var bezel_material: Material = metal_material
 	var gasket_material := _charger_material(Color("#252c34"), 0.16, 0.72)
 	var cavity_wall_material := _charger_material(Color("#59636d"), 0.82, 0.40)
 	var cavity_material := _charger_material(Color("#030609"), 0.0, 0.98)
