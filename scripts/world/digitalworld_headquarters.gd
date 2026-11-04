@@ -358,6 +358,7 @@ func _create_compound_facilities(parent: Node3D, level: int) -> void:
 	_create_compound_facility(parent, "Security_Gatehouse", "SECURITY", Vector3(-17.0, 0.0, 22.0), Vector3(6.0, 3.0, 4.6), level, "security")
 
 
+
 func _create_compound_facility(parent: Node3D, node_name: String, sign_text: String, center: Vector3, dimensions: Vector3, level: int, facility_type: String) -> void:
 	var width: float = dimensions.x
 	var depth: float = dimensions.z
@@ -384,20 +385,37 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 	wall.normal_texture = facade_normal
 	wall.normal_scale = 0.12
 	var roof := _mat(Color("#505a63"), 0.78, 0.32)
-	var front_z: float = center.z + depth * 0.5 + 0.13
-	_facility_box(parent, node_name + "_Foundation", Vector3(width + 0.5, 0.22, depth + 0.5), center + Vector3(0.0, 0.11, 0.0), materials["concrete"])
-	_facility_box(parent, node_name + "_Primary_Volume", Vector3(width, height, depth), center + Vector3(0.0, height * 0.5 + 0.22, 0.0), wall)
-	_facility_box(parent, node_name + "_Roof_Slab", Vector3(width + 0.42, 0.22, depth + 0.42), center + Vector3(0.0, height + 0.34, 0.0), roof)
+
+	var width_profiles: Dictionary = {
+		"production": [1.00, 0.86, 0.92, 0.80, 0.96, 0.78, 0.88, 0.98, 0.82, 0.92],
+		"research": [0.96, 0.88, 0.92, 0.82, 0.98, 0.86, 0.94, 0.84, 0.88, 0.96],
+		"utilities": [0.90, 0.82, 0.94, 0.88, 0.80, 0.92, 0.84, 0.98, 0.86, 0.94],
+		"security": [0.98, 0.88, 0.84, 0.80, 0.94, 0.86, 0.78, 0.96, 0.84, 0.92]
+	}
+	var depth_profiles: Dictionary = {
+		"production": [0.96, 0.88, 0.90, 0.82, 0.94, 0.86, 0.90, 0.80, 0.92, 0.86],
+		"research": [0.92, 0.84, 0.94, 0.88, 0.82, 0.92, 0.86, 0.96, 0.84, 0.90],
+		"utilities": [0.88, 0.96, 0.84, 0.92, 0.86, 0.98, 0.88, 0.82, 0.94, 0.90],
+		"security": [0.94, 0.86, 0.96, 0.84, 0.92, 0.88, 0.98, 0.82, 0.90, 0.86]
+	}
+	var core_width: float = width * float(width_profiles[facility_type][level - 1])
+	var core_depth: float = depth * float(depth_profiles[facility_type][level - 1])
+	var front_z: float = center.z + core_depth * 0.5 + 0.13
+	var glazed_core: bool = facility_type == "research" or (facility_type == "security" and level >= 7)
+	_add_facility_mass(parent, "%s_Level_%02d_Core_Mass" % [node_name, level], center, Vector3(core_width, height, core_depth), wall, roof, glazed_core)
+	_build_facility_level_massing(parent, node_name, center, width, depth, height, level, facility_type, wall, roof)
+
 	match facility_type:
 		"production":
-			_build_production_facility(parent, node_name, center, width, depth, height, front_z, level)
+			_build_production_facility(parent, node_name, center, core_width, height, core_depth, center.z + core_depth * 0.5 + 0.13, level)
 		"research":
-			_build_research_facility(parent, node_name, center, width, depth, height, front_z, level)
+			_build_research_facility(parent, node_name, center, core_width, height, core_depth, center.z + core_depth * 0.5 + 0.13, level)
 		"utilities":
-			_build_utilities_facility(parent, node_name, center, width, depth, height, level)
+			_build_utilities_facility(parent, node_name, center, core_width, height, core_depth, level)
 		"security":
-			_build_security_facility(parent, node_name, center, width, depth, height, front_z, level)
-	_facility_box(parent, node_name + "_Sign_Plaque", Vector3(width * 0.72, 0.42, 0.08), Vector3(center.x, height - 0.42, front_z + 0.14), materials["dark_metal"])
+			_build_security_facility(parent, node_name, center, core_width, height, core_depth, center.z + core_depth * 0.5 + 0.13, level)
+
+	_facility_box(parent, node_name + "_Sign_Plaque", Vector3(core_width * 0.72, 0.42, 0.08), Vector3(center.x, height - 0.42, front_z + 0.14), materials["dark_metal"])
 	var sign := Label3D.new()
 	sign.name = node_name + "_Facility_Sign"
 	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
@@ -410,6 +428,219 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 	sign.rotation.y = PI
 	parent.add_child(sign)
 
+
+func _add_facility_mass(parent: Node3D, node_name: String, center: Vector3, dimensions: Vector3, wall: Material, roof: Material, glazed: bool = false) -> Node3D:
+	var mass_root := Node3D.new()
+	mass_root.name = node_name
+	mass_root.position = center
+	parent.add_child(mass_root)
+	var width: float = dimensions.x
+	var height: float = dimensions.y
+	var depth: float = dimensions.z
+	_facility_box(mass_root, node_name + "_Foundation", Vector3(width + 0.38, 0.18, depth + 0.38), Vector3(0.0, 0.09, 0.0), materials["concrete"])
+	_facility_box(mass_root, node_name + "_Envelope", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.18, 0.0), wall)
+	_facility_box(mass_root, node_name + "_Roof_Cap", Vector3(width + 0.30, 0.20, depth + 0.30), Vector3(0.0, height + 0.28, 0.0), roof)
+	var front_z: float = depth * 0.5 + 0.065
+	var window_y: float = minf(height * 0.64, height - 0.42)
+	var window_height: float = minf(0.78, maxf(0.34, height * 0.27))
+	for index in range(3):
+		var x: float = (float(index) - 1.0) * width * 0.27
+		var frame_material: Material = materials["window_frame"]
+		_facility_box(mass_root, node_name + "_Window_Frame", Vector3(width * 0.20, window_height + 0.18, 0.10), Vector3(x, window_y, front_z), frame_material)
+		_facility_box(mass_root, node_name + "_Window_Glazing", Vector3(width * 0.16, window_height, 0.045), Vector3(x, window_y, front_z + 0.07), materials["glass"])
+	if glazed:
+		_facility_box(mass_root, node_name + "_Glazed_Corner", Vector3(width * 0.22, height * 0.72, 0.055), Vector3(width * 0.36, height * 0.58 + 0.18, depth * 0.5 + 0.08), materials["glass"])
+	return mass_root
+
+
+func _build_facility_level_massing(parent: Node3D, node_name: String, center: Vector3, width: float, depth: float, height: float, level: int, facility_type: String, wall: Material, roof: Material) -> void:
+	var side: float = -1.0 if level % 2 == 0 else 1.0
+	var module_wall: Material = wall
+	var module_roof: Material = roof
+	var module_glass: bool = facility_type == "research"
+	var module_width_factor: float = 0.30
+	var module_height_factor: float = 0.58
+	var module_depth_factor: float = 0.48
+	match facility_type:
+		"production":
+			module_width_factor = 0.34
+			module_height_factor = 0.62
+			module_depth_factor = 0.58
+			module_wall = _mat(Color("#7d898f"), 0.84, 0.12)
+		"research":
+			module_width_factor = 0.28
+			module_height_factor = 0.72
+			module_depth_factor = 0.52
+			module_glass = true
+			module_wall = _mat(Color("#aeb9bf"), 0.72, 0.16)
+		"utilities":
+			module_width_factor = 0.24
+			module_height_factor = 0.50
+			module_depth_factor = 0.44
+			module_wall = _mat(Color("#737f85"), 0.78, 0.28)
+		"security":
+			module_width_factor = 0.28
+			module_height_factor = 0.72
+			module_depth_factor = 0.46
+			module_glass = true
+			module_wall = _mat(Color("#969fa4"), 0.76, 0.18)
+
+	var module_position := center
+	var module_size := Vector3(width * module_width_factor, height * module_height_factor, depth * module_depth_factor)
+	match level:
+		1:
+			module_position += Vector3(-side * width * 0.34, 0.0, -depth * 0.14)
+			module_size = Vector3(width * module_width_factor, height * 0.52, depth * 0.58)
+		2:
+			module_position += Vector3(side * width * 0.34, 0.0, depth * 0.20)
+			module_size = Vector3(width * 0.32, height * 0.68, depth * 0.46)
+		3:
+			module_position += Vector3(-side * width * 0.33, 0.0, -depth * 0.20)
+			module_size = Vector3(width * 0.28, height * 0.78, depth * 0.54)
+		4:
+			module_position += Vector3(side * width * 0.16, height * 0.54, -depth * 0.10)
+			module_size = Vector3(width * 0.62, height * 0.38, depth * 0.60)
+		5:
+			module_position += Vector3(0.0, height * 0.48, -depth * 0.34)
+			module_size = Vector3(width * 0.68, height * 0.42, depth * 0.32)
+		6:
+			module_position += Vector3(side * width * 0.34, height * 0.24, -depth * 0.12)
+			module_size = Vector3(width * 0.25, height * 0.96, depth * 0.34)
+		7:
+			module_position += Vector3(-side * width * 0.30, height * 0.48, depth * 0.12)
+			module_size = Vector3(width * 0.32, height * 0.40, depth * 0.54)
+			_add_facility_mass(parent, node_name + "_Level_07_Opposite_Wing", center + Vector3(side * width * 0.30, height * 0.40, -depth * 0.10), Vector3(width * 0.28, height * 0.46, depth * 0.48), module_wall, module_roof, module_glass)
+		8:
+			module_position += Vector3(0.0, height * 0.62, -depth * 0.08)
+			module_size = Vector3(width * 0.78, height * 0.18, depth * 0.24)
+		9:
+			module_position += Vector3(-side * width * 0.26, height * 0.58, -depth * 0.08)
+			module_size = Vector3(width * 0.27, height * 0.43, depth * 0.42)
+			_add_facility_mass(parent, node_name + "_Level_09_Twin_Upper_Pod", center + Vector3(side * width * 0.26, height * 0.56, -depth * 0.08), Vector3(width * 0.25, height * 0.40, depth * 0.40), module_wall, module_roof, module_glass)
+		10:
+			module_position += Vector3(0.0, height * 0.56, -depth * 0.08)
+			module_size = Vector3(width * 0.72, height * 0.40, depth * 0.50)
+			_add_facility_mass(parent, node_name + "_Level_10_Flagship_Wing", center + Vector3(-side * width * 0.30, height * 0.34, depth * 0.10), Vector3(width * 0.34, height * 0.64, depth * 0.48), module_wall, module_roof, module_glass)
+
+	if facility_type == "utilities":
+		module_size.x *= 0.82
+		module_size.z *= 0.90
+	elif facility_type == "security":
+		module_size.x *= 0.92
+	elif facility_type == "research":
+		module_size.z *= 1.08
+	elif facility_type == "production":
+		module_size.x *= 1.08
+
+	var module_name := node_name + "_Level_%02d_Architectural_Module" % level
+	_add_facility_mass(parent, module_name, module_position, module_size, module_wall, module_roof, module_glass)
+
+
+func _add_facility_mass(parent: Node3D, node_name: String, center: Vector3, dimensions: Vector3, wall: Material, roof: Material, glazed: bool = false) -> Node3D:
+	var mass_root := Node3D.new()
+	mass_root.name = node_name
+	mass_root.position = center
+	parent.add_child(mass_root)
+	var width: float = dimensions.x
+	var height: float = dimensions.y
+	var depth: float = dimensions.z
+	_facility_box(mass_root, node_name + "_Foundation", Vector3(width + 0.38, 0.18, depth + 0.38), Vector3(0.0, 0.09, 0.0), materials["concrete"])
+	_facility_box(mass_root, node_name + "_Envelope", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.18, 0.0), wall)
+	_facility_box(mass_root, node_name + "_Roof_Cap", Vector3(width + 0.30, 0.20, depth + 0.30), Vector3(0.0, height + 0.28, 0.0), roof)
+	var front_z: float = depth * 0.5 + 0.065
+	var window_y: float = minf(height * 0.64, height - 0.42)
+	var window_height: float = minf(0.78, maxf(0.34, height * 0.27))
+	for index in range(3):
+		var x: float = (float(index) - 1.0) * width * 0.27
+		var frame_material: Material = materials["window_frame"]
+		_facility_box(mass_root, node_name + "_Window_Frame", Vector3(width * 0.20, window_height + 0.18, 0.10), Vector3(x, window_y, front_z), frame_material)
+		_facility_box(mass_root, node_name + "_Window_Glazing", Vector3(width * 0.16, window_height, 0.045), Vector3(x, window_y, front_z + 0.07), materials["glass"])
+	if glazed:
+		_facility_box(mass_root, node_name + "_Glazed_Corner", Vector3(width * 0.22, height * 0.72, 0.055), Vector3(width * 0.36, height * 0.58 + 0.18, depth * 0.5 + 0.08), materials["glass"])
+	return mass_root
+
+
+func _build_facility_level_massing(parent: Node3D, node_name: String, center: Vector3, width: float, depth: float, height: float, level: int, facility_type: String, wall: Material, roof: Material) -> void:
+	var side: float = -1.0 if level % 2 == 0 else 1.0
+	var module_wall: Material = wall
+	var module_roof: Material = roof
+	var module_glass: bool = facility_type == "research"
+	var module_width_factor: float = 0.30
+	var module_height_factor: float = 0.58
+	var module_depth_factor: float = 0.48
+	match facility_type:
+		"production":
+			module_width_factor = 0.34
+			module_height_factor = 0.62
+			module_depth_factor = 0.58
+			module_wall = _mat(Color("#7d898f"), 0.84, 0.12)
+		"research":
+			module_width_factor = 0.28
+			module_height_factor = 0.72
+			module_depth_factor = 0.52
+			module_glass = true
+			module_wall = _mat(Color("#aeb9bf"), 0.72, 0.16)
+		"utilities":
+			module_width_factor = 0.24
+			module_height_factor = 0.50
+			module_depth_factor = 0.44
+			module_wall = _mat(Color("#737f85"), 0.78, 0.28)
+		"security":
+			module_width_factor = 0.28
+			module_height_factor = 0.72
+			module_depth_factor = 0.46
+			module_glass = true
+			module_wall = _mat(Color("#969fa4"), 0.76, 0.18)
+
+	var module_position := center
+	var module_size := Vector3(width * module_width_factor, height * module_height_factor, depth * module_depth_factor)
+	match level:
+		1:
+			module_position += Vector3(-side * width * 0.34, 0.0, -depth * 0.14)
+			module_size = Vector3(width * module_width_factor, height * 0.52, depth * 0.58)
+		2:
+			module_position += Vector3(side * width * 0.34, 0.0, depth * 0.20)
+			module_size = Vector3(width * 0.32, height * 0.68, depth * 0.46)
+		3:
+			module_position += Vector3(-side * width * 0.33, 0.0, -depth * 0.20)
+			module_size = Vector3(width * 0.28, height * 0.78, depth * 0.54)
+		4:
+			module_position += Vector3(side * width * 0.16, height * 0.54, -depth * 0.10)
+			module_size = Vector3(width * 0.62, height * 0.38, depth * 0.60)
+		5:
+			module_position += Vector3(0.0, height * 0.48, -depth * 0.34)
+			module_size = Vector3(width * 0.68, height * 0.42, depth * 0.32)
+		6:
+			module_position += Vector3(side * width * 0.34, height * 0.24, -depth * 0.12)
+			module_size = Vector3(width * 0.25, height * 0.96, depth * 0.34)
+		7:
+			module_position += Vector3(-side * width * 0.30, height * 0.48, depth * 0.12)
+			module_size = Vector3(width * 0.32, height * 0.40, depth * 0.54)
+			_add_facility_mass(parent, node_name + "_Level_07_Opposite_Wing", center + Vector3(side * width * 0.30, height * 0.40, -depth * 0.10), Vector3(width * 0.28, height * 0.46, depth * 0.48), module_wall, module_roof, module_glass)
+		8:
+			module_position += Vector3(0.0, height * 0.62, -depth * 0.08)
+			module_size = Vector3(width * 0.78, height * 0.18, depth * 0.24)
+		9:
+			module_position += Vector3(-side * width * 0.26, height * 0.58, -depth * 0.08)
+			module_size = Vector3(width * 0.27, height * 0.43, depth * 0.42)
+			_add_facility_mass(parent, node_name + "_Level_09_Twin_Upper_Pod", center + Vector3(side * width * 0.26, height * 0.56, -depth * 0.08), Vector3(width * 0.25, height * 0.40, depth * 0.40), module_wall, module_roof, module_glass)
+		10:
+			module_position += Vector3(0.0, height * 0.56, -depth * 0.08)
+			module_size = Vector3(width * 0.72, height * 0.40, depth * 0.50)
+			_add_facility_mass(parent, node_name + "_Level_10_Flagship_Wing", center + Vector3(-side * width * 0.30, height * 0.34, depth * 0.10), Vector3(width * 0.34, height * 0.64, depth * 0.48), module_wall, module_roof, module_glass)
+
+	if facility_type == "utilities":
+		module_size.x *= 0.82
+		module_size.z *= 0.90
+	elif facility_type == "security":
+		module_size.x *= 0.92
+	elif facility_type == "research":
+		module_size.z *= 1.08
+	elif facility_type == "production":
+		module_size.x *= 1.08
+
+	var module_name := node_name + "_Level_%02d_Architectural_Module" % level
+	_add_facility_mass(parent, module_name, module_position, module_size, module_wall, module_roof, module_glass)
 
 func _build_production_facility(parent: Node3D, node_name: String, center: Vector3, width: float, depth: float, height: float, front_z: float, level: int) -> void:
 	var roof := _mat(Color("#505a63"), 0.78, 0.32)
@@ -712,6 +943,7 @@ func _configure_camera_framing(building_height: float) -> void:
 	# Reset on both initial load and every level switch to the calculated site/building view.
 	camera_distance = camera_max_distance
 
+
 func _build_procedural_building(level: int) -> float:
 	var config: Dictionary = LEVEL_CONFIGS[clampi(level, 1, MAX_LEVEL) - 1]
 	var floor_count: int = int(config["floors"])
@@ -759,39 +991,137 @@ func _build_procedural_building(level: int) -> float:
 	roof.normal_texture = facade_normal
 	roof.normal_scale = 0.2
 
-	_box(building_root, "Architectural_Foundation_Plinth", Vector3(width + 0.7, 0.42, depth + 0.7), Vector3(0.0, 0.21, 0.0), materials["concrete"])
-	_box(building_root, "Main_Architectural_Envelope", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.42, 0.0), wall)
-	_box(building_root, "Ground_Floor_Podium", Vector3(width + 0.12, ground_height, depth + 0.12), Vector3(0.0, ground_height * 0.5 + 0.42, 0.0), podium)
+	# Each purchased tier is a different architectural composition. The old
+	# one-box envelope is deliberately gone: levels are rebuilt from distinct
+	# wings, cores, atria, towers and bridges instead of simply stacking floors.
+	match level:
+		1:
+			_create_headquarters_mass(building_root, "HQ_L01_Industrial_Workshop", Vector3.ZERO, Vector3(width, height, depth), 1, 0, false, wall, podium, accent, roof)
+			_add_workshop_features(building_root, width, depth, height)
+		2:
+			_create_headquarters_mass(building_root, "HQ_L02_LShaped_Admin_Block", Vector3(-width * 0.12, 0.0, -depth * 0.02), Vector3(width * 0.68, height, depth * 0.96), 2, 1, false, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L02_Production_Wing", Vector3(width * 0.30, 0.0, depth * 0.14), Vector3(width * 0.38, height * 0.68, depth * 0.54), 2, 0, false, wall, podium, accent, roof)
+		3:
+			# Three blocks form a real U-shaped headquarters around an open court.
+			_create_headquarters_mass(building_root, "HQ_L03_West_Lab_Wing", Vector3(-width * 0.30, 0.0, depth * 0.07), Vector3(width * 0.32, height, depth * 0.92), 3, 2, false, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L03_East_Office_Wing", Vector3(width * 0.30, 0.0, depth * 0.07), Vector3(width * 0.32, height, depth * 0.92), 3, 2, false, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L03_Rear_Connector", Vector3(0.0, 0.0, -depth * 0.34), Vector3(width * 0.78, height * 0.76, depth * 0.34), 2, 1, false, wall, podium, accent, roof)
+		4:
+			# A broad low podium supports an offset executive tower and a cantilever.
+			_create_headquarters_mass(building_root, "HQ_L04_Stone_Podium", Vector3.ZERO, Vector3(width * 0.96, ground_height, depth * 0.94), 1, 0, false, podium, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L04_Offset_Office_Tower", Vector3(-width * 0.11, 0.0, -depth * 0.02), Vector3(width * 0.58, height * 0.86, depth * 0.70), 4, 2, false, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L04_Cantilevered_Executive_Wing", Vector3(width * 0.20, height * 0.56, -depth * 0.08), Vector3(width * 0.44, height * 0.30, depth * 0.54), 2, 3, true, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L04_Garden_Side_Wing", Vector3(width * 0.32, 0.0, depth * 0.23), Vector3(width * 0.28, height * 0.46, depth * 0.42), 2, 1, false, wall, podium, accent, roof)
+		5:
+			# A cross-shaped plan with a glazed atrium at its centre.
+			_create_headquarters_mass(building_root, "HQ_L05_Central_Atrium_Tower", Vector3.ZERO, Vector3(width * 0.42, height, depth * 0.46), 5, 3, true, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L05_West_Executive_Wing", Vector3(-width * 0.31, 0.0, 0.0), Vector3(width * 0.34, height * 0.54, depth * 0.78), 3, 2, false, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L05_East_Operations_Wing", Vector3(width * 0.31, 0.0, 0.0), Vector3(width * 0.34, height * 0.48, depth * 0.78), 3, 2, false, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L05_Front_Forum_Wing", Vector3(0.0, 0.0, depth * 0.29), Vector3(width * 0.40, height * 0.40, depth * 0.30), 2, 1, false, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L05_Rear_Forum_Wing", Vector3(0.0, 0.0, -depth * 0.29), Vector3(width * 0.40, height * 0.40, depth * 0.30), 2, 1, false, wall, podium, accent, roof)
+		6:
+			# Two different-height towers are joined by an elevated glazed bridge.
+			_create_headquarters_mass(building_root, "HQ_L06_Shared_Podium", Vector3.ZERO, Vector3(width * 0.94, ground_height, depth * 0.90), 1, 0, false, podium, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L06_West_Tower", Vector3(-width * 0.22, 0.0, 0.0), Vector3(width * 0.40, height * 0.78, depth * 0.78), 4, 3, true, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L06_East_Tower", Vector3(width * 0.22, 0.0, -depth * 0.02), Vector3(width * 0.40, height, depth * 0.78), 6, 3, true, wall, podium, accent, roof)
+			_box(building_root, "HQ_L06_Sky_Bridge", Vector3(width * 0.48, 1.12, depth * 0.24), Vector3(0.0, height * 0.62, 0.0), materials["glass"])
+		7:
+			# An octagonal glass rotunda replaces the rectangular tower language.
+			_create_hq_round_tower(building_root, "HQ_L07_Octagonal_Glass_Rotunda", Vector3(-width * 0.08, 0.0, -depth * 0.02), width * 0.205, height, 12)
+			_create_headquarters_mass(building_root, "HQ_L07_South_Forum_Wing", Vector3(width * 0.27, 0.0, depth * 0.12), Vector3(width * 0.42, height * 0.42, depth * 0.66), 3, 2, false, podium, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L07_Glass_Link", Vector3(width * 0.15, height * 0.28, -depth * 0.02), Vector3(width * 0.30, height * 0.16, depth * 0.24), 1, 3, true, wall, podium, accent, roof)
+		8:
+			# Offset high-rise wings use visibly different heights and floor plates.
+			_create_headquarters_mass(building_root, "HQ_L08_West_Glass_Tower", Vector3(-width * 0.23, 0.0, -depth * 0.05), Vector3(width * 0.38, height, depth * 0.54), 8, 3, true, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L08_East_Solid_Tower", Vector3(width * 0.22, 0.0, depth * 0.08), Vector3(width * 0.34, height * 0.76, depth * 0.62), 6, 2, false, wall, podium, accent, roof)
+			_box(building_root, "HQ_L08_Upper_Sky_Lobby", Vector3(width * 0.54, 1.35, depth * 0.22), Vector3(0.0, height * 0.66, -depth * 0.04), materials["glass"])
+			_create_headquarters_mass(building_root, "HQ_L08_Entrance_Pavilion", Vector3(0.0, 0.0, depth * 0.28), Vector3(width * 0.58, height * 0.28, depth * 0.24), 2, 1, false, podium, podium, accent, roof)
+		9:
+			# Three independent towers make a skyline, not one taller slab.
+			_create_headquarters_mass(building_root, "HQ_L09_Central_Signature_Tower", Vector3(0.0, 0.0, -depth * 0.04), Vector3(width * 0.28, height, depth * 0.44), 9, 4, true, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L09_West_Tower", Vector3(-width * 0.29, 0.0, depth * 0.02), Vector3(width * 0.27, height * 0.78, depth * 0.54), 7, 3, true, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L09_East_Tower", Vector3(width * 0.29, 0.0, depth * 0.02), Vector3(width * 0.27, height * 0.88, depth * 0.50), 8, 2, false, wall, podium, accent, roof)
+			_box(building_root, "HQ_L09_West_Sky_Bridge", Vector3(width * 0.34, 0.92, depth * 0.20), Vector3(-width * 0.14, height * 0.46, 0.0), materials["glass"])
+			_box(building_root, "HQ_L09_East_Sky_Bridge", Vector3(width * 0.34, 0.92, depth * 0.20), Vector3(width * 0.14, height * 0.64, 0.0), materials["glass"])
+		10:
+			# Flagship tier: a circular atrium, two unequal wings and a large shared podium.
+			_create_headquarters_mass(building_root, "HQ_L10_Flagship_Podium", Vector3.ZERO, Vector3(width * 0.96, ground_height, depth * 0.94), 1, 1, false, podium, podium, accent, roof)
+			_create_hq_round_tower(building_root, "HQ_L10_Central_Glass_Atrium", Vector3(0.0, 0.0, -depth * 0.02), width * 0.19, height, 16)
+			_create_headquarters_mass(building_root, "HQ_L10_West_Research_Wing", Vector3(-width * 0.29, 0.0, 0.03), Vector3(width * 0.34, height * 0.72, depth * 0.66), 7, 3, true, wall, podium, accent, roof)
+			_create_headquarters_mass(building_root, "HQ_L10_East_Operations_Wing", Vector3(width * 0.29, 0.0, depth * 0.04), Vector3(width * 0.34, height * 0.58, depth * 0.70), 6, 2, false, wall, podium, accent, roof)
+			_box(building_root, "HQ_L10_Atrium_Sky_Bridge", Vector3(width * 0.52, 1.15, depth * 0.20), Vector3(0.0, height * 0.54, 0.0), materials["glass"])
 
-	if level == 1:
-		_add_workshop_features(building_root, width, depth, height)
-	elif style >= 3:
-		_add_glass_curtain_wall(building_root, width, depth, floor_count, ground_height, floor_height)
-		_add_main_entrance(building_root, width, depth, ground_height, accent)
-	else:
-		for side in range(4):
-			var angle := float(side) * PI * 0.5
-			_add_facade_windows(building_root, angle, width, depth, floor_count, ground_height, floor_height, style)
-			_add_facade_pilasters(building_root, angle, width, depth, height, accent, style)
-			_add_facade_microdetails(building_root, angle, width, depth, floor_count, ground_height, floor_height, style, accent)
-		_add_main_entrance(building_root, width, depth, ground_height, accent)
-
-	for floor_index in range(1, floor_count):
-		var floor_y := 0.42 + ground_height + float(floor_index - 1) * floor_height
-		_box(building_root, "Expressed_Floor_Slab", Vector3(width + 0.22, 0.11, depth + 0.22), Vector3(0.0, floor_y, 0.0), accent)
-
+	# These recognizable tier details are retained, but they now decorate a
+	# genuinely different base design at every level.
 	if level > 1:
-		_box(building_root, "Roof_Cornice", Vector3(width + 0.55, 0.28, depth + 0.55), Vector3(0.0, height + 0.54, 0.0), accent)
-		_box(building_root, "Rooftop_Service_Penthouse", Vector3(width * 0.38, 1.15, depth * 0.38), Vector3(-width * 0.18, height + 1.23, -depth * 0.16), roof)
-		_box(building_root, "Rooftop_HVAC_Equipment", Vector3(1.25, 0.55, 0.9), Vector3(width * 0.2, height + 0.92, depth * 0.18), materials["metal"])
-		_add_rooftop_service_details(building_root, width, depth, height, roof, accent)
-		if level >= 4 and style < 3:
-			_add_vertical_fins(building_root, height, accent, width, depth)
-
-	_add_level_silhouette_features(building_root, level, width, depth, height, accent, roof)
+		_add_level_silhouette_features(building_root, level, width, depth, height, accent, roof)
 	_box(building_root, "Company_Headquarters_Sign", Vector3(width * 0.55, 0.42, 0.12), Vector3(0.0, ground_height + 0.48, depth * 0.5 + 0.24), materials["hq_sign"])
 	_box(building_root, "Company_Sign_Accent", Vector3(width * 0.48, 0.045, 0.035), Vector3(0.0, ground_height + 0.25, depth * 0.5 + 0.31), materials["hq_accent"])
 	return height
+
+
+func _create_headquarters_mass(parent: Node3D, node_name: String, origin: Vector3, dimensions: Vector3, floors: int, style: int, glass_facade: bool, wall: Material, podium: Material, accent: Material, roof: Material) -> Node3D:
+	var mass_root := Node3D.new()
+	mass_root.name = node_name
+	mass_root.position = origin
+	parent.add_child(mass_root)
+
+	var width: float = dimensions.x
+	var height: float = dimensions.y
+	var depth: float = dimensions.z
+	var facade_floors: int = maxi(2, floors)
+	var podium_height: float = minf(height * 0.42, 3.15)
+	var upper_floor_height: float = maxf(0.8, (height - podium_height) / float(facade_floors - 1))
+
+	_box(mass_root, node_name + "_Foundation", Vector3(width + 0.50, 0.36, depth + 0.50), Vector3(0.0, 0.18, 0.0), materials["concrete"])
+	_box(mass_root, node_name + "_Architectural_Mass", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.36, 0.0), wall)
+	_box(mass_root, node_name + "_Ground_Floor_Podium", Vector3(width + 0.10, podium_height, depth + 0.10), Vector3(0.0, podium_height * 0.5 + 0.36, 0.0), podium)
+	_box(mass_root, node_name + "_Roof_Slab", Vector3(width + 0.34, 0.24, depth + 0.34), Vector3(0.0, height + 0.48, 0.0), roof)
+
+	if glass_facade:
+		_add_glass_curtain_wall(mass_root, width, depth, facade_floors, podium_height, upper_floor_height)
+	else:
+		for side in range(4):
+			var angle := float(side) * PI * 0.5
+			_add_facade_windows(mass_root, angle, width, depth, facade_floors, podium_height, upper_floor_height, style)
+			_add_facade_pilasters(mass_root, angle, width, depth, height, accent, style)
+
+	for floor_index in range(1, floors):
+		var floor_y := 0.42 + podium_height + float(floor_index - 1) * upper_floor_height
+		_box(mass_root, node_name + "_Expressed_Floor_Slab", Vector3(width + 0.18, 0.10, depth + 0.18), Vector3(0.0, floor_y, 0.0), accent)
+	return mass_root
+
+
+func _create_hq_round_tower(parent: Node3D, node_name: String, origin: Vector3, radius: float, height: float, radial_segments: int) -> Node3D:
+	var tower_root := Node3D.new()
+	tower_root.name = node_name
+	tower_root.position = origin
+	parent.add_child(tower_root)
+	_cylinder(tower_root, node_name + "_Foundation", radius + 0.42, radius + 0.42, 0.34, Vector3(0.0, 0.17, 0.0), materials["concrete"])
+
+	var shell_mesh := CylinderMesh.new()
+	shell_mesh.top_radius = radius
+	shell_mesh.bottom_radius = radius
+	shell_mesh.height = height
+	shell_mesh.radial_segments = radial_segments
+	var shell := MeshInstance3D.new()
+	shell.name = node_name + "_Glazed_Shell"
+	shell.mesh = shell_mesh
+	shell.position = Vector3(0.0, height * 0.5 + 0.34, 0.0)
+	shell.material_override = materials["glass"]
+	shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	shell.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	tower_root.add_child(shell)
+
+	for index in range(radial_segments):
+		var angle := TAU * float(index) / float(radial_segments)
+		var mullion := _box(tower_root, node_name + "_Vertical_Aluminium_Mullion", Vector3(0.075, height, 0.12), Vector3(cos(angle) * radius, height * 0.5 + 0.34, sin(angle) * radius), materials["glass_mullion"])
+		mullion.rotation.y = -angle
+		for floor_index in range(1, maxi(2, int(round(height / 3.2)))):
+			if index == 0:
+				_cylinder(tower_root, node_name + "_Glazing_Floor_Band", radius + 0.055, radius + 0.055, 0.075, Vector3(0.0, 0.34 + float(floor_index) * height / float(maxi(2, int(round(height / 3.2)))), 0.0), materials["glass_spandrel"])
+	_cylinder(tower_root, node_name + "_Roof_Crown", radius + 0.24, radius + 0.24, 0.24, Vector3(0.0, height + 0.48, 0.0), materials["metal"])
+	return tower_root
 
 func _add_workshop_features(parent: Node3D, width: float, depth: float, height: float) -> void:
 	var front_z := depth * 0.5 + 0.16
