@@ -305,8 +305,10 @@ func _apply_responsive_layout() -> void:
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
 		selection_scroll.size_flags_stretch_ratio = 1.18
-		preview_region.custom_minimum_size = Vector2(0, maxf(150.0, viewport_size.y * 0.34))
-		selection_scroll.custom_minimum_size = Vector2(0, maxf(190.0, viewport_size.y * 0.42))
+		# Give the controls enough vertical room in portrait so the two-column
+		# Screen Tech choices remain visible without needing a scroll gesture.
+		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
+		selection_scroll.custom_minimum_size = Vector2(0, maxf(300.0, viewport_size.y * 0.52))
 		selection_region.add_theme_constant_override("margin_left", 20)
 		selection_region.add_theme_constant_override("margin_right", 20)
 		selection_region.add_theme_constant_override("margin_top", 14)
