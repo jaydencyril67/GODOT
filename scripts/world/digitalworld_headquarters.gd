@@ -98,19 +98,19 @@ func _ready() -> void:
 func _create_material_library() -> void:
 	materials = {
 		"concrete": _mat(Color("#b8b9b1"), 0.9),
-		"dark_metal": _mat(Color("#26352b"), 0.42, 0.72),
+		"dark_metal": _mat(Color("#252b30"), 0.42, 0.72),
 		"metal": _mat(Color("#78878b"), 0.34, 0.78),
 		"glass": _glass_mat(),
 		"storefront": _mat(Color("#252b30"), 0.22, 0.38),
 		"window_frame": _mat(Color("#30383d"), 0.38, 0.62),
 		"glass_reflection": _mat(Color("#aebdca"), 0.12, 0.32),
 		"window_gasket": _mat(Color("#11171c"), 0.72, 0.18),
-		"roof": _mat(Color("#59635a"), 0.72, 0.28),
+		"roof": _mat(Color("#59636b"), 0.72, 0.28),
 		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
 		"hq_sign": _mat(Color("#12351b"), 0.32, 0.48),
 		"hq_accent": _emissive_mat(Color("#50c96b"), 1.8),
 		"workshop_cladding": _mat(Color("#8d9b8e"), 0.72, 0.22),
-		"workshop_shutter": _mat(Color("#394b3d"), 0.65, 0.42),
+		"workshop_shutter": _mat(Color("#30383d"), 0.65, 0.42),
 		"glass_mullion": _mat(Color("#303a43"), 0.28, 0.82),
 		"glass_spandrel": _mat(Color("#202a33"), 0.22, 0.58)
 	}
@@ -272,7 +272,7 @@ func _create_compound_roads(parent: Node3D) -> void:
 
 func _create_compound_perimeter(parent: Node3D) -> void:
 	var fence_material := _mat(Color("#303b32"), 0.54, 0.68)
-	var fence_post_material := _mat(Color("#59635a"), 0.62, 0.52)
+	var fence_post_material := _mat(Color("#59636b"), 0.62, 0.52)
 	_add_fence_run(parent, Vector3(-31.0, 0.0, -29.0), Vector3(31.0, 0.0, -29.0), fence_material, fence_post_material)
 	_add_fence_run(parent, Vector3(-31.0, 0.0, -29.0), Vector3(-31.0, 0.0, 29.0), fence_material, fence_post_material)
 	_add_fence_run(parent, Vector3(31.0, 0.0, -29.0), Vector3(31.0, 0.0, 29.0), fence_material, fence_post_material)
@@ -364,7 +364,7 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 	var wall := _mat(wall_color, 0.88, 0.05)
 	wall.albedo_texture = facade_noise
 	wall.uv1_scale = Vector3(2.6, 2.6, 1.0)
-	var roof := _mat(Color("#515b51"), 0.82, 0.28)
+	var roof := _mat(Color("#505a63"), 0.82, 0.28)
 	var foundation := _mat(Color("#888b80"), 0.94)
 	_box(parent, node_name + "_Foundation", Vector3(width + 0.4, 0.22, depth + 0.4), center + Vector3(0.0, 0.11, 0.0), foundation)
 	_box(parent, node_name + "_Walls", Vector3(width, height, depth), center + Vector3(0.0, height * 0.5 + 0.22, 0.0), wall)
@@ -540,7 +540,7 @@ func _build_procedural_building(level: int) -> float:
 		Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")
 	]
 	var accent_colors: Array[Color] = [
-		Color("#344b37"), Color("#665548"), Color("#303a43"), Color("#4b5550"), Color("#34444a")
+		Color("#4b555d"), Color("#665548"), Color("#303a43"), Color("#4b5550"), Color("#34444a")
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
 	if style >= 3:
