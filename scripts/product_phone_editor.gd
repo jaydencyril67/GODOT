@@ -1499,7 +1499,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	picker_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker_columns.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(picker_columns)
-	var uses_dual_color_pickers := not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package and (not return_to_back_design or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true)))
+	var uses_dual_color_pickers := not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package and (not return_to_back_design or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))))
 	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
 	picker_columns.add_child(normal_picker)
 	if uses_dual_color_pickers:
@@ -1799,14 +1799,17 @@ void fragment() {
 func _on_back_box_gradient_toggled(enabled: bool) -> void:
 	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
 	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
-	if not enabled: back_design_gradient_color_edit_mode = false
+	if not enabled:
+		back_design_gradient_color_edit_mode = false
+		_close_gradient_direction_popup()
 	_refresh_back_design_boxes()
-	if is_instance_valid(back_box_gradient_popup):
-		back_box_gradient_popup.visible = enabled
-		if enabled:
-			call_deferred("_position_back_box_gradient_popup")
+	var gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(gradient_options):
+		gradient_options.visible = enabled
+	var gradient_picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/GradientColorPicker") as Control if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(gradient_picker):
+		_set_device_gradient_picker_enabled(gradient_picker, enabled)
 	_refresh_device_color_editor_controls()
-
 
 func _create_back_box_gradient_popup(open_on_create: bool) -> void:
 	if is_instance_valid(back_box_gradient_popup):
