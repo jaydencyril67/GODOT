@@ -2125,7 +2125,7 @@ func _show_create_scene() -> void:
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
 		world_root.set_preview_active(false)
 
-	# Preserve the already-built product page when returning from a product editor.
+	# Reuse the product page when returning from a product editor.
 	if is_instance_valid(create_ui_layer) and is_instance_valid(create_ui_root):
 		if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
 			ui_layer.queue_free()
@@ -2134,7 +2134,6 @@ func _show_create_scene() -> void:
 		ui_layer.show()
 		return
 
-	# Use the exact architectural emerald showroom from the landing page.
 	_clear_world()
 	landing_environment = _build_landing_showroom()
 	add_child(landing_environment)
@@ -2145,7 +2144,7 @@ func _show_create_scene() -> void:
 	create_ui_layer = ui_layer
 	create_ui_root = ui_root
 
-	# Landing-page vignette: keep the showroom visible while giving the UI contrast.
+	# Keep the landing showroom as the only background treatment.
 	var vignette := ColorRect.new()
 	vignette.name = "CreateProductVignette"
 	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -2167,162 +2166,119 @@ void fragment() {
 
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 820.0 or viewport_size.y < 560.0
+	var margin_x := 14 if compact else 48
+	var margin_y := 12 if compact else 24
 	var frame := MarginContainer.new()
 	frame.name = "CreateProductFrame"
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	frame.add_theme_constant_override("margin_left", 18 if compact else 48)
-	frame.add_theme_constant_override("margin_right", 18 if compact else 48)
-	frame.add_theme_constant_override("margin_top", 16 if compact else 26)
-	frame.add_theme_constant_override("margin_bottom", 16 if compact else 26)
+	frame.add_theme_constant_override("margin_left", margin_x)
+	frame.add_theme_constant_override("margin_right", margin_x)
+	frame.add_theme_constant_override("margin_top", margin_y)
+	frame.add_theme_constant_override("margin_bottom", margin_y)
 	root.add_child(frame)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "CreateProductScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.follow_focus = true
-	frame.add_child(scroll)
-
+	# No ScrollContainer: the back control and all four cards stay on one screen.
 	var page := VBoxContainer.new()
 	page.name = "CreateProductContent"
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_theme_constant_override("separation", 18 if compact else 24)
-	scroll.add_child(page)
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 10 if compact else 16)
+	frame.add_child(page)
 
-	# Brand header follows the landing page's exact wordmark and subtitle treatment.
-	var brand := VBoxContainer.new()
-	brand.name = "CreateProductBrand"
-	brand.add_theme_constant_override("separation", 3)
-	page.add_child(brand)
-	var brand_name := _label("DIGITAL WORLD", 25 if compact else 29, Color("#f3faf3"))
-	_apply_menu_3d_label(brand_name, 1)
-	brand.add_child(brand_name)
-	brand.add_child(_label("M O B I L E S     /     POWERED BY KINGSHALL", 9 if compact else 10, Color("#9cc9a7")))
+	var top_bar := HBoxContainer.new()
+	top_bar.name = "CreateProductTopBar"
+	top_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar.alignment = BoxContainer.ALIGNMENT_END
+	page.add_child(top_bar)
 
-	var hero_row := HBoxContainer.new()
-	hero_row.name = "CreateProductHero"
-	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero_row.add_theme_constant_override("separation", 12)
-	page.add_child(hero_row)
-
-	var hero_copy := VBoxContainer.new()
-	hero_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero_copy.add_theme_constant_override("separation", 6)
-	hero_row.add_child(hero_copy)
-	hero_copy.add_child(_label("PRODUCT STUDIO  /  01", 10 if compact else 11, Color("#8fbd9a")))
-	var title := _label("CREATE THE\nNEXT GENERATION.", 27 if compact else 38, Color("#f4f8f3"))
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_menu_3d_label(title, 1)
-	hero_copy.add_child(title)
-	var subtitle := _label("Choose a category and turn your next technology idea into a product.", 12 if compact else 15, Color("#b5c7b9"))
-	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hero_copy.add_child(subtitle)
-
-	var back_button := _add_action_button(hero_row, "BACK  ‹", false, _return_to_home)
-	back_button.custom_minimum_size = Vector2(104 if compact else 132, 46 if compact else 52)
+	var back_button := _add_action_button(top_bar, "BACK  ‹", false, _return_to_home)
+	back_button.custom_minimum_size = Vector2(94 if compact else 124, 40 if compact else 48)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_landing_command_button(back_button, false)
-	_apply_shared_page_typography(back_button, 14 if compact else 15)
-
-	var section_header := HBoxContainer.new()
-	section_header.name = "ProductCategoryHeading"
-	section_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_child(section_header)
-	var section_title := _label("EXPLORE PRODUCT CATEGORIES", 11 if compact else 12, Color("#c9e5cd"))
-	section_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section_header.add_child(section_title)
-	section_header.add_child(_label("04 CATEGORIES", 9 if compact else 10, Color("#8fbd9a")))
+	_apply_shared_page_typography(back_button, 13 if compact else 15)
 
 	var grid := GridContainer.new()
 	grid.name = "Create_Category_Grid"
 	grid.columns = 2
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 14 if compact else 18)
-	grid.add_theme_constant_override("v_separation", 14 if compact else 18)
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 10 if compact else 18)
+	grid.add_theme_constant_override("v_separation", 10 if compact else 18)
 	page.add_child(grid)
 
-	var horizontal_page_width := maxf(0.0, viewport_size.x - (36.0 if compact else 96.0))
-	var card_width := maxf(1.0, (horizontal_page_width - (14.0 if compact else 18.0)) * 0.5)
-	var card_height := 206.0 if compact else 238.0
+	var horizontal_page_width := maxf(0.0, viewport_size.x - float(margin_x * 2))
+	var card_width := maxf(1.0, (horizontal_page_width - (10.0 if compact else 18.0)) * 0.5)
+	var available_grid_height := viewport_size.y - float(margin_y * 2) - (40.0 if compact else 48.0) - (10.0 if compact else 16.0) - (10.0 if compact else 18.0)
+	var card_height := maxf(108.0 if compact else 170.0, available_grid_height * 0.5)
 	var categories := [
-		{"name": "PHONE", "number": "01", "symbol": "01", "descriptor": "THE FLAGSHIP", "description": "Shape every detail of your smartphone, from its physical design to the experience inside."},
-		{"name": "PROCESSOR", "number": "02", "symbol": "02", "descriptor": "THE PERFORMANCE", "description": "Create the silicon that drives speed, efficiency and the next generation of mobile power."},
-		{"name": "OPERATING SYSTEM", "number": "03", "symbol": "03", "descriptor": "THE EXPERIENCE", "description": "Build the software platform, interface and intelligent features behind your devices."},
-		{"name": "CAMERA", "number": "04", "symbol": "04", "descriptor": "THE IMAGING", "description": "Develop camera systems and imaging technology that capture every detail."}
+		{"name": "PHONE", "number": "01", "descriptor": "THE FLAGSHIP", "description": "Shape every detail of your smartphone, from its physical design to the experience inside."},
+		{"name": "PROCESSOR", "number": "02", "descriptor": "THE PERFORMANCE", "description": "Create the silicon that drives speed, efficiency and the next generation of mobile power."},
+		{"name": "OPERATING SYSTEM", "number": "03", "descriptor": "THE EXPERIENCE", "description": "Build the software platform, interface and intelligent features behind your devices."},
+		{"name": "CAMERA", "number": "04", "descriptor": "THE IMAGING", "description": "Develop camera systems and imaging technology that capture every detail."}
 	]
 
 	for category in categories:
 		var card := PanelContainer.new()
 		card.name = str(category["name"]).replace(" ", "_") + "_Category_Card"
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		card.custom_minimum_size = Vector2(card_width, card_height)
 		var card_style := StyleBoxFlat.new()
-		card_style.bg_color = Color(0.018, 0.065, 0.039, 0.82)
+		card_style.bg_color = Color(0.018, 0.065, 0.039, 0.84)
 		card_style.border_color = Color(0.58, 0.82, 0.63, 0.62)
 		card_style.set_border_width_all(1)
 		card_style.border_width_top = 2
 		card_style.set_corner_radius_all(18)
-		card_style.shadow_color = Color(0.0, 0.025, 0.008, 0.52)
-		card_style.shadow_size = 18
-		card_style.shadow_offset = Vector2(0.0, 6.0)
+		card_style.shadow_color = Color(0.0, 0.025, 0.008, 0.48)
+		card_style.shadow_size = 14
+		card_style.shadow_offset = Vector2(0.0, 5.0)
 		card_style.anti_aliasing = true
-		card_style.content_margin_left = 17 if compact else 22
-		card_style.content_margin_right = 17 if compact else 22
-		card_style.content_margin_top = 16 if compact else 20
-		card_style.content_margin_bottom = 16 if compact else 20
+		card_style.content_margin_left = 12 if compact else 22
+		card_style.content_margin_right = 12 if compact else 22
+		card_style.content_margin_top = 10 if compact else 20
+		card_style.content_margin_bottom = 10 if compact else 20
 		card.add_theme_stylebox_override("panel", card_style)
 		grid.add_child(card)
 
 		var content := VBoxContainer.new()
 		content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		content.add_theme_constant_override("separation", 7)
+		content.add_theme_constant_override("separation", 4 if compact else 7)
 		card.add_child(content)
 
 		var top_line := HBoxContainer.new()
 		top_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		content.add_child(top_line)
-		var index := _label(str(category["number"]) + "  /  PRODUCT TYPE", 9 if compact else 10, Color("#a8d5b0"))
+		var index := _label(str(category["number"]) + "  /  PRODUCT TYPE", 8 if compact else 10, Color("#a8d5b0"))
 		index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		top_line.add_child(index)
-		top_line.add_child(_label("✦", 13, Color("#72bd82")))
+		top_line.add_child(_label("✦", 12, Color("#72bd82")))
 
-		var category_title := _label(str(category["name"]), 17 if compact else 22, Color("#f3faf3"))
+		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f3faf3"))
 		category_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_menu_3d_label(category_title, 1)
 		content.add_child(category_title)
-		content.add_child(_label(str(category["descriptor"]), 9 if compact else 10, Color("#8fbd9a")))
+		content.add_child(_label(str(category["descriptor"]), 8 if compact else 10, Color("#8fbd9a")))
 
 		var divider := ColorRect.new()
 		divider.custom_minimum_size = Vector2(0, 1)
 		divider.color = Color(0.58, 0.82, 0.63, 0.30)
 		content.add_child(divider)
 
-		var description := _label(str(category["description"]), 11 if compact else 13, Color("#b5c7b9"))
+		var description := _label(str(category["description"]), 9 if compact else 13, Color("#b5c7b9"))
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		content.add_child(description)
 
 		var choose := _add_action_button(content, "EXPLORE CATEGORY  ›", true, _on_create_category_pressed.bind(str(category["name"])))
-		choose.custom_minimum_size = Vector2(0, 42 if compact else 48)
+		choose.custom_minimum_size = Vector2(0, 34 if compact else 48)
 		choose.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_landing_command_button(choose, true)
-		_apply_shared_page_typography(choose, 11 if compact else 13)
-
-	var footer_rule := ColorRect.new()
-	footer_rule.custom_minimum_size = Vector2(0, 1)
-	footer_rule.color = Color(0.45, 0.68, 0.50, 0.24)
-	page.add_child(footer_rule)
-	var footer := _label("A KINGS HALL SIMULATION     /     BUILD YOUR NEXT BIG IDEA", 9, Color("#8aa991"))
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page.add_child(footer)
+		_apply_shared_page_typography(choose, 10 if compact else 13)
 
 	var entrance := create_tween()
 	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	entrance.tween_property(root, "modulate:a", 1.0, 0.42).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	entrance.tween_property(root, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _show_research_scene() -> void:
 	current_screen = "research"
