@@ -1353,6 +1353,10 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_direction_popup.queue_free()
 		gradient_direction_popup = null
 	back_design_color_mode = return_to_back_design
+	# New Worksite raised boxes always open with independent base and gradient colors.
+	# This also normalizes boxes carried over from older saved editor state.
+	if return_to_back_design and worksite_creation_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		back_design_boxes[selected_back_design_box]["use_device_color"] = false
 	phone_case_color_mode = for_phone_case
 	charger_color_mode = for_charger
 	smartwatch_color_mode = for_smartwatch
@@ -1433,7 +1437,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		if not use_device_color.button_pressed:
 			back_design_gradient_color_edit_mode = false
 
-	if (not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) or (return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))):
+	if (not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) or (return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode))):
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1503,7 +1507,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	picker_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker_columns.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(picker_columns)
-	var uses_dual_color_pickers := not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package and (not return_to_back_design or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))))
+	var uses_dual_color_pickers := not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package and (not return_to_back_design or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode))))
 	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
 	picker_columns.add_child(normal_picker)
 	if uses_dual_color_pickers:
@@ -1512,7 +1516,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		var gradient_picker_enabled := bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
 		_set_device_gradient_picker_enabled(gradient_picker, gradient_picker_enabled)
 	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true)))
+		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode)))
 	if return_to_back_design:
 		_add_back_design_flexible_space(active_feature_panel)
 
@@ -1532,7 +1536,7 @@ func _get_active_color_picker_color() -> Color:
 		return phone_case_gradient_color if phone_case_gradient_color_edit_mode else phone_case_color
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		var box: Dictionary = back_design_boxes[selected_back_design_box]
-		if bool(box.get("use_device_color", true)):
+		if bool(box.get("use_device_color", not worksite_creation_mode)):
 			return device_body_color
 		if back_design_gradient_color_edit_mode:
 			return Color(box.get("gradient_color", Color("#536dfe")))
@@ -2144,7 +2148,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 			phone_case_color = selected_color
 		_refresh_phone_case_material()
 	elif back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		if bool(back_design_boxes[selected_back_design_box].get("use_device_color", true)): return
+		if bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode)): return
 		if back_design_gradient_color_edit_mode:
 			back_design_boxes[selected_back_design_box]["gradient_color"] = selected_color
 		else:
@@ -2793,7 +2797,7 @@ func _refresh_back_design_boxes() -> void:
 		raised.name = "RaisedBackBox_%d" % int(box["id"])
 		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035 / 1.10 / 1.5)
 		var material := StandardMaterial3D.new()
-		var box_uses_device_color := bool(box.get("use_device_color", true))
+		var box_uses_device_color := bool(box.get("use_device_color", not worksite_creation_mode))
 		var box_color: Color = device_body_color if box_uses_device_color else Color(box.get("custom_color", device_body_color))
 		if box_uses_device_color:
 			material.albedo_color = box_color.lightened(0.045) if index == selected_back_design_box else box_color.darkened(0.10)
