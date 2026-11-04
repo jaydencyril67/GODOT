@@ -1387,7 +1387,10 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		back_button.custom_minimum_size = Vector2(34, 32)
 		back_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(back_button, 25)
-		_style_back_design_button(back_button, false) if return_to_back_design else _style_staff_button(back_button, false)
+		if return_to_back_design:
+			_style_back_design_button(back_button, false)
+		else:
+			_style_staff_button(back_button, false)
 		back_button.pressed.connect(_show_box_package_controls if for_box_package else (_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else (_show_earbuds_controls if for_earbuds else _show_back_design_controls))))))
 		color_header.add_child(back_button)
 		var color_heading := "BOX PACKAGE COLOR" if for_box_package else ("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else ("WIRELESS EARBUDS COLOR" if for_earbuds else "BACK DESIGN COLOR")))))
@@ -3169,7 +3172,7 @@ func _on_screen_type_selected(type_name: String) -> void:
 	_refresh_screen_type_buttons()
 
 
-func _style_screen_type_option(option: Button, rank: int, selected: bool) -> void:
+func _style_screen_type_option(option: Button, _rank: int, selected: bool) -> void:
 	# Match the worksite's dark translucent glass buttons and green brand rim.
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
