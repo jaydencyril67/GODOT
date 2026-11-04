@@ -5,6 +5,7 @@ const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
+const GLOBAL_BACKGROUND_TEXTURE: Texture2D = preload("res://Screenshot_20261104-041429_ChatGPT.jpg")
 
 const LOGO_NAMES := [
 	"Orchard", "Skybird", "Crown", "Apex", "Volt", "Prism", "Quantum", "Helix", "Titan", "Zenith",
@@ -267,6 +268,18 @@ func _new_screen() -> Control:
 	ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui_root.mouse_filter = Control.MOUSE_FILTER_PASS
 	ui_layer.add_child(ui_root)
+
+	# Shared photographic backdrop for standalone application screens.
+	# Keep it as the first child so each screen's own content renders above it.
+	var global_background := TextureRect.new()
+	global_background.name = "Global_Photographic_Background"
+	global_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	global_background.texture = GLOBAL_BACKGROUND_TEXTURE
+	global_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	global_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	global_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	global_background.z_index = -100
+	ui_root.add_child(global_background)
 	return ui_root
 
 
@@ -1929,7 +1942,7 @@ void fragment() {
 	vec3 deep = vec3(0.004, 0.018, 0.009);
 	vec3 base = mix(emerald, deep, edge * 0.88);
 	base += vec3(0.006, 0.025, 0.010) * glow;
-	COLOR = vec4(base, 1.0);
+	COLOR = vec4(base, 0.42);
 }
 """
 	var background_material := ShaderMaterial.new()
