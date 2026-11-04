@@ -1994,7 +1994,7 @@ func _refresh_device_color_editor_controls() -> void:
 		var hex_input := picker.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = selected_color.to_html(false).to_upper()
-		var picker_enabled := not use_gradient_color or (phone_case_gradient_enabled if phone_case_color_mode else device_gradient_enabled)
+		var picker_enabled: bool = not use_gradient_color or (phone_case_gradient_enabled if phone_case_color_mode else device_gradient_enabled)
 		_set_device_gradient_picker_enabled(picker, picker_enabled)
 	var base_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditDeviceColor") as Button
 	var gradient_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditGradientColor") as Button
