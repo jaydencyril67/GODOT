@@ -58,6 +58,7 @@ func _build_campus() -> void:
 	var gold_material := _emissive_material(GOLD, Color("#c18b35"), 0.85)
 	var soft_gold := _emissive_material(Color("#e8c987"), Color("#d4a653"), 0.48)
 	var green_material := _material(Color("#17231f"), 0.96)
+	var dark_metal_material := _material(DARK_METAL, 0.52, 0.58)
 
 	_add_box(self, Vector3(100.0, 0.5, 100.0), Vector3(0.0, -0.35, 0.0), ground_material, "Obsidian_Campus_Ground")
 	_add_box(self, Vector3(5.2, 0.08, 76.0), Vector3(0.0, -0.06, 0.0), road_material, "Central_Campus_Avenue")
@@ -77,14 +78,14 @@ func _build_campus() -> void:
 	for x in [-19.0, 19.0]:
 		for z in [-17.0, -3.0, 12.0, 25.0]:
 			_add_box(self, Vector3(5.0, 0.32, 4.0), Vector3(x, 0.10, z), green_material, "Landscape_Bed")
-			_add_box(self, Vector3(0.13, 1.65, 0.13), Vector3(x, 0.95, z), DARK_METAL, "Campus_Light_Post")
+			_add_box(self, Vector3(0.13, 1.65, 0.13), Vector3(x, 0.95, z), dark_metal_material, "Campus_Light_Post")
 			_add_box(self, Vector3(0.34, 0.12, 0.34), Vector3(x, 1.82, z), soft_gold, "Campus_Light_Cap")
 
 	# Fine gold inlays make the road geometry read as designed architecture.
-	for z in [-35.0, 35.0]:
-		_add_box(self, Vector3(0.07, 0.025, 76.0), Vector3(2.72, 0.02, z * 0.0), gold_material, "Road_Inlay")
-	for x in [-31.0, 31.0]:
-		_add_box(self, Vector3(72.0, 0.025, 0.07), Vector3(x * 0.0, 0.025, 2.25), gold_material, "Road_Inlay")
+	for x in [-2.72, 2.72]:
+		_add_box(self, Vector3(0.07, 0.025, 76.0), Vector3(x, 0.02, 0.0), gold_material, "Road_Inlay")
+	for z in [-2.25, 2.25]:
+		_add_box(self, Vector3(72.0, 0.025, 0.07), Vector3(0.0, 0.025, z), gold_material, "Road_Inlay")
 
 
 func _build_tower(origin: Vector3, width: float, height: float, depth: float, title: String, landmark: bool) -> void:
