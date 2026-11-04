@@ -7012,11 +7012,9 @@ func _refresh_rear_hardware_panel() -> void:
 	var has_selection := selected_index >= 0 and selected_index < modules.size()
 	if has_selection:
 		var selected: Dictionary = modules[selected_index]
-		rear_hardware_item_label.text = "%s  %02d / %02d" % [kind_name, selected_index + 1, modules.size()]
 		rear_hardware_size_slider.set_value_no_signal(float(selected["size"]))
 		rear_hardware_size_label.text = "SIZE  %.3f" % float(selected["size"])
 	else:
-		rear_hardware_item_label.text = "NO %s ADDED" % kind_name
 		rear_hardware_size_slider.set_value_no_signal(_get_rear_hardware_default_size())
 		rear_hardware_size_label.text = "ADD A %s TO BEGIN" % kind_name
 	rear_hardware_size_slider.disabled = not has_selection
