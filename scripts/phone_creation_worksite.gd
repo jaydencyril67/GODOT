@@ -558,6 +558,19 @@ func _show_home_button_step() -> void:
 	selection_scroll.scroll_vertical = 0
 
 
+func _keep_step_navigation_active() -> void:
+	# The editor's color controls are mounted into the worksite, but must never
+	# take ownership of the wizard's persistent bottom navigation buttons.
+	if is_instance_valid(wizard_back_button):
+		wizard_back_button.disabled = wizard_step <= 0
+		wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		wizard_back_button.modulate.a = 1.0
+	if is_instance_valid(next_button):
+		next_button.disabled = wizard_step >= 14
+		next_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		next_button.modulate.a = 1.0
+
+
 func _show_device_color_step() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
@@ -567,6 +580,9 @@ func _show_device_color_step() -> void:
 	# Use the original device-wide color picker, including live body material,
 	# gradient, RGB/hex and preview updates.
 	device_color_panel = _mount_original_panel("_show_device_color_controls")
+	# Keep both wizard arrows live while the original color editor is mounted.
+	_keep_step_navigation_active()
+	_keep_step_navigation_active.call_deferred()
 	# Keep the HUE section clean in the new worksite: remove the selected-color preview/readout row.
 	# The live HUE bar and HEX CODE input remain available for precise color selection.
 	if is_instance_valid(device_color_panel):
