@@ -2,8 +2,8 @@ extends Node3D
 
 # Lightweight, procedural landing campus. The detailed interactive campus will
 # grow from these reusable building and environment helpers.
-const GOLD := Color("#d6ad62")
-const GOLD_LIGHT := Color("#f3d79a")
+const GOLD := Color("#8fce96")
+const GOLD_LIGHT := Color("#c9efcc")
 const OBSIDIAN := Color("#090b10")
 const DARK_METAL := Color("#171b22")
 const GLASS := Color("#26313a")
@@ -19,7 +19,7 @@ func _build_environment() -> void:
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("#07090e")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#b8a47e")
+	environment.ambient_light_color = Color("#9bcba0")
 	environment.ambient_light_energy = 0.48
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world_environment.environment = environment
@@ -37,7 +37,7 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Warm_Architectural_Key_Light"
 	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	sun.light_color = Color("#f5dfb4")
+	sun.light_color = Color("#e1f3df")
 	sun.light_energy = 1.05
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 65.0
@@ -45,7 +45,7 @@ func _build_environment() -> void:
 
 	var gold_fill := OmniLight3D.new()
 	gold_fill.position = Vector3(-9.0, 8.0, 7.0)
-	gold_fill.light_color = Color("#d7a34e")
+	gold_fill.light_color = Color("#7fcb89")
 	gold_fill.light_energy = 1.35
 	gold_fill.omni_range = 22.0
 	add_child(gold_fill)
@@ -55,8 +55,8 @@ func _build_campus() -> void:
 	var ground_material := _material(Color("#10141a"), 0.94)
 	var road_material := _material(Color("#080a0e"), 0.98)
 	var path_material := _material(Color("#292b2e"), 0.88)
-	var gold_material := _emissive_material(GOLD, Color("#c18b35"), 0.85)
-	var soft_gold := _emissive_material(Color("#e8c987"), Color("#d4a653"), 0.48)
+	var gold_material := _emissive_material(GOLD, Color("#4d9d5d"), 0.85)
+	var soft_gold := _emissive_material(Color("#bce8bf"), Color("#83c98b"), 0.48)
 	var green_material := _material(Color("#17231f"), 0.96)
 	var dark_metal_material := _material(DARK_METAL, 0.52, 0.58)
 
@@ -97,8 +97,8 @@ func _build_tower(origin: Vector3, width: float, height: float, depth: float, ti
 	var base_mat := _material(Color("#20252c"), 0.72, 0.42)
 	var body_mat := _material(GLASS if landmark else DARK_METAL, 0.28, 0.58)
 	var dark_glass := _material(Color("#17232d"), 0.18, 0.46)
-	var gold := _emissive_material(GOLD, Color("#b98232"), 0.72)
-	var warm := _emissive_material(GOLD_LIGHT, Color("#e2b75d"), 0.42)
+	var gold := _emissive_material(GOLD, Color("#4b9958"), 0.72)
+	var warm := _emissive_material(GOLD_LIGHT, Color("#a8dfa9"), 0.42)
 
 	_add_box(root, Vector3(width + 1.6, 0.7, depth + 1.6), Vector3(0.0, 0.35, 0.0), base_mat, "Raised_Stone_Plinth")
 	_add_box(root, Vector3(width + 0.8, 1.15, depth + 0.8), Vector3(0.0, 1.0, 0.0), gold, "Illuminated_Base_Rim")
