@@ -198,17 +198,17 @@ func _create_presentation_stage() -> void:
 		# emerald ground plane. The building mesh and its own foundation stay intact.
 		var ground_mesh := PlaneMesh.new()
 		ground_mesh.size = Vector2(120.0, 120.0)
-		var ground := MeshInstance3D.new()
-		ground.name = "Home_Emerald_Ground"
-		ground.mesh = ground_mesh
-		ground.position = Vector3(0.0, -0.035, 0.0)
+		var home_ground := MeshInstance3D.new()
+		home_ground.name = "Home_Emerald_Ground"
+		home_ground.mesh = ground_mesh
+		home_ground.position = Vector3(0.0, -0.035, 0.0)
 		var ground_material := StandardMaterial3D.new()
 		ground_material.albedo_color = Color("#1b2c1e")
 		ground_material.metallic = 0.04
 		ground_material.roughness = 0.96
-		ground.material_override = ground_material
-		ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(ground)
+		home_ground.material_override = ground_material
+		home_ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(home_ground)
 		return
 
 	var ground := _box(self, "Headquarters_Studio_Ground", Vector3(90.0, 0.7, 90.0), Vector3(0.0, -0.55, 0.0), materials["stage_ground"])
