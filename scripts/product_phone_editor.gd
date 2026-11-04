@@ -1345,6 +1345,25 @@ func _ensure_gradient_popup_layer() -> CanvasLayer:
 	return gradient_popup_layer
 
 
+func _close_worksite_back_design_color_view() -> void:
+	# Close overlays that live outside the mounted color panel so they cannot
+	# intercept input after the wizard moves to another step.
+	_close_back_design_selection_popup()
+	if is_instance_valid(back_box_gradient_popup):
+		back_box_gradient_popup.queue_free()
+		back_box_gradient_popup = null
+	if is_instance_valid(gradient_direction_popup):
+		gradient_direction_popup.queue_free()
+		gradient_direction_popup = null
+	if is_instance_valid(back_design_selection_popup):
+		back_design_selection_popup.queue_free()
+		back_design_selection_popup = null
+		back_design_selection_scroll = null
+		back_design_selection_items = null
+	back_design_color_mode = false
+	back_design_gradient_color_edit_mode = false
+
+
 func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false, for_box_package: bool = false) -> void:
 	_close_back_design_selection_popup()
 	if is_instance_valid(back_box_gradient_popup):
