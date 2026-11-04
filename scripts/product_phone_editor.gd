@@ -193,6 +193,10 @@ var rear_hardware_mode := "CAMERA"
 var next_rear_camera_id := 1
 var next_rear_flash_id := 1
 var rear_hardware_item_label: Label
+var rear_hardware_selection_button: Button
+var rear_hardware_selection_popup: PanelContainer
+var rear_hardware_selection_scroll: ScrollContainer
+var rear_hardware_selection_items: VBoxContainer
 var rear_hardware_size_label: Label
 var rear_hardware_size_slider: HSlider
 var rear_hardware_add_button: Button
@@ -6547,6 +6551,7 @@ func _style_custom_slider(slider: Slider) -> void:
 
 
 func _show_rear_camera_controls() -> void:
+	_close_rear_hardware_selection_popup()
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
@@ -6608,33 +6613,59 @@ func _show_rear_camera_controls() -> void:
 	_add_back_design_flexible_space(active_feature_panel)
 
 	var selection_row := HBoxContainer.new()
+	selection_row.name = "RearHardwareItemSelectorRow"
 	selection_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selection_row.add_theme_constant_override("separation", 5)
 	active_feature_panel.add_child(selection_row)
 
-	rear_hardware_previous_button = Button.new()
-	rear_hardware_previous_button.text = "‹"
-	rear_hardware_previous_button.custom_minimum_size = Vector2(38, control_height)
-	rear_hardware_previous_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(rear_hardware_previous_button, 22)
-	_style_staff_button(rear_hardware_previous_button, false)
-	rear_hardware_previous_button.pressed.connect(_cycle_rear_hardware_selection.bind(-1))
-	selection_row.add_child(rear_hardware_previous_button)
+	rear_hardware_selection_button = Button.new()
+	rear_hardware_selection_button.name = "RearHardwareItemSelector"
+	rear_hardware_selection_button.text = "CHOOSE CAMERA  ▼" if rear_hardware_mode == "CAMERA" else "CHOOSE FLASH  ▼"
+	rear_hardware_selection_button.custom_minimum_size.y = control_height
+	rear_hardware_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_selection_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(rear_hardware_selection_button, 12 if tight else 13)
+	_style_staff_button(rear_hardware_selection_button, true)
+	rear_hardware_selection_button.pressed.connect(_toggle_rear_hardware_selection_popup)
+	selection_row.add_child(rear_hardware_selection_button)
 
-	rear_hardware_item_label = _make_label("", 11 if tight else 12, Color("#d8eaf5"))
-	rear_hardware_item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rear_hardware_item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rear_hardware_item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	selection_row.add_child(rear_hardware_item_label)
-
-	rear_hardware_next_button = Button.new()
-	rear_hardware_next_button.text = "›"
-	rear_hardware_next_button.custom_minimum_size = Vector2(38, control_height)
-	rear_hardware_next_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(rear_hardware_next_button, 22)
-	_style_staff_button(rear_hardware_next_button, false)
-	rear_hardware_next_button.pressed.connect(_cycle_rear_hardware_selection.bind(1))
-	selection_row.add_child(rear_hardware_next_button)
+	rear_hardware_selection_popup = PanelContainer.new()
+	rear_hardware_selection_popup.name = "RearHardwareItemDropdown"
+	rear_hardware_selection_popup.visible = false
+	rear_hardware_selection_popup.z_index = 4096
+	rear_hardware_selection_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	var rear_dropdown_style := StyleBoxFlat.new()
+	rear_dropdown_style.bg_color = Color("#07190d")
+	rear_dropdown_style.border_color = Color("#65d783")
+	rear_dropdown_style.set_border_width_all(2)
+	rear_dropdown_style.set_corner_radius_all(12)
+	rear_dropdown_style.content_margin_left = 8
+	rear_dropdown_style.content_margin_right = 8
+	rear_dropdown_style.content_margin_top = 8
+	rear_dropdown_style.content_margin_bottom = 8
+	rear_hardware_selection_popup.add_theme_stylebox_override("panel", rear_dropdown_style)
+	rear_hardware_selection_scroll = ScrollContainer.new()
+	rear_hardware_selection_scroll.name = "RearHardwareDropdownScroll"
+	rear_hardware_selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rear_hardware_selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rear_hardware_selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	rear_hardware_selection_scroll.clip_contents = true
+	rear_hardware_selection_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	var rear_dropdown_scroll_bar := rear_hardware_selection_scroll.get_v_scroll_bar()
+	rear_dropdown_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	rear_dropdown_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rear_hardware_selection_popup.add_child(rear_hardware_selection_scroll)
+	rear_hardware_selection_items = VBoxContainer.new()
+	rear_hardware_selection_items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_selection_items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	rear_hardware_selection_items.add_theme_constant_override("separation", 7)
+	rear_hardware_selection_scroll.add_child(rear_hardware_selection_items)
+	var rear_editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if is_instance_valid(rear_editor_root):
+		rear_editor_root.add_child(rear_hardware_selection_popup)
+	else:
+		active_feature_panel.add_child(rear_hardware_selection_popup)
 	_add_back_design_flexible_space(active_feature_panel)
 
 	var move_heading := _make_label("MOVE " + rear_hardware_mode, 11 if tight else 12, Color("#a9e3ff"))
@@ -6861,6 +6892,111 @@ func _on_rear_hardware_size_changed(value: float) -> void:
 	_refresh_rear_hardware_panel()
 
 
+func _toggle_rear_hardware_selection_popup() -> void:
+	if not is_instance_valid(rear_hardware_selection_popup):
+		return
+	_rebuild_rear_hardware_selection_popup()
+	if _get_rear_hardware_modules().is_empty():
+		return
+	rear_hardware_selection_popup.visible = not rear_hardware_selection_popup.visible
+	if rear_hardware_selection_popup.visible:
+		rear_hardware_selection_popup.move_to_front()
+		call_deferred("_position_rear_hardware_selection_popup")
+
+
+func _close_rear_hardware_selection_popup() -> void:
+	if is_instance_valid(rear_hardware_selection_popup):
+		rear_hardware_selection_popup.visible = false
+
+
+func _position_rear_hardware_selection_popup() -> void:
+	if not is_instance_valid(rear_hardware_selection_popup) or not is_instance_valid(rear_hardware_selection_button):
+		return
+	if not rear_hardware_selection_popup.visible:
+		return
+	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if not is_instance_valid(editor_root):
+		return
+	var viewport_rect := get_viewport().get_visible_rect()
+	var button_rect := rear_hardware_selection_button.get_global_rect()
+	var padding := 8.0
+	var gap := 6.0
+	var viewport_size := viewport_rect.size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	var popup_width := clampf(button_rect.size.x, 160.0, viewport_size.x - padding * 2.0)
+	var content_height := rear_hardware_selection_items.get_combined_minimum_size().y + 20.0 if is_instance_valid(rear_hardware_selection_items) else 80.0
+	var desired_height := minf(maxf(content_height, 80.0), viewport_size.y * 0.48)
+	var button_bottom := button_rect.position.y + button_rect.size.y
+	var above := maxf(0.0, button_rect.position.y - viewport_rect.position.y - gap - padding)
+	var below := maxf(0.0, viewport_rect.end.y - button_bottom - gap - padding)
+	var open_below := below >= desired_height or below >= above
+	var popup_height := minf(desired_height, maxf(80.0, viewport_size.y - padding * 2.0))
+	rear_hardware_selection_popup.custom_minimum_size = Vector2(popup_width, popup_height)
+	rear_hardware_selection_popup.size = Vector2(popup_width, popup_height)
+	if is_instance_valid(rear_hardware_selection_scroll):
+		rear_hardware_selection_scroll.custom_minimum_size = Vector2(0.0, maxf(48.0, popup_height - 20.0))
+	var popup_y := button_bottom + gap if open_below else button_rect.position.y - popup_height - gap
+	popup_y = clampf(popup_y, viewport_rect.position.y + padding, viewport_rect.end.y - popup_height - padding)
+	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + padding, viewport_rect.end.x - popup_width - padding)
+	rear_hardware_selection_popup.position = editor_root.to_local(Vector2(popup_x, popup_y))
+	rear_hardware_selection_popup.move_to_front()
+
+
+func _rebuild_rear_hardware_selection_popup() -> void:
+	if not is_instance_valid(rear_hardware_selection_items) or not is_instance_valid(rear_hardware_selection_button):
+		return
+	for child in rear_hardware_selection_items.get_children():
+		child.queue_free()
+	var modules := _get_rear_hardware_modules()
+	var selected_index := _get_rear_hardware_selected_index()
+	var kind_name := "FLASH" if rear_hardware_mode == "FLASH" else "CAMERA"
+	for index in range(modules.size()):
+		var module: Dictionary = modules[index]
+		var item := Button.new()
+		item.text = "%s  %02d%s" % [kind_name, int(module["id"]), "   ✓ SELECTED" if index == selected_index else ""]
+		item.custom_minimum_size = Vector2(0, 48)
+		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		item.focus_mode = Control.FOCUS_NONE
+		item.mouse_filter = Control.MOUSE_FILTER_PASS
+		item.add_theme_font_size_override("font_size", 15)
+		for state in ["normal", "hover", "pressed", "focus"]:
+			var item_style := StyleBoxFlat.new()
+			item_style.bg_color = Color("#12351c") if state != "pressed" else Color("#285c35")
+			if state == "hover":
+				item_style.bg_color = Color("#1c4728")
+			item_style.border_color = Color("#4d8d5b")
+			item_style.set_border_width_all(1)
+			item_style.set_corner_radius_all(8)
+			item_style.content_margin_left = 14
+			item.add_theme_stylebox_override(state, item_style)
+		item.add_theme_color_override("font_color", Color("#e5f4e7"))
+		item.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		item.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+		item.pressed.connect(_select_rear_hardware_module.bind(index))
+		rear_hardware_selection_items.add_child(item)
+	rear_hardware_selection_button.disabled = modules.is_empty()
+	if selected_index >= 0 and selected_index < modules.size():
+		var selected: Dictionary = modules[selected_index]
+		rear_hardware_selection_button.text = "%s  %02d  ▼" % [kind_name, int(selected["id"])]
+	else:
+		rear_hardware_selection_button.text = "ADD A %s TO SELECT  ▼" % kind_name
+	if modules.is_empty():
+		rear_hardware_selection_popup.visible = false
+	elif rear_hardware_selection_popup.visible:
+		call_deferred("_position_rear_hardware_selection_popup")
+
+
+func _select_rear_hardware_module(index: int) -> void:
+	var modules := _get_rear_hardware_modules()
+	if index < 0 or index >= modules.size():
+		return
+	_set_rear_hardware_selected_index(index)
+	_close_rear_hardware_selection_popup()
+	_refresh_rear_hardware_panel()
+
+
 func _refresh_rear_hardware_panel() -> void:
 	if not is_instance_valid(rear_hardware_item_label):
 		return
@@ -6879,8 +7015,7 @@ func _refresh_rear_hardware_panel() -> void:
 		rear_hardware_size_label.text = "ADD A %s TO BEGIN" % kind_name
 	rear_hardware_size_slider.disabled = not has_selection
 	rear_hardware_remove_button.disabled = not has_selection
-	rear_hardware_previous_button.disabled = modules.size() < 2
-	rear_hardware_next_button.disabled = modules.size() < 2
+	_rebuild_rear_hardware_selection_popup()
 	var camera_limit_reached := rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS
 	var flash_limit_reached := rear_hardware_mode == "FLASH" and rear_flash_modules.size() >= MAX_REAR_FLASHES
 	rear_hardware_add_button.text = "MAX 5 CAMERAS" if camera_limit_reached else ("MAX 5 FLASHES" if flash_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"))
