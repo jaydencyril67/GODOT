@@ -1519,86 +1519,18 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		_rebuild_gradient_direction_popup()
 		gradient_options.visible = phone_case_gradient_enabled if for_phone_case else device_gradient_enabled
 
-	var spectrum_heading := _make_label("COLOR SPECTRUM", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(spectrum_heading)
-	var spectrum := DeviceColorSpectrum.new()
-	spectrum.name = "DeviceColorSpectrum"
-	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var spectrum_height := clampf(color_viewport_size.y * 0.22, 145.0, 190.0) * 1.5 / 1.3
-	spectrum.custom_minimum_size = Vector2(0, spectrum_height)
-	spectrum.set_color_value(_get_active_color_picker_color())
-	spectrum.color_changed.connect(_on_device_body_color_changed)
-	active_feature_panel.add_child(spectrum)
-
-	var hue_heading := _make_label("HUE", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(hue_heading)
-	var hue_bar := DeviceHueBar.new()
-	hue_bar.name = "DeviceColorHue"
-	hue_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hue_bar.set_hue(_get_active_color_picker_color().h)
-	hue_bar.hue_changed.connect(_on_device_color_hue_changed)
-	active_feature_panel.add_child(hue_bar)
-
-	var selected_row := HBoxContainer.new()
-	selected_row.name = "SelectedDeviceColor"
-	selected_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(selected_row)
-	device_color_hex_label = _make_label("#" + _get_active_color_picker_color().to_html(false).to_upper(), 14, Color("#e5f6ff"))
-	device_color_hex_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	device_color_hex_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	selected_row.add_child(device_color_hex_label)
-
-	var hex_heading := _make_label("HEX CODE", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(hex_heading)
-	var hex_row := HBoxContainer.new()
-	hex_row.name = "CustomHexEntry"
-	hex_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hex_row.add_theme_constant_override("separation", 7)
-	active_feature_panel.add_child(hex_row)
-	var hex_input := LineEdit.new()
-	hex_input.name = "DeviceColorHexInput"
-	hex_input.placeholder_text = "#RRGGBB"
-	hex_input.text = _get_active_color_picker_color().to_html(false).to_upper()
-	hex_input.max_length = 7
-	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hex_input.custom_minimum_size = Vector2(0, 40)
-	hex_input.clear_button_enabled = true
-	hex_input.add_theme_color_override("font_color", Color("#edf8ff"))
-	hex_input.add_theme_color_override("font_placeholder_color", Color("#78937c"))
-	hex_input.add_theme_color_override("caret_color", Color("#75d58a"))
-	var hex_normal := StyleBoxFlat.new()
-	hex_normal.bg_color = Color("#101d13")
-	hex_normal.set_corner_radius_all(8)
-	hex_normal.set_border_width_all(1)
-	hex_normal.border_color = Color("#315a38")
-	hex_normal.content_margin_left = 10.0
-	hex_normal.content_margin_right = 10.0
-	var hex_focus := hex_normal.duplicate() as StyleBoxFlat
-	hex_focus.border_color = Color("#64d783")
-	hex_focus.set_border_width_all(2)
-	hex_input.add_theme_stylebox_override("normal", hex_normal)
-	hex_input.add_theme_stylebox_override("focus", hex_focus)
-	hex_input.add_theme_stylebox_override("read_only", hex_normal)
-	hex_row.add_child(hex_input)
-	var apply_button := Button.new()
-	apply_button.name = "ApplyDeviceHex"
-	apply_button.text = "APPLY"
-	apply_button.custom_minimum_size = Vector2(68, 40)
-	apply_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(apply_button, 12)
-	var apply_normal := StyleBoxFlat.new()
-	apply_normal.bg_color = Color("#174b28")
-	apply_normal.set_corner_radius_all(8)
-	apply_normal.set_border_width_all(1)
-	apply_normal.border_color = Color("#4dbb6a")
-	var apply_hover := apply_normal.duplicate() as StyleBoxFlat
-	apply_hover.bg_color = Color("#206b35")
-	apply_button.add_theme_stylebox_override("normal", apply_normal)
-	apply_button.add_theme_stylebox_override("hover", apply_hover)
-	apply_button.add_theme_color_override("font_color", Color("#effaff"))
-	hex_row.add_child(apply_button)
-	apply_button.pressed.connect(_on_device_color_hex_submitted.bind(hex_input))
-	hex_input.text_submitted.connect(_on_device_color_hex_text_submitted)
+	var picker_columns := HBoxContainer.new()
+	picker_columns.name = "DeviceColorPickerColumns"
+	picker_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker_columns.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(picker_columns)
+	var uses_dual_color_pickers := not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package
+	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
+	picker_columns.add_child(normal_picker)
+	if uses_dual_color_pickers:
+		var gradient_picker := _build_device_color_picker_panel(true, color_viewport_size)
+		picker_columns.add_child(gradient_picker)
+		_set_device_gradient_picker_enabled(gradient_picker, phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
 	if return_to_back_design:
 		_add_back_design_flexible_space(active_feature_panel)
 
@@ -1650,6 +1582,130 @@ func _on_device_color_hue_changed(hue: float) -> void:
 	if is_instance_valid(spectrum):
 		spectrum.set_hue(hue)
 		_on_device_body_color_changed(Color.from_hsv(hue, spectrum.saturation, spectrum.brightness))
+
+
+
+func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: Vector2) -> VBoxContainer:
+	var picker := VBoxContainer.new()
+	picker.name = "GradientColorPicker" if use_gradient_color else "NormalColorPicker"
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	picker.add_theme_constant_override("separation", 5)
+	var heading := _make_label("GRADIENT" if use_gradient_color else "NORMAL", 14, Color("#c7eacb"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	picker.add_child(heading)
+	var special_color_mode := return_to_back_design or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
+	var selected_color := _get_active_color_picker_color() if special_color_mode else (phone_case_gradient_color if phone_case_color_mode and use_gradient_color else (phone_case_color if phone_case_color_mode else (device_gradient_color if use_gradient_color else device_body_color)))
+	picker.add_child(_make_label("COLOR SPECTRUM", 11, Color("#a9e3ff")))
+	var spectrum := DeviceColorSpectrum.new()
+	spectrum.name = "DeviceColorSpectrum"
+	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spectrum.custom_minimum_size = Vector2(0, clampf(viewport_size.y * 0.22, 125.0, 175.0))
+	spectrum.set_color_value(selected_color)
+	spectrum.color_changed.connect(_on_color_picker_panel_changed.bind(use_gradient_color))
+	picker.add_child(spectrum)
+	picker.add_child(_make_label("HUE", 11, Color("#a9e3ff")))
+	var hue_bar := DeviceHueBar.new()
+	hue_bar.name = "DeviceColorHue"
+	hue_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hue_bar.set_hue(selected_color.h)
+	hue_bar.hue_changed.connect(_on_color_picker_panel_hue_changed.bind(use_gradient_color))
+	picker.add_child(hue_bar)
+	var selected_label := _make_label("#" + selected_color.to_html(false).to_upper(), 12, Color("#e5f6ff"))
+	selected_label.name = "SelectedColorHex"
+	picker.add_child(selected_label)
+	if not use_gradient_color:
+		device_color_hex_label = selected_label
+	picker.add_child(_make_label("HEX CODE", 11, Color("#a9e3ff")))
+	var hex_row := HBoxContainer.new()
+	hex_row.name = "CustomHexEntry"
+	hex_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hex_row.add_theme_constant_override("separation", 5)
+	picker.add_child(hex_row)
+	var hex_input := LineEdit.new()
+	hex_input.name = "DeviceColorHexInput"
+	hex_input.placeholder_text = "#RRGGBB"
+	hex_input.text = selected_color.to_html(false).to_upper()
+	hex_input.max_length = 7
+	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hex_input.custom_minimum_size = Vector2(0, 36)
+	hex_input.add_theme_color_override("font_color", Color("#edf8ff"))
+	hex_input.add_theme_color_override("font_placeholder_color", Color("#78937c"))
+	hex_input.add_theme_color_override("caret_color", Color("#75d58a"))
+	var hex_normal := StyleBoxFlat.new()
+	hex_normal.bg_color = Color("#101d13")
+	hex_normal.set_corner_radius_all(7)
+	hex_normal.set_border_width_all(1)
+	hex_normal.border_color = Color("#315a38")
+	hex_normal.content_margin_left = 7.0
+	hex_normal.content_margin_right = 7.0
+	var hex_focus := hex_normal.duplicate() as StyleBoxFlat
+	hex_focus.border_color = Color("#64d783")
+	hex_focus.set_border_width_all(2)
+	hex_input.add_theme_stylebox_override("normal", hex_normal)
+	hex_input.add_theme_stylebox_override("focus", hex_focus)
+	hex_input.add_theme_stylebox_override("read_only", hex_normal)
+	hex_row.add_child(hex_input)
+	var apply_button := Button.new()
+	apply_button.name = "ApplyDeviceHex"
+	apply_button.text = "APPLY"
+	apply_button.custom_minimum_size = Vector2(58, 36)
+	apply_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(apply_button, 11)
+	var apply_normal := StyleBoxFlat.new()
+	apply_normal.bg_color = Color("#174b28")
+	apply_normal.set_corner_radius_all(7)
+	apply_normal.set_border_width_all(1)
+	apply_normal.border_color = Color("#4dbb6a")
+	var apply_hover := apply_normal.duplicate() as StyleBoxFlat
+	apply_hover.bg_color = Color("#206b35")
+	apply_button.add_theme_stylebox_override("normal", apply_normal)
+	apply_button.add_theme_stylebox_override("hover", apply_hover)
+	apply_button.add_theme_color_override("font_color", Color("#effaff"))
+	hex_row.add_child(apply_button)
+	apply_button.pressed.connect(_on_color_picker_hex_submitted.bind(hex_input, use_gradient_color))
+	hex_input.text_submitted.connect(_on_color_picker_hex_text_submitted.bind(use_gradient_color))
+	return picker
+
+
+func _set_device_gradient_picker_enabled(picker: Control, enabled: bool) -> void:
+	if not is_instance_valid(picker):
+		return
+	picker.modulate.a = 1.0 if enabled else 0.38
+	for child in picker.find_children("*", "Control", true, false):
+		child.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+		if child is BaseButton:
+			(child as BaseButton).disabled = not enabled
+		elif child is LineEdit:
+			(child as LineEdit).editable = enabled
+	picker.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+
+
+func _on_color_picker_panel_changed(color: Color, use_gradient_color: bool) -> void:
+	_on_gradient_color_target_selected(use_gradient_color)
+	_on_device_body_color_changed(color)
+
+
+func _on_color_picker_panel_hue_changed(hue: float, use_gradient_color: bool) -> void:
+	_on_gradient_color_target_selected(use_gradient_color)
+	var picker_name := "GradientColorPicker" if use_gradient_color else "NormalColorPicker"
+	var picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/" + picker_name) if is_instance_valid(active_feature_panel) else null
+	var spectrum := picker.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum if is_instance_valid(picker) else null
+	if is_instance_valid(spectrum):
+		spectrum.set_hue(hue)
+		_on_device_body_color_changed(Color.from_hsv(hue, spectrum.saturation, spectrum.brightness))
+
+
+func _on_color_picker_hex_submitted(hex_input: LineEdit, use_gradient_color: bool) -> void:
+	if not is_instance_valid(hex_input):
+		return
+	_on_gradient_color_target_selected(use_gradient_color)
+	_apply_device_color_hex(hex_input.text)
+
+
+func _on_color_picker_hex_text_submitted(value: String, use_gradient_color: bool) -> void:
+	_on_gradient_color_target_selected(use_gradient_color)
+	_apply_device_color_hex(value)
 
 
 func _on_device_rgb_channel_changed(value: float, channel: String) -> void:
@@ -1920,14 +1976,26 @@ func _on_gradient_color_target_selected(use_gradient_color: bool) -> void:
 
 func _refresh_device_color_editor_controls() -> void:
 	if not is_instance_valid(active_feature_panel): return
-	var selected_color := _get_active_color_picker_color()
-	var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
-	if is_instance_valid(spectrum): spectrum.set_color_value(selected_color)
-	var hue_bar := active_feature_panel.get_node_or_null("DeviceColorHue") as DeviceHueBar
-	if is_instance_valid(hue_bar): hue_bar.set_hue(selected_color.h)
-	if is_instance_valid(device_color_hex_label):
-		device_color_hex_label.text = "#" + selected_color.to_html(false).to_upper()
-		device_color_hex_label.add_theme_color_override("font_color", Color("#e5f6ff"))
+	for use_gradient_color in [false, true]:
+		var picker_name := "GradientColorPicker" if use_gradient_color else "NormalColorPicker"
+		var picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/" + picker_name)
+		if not is_instance_valid(picker):
+			continue
+		var special_color_mode := return_to_back_design or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
+		var selected_color := _get_active_color_picker_color() if special_color_mode else (phone_case_gradient_color if phone_case_color_mode and use_gradient_color else (phone_case_color if phone_case_color_mode else (device_gradient_color if use_gradient_color else device_body_color)))
+		var spectrum := picker.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
+		if is_instance_valid(spectrum): spectrum.set_color_value(selected_color)
+		var hue_bar := picker.get_node_or_null("DeviceColorHue") as DeviceHueBar
+		if is_instance_valid(hue_bar): hue_bar.set_hue(selected_color.h)
+		var hex_label := picker.get_node_or_null("SelectedColorHex") as Label
+		if is_instance_valid(hex_label):
+			hex_label.text = "#" + selected_color.to_html(false).to_upper()
+			hex_label.add_theme_color_override("font_color", Color("#e5f6ff"))
+		var hex_input := picker.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
+		if is_instance_valid(hex_input):
+			hex_input.text = selected_color.to_html(false).to_upper()
+		var picker_enabled := not use_gradient_color or (phone_case_gradient_enabled if phone_case_color_mode else device_gradient_enabled)
+		_set_device_gradient_picker_enabled(picker, picker_enabled)
 	var base_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditDeviceColor") as Button
 	var gradient_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditGradientColor") as Button
 	var selected_gradient_edit := phone_case_gradient_color_edit_mode if phone_case_color_mode else gradient_color_edit_mode
@@ -2045,6 +2113,8 @@ func _on_device_gradient_toggled(enabled: bool) -> void:
 		var options := active_feature_panel.get_node_or_null("GradientOptions") as Control
 		if is_instance_valid(options):
 			options.visible = enabled
+		var gradient_picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/GradientColorPicker") as Control
+		_set_device_gradient_picker_enabled(gradient_picker, enabled)
 	_refresh_device_color_editor_controls()
 
 
@@ -2089,15 +2159,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
 	if is_instance_valid(active_feature_panel):
-		var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
-		if is_instance_valid(spectrum):
-			spectrum.set_color_value(_get_active_color_picker_color())
-		var hue_bar := active_feature_panel.get_node_or_null("DeviceColorHue") as DeviceHueBar
-		if is_instance_valid(hue_bar):
-			hue_bar.set_hue(_get_active_color_picker_color().h)
-		var hex_input := active_feature_panel.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
-		if is_instance_valid(hex_input):
-			hex_input.text = _get_active_color_picker_color().to_html(false).to_upper()
+		_refresh_device_color_editor_controls()
 	if not phone_case_color_mode and not box_package_color_mode and not charger_color_mode:
 		_refresh_back_design_boxes()
 		_refresh_phone_side_buttons()
