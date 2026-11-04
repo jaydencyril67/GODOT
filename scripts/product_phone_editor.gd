@@ -2250,41 +2250,45 @@ func _show_back_design_controls() -> void:
 		back_design_selection_scroll = null
 		back_design_selection_items = null
 	back_design_color_mode = false
+
 	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
 	if not is_instance_valid(panel_host):
 		panel_host = right_tools_content
-	if not is_instance_valid(panel_host): return
+	if not is_instance_valid(panel_host):
+		return
 	if is_instance_valid(active_feature_panel) and active_feature_panel.get_parent() == panel_host:
 		panel_host.remove_child(active_feature_panel)
 		active_feature_panel.queue_free()
 	if panel_host == right_tools_content:
 		for old_child in right_tools_content.get_children():
 			old_child.queue_free()
+
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.y < 760.0 or viewport_size.x < 900.0
 	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
-	# Keep the tap targets comfortably sized at every breakpoint. Remaining
-	# panel height is distributed between flexible gaps, never into the controls.
 	var control_height := 40.0 if tight else (43.0 if compact else 47.0)
 	var slider_height := 32.0 if tight else (36.0 if compact else 40.0)
-	var section_gap := 3 if tight else (4 if compact else 6)
 	var label_size := 11 if tight else 12
 	var button_font_size := 12 if tight else (13 if compact else 14)
+
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BackDesignControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", section_gap)
+	active_feature_panel.add_theme_constant_override("separation", 10 if tight else (12 if compact else 14))
 	panel_host.add_child(active_feature_panel)
 
 	var heading := _make_label("BACK DESIGN", 17 if compact else 18, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
+	# Card 1: box management. Keep the dropdown on its own full-width row.
+	var management := _make_editor_control_card(active_feature_panel, "BackDesignManagementCard", "BOX MANAGEMENT", tight)
 	var actions := HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(actions)
+	actions.add_theme_constant_override("separation", 8)
+	management.add_child(actions)
+
 	var add_button := Button.new()
 	add_button.text = "+ ADD"
 	add_button.custom_minimum_size.y = control_height
@@ -2293,6 +2297,7 @@ func _show_back_design_controls() -> void:
 	_style_back_design_button(add_button, true)
 	add_button.pressed.connect(_add_back_design_box)
 	actions.add_child(add_button)
+
 	var remove_button := Button.new()
 	remove_button.text = "− REMOVE"
 	remove_button.custom_minimum_size.y = control_height
@@ -2311,6 +2316,8 @@ func _show_back_design_controls() -> void:
 	_apply_research_typography(back_design_selection_button, button_font_size)
 	_style_back_design_button(back_design_selection_button, true)
 	back_design_selection_button.pressed.connect(_toggle_back_design_selection_popup)
+	management.add_child(back_design_selection_button)
+
 	back_design_selection_popup = PanelContainer.new()
 	back_design_selection_popup.name = "BackDesignCustomDropdown"
 	back_design_selection_popup.visible = false
@@ -2345,19 +2352,18 @@ func _show_back_design_controls() -> void:
 	back_design_selection_items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	back_design_selection_items.add_theme_constant_override("separation", 7)
 	back_design_selection_scroll.add_child(back_design_selection_items)
-	# Keep the dropdown outside the VBox layout so it overlays the panel.
 	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
 	if is_instance_valid(editor_root):
 		editor_root.add_child(back_design_selection_popup)
 	else:
 		active_feature_panel.add_child(back_design_selection_popup)
 
-	actions.add_child(back_design_selection_button)
-
+	# Card 2: editing modes and color entry.
+	var mode_card := _make_editor_control_card(active_feature_panel, "BackDesignModeCard", "EDITING MODE", tight)
 	var modes := HBoxContainer.new()
 	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modes.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(modes)
+	modes.add_theme_constant_override("separation", 8)
+	mode_card.add_child(modes)
 	for mode in ["SIZE", "MOVE"]:
 		var mode_button := Button.new()
 		mode_button.text = mode
@@ -2368,16 +2374,27 @@ func _show_back_design_controls() -> void:
 		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
 		modes.add_child(mode_button)
 
-	# Direction controls are deliberately placed after the design settings,
-	# in a larger square controller anchored at the bottom of the panel.
+	var color_button := Button.new()
+	color_button.name = "BackDesignColorButton"
+	color_button.text = "● COLOR"
+	color_button.custom_minimum_size = Vector2(0, control_height)
+	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_research_typography(color_button, button_font_size)
+	_style_back_design_button(color_button, false)
+	color_button.pressed.connect(_show_device_color_controls.bind(true))
+	modes.add_child(color_button)
 
-	back_design_size_label = _make_label("", label_size, Color("#d8eaf5"))
-	active_feature_panel.add_child(back_design_size_label)
+	# Card 3: the existing live size readout and corner-radius control.
+	var dimensions := _make_editor_control_card(active_feature_panel, "BackDesignDimensionsCard", "DIMENSIONS", tight)
+	back_design_size_label = _make_label("", label_size, Color("#dce9df"))
+	back_design_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dimensions.add_child(back_design_size_label)
+
 	var border_row := HBoxContainer.new()
 	border_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	border_row.add_theme_constant_override("separation", 8)
-	active_feature_panel.add_child(border_row)
-	var border_heading := _make_label("CORNER", label_size, Color("#a9e3ff"))
+	dimensions.add_child(border_row)
+	var border_heading := _make_label("CORNER", label_size, Color("#b9d9bf"))
 	border_heading.custom_minimum_size.x = 58
 	border_row.add_child(border_heading)
 	back_design_border_slider = HSlider.new()
@@ -2389,25 +2406,18 @@ func _show_back_design_controls() -> void:
 	_style_back_design_slider(back_design_border_slider)
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	border_row.add_child(back_design_border_slider)
-	back_design_border_label = _make_label("", label_size, Color("#d8eaf5"))
+	back_design_border_label = _make_label("", label_size, Color("#dce9df"))
 	back_design_border_label.custom_minimum_size.x = 48
 	back_design_border_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	border_row.add_child(back_design_border_label)
-	var color_button := Button.new()
-	color_button.name = "BackDesignColorButton"
-	color_button.text = "● COLOR"
-	color_button.custom_minimum_size = Vector2(0, control_height)
-	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_research_typography(color_button, button_font_size)
-	_style_back_design_button(color_button, false)
-	color_button.pressed.connect(_show_device_color_controls.bind(true))
-	modes.add_child(color_button)
 
+	# Card 4: framed directional controller, shared proportions with Rare Camera.
+	var position_card := _make_editor_control_card(active_feature_panel, "BackDesignPositionCard", "POSITION CONTROLLER", tight)
 	var pad_center := CenterContainer.new()
 	pad_center.name = "BackDesignDirectionControllerCenter"
 	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad_center.size_flags_vertical = Control.SIZE_SHRINK_END
-	active_feature_panel.add_child(pad_center)
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	position_card.add_child(pad_center)
 	var pad_shell := PanelContainer.new()
 	pad_shell.name = "BackDesignDirectionController"
 	pad_shell.custom_minimum_size = Vector2(231, 247) if not tight else Vector2(204, 220)
@@ -2456,6 +2466,32 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_button(pad, "↓" if not shrinking else "↑", Vector2i(0, -1))
 	_add_back_design_pad_spacer(pad)
 	_refresh_back_design_panel()
+
+func _make_editor_control_card(parent: Control, card_name: String, heading_text: String, tight: bool) -> VBoxContainer:
+	var panel := PanelContainer.new()
+	panel.name = card_name
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#0d1710")
+	panel_style.border_color = Color("#263e2b")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(14)
+	panel_style.content_margin_left = 12
+	panel_style.content_margin_right = 12
+	panel_style.content_margin_top = 10 if tight else 12
+	panel_style.content_margin_bottom = 10 if tight else 12
+	panel.add_theme_stylebox_override("panel", panel_style)
+	parent.add_child(panel)
+
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 7 if tight else 9)
+	panel.add_child(content)
+
+	var heading := _make_label(heading_text, 11 if tight else 12, Color("#a8cfad"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	content.add_child(heading)
+	return content
 
 
 func _add_back_design_flexible_space(parent: Control) -> void:
@@ -2603,18 +2639,25 @@ func _add_back_design_pad_spacer(parent: GridContainer) -> void:
 func _add_back_design_pad_button(parent: GridContainer, caption: String, direction: Vector2i) -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
+	_add_editor_direction_pad_button(parent, caption, direction, tight, Callable(self, "_on_back_design_pad_pressed"))
+
+
+func _add_editor_direction_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool, pressed_callback: Callable) -> void:
 	var button := Button.new()
 	button.text = caption
 	button.custom_minimum_size = Vector2(62, 58) if tight else Vector2(72, 63)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(button, 28 if not tight else 26)
-	_style_staff_button(button, true)
 	_style_back_design_button(button, true)
-	for state in ["normal", "hover", "pressed", "focus"]:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var square_style := StyleBoxFlat.new()
-		square_style.bg_color = Color("#173c22") if state != "pressed" else Color("#285c35")
+		square_style.bg_color = Color("#173c22")
 		if state == "hover":
 			square_style.bg_color = Color("#205632")
+		elif state == "pressed":
+			square_style.bg_color = Color("#285c35")
+		elif state == "disabled":
+			square_style.bg_color = Color("#17251a")
 		square_style.border_color = Color("#579766")
 		square_style.set_border_width_all(1)
 		square_style.set_corner_radius_all(8)
@@ -2623,7 +2666,7 @@ func _add_back_design_pad_button(parent: GridContainer, caption: String, directi
 		square_style.content_margin_top = 0
 		square_style.content_margin_bottom = 0
 		button.add_theme_stylebox_override(state, square_style)
-	button.pressed.connect(_on_back_design_pad_pressed.bind(direction))
+	button.pressed.connect(pressed_callback.bind(direction))
 	parent.add_child(button)
 
 func _set_back_design_mode(mode: String) -> void:
@@ -6561,6 +6604,7 @@ func _show_rear_camera_controls() -> void:
 		rear_hardware_selection_popup = null
 		rear_hardware_selection_scroll = null
 		rear_hardware_selection_items = null
+
 	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
 	if not is_instance_valid(panel_host):
 		panel_host = right_tools_content
@@ -6578,7 +6622,6 @@ func _show_rear_camera_controls() -> void:
 	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
 	var control_height := 40.0 if tight else (43.0 if compact else 47.0)
 	var slider_height := 32.0 if tight else (36.0 if compact else 40.0)
-	var section_gap := 3 if tight else (4 if compact else 6)
 	var label_size := 11 if tight else 12
 	var button_font_size := 12 if tight else (13 if compact else 14)
 
@@ -6586,19 +6629,19 @@ func _show_rear_camera_controls() -> void:
 	active_feature_panel.name = "RearCameraFlashControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", section_gap)
+	active_feature_panel.add_theme_constant_override("separation", 10 if tight else (12 if compact else 14))
 	panel_host.add_child(active_feature_panel)
 
 	var heading := _make_label("REAR CAMERA & FLASH", 17 if compact else 18, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# Match Back Design's compact action row: add, remove and item selector
-	# share one aligned row rather than spreading the selector across the panel.
+	# Card 1: camera/flash component management.
+	var management := _make_editor_control_card(active_feature_panel, "RearHardwareManagementCard", "COMPONENT MANAGEMENT", tight)
 	var actions := HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(actions)
+	actions.add_theme_constant_override("separation", 8)
+	management.add_child(actions)
 
 	rear_hardware_add_button = Button.new()
 	rear_hardware_add_button.text = "+ ADD"
@@ -6620,14 +6663,14 @@ func _show_rear_camera_controls() -> void:
 
 	rear_hardware_selection_button = Button.new()
 	rear_hardware_selection_button.name = "RearHardwareItemSelector"
-	rear_hardware_selection_button.text = ("CAMERA  ▼" if rear_hardware_mode == "CAMERA" else "FLASH  ▼")
+	rear_hardware_selection_button.text = "CAMERA  ▼" if rear_hardware_mode == "CAMERA" else "FLASH  ▼"
 	rear_hardware_selection_button.custom_minimum_size.y = control_height
 	rear_hardware_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rear_hardware_selection_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(rear_hardware_selection_button, button_font_size)
 	_style_back_design_button(rear_hardware_selection_button, true)
 	rear_hardware_selection_button.pressed.connect(_toggle_rear_hardware_selection_popup)
-	actions.add_child(rear_hardware_selection_button)
+	management.add_child(rear_hardware_selection_button)
 
 	rear_hardware_selection_popup = PanelContainer.new()
 	rear_hardware_selection_popup.name = "RearHardwareItemDropdown"
@@ -6669,12 +6712,12 @@ func _show_rear_camera_controls() -> void:
 	else:
 		active_feature_panel.add_child(rear_hardware_selection_popup)
 
-	# Camera and Flash are the section's mode tabs, aligned like Back Design's
-	# SIZE and MOVE controls.
+	# Card 2: component type selection.
+	var mode_card := _make_editor_control_card(active_feature_panel, "RearHardwareModeCard", "COMPONENT MODE", tight)
 	var modes := HBoxContainer.new()
 	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modes.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(modes)
+	modes.add_theme_constant_override("separation", 8)
+	mode_card.add_child(modes)
 	for mode in ["CAMERA", "FLASH"]:
 		var mode_button := Button.new()
 		mode_button.text = mode
@@ -6685,12 +6728,14 @@ func _show_rear_camera_controls() -> void:
 		mode_button.pressed.connect(_set_rear_hardware_mode.bind(mode))
 		modes.add_child(mode_button)
 
+	# Card 3: module dimensions and the original live size slider/value.
+	var dimensions := _make_editor_control_card(active_feature_panel, "RearHardwareDimensionsCard", "DIMENSIONS", tight)
 	var size_row := HBoxContainer.new()
 	size_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_row.add_theme_constant_override("separation", 8)
-	active_feature_panel.add_child(size_row)
+	dimensions.add_child(size_row)
 	var size_heading := _make_label("MODULE SIZE", label_size, Color("#b9d9bf"))
-	size_heading.custom_minimum_size.x = 88 if not tight else 76
+	size_heading.custom_minimum_size.x = 76 if tight else 88
 	size_row.add_child(size_heading)
 	rear_hardware_size_slider = HSlider.new()
 	rear_hardware_size_slider.min_value = 0.04 if rear_hardware_mode == "CAMERA" else 0.025
@@ -6707,12 +6752,13 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	size_row.add_child(rear_hardware_size_label)
 
-	# Use the same centered, framed directional controller as Back Design.
+	# Card 4: same framed directional controller and dimensions as Back Design.
+	var position_card := _make_editor_control_card(active_feature_panel, "RearHardwarePositionCard", "POSITION CONTROLLER", tight)
 	var pad_center := CenterContainer.new()
 	pad_center.name = "RearHardwareDirectionControllerCenter"
 	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(pad_center)
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	position_card.add_child(pad_center)
 	var pad_shell := PanelContainer.new()
 	pad_shell.name = "RearHardwareDirectionController"
 	pad_shell.custom_minimum_size = Vector2(231, 247) if not tight else Vector2(204, 220)
@@ -6749,16 +6795,8 @@ func _show_rear_camera_controls() -> void:
 	_add_back_design_pad_spacer(pad)
 	_refresh_rear_hardware_panel()
 
-
 func _add_rear_hardware_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool) -> void:
-	var button := Button.new()
-	button.text = caption
-	button.custom_minimum_size = Vector2(44, 38) if tight else Vector2(48, 42)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_research_typography(button, 22 if not tight else 20)
-	_style_back_design_button(button, true)
-	button.pressed.connect(_on_rear_hardware_pad_pressed.bind(direction))
-	parent.add_child(button)
+	_add_editor_direction_pad_button(parent, caption, direction, tight, Callable(self, "_on_rear_hardware_pad_pressed"))
 
 
 func _set_rear_hardware_mode(mode: String) -> void:
