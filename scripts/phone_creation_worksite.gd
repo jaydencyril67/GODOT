@@ -243,8 +243,8 @@ func _style_button(button: Button, primary: bool) -> void:
 		style.content_margin_top = 10
 		style.content_margin_bottom = 10
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#f7fff7"))
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_color", Color("#f7fff7") if primary else Color("#24432b"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE if primary else Color("#18351f"))
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_color_override("font_disabled_color", Color("#8a978c"))
 	button.add_theme_font_size_override("font_size", 16)
