@@ -285,8 +285,6 @@ func _show_menu() -> void:
 	add_child(landing_world)
 
 	var root := _new_screen()
-	root.modulate.a = 0.0
-
 	var veil := ColorRect.new()
 	veil.name = "Landing_Obsidian_Veil"
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -318,16 +316,27 @@ func _show_menu() -> void:
 	showcase.add_child(welcome)
 
 	var eyebrow := _label("A KINGS HALL TECHNOLOGY WORLD", 9 if compact else 11, Color("#a9d9ad"))
+	eyebrow.name = "Landing_Eyebrow"
 	welcome.add_child(eyebrow)
-	var welcome_title := _label("BUILD YOUR\nTECHNOLOGY EMPIRE.", 25 if compact else 37, Color("#f4fff3"))
-	welcome_title.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_apply_menu_3d_label(welcome_title, 1)
-	welcome.add_child(welcome_title)
-	var welcome_caption := _label("Design the devices. Build your company.\nLead the next generation of mobile technology.", 12 if compact else 15, Color("#dcebdd"))
-	welcome_caption.add_theme_constant_override("line_separation", 4)
-	welcome.add_child(welcome_caption)
-	var welcome_final_position := welcome.position
-	welcome.position = welcome_final_position + Vector2(42.0, 0.0)
+
+	# The headline is split into two independently revealed lines.
+	var title_line_one := _label("BUILD YOUR", 25 if compact else 37, Color("#f4fff3"))
+	title_line_one.name = "Landing_Hero_Line_One"
+	title_line_one.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_apply_menu_3d_label(title_line_one, 1)
+	welcome.add_child(title_line_one)
+	var title_line_two := _label("TECHNOLOGY EMPIRE.", 25 if compact else 37, Color("#f4fff3"))
+	title_line_two.name = "Landing_Hero_Line_Two"
+	title_line_two.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_apply_menu_3d_label(title_line_two, 1)
+	welcome.add_child(title_line_two)
+
+	var caption_line_one := _label("Design the devices. Build your company.", 12 if compact else 15, Color("#dcebdd"))
+	caption_line_one.name = "Landing_Caption_Line_One"
+	welcome.add_child(caption_line_one)
+	var caption_line_two := _label("Lead the next generation of mobile technology.", 12 if compact else 15, Color("#dcebdd"))
+	caption_line_two.name = "Landing_Caption_Line_Two"
+	welcome.add_child(caption_line_two)
 
 	var command_area := CenterContainer.new()
 	command_area.name = "Landing_Command_Area"
@@ -396,10 +405,16 @@ func _animate_landing_menu(root: Control, welcome: Control, welcome_final_positi
 	if not is_instance_valid(root) or not is_instance_valid(welcome) or not is_instance_valid(command_panel):
 		return
 
+	# Copy uses a dedicated writing/reveal sequence; the right-hand command
+	# panel keeps its existing scale entrance and button timing unchanged.
+	_animate_landing_text_label(welcome.get_node_or_null("Landing_Eyebrow") as Label, 0.62, 0.0, 0.12)
+	_animate_landing_text_label(welcome.get_node_or_null("Landing_Hero_Line_One") as Label, 0.78, 0.42, 0.04)
+	_animate_landing_text_label(welcome.get_node_or_null("Landing_Hero_Line_Two") as Label, 1.05, 1.08, 0.035)
+	_animate_landing_text_label(welcome.get_node_or_null("Landing_Caption_Line_One") as Label, 0.88, 2.18, 0.018)
+	_animate_landing_text_label(welcome.get_node_or_null("Landing_Caption_Line_Two") as Label, 1.12, 2.82, 0.016)
+
 	command_panel.pivot_offset = command_panel.size * 0.5
 	var intro := create_tween().set_parallel(true)
-	intro.tween_property(root, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	intro.tween_property(welcome, "position", welcome_final_position, 1.05).set_delay(0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	intro.tween_property(command_panel, "scale", Vector2.ONE, 0.95).set_delay(0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	intro.set_parallel(false)
 	intro.tween_callback(func() -> void:
@@ -407,6 +422,19 @@ func _animate_landing_menu(root: Control, welcome: Control, welcome_final_positi
 			if is_instance_valid(button):
 				button.disabled = false
 	)
+
+
+func _animate_landing_text_label(label: Label, duration: float, delay: float, character_interval: float) -> void:
+	if not is_instance_valid(label):
+		return
+	label.visible_characters = 0
+	label.modulate.a = 0.0
+	var reveal := create_tween()
+	reveal.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	reveal.tween_interval(delay)
+	reveal.set_parallel(true)
+	reveal.tween_property(label, "visible_characters", label.text.length(), duration).set_trans(Tween.TRANS_LINEAR)
+	reveal.tween_property(label, "modulate:a", 1.0, minf(0.28, duration * 0.45)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 func _style_landing_command_button(button: Button, primary: bool) -> void:
