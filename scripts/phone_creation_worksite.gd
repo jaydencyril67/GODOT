@@ -5,6 +5,33 @@ signal back_requested
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
 const PhoneEditorScene = preload("res://scenes/product_phone_editor.tscn")
 
+
+class GlassButtonReflection extends Control:
+	var accent := Color("#9bd6a7")
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	func _draw() -> void:
+		if size.x <= 4.0 or size.y <= 4.0:
+			return
+		# Fine silver-green specular streak across the upper glass edge.
+		var segments := 48
+		for i in range(segments):
+			var start_x := size.x * float(i) / float(segments)
+			var end_x := size.x * float(i + 1) / float(segments)
+			var midpoint := (float(i) + 0.5) / float(segments)
+			var highlight := exp(-pow((midpoint - 0.34) / 0.29, 2.0))
+			var alpha := 0.09 + 0.30 * highlight
+			draw_line(Vector2(start_x, 1.2), Vector2(end_x, 1.2), Color(0.97, 1.0, 0.98, alpha), 1.2, true)
+		# Restrained edge reflections make the surface feel polished, not neon.
+		var side_color := Color(accent.r, accent.g, accent.b, 0.24)
+		draw_line(Vector2(1.2, 9.0), Vector2(1.2, maxf(9.0, size.y - 9.0)), side_color, 1.0, true)
+		draw_line(Vector2(size.x - 1.2, 9.0), Vector2(size.x - 1.2, maxf(9.0, size.y - 9.0)), side_color, 1.0, true)
+		draw_line(Vector2(12.0, size.y - 2.0), Vector2(size.x - 12.0, size.y - 2.0), Color(0.72, 0.88, 0.76, 0.10), 1.0, true)
+
+
 var selected_phone_type := ""
 var type_buttons: Dictionary = {}
 var next_button: Button
@@ -200,9 +227,6 @@ func _build_interface() -> void:
 	# Start with Standard selected in both the worksite controls and the
 	# original editor engine, so the preview and Next state are immediately ready.
 	_on_phone_type_selected("Standard")
-	# Start with Standard selected in both the worksite controls and the
-	# original editor engine, so the preview and Next state are immediately ready.
-	_on_phone_type_selected("Standard")
 
 
 func _apply_responsive_layout() -> void:
@@ -272,18 +296,23 @@ func _style_arrow_button(button: Button) -> void:
 
 
 func _style_button(button: Button, selected: bool) -> void:
+	# KingsHall-inspired glass: translucent dark body, polished rim, inset
+	# reflection and a soft shadow. Selection uses the brand green tint.
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#286b3b") if selected else Color("#171d19")
+		style.bg_color = Color(0.075, 0.16, 0.095, 0.88) if selected else Color(0.12, 0.15, 0.13, 0.76)
 		if state == "hover":
-			style.bg_color = Color("#347f49") if selected else Color("#222c25")
+			style.bg_color = Color(0.12, 0.25, 0.15, 0.94) if selected else Color(0.19, 0.23, 0.20, 0.88)
 		elif state == "pressed":
-			style.bg_color = Color("#205b32")
+			style.bg_color = Color(0.055, 0.12, 0.07, 0.98) if selected else Color(0.08, 0.11, 0.09, 0.94)
 		elif state == "disabled":
-			style.bg_color = Color("#202722")
-		style.border_color = Color("#66ad76") if selected else Color("#39483d")
+			style.bg_color = Color(0.10, 0.13, 0.11, 0.58)
+		style.border_color = Color(0.68, 0.91, 0.73, 0.78) if selected else Color(0.78, 0.85, 0.80, 0.34)
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(10)
+		style.set_corner_radius_all(12)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.48)
+		style.shadow_size = 9 if selected else 7
+		style.shadow_offset = Vector2(0, 3)
 		style.content_margin_left = 16
 		style.content_margin_right = 16
 		style.content_margin_top = 12
@@ -295,6 +324,19 @@ func _style_button(button: Button, selected: bool) -> void:
 	button.add_theme_color_override("font_disabled_color", Color("#7c897f"))
 	button.add_theme_font_size_override("font_size", 18)
 	_apply_bold_font(button)
+	_add_glass_reflection(button, selected)
+
+
+func _add_glass_reflection(button: Button, selected: bool) -> void:
+	var reflection := button.get_node_or_null("GlassReflection") as GlassButtonReflection
+	if not is_instance_valid(reflection):
+		reflection = GlassButtonReflection.new()
+		reflection.name = "GlassReflection"
+		button.add_child(reflection)
+	reflection.accent = Color("#9bd6a7") if selected else Color("#c5d0c8")
+	reflection.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	reflection.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reflection.queue_redraw()
 
 
 func _apply_bold_font(control: Control) -> void:
