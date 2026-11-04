@@ -134,6 +134,8 @@ func _verify_architectural_progression(headquarters) -> bool:
 		{"production": "Production_And_Assembly_Flagship_Glazed_Office", "research": "Research_And_Test_Lab_Signature_Atrium", "utilities": "Utilities_Building_Energy_Control_Room", "security": "Security_Gatehouse_Flagship_Control_Tower"}
 	]
 
+	var previous_footprints: Dictionary = {}
+	var previous_heights: Dictionary = {}
 	for level in range(1, 11):
 		headquarters.set_owned_level(level)
 		await process_frame
@@ -149,16 +151,30 @@ func _verify_architectural_progression(headquarters) -> bool:
 		var expected: Dictionary = facility_signatures[level - 1]
 		for facility_type in ["production", "research", "utilities", "security"]:
 			var signature_name: String = str(expected[facility_type])
-			if not is_instance_valid(headquarters.compound_facilities_root.get_node_or_null(signature_name)):
+			if not is_instance_valid(headquarters.compound_facilities_root.find_child(signature_name, true, false)):
 				_fail("%s facility did not build its unique level %d structure." % [facility_type, level])
 				return false
 			var facility_root: String = str(facility_roots[facility_type])
 			var core_name := "%s_Level_%02d_Core_Mass" % [facility_root, level]
 			var module_name := "%s_Level_%02d_Architectural_Module" % [facility_root, level]
-			if not is_instance_valid(headquarters.compound_facilities_root.get_node_or_null(core_name)):
+			var facility_core = headquarters.compound_facilities_root.get_node_or_null(core_name)
+			if not is_instance_valid(facility_core):
 				_fail("%s facility level %d did not rebuild its own core mass." % [facility_type, level])
 				return false
-			if not is_instance_valid(headquarters.compound_facilities_root.get_node_or_null(module_name)):
-				_fail("%s facility level %d reused a generic building shape." % [facility_type, level])
+			if not is_instance_valid(facility_core.get_node_or_null(module_name)):
+				_fail("%s facility level %d did not build its dedicated architectural module." % [facility_type, level])
 				return false
+			var footprint: Vector2 = facility_core.get_meta("footprint", Vector2.ZERO)
+			var main_height: float = float(facility_core.get_meta("main_height", 0.0))
+			var facility_identity: String = str(facility_core.get_meta("facility_type", ""))
+			if facility_identity != facility_type:
+				_fail("%s facility level %d has incorrect architectural identity metadata." % [facility_type, level])
+				return false
+			var previous_footprint: Vector2 = previous_footprints.get(facility_type, Vector2.ZERO)
+			var previous_height: float = float(previous_heights.get(facility_type, 0.0))
+			if footprint.x <= previous_footprint.x or footprint.y <= previous_footprint.y or main_height <= previous_height:
+				_fail("%s facility did not grow in both footprint and height at level %d." % [facility_type, level])
+				return false
+			previous_footprints[facility_type] = footprint
+			previous_heights[facility_type] = main_height
 	return true
