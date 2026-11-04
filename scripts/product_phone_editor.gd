@@ -1542,13 +1542,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	var selected_row := HBoxContainer.new()
 	selected_row.name = "SelectedDeviceColor"
 	selected_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selected_row.add_theme_constant_override("separation", 10)
 	active_feature_panel.add_child(selected_row)
-	var selected_swatch := ColorRect.new()
-	selected_swatch.name = "SelectedColorSwatch"
-	selected_swatch.custom_minimum_size = Vector2(42, 34)
-	selected_swatch.color = _get_active_color_picker_color()
-	selected_row.add_child(selected_swatch)
 	device_color_hex_label = _make_label("#" + _get_active_color_picker_color().to_html(false).to_upper(), 14, Color("#e5f6ff"))
 	device_color_hex_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	device_color_hex_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1648,8 +1642,6 @@ func _on_back_design_use_device_color_toggled(enabled: bool) -> void:
 	back_design_boxes[selected_back_design_box]["use_device_color"] = enabled
 	_set_back_design_custom_color_controls_enabled(not enabled)
 	_refresh_back_design_boxes()
-	var swatch := active_feature_panel.get_node_or_null("SelectedDeviceColor/SelectedColorSwatch") as ColorRect
-	if is_instance_valid(swatch): swatch.color = _get_active_color_picker_color()
 	if is_instance_valid(device_color_hex_label): device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
 
 
@@ -1933,8 +1925,6 @@ func _refresh_device_color_editor_controls() -> void:
 	if is_instance_valid(spectrum): spectrum.set_color_value(selected_color)
 	var hue_bar := active_feature_panel.get_node_or_null("DeviceColorHue") as DeviceHueBar
 	if is_instance_valid(hue_bar): hue_bar.set_hue(selected_color.h)
-	var swatch := active_feature_panel.get_node_or_null("SelectedDeviceColor/SelectedColorSwatch") as ColorRect
-	if is_instance_valid(swatch): swatch.color = selected_color
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + selected_color.to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#e5f6ff"))
@@ -2099,9 +2089,6 @@ func _on_device_body_color_changed(color: Color) -> void:
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
 		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
 	if is_instance_valid(active_feature_panel):
-		var swatch := active_feature_panel.get_node_or_null("SelectedDeviceColor/SelectedColorSwatch") as ColorRect
-		if is_instance_valid(swatch):
-			swatch.color = _get_active_color_picker_color()
 		var spectrum := active_feature_panel.get_node_or_null("DeviceColorSpectrum") as DeviceColorSpectrum
 		if is_instance_valid(spectrum):
 			spectrum.set_color_value(_get_active_color_picker_color())
