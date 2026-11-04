@@ -20,4 +20,4 @@ textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
-environment/defaults/default_clear_color=Color(0.67, 0.82, 0.92, 1)
+environment/defaults/default_clear_color=Color(0.008, 0.025, 0.014, 1)
