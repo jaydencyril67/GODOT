@@ -8224,38 +8224,38 @@ func _refresh_phone_charge_port() -> void:
 	var contact_face_y := bottom_y + recess_depth * 0.54
 
 	var bezel_material := StandardMaterial3D.new()
-	bezel_material.albedo_color = Color("#8a929a")
-	bezel_material.metallic = 0.86
-	bezel_material.roughness = 0.27
+	bezel_material.albedo_color = Color("#050607")
+	bezel_material.metallic = 0.0
+	bezel_material.roughness = 0.88
 	bezel_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var gasket_material := StandardMaterial3D.new()
-	gasket_material.albedo_color = Color("#20262c")
-	gasket_material.metallic = 0.22
-	gasket_material.roughness = 0.74
+	gasket_material.albedo_color = Color("#020303")
+	gasket_material.metallic = 0.0
+	gasket_material.roughness = 0.92
 	gasket_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var cavity_material := StandardMaterial3D.new()
-	cavity_material.albedo_color = Color("#030507")
+	cavity_material.albedo_color = Color("#000000")
 	cavity_material.roughness = 0.96
 	cavity_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var cavity_wall_material := StandardMaterial3D.new()
-	cavity_wall_material.albedo_color = Color("#343b43")
-	cavity_wall_material.metallic = 0.76
-	cavity_wall_material.roughness = 0.42
+	cavity_wall_material.albedo_color = Color("#080a0b")
+	cavity_wall_material.metallic = 0.0
+	cavity_wall_material.roughness = 0.90
 	cavity_wall_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	if circular:
-		cavity_wall_material.albedo_color = Color("#818990")
-		cavity_wall_material.metallic = 0.88
-		cavity_wall_material.roughness = 0.34
+		cavity_wall_material.albedo_color = Color("#080a0b")
+		cavity_wall_material.metallic = 0.0
+		cavity_wall_material.roughness = 0.90
 	var tongue_material := StandardMaterial3D.new()
 	# Connector tongues and contact beds are insulating polymer, not bare metal.
-	tongue_material.albedo_color = Color("#414951")
-	tongue_material.metallic = 0.08
-	tongue_material.roughness = 0.68
+	tongue_material.albedo_color = Color("#090b0c")
+	tongue_material.metallic = 0.0
+	tongue_material.roughness = 0.90
 	tongue_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var contact_material := StandardMaterial3D.new()
-	contact_material.albedo_color = Color("#d5a64f")
-	contact_material.metallic = 0.78
-	contact_material.roughness = 0.29
+	contact_material.albedo_color = Color("#0b0d0e")
+	contact_material.metallic = 0.0
+	contact_material.roughness = 0.90
 	contact_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	# Actual aperture: the phone frame mesh is cut around this profile. These
