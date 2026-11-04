@@ -2,15 +2,14 @@ extends Node3D
 
 signal cinematic_reveal_finished
 
-# A lightweight, procedural corporate arrival scene built for mobile.
-# The cinematic corporate environment is built from real 3D geometry.
+# A compact premium 3D hero composition for the landing page.
+# This deliberately contains no city, streets, campus, or surrounding buildings.
 const EMERALD := Color("#36a85b")
 const EMERALD_LIGHT := Color("#b8f5c3")
 const OBSIDIAN := Color("#090d11")
 const DARK_METAL := Color("#171e22")
 const GLASS := Color("#344653")
 
-var camera_rig: Node3D
 var landing_camera: Camera3D
 var animated_emissive_materials: Array[StandardMaterial3D] = []
 var active_tweens: Array[Tween] = []
@@ -18,14 +17,12 @@ var active_tweens: Array[Tween] = []
 
 func _ready() -> void:
 	_build_environment()
-	_build_corporate_district()
+	_build_hero_design()
 	_animate_architecture()
 	_play_opening_cinematic()
 
 
 func _exit_tree() -> void:
-	# Kill every animation before its target nodes are removed. This prevents
-	# orphaned infinite tweens when the landing world is replaced by Home.
 	for tween in active_tweens:
 		if is_instance_valid(tween) and tween.is_valid():
 			tween.kill()
@@ -41,217 +38,116 @@ func _build_environment() -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#05090a")
+	environment.background_color = Color("#050a08")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#c3cbd2")
-	environment.ambient_light_energy = 0.52
+	environment.ambient_light_color = Color("#c3d2c8")
+	environment.ambient_light_energy = 0.72
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world_environment.environment = environment
 	add_child(world_environment)
 
-	camera_rig = Node3D.new()
-	camera_rig.name = "Cinematic_Camera_Rig"
-	camera_rig.rotation_degrees.y = -1.8
-	add_child(camera_rig)
-
 	landing_camera = Camera3D.new()
-	landing_camera.name = "Corporate_Arrival_Camera"
+	landing_camera.name = "Landing_Hero_Camera"
 	landing_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	landing_camera.size = 50.0
-	landing_camera.position = Vector3(30.0, 25.0, 34.0)
-	camera_rig.add_child(landing_camera)
-	landing_camera.look_at(Vector3(0.0, 2.0, 0.0), Vector3.UP)
+	landing_camera.size = 25.0
+	landing_camera.position = Vector3(8.5, 7.0, 20.0)
+	add_child(landing_camera)
+	landing_camera.look_at(Vector3(0.0, 1.2, 0.0), Vector3.UP)
 	landing_camera.current = true
 
 	var key_light := DirectionalLight3D.new()
-	key_light.name = "Soft_Architectural_Key_Light"
-	key_light.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	key_light.light_color = Color("#e4e8eb")
-	key_light.light_energy = 1.08
+	key_light.name = "Soft_Hero_Key_Light"
+	key_light.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
+	key_light.light_color = Color("#e5f0e8")
+	key_light.light_energy = 1.35
 	key_light.shadow_enabled = true
-	key_light.directional_shadow_max_distance = 65.0
+	key_light.directional_shadow_max_distance = 40.0
 	add_child(key_light)
 
-	var emerald_fill := OmniLight3D.new()
-	emerald_fill.name = "Neutral_Environmental_Fill"
-	emerald_fill.position = Vector3(-9.0, 8.0, 7.0)
-	emerald_fill.light_color = Color("#b7c8d6")
-	emerald_fill.light_energy = 0.42
-	emerald_fill.omni_range = 26.0
-	add_child(emerald_fill)
+	var rim_light := OmniLight3D.new()
+	rim_light.name = "Emerald_Rim_Light"
+	rim_light.position = Vector3(-8.0, 5.0, -3.0)
+	rim_light.light_color = EMERALD_LIGHT
+	rim_light.light_energy = 1.05
+	rim_light.omni_range = 24.0
+	add_child(rim_light)
 
 
-func _build_corporate_district() -> void:
-	var ground_material := _material(Color("#10171a"), 0.94)
-	var road_material := _material(Color("#080c0f"), 0.98)
-	var path_material := _material(Color("#202a28"), 0.88)
-	var emerald_material := _emissive_material(EMERALD, Color("#238c45"), 0.78)
-	var soft_emerald := _emissive_material(EMERALD_LIGHT, Color("#6edc87"), 0.46)
-	var landscape_material := _material(Color("#14231b"), 0.96)
-	var dark_metal_material := _material(DARK_METAL, 0.52, 0.58)
-
-	_add_box(self, Vector3(100.0, 0.5, 100.0), Vector3(0.0, -0.35, 0.0), ground_material, "Obsidian_Corporate_Ground")
-	_add_box(self, Vector3(5.2, 0.08, 76.0), Vector3(0.0, -0.06, 0.0), road_material, "Central_Arrival_Avenue")
-	_add_box(self, Vector3(72.0, 0.08, 4.4), Vector3(0.0, -0.05, 0.0), road_material, "Corporate_Cross_Avenue")
-	_add_box(self, Vector3(2.1, 0.10, 72.0), Vector3(-9.0, 0.0, 0.0), path_material, "West_Illuminated_Walkway")
-	_add_box(self, Vector3(2.1, 0.10, 72.0), Vector3(9.0, 0.0, 0.0), path_material, "East_Illuminated_Walkway")
-	_add_box(self, Vector3(70.0, 0.10, 1.8), Vector3(0.0, 0.0, -8.0), path_material, "North_Walkway")
-	_add_box(self, Vector3(70.0, 0.10, 1.8), Vector3(0.0, 0.0, 8.0), path_material, "South_Walkway")
-
-	# The headquarters remains the visual landmark; nearby buildings frame it.
-	_build_tower(Vector3(-7.0, 0.0, -5.0), 9.0, 18.0, 8.0, "HEADQUARTERS", true)
-	_build_tower(Vector3(10.0, 0.0, -8.0), 7.0, 11.0, 7.0, "INNOVATION", false)
-	_build_tower(Vector3(8.0, 0.0, 9.0), 10.0, 8.0, 8.0, "PRODUCTION", false)
-	_build_tower(Vector3(-10.0, 0.0, 10.0), 7.0, 7.0, 6.0, "DESIGN STUDIO", false)
-
-	for x in [-19.0, 19.0]:
-		for z in [-17.0, -3.0, 12.0, 25.0]:
-			_add_box(self, Vector3(5.0, 0.32, 4.0), Vector3(x, 0.10, z), landscape_material, "Landscape_Planter")
-			_add_box(self, Vector3(0.13, 1.65, 0.13), Vector3(x, 0.95, z), dark_metal_material, "Architectural_Light_Post")
-			_add_box(self, Vector3(0.34, 0.12, 0.34), Vector3(x, 1.82, z), soft_emerald, "Emerald_Light_Cap")
-
-	for x in [-2.72, 2.72]:
-		_add_box(self, Vector3(0.07, 0.025, 76.0), Vector3(x, 0.02, 0.0), emerald_material, "Emerald_Road_Inlay")
-	for z in [-2.25, 2.25]:
-		_add_box(self, Vector3(72.0, 0.025, 0.07), Vector3(0.0, 0.025, z), emerald_material, "Emerald_Road_Inlay")
-
-	_build_headquarters_halo()
-	_add_floating_light_motes()
-
-
-func _build_tower(origin: Vector3, width: float, height: float, depth: float, title: String, landmark: bool) -> void:
-	var root := Node3D.new()
-	root.name = title.replace(" ", "_")
-	root.position = origin
-	add_child(root)
-
-	var base_material := _material(Color("#202a2c"), 0.72, 0.42)
-	var body_material := _material(GLASS if landmark else DARK_METAL, 0.28, 0.58)
-	var dark_glass := _material(Color("#18232c"), 0.18, 0.46)
-	var emerald := _emissive_material(EMERALD, Color("#238c45"), 0.76)
-	var soft_light := _emissive_material(EMERALD_LIGHT, Color("#79e995"), 0.46)
+func _build_hero_design() -> void:
+	var stage_material := _material(Color("#101a15"), 0.78, 0.42)
+	var dark_metal := _material(DARK_METAL, 0.34, 0.72)
+	var phone_body := _material(Color("#aebbb2"), 0.24, 0.82)
+	var screen_material := _material(Color("#07120d"), 0.16, 0.38)
+	var glass_material := _material(GLASS, 0.12, 0.48)
+	var emerald := _emissive_material(EMERALD, Color("#238c45"), 0.78)
+	var soft_emerald := _emissive_material(EMERALD_LIGHT, Color("#6edc87"), 0.54)
+	var white_glint := _emissive_material(Color("#e4ffe9"), Color("#b7ffd0"), 0.38)
 	animated_emissive_materials.append(emerald)
-	animated_emissive_materials.append(soft_light)
+	animated_emissive_materials.append(soft_emerald)
 
-	_add_box(root, Vector3(width + 1.6, 0.7, depth + 1.6), Vector3(0.0, 0.35, 0.0), base_material, "Raised_Stone_Plinth")
-	_add_box(root, Vector3(width + 0.8, 1.15, depth + 0.8), Vector3(0.0, 1.0, 0.0), emerald, "Illuminated_Base_Rim")
-	_add_box(root, Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 1.5, 0.0), body_material, "Main_Architectural_Volume")
-	_add_box(root, Vector3(width + 0.3, 0.18, depth + 0.3), Vector3(0.0, height + 1.55, 0.0), emerald, "Roof_Light_Line")
+	# A single sculptural presentation stage, not an environment or city.
+	_add_cylinder(self, 8.2, 0.42, Vector3(0.0, -0.18, 0.0), stage_material, "Floating_Obsidian_Podium")
+	_add_torus(self, 7.4, 7.28, emerald, Vector3(0.0, 0.055, 0.0), Vector3.ZERO, "Podium_Emerald_Inlay")
+	_add_cylinder(self, 5.9, 0.08, Vector3(0.0, 0.08, 0.0), dark_metal, "Upper_Podium_Disc")
 
-	var floors := maxi(3, int(height / 2.5))
-	for floor_index in range(floors):
-		var y := 2.2 + float(floor_index) * (height / float(floors))
-		_add_box(root, Vector3(width - 0.75, 0.075, 0.08), Vector3(0.0, y, depth * 0.5 + 0.06), soft_light, "Front_Window_Light")
-		_add_box(root, Vector3(0.08, 0.075, depth - 0.55), Vector3(width * 0.5 + 0.06, y, 0.0), soft_light, "Side_Window_Light")
+	# Oversized premium smartphone sculpture, angled as the landing-page hero.
+	var device := Node3D.new()
+	device.name = "Digital_World_Phone_Sculpture"
+	device.position = Vector3(0.0, 1.1, 0.0)
+	device.rotation_degrees = Vector3(-7.0, -18.0, -13.0)
+	add_child(device)
 
-	for side in [-1.0, 1.0]:
-		_add_box(root, Vector3(0.20, height + 0.3, 0.22), Vector3(side * (width * 0.5 - 0.45), height * 0.5 + 1.5, depth * 0.5 + 0.12), emerald, "Facade_Illuminated_Fin")
+	_add_box(device, Vector3(6.15, 12.0, 0.62), Vector3.ZERO, dark_metal, "Precision_Machined_Frame")
+	_add_box(device, Vector3(5.98, 11.82, 0.52), Vector3(0.0, 0.0, 0.035), phone_body, "Satin_Titanium_Back")
+	_add_box(device, Vector3(5.72, 11.48, 0.045), Vector3(0.0, 0.0, 0.305), screen_material, "Obsidian_Display")
 
-	_add_box(root, Vector3(width * 0.48, 2.5, 0.18), Vector3(0.0, 2.25, depth * 0.5 + 0.14), dark_glass, "Entry_Glazing")
-	_add_box(root, Vector3(width * 0.60, 0.18, 1.65), Vector3(0.0, 3.65, depth * 0.5 + 0.75), emerald, "Entry_Canopy")
+	# Layered display graphics create depth without text or a flat background image.
+	_add_box(device, Vector3(4.65, 0.045, 0.025), Vector3(0.0, 2.55, 0.34), emerald, "Display_Upper_Accent")
+	_add_box(device, Vector3(3.75, 0.035, 0.025), Vector3(0.0, -2.7, 0.34), soft_emerald, "Display_Lower_Accent")
+	_add_box(device, Vector3(0.055, 6.9, 0.025), Vector3(-2.12, 0.0, 0.34), glass_material, "Display_Left_Glass_Line")
+	_add_box(device, Vector3(0.055, 6.9, 0.025), Vector3(2.12, 0.0, 0.34), glass_material, "Display_Right_Glass_Line")
+	_add_box(device, Vector3(1.25, 0.11, 0.04), Vector3(0.0, 5.35, 0.36), dark_metal, "Earpiece")
+	_add_sphere(device, 0.105, Vector3(0.88, 5.34, 0.37), white_glint, "Front_Camera_Lens")
 
-	var sign := Label3D.new()
-	sign.name = "Building_Sign"
-	sign.text = title
-	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	sign.font_size = 30 if landmark else 22
-	sign.pixel_size = 0.012
-	sign.modulate = EMERALD_LIGHT
-	sign.position = Vector3(0.0, 4.2, depth * 0.5 + 0.28)
-	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sign.outline_size = 5
-	sign.outline_modulate = Color("#090d11")
-	root.add_child(sign)
+	# Distinctive rear camera island is visible as part of the sculpture's edge.
+	var camera_island := _add_box(device, Vector3(1.62, 2.35, 0.12), Vector3(-1.78, 4.12, -0.34), dark_metal, "Rear_Camera_Island")
+	camera_island.rotation_degrees.z = -5.0
+	for lens_position in [Vector3(-2.12, 4.78, -0.43), Vector3(-1.42, 4.78, -0.43), Vector3(-2.12, 3.95, -0.43)]:
+		_add_sphere(device, 0.23, lens_position, glass_material, "Rear_Camera_Lens")
+		_add_sphere(device, 0.095, lens_position + Vector3(0.0, 0.0, -0.10), white_glint, "Lens_Reflection")
+	_add_sphere(device, 0.13, Vector3(-1.42, 3.95, -0.43), soft_emerald, "Camera_Flash")
 
-	if landmark:
-		_add_box(root, Vector3(width * 0.52, 0.24, depth + 0.65), Vector3(0.0, height + 2.1, 0.0), soft_light, "Headquarters_Crown")
-		_add_box(root, Vector3(0.22, 4.2, 0.22), Vector3(0.0, height + 4.3, 0.0), emerald, "Emerald_Spire")
-		var scanner_material := _emissive_material(Color("#c9ffd2"), Color("#54e77a"), 0.66)
-		var scanner := _add_box(root, Vector3(width + 0.18, 0.055, 0.10), Vector3(0.0, 2.25, depth * 0.5 + 0.18), scanner_material, "Moving_Facade_Scan")
-		var scanner_tween := _track_tween(create_tween().set_loops())
-		scanner_tween.tween_property(scanner, "position:y", height + 1.2, 3.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		scanner_tween.tween_property(scanner, "position:y", 2.25, 3.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# Floating orbital rings and restrained geometric accents frame the device.
+	var orbit_root := Node3D.new()
+	orbit_root.name = "Sculptural_Orbit"
+	orbit_root.position = Vector3(0.0, 1.4, -1.4)
+	add_child(orbit_root)
+	_add_torus(orbit_root, 9.0, 0.055, emerald, Vector3.ZERO, Vector3(62.0, 8.0, 24.0), "Outer_Orbit_Ring")
+	_add_torus(orbit_root, 7.6, 0.035, soft_emerald, Vector3.ZERO, Vector3(72.0, -22.0, -34.0), "Inner_Orbit_Ring")
+	_add_box(self, Vector3(0.12, 5.8, 0.12), Vector3(-7.1, 1.6, -1.8), dark_metal, "Left_Geometric_Pillar")
+	_add_box(self, Vector3(0.12, 4.2, 0.12), Vector3(7.0, 1.1, -2.2), dark_metal, "Right_Geometric_Pillar")
+	_add_sphere(self, 0.22, Vector3(-7.1, 4.6, -1.8), soft_emerald, "Left_Orbital_Node")
+	_add_sphere(self, 0.18, Vector3(7.0, 3.3, -2.2), white_glint, "Right_Orbital_Node")
 
-
-func _build_headquarters_halo() -> void:
-	var halo_root := Node3D.new()
-	halo_root.name = "Headquarters_Holographic_Halo"
-	halo_root.position = Vector3(-7.0, 22.0, -5.0)
-	add_child(halo_root)
-
-	var ring_material := _emissive_material(Color("#6bdc87"), Color("#36bd60"), 0.42)
-	var horizontal_ring := _make_torus(5.7, 5.60, ring_material)
-	horizontal_ring.position.y = 0.2
-	halo_root.add_child(horizontal_ring)
-
-	var angled_ring := _make_torus(6.25, 6.15, ring_material)
-	angled_ring.rotation_degrees = Vector3(62.0, 0.0, 14.0)
-	halo_root.add_child(angled_ring)
-
-	var halo_tween := _track_tween(create_tween().set_loops())
-	halo_tween.tween_property(halo_root, "rotation_degrees:y", 360.0, 38.0).from(0.0).set_trans(Tween.TRANS_LINEAR)
-
-
-func _make_torus(outer_radius: float, inner_radius: float, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	var torus := TorusMesh.new()
-	torus.outer_radius = outer_radius
-	torus.inner_radius = inner_radius
-	torus.rings = 48
-	torus.ring_segments = 8
-	instance.mesh = torus
-	instance.material_override = material
-	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return instance
-
-
-func _add_floating_light_motes() -> void:
-	var mote_mesh := SphereMesh.new()
-	mote_mesh.radius = 0.045
-	mote_mesh.height = 0.09
-	var mote_material := _emissive_material(Color("#88f4a0"), Color("#3be36c"), 0.72)
-	mote_mesh.material = mote_material
-
-	for index in range(12):
-		var angle := float(index) * TAU / 12.0
-		var orbit_radius := 13.0 + float(index % 3) * 2.0
-		var mote := MeshInstance3D.new()
-		mote.name = "Floating_Atmosphere_Light_%02d" % index
-		mote.mesh = mote_mesh
-		mote.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mote.position = Vector3(cos(angle) * orbit_radius, 0.55 + float(index % 4) * 0.32, sin(angle) * orbit_radius)
-		add_child(mote)
-
-		var float_tween := _track_tween(create_tween().set_loops())
-		var start_y := mote.position.y
-		var rise_time := 2.8 + float(index % 4) * 0.35
-		float_tween.tween_property(mote, "position:y", start_y + 0.72, rise_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		float_tween.tween_property(mote, "position:y", start_y - 0.18, rise_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var orbit_tween := _track_tween(create_tween().set_loops())
+	orbit_tween.tween_property(orbit_root, "rotation_degrees:y", 360.0, 46.0).from(0.0).set_trans(Tween.TRANS_LINEAR)
 
 
 func _animate_architecture() -> void:
 	for material in animated_emissive_materials:
 		var pulse := _track_tween(create_tween().set_loops())
-		pulse.tween_property(material, "emission_energy_multiplier", 0.58, 2.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		pulse.tween_property(material, "emission_energy_multiplier", 0.36, 2.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		pulse.tween_property(material, "emission_energy_multiplier", 0.62, 2.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		pulse.tween_property(material, "emission_energy_multiplier", 0.38, 2.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _play_opening_cinematic() -> void:
-	# Start directly on the corporate world while retaining the cinematic camera reveal.
-	var camera_tween := _track_tween(create_tween().set_parallel(true))
-	camera_tween.tween_property(landing_camera, "size", 44.5, 4.5).from(50.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	camera_tween.tween_property(camera_rig, "rotation_degrees:y", 0.0, 4.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-
+	# Keep the hero camera completely stationary: no zoom, dolly, or camera drift.
+	# The landing-page text and menu retain their existing entrance transitions.
 	var reveal_signal_tween := _track_tween(create_tween())
-	reveal_signal_tween.tween_interval(3.55)
+	reveal_signal_tween.tween_interval(1.0)
 	reveal_signal_tween.tween_callback(func() -> void:
 		cinematic_reveal_finished.emit()
 	)
-
-	var camera_drift := _track_tween(create_tween().set_loops())
-	camera_drift.tween_interval(4.6)
-	camera_drift.tween_property(camera_rig, "rotation_degrees:y", 0.28, 8.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	camera_drift.tween_property(camera_rig, "rotation_degrees:y", -0.28, 16.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _material(color: Color, roughness: float, metallic: float = 0.0) -> StandardMaterial3D:
@@ -280,5 +176,54 @@ func _add_box(parent: Node3D, size: Vector3, position: Vector3, material: Materi
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	parent.add_child(instance)
+	return instance
+
+
+func _add_cylinder(parent: Node3D, radius: float, height: float, position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 96
+	instance.mesh = mesh
+	instance.position = position
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(instance)
+	return instance
+
+
+func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, material: Material, position: Vector3, rotation: Vector3, node_name: String) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := TorusMesh.new()
+	mesh.outer_radius = outer_radius
+	mesh.inner_radius = inner_radius
+	mesh.rings = 64
+	mesh.ring_segments = 10
+	instance.mesh = mesh
+	instance.position = position
+	instance.rotation_degrees = rotation
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(instance)
+	return instance
+
+
+func _add_sphere(parent: Node3D, radius: float, position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 24
+	mesh.rings = 12
+	instance.mesh = mesh
+	instance.position = position
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(instance)
 	return instance
