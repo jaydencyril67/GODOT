@@ -562,7 +562,7 @@ func _on_wizard_back_pressed() -> void:
 		charge_port_panel = _mount_original_panel("_show_charge_port_controls")
 		if is_instance_valid(charge_port_panel):
 			charge_port_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		progress_number.text = "STEP 9 / 10"
+		progress_number.text = "STEP 9 / 11"
 		progress_bar.value = 9
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -571,7 +571,7 @@ func _on_wizard_back_pressed() -> void:
 		charge_port_panel = null
 		wizard_step = 7
 		speaker_panel = _mount_original_panel("_show_speaker_controls")
-		progress_number.text = "STEP 8 / 10"
+		progress_number.text = "STEP 8 / 11"
 		progress_bar.value = 8
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -580,7 +580,7 @@ func _on_wizard_back_pressed() -> void:
 		speaker_panel = null
 		wizard_step = 6
 		power_volume_panel = _mount_original_panel("_show_power_volume_controls")
-		progress_number.text = "STEP 7 / 10"
+		progress_number.text = "STEP 7 / 11"
 		progress_bar.value = 7
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -589,7 +589,7 @@ func _on_wizard_back_pressed() -> void:
 		power_volume_panel = null
 		wizard_step = 5
 		screen_type_panel = _mount_original_panel("_show_screen_type_controls")
-		progress_number.text = "STEP 6 / 10"
+		progress_number.text = "STEP 6 / 11"
 		progress_bar.value = 6
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -598,7 +598,7 @@ func _on_wizard_back_pressed() -> void:
 		screen_type_panel = null
 		wizard_step = 4
 		screen_size_panel = _mount_original_panel("_show_screen_size_controls")
-		progress_number.text = "STEP 5 / 10"
+		progress_number.text = "STEP 5 / 11"
 		progress_bar.value = 5
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -607,7 +607,7 @@ func _on_wizard_back_pressed() -> void:
 		screen_size_panel = null
 		wizard_step = 3
 		screen_tech_panel = _mount_original_panel("_show_screen_tech_controls")
-		progress_number.text = "STEP 4 / 10"
+		progress_number.text = "STEP 4 / 11"
 		progress_bar.value = 4
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -616,7 +616,7 @@ func _on_wizard_back_pressed() -> void:
 		screen_tech_panel = null
 		wizard_step = 2
 		border_radius_panel = _mount_original_panel("_show_border_radius_controls")
-		progress_number.text = "STEP 3 / 10"
+		progress_number.text = "STEP 3 / 11"
 		progress_bar.value = 3
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -625,7 +625,7 @@ func _on_wizard_back_pressed() -> void:
 		border_radius_panel = null
 		wizard_step = 1
 		thickness_panel = _mount_original_panel("_show_thickness_controls")
-		progress_number.text = "STEP 2 / 10"
+		progress_number.text = "STEP 2 / 11"
 		progress_bar.value = 2
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -634,7 +634,7 @@ func _on_wizard_back_pressed() -> void:
 		thickness_panel = null
 		wizard_step = 0
 		type_step_content.show()
-		progress_number.text = "STEP 1 / 10"
+		progress_number.text = "STEP 1 / 11"
 		progress_bar.value = 1
 		wizard_back_button.disabled = true
 		next_button.disabled = selected_phone_type.is_empty()
