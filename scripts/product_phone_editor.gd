@@ -2897,8 +2897,8 @@ func _show_screen_tech_controls() -> void:
 	type_grid.name = "ScreenTypeOptions"
 	type_grid.columns = 2
 	type_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_grid.add_theme_constant_override("h_separation", 7)
-	type_grid.add_theme_constant_override("v_separation", 7)
+	type_grid.add_theme_constant_override("h_separation", 8)
+	type_grid.add_theme_constant_override("v_separation", 6)
 	active_feature_panel.add_child(type_grid)
 
 	screen_type_buttons.clear()
@@ -2907,7 +2907,7 @@ func _show_screen_tech_controls() -> void:
 		var option := Button.new()
 		option.name = "ScreenType_" + type_name.replace(" ", "").replace("-", "")
 		option.text = "%02d   %s" % [index + 1, type_name]
-		option.custom_minimum_size = Vector2(0, 54.0)
+		option.custom_minimum_size = Vector2(0, 50.0)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
 		var screen_font := FontVariation.new()
