@@ -7766,7 +7766,7 @@ func _show_speaker_controls() -> void:
 	meter.step = 1
 	meter.value = speaker_count
 	meter.tick_count = 13
-	meter.custom_minimum_size = Vector2(76, 300)
+	meter.custom_minimum_size = Vector2(76, 320)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_speaker_count_changed)
