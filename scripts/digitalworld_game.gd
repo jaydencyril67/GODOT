@@ -335,18 +335,6 @@ void fragment() {
 	showcase.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(showcase)
 
-	var brand := VBoxContainer.new()
-	brand.position = Vector2(58, 42)
-	brand.custom_minimum_size = Vector2(440, 86)
-	brand.add_theme_constant_override("separation", 5)
-	brand.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	showcase.add_child(brand)
-	var brand_name := _label("DIGITAL WORLD", 29, Color("#f3faf3"))
-	_apply_menu_3d_label(brand_name, 1)
-	brand.add_child(brand_name)
-	var brand_subtitle := _label("M O B I L E S     /     POWERED BY KINGSHALL", 10, Color("#9cc9a7"))
-	brand.add_child(brand_subtitle)
-
 	var welcome := VBoxContainer.new()
 	welcome.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
 	welcome.position = Vector2(58, 66)
@@ -595,15 +583,6 @@ void fragment() {
 	showcase.size_flags_stretch_ratio = 1.35
 	showcase.add_theme_constant_override("separation", 7)
 	layout.add_child(showcase)
-
-	var brand := VBoxContainer.new()
-	brand.name = "CompanySetupBrand"
-	brand.add_theme_constant_override("separation", 4)
-	showcase.add_child(brand)
-	var brand_name := _label("DIGITAL WORLD", 27 if compact else 29, Color("#f3faf3"))
-	_apply_menu_3d_label(brand_name, 1)
-	brand.add_child(brand_name)
-	brand.add_child(_label("M O B I L E S     /     POWERED BY KINGSHALL", 9 if compact else 10, Color("#9cc9a7")))
 
 	if not compact:
 		var showcase_spacer := Control.new()
