@@ -442,20 +442,20 @@ func _facility_podium(parent: Node3D, node_name: String, width: float, depth: fl
 	_facility_box(parent, node_name + "_Site_Podium", Vector3(width + 0.52, 0.22, depth + 0.52), Vector3(0.0, 0.11, 0.0), materials["concrete"])
 
 
-func _facility_volume(parent: Node3D, node_name: String, size: Vector3, position: Vector3, wall: Material, roof: Material, glazed_front: bool = false) -> void:
-	_facility_box(parent, node_name, size, position, wall)
-	_facility_box(parent, node_name + "_Roof_Cap", Vector3(size.x + 0.24, 0.20, size.z + 0.24), position + Vector3(0.0, size.y * 0.5 + 0.10, 0.0), roof)
+func _facility_volume(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, wall: Material, roof: Material, glazed_front: bool = false) -> void:
+	_facility_box(parent, node_name, size, local_position, wall)
+	_facility_box(parent, node_name + "_Roof_Cap", Vector3(size.x + 0.24, 0.20, size.z + 0.24), local_position + Vector3(0.0, size.y * 0.5 + 0.10, 0.0), roof)
 	if glazed_front:
 		var glass_height: float = maxf(0.55, size.y * 0.58)
-		_facility_box(parent, node_name + "_Glazed_Facade", Vector3(size.x * 0.76, glass_height, 0.055), position + Vector3(0.0, 0.04, size.z * 0.5 + 0.075), materials["glass"])
+		_facility_box(parent, node_name + "_Glazed_Facade", Vector3(size.x * 0.76, glass_height, 0.055), local_position + Vector3(0.0, 0.04, size.z * 0.5 + 0.075), materials["glass"])
 		for mullion in range(4):
 			var x: float = (float(mullion) - 1.5) * size.x * 0.19
-			_facility_box(parent, node_name + "_Facade_Mullion", Vector3(0.055, glass_height + 0.08, 0.07), position + Vector3(x, 0.04, size.z * 0.5 + 0.12), materials["metal"])
+			_facility_box(parent, node_name + "_Facade_Mullion", Vector3(0.055, glass_height + 0.08, 0.07), local_position + Vector3(x, 0.04, size.z * 0.5 + 0.12), materials["metal"])
 
 
-func _facility_cylinder_volume(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, material: Material) -> void:
-	_facility_cylinder(parent, node_name, radius * 0.92, radius, height, position, material)
-	_facility_cylinder(parent, node_name + "_Roof_Rim", radius * 1.04, radius * 1.04, 0.16, position + Vector3(0.0, height * 0.5 + 0.08, 0.0), materials["dark_metal"])
+func _facility_cylinder_volume(parent: Node3D, node_name: String, radius: float, height: float, local_position: Vector3, material: Material) -> void:
+	_facility_cylinder(parent, node_name, radius * 0.92, radius, height, local_position, material)
+	_facility_cylinder(parent, node_name + "_Roof_Rim", radius * 1.04, radius * 1.04, 0.16, local_position + Vector3(0.0, height * 0.5 + 0.08, 0.0), materials["dark_metal"])
 
 
 func _build_production_architecture(parent: Node3D, node_name: String, width: float, depth: float, height: float, level: int, wall: Material, roof: Material) -> void:
@@ -743,14 +743,14 @@ func _build_security_architecture(parent: Node3D, node_name: String, width: floa
 				_facility_volume(parent, node_name + "_Flagship_Watch_Pylon", Vector3(0.16, 2.80, 0.18), Vector3(side * width * 0.47, 1.62, -depth * 0.20), materials["metal"], roof)
 
 
-func _facility_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, material: Material, rotation_degrees: Vector3 = Vector3.ZERO) -> MeshInstance3D:
-	var part := _box(parent, node_name, size, position, material)
+func _facility_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, material: Material, rotation_degrees: Vector3 = Vector3.ZERO) -> MeshInstance3D:
+	var part := _box(parent, node_name, size, local_position, material)
 	part.rotation_degrees = rotation_degrees
 	return part
 
 
-func _facility_cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radius: float, height: float, position: Vector3, material: Material) -> MeshInstance3D:
-	return _cylinder(parent, node_name, top_radius, bottom_radius, height, position, material)
+func _facility_cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radius: float, height: float, local_position: Vector3, material: Material) -> MeshInstance3D:
+	return _cylinder(parent, node_name, top_radius, bottom_radius, height, local_position, material)
 
 
 func _create_compound_parking(parent: Node3D) -> void:
@@ -788,22 +788,22 @@ func _create_compound_landscape(parent: Node3D) -> void:
 		_add_compound_shrub(parent, Vector3(-x, 0.0, -26.0))
 
 
-func _add_compound_tree(parent: Node3D, position: Vector3, scale_factor: float) -> void:
+func _add_compound_tree(parent: Node3D, local_position: Vector3, scale_factor: float) -> void:
 	var bark := _mat(Color("#594a37"), 0.94)
 	var foliage := _mat(Color("#24472a"), 0.96)
 	var foliage_light := _mat(Color("#315b35"), 0.96)
-	_cylinder(parent, "Landscape_Tree_Trunk", 0.15 * scale_factor, 0.25 * scale_factor, 2.8 * scale_factor, position + Vector3(0.0, 1.4 * scale_factor, 0.0), bark)
-	_add_compound_sphere(parent, "Tree_Canopy_Center", 1.25 * scale_factor, position + Vector3(0.0, 3.2 * scale_factor, 0.0), foliage, Vector3(1.0, 0.95, 1.0))
-	_add_compound_sphere(parent, "Tree_Canopy_Left", 0.86 * scale_factor, position + Vector3(-0.72 * scale_factor, 2.85 * scale_factor, 0.12 * scale_factor), foliage_light, Vector3(1.0, 1.0, 0.95))
-	_add_compound_sphere(parent, "Tree_Canopy_Right", 0.90 * scale_factor, position + Vector3(0.68 * scale_factor, 2.92 * scale_factor, -0.12 * scale_factor), foliage, Vector3(1.0, 1.0, 0.95))
+	_cylinder(parent, "Landscape_Tree_Trunk", 0.15 * scale_factor, 0.25 * scale_factor, 2.8 * scale_factor, local_position + Vector3(0.0, 1.4 * scale_factor, 0.0), bark)
+	_add_compound_sphere(parent, "Tree_Canopy_Center", 1.25 * scale_factor, local_position + Vector3(0.0, 3.2 * scale_factor, 0.0), foliage, Vector3(1.0, 0.95, 1.0))
+	_add_compound_sphere(parent, "Tree_Canopy_Left", 0.86 * scale_factor, local_position + Vector3(-0.72 * scale_factor, 2.85 * scale_factor, 0.12 * scale_factor), foliage_light, Vector3(1.0, 1.0, 0.95))
+	_add_compound_sphere(parent, "Tree_Canopy_Right", 0.90 * scale_factor, local_position + Vector3(0.68 * scale_factor, 2.92 * scale_factor, -0.12 * scale_factor), foliage, Vector3(1.0, 1.0, 0.95))
 
 
-func _add_compound_shrub(parent: Node3D, position: Vector3) -> void:
+func _add_compound_shrub(parent: Node3D, local_position: Vector3) -> void:
 	var foliage := _mat(Color("#2d5732"), 0.98)
-	_add_compound_sphere(parent, "Landscape_Shrub", 0.52, position + Vector3(0.0, 0.42, 0.0), foliage, Vector3(1.25, 0.78, 0.88))
+	_add_compound_sphere(parent, "Landscape_Shrub", 0.52, local_position + Vector3(0.0, 0.42, 0.0), foliage, Vector3(1.25, 0.78, 0.88))
 
 
-func _add_compound_sphere(parent: Node3D, node_name: String, radius: float, position: Vector3, material: Material, shape_scale: Vector3) -> void:
+func _add_compound_sphere(parent: Node3D, node_name: String, radius: float, local_position: Vector3, material: Material, shape_scale: Vector3) -> void:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := SphereMesh.new()
@@ -812,7 +812,7 @@ func _add_compound_sphere(parent: Node3D, node_name: String, radius: float, posi
 	mesh.radial_segments = 12
 	mesh.rings = 8
 	instance.mesh = mesh
-	instance.position = position
+	instance.position = local_position
 	instance.scale = shape_scale
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
