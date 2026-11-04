@@ -385,8 +385,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if box_package_preview_mode or selected_phone_type == "Standard":
 		return
-	var angle_difference := fold_target_angle_degrees - fold_angle_degrees
-	if absf(angle_difference) <= 0.02:
+	var fold_angle_delta := fold_target_angle_degrees - fold_angle_degrees
+	if absf(fold_angle_delta) <= 0.02:
 		if not is_equal_approx(fold_angle_degrees, fold_target_angle_degrees):
 			fold_angle_degrees = fold_target_angle_degrees
 			_apply_phone_fold_angle()
@@ -3907,8 +3907,7 @@ func _rebuild_power_bank_preview() -> void:
 	var cover_material := _charger_material(power_bank_body_color.lightened(0.035), 0.12, 0.43)
 	var frame_material := _charger_material(power_bank_body_color.darkened(0.25), 0.52, 0.30)
 	var screen_material := _charger_material(Color("#101923"), 0.10, 0.13)
-	var glass_material := _charger_material(Color("#050a10"), 0.08, 0.075)
-	var metal_material := _charger_material(Color("#abb8c4"), 0.88, 0.23)
+		var metal_material := _charger_material(Color("#abb8c4"), 0.88, 0.23)
 	var indicator_material := _charger_material(Color("#6ed8c4"), 0.22, 0.28)
 
 	# The shell and midframe are combined as CSG so both USB apertures are
@@ -4426,10 +4425,10 @@ func _create_charger_dc_barrel_mesh(outer_radius: float, inner_radius: float, fr
 	return surface.commit()
 
 
-func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_type: String, position: Vector3, direction: Vector3, shell_material: Material, metal_material: Material) -> Node3D:
+func _add_charger_cable_connector(parent: Node3D, node_name: String, connector_type: String, local_position: Vector3, direction: Vector3, shell_material: Material, metal_material: Material) -> Node3D:
 	var connector := Node3D.new()
 	connector.name = node_name
-	connector.position = position
+	connector.position = local_position
 	var forward := direction.normalized()
 	var up := Vector3.UP
 	if absf(forward.dot(up)) > 0.94:
@@ -11025,9 +11024,9 @@ void fragment(){
 		building_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		loading.add_child(building_note)
 	elif phone_case_custom_enabled and phone_case_built:
-		var ready:=_make_label("CUSTOM CASE FITTED TO CURRENT DEVICE",12,Color("#8ed6ff"))
-		ready.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-		active_feature_panel.add_child(ready)
+		var case_ready_label:=_make_label("CUSTOM CASE FITTED TO CURRENT DEVICE",12,Color("#8ed6ff"))
+		case_ready_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+		active_feature_panel.add_child(case_ready_label)
 		var color_button:=Button.new()
 		color_button.name="EditPhoneCaseColor"
 		color_button.text="CHANGE CASE COLOR"
