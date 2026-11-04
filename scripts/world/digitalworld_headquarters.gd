@@ -101,18 +101,18 @@ func _create_material_library() -> void:
 		"dark_metal": _mat(Color("#26352b"), 0.42, 0.72),
 		"metal": _mat(Color("#78878b"), 0.34, 0.78),
 		"glass": _glass_mat(),
-		"storefront": _mat(Color("#263b2c"), 0.22, 0.38),
-		"window_frame": _mat(Color("#26382e"), 0.38, 0.62),
-		"glass_reflection": _mat(Color("#b3d6ba"), 0.12, 0.32),
-		"window_gasket": _mat(Color("#111b13"), 0.72, 0.18),
+		"storefront": _mat(Color("#252b30"), 0.22, 0.38),
+		"window_frame": _mat(Color("#30383d"), 0.38, 0.62),
+		"glass_reflection": _mat(Color("#aebdca"), 0.12, 0.32),
+		"window_gasket": _mat(Color("#11171c"), 0.72, 0.18),
 		"roof": _mat(Color("#59635a"), 0.72, 0.28),
 		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
 		"hq_sign": _mat(Color("#12351b"), 0.32, 0.48),
 		"hq_accent": _emissive_mat(Color("#50c96b"), 1.8),
 		"workshop_cladding": _mat(Color("#8d9b8e"), 0.72, 0.22),
 		"workshop_shutter": _mat(Color("#394b3d"), 0.65, 0.42),
-		"glass_mullion": _mat(Color("#263f30"), 0.28, 0.82),
-		"glass_spandrel": _mat(Color("#173826"), 0.22, 0.58)
+		"glass_mullion": _mat(Color("#303a43"), 0.28, 0.82),
+		"glass_spandrel": _mat(Color("#202a33"), 0.22, 0.58)
 	}
 
 func _create_procedural_surface_textures() -> void:
@@ -141,10 +141,10 @@ func _create_environment() -> void:
 	var environment := Environment.new()
 	var sky := Sky.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#567e68")
-	sky_material.sky_horizon_color = Color("#d2d9c4")
-	sky_material.ground_bottom_color = Color("#313c2e")
-	sky_material.ground_horizon_color = Color("#a0ab92")
+	sky_material.sky_top_color = Color("#627b91")
+	sky_material.sky_horizon_color = Color("#d8dfe5")
+	sky_material.ground_bottom_color = Color("#343b42")
+	sky_material.ground_horizon_color = Color("#aeb8c1")
 	sky_material.sun_angle_max = 18.0
 	sky.sky_material = sky_material
 
@@ -179,7 +179,7 @@ func _create_environment() -> void:
 	var fill := OmniLight3D.new()
 	fill.name = "Headquarters_Fill_Light"
 	fill.position = Vector3(-18.0, 15.0, 12.0)
-	fill.light_color = Color("#a3d9ae")
+	fill.light_color = Color("#c3d0d9")
 	fill.light_energy = 1.1
 	fill.omni_range = 42.0
 	fill.shadow_enabled = false
@@ -540,11 +540,11 @@ func _build_procedural_building(level: int) -> float:
 		Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")
 	]
 	var accent_colors: Array[Color] = [
-		Color("#344b37"), Color("#665548"), Color("#263f30"), Color("#4b5550"), Color("#34444a")
+		Color("#344b37"), Color("#665548"), Color("#303a43"), Color("#4b5550"), Color("#34444a")
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
 	if style >= 3:
-		wall = _mat(Color("#102b18"), 0.28, 0.48)
+		wall = _mat(Color("#263139"), 0.28, 0.48)
 	if level == 1:
 		wall.albedo_color = Color("#8d9b9d")
 		wall.roughness = 0.72
@@ -1396,7 +1396,7 @@ func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radi
 	return instance
 
 func _glass_mat() -> StandardMaterial3D:
-	var material := _mat(Color(0.36, 0.48, 0.39), 0.16, 0.42)
+	var material := _mat(Color(0.34, 0.43, 0.52), 0.16, 0.42)
 	material.metallic_specular = 0.92
 	material.clearcoat_enabled = true
 	material.clearcoat = 0.72
