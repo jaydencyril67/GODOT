@@ -412,6 +412,7 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 
 
 func _build_production_facility(parent: Node3D, node_name: String, center: Vector3, width: float, depth: float, height: float, front_z: float, level: int) -> void:
+	var roof := _mat(Color("#505a63"), 0.78, 0.32)
 	var shutter_width: float = width * 0.43
 	_facility_box(parent, node_name + "_Loading_Door_Frame", Vector3(shutter_width + 0.28, 2.76, 0.16), Vector3(center.x, 1.62, front_z), materials["dark_metal"])
 	_facility_box(parent, node_name + "_Roller_Shutter", Vector3(shutter_width, 2.58, 0.07), Vector3(center.x, 1.61, front_z + 0.10), materials["workshop_shutter"])
