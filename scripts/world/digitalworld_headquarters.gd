@@ -947,7 +947,6 @@ func _build_procedural_building(level: int) -> float:
 
 	# These recognizable tier details are retained, but they now decorate a
 	# genuinely different base design at every level.
-	if level > 1:
 		_add_level_silhouette_features(building_root, level, width, depth, height, accent, roof)
 	_box(building_root, "Company_Headquarters_Sign", Vector3(width * 0.55, 0.42, 0.12), Vector3(0.0, ground_height + 0.48, depth * 0.5 + 0.24), materials["hq_sign"])
 	_box(building_root, "Company_Sign_Accent", Vector3(width * 0.48, 0.045, 0.035), Vector3(0.0, ground_height + 0.25, depth * 0.5 + 0.31), materials["hq_accent"])
