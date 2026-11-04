@@ -346,7 +346,7 @@ func _create_compound_gate(parent: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		_box(parent, "Open_Sliding_Gate_Leaf", Vector3(3.3, 1.7, 0.11), Vector3(side * 8.0, 0.95, 29.0), dark_metal)
 		for bar in range(1, 8):
-			var x := side * (6.45 + float(bar) * 0.42)
+			var x: float = float(side) * (6.45 + float(bar) * 0.42)
 			_box(parent, "Gate_Leaf_Vertical_Bar", Vector3(0.055, 1.65, 0.14), Vector3(x, 0.95, 29.0), materials["metal"])
 
 
