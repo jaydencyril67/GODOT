@@ -7004,7 +7004,7 @@ func _select_rear_hardware_module(index: int) -> void:
 
 
 func _refresh_rear_hardware_panel() -> void:
-	if not is_instance_valid(rear_hardware_item_label):
+	if not is_instance_valid(rear_hardware_selection_button):
 		return
 	var modules := _get_rear_hardware_modules()
 	var selected_index := _get_rear_hardware_selected_index()
