@@ -5970,9 +5970,12 @@ func _show_front_camera_controls() -> void:
 	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	enable_row.add_child(enable_label)
 
-	var style_list := VBoxContainer.new()
+	var style_list := GridContainer.new()
 	style_list.name = "FrontCameraStyles"
-	style_list.add_theme_constant_override("separation", 7)
+	style_list.columns = 2
+	style_list.add_theme_constant_override("h_separation", 7)
+	style_list.add_theme_constant_override("v_separation", 7)
+	style_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(style_list)
 
 	front_camera_option_buttons.clear()
