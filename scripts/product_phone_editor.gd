@@ -353,6 +353,7 @@ var gradient_color_edit_mode := false
 var back_design_gradient_color_edit_mode := false
 var gradient_direction_button: Button
 var gradient_direction_popup: PanelContainer
+var back_box_gradient_popup: PanelContainer
 var gradient_direction_items: VBoxContainer
 var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
@@ -1422,64 +1423,8 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 			box_gradient_toggle.focus_mode = Control.FOCUS_NONE
 			box_gradient_toggle.toggled.connect(_on_back_box_gradient_toggled)
 			box_gradient_toggle_row.add_child(box_gradient_toggle)
-			var box_gradient_options := VBoxContainer.new()
-			box_gradient_options.name = "BackBoxGradientOptions"
-			box_gradient_options.add_theme_constant_override("separation", 10)
-			active_feature_panel.add_child(box_gradient_options)
-			var box_target_row := HBoxContainer.new()
-			box_target_row.name = "BackBoxGradientColorTargets"
-			box_target_row.add_theme_constant_override("separation", 7)
-			box_gradient_options.add_child(box_target_row)
-			var box_base_target := Button.new()
-			box_base_target.name = "EditBackBoxColor"
-			box_base_target.text = "BOX COLOR"
-			box_base_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			box_base_target.custom_minimum_size.y = 38
-			_style_staff_button(box_base_target, not back_design_gradient_color_edit_mode)
-			box_base_target.pressed.connect(_on_back_box_gradient_color_target_selected.bind(false))
-			box_target_row.add_child(box_base_target)
-			var box_gradient_target := Button.new()
-			box_gradient_target.name = "EditBackBoxGradientColor"
-			box_gradient_target.text = "GRADIENT COLOR"
-			box_gradient_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			box_gradient_target.custom_minimum_size.y = 38
-			_style_staff_button(box_gradient_target, back_design_gradient_color_edit_mode)
-			box_gradient_target.pressed.connect(_on_back_box_gradient_color_target_selected.bind(true))
-			box_target_row.add_child(box_gradient_target)
-			gradient_direction_button = Button.new()
-			gradient_direction_button.name = "BackBoxGradientDirection"
-			gradient_direction_button.text = _gradient_direction_name(int(back_design_boxes[selected_back_design_box].get("gradient_direction", 0))) + "  ▼"
-			gradient_direction_button.custom_minimum_size.y = 40
-			gradient_direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			gradient_direction_button.focus_mode = Control.FOCUS_NONE
-			_apply_research_typography(gradient_direction_button, 13)
-			_style_staff_button(gradient_direction_button, false)
-			gradient_direction_button.pressed.connect(_toggle_gradient_direction_popup)
-			box_gradient_options.add_child(gradient_direction_button)
-			gradient_direction_popup = PanelContainer.new()
-			gradient_direction_popup.name = "GradientDirectionCustomDropdown"
-			gradient_direction_popup.visible = false
-			gradient_direction_popup.z_index = 110
-			gradient_direction_popup.mouse_filter = Control.MOUSE_FILTER_STOP
-			var box_popup_style := StyleBoxFlat.new()
-			box_popup_style.bg_color = Color("#07190d")
-			box_popup_style.border_color = Color("#65d783")
-			box_popup_style.set_border_width_all(2)
-			box_popup_style.set_corner_radius_all(12)
-			box_popup_style.content_margin_left = 8
-			box_popup_style.content_margin_right = 8
-			box_popup_style.content_margin_top = 8
-			box_popup_style.content_margin_bottom = 8
-			gradient_direction_popup.add_theme_stylebox_override("panel", box_popup_style)
-			gradient_direction_items = VBoxContainer.new()
-			gradient_direction_items.add_theme_constant_override("separation", 6)
-			gradient_direction_popup.add_child(gradient_direction_items)
-			var box_editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-			if is_instance_valid(box_editor_root): box_editor_root.add_child(gradient_direction_popup)
-			else: active_feature_panel.add_child(gradient_direction_popup)
-			_rebuild_gradient_direction_popup()
-			box_gradient_options.visible = bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false))
-			if not box_gradient_options.visible:
+			_create_back_box_gradient_popup(bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)))
+			if not bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)):
 				back_design_gradient_color_edit_mode = false
 
 	if not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package:
@@ -1826,9 +1771,136 @@ func _on_back_box_gradient_toggled(enabled: bool) -> void:
 	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
 	if not enabled: back_design_gradient_color_edit_mode = false
 	_refresh_back_design_boxes()
-	var options := active_feature_panel.get_node_or_null("BackBoxGradientOptions") as Control
-	if is_instance_valid(options): options.visible = enabled
+	if is_instance_valid(back_box_gradient_popup):
+		back_box_gradient_popup.visible = enabled
+		if enabled:
+			call_deferred("_position_back_box_gradient_popup")
 	_refresh_device_color_editor_controls()
+
+
+func _create_back_box_gradient_popup(open_on_create: bool) -> void:
+	if is_instance_valid(back_box_gradient_popup):
+		back_box_gradient_popup.queue_free()
+		back_box_gradient_popup = null
+	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if not is_instance_valid(editor_root):
+		return
+	back_box_gradient_popup = PanelContainer.new()
+	back_box_gradient_popup.name = "BackBoxGradientOptions"
+	back_box_gradient_popup.visible = open_on_create
+	back_box_gradient_popup.z_index = 120
+	back_box_gradient_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	var popup_style := StyleBoxFlat.new()
+	popup_style.bg_color = Color("#07190d")
+	popup_style.border_color = Color("#65d783")
+	popup_style.set_border_width_all(2)
+	popup_style.set_corner_radius_all(12)
+	popup_style.content_margin_left = 10
+	popup_style.content_margin_right = 10
+	popup_style.content_margin_top = 9
+	popup_style.content_margin_bottom = 9
+	back_box_gradient_popup.add_theme_stylebox_override("panel", popup_style)
+	editor_root.add_child(back_box_gradient_popup)
+
+	var popup_content := VBoxContainer.new()
+	popup_content.add_theme_constant_override("separation", 8)
+	back_box_gradient_popup.add_child(popup_content)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 8)
+	popup_content.add_child(header)
+	var title := _make_label("GRADIENT EDITOR", 13, Color("#c7eacb"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+	var close_button := Button.new()
+	close_button.text = "✕"
+	close_button.custom_minimum_size = Vector2(32, 30)
+	close_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(close_button, 15)
+	_style_staff_button(close_button, false)
+	close_button.pressed.connect(_close_back_box_gradient_popup)
+	header.add_child(close_button)
+
+	var box_target_row := HBoxContainer.new()
+	box_target_row.name = "BackBoxGradientColorTargets"
+	box_target_row.add_theme_constant_override("separation", 7)
+	popup_content.add_child(box_target_row)
+	var box_base_target := Button.new()
+	box_base_target.name = "EditBackBoxColor"
+	box_base_target.text = "BOX COLOR"
+	box_base_target.custom_minimum_size.y = 42
+	box_base_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_staff_button(box_base_target, not back_design_gradient_color_edit_mode)
+	box_base_target.pressed.connect(_on_back_box_gradient_color_target_selected.bind(false))
+	box_target_row.add_child(box_base_target)
+	var box_gradient_target := Button.new()
+	box_gradient_target.name = "EditBackBoxGradientColor"
+	box_gradient_target.text = "GRADIENT COLOR"
+	box_gradient_target.custom_minimum_size.y = 42
+	box_gradient_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_staff_button(box_gradient_target, back_design_gradient_color_edit_mode)
+	box_gradient_target.pressed.connect(_on_back_box_gradient_color_target_selected.bind(true))
+	box_target_row.add_child(box_gradient_target)
+
+	gradient_direction_button = Button.new()
+	gradient_direction_button.name = "BackBoxGradientDirection"
+	gradient_direction_button.text = _gradient_direction_name(int(back_design_boxes[selected_back_design_box].get("gradient_direction", 0))) + "  ▼"
+	gradient_direction_button.custom_minimum_size.y = 40
+	gradient_direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_direction_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(gradient_direction_button, 13)
+	_style_staff_button(gradient_direction_button, false)
+	gradient_direction_button.pressed.connect(_toggle_gradient_direction_popup)
+	popup_content.add_child(gradient_direction_button)
+
+	gradient_direction_popup = PanelContainer.new()
+	gradient_direction_popup.name = "GradientDirectionCustomDropdown"
+	gradient_direction_popup.visible = false
+	gradient_direction_popup.z_index = 130
+	gradient_direction_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	var direction_style := StyleBoxFlat.new()
+	direction_style.bg_color = Color("#07190d")
+	direction_style.border_color = Color("#65d783")
+	direction_style.set_border_width_all(2)
+	direction_style.set_corner_radius_all(12)
+	direction_style.content_margin_left = 8
+	direction_style.content_margin_right = 8
+	direction_style.content_margin_top = 8
+	direction_style.content_margin_bottom = 8
+	gradient_direction_popup.add_theme_stylebox_override("panel", direction_style)
+	gradient_direction_items = VBoxContainer.new()
+	gradient_direction_items.add_theme_constant_override("separation", 6)
+	gradient_direction_popup.add_child(gradient_direction_items)
+	editor_root.add_child(gradient_direction_popup)
+	_rebuild_gradient_direction_popup()
+	if open_on_create:
+		call_deferred("_position_back_box_gradient_popup")
+
+
+func _position_back_box_gradient_popup() -> void:
+	if not is_instance_valid(back_box_gradient_popup) or not back_box_gradient_popup.visible:
+		return
+	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	var toggle_row := active_feature_panel.get_node_or_null("BackBoxGradientToggleRow") as Control if is_instance_valid(active_feature_panel) else null
+	if not is_instance_valid(editor_root) or not is_instance_valid(toggle_row):
+		return
+	var viewport_rect := get_viewport().get_visible_rect()
+	var anchor_rect := toggle_row.get_global_rect()
+	var panel_width := minf(maxf(anchor_rect.size.x, 260.0), viewport_rect.size.x - 16.0)
+	back_box_gradient_popup.custom_minimum_size = Vector2(panel_width, 0.0)
+	back_box_gradient_popup.size = back_box_gradient_popup.get_combined_minimum_size()
+	var panel_height := back_box_gradient_popup.size.y
+	var panel_x := clampf(anchor_rect.position.x, viewport_rect.position.x + 8.0, viewport_rect.end.x - panel_width - 8.0)
+	var below_y := anchor_rect.end.y + 8.0
+	var panel_y := below_y if below_y + panel_height <= viewport_rect.end.y - 8.0 else maxf(viewport_rect.position.y + 8.0, anchor_rect.position.y - panel_height - 8.0)
+	back_box_gradient_popup.global_position = Vector2(panel_x, panel_y)
+
+
+func _close_back_box_gradient_popup() -> void:
+	if is_instance_valid(back_box_gradient_popup):
+		back_box_gradient_popup.visible = false
+	if is_instance_valid(gradient_direction_popup):
+		gradient_direction_popup.visible = false
 
 
 func _on_back_box_gradient_color_target_selected(use_gradient_color: bool) -> void:
@@ -1865,8 +1937,8 @@ func _refresh_device_color_editor_controls() -> void:
 	var selected_gradient_edit := phone_case_gradient_color_edit_mode if phone_case_color_mode else gradient_color_edit_mode
 	if is_instance_valid(base_button): _style_staff_button(base_button, not selected_gradient_edit)
 	if is_instance_valid(gradient_button): _style_staff_button(gradient_button, selected_gradient_edit)
-	var box_base_button := active_feature_panel.get_node_or_null("BackBoxGradientOptions/BackBoxGradientColorTargets/EditBackBoxColor") as Button
-	var box_gradient_button := active_feature_panel.get_node_or_null("BackBoxGradientOptions/BackBoxGradientColorTargets/EditBackBoxGradientColor") as Button
+	var box_base_button := back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxColor") as Button if is_instance_valid(back_box_gradient_popup) else null
+	var box_gradient_button := back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxGradientColor") as Button if is_instance_valid(back_box_gradient_popup) else null
 	if is_instance_valid(box_base_button): _style_staff_button(box_base_button, not back_design_gradient_color_edit_mode)
 	if is_instance_valid(box_gradient_button): _style_staff_button(box_gradient_button, back_design_gradient_color_edit_mode)
 
