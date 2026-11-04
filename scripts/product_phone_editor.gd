@@ -1801,7 +1801,8 @@ func _on_back_box_gradient_toggled(enabled: bool) -> void:
 	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
 	if not enabled:
 		back_design_gradient_color_edit_mode = false
-		_close_gradient_direction_popup()
+		if is_instance_valid(gradient_direction_popup):
+			gradient_direction_popup.visible = false
 	_refresh_back_design_boxes()
 	var gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(gradient_options):
