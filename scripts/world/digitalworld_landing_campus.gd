@@ -87,7 +87,6 @@ func _build_hero_design() -> void:
 
 	# A single sculptural presentation stage, not an environment or city.
 	_add_cylinder(self, 8.2, 0.42, Vector3(0.0, -0.18, 0.0), stage_material, "Floating_Obsidian_Podium")
-	_add_torus(self, 7.4, 7.28, emerald, Vector3(0.0, 0.055, 0.0), Vector3.ZERO, "Podium_Emerald_Inlay")
 	_add_cylinder(self, 5.9, 0.08, Vector3(0.0, 0.08, 0.0), dark_metal, "Upper_Podium_Disc")
 
 	# Oversized premium smartphone sculpture, angled as the landing-page hero.
@@ -117,20 +116,6 @@ func _build_hero_design() -> void:
 		_add_sphere(device, 0.095, lens_position + Vector3(0.0, 0.0, -0.10), white_glint, "Lens_Reflection")
 	_add_sphere(device, 0.13, Vector3(-1.42, 3.95, -0.43), soft_emerald, "Camera_Flash")
 
-	# Floating orbital rings and restrained geometric accents frame the device.
-	var orbit_root := Node3D.new()
-	orbit_root.name = "Sculptural_Orbit"
-	orbit_root.position = Vector3(0.0, 1.4, -1.4)
-	add_child(orbit_root)
-	_add_torus(orbit_root, 9.0, 0.055, emerald, Vector3.ZERO, Vector3(62.0, 8.0, 24.0), "Outer_Orbit_Ring")
-	_add_torus(orbit_root, 7.6, 0.035, soft_emerald, Vector3.ZERO, Vector3(72.0, -22.0, -34.0), "Inner_Orbit_Ring")
-	_add_box(self, Vector3(0.12, 5.8, 0.12), Vector3(-7.1, 1.6, -1.8), dark_metal, "Left_Geometric_Pillar")
-	_add_box(self, Vector3(0.12, 4.2, 0.12), Vector3(7.0, 1.1, -2.2), dark_metal, "Right_Geometric_Pillar")
-	_add_sphere(self, 0.22, Vector3(-7.1, 4.6, -1.8), soft_emerald, "Left_Orbital_Node")
-	_add_sphere(self, 0.18, Vector3(7.0, 3.3, -2.2), white_glint, "Right_Orbital_Node")
-
-	var orbit_tween := _track_tween(create_tween().set_loops())
-	orbit_tween.tween_property(orbit_root, "rotation_degrees:y", 360.0, 46.0).from(0.0).set_trans(Tween.TRANS_LINEAR)
 
 
 func _animate_architecture() -> void:
