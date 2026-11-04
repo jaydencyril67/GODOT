@@ -318,13 +318,13 @@ func _show_menu() -> void:
 	welcome.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	showcase.add_child(welcome)
 
-	var eyebrow := _label("A KINGS HALL TECHNOLOGY WORLD", 9 if compact else 11, Color("#e4c27e"))
+	var eyebrow := _label("A KINGS HALL TECHNOLOGY WORLD", 9 if compact else 11, Color("#a9d9ad"))
 	welcome.add_child(eyebrow)
-	var welcome_title := _label("BUILD YOUR\nTECHNOLOGY EMPIRE.", 25 if compact else 37, Color("#fff8e9"))
+	var welcome_title := _label("BUILD YOUR\nTECHNOLOGY EMPIRE.", 25 if compact else 37, Color("#f4fff3"))
 	welcome_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_apply_menu_3d_label(welcome_title, 1)
 	welcome.add_child(welcome_title)
-	var welcome_caption := _label("Design the devices. Build your company.\nLead the next generation of mobile technology.", 12 if compact else 15, Color("#d1c8b6"))
+	var welcome_caption := _label("Design the devices. Build your company.\nLead the next generation of mobile technology.", 12 if compact else 15, Color("#dcebdd"))
 	welcome_caption.add_theme_constant_override("line_separation", 4)
 	welcome.add_child(welcome_caption)
 
@@ -341,7 +341,7 @@ func _show_menu() -> void:
 	command_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.018, 0.020, 0.025, 0.88)
-	panel_style.border_color = Color("#d7b56f")
+	panel_style.border_color = Color("#9bd6a0")
 	panel_style.border_color.a = 0.78
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
@@ -360,13 +360,13 @@ func _show_menu() -> void:
 	var menu := VBoxContainer.new()
 	menu.add_theme_constant_override("separation", 11 if compact else 14)
 	command_panel.add_child(menu)
-	var menu_heading := _label("DIGITAL WORLD MOBILES", 9 if compact else 10, Color("#e2bf78"), HORIZONTAL_ALIGNMENT_CENTER)
+	var menu_heading := _label("DIGITAL WORLD MOBILES", 9 if compact else 10, Color("#a9d9ad"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_heading)
-	var menu_title := _label("YOUR COMPANY STARTS HERE", 16 if compact else 19, Color("#fff7e6"), HORIZONTAL_ALIGNMENT_CENTER)
+	var menu_title := _label("YOUR COMPANY STARTS HERE", 16 if compact else 19, Color("#f4fff3"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_title)
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
-	menu_rule.color = Color(0.84, 0.68, 0.40, 0.72)
+	menu_rule.color = Color(0.66, 0.85, 0.68, 0.78)
 	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
@@ -380,18 +380,18 @@ func _show_menu() -> void:
 
 	var footer_rule := ColorRect.new()
 	footer_rule.custom_minimum_size = Vector2(0, 1)
-	footer_rule.color = Color(0.84, 0.68, 0.40, 0.28)
+	footer_rule.color = Color(0.66, 0.85, 0.68, 0.34)
 	menu.add_child(footer_rule)
-	var footer := _label("POWERED BY KINGSHALL", 8 if compact else 9, Color("#b9a57e"), HORIZONTAL_ALIGNMENT_CENTER)
+	var footer := _label("POWERED BY KINGSHALL", 8 if compact else 9, Color("#91b99a"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(footer)
 
 
 func _style_landing_command_button(button: Button, primary: bool) -> void:
-	# Restrained champagne-gold controls with no hover, focus or click flash.
+	# Emerald glass controls matching the confirmation alerts; no hover or focus flash.
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	var base_fill := Color("#c49a4c") if primary else Color(0.075, 0.082, 0.095, 0.88)
-	var base_edge := Color("#f0d59a") if primary else Color(0.78, 0.64, 0.39, 0.68)
+	var base_fill := Color(0.22, 0.56, 0.30, 0.78) if primary else Color(0.035, 0.09, 0.05, 0.88)
+	var base_edge := Color("#dcffdf") if primary else Color(0.61, 0.84, 0.64, 0.72)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = base_fill
@@ -408,12 +408,12 @@ func _style_landing_command_button(button: Button, primary: bool) -> void:
 		style.content_margin_top = 10
 		style.content_margin_bottom = 10
 		button.add_theme_stylebox_override(state, style)
-	var text_color := Color("#17130b") if primary else Color("#f5ead4")
+	var text_color := Color("#f5fff4") if primary else Color("#eaffea")
 	button.add_theme_color_override("font_color", text_color)
 	button.add_theme_color_override("font_hover_color", text_color)
 	button.add_theme_color_override("font_pressed_color", text_color)
 	button.add_theme_color_override("font_focus_color", text_color)
-	button.add_theme_color_override("font_disabled_color", Color("#a99a7d"))
+	button.add_theme_color_override("font_disabled_color", Color("#91b99a"))
 	_apply_shared_page_typography(button, 15)
 	button.add_theme_color_override("font_outline_color", Color("#090b10"))
 	button.add_theme_constant_override("outline_size", 1)
