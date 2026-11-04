@@ -1571,7 +1571,14 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	picker.add_child(heading)
 	var special_color_mode := back_design_color_mode or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
-	var selected_color := _get_active_color_picker_color() if special_color_mode else (phone_case_gradient_color if phone_case_color_mode and use_gradient_color else (phone_case_color if phone_case_color_mode else (device_gradient_color if use_gradient_color else device_body_color)))
+	var selected_color: Color
+	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		var selected_box: Dictionary = back_design_boxes[selected_back_design_box]
+		selected_color = Color(selected_box.get("gradient_color", Color("#536dfe"))) if use_gradient_color else Color(selected_box.get("custom_color", device_body_color))
+	elif special_color_mode:
+		selected_color = _get_active_color_picker_color()
+	else:
+		selected_color = phone_case_gradient_color if phone_case_color_mode and use_gradient_color else (phone_case_color if phone_case_color_mode else (device_gradient_color if use_gradient_color else device_body_color))
 	picker.add_child(_make_label("COLOR SPECTRUM", 11, Color("#a9e3ff")))
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
