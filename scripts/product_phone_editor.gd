@@ -2290,38 +2290,8 @@ func _show_back_design_controls() -> void:
 		modes.add_child(mode_button)
 	_add_back_design_flexible_space(active_feature_panel)
 
-	var pad := GridContainer.new()
-	pad.name = "BackDesignDirectionPad"
-	pad.columns = 3
-	pad.add_theme_constant_override("h_separation", 5 if tight else 7)
-	pad.add_theme_constant_override("v_separation", 5 if tight else 7)
-	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(pad)
-	_add_back_design_pad_spacer(pad)
-	var shrinking := back_design_mode == "SIZE" and back_design_size_action == "SHRINK"
-	_add_back_design_pad_button(pad, "↓" if shrinking else "↑", Vector2i(0, 1))
-	_add_back_design_pad_spacer(pad)
-	_add_back_design_pad_button(pad, "→" if shrinking else "←", Vector2i(-1, 0))
-	if back_design_mode == "SIZE":
-		var center_button := Button.new()
-		center_button.text = back_design_size_action
-		center_button.custom_minimum_size = Vector2(44, 38) if tight else (Vector2(48, 42) if compact else Vector2(54, 46))
-		center_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		_apply_research_typography(center_button, 12 if tight else 13)
-		_style_staff_button(center_button, back_design_size_action == "EXPAND")
-		center_button.pressed.connect(_toggle_back_design_size_action)
-		pad.add_child(center_button)
-	else:
-		var center := _make_label("MOVE", 13 if tight else 14, Color("#c7eacb"))
-		center.custom_minimum_size = Vector2(44, 38) if tight else (Vector2(48, 42) if compact else Vector2(54, 46))
-		center.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		center.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pad.add_child(center)
-	_add_back_design_pad_button(pad, "←" if shrinking else "→", Vector2i(1, 0))
-	_add_back_design_pad_spacer(pad)
-	_add_back_design_pad_button(pad, "↑" if shrinking else "↓", Vector2i(0, -1))
-	_add_back_design_pad_spacer(pad)
-	_add_back_design_flexible_space(active_feature_panel)
+	# Direction controls are deliberately placed after the design settings,
+	# in a compact circular controller anchored at the bottom of the panel.
 
 	back_design_size_label = _make_label("", label_size, Color("#d8eaf5"))
 	active_feature_panel.add_child(back_design_size_label)
@@ -2347,6 +2317,48 @@ func _show_back_design_controls() -> void:
 	_style_staff_button(color_button, false)
 	color_button.pressed.connect(_show_device_color_controls.bind(true))
 	active_feature_panel.add_child(color_button)
+
+	_add_back_design_flexible_space(active_feature_panel)
+	var pad_center := CenterContainer.new()
+	pad_center.name = "BackDesignDirectionControllerCenter"
+	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_END
+	active_feature_panel.add_child(pad_center)
+	var pad_shell := PanelContainer.new()
+	pad_shell.name = "BackDesignDirectionController"
+	pad_shell.custom_minimum_size = Vector2(154, 154) if not tight else Vector2(136, 136)
+	var pad_shell_style := StyleBoxFlat.new()
+	pad_shell_style.bg_color = Color("#0b2112")
+	pad_shell_style.border_color = Color("#477d53")
+	pad_shell_style.set_border_width_all(1)
+	pad_shell_style.set_corner_radius_all(100)
+	pad_shell_style.content_margin_left = 10
+	pad_shell_style.content_margin_right = 10
+	pad_shell_style.content_margin_top = 10
+	pad_shell_style.content_margin_bottom = 10
+	pad_shell.add_theme_stylebox_override("panel", pad_shell_style)
+	pad_center.add_child(pad_shell)
+	var pad := GridContainer.new()
+	pad.name = "BackDesignDirectionPad"
+	pad.columns = 3
+	pad.add_theme_constant_override("h_separation", 4)
+	pad.add_theme_constant_override("v_separation", 4)
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pad_shell.add_child(pad)
+	_add_back_design_pad_spacer(pad)
+	var shrinking := back_design_mode == "SIZE" and back_design_size_action == "SHRINK"
+	_add_back_design_pad_button(pad, "↑" if not shrinking else "↓", Vector2i(0, 1))
+	_add_back_design_pad_spacer(pad)
+	_add_back_design_pad_button(pad, "←" if not shrinking else "→", Vector2i(-1, 0))
+	var pad_center_label := _make_label("SIZE" if back_design_mode == "SIZE" else "MOVE", 10, Color("#a8d7b0"))
+	pad_center_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pad_center_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pad.add_child(pad_center_label)
+	_add_back_design_pad_button(pad, "→" if not shrinking else "←", Vector2i(1, 0))
+	_add_back_design_pad_spacer(pad)
+	_add_back_design_pad_button(pad, "↓" if not shrinking else "↑", Vector2i(0, -1))
+	_add_back_design_pad_spacer(pad)
 	_refresh_back_design_panel()
 
 
