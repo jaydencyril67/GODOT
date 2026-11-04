@@ -348,14 +348,19 @@ func _show_device_geometry_step() -> void:
 	# exact control trees preserves the existing level ranges and live callbacks.
 	phone_editor.call("_show_thickness_controls")
 	thickness_panel = phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(thickness_panel):
+		var thickness_parent := thickness_panel.get_parent()
+		if is_instance_valid(thickness_parent):
+			thickness_parent.remove_child(thickness_panel)
 	phone_editor.call("_show_border_radius_controls")
 	border_radius_panel = phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(border_radius_panel):
+		var radius_parent := border_radius_panel.get_parent()
+		if is_instance_valid(radius_parent):
+			radius_parent.remove_child(border_radius_panel)
 	for panel in [thickness_panel, border_radius_panel]:
 		if not is_instance_valid(panel):
 			continue
-		var previous_parent := panel.get_parent()
-		if is_instance_valid(previous_parent):
-			previous_parent.remove_child(panel)
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		selection_stack.add_child(panel)
