@@ -197,6 +197,12 @@ func _build_interface() -> void:
 	next_button.pressed.connect(_on_next_pressed)
 	bottom_bar.add_child(next_button)
 	_apply_responsive_layout()
+	# Start with Standard selected in both the worksite controls and the
+	# original editor engine, so the preview and Next state are immediately ready.
+	_on_phone_type_selected("Standard")
+	# Start with Standard selected in both the worksite controls and the
+	# original editor engine, so the preview and Next state are immediately ready.
+	_on_phone_type_selected("Standard")
 
 
 func _apply_responsive_layout() -> void:
@@ -265,29 +271,36 @@ func _style_arrow_button(button: Button) -> void:
 	button.add_theme_font_size_override("font_size", 36)
 
 
-func _style_button(button: Button, primary: bool) -> void:
+func _style_button(button: Button, selected: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#2f7543") if primary else Color("#e1ebe1")
+		style.bg_color = Color("#286b3b") if selected else Color("#171d19")
 		if state == "hover":
-			style.bg_color = Color("#3c8951") if primary else Color("#cbdccb")
+			style.bg_color = Color("#347f49") if selected else Color("#222c25")
 		elif state == "pressed":
-			style.bg_color = Color("#245f35")
+			style.bg_color = Color("#205b32")
 		elif state == "disabled":
-			style.bg_color = Color("#d4dfd4")
-		style.border_color = Color("#438c54") if primary else Color("#78a780")
+			style.bg_color = Color("#202722")
+		style.border_color = Color("#66ad76") if selected else Color("#39483d")
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(12)
-		style.content_margin_left = 14
-		style.content_margin_right = 14
-		style.content_margin_top = 10
-		style.content_margin_bottom = 10
+		style.set_corner_radius_all(10)
+		style.content_margin_left = 16
+		style.content_margin_right = 16
+		style.content_margin_top = 12
+		style.content_margin_bottom = 12
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#f7fff7") if primary else Color("#24432b"))
-	button.add_theme_color_override("font_hover_color", Color.WHITE if primary else Color("#18351f"))
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color("#8a978c"))
-	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_color_override("font_color", Color("#ffffff") if selected else Color("#e5eee7"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_color_override("font_disabled_color", Color("#7c897f"))
+	button.add_theme_font_size_override("font_size", 18)
+	_apply_bold_font(button)
+
+
+func _apply_bold_font(control: Control) -> void:
+	var font := SystemFont.new()
+	font.font_weight = 700
+	control.add_theme_font_override("font", font)
 
 
 func _label(value: String, size: int, color: Color, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -297,4 +310,5 @@ func _label(value: String, size: int, color: Color, alignment: HorizontalAlignme
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_bold_font(label)
 	return label
