@@ -2239,7 +2239,6 @@ func _show_back_design_controls() -> void:
 	back_design_selection_popup.name = "BackDesignCustomDropdown"
 	back_design_selection_popup.visible = false
 	back_design_selection_popup.z_index = 4096
-	back_design_selection_popup.top_level = true
 	back_design_selection_popup.mouse_filter = Control.MOUSE_FILTER_STOP
 	var dropdown_panel_style := StyleBoxFlat.new()
 	dropdown_panel_style.bg_color = Color("#07190d")
@@ -2393,8 +2392,13 @@ func _add_back_design_flexible_space(parent: Control) -> void:
 func _toggle_back_design_selection_popup() -> void:
 	if not is_instance_valid(back_design_selection_popup):
 		return
+	if back_design_boxes.is_empty():
+		_rebuild_back_design_selection_popup()
+		return
+	_rebuild_back_design_selection_popup()
 	back_design_selection_popup.visible = not back_design_selection_popup.visible
 	if back_design_selection_popup.visible:
+		back_design_selection_popup.move_to_front()
 		call_deferred("_position_back_design_selection_popup")
 
 
@@ -2408,40 +2412,38 @@ func _position_back_design_selection_popup() -> void:
 		return
 	if not back_design_selection_popup.visible:
 		return
+	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if not is_instance_valid(editor_root):
+		return
 	var viewport_rect := get_viewport().get_visible_rect()
 	var button_rect := back_design_selection_button.get_global_rect()
+	var viewport_padding := 8.0
 	var side_gap := 6.0
-	var viewport_padding := 6.0
-	var popup_width := minf(button_rect.size.x, viewport_rect.size.x - viewport_padding * 2.0)
-	var content_height := back_design_selection_items.get_combined_minimum_size().y + 20.0 if is_instance_valid(back_design_selection_items) else 64.0
-	var desired_height := minf(maxf(content_height, 64.0), viewport_rect.size.y * 0.45)
-
-	# Keep the popup attached to its selector. Open below when it fits; otherwise
-	# open above. If neither side has enough room, use the side with more space
-	# and let the ScrollContainer handle the remaining options.
+	var viewport_size := viewport_rect.size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	var popup_width := clampf(button_rect.size.x, 160.0, viewport_size.x - viewport_padding * 2.0)
+	var content_height := back_design_selection_items.get_combined_minimum_size().y + 20.0 if is_instance_valid(back_design_selection_items) else 80.0
+	var desired_height := minf(maxf(content_height, 80.0), viewport_size.y * 0.48)
 	var available_above := maxf(0.0, button_rect.position.y - viewport_rect.position.y - side_gap - viewport_padding)
 	var button_bottom := button_rect.position.y + button_rect.size.y
 	var available_below := maxf(0.0, viewport_rect.end.y - button_bottom - side_gap - viewport_padding)
 	var open_below := available_below >= desired_height or available_below >= available_above
-	var available_height := available_below if open_below else available_above
-	var popup_height := minf(desired_height, available_height)
-	if popup_height <= 0.0:
-		back_design_selection_popup.visible = false
-		return
-
+	# Never silently close the selector because the worksite's scroll position
+	# leaves little room. Use a compact overlay and clamp it inside the viewport.
+	var popup_height := minf(desired_height, maxf(80.0, viewport_size.y - viewport_padding * 2.0))
 	back_design_selection_popup.custom_minimum_size = Vector2(popup_width, popup_height)
 	back_design_selection_popup.size = Vector2(popup_width, popup_height)
 	if is_instance_valid(back_design_selection_scroll):
-		back_design_selection_scroll.custom_minimum_size.y = maxf(40.0, popup_height - 20.0)
+		back_design_selection_scroll.custom_minimum_size = Vector2(0.0, maxf(48.0, popup_height - 20.0))
 	var popup_y := button_bottom + side_gap if open_below else button_rect.position.y - popup_height - side_gap
+	popup_y = clampf(popup_y, viewport_rect.position.y + viewport_padding, viewport_rect.end.y - popup_height - viewport_padding)
 	var max_popup_x := viewport_rect.end.x - popup_width - viewport_padding
 	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + viewport_padding, max_popup_x)
-	var popup_global_position := Vector2(popup_x, popup_y)
-	# button_rect is already in canvas/global UI coordinates. Assign the popup's
-	# global position directly; converting through PhoneEditorRoot shifts it
-	# because that control is offset/scaled inside the editor interface.
-	back_design_selection_popup.global_position = popup_global_position
-
+	# This popup is a normal child of the full-screen editor root, so convert
+	# viewport/global coordinates into the root's local coordinate space.
+	back_design_selection_popup.position = editor_root.to_local(Vector2(popup_x, popup_y))
+	back_design_selection_popup.move_to_front()
 
 func _rebuild_back_design_selection_popup() -> void:
 	if not is_instance_valid(back_design_selection_items):
