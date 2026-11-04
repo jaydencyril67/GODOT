@@ -274,7 +274,6 @@ func _new_screen() -> Control:
 	global_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	global_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	global_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	global_background.z_index = -100
 	ui_root.add_child(global_background)
 	return ui_root
 
@@ -284,7 +283,7 @@ func _show_menu() -> void:
 	_clear_world()
 
 	var root := _new_screen()
-	root.modulate.a = 0.0
+	root.modulate.a = 1.0
 
 	# Soft vignette keeps the photographic background readable.
 	var vignette := ColorRect.new()
@@ -400,9 +399,6 @@ void fragment() {
 	var footer := _label("A KINGS HALL SIMULATION", 9, Color("#8aa991"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(footer)
 
-	var entrance := create_tween()
-	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	entrance.tween_property(root, "modulate:a", 1.0, 0.48).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _style_landing_command_button(button: Button, primary: bool) -> void:
 	# Landing menu controls remain visually still during hover, click and focus.
