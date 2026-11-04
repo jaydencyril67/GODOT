@@ -2484,6 +2484,17 @@ func _add_back_design_pad_button(parent: GridContainer, caption: String, directi
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(button, 22 if not tight else 20)
 	_style_staff_button(button, true)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var circular_style := StyleBoxFlat.new()
+		circular_style.bg_color = Color("#173c22") if state != "pressed" else Color("#285c35")
+		circular_style.border_color = Color("#579766")
+		circular_style.set_border_width_all(1)
+		circular_style.set_corner_radius_all(100)
+		circular_style.content_margin_left = 0
+		circular_style.content_margin_right = 0
+		circular_style.content_margin_top = 0
+		circular_style.content_margin_bottom = 0
+		button.add_theme_stylebox_override(state, circular_style)
 	button.pressed.connect(_on_back_design_pad_pressed.bind(direction))
 	parent.add_child(button)
 
