@@ -35,6 +35,7 @@ var upgrade_cost_label: Label
 var monthly_rent_label: Label
 var available_balance_label: Label
 var building_root: Node3D
+var compound_facilities_root: Node3D
 var hq_camera: Camera3D
 var level_info_label: Label
 var staff_capacity_label: Label
@@ -237,10 +238,12 @@ func _create_presentation_stage() -> void:
 	_create_compound_landscape(compound)
 	_create_compound_lighting(compound)
 
-	# The site is visible while previewing upgrades. On an unowned Home screen,
-	# the secured property remains undeveloped until the first workshop is bought.
-	if not home_mode or owned_level > 0:
-		_create_compound_facilities(compound)
+	# Facilities are created once and shown in the upgrade preview. The Home
+	# compound reveals them after the first headquarters purchase.
+	compound_facilities_root = Node3D.new()
+	compound_facilities_root.name = "Operational_And_Support_Facilities"
+	compound.add_child(compound_facilities_root)
+	_update_compound_facilities_visibility()
 
 
 func _create_compound_roads(parent: Node3D) -> void:
@@ -870,6 +873,7 @@ func set_home_mode(active: bool) -> void:
 	home_mode = active
 	camera_pitch = 0.42 if active else 0.24
 	preview_level = maxi(owned_level, 1)
+	_update_compound_facilities_visibility()
 	_rebuild_preview()
 	if is_instance_valid(preview_interface_layer):
 		preview_interface_layer.hide()
@@ -885,7 +889,17 @@ func set_owned_level(level: int) -> void:
 	owned_level = clampi(level, 0, MAX_LEVEL)
 	if home_mode:
 		preview_level = maxi(owned_level, 1)
+	_update_compound_facilities_visibility()
 	_rebuild_preview()
+
+
+func _update_compound_facilities_visibility() -> void:
+	if not is_instance_valid(compound_facilities_root):
+		return
+	var should_show := not home_mode or owned_level > 0
+	if should_show and compound_facilities_root.get_child_count() == 0:
+		_create_compound_facilities(compound_facilities_root)
+	compound_facilities_root.visible = should_show
 
 func set_preview_active(active: bool) -> void:
 	# CanvasLayer is rendered independently of the Node3D visibility tree, so
