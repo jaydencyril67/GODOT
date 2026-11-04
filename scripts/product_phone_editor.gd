@@ -7216,8 +7216,8 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	# The panel's own margins are additional to the VBox content height.
 	section.custom_minimum_size = Vector2(0.0, 184.0)
 	var section_style := StyleBoxFlat.new()
-	section_style.bg_color = Color(0.20, 0.48, 0.66, 0.25)
-	section_style.border_color = Color(0.55, 0.80, 0.94, 0.55)
+	section_style.bg_color = Color(0.035, 0.12, 0.065, 0.88)
+	section_style.border_color = Color(0.28, 0.62, 0.38, 0.58)
 	section_style.set_border_width_all(1)
 	section_style.set_corner_radius_all(12)
 	section_style.content_margin_left = 12
@@ -7274,7 +7274,7 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	_style_staff_button(down, false)
 	down.pressed.connect(_on_side_button_position_step.bind(side, -1))
 	position_row.add_child(down)
-	var position_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 17, Color("#a9e3ff"))
+	var position_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 17, Color("#b8e8c2"))
 	position_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	position_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	position_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
