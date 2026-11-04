@@ -373,6 +373,7 @@ var back_design_border_slider: HSlider
 var back_design_mode := "MOVE"
 var back_design_size_action := "EXPAND"
 var back_design_color_mode := false
+var back_design_gradient_enabled_without_box := false
 var box_package_preview: Node3D
 var box_package_lid: Node3D
 var box_package_preview_mode := false
@@ -1439,7 +1440,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		if not use_device_color.button_pressed:
 			back_design_gradient_color_edit_mode = false
 
-	if (not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) or (return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode))):
+	if (not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) or (return_to_back_design and worksite_creation_mode and (back_design_boxes.is_empty() or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false))))) or (return_to_back_design and not worksite_creation_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))):
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1460,7 +1461,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_toggle.texture_hover = _make_side_button_checkbox_icon(false)
 		gradient_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 		gradient_toggle.toggle_mode = true
-		gradient_toggle.button_pressed = bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
+		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
 		gradient_toggle.focus_mode = Control.FOCUS_NONE
 		gradient_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 		if return_to_back_design:
@@ -1502,20 +1503,20 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_direction_popup.add_child(gradient_direction_items)
 		_ensure_gradient_popup_layer().add_child(gradient_direction_popup)
 		_rebuild_gradient_direction_popup()
-		gradient_options.visible = bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
+		gradient_options.visible = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
 
 	var picker_columns := HBoxContainer.new()
 	picker_columns.name = "DeviceColorPickerColumns"
 	picker_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker_columns.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(picker_columns)
-	var uses_dual_color_pickers := not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package and (not return_to_back_design or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode))))
+	var uses_dual_color_pickers := not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package and (not return_to_back_design or (worksite_creation_mode and (back_design_boxes.is_empty() or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false)))) or (not worksite_creation_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))))
 	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
 	picker_columns.add_child(normal_picker)
 	if uses_dual_color_pickers:
 		var gradient_picker := _build_device_color_picker_panel(true, color_viewport_size)
 		picker_columns.add_child(gradient_picker)
-		var gradient_picker_enabled := bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
+		var gradient_picker_enabled := (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
 		_set_device_gradient_picker_enabled(gradient_picker, gradient_picker_enabled)
 	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode)))
@@ -1816,7 +1817,20 @@ void fragment() {
 
 
 func _on_back_box_gradient_toggled(enabled: bool) -> void:
-	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size(): return
+	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size():
+		if worksite_creation_mode:
+			back_design_gradient_enabled_without_box = enabled
+			if not enabled:
+				back_design_gradient_color_edit_mode = false
+				if is_instance_valid(gradient_direction_popup):
+					gradient_direction_popup.visible = false
+				var empty_gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
+				if is_instance_valid(empty_gradient_options):
+					empty_gradient_options.visible = enabled
+				var empty_gradient_picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/GradientColorPicker") as Control if is_instance_valid(active_feature_panel) else null
+				if is_instance_valid(empty_gradient_picker):
+					_set_device_gradient_picker_enabled(empty_gradient_picker, enabled)
+		return
 	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
 	if not enabled:
 		back_design_gradient_color_edit_mode = false
@@ -2587,7 +2601,7 @@ func _add_back_design_box() -> void:
 		while x <= max_x and not placed:
 			var box_position := Vector2(x, y)
 			if _back_design_position_is_free(box_position, box_size, -1):
-				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08, "use_device_color": not worksite_creation_mode, "custom_color": device_body_color, "gradient_color": device_gradient_color, "gradient_enabled": false, "gradient_direction": device_gradient_direction})
+				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08, "use_device_color": not worksite_creation_mode, "custom_color": device_body_color, "gradient_color": device_gradient_color, "gradient_enabled": back_design_gradient_enabled_without_box if worksite_creation_mode else false, "gradient_direction": device_gradient_direction})
 				selected_back_design_box = back_design_boxes.size() - 1
 				next_back_design_box_id += 1
 				placed = true
