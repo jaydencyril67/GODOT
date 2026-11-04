@@ -35,7 +35,10 @@ var upgrade_cost_label: Label
 var monthly_rent_label: Label
 var available_balance_label: Label
 var building_root: Node3D
+var home_building_root: Node3D
 var current_building_height := 4.2
+var home_building_height := 4.2
+var home_building_level := 1
 var compound_facilities_root: Node3D
 var compound_facilities_level: int = -1
 var hq_camera: Camera3D
@@ -88,6 +91,9 @@ func _ready() -> void:
 	# hidden on Home and revealed only when the Office page is opened.
 	var building_height := _build_procedural_building(preview_level)
 	current_building_height = building_height
+	home_building_root = building_root
+	home_building_height = building_height
+	home_building_level = preview_level
 	if home_mode and owned_level <= 0 and is_instance_valid(building_root):
 		building_root.visible = false
 
@@ -1118,13 +1124,33 @@ func _add_level_silhouette_features(parent: Node3D, level: int, width: float, de
 		_facility_box(parent, "Level10_Central_Crown_Tower", Vector3(width * 0.30, 3.20, depth * 0.38), Vector3(0.0, height + 2.10, -depth * 0.10), materials["window_frame"])
 		_facility_box(parent, "Level10_Crown_Glazing", Vector3(width * 0.26, 2.84, depth * 0.34), Vector3(0.0, height + 2.12, -depth * 0.10), materials["glass"])
 		_facility_box(parent, "Level10_Cantilevered_Crown_Cap", Vector3(width * 0.72, 0.20, depth * 0.52), Vector3(0.0, height + 3.82, -depth * 0.10), accent)
-func _rebuild_preview() -> void:
-	# This is called for an intentional level preview or a completed purchase,
-	# not for ordinary Home/Office navigation.
-	if is_instance_valid(building_root):
-		building_root.queue_free()
-	building_root = null
+func _rebuild_preview(temporary_preview: bool = false) -> void:
+	# Temporary tier previews never destroy the original company building.
+	# The loading-screen HQ is detached and kept alive until the player returns
+	# to its owned tier or confirms a purchase/downgrade.
+	if temporary_preview:
+		if is_instance_valid(building_root):
+			if building_root == home_building_root:
+				remove_child(building_root)
+			else:
+				building_root.queue_free()
+			building_root = null
+		if preview_level == home_building_level and _restore_cached_home_building():
+			return
+	else:
+		var current_is_home_building := is_instance_valid(building_root) and building_root == home_building_root
+		if is_instance_valid(building_root):
+			building_root.queue_free()
+		if is_instance_valid(home_building_root) and not current_is_home_building:
+			home_building_root.queue_free()
+		home_building_root = null
+		building_root = null
+
 	current_building_height = _build_procedural_building(preview_level)
+	if not temporary_preview:
+		home_building_root = building_root
+		home_building_height = current_building_height
+		home_building_level = preview_level
 	if is_instance_valid(building_root):
 		building_root.visible = not home_mode or owned_level > 0
 	_update_compound_facilities_visibility()
@@ -1133,19 +1159,40 @@ func _rebuild_preview() -> void:
 	_refresh_preview_interface()
 	preview_level_changed.emit(preview_level)
 
+
+func _restore_cached_home_building() -> bool:
+	if not is_instance_valid(home_building_root):
+		return false
+	if is_instance_valid(building_root) and building_root != home_building_root:
+		building_root.queue_free()
+	if home_building_root.get_parent() != self:
+		var previous_parent := home_building_root.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(home_building_root)
+		add_child(home_building_root)
+	building_root = home_building_root
+	current_building_height = home_building_height
+	building_root.visible = not home_mode or owned_level > 0
+	_update_compound_facilities_visibility()
+	_configure_camera_framing(current_building_height)
+	_update_camera_transform()
+	_refresh_preview_interface()
+	preview_level_changed.emit(preview_level)
+	return true
+
 func _show_previous_level() -> void:
 	if preview_level <= 1:
 		return
 	preview_level -= 1
 	_update_downgrade_refund_roll()
-	_rebuild_preview()
+	_rebuild_preview(true)
 
 func _show_next_level() -> void:
 	if preview_level >= MAX_LEVEL:
 		return
 	preview_level = mini(preview_level + 1, MAX_LEVEL)
 	_update_downgrade_refund_roll()
-	_rebuild_preview()
+	_rebuild_preview(true)
 
 
 func _update_downgrade_refund_roll() -> void:
@@ -1363,10 +1410,14 @@ func set_home_mode(active: bool) -> void:
 	preview_level = target_level
 	_update_compound_facilities_visibility()
 
-	# Only rebuild if the player deliberately previewed a different tier. Normal
-	# navigation keeps the existing building node and all its geometry intact.
-	if level_changed or not is_instance_valid(building_root):
-		_rebuild_preview()
+	# If Office previewed another tier, restore the exact loading-screen model
+	# rather than rebuilding the owned building during this navigation.
+	if level_changed:
+		if not _restore_cached_home_building():
+			_rebuild_preview()
+	elif not is_instance_valid(building_root):
+		if not _restore_cached_home_building():
+			_rebuild_preview()
 	else:
 		building_root.visible = not home_mode or owned_level > 0
 		_configure_camera_framing(current_building_height)
