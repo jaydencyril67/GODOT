@@ -1,6 +1,9 @@
 name: DigitalWorld Godot Checks
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -19,10 +22,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install Godot 4.3
+      - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
-          version: 4.3.0
+          version: 4.7.2
           use-dotnet: false
           include-templates: false
 
@@ -37,6 +40,11 @@ jobs:
           # checkout, Godot loads project settings before its first import
           # scan, so temporarily disable that theme while generating imports.
           test -s "assets/fonts/STIXTwoText[wght].ttf"
+          test -s "Screenshot_20261104-041429_ChatGPT.jpg"
+          if grep -R -n --exclude-dir=.git "digitalworld-landing.png" scripts scenes project.godot; then
+            echo "A script or scene still references the deleted landing image."
+            exit 1
+          fi
           cp project.godot project.godot.ci-backup
           restore_project() {
             if [ -f project.godot.ci-backup ]; then
@@ -55,6 +63,10 @@ jobs:
           fi
           if ! find .godot/imported -maxdepth 1 -type f -name 'STIXTwoText*.fontdata' -print -quit | grep -q .; then
             echo "Godot did not generate the imported STIX Two Text font resource."
+            exit 1
+          fi
+          if ! find .godot/imported -maxdepth 1 -type f -name '*.ctex' -print -quit | grep -q .; then
+            echo "Godot did not generate imported texture resources."
             exit 1
           fi
 
