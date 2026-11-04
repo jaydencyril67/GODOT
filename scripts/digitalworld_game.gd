@@ -70,6 +70,7 @@ var loading_status_label: Label
 var loading_progress_bar: ProgressBar
 var loading_percent_label: Label
 var loading_progress_tween: Tween
+var loading_accent_tween: Tween
 var headquarters_loading_finish_started := false
 var graphics_quality := "High"
 var sound_enabled := true
@@ -1950,10 +1951,12 @@ void fragment() {
 	entrance.tween_property(content, "modulate:a", 1.0, 0.52).set_delay(0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	entrance.tween_property(content, "scale", Vector2.ONE, 0.5).from(Vector2(0.985, 0.985)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	var accent_pulse := create_tween()
-	accent_pulse.set_loops()
-	accent_pulse.tween_property(accent, "modulate:a", 0.58, 0.95).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	accent_pulse.tween_property(accent, "modulate:a", 1.0, 0.95).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if loading_accent_tween != null and loading_accent_tween.is_running():
+		loading_accent_tween.kill()
+	loading_accent_tween = create_tween()
+	loading_accent_tween.set_loops()
+	loading_accent_tween.tween_property(accent, "modulate:a", 0.58, 0.95).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	loading_accent_tween.tween_property(accent, "modulate:a", 1.0, 0.95).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _update_headquarters_loading(message: String, progress: float) -> void:
@@ -1992,6 +1995,9 @@ func _finish_headquarters_loading() -> void:
 	if loading_progress_tween != null and loading_progress_tween.is_running():
 		loading_progress_tween.kill()
 	loading_progress_tween = null
+	if loading_accent_tween != null and loading_accent_tween.is_running():
+		loading_accent_tween.kill()
+	loading_accent_tween = null
 
 	# Queue the loading layer for removal, then construct Home in this same
 	# frame. Godot removes the queued loading layer at frame end, revealing
