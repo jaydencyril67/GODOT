@@ -299,7 +299,12 @@ func _make_folded_curtain_mesh(width: float, height: float) -> ArrayMesh:
 			var bottom_left := top_left + columns + 1
 			var bottom_right := bottom_left + 1
 			var top_right := top_left + 1
-			indices.append_array([top_left, bottom_left, bottom_right, top_left, bottom_right, top_right])
+			indices.append(top_left)
+			indices.append(bottom_left)
+			indices.append(bottom_right)
+			indices.append(top_left)
+			indices.append(bottom_right)
+			indices.append(top_right)
 
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
