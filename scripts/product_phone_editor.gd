@@ -2489,11 +2489,6 @@ func _make_editor_icon_button(parent: Control, node_name: String, caption: Strin
 	return button
 
 
-func _on_rear_hardware_center_pressed() -> void:
-	# The center of the directional pad remains a deliberate rectangular
-	# control in Layout A; movement itself is performed by the four arrows.
-	if rear_hardware_selection_button and rear_hardware_selection_button.text.is_empty():
-		return
 
 
 func _make_editor_control_card(parent: Control, card_name: String, heading_text: String, tight: bool) -> VBoxContainer:
@@ -6828,7 +6823,7 @@ func _show_rear_camera_controls() -> void:
 	pad_center_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_apply_research_typography(pad_center_button, 10 if tight else 11)
 	_style_back_design_button(pad_center_button, true)
-	pad_center_button.pressed.connect(_on_rear_hardware_center_pressed)
+	pad_center_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.add_child(pad_center_button)
 	_add_rear_hardware_pad_button(pad, "→", Vector2i(1, 0), tight)
 	_add_back_design_pad_spacer(pad)
