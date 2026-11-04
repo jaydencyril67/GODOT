@@ -2289,142 +2289,149 @@ func _show_research_scene() -> void:
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
 		world_root.set_preview_active(false)
 
+	_clear_world()
+	landing_environment = _build_landing_showroom()
+	add_child(landing_environment)
+
 	var root := _new_screen()
-	var background := TextureRect.new()
-	background.name = "DigitalWorld_Shared_Background"
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.texture = load("res://assets/digitalworld-landing.png")
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(background)
+	root.name = "ResearchDevelopmentScreen"
+	root.modulate.a = 0.0
 
-	var shade := ColorRect.new()
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.008, 0.035, 0.065, 0.78)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(shade)
-
-	var scroll := ScrollContainer.new()
-	scroll.name = "ResearchSceneScroll"
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.follow_focus = true
-	root.add_child(scroll)
+	# Match the Create Product page: keep the showroom visible and avoid a
+	# scrolling page or extra headings outside the research cards.
+	var vignette := ColorRect.new()
+	vignette.name = "ResearchDevelopmentVignette"
+	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vignette_shader := Shader.new()
+	vignette_shader.code = """
+shader_type canvas_item;
+void fragment() {
+	vec2 p = SCREEN_UV - vec2(0.5);
+	float edge = smoothstep(0.22, 0.88, length(p));
+	float top_shade = smoothstep(0.0, 0.75, SCREEN_UV.y) * 0.12;
+	COLOR = vec4(vec3(0.0), edge * 0.42 + top_shade);
+}
+"""
+	var vignette_material := ShaderMaterial.new()
+	vignette_material.shader = vignette_shader
+	vignette.material = vignette_material
+	root.add_child(vignette)
 
 	var viewport_size := get_viewport().get_visible_rect().size
-	var compact := viewport_size.x < 820.0
-	var page_margin := MarginContainer.new()
-	page_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_margin.add_theme_constant_override("margin_left", 18 if compact else 42)
-	page_margin.add_theme_constant_override("margin_right", 18 if compact else 42)
-	page_margin.add_theme_constant_override("margin_top", 22 if compact else 30)
-	page_margin.add_theme_constant_override("margin_bottom", 104 if compact else 112)
-	scroll.add_child(page_margin)
+	var compact := viewport_size.x < 820.0 or viewport_size.y < 560.0
+	var margin_x := 14 if compact else 48
+	var margin_y := 12 if compact else 24
+	var frame := MarginContainer.new()
+	frame.name = "ResearchDevelopmentFrame"
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	frame.add_theme_constant_override("margin_left", margin_x)
+	frame.add_theme_constant_override("margin_right", margin_x)
+	frame.add_theme_constant_override("margin_top", margin_y)
+	frame.add_theme_constant_override("margin_bottom", margin_y)
+	root.add_child(frame)
 
 	var page := VBoxContainer.new()
-	page.name = "ResearchSceneContent"
+	page.name = "ResearchDevelopmentContent"
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_theme_constant_override("separation", 16)
-	page_margin.add_child(page)
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 10 if compact else 16)
+	frame.add_child(page)
 
-	var header := VBoxContainer.new()
-	header.add_theme_constant_override("separation", 5)
-	page.add_child(header)
-	header.add_child(_label("DIGITAL WORLD MOBILES  /  RESEARCH", 11 if compact else 13, Color("#a9e3ff")))
+	var top_bar := HBoxContainer.new()
+	top_bar.name = "ResearchDevelopmentTopBar"
+	top_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar.alignment = BoxContainer.ALIGNMENT_END
+	page.add_child(top_bar)
 
-	var hero_row := HBoxContainer.new()
-	hero_row.name = "ResearchHeroRow"
-	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero_row.add_theme_constant_override("separation", 12)
-	header.add_child(hero_row)
-	var title := _label("RESEARCH & DEVELOPMENT", 27 if compact else 36, Color("#ffffff"))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hero_row.add_child(title)
-	var back_button := _add_action_button(hero_row, "BACK", false, _return_home_from_research)
-	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
+	var back_button := _add_action_button(top_bar, "BACK  ‹", false, _return_home_from_research)
+	back_button.custom_minimum_size = Vector2(94 if compact else 124, 40 if compact else 48)
 	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_shared_page_typography(back_button, 15 if compact else 16)
-	_style_create_glass_button(back_button, false)
-	header.add_child(_label("Explore research areas for the products your company develops.", 13 if compact else 15, Color("#d8efff")))
-
-	var section := VBoxContainer.new()
-	section.name = "ResearchProductCategories"
-	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section.add_theme_constant_override("separation", 10)
-	page.add_child(section)
-	section.add_child(_label("01  /  PRODUCT RESEARCH", 12, Color("#a9e3ff")))
+	_style_landing_command_button(back_button, false)
+	_apply_shared_page_typography(back_button, 13 if compact else 15)
 
 	var grid := GridContainer.new()
 	grid.name = "Research_Product_Grid"
 	grid.columns = 2
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 14)
-	grid.add_theme_constant_override("v_separation", 14)
-	section.add_child(grid)
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 10 if compact else 18)
+	grid.add_theme_constant_override("v_separation", 10 if compact else 18)
+	page.add_child(grid)
 
-	var horizontal_page_width := maxf(0.0, viewport_size.x - (36.0 if compact else 84.0))
-	var card_width := maxf(1.0, (horizontal_page_width - 14.0) * 0.5)
-	var card_height := maxf(132.0, minf(220.0, card_width * 0.82))
+	var horizontal_page_width := maxf(0.0, viewport_size.x - float(margin_x * 2))
+	var card_width := maxf(1.0, (horizontal_page_width - (10.0 if compact else 18.0)) * 0.5)
+	var available_grid_height := viewport_size.y - float(margin_y * 2) - (40.0 if compact else 48.0) - (10.0 if compact else 16.0) - (10.0 if compact else 18.0)
+	var card_height := maxf(108.0 if compact else 170.0, available_grid_height * 0.5)
 	var categories := [
-		{"name": "PHONE", "number": "01", "description": "Design the complete smartphone, from its exterior to its user experience."},
-		{"name": "PROCESSOR", "number": "02", "description": "Develop mobile chipsets and next-generation processing technology."},
-		{"name": "OPERATING SYSTEM", "number": "03", "description": "Create the software platform that powers the phone and its features."},
-		{"name": "CAMERA", "number": "04", "description": "Develop smartphone camera systems, sensors and imaging technology."}
+		{"name": "PHONE", "number": "01", "descriptor": "DEVICE ENGINEERING", "description": "Research the materials, dimensions and technology behind your next smartphone."},
+		{"name": "PROCESSOR", "number": "02", "descriptor": "CHIPSET INNOVATION", "description": "Advance processing power, graphics performance and energy efficiency."},
+		{"name": "OPERATING SYSTEM", "number": "03", "descriptor": "SOFTWARE DEVELOPMENT", "description": "Improve the platform, interface and core software experience."},
+		{"name": "CAMERA", "number": "04", "descriptor": "IMAGING TECHNOLOGY", "description": "Explore camera modules, sensors and next-generation image processing."}
 	]
+
 	for category in categories:
-		var card := _panel(Color(0.34, 0.68, 0.88, 0.24), Color(0.86, 0.97, 1.0, 0.92), 18)
+		var card := PanelContainer.new()
 		card.name = str(category["name"]).replace(" ", "_") + "_Research_Card"
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		card.custom_minimum_size = Vector2(card_width, card_height)
-		var card_style := card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
-		card_style.bg_color = Color(0.32, 0.66, 0.88, 0.27)
-		card_style.border_color = Color(0.86, 0.97, 1.0, 0.92)
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = Color(0.018, 0.065, 0.039, 0.84)
+		card_style.border_color = Color(0.58, 0.82, 0.63, 0.62)
 		card_style.set_border_width_all(1)
-		card_style.shadow_color = Color(0.0, 0.16, 0.34, 0.42)
-		card_style.shadow_size = 18
-		card_style.shadow_offset = Vector2(0, 5)
+		card_style.border_width_top = 2
+		card_style.set_corner_radius_all(18)
+		card_style.shadow_color = Color(0.0, 0.025, 0.008, 0.48)
+		card_style.shadow_size = 14
+		card_style.shadow_offset = Vector2(0.0, 5.0)
 		card_style.anti_aliasing = true
+		card_style.content_margin_left = 12 if compact else 22
+		card_style.content_margin_right = 12 if compact else 22
+		card_style.content_margin_top = 10 if compact else 20
+		card_style.content_margin_bottom = 10 if compact else 20
 		card.add_theme_stylebox_override("panel", card_style)
 		grid.add_child(card)
 
-		var glass_gradient := Gradient.new()
-		glass_gradient.set_color(0, Color(0.92, 0.98, 1.0, 0.34))
-		glass_gradient.set_color(1, Color(0.76, 0.91, 1.0, 0.0))
-		var glass_texture := GradientTexture2D.new()
-		glass_texture.gradient = glass_gradient
-		glass_texture.fill_from = Vector2(0.0, 0.0)
-		glass_texture.fill_to = Vector2(0.0, 1.0)
-		var reflection := TextureRect.new()
-		reflection.name = "Glass_Reflection"
-		reflection.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-		reflection.offset_bottom = 78.0
-		reflection.texture = glass_texture
-		reflection.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		reflection.stretch_mode = TextureRect.STRETCH_SCALE
-		reflection.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(reflection)
+		var content := VBoxContainer.new()
+		content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		content.add_theme_constant_override("separation", 4 if compact else 7)
+		card.add_child(content)
 
-		var card_margin := _margin(card, 16 if compact else 22, 16 if compact else 22, 14 if compact else 18, 14 if compact else 18)
-		var card_content := VBoxContainer.new()
-		card_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		card_content.add_theme_constant_override("separation", 7)
-		card_margin.add_child(card_content)
-		card_content.add_child(_label(str(category["number"]) + "  /  RESEARCH AREA", 11, Color("#a9e3ff")))
-		var category_title := _label(str(category["name"]), 20 if compact else 24, Color("#ffffff"))
-		_apply_shared_page_typography(category_title, 22 if compact else 26)
-		card_content.add_child(category_title)
-		var description := _label(str(category["description"]), 12 if compact else 13, Color("#c7e2f3"))
+		var top_line := HBoxContainer.new()
+		top_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		content.add_child(top_line)
+		var index := _label(str(category["number"]) + "  /  RESEARCH", 8 if compact else 10, Color("#a8d5b0"))
+		index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		top_line.add_child(index)
+		top_line.add_child(_label("✦", 12, Color("#72bd82")))
+
+		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f3faf3"))
+		category_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_menu_3d_label(category_title, 1)
+		content.add_child(category_title)
+		content.add_child(_label(str(category["descriptor"]), 8 if compact else 10, Color("#8fbd9a")))
+
+		var divider := ColorRect.new()
+		divider.custom_minimum_size = Vector2(0, 1)
+		divider.color = Color(0.58, 0.82, 0.63, 0.30)
+		content.add_child(divider)
+
+		var description := _label(str(category["description"]), 9 if compact else 13, Color("#b5c7b9"))
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		description.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		card_content.add_child(description)
-		var explore := _add_action_button(card_content, "OPEN RESEARCH  ›", true, _on_research_category_pressed.bind(str(category["name"])))
-		explore.custom_minimum_size = Vector2(0, 46)
-		_apply_shared_page_typography(explore, 14)
-		_style_create_glass_button(explore, true)
+		content.add_child(description)
+
+		var explore := _add_action_button(content, "OPEN RESEARCH  ›", true, _on_research_category_pressed.bind(str(category["name"])))
+		explore.custom_minimum_size = Vector2(0, 34 if compact else 48)
+		explore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_style_landing_command_button(explore, true)
+		_apply_shared_page_typography(explore, 10 if compact else 13)
+
+	var entrance := create_tween()
+	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	entrance.tween_property(root, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 func _on_research_category_pressed(category: String) -> void:
