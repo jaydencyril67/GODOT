@@ -110,7 +110,7 @@ func _create_material_library() -> void:
 		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
 		"hq_sign": _mat(Color("#12351b"), 0.32, 0.48),
 		"hq_accent": _emissive_mat(Color("#50c96b"), 1.8),
-		"workshop_cladding": _mat(Color("#8d9b8e"), 0.72, 0.22),
+		"workshop_cladding": _mat(Color("#9ba3a5"), 0.72, 0.22),
 		"workshop_shutter": _mat(Color("#30383d"), 0.65, 0.42),
 		"glass_mullion": _mat(Color("#303a43"), 0.28, 0.82),
 		"glass_spandrel": _mat(Color("#202a33"), 0.22, 0.58)
@@ -241,12 +241,12 @@ func _create_presentation_stage() -> void:
 
 
 func _create_compound_roads(parent: Node3D) -> void:
-	var asphalt := _mat(Color("#252b27"), 0.94)
+	var asphalt := _mat(Color("#24292d"), 0.94)
 	asphalt.albedo_texture = facade_noise
 	asphalt.uv1_scale = Vector3(8.0, 8.0, 1.0)
-	var asphalt_edge := _mat(Color("#3d463e"), 0.9)
-	var paving := _mat(Color("#858b80"), 0.92)
-	var paving_light := _mat(Color("#a0a294"), 0.9)
+	var asphalt_edge := _mat(Color("#3c4247"), 0.9)
+	var paving := _mat(Color("#858b8f"), 0.92)
+	var paving_light := _mat(Color("#a3a5a3"), 0.9)
 	var road_marking := _mat(Color("#e0dfcc"), 0.86)
 
 	_box(parent, "Main_Entrance_Drive", Vector3(8.0, 0.055, 25.0), Vector3(0.0, 0.015, 18.0), asphalt)
@@ -272,7 +272,7 @@ func _create_compound_roads(parent: Node3D) -> void:
 
 
 func _create_compound_perimeter(parent: Node3D) -> void:
-	var fence_material := _mat(Color("#303b32"), 0.54, 0.68)
+	var fence_material := _mat(Color("#30383d"), 0.54, 0.68)
 	var fence_post_material := _mat(Color("#59636b"), 0.62, 0.52)
 	_add_fence_run(parent, Vector3(-31.0, 0.0, -29.0), Vector3(31.0, 0.0, -29.0), fence_material, fence_post_material)
 	_add_fence_run(parent, Vector3(-31.0, 0.0, -29.0), Vector3(-31.0, 0.0, 29.0), fence_material, fence_post_material)
@@ -324,8 +324,8 @@ func _add_fence_run(parent: Node3D, start_point: Vector3, end_point: Vector3, fe
 
 
 func _create_compound_gate(parent: Node3D) -> void:
-	var stone := _mat(Color("#777d72"), 0.88)
-	var dark_metal := _mat(Color("#26352a"), 0.48, 0.72)
+	var stone := _mat(Color("#7d8183"), 0.88)
+	var dark_metal := _mat(Color("#252b30"), 0.48, 0.72)
 	_box(parent, "Main_Gate_Pillar_Left", Vector3(0.82, 3.25, 0.82), Vector3(-5.45, 1.625, 29.0), stone)
 	_box(parent, "Main_Gate_Pillar_Right", Vector3(0.82, 3.25, 0.82), Vector3(5.45, 1.625, 29.0), stone)
 	_box(parent, "Gate_Pillar_Cap_Left", Vector3(1.0, 0.18, 1.0), Vector3(-5.45, 3.32, 29.0), materials["metal"])
@@ -612,7 +612,7 @@ func _create_compound_landscape(parent: Node3D) -> void:
 		_add_compound_tree(parent, tree_position, 1.0 if tree_position.x < 0.0 else 0.92)
 
 	var hedge_material := _mat(Color("#24462a"), 0.96)
-	var planter_material := _mat(Color("#555e52"), 0.82, 0.24)
+	var planter_material := _mat(Color("#62696b"), 0.82, 0.24)
 	for side in [-1.0, 1.0]:
 		_box(parent, "Front_Landscape_Planter", Vector3(4.6, 0.42, 1.0), Vector3(side * 8.0, 0.21, 6.4), planter_material)
 		_box(parent, "Front_Clipped_Hedge", Vector3(4.2, 0.72, 0.72), Vector3(side * 8.0, 0.67, 6.4), hedge_material)
@@ -657,7 +657,7 @@ func _add_compound_sphere(parent: Node3D, node_name: String, radius: float, posi
 
 
 func _create_compound_lighting(parent: Node3D) -> void:
-	var pole_material := _mat(Color("#343d34"), 0.48, 0.78)
+	var pole_material := _mat(Color("#343b41"), 0.48, 0.78)
 	for side in [-1.0, 1.0]:
 		for z in [12.0, 23.0]:
 			var pole_position := Vector3(side * 6.2, 0.0, z)
@@ -666,7 +666,7 @@ func _create_compound_lighting(parent: Node3D) -> void:
 	var gate_light := OmniLight3D.new()
 	gate_light.name = "Gate_Entrance_Light"
 	gate_light.position = Vector3(0.0, 3.3, 26.5)
-	gate_light.light_color = Color("#d8f1dc")
+	gate_light.light_color = Color("#e4e8eb")
 	gate_light.light_energy = 1.1
 	gate_light.omni_range = 12.0
 	gate_light.shadow_enabled = false
@@ -729,7 +729,7 @@ func _build_procedural_building(level: int) -> float:
 		Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")
 	]
 	var accent_colors: Array[Color] = [
-		Color("#344b37"), Color("#665548"), Color("#303a43"), Color("#4b5550"), Color("#34444a")
+		Color("#59636b"), Color("#665548"), Color("#303a43"), Color("#656b70"), Color("#505a63")
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
 	if style >= 3:
@@ -740,7 +740,7 @@ func _build_procedural_building(level: int) -> float:
 		wall.metallic = 0.22
 	var podium := _mat(wall_colors[style].darkened(0.28), 0.72, 0.12)
 	var accent := _mat(accent_colors[style], 0.42, 0.48)
-	var roof := _mat(Color("#525e62"), 0.78, 0.26)
+	var roof := _mat(Color("#59636b"), 0.78, 0.26)
 	wall.albedo_texture = facade_noise
 	wall.uv1_scale = Vector3(2.8, 2.8, 1.0)
 	wall.normal_enabled = true
