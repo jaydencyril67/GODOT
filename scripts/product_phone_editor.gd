@@ -2624,7 +2624,7 @@ func _show_screen_size_controls() -> void:
 	width_slider.step = 0.001
 	width_slider.value = 0.17 - clampf(bezel_width, 0.02, 0.15)
 	width_slider.tick_count = 14
-	width_slider.custom_minimum_size = Vector2(64, 300)
+	width_slider.custom_minimum_size = Vector2(64, 320)
 	width_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	width_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	width_slider.value_changed.connect(_on_bezel_width_changed)
@@ -2655,7 +2655,7 @@ func _show_screen_size_controls() -> void:
 	bezel_height = clampf(bezel_height, _minimum_screen_height_bezel(), 0.325)
 	bezel_height_slider.value = 0.345 - bezel_height
 	bezel_height_slider.tick_count = 14
-	bezel_height_slider.custom_minimum_size = Vector2(64, 300)
+	bezel_height_slider.custom_minimum_size = Vector2(64, 320)
 	bezel_height_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bezel_height_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	bezel_height_slider.value_changed.connect(_on_bezel_height_changed)
@@ -6786,7 +6786,7 @@ func _show_border_radius_controls() -> void:
 	meter.step = 1
 	meter.value = border_radius_level
 	meter.tick_count = 7
-	meter.custom_minimum_size = Vector2(76, 300)
+	meter.custom_minimum_size = Vector2(76, 320)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_border_radius_level_changed)
@@ -6846,7 +6846,7 @@ func _show_thickness_controls() -> void:
 	meter.step = 1
 	meter.value = phone_thickness_level
 	meter.tick_count = 13
-	meter.custom_minimum_size = Vector2(64, 300)
+	meter.custom_minimum_size = Vector2(64, 320)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_phone_thickness_level_changed)
