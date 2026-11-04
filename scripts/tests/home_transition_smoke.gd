@@ -14,7 +14,17 @@ func _run_transition_checks() -> void:
 	root.add_child(game)
 	await process_frame
 
-	# Build a real Home scene and verify that Office opens over that same HQ.
+	# Model an existing Level 1 company so the headquarters is constructed
+	# during the initial loading screen and visible on Home.
+	game.career = {
+		"company_name": "Smoke Test Mobiles",
+		"balance": 10000000.0,
+		"research_points": 0,
+		"research_points_progress": 0.0
+	}
+	game.upgrade_level = 1
+	game.selected_upgrade = 1
+
 	await game._show_home_scene()
 	var initial_home_ready: bool = await _wait_for_headquarters()
 	if not initial_home_ready:
@@ -22,60 +32,77 @@ func _run_transition_checks() -> void:
 		return
 	var headquarters = game.world_root
 	await headquarters.setup_completed
+	var original_building = headquarters.building_root
+	if not is_instance_valid(original_building):
+		_fail("The loading screen did not construct the owned headquarters.")
+		return
+
+	# Opening and closing Office changes its controls and camera, not the building.
 	game._show_office_hub()
 	if game.current_screen != "headquarters" or not headquarters.visible or headquarters.home_mode:
 		_fail("Office did not open the active headquarters scene.")
 		return
+	if game.world_root != headquarters or headquarters.building_root != original_building:
+		_fail("Opening Office reconstructed the headquarters instead of reusing it.")
+		return
 
-	# Returning from Office must restore Home without destroying the HQ.
 	game._return_home_from_headquarters()
 	if game.current_screen != "home" or not headquarters.visible or not headquarters.home_mode:
 		_fail("Returning from Office did not restore Home.")
 		return
+	if game.world_root != headquarters or headquarters.building_root != original_building:
+		_fail("Returning from Office replaced the live headquarters building.")
+		return
 
-	# Create deliberately disposes of the 3D world; its return must rebuild it.
+	# Create hides the live world but must not dispose of or rebuild it.
 	game._show_create_scene()
-	if is_instance_valid(game.world_root):
-		_fail("Create did not dispose of its exclusive 3D Home world.")
+	if game.world_root != headquarters or headquarters.visible:
+		_fail("Create did not preserve and hide the existing headquarters scene.")
+		return
+	if headquarters.building_root != original_building:
+		_fail("Opening Create replaced the headquarters building.")
 		return
 	game._return_to_home()
-	var create_return_ready: bool = await _wait_for_headquarters()
-	if not create_return_ready:
-		_fail("Returning from Create did not rebuild Home.")
+	if game.current_screen != "home" or game.world_root != headquarters or not headquarters.visible:
+		_fail("Returning from Create did not restore the original Home scene.")
 		return
-	headquarters = game.world_root
-	await headquarters.setup_completed
-	game._show_office_hub()
-	if game.current_screen != "headquarters" or not headquarters.visible:
-		_fail("Office failed after returning from Create.")
+	if headquarters.building_root != original_building:
+		_fail("Returning from Create rebuilt the headquarters building.")
 		return
 
-	# Research also disposes of the 3D world; its return must rebuild it too.
+	# Research follows the same retained-world lifecycle as Create.
 	game._show_research_scene()
-	if is_instance_valid(game.world_root):
-		_fail("Research did not dispose of its exclusive 3D Home world.")
+	if game.world_root != headquarters or headquarters.visible:
+		_fail("Research did not preserve and hide the existing headquarters scene.")
+		return
+	if headquarters.building_root != original_building:
+		_fail("Opening Research replaced the headquarters building.")
 		return
 	game._return_home_from_research()
-	var research_return_ready: bool = await _wait_for_headquarters()
-	if not research_return_ready:
-		_fail("Returning from Research did not rebuild Home.")
+	if game.current_screen != "home" or game.world_root != headquarters or not headquarters.visible:
+		_fail("Returning from Research did not restore the original Home scene.")
 		return
-	headquarters = game.world_root
-	await headquarters.setup_completed
+	if headquarters.building_root != original_building:
+		_fail("Returning from Research rebuilt the headquarters building.")
+		return
+
+	# Reopening Office after standalone pages must still reuse the same building.
 	game._show_office_hub()
 	if game.current_screen != "headquarters" or not headquarters.visible:
 		_fail("Office failed after returning from Research.")
 		return
+	if headquarters.building_root != original_building:
+		_fail("Reopening Office after Research rebuilt the headquarters.")
+		return
+	game._return_home_from_headquarters()
 
 	# Every company tier must rebuild all five buildings as distinct architecture.
-	headquarters.set_home_mode(true)
 	var architecture_valid: bool = await _verify_architectural_progression(headquarters)
 	if not architecture_valid:
 		return
 
 	print("HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS")
 	quit(0)
-
 
 func _wait_for_headquarters() -> bool:
 	for _frame_index in range(180):
