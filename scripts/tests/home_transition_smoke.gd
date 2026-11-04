@@ -136,6 +136,7 @@ func _verify_architectural_progression(headquarters) -> bool:
 
 	var previous_footprints: Dictionary = {}
 	var previous_heights: Dictionary = {}
+	var seen_architecture_signatures: Dictionary = {}
 	for level in range(1, 11):
 		headquarters.set_owned_level(level)
 		await process_frame
@@ -161,8 +162,21 @@ func _verify_architectural_progression(headquarters) -> bool:
 			if not is_instance_valid(facility_core):
 				_fail("%s facility level %d did not rebuild its own core mass." % [facility_type, level])
 				return false
-			if not is_instance_valid(facility_core.get_node_or_null(module_name)):
+			var facility_module = facility_core.get_node_or_null(module_name)
+			if not is_instance_valid(facility_module):
 				_fail("%s facility level %d did not build its dedicated architectural module." % [facility_type, level])
+				return false
+			var structure_signature: String = str(facility_module.get_meta("structure_signature", ""))
+			if structure_signature.is_empty():
+				_fail("%s facility level %d is missing its structural design identity." % [facility_type, level])
+				return false
+			var structure_key: String = facility_type + "::" + structure_signature
+			if seen_architecture_signatures.has(structure_key):
+				_fail("%s facility level %d reused an earlier level's main architectural structure." % [facility_type, level])
+				return false
+			seen_architecture_signatures[structure_key] = true
+			if facility_module.get_child_count() < 4:
+				_fail("%s facility level %d has too little independent structural massing." % [facility_type, level])
 				return false
 			var footprint: Vector2 = facility_core.get_meta("footprint", Vector2.ZERO)
 			var main_height: float = float(facility_core.get_meta("main_height", 0.0))
