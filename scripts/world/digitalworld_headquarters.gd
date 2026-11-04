@@ -869,6 +869,7 @@ func _rebuild_preview() -> void:
 	var height := 4.2
 	if not home_mode or owned_level > 0:
 		height = _build_procedural_building(preview_level)
+	_update_compound_facilities_visibility()
 	_configure_camera_framing(height)
 	_update_camera_transform()
 	_refresh_preview_interface()
