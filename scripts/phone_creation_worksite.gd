@@ -566,6 +566,15 @@ func _show_device_color_step() -> void:
 	# Use the original device-wide color picker, including live body material,
 	# gradient, RGB/hex and preview updates.
 	device_color_panel = _mount_original_panel("_show_device_color_controls")
+	# Keep the HUE section clean in the new worksite: remove the selected-color preview/readout row.
+	# The live HUE bar and HEX CODE input remain available for precise color selection.
+	if is_instance_valid(device_color_panel):
+		var hue_preview_row := device_color_panel.find_child("SelectedDeviceColor", true, false) as Control
+		if is_instance_valid(hue_preview_row):
+			var preview_parent := hue_preview_row.get_parent()
+			if is_instance_valid(preview_parent):
+				preview_parent.remove_child(hue_preview_row)
+			hue_preview_row.queue_free()
 	progress_number.text = "STEP 12 / 15"
 	progress_bar.value = 12
 	wizard_back_button.disabled = false
