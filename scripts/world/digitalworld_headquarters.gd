@@ -432,7 +432,7 @@ func _facility_podium(parent: Node3D, node_name: String, width: float, depth: fl
 
 
 func _facility_volume(parent: Node3D, node_name: String, size: Vector3, position: Vector3, wall: Material, roof: Material, glazed_front: bool = false) -> void:
-	_facility_box(parent, node_name + "_Primary_Mass", size, position, wall)
+	_facility_box(parent, node_name, size, position, wall)
 	_facility_box(parent, node_name + "_Roof_Cap", Vector3(size.x + 0.24, 0.20, size.z + 0.24), position + Vector3(0.0, size.y * 0.5 + 0.10, 0.0), roof)
 	if glazed_front:
 		var glass_height: float = maxf(0.55, size.y * 0.58)
