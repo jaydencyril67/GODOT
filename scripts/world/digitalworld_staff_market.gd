@@ -5,11 +5,11 @@ signal hire_requested(candidate_id: String)
 signal dismiss_requested(employee_id: String)
 
 const DEPARTMENTS := ["Development", "Marketing", "Research"]
-const BG := Color("#071d32")
-const PANEL := Color(0.055, 0.17, 0.28, 0.94)
-const BORDER := Color(0.35, 0.72, 0.94, 0.72)
+const BG := Color("#07190d")
+const PANEL := Color(0.018, 0.065, 0.039, 0.94)
+const BORDER := Color(0.58, 0.82, 0.63, 0.72)
 const WHITE := Color("#f2f9ff")
-const MUTED := Color("#a9c9dc")
+const MUTED := Color("#a9c9ad")
 
 var mode := "office"
 var candidates: Array = []
@@ -102,7 +102,7 @@ func _build() -> void:
 	var header := VBoxContainer.new()
 	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
-	header.add_child(_label("DIGITALWORLD  /  STAFF", 11 if compact else 13, Color("#a9e3ff")))
+	header.add_child(_label("DIGITALWORLD  /  STAFF", 11 if compact else 13, Color("#a9d9ad")))
 
 	var hero_row := HBoxContainer.new()
 	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -115,7 +115,7 @@ func _build() -> void:
 	var title := _label(title_text, 27 if compact else 36, WHITE)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
-	heading.add_child(_label(company_name.to_upper() + "  /  AVAILABLE BALANCE  " + _money(company_balance), 11 if compact else 12, Color("#c7eaff")))
+	heading.add_child(_label(company_name.to_upper() + "  /  AVAILABLE BALANCE  " + _money(company_balance), 11 if compact else 12, Color("#c7eacb")))
 	var back_button := Button.new()
 	back_button.text = "BACK"
 	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
@@ -236,7 +236,7 @@ func _build_department_candidate_row(department: String, compact: bool) -> void:
 	section.add_theme_constant_override("separation", 6)
 	content.add_child(section)
 
-	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#b9eaff"))
+	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#b9eac1"))
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.add_child(heading)
 
@@ -295,11 +295,11 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	margin.add_child(stack)
 
 	stack.add_child(_label(str(candidate.get("full_name", "Candidate")).to_upper(), 18 if compact else 20, WHITE))
-	stack.add_child(_label(str(candidate.get("position", "Specialist")).to_upper(), 13, Color("#b9eaff")))
+	stack.add_child(_label(str(candidate.get("position", "Specialist")).to_upper(), 13, Color("#b9eac1")))
 	var identity_row := HBoxContainer.new()
 	identity_row.add_theme_constant_override("separation", 8)
 	stack.add_child(identity_row)
-	var country_label := _label(str(candidate.get("country", "International")).to_upper(), 11, Color("#c7e2f3"))
+	var country_label := _label(str(candidate.get("country", "International")).to_upper(), 11, Color("#c7e2c9"))
 	country_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity_row.add_child(country_label)
 
@@ -310,7 +310,7 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	stack.add_child(profile_spacer)
 
 	var divider := HSeparator.new()
-	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
+	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 0.76, 0.42))
 	stack.add_child(divider)
 	stack.add_child(_label("DEPARTMENT  " + str(candidate.get("department", "Unassigned")).to_upper(), 12, WHITE))
 	stack.add_child(_label("AGE  %d YEARS   /   EXPERIENCE  %s YEARS" % [int(candidate.get("age", 0)), str(candidate.get("experience", 0))], 12, MUTED))
@@ -336,7 +336,7 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	salary_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	salary_stack.add_theme_constant_override("separation", 1)
 	action_row.add_child(salary_stack)
-	salary_stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9e3ff")))
+	salary_stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9d9ad")))
 	salary_stack.add_child(_label(_money(float(candidate.get("monthly_salary", 0.0))), 21, WHITE))
 	var hire := _button("HIRE", true)
 	hire.custom_minimum_size = Vector2(104, 46)
@@ -368,7 +368,7 @@ func _build_department_employee_row(department: String, compact: bool) -> void:
 	section.add_theme_constant_override("separation", 7)
 	content.add_child(section)
 
-	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#b9eaff"))
+	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#b9eac1"))
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.add_child(heading)
 
@@ -421,11 +421,11 @@ func _employee_card(employee: Dictionary) -> Control:
 	# Staff Market: identity, department, age/experience, core metrics,
 	# education, then compensation and the management actions.
 	stack.add_child(_label(str(employee.get("full_name", "Employee")).to_upper(), 18 if compact else 20, WHITE))
-	stack.add_child(_label(str(employee.get("position", "Staff")).to_upper(), 13, Color("#b9eaff")))
+	stack.add_child(_label(str(employee.get("position", "Staff")).to_upper(), 13, Color("#b9eac1")))
 	var identity_row := HBoxContainer.new()
 	identity_row.add_theme_constant_override("separation", 8)
 	stack.add_child(identity_row)
-	var country_label := _label(str(employee.get("country", "International")).to_upper(), 11, Color("#c7e2f3"))
+	var country_label := _label(str(employee.get("country", "International")).to_upper(), 11, Color("#c7e2c9"))
 	country_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity_row.add_child(country_label)
 
@@ -434,7 +434,7 @@ func _employee_card(employee: Dictionary) -> Control:
 	stack.add_child(profile_spacer)
 
 	var divider := HSeparator.new()
-	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 1.0, 0.42))
+	divider.add_theme_color_override("separator_color", Color(0.72, 0.91, 0.76, 0.42))
 	stack.add_child(divider)
 	stack.add_child(_label("DEPARTMENT  " + str(employee.get("department", "Unassigned")).to_upper(), 12, WHITE))
 	stack.add_child(_label("AGE  %d YEARS   /   EXPERIENCE  %s YEARS" % [int(employee.get("age", 0)), str(employee.get("experience", 0))], 12, MUTED))
@@ -460,7 +460,7 @@ func _employee_card(employee: Dictionary) -> Control:
 	salary_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	salary_stack.add_theme_constant_override("separation", 1)
 	action_row.add_child(salary_stack)
-	salary_stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9e3ff")))
+	salary_stack.add_child(_label("MONTHLY SALARY", 12, Color("#a9d9ad")))
 	salary_stack.add_child(_label(_money(float(employee.get("monthly_salary", 0.0))), 21, WHITE))
 
 	# Department selector removed from employee cards. Keep Dismiss in its
@@ -484,7 +484,7 @@ func _add_stat_card_to(parent: Control, caption: String, value: String, detail: 
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 4)
 	margin.add_child(stack)
-	stack.add_child(_label(caption, 10, Color("#a9e3ff")))
+	stack.add_child(_label(caption, 10, Color("#a9d9ad")))
 	stack.add_child(_label(value, 21, WHITE))
 	stack.add_child(_label(detail, 9, MUTED))
 	parent.add_child(card)
@@ -493,11 +493,11 @@ func _add_stat_card_to(parent: Control, caption: String, value: String, detail: 
 func _card() -> PanelContainer:
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.32, 0.66, 0.88, 0.27)
+	style.bg_color = Color(0.22, 0.56, 0.30, 0.27)
 	style.border_color = Color(0.86, 0.97, 1.0, 0.92)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0.0, 0.16, 0.34, 0.42)
+	style.shadow_color = Color(0.0, 0.16, 0.025, 0.42)
 	style.shadow_size = 18
 	style.shadow_offset = Vector2(0, 5)
 	style.anti_aliasing = true
@@ -505,8 +505,8 @@ func _card() -> PanelContainer:
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var glass_gradient := Gradient.new()
-	glass_gradient.set_color(0, Color(0.92, 0.98, 1.0, 0.30))
-	glass_gradient.set_color(1, Color(0.76, 0.91, 1.0, 0.0))
+	glass_gradient.set_color(0, Color(0.92, 0.98, 0.92, 0.30))
+	glass_gradient.set_color(1, Color(0.76, 0.91, 0.78, 0.0))
 	var glass_texture := GradientTexture2D.new()
 	glass_texture.gradient = glass_gradient
 	glass_texture.fill_from = Vector2(0.0, 0.0)
@@ -538,8 +538,8 @@ func _margin(parent: Control, left: int, right: int, top: int, bottom: int) -> M
 func _add_metric(parent: GridContainer, caption: String, value: int) -> void:
 	var metric := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.72, 0.89, 0.98, 0.10)
-	style.border_color = Color(0.72, 0.91, 1.0, 0.28)
+	style.bg_color = Color(0.72, 0.89, 0.74, 0.10)
+	style.border_color = Color(0.72, 0.91, 0.76, 0.28)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(8)
 	style.content_margin_left = 9
@@ -551,7 +551,7 @@ func _add_metric(parent: GridContainer, caption: String, value: int) -> void:
 	var metric_stack := VBoxContainer.new()
 	metric_stack.add_theme_constant_override("separation", 1)
 	metric.add_child(metric_stack)
-	metric_stack.add_child(_label(caption, 8, Color("#a9e3ff")))
+	metric_stack.add_child(_label(caption, 8, Color("#a9d9ad")))
 	metric_stack.add_child(_label("%d / 100" % value, 11, WHITE))
 	parent.add_child(metric)
 
@@ -574,11 +574,11 @@ func _button(caption: String, primary: bool) -> Button:
 	_apply_staff_typography(button, 20)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
+		style.bg_color = Color(0.60, 0.84, 0.64, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
 		if state == "hover":
-			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+			style.bg_color = Color(0.76, 0.92, 0.78, 0.36)
 		elif state == "pressed":
-			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
+			style.bg_color = Color(0.25, 0.62, 0.34, 0.42)
 		elif state == "disabled":
 			style.bg_color = Color(0.35, 0.49, 0.59, 0.20)
 		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
@@ -602,9 +602,9 @@ func _style_create_glass_button(button: Button) -> void:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.72, 0.89, 0.98, 0.14)
 		if state == "hover":
-			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+			style.bg_color = Color(0.76, 0.92, 0.78, 0.36)
 		elif state == "pressed":
-			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
+			style.bg_color = Color(0.25, 0.62, 0.34, 0.42)
 		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
@@ -623,7 +623,7 @@ func _style_option_button(button: OptionButton) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.34, 0.68, 0.88, 0.24)
+		style.bg_color = Color(0.24, 0.62, 0.34, 0.24)
 		style.border_color = Color(0.86, 0.97, 1.0, 0.82)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(10)
@@ -636,13 +636,13 @@ func _style_option_button(button: OptionButton) -> void:
 	popup.min_size = Vector2i(maxi(roundi(button.custom_minimum_size.x), 260), 0)
 	popup.add_theme_font_size_override("font_size", 16)
 	var panel := StyleBoxFlat.new()
-	panel.bg_color = Color("#092235")
-	panel.border_color = Color("#65caff")
+	panel.bg_color = Color("#09200f")
+	panel.border_color = Color("#65d783")
 	panel.set_border_width_all(1)
 	panel.set_corner_radius_all(9)
 	popup.add_theme_stylebox_override("panel", panel)
 	var item_idle := StyleBoxFlat.new()
-	item_idle.bg_color = Color("#092235")
+	item_idle.bg_color = Color("#09200f")
 	item_idle.set_corner_radius_all(5)
 	item_idle.content_margin_left = 12
 	item_idle.content_margin_right = 12
@@ -651,13 +651,13 @@ func _style_option_button(button: OptionButton) -> void:
 	popup.add_theme_stylebox_override("hover", item_idle)
 	popup.add_theme_stylebox_override("pressed", item_idle)
 	popup.add_theme_stylebox_override("focus", item_idle)
-	popup.add_theme_color_override("font_color", Color("#dff4ff"))
+	popup.add_theme_color_override("font_color", Color("#eaffea"))
 	popup.add_theme_color_override("font_hover_color", WHITE)
 	popup.add_theme_color_override("font_pressed_color", WHITE)
 	popup.add_theme_color_override("font_focus_color", WHITE)
 	popup.add_theme_constant_override("v_separation", 10)
 	popup.add_theme_constant_override("outline_size", 1)
-	popup.add_theme_color_override("font_outline_color", Color("#061522"))
+	popup.add_theme_color_override("font_outline_color", Color("#061508"))
 
 
 func _label(value: String, font_size: int, color: Color) -> Label:
