@@ -17,11 +17,12 @@ func _active_phone_size() -> Vector3:
 
 class ScreenTechGlassReflection extends Control:
 	var accent := Color("#9bd6a7")
+
 	func _ready() -> void:
-	_ensure_gradient_popup_layer()
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		resized.connect(queue_redraw)
+
 	func _draw() -> void:
 		if size.x <= 4.0 or size.y <= 4.0:
 			return
