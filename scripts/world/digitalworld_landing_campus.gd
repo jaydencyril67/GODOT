@@ -13,6 +13,7 @@ const GLASS := Color("#263b35")
 var camera_rig: Node3D
 var landing_camera: Camera3D
 var animated_emissive_materials: Array[StandardMaterial3D] = []
+var active_tweens: Array[Tween] = []
 
 
 func _ready() -> void:
@@ -20,6 +21,20 @@ func _ready() -> void:
 	_build_corporate_district()
 	_animate_architecture()
 	_play_opening_cinematic()
+
+
+func _exit_tree() -> void:
+	# Kill every animation before its target nodes are removed. This prevents
+	# orphaned infinite tweens when the landing world is replaced by Home.
+	for tween in active_tweens:
+		if is_instance_valid(tween) and tween.is_valid():
+			tween.kill()
+	active_tweens.clear()
+
+
+func _track_tween(tween: Tween) -> Tween:
+	active_tweens.append(tween)
+	return tween
 
 
 func _build_environment() -> void:
@@ -44,9 +59,9 @@ func _build_environment() -> void:
 	landing_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	landing_camera.size = 50.0
 	landing_camera.position = Vector3(30.0, 25.0, 34.0)
+	camera_rig.add_child(landing_camera)
 	landing_camera.look_at(Vector3(0.0, 2.0, 0.0), Vector3.UP)
 	landing_camera.current = true
-	camera_rig.add_child(landing_camera)
 
 	var key_light := DirectionalLight3D.new()
 	key_light.name = "Soft_Architectural_Key_Light"
@@ -153,7 +168,7 @@ func _build_tower(origin: Vector3, width: float, height: float, depth: float, ti
 		_add_box(root, Vector3(0.22, 4.2, 0.22), Vector3(0.0, height + 4.3, 0.0), emerald, "Emerald_Spire")
 		var scanner_material := _emissive_material(Color("#c9ffd2"), Color("#54e77a"), 0.66)
 		var scanner := _add_box(root, Vector3(width + 0.18, 0.055, 0.10), Vector3(0.0, 2.25, depth * 0.5 + 0.18), scanner_material, "Moving_Facade_Scan")
-		var scanner_tween := create_tween().set_loops()
+		var scanner_tween := _track_tween(create_tween().set_loops())
 		scanner_tween.tween_property(scanner, "position:y", height + 1.2, 3.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		scanner_tween.tween_property(scanner, "position:y", 2.25, 3.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
@@ -173,7 +188,7 @@ func _build_headquarters_halo() -> void:
 	angled_ring.rotation_degrees = Vector3(62.0, 0.0, 14.0)
 	halo_root.add_child(angled_ring)
 
-	var halo_tween := create_tween().set_loops()
+	var halo_tween := _track_tween(create_tween().set_loops())
 	halo_tween.tween_property(halo_root, "rotation_degrees:y", 360.0, 38.0).from(0.0).set_trans(Tween.TRANS_LINEAR)
 
 
@@ -207,7 +222,7 @@ func _add_floating_light_motes() -> void:
 		mote.position = Vector3(cos(angle) * orbit_radius, 0.55 + float(index % 4) * 0.32, sin(angle) * orbit_radius)
 		add_child(mote)
 
-		var float_tween := create_tween().set_loops()
+		var float_tween := _track_tween(create_tween().set_loops())
 		var start_y := mote.position.y
 		var rise_time := 2.8 + float(index % 4) * 0.35
 		float_tween.tween_property(mote, "position:y", start_y + 0.72, rise_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -216,24 +231,24 @@ func _add_floating_light_motes() -> void:
 
 func _animate_architecture() -> void:
 	for material in animated_emissive_materials:
-		var pulse := create_tween().set_loops()
+		var pulse := _track_tween(create_tween().set_loops())
 		pulse.tween_property(material, "emission_energy_multiplier", 0.58, 2.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		pulse.tween_property(material, "emission_energy_multiplier", 0.36, 2.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _play_opening_cinematic() -> void:
 	# Start directly on the corporate world while retaining the cinematic camera reveal.
-	var camera_tween := create_tween().set_parallel(true)
+	var camera_tween := _track_tween(create_tween().set_parallel(true))
 	camera_tween.tween_property(landing_camera, "size", 44.5, 4.5).from(50.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	camera_tween.tween_property(camera_rig, "rotation_degrees:y", 0.0, 4.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	var reveal_signal_tween := create_tween()
+	var reveal_signal_tween := _track_tween(create_tween())
 	reveal_signal_tween.tween_interval(3.55)
 	reveal_signal_tween.tween_callback(func() -> void:
 		cinematic_reveal_finished.emit()
 	)
 
-	var camera_drift := create_tween().set_loops()
+	var camera_drift := _track_tween(create_tween().set_loops())
 	camera_drift.tween_interval(4.6)
 	camera_drift.tween_property(camera_rig, "rotation_degrees:y", 0.28, 8.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	camera_drift.tween_property(camera_rig, "rotation_degrees:y", -0.28, 16.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
