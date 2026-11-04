@@ -310,7 +310,7 @@ func _show_menu() -> void:
 
 	var welcome := VBoxContainer.new()
 	welcome.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	welcome.position = Vector2(34.0 if compact else 58.0, 0.0)
+	welcome.position = Vector2(34.0 if compact else 58.0, 26.0 if compact else 30.0)
 	welcome.custom_minimum_size = Vector2(300.0 if compact else 430.0, 160.0)
 	welcome.add_theme_constant_override("separation", 10)
 	welcome.mouse_filter = Control.MOUSE_FILTER_IGNORE
