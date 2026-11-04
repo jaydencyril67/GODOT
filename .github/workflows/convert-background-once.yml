@@ -19,7 +19,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Convert JPG to PNG and update references
+      - name: Convert JPG to PNG
         shell: bash
         run: |
           set -euo pipefail
@@ -31,30 +31,14 @@ jobs:
           with Image.open(source) as image:
               image.convert("RGB").save(target, format="PNG", optimize=True)
           PY
-          python - <<'PY'
-          from pathlib import Path
-          old = "Screenshot_20261104-041429_ChatGPT.png"
-          new = "Screenshot_20261104-051832_ChatGPT.png"
-          paths = [
-              Path("scripts/digitalworld_game.gd"),
-              Path("scripts/product_phone_editor.gd"),
-              Path("scripts/world/digitalworld_staff_market.gd"),
-              Path(".github/workflows/godot-checks.yml"),
-          ]
-          for path in paths:
-              text = path.read_text()
-              if old not in text:
-                  raise SystemExit(f"Expected old background reference not found in {path}")
-              path.write_text(text.replace(old, new))
-          PY
 
-      - name: Remove source JPG and this temporary workflow
+      - name: Commit converted PNG and remove JPG
         run: |
           set -euo pipefail
           rm "Screenshot_20261104-051832_ChatGPT.jpg"
-          rm ".github/workflows/convert-background-once.yml"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Replace global background with new PNG photo"
+          git add "Screenshot_20261104-051832_ChatGPT.png"
+          git add -u "Screenshot_20261104-051832_ChatGPT.jpg"
+          git commit -m "Convert replacement background to PNG"
           git push origin HEAD:main
