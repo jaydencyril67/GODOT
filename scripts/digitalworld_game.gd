@@ -387,7 +387,7 @@ func _show_menu() -> void:
 	var footer := _label("POWERED BY KINGSHALL", 8 if compact else 9, Color("#91b99a"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(footer)
 
-	landing_world.cinematic_reveal_finished.connect(_animate_landing_menu.bind(root, welcome, welcome_final_position, command_panel, landing_buttons))
+	landing_world.connect("cinematic_reveal_finished", _animate_landing_menu.bind(root, welcome, welcome_final_position, command_panel, landing_buttons))
 
 
 func _animate_landing_menu(root: Control, welcome: Control, welcome_final_position: Vector2, command_panel: Control, buttons: Array[Button]) -> void:
