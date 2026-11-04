@@ -1824,12 +1824,12 @@ func _on_back_box_gradient_toggled(enabled: bool) -> void:
 				back_design_gradient_color_edit_mode = false
 				if is_instance_valid(gradient_direction_popup):
 					gradient_direction_popup.visible = false
-				var empty_gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
-				if is_instance_valid(empty_gradient_options):
-					empty_gradient_options.visible = enabled
-				var empty_gradient_picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/GradientColorPicker") as Control if is_instance_valid(active_feature_panel) else null
-				if is_instance_valid(empty_gradient_picker):
-					_set_device_gradient_picker_enabled(empty_gradient_picker, enabled)
+			var empty_gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
+			if is_instance_valid(empty_gradient_options):
+				empty_gradient_options.visible = enabled
+			var empty_gradient_picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/GradientColorPicker") as Control if is_instance_valid(active_feature_panel) else null
+			if is_instance_valid(empty_gradient_picker):
+				_set_device_gradient_picker_enabled(empty_gradient_picker, enabled)
 		return
 	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
 	if not enabled:
