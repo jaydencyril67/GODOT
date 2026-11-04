@@ -7271,7 +7271,7 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	down.text = "−"
 	down.custom_minimum_size = Vector2(64, 54)
 	_apply_research_typography(down, 27)
-	_style_staff_button(down, false)
+	_style_power_volume_position_button(down)
 	down.pressed.connect(_on_side_button_position_step.bind(side, -1))
 	position_row.add_child(down)
 	var position_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 17, Color("#b8e8c2"))
@@ -7283,13 +7283,38 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	up.text = "+"
 	up.custom_minimum_size = Vector2(64, 54)
 	_apply_research_typography(up, 27)
-	_style_staff_button(up, false)
+	_style_power_volume_position_button(up)
 	up.pressed.connect(_on_side_button_position_step.bind(side, 1))
 	position_row.add_child(up)
 	if side == "right":
 		power_button_position_label = position_label
 	else:
 		volume_button_position_label = position_label
+
+
+func _style_power_volume_position_button(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.035, 0.16, 0.075, 0.88)
+		style.border_color = Color(0.30, 0.68, 0.40, 0.72)
+		if state == "hover":
+			style.bg_color = Color(0.07, 0.27, 0.12, 0.96)
+		elif state == "pressed":
+			style.bg_color = Color(0.08, 0.38, 0.16, 1.0)
+		elif state == "disabled":
+			style.bg_color = Color(0.035, 0.12, 0.065, 0.45)
+			style.border_color = Color(0.20, 0.38, 0.25, 0.42)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.12, 0.04, 0.28)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#e8f6eb"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color("#91b69a")
 
 
 func _on_side_button_toggle_pressed(toggle: TextureButton, side: String) -> void:
