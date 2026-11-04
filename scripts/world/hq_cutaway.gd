@@ -45,7 +45,7 @@ func _build_scene() -> void:
 	var light_desk := _mat(Color("#b9b1a2"), 0.58)
 	var screen := _mat(Color("#101f2a"), 0.2, 0.12)
 	screen.emission_enabled = true
-	screen.emission = Color("#1c5b75")
+	screen.emission = Color("#1c5b2b")
 	screen.emission_energy_multiplier = 0.6
 	var machine := _mat(Color("#52615e"), 0.48, 0.35)
 	var machine_light := _mat(Color("#87948b"), 0.4, 0.42)
@@ -102,7 +102,7 @@ func _build_scene() -> void:
 		_box("Department_Glass_Partition", Vector3(0.10, 3.0, 1.55), Vector3(x, 1.72, 0.25), glass)
 
 	# Room labels are actual 3D signs on the back wall, not HTML overlays.
-	_label("PROGRAMMING STUDIO", Vector3(-6.05, 3.1, -6.99), Color("#7ebfce"))
+	_label("PROGRAMMING STUDIO", Vector3(-6.05, 3.1, -6.99), Color("#7ebf91"))
 	_label("MANUFACTURING", Vector3(0, 3.1, -6.99), Color("#a8ce8d"))
 	_label("PACKAGING & STACKING", Vector3(6.05, 3.1, -6.99), Color("#ddb77b"))
 
@@ -168,7 +168,7 @@ func _build_scene() -> void:
 			_box("Light_Housing", Vector3(1.35, 0.055, 0.58), Vector3(x, 3.54, z), aluminum)
 			_box("Light_Diffuser", Vector3(1.2, 0.028, 0.45), Vector3(x, 3.58, z), _emissive_mat(Color("#fff0cc"), 1.05))
 			var fill := OmniLight3D.new()
-			fill.light_color = Color("#ffe9c6") if x != 0 else Color("#e1edff")
+			fill.light_color = Color("#ffe9c6") if x != 0 else Color("#e1f5e4")
 			fill.light_energy = 0.85
 			fill.omni_range = 7.0
 			fill.position = Vector3(x, 3.1, z)
