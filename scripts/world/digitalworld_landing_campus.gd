@@ -151,13 +151,13 @@ func _emissive_material(color: Color, glow: Color, strength: float) -> StandardM
 	return material
 
 
-func _add_box(parent: Node3D, size: Vector3, position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
+func _add_box(parent: Node3D, size: Vector3, local_position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	instance.mesh = mesh
-	instance.position = position
+	instance.position = local_position
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
@@ -165,7 +165,7 @@ func _add_box(parent: Node3D, size: Vector3, position: Vector3, material: Materi
 	return instance
 
 
-func _add_cylinder(parent: Node3D, radius: float, height: float, position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
+func _add_cylinder(parent: Node3D, radius: float, height: float, local_position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := CylinderMesh.new()
@@ -174,14 +174,14 @@ func _add_cylinder(parent: Node3D, radius: float, height: float, position: Vecto
 	mesh.height = height
 	mesh.radial_segments = 96
 	instance.mesh = mesh
-	instance.position = position
+	instance.position = local_position
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(instance)
 	return instance
 
 
-func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, material: Material, position: Vector3, rotation: Vector3, node_name: String) -> MeshInstance3D:
+func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, material: Material, local_position: Vector3, rotation: Vector3, node_name: String) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := TorusMesh.new()
@@ -190,7 +190,7 @@ func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, materi
 	mesh.rings = 64
 	mesh.ring_segments = 10
 	instance.mesh = mesh
-	instance.position = position
+	instance.position = local_position
 	instance.rotation_degrees = rotation
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -198,7 +198,7 @@ func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, materi
 	return instance
 
 
-func _add_sphere(parent: Node3D, radius: float, position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
+func _add_sphere(parent: Node3D, radius: float, local_position: Vector3, material: Material, node_name: String) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := SphereMesh.new()
@@ -207,7 +207,7 @@ func _add_sphere(parent: Node3D, radius: float, position: Vector3, material: Mat
 	mesh.radial_segments = 24
 	mesh.rings = 12
 	instance.mesh = mesh
-	instance.position = position
+	instance.position = local_position
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(instance)
