@@ -743,9 +743,9 @@ func _build_security_architecture(parent: Node3D, node_name: String, width: floa
 				_facility_volume(parent, node_name + "_Flagship_Watch_Pylon", Vector3(0.16, 2.80, 0.18), Vector3(side * width * 0.47, 1.62, -depth * 0.20), materials["metal"], roof)
 
 
-func _facility_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, material: Material, rotation_degrees: Vector3 = Vector3.ZERO) -> MeshInstance3D:
+func _facility_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, material: Material, local_rotation_degrees: Vector3 = Vector3.ZERO) -> MeshInstance3D:
 	var part := _box(parent, node_name, size, local_position, material)
-	part.rotation_degrees = rotation_degrees
+	part.rotation_degrees = local_rotation_degrees
 	return part
 
 
