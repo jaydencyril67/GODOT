@@ -2199,7 +2199,7 @@ func _show_back_design_controls() -> void:
 	add_button.custom_minimum_size.y = control_height
 	add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(add_button, button_font_size)
-	_style_staff_button(add_button, true)
+	_style_back_design_button(add_button, true)
 	add_button.pressed.connect(_add_back_design_box)
 	actions.add_child(add_button)
 	var remove_button := Button.new()
@@ -2207,7 +2207,7 @@ func _show_back_design_controls() -> void:
 	remove_button.custom_minimum_size.y = control_height
 	remove_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(remove_button, button_font_size)
-	_style_staff_button(remove_button, false)
+	_style_back_design_button(remove_button, false)
 	remove_button.pressed.connect(_remove_selected_back_design_box)
 	actions.add_child(remove_button)
 
@@ -2218,20 +2218,13 @@ func _show_back_design_controls() -> void:
 	back_design_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_selection_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(back_design_selection_button, button_font_size)
-	_style_staff_button(back_design_selection_button, true)
-	var selector_idle := StyleBoxFlat.new()
-	selector_idle.bg_color = Color("#10351b")
-	selector_idle.border_color = Color("#65b77a")
-	selector_idle.set_border_width_all(1)
-	selector_idle.set_corner_radius_all(9)
-	back_design_selection_button.add_theme_stylebox_override("hover", selector_idle)
-	back_design_selection_button.add_theme_stylebox_override("pressed", selector_idle)
-	back_design_selection_button.add_theme_stylebox_override("focus", selector_idle)
+	_style_back_design_button(back_design_selection_button, true)
 	back_design_selection_button.pressed.connect(_toggle_back_design_selection_popup)
 	back_design_selection_popup = PanelContainer.new()
 	back_design_selection_popup.name = "BackDesignCustomDropdown"
 	back_design_selection_popup.visible = false
-	back_design_selection_popup.z_index = 100
+	back_design_selection_popup.z_index = 4096
+	back_design_selection_popup.top_level = true
 	back_design_selection_popup.mouse_filter = Control.MOUSE_FILTER_STOP
 	var dropdown_panel_style := StyleBoxFlat.new()
 	dropdown_panel_style.bg_color = Color("#07190d")
@@ -2281,7 +2274,7 @@ func _show_back_design_controls() -> void:
 		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		mode_button.custom_minimum_size.y = control_height
 		_apply_research_typography(mode_button, button_font_size)
-		_style_staff_button(mode_button, back_design_mode == mode)
+		_style_back_design_button(mode_button, back_design_mode == mode)
 		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
 		modes.add_child(mode_button)
 
@@ -2316,7 +2309,7 @@ func _show_back_design_controls() -> void:
 	color_button.custom_minimum_size = Vector2(0, control_height)
 	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(color_button, button_font_size)
-	_style_staff_button(color_button, false)
+	_style_back_design_button(color_button, false)
 	color_button.pressed.connect(_show_device_color_controls.bind(true))
 	modes.add_child(color_button)
 
@@ -2327,7 +2320,7 @@ func _show_back_design_controls() -> void:
 	active_feature_panel.add_child(pad_center)
 	var pad_shell := PanelContainer.new()
 	pad_shell.name = "BackDesignDirectionController"
-	pad_shell.custom_minimum_size = Vector2(231, 231) if not tight else Vector2(204, 204)
+	pad_shell.custom_minimum_size = Vector2(231, 247) if not tight else Vector2(204, 220)
 	var pad_shell_style := StyleBoxFlat.new()
 	pad_shell_style.bg_color = Color("#0b2112")
 	pad_shell_style.border_color = Color("#477d53")
@@ -2336,7 +2329,7 @@ func _show_back_design_controls() -> void:
 	pad_shell_style.content_margin_left = 10
 	pad_shell_style.content_margin_right = 10
 	pad_shell_style.content_margin_top = 10
-	pad_shell_style.content_margin_bottom = 10
+	pad_shell_style.content_margin_bottom = 18
 	pad_shell.add_theme_stylebox_override("panel", pad_shell_style)
 	pad_center.add_child(pad_shell)
 	var pad := GridContainer.new()
@@ -2352,10 +2345,22 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_button(pad, "↑" if not shrinking else "↓", Vector2i(0, 1))
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "←" if not shrinking else "→", Vector2i(-1, 0))
-	var pad_center_label := _make_label("SIZE" if back_design_mode == "SIZE" else "MOVE", 10, Color("#a8d7b0"))
-	pad_center_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pad_center_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pad.add_child(pad_center_label)
+	if back_design_mode == "SIZE":
+		var size_action_button := Button.new()
+		size_action_button.name = "BackDesignSizeActionButton"
+		size_action_button.text = "EXPAND" if back_design_size_action == "EXPAND" else "SHRINK"
+		size_action_button.custom_minimum_size = Vector2(62, 58) if tight else Vector2(72, 63)
+		size_action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		size_action_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(size_action_button, 10 if tight else 11)
+		_style_back_design_button(size_action_button, true)
+		size_action_button.pressed.connect(_toggle_back_design_size_action)
+		pad.add_child(size_action_button)
+	else:
+		var pad_center_label := _make_label("MOVE", 10, Color("#b8e6bd"))
+		pad_center_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pad_center_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pad.add_child(pad_center_label)
 	_add_back_design_pad_button(pad, "→" if not shrinking else "←", Vector2i(1, 0))
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "↓" if not shrinking else "↑", Vector2i(0, -1))
@@ -2438,17 +2443,19 @@ func _rebuild_back_design_selection_popup() -> void:
 		item.focus_mode = Control.FOCUS_NONE
 		item.mouse_filter = Control.MOUSE_FILTER_PASS
 		item.add_theme_font_size_override("font_size", 15)
-		var normal := StyleBoxFlat.new()
-		normal.bg_color = Color("#10351b")
-		normal.border_color = Color("#285c35")
-		normal.set_border_width_all(1)
-		normal.set_corner_radius_all(8)
-		normal.content_margin_left = 14
-		item.add_theme_stylebox_override("normal", normal)
-		item.add_theme_stylebox_override("hover", normal)
-		item.add_theme_stylebox_override("pressed", normal)
-		item.add_theme_stylebox_override("focus", normal)
-		item.add_theme_color_override("font_color", Color("#e8f7ff"))
+		for state in ["normal", "hover", "pressed", "focus"]:
+			var option_style := StyleBoxFlat.new()
+			option_style.bg_color = Color("#12351c") if state != "pressed" else Color("#285c35")
+			if state == "hover":
+				option_style.bg_color = Color("#1c4728")
+			option_style.border_color = Color("#4d8d5b")
+			option_style.set_border_width_all(1)
+			option_style.set_corner_radius_all(8)
+			option_style.content_margin_left = 14
+			item.add_theme_stylebox_override(state, option_style)
+		item.add_theme_color_override("font_color", Color("#e5f4e7"))
+		item.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		item.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 		item.pressed.connect(_select_back_design_box.bind(index))
 		back_design_selection_items.add_child(item)
 	back_design_selection_button.disabled = back_design_boxes.is_empty()
@@ -2462,6 +2469,30 @@ func _rebuild_back_design_selection_popup() -> void:
 		back_design_selection_popup.visible = false
 	elif back_design_selection_popup.visible:
 		call_deferred("_position_back_design_selection_popup")
+
+
+func _style_back_design_button(button: Button, active: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#174326") if active else Color("#102b19")
+		if state == "hover":
+			style.bg_color = Color("#205632")
+		elif state == "pressed":
+			style.bg_color = Color("#2d7040")
+		elif state == "disabled":
+			style.bg_color = Color("#17251a")
+		style.border_color = Color("#5c9b69") if active else Color("#3e7049")
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(8)
+		style.content_margin_left = 5
+		style.content_margin_right = 5
+		style.content_margin_top = 2
+		style.content_margin_bottom = 2
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#e5f4e7"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_color_override("font_disabled_color", Color("#91aa95"))
 
 
 func _style_back_design_slider(slider: HSlider) -> void:
@@ -2485,17 +2516,20 @@ func _add_back_design_pad_button(parent: GridContainer, caption: String, directi
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(button, 28 if not tight else 26)
 	_style_staff_button(button, true)
+	_style_back_design_button(button, true)
 	for state in ["normal", "hover", "pressed", "focus"]:
-		var circular_style := StyleBoxFlat.new()
-		circular_style.bg_color = Color("#173c22") if state != "pressed" else Color("#285c35")
-		circular_style.border_color = Color("#579766")
-		circular_style.set_border_width_all(1)
-		circular_style.set_corner_radius_all(8)
-		circular_style.content_margin_left = 0
-		circular_style.content_margin_right = 0
-		circular_style.content_margin_top = 0
-		circular_style.content_margin_bottom = 0
-		button.add_theme_stylebox_override(state, circular_style)
+		var square_style := StyleBoxFlat.new()
+		square_style.bg_color = Color("#173c22") if state != "pressed" else Color("#285c35")
+		if state == "hover":
+			square_style.bg_color = Color("#205632")
+		square_style.border_color = Color("#579766")
+		square_style.set_border_width_all(1)
+		square_style.set_corner_radius_all(8)
+		square_style.content_margin_left = 0
+		square_style.content_margin_right = 0
+		square_style.content_margin_top = 0
+		square_style.content_margin_bottom = 0
+		button.add_theme_stylebox_override(state, square_style)
 	button.pressed.connect(_on_back_design_pad_pressed.bind(direction))
 	parent.add_child(button)
 
