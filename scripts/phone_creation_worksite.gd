@@ -6,6 +6,36 @@ const PHONE_TYPES := ["Standard", "Flip", "Fold"]
 const PhoneEditorScene = preload("res://scenes/product_phone_editor.tscn")
 
 
+class GlassArrowButton extends Button:
+	var points_right := true
+	func _ready() -> void:
+		focus_mode = Control.FOCUS_NONE
+		custom_minimum_size = Vector2(54, 54)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		queue_redraw()
+		mouse_entered.connect(queue_redraw)
+		mouse_exited.connect(queue_redraw)
+		button_down.connect(queue_redraw)
+		button_up.connect(queue_redraw)
+	func _draw() -> void:
+		var centre := size * 0.5
+		var radius := minf(size.x, size.y) * 0.5 - 2.0
+		var fill := Color(0.15, 0.24, 0.17, 0.96) if is_hovered() else Color(0.09, 0.14, 0.10, 0.92)
+		if is_pressed():
+			fill = Color(0.06, 0.11, 0.07, 0.98)
+		draw_circle(centre + Vector2(0, 2), radius + 1.0, Color(0, 0, 0, 0.42))
+		draw_circle(centre, radius, fill)
+		draw_arc(centre, radius - 1.0, PI * 1.08, PI * 1.92, 48, Color(0.94, 1.0, 0.95, 0.78), 1.5, true)
+		draw_arc(centre, radius - 1.5, -PI * 0.08, PI * 0.88, 48, Color(0.61, 0.83, 0.66, 0.36), 1.0, true)
+		var direction := 1.0 if points_right else -1.0
+		var tip := centre + Vector2(direction * 7.0, 0)
+		var upper := centre + Vector2(-direction * 4.5, -7.0)
+		var lower := centre + Vector2(-direction * 4.5, 7.0)
+		draw_line(upper, tip, Color("#effff1"), 2.8, true)
+		draw_line(tip, lower, Color("#effff1"), 2.8, true)
+		draw_line(centre + Vector2(-direction * 5.0, 0), centre + Vector2(direction * 6.0, 0), Color("#effff1"), 2.8, true)
+
+
 class GlassButtonReflection extends Control:
 	var accent := Color("#9bd6a7")
 
@@ -36,6 +66,13 @@ class GlassButtonReflection extends Control:
 var selected_phone_type := ""
 var type_buttons: Dictionary = {}
 var next_button: Button
+var wizard_back_button: Button
+var progress_bar: ProgressBar
+var progress_number: Label
+var type_step_content: VBoxContainer
+var wizard_step := 0
+var thickness_panel: Control
+var border_radius_panel: Control
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
@@ -113,20 +150,30 @@ func _build_interface() -> void:
 	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_bar.add_child(top_spacer)
 
-	var progress := PanelContainer.new()
-	progress.name = "ProgressStepOne"
-	progress.custom_minimum_size = Vector2(46, 38)
-	var progress_style := StyleBoxFlat.new()
-	progress_style.bg_color = Color("#2f7543")
-	progress_style.border_color = Color("#4b9b5e")
-	progress_style.set_border_width_all(1)
-	progress_style.set_corner_radius_all(10)
-	progress.add_theme_stylebox_override("panel", progress_style)
+	var progress := VBoxContainer.new()
+	progress.name = "WorksiteProgress"
+	progress.custom_minimum_size = Vector2(150, 38)
+	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-
-	var progress_number := _label("1", 15, Color("#f7fff7"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 2", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
+	progress_bar = ProgressBar.new()
+	progress_bar.name = "WizardProgressBar"
+	progress_bar.custom_minimum_size = Vector2(0, 7)
+	progress_bar.min_value = 0
+	progress_bar.max_value = 2
+	progress_bar.value = 1
+	progress_bar.show_percentage = false
+	var progress_fill := StyleBoxFlat.new()
+	progress_fill.bg_color = Color("#4f9a60")
+	progress_fill.set_corner_radius_all(4)
+	var progress_track := StyleBoxFlat.new()
+	progress_track.bg_color = Color("#26332a")
+	progress_track.set_corner_radius_all(4)
+	progress_bar.add_theme_stylebox_override("fill", progress_fill)
+	progress_bar.add_theme_stylebox_override("background", progress_track)
+	progress.add_child(progress_bar)
 
 	var body := HBoxContainer.new()
 	body.name = "WorksiteMainContent"
@@ -190,12 +237,15 @@ func _build_interface() -> void:
 	selection_stack.add_theme_constant_override("separation", 16)
 	selection_region.add_child(selection_stack)
 
+	type_step_content = VBoxContainer.new()
+	type_step_content.name = "PhoneTypeStepContent"
+	type_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_stack.add_child(type_step_content)
 	var section_title := _label("PHONE TYPE", 22, Color("#f1f5f1"))
-	selection_stack.add_child(section_title)
-
+	type_step_content.add_child(section_title)
 	var options := VBoxContainer.new()
 	options.add_theme_constant_override("separation", 9)
-	selection_stack.add_child(options)
+	type_step_content.add_child(options)
 	for phone_type in PHONE_TYPES:
 		var option := Button.new()
 		option.name = phone_type.replace(" ", "") + "PhoneTypeOption"
@@ -211,17 +261,23 @@ func _build_interface() -> void:
 
 	var bottom_bar := HBoxContainer.new()
 	bottom_bar.name = "WorksiteBottomBar"
-	bottom_bar.custom_minimum_size.y = 58.0
-	bottom_bar.alignment = BoxContainer.ALIGNMENT_END
+	bottom_bar.custom_minimum_size.y = 62.0
+	bottom_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	bottom_bar.add_theme_constant_override("separation", 18)
 	layout.add_child(bottom_bar)
-
-	next_button = Button.new()
+	wizard_back_button = GlassArrowButton.new()
+	wizard_back_button.name = "WizardBackIconButton"
+	wizard_back_button.points_right = false
+	wizard_back_button.disabled = true
+	wizard_back_button.pressed.connect(_on_wizard_back_pressed)
+	bottom_bar.add_child(wizard_back_button)
+	var bottom_spacer := Control.new()
+	bottom_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_bar.add_child(bottom_spacer)
+	next_button = GlassArrowButton.new()
 	next_button.name = "NextStepIconButton"
-	next_button.text = "NEXT"
-	next_button.custom_minimum_size = Vector2(88, 52)
+	next_button.points_right = true
 	next_button.disabled = true
-	next_button.focus_mode = Control.FOCUS_NONE
-	_style_arrow_button(next_button)
 	next_button.pressed.connect(_on_next_pressed)
 	bottom_bar.add_child(next_button)
 	_apply_responsive_layout()
@@ -275,10 +331,56 @@ func _update_preview_for_phone_type(phone_type: String) -> void:
 
 
 func _on_next_pressed() -> void:
-	if selected_phone_type.is_empty():
+	if selected_phone_type.is_empty() or wizard_step != 0:
 		return
-	# The following wizard stage is intentionally not created until its
-	# controls and data flow are implemented as a separate approved step.
+	_show_device_geometry_step()
+
+
+func _show_device_geometry_step() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	wizard_step = 1
+	type_step_content.hide()
+	for child in selection_stack.get_children():
+		if child != type_step_content:
+			child.queue_free()
+	# Build both panels with the original editor's own functions. Moving these
+	# exact control trees preserves the existing level ranges and live callbacks.
+	phone_editor.call("_show_thickness_controls")
+	thickness_panel = phone_editor.get("active_feature_panel") as Control
+	phone_editor.call("_show_border_radius_controls")
+	border_radius_panel = phone_editor.get("active_feature_panel") as Control
+	for panel in [thickness_panel, border_radius_panel]:
+		if not is_instance_valid(panel):
+			continue
+		var previous_parent := panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(panel)
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		selection_stack.add_child(panel)
+	progress_number.text = "STEP 2 / 2"
+	progress_bar.value = 2
+	wizard_back_button.disabled = false
+	next_button.disabled = true
+	selection_scroll.scroll_vertical = 0
+
+
+func _on_wizard_back_pressed() -> void:
+	if wizard_step != 1:
+		return
+	wizard_step = 0
+	for panel in [thickness_panel, border_radius_panel]:
+		if is_instance_valid(panel):
+			panel.queue_free()
+	thickness_panel = null
+	border_radius_panel = null
+	type_step_content.show()
+	progress_number.text = "STEP 1 / 2"
+	progress_bar.value = 1
+	wizard_back_button.disabled = true
+	next_button.disabled = selected_phone_type.is_empty()
+	selection_scroll.scroll_vertical = 0
 
 
 func _style_arrow_button(button: Button) -> void:
