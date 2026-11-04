@@ -70,6 +70,7 @@ var loading_status_label: Label
 var loading_progress_bar: ProgressBar
 var loading_percent_label: Label
 var loading_progress_tween: Tween
+var headquarters_loading_finish_started := false
 var graphics_quality := "High"
 var sound_enabled := true
 
@@ -1146,6 +1147,7 @@ func _show_city() -> void:
 
 func _show_home_scene() -> void:
 	current_screen = "home"
+	headquarters_loading_finish_started = false
 	_clear_world()
 	_show_headquarters_loading_screen()
 	# Let the HQ preparation screen render before refreshing the market and generating buildings.
@@ -1296,6 +1298,7 @@ func _show_home_navigation() -> void:
 	# Home UI is a transparent overlay: it frames the live headquarters without
 	# placing a tint, backdrop, or panel over the 3D building.
 	var root := _new_screen()
+	root.modulate.a = 0.0
 	ui_layer.layer = 30
 	home_navigation_layer = ui_layer
 
@@ -1957,12 +1960,29 @@ func _update_headquarters_loading(message: String, progress: float) -> void:
 
 
 func _finish_headquarters_loading() -> void:
-	# Prepare both staff pages while the HQ loading screen is still active.
-	# HQ buttons will only reveal these already-built controls.
+	# The HQ setup signal fires as soon as construction finishes, but the
+	# newly-created 3D scene still needs to reach the renderer. Keep the
+	# preparation screen visible until the headquarters has actually drawn.
+	if headquarters_loading_finish_started:
+		return
+	headquarters_loading_finish_started = true
+
+	# Prepare both staff pages before revealing the company environment.
 	_prepare_staff_scenes()
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	await get_tree().process_frame
+
+	if not is_instance_valid(world_root):
+		headquarters_loading_finish_started = false
+		return
+
 	if loading_progress_tween != null and loading_progress_tween.is_running():
 		loading_progress_tween.kill()
 	loading_progress_tween = null
+
+	# Keep the loading layer alive underneath Home while both layers crossfade.
+	# Clearing ui_layer first prevents _new_screen() from hiding it immediately.
 	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
@@ -1972,7 +1992,12 @@ func _finish_headquarters_loading() -> void:
 
 	_show_home_navigation()
 	if is_instance_valid(preparation_layer):
-		preparation_layer.queue_free()
+		var exit_tween := create_tween()
+		exit_tween.tween_property(preparation_layer, "modulate:a", 0.0, 0.48).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		exit_tween.tween_callback(func() -> void:
+			if is_instance_valid(preparation_layer):
+				preparation_layer.queue_free()
+		)
 
 
 func _show_create_scene() -> void:
