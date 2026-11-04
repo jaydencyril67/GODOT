@@ -6756,7 +6756,7 @@ func _show_border_radius_controls() -> void:
 	meter.step = 1
 	meter.value = border_radius_level
 	meter.tick_count = 7
-	meter.custom_minimum_size = Vector2(76, 290)
+	meter.custom_minimum_size = Vector2(76, 420)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_border_radius_level_changed)
@@ -6816,7 +6816,7 @@ func _show_thickness_controls() -> void:
 	meter.step = 1
 	meter.value = phone_thickness_level
 	meter.tick_count = 13
-	meter.custom_minimum_size = Vector2(64, 290)
+	meter.custom_minimum_size = Vector2(64, 420)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_phone_thickness_level_changed)
