@@ -1147,6 +1147,14 @@ func _show_city() -> void:
 
 
 func _show_home_scene() -> void:
+	# A live headquarters is created only by the loading-screen entry path.
+	# If a caller reaches this function while it already exists, restore that
+	# same scene instead of constructing the compound again.
+	if is_instance_valid(world_root):
+		push_warning("Headquarters already exists; restoring the existing company scene.")
+		_restore_home_after_standalone_screen()
+		return
+
 	current_screen = "home"
 	headquarters_loading_finish_started = false
 	_clear_world()
@@ -1177,12 +1185,10 @@ func _show_home_scene() -> void:
 
 
 func _show_headquarters_preview() -> void:
-	# Office can only open against the live Home headquarters scene. Create and
-	# Research intentionally dispose that 3D scene, so returning from those
-	# pages must rebuild Home before Office is allowed to hide its navigation.
+	# Office always reuses the headquarters created by the company loading screen.
+	# A missing scene is a lifecycle error, never a reason to rebuild during navigation.
 	if not is_instance_valid(world_root):
-		push_warning("Office requested without an active headquarters scene; rebuilding Home.")
-		_show_home_scene()
+		push_error("Office cannot open because the loading-screen headquarters scene is missing.")
 		return
 
 	_close_staff_overlay()
@@ -1308,11 +1314,10 @@ func _apply_home_button_typography(button: Control, font_size: int) -> void:
 
 
 func _show_home_navigation() -> void:
-	# Never create a Home overlay without its owning 3D headquarters scene.
-	# This is a hard invariant, not a visual fallback.
+	# Home navigation must always sit over the same scene created at game entry.
+	# Missing world state is reported instead of silently starting another build.
 	if not is_instance_valid(world_root):
-		push_error("Cannot show Home navigation: the headquarters scene is missing.")
-		_show_home_scene()
+		push_error("Cannot show Home navigation: the loading-screen headquarters scene is missing.")
 		return
 
 	# Home UI is a transparent overlay: it frames the live headquarters without
@@ -2038,8 +2043,8 @@ func _show_create_scene() -> void:
 		ui_layer.show()
 		return
 
-	_clear_world()
-
+	# Keep the already-built headquarters resident but inactive behind this page.
+	# It is restored directly when the player returns to Home.
 	var root := _new_screen()
 	root.name = "CreateProductScreen"
 	root.modulate.a = 0.0
@@ -2191,8 +2196,8 @@ func _show_research_scene() -> void:
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
 		world_root.set_preview_active(false)
 
-	_clear_world()
-
+	# Keep the already-built headquarters resident but inactive behind this page.
+	# It is restored directly when the player returns to Home.
 	var root := _new_screen()
 	root.name = "ResearchDevelopmentScreen"
 	root.modulate.a = 0.0
@@ -2342,10 +2347,29 @@ func _on_research_category_pressed(category: String) -> void:
 
 
 func _return_home_from_research() -> void:
-	# The Research page is a standalone screen and its entry path disposes the
-	# previous 3D world. Rebuild the actual HQ instead of showing navigation
-	# over an empty viewport.
-	_show_home_scene()
+	_restore_home_after_standalone_screen()
+
+
+func _restore_home_after_standalone_screen() -> void:
+	# Create and Research only hide the persistent world. Returning to Home
+	# restores its visibility and navigation without replaying the loading screen.
+	if not is_instance_valid(world_root):
+		push_error("Cannot return Home: the original loading-screen headquarters scene is missing.")
+		return
+
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.hide()
+	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
+		ui_layer.hide()
+		ui_layer.queue_free()
+	ui_layer = null
+	ui_root = null
+
+	current_screen = "home"
+	if not world_root.home_mode:
+		world_root.set_home_mode(true)
+	world_root.set_preview_active(true)
+	_show_home_navigation()
 
 
 func _show_research_phone() -> void:
@@ -2431,12 +2455,7 @@ func _apply_phone_design_research_upgrade(research_id: String) -> void:
 	if is_instance_valid(phone_editor):
 		phone_editor.call("set_research_data", career.get("phone_design_research", {}), float(career["balance"]))
 func _return_to_home() -> void:
-	# Create is also a standalone screen. Its 3D Home world was deliberately
-	# disposed when the page opened, so Home must be reconstructed before its
-	# navigation controls are restored.
-	if is_instance_valid(create_ui_layer):
-		create_ui_layer.hide()
-	_show_home_scene()
+	_restore_home_after_standalone_screen()
 
 
 func _style_create_glass_button(button: Button, primary: bool) -> void:
