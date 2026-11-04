@@ -1333,6 +1333,12 @@ func _on_phone_type_selected(phone_type: String) -> void:
 
 func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false, for_box_package: bool = false) -> void:
 	_close_back_design_selection_popup()
+	if is_instance_valid(back_box_gradient_popup):
+		back_box_gradient_popup.queue_free()
+		back_box_gradient_popup = null
+	if is_instance_valid(gradient_direction_popup):
+		gradient_direction_popup.queue_free()
+		gradient_direction_popup = null
 	back_design_color_mode = return_to_back_design
 	phone_case_color_mode = for_phone_case
 	charger_color_mode = for_charger
@@ -1937,8 +1943,11 @@ func _refresh_device_color_editor_controls() -> void:
 	var selected_gradient_edit := phone_case_gradient_color_edit_mode if phone_case_color_mode else gradient_color_edit_mode
 	if is_instance_valid(base_button): _style_staff_button(base_button, not selected_gradient_edit)
 	if is_instance_valid(gradient_button): _style_staff_button(gradient_button, selected_gradient_edit)
-	var box_base_button := back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxColor") as Button if is_instance_valid(back_box_gradient_popup) else null
-	var box_gradient_button := back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxGradientColor") as Button if is_instance_valid(back_box_gradient_popup) else null
+	var box_base_button: Button = null
+	var box_gradient_button: Button = null
+	if is_instance_valid(back_box_gradient_popup):
+		box_base_button = back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxColor") as Button
+		box_gradient_button = back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxGradientColor") as Button
 	if is_instance_valid(box_base_button): _style_staff_button(box_base_button, not back_design_gradient_color_edit_mode)
 	if is_instance_valid(box_gradient_button): _style_staff_button(box_gradient_button, back_design_gradient_color_edit_mode)
 
@@ -2109,6 +2118,12 @@ func _on_device_body_color_changed(color: Color) -> void:
 
 func _show_back_design_controls() -> void:
 	_close_back_design_selection_popup()
+	if is_instance_valid(back_box_gradient_popup):
+		back_box_gradient_popup.queue_free()
+		back_box_gradient_popup = null
+	if is_instance_valid(gradient_direction_popup):
+		gradient_direction_popup.queue_free()
+		gradient_direction_popup = null
 	if is_instance_valid(back_design_selection_popup):
 		back_design_selection_popup.queue_free()
 		back_design_selection_popup = null
