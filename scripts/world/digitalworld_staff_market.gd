@@ -74,7 +74,7 @@ func _build() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.texture = load("res://Screenshot_20261104-041429_ChatGPT.png")
+	background.texture = load("res://Screenshot_20261104-051832_ChatGPT.png")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 
