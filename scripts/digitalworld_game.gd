@@ -5,7 +5,7 @@ const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
-const GLOBAL_BACKGROUND_PATH := "res://Screenshot_20261104-051832_ChatGPT.png"
+const GLOBAL_BACKGROUND_PATH := "res://file_00000000657c82109fcf142024a4a523.png"
 
 const LOGO_NAMES := [
 	"Orchard", "Skybird", "Crown", "Apex", "Volt", "Prism", "Quantum", "Helix", "Titan", "Zenith",
