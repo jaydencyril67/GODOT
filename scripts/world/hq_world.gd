@@ -46,8 +46,8 @@ func _build_world() -> void:
 	camera.name = "Territory_Camera"
 	camera.position = Vector3(0, 44, 160)
 	camera.fov = 34.0
-	camera.look_at(Vector3(0, 0, 15), Vector3.UP)
 	add_child(camera)
+	camera.look_at(Vector3(0, 0, 15), Vector3.UP)
 	camera.current = true
 
 	_box("Territory_Ground", Vector3(190, 0.45, 85), Vector3(0, -0.24, 15), _mat(Color("#777b7d"), 0.96))
