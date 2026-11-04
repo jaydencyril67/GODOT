@@ -185,6 +185,7 @@ var screen_protector_thickness := 0.006
 var screen_protector_thickness_label: Label
 var screen_protector_building := false
 var screen_protector_build_token := 0
+var active_screen_protector_build_tweens: Array[Tween] = []
 var bezel_width := 0.10
 var bezel_height := 0.20
 var bezel_width_value_label: Label
@@ -373,6 +374,15 @@ func set_company_branding(company_name: String, logo_id: int) -> void:
 	box_company_logo_id = clampi(logo_id, 1, 50)
 	if is_instance_valid(box_package_preview):
 		_refresh_box_package_branding()
+
+
+func _exit_tree() -> void:
+	# A cancelled screen-protector build must not leave a looping tween alive
+	# after the editor or its preview nodes are removed.
+	for tween in active_screen_protector_build_tweens:
+		if is_instance_valid(tween) and tween.is_valid():
+			tween.kill()
+	active_screen_protector_build_tweens.clear()
 
 
 func _ready() -> void:
@@ -3324,6 +3334,7 @@ func _build_screen_protector(display: MeshInstance3D, screen_width: float, scree
 	placeholder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	display.add_child(placeholder)
 	var build_tween := create_tween()
+	active_screen_protector_build_tweens.append(build_tween)
 	build_tween.set_loops()
 	build_tween.tween_property(placeholder, "scale", Vector3(1.0, 0.985, 1.0), 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	build_tween.tween_property(placeholder, "scale", Vector3.ONE, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -3336,9 +3347,15 @@ func _build_screen_protector_async(display: MeshInstance3D, screen_width: float,
 	var cutouts := _get_screen_protector_cutouts(screen_width, screen_height) if include_camera_cutouts else []
 	var generated_mesh: ArrayMesh = await _create_screen_protector_mesh_async(screen_width, screen_height, screen_radius, curve_sides, curve_vertical, cutouts, screen_protector_thickness, corner_mask, curve_left, curve_right, curve_top, curve_bottom)
 	if token != screen_protector_build_token or not screen_protector_enabled or not is_instance_valid(display):
+		if is_instance_valid(build_tween) and build_tween.is_valid():
+			build_tween.kill()
+		active_screen_protector_build_tweens.erase(build_tween)
+		if is_instance_valid(placeholder):
+			placeholder.queue_free()
 		return
-	if build_tween.is_running():
+	if is_instance_valid(build_tween) and build_tween.is_valid():
 		build_tween.kill()
+	active_screen_protector_build_tweens.erase(build_tween)
 	if is_instance_valid(placeholder):
 		placeholder.queue_free()
 	var protector := MeshInstance3D.new()
