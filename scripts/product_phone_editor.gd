@@ -15,6 +15,26 @@ func _active_phone_size() -> Vector3:
 		size.x *= 1.5
 	return size
 
+class ScreenTechGlassReflection extends Control:
+	var accent := Color("#9bd6a7")
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		resized.connect(queue_redraw)
+	func _draw() -> void:
+		if size.x <= 4.0 or size.y <= 4.0:
+			return
+		for i in range(32):
+			var x0 := size.x * float(i) / 32.0
+			var x1 := size.x * float(i + 1) / 32.0
+			var mid := (float(i) + 0.5) / 32.0
+			var highlight := exp(-pow((mid - 0.34) / 0.29, 2.0))
+			draw_line(Vector2(x0, 1.2), Vector2(x1, 1.2), Color(0.97, 1.0, 0.98, 0.09 + 0.30 * highlight), 1.2, true)
+		draw_line(Vector2(1.2, 9.0), Vector2(1.2, maxf(9.0, size.y - 9.0)), Color(accent.r, accent.g, accent.b, 0.24), 1.0, true)
+		draw_line(Vector2(size.x - 1.2, 9.0), Vector2(size.x - 1.2, maxf(9.0, size.y - 9.0)), Color(accent.r, accent.g, accent.b, 0.24), 1.0, true)
+		draw_line(Vector2(12.0, size.y - 2.0), Vector2(size.x - 12.0, size.y - 2.0), Color(0.72, 0.88, 0.76, 0.10), 1.0, true)
+
+
 class DeviceColorSpectrum extends Control:
 	signal color_changed(color: Color)
 	var hue := 0.0
@@ -2875,7 +2895,7 @@ func _show_screen_tech_controls() -> void:
 
 	var type_grid := GridContainer.new()
 	type_grid.name = "ScreenTypeOptions"
-	type_grid.columns = 1
+	type_grid.columns = 2
 	type_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	type_grid.add_theme_constant_override("h_separation", 7)
 	type_grid.add_theme_constant_override("v_separation", 7)
@@ -2887,10 +2907,14 @@ func _show_screen_tech_controls() -> void:
 		var option := Button.new()
 		option.name = "ScreenType_" + type_name.replace(" ", "").replace("-", "")
 		option.text = "%02d   %s" % [index + 1, type_name]
-		option.custom_minimum_size = Vector2(0, 42.0)
+		option.custom_minimum_size = Vector2(0, 54.0)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(option, 12)
+		var screen_font := FontVariation.new()
+		screen_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		screen_font.variation_embolden = 1.5
+		option.add_theme_font_override("font", screen_font)
+		option.add_theme_font_size_override("font_size", 17)
 		_style_screen_type_option(option, index, type_name == selected_screen_type)
 		option.pressed.connect(_on_screen_type_selected.bind(type_name))
 		type_grid.add_child(option)
@@ -2914,35 +2938,41 @@ func _on_screen_type_selected(type_name: String) -> void:
 
 
 func _style_screen_type_option(option: Button, rank: int, selected: bool) -> void:
-	var tier_colors := [
-		Color("#315064"), Color("#2c485c"), Color("#273f54"), Color("#20364b"),
-		Color("#192d42"), Color("#14263a"), Color("#102136"), Color("#0c1c30"),
-		Color("#09172a"), Color("#071426")
-	]
-	var accent := Color("#79c98a").lerp(Color("#b9a0ff"), float(rank) / 9.0)
+	# Match the worksite's dark translucent glass buttons and green brand rim.
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = tier_colors[rank]
-		if selected:
-			style.bg_color = tier_colors[rank].lightened(0.24)
+		style.bg_color = Color(0.075, 0.16, 0.095, 0.88) if selected else Color(0.12, 0.15, 0.13, 0.76)
 		if state == "hover":
-			style.bg_color = tier_colors[rank].lightened(0.16)
+			style.bg_color = Color(0.12, 0.25, 0.15, 0.94) if selected else Color(0.19, 0.23, 0.20, 0.88)
 		elif state == "pressed":
-			style.bg_color = tier_colors[rank].lightened(0.30)
+			style.bg_color = Color(0.055, 0.12, 0.07, 0.98) if selected else Color(0.08, 0.11, 0.09, 0.94)
 		elif state == "disabled":
-			style.bg_color = tier_colors[rank].darkened(0.25)
-		style.border_color = accent if not selected else Color("#e4f7ff")
+			style.bg_color = Color(0.10, 0.13, 0.11, 0.58)
+		style.border_color = Color(0.68, 0.91, 0.73, 0.78) if selected else Color(0.78, 0.85, 0.80, 0.34)
 		style.set_border_width_all(2 if selected else 1)
-		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.0, 0.10, 0.22, 0.38)
-		style.shadow_size = 9 if selected else 5
-		style.shadow_offset = Vector2(0, 2)
+		style.set_corner_radius_all(12)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.48)
+		style.shadow_size = 9 if selected else 7
+		style.shadow_offset = Vector2(0, 3)
+		style.content_margin_left = 10
+		style.content_margin_right = 10
+		style.content_margin_top = 8
+		style.content_margin_bottom = 8
 		style.anti_aliasing = true
 		option.add_theme_stylebox_override(state, style)
-	option.add_theme_color_override("font_color", Color.WHITE)
-	option.add_theme_color_override("font_hover_color", Color.WHITE)
-	option.add_theme_color_override("font_pressed_color", Color.WHITE)
-	option.add_theme_color_override("font_disabled_color", Color("#8da8b8"))
+	option.add_theme_color_override("font_color", Color("#ffffff") if selected else Color("#e5eee7"))
+	option.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	option.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	option.add_theme_color_override("font_disabled_color", Color("#7c897f"))
+	var reflection := option.get_node_or_null("ScreenTechGlassReflection") as ScreenTechGlassReflection
+	if not is_instance_valid(reflection):
+		reflection = ScreenTechGlassReflection.new()
+		reflection.name = "ScreenTechGlassReflection"
+		option.add_child(reflection)
+	reflection.accent = Color("#9bd6a7") if selected else Color("#c5d0c8")
+	reflection.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	reflection.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reflection.queue_redraw()
 
 
 func _refresh_screen_type_buttons() -> void:
@@ -6756,7 +6786,7 @@ func _show_border_radius_controls() -> void:
 	meter.step = 1
 	meter.value = border_radius_level
 	meter.tick_count = 7
-	meter.custom_minimum_size = Vector2(76, 420)
+	meter.custom_minimum_size = Vector2(76, 290)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_border_radius_level_changed)
@@ -6816,7 +6846,7 @@ func _show_thickness_controls() -> void:
 	meter.step = 1
 	meter.value = phone_thickness_level
 	meter.tick_count = 13
-	meter.custom_minimum_size = Vector2(64, 420)
+	meter.custom_minimum_size = Vector2(64, 290)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_phone_thickness_level_changed)
