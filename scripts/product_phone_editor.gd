@@ -7314,7 +7314,7 @@ func _style_power_volume_position_button(button: Button) -> void:
 	button.add_theme_color_override("font_color", Color("#e8f6eb"))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color("#91b69a")
+	button.add_theme_color_override("font_disabled_color", Color("#91b69a"))
 
 
 func _on_side_button_toggle_pressed(toggle: TextureButton, side: String) -> void:
