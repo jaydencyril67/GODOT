@@ -8,7 +8,6 @@ const PhoneEditorScene = preload("res://scenes/product_phone_editor.tscn")
 var selected_phone_type := ""
 var type_buttons: Dictionary = {}
 var next_button: Button
-var selection_status: Label
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
@@ -60,12 +59,17 @@ func _build_interface() -> void:
 	var layout := VBoxContainer.new()
 	layout.name = "WorksiteLayout"
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	layout.add_theme_constant_override("separation", 8)
+	# Keep the entire worksite safely inset from the physical screen edges.
+	layout.offset_left = 20
+	layout.offset_right = -20
+	layout.offset_top = 12
+	layout.offset_bottom = -12
+	layout.add_theme_constant_override("separation", 10)
 	root.add_child(layout)
 
 	var top_bar := HBoxContainer.new()
 	top_bar.name = "WorksiteTopBar"
-	top_bar.custom_minimum_size.y = 54.0
+	top_bar.custom_minimum_size.y = 48.0
 	top_bar.add_theme_constant_override("separation", 12)
 	layout.add_child(top_bar)
 
@@ -78,15 +82,9 @@ func _build_interface() -> void:
 	back_button.pressed.connect(func(): back_requested.emit())
 	top_bar.add_child(back_button)
 
-	var title_stack := VBoxContainer.new()
-	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_stack.add_theme_constant_override("separation", 0)
-	top_bar.add_child(title_stack)
-
-	var brand := _label("DIGITAL WORLD MOBILES", 10, Color("#8fc69a"))
-	title_stack.add_child(brand)
-	var heading := _label("PHONE CREATION", 17, Color("#f1f5f1"))
-	title_stack.add_child(heading)
+	var top_spacer := Control.new()
+	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar.add_child(top_spacer)
 
 	var progress := PanelContainer.new()
 	progress.name = "ProgressStepOne"
@@ -143,12 +141,6 @@ func _build_interface() -> void:
 				preview_environment.environment.background_mode = Environment.BG_COLOR
 				preview_environment.environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
 
-	var preview_caption := _label("LIVE DEVICE PREVIEW", 9, Color("#9bc9a3"), HORIZONTAL_ALIGNMENT_CENTER)
-	preview_caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	preview_caption.offset_top = -30
-	preview_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview_region.add_child(preview_caption)
-
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "PhoneTypeSelectionScroll"
 	selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -169,15 +161,11 @@ func _build_interface() -> void:
 	selection_scroll.add_child(selection_region)
 
 	selection_stack = VBoxContainer.new()
-	selection_stack.add_theme_constant_override("separation", 13)
+	selection_stack.add_theme_constant_override("separation", 16)
 	selection_region.add_child(selection_stack)
 
-	var step_label := _label("STEP 01", 10, Color("#8fc69a"))
-	selection_stack.add_child(step_label)
-	var section_title := _label("PHONE TYPE", 25, Color("#17231a"))
+	var section_title := _label("PHONE TYPE", 22, Color("#f1f5f1"))
 	selection_stack.add_child(section_title)
-	var description := _label("Choose the form factor for your new device.", 12, Color("#b3beb5"))
-	selection_stack.add_child(description)
 
 	var options := VBoxContainer.new()
 	options.add_theme_constant_override("separation", 9)
@@ -195,13 +183,9 @@ func _build_interface() -> void:
 		options.add_child(option)
 		type_buttons[phone_type] = option
 
-	selection_status = _label("Select a phone type to continue.", 10, Color("#aab7ad"))
-	selection_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	selection_stack.add_child(selection_status)
-
 	var bottom_bar := HBoxContainer.new()
 	bottom_bar.name = "WorksiteBottomBar"
-	bottom_bar.custom_minimum_size.y = 58.0
+	bottom_bar.custom_minimum_size.y = 52.0
 	bottom_bar.alignment = BoxContainer.ALIGNMENT_END
 	layout.add_child(bottom_bar)
 
@@ -228,19 +212,19 @@ func _apply_responsive_layout() -> void:
 		selection_scroll.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		selection_scroll.custom_minimum_size = Vector2(280, 0)
-		selection_region.add_theme_constant_override("margin_left", 22)
-		selection_region.add_theme_constant_override("margin_right", 22)
-		selection_region.add_theme_constant_override("margin_top", 18)
-		selection_region.add_theme_constant_override("margin_bottom", 18)
+		selection_region.add_theme_constant_override("margin_left", 24)
+		selection_region.add_theme_constant_override("margin_right", 24)
+		selection_region.add_theme_constant_override("margin_top", 20)
+		selection_region.add_theme_constant_override("margin_bottom", 20)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
 		selection_scroll.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(150.0, viewport_size.y * 0.34))
 		selection_scroll.custom_minimum_size = Vector2(0, maxf(190.0, viewport_size.y * 0.42))
-		selection_region.add_theme_constant_override("margin_left", 18)
-		selection_region.add_theme_constant_override("margin_right", 18)
-		selection_region.add_theme_constant_override("margin_top", 8)
-		selection_region.add_theme_constant_override("margin_bottom", 8)
+		selection_region.add_theme_constant_override("margin_left", 20)
+		selection_region.add_theme_constant_override("margin_right", 20)
+		selection_region.add_theme_constant_override("margin_top", 14)
+		selection_region.add_theme_constant_override("margin_bottom", 14)
 
 
 func _on_phone_type_selected(phone_type: String) -> void:
@@ -250,7 +234,6 @@ func _on_phone_type_selected(phone_type: String) -> void:
 		option.button_pressed = option_name == phone_type
 		_style_button(option, option_name == phone_type)
 	next_button.disabled = false
-	selection_status.text = phone_type + " selected."
 	_update_preview_for_phone_type(phone_type)
 
 
@@ -265,7 +248,8 @@ func _update_preview_for_phone_type(phone_type: String) -> void:
 func _on_next_pressed() -> void:
 	if selected_phone_type.is_empty():
 		return
-	selection_status.text = selected_phone_type + " selected. The next stage will be added in the next build step."
+	# The following wizard stage is intentionally not created until its
+	# controls and data flow are implemented as a separate approved step.
 
 
 func _style_button(button: Button, primary: bool) -> void:
