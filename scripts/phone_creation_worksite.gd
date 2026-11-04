@@ -75,6 +75,7 @@ var thickness_panel: Control
 var border_radius_panel: Control
 var screen_tech_panel: Control
 var screen_size_panel: Control
+var screen_type_panel: Control
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
@@ -164,7 +165,7 @@ func _build_interface() -> void:
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 5
+	progress_bar.max_value = 6
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -345,6 +346,8 @@ func _on_next_pressed() -> void:
 		_show_screen_tech_step()
 	elif wizard_step == 3:
 		_show_screen_size_step()
+	elif wizard_step == 4:
+		_show_screen_type_step()
 
 
 func _discard_panel(panel: Control) -> void:
@@ -420,15 +423,40 @@ func _show_screen_size_step() -> void:
 	# Reuse the editor's live width and height controls. They are arranged in
 	# two independent vertical slider columns inside one horizontal row.
 	screen_size_panel = _mount_original_panel("_show_screen_size_controls")
-	progress_number.text = "STEP 5 / 5"
+	progress_number.text = "STEP 5 / 6"
 	progress_bar.value = 5
+	wizard_back_button.disabled = false
+	next_button.disabled = false
+	selection_scroll.scroll_vertical = 0
+
+
+func _show_screen_type_step() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	_discard_panel(screen_size_panel)
+	screen_size_panel = null
+	wizard_step = 5
+	# Reuse the editor's existing screen-shape choices and curve eligibility
+	# rules so this worksite step changes the actual live phone display.
+	screen_type_panel = _mount_original_panel("_show_screen_type_controls")
+	progress_number.text = "STEP 6 / 6"
+	progress_bar.value = 6
 	wizard_back_button.disabled = false
 	next_button.disabled = true
 	selection_scroll.scroll_vertical = 0
 
 
 func _on_wizard_back_pressed() -> void:
-	if wizard_step == 4:
+	if wizard_step == 5:
+		_discard_panel(screen_type_panel)
+		screen_type_panel = null
+		wizard_step = 4
+		screen_size_panel = _mount_original_panel("_show_screen_size_controls")
+		progress_number.text = "STEP 5 / 6"
+		progress_bar.value = 5
+		wizard_back_button.disabled = false
+		next_button.disabled = false
+	elif wizard_step == 4:
 		_discard_panel(screen_size_panel)
 		screen_size_panel = null
 		wizard_step = 3
