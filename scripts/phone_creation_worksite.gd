@@ -52,7 +52,7 @@ func _build_interface() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.name = "WorksiteBackdrop"
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color("#c9cbc5")
+	backdrop.color = Color("#080b09")
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
 	root.resized.connect(_apply_responsive_layout)
@@ -83,9 +83,9 @@ func _build_interface() -> void:
 	title_stack.add_theme_constant_override("separation", 0)
 	top_bar.add_child(title_stack)
 
-	var brand := _label("DIGITAL WORLD MOBILES", 10, Color("#315f3c"))
+	var brand := _label("DIGITAL WORLD MOBILES", 10, Color("#8fc69a"))
 	title_stack.add_child(brand)
-	var heading := _label("PHONE CREATION", 17, Color("#17231a"))
+	var heading := _label("PHONE CREATION", 17, Color("#f1f5f1"))
 	title_stack.add_child(heading)
 
 	var progress := PanelContainer.new()
@@ -143,7 +143,7 @@ func _build_interface() -> void:
 				preview_environment.environment.background_mode = Environment.BG_COLOR
 				preview_environment.environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
 
-	var preview_caption := _label("LIVE DEVICE PREVIEW", 9, Color("#426b4a"), HORIZONTAL_ALIGNMENT_CENTER)
+	var preview_caption := _label("LIVE DEVICE PREVIEW", 9, Color("#9bc9a3"), HORIZONTAL_ALIGNMENT_CENTER)
 	preview_caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	preview_caption.offset_top = -30
 	preview_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -172,11 +172,11 @@ func _build_interface() -> void:
 	selection_stack.add_theme_constant_override("separation", 13)
 	selection_region.add_child(selection_stack)
 
-	var step_label := _label("STEP 01", 10, Color("#397a49"))
+	var step_label := _label("STEP 01", 10, Color("#8fc69a"))
 	selection_stack.add_child(step_label)
 	var section_title := _label("PHONE TYPE", 25, Color("#17231a"))
 	selection_stack.add_child(section_title)
-	var description := _label("Choose the form factor for your new device.", 12, Color("#5d685f"))
+	var description := _label("Choose the form factor for your new device.", 12, Color("#b3beb5"))
 	selection_stack.add_child(description)
 
 	var options := VBoxContainer.new()
@@ -195,7 +195,7 @@ func _build_interface() -> void:
 		options.add_child(option)
 		type_buttons[phone_type] = option
 
-	selection_status = _label("Select a phone type to continue.", 10, Color("#66736a"))
+	selection_status = _label("Select a phone type to continue.", 10, Color("#aab7ad"))
 	selection_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	selection_stack.add_child(selection_status)
 
