@@ -15,7 +15,7 @@ func _run_transition_checks() -> void:
 	await process_frame
 
 	# Build a real Home scene and verify that Office opens over that same HQ.
-	game._show_home_scene()
+	await game._show_home_scene()
 	if not await _wait_for_headquarters():
 		_fail("Initial Home scene did not create its headquarters.")
 		return
