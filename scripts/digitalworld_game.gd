@@ -22,7 +22,6 @@ const PALE := Color("#e8eee8")
 const MUTED := Color("#a6b5b1")
 const ACCENT := Color("#d8e6bd")
 
-var landing_environment: Node3D
 var ui_layer: CanvasLayer
 var ui_root: Control
 var create_ui_layer: CanvasLayer
@@ -239,9 +238,6 @@ func _dispose_phone_editor() -> void:
 
 
 func _clear_world() -> void:
-	if is_instance_valid(landing_environment):
-		landing_environment.queue_free()
-	landing_environment = null
 	if is_instance_valid(world_root):
 		world_root.queue_free()
 	world_root = null
@@ -286,13 +282,11 @@ func _new_screen() -> Control:
 func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
-	landing_environment = _build_landing_showroom()
-	add_child(landing_environment)
 
 	var root := _new_screen()
 	root.modulate.a = 0.0
 
-	# Soft vignette keeps the interface readable without flattening the showroom.
+	# Soft vignette keeps the photographic background readable.
 	var vignette := ColorRect.new()
 	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -410,145 +404,6 @@ void fragment() {
 	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	entrance.tween_property(root, "modulate:a", 1.0, 0.48).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-func _build_landing_showroom() -> Node3D:
-	var scene := Node3D.new()
-	scene.name = "Landing_Showroom_Environment"
-
-	var world_environment := WorldEnvironment.new()
-	var environment := Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#030a06")
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#9abda1")
-	environment.ambient_light_energy = 0.62
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	environment.glow_enabled = true
-	environment.glow_intensity = 0.42
-	environment.glow_strength = 0.72
-	environment.glow_bloom = 0.08
-	world_environment.environment = environment
-	scene.add_child(world_environment)
-
-	var camera := Camera3D.new()
-	camera.position = Vector3(0.0, 3.0, 12.5)
-	camera.rotation_degrees = Vector3(-8.0, 0.0, 0.0)
-	camera.fov = 46.0
-	camera.current = true
-	scene.add_child(camera)
-
-	# Layered soft lighting gives the empty architectural stage depth and polish.
-	var key_light := DirectionalLight3D.new()
-	key_light.rotation_degrees = Vector3(-48.0, -28.0, 0.0)
-	key_light.light_color = Color("#e5f5e7")
-	key_light.light_energy = 1.55
-	key_light.shadow_enabled = true
-	scene.add_child(key_light)
-
-	var fill_light := DirectionalLight3D.new()
-	fill_light.rotation_degrees = Vector3(-18.0, 145.0, 0.0)
-	fill_light.light_color = Color("#9bd8a8")
-	fill_light.light_energy = 0.48
-	scene.add_child(fill_light)
-
-	var left_wash := OmniLight3D.new()
-	left_wash.position = Vector3(-5.2, 3.2, 1.4)
-	left_wash.light_color = Color("#38b968")
-	left_wash.light_energy = 3.8
-	left_wash.omni_range = 11.0
-	scene.add_child(left_wash)
-
-	var right_wash := OmniLight3D.new()
-	right_wash.position = Vector3(5.0, 2.8, -0.2)
-	right_wash.light_color = Color("#b1e2b5")
-	right_wash.light_energy = 2.1
-	right_wash.omni_range = 9.0
-	scene.add_child(right_wash)
-
-	var floor := MeshInstance3D.new()
-	var floor_mesh := PlaneMesh.new()
-	floor_mesh.size = Vector2(44.0, 44.0)
-	floor.mesh = floor_mesh
-	floor.position = Vector3(0.0, -0.08, 0.0)
-	var floor_material := StandardMaterial3D.new()
-	floor_material.albedo_color = Color("#07140b")
-	floor_material.metallic = 0.58
-	floor_material.roughness = 0.2
-	floor.material_override = floor_material
-	scene.add_child(floor)
-
-	var rear_wall := MeshInstance3D.new()
-	var wall_mesh := BoxMesh.new()
-	wall_mesh.size = Vector3(15.0, 7.0, 0.42)
-	rear_wall.mesh = wall_mesh
-	rear_wall.position = Vector3(0.0, 2.85, -3.55)
-	var wall_material := StandardMaterial3D.new()
-	wall_material.albedo_color = Color("#07170d")
-	wall_material.metallic = 0.42
-	wall_material.roughness = 0.34
-	rear_wall.material_override = wall_material
-	scene.add_child(rear_wall)
-
-	# Slim architectural fins and inset light blades create a premium backdrop,
-	# with no handset, pedestal, or product silhouette competing with the menu.
-	for i in range(11):
-		var x := -6.0 + float(i) * 1.2
-		var fin := MeshInstance3D.new()
-		var fin_mesh := BoxMesh.new()
-		fin_mesh.size = Vector3(0.12, 5.7, 0.34)
-		fin.mesh = fin_mesh
-		fin.position = Vector3(x, 2.75, -3.22)
-		var fin_material := StandardMaterial3D.new()
-		fin_material.albedo_color = Color("#173522")
-		fin_material.metallic = 0.72
-		fin_material.roughness = 0.24
-		fin.material_override = fin_material
-		scene.add_child(fin)
-
-		if i % 2 == 0:
-			var light_blade := MeshInstance3D.new()
-			var blade_mesh := BoxMesh.new()
-			blade_mesh.size = Vector3(0.025, 4.8, 0.025)
-			light_blade.mesh = blade_mesh
-			light_blade.position = Vector3(x + 0.16, 2.75, -2.99)
-			var blade_material := StandardMaterial3D.new()
-			blade_material.albedo_color = Color("#74d58d")
-			blade_material.emission_enabled = true
-			blade_material.emission = Color("#267c3c")
-			blade_material.emission_energy_multiplier = 0.65
-			light_blade.material_override = blade_material
-			scene.add_child(light_blade)
-
-	# A wide, low-profile luminous line gives the room a subtle horizon.
-	var horizon := MeshInstance3D.new()
-	var horizon_mesh := BoxMesh.new()
-	horizon_mesh.size = Vector3(13.0, 0.025, 0.035)
-	horizon.mesh = horizon_mesh
-	horizon.position = Vector3(0.0, 0.22, -2.92)
-	var horizon_material := StandardMaterial3D.new()
-	horizon_material.albedo_color = Color("#65c77c")
-	horizon_material.emission_enabled = true
-	horizon_material.emission = Color("#1c6530")
-	horizon_material.emission_energy_multiplier = 0.8
-	horizon.material_override = horizon_material
-	scene.add_child(horizon)
-
-	# Restrained floor inlays add perspective while keeping the centre uncluttered.
-	for i in range(7):
-		var line := MeshInstance3D.new()
-		var line_mesh := BoxMesh.new()
-		line_mesh.size = Vector3(0.014, 0.008, 8.0)
-		line.mesh = line_mesh
-		line.position = Vector3(-5.4 + float(i) * 1.8, -0.035, 1.25)
-		var line_material := StandardMaterial3D.new()
-		line_material.albedo_color = Color("#1d4a2a")
-		line_material.emission_enabled = true
-		line_material.emission = Color("#0b2412")
-		line_material.roughness = 0.3
-		line.material_override = line_material
-		scene.add_child(line)
-
-	return scene
-
 func _style_landing_command_button(button: Button, primary: bool) -> void:
 	# Landing menu controls remain visually still during hover, click and focus.
 	# Input continues to work; only the interaction highlight is removed.
@@ -658,12 +513,10 @@ func _begin_fresh_game() -> void:
 func _show_profile() -> void:
 	current_screen = "profile"
 	_clear_world()
-	landing_environment = _build_landing_showroom()
-	add_child(landing_environment)
 	var root := _new_screen()
 	root.modulate.a = 0.0
 
-	# Reuse the landing page's soft vignette and architectural emerald showroom.
+	# Keep the photographic background readable with a soft vignette.
 	var vignette := ColorRect.new()
 	vignette.name = "CompanySetupVignette"
 	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -2148,8 +2001,6 @@ func _show_create_scene() -> void:
 		return
 
 	_clear_world()
-	landing_environment = _build_landing_showroom()
-	add_child(landing_environment)
 
 	var root := _new_screen()
 	root.name = "CreateProductScreen"
@@ -2157,7 +2008,7 @@ func _show_create_scene() -> void:
 	create_ui_layer = ui_layer
 	create_ui_root = ui_root
 
-	# Keep the landing showroom as the only background treatment.
+	# Use the shared photographic background as the page backdrop.
 	var vignette := ColorRect.new()
 	vignette.name = "CreateProductVignette"
 	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -2303,14 +2154,12 @@ func _show_research_scene() -> void:
 		world_root.set_preview_active(false)
 
 	_clear_world()
-	landing_environment = _build_landing_showroom()
-	add_child(landing_environment)
 
 	var root := _new_screen()
 	root.name = "ResearchDevelopmentScreen"
 	root.modulate.a = 0.0
 
-	# Match the Create Product page: keep the showroom visible and avoid a
+	# Match the Create Product page: keep the photo visible and avoid a
 	# scrolling page or extra headings outside the research cards.
 	var vignette := ColorRect.new()
 	vignette.name = "ResearchDevelopmentVignette"
