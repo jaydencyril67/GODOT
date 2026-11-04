@@ -162,7 +162,7 @@ func _build_interface() -> void:
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 2
+	progress_bar.max_value = 3
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -331,60 +331,83 @@ func _update_preview_for_phone_type(phone_type: String) -> void:
 
 
 func _on_next_pressed() -> void:
-	if selected_phone_type.is_empty() or wizard_step != 0:
+	if selected_phone_type.is_empty():
 		return
-	_show_device_geometry_step()
+	if wizard_step == 0:
+		_show_thickness_step()
+	elif wizard_step == 1:
+		_show_border_radius_step()
 
 
-func _show_device_geometry_step() -> void:
+func _discard_panel(panel: Control) -> void:
+	if not is_instance_valid(panel):
+		return
+	var parent := panel.get_parent()
+	if is_instance_valid(parent):
+		parent.remove_child(panel)
+	panel.queue_free()
+
+
+func _mount_original_panel(method_name: String) -> Control:
+	phone_editor.call(method_name)
+	var panel := phone_editor.get("active_feature_panel") as Control
+	if not is_instance_valid(panel):
+		return null
+	var parent := panel.get_parent()
+	if is_instance_valid(parent):
+		parent.remove_child(panel)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	selection_stack.add_child(panel)
+	return panel
+
+
+func _show_thickness_step() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 	wizard_step = 1
 	type_step_content.hide()
-	for child in selection_stack.get_children():
-		if child != type_step_content:
-			child.queue_free()
-	# Build both panels with the original editor's own functions. Moving these
-	# exact control trees preserves the existing level ranges and live callbacks.
-	phone_editor.call("_show_thickness_controls")
-	thickness_panel = phone_editor.get("active_feature_panel") as Control
-	if is_instance_valid(thickness_panel):
-		var thickness_parent := thickness_panel.get_parent()
-		if is_instance_valid(thickness_parent):
-			thickness_parent.remove_child(thickness_panel)
-	phone_editor.call("_show_border_radius_controls")
-	border_radius_panel = phone_editor.get("active_feature_panel") as Control
-	if is_instance_valid(border_radius_panel):
-		var radius_parent := border_radius_panel.get_parent()
-		if is_instance_valid(radius_parent):
-			radius_parent.remove_child(border_radius_panel)
-	for panel in [thickness_panel, border_radius_panel]:
-		if not is_instance_valid(panel):
-			continue
-		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		selection_stack.add_child(panel)
-	progress_number.text = "STEP 2 / 2"
+	thickness_panel = _mount_original_panel("_show_thickness_controls")
+	progress_number.text = "STEP 2 / 3"
 	progress_bar.value = 2
+	wizard_back_button.disabled = false
+	next_button.disabled = false
+	selection_scroll.scroll_vertical = 0
+
+
+func _show_border_radius_step() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	_discard_panel(thickness_panel)
+	thickness_panel = null
+	wizard_step = 2
+	border_radius_panel = _mount_original_panel("_show_border_radius_controls")
+	progress_number.text = "STEP 3 / 3"
+	progress_bar.value = 3
 	wizard_back_button.disabled = false
 	next_button.disabled = true
 	selection_scroll.scroll_vertical = 0
 
 
 func _on_wizard_back_pressed() -> void:
-	if wizard_step != 1:
-		return
-	wizard_step = 0
-	for panel in [thickness_panel, border_radius_panel]:
-		if is_instance_valid(panel):
-			panel.queue_free()
-	thickness_panel = null
-	border_radius_panel = null
-	type_step_content.show()
-	progress_number.text = "STEP 1 / 2"
-	progress_bar.value = 1
-	wizard_back_button.disabled = true
-	next_button.disabled = selected_phone_type.is_empty()
+	if wizard_step == 2:
+		_discard_panel(border_radius_panel)
+		border_radius_panel = null
+		wizard_step = 1
+		thickness_panel = _mount_original_panel("_show_thickness_controls")
+		progress_number.text = "STEP 2 / 3"
+		progress_bar.value = 2
+		wizard_back_button.disabled = false
+		next_button.disabled = false
+	elif wizard_step == 1:
+		_discard_panel(thickness_panel)
+		thickness_panel = null
+		wizard_step = 0
+		type_step_content.show()
+		progress_number.text = "STEP 1 / 3"
+		progress_bar.value = 1
+		wizard_back_button.disabled = true
+		next_button.disabled = selected_phone_type.is_empty()
 	selection_scroll.scroll_vertical = 0
 
 
