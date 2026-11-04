@@ -427,255 +427,309 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 	module.add_child(sign)
 
 
-func _build_production_architecture(parent: Node3D, node_name: String, width: float, depth: float, height: float, level: int, wall: Material, roof: Material) -> void:
-	var front_z: float = depth * 0.405 + 0.13
-	_facility_box(parent, node_name + "_Production_Foundation", Vector3(width + 0.72, 0.24, depth + 0.72), Vector3(0.0, 0.12, 0.0), materials["concrete"])
-	_facility_box(parent, node_name + "_Industrial_High_Bay_Hall", Vector3(width, height, depth * 0.82), Vector3(0.0, height * 0.5 + 0.24, -depth * 0.055), wall)
-	_facility_box(parent, node_name + "_Industrial_Roof_Eave", Vector3(width + 0.28, 0.16, depth * 0.88), Vector3(0.0, height + 0.32, -depth * 0.055), roof)
-	# Twin sloped roof planes give the factory a workshop / production silhouette.
-	_facility_box(parent, node_name + "_North_Roof_Plane", Vector3(width * 0.52, 0.17, depth * 0.88), Vector3(-width * 0.245, height + 0.43, -depth * 0.055), roof, Vector3(0.0, 0.0, 9.0))
-	_facility_box(parent, node_name + "_South_Roof_Plane", Vector3(width * 0.52, 0.17, depth * 0.88), Vector3(width * 0.245, height + 0.43, -depth * 0.055), roof, Vector3(0.0, 0.0, -9.0))
-	_facility_box(parent, node_name + "_Loading_Bay_Frame", Vector3(width * 0.42, 2.62, 0.16), Vector3(0.0, 1.55, front_z), materials["dark_metal"])
-	_facility_box(parent, node_name + "_Roller_Shutter", Vector3(width * 0.385, 2.46, 0.055), Vector3(0.0, 1.54, front_z + 0.10), materials["workshop_shutter"])
-	for slat in range(8):
-		_facility_box(parent, node_name + "_Shutter_Horizontal_Slat", Vector3(width * 0.375, 0.035, 0.025), Vector3(0.0, 0.48 + float(slat) * 0.30, front_z + 0.14), materials["metal"])
-	_facility_box(parent, node_name + "_Staff_Entrance", Vector3(0.78, 2.18, 0.09), Vector3(-width * 0.39, 1.34, front_z + 0.08), materials["dark_metal"])
-	_facility_box(parent, node_name + "_Staff_Entrance_Glazing", Vector3(0.54, 1.48, 0.035), Vector3(-width * 0.39, 1.62, front_z + 0.14), materials["glass"])
-	for rib in range(5 + level):
-		var x: float = (float(rib) - float(4 + level) * 0.5) * (width / float(4 + level))
-		_facility_box(parent, node_name + "_Roof_Structural_Rib", Vector3(0.055, 0.075, depth * 0.84), Vector3(x, height + 0.57, -depth * 0.055), materials["metal"])
+func _facility_podium(parent: Node3D, node_name: String, width: float, depth: float) -> void:
+	_facility_box(parent, node_name + "_Site_Podium", Vector3(width + 0.52, 0.22, depth + 0.52), Vector3(0.0, 0.11, 0.0), materials["concrete"])
 
+
+func _facility_volume(parent: Node3D, node_name: String, size: Vector3, position: Vector3, wall: Material, roof: Material, glazed_front: bool = false) -> void:
+	_facility_box(parent, node_name + "_Primary_Mass", size, position, wall)
+	_facility_box(parent, node_name + "_Roof_Cap", Vector3(size.x + 0.24, 0.20, size.z + 0.24), position + Vector3(0.0, size.y * 0.5 + 0.10, 0.0), roof)
+	if glazed_front:
+		var glass_height: float = maxf(0.55, size.y * 0.58)
+		_facility_box(parent, node_name + "_Glazed_Facade", Vector3(size.x * 0.76, glass_height, 0.055), position + Vector3(0.0, 0.04, size.z * 0.5 + 0.075), materials["glass"])
+		for mullion in range(4):
+			var x: float = (float(mullion) - 1.5) * size.x * 0.19
+			_facility_box(parent, node_name + "_Facade_Mullion", Vector3(0.055, glass_height + 0.08, 0.07), position + Vector3(x, 0.04, size.z * 0.5 + 0.12), materials["metal"])
+
+
+func _facility_cylinder_volume(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, material: Material) -> void:
+	_facility_cylinder(parent, node_name, radius * 0.92, radius, height, position, material)
+	_facility_cylinder(parent, node_name + "_Roof_Rim", radius * 1.04, radius * 1.04, 0.16, position + Vector3(0.0, height * 0.5 + 0.08, 0.0), materials["dark_metal"])
+
+
+func _build_production_architecture(parent: Node3D, node_name: String, width: float, depth: float, height: float, level: int, wall: Material, roof: Material) -> void:
+	var front_z: float = depth * 0.5
+	var hall_y: float = height * 0.5 + 0.22
+	_facility_podium(parent, node_name + "_Production", width, depth)
 	match level:
 		1:
-			_facility_box(parent, node_name + "_Workshop_Roof_Lantern", Vector3(width * 0.34, 0.46, depth * 0.28), Vector3(0.0, height + 0.78, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Workshop_Roof_Lantern_Glass", Vector3(width * 0.29, 0.30, depth * 0.23), Vector3(0.0, height + 0.80, -depth * 0.08), materials["glass"])
+			parent.set_meta("structure_signature", "industrial-single-span-gable-workshop")
+			_facility_volume(parent, node_name + "_Industrial_Workshop", Vector3(width * 0.88, height, depth * 0.76), Vector3(0.0, hall_y, -depth * 0.04), wall, roof)
+			_facility_box(parent, node_name + "_Workshop_Roof_Lantern", Vector3(width * 0.34, 0.52, depth * 0.24), Vector3(0.0, height + 0.60, -depth * 0.04), materials["window_frame"])
+			_facility_box(parent, node_name + "_Lantern_Glazing", Vector3(width * 0.29, 0.34, depth * 0.20), Vector3(0.0, height + 0.62, -depth * 0.04), materials["glass"])
+			_facility_box(parent, node_name + "_West_Gable_Roof", Vector3(width * 0.48, 0.18, depth * 0.80), Vector3(-width * 0.22, height + 0.32, -depth * 0.04), roof, Vector3(0.0, 0.0, 9.0))
+			_facility_box(parent, node_name + "_East_Gable_Roof", Vector3(width * 0.48, 0.18, depth * 0.80), Vector3(width * 0.22, height + 0.32, -depth * 0.04), roof, Vector3(0.0, 0.0, -9.0))
 		2:
-			_facility_box(parent, node_name + "_Loading_Canopy", Vector3(width * 0.70, 0.17, 1.35), Vector3(0.0, 3.15, front_z + 0.62), materials["dark_metal"])
+			parent.set_meta("structure_signature", "offset-l-shaped-dual-bay-factory")
+			_facility_volume(parent, node_name + "_West_Long_Bay", Vector3(width * 0.50, height * 0.86, depth * 0.72), Vector3(-width * 0.22, height * 0.43 + 0.22, -depth * 0.12), wall, roof)
+			_facility_volume(parent, node_name + "_East_Transverse_Bay", Vector3(width * 0.62, height * 0.64, depth * 0.34), Vector3(width * 0.18, height * 0.32 + 0.22, depth * 0.27), materials["workshop_cladding"], roof)
+			_facility_box(parent, node_name + "_Loading_Canopy", Vector3(width * 0.58, 0.18, 1.35), Vector3(width * 0.17, 3.10, front_z + 0.62), materials["dark_metal"])
 			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Loading_Canopy_Support", Vector3(0.10, 1.15, 0.10), Vector3(side * width * 0.31, 2.56, front_z + 1.12), materials["metal"])
+				_facility_box(parent, node_name + "_Canopy_Support", Vector3(0.10, 1.12, 0.10), Vector3(width * 0.17 + side * width * 0.25, 2.52, front_z + 1.14), materials["metal"])
 		3:
-			_facility_box(parent, node_name + "_Raised_Clerestory", Vector3(width * 0.64, 0.72, depth * 0.37), Vector3(0.0, height + 0.80, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Raised_Clerestory_Glazing", Vector3(width * 0.59, 0.52, depth * 0.33), Vector3(0.0, height + 0.82, -depth * 0.08), materials["glass"])
+			parent.set_meta("structure_signature", "parallel-high-bay-halls-with-clerestory")
+			_facility_volume(parent, node_name + "_North_Assembly_Hall", Vector3(width * 0.88, height * 0.92, depth * 0.37), Vector3(0.0, height * 0.46 + 0.22, -depth * 0.27), wall, roof)
+			_facility_volume(parent, node_name + "_South_Assembly_Hall", Vector3(width * 0.62, height * 0.72, depth * 0.30), Vector3(-width * 0.12, height * 0.36 + 0.22, depth * 0.28), materials["workshop_cladding"], roof)
+			_facility_box(parent, node_name + "_Raised_Clerestory", Vector3(width * 0.46, 0.88, depth * 0.30), Vector3(width * 0.18, height + 0.68, -depth * 0.05), materials["window_frame"])
+			_facility_box(parent, node_name + "_Clerestory_Glazing", Vector3(width * 0.41, 0.62, depth * 0.25), Vector3(width * 0.18, height + 0.70, -depth * 0.05), materials["glass"])
 		4:
-			_facility_box(parent, node_name + "_Raised_Quality_Office", Vector3(width * 0.38, 1.42, depth * 0.38), Vector3(width * 0.29, height + 0.94, -depth * 0.12), materials["window_frame"])
-			_facility_box(parent, node_name + "_Quality_Office_Glazing", Vector3(width * 0.34, 1.12, depth * 0.34), Vector3(width * 0.29, height + 0.96, -depth * 0.12), materials["glass"])
+			parent.set_meta("structure_signature", "offset-main-hall-with-raised-quality-wing")
+			_facility_volume(parent, node_name + "_Main_Production_Hall", Vector3(width * 0.78, height, depth * 0.82), Vector3(-width * 0.08, hall_y, -depth * 0.04), wall, roof)
+			_facility_volume(parent, node_name + "_Raised_Quality_Office", Vector3(width * 0.36, 1.74, depth * 0.42), Vector3(width * 0.29, height + 0.99, -depth * 0.13), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_Quality_Office_Cantilever", Vector3(width * 0.43, 0.20, depth * 0.48), Vector3(width * 0.27, height + 0.12, -depth * 0.12), materials["metal"])
 		5:
-			for side in [-1.0, 0.0, 1.0]:
-				_facility_box(parent, node_name + "_Sawtooth_Roof_Monitor", Vector3(width * 0.25, 0.78, depth * 0.30), Vector3(side * width * 0.27, height + 0.88, -depth * 0.08), materials["window_frame"], Vector3(0.0, 0.0, side * -10.0))
-				_facility_box(parent, node_name + "_Sawtooth_Roof_Glazing", Vector3(width * 0.22, 0.48, depth * 0.27), Vector3(side * width * 0.27, height + 0.90, -depth * 0.08), materials["glass"])
+			parent.set_meta("structure_signature", "three-bay-sawtooth-manufacturing-shed")
+			for bay in range(3):
+				var x: float = (float(bay) - 1.0) * width * 0.30
+				_facility_volume(parent, node_name + "_Sawtooth_Bay", Vector3(width * 0.28, height * (0.90 - float(bay) * 0.035), depth * 0.78), Vector3(x, height * (0.90 - float(bay) * 0.035) * 0.5 + 0.22, -depth * 0.04), wall, roof)
+				_facility_box(parent, node_name + "_Sawtooth_Roof_Monitor", Vector3(width * 0.22, 0.78, depth * 0.22), Vector3(x, height + 0.55, -depth * 0.06), materials["window_frame"])
+				_facility_box(parent, node_name + "_Sawtooth_Glazing", Vector3(width * 0.18, 0.49, depth * 0.18), Vector3(x, height + 0.57, -depth * 0.06), materials["glass"])
 		6:
-			_facility_box(parent, node_name + "_Process_Service_Tower", Vector3(width * 0.23, 2.80, depth * 0.28), Vector3(width * 0.34, height + 1.36, -depth * 0.18), materials["window_frame"])
-			for tier in range(4):
-				_facility_box(parent, node_name + "_Process_Tower_Window", Vector3(width * 0.17, 0.14, 0.05), Vector3(width * 0.34, height + 0.42 + float(tier) * 0.66, -depth * 0.025), materials["glass"])
-			_facility_box(parent, node_name + "_Secondary_Assembly_Hall", Vector3(width * 0.34, height * 0.62, depth * 0.48), Vector3(-width * 0.34, height * 0.31 + 0.24, -depth * 0.12), wall)
+			parent.set_meta("structure_signature", "vertical-process-tower-and-cross-hall")
+			_facility_volume(parent, node_name + "_Process_High_Bay", Vector3(width * 0.64, height * 0.78, depth * 0.80), Vector3(-width * 0.15, height * 0.39 + 0.22, -depth * 0.04), wall, roof)
+			_facility_volume(parent, node_name + "_Process_Service_Tower", Vector3(width * 0.26, height * 0.92, depth * 0.32), Vector3(width * 0.31, height * 0.46 + 0.22, -depth * 0.12), materials["window_frame"], roof)
+			_facility_box(parent, node_name + "_Tower_Glazing", Vector3(width * 0.22, height * 0.70, 0.06), Vector3(width * 0.31, height * 0.48 + 0.22, depth * 0.055), materials["glass"])
+			_facility_volume(parent, node_name + "_Cross_Assembly_Wing", Vector3(width * 0.34, height * 0.58, depth * 0.38), Vector3(width * 0.27, height * 0.29 + 0.22, depth * 0.28), materials["workshop_cladding"], roof)
 		7:
-			_facility_box(parent, node_name + "_Automation_Mezzanine", Vector3(width * 0.72, 1.26, depth * 0.42), Vector3(-width * 0.08, height + 0.78, -depth * 0.12), materials["window_frame"])
-			_facility_box(parent, node_name + "_Automation_Mezzanine_Glazing", Vector3(width * 0.66, 0.90, depth * 0.37), Vector3(-width * 0.08, height + 0.80, -depth * 0.12), materials["glass"])
-			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Mezzanine_Support", Vector3(0.16, 1.05, 0.18), Vector3(-width * 0.08 + side * width * 0.29, height + 0.40, -depth * 0.12), materials["metal"])
+			parent.set_meta("structure_signature", "u-shaped-automation-campus")
+			_facility_volume(parent, node_name + "_West_Automation_Wing", Vector3(width * 0.24, height * 0.88, depth * 0.84), Vector3(-width * 0.35, height * 0.44 + 0.22, 0.0), wall, roof)
+			_facility_volume(parent, node_name + "_East_Automation_Wing", Vector3(width * 0.24, height * 0.76, depth * 0.84), Vector3(width * 0.35, height * 0.38 + 0.22, 0.0), materials["workshop_cladding"], roof)
+			_facility_volume(parent, node_name + "_Rear_Automation_Wing", Vector3(width * 0.58, height * 0.66, depth * 0.24), Vector3(0.0, height * 0.33 + 0.22, -depth * 0.34), wall, roof)
+			_facility_box(parent, node_name + "_Automation_Mezzanine", Vector3(width * 0.46, 1.42, depth * 0.25), Vector3(0.0, height + 0.85, -depth * 0.27), materials["window_frame"])
+			_facility_box(parent, node_name + "_Mezzanine_Glazing", Vector3(width * 0.41, 1.08, depth * 0.21), Vector3(0.0, height + 0.87, -depth * 0.27), materials["glass"])
 		8:
-			_facility_box(parent, node_name + "_Upper_Automation_Hall", Vector3(width * 0.66, 1.78, depth * 0.56), Vector3(width * 0.16, height + 1.04, -depth * 0.12), wall)
-			_facility_box(parent, node_name + "_Upper_Hall_Glass_Band", Vector3(width * 0.58, 0.38, 0.06), Vector3(width * 0.16, height + 1.08, depth * 0.17), materials["glass"])
-			_facility_box(parent, node_name + "_Overhead_Crane_Gantry", Vector3(width * 0.78, 0.18, 0.24), Vector3(-width * 0.02, height + 2.06, -depth * 0.10), materials["metal"])
+			parent.set_meta("structure_signature", "stacked-offset-dual-automation-halls")
+			_facility_volume(parent, node_name + "_Lower_West_Hall", Vector3(width * 0.48, height * 0.82, depth * 0.82), Vector3(-width * 0.23, height * 0.41 + 0.22, -depth * 0.04), wall, roof)
+			_facility_volume(parent, node_name + "_Lower_East_Hall", Vector3(width * 0.38, height * 0.68, depth * 0.66), Vector3(width * 0.27, height * 0.34 + 0.22, depth * 0.10), materials["workshop_cladding"], roof)
+			_facility_volume(parent, node_name + "_Upper_Automation_Hall", Vector3(width * 0.68, 1.84, depth * 0.46), Vector3(width * 0.10, height + 1.08, -depth * 0.19), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_Upper_Hall_Transfer_Gantry", Vector3(width * 0.76, 0.24, depth * 0.18), Vector3(-width * 0.06, height + 2.08, -depth * 0.18), materials["metal"])
 		9:
+			parent.set_meta("structure_signature", "twin-process-towers-and-linked-halls")
 			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Twin_Process_Housing", Vector3(width * 0.24, 1.62, depth * 0.34), Vector3(side * width * 0.28, height + 0.98, -depth * 0.12), materials["window_frame"])
-				_facility_cylinder(parent, node_name + "_Twin_Process_Exhaust", 0.22, 0.30, 2.0, Vector3(side * width * 0.28, height + 2.78, -depth * 0.12), materials["metal"])
-			_facility_box(parent, node_name + "_Twin_Hall_Connector", Vector3(width * 0.72, 0.48, depth * 0.26), Vector3(0.0, height + 0.76, -depth * 0.28), materials["dark_metal"])
+				_facility_volume(parent, node_name + "_Twin_Process_Housing", Vector3(width * 0.30, height * 0.82, depth * 0.58), Vector3(side * width * 0.29, height * 0.41 + 0.22, -depth * 0.14), materials["window_frame"], roof)
+				_facility_volume(parent, node_name + "_Outer_Production_Hall", Vector3(width * 0.24, height * 0.58, depth * 0.50), Vector3(side * width * 0.36, height * 0.29 + 0.22, depth * 0.26), wall, roof)
+				_facility_cylinder(parent, node_name + "_Process_Exhaust", 0.22, 0.30, 2.30, Vector3(side * width * 0.29, height + 1.36, -depth * 0.14), materials["metal"])
+			_facility_volume(parent, node_name + "_Central_Transfer_Bridge", Vector3(width * 0.38, 0.68, depth * 0.28), Vector3(0.0, height * 0.69, -depth * 0.12), materials["dark_metal"], roof)
 		10:
-			_facility_box(parent, node_name + "_Flagship_Glazed_Office", Vector3(width * 0.38, 2.05, depth * 0.52), Vector3(-width * 0.24, height + 1.10, -depth * 0.10), materials["window_frame"])
-			_facility_box(parent, node_name + "_Flagship_Office_Glass", Vector3(width * 0.34, 1.68, depth * 0.47), Vector3(-width * 0.24, height + 1.12, -depth * 0.10), materials["glass"])
-			_facility_box(parent, node_name + "_High_Bay_Monitor", Vector3(width * 0.25, 1.45, depth * 0.35), Vector3(width * 0.28, height + 0.90, -depth * 0.12), materials["window_frame"])
-			_facility_box(parent, node_name + "_Flagship_Loading_Canopy", Vector3(width * 0.66, 0.20, 1.45), Vector3(0.0, 3.48, front_z + 0.62), materials["metal"])
-			_facility_box(parent, node_name + "_Flagship_Assembly_Wing", Vector3(width * 0.30, height * 0.76, depth * 0.48), Vector3(-width * 0.35, height * 0.38 + 0.24, -depth * 0.12), wall)
+			parent.set_meta("structure_signature", "flagship-multi-hall-industrial-campus")
+			_facility_volume(parent, node_name + "_Flagship_Central_High_Bay", Vector3(width * 0.54, height, depth * 0.64), Vector3(0.0, hall_y, -depth * 0.10), wall, roof)
+			_facility_volume(parent, node_name + "_Flagship_West_Assembly_Hall", Vector3(width * 0.25, height * 0.76, depth * 0.74), Vector3(-width * 0.36, height * 0.38 + 0.22, -depth * 0.02), materials["workshop_cladding"], roof)
+			_facility_volume(parent, node_name + "_Flagship_East_Automation_Hall", Vector3(width * 0.25, height * 0.82, depth * 0.72), Vector3(width * 0.36, height * 0.41 + 0.22, -depth * 0.02), wall, roof)
+			_facility_volume(parent, node_name + "_Flagship_Glazed_Office", Vector3(width * 0.34, 2.25, depth * 0.36), Vector3(-width * 0.18, height + 1.30, -depth * 0.24), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_Flagship_Overhead_Transfer", Vector3(width * 0.68, 0.54, depth * 0.28), Vector3(0.0, height + 0.72, -depth * 0.24), materials["dark_metal"])
 
 
 func _build_research_architecture(parent: Node3D, node_name: String, width: float, depth: float, height: float, level: int, wall: Material, roof: Material) -> void:
-	var front_z: float = depth * 0.5 + 0.12
-	_facility_box(parent, node_name + "_Research_Plinth", Vector3(width + 0.72, 0.26, depth + 0.72), Vector3(0.0, 0.13, 0.0), materials["concrete"])
-	_facility_box(parent, node_name + "_Laboratory_Base", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.26, 0.0), wall)
-	_facility_box(parent, node_name + "_Laboratory_Roof_Plate", Vector3(width + 0.34, 0.18, depth + 0.34), Vector3(0.0, height + 0.35, 0.0), roof)
-	# The lab's primary elevation is a framed curtain wall, not the factory shutter facade.
-	_facility_box(parent, node_name + "_Research_Curtain_Wall_Frame", Vector3(width * 0.82, height * 0.66, 0.13), Vector3(0.0, height * 0.57 + 0.22, front_z), materials["window_frame"])
-	_facility_box(parent, node_name + "_Research_Curtain_Wall_Glass", Vector3(width * 0.78, height * 0.62, 0.055), Vector3(0.0, height * 0.57 + 0.22, front_z + 0.08), materials["glass"])
-	for mullion in range(5):
-		var x: float = (float(mullion) - 2.0) * width * 0.155
-		_facility_box(parent, node_name + "_Curtain_Wall_Mullion", Vector3(0.055, height * 0.63, 0.07), Vector3(x, height * 0.57 + 0.22, front_z + 0.13), materials["metal"])
-	for side in [-1.0, 1.0]:
-		_facility_box(parent, node_name + "_Laboratory_Sunshade_Fin", Vector3(0.18, height + 0.18, 0.26), Vector3(side * width * 0.46, height * 0.50 + 0.25, front_z + 0.02), materials["metal"])
-	_facility_box(parent, node_name + "_Glass_Entry", Vector3(1.08, 2.30, 0.075), Vector3(0.0, 1.42, front_z + 0.17), materials["glass"])
-	_facility_box(parent, node_name + "_Research_Entrance_Canopy", Vector3(width * 0.38, 0.15, 1.12), Vector3(0.0, 2.75, front_z + 0.58), materials["metal"])
-
+	_facility_podium(parent, node_name + "_Research", width, depth)
 	match level:
 		1:
-			_facility_box(parent, node_name + "_Lab_Roof_Lantern", Vector3(width * 0.28, 0.56, depth * 0.26), Vector3(0.0, height + 0.67, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Lab_Roof_Lantern_Glass", Vector3(width * 0.23, 0.39, depth * 0.21), Vector3(0.0, height + 0.70, -depth * 0.08), materials["glass"])
+			parent.set_meta("structure_signature", "compact-research-pavilion-with-roof-lantern")
+			_facility_volume(parent, node_name + "_Research_Pavilion", Vector3(width * 0.76, height, depth * 0.72), Vector3(0.0, height * 0.5 + 0.22, 0.0), wall, roof, true)
+			_facility_box(parent, node_name + "_Lab_Roof_Lantern", Vector3(width * 0.30, 0.66, depth * 0.30), Vector3(0.0, height + 0.54, -depth * 0.04), materials["window_frame"])
+			_facility_box(parent, node_name + "_Lantern_Glazing", Vector3(width * 0.25, 0.45, depth * 0.25), Vector3(0.0, height + 0.56, -depth * 0.04), materials["glass"])
 		2:
-			_facility_box(parent, node_name + "_Glass_Entry_Vestibule", Vector3(width * 0.42, 1.70, 1.22), Vector3(0.0, 0.98, front_z + 0.62), materials["glass"])
-			_facility_box(parent, node_name + "_Vestibule_Canopy", Vector3(width * 0.54, 0.16, 1.48), Vector3(0.0, 1.92, front_z + 0.70), materials["metal"])
+			parent.set_meta("structure_signature", "l-shaped-laboratory-with-entry-court")
+			_facility_volume(parent, node_name + "_North_Laboratory_Wing", Vector3(width * 0.82, height * 0.78, depth * 0.34), Vector3(0.0, height * 0.39 + 0.22, -depth * 0.30), wall, roof, true)
+			_facility_volume(parent, node_name + "_West_Laboratory_Wing", Vector3(width * 0.30, height * 0.62, depth * 0.54), Vector3(-width * 0.34, height * 0.31 + 0.22, depth * 0.08), materials["concrete"], roof, true)
+			_facility_box(parent, node_name + "_Glass_Entry_Vestibule", Vector3(width * 0.27, 1.92, 1.22), Vector3(width * 0.10, 1.10, depth * 0.45), materials["glass"])
+			_facility_box(parent, node_name + "_Vestibule_Canopy", Vector3(width * 0.40, 0.16, 1.48), Vector3(width * 0.10, 2.08, depth * 0.51), materials["metal"])
 		3:
-			_facility_box(parent, node_name + "_Central_Glass_Atrium", Vector3(width * 0.38, 1.84, depth * 0.44), Vector3(0.0, height + 0.98, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Atrium_Glazing", Vector3(width * 0.33, 1.56, depth * 0.40), Vector3(0.0, height + 1.00, -depth * 0.08), materials["glass"])
-			_facility_box(parent, node_name + "_Atrium_Roof_Light", Vector3(width * 0.42, 0.12, depth * 0.48), Vector3(0.0, height + 1.94, -depth * 0.08), materials["metal"])
+			parent.set_meta("structure_signature", "u-shaped-laboratory-around-glass-atrium")
+			_facility_volume(parent, node_name + "_West_Lab_Wing", Vector3(width * 0.25, height * 0.88, depth * 0.84), Vector3(-width * 0.35, height * 0.44 + 0.22, 0.0), wall, roof, true)
+			_facility_volume(parent, node_name + "_East_Lab_Wing", Vector3(width * 0.25, height * 0.76, depth * 0.84), Vector3(width * 0.35, height * 0.38 + 0.22, 0.0), materials["concrete"], roof, true)
+			_facility_volume(parent, node_name + "_Rear_Lab_Wing", Vector3(width * 0.54, height * 0.68, depth * 0.24), Vector3(0.0, height * 0.34 + 0.22, -depth * 0.34), wall, roof, true)
+			_facility_box(parent, node_name + "_Central_Glass_Atrium", Vector3(width * 0.34, 1.90, depth * 0.30), Vector3(0.0, height + 0.98, -depth * 0.18), materials["window_frame"])
+			_facility_box(parent, node_name + "_Atrium_Glazing", Vector3(width * 0.29, 1.62, depth * 0.26), Vector3(0.0, height + 1.00, -depth * 0.18), materials["glass"])
 		4:
-			_facility_box(parent, node_name + "_Corner_Research_Tower", Vector3(width * 0.28, 2.55, depth * 0.34), Vector3(-width * 0.31, height + 1.34, -depth * 0.18), materials["window_frame"])
-			_facility_box(parent, node_name + "_Corner_Tower_Glass", Vector3(width * 0.24, 2.25, depth * 0.30), Vector3(-width * 0.31, height + 1.36, -depth * 0.18), materials["glass"])
+			parent.set_meta("structure_signature", "asymmetric-lab-with-corner-research-tower")
+			_facility_volume(parent, node_name + "_Main_Lab_Block", Vector3(width * 0.68, height, depth * 0.78), Vector3(-width * 0.10, height * 0.5 + 0.22, 0.0), wall, roof, true)
+			_facility_volume(parent, node_name + "_Corner_Research_Tower", Vector3(width * 0.30, 3.10, depth * 0.34), Vector3(width * 0.30, height + 1.70, -depth * 0.20), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_Tower_Crown", Vector3(width * 0.34, 0.18, depth * 0.38), Vector3(width * 0.30, height + 3.32, -depth * 0.20), materials["metal"])
 		5:
-			_facility_box(parent, node_name + "_Cantilevered_Upper_Lab", Vector3(width * 0.74, 1.48, depth * 0.56), Vector3(width * 0.12, height + 0.94, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Cantilever_Glass_Band", Vector3(width * 0.68, 1.10, 0.06), Vector3(width * 0.12, height + 0.96, depth * 0.21), materials["glass"])
-			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Cantilever_Support", Vector3(0.16, 0.92, 0.18), Vector3(width * 0.12 + side * width * 0.28, height + 0.47, -depth * 0.08), materials["metal"])
+			parent.set_meta("structure_signature", "cross-shaped-research-institute")
+			_facility_volume(parent, node_name + "_North_Research_Wing", Vector3(width * 0.44, height * 0.82, depth * 0.43), Vector3(0.0, height * 0.41 + 0.22, -depth * 0.27), wall, roof, true)
+			_facility_volume(parent, node_name + "_South_Research_Wing", Vector3(width * 0.44, height * 0.72, depth * 0.43), Vector3(0.0, height * 0.36 + 0.22, depth * 0.27), materials["concrete"], roof, true)
+			_facility_volume(parent, node_name + "_East_Research_Wing", Vector3(width * 0.38, height * 0.76, depth * 0.28), Vector3(width * 0.30, height * 0.38 + 0.22, 0.0), materials["window_frame"], roof, true)
+			_facility_volume(parent, node_name + "_West_Research_Wing", Vector3(width * 0.38, height * 0.70, depth * 0.28), Vector3(-width * 0.30, height * 0.35 + 0.22, 0.0), wall, roof, true)
+			_facility_box(parent, node_name + "_Cantilevered_Upper_Lab", Vector3(width * 0.44, 1.58, depth * 0.32), Vector3(width * 0.12, height + 0.98, -depth * 0.06), materials["window_frame"])
+			_facility_box(parent, node_name + "_Cantilever_Glass_Band", Vector3(width * 0.40, 1.18, 0.06), Vector3(width * 0.12, height + 1.00, depth * 0.11), materials["glass"])
 		6:
-			_facility_box(parent, node_name + "_North_Lab_Wing", Vector3(width * 0.34, 1.70, depth * 0.54), Vector3(-width * 0.31, height + 0.88, -depth * 0.12), materials["concrete"])
-			_facility_box(parent, node_name + "_South_Lab_Wing", Vector3(width * 0.36, 1.42, depth * 0.46), Vector3(width * 0.31, height + 0.74, depth * 0.06), materials["window_frame"])
-			_facility_box(parent, node_name + "_South_Wing_Glazing", Vector3(width * 0.32, 1.12, 0.06), Vector3(width * 0.31, height + 0.76, depth * 0.30), materials["glass"])
+			parent.set_meta("structure_signature", "twin-laboratory-pavilions-with-link")
+			_facility_volume(parent, node_name + "_North_Lab_Wing", Vector3(width * 0.42, height * 0.90, depth * 0.64), Vector3(-width * 0.25, height * 0.45 + 0.22, -depth * 0.08), wall, roof, true)
+			_facility_volume(parent, node_name + "_South_Lab_Wing", Vector3(width * 0.42, height * 0.78, depth * 0.64), Vector3(width * 0.25, height * 0.39 + 0.22, depth * 0.08), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_North_South_Lab_Connector", Vector3(width * 0.42, 0.88, depth * 0.20), Vector3(0.0, height + 0.56, 0.0), materials["glass"])
 		7:
-			_facility_box(parent, node_name + "_Glazed_Upper_Lab", Vector3(width * 0.78, 1.20, depth * 0.46), Vector3(0.0, height + 0.82, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Upper_Lab_Glass_Envelope", Vector3(width * 0.73, 0.96, depth * 0.41), Vector3(0.0, height + 0.84, -depth * 0.08), materials["glass"])
+			parent.set_meta("structure_signature", "circular-glass-research-rotunda-and-wings")
+			_facility_volume(parent, node_name + "_West_Research_Wing", Vector3(width * 0.32, height * 0.78, depth * 0.48), Vector3(-width * 0.30, height * 0.39 + 0.22, 0.0), wall, roof, true)
+			_facility_volume(parent, node_name + "_East_Research_Wing", Vector3(width * 0.32, height * 0.86, depth * 0.48), Vector3(width * 0.30, height * 0.43 + 0.22, 0.0), materials["concrete"], roof, true)
+			_facility_cylinder_volume(parent, node_name + "_Research_Rotunda", width * 0.22, height + 1.18, Vector3(0.0, (height + 1.18) * 0.5 + 0.22, -depth * 0.10), materials["glass"])
 			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Atrium_Shading_Fin", Vector3(0.14, height + 1.0, 0.24), Vector3(side * width * 0.44, height * 0.50 + 0.70, front_z + 0.15), materials["metal"])
+				_facility_box(parent, node_name + "_Rotunda_Entry_Portal", Vector3(0.16, height * 0.70, 0.28), Vector3(side * width * 0.19, height * 0.35 + 0.22, depth * 0.12), materials["metal"])
+			_facility_box(parent, node_name + "_Glazed_Upper_Lab", Vector3(width * 0.46, 0.92, depth * 0.24), Vector3(0.0, height + 1.18, -depth * 0.34), materials["window_frame"])
 		8:
-			_facility_box(parent, node_name + "_Elevated_Research_Bridge", Vector3(width * 0.76, 0.96, depth * 0.32), Vector3(0.0, height + 0.86, -depth * 0.22), materials["window_frame"])
-			_facility_box(parent, node_name + "_Bridge_Glazing", Vector3(width * 0.70, 0.66, 0.06), Vector3(0.0, height + 0.88, -depth * 0.04), materials["glass"])
-			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Bridge_Support_Pier", Vector3(0.24, height + 0.72, 0.30), Vector3(side * width * 0.36, (height + 0.72) * 0.5 + 0.26, -depth * 0.22), materials["concrete"])
+			parent.set_meta("structure_signature", "twin-towers-and-elevated-laboratory-bridge")
+			_facility_volume(parent, node_name + "_West_Lab_Tower", Vector3(width * 0.30, height * 0.96, depth * 0.60), Vector3(-width * 0.30, height * 0.48 + 0.22, 0.0), materials["window_frame"], roof, true)
+			_facility_volume(parent, node_name + "_East_Lab_Tower", Vector3(width * 0.30, height * 0.84, depth * 0.60), Vector3(width * 0.30, height * 0.42 + 0.22, 0.0), wall, roof, true)
+			_facility_volume(parent, node_name + "_Elevated_Research_Bridge", Vector3(width * 0.48, 1.08, depth * 0.25), Vector3(0.0, height * 0.80, -depth * 0.12), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_Bridge_Glazing", Vector3(width * 0.43, 0.76, 0.055), Vector3(0.0, height * 0.80, depth * 0.02), materials["glass"])
 		9:
-			_facility_box(parent, node_name + "_Research_Tower", Vector3(width * 0.44, 2.75, depth * 0.48), Vector3(width * 0.22, height + 1.44, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Tower_Full_Glazing", Vector3(width * 0.39, 2.38, depth * 0.43), Vector3(width * 0.22, height + 1.46, -depth * 0.08), materials["glass"])
-			_facility_box(parent, node_name + "_Tower_Crown", Vector3(width * 0.48, 0.16, depth * 0.52), Vector3(width * 0.22, height + 2.86, -depth * 0.08), materials["metal"])
+			parent.set_meta("structure_signature", "three-research-pavilions-around-atrium")
+			_facility_volume(parent, node_name + "_West_Research_Pavilion", Vector3(width * 0.29, height * 0.80, depth * 0.68), Vector3(-width * 0.32, height * 0.40 + 0.22, 0.0), wall, roof, true)
+			_facility_volume(parent, node_name + "_East_Research_Pavilion", Vector3(width * 0.29, height * 0.88, depth * 0.68), Vector3(width * 0.32, height * 0.44 + 0.22, 0.0), materials["window_frame"], roof, true)
+			_facility_volume(parent, node_name + "_Rear_Research_Pavilion", Vector3(width * 0.52, height * 0.68, depth * 0.23), Vector3(0.0, height * 0.34 + 0.22, -depth * 0.36), materials["concrete"], roof, true)
+			_facility_cylinder_volume(parent, node_name + "_Atrium_Tower", width * 0.15, height + 2.20, Vector3(0.0, (height + 2.20) * 0.5 + 0.22, -depth * 0.05), materials["glass"])
+			_facility_box(parent, node_name + "_Research_Tower", Vector3(width * 0.25, 2.65, depth * 0.30), Vector3(width * 0.20, height + 1.55, -depth * 0.17), materials["window_frame"])
 		10:
-			_facility_box(parent, node_name + "_Signature_Atrium", Vector3(width * 0.34, 3.15, depth * 0.46), Vector3(0.0, height + 1.62, -depth * 0.06), materials["window_frame"])
-			_facility_box(parent, node_name + "_Signature_Atrium_Glass", Vector3(width * 0.30, 2.78, depth * 0.42), Vector3(0.0, height + 1.64, -depth * 0.06), materials["glass"])
-			_facility_box(parent, node_name + "_Research_East_Wing", Vector3(width * 0.30, 1.62, depth * 0.50), Vector3(width * 0.34, height + 0.86, -depth * 0.06), materials["concrete"])
-			_facility_box(parent, node_name + "_Research_West_Wing", Vector3(width * 0.32, 2.04, depth * 0.42), Vector3(-width * 0.34, height + 1.08, -depth * 0.10), materials["window_frame"])
-			_facility_box(parent, node_name + "_West_Wing_Glazing", Vector3(width * 0.27, 1.66, 0.06), Vector3(-width * 0.34, height + 1.10, depth * 0.12), materials["glass"])
+			parent.set_meta("structure_signature", "flagship-research-institute-with-triple-wings")
+			_facility_volume(parent, node_name + "_Central_Research_Podium", Vector3(width * 0.70, height * 0.82, depth * 0.76), Vector3(0.0, height * 0.41 + 0.22, 0.0), wall, roof, true)
+			_facility_volume(parent, node_name + "_Research_East_Wing", Vector3(width * 0.28, height * 0.68, depth * 0.74), Vector3(width * 0.36, height * 0.34 + 0.22, 0.0), materials["concrete"], roof, true)
+			_facility_volume(parent, node_name + "_Research_West_Wing", Vector3(width * 0.28, height * 0.94, depth * 0.66), Vector3(-width * 0.36, height * 0.47 + 0.22, 0.0), materials["window_frame"], roof, true)
+			_facility_cylinder_volume(parent, node_name + "_Signature_Atrium", width * 0.18, height + 2.72, Vector3(0.0, (height + 2.72) * 0.5 + 0.22, -depth * 0.12), materials["glass"])
+			_facility_box(parent, node_name + "_Flagship_East_Lab_Bridge", Vector3(width * 0.56, 0.72, depth * 0.22), Vector3(0.0, height + 0.78, -depth * 0.08), materials["window_frame"])
 
 
 func _build_utilities_architecture(parent: Node3D, node_name: String, width: float, depth: float, height: float, level: int, wall: Material, roof: Material) -> void:
-	# Utilities are an equipment campus: switchgear, vessels, pipework and stacks.
-	# They deliberately do not use the office / factory rectangular building shell.
-	_facility_box(parent, node_name + "_Plant_Service_Yard", Vector3(width + 0.82, 0.22, depth + 0.82), Vector3(0.0, 0.11, 0.0), materials["concrete"])
-	var control_width: float = width * 0.48
-	var control_depth: float = depth * 0.60
-	var control_height: float = height * 0.68
-	_facility_box(parent, node_name + "_Plant_Control_Enclosure", Vector3(control_width, control_height, control_depth), Vector3(-width * 0.20, control_height * 0.5 + 0.22, -depth * 0.04), wall)
-	_facility_box(parent, node_name + "_Control_Enclosure_Roof", Vector3(control_width + 0.24, 0.16, control_depth + 0.24), Vector3(-width * 0.20, control_height + 0.31, -depth * 0.04), roof)
-	_facility_box(parent, node_name + "_Generator_Housing", Vector3(width * 0.26, height * 0.46, depth * 0.40), Vector3(width * 0.29, height * 0.23 + 0.22, -depth * 0.10), materials["dark_metal"])
-	for louvre in range(5):
-		var y: float = 0.65 + float(louvre) * 0.28
-		_facility_box(parent, node_name + "_Control_Room_Louvre", Vector3(0.07, 0.12, control_depth * 0.66), Vector3(-width * 0.20 + control_width * 0.50 + 0.06, y, -depth * 0.04), materials["dark_metal"])
-	for side in [-1.0, 1.0]:
-		_facility_box(parent, node_name + "_Pipe_Rack_Stanchion", Vector3(0.12, height * 0.52, 0.12), Vector3(side * width * 0.38, height * 0.26 + 0.22, -depth * 0.18), materials["metal"])
-	_facility_box(parent, node_name + "_Pipe_Rack_Crossbeam", Vector3(width * 0.78, 0.13, 0.15), Vector3(0.0, height * 0.54 + 0.22, -depth * 0.18), materials["metal"])
-	var service_pipe := _facility_cylinder(parent, node_name + "_Primary_Service_Pipe", 0.10, 0.10, width * 0.72, Vector3(0.0, height * 0.40 + 0.22, depth * 0.20), materials["metal"])
-	service_pipe.rotation_degrees.z = 90.0
-
+	_facility_podium(parent, node_name + "_Utilities", width, depth)
 	match level:
 		1:
-			_facility_box(parent, node_name + "_Exhaust_Hood", Vector3(width * 0.28, 0.30, depth * 0.25), Vector3(-width * 0.20, control_height + 0.52, -depth * 0.04), materials["metal"])
-			_facility_cylinder(parent, node_name + "_Roof_Extraction_Fan", 0.24, 0.30, 0.42, Vector3(width * 0.28, height * 0.55 + 0.35, -depth * 0.10), materials["dark_metal"])
+			parent.set_meta("structure_signature", "compact-utility-shed-and-extraction-stack")
+			_facility_volume(parent, node_name + "_Utility_Shed", Vector3(width * 0.64, height * 0.82, depth * 0.68), Vector3(-width * 0.12, height * 0.41 + 0.22, 0.0), wall, roof)
+			_facility_box(parent, node_name + "_Exhaust_Hood", Vector3(width * 0.30, 0.36, depth * 0.30), Vector3(-width * 0.12, height * 0.88 + 0.30, -depth * 0.06), materials["metal"])
+			_facility_cylinder(parent, node_name + "_Roof_Extraction_Fan", 0.24, 0.30, 0.50, Vector3(width * 0.24, height * 0.55 + 0.42, -depth * 0.10), materials["dark_metal"])
 		2:
+			parent.set_meta("structure_signature", "open-switchgear-yard-with-control-cabinets")
+			_facility_volume(parent, node_name + "_Switchgear_Control_Cabin", Vector3(width * 0.40, height * 0.72, depth * 0.48), Vector3(-width * 0.24, height * 0.36 + 0.22, -depth * 0.13), wall, roof)
 			for unit in range(3):
-				var x: float = -width * 0.24 + float(unit) * width * 0.24
-				_facility_box(parent, node_name + "_Switchgear_Cabinet", Vector3(width * 0.17, 1.35, depth * 0.26), Vector3(x, 0.90, depth * 0.31), materials["metal"])
-				_facility_box(parent, node_name + "_Switchgear_Door", Vector3(width * 0.13, 0.95, 0.045), Vector3(x, 0.93, depth * 0.45), materials["dark_metal"])
+				var x: float = -width * 0.05 + float(unit) * width * 0.24
+				_facility_box(parent, node_name + "_Switchgear_Cabinet", Vector3(width * 0.17, 1.52, depth * 0.32), Vector3(x, 0.98, depth * 0.22), materials["metal"])
+				_facility_box(parent, node_name + "_Switchgear_Door", Vector3(width * 0.14, 1.18, 0.05), Vector3(x, 1.00, depth * 0.39), materials["dark_metal"])
 		3:
+			parent.set_meta("structure_signature", "transformer-court-with-paired-electrical-bays")
 			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Outdoor_Transformer", Vector3(width * 0.25, 1.42, depth * 0.33), Vector3(side * width * 0.27, 0.92, depth * 0.25), materials["metal"])
+				_facility_volume(parent, node_name + "_Transformer_Bay", Vector3(width * 0.36, height * 0.64, depth * 0.56), Vector3(side * width * 0.26, height * 0.32 + 0.22, -depth * 0.07), wall, roof)
+				_facility_box(parent, node_name + "_Outdoor_Transformer", Vector3(width * 0.27, 1.58, depth * 0.34), Vector3(side * width * 0.26, 0.98, depth * 0.28), materials["metal"])
 				for fin in range(5):
-					_facility_box(parent, node_name + "_Transformer_Cooling_Fin", Vector3(0.055, 1.12, 0.045), Vector3(side * width * 0.27 + (float(fin) - 2.0) * 0.15, 0.92, depth * 0.43), materials["dark_metal"])
+					_facility_box(parent, node_name + "_Transformer_Cooling_Fin", Vector3(0.06, 1.22, 0.05), Vector3(side * width * 0.26 + (float(fin) - 2.0) * 0.16, 0.98, depth * 0.46), materials["dark_metal"])
 		4:
-			_facility_box(parent, node_name + "_Cooling_Plant_Housing", Vector3(width * 0.58, 1.28, depth * 0.50), Vector3(width * 0.12, height + 0.90, -depth * 0.12), materials["metal"])
-			for side in [-1.0, 1.0]:
-				_facility_cylinder(parent, node_name + "_Cooling_Plant_Fan", 0.52, 0.58, 0.30, Vector3(width * 0.12 + side * width * 0.16, height + 1.60, -depth * 0.12), materials["dark_metal"])
+			parent.set_meta("structure_signature", "raised-cooling-plant-with-fan-deck")
+			_facility_volume(parent, node_name + "_Cooling_Plant_Housing", Vector3(width * 0.78, height * 0.72, depth * 0.62), Vector3(0.0, height * 0.36 + 0.22, -depth * 0.10), materials["metal"], roof)
+			_facility_box(parent, node_name + "_Cooling_Deck", Vector3(width * 0.84, 0.22, depth * 0.68), Vector3(0.0, height * 0.72 + 0.34, -depth * 0.10), materials["dark_metal"])
+			for fan in range(3):
+				var x: float = (float(fan) - 1.0) * width * 0.24
+				_facility_cylinder(parent, node_name + "_Cooling_Plant_Housing", 0.50, 0.56, 0.32, Vector3(x, height * 0.72 + 0.62, -depth * 0.10), materials["metal"])
+				_facility_cylinder(parent, node_name + "_Cooling_Fan_Hub", 0.10, 0.12, 0.16, Vector3(x, height * 0.72 + 0.84, -depth * 0.10), materials["dark_metal"])
 		5:
+			parent.set_meta("structure_signature", "pipe-rack-gantry-and-three-service-risers")
+			_facility_volume(parent, node_name + "_Pump_House", Vector3(width * 0.40, height * 0.66, depth * 0.50), Vector3(-width * 0.27, height * 0.33 + 0.22, depth * 0.10), wall, roof)
 			for side in [-1.0, 0.0, 1.0]:
-				_facility_cylinder(parent, node_name + "_Pipe_Riser", 0.11, 0.14, height + 2.15, Vector3(side * width * 0.29, (height + 2.15) * 0.5 + 0.22, -depth * 0.20), materials["metal"])
-			_facility_box(parent, node_name + "_Pipe_Gantry", Vector3(width * 0.82, 0.18, 0.24), Vector3(0.0, height + 1.08, -depth * 0.20), materials["dark_metal"])
+				_facility_cylinder(parent, node_name + "_Pipe_Riser", 0.12, 0.15, height + 2.45, Vector3(side * width * 0.28, (height + 2.45) * 0.5 + 0.22, -depth * 0.22), materials["metal"])
+			for tier in range(3):
+				_facility_box(parent, node_name + "_Pipe_Gantry", Vector3(width * 0.78, 0.16, 0.22), Vector3(0.0, 1.45 + float(tier) * 1.32, -depth * 0.22), materials["dark_metal"])
 		6:
-			_facility_cylinder(parent, node_name + "_Thermal_Storage_Tank", 1.08, 1.30, 3.35, Vector3(-width * 0.22, 1.90, -depth * 0.34), materials["metal"])
-			_facility_cylinder(parent, node_name + "_Tank_Roof_Neck", 0.32, 0.36, 0.72, Vector3(-width * 0.22, 3.90, -depth * 0.34), materials["dark_metal"])
-			_facility_box(parent, node_name + "_Tank_Access_Platform", Vector3(width * 0.42, 0.15, depth * 0.35), Vector3(-width * 0.22, 3.62, -depth * 0.34), materials["dark_metal"])
+			parent.set_meta("structure_signature", "thermal-storage-tank-farm-and-pump-hall")
+			_facility_volume(parent, node_name + "_Thermal_Pump_Hall", Vector3(width * 0.38, height * 0.70, depth * 0.50), Vector3(-width * 0.30, height * 0.35 + 0.22, 0.0), wall, roof)
+			_facility_cylinder_volume(parent, node_name + "_Thermal_Storage_Tank", width * 0.20, height * 0.76, Vector3(width * 0.18, height * 0.38 + 0.22, -depth * 0.18), materials["metal"])
+			_facility_cylinder(parent, node_name + "_Tank_Roof_Neck", width * 0.055, width * 0.060, 0.75, Vector3(width * 0.18, height * 0.76 + 0.72, -depth * 0.18), materials["dark_metal"])
+			_facility_box(parent, node_name + "_Tank_Access_Platform", Vector3(width * 0.48, 0.16, depth * 0.46), Vector3(width * 0.18, height * 0.76 + 0.10, -depth * 0.18), materials["dark_metal"])
 		7:
+			parent.set_meta("structure_signature", "boiler-house-with-dual-exhaust-stacks")
+			_facility_volume(parent, node_name + "_Boiler_House", Vector3(width * 0.76, height * 0.76, depth * 0.74), Vector3(0.0, height * 0.38 + 0.22, 0.0), wall, roof)
 			for side in [-1.0, 1.0]:
-				_facility_cylinder(parent, node_name + "_Exhaust_Stack", 0.23, 0.34, 4.25, Vector3(side * width * 0.28, height + 2.34, -depth * 0.20), materials["metal"])
-				_facility_cylinder(parent, node_name + "_Stack_Crown", 0.37, 0.37, 0.16, Vector3(side * width * 0.28, height + 4.48, -depth * 0.20), materials["dark_metal"])
+				_facility_cylinder_volume(parent, node_name + "_Exhaust_Stack", width * 0.10, height + 2.60, Vector3(side * width * 0.29, (height + 2.60) * 0.5 + 0.22, -depth * 0.22), materials["metal"])
+				_facility_cylinder(parent, node_name + "_Stack_Crown", width * 0.14, width * 0.14, 0.18, Vector3(side * width * 0.29, height + 2.90, -depth * 0.22), materials["dark_metal"])
 		8:
-			_facility_box(parent, node_name + "_Transformer_Bank", Vector3(width * 0.68, 1.45, depth * 0.50), Vector3(0.0, height + 0.96, -depth * 0.10), materials["metal"])
-			for fin in range(7):
-				var x: float = -width * 0.28 + float(fin) * width * 0.093
-				_facility_box(parent, node_name + "_Transformer_Bank_Cooling_Fin", Vector3(0.065, 1.08, depth * 0.36), Vector3(x, height + 0.96, depth * 0.18), materials["dark_metal"])
+			parent.set_meta("structure_signature", "large-substation-transformer-bank")
+			_facility_volume(parent, node_name + "_Substation_Control_Block", Vector3(width * 0.34, height * 0.80, depth * 0.46), Vector3(-width * 0.32, height * 0.40 + 0.22, -depth * 0.12), wall, roof)
+			for row in range(2):
+				for unit in range(3):
+					var x: float = -width * 0.08 + float(unit) * width * 0.27
+					var z: float = -depth * 0.22 + float(row) * depth * 0.44
+					_facility_box(parent, node_name + "_Transformer_Bank", Vector3(width * 0.19, height * 0.48, depth * 0.24), Vector3(x, height * 0.24 + 0.22, z), materials["metal"])
+					for fin in range(4):
+						_facility_box(parent, node_name + "_Transformer_Bank_Cooling_Fin", Vector3(0.055, height * 0.34, 0.045), Vector3(x + (float(fin) - 1.5) * 0.12, height * 0.24 + 0.22, z + depth * 0.13), materials["dark_metal"])
 		9:
+			parent.set_meta("structure_signature", "twin-energy-vessels-with-overhead-pipe-bridge")
 			for side in [-1.0, 1.0]:
-				_facility_cylinder(parent, node_name + "_Energy_Storage_Tank", 0.88, 1.02, 3.45, Vector3(side * width * 0.27, 1.95, -depth * 0.32), materials["metal"])
-				_facility_cylinder(parent, node_name + "_Tank_Neck", 0.20, 0.24, 0.82, Vector3(side * width * 0.27, 4.05, -depth * 0.32), materials["dark_metal"])
-			_facility_box(parent, node_name + "_Service_Pipe_Bridge", Vector3(width * 0.78, 0.18, 0.22), Vector3(0.0, 4.28, -depth * 0.32), materials["metal"])
+				_facility_cylinder_volume(parent, node_name + "_Energy_Storage_Tank", width * 0.22, height * 0.78, Vector3(side * width * 0.25, height * 0.39 + 0.22, -depth * 0.16), materials["metal"])
+				_facility_cylinder(parent, node_name + "_Tank_Neck", width * 0.06, width * 0.065, 0.82, Vector3(side * width * 0.25, height * 0.78 + 0.68, -depth * 0.16), materials["dark_metal"])
+			_facility_volume(parent, node_name + "_Generator_House", Vector3(width * 0.34, height * 0.58, depth * 0.38), Vector3(0.0, height * 0.29 + 0.22, depth * 0.27), wall, roof)
+			_facility_box(parent, node_name + "_Service_Pipe_Bridge", Vector3(width * 0.78, 0.20, 0.24), Vector3(0.0, height + 0.72, -depth * 0.16), materials["metal"])
 		10:
-			_facility_box(parent, node_name + "_Energy_Control_Room", Vector3(width * 0.52, 1.72, depth * 0.46), Vector3(0.0, height + 1.10, -depth * 0.10), materials["window_frame"])
-			_facility_box(parent, node_name + "_Energy_Control_Glazing", Vector3(width * 0.47, 1.32, 0.06), Vector3(0.0, height + 1.12, depth * 0.14), materials["glass"])
+			parent.set_meta("structure_signature", "flagship-energy-campus-with-control-spine")
+			_facility_volume(parent, node_name + "_Energy_Control_Room", Vector3(width * 0.46, height * 0.86, depth * 0.58), Vector3(0.0, height * 0.43 + 0.22, depth * 0.12), materials["window_frame"], roof, true)
 			for side in [-1.0, 0.0, 1.0]:
-				_facility_cylinder(parent, node_name + "_Flagship_Storage_Vessel", 0.58, 0.72, 3.75, Vector3(side * width * 0.30, 2.12, -depth * 0.34), materials["metal"])
-				_facility_cylinder(parent, node_name + "_Flagship_Vent_Stack", 0.15, 0.21, 4.25, Vector3(side * width * 0.30, height + 2.28, -depth * 0.15), materials["dark_metal"])
-			_facility_box(parent, node_name + "_Flagship_Pipe_Bridge", Vector3(width * 0.88, 0.20, 0.24), Vector3(0.0, height + 1.72, -depth * 0.24), materials["metal"])
+				_facility_cylinder_volume(parent, node_name + "_Flagship_Storage_Vessel", width * 0.15, height * 0.78, Vector3(side * width * 0.31, height * 0.39 + 0.22, -depth * 0.26), materials["metal"])
+				_facility_cylinder(parent, node_name + "_Flagship_Vent_Stack", width * 0.045, width * 0.055, height + 1.85, Vector3(side * width * 0.31, (height + 1.85) * 0.5 + 0.22, -depth * 0.26), materials["dark_metal"])
+			_facility_box(parent, node_name + "_Flagship_Pipe_Bridge", Vector3(width * 0.88, 0.22, 0.28), Vector3(0.0, height + 1.22, -depth * 0.26), materials["metal"])
+			_facility_volume(parent, node_name + "_Flagship_Turbine_Hall", Vector3(width * 0.26, height * 0.62, depth * 0.52), Vector3(-width * 0.36, height * 0.31 + 0.22, 0.0), wall, roof)
 
 
 func _build_security_architecture(parent: Node3D, node_name: String, width: float, depth: float, height: float, level: int, wall: Material, roof: Material) -> void:
-	var front_z: float = depth * 0.39 + 0.14
-	_facility_box(parent, node_name + "_Security_Foundation", Vector3(width + 0.62, 0.24, depth + 0.62), Vector3(0.0, 0.12, 0.0), materials["concrete"])
-	_facility_box(parent, node_name + "_Guardhouse_Main_Block", Vector3(width * 0.76, height * 0.78, depth * 0.76), Vector3(0.0, height * 0.39 + 0.24, -depth * 0.06), wall)
-	_facility_box(parent, node_name + "_Guardhouse_Roof_Cap", Vector3(width * 0.82, 0.20, depth * 0.82), Vector3(0.0, height * 0.80 + 0.35, -depth * 0.06), roof)
-	_facility_box(parent, node_name + "_Observation_Window_Frame", Vector3(width * 0.70, 0.78, 0.12), Vector3(0.0, height * 0.62 + 0.24, front_z), materials["window_frame"])
-	_facility_box(parent, node_name + "_Observation_Glazing", Vector3(width * 0.65, 0.60, 0.055), Vector3(0.0, height * 0.62 + 0.24, front_z + 0.08), materials["glass"])
-	_facility_box(parent, node_name + "_Access_Door", Vector3(0.76, 2.16, 0.09), Vector3(-width * 0.31, 1.32, front_z + 0.08), materials["dark_metal"])
-	_facility_box(parent, node_name + "_Access_Door_Glass", Vector3(0.48, 1.42, 0.04), Vector3(-width * 0.31, 1.48, front_z + 0.14), materials["glass"])
-	for side in [-1.0, 1.0]:
-		_facility_box(parent, node_name + "_Corner_Security_Pilaster", Vector3(0.22, height * 0.82, 0.26), Vector3(side * width * 0.40, height * 0.41 + 0.24, front_z + 0.02), materials["dark_metal"])
-		_facility_box(parent, node_name + "_Security_Light_Housing", Vector3(0.24, 0.20, 0.14), Vector3(side * width * 0.40, height * 0.82 + 0.22, front_z + 0.14), materials["lamp"])
-
+	_facility_podium(parent, node_name + "_Security", width, depth)
 	match level:
 		1:
-			_facility_box(parent, node_name + "_Guard_Booth_Eave", Vector3(width + 0.55, 0.16, depth + 0.48), Vector3(0.0, height * 0.82 + 0.48, -depth * 0.06), materials["metal"])
-			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Guard_Booth_Eave_Bracket", Vector3(0.10, 0.58, 0.48), Vector3(side * width * 0.34, height * 0.78 + 0.26, front_z + 0.12), materials["dark_metal"])
+			parent.set_meta("structure_signature", "compact-single-guardhouse-pavilion")
+			_facility_volume(parent, node_name + "_Guardhouse_Main_Block", Vector3(width * 0.72, height * 0.76, depth * 0.70), Vector3(0.0, height * 0.38 + 0.22, 0.0), wall, roof, true)
+			_facility_box(parent, node_name + "_Guard_Booth_Eave", Vector3(width + 0.42, 0.18, depth + 0.42), Vector3(0.0, height * 0.80 + 0.34, 0.0), materials["metal"])
 		2:
-			_facility_box(parent, node_name + "_Checkpoint_Canopy", Vector3(width + 1.12, 0.18, depth * 0.62), Vector3(0.0, height + 0.62, front_z + 0.62), materials["metal"])
+			parent.set_meta("structure_signature", "l-shaped-checkpoint-and-gatehouse-wing")
+			_facility_volume(parent, node_name + "_West_Guard_Wing", Vector3(width * 0.38, height * 0.72, depth * 0.78), Vector3(-width * 0.28, height * 0.36 + 0.22, -depth * 0.04), wall, roof, true)
+			_facility_volume(parent, node_name + "_East_Checkpoint_Wing", Vector3(width * 0.56, height * 0.58, depth * 0.34), Vector3(width * 0.18, height * 0.29 + 0.22, depth * 0.28), materials["concrete"], roof)
+			_facility_box(parent, node_name + "_Checkpoint_Canopy", Vector3(width + 0.95, 0.18, depth * 0.55), Vector3(0.0, height + 0.44, depth * 0.52), materials["metal"])
 			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Canopy_Column", Vector3(0.16, height + 0.12, 0.16), Vector3(side * width * 0.50, (height + 0.12) * 0.5 + 0.22, front_z + 1.12), materials["metal"])
+				_facility_box(parent, node_name + "_Canopy_Column", Vector3(0.15, height + 0.04, 0.15), Vector3(side * width * 0.49, (height + 0.04) * 0.5 + 0.22, depth * 0.55), materials["metal"])
 		3:
-			_facility_box(parent, node_name + "_Raised_Observation_Bay", Vector3(width * 0.82, 1.48, depth * 0.62), Vector3(0.0, height + 0.98, -depth * 0.12), materials["window_frame"])
-			_facility_box(parent, node_name + "_Raised_Observation_Glass", Vector3(width * 0.76, 1.18, depth * 0.56), Vector3(0.0, height + 1.00, -depth * 0.12), materials["glass"])
+			parent.set_meta("structure_signature", "u-shaped-security-station-around-inspection-yard")
+			_facility_volume(parent, node_name + "_West_Security_Wing", Vector3(width * 0.25, height * 0.74, depth * 0.82), Vector3(-width * 0.34, height * 0.37 + 0.22, 0.0), wall, roof, true)
+			_facility_volume(parent, node_name + "_East_Security_Wing", Vector3(width * 0.25, height * 0.74, depth * 0.82), Vector3(width * 0.34, height * 0.37 + 0.22, 0.0), materials["concrete"], roof, true)
+			_facility_volume(parent, node_name + "_Rear_Operations_Wing", Vector3(width * 0.56, height * 0.66, depth * 0.24), Vector3(0.0, height * 0.33 + 0.22, -depth * 0.34), wall, roof)
+			_facility_box(parent, node_name + "_Raised_Observation_Bay", Vector3(width * 0.62, 1.56, depth * 0.28), Vector3(0.0, height + 0.98, -depth * 0.20), materials["window_frame"])
+			_facility_box(parent, node_name + "_Observation_Glazing", Vector3(width * 0.56, 1.24, depth * 0.24), Vector3(0.0, height + 1.00, -depth * 0.20), materials["glass"])
 		4:
-			_facility_box(parent, node_name + "_Control_Tower", Vector3(width * 0.40, 2.42, depth * 0.44), Vector3(width * 0.26, height + 1.30, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Control_Tower_Glass", Vector3(width * 0.35, 2.02, depth * 0.39), Vector3(width * 0.26, height + 1.32, -depth * 0.08), materials["glass"])
+			parent.set_meta("structure_signature", "offset-control-tower-with-low-operations-bar")
+			_facility_volume(parent, node_name + "_Operations_Bar", Vector3(width * 0.82, height * 0.70, depth * 0.52), Vector3(-width * 0.06, height * 0.35 + 0.22, depth * 0.12), wall, roof)
+			_facility_volume(parent, node_name + "_Control_Tower", Vector3(width * 0.38, 3.05, depth * 0.42), Vector3(width * 0.25, 3.05 * 0.5 + 0.22, -depth * 0.22), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_Tower_Crown", Vector3(width * 0.43, 0.20, depth * 0.48), Vector3(width * 0.25, 3.05 + 0.34, -depth * 0.22), materials["metal"])
 		5:
-			_facility_box(parent, node_name + "_Cantilevered_Command_Room", Vector3(width * 0.80, 1.58, depth * 0.58), Vector3(-width * 0.10, height + 0.98, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Command_Room_Glass", Vector3(width * 0.74, 1.24, depth * 0.53), Vector3(-width * 0.10, height + 1.00, -depth * 0.08), materials["glass"])
+			parent.set_meta("structure_signature", "raised-cantilever-command-pavilion")
+			_facility_volume(parent, node_name + "_Security_Base_Wing", Vector3(width * 0.68, height * 0.62, depth * 0.78), Vector3(0.0, height * 0.31 + 0.22, 0.0), wall, roof)
+			_facility_volume(parent, node_name + "_Cantilevered_Command_Room", Vector3(width * 0.78, 1.72, depth * 0.54), Vector3(-width * 0.08, height + 0.96, -depth * 0.12), materials["window_frame"], roof, true)
 			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Command_Room_Cantilever_Brace", Vector3(0.16, 1.18, depth * 0.42), Vector3(-width * 0.10 + side * width * 0.30, height + 0.38, -depth * 0.08), materials["metal"])
+				_facility_box(parent, node_name + "_Command_Room_Cantilever_Brace", Vector3(0.18, 1.44, depth * 0.42), Vector3(-width * 0.08 + side * width * 0.28, height + 0.46, -depth * 0.12), materials["metal"])
 		6:
-			_facility_box(parent, node_name + "_Operations_Wing", Vector3(width * 0.45, height * 0.88, depth * 0.62), Vector3(width * 0.35, height * 0.44 + 0.24, -depth * 0.05), materials["concrete"])
-			_facility_box(parent, node_name + "_Operations_Wing_Window", Vector3(width * 0.38, height * 0.56, 0.06), Vector3(width * 0.35, height * 0.56 + 0.24, depth * 0.27), materials["glass"])
-			_facility_box(parent, node_name + "_Operations_Wing_Roof", Vector3(width * 0.50, 0.16, depth * 0.68), Vector3(width * 0.35, height * 0.90 + 0.30, -depth * 0.05), roof)
+			parent.set_meta("structure_signature", "paired-security-pavilions-with-central-link")
+			_facility_volume(parent, node_name + "_West_Operations_Wing", Vector3(width * 0.36, height * 0.82, depth * 0.78), Vector3(-width * 0.29, height * 0.41 + 0.22, 0.0), wall, roof)
+			_facility_volume(parent, node_name + "_East_Operations_Wing", Vector3(width * 0.36, height * 0.72, depth * 0.72), Vector3(width * 0.29, height * 0.36 + 0.22, depth * 0.04), materials["concrete"], roof)
+			_facility_volume(parent, node_name + "_Central_Security_Link", Vector3(width * 0.34, 1.02, depth * 0.26), Vector3(0.0, height * 0.72, -depth * 0.12), materials["window_frame"], roof, true)
+			_facility_box(parent, node_name + "_Operations_Wing", Vector3(width * 0.24, 1.12, depth * 0.22), Vector3(width * 0.29, height + 0.60, 0.0), materials["window_frame"])
 		7:
-			_facility_box(parent, node_name + "_Surveillance_Tower", Vector3(width * 0.42, 3.10, depth * 0.48), Vector3(width * 0.25, height + 1.65, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Surveillance_Tower_Glass", Vector3(width * 0.37, 2.72, depth * 0.43), Vector3(width * 0.25, height + 1.67, -depth * 0.08), materials["glass"])
-			_facility_box(parent, node_name + "_Surveillance_Tower_Crown", Vector3(width * 0.48, 0.18, depth * 0.54), Vector3(width * 0.25, height + 3.26, -depth * 0.08), materials["metal"])
+			parent.set_meta("structure_signature", "surveillance-tower-with-radial-control-wings")
+			_facility_volume(parent, node_name + "_Surveillance_Tower", Vector3(width * 0.42, height + 2.85, depth * 0.44), Vector3(width * 0.20, (height + 2.85) * 0.5 + 0.22, -depth * 0.08), materials["window_frame"], roof, true)
+			_facility_volume(parent, node_name + "_West_Control_Wing", Vector3(width * 0.38, height * 0.54, depth * 0.58), Vector3(-width * 0.27, height * 0.27 + 0.22, 0.0), wall, roof)
+			_facility_volume(parent, node_name + "_East_Control_Wing", Vector3(width * 0.32, height * 0.64, depth * 0.52), Vector3(width * 0.34, height * 0.32 + 0.22, depth * 0.08), materials["concrete"], roof)
+			_facility_box(parent, node_name + "_Surveillance_Tower_Crown", Vector3(width * 0.48, 0.20, depth * 0.50), Vector3(width * 0.20, height + 3.20, -depth * 0.08), materials["metal"])
 		8:
-			_facility_box(parent, node_name + "_Security_Command_Penthouse", Vector3(width * 0.76, 1.74, depth * 0.62), Vector3(0.0, height + 1.10, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Penthouse_Glazing", Vector3(width * 0.70, 1.38, depth * 0.56), Vector3(0.0, height + 1.12, -depth * 0.08), materials["glass"])
-			_facility_box(parent, node_name + "_Penthouse_Roof", Vector3(width * 0.82, 0.18, depth * 0.68), Vector3(0.0, height + 2.02, -depth * 0.08), roof)
+			parent.set_meta("structure_signature", "courtyard-security-centre-with-command-penthouse")
+			_facility_volume(parent, node_name + "_West_Security_Wing", Vector3(width * 0.28, height * 0.70, depth * 0.80), Vector3(-width * 0.33, height * 0.35 + 0.22, 0.0), wall, roof)
+			_facility_volume(parent, node_name + "_East_Security_Wing", Vector3(width * 0.28, height * 0.76, depth * 0.80), Vector3(width * 0.33, height * 0.38 + 0.22, 0.0), materials["concrete"], roof)
+			_facility_volume(parent, node_name + "_Rear_Security_Wing", Vector3(width * 0.50, height * 0.62, depth * 0.24), Vector3(0.0, height * 0.31 + 0.22, -depth * 0.34), wall, roof)
+			_facility_volume(parent, node_name + "_Security_Command_Penthouse", Vector3(width * 0.70, 1.84, depth * 0.46), Vector3(0.0, height + 1.10, -depth * 0.12), materials["window_frame"], roof, true)
 		9:
-			_facility_box(parent, node_name + "_Dual_Level_Control_Block", Vector3(width * 0.48, 3.20, depth * 0.50), Vector3(-width * 0.20, height + 1.70, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Dual_Level_Control_Glass", Vector3(width * 0.43, 2.82, depth * 0.45), Vector3(-width * 0.20, height + 1.72, -depth * 0.08), materials["glass"])
-			_facility_box(parent, node_name + "_Upper_Security_Link", Vector3(width * 0.56, 0.48, depth * 0.38), Vector3(width * 0.18, height + 0.92, -depth * 0.24), materials["metal"])
-			_facility_box(parent, node_name + "_Secondary_Command_Pod", Vector3(width * 0.30, 1.65, depth * 0.40), Vector3(width * 0.34, height + 1.00, -depth * 0.08), wall)
+			parent.set_meta("structure_signature", "dual-control-towers-linked-over-secure-court")
+			_facility_volume(parent, node_name + "_West_Control_Tower", Vector3(width * 0.34, height + 1.75, depth * 0.46), Vector3(-width * 0.30, (height + 1.75) * 0.5 + 0.22, -depth * 0.08), materials["window_frame"], roof, true)
+			_facility_volume(parent, node_name + "_East_Control_Tower", Vector3(width * 0.32, height + 1.25, depth * 0.44), Vector3(width * 0.30, (height + 1.25) * 0.5 + 0.22, -depth * 0.08), wall, roof, true)
+			_facility_volume(parent, node_name + "_Rear_Operations_Block", Vector3(width * 0.78, height * 0.58, depth * 0.28), Vector3(0.0, height * 0.29 + 0.22, -depth * 0.34), materials["concrete"], roof)
+			_facility_box(parent, node_name + "_Dual_Level_Control_Block", Vector3(width * 0.28, 1.36, depth * 0.25), Vector3(-width * 0.30, height + 1.22, -depth * 0.08), materials["glass"])
+			_facility_box(parent, node_name + "_Upper_Security_Link", Vector3(width * 0.60, 0.48, depth * 0.34), Vector3(0.0, height + 0.92, -depth * 0.12), materials["metal"])
 		10:
-			_facility_box(parent, node_name + "_Flagship_Control_Tower", Vector3(width * 0.48, 3.60, depth * 0.50), Vector3(width * 0.22, height + 1.90, -depth * 0.08), materials["window_frame"])
-			_facility_box(parent, node_name + "_Flagship_Control_Glass", Vector3(width * 0.43, 3.20, depth * 0.45), Vector3(width * 0.22, height + 1.92, -depth * 0.08), materials["glass"])
-			_facility_box(parent, node_name + "_Security_Command_Canopy", Vector3(width + 0.92, 0.20, depth * 0.66), Vector3(0.0, height + 0.58, front_z + 0.38), materials["metal"])
-			_facility_box(parent, node_name + "_Security_Operations_Wing", Vector3(width * 0.40, 1.85, depth * 0.52), Vector3(-width * 0.31, height + 1.00, -depth * 0.08), materials["concrete"])
+			parent.set_meta("structure_signature", "flagship-security-citadel-with-command-spine")
+			_facility_volume(parent, node_name + "_Central_Security_Command_Block", Vector3(width * 0.54, height * 0.82, depth * 0.64), Vector3(0.0, height * 0.41 + 0.22, 0.0), wall, roof)
+			_facility_volume(parent, node_name + "_Flagship_Control_Tower", Vector3(width * 0.34, height + 2.85, depth * 0.42), Vector3(width * 0.22, (height + 2.85) * 0.5 + 0.22, -depth * 0.18), materials["window_frame"], roof, true)
+			_facility_volume(parent, node_name + "_Security_West_Operations_Wing", Vector3(width * 0.28, height * 0.72, depth * 0.72), Vector3(-width * 0.35, height * 0.36 + 0.22, 0.0), materials["concrete"], roof)
+			_facility_volume(parent, node_name + "_Security_East_Operations_Wing", Vector3(width * 0.28, height * 0.68, depth * 0.68), Vector3(width * 0.35, height * 0.34 + 0.22, 0.0), wall, roof)
+			_facility_box(parent, node_name + "_Flagship_Security_Command_Canopy", Vector3(width * 0.88, 0.22, depth * 0.36), Vector3(0.0, height + 0.72, depth * 0.02), materials["metal"])
 			for side in [-1.0, 1.0]:
-				_facility_box(parent, node_name + "_Flagship_Watch_Pylon", Vector3(0.36, 2.30, 0.38), Vector3(side * width * 0.46, height + 1.22, -depth * 0.24), materials["metal"])
+				_facility_volume(parent, node_name + "_Flagship_Watch_Pylon", Vector3(0.16, 2.80, 0.18), Vector3(side * width * 0.47, 1.62, -depth * 0.20), materials["metal"], roof)
 
 
 func _facility_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, material: Material, rotation_degrees: Vector3 = Vector3.ZERO) -> MeshInstance3D:
