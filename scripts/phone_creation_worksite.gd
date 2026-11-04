@@ -285,7 +285,6 @@ func _build_interface() -> void:
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
 	wizard_back_button.points_right = false
-	wizard_back_button.disabled = true
 	wizard_back_button.pressed.connect(_on_wizard_back_pressed)
 	bottom_bar.add_child(wizard_back_button)
 	var bottom_spacer := Control.new()
@@ -294,9 +293,9 @@ func _build_interface() -> void:
 	next_button = GlassArrowButton.new()
 	next_button.name = "NextStepIconButton"
 	next_button.points_right = true
-	next_button.disabled = true
 	next_button.pressed.connect(_on_next_pressed)
 	bottom_bar.add_child(next_button)
+	_keep_step_navigation_active()
 	_apply_responsive_layout()
 	# Start with Standard selected in both the worksite controls and the
 	# original editor engine, so the preview and Next state are immediately ready.
@@ -337,7 +336,7 @@ func _on_phone_type_selected(phone_type: String) -> void:
 		var option: Button = type_buttons[option_name]
 		option.button_pressed = option_name == phone_type
 		_style_button(option, option_name == phone_type)
-	next_button.disabled = false
+	_keep_step_navigation_active()
 	_update_preview_for_phone_type(phone_type)
 
 
@@ -391,7 +390,25 @@ func _discard_panel(panel: Control) -> void:
 	panel.queue_free()
 
 
+func _release_mounted_editor_panel() -> void:
+	if not is_instance_valid(phone_editor):
+		return
+	# Leaving a nested color view must also clear its floating popups and mode.
+	if bool(phone_editor.get("back_design_color_mode")) and phone_editor.has_method("_close_worksite_back_design_color_view"):
+		phone_editor.call("_close_worksite_back_design_color_view")
+	var current_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(current_panel):
+		var current_parent := current_panel.get_parent()
+		if is_instance_valid(current_parent) and current_parent == selection_stack:
+			current_parent.remove_child(current_panel)
+			current_panel.queue_free()
+	# The editor may otherwise keep pointing at a panel that the worksite has
+	# removed. The next editor view must create a fresh panel for this step.
+	phone_editor.set("active_feature_panel", null)
+
+
 func _mount_original_panel(method_name: String) -> Control:
+	_release_mounted_editor_panel()
 	phone_editor.call(method_name)
 	var panel := phone_editor.get("active_feature_panel") as Control
 	if not is_instance_valid(panel):
@@ -402,6 +419,7 @@ func _mount_original_panel(method_name: String) -> Control:
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	selection_stack.add_child(panel)
+	_keep_step_navigation_active()
 	return panel
 
 
@@ -413,8 +431,6 @@ func _show_thickness_step() -> void:
 	thickness_panel = _mount_original_panel("_show_thickness_controls")
 	progress_number.text = "STEP 2 / 15"
 	progress_bar.value = 2
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -427,8 +443,6 @@ func _show_border_radius_step() -> void:
 	border_radius_panel = _mount_original_panel("_show_border_radius_controls")
 	progress_number.text = "STEP 3 / 15"
 	progress_bar.value = 3
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -441,8 +455,6 @@ func _show_screen_tech_step() -> void:
 	screen_tech_panel = _mount_original_panel("_show_screen_tech_controls")
 	progress_number.text = "STEP 4 / 15"
 	progress_bar.value = 4
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -457,8 +469,6 @@ func _show_screen_size_step() -> void:
 	screen_size_panel = _mount_original_panel("_show_screen_size_controls")
 	progress_number.text = "STEP 5 / 15"
 	progress_bar.value = 5
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -473,8 +483,6 @@ func _show_screen_type_step() -> void:
 	screen_type_panel = _mount_original_panel("_show_screen_type_controls")
 	progress_number.text = "STEP 6 / 15"
 	progress_bar.value = 6
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -489,8 +497,6 @@ func _show_power_volume_step() -> void:
 	power_volume_panel = _mount_original_panel("_show_power_volume_controls")
 	progress_number.text = "STEP 7 / 15"
 	progress_bar.value = 7
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -504,8 +510,6 @@ func _show_speakers_step() -> void:
 	speaker_panel = _mount_original_panel("_show_speaker_controls")
 	progress_number.text = "STEP 8 / 15"
 	progress_bar.value = 8
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -523,8 +527,6 @@ func _show_charge_port_step() -> void:
 		charge_port_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	progress_number.text = "STEP 9 / 15"
 	progress_bar.value = 9
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -538,8 +540,6 @@ func _show_side_button_step() -> void:
 	side_button_panel = _mount_original_panel("_show_side_button_controls")
 	progress_number.text = "STEP 10 / 15"
 	progress_bar.value = 10
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -553,23 +553,20 @@ func _show_home_button_step() -> void:
 	home_button_panel = _mount_original_panel("_show_home_button_controls")
 	progress_number.text = "STEP 11 / 15"
 	progress_bar.value = 11
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
 func _keep_step_navigation_active() -> void:
-	# The editor's color controls are mounted into the worksite, but must never
-	# take ownership of the wizard's persistent bottom navigation buttons.
+	# These are persistent wizard controls, not step-validation indicators.
+	# Their handlers safely do nothing at the first/last boundary when needed.
 	if is_instance_valid(wizard_back_button):
-		wizard_back_button.disabled = wizard_step <= 0
+		wizard_back_button.disabled = false
 		wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		wizard_back_button.modulate.a = 1.0
 	if is_instance_valid(next_button):
-		next_button.disabled = wizard_step >= 14
+		next_button.disabled = false
 		next_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		next_button.modulate.a = 1.0
-
 
 func _show_device_color_step() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
@@ -580,9 +577,6 @@ func _show_device_color_step() -> void:
 	# Use the original device-wide color picker, including live body material,
 	# gradient, RGB/hex and preview updates.
 	device_color_panel = _mount_original_panel("_show_device_color_controls")
-	# Keep both wizard arrows live while the original color editor is mounted.
-	_keep_step_navigation_active()
-	_keep_step_navigation_active.call_deferred()
 	# Keep the HUE section clean in the new worksite: remove the selected-color preview/readout row.
 	# The live HUE bar and HEX CODE input remain available for precise color selection.
 	if is_instance_valid(device_color_panel):
@@ -594,8 +588,6 @@ func _show_device_color_step() -> void:
 			hue_preview_row.queue_free()
 	progress_number.text = "STEP 12 / 15"
 	progress_bar.value = 12
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -610,8 +602,6 @@ func _show_front_camera_step() -> void:
 	front_camera_panel = _mount_original_panel("_show_front_camera_controls")
 	progress_number.text = "STEP 13 / 15"
 	progress_bar.value = 13
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -625,8 +615,6 @@ func _show_back_design_step() -> void:
 	back_design_panel = _mount_original_panel("_show_back_design_controls")
 	progress_number.text = "STEP 14 / 15"
 	progress_bar.value = 14
-	wizard_back_button.disabled = false
-	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
@@ -640,8 +628,6 @@ func _show_rear_camera_step() -> void:
 	rear_camera_panel = _mount_original_panel("_show_rear_camera_controls")
 	progress_number.text = "STEP 15 / 15"
 	progress_bar.value = 15
-	wizard_back_button.disabled = false
-	next_button.disabled = true
 	selection_scroll.scroll_vertical = 0
 
 
@@ -653,8 +639,6 @@ func _on_wizard_back_pressed() -> void:
 		back_design_panel = _mount_original_panel("_show_back_design_controls")
 		progress_number.text = "STEP 14 / 15"
 		progress_bar.value = 14
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 13:
 		_discard_panel(back_design_panel)
 		back_design_panel = null
@@ -662,8 +646,6 @@ func _on_wizard_back_pressed() -> void:
 		front_camera_panel = _mount_original_panel("_show_front_camera_controls")
 		progress_number.text = "STEP 13 / 15"
 		progress_bar.value = 13
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 12:
 		_discard_panel(front_camera_panel)
 		front_camera_panel = null
@@ -671,8 +653,6 @@ func _on_wizard_back_pressed() -> void:
 		device_color_panel = _mount_original_panel("_show_device_color_controls")
 		progress_number.text = "STEP 12 / 15"
 		progress_bar.value = 12
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 11:
 		_discard_panel(device_color_panel)
 		device_color_panel = null
@@ -680,8 +660,6 @@ func _on_wizard_back_pressed() -> void:
 		home_button_panel = _mount_original_panel("_show_home_button_controls")
 		progress_number.text = "STEP 11 / 15"
 		progress_bar.value = 11
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 10:
 		_discard_panel(home_button_panel)
 		home_button_panel = null
@@ -689,8 +667,6 @@ func _on_wizard_back_pressed() -> void:
 		side_button_panel = _mount_original_panel("_show_side_button_controls")
 		progress_number.text = "STEP 10 / 15"
 		progress_bar.value = 10
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 9:
 		_discard_panel(side_button_panel)
 		side_button_panel = null
@@ -700,8 +676,6 @@ func _on_wizard_back_pressed() -> void:
 			charge_port_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		progress_number.text = "STEP 9 / 15"
 		progress_bar.value = 9
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 8:
 		_discard_panel(charge_port_panel)
 		charge_port_panel = null
@@ -709,8 +683,6 @@ func _on_wizard_back_pressed() -> void:
 		speaker_panel = _mount_original_panel("_show_speaker_controls")
 		progress_number.text = "STEP 8 / 15"
 		progress_bar.value = 8
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 7:
 		_discard_panel(speaker_panel)
 		speaker_panel = null
@@ -718,8 +690,6 @@ func _on_wizard_back_pressed() -> void:
 		power_volume_panel = _mount_original_panel("_show_power_volume_controls")
 		progress_number.text = "STEP 7 / 15"
 		progress_bar.value = 7
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 6:
 		_discard_panel(power_volume_panel)
 		power_volume_panel = null
@@ -727,8 +697,6 @@ func _on_wizard_back_pressed() -> void:
 		screen_type_panel = _mount_original_panel("_show_screen_type_controls")
 		progress_number.text = "STEP 6 / 15"
 		progress_bar.value = 6
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 5:
 		_discard_panel(screen_type_panel)
 		screen_type_panel = null
@@ -736,8 +704,6 @@ func _on_wizard_back_pressed() -> void:
 		screen_size_panel = _mount_original_panel("_show_screen_size_controls")
 		progress_number.text = "STEP 5 / 15"
 		progress_bar.value = 5
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 4:
 		_discard_panel(screen_size_panel)
 		screen_size_panel = null
@@ -745,8 +711,6 @@ func _on_wizard_back_pressed() -> void:
 		screen_tech_panel = _mount_original_panel("_show_screen_tech_controls")
 		progress_number.text = "STEP 4 / 15"
 		progress_bar.value = 4
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 3:
 		_discard_panel(screen_tech_panel)
 		screen_tech_panel = null
@@ -754,8 +718,6 @@ func _on_wizard_back_pressed() -> void:
 		border_radius_panel = _mount_original_panel("_show_border_radius_controls")
 		progress_number.text = "STEP 3 / 15"
 		progress_bar.value = 3
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 2:
 		_discard_panel(border_radius_panel)
 		border_radius_panel = null
@@ -763,8 +725,6 @@ func _on_wizard_back_pressed() -> void:
 		thickness_panel = _mount_original_panel("_show_thickness_controls")
 		progress_number.text = "STEP 2 / 15"
 		progress_bar.value = 2
-		wizard_back_button.disabled = false
-		next_button.disabled = false
 	elif wizard_step == 1:
 		_discard_panel(thickness_panel)
 		thickness_panel = null
@@ -772,8 +732,6 @@ func _on_wizard_back_pressed() -> void:
 		type_step_content.show()
 		progress_number.text = "STEP 1 / 15"
 		progress_bar.value = 1
-		wizard_back_button.disabled = true
-		next_button.disabled = selected_phone_type.is_empty()
 	selection_scroll.scroll_vertical = 0
 
 func _style_arrow_button(button: Button) -> void:
