@@ -2,6 +2,7 @@ extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor.tscn")
+const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
@@ -29,6 +30,7 @@ var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var phone_editor: Node3D
+var phone_creation_worksite: Node3D
 var home_navigation_layer: CanvasLayer
 var home_company_label: Label
 var home_date_label: Label
@@ -94,7 +96,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research_phone", "office", "staff_market", "staff_management", "phone_editor"]:
+	if current_screen not in ["home", "headquarters", "create", "research", "research_phone", "office", "staff_market", "staff_management", "phone_editor", "phone_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -2558,7 +2560,64 @@ func _on_create_category_pressed(category: String) -> void:
 	if category.to_upper() == "PHONE":
 		_show_phone_editor()
 		return
+	if category.to_upper() == "OPERATING SYSTEM":
+		_show_phone_creation_worksite()
+		return
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
+
+
+func _dispose_phone_creation_worksite() -> void:
+	if not is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite = null
+		return
+	for child in phone_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.hide()
+	phone_creation_worksite.queue_free()
+	phone_creation_worksite = null
+
+
+func _show_phone_creation_worksite() -> void:
+	if current_screen == "phone_creation_worksite" and is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.show()
+		return
+
+	_dispose_phone_creation_worksite()
+	if is_instance_valid(ui_layer):
+		ui_layer.hide()
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.hide()
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.hide()
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(false)
+
+	ui_layer = null
+	ui_root = null
+	current_screen = "phone_creation_worksite"
+	phone_creation_worksite = PhoneCreationWorksiteScene.instantiate() as Node3D
+	if not is_instance_valid(phone_creation_worksite):
+		current_screen = "create"
+		if is_instance_valid(create_ui_layer):
+			create_ui_layer.show()
+			ui_layer = create_ui_layer
+			ui_root = create_ui_root
+		push_error("Phone Creation Worksite scene could not be instantiated.")
+		return
+	phone_creation_worksite.name = "Phone_Creation_Worksite"
+	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
+	add_child(phone_creation_worksite)
+
+
+func _return_from_phone_creation_worksite() -> void:
+	current_screen = "create"
+	_dispose_phone_creation_worksite()
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.show()
+		ui_layer = create_ui_layer
+		ui_root = create_ui_root
 
 
 func _show_phone_editor() -> void:
