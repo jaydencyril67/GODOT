@@ -170,7 +170,7 @@ func _verify_architectural_progression(headquarters) -> bool:
 			if structure_signature.is_empty():
 				_fail("%s facility level %d is missing its structural design identity." % [facility_type, level])
 				return false
-			var structure_key: String = facility_type + "::" + structure_signature
+			var structure_key: String = structure_signature
 			if seen_architecture_signatures.has(structure_key):
 				_fail("%s facility level %d reused an earlier level's main architectural structure." % [facility_type, level])
 				return false
