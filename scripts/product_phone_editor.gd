@@ -3907,7 +3907,7 @@ func _rebuild_power_bank_preview() -> void:
 	var cover_material := _charger_material(power_bank_body_color.lightened(0.035), 0.12, 0.43)
 	var frame_material := _charger_material(power_bank_body_color.darkened(0.25), 0.52, 0.30)
 	var screen_material := _charger_material(Color("#101923"), 0.10, 0.13)
-		var metal_material := _charger_material(Color("#abb8c4"), 0.88, 0.23)
+	var metal_material := _charger_material(Color("#abb8c4"), 0.88, 0.23)
 	var indicator_material := _charger_material(Color("#6ed8c4"), 0.22, 0.28)
 
 	# The shell and midframe are combined as CSG so both USB apertures are
