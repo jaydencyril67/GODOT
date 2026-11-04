@@ -102,8 +102,8 @@ func _build_interface() -> void:
 
 	var back_button := Button.new()
 	back_button.name = "WorksiteBackButton"
-	back_button.text = "⬅"
-	back_button.custom_minimum_size = Vector2(58, 52)
+	back_button.text = "BACK"
+	back_button.custom_minimum_size = Vector2(82, 48)
 	back_button.focus_mode = Control.FOCUS_NONE
 	_style_arrow_button(back_button)
 	back_button.pressed.connect(func(): back_requested.emit())
@@ -217,8 +217,8 @@ func _build_interface() -> void:
 
 	next_button = Button.new()
 	next_button.name = "NextStepIconButton"
-	next_button.text = "➡"
-	next_button.custom_minimum_size = Vector2(62, 58)
+	next_button.text = "NEXT"
+	next_button.custom_minimum_size = Vector2(88, 52)
 	next_button.disabled = true
 	next_button.focus_mode = Control.FOCUS_NONE
 	_style_arrow_button(next_button)
@@ -282,18 +282,21 @@ func _on_next_pressed() -> void:
 
 
 func _style_arrow_button(button: Button) -> void:
-	# Floating navigation arrows: retain a generous touch target, but remove
-	# every card/background/border state so the glyph sits directly on black.
+	# Clean, bold text navigation. Keep the controls floating directly on the
+	# shared black background with no card, fill or border behind the labels.
 	button.flat = true
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.add_theme_constant_override("h_separation", 0)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
 	button.add_theme_color_override("font_color", Color("#f1f5f1"))
 	button.add_theme_color_override("font_hover_color", Color("#9bd6a7"))
 	button.add_theme_color_override("font_pressed_color", Color("#6fbd80"))
 	button.add_theme_color_override("font_disabled_color", Color("#657268"))
-	button.add_theme_color_override("font_outline_color", Color("#2f7543"))
-	button.add_theme_constant_override("outline_size", 1)
-	button.add_theme_font_size_override("font_size", 36)
+	button.add_theme_color_override("font_outline_color", Color("#000000"))
+	button.add_theme_constant_override("outline_size", 0)
+	button.add_theme_font_size_override("font_size", 18)
+	_apply_bold_font(button)
 
 
 func _style_button(button: Button, selected: bool) -> void:
