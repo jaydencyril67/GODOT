@@ -2,6 +2,7 @@ extends Node3D
 
 signal back_requested
 signal research_upgrade_requested(research_id: String)
+signal worksite_nested_color_view_opened
 
 const PHONE_SIZE := Vector3(1.45, 2.92, 0.22)
 const ROTATION_STEP := deg_to_rad(10.0)
@@ -1568,6 +1569,8 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode)))
 	if return_to_back_design:
 		_add_back_design_flexible_space(active_feature_panel)
+		if worksite_creation_mode:
+			worksite_nested_color_view_opened.emit()
 
 
 func _get_active_color_picker_color() -> Color:
