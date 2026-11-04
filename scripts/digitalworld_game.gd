@@ -5,7 +5,7 @@ const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
-const GLOBAL_BACKGROUND_TEXTURE: Texture2D = preload("res://Screenshot_20261104-041429_ChatGPT.jpg")
+const GLOBAL_BACKGROUND_PATH := "res://Screenshot_20261104-041429_ChatGPT.jpg"
 
 const LOGO_NAMES := [
 	"Orchard", "Skybird", "Crown", "Apex", "Volt", "Prism", "Quantum", "Helix", "Titan", "Zenith",
@@ -73,6 +73,7 @@ var graphics_quality := "High"
 var sound_enabled := true
 
 func _ready() -> void:
+	print("[DigitalWorld] Main scene _ready reached")
 	# Start in Android immersive fullscreen after the display window is initialized.
 	set_process(true)
 	if OS.has_feature("android"):
@@ -82,6 +83,7 @@ func _ready() -> void:
 	add_child(confirm_modal)
 	_load_career()
 	_show_menu()
+	print("[DigitalWorld] Initial menu construction completed")
 
 
 func _process(delta: float) -> void:
@@ -248,6 +250,16 @@ func _clear_world() -> void:
 	staff_market_screen = null
 	staff_management_screen = null
 
+func _load_global_background_texture() -> Texture2D:
+	# Load at runtime rather than preloading at script parse time. This allows
+	# the menu to initialize even if Android has not generated the image import yet.
+	var loaded_resource: Resource = load(GLOBAL_BACKGROUND_PATH)
+	if loaded_resource is Texture2D:
+		return loaded_resource as Texture2D
+	push_warning("Global photo could not be loaded: " + GLOBAL_BACKGROUND_PATH)
+	return null
+
+
 func _new_screen() -> Control:
 	# Hide the outgoing screen immediately. queue_free() removes it only at
 	# the end of the frame, so leaving it visible can briefly stack two scenes.
@@ -265,12 +277,19 @@ func _new_screen() -> Control:
 	ui_root.mouse_filter = Control.MOUSE_FILTER_PASS
 	ui_layer.add_child(ui_root)
 
-	# Shared photographic backdrop for standalone application screens.
-	# Keep it as the first child so each screen's own content renders above it.
+	# Always provide a dark fallback first, then place the uploaded photo above it.
+	# A failed image import must never prevent the actual interface from drawing.
+	var background_fallback := ColorRect.new()
+	background_fallback.name = "Global_Background_Fallback"
+	background_fallback.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background_fallback.color = Color("#03140a")
+	background_fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui_root.add_child(background_fallback)
+
 	var global_background := TextureRect.new()
 	global_background.name = "Global_Photographic_Background"
 	global_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	global_background.texture = GLOBAL_BACKGROUND_TEXTURE
+	global_background.texture = _load_global_background_texture()
 	global_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	global_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	global_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
