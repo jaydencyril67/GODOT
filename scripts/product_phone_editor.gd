@@ -2189,14 +2189,13 @@ func _show_back_design_controls() -> void:
 	var heading := _make_label("BACK DESIGN", 17 if compact else 18, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	_add_back_design_flexible_space(active_feature_panel)
 
 	var actions := HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.add_theme_constant_override("separation", 6)
 	active_feature_panel.add_child(actions)
 	var add_button := Button.new()
-	add_button.text = "+ ADD BOX"
+	add_button.text = "+ ADD"
 	add_button.custom_minimum_size.y = control_height
 	add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(add_button, button_font_size)
@@ -2211,14 +2210,11 @@ func _show_back_design_controls() -> void:
 	_style_staff_button(remove_button, false)
 	remove_button.pressed.connect(_remove_selected_back_design_box)
 	actions.add_child(remove_button)
-	_add_back_design_flexible_space(active_feature_panel)
 
-	var selector_label := _make_label("SELECT RAISED SECTION", label_size, Color("#a9e3ff"))
-	active_feature_panel.add_child(selector_label)
 	back_design_selection_button = Button.new()
 	back_design_selection_button.name = "BackDesignBoxSelector"
-	back_design_selection_button.text = "CHOOSE RAISED BOX  ▼"
-	back_design_selection_button.custom_minimum_size.y = control_height
+	back_design_selection_button.text = "BOX  ▼"
+	back_design_selection_button.custom_minimum_size = Vector2(0, control_height)
 	back_design_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_selection_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(back_design_selection_button, button_font_size)
@@ -2232,7 +2228,6 @@ func _show_back_design_controls() -> void:
 	back_design_selection_button.add_theme_stylebox_override("pressed", selector_idle)
 	back_design_selection_button.add_theme_stylebox_override("focus", selector_idle)
 	back_design_selection_button.pressed.connect(_toggle_back_design_selection_popup)
-	active_feature_panel.add_child(back_design_selection_button)
 	back_design_selection_popup = PanelContainer.new()
 	back_design_selection_popup.name = "BackDesignCustomDropdown"
 	back_design_selection_popup.visible = false
@@ -2273,7 +2268,8 @@ func _show_back_design_controls() -> void:
 		editor_root.add_child(back_design_selection_popup)
 	else:
 		active_feature_panel.add_child(back_design_selection_popup)
-	_add_back_design_flexible_space(active_feature_panel)
+
+	actions.add_child(back_design_selection_button)
 
 	var modes := HBoxContainer.new()
 	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2288,15 +2284,19 @@ func _show_back_design_controls() -> void:
 		_style_staff_button(mode_button, back_design_mode == mode)
 		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
 		modes.add_child(mode_button)
-	_add_back_design_flexible_space(active_feature_panel)
 
 	# Direction controls are deliberately placed after the design settings,
-	# in a compact circular controller anchored at the bottom of the panel.
+	# in a larger square controller anchored at the bottom of the panel.
 
 	back_design_size_label = _make_label("", label_size, Color("#d8eaf5"))
 	active_feature_panel.add_child(back_design_size_label)
-	var border_heading := _make_label("CORNER BORDER", label_size, Color("#a9e3ff"))
-	active_feature_panel.add_child(border_heading)
+	var border_row := HBoxContainer.new()
+	border_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	border_row.add_theme_constant_override("separation", 8)
+	active_feature_panel.add_child(border_row)
+	var border_heading := _make_label("CORNER", label_size, Color("#a9e3ff"))
+	border_heading.custom_minimum_size.x = 58
+	border_row.add_child(border_heading)
 	back_design_border_slider = HSlider.new()
 	back_design_border_slider.min_value = 0.0
 	back_design_border_slider.max_value = 0.45
@@ -2305,20 +2305,21 @@ func _show_back_design_controls() -> void:
 	back_design_border_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_back_design_slider(back_design_border_slider)
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
-	active_feature_panel.add_child(back_design_border_slider)
+	border_row.add_child(back_design_border_slider)
 	back_design_border_label = _make_label("", label_size, Color("#d8eaf5"))
-	active_feature_panel.add_child(back_design_border_label)
+	back_design_border_label.custom_minimum_size.x = 48
+	back_design_border_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	border_row.add_child(back_design_border_label)
 	var color_button := Button.new()
 	color_button.name = "BackDesignColorButton"
-	color_button.text = "●  BODY COLOR"
-	color_button.custom_minimum_size.y = control_height
+	color_button.text = "● COLOR"
+	color_button.custom_minimum_size = Vector2(0, control_height)
 	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(color_button, button_font_size)
 	_style_staff_button(color_button, false)
 	color_button.pressed.connect(_show_device_color_controls.bind(true))
-	active_feature_panel.add_child(color_button)
+	modes.add_child(color_button)
 
-	_add_back_design_flexible_space(active_feature_panel)
 	var pad_center := CenterContainer.new()
 	pad_center.name = "BackDesignDirectionControllerCenter"
 	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2326,12 +2327,12 @@ func _show_back_design_controls() -> void:
 	active_feature_panel.add_child(pad_center)
 	var pad_shell := PanelContainer.new()
 	pad_shell.name = "BackDesignDirectionController"
-	pad_shell.custom_minimum_size = Vector2(154, 154) if not tight else Vector2(136, 136)
+	pad_shell.custom_minimum_size = Vector2(231, 231) if not tight else Vector2(204, 204)
 	var pad_shell_style := StyleBoxFlat.new()
 	pad_shell_style.bg_color = Color("#0b2112")
 	pad_shell_style.border_color = Color("#477d53")
 	pad_shell_style.set_border_width_all(1)
-	pad_shell_style.set_corner_radius_all(100)
+	pad_shell_style.set_corner_radius_all(14)
 	pad_shell_style.content_margin_left = 10
 	pad_shell_style.content_margin_right = 10
 	pad_shell_style.content_margin_top = 10
@@ -2480,16 +2481,16 @@ func _add_back_design_pad_button(parent: GridContainer, caption: String, directi
 	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size = Vector2(44, 38) if tight else Vector2(48, 42)
+	button.custom_minimum_size = Vector2(62, 58) if tight else Vector2(72, 63)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_research_typography(button, 22 if not tight else 20)
+	_apply_research_typography(button, 28 if not tight else 26)
 	_style_staff_button(button, true)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var circular_style := StyleBoxFlat.new()
 		circular_style.bg_color = Color("#173c22") if state != "pressed" else Color("#285c35")
 		circular_style.border_color = Color("#579766")
 		circular_style.set_border_width_all(1)
-		circular_style.set_corner_radius_all(100)
+		circular_style.set_corner_radius_all(8)
 		circular_style.content_margin_left = 0
 		circular_style.content_margin_right = 0
 		circular_style.content_margin_top = 0
