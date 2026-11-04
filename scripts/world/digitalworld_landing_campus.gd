@@ -3,7 +3,7 @@ extends Node3D
 signal cinematic_reveal_finished
 
 # A lightweight, procedural corporate arrival scene built for mobile.
-# The opening curtains and every architectural accent are real 3D geometry.
+# The cinematic corporate environment is built from real 3D geometry.
 const EMERALD := Color("#36a85b")
 const EMERALD_LIGHT := Color("#b8f5c3")
 const OBSIDIAN := Color("#090d11")
@@ -12,15 +12,12 @@ const GLASS := Color("#263b35")
 
 var camera_rig: Node3D
 var landing_camera: Camera3D
-var left_curtain: Node3D
-var right_curtain: Node3D
 var animated_emissive_materials: Array[StandardMaterial3D] = []
 
 
 func _ready() -> void:
 	_build_environment()
 	_build_corporate_district()
-	_build_curtains()
 	_animate_architecture()
 	_play_opening_cinematic()
 
@@ -217,121 +214,6 @@ func _add_floating_light_motes() -> void:
 		float_tween.tween_property(mote, "position:y", start_y - 0.18, rise_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
-func _build_curtains() -> void:
-	var viewport_size := get_viewport().get_visible_rect().size
-	var aspect_ratio := maxf(1.25, viewport_size.x / maxf(1.0, viewport_size.y))
-	var visible_width := landing_camera.size * aspect_ratio
-	var panel_width := visible_width * 0.5 + 1.5
-	var panel_height := landing_camera.size + 4.0
-	var curtain_material := _make_curtain_material()
-
-	left_curtain = _make_curtain_panel("Left_Emerald_Velvet_Curtain", panel_width, panel_height, panel_width * 0.5, curtain_material)
-	right_curtain = _make_curtain_panel("Right_Emerald_Velvet_Curtain", panel_width, panel_height, -panel_width * 0.5, curtain_material)
-	left_curtain.position = Vector3(-panel_width * 0.5, 0.0, -8.0)
-	right_curtain.position = Vector3(panel_width * 0.5, 0.0, -8.0)
-	landing_camera.add_child(left_curtain)
-	landing_camera.add_child(right_curtain)
-
-
-func _make_curtain_panel(panel_name: String, width: float, height: float, inner_edge_x: float, material: Material) -> Node3D:
-	var panel := Node3D.new()
-	panel.name = panel_name
-
-	var fabric := MeshInstance3D.new()
-	fabric.name = "Sculpted_Velvet_Fabric"
-	fabric.mesh = _make_folded_curtain_mesh(width, height)
-	fabric.material_override = material
-	fabric.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	panel.add_child(fabric)
-
-	var trim_material := _emissive_material(Color("#45b967"), Color("#2d9e4e"), 0.24)
-	var seam_mesh := BoxMesh.new()
-	seam_mesh.size = Vector3(0.055, height, 0.10)
-	var seam := MeshInstance3D.new()
-	seam.name = "Emerald_Inner_Seam"
-	seam.mesh = seam_mesh
-	seam.position = Vector3(inner_edge_x, 0.0, 0.38)
-	seam.material_override = trim_material
-	seam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	panel.add_child(seam)
-
-	var hem_mesh := BoxMesh.new()
-	hem_mesh.size = Vector3(width, 0.11, 0.10)
-	var hem := MeshInstance3D.new()
-	hem.name = "Velvet_Bottom_Hem"
-	hem.mesh = hem_mesh
-	hem.position = Vector3(0.0, -height * 0.5 + 0.06, 0.24)
-	hem.material_override = trim_material
-	hem.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	panel.add_child(hem)
-
-	return panel
-
-
-func _make_folded_curtain_mesh(width: float, height: float) -> ArrayMesh:
-	var columns := 48
-	var rows := 10
-	var vertices := PackedVector3Array()
-	var normals := PackedVector3Array()
-	var uvs := PackedVector2Array()
-	var colors := PackedColorArray()
-	var indices := PackedInt32Array()
-	var fabric_color := Color("#0b3a24")
-
-	for row in range(rows + 1):
-		var v := float(row) / float(rows)
-		for column in range(columns + 1):
-			var u := float(column) / float(columns)
-			var phase := u * TAU * 12.0
-			var wave := sin(phase)
-			var x := (u - 0.5) * width
-			var y := (0.5 - v) * height
-			var z := wave * 0.28 + sin(phase * 2.0) * 0.055
-			vertices.append(Vector3(x, y, z))
-			normals.append(Vector3(0.0, 0.0, 1.0))
-			uvs.append(Vector2(u, v))
-			var shade := 0.70 + 0.24 * (0.5 + 0.5 * cos(phase))
-			colors.append(Color(fabric_color.r * shade, fabric_color.g * shade, fabric_color.b * shade, 1.0))
-
-	for row in range(rows):
-		for column in range(columns):
-			var top_left := row * (columns + 1) + column
-			var bottom_left := top_left + columns + 1
-			var bottom_right := bottom_left + 1
-			var top_right := top_left + 1
-			indices.append(top_left)
-			indices.append(bottom_left)
-			indices.append(bottom_right)
-			indices.append(top_left)
-			indices.append(bottom_right)
-			indices.append(top_right)
-
-	var arrays: Array = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	arrays[Mesh.ARRAY_COLOR] = colors
-	arrays[Mesh.ARRAY_INDEX] = indices
-
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return mesh
-
-
-func _make_curtain_material() -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color.WHITE
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.92
-	material.metallic = 0.04
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.emission_enabled = true
-	material.emission = Color("#03170b")
-	material.emission_energy_multiplier = 0.16
-	return material
-
-
 func _animate_architecture() -> void:
 	for material in animated_emissive_materials:
 		var pulse := create_tween().set_loops()
@@ -340,20 +222,7 @@ func _animate_architecture() -> void:
 
 
 func _play_opening_cinematic() -> void:
-	var viewport_size := get_viewport().get_visible_rect().size
-	var aspect_ratio := maxf(1.25, viewport_size.x / maxf(1.0, viewport_size.y))
-	var visible_width := landing_camera.size * aspect_ratio
-	var panel_width := visible_width * 0.5 + 1.5
-	var open_distance := panel_width + visible_width * 0.5 + 9.0
-	var left_target := left_curtain.position + Vector3(-open_distance, 0.0, 0.0)
-	var right_target := right_curtain.position + Vector3(open_distance, 0.0, 0.0)
-
-	var curtain_tween := create_tween().set_parallel(true)
-	curtain_tween.tween_property(left_curtain, "position", left_target, 2.9).set_delay(0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	curtain_tween.tween_property(right_curtain, "position", right_target, 2.9).set_delay(0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	curtain_tween.tween_property(left_curtain, "rotation_degrees:y", -5.0, 2.9).set_delay(0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	curtain_tween.tween_property(right_curtain, "rotation_degrees:y", 5.0, 2.9).set_delay(0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-
+	# Start directly on the corporate world while retaining the cinematic camera reveal.
 	var camera_tween := create_tween().set_parallel(true)
 	camera_tween.tween_property(landing_camera, "size", 44.5, 4.5).from(50.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	camera_tween.tween_property(camera_rig, "rotation_degrees:y", 0.0, 4.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
