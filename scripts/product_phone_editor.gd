@@ -1358,18 +1358,25 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	power_bank_color_mode = for_power_bank
 	wireless_earbuds_color_mode = for_earbuds
 	box_package_color_mode = for_box_package
-	if not is_instance_valid(right_tools_content):
+	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
+	if not is_instance_valid(panel_host):
+		panel_host = right_tools_content
+	if not is_instance_valid(panel_host):
 		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
+	if is_instance_valid(active_feature_panel) and active_feature_panel.get_parent() == panel_host:
+		panel_host.remove_child(active_feature_panel)
+		active_feature_panel.queue_free()
+	if panel_host == right_tools_content:
+		for old_child in right_tools_content.get_children():
+			old_child.queue_free()
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BoxPackageColorControls" if for_box_package else ("ChargerColorControls" if for_charger else ("PhoneCaseColorControls" if for_phone_case else ("SmartwatchColorControls" if for_smartwatch else ("PowerBankColorControls" if for_power_bank else ("WirelessEarbudsColorControls" if for_earbuds else "DeviceColorControls")))))
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if return_to_back_design else Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if panel_host != right_tools_content else (Control.SIZE_EXPAND_FILL if return_to_back_design else Control.SIZE_SHRINK_BEGIN)
 	var color_viewport_size := get_viewport().get_visible_rect().size
 	var compact_color_ui := color_viewport_size.y < 760.0 or color_viewport_size.x < 900.0
 	active_feature_panel.add_theme_constant_override("separation", 6 if compact_color_ui else 8)
-	right_tools_content.add_child(active_feature_panel)
+	panel_host.add_child(active_feature_panel)
 
 	if return_to_back_design or for_phone_case or for_charger or for_smartwatch or for_power_bank or for_earbuds or for_box_package:
 		var color_header := HBoxContainer.new()
@@ -1380,7 +1387,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		back_button.custom_minimum_size = Vector2(34, 32)
 		back_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(back_button, 25)
-		_style_staff_button(back_button, false)
+		_style_back_design_button(back_button, false) if return_to_back_design else _style_staff_button(back_button, false)
 		back_button.pressed.connect(_show_box_package_controls if for_box_package else (_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else (_show_earbuds_controls if for_earbuds else _show_back_design_controls))))))
 		color_header.add_child(back_button)
 		var color_heading := "BOX PACKAGE COLOR" if for_box_package else ("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else ("WIRELESS EARBUDS COLOR" if for_earbuds else "BACK DESIGN COLOR")))))
@@ -2167,7 +2174,16 @@ func _show_back_design_controls() -> void:
 		back_design_selection_scroll = null
 		back_design_selection_items = null
 	back_design_color_mode = false
-	if not is_instance_valid(right_tools_content): return
+	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
+	if not is_instance_valid(panel_host):
+		panel_host = right_tools_content
+	if not is_instance_valid(panel_host): return
+	if is_instance_valid(active_feature_panel) and active_feature_panel.get_parent() == panel_host:
+		panel_host.remove_child(active_feature_panel)
+		active_feature_panel.queue_free()
+	if panel_host == right_tools_content:
+		for old_child in right_tools_content.get_children():
+			old_child.queue_free()
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.y < 760.0 or viewport_size.x < 900.0
 	var tight := viewport_size.y < 620.0 or viewport_size.x < 600.0
@@ -2178,13 +2194,12 @@ func _show_back_design_controls() -> void:
 	var section_gap := 3 if tight else (4 if compact else 6)
 	var label_size := 11 if tight else 12
 	var button_font_size := 12 if tight else (13 if compact else 14)
-	for child in right_tools_content.get_children(): child.queue_free()
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BackDesignControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", section_gap)
-	right_tools_content.add_child(active_feature_panel)
+	panel_host.add_child(active_feature_panel)
 
 	var heading := _make_label("BACK DESIGN", 17 if compact else 18, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
