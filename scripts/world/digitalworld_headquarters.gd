@@ -109,9 +109,6 @@ func _create_material_library() -> void:
 		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
 		"hq_sign": _mat(Color("#12351b"), 0.32, 0.48),
 		"hq_accent": _emissive_mat(Color("#50c96b"), 1.8),
-		"stage_ground": _mat(Color("#263f2c"), 0.92),
-		"stage_deck": _mat(Color("#405b43"), 0.72, 0.22),
-		"stage_trim": _emissive_mat(Color("#4dba68"), 1.2),
 		"workshop_cladding": _mat(Color("#8d9b8e"), 0.72, 0.22),
 		"workshop_shutter": _mat(Color("#394b3d"), 0.65, 0.42),
 		"glass_mullion": _mat(Color("#263f30"), 0.28, 0.82),
@@ -144,21 +141,17 @@ func _create_environment() -> void:
 	var environment := Environment.new()
 	var sky := Sky.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#477fa7")
-	sky_material.sky_horizon_color = Color("#c4d5d9")
-	sky_material.ground_bottom_color = Color("#343c40")
-	sky_material.ground_horizon_color = Color("#89999a")
+	sky_material.sky_top_color = Color("#567e68")
+	sky_material.sky_horizon_color = Color("#d2d9c4")
+	sky_material.ground_bottom_color = Color("#313c2e")
+	sky_material.ground_horizon_color = Color("#a0ab92")
 	sky_material.sun_angle_max = 18.0
 	sky.sky_material = sky_material
 
 	# Home gets a clean deep-emerald world background, not a blue studio sky.
 	# Keep the original sky as the ambient/reflection source so the building's
 	# material response and natural colour remain the same.
-	if home_mode:
-		environment.background_mode = Environment.BG_COLOR
-		environment.background_color = Color("#07170b")
-	else:
-		environment.background_mode = Environment.BG_SKY
+	environment.background_mode = Environment.BG_SKY
 
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
@@ -166,7 +159,7 @@ func _create_environment() -> void:
 	environment.ambient_light_sky_contribution = 0.88
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.tonemap_exposure = 1.0
-	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY if home_mode else Environment.REFLECTION_SOURCE_BG
+	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	world.environment = environment
 	add_child(world)
 
@@ -930,7 +923,7 @@ func _create_side_level_button(parent: Node, node_name: String, glyph: String, l
 
 func _refresh_preview_interface() -> void:
 	if is_instance_valid(level_info_label):
-		level_info_label.text = "OFFICE BUILDING LEVEL %d" % preview_level
+		level_info_label.text = "%s  /  LEVEL %d" % [str(LEVEL_CONFIGS[preview_level - 1]["name"]).to_upper(), preview_level]
 	if is_instance_valid(staff_capacity_label):
 		staff_capacity_label.text = "STAFF CAPACITY: %d WORKERS" % _get_staff_capacity(preview_level)
 	if is_instance_valid(previous_level_button):
@@ -1072,8 +1065,8 @@ func _pan_camera(relative: Vector2) -> void:
 	var camera_right := hq_camera.global_transform.basis.x
 	camera_target -= camera_right * relative.x * pan_scale
 	camera_target += Vector3.UP * relative.y * pan_scale
-	camera_target.x = clampf(camera_target.x, -24.0, 24.0)
-	camera_target.z = clampf(camera_target.z, -24.0, 24.0)
+	camera_target.x = clampf(camera_target.x, -32.0, 32.0)
+	camera_target.z = clampf(camera_target.z, -32.0, 32.0)
 	camera_target.y = clampf(camera_target.y, 0.0, 150.0)
 	_update_camera_transform()
 
