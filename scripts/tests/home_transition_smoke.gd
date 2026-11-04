@@ -94,7 +94,17 @@ func _run_transition_checks() -> void:
 	if headquarters.building_root != original_building:
 		_fail("Reopening Office after Research rebuilt the headquarters.")
 		return
+
+	# An Office tier preview may create temporary geometry, but returning Home
+	# must restore the original loading-screen HQ node instead of rebuilding it.
+	headquarters._show_next_level()
+	if headquarters.building_root == original_building or not is_instance_valid(original_building):
+		_fail("Office tier preview did not keep the original HQ safely cached.")
+		return
 	game._return_home_from_headquarters()
+	if headquarters.building_root != original_building or not is_instance_valid(original_building):
+		_fail("Returning Home from a tier preview rebuilt the original HQ.")
+		return
 
 	# Every company tier must rebuild all five buildings as distinct architecture.
 	var architecture_valid: bool = await _verify_architectural_progression(headquarters)
