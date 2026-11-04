@@ -1,6 +1,8 @@
 name: DigitalWorld Godot Checks
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -71,6 +73,17 @@ jobs:
           godot --headless --editor --path . --quit 2>&1 | tee godot-parse.log
           if grep -E 'Parse Error:|SCRIPT ERROR:' godot-parse.log; then
             echo "Godot reported a script error after imports were generated."
+            exit 1
+          fi
+
+      - name: Smoke-test Home and Office navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/home_transition_smoke.gd 2>&1 | tee home-office-smoke.log
+          grep -q "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS" home-office-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|HOME_OFFICE_TRANSITION_SMOKE_TEST:.*(FAIL|ERROR)' home-office-smoke.log; then
+            echo "Godot reported an error during Home and Office navigation."
             exit 1
           fi
 
