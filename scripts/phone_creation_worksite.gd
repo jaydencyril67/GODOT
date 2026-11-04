@@ -158,7 +158,7 @@ func _build_interface() -> void:
 	progress.custom_minimum_size = Vector2(150, 38)
 	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-	progress_number = _label("STEP 1 / 5", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 6", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
@@ -379,7 +379,7 @@ func _show_thickness_step() -> void:
 	wizard_step = 1
 	type_step_content.hide()
 	thickness_panel = _mount_original_panel("_show_thickness_controls")
-	progress_number.text = "STEP 2 / 5"
+	progress_number.text = "STEP 2 / 6"
 	progress_bar.value = 2
 	wizard_back_button.disabled = false
 	next_button.disabled = false
@@ -393,7 +393,7 @@ func _show_border_radius_step() -> void:
 	thickness_panel = null
 	wizard_step = 2
 	border_radius_panel = _mount_original_panel("_show_border_radius_controls")
-	progress_number.text = "STEP 3 / 5"
+	progress_number.text = "STEP 3 / 6"
 	progress_bar.value = 3
 	wizard_back_button.disabled = false
 	next_button.disabled = false
@@ -407,7 +407,7 @@ func _show_screen_tech_step() -> void:
 	border_radius_panel = null
 	wizard_step = 3
 	screen_tech_panel = _mount_original_panel("_show_screen_tech_controls")
-	progress_number.text = "STEP 4 / 5"
+	progress_number.text = "STEP 4 / 6"
 	progress_bar.value = 4
 	wizard_back_button.disabled = false
 	next_button.disabled = false
@@ -461,7 +461,7 @@ func _on_wizard_back_pressed() -> void:
 		screen_size_panel = null
 		wizard_step = 3
 		screen_tech_panel = _mount_original_panel("_show_screen_tech_controls")
-		progress_number.text = "STEP 4 / 5"
+		progress_number.text = "STEP 4 / 6"
 		progress_bar.value = 4
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -470,7 +470,7 @@ func _on_wizard_back_pressed() -> void:
 		screen_tech_panel = null
 		wizard_step = 2
 		border_radius_panel = _mount_original_panel("_show_border_radius_controls")
-		progress_number.text = "STEP 3 / 5"
+		progress_number.text = "STEP 3 / 6"
 		progress_bar.value = 3
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -479,7 +479,7 @@ func _on_wizard_back_pressed() -> void:
 		border_radius_panel = null
 		wizard_step = 1
 		thickness_panel = _mount_original_panel("_show_thickness_controls")
-		progress_number.text = "STEP 2 / 5"
+		progress_number.text = "STEP 2 / 6"
 		progress_bar.value = 2
 		wizard_back_button.disabled = false
 		next_button.disabled = false
@@ -488,7 +488,7 @@ func _on_wizard_back_pressed() -> void:
 		thickness_panel = null
 		wizard_step = 0
 		type_step_content.show()
-		progress_number.text = "STEP 1 / 5"
+		progress_number.text = "STEP 1 / 6"
 		progress_bar.value = 1
 		wizard_back_button.disabled = true
 		next_button.disabled = selected_phone_type.is_empty()
