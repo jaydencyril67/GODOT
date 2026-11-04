@@ -1964,24 +1964,10 @@ func _finish_headquarters_loading() -> void:
 		return
 	headquarters_loading_finish_started = true
 
-	# Finish preparing non-visual Home data while the headquarters remains hidden.
-	_prepare_staff_scenes()
-	await get_tree().process_frame
-
-	if not is_instance_valid(world_root):
-		headquarters_loading_finish_started = false
-		return
-
-	# Do not leave the loading page until its progress animation has visibly
-	# reached 100 percent. Hold the completed state briefly for clear feedback.
-	if loading_progress_tween != null and loading_progress_tween.is_running():
-		await loading_progress_tween.finished
-	if is_instance_valid(loading_percent_label):
-		loading_percent_label.text = "100%"
-	if is_instance_valid(loading_progress_bar):
-		loading_progress_bar.value = 100.0
-	await get_tree().create_timer(1.0).timeout
-
+	# This callback is connected to the headquarters' setup_completed signal.
+	# That signal is emitted by the actual builder only after construction,
+	# camera setup, and the final setup frame are complete. The progress bar
+	# is visual feedback only and must never delay or trigger this handoff.
 	if not is_instance_valid(world_root):
 		headquarters_loading_finish_started = false
 		return
@@ -1990,8 +1976,10 @@ func _finish_headquarters_loading() -> void:
 		loading_progress_tween.kill()
 	loading_progress_tween = null
 
-	# Remove the loading page completely before allowing the 3D headquarters
-	# or Home controls to appear. There is deliberately no crossfade/overlap.
+	# Queue the loading layer for removal, then construct Home in this same
+	# frame. Godot removes the queued loading layer at frame end, revealing
+	# the already-created Home and headquarters together—no empty green frame,
+	# progress-bar wait, timer, crossfade, or extra process-frame pause.
 	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
@@ -2000,13 +1988,13 @@ func _finish_headquarters_loading() -> void:
 	loading_progress_bar = null
 	if is_instance_valid(preparation_layer):
 		preparation_layer.queue_free()
-		await get_tree().process_frame
 
-	# The loading layer is already gone. Reveal the headquarters and build
-	# the Home interface in the same frame so Home is the immediate next view.
-	if is_instance_valid(world_root):
-		world_root.visible = true
-		_show_home_navigation()
+	world_root.visible = true
+	_show_home_navigation()
+
+	# Prepare staff pages after Home is already on screen so their setup cannot
+	# create a blank gap between the loading screen and the Home page.
+	call_deferred("_prepare_staff_scenes")
 
 
 func _show_create_scene() -> void:
