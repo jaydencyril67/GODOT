@@ -103,6 +103,24 @@ func _verify_architectural_progression(headquarters) -> bool:
 		"Level09_Crown_Tower",
 		"Level10_Central_Crown_Tower"
 	]
+	var hq_massing_signatures: Array[String] = [
+		"HQ_L01_Industrial_Workshop",
+		"HQ_L02_LShaped_Admin_Block",
+		"HQ_L03_West_Lab_Wing",
+		"HQ_L04_Offset_Office_Tower",
+		"HQ_L05_Central_Atrium_Tower",
+		"HQ_L06_West_Tower",
+		"HQ_L07_Octagonal_Glass_Rotunda",
+		"HQ_L08_West_Glass_Tower",
+		"HQ_L09_Central_Signature_Tower",
+		"HQ_L10_Central_Glass_Atrium"
+	]
+	var facility_roots: Dictionary = {
+		"production": "Production_And_Assembly",
+		"research": "Research_And_Test_Lab",
+		"utilities": "Utilities_Building",
+		"security": "Security_Gatehouse"
+	}
 	var facility_signatures: Array[Dictionary] = [
 		{"production": "Production_And_Assembly_Workshop_Roof_Lantern", "research": "Research_And_Test_Lab_Lab_Roof_Lantern", "utilities": "Utilities_Building_Exhaust_Hood", "security": "Security_Gatehouse_Guard_Booth_Eave"},
 		{"production": "Production_And_Assembly_Loading_Canopy", "research": "Research_And_Test_Lab_Glass_Entry_Vestibule", "utilities": "Utilities_Building_Switchgear_Cabinet", "security": "Security_Gatehouse_Checkpoint_Canopy"},
@@ -125,10 +143,22 @@ func _verify_architectural_progression(headquarters) -> bool:
 		if not is_instance_valid(headquarters.building_root) or not is_instance_valid(headquarters.building_root.get_node_or_null(hq_signatures[level - 1])):
 			_fail("Headquarters level %d did not build its unique architectural form." % level)
 			return false
+		if not is_instance_valid(headquarters.building_root.get_node_or_null(hq_massing_signatures[level - 1])):
+			_fail("Headquarters level %d reused a generic building shell." % level)
+			return false
 		var expected: Dictionary = facility_signatures[level - 1]
 		for facility_type in ["production", "research", "utilities", "security"]:
 			var signature_name: String = str(expected[facility_type])
 			if not is_instance_valid(headquarters.compound_facilities_root.get_node_or_null(signature_name)):
 				_fail("%s facility did not build its unique level %d structure." % [facility_type, level])
+				return false
+			var facility_root: String = str(facility_roots[facility_type])
+			var core_name := "%s_Level_%02d_Core_Mass" % [facility_root, level]
+			var module_name := "%s_Level_%02d_Architectural_Module" % [facility_root, level]
+			if not is_instance_valid(headquarters.compound_facilities_root.get_node_or_null(core_name)):
+				_fail("%s facility level %d did not rebuild its own core mass." % [facility_type, level])
+				return false
+			if not is_instance_valid(headquarters.compound_facilities_root.get_node_or_null(module_name)):
+				_fail("%s facility level %d reused a generic building shape." % [facility_type, level])
 				return false
 	return true
