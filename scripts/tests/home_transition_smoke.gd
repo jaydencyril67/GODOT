@@ -16,7 +16,8 @@ func _run_transition_checks() -> void:
 
 	# Build a real Home scene and verify that Office opens over that same HQ.
 	await game._show_home_scene()
-	if not await _wait_for_headquarters():
+	var initial_home_ready: bool = await _wait_for_headquarters()
+	if not initial_home_ready:
 		_fail("Initial Home scene did not create its headquarters.")
 		return
 	var headquarters = game.world_root
@@ -38,7 +39,8 @@ func _run_transition_checks() -> void:
 		_fail("Create did not dispose of its exclusive 3D Home world.")
 		return
 	game._return_to_home()
-	if not await _wait_for_headquarters():
+	var create_return_ready: bool = await _wait_for_headquarters()
+	if not create_return_ready:
 		_fail("Returning from Create did not rebuild Home.")
 		return
 	headquarters = game.world_root
@@ -54,7 +56,8 @@ func _run_transition_checks() -> void:
 		_fail("Research did not dispose of its exclusive 3D Home world.")
 		return
 	game._return_home_from_research()
-	if not await _wait_for_headquarters():
+	var research_return_ready: bool = await _wait_for_headquarters()
+	if not research_return_ready:
 		_fail("Returning from Research did not rebuild Home.")
 		return
 	headquarters = game.world_root
@@ -69,7 +72,7 @@ func _run_transition_checks() -> void:
 
 
 func _wait_for_headquarters() -> bool:
-	for frame_index in range(180):
+	for _frame_index in range(180):
 		if is_instance_valid(game.world_root):
 			return true
 		await process_frame
