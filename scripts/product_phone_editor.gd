@@ -1507,6 +1507,8 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		picker_columns.add_child(gradient_picker)
 		var gradient_picker_enabled := bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
 		_set_device_gradient_picker_enabled(gradient_picker, gradient_picker_enabled)
+	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true)))
 	if return_to_back_design:
 		_add_back_design_flexible_space(active_feature_panel)
 
