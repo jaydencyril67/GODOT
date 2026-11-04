@@ -354,7 +354,7 @@ func _create_compound_gate(parent: Node3D) -> void:
 func _create_compound_facilities(parent: Node3D, level: int) -> void:
 	_create_compound_facility(parent, "Production_And_Assembly", "PRODUCTION & ASSEMBLY", Vector3(-19.5, 0.0, -13.0), Vector3(10.5, 4.1, 8.0), level, "production")
 	_create_compound_facility(parent, "Research_And_Test_Lab", "RESEARCH & TEST LAB", Vector3(19.5, 0.0, -13.0), Vector3(10.0, 4.0, 8.0), level, "research")
-	_create_compound_facility(parent, "Utilities_Building", "UTILITIES & ENERGY", Vector3(23.0, 0.0, -1.0), Vector3(6.5, 3.0, 5.0), level, "utilities")
+	_create_compound_facility(parent, "Utilities_Building", "UTILITIES & ENERGY", Vector3(22.0, 0.0, -1.0), Vector3(6.5, 3.0, 5.0), level, "utilities")
 	_create_compound_facility(parent, "Security_Gatehouse", "SECURITY", Vector3(-17.0, 0.0, 22.0), Vector3(6.0, 3.0, 4.6), level, "security")
 
 
