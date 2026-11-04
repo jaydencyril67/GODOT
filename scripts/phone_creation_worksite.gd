@@ -239,7 +239,12 @@ func _build_interface() -> void:
 	selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Let taller control cards remain fully reachable on compact landscape
+	# screens while keeping the scrollbar invisible to preserve the clean UI.
+	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var selection_scroll_bar := selection_scroll.get_v_scroll_bar()
+	selection_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	selection_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(selection_scroll)
 
 	selection_region = MarginContainer.new()
