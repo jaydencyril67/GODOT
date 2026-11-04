@@ -1355,7 +1355,9 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	back_design_color_mode = return_to_back_design
 	# New Worksite raised boxes always open with independent base and gradient colors.
 	# This also normalizes boxes carried over from older saved editor state.
-	if return_to_back_design and worksite_creation_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
+	if return_to_back_design and worksite_creation_mode and not back_design_boxes.is_empty():
+		if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size():
+			selected_back_design_box = back_design_boxes.size() - 1
 		back_design_boxes[selected_back_design_box]["use_device_color"] = false
 	phone_case_color_mode = for_phone_case
 	charger_color_mode = for_charger
