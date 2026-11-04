@@ -97,24 +97,24 @@ func _ready() -> void:
 func _create_material_library() -> void:
 	materials = {
 		"concrete": _mat(Color("#b8b9b1"), 0.9),
-		"dark_metal": _mat(Color("#263941"), 0.42, 0.72),
+		"dark_metal": _mat(Color("#26352b"), 0.42, 0.72),
 		"metal": _mat(Color("#78878b"), 0.34, 0.78),
 		"glass": _glass_mat(),
-		"storefront": _mat(Color("#26383d"), 0.22, 0.38),
-		"window_frame": _mat(Color("#26343a"), 0.38, 0.62),
-		"glass_reflection": _mat(Color("#a8d2df"), 0.12, 0.32),
-		"window_gasket": _mat(Color("#111b20"), 0.72, 0.18),
-		"roof": _mat(Color("#59666a"), 0.72, 0.28),
+		"storefront": _mat(Color("#263b2c"), 0.22, 0.38),
+		"window_frame": _mat(Color("#26382e"), 0.38, 0.62),
+		"glass_reflection": _mat(Color("#b3d6ba"), 0.12, 0.32),
+		"window_gasket": _mat(Color("#111b13"), 0.72, 0.18),
+		"roof": _mat(Color("#59635a"), 0.72, 0.28),
 		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
 		"hq_sign": _mat(Color("#12351b"), 0.32, 0.48),
 		"hq_accent": _emissive_mat(Color("#50c96b"), 1.8),
 		"stage_ground": _mat(Color("#263f2c"), 0.92),
 		"stage_deck": _mat(Color("#405b43"), 0.72, 0.22),
 		"stage_trim": _emissive_mat(Color("#4dba68"), 1.2),
-		"workshop_cladding": _mat(Color("#8d9b9d"), 0.72, 0.22),
-		"workshop_shutter": _mat(Color("#394b52"), 0.65, 0.42),
-		"glass_mullion": _mat(Color("#263f50"), 0.28, 0.82),
-		"glass_spandrel": _mat(Color("#17384a"), 0.22, 0.58)
+		"workshop_cladding": _mat(Color("#8d9b8e"), 0.72, 0.22),
+		"workshop_shutter": _mat(Color("#394b3d"), 0.65, 0.42),
+		"glass_mullion": _mat(Color("#263f30"), 0.28, 0.82),
+		"glass_spandrel": _mat(Color("#173826"), 0.22, 0.58)
 	}
 
 func _create_procedural_surface_textures() -> void:
@@ -193,37 +193,304 @@ func _create_environment() -> void:
 
 
 func _create_presentation_stage() -> void:
-	if home_mode:
-		# Replace the raised blue showroom plinth with one continuous matte
-		# emerald ground plane. The building mesh and its own foundation stay intact.
-		var ground_mesh := PlaneMesh.new()
-		ground_mesh.size = Vector2(120.0, 120.0)
-		var home_ground := MeshInstance3D.new()
-		home_ground.name = "Home_Emerald_Ground"
-		home_ground.mesh = ground_mesh
-		home_ground.position = Vector3(0.0, -0.035, 0.0)
-		var ground_material := StandardMaterial3D.new()
-		ground_material.albedo_color = Color("#1b2c1e")
-		ground_material.metallic = 0.04
-		ground_material.roughness = 0.96
-		home_ground.material_override = ground_material
-		home_ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(home_ground)
-		return
+	# The HQ is built into a real property. There is no raised showroom deck or trim plinth.
+	var compound := Node3D.new()
+	compound.name = "Company_Compound"
+	add_child(compound)
 
-	var studio_ground := _box(self, "Headquarters_Studio_Ground", Vector3(90.0, 0.7, 90.0), Vector3(0.0, -0.55, 0.0), materials["stage_ground"])
-	studio_ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_box(self, "Headquarters_Presentation_Deck", Vector3(34.0, 0.24, 30.0), Vector3(0.0, -0.12, 0.0), materials["stage_deck"])
-	_box(self, "Deck_Trim_Front", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, 15.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Back", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, -15.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Left", Vector3(0.14, 0.07, 30.1), Vector3(-17.0, 0.035, 0.0), materials["stage_trim"])
-	_box(self, "Deck_Trim_Right", Vector3(0.14, 0.07, 30.1), Vector3(17.0, 0.035, 0.0), materials["stage_trim"])
+	var outer_ground_mesh := PlaneMesh.new()
+	outer_ground_mesh.size = Vector2(190.0, 190.0)
+	var outer_ground := MeshInstance3D.new()
+	outer_ground.name = "Surrounding_Landscape"
+	outer_ground.mesh = outer_ground_mesh
+	outer_ground.position = Vector3(0.0, -0.12, 0.0)
+	var outer_material := _mat(Color("#172d1b"), 0.98)
+	outer_material.albedo_texture = facade_noise
+	outer_material.uv1_scale = Vector3(24.0, 24.0, 1.0)
+	outer_material.normal_enabled = true
+	outer_material.normal_texture = facade_normal
+	outer_material.normal_scale = 0.08
+	outer_ground.material_override = outer_material
+	outer_ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	compound.add_child(outer_ground)
 
+	var site_mesh := PlaneMesh.new()
+	site_mesh.size = Vector2(70.0, 66.0)
+	var site_ground := MeshInstance3D.new()
+	site_ground.name = "Continuous_Compound_Grass"
+	site_ground.mesh = site_mesh
+	site_ground.position = Vector3(0.0, -0.075, 0.0)
+	var grass_material := _mat(Color("#24452a"), 0.98)
+	grass_material.albedo_texture = facade_noise
+	grass_material.uv1_scale = Vector3(17.0, 17.0, 1.0)
+	grass_material.normal_enabled = true
+	grass_material.normal_texture = facade_normal
+	grass_material.normal_scale = 0.11
+	site_ground.material_override = grass_material
+	site_ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	compound.add_child(site_ground)
+
+	_create_compound_roads(compound)
+	_create_compound_perimeter(compound)
+	_create_compound_gate(compound)
+	_create_compound_parking(compound)
+	_create_compound_landscape(compound)
+	_create_compound_lighting(compound)
+
+	# The site is visible while previewing upgrades. On an unowned Home screen,
+	# the secured property remains undeveloped until the first workshop is bought.
+	if not home_mode or owned_level > 0:
+		_create_compound_facilities(compound)
+
+
+func _create_compound_roads(parent: Node3D) -> void:
+	var asphalt := _mat(Color("#252b27"), 0.94)
+	asphalt.albedo_texture = facade_noise
+	asphalt.uv1_scale = Vector3(8.0, 8.0, 1.0)
+	var asphalt_edge := _mat(Color("#3d463e"), 0.9)
+	var paving := _mat(Color("#858b80"), 0.92)
+	var paving_light := _mat(Color("#a0a294"), 0.9)
+	var road_marking := _mat(Color("#e0dfcc"), 0.86)
+
+	_box(parent, "Main_Entrance_Drive", Vector3(8.0, 0.055, 25.0), Vector3(0.0, 0.015, 18.0), asphalt)
+	_box(parent, "Entrance_Apron", Vector3(13.0, 0.055, 6.0), Vector3(0.0, 0.015, 27.0), asphalt)
+	_box(parent, "West_Service_Road", Vector3(5.2, 0.055, 43.0), Vector3(-23.0, 0.015, 2.0), asphalt)
+	_box(parent, "West_Service_Yard_Connection", Vector3(11.0, 0.055, 5.2), Vector3(-18.0, 0.015, -3.0), asphalt)
+	_box(parent, "East_Service_Access", Vector3(5.0, 0.055, 24.0), Vector3(23.5, 0.015, 4.0), asphalt)
+
+	# Low kerbs define road edges without lifting the compound onto a platform.
+	for side in [-1.0, 1.0]:
+		_box(parent, "Driveway_Kerb", Vector3(0.22, 0.16, 25.0), Vector3(side * 4.12, 0.06, 18.0), asphalt_edge)
+		_box(parent, "Driveway_Edge_Marking", Vector3(0.075, 0.018, 22.0), Vector3(side * 3.72, 0.054, 17.0), road_marking)
+
+	_box(parent, "Main_Entrance_Pedestrian_Walk", Vector3(2.8, 0.07, 5.5), Vector3(0.0, 0.035, 8.0), paving)
+	_box(parent, "Front_Entry_Landing", Vector3(7.5, 0.07, 2.0), Vector3(0.0, 0.035, 6.1), paving_light)
+	for index in range(7):
+		var z := 6.0 + float(index) * 0.72
+		_box(parent, "Walkway_Paver_Joint", Vector3(2.65, 0.012, 0.035), Vector3(0.0, 0.078, z), asphalt_edge)
+
+	# A service path connects the loading side of the workshop to the west lane.
+	_box(parent, "Production_Service_Apron", Vector3(9.5, 0.055, 6.0), Vector3(-16.0, 0.015, -6.0), asphalt)
+	_box(parent, "Research_Service_Paving", Vector3(8.0, 0.055, 5.0), Vector3(16.0, 0.015, -6.5), asphalt)
+
+
+func _create_compound_perimeter(parent: Node3D) -> void:
+	var fence_material := _mat(Color("#303b32"), 0.54, 0.68)
+	var fence_post_material := _mat(Color("#59635a"), 0.62, 0.52)
+	_add_fence_run(parent, Vector3(-31.0, 0.0, -29.0), Vector3(31.0, 0.0, -29.0), fence_material, fence_post_material)
+	_add_fence_run(parent, Vector3(-31.0, 0.0, -29.0), Vector3(-31.0, 0.0, 29.0), fence_material, fence_post_material)
+	_add_fence_run(parent, Vector3(31.0, 0.0, -29.0), Vector3(31.0, 0.0, 29.0), fence_material, fence_post_material)
+	_add_fence_run(parent, Vector3(-31.0, 0.0, 29.0), Vector3(-5.6, 0.0, 29.0), fence_material, fence_post_material)
+	_add_fence_run(parent, Vector3(5.6, 0.0, 29.0), Vector3(31.0, 0.0, 29.0), fence_material, fence_post_material)
+
+
+func _add_fence_run(parent: Node3D, start_point: Vector3, end_point: Vector3, fence_material: Material, post_material: Material) -> void:
+	var delta := end_point - start_point
+	var distance := Vector2(delta.x, delta.z).length()
+	var segment_count := maxi(1, int(ceil(distance / 4.0)))
+	var along_x := absf(delta.x) >= absf(delta.z)
+	var rotation_y := 0.0 if along_x else PI * 0.5
+	var rail_mesh := BoxMesh.new()
+	rail_mesh.size = Vector3(distance, 0.085, 0.12)
+	for rail_height in [0.52, 1.40]:
+		var rail := MeshInstance3D.new()
+		rail.name = "Perimeter_Fence_Rail"
+		rail.mesh = rail_mesh
+		rail.position = (start_point + end_point) * 0.5 + Vector3(0.0, rail_height, 0.0)
+		rail.rotation.y = rotation_y
+		rail.material_override = fence_material
+		parent.add_child(rail)
+
+	var post_mesh := BoxMesh.new()
+	post_mesh.size = Vector3(0.18, 1.78, 0.18)
+	var posts := MultiMesh.new()
+	posts.transform_format = MultiMesh.TRANSFORM_3D
+	posts.mesh = post_mesh
+	posts.instance_count = segment_count + 1
+	for index in range(segment_count + 1):
+		var point := start_point.lerp(end_point, float(index) / float(segment_count))
+		posts.set_instance_transform(index, Transform3D(Basis.IDENTITY, point + Vector3(0.0, 0.89, 0.0)))
+	_add_multimesh(parent, "Perimeter_Fence_Posts", posts, post_material)
+
+	var picket_mesh := BoxMesh.new()
+	picket_mesh.size = Vector3(0.065, 1.24, 0.075)
+	var picket_count := int(floor(distance / 0.78))
+	var pickets := MultiMesh.new()
+	pickets.transform_format = MultiMesh.TRANSFORM_3D
+	pickets.mesh = picket_mesh
+	pickets.instance_count = picket_count
+	for index in range(picket_count):
+		var t := (float(index) + 0.5) / float(picket_count)
+		var point := start_point.lerp(end_point, t)
+		pickets.set_instance_transform(index, Transform3D(Basis(Vector3.UP, rotation_y), point + Vector3(0.0, 0.91, 0.0)))
+	_add_multimesh(parent, "Perimeter_Fence_Pickets", pickets, fence_material)
+
+
+func _create_compound_gate(parent: Node3D) -> void:
+	var stone := _mat(Color("#777d72"), 0.88)
+	var dark_metal := _mat(Color("#26352a"), 0.48, 0.72)
+	_box(parent, "Main_Gate_Pillar_Left", Vector3(0.82, 3.25, 0.82), Vector3(-5.45, 1.625, 29.0), stone)
+	_box(parent, "Main_Gate_Pillar_Right", Vector3(0.82, 3.25, 0.82), Vector3(5.45, 1.625, 29.0), stone)
+	_box(parent, "Gate_Pillar_Cap_Left", Vector3(1.0, 0.18, 1.0), Vector3(-5.45, 3.32, 29.0), materials["metal"])
+	_box(parent, "Gate_Pillar_Cap_Right", Vector3(1.0, 0.18, 1.0), Vector3(5.45, 3.32, 29.0), materials["metal"])
+	_box(parent, "Company_Entrance_Sign_Frame", Vector3(10.2, 0.58, 0.40), Vector3(0.0, 3.0, 29.0), dark_metal)
+	_box(parent, "Company_Entrance_Sign_Emerald_Line", Vector3(9.6, 0.045, 0.035), Vector3(0.0, 2.70, 29.22), materials["hq_accent"])
+	var sign := Label3D.new()
+	sign.name = "Company_Compound_Entrance_Sign"
+	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	sign.text = company_name.to_upper().substr(0, 26) if not company_name.is_empty() else "YOUR COMPANY"
+	sign.font_size = 34
+	sign.pixel_size = 0.009
+	sign.modulate = Color("#f2f6ed")
+	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sign.position = Vector3(0.0, 3.06, 29.24)
+	sign.rotation.y = PI
+	parent.add_child(sign)
+	# The sliding leaves are parked open against the fence, leaving a clear vehicle entrance.
+	for side in [-1.0, 1.0]:
+		_box(parent, "Open_Sliding_Gate_Leaf", Vector3(3.3, 1.7, 0.11), Vector3(side * 8.0, 0.95, 29.0), dark_metal)
+		for bar in range(1, 8):
+			var x := side * (6.45 + float(bar) * 0.42)
+			_box(parent, "Gate_Leaf_Vertical_Bar", Vector3(0.055, 1.65, 0.14), Vector3(x, 0.95, 29.0), materials["metal"])
+
+
+func _create_compound_facilities(parent: Node3D) -> void:
+	_create_compound_facility(parent, "Production_And_Assembly", "PRODUCTION & ASSEMBLY", Vector3(-17.0, 0.0, -12.0), Vector3(10.5, 4.1, 8.0), Color("#929d8f"), true)
+	_create_compound_facility(parent, "Research_And_Test_Lab", "RESEARCH & TEST LAB", Vector3(16.5, 0.0, -12.0), Vector3(10.0, 4.0, 8.0), Color("#a4aaa0"), false)
+	_create_compound_facility(parent, "Utilities_Building", "UTILITIES", Vector3(23.0, 0.0, -1.0), Vector3(6.5, 3.0, 5.0), Color("#6f7a70"), false)
+	_create_compound_facility(parent, "Security_Gatehouse", "SECURITY", Vector3(-17.0, 0.0, 22.0), Vector3(6.0, 3.0, 4.6), Color("#8d968b"), false)
+
+
+func _create_compound_facility(parent: Node3D, node_name: String, sign_text: String, center: Vector3, dimensions: Vector3, wall_color: Color, loading_bay: bool) -> void:
+	var width := dimensions.x
+	var height := dimensions.y
+	var depth := dimensions.z
+	var wall := _mat(wall_color, 0.88, 0.05)
+	wall.albedo_texture = facade_noise
+	wall.uv1_scale = Vector3(2.6, 2.6, 1.0)
+	var roof := _mat(Color("#515b51"), 0.82, 0.28)
+	var foundation := _mat(Color("#888b80"), 0.94)
+	_box(parent, node_name + "_Foundation", Vector3(width + 0.4, 0.22, depth + 0.4), center + Vector3(0.0, 0.11, 0.0), foundation)
+	_box(parent, node_name + "_Walls", Vector3(width, height, depth), center + Vector3(0.0, height * 0.5 + 0.22, 0.0), wall)
+	_box(parent, node_name + "_Roof", Vector3(width + 0.42, 0.24, depth + 0.42), center + Vector3(0.0, height + 0.34, 0.0), roof)
+	var front_z := center.z + depth * 0.5 + 0.13
+	if loading_bay:
+		_box(parent, node_name + "_Loading_Door_Frame", Vector3(width * 0.48, 2.8, 0.16), Vector3(center.x, 1.62, front_z), materials["dark_metal"])
+		_box(parent, node_name + "_Roller_Shutter", Vector3(width * 0.43, 2.58, 0.07), Vector3(center.x, 1.61, front_z + 0.10), materials["workshop_shutter"])
+		for slat in range(8):
+			_box(parent, node_name + "_Shutter_Slat", Vector3(width * 0.42, 0.035, 0.035), Vector3(center.x, 0.52 + float(slat) * 0.30, front_z + 0.15), materials["metal"])
+		_box(parent, node_name + "_Personnel_Door", Vector3(0.82, 2.25, 0.09), Vector3(center.x + width * 0.36, 1.35, front_z + 0.06), materials["dark_metal"])
+	else:
+		for window_index in range(3):
+			var window_x := center.x + (float(window_index) - 1.0) * width * 0.29
+			_box(parent, node_name + "_Window_Frame", Vector3(width * 0.20, 1.35, 0.12), Vector3(window_x, 2.0, front_z), materials["window_frame"])
+			_box(parent, node_name + "_Window_Glazing", Vector3(width * 0.17, 1.14, 0.045), Vector3(window_x, 2.0, front_z + 0.08), materials["glass"])
+		_box(parent, node_name + "_Entry_Door", Vector3(0.82, 2.25, 0.10), Vector3(center.x, 1.35, front_z + 0.08), materials["dark_metal"])
+		_box(parent, node_name + "_Entry_Glazing", Vector3(0.52, 1.45, 0.04), Vector3(center.x, 1.65, front_z + 0.14), materials["glass"])
+	_box(parent, node_name + "_Sign_Plaque", Vector3(width * 0.74, 0.46, 0.08), Vector3(center.x, height - 0.40, front_z + 0.10), materials["dark_metal"])
+	var label := Label3D.new()
+	label.name = node_name + "_Facility_Sign"
+	label.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	label.text = sign_text
+	label.font_size = 22
+	label.pixel_size = 0.009
+	label.modulate = Color("#eef4e9")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = Vector3(center.x, height - 0.39, front_z + 0.16)
+	label.rotation.y = PI
+	parent.add_child(label)
+	for side in [-1.0, 1.0]:
+		_box(parent, node_name + "_Roof_Vent_Base", Vector3(0.9, 0.12, 0.7), center + Vector3(side * width * 0.28, height + 0.50, -depth * 0.16), materials["dark_metal"])
+		_box(parent, node_name + "_Roof_Vent", Vector3(0.65, 0.36, 0.48), center + Vector3(side * width * 0.28, height + 0.72, -depth * 0.16), materials["metal"])
+
+
+func _create_compound_parking(parent: Node3D) -> void:
+	var asphalt := _mat(Color("#252b27"), 0.94)
+	var parking_line := _mat(Color("#d7d8c8"), 0.82)
+	var wheel_stop := _mat(Color("#8b9083"), 0.9)
+	_box(parent, "Staff_Visitor_Parking_Surface", Vector3(18.0, 0.055, 13.0), Vector3(16.0, 0.015, 13.2), asphalt)
+	for slot in range(6):
+		var x := 8.8 + float(slot) * 2.85
+		_box(parent, "Parking_Bay_Line", Vector3(0.075, 0.025, 5.4), Vector3(x, 0.055, 13.0), parking_line)
+		_box(parent, "Parking_Wheel_Stop", Vector3(2.15, 0.12, 0.16), Vector3(x + 1.35, 0.09, 17.1), wheel_stop)
+	_box(parent, "Parking_Front_Line", Vector3(17.0, 0.025, 0.075), Vector3(16.0, 0.055, 10.2), parking_line)
+	_box(parent, "Parking_Rear_Line", Vector3(17.0, 0.025, 0.075), Vector3(16.0, 0.055, 15.8), parking_line)
+	_box(parent, "Parking_Access_Connector", Vector3(5.2, 0.055, 6.0), Vector3(6.2, 0.015, 15.0), asphalt)
+
+
+func _create_compound_landscape(parent: Node3D) -> void:
+	for tree_position in [
+		Vector3(-27.0, 0.0, -22.0), Vector3(-27.0, 0.0, 0.0), Vector3(-27.0, 0.0, 19.0),
+		Vector3(27.0, 0.0, -22.0), Vector3(28.0, 0.0, 1.0), Vector3(28.0, 0.0, 23.0),
+		Vector3(-9.0, 0.0, -24.0), Vector3(9.0, 0.0, -24.0)
+	]:
+		_add_compound_tree(parent, tree_position, 1.0 if tree_position.x < 0.0 else 0.92)
+
+	var hedge_material := _mat(Color("#24462a"), 0.96)
+	var planter_material := _mat(Color("#555e52"), 0.82, 0.24)
+	for side in [-1.0, 1.0]:
+		_box(parent, "Front_Landscape_Planter", Vector3(4.6, 0.42, 1.0), Vector3(side * 8.0, 0.21, 6.4), planter_material)
+		_box(parent, "Front_Clipped_Hedge", Vector3(4.2, 0.72, 0.72), Vector3(side * 8.0, 0.67, 6.4), hedge_material)
+		_box(parent, "Office_Side_Hedge", Vector3(0.95, 0.70, 7.0), Vector3(side * 8.2, 0.35, -0.2), hedge_material)
+	_box(parent, "Rear_Green_Buffer", Vector3(45.0, 0.65, 1.0), Vector3(0.0, 0.32, -25.0), hedge_material)
+	for shrub_index in range(5):
+		var x := -25.0 + float(shrub_index) * 2.5
+		_add_compound_shrub(parent, Vector3(x, 0.0, 26.0))
+		_add_compound_shrub(parent, Vector3(-x, 0.0, -26.0))
+
+
+func _add_compound_tree(parent: Node3D, position: Vector3, scale_factor: float) -> void:
+	var bark := _mat(Color("#594a37"), 0.94)
+	var foliage := _mat(Color("#24472a"), 0.96)
+	var foliage_light := _mat(Color("#315b35"), 0.96)
+	_cylinder(parent, "Landscape_Tree_Trunk", 0.15 * scale_factor, 0.25 * scale_factor, 2.8 * scale_factor, position + Vector3(0.0, 1.4 * scale_factor, 0.0), bark)
+	_add_compound_sphere(parent, "Tree_Canopy_Center", 1.25 * scale_factor, position + Vector3(0.0, 3.2 * scale_factor, 0.0), foliage, Vector3(1.0, 0.95, 1.0))
+	_add_compound_sphere(parent, "Tree_Canopy_Left", 0.86 * scale_factor, position + Vector3(-0.72 * scale_factor, 2.85 * scale_factor, 0.12 * scale_factor), foliage_light, Vector3(1.0, 1.0, 0.95))
+	_add_compound_sphere(parent, "Tree_Canopy_Right", 0.90 * scale_factor, position + Vector3(0.68 * scale_factor, 2.92 * scale_factor, -0.12 * scale_factor), foliage, Vector3(1.0, 1.0, 0.95))
+
+
+func _add_compound_shrub(parent: Node3D, position: Vector3) -> void:
+	var foliage := _mat(Color("#2d5732"), 0.98)
+	_add_compound_sphere(parent, "Landscape_Shrub", 0.52, position + Vector3(0.0, 0.42, 0.0), foliage, Vector3(1.25, 0.78, 0.88))
+
+
+func _add_compound_sphere(parent: Node3D, node_name: String, radius: float, position: Vector3, material: Material, shape_scale: Vector3) -> void:
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 12
+	mesh.rings = 8
+	instance.mesh = mesh
+	instance.position = position
+	instance.scale = shape_scale
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	parent.add_child(instance)
+
+
+func _create_compound_lighting(parent: Node3D) -> void:
+	var pole_material := _mat(Color("#343d34"), 0.48, 0.78)
+	for side in [-1.0, 1.0]:
+		for z in [12.0, 23.0]:
+			var pole_position := Vector3(side * 6.2, 0.0, z)
+			_cylinder(parent, "Compound_Path_Light_Pole", 0.055, 0.075, 3.2, pole_position + Vector3(0.0, 1.6, 0.0), pole_material)
+			_box(parent, "Compound_Path_Light_Head", Vector3(0.42, 0.16, 0.28), pole_position + Vector3(0.0, 3.18, 0.0), materials["lamp"])
+	var gate_light := OmniLight3D.new()
+	gate_light.name = "Gate_Entrance_Light"
+	gate_light.position = Vector3(0.0, 3.3, 26.5)
+	gate_light.light_color = Color("#d8f1dc")
+	gate_light.light_energy = 1.1
+	gate_light.omni_range = 12.0
+	gate_light.shadow_enabled = false
+	parent.add_child(gate_light)
 
 func _create_camera(building_height: float) -> void:
 	_configure_camera_framing(building_height)
 	camera_yaw = 0.62
-	camera_pitch = 0.24
+	camera_pitch = 0.42 if home_mode else 0.24
 	hq_camera = Camera3D.new()
 	hq_camera.name = "Headquarters_Preview_Camera"
 	hq_camera.fov = 52.0
@@ -240,6 +507,12 @@ func _configure_camera_framing(building_height: float) -> void:
 	# Include the rooftop service equipment and parapet in the camera's framing bounds.
 	var framing_height: float = building_height + 1.8
 	var framing_center_y: float = 0.21 + framing_height * 0.5
+	# Home shows the company grounds as well as the building; keep the camera close enough
+	# to read the architecture while exposing the entrance, drive and nearby facilities.
+	if home_mode:
+		camera_target = Vector3(0.0, maxf(1.7, framing_center_y * 0.82), -1.0)
+	else:
+		camera_target = Vector3(0.0, framing_center_y, 0.0)
 	# A bounding-sphere fit keeps the entire building visible at every camera yaw and pitch.
 	# Vertical FOV is the limiting dimension on the landscape phone viewport.
 	var half_width: float = building_width * 0.5 + 0.7
@@ -248,10 +521,9 @@ func _configure_camera_framing(building_height: float) -> void:
 	var framing_radius := Vector3(half_width, half_height, half_depth).length()
 	var half_fov_radians := deg_to_rad(hq_camera.fov * 0.5) if is_instance_valid(hq_camera) else deg_to_rad(26.0)
 	var fit_distance: float = framing_radius / sin(half_fov_radians)
-	camera_target = Vector3(0.0, framing_center_y, 0.0)
-	# Extra breathing room prevents the roof and corners touching the screen edges.
-	camera_max_distance = maxf(18.0, fit_distance * 1.18)
-	# Reset on both initial load and every level switch to the calculated full-building view.
+	# The compound needs more breathing room than a single showroom building.
+	camera_max_distance = maxf(27.0, fit_distance * 1.30) if home_mode else maxf(18.0, fit_distance * 1.18)
+	# Reset on both initial load and every level switch to the calculated site/building view.
 	camera_distance = camera_max_distance
 
 func _build_procedural_building(level: int) -> float:
@@ -272,7 +544,7 @@ func _build_procedural_building(level: int) -> float:
 		Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")
 	]
 	var accent_colors: Array[Color] = [
-		Color("#34464c"), Color("#665548"), Color("#263e4b"), Color("#4b5554"), Color("#34444a")
+		Color("#344b37"), Color("#665548"), Color("#263f30"), Color("#4b5550"), Color("#34444a")
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
 	if style >= 3:
@@ -596,6 +868,7 @@ func _create_bottom_action_button(parent: Node, caption: String, primary: bool) 
 
 func set_home_mode(active: bool) -> void:
 	home_mode = active
+	camera_pitch = 0.42 if active else 0.24
 	preview_level = maxi(owned_level, 1)
 	_rebuild_preview()
 	if is_instance_valid(preview_interface_layer):
@@ -1101,7 +1374,7 @@ func _cylinder(parent: Node3D, node_name: String, top_radius: float, bottom_radi
 	return instance
 
 func _glass_mat() -> StandardMaterial3D:
-	var material := _mat(Color(0.32, 0.55, 0.66), 0.16, 0.42)
+	var material := _mat(Color(0.36, 0.48, 0.39), 0.16, 0.42)
 	material.metallic_specular = 0.92
 	material.clearcoat_enabled = true
 	material.clearcoat = 0.72
