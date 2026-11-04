@@ -1510,7 +1510,29 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	picker_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker_columns.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(picker_columns)
-	var uses_dual_color_pickers := not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package and (not return_to_back_design or (worksite_creation_mode and (back_design_boxes.is_empty() or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false)))) or (not worksite_creation_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))))
+	var has_valid_back_box := selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size()
+	var uses_dual_color_pickers := (
+		not for_charger
+		and not for_smartwatch
+		and not for_power_bank
+		and not for_earbuds
+		and not for_box_package
+		and (
+			not return_to_back_design
+			or (
+				worksite_creation_mode
+				and (
+					back_design_boxes.is_empty()
+					or (has_valid_back_box and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false)))
+				)
+			)
+			or (
+				not worksite_creation_mode
+				and has_valid_back_box
+				and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))
+			)
+		)
+	)
 	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
 	picker_columns.add_child(normal_picker)
 	if uses_dual_color_pickers:
