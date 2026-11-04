@@ -47,7 +47,7 @@ func _build_interface() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.name = "WorksiteBackdrop"
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color("#07100b")
+	backdrop.color = Color("#f1f2ee")
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
 
@@ -77,23 +77,23 @@ func _build_interface() -> void:
 	title_stack.add_theme_constant_override("separation", 0)
 	top_bar.add_child(title_stack)
 
-	var brand := _label("DIGITAL WORLD MOBILES", 10, Color("#a9d9ad"))
+	var brand := _label("DIGITAL WORLD MOBILES", 10, Color("#315f3c"))
 	title_stack.add_child(brand)
-	var heading := _label("PHONE CREATION", 17, Color("#f2fff3"))
+	var heading := _label("PHONE CREATION", 17, Color("#17231a"))
 	title_stack.add_child(heading)
 
 	var progress := PanelContainer.new()
 	progress.name = "ProgressStepOne"
 	progress.custom_minimum_size = Vector2(46, 38)
 	var progress_style := StyleBoxFlat.new()
-	progress_style.bg_color = Color("#1b3d28")
-	progress_style.border_color = Color("#70bd83")
+	progress_style.bg_color = Color("#2f7543")
+	progress_style.border_color = Color("#4b9b5e")
 	progress_style.set_border_width_all(1)
 	progress_style.set_corner_radius_all(10)
 	progress.add_theme_stylebox_override("panel", progress_style)
 	top_bar.add_child(progress)
 
-	var progress_number := _label("1", 15, Color("#effff0"), HORIZONTAL_ALIGNMENT_CENTER)
+	var progress_number := _label("1", 15, Color("#f7fff7"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 
@@ -125,8 +125,17 @@ func _build_interface() -> void:
 		viewport_container.offset_right = 0
 		viewport_container.offset_top = 0
 		viewport_container.offset_bottom = 0
+		# Let the live 3D preview sit directly on the worksite's single shared
+		# light background. Keep the original sky available for PBR lighting.
+		var preview_viewport := viewport_container.get_child(0) as SubViewport
+		if is_instance_valid(preview_viewport):
+			preview_viewport.transparent_bg = true
+			var preview_environment := preview_viewport.get_node_or_null("PhonePreviewWorld/WorldEnvironment") as WorldEnvironment
+			if is_instance_valid(preview_environment) and is_instance_valid(preview_environment.environment):
+				preview_environment.environment.background_mode = Environment.BG_COLOR
+				preview_environment.environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
 
-	var preview_caption := _label("LIVE DEVICE PREVIEW", 9, Color("#88b997"), HORIZONTAL_ALIGNMENT_CENTER)
+	var preview_caption := _label("LIVE DEVICE PREVIEW", 9, Color("#426b4a"), HORIZONTAL_ALIGNMENT_CENTER)
 	preview_caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	preview_caption.offset_top = -30
 	preview_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -147,11 +156,11 @@ func _build_interface() -> void:
 	selection_stack.add_theme_constant_override("separation", 13)
 	selection_region.add_child(selection_stack)
 
-	var step_label := _label("STEP 01", 10, Color("#8fc79b"))
+	var step_label := _label("STEP 01", 10, Color("#397a49"))
 	selection_stack.add_child(step_label)
-	var section_title := _label("PHONE TYPE", 25, Color("#f2fff3"))
+	var section_title := _label("PHONE TYPE", 25, Color("#17231a"))
 	selection_stack.add_child(section_title)
-	var description := _label("Choose the form factor for your new device.", 12, Color("#aebfb1"))
+	var description := _label("Choose the form factor for your new device.", 12, Color("#5d685f"))
 	selection_stack.add_child(description)
 
 	var options := VBoxContainer.new()
@@ -170,7 +179,7 @@ func _build_interface() -> void:
 		options.add_child(option)
 		type_buttons[phone_type] = option
 
-	selection_status = _label("Select a phone type to continue.", 10, Color("#829889"))
+	selection_status = _label("Select a phone type to continue.", 10, Color("#66736a"))
 	selection_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	selection_stack.add_child(selection_status)
 
@@ -219,14 +228,14 @@ func _on_next_pressed() -> void:
 func _style_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#285c39") if primary else Color("#14241a")
+		style.bg_color = Color("#2f7543") if primary else Color("#e1ebe1")
 		if state == "hover":
-			style.bg_color = Color("#367b4b") if primary else Color("#20382a")
+			style.bg_color = Color("#3c8951") if primary else Color("#cbdccb")
 		elif state == "pressed":
-			style.bg_color = Color("#19472a")
+			style.bg_color = Color("#245f35")
 		elif state == "disabled":
-			style.bg_color = Color("#172019")
-		style.border_color = Color("#79c58a") if primary else Color("#476b50")
+			style.bg_color = Color("#d4dfd4")
+		style.border_color = Color("#438c54") if primary else Color("#78a780")
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(12)
 		style.content_margin_left = 14
@@ -234,10 +243,10 @@ func _style_button(button: Button, primary: bool) -> void:
 		style.content_margin_top = 10
 		style.content_margin_bottom = 10
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#effff0"))
+	button.add_theme_color_override("font_color", Color("#f7fff7"))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color("#718075"))
+	button.add_theme_color_override("font_disabled_color", Color("#8a978c"))
 	button.add_theme_font_size_override("font_size", 16)
 
 
