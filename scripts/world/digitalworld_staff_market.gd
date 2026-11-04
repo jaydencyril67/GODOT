@@ -69,18 +69,16 @@ func _build() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 900.0
 
-	var background := TextureRect.new()
-	background.name = "DigitalWorld_Shared_Background"
+	var background := ColorRect.new()
+	background.name = "DigitalWorld_Obsidian_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	background.texture = load("res://file_00000000657c82109fcf142024a4a523.png")
+	background.color = Color("#07090e")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 
 	var shade := ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.008, 0.035, 0.065, 0.78)
+	shade.color = Color(0.008, 0.010, 0.015, 0.58)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 
