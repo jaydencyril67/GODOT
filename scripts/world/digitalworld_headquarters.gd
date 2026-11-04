@@ -211,8 +211,8 @@ func _create_presentation_stage() -> void:
 		add_child(home_ground)
 		return
 
-	var ground := _box(self, "Headquarters_Studio_Ground", Vector3(90.0, 0.7, 90.0), Vector3(0.0, -0.55, 0.0), materials["stage_ground"])
-	ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var studio_ground := _box(self, "Headquarters_Studio_Ground", Vector3(90.0, 0.7, 90.0), Vector3(0.0, -0.55, 0.0), materials["stage_ground"])
+	studio_ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_box(self, "Headquarters_Presentation_Deck", Vector3(34.0, 0.24, 30.0), Vector3(0.0, -0.12, 0.0), materials["stage_deck"])
 	_box(self, "Deck_Trim_Front", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, 15.0), materials["stage_trim"])
 	_box(self, "Deck_Trim_Back", Vector3(34.1, 0.07, 0.14), Vector3(0.0, 0.035, -15.0), materials["stage_trim"])
