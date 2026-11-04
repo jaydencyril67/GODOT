@@ -7872,7 +7872,7 @@ func _show_charge_port_controls() -> void:
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	var selected_label := _make_label("SELECTED: " + charge_port_type.to_upper(), 13, Color("#a9e3ff"))
+	var selected_label := _make_label("SELECTED: " + charge_port_type.to_upper(), 13, Color("#a8dcb0"))
 	selected_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(selected_label)
 	charge_port_value_label = selected_label
@@ -7887,7 +7887,7 @@ func _show_charge_port_controls() -> void:
 
 	var options := GridContainer.new()
 	options.name = "ChargePortOptionsGrid"
-	options.columns = 1
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.add_theme_constant_override("v_separation", 7)
 	port_scroll.add_child(options)
@@ -7900,16 +7900,17 @@ func _show_charge_port_controls() -> void:
 		"Mini-USB (Mini-B)",
 		"DC Barrel Jack"
 	]
-	for port_type in port_types:
+	for port_index in range(port_types.size()):
+		var port_type: String = port_types[port_index]
 		var option_button := Button.new()
 		option_button.name = "ChargePort_" + port_type.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
 		option_button.text = port_type
 		option_button.tooltip_text = port_type
-		option_button.custom_minimum_size = Vector2(0, 44)
+		option_button.custom_minimum_size = Vector2(0, 50)
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_research_typography(option_button, 13)
-		_style_staff_button(option_button, port_type == charge_port_type)
+		_style_screen_type_option(option_button, port_index, port_type == charge_port_type)
 		option_button.pressed.connect(_on_charge_port_selected.bind(port_type))
 		options.add_child(option_button)
 
@@ -7926,6 +7927,7 @@ func _on_charge_port_selected(port_type: String) -> void:
 		charger_cable_type = adapter_connector + " to " + phone_connector
 	if is_instance_valid(charge_port_value_label):
 		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
+		charge_port_value_label.add_theme_color_override("font_color", Color("#a8dcb0"))
 	# Rebuild both the receptacle and whichever chassis architecture is active.
 	_refresh_phone_mesh()
 
