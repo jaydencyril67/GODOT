@@ -8,7 +8,7 @@ const EMERALD := Color("#36a85b")
 const EMERALD_LIGHT := Color("#b8f5c3")
 const OBSIDIAN := Color("#090d11")
 const DARK_METAL := Color("#171e22")
-const GLASS := Color("#263b35")
+const GLASS := Color("#344653")
 
 var camera_rig: Node3D
 var landing_camera: Camera3D
@@ -43,7 +43,7 @@ func _build_environment() -> void:
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("#05090a")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#a3d9ae")
+	environment.ambient_light_color = Color("#c3cbd2")
 	environment.ambient_light_energy = 0.52
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world_environment.environment = environment
@@ -66,17 +66,17 @@ func _build_environment() -> void:
 	var key_light := DirectionalLight3D.new()
 	key_light.name = "Soft_Architectural_Key_Light"
 	key_light.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	key_light.light_color = Color("#d9f4df")
+	key_light.light_color = Color("#e4e8eb")
 	key_light.light_energy = 1.08
 	key_light.shadow_enabled = true
 	key_light.directional_shadow_max_distance = 65.0
 	add_child(key_light)
 
 	var emerald_fill := OmniLight3D.new()
-	emerald_fill.name = "Emerald_Environmental_Fill"
+	emerald_fill.name = "Neutral_Environmental_Fill"
 	emerald_fill.position = Vector3(-9.0, 8.0, 7.0)
-	emerald_fill.light_color = Color("#62d883")
-	emerald_fill.light_energy = 1.15
+	emerald_fill.light_color = Color("#b7c8d6")
+	emerald_fill.light_energy = 0.42
 	emerald_fill.omni_range = 26.0
 	add_child(emerald_fill)
 
@@ -127,7 +127,7 @@ func _build_tower(origin: Vector3, width: float, height: float, depth: float, ti
 
 	var base_material := _material(Color("#202a2c"), 0.72, 0.42)
 	var body_material := _material(GLASS if landmark else DARK_METAL, 0.28, 0.58)
-	var dark_glass := _material(Color("#172b25"), 0.18, 0.46)
+	var dark_glass := _material(Color("#18232c"), 0.18, 0.46)
 	var emerald := _emissive_material(EMERALD, Color("#238c45"), 0.76)
 	var soft_light := _emissive_material(EMERALD_LIGHT, Color("#79e995"), 0.46)
 	animated_emissive_materials.append(emerald)
