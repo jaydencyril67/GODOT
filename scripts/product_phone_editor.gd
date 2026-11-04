@@ -18,6 +18,7 @@ func _active_phone_size() -> Vector3:
 class ScreenTechGlassReflection extends Control:
 	var accent := Color("#9bd6a7")
 	func _ready() -> void:
+	_ensure_gradient_popup_layer()
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		resized.connect(queue_redraw)
@@ -355,6 +356,7 @@ var gradient_direction_button: Button
 var gradient_direction_popup: PanelContainer
 var back_box_gradient_popup: PanelContainer
 var gradient_direction_items: VBoxContainer
+var gradient_popup_layer: CanvasLayer
 var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
@@ -1331,6 +1333,15 @@ func _on_phone_type_selected(phone_type: String) -> void:
 	_refresh_screen_type_buttons()
 
 
+func _ensure_gradient_popup_layer() -> CanvasLayer:
+	if not is_instance_valid(gradient_popup_layer):
+		gradient_popup_layer = CanvasLayer.new()
+		gradient_popup_layer.name = "GradientPopupOverlay"
+		gradient_popup_layer.layer = 80
+		add_child(gradient_popup_layer)
+	return gradient_popup_layer
+
+
 func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false, for_box_package: bool = false) -> void:
 	_close_back_design_selection_popup()
 	if is_instance_valid(back_box_gradient_popup):
@@ -1491,11 +1502,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_direction_items = VBoxContainer.new()
 		gradient_direction_items.add_theme_constant_override("separation", 6)
 		gradient_direction_popup.add_child(gradient_direction_items)
-		var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-		if is_instance_valid(editor_root):
-			editor_root.add_child(gradient_direction_popup)
-		else:
-			active_feature_panel.add_child(gradient_direction_popup)
+		_ensure_gradient_popup_layer().add_child(gradient_direction_popup)
 		_rebuild_gradient_direction_popup()
 		gradient_options.visible = phone_case_gradient_enabled if for_phone_case else device_gradient_enabled
 
