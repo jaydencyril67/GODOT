@@ -251,9 +251,9 @@ func _create_compound_roads(parent: Node3D) -> void:
 
 	_box(parent, "Main_Entrance_Drive", Vector3(8.0, 0.055, 25.0), Vector3(0.0, 0.015, 18.0), asphalt)
 	_box(parent, "Entrance_Apron", Vector3(13.0, 0.055, 6.0), Vector3(0.0, 0.015, 27.0), asphalt)
-	_box(parent, "West_Service_Road", Vector3(5.2, 0.055, 43.0), Vector3(-23.0, 0.015, 2.0), asphalt)
-	_box(parent, "West_Service_Yard_Connection", Vector3(11.0, 0.055, 5.2), Vector3(-18.0, 0.015, -3.0), asphalt)
-	_box(parent, "East_Service_Access", Vector3(5.0, 0.055, 24.0), Vector3(23.5, 0.015, 4.0), asphalt)
+	_box(parent, "West_Service_Road", Vector3(3.2, 0.055, 43.0), Vector3(-29.1, 0.015, 2.0), asphalt)
+	_box(parent, "West_Service_Yard_Connection", Vector3(13.5, 0.055, 5.2), Vector3(-22.35, 0.015, -3.0), asphalt)
+	_box(parent, "East_Service_Access", Vector3(3.2, 0.055, 24.0), Vector3(29.2, 0.015, 4.0), asphalt)
 
 	# Low kerbs define road edges without lifting the compound onto a platform.
 	for side in [-1.0, 1.0]:
@@ -268,7 +268,7 @@ func _create_compound_roads(parent: Node3D) -> void:
 
 	# A service path connects the loading side of the workshop to the west lane.
 	_box(parent, "Production_Service_Apron", Vector3(9.5, 0.055, 6.0), Vector3(-16.0, 0.015, -6.0), asphalt)
-	_box(parent, "Research_Service_Paving", Vector3(8.0, 0.055, 5.0), Vector3(16.0, 0.015, -6.5), asphalt)
+	_box(parent, "Research_Service_Paving", Vector3(13.5, 0.055, 5.0), Vector3(22.25, 0.015, -6.5), asphalt)
 
 
 func _create_compound_perimeter(parent: Node3D) -> void:
