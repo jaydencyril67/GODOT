@@ -388,7 +388,6 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 	_facility_box(parent, node_name + "_Foundation", Vector3(width + 0.5, 0.22, depth + 0.5), center + Vector3(0.0, 0.11, 0.0), materials["concrete"])
 	_facility_box(parent, node_name + "_Primary_Volume", Vector3(width, height, depth), center + Vector3(0.0, height * 0.5 + 0.22, 0.0), wall)
 	_facility_box(parent, node_name + "_Roof_Slab", Vector3(width + 0.42, 0.22, depth + 0.42), center + Vector3(0.0, height + 0.34, 0.0), roof)
-
 	match facility_type:
 		"production":
 			_build_production_facility(parent, node_name, center, width, depth, height, front_z, level)
@@ -398,7 +397,6 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 			_build_utilities_facility(parent, node_name, center, width, depth, height, level)
 		"security":
 			_build_security_facility(parent, node_name, center, width, depth, height, front_z, level)
-
 	_facility_box(parent, node_name + "_Sign_Plaque", Vector3(width * 0.72, 0.42, 0.08), Vector3(center.x, height - 0.42, front_z + 0.14), materials["dark_metal"])
 	var sign := Label3D.new()
 	sign.name = node_name + "_Facility_Sign"
@@ -420,8 +418,8 @@ func _build_production_facility(parent: Node3D, node_name: String, center: Vecto
 	for slat in range(8):
 		_facility_box(parent, node_name + "_Shutter_Slat", Vector3(shutter_width * 0.98, 0.035, 0.035), Vector3(center.x, 0.52 + float(slat) * 0.30, front_z + 0.15), materials["metal"])
 	_facility_box(parent, node_name + "_Staff_Door", Vector3(0.78, 2.20, 0.09), Vector3(center.x - width * 0.36, 1.34, front_z + 0.08), materials["dark_metal"])
-	for window_index in range(3):
-		var wx: float = center.x + (float(window_index) - 1.0) * width * 0.29
+	for index in range(3):
+		var wx: float = center.x + (float(index) - 1.0) * width * 0.29
 		_facility_box(parent, node_name + "_Clerestory_Frame", Vector3(width * 0.18, 0.62, 0.10), Vector3(wx, height - 0.72, front_z), materials["window_frame"])
 		_facility_box(parent, node_name + "_Clerestory_Glass", Vector3(width * 0.15, 0.45, 0.045), Vector3(wx, height - 0.72, front_z + 0.07), materials["glass"])
 	for rib in range(4 + level):
@@ -467,14 +465,13 @@ func _build_production_facility(parent: Node3D, node_name: String, center: Vecto
 
 
 func _build_research_facility(parent: Node3D, node_name: String, center: Vector3, width: float, depth: float, height: float, front_z: float, level: int) -> void:
-	for window_index in range(3):
-		var wx: float = center.x + (float(window_index) - 1.0) * width * 0.29
+	for index in range(3):
+		var wx: float = center.x + (float(index) - 1.0) * width * 0.29
 		_facility_box(parent, node_name + "_Window_Frame", Vector3(width * 0.19, 1.42, 0.12), Vector3(wx, 2.10, front_z), materials["window_frame"])
 		_facility_box(parent, node_name + "_Window_Glazing", Vector3(width * 0.16, 1.18, 0.045), Vector3(wx, 2.10, front_z + 0.08), materials["glass"])
 	_facility_box(parent, node_name + "_Glass_Entry", Vector3(0.86, 2.20, 0.06), Vector3(center.x, 1.38, front_z + 0.12), materials["glass"])
 	if level == 1:
 		_facility_box(parent, node_name + "_Lab_Roof_Lantern", Vector3(width * 0.28, 0.44, depth * 0.24), Vector3(center.x, height + 0.56, center.z - depth * 0.12), materials["window_frame"])
-		_facility_box(parent, node_name + "_Roof_Lantern_Glass", Vector3(width * 0.24, 0.28, depth * 0.20), Vector3(center.x, height + 0.58, center.z - depth * 0.12), materials["glass"])
 	elif level == 2:
 		_facility_box(parent, node_name + "_Glass_Entry_Vestibule", Vector3(width * 0.42, 1.45, 1.15), Vector3(center.x, 0.95, front_z + 0.62), materials["glass"])
 		_facility_box(parent, node_name + "_Vestibule_Canopy", Vector3(width * 0.50, 0.14, 1.38), Vector3(center.x, 1.78, front_z + 0.64), materials["metal"])
@@ -491,13 +488,12 @@ func _build_research_facility(parent: Node3D, node_name: String, center: Vector3
 		_facility_box(parent, node_name + "_North_Lab_Wing", Vector3(width * 0.34, 1.42, depth * 0.48), Vector3(center.x - width * 0.27, height + 0.88, center.z - depth * 0.06), materials["concrete"])
 		_facility_box(parent, node_name + "_South_Lab_Wing", Vector3(width * 0.34, 1.05, depth * 0.40), Vector3(center.x + width * 0.27, height + 0.70, center.z + depth * 0.08), materials["window_frame"])
 	elif level == 7:
+		_facility_box(parent, node_name + "_Glazed_Upper_Lab", Vector3(width * 0.78, 0.82, depth * 0.44), Vector3(center.x, height + 0.62, center.z - depth * 0.08), materials["glass"])
 		for side in [-1.0, 1.0]:
 			_facility_box(parent, node_name + "_Glass_Facade_Fin", Vector3(0.12, height + 1.0, 0.22), Vector3(center.x + side * width * 0.43, height * 0.5 + 0.65, front_z + 0.12), materials["metal"])
-		_facility_box(parent, node_name + "_Glazed_Upper_Lab", Vector3(width * 0.78, 0.82, depth * 0.44), Vector3(center.x, height + 0.62, center.z - depth * 0.08), materials["glass"])
 	elif level == 8:
 		_facility_box(parent, node_name + "_Elevated_Research_Bridge", Vector3(width * 0.72, 0.82, depth * 0.28), Vector3(center.x, height + 0.70, center.z - depth * 0.24), materials["window_frame"])
 		_facility_box(parent, node_name + "_Bridge_Glazing", Vector3(width * 0.66, 0.52, 0.045), Vector3(center.x, height + 0.72, center.z - depth * 0.08), materials["glass"])
-		_facility_box(parent, node_name + "_Atrium_Lantern", Vector3(width * 0.30, 1.20, depth * 0.30), Vector3(center.x, height + 1.45, center.z - depth * 0.22), materials["glass"])
 	elif level == 9:
 		_facility_box(parent, node_name + "_Research_Tower", Vector3(width * 0.40, 2.25, depth * 0.48), Vector3(center.x + width * 0.20, height + 1.25, center.z - depth * 0.08), materials["window_frame"])
 		_facility_box(parent, node_name + "_Tower_Full_Glazing", Vector3(width * 0.35, 1.92, depth * 0.44), Vector3(center.x + width * 0.20, height + 1.26, center.z - depth * 0.08), materials["glass"])
@@ -516,7 +512,6 @@ func _build_utilities_facility(parent: Node3D, node_name: String, center: Vector
 		_facility_box(parent, node_name + "_Exhaust_Hood", Vector3(1.0, 0.32, 0.8), Vector3(center.x, height + 0.58, center.z), materials["metal"])
 	elif level == 2:
 		_facility_box(parent, node_name + "_Switchgear_Cabinet", Vector3(1.45, 1.25, 1.15), Vector3(center.x - width * 0.18, 0.85, center.z - depth * 0.52), materials["metal"])
-		_facility_box(parent, node_name + "_Switchgear_Door", Vector3(0.82, 0.90, 0.045), Vector3(center.x - width * 0.18, 0.90, center.z - depth * 0.52 + 0.60), materials["dark_metal"])
 	elif level == 3:
 		for side in [-1.0, 1.0]:
 			_facility_box(parent, node_name + "_Outdoor_Transformer", Vector3(1.05, 1.25, 0.95), Vector3(center.x + side * width * 0.27, 0.74, center.z - depth * 0.56), materials["metal"])
@@ -594,6 +589,48 @@ func _facility_box(parent: Node3D, node_name: String, size: Vector3, position: V
 	var part := _box(parent, node_name, size, position, material)
 	part.rotation_degrees = rotation_degrees
 	return part
+func _create_compound_facility(parent: Node3D, node_name: String, sign_text: String, center: Vector3, dimensions: Vector3, wall_color: Color, loading_bay: bool) -> void:
+	var width := dimensions.x
+	var height := dimensions.y
+	var depth := dimensions.z
+	var wall := _mat(wall_color, 0.88, 0.05)
+	wall.albedo_texture = facade_noise
+	wall.uv1_scale = Vector3(2.6, 2.6, 1.0)
+	var roof := _mat(Color("#515b51"), 0.82, 0.28)
+	var foundation := _mat(Color("#888b80"), 0.94)
+	_box(parent, node_name + "_Foundation", Vector3(width + 0.4, 0.22, depth + 0.4), center + Vector3(0.0, 0.11, 0.0), foundation)
+	_box(parent, node_name + "_Walls", Vector3(width, height, depth), center + Vector3(0.0, height * 0.5 + 0.22, 0.0), wall)
+	_box(parent, node_name + "_Roof", Vector3(width + 0.42, 0.24, depth + 0.42), center + Vector3(0.0, height + 0.34, 0.0), roof)
+	var front_z := center.z + depth * 0.5 + 0.13
+	if loading_bay:
+		_box(parent, node_name + "_Loading_Door_Frame", Vector3(width * 0.48, 2.8, 0.16), Vector3(center.x, 1.62, front_z), materials["dark_metal"])
+		_box(parent, node_name + "_Roller_Shutter", Vector3(width * 0.43, 2.58, 0.07), Vector3(center.x, 1.61, front_z + 0.10), materials["workshop_shutter"])
+		for slat in range(8):
+			_box(parent, node_name + "_Shutter_Slat", Vector3(width * 0.42, 0.035, 0.035), Vector3(center.x, 0.52 + float(slat) * 0.30, front_z + 0.15), materials["metal"])
+		_box(parent, node_name + "_Personnel_Door", Vector3(0.82, 2.25, 0.09), Vector3(center.x + width * 0.36, 1.35, front_z + 0.06), materials["dark_metal"])
+	else:
+		for window_index in range(3):
+			var window_x := center.x + (float(window_index) - 1.0) * width * 0.29
+			_box(parent, node_name + "_Window_Frame", Vector3(width * 0.20, 1.35, 0.12), Vector3(window_x, 2.0, front_z), materials["window_frame"])
+			_box(parent, node_name + "_Window_Glazing", Vector3(width * 0.17, 1.14, 0.045), Vector3(window_x, 2.0, front_z + 0.08), materials["glass"])
+		_box(parent, node_name + "_Entry_Door", Vector3(0.82, 2.25, 0.10), Vector3(center.x, 1.35, front_z + 0.08), materials["dark_metal"])
+		_box(parent, node_name + "_Entry_Glazing", Vector3(0.52, 1.45, 0.04), Vector3(center.x, 1.65, front_z + 0.14), materials["glass"])
+	_box(parent, node_name + "_Sign_Plaque", Vector3(width * 0.74, 0.46, 0.08), Vector3(center.x, height - 0.40, front_z + 0.10), materials["dark_metal"])
+	var label := Label3D.new()
+	label.name = node_name + "_Facility_Sign"
+	label.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	label.text = sign_text
+	label.font_size = 22
+	label.pixel_size = 0.009
+	label.modulate = Color("#eef4e9")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = Vector3(center.x, height - 0.39, front_z + 0.16)
+	label.rotation.y = PI
+	parent.add_child(label)
+	for side in [-1.0, 1.0]:
+		_box(parent, node_name + "_Roof_Vent_Base", Vector3(0.9, 0.12, 0.7), center + Vector3(side * width * 0.28, height + 0.50, -depth * 0.16), materials["dark_metal"])
+		_box(parent, node_name + "_Roof_Vent", Vector3(0.65, 0.36, 0.48), center + Vector3(side * width * 0.28, height + 0.72, -depth * 0.16), materials["metal"])
+
 
 func _create_compound_parking(parent: Node3D) -> void:
 	var asphalt := _mat(Color("#252b27"), 0.94)
@@ -735,7 +772,7 @@ func _build_procedural_building(level: int) -> float:
 		Color("#c2c0b5"), Color("#b9a991"), Color("#aab9bd"), Color("#c6c8c2"), Color("#9eaeb1")
 	]
 	var accent_colors: Array[Color] = [
-		Color("#4b555d"), Color("#665548"), Color("#303a43"), Color("#4b5550"), Color("#34444a")
+		Color("#344b37"), Color("#665548"), Color("#303a43"), Color("#4b5550"), Color("#34444a")
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
 	if style >= 3:
@@ -818,7 +855,7 @@ func _add_workshop_features(parent: Node3D, width: float, depth: float, height: 
 	_box(parent, "Workshop_Front_Canopy", Vector3(width * 0.58, 0.16, 1.15), Vector3(0.0, 3.45, front_z + 0.52), materials["dark_metal"])
 
 func _add_level_silhouette_features(parent: Node3D, level: int, width: float, depth: float, height: float, accent: Material, roof: Material) -> void:
-	# Every headquarters tier gets its own massing identity, not just an extra floor.
+	# Each tier has a different architectural massing profile, rather than only stacking a floor.
 	if level == 1:
 		_facility_box(parent, "Workshop_Raised_Roof_Monitor", Vector3(width * 0.42, 0.58, depth * 0.24), Vector3(0.0, height + 0.66, -depth * 0.12), materials["window_frame"])
 		_facility_box(parent, "Workshop_Monitor_Glazing", Vector3(width * 0.38, 0.38, depth * 0.20), Vector3(0.0, height + 0.68, -depth * 0.12), materials["glass"])
@@ -868,6 +905,482 @@ func _add_level_silhouette_features(parent: Node3D, level: int, width: float, de
 		_facility_box(parent, "Level10_Central_Crown_Tower", Vector3(width * 0.30, 3.20, depth * 0.38), Vector3(0.0, height + 2.10, -depth * 0.10), materials["window_frame"])
 		_facility_box(parent, "Level10_Crown_Glazing", Vector3(width * 0.26, 2.84, depth * 0.34), Vector3(0.0, height + 2.12, -depth * 0.10), materials["glass"])
 		_facility_box(parent, "Level10_Cantilevered_Crown_Cap", Vector3(width * 0.72, 0.20, depth * 0.52), Vector3(0.0, height + 3.82, -depth * 0.10), accent)
+func _rebuild_preview() -> void:
+	if is_instance_valid(building_root):
+		building_root.queue_free()
+	building_root = null
+	var height := 4.2
+	if not home_mode or owned_level > 0:
+		height = _build_procedural_building(preview_level)
+	_configure_camera_framing(height)
+	_update_camera_transform()
+	_refresh_preview_interface()
+	preview_level_changed.emit(preview_level)
+
+func _show_previous_level() -> void:
+	if preview_level <= 1:
+		return
+	preview_level -= 1
+	_update_downgrade_refund_roll()
+	_rebuild_preview()
+
+func _show_next_level() -> void:
+	if preview_level >= MAX_LEVEL:
+		return
+	preview_level = mini(preview_level + 1, MAX_LEVEL)
+	_update_downgrade_refund_roll()
+	_rebuild_preview()
+
+
+func _update_downgrade_refund_roll() -> void:
+	if preview_level < owned_level:
+		downgrade_refund_percent = randi_range(50, 60)
+
+func _create_preview_interface() -> void:
+	preview_interface_layer = CanvasLayer.new()
+	preview_interface_layer.name = "Headquarters_Preview_Interface"
+	preview_interface_layer.layer = 20
+	add_child(preview_interface_layer)
+	var layer := preview_interface_layer
+
+	# Home intentionally has no text overlay above the building. The Buildings
+	# page gets one clean, bold architectural level title instead of the old card.	
+	level_info_label = null
+	owned_info_label = null
+	if not home_mode:
+		level_info_label = Label.new()
+		level_info_label.name = "Office_Building_Level_Hero"
+		level_info_label.anchor_left = 0.08
+		level_info_label.anchor_top = 0.0
+		level_info_label.anchor_right = 0.92
+		level_info_label.anchor_bottom = 0.0
+		level_info_label.offset_top = 20.0
+		level_info_label.offset_bottom = 82.0
+		level_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		level_info_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		level_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_preview_typography(level_info_label, 36)
+		level_info_label.add_theme_color_override("font_color", Color("#ffffff"))
+		level_info_label.add_theme_color_override("font_outline_color", Color("#062b18"))
+		level_info_label.add_theme_constant_override("outline_size", 5)
+		level_info_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.10, 0.95))
+		level_info_label.add_theme_constant_override("shadow_offset_x", 2)
+		level_info_label.add_theme_constant_override("shadow_offset_y", 4)
+		var hero_font := FontVariation.new()
+		hero_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		hero_font.variation_embolden = 1.0
+		level_info_label.add_theme_font_override("font", hero_font)
+		layer.add_child(level_info_label)
+
+		staff_capacity_label = Label.new()
+		staff_capacity_label.name = "Office_Building_Staff_Capacity"
+		staff_capacity_label.anchor_left = 0.12
+		staff_capacity_label.anchor_top = 0.0
+		staff_capacity_label.anchor_right = 0.88
+		staff_capacity_label.anchor_bottom = 0.0
+		staff_capacity_label.offset_top = 78.0
+		staff_capacity_label.offset_bottom = 116.0
+		staff_capacity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		staff_capacity_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_apply_preview_typography(staff_capacity_label, 23)
+		staff_capacity_label.add_theme_color_override("font_color", Color("#d8f3dc"))
+		staff_capacity_label.add_theme_color_override("font_outline_color", Color("#062b18"))
+		staff_capacity_label.add_theme_constant_override("outline_size", 4)
+		var staff_font := FontVariation.new()
+		staff_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+		staff_font.variation_embolden = 0.7
+		staff_capacity_label.add_theme_font_override("font", staff_font)
+		layer.add_child(staff_capacity_label)
+
+		var staff_market_button := Button.new()
+		staff_market_button.name = "Headquarters_Staff_Market_Button"
+		staff_market_button.text = "STAFF MARKET"
+		staff_market_button.anchor_left = 1.0
+		staff_market_button.anchor_top = 0.0
+		staff_market_button.anchor_right = 1.0
+		staff_market_button.anchor_bottom = 0.0
+		staff_market_button.offset_left = -340.0
+		staff_market_button.offset_top = 20.0
+		staff_market_button.offset_right = -196.0
+		staff_market_button.offset_bottom = 64.0
+		_apply_preview_typography(staff_market_button, 15)
+		_style_preview_button(staff_market_button, true)
+		staff_market_button.pressed.connect(func(): staff_market_requested.emit())
+		layer.add_child(staff_market_button)
+
+		var staff_management_button := Button.new()
+		staff_management_button.name = "Headquarters_Staff_Management_Button"
+		staff_management_button.text = "STAFF MANAGEMENT"
+		staff_management_button.anchor_left = 1.0
+		staff_management_button.anchor_top = 0.0
+		staff_management_button.anchor_right = 1.0
+		staff_management_button.anchor_bottom = 0.0
+		staff_management_button.offset_left = -188.0
+		staff_management_button.offset_top = 20.0
+		staff_management_button.offset_right = -44.0
+		staff_management_button.offset_bottom = 64.0
+		_apply_preview_typography(staff_management_button, 15)
+		_style_preview_button(staff_management_button, false)
+		staff_management_button.pressed.connect(func(): staff_management_requested.emit())
+		layer.add_child(staff_management_button)
+
+	if not home_mode:
+		previous_level_button = _create_side_level_button(layer, "Previous_Level_Button", "‹", true)
+		previous_level_button.pressed.connect(_show_previous_level)
+		next_level_button = _create_side_level_button(layer, "Next_Level_Button", "›", false)
+		next_level_button.pressed.connect(_show_next_level)
+
+		var back_button := _create_bottom_action_button(layer, "Back", false)
+		back_button.name = "Headquarters_Back_Button"
+		back_button.anchor_left = 0.0
+		back_button.anchor_top = 1.0
+		back_button.anchor_right = 0.0
+		back_button.anchor_bottom = 1.0
+		back_button.offset_left = 18.0
+		back_button.offset_top = -76.0
+		back_button.offset_right = 146.0
+		back_button.offset_bottom = -18.0
+		back_button.pressed.connect(func(): back_requested.emit())
+
+		upgrade_button = _create_bottom_action_button(layer, "Upgrade", true)
+		upgrade_button.name = "Headquarters_Upgrade_Button"
+		upgrade_button.anchor_left = 1.0
+		upgrade_button.anchor_top = 1.0
+		upgrade_button.anchor_right = 1.0
+		upgrade_button.anchor_bottom = 1.0
+		upgrade_button.offset_left = -146.0
+		upgrade_button.offset_top = -76.0
+		upgrade_button.offset_right = -18.0
+		upgrade_button.offset_bottom = -18.0
+		upgrade_button.pressed.connect(func(): upgrade_requested.emit(preview_level))
+
+		downgrade_button = _create_bottom_action_button(layer, "Downgrade", false)
+		downgrade_button.name = "Headquarters_Downgrade_Button"
+		downgrade_button.anchor_left = 1.0
+		downgrade_button.anchor_top = 1.0
+		downgrade_button.anchor_right = 1.0
+		downgrade_button.anchor_bottom = 1.0
+		downgrade_button.offset_left = -284.0
+		downgrade_button.offset_top = -76.0
+		downgrade_button.offset_right = -156.0
+		downgrade_button.offset_bottom = -18.0
+		downgrade_button.pressed.connect(func(): downgrade_requested.emit(preview_level, downgrade_refund_percent))
+
+		var cost_panel := PanelContainer.new()
+		cost_panel.name = "Headquarters_Upgrade_Finance_Panel"
+		cost_panel.anchor_left = 1.0
+		cost_panel.anchor_top = 1.0
+		cost_panel.anchor_right = 1.0
+		cost_panel.anchor_bottom = 1.0
+		cost_panel.offset_left = -286.0
+		cost_panel.offset_top = -174.0
+		cost_panel.offset_right = -18.0
+		cost_panel.offset_bottom = -84.0
+		var cost_style := StyleBoxFlat.new()
+		cost_style.bg_color = Color(0.018, 0.075, 0.035, 0.90)
+		cost_style.border_color = Color(0.35, 0.72, 0.91, 0.78)
+		cost_style.set_border_width_all(1)
+		cost_style.set_corner_radius_all(10)
+		cost_style.content_margin_left = 10.0
+		cost_style.content_margin_right = 10.0
+		cost_style.content_margin_top = 6.0
+		cost_style.content_margin_bottom = 6.0
+		cost_panel.add_theme_stylebox_override("panel", cost_style)
+		layer.add_child(cost_panel)
+
+		var finance_stack := VBoxContainer.new()
+		finance_stack.add_theme_constant_override("separation", 3)
+		cost_panel.add_child(finance_stack)
+
+		upgrade_cost_label = Label.new()
+		upgrade_cost_label.name = "Headquarters_Upgrade_Cost"
+		_apply_preview_typography(upgrade_cost_label, 17)
+		upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff"))
+		upgrade_cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		finance_stack.add_child(upgrade_cost_label)
+
+		monthly_rent_label = Label.new()
+		monthly_rent_label.name = "Headquarters_Monthly_Rent"
+		_apply_preview_typography(monthly_rent_label, 15)
+		monthly_rent_label.add_theme_color_override("font_color", Color("#f4d58a"))
+		monthly_rent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		finance_stack.add_child(monthly_rent_label)
+
+		available_balance_label = Label.new()
+		available_balance_label.name = "Headquarters_Available_Balance"
+		_apply_preview_typography(available_balance_label, 15)
+		available_balance_label.add_theme_color_override("font_color", Color("#b9e8c1"))
+		available_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		finance_stack.add_child(available_balance_label)
+
+	_refresh_preview_interface()
+
+
+func _apply_preview_typography(control: Control, font_size: int) -> void:
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 0.7
+	control.add_theme_font_override("font", stix_font)
+	control.add_theme_font_size_override("font_size", font_size)
+
+
+func _create_bottom_action_button(parent: Node, caption: String, primary: bool) -> Button:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(128.0, 58.0)
+	_apply_preview_typography(button, 16)
+	_style_preview_button(button, primary)
+	parent.add_child(button)
+	return button
+
+
+func set_home_mode(active: bool) -> void:
+	# Returning from Staff must not reconstruct the same building and compound.
+	# Only a real Home/Office mode change rebuilds the preview and its controls.
+	if home_mode == active:
+		return
+
+	home_mode = active
+	camera_pitch = 0.42 if active else 0.24
+	preview_level = maxi(owned_level, 1)
+	_update_compound_facilities_visibility()
+
+	# Dispose of the old mode's interface before creating the new one. Reset every
+	# reference so no freed control can be updated by the next preview refresh.
+	if is_instance_valid(preview_interface_layer):
+		preview_interface_layer.queue_free()
+	preview_interface_layer = null
+	level_info_label = null
+	staff_capacity_label = null
+	owned_info_label = null
+	previous_level_button = null
+	next_level_button = null
+	upgrade_button = null
+	downgrade_button = null
+	upgrade_cost_label = null
+	monthly_rent_label = null
+	available_balance_label = null
+
+	_rebuild_preview()
+	_create_preview_interface()
+
+
+func set_owned_level(level: int) -> void:
+	owned_level = clampi(level, 0, MAX_LEVEL)
+	if home_mode:
+		preview_level = maxi(owned_level, 1)
+	_update_compound_facilities_visibility()
+	_rebuild_preview()
+
+
+func _update_compound_facilities_visibility() -> void:
+	if not is_instance_valid(compound_facilities_root):
+		return
+	var should_show := not home_mode or owned_level > 0
+	compound_facilities_root.visible = should_show
+	if not should_show:
+		return
+
+	var compound_level: int = maxi(owned_level, 1) if home_mode else clampi(preview_level, 1, MAX_LEVEL)
+	if compound_facilities_level == compound_level and compound_facilities_root.get_child_count() > 0:
+		return
+
+	for existing_building in compound_facilities_root.get_children():
+		existing_building.free()
+	_create_compound_facilities(compound_facilities_root, compound_level)
+	compound_facilities_level = compound_level
+
+func set_preview_active(active: bool) -> void:
+	# CanvasLayer is rendered independently of the Node3D visibility tree, so
+	# hide both the 3D preview and its interface while another screen is open.
+	visible = active
+	process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
+	if is_instance_valid(preview_interface_layer):
+		preview_interface_layer.visible = active
+
+
+func _create_side_level_button(parent: Node, node_name: String, glyph: String, left_side: bool) -> Button:
+	var button := Button.new()
+	button.name = node_name
+	button.text = glyph
+	button.tooltip_text = "Preview previous headquarters level" if left_side else "Preview next headquarters level"
+	button.anchor_left = 0.0 if left_side else 1.0
+	button.anchor_top = 0.5
+	button.anchor_right = 0.0 if left_side else 1.0
+	button.anchor_bottom = 0.5
+	button.offset_left = 16.0 if left_side else -88.0
+	button.offset_top = -42.0
+	button.offset_right = 88.0 if left_side else -16.0
+	button.offset_bottom = 42.0
+	button.add_theme_font_size_override("font_size", 44)
+	_style_preview_button(button, true)
+	parent.add_child(button)
+	return button
+
+func _refresh_preview_interface() -> void:
+	if is_instance_valid(level_info_label):
+		level_info_label.text = "%s  /  LEVEL %d" % [str(LEVEL_CONFIGS[preview_level - 1]["name"]).to_upper(), preview_level]
+	if is_instance_valid(staff_capacity_label):
+		staff_capacity_label.text = "STAFF CAPACITY: %d WORKERS" % _get_staff_capacity(preview_level)
+	if is_instance_valid(previous_level_button):
+		previous_level_button.disabled = preview_level <= 1
+	if is_instance_valid(next_level_button):
+		next_level_button.disabled = preview_level >= MAX_LEVEL
+	var upgrade_cost := get_upgrade_cost(preview_level)
+	var can_afford_upgrade := company_balance >= upgrade_cost
+	var downgrade_refund := float(get_upgrade_cost(owned_level)) * float(downgrade_refund_percent) / 100.0
+	if is_instance_valid(upgrade_button):
+		upgrade_button.text = "PURCHASED" if preview_level <= owned_level and owned_level > 0 else "PURCHASE"
+	if is_instance_valid(upgrade_cost_label):
+		if preview_level < owned_level:
+			upgrade_cost_label.text = "DOWNGRADE REFUND (%d%%): %s" % [downgrade_refund_percent, _format_money(downgrade_refund)]
+			upgrade_cost_label.add_theme_color_override("font_color", Color("#8ff0bd"))
+		elif preview_level == owned_level and owned_level > 0:
+			upgrade_cost_label.text = "CURRENT HEADQUARTERS"
+			upgrade_cost_label.add_theme_color_override("font_color", Color("#b9e8c1"))
+		else:
+			var cost_caption := "PURCHASE COST" if owned_level == 0 and preview_level == 1 else "UPGRADE COST"
+			upgrade_cost_label.text = "%s: %s" % [cost_caption, _format_money(upgrade_cost)]
+			upgrade_cost_label.add_theme_color_override("font_color", Color("#ffffff") if can_afford_upgrade else Color("#ffb5a8"))
+	if is_instance_valid(monthly_rent_label):
+		monthly_rent_label.text = "MONTHLY RENT: %s" % _format_money(get_monthly_rent(preview_level))
+	if is_instance_valid(available_balance_label):
+		available_balance_label.text = "BALANCE: %s" % _format_money(company_balance)
+		available_balance_label.add_theme_color_override("font_color", Color("#b9e8c1") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
+	if is_instance_valid(upgrade_button):
+		upgrade_button.disabled = preview_level <= owned_level or not can_afford_upgrade
+	if is_instance_valid(downgrade_button):
+		downgrade_button.disabled = owned_level <= 0 or preview_level >= owned_level
+
+
+func _get_staff_capacity(level: int) -> int:
+	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
+
+
+static func get_staff_capacity(level: int) -> int:
+	if level <= 0:
+		return 0
+	return STAFF_CAPACITIES[clampi(level, 1, MAX_LEVEL) - 1]
+
+
+static func get_upgrade_cost(level: int) -> int:
+	return UPGRADE_COSTS[clampi(level, 1, MAX_LEVEL) - 1]
+
+
+static func get_monthly_rent(level: int) -> float:
+	return float(MONTHLY_RENTS[clampi(level, 1, MAX_LEVEL) - 1])
+
+
+func set_company_balance(amount: float) -> void:
+	company_balance = maxf(0.0, amount)
+	_refresh_preview_interface()
+
+
+func _format_money(amount: float) -> String:
+	var digits := str(roundi(amount))
+	var formatted := ""
+	for index in range(digits.length()):
+		if index > 0 and (digits.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += digits.substr(index, 1)
+	return "$" + formatted
+
+
+func _style_preview_button(button: Button, primary: bool) -> void:
+	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#155c2b") if primary else Color(0.035, 0.12, 0.045, 0.90)
+		if state == "hover":
+			style.bg_color = Color("#21843a") if primary else Color("#1b5b2a")
+		elif state == "pressed":
+			style.bg_color = Color("#0c3c19")
+		elif state == "disabled":
+			style.bg_color = Color(0.10, 0.18, 0.22, 0.55)
+		style.border_color = Color("#8bd696") if primary else Color("#4aa85b")
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(10)
+		style.content_margin_left = 8.0
+		style.content_margin_right = 8.0
+		style.content_margin_top = 7.0
+		style.content_margin_bottom = 7.0
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#ffffff"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_color_override("font_disabled_color", Color("#8ea4ad"))
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Preview camera: one-finger orbit; two-finger pan and pinch zoom.
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			touch_points[event.index] = event.position
+		else:
+			touch_points.erase(event.index)
+		return
+	if event is InputEventScreenDrag and touch_points.has(event.index):
+		if touch_points.size() == 1:
+			_orbit_camera(event.relative)
+		elif touch_points.size() >= 2:
+			var old_points := touch_points.values()
+			var old_midpoint := ((old_points[0] as Vector2) + (old_points[1] as Vector2)) * 0.5
+			var old_distance := (old_points[0] as Vector2).distance_to(old_points[1] as Vector2)
+			touch_points[event.index] = event.position
+			var new_points := touch_points.values()
+			var new_midpoint := ((new_points[0] as Vector2) + (new_points[1] as Vector2)) * 0.5
+			var new_distance := (new_points[0] as Vector2).distance_to(new_points[1] as Vector2)
+			_pan_camera(new_midpoint - old_midpoint)
+			_zoom_camera((old_distance - new_distance) * 0.12)
+		touch_points[event.index] = event.position
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			mouse_orbiting = event.pressed
+		elif event.button_index == MOUSE_BUTTON_MIDDLE:
+			mouse_panning = event.pressed
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_camera(-7.0)
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_camera(7.0)
+		return
+	if event is InputEventMouseMotion:
+		if mouse_orbiting:
+			_orbit_camera(event.relative)
+		elif mouse_panning:
+			_pan_camera(event.relative)
+
+func _orbit_camera(relative: Vector2) -> void:
+	camera_yaw -= relative.x * 0.0045
+	camera_pitch = clampf(camera_pitch + relative.y * 0.0035, 0.12, 1.22)
+	_update_camera_transform()
+
+func _pan_camera(relative: Vector2) -> void:
+	if not is_instance_valid(hq_camera):
+		return
+	var pan_scale := camera_distance * 0.0016
+	var camera_right := hq_camera.global_transform.basis.x
+	camera_target -= camera_right * relative.x * pan_scale
+	camera_target += Vector3.UP * relative.y * pan_scale
+	camera_target.x = clampf(camera_target.x, -32.0, 32.0)
+	camera_target.z = clampf(camera_target.z, -32.0, 32.0)
+	camera_target.y = clampf(camera_target.y, 0.0, 150.0)
+	_update_camera_transform()
+
+func _zoom_camera(amount: float) -> void:
+	camera_distance = clampf(camera_distance + amount, 10.0, camera_max_distance)
+	_update_camera_transform()
+
+func _update_camera_transform() -> void:
+	if not is_instance_valid(hq_camera):
+		return
+	var horizontal_distance := cos(camera_pitch) * camera_distance
+	var camera_offset := Vector3(
+		sin(camera_yaw) * horizontal_distance,
+		sin(camera_pitch) * camera_distance,
+		cos(camera_yaw) * horizontal_distance
+	)
+	hq_camera.global_position = camera_target + camera_offset
+	hq_camera.look_at(camera_target, Vector3.UP)
 
 func _add_glass_curtain_wall(parent: Node3D, width: float, depth: float, floors: int, ground_height: float, floor_height: float) -> void:
 	# A continuous glazed skin wraps all four sides; repeated panels and mullions are batched for mobile.
