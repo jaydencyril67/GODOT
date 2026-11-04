@@ -20,7 +20,6 @@ func _ready() -> void:
 func _build_preview_world() -> void:
 	var viewport_container := SubViewportContainer.new()
 	viewport_container.name = "PhonePreviewViewportContainer"
-	viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	viewport_container.stretch = true
 
@@ -199,14 +198,14 @@ func _build_interface() -> void:
 	body.add_child(preview_region)
 
 	var viewport_container := get_node("PhonePreviewViewportContainer") as SubViewportContainer
+	# Reparent before applying Control anchors so they resolve against the left preview region.
+	remove_child(viewport_container)
+	preview_region.add_child(viewport_container)
 	viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	viewport_container.offset_left = 0
 	viewport_container.offset_right = 0
 	viewport_container.offset_top = 0
 	viewport_container.offset_bottom = 0
-	# Reparent the preview into the left half of the unified work area.
-	remove_child(viewport_container)
-	preview_region.add_child(viewport_container)
 
 	var preview_caption := _label("LIVE DEVICE PREVIEW", 9, Color("#88b997"), HORIZONTAL_ALIGNMENT_CENTER)
 	preview_caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
