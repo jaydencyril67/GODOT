@@ -7228,9 +7228,9 @@ func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
 	var image := Image.new()
 	var svg := ""
 	if checked:
-		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#72d987" fill-opacity="0.30" stroke="#dff6ff" stroke-width="2.5"/><path d="M9 18.5l6 6L27.5 12" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#72d987" fill-opacity="0.30" stroke="#9bd6a7" stroke-width="2.5"/><path d="M9 18.5l6 6L27.5 12" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
 	else:
-		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#d8f2ff" fill-opacity="0.10" stroke="#dff6ff" stroke-width="2.5"/></svg>"""
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#9bd6a7" fill-opacity="0.10" stroke="#9bd6a7" stroke-width="2.5"/></svg>"""
 	var error := image.load_svg_from_string(svg)
 	if error != OK:
 		push_warning("Could not create side-button checkbox icon")
@@ -7385,7 +7385,7 @@ func _show_side_button_controls() -> void:
 	var title := _make_label("SIDE BUTTONS", 21, Color("#c7eacb"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
-	var description := _make_label("Add tactile controls and a SIM tray to the phone frame.", 12, Color("#d8eaf5"))
+	var description := _make_label("Add tactile controls and a SIM tray to the phone frame.", 12, Color("#c7eacb"))
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
@@ -7400,8 +7400,8 @@ func _add_optional_side_feature_row(caption: String, feature: String, enabled: b
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.20, 0.48, 0.66, 0.22)
-	style.border_color = Color(0.55, 0.80, 0.94, 0.55)
+	style.bg_color = Color(0.035, 0.12, 0.065, 0.88)
+	style.border_color = Color(0.28, 0.62, 0.38, 0.58)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(11)
 	style.content_margin_left = 12
@@ -7451,10 +7451,10 @@ func _add_optional_side_feature_row(caption: String, feature: String, enabled: b
 		down.text = "−"
 		down.custom_minimum_size = Vector2(58, 44)
 		_apply_research_typography(down, 24)
-		_style_staff_button(down, false)
+		_style_screen_type_option(down, 0, false)
 		down.pressed.connect(_on_optional_side_feature_position_step.bind(feature, -1))
 		controls.add_child(down)
-		var value_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 15, Color("#a9e3ff"))
+		var value_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 15, Color("#9bd6a7"))
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -7463,7 +7463,7 @@ func _add_optional_side_feature_row(caption: String, feature: String, enabled: b
 		up.text = "+"
 		up.custom_minimum_size = Vector2(58, 44)
 		_apply_research_typography(up, 24)
-		_style_staff_button(up, false)
+		_style_screen_type_option(up, 0, false)
 		up.pressed.connect(_on_optional_side_feature_position_step.bind(feature, 1))
 		controls.add_child(up)
 		if feature == "camera":
