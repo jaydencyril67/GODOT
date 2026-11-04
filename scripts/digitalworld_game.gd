@@ -456,7 +456,7 @@ func _run_landing_copy_cycle(welcome: Control) -> void:
 		{"headline_one": "ENGINEER THE", "headline_two": "EXTRAORDINARY.", "caption_one": "Explore hardware, software and design.", "caption_two": "Make every generation of devices your own."},
 		{"headline_one": "YOUR VISION.", "headline_two": "YOUR EMPIRE.", "caption_one": "Build teams. Develop products. Lead markets.", "caption_two": "Every great technology company starts somewhere."}
 	]
-	var slide_index := 0
+	var slide_index := 1
 	while is_instance_valid(welcome) and current_screen == "menu":
 		await get_tree().create_timer(5.0).timeout
 		if not is_instance_valid(welcome) or current_screen != "menu":
