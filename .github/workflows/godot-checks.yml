@@ -40,7 +40,7 @@ jobs:
           # checkout, Godot loads project settings before its first import
           # scan, so temporarily disable that theme while generating imports.
           test -s "assets/fonts/STIXTwoText[wght].ttf"
-          test -s "Screenshot_20261104-041429_ChatGPT.jpg"
+          test -s "Screenshot_20261104-041429_ChatGPT.png"
           if grep -R -n --exclude-dir=.git "digitalworld-landing.png" scripts scenes project.godot; then
             echo "A script or scene still references the deleted landing image."
             exit 1
