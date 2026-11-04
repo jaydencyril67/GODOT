@@ -277,21 +277,18 @@ func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
 
-	# The landing environment is a real, lightweight Godot 3D scene — no photo
-	# or flattened background artwork is used.
+	# The curtains, camera, buildings and atmospheric motion are all real 3D.
 	landing_world = LandingCampusScene.instantiate() as Node3D
-	landing_world.name = "Landing_Corporate_Campus"
+	landing_world.name = "Landing_Corporate_World"
 	add_child(landing_world)
 
 	var root := _new_screen()
-	root.modulate.a = 1.0
+	root.modulate.a = 0.0
 
-	# A restrained transparent veil keeps the menu readable while preserving
-	# the depth and lighting of the 3D campus behind it.
 	var veil := ColorRect.new()
 	veil.name = "Landing_Obsidian_Veil"
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	veil.color = Color(0.006, 0.008, 0.012, 0.28)
+	veil.color = Color(0.006, 0.008, 0.012, 0.22)
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(veil)
 
@@ -327,6 +324,8 @@ func _show_menu() -> void:
 	var welcome_caption := _label("Design the devices. Build your company.\nLead the next generation of mobile technology.", 12 if compact else 15, Color("#dcebdd"))
 	welcome_caption.add_theme_constant_override("line_separation", 4)
 	welcome.add_child(welcome_caption)
+	var welcome_final_position := welcome.position
+	welcome.position = welcome_final_position + Vector2(42.0, 0.0)
 
 	var command_area := CenterContainer.new()
 	command_area.name = "Landing_Command_Area"
@@ -340,14 +339,14 @@ func _show_menu() -> void:
 	command_panel.custom_minimum_size = Vector2(270.0 if compact else 330.0, 0.0)
 	command_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.018, 0.020, 0.025, 0.88)
+	panel_style.bg_color = Color(0.018, 0.025, 0.021, 0.90)
 	panel_style.border_color = Color("#9bd6a0")
-	panel_style.border_color.a = 0.78
+	panel_style.border_color.a = 0.84
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
 	panel_style.set_corner_radius_all(18)
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.72)
-	panel_style.shadow_size = 26
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.76)
+	panel_style.shadow_size = 28
 	panel_style.shadow_offset = Vector2(0, 9)
 	panel_style.anti_aliasing = true
 	panel_style.content_margin_left = 20 if compact else 25
@@ -356,6 +355,7 @@ func _show_menu() -> void:
 	panel_style.content_margin_bottom = 20 if compact else 25
 	command_panel.add_theme_stylebox_override("panel", panel_style)
 	command_area.add_child(command_panel)
+	command_panel.scale = Vector2(0.90, 0.90)
 
 	var menu := VBoxContainer.new()
 	menu.add_theme_constant_override("separation", 11 if compact else 14)
@@ -366,24 +366,45 @@ func _show_menu() -> void:
 	menu.add_child(menu_title)
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
-	menu_rule.color = Color(0.66, 0.85, 0.68, 0.78)
+	menu_rule.color = Color(0.54, 0.88, 0.62, 0.82)
 	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	for button in [new_game, continue_game, settings, exit_game]:
+	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
+	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.disabled = true
 		_style_landing_command_button(button, button == new_game)
 
 	var footer_rule := ColorRect.new()
 	footer_rule.custom_minimum_size = Vector2(0, 1)
-	footer_rule.color = Color(0.66, 0.85, 0.68, 0.34)
+	footer_rule.color = Color(0.54, 0.88, 0.62, 0.38)
 	menu.add_child(footer_rule)
 	var footer := _label("POWERED BY KINGSHALL", 8 if compact else 9, Color("#91b99a"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(footer)
+
+	landing_world.cinematic_reveal_finished.connect(_animate_landing_menu.bind(root, welcome, welcome_final_position, command_panel, landing_buttons))
+
+
+func _animate_landing_menu(root: Control, welcome: Control, welcome_final_position: Vector2, command_panel: Control, buttons: Array[Button]) -> void:
+	if not is_instance_valid(root) or not is_instance_valid(welcome) or not is_instance_valid(command_panel):
+		return
+
+	command_panel.pivot_offset = command_panel.size * 0.5
+	var intro := create_tween().set_parallel(true)
+	intro.tween_property(root, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	intro.tween_property(welcome, "position", welcome_final_position, 1.05).set_delay(0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	intro.tween_property(command_panel, "scale", Vector2.ONE, 0.95).set_delay(0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	intro.set_parallel(false)
+	intro.tween_callback(func() -> void:
+		for button in buttons:
+			if is_instance_valid(button):
+				button.disabled = false
+	)
 
 
 func _style_landing_command_button(button: Button, primary: bool) -> void:
