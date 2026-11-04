@@ -1169,6 +1169,8 @@ func _show_home_scene() -> void:
 	headquarters.staff_management_requested.connect(func(): _open_staff_screen("management"))
 	headquarters.setup_progress.connect(_update_headquarters_loading)
 	headquarters.setup_completed.connect(_finish_headquarters_loading)
+	# Build the 3D scene off-screen. It must not render behind the preparation UI.
+	headquarters.visible = false
 	world_root = headquarters
 	add_child(world_root)
 
@@ -1791,7 +1793,7 @@ void fragment() {
 	vec3 deep = vec3(0.004, 0.018, 0.009);
 	vec3 base = mix(emerald, deep, edge * 0.88);
 	base += vec3(0.006, 0.025, 0.010) * glow;
-	COLOR = vec4(base, 0.42);
+	COLOR = vec4(base, 1.0);
 }
 """
 	var background_material := ShaderMaterial.new()
@@ -1960,18 +1962,28 @@ func _update_headquarters_loading(message: String, progress: float) -> void:
 
 
 func _finish_headquarters_loading() -> void:
-	# The HQ setup signal fires as soon as construction finishes, but the
-	# newly-created 3D scene still needs to reach the renderer. Keep the
-	# preparation screen visible until the headquarters has actually drawn.
+	# A single guarded completion path prevents duplicate reveal sequences.
 	if headquarters_loading_finish_started:
 		return
 	headquarters_loading_finish_started = true
 
-	# Prepare both staff pages before revealing the company environment.
+	# Finish preparing non-visual Home data while the headquarters remains hidden.
 	_prepare_staff_scenes()
 	await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	await get_tree().process_frame
+
+	if not is_instance_valid(world_root):
+		headquarters_loading_finish_started = false
+		return
+
+	# Do not leave the loading page until its progress animation has visibly
+	# reached 100 percent. Hold the completed state briefly for clear feedback.
+	if loading_progress_tween != null and loading_progress_tween.is_running():
+		await loading_progress_tween.finished
+	if is_instance_valid(loading_percent_label):
+		loading_percent_label.text = "100%"
+	if is_instance_valid(loading_progress_bar):
+		loading_progress_bar.value = 100.0
+	await get_tree().create_timer(0.55).timeout
 
 	if not is_instance_valid(world_root):
 		headquarters_loading_finish_started = false
@@ -1981,23 +1993,23 @@ func _finish_headquarters_loading() -> void:
 		loading_progress_tween.kill()
 	loading_progress_tween = null
 
-	# Keep the loading layer alive underneath Home while both layers crossfade.
-	# Clearing ui_layer first prevents _new_screen() from hiding it immediately.
+	# Remove the loading page completely before allowing the 3D headquarters
+	# or Home controls to appear. There is deliberately no crossfade/overlap.
 	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
 	loading_status_label = null
 	loading_percent_label = null
 	loading_progress_bar = null
-
-	_show_home_navigation()
 	if is_instance_valid(preparation_layer):
-		var exit_tween := create_tween()
-		exit_tween.tween_property(preparation_layer, "modulate:a", 0.0, 0.48).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		exit_tween.tween_callback(func() -> void:
-			if is_instance_valid(preparation_layer):
-				preparation_layer.queue_free()
-		)
+		preparation_layer.queue_free()
+		await get_tree().process_frame
+
+	# Only now can the headquarters enter the rendered scene.
+	if is_instance_valid(world_root):
+		world_root.visible = true
+		await RenderingServer.frame_post_draw
+		_show_home_navigation()
 
 
 func _show_create_scene() -> void:
