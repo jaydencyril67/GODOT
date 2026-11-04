@@ -91,6 +91,8 @@ var preview_region: Control
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
+var navigation_layer: CanvasLayer
+var navigation_bar: HBoxContainer
 
 
 func _ready() -> void:
@@ -107,6 +109,8 @@ func _build_preview_world() -> void:
 	phone_editor.name = "ReusedPhoneEditorEngine"
 	phone_editor.worksite_creation_mode = true
 	add_child(phone_editor)
+	if phone_editor.has_signal("worksite_nested_color_view_opened"):
+		phone_editor.connect("worksite_nested_color_view_opened", _on_nested_color_view_opened)
 
 	var editor_interface := phone_editor.get_node_or_null("PhoneEditorInterface") as CanvasLayer
 	if is_instance_valid(editor_interface):
@@ -276,25 +280,55 @@ func _build_interface() -> void:
 		options.add_child(option)
 		type_buttons[phone_type] = option
 
-	var bottom_bar := HBoxContainer.new()
-	bottom_bar.name = "WorksiteBottomBar"
-	bottom_bar.custom_minimum_size.y = 62.0
-	bottom_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	bottom_bar.add_theme_constant_override("separation", 18)
-	layout.add_child(bottom_bar)
+	# Reserve the same space in the worksite VBox, but render the actual
+	# navigation controls on their own high-priority CanvasLayer. This prevents
+	# nested editor/color overlays from covering the arrows or stealing taps.
+	var bottom_bar_space := Control.new()
+	bottom_bar_space.name = "WorksiteBottomBarSpace"
+	bottom_bar_space.custom_minimum_size = Vector2(0, 62.0)
+	layout.add_child(bottom_bar_space)
+
+	navigation_layer = CanvasLayer.new()
+	navigation_layer.name = "WorksiteNavigationOverlay"
+	navigation_layer.layer = 100
+	add_child(navigation_layer)
+
+	var navigation_root := Control.new()
+	navigation_root.name = "WorksiteNavigationRoot"
+	navigation_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	navigation_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	navigation_layer.add_child(navigation_root)
+
+	navigation_bar = HBoxContainer.new()
+	navigation_bar.name = "WorksiteBottomBar"
+	navigation_bar.anchor_left = 0.0
+	navigation_bar.anchor_right = 1.0
+	navigation_bar.anchor_top = 1.0
+	navigation_bar.anchor_bottom = 1.0
+	navigation_bar.offset_left = 20.0
+	navigation_bar.offset_right = -20.0
+	navigation_bar.offset_top = -74.0
+	navigation_bar.offset_bottom = -12.0
+	navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+	navigation_bar.z_index = 1000
+	navigation_bar.z_as_relative = false
+	navigation_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation_bar.add_theme_constant_override("separation", 18)
+	navigation_root.add_child(navigation_bar)
+
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
 	wizard_back_button.points_right = false
 	wizard_back_button.pressed.connect(_on_wizard_back_pressed)
-	bottom_bar.add_child(wizard_back_button)
+	navigation_bar.add_child(wizard_back_button)
 	var bottom_spacer := Control.new()
 	bottom_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bottom_bar.add_child(bottom_spacer)
+	navigation_bar.add_child(bottom_spacer)
 	next_button = GlassArrowButton.new()
 	next_button.name = "NextStepIconButton"
 	next_button.points_right = true
 	next_button.pressed.connect(_on_next_pressed)
-	bottom_bar.add_child(next_button)
+	navigation_bar.add_child(next_button)
 	_keep_step_navigation_active()
 	_apply_responsive_layout()
 	# Start with Standard selected in both the worksite controls and the
@@ -349,6 +383,7 @@ func _update_preview_for_phone_type(phone_type: String) -> void:
 
 
 func _on_next_pressed() -> void:
+	_keep_step_navigation_active()
 	if selected_phone_type.is_empty():
 		return
 	if wizard_step == 0:
@@ -568,6 +603,19 @@ func _keep_step_navigation_active() -> void:
 		next_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		next_button.modulate.a = 1.0
 
+func _on_nested_color_view_opened() -> void:
+	# A nested color editor replaces the mounted Back Design panel directly,
+	# bypassing _mount_original_panel(). Reassert both controls and keep their
+	# overlay above every editor popup/canvas layer.
+	_keep_step_navigation_active()
+	if is_instance_valid(navigation_layer):
+		navigation_layer.layer = 100
+	if is_instance_valid(navigation_bar):
+		navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+		navigation_bar.z_index = 1000
+		navigation_bar.z_as_relative = false
+	call_deferred("_keep_step_navigation_active")
+
 func _show_device_color_step() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
@@ -632,6 +680,7 @@ func _show_rear_camera_step() -> void:
 
 
 func _on_wizard_back_pressed() -> void:
+	_keep_step_navigation_active()
 	if wizard_step == 14:
 		_discard_panel(rear_camera_panel)
 		rear_camera_panel = null
