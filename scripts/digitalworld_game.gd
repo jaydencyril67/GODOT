@@ -340,6 +340,7 @@ func _show_menu() -> void:
 
 	var command_area := CenterContainer.new()
 	command_area.name = "Landing_Command_Area"
+	command_area.modulate.a = 0.0
 	command_area.size_flags_horizontal = Control.SIZE_SHRINK_END
 	command_area.custom_minimum_size.x = 292.0 if compact else 370.0
 	command_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -415,6 +416,7 @@ func _animate_landing_menu(root: Control, welcome: Control, welcome_final_positi
 
 	command_panel.pivot_offset = command_panel.size * 0.5
 	var intro := create_tween().set_parallel(true)
+	intro.tween_property(command_area, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	intro.tween_property(command_panel, "scale", Vector2.ONE, 0.95).set_delay(0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	intro.set_parallel(false)
 	intro.tween_callback(func() -> void:
@@ -429,11 +431,12 @@ func _animate_landing_text_label(label: Label, duration: float, delay: float, ch
 		return
 	label.visible_characters = 0
 	label.modulate.a = 0.0
+	var reveal_duration := maxf(duration, float(label.text.length()) * character_interval)
 	var reveal := create_tween()
 	reveal.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	reveal.tween_interval(delay)
 	reveal.set_parallel(true)
-	reveal.tween_property(label, "visible_characters", label.text.length(), duration).set_trans(Tween.TRANS_LINEAR)
+	reveal.tween_property(label, "visible_characters", label.text.length(), reveal_duration).set_trans(Tween.TRANS_LINEAR)
 	reveal.tween_property(label, "modulate:a", 1.0, minf(0.28, duration * 0.45)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
