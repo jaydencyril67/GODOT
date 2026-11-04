@@ -57,7 +57,7 @@ jobs:
           restore_project
           trap - EXIT
 
-          if grep -E 'Parse Error:|SCRIPT ERROR:' godot-import.log; then
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' godot-import.log; then
             echo "Godot reported a script error during asset import."
             exit 1
           fi
@@ -72,7 +72,7 @@ jobs:
 
           # Reopen with the real project theme enabled and validate its resources.
           godot --headless --editor --path . --quit 2>&1 | tee godot-parse.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:' godot-parse.log; then
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' godot-parse.log; then
             echo "Godot reported a script error after imports were generated."
             exit 1
           fi
@@ -83,7 +83,7 @@ jobs:
           set -euo pipefail
           godot --headless --path . --script res://scripts/tests/home_transition_smoke.gd 2>&1 | tee home-office-smoke.log
           grep -q "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS" home-office-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|HOME_OFFICE_TRANSITION_SMOKE_TEST:.*(FAIL|ERROR)' home-office-smoke.log; then
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|HOME_OFFICE_TRANSITION_SMOKE_TEST:.*(FAIL|ERROR)' home-office-smoke.log; then
             echo "Godot reported an error during Home and Office navigation."
             exit 1
           fi
@@ -99,7 +99,7 @@ jobs:
             echo "Godot startup command exited with status $godot_status"
             exit "$godot_status"
           fi
-          if grep -E 'Parse Error:|SCRIPT ERROR:' godot-startup.log; then
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' godot-startup.log; then
             echo "Godot reported a script error during startup."
             exit 1
           fi
