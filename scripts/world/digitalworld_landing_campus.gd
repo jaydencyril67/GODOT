@@ -181,7 +181,7 @@ func _add_cylinder(parent: Node3D, radius: float, height: float, local_position:
 	return instance
 
 
-func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, material: Material, local_position: Vector3, rotation: Vector3, node_name: String) -> MeshInstance3D:
+func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, material: Material, local_position: Vector3, local_rotation: Vector3, node_name: String) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	var mesh := TorusMesh.new()
@@ -191,7 +191,7 @@ func _add_torus(parent: Node3D, outer_radius: float, inner_radius: float, materi
 	mesh.ring_segments = 10
 	instance.mesh = mesh
 	instance.position = local_position
-	instance.rotation_degrees = rotation
+	instance.rotation_degrees = local_rotation
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(instance)
