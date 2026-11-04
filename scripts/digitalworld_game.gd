@@ -26,7 +26,7 @@ var ui_layer: CanvasLayer
 var ui_root: Control
 var create_ui_layer: CanvasLayer
 var create_ui_root: Control
-var world_root: Node3D
+var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var phone_editor: Node3D
 var home_navigation_layer: CanvasLayer
@@ -1154,7 +1154,7 @@ func _show_home_scene() -> void:
 	await get_tree().process_frame
 	_refresh_staff_market_on_startup()
 
-	var headquarters = HeadquartersPreviewScript.new()
+	var headquarters: DigitalWorldHeadquarters = HeadquartersPreviewScript.new()
 	headquarters.name = "DigitalWorld_Home_Scene"
 	headquarters.home_mode = true
 	headquarters.preview_level = clampi(upgrade_level, 1, 10)
@@ -1176,6 +1176,14 @@ func _show_home_scene() -> void:
 
 
 func _show_headquarters_preview() -> void:
+	# Office can only open against the live Home headquarters scene. Create and
+	# Research intentionally dispose that 3D scene, so returning from those
+	# pages must rebuild Home before Office is allowed to hide its navigation.
+	if not is_instance_valid(world_root):
+		push_warning("Office requested without an active headquarters scene; rebuilding Home.")
+		_show_home_scene()
+		return
+
 	_close_staff_overlay()
 	current_screen = "headquarters"
 	if is_instance_valid(home_navigation_layer):
@@ -1184,9 +1192,11 @@ func _show_headquarters_preview() -> void:
 	home_navigation_layer = null
 	ui_layer = null
 	ui_root = null
-	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
-		world_root.set_preview_active(true)
-		world_root.set_home_mode(false)
+
+	# Change the HQ mode before making the world visible, so the new camera and
+	# interface are ready together rather than exposing a partially rebuilt frame.
+	world_root.set_home_mode(false)
+	world_root.set_preview_active(true)
 
 
 func _return_home_from_headquarters() -> void:
@@ -1297,6 +1307,13 @@ func _apply_home_button_typography(button: Control, font_size: int) -> void:
 
 
 func _show_home_navigation() -> void:
+	# Never create a Home overlay without its owning 3D headquarters scene.
+	# This is a hard invariant, not a visual fallback.
+	if not is_instance_valid(world_root):
+		push_error("Cannot show Home navigation: the headquarters scene is missing.")
+		_show_home_scene()
+		return
+
 	# Home UI is a transparent overlay: it frames the live headquarters without
 	# placing a tint, backdrop, or panel over the 3D building.
 	var root := _new_screen()
@@ -2319,11 +2336,10 @@ func _on_research_category_pressed(category: String) -> void:
 
 
 func _return_home_from_research() -> void:
-	current_screen = "home"
-	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
-		world_root.set_home_mode(true)
-		world_root.set_preview_active(true)
-	_show_home_navigation()
+	# The Research page is a standalone screen and its entry path disposes the
+	# previous 3D world. Rebuild the actual HQ instead of showing navigation
+	# over an empty viewport.
+	_show_home_scene()
 
 
 func _show_research_phone() -> void:
@@ -2409,15 +2425,12 @@ func _apply_phone_design_research_upgrade(research_id: String) -> void:
 	if is_instance_valid(phone_editor):
 		phone_editor.call("set_research_data", career.get("phone_design_research", {}), float(career["balance"]))
 func _return_to_home() -> void:
-	current_screen = "home"
+	# Create is also a standalone screen. Its 3D Home world was deliberately
+	# disposed when the page opened, so Home must be reconstructed before its
+	# navigation controls are restored.
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.hide()
-	ui_layer = null
-	ui_root = null
-	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
-		world_root.set_home_mode(true)
-		world_root.set_preview_active(true)
-	_show_home_navigation()
+	_show_home_scene()
 
 
 func _style_create_glass_button(button: Button, primary: bool) -> void:
