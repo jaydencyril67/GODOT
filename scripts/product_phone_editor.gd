@@ -162,6 +162,7 @@ class DeviceHueBar extends Control:
 
 var phone_body: MeshInstance3D
 var phone_screen: MeshInstance3D
+var worksite_creation_mode := false
 var selected_phone_type := "Standard"
 var fold_angle_degrees := 0.0
 var fold_target_angle_degrees := 0.0
@@ -1423,7 +1424,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		use_device_color.texture_hover = _make_side_button_checkbox_icon(false)
 		use_device_color.texture_pressed = _make_side_button_checkbox_icon(true)
 		use_device_color.toggle_mode = true
-		use_device_color.button_pressed = bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))
+		use_device_color.button_pressed = bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode))
 		use_device_color.focus_mode = Control.FOCUS_NONE
 		use_device_color.mouse_filter = Control.MOUSE_FILTER_STOP
 		use_device_color.toggled.connect(_on_back_design_use_device_color_toggled)
@@ -2580,7 +2581,7 @@ func _add_back_design_box() -> void:
 		while x <= max_x and not placed:
 			var box_position := Vector2(x, y)
 			if _back_design_position_is_free(box_position, box_size, -1):
-				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08, "use_device_color": true, "custom_color": device_body_color})
+				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08, "use_device_color": not worksite_creation_mode, "custom_color": device_body_color, "gradient_color": device_gradient_color, "gradient_enabled": false, "gradient_direction": device_gradient_direction})
 				selected_back_design_box = back_design_boxes.size() - 1
 				next_back_design_box_id += 1
 				placed = true
