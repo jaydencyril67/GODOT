@@ -353,7 +353,7 @@ func _create_compound_gate(parent: Node3D) -> void:
 	sign_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sign_label.position = Vector3(0.0, 3.06, 29.24)
 	sign_label.rotation.y = PI
-	parent.add_child(sign)
+	parent.add_child(sign_label)
 	# The sliding leaves are parked open against the fence, leaving a clear vehicle entrance.
 	for side in [-1.0, 1.0]:
 		_box(parent, "Open_Sliding_Gate_Leaf", Vector3(3.3, 1.7, 0.11), Vector3(side * 8.0, 0.95, 29.0), dark_metal)
@@ -435,7 +435,7 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 	sign_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sign_label.position = Vector3(0.0, maxf(1.77, height * 0.70), sign_z + 0.065)
 	sign_label.rotation.y = PI
-	module.add_child(sign)
+	module.add_child(sign_label)
 
 
 func _facility_podium(parent: Node3D, node_name: String, width: float, depth: float) -> void:
