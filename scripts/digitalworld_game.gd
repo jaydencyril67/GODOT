@@ -3,9 +3,9 @@ extends Node3D
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
+const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
-const GLOBAL_BACKGROUND_PATH := "res://file_00000000657c82109fcf142024a4a523.png"
 
 const LOGO_NAMES := [
 	"Orchard", "Skybird", "Crown", "Apex", "Volt", "Prism", "Quantum", "Helix", "Titan", "Zenith",
@@ -27,6 +27,7 @@ var ui_root: Control
 var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: Node3D
+var landing_world: Node3D
 var phone_editor: Node3D
 var home_navigation_layer: CanvasLayer
 var home_company_label: Label
@@ -243,6 +244,9 @@ func _clear_world() -> void:
 	if is_instance_valid(world_root):
 		world_root.queue_free()
 	world_root = null
+	if is_instance_valid(landing_world):
+		landing_world.queue_free()
+	landing_world = null
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.queue_free()
 	staff_ui_layer = null
@@ -250,19 +254,9 @@ func _clear_world() -> void:
 	staff_market_screen = null
 	staff_management_screen = null
 
-func _load_global_background_texture() -> Texture2D:
-	# Load at runtime rather than preloading at script parse time. This allows
-	# the menu to initialize even if Android has not generated the image import yet.
-	var loaded_resource: Resource = load(GLOBAL_BACKGROUND_PATH)
-	if loaded_resource is Texture2D:
-		return loaded_resource as Texture2D
-	push_warning("Global photo could not be loaded: " + GLOBAL_BACKGROUND_PATH)
-	return null
-
-
 func _new_screen() -> Control:
-	# Hide the outgoing screen immediately. queue_free() removes it only at
-	# the end of the frame, so leaving it visible can briefly stack two scenes.
+	# Screens are transparent over the active 3D world. Non-3D pages naturally
+	# fall back to the obsidian clear colour configured in project.godot.
 	if is_instance_valid(ui_layer):
 		ui_layer.hide()
 		if ui_layer != create_ui_layer:
@@ -276,24 +270,6 @@ func _new_screen() -> Control:
 	ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui_root.mouse_filter = Control.MOUSE_FILTER_PASS
 	ui_layer.add_child(ui_root)
-
-	# Always provide a dark fallback first, then place the uploaded photo above it.
-	# A failed image import must never prevent the actual interface from drawing.
-	var background_fallback := ColorRect.new()
-	background_fallback.name = "Global_Background_Fallback"
-	background_fallback.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background_fallback.color = Color("#03140a")
-	background_fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui_root.add_child(background_fallback)
-
-	var global_background := TextureRect.new()
-	global_background.name = "Global_Photographic_Background"
-	global_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	global_background.texture = _load_global_background_texture()
-	global_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	global_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	global_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui_root.add_child(global_background)
 	return ui_root
 
 
@@ -301,93 +277,96 @@ func _show_menu() -> void:
 	current_screen = "menu"
 	_clear_world()
 
+	# The landing environment is a real, lightweight Godot 3D scene — no photo
+	# or flattened background artwork is used.
+	landing_world = LandingCampusScene.instantiate() as Node3D
+	landing_world.name = "Landing_Corporate_Campus"
+	add_child(landing_world)
+
 	var root := _new_screen()
 	root.modulate.a = 1.0
 
-	# Soft vignette keeps the photographic background readable.
-	var vignette := ColorRect.new()
-	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var vignette_shader := Shader.new()
-	vignette_shader.code = """
-shader_type canvas_item;
-void fragment() {
-	vec2 p = SCREEN_UV - vec2(0.5);
-	float edge = smoothstep(0.22, 0.88, length(p));
-	float top_shade = smoothstep(0.0, 0.75, SCREEN_UV.y) * 0.12;
-	COLOR = vec4(vec3(0.0), edge * 0.42 + top_shade);
-}
-"""
-	var vignette_material := ShaderMaterial.new()
-	vignette_material.shader = vignette_shader
-	vignette.material = vignette_material
-	root.add_child(vignette)
+	# A restrained transparent veil keeps the menu readable while preserving
+	# the depth and lighting of the 3D campus behind it.
+	var veil := ColorRect.new()
+	veil.name = "Landing_Obsidian_Veil"
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	veil.color = Color(0.006, 0.008, 0.012, 0.28)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(veil)
 
 	var layout := HBoxContainer.new()
+	layout.name = "Landing_Layout"
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layout.add_theme_constant_override("separation", 0)
 	layout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(layout)
 
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.x < 900.0 or viewport_size.y < 520.0
 	var showcase := Control.new()
 	showcase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	showcase.size_flags_stretch_ratio = 1.45
+	showcase.size_flags_stretch_ratio = 1.25
 	showcase.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(showcase)
 
 	var welcome := VBoxContainer.new()
 	welcome.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	welcome.position = Vector2(58, 66)
-	welcome.custom_minimum_size = Vector2(430, 160)
+	welcome.position = Vector2(34.0 if compact else 58.0, 0.0)
+	welcome.custom_minimum_size = Vector2(300.0 if compact else 430.0, 160.0)
 	welcome.add_theme_constant_override("separation", 10)
 	welcome.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	showcase.add_child(welcome)
-	var eyebrow := _label("THE MOBILE INDUSTRY STARTS HERE", 10, Color("#8fbd9a"))
+
+	var eyebrow := _label("A KINGS HALL TECHNOLOGY WORLD", 9 if compact else 11, Color("#e4c27e"))
 	welcome.add_child(eyebrow)
-	var welcome_title := _label("BUILD THE\nNEXT GENERATION.", 34, Color("#f4f8f3"))
+	var welcome_title := _label("BUILD YOUR\nTECHNOLOGY EMPIRE.", 25 if compact else 37, Color("#fff8e9"))
 	welcome_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_apply_menu_3d_label(welcome_title, 1)
 	welcome.add_child(welcome_title)
-	var welcome_caption := _label("Create technology. Shape the market.\nBuild a brand that leads the future.", 14, Color("#b5c7b9"))
+	var welcome_caption := _label("Design the devices. Develop the campus.\nLead the next generation of mobile technology.", 12 if compact else 15, Color("#d1c8b6"))
 	welcome_caption.add_theme_constant_override("line_separation", 4)
 	welcome.add_child(welcome_caption)
 
 	var command_area := CenterContainer.new()
+	command_area.name = "Landing_Command_Area"
 	command_area.size_flags_horizontal = Control.SIZE_SHRINK_END
-	command_area.custom_minimum_size.x = 390
+	command_area.custom_minimum_size.x = 292.0 if compact else 370.0
 	command_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(command_area)
 
 	var command_panel := PanelContainer.new()
-	command_panel.custom_minimum_size = Vector2(342, 0)
+	command_panel.name = "Landing_Glass_Command_Panel"
+	command_panel.custom_minimum_size = Vector2(270.0 if compact else 330.0, 0.0)
 	command_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.018, 0.065, 0.039, 0.76)
-	panel_style.border_color = Color(0.58, 0.82, 0.63, 0.58)
+	panel_style.bg_color = Color(0.018, 0.020, 0.025, 0.88)
+	panel_style.border_color = Color("#d7b56f")
+	panel_style.border_color.a = 0.78
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
-	panel_style.set_corner_radius_all(20)
-	panel_style.shadow_color = Color(0.0, 0.025, 0.008, 0.62)
-	panel_style.shadow_size = 28
-	panel_style.shadow_offset = Vector2(0, 10)
+	panel_style.set_corner_radius_all(18)
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.72)
+	panel_style.shadow_size = 26
+	panel_style.shadow_offset = Vector2(0, 9)
 	panel_style.anti_aliasing = true
-	panel_style.content_margin_left = 25
-	panel_style.content_margin_right = 25
-	panel_style.content_margin_top = 27
-	panel_style.content_margin_bottom = 25
+	panel_style.content_margin_left = 20 if compact else 25
+	panel_style.content_margin_right = 20 if compact else 25
+	panel_style.content_margin_top = 21 if compact else 27
+	panel_style.content_margin_bottom = 20 if compact else 25
 	command_panel.add_theme_stylebox_override("panel", panel_style)
 	command_area.add_child(command_panel)
 
 	var menu := VBoxContainer.new()
-	menu.add_theme_constant_override("separation", 14)
+	menu.add_theme_constant_override("separation", 11 if compact else 14)
 	command_panel.add_child(menu)
-	var menu_heading := _label("WELCOME BACK", 10, Color("#a8d5b0"), HORIZONTAL_ALIGNMENT_CENTER)
+	var menu_heading := _label("DIGITAL WORLD MOBILES", 9 if compact else 10, Color("#e2bf78"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_heading)
-	var menu_title := _label("MAIN MENU", 20, Color("#f1f7f0"), HORIZONTAL_ALIGNMENT_CENTER)
+	var menu_title := _label("YOUR CAMPUS AWAITS", 16 if compact else 19, Color("#fff7e6"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_title)
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
-	menu_rule.color = Color(0.58, 0.82, 0.63, 0.48)
+	menu_rule.color = Color(0.84, 0.68, 0.40, 0.72)
 	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
@@ -395,49 +374,48 @@ void fragment() {
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
 	for button in [new_game, continue_game, settings, exit_game]:
-		button.custom_minimum_size = Vector2(0, 56)
+		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_landing_command_button(button, button == new_game)
 
 	var footer_rule := ColorRect.new()
 	footer_rule.custom_minimum_size = Vector2(0, 1)
-	footer_rule.color = Color(0.45, 0.68, 0.50, 0.24)
+	footer_rule.color = Color(0.84, 0.68, 0.40, 0.28)
 	menu.add_child(footer_rule)
-	var footer := _label("A KINGS HALL SIMULATION", 9, Color("#8aa991"), HORIZONTAL_ALIGNMENT_CENTER)
+	var footer := _label("POWERED BY KINGSHALL", 8 if compact else 9, Color("#b9a57e"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(footer)
 
 
 func _style_landing_command_button(button: Button, primary: bool) -> void:
-	# Landing menu controls remain visually still during hover, click and focus.
-	# Input continues to work; only the interaction highlight is removed.
+	# Restrained champagne-gold controls with no hover, focus or click flash.
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	var base_fill := Color(0.16, 0.43, 0.23, 0.82) if primary else Color(0.11, 0.24, 0.15, 0.64)
-	var base_edge := Color(0.76, 0.94, 0.79, 0.82) if primary else Color(0.55, 0.76, 0.59, 0.54)
+	var base_fill := Color("#c49a4c") if primary else Color(0.075, 0.082, 0.095, 0.88)
+	var base_edge := Color("#f0d59a") if primary else Color(0.78, 0.64, 0.39, 0.68)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = base_fill
 		style.border_color = base_edge
 		style.set_border_width_all(1)
 		style.border_width_top = 2
-		style.border_width_left = 2 if primary else 1
-		style.set_corner_radius_all(12)
-		style.shadow_color = Color(0.0, 0.035, 0.012, 0.48)
-		style.shadow_size = 12 if primary else 8
-		style.shadow_offset = Vector2(0, 4)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.38)
+		style.shadow_size = 9 if primary else 5
+		style.shadow_offset = Vector2(0, 3)
 		style.anti_aliasing = true
-		style.content_margin_left = 18
-		style.content_margin_right = 18
-		style.content_margin_top = 11
-		style.content_margin_bottom = 11
+		style.content_margin_left = 16
+		style.content_margin_right = 16
+		style.content_margin_top = 10
+		style.content_margin_bottom = 10
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#f4fbf4"))
-	button.add_theme_color_override("font_hover_color", Color("#f4fbf4"))
-	button.add_theme_color_override("font_pressed_color", Color("#f4fbf4"))
-	button.add_theme_color_override("font_focus_color", Color("#f4fbf4"))
-	button.add_theme_color_override("font_disabled_color", Color("#f4fbf4"))
-	_apply_shared_page_typography(button, 16)
-	button.add_theme_color_override("font_outline_color", Color("#07170b"))
+	var text_color := Color("#17130b") if primary else Color("#f5ead4")
+	button.add_theme_color_override("font_color", text_color)
+	button.add_theme_color_override("font_hover_color", text_color)
+	button.add_theme_color_override("font_pressed_color", text_color)
+	button.add_theme_color_override("font_focus_color", text_color)
+	button.add_theme_color_override("font_disabled_color", Color("#a99a7d"))
+	_apply_shared_page_typography(button, 15)
+	button.add_theme_color_override("font_outline_color", Color("#090b10"))
 	button.add_theme_constant_override("outline_size", 1)
 
 func _style_command_menu_button(button: Button, primary: bool) -> void:
