@@ -457,7 +457,9 @@ func _mount_original_panel(method_name: String) -> Control:
 	if is_instance_valid(parent):
 		parent.remove_child(panel)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	# Layout A uses its expanding spacer to keep the large directional pad
+	# bottom-centered without making these two compact editor steps scroll.
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if method_name in ["_show_back_design_controls", "_show_rear_camera_controls"] else Control.SIZE_SHRINK_BEGIN
 	selection_stack.add_child(panel)
 	_keep_step_navigation_active()
 	return panel
