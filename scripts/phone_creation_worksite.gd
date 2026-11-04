@@ -3,13 +3,13 @@ extends Node3D
 signal back_requested
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
+const PhoneEditorScene = preload("res://scenes/product_phone_editor.tscn")
 
 var selected_phone_type := ""
 var type_buttons: Dictionary = {}
 var next_button: Button
 var selection_status: Label
-var preview_body: MeshInstance3D
-var preview_screen: MeshInstance3D
+var phone_editor: Node
 
 
 func _ready() -> void:
@@ -18,104 +18,18 @@ func _ready() -> void:
 
 
 func _build_preview_world() -> void:
-	var viewport_container := SubViewportContainer.new()
-	viewport_container.name = "PhonePreviewViewportContainer"
-	viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	viewport_container.stretch = true
+	# Instantiate the real editor so its existing chassis generator, phone-type
+	# state, materials, display construction and foldable hierarchy are reused.
+	# Its full-screen editor UI is hidden; only its original preview viewport is
+	# moved into this worksite's left-hand preview region.
+	phone_editor = PhoneEditorScene.instantiate()
+	phone_editor.name = "ReusedPhoneEditorEngine"
+	add_child(phone_editor)
 
-	var viewport := SubViewport.new()
-	viewport.name = "PhonePreviewViewport"
-	viewport.size = Vector2i(720, 900)
-	viewport.own_world_3d = true
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	viewport_container.add_child(viewport)
-	add_child(viewport_container)
+	var editor_interface := phone_editor.get_node_or_null("PhoneEditorInterface") as CanvasLayer
+	if is_instance_valid(editor_interface):
+		editor_interface.hide()
 
-	var preview_world := Node3D.new()
-	preview_world.name = "PhonePreviewWorld"
-	viewport.add_child(preview_world)
-
-	var camera := Camera3D.new()
-	camera.name = "PhonePreviewCamera"
-	camera.position = Vector3(0.0, 0.0, 5.2)
-	camera.look_at(Vector3.ZERO, Vector3.UP)
-	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 4.3
-	preview_world.add_child(camera)
-	camera.current = true
-
-	var key_light := DirectionalLight3D.new()
-	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
-	key_light.light_energy = 1.35
-	key_light.shadow_enabled = true
-	preview_world.add_child(key_light)
-
-	var fill_light := OmniLight3D.new()
-	fill_light.position = Vector3(-2.0, 1.0, 2.0)
-	fill_light.light_energy = 0.65
-	fill_light.omni_range = 8.0
-	preview_world.add_child(fill_light)
-
-	var stage := MeshInstance3D.new()
-	stage.name = "PreviewStage"
-	var stage_mesh := CylinderMesh.new()
-	stage_mesh.top_radius = 1.65
-	stage_mesh.bottom_radius = 1.65
-	stage_mesh.height = 0.10
-	stage.mesh = stage_mesh
-	stage.position = Vector3(0.0, -1.55, -0.35)
-	var stage_material := StandardMaterial3D.new()
-	stage_material.albedo_color = Color("#101b15")
-	stage_material.metallic = 0.42
-	stage_material.roughness = 0.34
-	stage.material_override = stage_material
-	preview_world.add_child(stage)
-
-	var phone_root := Node3D.new()
-	phone_root.name = "PhoneBlockPreview"
-	phone_root.rotation_degrees = Vector3(5.0, -18.0, -3.0)
-	preview_world.add_child(phone_root)
-
-	preview_body = MeshInstance3D.new()
-	preview_body.name = "PhoneBodyBlock"
-	var body_mesh := BoxMesh.new()
-	body_mesh.size = Vector3(1.18, 2.42, 0.16)
-	preview_body.mesh = body_mesh
-	var body_material := StandardMaterial3D.new()
-	body_material.albedo_color = Color("#343d3a")
-	body_material.metallic = 0.72
-	body_material.roughness = 0.24
-	preview_body.material_override = body_material
-	phone_root.add_child(preview_body)
-
-	preview_screen = MeshInstance3D.new()
-	preview_screen.name = "PhoneDisplayBlock"
-	var screen_mesh := BoxMesh.new()
-	screen_mesh.size = Vector3(1.08, 2.30, 0.018)
-	preview_screen.mesh = screen_mesh
-	preview_screen.position = Vector3(0.0, 0.0, 0.091)
-	var screen_material := StandardMaterial3D.new()
-	screen_material.albedo_color = Color("#07110d")
-	screen_material.metallic = 0.18
-	screen_material.roughness = 0.16
-	preview_screen.material_override = screen_material
-	phone_root.add_child(preview_screen)
-
-	var camera_lens := MeshInstance3D.new()
-	camera_lens.name = "PreviewFrontCamera"
-	var lens_mesh := CylinderMesh.new()
-	lens_mesh.top_radius = 0.035
-	lens_mesh.bottom_radius = 0.035
-	lens_mesh.height = 0.012
-	camera_lens.mesh = lens_mesh
-	camera_lens.rotation_degrees.x = 90.0
-	camera_lens.position = Vector3(0.0, 1.06, 0.105)
-	var lens_material := StandardMaterial3D.new()
-	lens_material.albedo_color = Color("#172a22")
-	lens_material.metallic = 0.5
-	lens_material.roughness = 0.12
-	camera_lens.material_override = lens_material
-	phone_root.add_child(camera_lens)
 
 
 func _build_interface() -> void:
@@ -197,15 +111,20 @@ func _build_interface() -> void:
 	preview_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(preview_region)
 
-	var viewport_container := get_node("PhonePreviewViewportContainer") as SubViewportContainer
-	# Reparent before applying Control anchors so they resolve against the left preview region.
-	remove_child(viewport_container)
-	preview_region.add_child(viewport_container)
-	viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	viewport_container.offset_left = 0
-	viewport_container.offset_right = 0
-	viewport_container.offset_top = 0
-	viewport_container.offset_bottom = 0
+	var viewport_container := phone_editor.get("preview_container") as SubViewportContainer
+	if is_instance_valid(viewport_container):
+		# Move the original editor's live SubViewportContainer, not a recreated
+		# preview. The original editor remains alive and continues handling
+		# rotation, fold gestures and mesh rebuilds for this exact viewport.
+		var original_parent := viewport_container.get_parent()
+		if is_instance_valid(original_parent):
+			original_parent.remove_child(viewport_container)
+		preview_region.add_child(viewport_container)
+		viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		viewport_container.offset_left = 0
+		viewport_container.offset_right = 0
+		viewport_container.offset_top = 0
+		viewport_container.offset_bottom = 0
 
 	var preview_caption := _label("LIVE DEVICE PREVIEW", 9, Color("#88b997"), HORIZONTAL_ALIGNMENT_CENTER)
 	preview_caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -284,20 +203,11 @@ func _on_phone_type_selected(phone_type: String) -> void:
 
 
 func _update_preview_for_phone_type(phone_type: String) -> void:
-	if not is_instance_valid(preview_body) or not is_instance_valid(preview_screen):
+	if not is_instance_valid(phone_editor):
 		return
-	var body_mesh := preview_body.mesh as BoxMesh
-	var screen_mesh := preview_screen.mesh as BoxMesh
-	match phone_type:
-		"Flip":
-			body_mesh.size = Vector3(1.12, 2.30, 0.18)
-			screen_mesh.size = Vector3(1.02, 2.18, 0.018)
-		"Fold":
-			body_mesh.size = Vector3(1.38, 2.42, 0.18)
-			screen_mesh.size = Vector3(1.28, 2.30, 0.018)
-		_:
-			body_mesh.size = Vector3(1.18, 2.42, 0.16)
-			screen_mesh.size = Vector3(1.08, 2.30, 0.018)
+	# Delegate to the original editor's own type-selection callback. This runs
+	# its complete mesh rebuild path for Standard, Flip and Fold.
+	phone_editor.call("_on_phone_type_selected", phone_type)
 
 
 func _on_next_pressed() -> void:
