@@ -464,7 +464,7 @@ func _show_power_volume_step() -> void:
 	progress_number.text = "STEP 7 / 8"
 	progress_bar.value = 7
 	wizard_back_button.disabled = false
-	next_button.disabled = true
+	next_button.disabled = false
 	selection_scroll.scroll_vertical = 0
 
 
