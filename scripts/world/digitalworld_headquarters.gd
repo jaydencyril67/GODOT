@@ -106,11 +106,11 @@ func _create_material_library() -> void:
 		"window_gasket": _mat(Color("#111b20"), 0.72, 0.18),
 		"roof": _mat(Color("#59666a"), 0.72, 0.28),
 		"lamp": _emissive_mat(Color("#ffe4ad"), 1.5),
-		"hq_sign": _mat(Color("#123b56"), 0.32, 0.48),
-		"hq_accent": _emissive_mat(Color("#50b9e8"), 1.8),
-		"stage_ground": _mat(Color("#263f4c"), 0.92),
-		"stage_deck": _mat(Color("#405b68"), 0.72, 0.22),
-		"stage_trim": _emissive_mat(Color("#4daed5"), 1.2),
+		"hq_sign": _mat(Color("#12351b"), 0.32, 0.48),
+		"hq_accent": _emissive_mat(Color("#50c96b"), 1.8),
+		"stage_ground": _mat(Color("#263f2c"), 0.92),
+		"stage_deck": _mat(Color("#405b43"), 0.72, 0.22),
+		"stage_trim": _emissive_mat(Color("#4dba68"), 1.2),
 		"workshop_cladding": _mat(Color("#8d9b9d"), 0.72, 0.22),
 		"workshop_shutter": _mat(Color("#394b52"), 0.65, 0.42),
 		"glass_mullion": _mat(Color("#263f50"), 0.28, 0.82),
@@ -185,7 +185,7 @@ func _create_environment() -> void:
 	var fill := OmniLight3D.new()
 	fill.name = "Headquarters_Fill_Light"
 	fill.position = Vector3(-18.0, 15.0, 12.0)
-	fill.light_color = Color("#8bcfff")
+	fill.light_color = Color("#a3d9ae")
 	fill.light_energy = 1.1
 	fill.omni_range = 42.0
 	fill.shadow_enabled = false
@@ -276,7 +276,7 @@ func _build_procedural_building(level: int) -> float:
 	]
 	var wall := _mat(wall_colors[style], 0.86, 0.04)
 	if style >= 3:
-		wall = _mat(Color("#102b3b"), 0.28, 0.48)
+		wall = _mat(Color("#102b18"), 0.28, 0.48)
 	if level == 1:
 		wall.albedo_color = Color("#8d9b9d")
 		wall.roughness = 0.72
@@ -421,7 +421,7 @@ func _create_preview_interface() -> void:
 		level_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_preview_typography(level_info_label, 36)
 		level_info_label.add_theme_color_override("font_color", Color("#ffffff"))
-		level_info_label.add_theme_color_override("font_outline_color", Color("#062b46"))
+		level_info_label.add_theme_color_override("font_outline_color", Color("#062b18"))
 		level_info_label.add_theme_constant_override("outline_size", 5)
 		level_info_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.10, 0.95))
 		level_info_label.add_theme_constant_override("shadow_offset_x", 2)
@@ -443,8 +443,8 @@ func _create_preview_interface() -> void:
 		staff_capacity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		staff_capacity_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_apply_preview_typography(staff_capacity_label, 23)
-		staff_capacity_label.add_theme_color_override("font_color", Color("#d8f3ff"))
-		staff_capacity_label.add_theme_color_override("font_outline_color", Color("#062b46"))
+		staff_capacity_label.add_theme_color_override("font_color", Color("#d8f3dc"))
+		staff_capacity_label.add_theme_color_override("font_outline_color", Color("#062b18"))
 		staff_capacity_label.add_theme_constant_override("outline_size", 4)
 		var staff_font := FontVariation.new()
 		staff_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
@@ -537,7 +537,7 @@ func _create_preview_interface() -> void:
 		cost_panel.offset_right = -18.0
 		cost_panel.offset_bottom = -84.0
 		var cost_style := StyleBoxFlat.new()
-		cost_style.bg_color = Color(0.025, 0.105, 0.16, 0.90)
+		cost_style.bg_color = Color(0.018, 0.075, 0.035, 0.90)
 		cost_style.border_color = Color(0.35, 0.72, 0.91, 0.78)
 		cost_style.set_border_width_all(1)
 		cost_style.set_corner_radius_all(10)
@@ -569,7 +569,7 @@ func _create_preview_interface() -> void:
 		available_balance_label = Label.new()
 		available_balance_label.name = "Headquarters_Available_Balance"
 		_apply_preview_typography(available_balance_label, 15)
-		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff"))
+		available_balance_label.add_theme_color_override("font_color", Color("#b9e8c1"))
 		available_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		finance_stack.add_child(available_balance_label)
 
@@ -661,7 +661,7 @@ func _refresh_preview_interface() -> void:
 			upgrade_cost_label.add_theme_color_override("font_color", Color("#8ff0bd"))
 		elif preview_level == owned_level and owned_level > 0:
 			upgrade_cost_label.text = "CURRENT HEADQUARTERS"
-			upgrade_cost_label.add_theme_color_override("font_color", Color("#b9e8ff"))
+			upgrade_cost_label.add_theme_color_override("font_color", Color("#b9e8c1"))
 		else:
 			var cost_caption := "PURCHASE COST" if owned_level == 0 and preview_level == 1 else "UPGRADE COST"
 			upgrade_cost_label.text = "%s: %s" % [cost_caption, _format_money(upgrade_cost)]
@@ -670,7 +670,7 @@ func _refresh_preview_interface() -> void:
 		monthly_rent_label.text = "MONTHLY RENT: %s" % _format_money(get_monthly_rent(preview_level))
 	if is_instance_valid(available_balance_label):
 		available_balance_label.text = "BALANCE: %s" % _format_money(company_balance)
-		available_balance_label.add_theme_color_override("font_color", Color("#b9e8ff") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
+		available_balance_label.add_theme_color_override("font_color", Color("#b9e8c1") if can_afford_upgrade or preview_level <= owned_level else Color("#ffb5a8"))
 	if is_instance_valid(upgrade_button):
 		upgrade_button.disabled = preview_level <= owned_level or not can_afford_upgrade
 	if is_instance_valid(downgrade_button):
@@ -713,14 +713,14 @@ func _format_money(amount: float) -> String:
 func _style_preview_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#155477") if primary else Color(0.035, 0.12, 0.19, 0.90)
+		style.bg_color = Color("#155c2b") if primary else Color(0.035, 0.12, 0.045, 0.90)
 		if state == "hover":
-			style.bg_color = Color("#217fa9") if primary else Color("#1b5574")
+			style.bg_color = Color("#21843a") if primary else Color("#1b5b2a")
 		elif state == "pressed":
-			style.bg_color = Color("#0c3c58")
+			style.bg_color = Color("#0c3c19")
 		elif state == "disabled":
 			style.bg_color = Color(0.10, 0.18, 0.22, 0.55)
-		style.border_color = Color("#8bd6ff") if primary else Color("#4aa5d3")
+		style.border_color = Color("#8bd696") if primary else Color("#4aa85b")
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(10)
 		style.content_margin_left = 8.0
