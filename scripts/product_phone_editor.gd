@@ -6594,7 +6594,7 @@ func _show_rear_camera_controls() -> void:
 		mode_button.custom_minimum_size.y = control_height
 		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(mode_button, 12 if tight else 13)
-		_style_staff_button(mode_button, rear_hardware_mode == mode)
+		_style_back_design_button(mode_button, rear_hardware_mode == mode)
 		mode_button.pressed.connect(_set_rear_hardware_mode.bind(mode))
 		mode_row.add_child(mode_button)
 
@@ -6607,7 +6607,7 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_add_button.custom_minimum_size.y = control_height
 	rear_hardware_add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(rear_hardware_add_button, 11 if tight else 12)
-	_style_staff_button(rear_hardware_add_button, true)
+	_style_back_design_button(rear_hardware_add_button, true)
 	rear_hardware_add_button.pressed.connect(_add_rear_hardware_module)
 	actions.add_child(rear_hardware_add_button)
 
@@ -6616,7 +6616,7 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_remove_button.custom_minimum_size.y = control_height
 	rear_hardware_remove_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(rear_hardware_remove_button, 11 if tight else 12)
-	_style_staff_button(rear_hardware_remove_button, false)
+	_style_back_design_button(rear_hardware_remove_button, false)
 	rear_hardware_remove_button.pressed.connect(_remove_rear_hardware_module)
 	actions.add_child(rear_hardware_remove_button)
 	_add_back_design_flexible_space(active_feature_panel)
@@ -6634,7 +6634,7 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rear_hardware_selection_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(rear_hardware_selection_button, 12 if tight else 13)
-	_style_staff_button(rear_hardware_selection_button, true)
+	_style_back_design_button(rear_hardware_selection_button, true)
 	rear_hardware_selection_button.pressed.connect(_toggle_rear_hardware_selection_popup)
 	selection_row.add_child(rear_hardware_selection_button)
 
@@ -6677,7 +6677,7 @@ func _show_rear_camera_controls() -> void:
 		active_feature_panel.add_child(rear_hardware_selection_popup)
 	_add_back_design_flexible_space(active_feature_panel)
 
-	var move_heading := _make_label("MOVE " + rear_hardware_mode, 11 if tight else 12, Color("#a9e3ff"))
+	var move_heading := _make_label("MOVE " + rear_hardware_mode, 11 if tight else 12, Color("#b9d9bf"))
 	move_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(move_heading)
 
@@ -6703,7 +6703,7 @@ func _show_rear_camera_controls() -> void:
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_flexible_space(active_feature_panel)
 
-	var size_heading := _make_label("MODULE SIZE", 11 if tight else 12, Color("#a9e3ff"))
+	var size_heading := _make_label("MODULE SIZE", 11 if tight else 12, Color("#b9d9bf"))
 	active_feature_panel.add_child(size_heading)
 	rear_hardware_size_slider = HSlider.new()
 	rear_hardware_size_slider.min_value = 0.04 if rear_hardware_mode == "CAMERA" else 0.025
@@ -6715,7 +6715,7 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_size_slider.value_changed.connect(_on_rear_hardware_size_changed)
 	active_feature_panel.add_child(rear_hardware_size_slider)
 
-	rear_hardware_size_label = _make_label("", 11 if tight else 12, Color("#d8eaf5"))
+	rear_hardware_size_label = _make_label("", 11 if tight else 12, Color("#dce9df"))
 	rear_hardware_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(rear_hardware_size_label)
 	_refresh_rear_hardware_panel()
@@ -6727,7 +6727,7 @@ func _add_rear_hardware_pad_button(parent: GridContainer, caption: String, direc
 	button.custom_minimum_size = Vector2(44, 38) if tight else Vector2(48, 42)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_research_typography(button, 22 if not tight else 20)
-	_style_staff_button(button, true)
+	_style_back_design_button(button, true)
 	button.pressed.connect(_on_rear_hardware_pad_pressed.bind(direction))
 	parent.add_child(button)
 
