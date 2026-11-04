@@ -1300,7 +1300,6 @@ func _show_home_navigation() -> void:
 	# Home UI is a transparent overlay: it frames the live headquarters without
 	# placing a tint, backdrop, or panel over the 3D building.
 	var root := _new_screen()
-	root.modulate.a = 0.0
 	ui_layer.layer = 30
 	home_navigation_layer = ui_layer
 
@@ -1372,9 +1371,7 @@ func _show_home_navigation() -> void:
 		elif button_name == "Office":
 			button.pressed.connect(_show_office_hub)
 
-	var entrance := create_tween()
-	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	entrance.tween_property(root, "modulate:a", 1.0, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	# Home is shown fully formed immediately after the loading layer is removed.
 
 
 func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool = false) -> void:
@@ -1983,7 +1980,7 @@ func _finish_headquarters_loading() -> void:
 		loading_percent_label.text = "100%"
 	if is_instance_valid(loading_progress_bar):
 		loading_progress_bar.value = 100.0
-	await get_tree().create_timer(0.55).timeout
+	await get_tree().create_timer(1.0).timeout
 
 	if not is_instance_valid(world_root):
 		headquarters_loading_finish_started = false
@@ -2005,10 +2002,10 @@ func _finish_headquarters_loading() -> void:
 		preparation_layer.queue_free()
 		await get_tree().process_frame
 
-	# Only now can the headquarters enter the rendered scene.
+	# The loading layer is already gone. Reveal the headquarters and build
+	# the Home interface in the same frame so Home is the immediate next view.
 	if is_instance_valid(world_root):
 		world_root.visible = true
-		await RenderingServer.frame_post_draw
 		_show_home_navigation()
 
 
