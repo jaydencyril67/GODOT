@@ -1181,6 +1181,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
+	_close_rear_hardware_selection_popup()
 	_close_back_design_selection_popup()
 	_set_charger_preview_mode(false)
 	if feature_name == "Box Package":
@@ -6552,6 +6553,11 @@ func _style_custom_slider(slider: Slider) -> void:
 
 func _show_rear_camera_controls() -> void:
 	_close_rear_hardware_selection_popup()
+	if is_instance_valid(rear_hardware_selection_popup):
+		rear_hardware_selection_popup.queue_free()
+		rear_hardware_selection_popup = null
+		rear_hardware_selection_scroll = null
+		rear_hardware_selection_items = null
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
