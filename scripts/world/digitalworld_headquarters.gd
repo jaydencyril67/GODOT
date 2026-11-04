@@ -863,18 +863,33 @@ func _create_bottom_action_button(parent: Node, caption: String, primary: bool) 
 
 
 func set_home_mode(active: bool) -> void:
+	# Returning from Staff must not reconstruct the same building and compound.
+	# Only a real Home/Office mode change rebuilds the preview and its controls.
+	if home_mode == active:
+		return
+
 	home_mode = active
 	camera_pitch = 0.42 if active else 0.24
 	preview_level = maxi(owned_level, 1)
 	_update_compound_facilities_visibility()
-	_rebuild_preview()
+
+	# Dispose of the old mode's interface before creating the new one. Reset every
+	# reference so no freed control can be updated by the next preview refresh.
 	if is_instance_valid(preview_interface_layer):
-		preview_interface_layer.hide()
 		preview_interface_layer.queue_free()
 	preview_interface_layer = null
+	level_info_label = null
+	staff_capacity_label = null
+	owned_info_label = null
 	previous_level_button = null
 	next_level_button = null
 	upgrade_button = null
+	downgrade_button = null
+	upgrade_cost_label = null
+	monthly_rent_label = null
+	available_balance_label = null
+
+	_rebuild_preview()
 	_create_preview_interface()
 
 
