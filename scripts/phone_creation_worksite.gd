@@ -35,7 +35,6 @@ func _build_preview_world() -> void:
 		editor_interface.hide()
 
 
-
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneCreationWorksiteInterface"
@@ -75,10 +74,10 @@ func _build_interface() -> void:
 
 	var back_button := Button.new()
 	back_button.name = "WorksiteBackButton"
-	back_button.text = "‹"
-	back_button.custom_minimum_size = Vector2(48, 44)
+	back_button.text = "⬅"
+	back_button.custom_minimum_size = Vector2(58, 52)
 	back_button.focus_mode = Control.FOCUS_NONE
-	_style_button(back_button, false)
+	_style_arrow_button(back_button)
 	back_button.pressed.connect(func(): back_requested.emit())
 	top_bar.add_child(back_button)
 
@@ -132,7 +131,7 @@ func _build_interface() -> void:
 		viewport_container.offset_top = 0
 		viewport_container.offset_bottom = 0
 		# Let the live 3D preview sit directly on the worksite's single shared
-		# light background. Keep the original sky available for PBR lighting.
+		# dark background. Keep the original sky available for PBR lighting.
 		var preview_viewport := viewport_container.get_child(0) as SubViewport
 		if is_instance_valid(preview_viewport):
 			preview_viewport.transparent_bg = true
@@ -152,7 +151,6 @@ func _build_interface() -> void:
 	selection_region = MarginContainer.new()
 	selection_region.name = "PhoneTypeSelectionRegion"
 	selection_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selection_region.size_flags_stretch_ratio = 1.0
 	selection_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	selection_region.add_theme_constant_override("margin_left", 22)
 	selection_region.add_theme_constant_override("margin_right", 18)
@@ -185,17 +183,17 @@ func _build_interface() -> void:
 
 	var bottom_bar := HBoxContainer.new()
 	bottom_bar.name = "WorksiteBottomBar"
-	bottom_bar.custom_minimum_size.y = 52.0
+	bottom_bar.custom_minimum_size.y = 58.0
 	bottom_bar.alignment = BoxContainer.ALIGNMENT_END
 	layout.add_child(bottom_bar)
 
 	next_button = Button.new()
 	next_button.name = "NextStepIconButton"
-	next_button.text = "→"
-	next_button.custom_minimum_size = Vector2(54, 50)
+	next_button.text = "➡"
+	next_button.custom_minimum_size = Vector2(62, 58)
 	next_button.disabled = true
 	next_button.focus_mode = Control.FOCUS_NONE
-	_style_button(next_button, true)
+	_style_arrow_button(next_button)
 	next_button.pressed.connect(_on_next_pressed)
 	bottom_bar.add_child(next_button)
 	_apply_responsive_layout()
@@ -250,6 +248,21 @@ func _on_next_pressed() -> void:
 		return
 	# The following wizard stage is intentionally not created until its
 	# controls and data flow are implemented as a separate approved step.
+
+
+func _style_arrow_button(button: Button) -> void:
+	# Floating navigation arrows: retain a generous touch target, but remove
+	# every card/background/border state so the glyph sits directly on black.
+	button.flat = true
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	button.add_theme_color_override("font_color", Color("#f1f5f1"))
+	button.add_theme_color_override("font_hover_color", Color("#9bd6a7"))
+	button.add_theme_color_override("font_pressed_color", Color("#6fbd80"))
+	button.add_theme_color_override("font_disabled_color", Color("#657268"))
+	button.add_theme_color_override("font_outline_color", Color("#2f7543"))
+	button.add_theme_constant_override("outline_size", 1)
+	button.add_theme_font_size_override("font_size", 36)
 
 
 func _style_button(button: Button, primary: bool) -> void:
