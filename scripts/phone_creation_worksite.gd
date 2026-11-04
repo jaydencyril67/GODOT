@@ -105,6 +105,7 @@ func _build_preview_world() -> void:
 	# moved into this worksite's left-hand preview region.
 	phone_editor = PhoneEditorScene.instantiate()
 	phone_editor.name = "ReusedPhoneEditorEngine"
+	phone_editor.worksite_creation_mode = true
 	add_child(phone_editor)
 
 	var editor_interface := phone_editor.get_node_or_null("PhoneEditorInterface") as CanvasLayer
