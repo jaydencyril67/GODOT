@@ -181,7 +181,9 @@ func _build_interface() -> void:
 	progress_bar.add_theme_stylebox_override("background", progress_track)
 	progress.add_child(progress_bar)
 
-	var body := HBoxContainer.new()
+	# BoxContainer supports switching between horizontal and vertical
+	# layouts at runtime; HBoxContainer has a fixed horizontal orientation.
+	var body := BoxContainer.new()
 	body.name = "WorksiteMainContent"
 	worksite_body = body
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
