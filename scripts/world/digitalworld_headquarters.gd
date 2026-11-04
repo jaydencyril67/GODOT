@@ -343,16 +343,16 @@ func _create_compound_gate(parent: Node3D) -> void:
 	_box(parent, "Gate_Pillar_Cap_Right", Vector3(1.0, 0.18, 1.0), Vector3(5.45, 3.32, 29.0), materials["metal"])
 	_box(parent, "Company_Entrance_Sign_Frame", Vector3(10.2, 0.58, 0.40), Vector3(0.0, 3.0, 29.0), dark_metal)
 	_box(parent, "Company_Entrance_Sign_Emerald_Line", Vector3(9.6, 0.045, 0.035), Vector3(0.0, 2.70, 29.22), materials["hq_accent"])
-	var sign := Label3D.new()
-	sign.name = "Company_Compound_Entrance_Sign"
-	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	sign.text = company_name.to_upper().substr(0, 26) if not company_name.is_empty() else "YOUR COMPANY"
-	sign.font_size = 34
-	sign.pixel_size = 0.009
-	sign.modulate = Color("#f2f6ed")
-	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sign.position = Vector3(0.0, 3.06, 29.24)
-	sign.rotation.y = PI
+	var sign_label := Label3D.new()
+	sign_label.name = "Company_Compound_Entrance_Sign"
+	sign_label.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	sign_label.text = company_name.to_upper().substr(0, 26) if not company_name.is_empty() else "YOUR COMPANY"
+	sign_label.font_size = 34
+	sign_label.pixel_size = 0.009
+	sign_label.modulate = Color("#f2f6ed")
+	sign_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sign_label.position = Vector3(0.0, 3.06, 29.24)
+	sign_label.rotation.y = PI
 	parent.add_child(sign)
 	# The sliding leaves are parked open against the fence, leaving a clear vehicle entrance.
 	for side in [-1.0, 1.0]:
@@ -425,16 +425,16 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 
 	var sign_z: float = depth * 0.5 + 0.34
 	_facility_box(module, node_name + "_Sign_Plaque", Vector3(width * 0.62, 0.40, 0.08), Vector3(0.0, maxf(1.75, height * 0.70), sign_z), materials["dark_metal"])
-	var sign := Label3D.new()
-	sign.name = node_name + "_Facility_Sign"
-	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	sign.text = sign_text
-	sign.font_size = 22
-	sign.pixel_size = 0.009
-	sign.modulate = Color("#eef3ed")
-	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sign.position = Vector3(0.0, maxf(1.77, height * 0.70), sign_z + 0.065)
-	sign.rotation.y = PI
+	var sign_label := Label3D.new()
+	sign_label.name = node_name + "_Facility_Sign"
+	sign_label.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	sign_label.text = sign_text
+	sign_label.font_size = 22
+	sign_label.pixel_size = 0.009
+	sign_label.modulate = Color("#eef3ed")
+	sign_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sign_label.position = Vector3(0.0, maxf(1.77, height * 0.70), sign_z + 0.065)
+	sign_label.rotation.y = PI
 	module.add_child(sign)
 
 
