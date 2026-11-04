@@ -10,6 +10,11 @@ var type_buttons: Dictionary = {}
 var next_button: Button
 var selection_status: Label
 var phone_editor: Node
+var worksite_body: BoxContainer
+var preview_region: Control
+var selection_scroll: ScrollContainer
+var selection_region: MarginContainer
+var selection_stack: VBoxContainer
 
 
 func _ready() -> void:
@@ -47,9 +52,10 @@ func _build_interface() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.name = "WorksiteBackdrop"
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color("#f1f2ee")
+	backdrop.color = Color("#c9cbc5")
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
+	root.resized.connect(_apply_responsive_layout)
 
 	var layout := VBoxContainer.new()
 	layout.name = "WorksiteLayout"
@@ -99,12 +105,13 @@ func _build_interface() -> void:
 
 	var body := HBoxContainer.new()
 	body.name = "WorksiteMainContent"
+	worksite_body = body
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 0)
 	layout.add_child(body)
 
-	var preview_region := Control.new()
+	preview_region = Control.new()
 	preview_region.name = "PhonePreviewRegion"
 	preview_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_region.size_flags_stretch_ratio = 1.0
@@ -121,6 +128,7 @@ func _build_interface() -> void:
 			original_parent.remove_child(viewport_container)
 		preview_region.add_child(viewport_container)
 		viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		viewport_container.mouse_filter = Control.MOUSE_FILTER_STOP
 		viewport_container.offset_left = 0
 		viewport_container.offset_right = 0
 		viewport_container.offset_top = 0
@@ -141,7 +149,15 @@ func _build_interface() -> void:
 	preview_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview_region.add_child(preview_caption)
 
-	var selection_region := MarginContainer.new()
+	selection_scroll = ScrollContainer.new()
+	selection_scroll.name = "PhoneTypeSelectionScroll"
+	selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	body.add_child(selection_scroll)
+
+	selection_region = MarginContainer.new()
 	selection_region.name = "PhoneTypeSelectionRegion"
 	selection_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selection_region.size_flags_stretch_ratio = 1.0
@@ -150,9 +166,9 @@ func _build_interface() -> void:
 	selection_region.add_theme_constant_override("margin_right", 18)
 	selection_region.add_theme_constant_override("margin_top", 20)
 	selection_region.add_theme_constant_override("margin_bottom", 20)
-	body.add_child(selection_region)
+	selection_scroll.add_child(selection_region)
 
-	var selection_stack := VBoxContainer.new()
+	selection_stack = VBoxContainer.new()
 	selection_stack.add_theme_constant_override("separation", 13)
 	selection_region.add_child(selection_stack)
 
@@ -198,6 +214,33 @@ func _build_interface() -> void:
 	_style_button(next_button, true)
 	next_button.pressed.connect(_on_next_pressed)
 	bottom_bar.add_child(next_button)
+	_apply_responsive_layout()
+
+
+func _apply_responsive_layout() -> void:
+	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll):
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	var is_wide := viewport_size.x >= viewport_size.y and viewport_size.x >= 700.0
+	worksite_body.vertical = not is_wide
+	if is_wide:
+		preview_region.size_flags_stretch_ratio = 1.12
+		selection_scroll.size_flags_stretch_ratio = 0.88
+		preview_region.custom_minimum_size = Vector2(0, 0)
+		selection_scroll.custom_minimum_size = Vector2(280, 0)
+		selection_region.add_theme_constant_override("margin_left", 22)
+		selection_region.add_theme_constant_override("margin_right", 22)
+		selection_region.add_theme_constant_override("margin_top", 18)
+		selection_region.add_theme_constant_override("margin_bottom", 18)
+	else:
+		preview_region.size_flags_stretch_ratio = 0.82
+		selection_scroll.size_flags_stretch_ratio = 1.18
+		preview_region.custom_minimum_size = Vector2(0, maxf(150.0, viewport_size.y * 0.34))
+		selection_scroll.custom_minimum_size = Vector2(0, maxf(190.0, viewport_size.y * 0.42))
+		selection_region.add_theme_constant_override("margin_left", 18)
+		selection_region.add_theme_constant_override("margin_right", 18)
+		selection_region.add_theme_constant_override("margin_top", 8)
+		selection_region.add_theme_constant_override("margin_bottom", 8)
 
 
 func _on_phone_type_selected(phone_type: String) -> void:
