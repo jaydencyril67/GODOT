@@ -36,7 +36,7 @@ static func create_building(level: int, company_name: String = "YOUR COMPANY") -
 	var light_concrete := _material(Color("#ded9ca"), 0.82, 0.05)
 	var dark_concrete := _material(Color("#515e5a"), 0.70, 0.22)
 	var metal := _material(Color("#344441"), 0.34, 0.78)
-	var glass := _material(Color("#6c9a9e") if tier < 5 else Color("#477b88"), 0.16, 0.20, 0.72)
+	var glass := _material(Color("#6c9a78") if tier < 5 else Color("#477b55"), 0.16, 0.20, 0.72)
 	var lit_glass := _material(Color("#b7d2ce"), 0.25, 0.12)
 	var foundation := _material(Color("#737a74"), 0.94)
 
@@ -159,10 +159,10 @@ static func _create_starter_building(company_name: String) -> Node3D:
 	var trim := _material(Color("#b8b5a5"), 0.86)
 	var dark_metal := _material(Color("#283433"), 0.42, 0.62)
 	var brushed_metal := _material(Color("#8c9893"), 0.32, 0.78)
-	var glass := _material(Color("#36535a"), 0.13, 0.28, 0.90)
-	var window_glass := _material(Color("#83b8bd"), 0.22, 0.25)
+	var glass := _material(Color("#36533b"), 0.13, 0.28, 0.90)
+	var window_glass := _material(Color("#83bd91"), 0.22, 0.25)
 	window_glass.emission_enabled = true
-	window_glass.emission = Color("#1e4344")
+	window_glass.emission = Color("#1e4328")
 	window_glass.emission_energy_multiplier = 0.24
 	var warm_light := _material(Color("#fff0c8"), 0.35)
 	warm_light.emission_enabled = true
@@ -185,7 +185,7 @@ static func _create_starter_building(company_name: String) -> Node3D:
 	roof_left.rotation.z = 0.45
 	var roof_right := _box(root, Vector3(7.7, 0.55, 12), Vector3(2.2, 8, 0), roof, "Split_Roof_Right")
 	roof_right.rotation.z = -0.45
-	var roof_seam := _material(Color("#293f3b"), 0.76, 0.12)
+	var roof_seam := _material(Color("#293f2e"), 0.76, 0.12)
 	for roof_piece in [roof_left, roof_right]:
 		for seam_index in range(11):
 			var rib := _box(roof_piece, Vector3(0.075, 0.1, 11.8), Vector3(float(seam_index - 5) * 0.62, 0.32, 0), roof_seam, "Raised_Roof_Seam")
@@ -313,7 +313,7 @@ static func create_preview_building(level: int) -> Node3D:
 	var light := _material(Color("#ded9ca"), 0.82, 0.05)
 	var dark := _material(Color("#515e5a"), 0.70, 0.22)
 	var metal := _material(Color("#344441"), 0.34, 0.78)
-	var glass := _material(Color("#477b88"), 0.16, 0.20, 0.72)
+	var glass := _material(Color("#477b55"), 0.16, 0.20, 0.72)
 	_box(root, Vector3(width + 1.0, 0.55, depth + 1.0), Vector3(0, 0.27, 0), concrete, "Showroom_Foundation")
 	var podium := 2.8 if tier >= 5 else 1.2
 	if tier >= 5:
