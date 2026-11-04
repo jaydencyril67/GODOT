@@ -240,6 +240,8 @@ func _build_interface() -> void:
 	selection_scroll.add_child(selection_region)
 
 	selection_stack = VBoxContainer.new()
+	selection_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	selection_stack.add_theme_constant_override("separation", 16)
 	selection_region.add_child(selection_stack)
 
@@ -493,6 +495,11 @@ func _show_charge_port_step() -> void:
 	speaker_panel = null
 	wizard_step = 8
 	charge_port_panel = _mount_original_panel("_show_charge_port_controls")
+	# The main editor gives this control panel the full available height. Keep
+	# that same expansion in the worksite so the connector options scroll area
+	# receives the same usable space instead of being shrink-wrapped.
+	if is_instance_valid(charge_port_panel):
+		charge_port_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	progress_number.text = "STEP 9 / 9"
 	progress_bar.value = 9
 	wizard_back_button.disabled = false
