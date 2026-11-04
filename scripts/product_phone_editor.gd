@@ -1739,7 +1739,7 @@ func _apply_device_color_hex(value: String) -> void:
 	_on_device_body_color_changed(Color.from_string("#" + hex_value, _get_active_color_picker_color()))
 
 
-func _create_device_body_material(geometry_offset: Vector2 = Vector2.ZERO) -> ShaderMaterial:
+func _create_device_body_material(geometry_offset: Vector2 = Vector2.ZERO, mesh_size_override: Vector3 = Vector3.ZERO) -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
@@ -1749,6 +1749,9 @@ uniform vec4 gradient_color : source_color = vec4(0.325, 0.427, 0.996, 1.0);
 uniform bool gradient_enabled = false;
 uniform int gradient_direction : hint_range(0, 3) = 0;
 uniform vec2 geometry_offset = vec2(0.0);
+uniform bool charging_port_inner_walls_enabled = false;
+uniform vec4 charging_port_bounds = vec4(0.0);
+uniform float charging_port_bottom_y = 0.0;
 varying vec3 local_position;
 varying vec3 local_normal;
 void vertex() {
@@ -1756,29 +1759,44 @@ void vertex() {
 	local_normal = NORMAL;
 }
 void fragment() {
-	// The front face is authored with an outward +Z normal and stays solid.
-	// The rear (-Z) face and all perimeter faces receive the gradient.
-	if (local_normal.z > 0.5 || !gradient_enabled) {
-		ALBEDO = solid_color.rgb;
+	bool is_charging_port_inner_wall = charging_port_inner_walls_enabled
+		&& abs(local_position.y - charging_port_bottom_y) < 0.0005
+		&& abs(local_normal.y) < 0.25
+		&& local_position.x >= charging_port_bounds.x - 0.001
+		&& local_position.x <= charging_port_bounds.z + 0.001
+		&& local_position.z >= charging_port_bounds.y - 0.001
+		&& local_position.z <= charging_port_bounds.w + 0.001;
+	if (is_charging_port_inner_wall) {
+		// These faces are the actual cut walls of the phone chassis, not the
+		// separate port inserts. Keep them black and completely non-reflective.
+		ALBEDO = vec3(0.0);
+		METALLIC = 0.0;
+		ROUGHNESS = 1.0;
+		SPECULAR = 0.0;
 	} else {
-		vec2 p = (local_position.xy + geometry_offset) / vec2(0.95, 2.0) + vec2(0.5);
-		float t = p.y;
-		if (gradient_direction == 1) {
-			t = p.x;
-		} else if (gradient_direction == 2) {
-			t = clamp((p.x + p.y) * 0.5, 0.0, 1.0);
-		} else if (gradient_direction == 3) {
-			t = clamp(length((p - vec2(0.5)) * vec2(1.0, 1.8)) * 1.4142, 0.0, 1.0);
+		// The front face is authored with an outward +Z normal and stays solid.
+		// The rear (-Z) face and all perimeter faces receive the gradient.
+		if (local_normal.z > 0.5 || !gradient_enabled) {
+			ALBEDO = solid_color.rgb;
+		} else {
+			vec2 p = (local_position.xy + geometry_offset) / vec2(0.95, 2.0) + vec2(0.5);
+			float t = p.y;
+			if (gradient_direction == 1) {
+				t = p.x;
+			} else if (gradient_direction == 2) {
+				t = clamp((p.x + p.y) * 0.5, 0.0, 1.0);
+			} else if (gradient_direction == 3) {
+				t = clamp(length((p - vec2(0.5)) * vec2(1.0, 1.8)) * 1.4142, 0.0, 1.0);
+			}
+			vec3 gradient_rgb = mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0));
+			ALBEDO = gradient_rgb;
 		}
-		vec3 gradient_rgb = mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0));
-		ALBEDO = gradient_rgb;
+		// Preserve the existing finish everywhere except the charging-port walls.
+		float edge_factor = 1.0 - smoothstep(0.05, 0.95, abs(local_normal.z));
+		METALLIC = mix(0.16, 0.78, edge_factor);
+		ROUGHNESS = mix(0.42, 0.25, edge_factor);
+		SPECULAR = mix(0.62, 0.90, edge_factor);
 	}
-	// Separate the satin back/front finish from the polished metal rail.
-	// The side-wall normals are smoothly interpolated by the phone mesh.
-	float edge_factor = 1.0 - smoothstep(0.05, 0.95, abs(local_normal.z));
-	METALLIC = mix(0.16, 0.78, edge_factor);
-	ROUGHNESS = mix(0.42, 0.25, edge_factor);
-	SPECULAR = mix(0.62, 0.90, edge_factor);
 }
 """
 	var material := ShaderMaterial.new()
@@ -1788,6 +1806,18 @@ void fragment() {
 	material.set_shader_parameter("gradient_enabled", device_gradient_enabled)
 	material.set_shader_parameter("gradient_direction", device_gradient_direction)
 	material.set_shader_parameter("geometry_offset", geometry_offset)
+	var port_mesh_size := mesh_size_override if mesh_size_override.x > 0.0 and mesh_size_override.y > 0.0 else _active_phone_size()
+	if charge_port_type != "None" and charge_port_opening_points.size() >= 3:
+		var port_min := Vector2(INF, INF)
+		var port_max := Vector2(-INF, -INF)
+		for point in charge_port_opening_points:
+			port_min.x = minf(port_min.x, point.x)
+			port_min.y = minf(port_min.y, point.y)
+			port_max.x = maxf(port_max.x, point.x)
+			port_max.y = maxf(port_max.y, point.y)
+		material.set_shader_parameter("charging_port_inner_walls_enabled", true)
+		material.set_shader_parameter("charging_port_bounds", Vector4(port_min.x, port_min.y, port_max.x, port_max.y))
+		material.set_shader_parameter("charging_port_bottom_y", -port_mesh_size.y * 0.5)
 	return material
 
 
@@ -8392,7 +8422,7 @@ func _refresh_foldable_frame_materials() -> void:
 	var fixed_frame := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableFixedHalf/PhoneFoldableFixedFrame") as MeshInstance3D
 	var moving_frame := phone_body.get_node_or_null("PhoneFoldablePanels/PhoneFoldableMovingHalf/PhoneFoldableMovingFrame") as MeshInstance3D
 	if is_instance_valid(fixed_frame):
-		fixed_frame.material_override = _create_device_body_material(Vector2(fixed_frame.position.x, fixed_frame.position.y))
+		fixed_frame.material_override = _create_device_body_material(Vector2(fixed_frame.position.x, fixed_frame.position.y), fixed_frame.mesh.get_aabb().size if is_instance_valid(fixed_frame.mesh) else Vector3.ZERO)
 	if is_instance_valid(moving_frame):
 		moving_frame.material_override = _create_device_body_material(Vector2(moving_frame.position.x, moving_frame.position.y))
 	var hinge_root := phone_body.get_node_or_null("PhoneFoldableHinge")
@@ -8503,7 +8533,7 @@ func _refresh_foldable_hardware() -> void:
 	var fixed_frame := MeshInstance3D.new()
 	fixed_frame.name = "PhoneFoldableFixedFrame"
 	fixed_frame.mesh = _create_rounded_phone_mesh(radius, charge_port_opening_points, segment_size, fixed_corner_mask)
-	fixed_frame.material_override = _create_device_body_material(Vector2(fixed_offset.x, fixed_offset.y))
+	fixed_frame.material_override = _create_device_body_material(Vector2(fixed_offset.x, fixed_offset.y), segment_size)
 	fixed_frame.position = fixed_offset
 	fixed_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	fixed_half.add_child(fixed_frame)
