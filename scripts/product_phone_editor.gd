@@ -1463,26 +1463,6 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_options.name = "GradientOptions"
 		gradient_options.add_theme_constant_override("separation", 7)
 		active_feature_panel.add_child(gradient_options)
-		var color_target_row := HBoxContainer.new()
-		color_target_row.name = "GradientColorTargets"
-		color_target_row.add_theme_constant_override("separation", 7)
-		gradient_options.add_child(color_target_row)
-		var base_color_target := Button.new()
-		base_color_target.name = "EditDeviceColor"
-		base_color_target.text = "CASE COLOR" if for_phone_case else "DEVICE COLOR"
-		base_color_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		base_color_target.custom_minimum_size.y = 38
-		_style_staff_button(base_color_target, not (phone_case_gradient_color_edit_mode if for_phone_case else gradient_color_edit_mode))
-		base_color_target.pressed.connect(_on_gradient_color_target_selected.bind(false))
-		color_target_row.add_child(base_color_target)
-		var gradient_color_target := Button.new()
-		gradient_color_target.name = "EditGradientColor"
-		gradient_color_target.text = "GRADIENT COLOR"
-		gradient_color_target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		gradient_color_target.custom_minimum_size.y = 38
-		_style_staff_button(gradient_color_target, phone_case_gradient_color_edit_mode if for_phone_case else gradient_color_edit_mode)
-		gradient_color_target.pressed.connect(_on_gradient_color_target_selected.bind(true))
-		color_target_row.add_child(gradient_color_target)
 		gradient_direction_button = Button.new()
 		gradient_direction_button.name = "GradientDirection"
 		gradient_direction_button.text = _gradient_direction_name(_get_active_gradient_direction()) + "  ▼"
