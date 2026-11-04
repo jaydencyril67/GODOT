@@ -407,13 +407,13 @@ func _create_compound_facility(parent: Node3D, node_name: String, sign_text: Str
 
 	match facility_type:
 		"production":
-			_build_production_facility(parent, node_name, center, core_width, height, core_depth, center.z + core_depth * 0.5 + 0.13, level)
+			_build_production_facility(parent, node_name, center, core_width, core_depth, height, center.z + core_depth * 0.5 + 0.13, level)
 		"research":
-			_build_research_facility(parent, node_name, center, core_width, height, core_depth, center.z + core_depth * 0.5 + 0.13, level)
+			_build_research_facility(parent, node_name, center, core_width, core_depth, height, center.z + core_depth * 0.5 + 0.13, level)
 		"utilities":
-			_build_utilities_facility(parent, node_name, center, core_width, height, core_depth, level)
+			_build_utilities_facility(parent, node_name, center, core_width, core_depth, height, level)
 		"security":
-			_build_security_facility(parent, node_name, center, core_width, height, core_depth, center.z + core_depth * 0.5 + 0.13, level)
+			_build_security_facility(parent, node_name, center, core_width, core_depth, height, center.z + core_depth * 0.5 + 0.13, level)
 
 	_facility_box(parent, node_name + "_Sign_Plaque", Vector3(core_width * 0.72, 0.42, 0.08), Vector3(center.x, height - 0.42, front_z + 0.14), materials["dark_metal"])
 	var sign := Label3D.new()
@@ -532,115 +532,9 @@ func _build_facility_level_massing(parent: Node3D, node_name: String, center: Ve
 	elif facility_type == "production":
 		module_size.x *= 1.08
 
-	var module_name := node_name + "_Level_%02d_Architectural_Module" % level
+	var module_name := "%s_Level_%02d_Architectural_Module" % [node_name, level]
 	_add_facility_mass(parent, module_name, module_position, module_size, module_wall, module_roof, module_glass)
 
-
-func _add_facility_mass(parent: Node3D, node_name: String, center: Vector3, dimensions: Vector3, wall: Material, roof: Material, glazed: bool = false) -> Node3D:
-	var mass_root := Node3D.new()
-	mass_root.name = node_name
-	mass_root.position = center
-	parent.add_child(mass_root)
-	var width: float = dimensions.x
-	var height: float = dimensions.y
-	var depth: float = dimensions.z
-	_facility_box(mass_root, node_name + "_Foundation", Vector3(width + 0.38, 0.18, depth + 0.38), Vector3(0.0, 0.09, 0.0), materials["concrete"])
-	_facility_box(mass_root, node_name + "_Envelope", Vector3(width, height, depth), Vector3(0.0, height * 0.5 + 0.18, 0.0), wall)
-	_facility_box(mass_root, node_name + "_Roof_Cap", Vector3(width + 0.30, 0.20, depth + 0.30), Vector3(0.0, height + 0.28, 0.0), roof)
-	var front_z: float = depth * 0.5 + 0.065
-	var window_y: float = minf(height * 0.64, height - 0.42)
-	var window_height: float = minf(0.78, maxf(0.34, height * 0.27))
-	for index in range(3):
-		var x: float = (float(index) - 1.0) * width * 0.27
-		var frame_material: Material = materials["window_frame"]
-		_facility_box(mass_root, node_name + "_Window_Frame", Vector3(width * 0.20, window_height + 0.18, 0.10), Vector3(x, window_y, front_z), frame_material)
-		_facility_box(mass_root, node_name + "_Window_Glazing", Vector3(width * 0.16, window_height, 0.045), Vector3(x, window_y, front_z + 0.07), materials["glass"])
-	if glazed:
-		_facility_box(mass_root, node_name + "_Glazed_Corner", Vector3(width * 0.22, height * 0.72, 0.055), Vector3(width * 0.36, height * 0.58 + 0.18, depth * 0.5 + 0.08), materials["glass"])
-	return mass_root
-
-
-func _build_facility_level_massing(parent: Node3D, node_name: String, center: Vector3, width: float, depth: float, height: float, level: int, facility_type: String, wall: Material, roof: Material) -> void:
-	var side: float = -1.0 if level % 2 == 0 else 1.0
-	var module_wall: Material = wall
-	var module_roof: Material = roof
-	var module_glass: bool = facility_type == "research"
-	var module_width_factor: float = 0.30
-	var module_height_factor: float = 0.58
-	var module_depth_factor: float = 0.48
-	match facility_type:
-		"production":
-			module_width_factor = 0.34
-			module_height_factor = 0.62
-			module_depth_factor = 0.58
-			module_wall = _mat(Color("#7d898f"), 0.84, 0.12)
-		"research":
-			module_width_factor = 0.28
-			module_height_factor = 0.72
-			module_depth_factor = 0.52
-			module_glass = true
-			module_wall = _mat(Color("#aeb9bf"), 0.72, 0.16)
-		"utilities":
-			module_width_factor = 0.24
-			module_height_factor = 0.50
-			module_depth_factor = 0.44
-			module_wall = _mat(Color("#737f85"), 0.78, 0.28)
-		"security":
-			module_width_factor = 0.28
-			module_height_factor = 0.72
-			module_depth_factor = 0.46
-			module_glass = true
-			module_wall = _mat(Color("#969fa4"), 0.76, 0.18)
-
-	var module_position := center
-	var module_size := Vector3(width * module_width_factor, height * module_height_factor, depth * module_depth_factor)
-	match level:
-		1:
-			module_position += Vector3(-side * width * 0.34, 0.0, -depth * 0.14)
-			module_size = Vector3(width * module_width_factor, height * 0.52, depth * 0.58)
-		2:
-			module_position += Vector3(side * width * 0.34, 0.0, depth * 0.20)
-			module_size = Vector3(width * 0.32, height * 0.68, depth * 0.46)
-		3:
-			module_position += Vector3(-side * width * 0.33, 0.0, -depth * 0.20)
-			module_size = Vector3(width * 0.28, height * 0.78, depth * 0.54)
-		4:
-			module_position += Vector3(side * width * 0.16, height * 0.54, -depth * 0.10)
-			module_size = Vector3(width * 0.62, height * 0.38, depth * 0.60)
-		5:
-			module_position += Vector3(0.0, height * 0.48, -depth * 0.34)
-			module_size = Vector3(width * 0.68, height * 0.42, depth * 0.32)
-		6:
-			module_position += Vector3(side * width * 0.34, height * 0.24, -depth * 0.12)
-			module_size = Vector3(width * 0.25, height * 0.96, depth * 0.34)
-		7:
-			module_position += Vector3(-side * width * 0.30, height * 0.48, depth * 0.12)
-			module_size = Vector3(width * 0.32, height * 0.40, depth * 0.54)
-			_add_facility_mass(parent, node_name + "_Level_07_Opposite_Wing", center + Vector3(side * width * 0.30, height * 0.40, -depth * 0.10), Vector3(width * 0.28, height * 0.46, depth * 0.48), module_wall, module_roof, module_glass)
-		8:
-			module_position += Vector3(0.0, height * 0.62, -depth * 0.08)
-			module_size = Vector3(width * 0.78, height * 0.18, depth * 0.24)
-		9:
-			module_position += Vector3(-side * width * 0.26, height * 0.58, -depth * 0.08)
-			module_size = Vector3(width * 0.27, height * 0.43, depth * 0.42)
-			_add_facility_mass(parent, node_name + "_Level_09_Twin_Upper_Pod", center + Vector3(side * width * 0.26, height * 0.56, -depth * 0.08), Vector3(width * 0.25, height * 0.40, depth * 0.40), module_wall, module_roof, module_glass)
-		10:
-			module_position += Vector3(0.0, height * 0.56, -depth * 0.08)
-			module_size = Vector3(width * 0.72, height * 0.40, depth * 0.50)
-			_add_facility_mass(parent, node_name + "_Level_10_Flagship_Wing", center + Vector3(-side * width * 0.30, height * 0.34, depth * 0.10), Vector3(width * 0.34, height * 0.64, depth * 0.48), module_wall, module_roof, module_glass)
-
-	if facility_type == "utilities":
-		module_size.x *= 0.82
-		module_size.z *= 0.90
-	elif facility_type == "security":
-		module_size.x *= 0.92
-	elif facility_type == "research":
-		module_size.z *= 1.08
-	elif facility_type == "production":
-		module_size.x *= 1.08
-
-	var module_name := node_name + "_Level_%02d_Architectural_Module" % level
-	_add_facility_mass(parent, module_name, module_position, module_size, module_wall, module_roof, module_glass)
 
 func _build_production_facility(parent: Node3D, node_name: String, center: Vector3, width: float, depth: float, height: float, front_z: float, level: int) -> void:
 	var roof := _mat(Color("#505a63"), 0.78, 0.32)
