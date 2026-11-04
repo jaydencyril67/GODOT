@@ -589,49 +589,6 @@ func _facility_box(parent: Node3D, node_name: String, size: Vector3, position: V
 	var part := _box(parent, node_name, size, position, material)
 	part.rotation_degrees = rotation_degrees
 	return part
-func _create_compound_facility(parent: Node3D, node_name: String, sign_text: String, center: Vector3, dimensions: Vector3, wall_color: Color, loading_bay: bool) -> void:
-	var width := dimensions.x
-	var height := dimensions.y
-	var depth := dimensions.z
-	var wall := _mat(wall_color, 0.88, 0.05)
-	wall.albedo_texture = facade_noise
-	wall.uv1_scale = Vector3(2.6, 2.6, 1.0)
-	var roof := _mat(Color("#515b51"), 0.82, 0.28)
-	var foundation := _mat(Color("#888b80"), 0.94)
-	_box(parent, node_name + "_Foundation", Vector3(width + 0.4, 0.22, depth + 0.4), center + Vector3(0.0, 0.11, 0.0), foundation)
-	_box(parent, node_name + "_Walls", Vector3(width, height, depth), center + Vector3(0.0, height * 0.5 + 0.22, 0.0), wall)
-	_box(parent, node_name + "_Roof", Vector3(width + 0.42, 0.24, depth + 0.42), center + Vector3(0.0, height + 0.34, 0.0), roof)
-	var front_z := center.z + depth * 0.5 + 0.13
-	if loading_bay:
-		_box(parent, node_name + "_Loading_Door_Frame", Vector3(width * 0.48, 2.8, 0.16), Vector3(center.x, 1.62, front_z), materials["dark_metal"])
-		_box(parent, node_name + "_Roller_Shutter", Vector3(width * 0.43, 2.58, 0.07), Vector3(center.x, 1.61, front_z + 0.10), materials["workshop_shutter"])
-		for slat in range(8):
-			_box(parent, node_name + "_Shutter_Slat", Vector3(width * 0.42, 0.035, 0.035), Vector3(center.x, 0.52 + float(slat) * 0.30, front_z + 0.15), materials["metal"])
-		_box(parent, node_name + "_Personnel_Door", Vector3(0.82, 2.25, 0.09), Vector3(center.x + width * 0.36, 1.35, front_z + 0.06), materials["dark_metal"])
-	else:
-		for window_index in range(3):
-			var window_x := center.x + (float(window_index) - 1.0) * width * 0.29
-			_box(parent, node_name + "_Window_Frame", Vector3(width * 0.20, 1.35, 0.12), Vector3(window_x, 2.0, front_z), materials["window_frame"])
-			_box(parent, node_name + "_Window_Glazing", Vector3(width * 0.17, 1.14, 0.045), Vector3(window_x, 2.0, front_z + 0.08), materials["glass"])
-		_box(parent, node_name + "_Entry_Door", Vector3(0.82, 2.25, 0.10), Vector3(center.x, 1.35, front_z + 0.08), materials["dark_metal"])
-		_box(parent, node_name + "_Entry_Glazing", Vector3(0.52, 1.45, 0.04), Vector3(center.x, 1.65, front_z + 0.14), materials["glass"])
-	_box(parent, node_name + "_Sign_Plaque", Vector3(width * 0.74, 0.46, 0.08), Vector3(center.x, height - 0.40, front_z + 0.10), materials["dark_metal"])
-	var label := Label3D.new()
-	label.name = node_name + "_Facility_Sign"
-	label.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	label.text = sign_text
-	label.font_size = 22
-	label.pixel_size = 0.009
-	label.modulate = Color("#eef4e9")
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = Vector3(center.x, height - 0.39, front_z + 0.16)
-	label.rotation.y = PI
-	parent.add_child(label)
-	for side in [-1.0, 1.0]:
-		_box(parent, node_name + "_Roof_Vent_Base", Vector3(0.9, 0.12, 0.7), center + Vector3(side * width * 0.28, height + 0.50, -depth * 0.16), materials["dark_metal"])
-		_box(parent, node_name + "_Roof_Vent", Vector3(0.65, 0.36, 0.48), center + Vector3(side * width * 0.28, height + 0.72, -depth * 0.16), materials["metal"])
-
-
 func _create_compound_parking(parent: Node3D) -> void:
 	var asphalt := _mat(Color("#252b27"), 0.94)
 	var parking_line := _mat(Color("#d7d8c8"), 0.82)
