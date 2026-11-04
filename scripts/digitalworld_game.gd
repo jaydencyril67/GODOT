@@ -16,7 +16,7 @@ const LOGO_NAMES := [
 ]
 
 const NAVY := Color("#ffffff")
-const BLUE := Color("#248cc4")
+const BLUE := Color("#36a85b")
 const PANEL := Color(0.075, 0.12, 0.13, 0.94)
 const PALE := Color("#e8eee8")
 const MUTED := Color("#a6b5b1")
@@ -3063,17 +3063,17 @@ func _hero_font_base(font_variation: FontVariation) -> void:
 func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.12, 0.62, 0.91, 0.38) if primary else Color(0.58, 0.84, 1.0, 0.20)
+		style.bg_color = Color(0.22, 0.56, 0.30, 0.38) if primary else Color(0.58, 0.84, 0.63, 0.20)
 		if state == "hover":
-			style.bg_color = Color(0.28, 0.78, 1.0, 0.52) if primary else Color(0.74, 0.93, 1.0, 0.34)
+			style.bg_color = Color(0.34, 0.72, 0.42, 0.52) if primary else Color(0.74, 0.93, 0.76, 0.34)
 		elif state == "pressed":
-			style.bg_color = Color(0.035, 0.24, 0.58, 0.62)
+			style.bg_color = Color(0.035, 0.24, 0.08, 0.62)
 		style.border_color = Color(0.90, 0.98, 1.0, 0.94)
 		style.set_border_width_all(1)
 		style.border_width_top = 3
 		style.border_width_left = 2
 		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.0, 0.16, 0.48, 0.62)
+		style.shadow_color = Color(0.0, 0.16, 0.025, 0.62)
 		style.shadow_size = 15 if primary else 11
 		style.shadow_offset = Vector2(0, 5)
 		style.anti_aliasing = true
@@ -3087,9 +3087,9 @@ func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
 	_apply_shared_page_typography(button, 20)
-	button.add_theme_color_override("font_outline_color", Color("#06345f"))
+	button.add_theme_color_override("font_outline_color", Color("#06351a"))
 	button.add_theme_constant_override("outline_size", 2)
-	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.12, 0.95))
+	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.012, 0.95))
 	button.add_theme_constant_override("shadow_offset_x", 2)
 	button.add_theme_constant_override("shadow_offset_y", 3)
 
@@ -3097,9 +3097,9 @@ func _style_glass_menu_button(button: Button, primary: bool) -> void:
 func _apply_menu_3d_label(label: Label, depth: int = 3) -> void:
 	# Layered outline and offset shadow give every menu caption a consistent
 	# raised, extruded finish while keeping the interface crisp on mobile.
-	label.add_theme_color_override("font_outline_color", Color("#052b59"))
+	label.add_theme_color_override("font_outline_color", Color("#052d15"))
 	label.add_theme_constant_override("outline_size", 2)
-	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.12, 0.92))
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.012, 0.92))
 	label.add_theme_constant_override("shadow_offset_x", depth)
 	label.add_theme_constant_override("shadow_offset_y", depth + 2)
 
@@ -3107,9 +3107,9 @@ func _apply_menu_3d_label(label: Label, depth: int = 3) -> void:
 func _style_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#1679a4") if primary else Color(0.82, 0.93, 0.92, 0.32)
+		style.bg_color = Color("#237d38") if primary else Color(0.82, 0.93, 0.92, 0.32)
 		if state == "hover":
-			style.bg_color = Color("#2396bd") if primary else Color(0.9, 0.97, 0.94, 0.5)
+			style.bg_color = Color("#329b4a") if primary else Color(0.9, 0.97, 0.94, 0.5)
 		style.border_color = Color(1, 1, 1, 0.82)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(9)
@@ -3120,17 +3120,17 @@ func _style_button(button: Button, primary: bool) -> void:
 		button.add_theme_stylebox_override(state, style)
 
 func _style_line_edit(field: LineEdit) -> void:
-	field.add_theme_color_override("font_color", Color("#123d58"))
-	field.add_theme_color_override("font_placeholder_color", Color("#66879a"))
-	field.add_theme_color_override("caret_color", Color("#1679b5"))
-	field.add_theme_color_override("selection_color", Color(0.20, 0.58, 0.84, 0.34))
+	field.add_theme_color_override("font_color", Color("#183d22"))
+	field.add_theme_color_override("font_placeholder_color", Color("#66876b"))
+	field.add_theme_color_override("caret_color", Color("#237d38"))
+	field.add_theme_color_override("selection_color", Color(0.20, 0.58, 0.28, 0.34))
 	for state in ["normal", "focus", "read_only"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.94, 0.98, 1.0, 0.97)
-		style.border_color = Color("#bceaff") if state != "focus" else Color("#4fc5ff")
+		style.border_color = Color("#bceac4") if state != "focus" else Color("#4fc56b")
 		style.set_border_width_all(2)
 		style.set_corner_radius_all(10)
-		style.shadow_color = Color(0.02, 0.20, 0.34, 0.16)
+		style.shadow_color = Color(0.02, 0.20, 0.04, 0.16)
 		style.shadow_size = 5
 		style.content_margin_left = 14
 		style.content_margin_right = 14
