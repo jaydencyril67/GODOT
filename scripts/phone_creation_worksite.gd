@@ -154,7 +154,7 @@ func _build_interface() -> void:
 	selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	body.add_child(selection_scroll)
 
 	selection_region = MarginContainer.new()
