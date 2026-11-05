@@ -1899,11 +1899,9 @@ func _create_back_box_gradient_popup(open_on_create: bool) -> void:
 	if is_instance_valid(back_box_gradient_popup):
 		back_box_gradient_popup.queue_free()
 		back_box_gradient_popup = null
-	var popup_parent: Control
-	if not worksite_creation_mode:
-		popup_parent = get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-		if not is_instance_valid(popup_parent):
-			return
+	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if not is_instance_valid(editor_root):
+		return
 	back_box_gradient_popup = PanelContainer.new()
 	back_box_gradient_popup.name = "BackBoxGradientOptions"
 	back_box_gradient_popup.visible = open_on_create
@@ -7060,9 +7058,11 @@ func _position_rear_hardware_selection_popup() -> void:
 		return
 	if not rear_hardware_selection_popup.visible:
 		return
-	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-	if not is_instance_valid(editor_root):
-		return
+	var popup_parent: Control
+	if not worksite_creation_mode:
+		popup_parent = get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+		if not is_instance_valid(popup_parent):
+			return
 	var viewport_rect := get_viewport().get_visible_rect()
 	var button_rect := rear_hardware_selection_button.get_global_rect()
 	var padding := 8.0
