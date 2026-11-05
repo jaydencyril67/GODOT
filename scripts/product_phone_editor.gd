@@ -6065,12 +6065,12 @@ func _get_front_camera_mp_layout() -> Array:
 		if is_dual_punch:
 			inner_row.append({"label": "INNER 02", "property": "front_camera_secondary_megapixels"})
 			outer_row.append({"label": "OUTER 02", "property": "front_camera_outer_secondary_megapixels"})
-		rows.append(inner_row)
-		if is_dual_punch:
+			rows.append(inner_row)
 			rows.append(outer_row)
 		else:
 			# A non-dual Flip/Fold has one inner and one outer camera side by side.
-			rows[0].append(outer_row[0])
+			inner_row.append(outer_row[0])
+			rows.append(inner_row)
 	else:
 		var standard_row: Array = [
 			{"label": "01", "property": "front_camera_megapixels"}
@@ -6083,7 +6083,7 @@ func _get_front_camera_mp_layout() -> Array:
 
 
 func _set_front_camera_mp_value(megapixels: int, property_name: String) -> void:
-	set(property_name, megapixels)
+	set(StringName(property_name), megapixels)
 	_update_camera_software_summary()
 
 
@@ -6107,8 +6107,9 @@ func _show_front_camera_mp_controls() -> void:
 		active_feature_panel.add_child(hint)
 		return
 
-	for row_index in range(_get_front_camera_mp_layout().size()):
-		var row_data: Array = _get_front_camera_mp_layout()[row_index]
+	var camera_rows := _get_front_camera_mp_layout()
+	for row_index in range(camera_rows.size()):
+		var row_data: Array = camera_rows[row_index]
 		var camera_row := HBoxContainer.new()
 		camera_row.name = "FrontCameraMegapixelRow_%d" % (row_index + 1)
 		camera_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
