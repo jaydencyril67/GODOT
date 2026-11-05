@@ -9706,7 +9706,14 @@ func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 	for child in options.get_children():
 		options.remove_child(child)
 		child.queue_free()
-	for capacity in _get_supported_ram_capacities(selected_ram_technology):
+	var supported_capacities := _get_supported_ram_capacities(selected_ram_technology)
+	if selected_ram_technology == "Not set" or supported_capacities.is_empty():
+		var prompt := _make_label("SELECT RAM TECHNOLOGY FIRST", 14, Color("#c7eacb"))
+		prompt.name = "RAMTechnologyRequiredLabel"
+		prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		options.add_child(prompt)
+		return
+	for capacity in supported_capacities:
 		var option := Button.new()
 		option.name = "RAMOption_" + capacity.replace(" ", "")
 		option.text = capacity + ("   ✓ SELECTED" if selected_ram_capacity == capacity else "")
@@ -9733,7 +9740,7 @@ func _get_supported_ram_capacities(technology: String) -> Array:
 		"LPDDR5T":
 			return ["12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
 		_:
-			return all_capacities
+			return []
 
 
 func _show_ram_technology_controls() -> void:
@@ -9780,21 +9787,11 @@ func _on_ram_technology_selected(technology: String) -> void:
 		return
 	selected_ram_technology = technology
 	var compatible_capacities := _get_supported_ram_capacities(technology)
-	if selected_ram_capacity != "Not set" and not compatible_capacities.has(selected_ram_capacity):
-		var previous_amount := int(selected_ram_capacity.replace(" GB", ""))
-		var closest_capacity: String = str(compatible_capacities[0])
-		var closest_distance := 2147483647
-		for capacity_value in compatible_capacities:
-			var candidate := str(capacity_value)
-			var candidate_amount := int(candidate.replace(" GB", ""))
-			var distance := absi(candidate_amount - previous_amount)
-			if distance < closest_distance:
-				closest_distance = distance
-				closest_capacity = candidate
-		selected_ram_capacity = closest_capacity
-		if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
-			var ram_label: Label = software_value_labels["RAM"]
-			ram_label.text = selected_ram_capacity
+	if not compatible_capacities.has(selected_ram_capacity):
+		selected_ram_capacity = "Not set"
+	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
+		var ram_label: Label = software_value_labels["RAM"]
+		ram_label.text = selected_ram_capacity
 	if software_value_labels.has("RAM TECHNOLOGY") and is_instance_valid(software_value_labels["RAM TECHNOLOGY"]):
 		var technology_label: Label = software_value_labels["RAM TECHNOLOGY"]
 		technology_label.text = selected_ram_technology
@@ -9809,6 +9806,8 @@ func _notify_worksite_ram_selection_changed() -> void:
 		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity)
 	if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 		worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
+	if worksite_owner.has_method("_refresh_ram_capacity_step"):
+		worksite_owner.call("_refresh_ram_capacity_step")
 
 
 func _refresh_ram_technology_selection_ui() -> void:
