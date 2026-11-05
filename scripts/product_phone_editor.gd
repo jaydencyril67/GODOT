@@ -297,16 +297,16 @@ var selected_bluetooth_version := "Not set"
 var selected_wifi_standard := "Not set"
 var selected_mobile_network := "Not set"
 var selected_phone_sensors: Dictionary = {
-	"Fingerprint Sensor": true,
+	"Fingerprint Sensor": false,
 	"Face Recognition / Face ID": false,
 	"NFC Controller": false,
-	"Accelerometer": true,
-	"Gyroscope": true,
-	"Proximity Sensor": true,
-	"Ambient Light Sensor": true,
-	"Magnetometer / Compass": true,
+	"Accelerometer": false,
+	"Gyroscope": false,
+	"Proximity Sensor": false,
+	"Ambient Light Sensor": false,
+	"Magnetometer / Compass": false,
 	"Barometer": false,
-	"GNSS / GPS Receiver": true
+	"GNSS / GPS Receiver": false
 }
 var charging_speed_value_label: Label
 var charging_speed_slider: VSlider
