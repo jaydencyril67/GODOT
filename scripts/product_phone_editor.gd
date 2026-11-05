@@ -1436,16 +1436,22 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		var title := _make_label("DEVICE COLOR", 18, Color("#c7eacb"))
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(title)
+	var back_design_toggle_row: HBoxContainer
 	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		var use_device_color_row := HBoxContainer.new()
-		use_device_color_row.name = "UseDeviceColorRow"
-		use_device_color_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		use_device_color_row.add_theme_constant_override("separation", 9)
-		active_feature_panel.add_child(use_device_color_row)
+		back_design_toggle_row = HBoxContainer.new()
+		back_design_toggle_row.name = "BackDesignColorTogglesRow"
+		back_design_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		back_design_toggle_row.add_theme_constant_override("separation", 18)
+		active_feature_panel.add_child(back_design_toggle_row)
+		var use_device_color_group := HBoxContainer.new()
+		use_device_color_group.name = "UseDeviceColorRow"
+		use_device_color_group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		use_device_color_group.add_theme_constant_override("separation", 6)
+		back_design_toggle_row.add_child(use_device_color_group)
 		var use_device_color_label := _make_label("USE DEVICE COLOR", 13, Color("#d8eaf5"))
 		use_device_color_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		use_device_color_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		use_device_color_row.add_child(use_device_color_label)
+		use_device_color_group.add_child(use_device_color_label)
 		var use_device_color := TextureButton.new()
 		use_device_color.name = "UseDeviceColor"
 		use_device_color.custom_minimum_size = Vector2(36, 36)
@@ -1461,7 +1467,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		use_device_color.focus_mode = Control.FOCUS_NONE
 		use_device_color.mouse_filter = Control.MOUSE_FILTER_STOP
 		use_device_color.toggled.connect(_on_back_design_use_device_color_toggled)
-		use_device_color_row.add_child(use_device_color)
+		use_device_color_group.add_child(use_device_color)
 		_set_back_design_custom_color_controls_enabled(not use_device_color.button_pressed)
 		if not use_device_color.button_pressed:
 			back_design_gradient_color_edit_mode = false
@@ -1470,8 +1476,11 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		gradient_toggle_row.add_theme_constant_override("separation", 8)
-		active_feature_panel.add_child(gradient_toggle_row)
+		gradient_toggle_row.add_theme_constant_override("separation", 6)
+		if return_to_back_design and is_instance_valid(back_design_toggle_row):
+			back_design_toggle_row.add_child(gradient_toggle_row)
+		else:
+			active_feature_panel.add_child(gradient_toggle_row)
 		var gradient_toggle_label := _make_label("ENABLE GRADIENT", 13, Color("#d8eaf5"))
 		gradient_toggle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		gradient_toggle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
