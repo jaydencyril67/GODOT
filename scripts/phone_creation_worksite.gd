@@ -115,6 +115,11 @@ func _ready() -> void:
 	_build_interface()
 
 
+func set_company_branding(company_name: String, logo_id: int) -> void:
+	if is_instance_valid(phone_editor) and phone_editor.has_method("set_company_branding"):
+		phone_editor.call("set_company_branding", company_name, logo_id)
+
+
 func _build_preview_world() -> void:
 	# Instantiate the real editor so its existing chassis generator, phone-type
 	# state, materials, display construction and foldable hierarchy are reused.
@@ -1063,9 +1068,6 @@ func _show_worksite_box_package_controls() -> void:
 	var heading := _label("BOX PACKAGE", 20, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
-
-	_add_worksite_box_package_toggle(panel, "SHOW BOX PACKAGE", "box_package_enabled", "_on_box_package_enabled_toggled")
-	_add_worksite_box_package_toggle(panel, "OPEN BOX LID", "box_package_open", "_on_box_package_open_toggled")
 
 	var color_button := Button.new()
 	color_button.name = "EditBoxPackageColor"
