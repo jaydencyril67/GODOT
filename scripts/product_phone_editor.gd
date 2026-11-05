@@ -11253,7 +11253,7 @@ func _rebuild_foldable_phone_case_geometry() -> void:
 	hinge_bridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	phone_case_preview.add_child(hinge_bridge)
 	_apply_phone_fold_angle()
-	phone_case_preview.visible = left_tools_page != 1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not charger_preview_mode
+	phone_case_preview.visible = left_tools_page != 1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not charger_preview_mode and not box_package_preview_mode
 
 
 func _rebuild_phone_case_geometry() -> void:
@@ -11440,7 +11440,7 @@ func _update_phone_case_preview_mode() -> void:
 	if is_instance_valid(phone_body):
 		phone_body.visible=true
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible=left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building
+		phone_case_preview.visible=left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not box_package_preview_mode
 	if left_tools_page==2:
 		_show_phone_case_controls()
 	else:
@@ -12006,7 +12006,7 @@ func _complete_phone_case_build(token: int) -> void:
 	_rebuild_phone_case_geometry()
 	phone_case_built=true
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible=left_tools_page!=1 and not charger_preview_mode
+		phone_case_preview.visible=left_tools_page!=1 and not charger_preview_mode and not box_package_preview_mode
 	_show_phone_case_controls()
 
 
