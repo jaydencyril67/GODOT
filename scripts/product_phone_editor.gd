@@ -10139,56 +10139,12 @@ func _show_wireless_charge_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# Keep the enablement control in its own fixed square slot. The wireless
-	# speed slider is a separate row below and must never influence checkbox sizing.
-	var enablement_row := HBoxContainer.new()
-	enablement_row.name = "WirelessChargeEnablementRow"
-	enablement_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enablement_row.add_theme_constant_override("separation", 9)
-	active_feature_panel.add_child(enablement_row)
-
-	var enablement_label := _make_label("Enable Wireless Charging", 14, Color.WHITE)
-	enablement_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enablement_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	enablement_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	enablement_row.add_child(enablement_label)
-
-	var checkbox_slot := CenterContainer.new()
-	checkbox_slot.name = "WirelessChargeCheckboxSlot"
-	checkbox_slot.custom_minimum_size = Vector2(34, 34)
-	checkbox_slot.size_flags_horizontal = Control.SIZE_SHRINK_END
-	checkbox_slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	enablement_row.add_child(checkbox_slot)
-
-	wireless_charge_enable_checkbox = Button.new()
-	wireless_charge_enable_checkbox.name = "CustomWirelessChargeCheckbox"
-	wireless_charge_enable_checkbox.toggle_mode = true
-	wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
-	wireless_charge_enable_checkbox.text = "✓" if selected_wireless_charge_enabled else ""
-	wireless_charge_enable_checkbox.custom_minimum_size = Vector2(34, 34)
-	wireless_charge_enable_checkbox.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	wireless_charge_enable_checkbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	wireless_charge_enable_checkbox.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(wireless_charge_enable_checkbox, 17)
-	for state in ["normal", "hover", "pressed", "focus"]:
-		var checkbox_style := StyleBoxFlat.new()
-		checkbox_style.bg_color = Color("#174b28") if state != "hover" else Color("#205d37")
-		if state == "pressed" or state == "focus":
-			checkbox_style.bg_color = Color("#168343")
-		checkbox_style.border_color = Color("#8fd8a1")
-		checkbox_style.set_border_width_all(2)
-		checkbox_style.set_corner_radius_all(5)
-		wireless_charge_enable_checkbox.add_theme_stylebox_override(state, checkbox_style)
-	wireless_charge_enable_checkbox.add_theme_color_override("font_color", Color.WHITE)
-	wireless_charge_enable_checkbox.toggled.connect(Callable(self, "_on_wireless_charge_enabled_changed"))
-	checkbox_slot.add_child(wireless_charge_enable_checkbox)
-
-	wireless_charging_speed_value_label = _make_label(str(selected_wireless_charging_speed) + "W", 29, Color.WHITE)
+	wireless_charging_speed_value_label = _make_label("Disabled" if not selected_wireless_charge_enabled else str(selected_wireless_charging_speed) + "W", 29, Color.WHITE)
 	wireless_charging_speed_value_label.name = "WirelessChargingSpeedValue"
 	wireless_charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(wireless_charging_speed_value_label)
 
-	var range_hint := _make_label("5W  —  80W", 12, Color("#a9c9dc"))
+	var range_hint := _make_label("0W (DISABLED)  —  80W", 12, Color("#a9c9dc"))
 	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(range_hint)
 
@@ -10199,16 +10155,16 @@ func _show_wireless_charge_controls() -> void:
 	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	active_feature_panel.add_child(slider_row)
 
-	var minimum_label := _make_label("5W", 11, Color("#a9c9dc"))
+	var minimum_label := _make_label("0W", 11, Color("#a9c9dc"))
 	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(minimum_label)
 
 	wireless_charging_speed_slider = VSlider.new()
 	wireless_charging_speed_slider.name = "WirelessChargingVerticalSlider"
-	wireless_charging_speed_slider.min_value = 5
+	wireless_charging_speed_slider.min_value = 0
 	wireless_charging_speed_slider.max_value = 80
 	wireless_charging_speed_slider.step = 1
-	wireless_charging_speed_slider.value = selected_wireless_charging_speed
+	wireless_charging_speed_slider.value = float(selected_wireless_charging_speed) if selected_wireless_charge_enabled else 0.0
 	wireless_charging_speed_slider.custom_minimum_size = Vector2(64, 320)
 	wireless_charging_speed_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	wireless_charging_speed_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -10225,26 +10181,23 @@ func _show_wireless_charge_controls() -> void:
 	_update_wireless_charge_controls()
 
 
-func _on_wireless_charge_enabled_changed(enabled: bool) -> void:
-	selected_wireless_charge_enabled = enabled
-	_update_wireless_charge_controls()
-	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "ChargingSpeedControls":
-		_show_charging_speed_controls()
-
-
 func _on_wireless_charging_speed_changed(value: float) -> void:
-	selected_wireless_charging_speed = clampi(roundi(value), 5, 80)
+	# Zero is the disabled state. Any positive slider position enables wireless
+	# charging and selects its wattage; the minimum active output remains 5W.
+	if value <= 0.0:
+		selected_wireless_charge_enabled = false
+	else:
+		selected_wireless_charge_enabled = true
+		selected_wireless_charging_speed = clampi(maxi(roundi(value), 5), 5, 80)
 	_update_wireless_charge_controls()
 
 
 func _update_wireless_charge_controls() -> void:
-	if is_instance_valid(wireless_charge_enable_checkbox):
-		wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
-		wireless_charge_enable_checkbox.text = "✓" if selected_wireless_charge_enabled else ""
 	if is_instance_valid(wireless_charging_speed_slider):
-		wireless_charging_speed_slider.editable = selected_wireless_charge_enabled
-		if not is_equal_approx(wireless_charging_speed_slider.value, float(selected_wireless_charging_speed)):
-			wireless_charging_speed_slider.set_value_no_signal(selected_wireless_charging_speed)
+		wireless_charging_speed_slider.editable = true
+		var slider_value := float(selected_wireless_charging_speed) if selected_wireless_charge_enabled else 0.0
+		if not is_equal_approx(wireless_charging_speed_slider.value, slider_value):
+			wireless_charging_speed_slider.set_value_no_signal(slider_value)
 	if is_instance_valid(wireless_charging_speed_value_label):
 		wireless_charging_speed_value_label.text = (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
 	if software_value_labels.has("WIRELESS CHARGING") and is_instance_valid(software_value_labels["WIRELESS CHARGING"]):
