@@ -7586,7 +7586,7 @@ func _on_side_button_edge_selected(side: String, edge: String) -> void:
 		power_button_edge = edge
 	else:
 		volume_button_edge = edge
-	_normalize_power_volume_positions(side)
+	_normalize_power_volume_positions("power" if side == "right" else "volume")
 	_refresh_phone_side_buttons()
 	if is_instance_valid(active_feature_panel):
 		var section_name := "Power" if side == "right" else "Volume"
