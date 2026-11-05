@@ -655,7 +655,7 @@ func _update_ram_selection_display(
 	specification_readout_columns.clear()
 	specification_readout_existing_count = 0
 
-	var column_count := 2 if wizard_step >= 22 else 1
+	var column_count := 2
 	for column_index in range(column_count):
 		var column := VBoxContainer.new()
 		column.name = "SpecificationColumn%d" % (column_index + 1)
@@ -694,16 +694,10 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 	if specification_readout_columns.is_empty():
 		return
 
-	# Balance the previously selected specifications between both columns.
-	# Newly introduced charging specifications are always placed in the
-	# right-hand column, beside the existing selections.
-	var column_index := 0
-	if specification_readout_columns.size() > 1:
-		if caption_text == "CHARGING SPEED" or caption_text == "WIRELESS CHARGING":
-			column_index = 1
-		else:
-			column_index = specification_readout_existing_count % 2
-			specification_readout_existing_count += 1
+	# Fill the two columns in strict left-right order. Each column's
+	# vertical centre alignment makes the growing list expand from the middle.
+	var column_index := specification_readout_existing_count % 2
+	specification_readout_existing_count += 1
 
 	var entry := VBoxContainer.new()
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
