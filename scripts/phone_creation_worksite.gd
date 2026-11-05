@@ -1194,6 +1194,15 @@ func _open_worksite_box_package_color_controls() -> void:
 func _show_worksite_phone_case_controls() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
+	if wizard_step != 31:
+		var stale_case_panel := step_panels.get(31) as Control
+		if is_instance_valid(stale_case_panel):
+			var stale_parent := stale_case_panel.get_parent()
+			if is_instance_valid(stale_parent):
+				stale_parent.remove_child(stale_case_panel)
+			stale_case_panel.queue_free()
+			step_panels.erase(31)
+		return
 
 	var previous_panel := phone_editor.get("active_feature_panel") as Control
 	if is_instance_valid(previous_panel):
@@ -1323,6 +1332,8 @@ func _add_worksite_phone_case_toggle(parent: Control) -> void:
 
 func _show_worksite_phone_case_design_controls() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	if wizard_step != 31:
 		return
 	if not bool(phone_editor.get("phone_case_custom_enabled")) or not bool(phone_editor.get("phone_case_built")):
 		_show_worksite_phone_case_controls()
