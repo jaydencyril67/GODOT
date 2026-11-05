@@ -2426,7 +2426,7 @@ func _show_back_design_controls() -> void:
 	var pad := GridContainer.new()
 	pad.name = "BackDesignDirectionPad"
 	pad.columns = 3
-	pad.add_theme_constant_override("h_separation", 6)
+	pad.add_theme_constant_override("h_separation", 18 if not tight else 16)
 	pad.add_theme_constant_override("v_separation", 6)
 	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -6837,7 +6837,7 @@ func _show_rear_camera_controls() -> void:
 	var pad := GridContainer.new()
 	pad.name = "RearHardwareDirectionPad"
 	pad.columns = 3
-	pad.add_theme_constant_override("h_separation", 6)
+	pad.add_theme_constant_override("h_separation", 18 if not tight else 16)
 	pad.add_theme_constant_override("v_separation", 6)
 	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
