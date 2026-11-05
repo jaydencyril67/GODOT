@@ -10054,11 +10054,11 @@ func _show_charging_speed_controls() -> void:
 	charging_speed_slider.max_value = 200
 	charging_speed_slider.step = 1
 	charging_speed_slider.value = selected_charging_speed
-	charging_speed_slider.custom_minimum_size = Vector2(52, 245)
+	charging_speed_slider.custom_minimum_size = Vector2(64, 320)
 	charging_speed_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	charging_speed_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	charging_speed_slider.focus_mode = Control.FOCUS_NONE
-	charging_speed_slider.tick_count = 0
+	charging_speed_slider.tick_count = 14
 	charging_speed_slider.value_changed.connect(_on_charging_speed_changed)
 	_style_custom_slider(charging_speed_slider)
 	slider_row.add_child(charging_speed_slider)
@@ -10180,10 +10180,11 @@ func _show_wireless_charge_controls() -> void:
 	wireless_charging_speed_slider.max_value = 80
 	wireless_charging_speed_slider.step = 1
 	wireless_charging_speed_slider.value = selected_wireless_charging_speed
-	wireless_charging_speed_slider.custom_minimum_size = Vector2(52, 245)
+	wireless_charging_speed_slider.custom_minimum_size = Vector2(64, 320)
 	wireless_charging_speed_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	wireless_charging_speed_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	wireless_charging_speed_slider.focus_mode = Control.FOCUS_NONE
+	wireless_charging_speed_slider.tick_count = 14
 	wireless_charging_speed_slider.value_changed.connect(_on_wireless_charging_speed_changed)
 	_style_custom_slider(wireless_charging_speed_slider)
 	slider_row.add_child(wireless_charging_speed_slider)
