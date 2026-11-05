@@ -575,6 +575,8 @@ func _on_next_pressed() -> void:
 		_show_wireless_earbuds_step()
 	elif wizard_step == 34:
 		_show_smartwatch_step()
+	elif wizard_step == 35:
+		_show_power_bank_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -603,6 +605,8 @@ func _cache_current_step_panel() -> void:
 		_show_worksite_earbuds_controls()
 	elif wizard_step == 35 and bool(phone_editor.get("smartwatch_color_mode")):
 		_show_worksite_smartwatch_controls()
+	elif wizard_step == 36 and bool(phone_editor.get("power_bank_color_mode")):
+		_show_worksite_power_bank_controls()
 
 	var current_panel := phone_editor.get("active_feature_panel") as Control
 	if is_instance_valid(current_panel):
@@ -634,6 +638,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 		phone_editor.call("_set_earbuds_preview_mode", false)
 	if previous_step == 35 and step != 35:
 		phone_editor.call("_set_smartwatch_preview_mode", false)
+	if previous_step == 36 and step != 36:
+		phone_editor.call("_set_power_bank_preview_mode", false)
 	wizard_step = step
 	if step == 30:
 		phone_editor.call("_set_box_package_preview_mode", true)
@@ -643,6 +649,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 		phone_editor.call("_set_earbuds_preview_mode", true)
 	if step == 35:
 		phone_editor.call("_set_smartwatch_preview_mode", true)
+	if step == 36:
+		phone_editor.call("_set_power_bank_preview_mode", true)
 	if step >= 22:
 		charging_speed_step_visited = true
 	if step >= 23:
@@ -1645,6 +1653,143 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 
 
 
+
+func _show_worksite_power_bank_controls() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	if wizard_step != 36:
+		return
+
+	var previous_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(previous_panel):
+		var previous_parent := previous_panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(previous_panel)
+		previous_panel.queue_free()
+
+	var panel := VBoxContainer.new()
+	panel.name = "WorksitePowerBankControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+	selection_stack.add_child(panel)
+
+	var heading := _label("POWER BANK", 20, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+	var description := _label("Add a rotatable 3D power bank to the product preview. Set its battery capacity and customize its body colour.", 12, Color("#dce9df"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel.add_child(description)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "PowerBankEnableRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.add_theme_constant_override("separation", 8)
+	panel.add_child(enable_row)
+	var enable_label := _label("ENABLE POWER BANK", 14, Color("#e7f6ff"))
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_label)
+
+	var toggle := TextureButton.new()
+	toggle.name = "EnablePowerBankModel"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	var unchecked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", false)
+	var checked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", true)
+	toggle.texture_normal = unchecked_icon
+	toggle.texture_hover = unchecked_icon
+	toggle.texture_pressed = checked_icon
+	toggle.texture_disabled = unchecked_icon
+	toggle.toggle_mode = true
+	toggle.button_pressed = bool(phone_editor.get("power_bank_enabled"))
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.toggled.connect(Callable(phone_editor, "_on_power_bank_enabled_toggled"))
+	enable_row.add_child(toggle)
+
+	if bool(phone_editor.get("power_bank_enabled")):
+		var capacity_heading := _label("BATTERY CAPACITY", 14, Color("#9bd6a7"), HORIZONTAL_ALIGNMENT_CENTER)
+		panel.add_child(capacity_heading)
+		var capacity_value := _label(str(phone_editor.call("_format_power_bank_capacity", int(phone_editor.get("power_bank_capacity_mah")))), 27, Color("#f0f7f1"), HORIZONTAL_ALIGNMENT_CENTER)
+		capacity_value.name = "PowerBankCapacityValue"
+		panel.add_child(capacity_value)
+
+		var capacity_slider := VSlider.new()
+		capacity_slider.name = "PowerBankCapacitySlider"
+		capacity_slider.min_value = 10000
+		capacity_slider.max_value = 25000
+		capacity_slider.step = 500
+		capacity_slider.value = int(phone_editor.get("power_bank_capacity_mah"))
+		capacity_slider.tick_count = 31
+		capacity_slider.custom_minimum_size = Vector2(76, 270)
+		capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		capacity_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		capacity_slider.focus_mode = Control.FOCUS_NONE
+		capacity_slider.mouse_filter = Control.MOUSE_FILTER_STOP
+		capacity_slider.value_changed.connect(_on_worksite_power_bank_capacity_changed)
+		phone_editor.call("_style_custom_slider", capacity_slider)
+		panel.add_child(capacity_slider)
+
+		var range_row := HBoxContainer.new()
+		range_row.name = "PowerBankCapacityRange"
+		range_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		range_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		var minimum := _label("10,000 mAh", 11, Color("#b8d8be"))
+		minimum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		range_row.add_child(minimum)
+		var maximum := _label("25,000 mAh", 11, Color("#b8d8be"))
+		maximum.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		maximum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		range_row.add_child(maximum)
+		panel.add_child(range_row)
+
+		var color_button := Button.new()
+		color_button.name = "OpenPowerBankDeviceColorEditor"
+		color_button.text = "CUSTOMIZE POWER BANK COLOUR     ›     #" + Color(phone_editor.get("power_bank_body_color")).to_html(false).to_upper()
+		color_button.custom_minimum_size = Vector2(0, 48)
+		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		color_button.focus_mode = Control.FOCUS_NONE
+		_style_button(color_button, true)
+		color_button.pressed.connect(_open_worksite_power_bank_color_controls)
+		panel.add_child(color_button)
+	else:
+		var disabled_note := _label("Enable the power bank to show its rotatable 3D preview and unlock capacity and colour settings.", 12, Color("#b8d8be"))
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(disabled_note)
+
+	step_panels[36] = panel
+
+
+func _on_worksite_power_bank_capacity_changed(value: float) -> void:
+	if not is_instance_valid(phone_editor) or wizard_step != 36:
+		return
+	var capacity := clampi(roundi(value / 500.0) * 500, 10000, 25000)
+	phone_editor.set("power_bank_capacity_mah", capacity)
+	phone_editor.call("_rebuild_power_bank_preview")
+	phone_editor.call("_set_power_bank_preview_mode", true)
+	var panel := phone_editor.get("active_feature_panel") as Control
+	var value_label := panel.get_node_or_null("PowerBankCapacityValue") as Label if is_instance_valid(panel) else null
+	if is_instance_valid(value_label):
+		value_label.text = str(phone_editor.call("_format_power_bank_capacity", capacity))
+
+
+func _open_worksite_power_bank_color_controls() -> void:
+	if not is_instance_valid(phone_editor) or wizard_step != 36:
+		return
+	phone_editor.call("_show_device_color_controls", false, false, false, false, true)
+	var color_panel := phone_editor.get("active_feature_panel") as Control
+	if not is_instance_valid(color_panel):
+		return
+	var header := color_panel.get_child(0) as Control if color_panel.get_child_count() > 0 else null
+	if is_instance_valid(header) and header.get_child_count() > 0:
+		var back_button := header.get_child(0) as Button
+		if is_instance_valid(back_button):
+			_style_button(back_button, false)
+
+
 func _show_worksite_smartwatch_controls() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
@@ -2229,6 +2374,10 @@ func _show_charger_step() -> void:
 
 func _show_smartwatch_step() -> void:
 	_show_worksite_step(35, "_show_worksite_smartwatch_controls")
+
+
+func _show_power_bank_step() -> void:
+	_show_worksite_step(36, "_show_worksite_power_bank_controls")
 
 
 func _show_wireless_earbuds_step() -> void:
