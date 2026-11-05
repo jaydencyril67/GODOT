@@ -97,7 +97,10 @@ var rear_camera_panel: Control
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
-var specification_readout: GridContainer
+var specification_readout: HBoxContainer
+var specification_readout_left: VBoxContainer
+var specification_readout_right: VBoxContainer
+var specification_readout_entry_count: int = 0
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
@@ -295,20 +298,33 @@ func _build_interface() -> void:
 			_apply_worksite_preview_studio_lighting(preview_viewport)
 
 	# Software specifications replace the 3D preview during the final software
-	# steps. The readout changes from one centred column to two balanced columns
-	# once the longer charging steps begin.
-	specification_readout = GridContainer.new()
+	# steps. Each side is an independent vertical stack, so a multi-line value
+	# never pushes the next entry in the neighbouring column down.
+	specification_readout = HBoxContainer.new()
 	specification_readout.name = "ProgressiveSpecificationReadout"
-	specification_readout.columns = 2
 	specification_readout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	specification_readout.offset_left = 12.0
 	specification_readout.offset_right = -12.0
 	specification_readout.offset_top = 12.0
 	specification_readout.offset_bottom = -12.0
-	specification_readout.add_theme_constant_override("h_separation", 16)
-	specification_readout.add_theme_constant_override("v_separation", 8)
+	specification_readout.add_theme_constant_override("separation", 16)
 	specification_readout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	specification_readout.visible = false
+
+	specification_readout_left = VBoxContainer.new()
+	specification_readout_left.name = "SpecificationReadoutLeftColumn"
+	specification_readout_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	specification_readout_left.add_theme_constant_override("separation", 8)
+	specification_readout_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	specification_readout.add_child(specification_readout_left)
+
+	specification_readout_right = VBoxContainer.new()
+	specification_readout_right.name = "SpecificationReadoutRightColumn"
+	specification_readout_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	specification_readout_right.add_theme_constant_override("separation", 8)
+	specification_readout_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	specification_readout.add_child(specification_readout_right)
+
 	preview_region.add_child(specification_readout)
 
 	selection_scroll = ScrollContainer.new()
@@ -738,11 +754,13 @@ func _update_ram_selection_display(
 	if not cooling_system_step_visited:
 		cooling_system = "Not set"
 
-	for child in specification_readout.get_children():
-		specification_readout.remove_child(child)
-		child.queue_free()
+	for column in [specification_readout_left, specification_readout_right]:
+		for child in column.get_children():
+			column.remove_child(child)
+			child.queue_free()
+	specification_readout_entry_count = 0
 
-	# GridContainer places entries left-to-right, then starts the next row.
+	# Entries alternate between two independent columns.
 	if technology != "Not set":
 		_add_specification_readout_entry("RAM TECHNOLOGY", technology)
 	if capacity != "Not set":
@@ -803,7 +821,9 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	entry.add_child(body)
 
-	specification_readout.add_child(entry)
+	var target_column := specification_readout_left if specification_readout_entry_count % 2 == 0 else specification_readout_right
+	target_column.add_child(entry)
+	specification_readout_entry_count += 1
 
 func _update_step_progress(step: int) -> void:
 	var progress_value := clampi(step + 1, 1, 30)
