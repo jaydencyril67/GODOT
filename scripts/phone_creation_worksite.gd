@@ -457,9 +457,9 @@ func _mount_original_panel(method_name: String) -> Control:
 	if is_instance_valid(parent):
 		parent.remove_child(panel)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Layout A uses its expanding spacer to keep the large directional pad
-	# bottom-centered without making these two compact editor steps scroll.
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if method_name in ["_show_back_design_controls", "_show_rear_camera_controls"] else Control.SIZE_SHRINK_BEGIN
+	# Keep these two worksite panels content-sized. Their direction pads must
+	# follow the upper controls directly instead of being pushed toward the bottom.
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	selection_stack.add_child(panel)
 	if method_name in ["_show_back_design_controls", "_show_rear_camera_controls"]:
 		_apply_worksite_back_hardware_layout(panel)
@@ -469,16 +469,26 @@ func _mount_original_panel(method_name: String) -> Control:
 
 func _apply_worksite_back_hardware_layout(panel: Control) -> void:
 	# These dimensions belong to the NEW creation worksite only. The legacy
-	# product editor keeps its own original spacing and slider dimensions.
+	# product editor keeps its original slider dimensions and layout.
+	# Remove the old flexible spacer entirely: even a zero minimum can leave
+	# surplus VBox space between the controls and the directional pad.
 	var spacer_name := "BackDesignControllerFlexSpace" if panel.name == "BackDesignControls" else "RearHardwareControllerFlexSpace"
 	var spacer := panel.find_child(spacer_name, true, false) as Control
 	if is_instance_valid(spacer):
-		spacer.custom_minimum_size.y = 5.0
-		spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var spacer_parent := spacer.get_parent()
+		if is_instance_valid(spacer_parent):
+			spacer_parent.remove_child(spacer)
+		spacer.queue_free()
+
 	var sliders := panel.find_children("*", "VSlider", true, false)
 	if not sliders.is_empty():
 		var slider := sliders[0] as Control
 		slider.custom_minimum_size.y = 290.0
+
+	var pad_name := "BackDesignDirectionControllerCenter" if panel.name == "BackDesignControls" else "RearHardwareDirectionControllerCenter"
+	var pad_center := panel.find_child(pad_name, true, false) as Control
+	if is_instance_valid(pad_center):
+		pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 
 func _show_thickness_step() -> void:
