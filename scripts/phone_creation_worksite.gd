@@ -468,6 +468,8 @@ func _on_next_pressed() -> void:
 		_show_back_design_step()
 	elif wizard_step == 13:
 		_show_rear_camera_step()
+	elif wizard_step == 14:
+		_show_ram_technology_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -543,8 +545,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 15)
-	progress_number.text = "STEP %d / 15" % progress_value
+	var progress_value := clampi(step + 1, 1, 16)
+	progress_number.text = "STEP %d / 16" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -614,6 +616,10 @@ func _show_back_design_step() -> void:
 
 func _show_rear_camera_step() -> void:
 	_show_worksite_step(14, "_show_rear_camera_controls")
+
+
+func _show_ram_technology_step() -> void:
+	_show_worksite_step(15, "_show_ram_technology_controls")
 
 
 func _keep_step_navigation_active() -> void:
