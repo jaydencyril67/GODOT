@@ -7450,9 +7450,6 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	# Keep the complete control stack inside the panel on compact screens.
-	# The panel's own margins are additional to the VBox content height.
-	section.custom_minimum_size = Vector2(0.0, 222.0)
 	var section_style := StyleBoxFlat.new()
 	section_style.bg_color = Color(0.035, 0.12, 0.065, 0.88)
 	section_style.border_color = Color(0.28, 0.62, 0.38, 0.58)
@@ -7467,8 +7464,7 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.custom_minimum_size.y = 158.0
+	content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	content.add_theme_constant_override("separation", 8)
 	section.add_child(content)
 	var heading_row := HBoxContainer.new()
