@@ -179,6 +179,8 @@ var home_button_enabled := false
 var front_camera_enabled := false
 var front_camera_megapixels := 12
 var front_camera_secondary_megapixels := 12
+var front_camera_outer_megapixels := 12
+var front_camera_outer_secondary_megapixels := 12
 const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
 const MEMORY_CLOCK_STEPS := [400, 533, 667, 800, 933, 1067, 1200, 1375, 1600, 1867, 2133, 2750, 3200, 3733, 4267]
 const MAX_REAR_CAMERAS := 5
@@ -6013,9 +6015,9 @@ func _style_camera_mp_slider(slider: VSlider) -> void:
 
 func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable) -> VBoxContainer:
 	var card := VBoxContainer.new()
-	card.custom_minimum_size = Vector2(34, 0)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size = Vector2(64, 0)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	card.add_theme_constant_override("separation", 2)
 	var title := _make_label(title_text, 11, Color("#c7eacb"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -6032,9 +6034,9 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	slider.max_value = CAMERA_MEGAPIXEL_STEPS.size() - 1
 	slider.step = 1
 	slider.value = _camera_mp_slider_index(current_mp)
-	slider.custom_minimum_size = Vector2(30, 245)
+	slider.custom_minimum_size = Vector2(30, 320)
 	slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_camera_mp_slider(slider)
 	slider.value_changed.connect(func(value: float) -> void:
 		var megapixels := _camera_mp_from_slider_index(roundi(value))
@@ -6048,6 +6050,41 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	return card
 
 
+func _get_front_camera_mp_layout() -> Array:
+	var rows: Array = []
+	var is_foldable := selected_phone_type == "Flip" or selected_phone_type == "Fold"
+	var is_dual_punch := front_camera_style == "Dual Punch-Hole"
+
+	if is_foldable:
+		var inner_row: Array = [
+			{"label": "INNER 01", "property": "front_camera_megapixels"}
+		]
+		if is_dual_punch:
+			inner_row.append({"label": "INNER 02", "property": "front_camera_secondary_megapixels"})
+		rows.append(inner_row)
+
+		var outer_row: Array = [
+			{"label": "OUTER 01", "property": "front_camera_outer_megapixels"}
+		]
+		if is_dual_punch:
+			outer_row.append({"label": "OUTER 02", "property": "front_camera_outer_secondary_megapixels"})
+		rows.append(outer_row)
+	else:
+		var standard_row: Array = [
+			{"label": "01", "property": "front_camera_megapixels"}
+		]
+		if is_dual_punch:
+			standard_row.append({"label": "02", "property": "front_camera_secondary_megapixels"})
+		rows.append(standard_row)
+
+	return rows
+
+
+func _set_front_camera_mp_value(megapixels: int, property_name: String) -> void:
+	set(property_name, megapixels)
+	_update_camera_software_summary()
+
+
 func _show_front_camera_mp_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -6057,7 +6094,7 @@ func _show_front_camera_mp_controls() -> void:
 	active_feature_panel.name = "FrontCameraMegapixelControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 	var heading := _make_label("FRONT CAMERA MP", 16, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -6067,23 +6104,23 @@ func _show_front_camera_mp_controls() -> void:
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(hint)
 		return
-	var options := GridContainer.new()
-	options.name = "FrontCameraMegapixelOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("h_separation", 12)
-	options.add_theme_constant_override("v_separation", 8)
-	active_feature_panel.add_child(options)
-	options.add_child(_make_camera_mp_slider_card("01", front_camera_megapixels, func(megapixels: int) -> void:
-		front_camera_megapixels = megapixels
-		_update_camera_software_summary()
-	))
-	if front_camera_style == "Dual Punch-Hole":
-		options.add_child(_make_camera_mp_slider_card("02", front_camera_secondary_megapixels, func(megapixels: int) -> void:
-			front_camera_secondary_megapixels = megapixels
-			_update_camera_software_summary()
-		))
+
+	for row_index in range(_get_front_camera_mp_layout().size()):
+		var row_data: Array = _get_front_camera_mp_layout()[row_index]
+		var camera_row := HBoxContainer.new()
+		camera_row.name = "FrontCameraMegapixelRow_%d" % (row_index + 1)
+		camera_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		camera_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		camera_row.add_theme_constant_override("separation", 12)
+		active_feature_panel.add_child(camera_row)
+		for camera_entry_value in row_data:
+			var camera_entry: Dictionary = camera_entry_value
+			var property_name := str(camera_entry.get("property", "front_camera_megapixels"))
+			var camera_label := str(camera_entry.get("label", "01"))
+			var megapixels := int(get(property_name))
+			var callback := Callable(self, "_set_front_camera_mp_value").bind(property_name)
+			camera_row.add_child(_make_camera_mp_slider_card(camera_label, megapixels, callback))
+			
 
 
 func _show_rear_camera_mp_controls() -> void:
@@ -6105,19 +6142,18 @@ func _show_rear_camera_mp_controls() -> void:
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(hint)
 		return
-	var slider_grid := GridContainer.new()
-	slider_grid.name = "RearCameraMegapixelSliders"
-	slider_grid.columns = 2
-	slider_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	slider_grid.add_theme_constant_override("h_separation", 12)
-	slider_grid.add_theme_constant_override("v_separation", 8)
-	active_feature_panel.add_child(slider_grid)
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "RearCameraMegapixelSliders"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	slider_row.add_theme_constant_override("separation", 8)
+	active_feature_panel.add_child(slider_row)
 	for camera_index in range(rear_camera_modules.size()):
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
 		var camera_id := int(camera_data.get("id", camera_index + 1))
 		var megapixels := int(camera_data.get("mp", 12))
-		slider_grid.add_child(_make_camera_mp_slider_card("%02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
+		slider_row.add_child(_make_camera_mp_slider_card("%02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
 			for module_index in range(rear_camera_modules.size()):
 				if int(rear_camera_modules[module_index].get("id", -1)) == camera_id:
 					rear_camera_modules[module_index]["mp"] = next_mp
@@ -9422,6 +9458,19 @@ func _build_software_summary_panel() -> void:
 func _get_front_camera_mp_summary() -> String:
 	if not front_camera_enabled:
 		return "0 cameras"
+	var is_foldable := selected_phone_type == "Flip" or selected_phone_type == "Fold"
+	if is_foldable:
+		if front_camera_style == "Dual Punch-Hole":
+			return "4 cameras — Inner: %d MP / %d MP; Outer: %d MP / %d MP" % [
+				front_camera_megapixels,
+				front_camera_secondary_megapixels,
+				front_camera_outer_megapixels,
+				front_camera_outer_secondary_megapixels
+			]
+		return "2 cameras — Inner: %d MP; Outer: %d MP" % [
+			front_camera_megapixels,
+			front_camera_outer_megapixels
+		]
 	if front_camera_style == "Dual Punch-Hole":
 		return "2 cameras — %d MP / %d MP" % [front_camera_megapixels, front_camera_secondary_megapixels]
 	return "1 camera — %d MP" % front_camera_megapixels
