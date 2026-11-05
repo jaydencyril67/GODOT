@@ -585,8 +585,9 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 
 func _set_ram_selection_preview(enabled: bool) -> void:
-	if is_instance_valid(preview_container):
-		preview_container.visible = not enabled
+	var phone_preview := phone_editor.get("preview_container") as Control if is_instance_valid(phone_editor) else null
+	if is_instance_valid(phone_preview):
+		phone_preview.visible = not enabled
 	if is_instance_valid(ram_selection_display):
 		ram_selection_display.visible = enabled
 
