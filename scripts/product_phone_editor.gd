@@ -9436,11 +9436,16 @@ func _get_rear_camera_mp_summary() -> String:
 	return "%d cameras — %s" % [rear_camera_modules.size(), " / ".join(megapixel_values)]
 
 
-func _get_enabled_sensor_summary() -> String:
+func _get_enabled_sensor_names() -> Array[String]:
 	var enabled_sensors: Array[String] = []
 	for sensor_name in selected_phone_sensors.keys():
 		if bool(selected_phone_sensors[sensor_name]):
 			enabled_sensors.append(str(sensor_name))
+	return enabled_sensors
+
+
+func _get_enabled_sensor_summary() -> String:
+	var enabled_sensors := _get_enabled_sensor_names()
 	if enabled_sensors.is_empty():
 		return "None enabled"
 	return "%d enabled — %s" % [enabled_sensors.size(), ", ".join(enabled_sensors)]
@@ -9857,7 +9862,7 @@ func _notify_worksite_full_selection_changed() -> void:
 		selected_battery_capacity,
 		str(selected_charging_speed) + "W",
 		(str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled"),
-		_get_enabled_sensor_summary(),
+		_get_enabled_sensor_names(),
 		_get_front_camera_mp_summary(),
 		_get_rear_camera_mp_summary(),
 		selected_memory_clock,
