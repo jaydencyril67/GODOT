@@ -7988,38 +7988,36 @@ func _get_phone_speaker_x_positions() -> Array[float]:
 	if speaker_count <= 0:
 		return positions
 
-	# The reserved opening is deliberately based on the largest supported
-	# connector, not the currently selected connector. Changing port type can
-	# therefore never move the black speaker openings.
+	# Reserve the same connector clearance for every port standard so changing
+	# the selected connector never moves the black speaker openings.
 	var reserved_port_half_width := 0.115
 	var edge_margin := 0.035
+	const SPEAKER_PITCH := 0.045
 	if selected_phone_type == "Fold":
-		# Fold connectors are mounted on the fixed leaf, not at the handset
-		# centre. Keep every speaker on the opposite, moving leaf.
+		# Keep the complete speaker row on the moving leaf, away from the
+		# charging port on the fixed leaf. Use the exact same 45 mm model-space
+		# pitch as Standard/Flip instead of stretching the row across the leaf.
 		var layout := _get_foldable_segment_layout()
-		var fixed_offset: Vector3 = layout["fixed_offset"]
 		var moving_offset: Vector3 = layout["moving_offset"]
 		var segment_size: Vector3 = layout["segment_size"]
-		var min_x := fixed_offset.x + reserved_port_half_width + edge_margin
 		var outer_corner_radius := 0.32 * float(border_radius_level) / 6.0
 		var outer_edge_inset := maxf(edge_margin, minf(outer_corner_radius * 0.35, 0.09))
-		var max_x := _active_phone_size().x * 0.5 - outer_edge_inset
-		# Keep the row within the moving leaf even on unusually narrow models.
 		var moving_left := moving_offset.x - segment_size.x * 0.5 + edge_margin
-		min_x = maxf(min_x, moving_left)
-		if max_x < min_x:
-			max_x = min_x
+		var moving_right := moving_offset.x + segment_size.x * 0.5 - outer_edge_inset
+		var row_width := float(maxi(0, speaker_count - 1)) * SPEAKER_PITCH
+		var row_start := moving_offset.x - row_width * 0.5
+		# Clamp the row as a unit to the moving leaf without changing its pitch.
+		row_start = clampf(row_start, moving_left, maxf(moving_left, moving_right - row_width))
 		for index in range(speaker_count):
-			var fraction := 0.5 if speaker_count == 1 else float(index) / float(speaker_count - 1)
-			positions.append(lerpf(min_x, max_x, fraction))
+			positions.append(row_start + float(index) * SPEAKER_PITCH)
 		return positions
 
 	var left_count := int(ceil(float(speaker_count) * 0.5))
 	var right_count := speaker_count - left_count
 	for index in range(left_count):
-		positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * 0.045))
+		positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * SPEAKER_PITCH))
 	for index in range(right_count):
-		positions.append(reserved_port_half_width + edge_margin + float(index) * 0.045)
+		positions.append(reserved_port_half_width + edge_margin + float(index) * SPEAKER_PITCH)
 	return positions
 
 
