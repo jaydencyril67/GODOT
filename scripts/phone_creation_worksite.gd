@@ -1676,6 +1676,7 @@ func _open_worksite_charger_color_controls() -> void:
 	var back_button := header.get_child(0) as Button
 	if not is_instance_valid(back_button):
 		return
+	_style_button(back_button, false)
 	var legacy_back_callback := Callable(phone_editor, "_show_charger_controls")
 	if back_button.pressed.is_connected(legacy_back_callback):
 		back_button.pressed.disconnect(legacy_back_callback)
