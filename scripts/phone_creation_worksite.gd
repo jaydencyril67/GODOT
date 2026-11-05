@@ -649,6 +649,15 @@ func _update_ram_selection_display(
 ) -> void:
 	if not is_instance_valid(specification_readout):
 		return
+
+	# Editor callbacks can refresh the full specification list while the user
+	# is still on an earlier step. Do not expose a future step's value until
+	# that step has actually been reached.
+	if not charging_speed_step_visited:
+		charging_speed = "Not set"
+	if not wireless_charge_step_visited:
+		wireless_charge = "Not set"
+
 	for child in specification_readout.get_children():
 		specification_readout.remove_child(child)
 		child.queue_free()
