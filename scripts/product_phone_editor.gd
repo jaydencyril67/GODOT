@@ -2454,6 +2454,51 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_button(pad, "↓" if not shrinking else "↑", Vector2i(0, -1))
 	_add_back_design_pad_spacer(pad)
 	_refresh_back_design_panel()
+	if worksite_creation_mode:
+		_apply_worksite_back_hardware_panel_layout()
+
+func _apply_worksite_back_hardware_panel_layout() -> void:
+	# This layout override is exclusive to the NEW phone-creation worksite.
+	# It is called whenever either panel is rebuilt, so mode changes and
+	# selection updates cannot restore the old bottom-anchored direction pad.
+	if not worksite_creation_mode or not is_instance_valid(active_feature_panel):
+		return
+	var panel := active_feature_panel
+	var is_back_design := panel.name == "BackDesignControls"
+	var spacer_name := "BackDesignControllerFlexSpace" if is_back_design else "RearHardwareControllerFlexSpace"
+	var spacer := panel.find_child(spacer_name, true, false) as Control
+	if is_instance_valid(spacer):
+		var spacer_parent := spacer.get_parent()
+		if is_instance_valid(spacer_parent):
+			spacer_parent.remove_child(spacer)
+		spacer.queue_free()
+
+	var sliders := panel.find_children("*", "VSlider", true, false)
+	if not sliders.is_empty():
+		var slider := sliders[0] as Control
+		slider.custom_minimum_size.y = 290.0
+
+	var work_row_name := "BackDesignCompactControls" if is_back_design else "RearHardwareCompactControls"
+	var pad_name := "BackDesignDirectionControllerCenter" if is_back_design else "RearHardwareDirectionControllerCenter"
+	var work_row := panel.find_child(work_row_name, true, false) as HBoxContainer
+	var pad_center := panel.find_child(pad_name, true, false) as Control
+	if not is_instance_valid(work_row) or not is_instance_valid(pad_center) or work_row.get_child_count() == 0:
+		return
+
+	# The 290px slider determines the height of the horizontal work row.
+	# Put the direction pad underneath the left-side mode controls instead
+	# of after the whole row, keeping it close to the upper controls.
+	var mode_column := work_row.get_child(0) as Control
+	if not is_instance_valid(mode_column):
+		return
+	if pad_center.get_parent() != mode_column:
+		var old_parent := pad_center.get_parent()
+		if is_instance_valid(old_parent):
+			old_parent.remove_child(pad_center)
+		mode_column.add_child(pad_center)
+	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+
 
 func _make_editor_icon_button(parent: Control, node_name: String, caption: String, tooltip: String, pressed_callback: Callable, diameter: float, active: bool) -> Button:
 	var button := Button.new()
@@ -6833,6 +6878,8 @@ func _show_rear_camera_controls() -> void:
 	_add_rear_hardware_pad_button(pad, "↓", Vector2i(0, -1), tight)
 	_add_back_design_pad_spacer(pad)
 	_refresh_rear_hardware_panel()
+	if worksite_creation_mode:
+		_apply_worksite_back_hardware_panel_layout()
 
 func _add_rear_hardware_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool) -> void:
 	_add_editor_direction_pad_button(parent, caption, direction, tight, Callable(self, "_on_rear_hardware_pad_pressed"))
