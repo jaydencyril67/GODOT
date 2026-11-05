@@ -374,10 +374,7 @@ var back_design_size_action := "EXPAND"
 var back_design_color_mode := false
 var back_design_gradient_enabled_without_box := false
 var box_package_preview: Node3D
-var box_package_lid: Node3D
 var box_package_preview_mode := false
-var box_package_enabled := true
-var box_package_open := false
 var box_package_position_target := "LOGO"
 var box_package_position_step := 0.08
 var box_package_color_mode := false
@@ -11486,9 +11483,6 @@ func _show_box_package_controls() -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(description)
 
-	_add_box_package_toggle(active_feature_panel, "ShowBoxPackage", "SHOW BOX PACKAGE", box_package_enabled, Callable(self, "_on_box_package_enabled_toggled"))
-	_add_box_package_toggle(active_feature_panel, "OpenBoxPackage", "OPEN BOX LID", box_package_open, Callable(self, "_on_box_package_open_toggled"))
-
 	var color_button := Button.new()
 	color_button.name = "EditBoxPackageColor"
 	color_button.text = "CHANGE BOX COLOUR"
@@ -11634,21 +11628,6 @@ func _reset_box_package_position() -> void:
 	_refresh_box_package_branding()
 
 
-func _on_box_package_enabled_toggled(enabled: bool) -> void:
-	box_package_enabled = enabled
-	if is_instance_valid(box_package_preview):
-		box_package_preview.visible = box_package_preview_mode and box_package_enabled
-	if is_instance_valid(phone_body):
-		phone_body.visible = not box_package_preview_mode or not box_package_enabled
-	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not box_package_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
-
-
-func _on_box_package_open_toggled(enabled: bool) -> void:
-	box_package_open = enabled
-	_refresh_box_package_lid_transform()
-
-
 func _on_box_package_logo_visibility_toggled(enabled: bool) -> void:
 	box_package_logo_visible = enabled
 	_refresh_box_package_branding()
@@ -11665,7 +11644,7 @@ func _set_box_package_preview_mode(enabled: bool) -> void:
 	if entering and is_instance_valid(box_package_preview):
 		box_package_preview.rotation_degrees = Vector3(-7.0, -16.0, 0.0)
 	if is_instance_valid(phone_body):
-		phone_body.visible = not enabled or not box_package_enabled
+		phone_body.visible = not enabled
 	if is_instance_valid(phone_case_preview):
 		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
 	if is_instance_valid(charger_preview):
@@ -11681,7 +11660,7 @@ func _set_box_package_preview_mode(enabled: bool) -> void:
 	power_bank_preview_mode = false
 	charger_preview_mode = false
 	if is_instance_valid(box_package_preview):
-		box_package_preview.visible = enabled and box_package_enabled
+		box_package_preview.visible = enabled
 	if is_instance_valid(preview_camera):
 		preview_camera.position = Vector3(0.0, 0.0, 5.55 if enabled else 5.2)
 		preview_camera.fov = 38.0
@@ -11716,36 +11695,15 @@ func _rebuild_box_package_preview() -> void:
 	for child in box_package_preview.get_children():
 		child.free()
 
-	# A real two-piece rigid phone carton: the base tray has a bottom and four
-	# upright walls. The lid is a separate shallow cap with its own four skirts.
-	# The cap lifts away as one piece, exposing the open tray instead of a solid block.
-	var half_width := 0.91
-	var half_height := 1.66
-	var wall := 0.075
-	var base_z := -0.23
-	_add_box_package_part(box_package_preview, "TrayBottom", Vector3(1.78, 3.22, wall), Vector3(0.0, 0.0, base_z), box_package_color.darkened(0.16))
-	_add_box_package_part(box_package_preview, "TrayLeftWall", Vector3(wall, 3.20, 0.43), Vector3(-half_width + wall * 0.5, 0.0, base_z + 0.22), box_package_color.darkened(0.10))
-	_add_box_package_part(box_package_preview, "TrayRightWall", Vector3(wall, 3.20, 0.43), Vector3(half_width - wall * 0.5, 0.0, base_z + 0.22), box_package_color.darkened(0.10))
-	_add_box_package_part(box_package_preview, "TrayTopWall", Vector3(1.78, wall, 0.43), Vector3(0.0, half_height - wall * 0.5, base_z + 0.22), box_package_color.darkened(0.10))
-	_add_box_package_part(box_package_preview, "TrayBottomWall", Vector3(1.78, wall, 0.43), Vector3(0.0, -half_height + wall * 0.5, base_z + 0.22), box_package_color.darkened(0.10))
-	# A fitted inner board and dark phone-shaped recess make the open carton read as retail packaging.
-	_add_box_package_part(box_package_preview, "InnerCardboardInsert", Vector3(1.62, 3.02, 0.045), Vector3(0.0, 0.0, 0.015), box_package_color.lightened(0.06))
-	_add_box_package_part(box_package_preview, "PhoneRecess", Vector3(1.38, 2.78, 0.025), Vector3(0.0, 0.0, 0.052), Color("#26313b"), 0.94)
-
-	box_package_lid = Node3D.new()
-	box_package_lid.name = "RemovableBoxLid"
-	box_package_preview.add_child(box_package_lid)
-	_add_box_package_part(box_package_lid, "LidTopPanel", Vector3(1.86, 3.36, wall), Vector3(0.0, 0.0, 0.245), box_package_color)
-	_add_box_package_part(box_package_lid, "LidLeftSkirt", Vector3(wall, 3.36, 0.30), Vector3(-0.93 + wall * 0.5, 0.0, 0.075), box_package_color.darkened(0.07))
-	_add_box_package_part(box_package_lid, "LidRightSkirt", Vector3(wall, 3.36, 0.30), Vector3(0.93 - wall * 0.5, 0.0, 0.075), box_package_color.darkened(0.07))
-	_add_box_package_part(box_package_lid, "LidTopSkirt", Vector3(1.86, wall, 0.30), Vector3(0.0, 1.68 - wall * 0.5, 0.075), box_package_color.darkened(0.07))
-	_add_box_package_part(box_package_lid, "LidBottomSkirt", Vector3(1.86, wall, 0.30), Vector3(0.0, -1.68 + wall * 0.5, 0.075), box_package_color.darkened(0.07))
+	# One solid, permanently closed retail carton. The preview has no
+	# removable lid, open/close state, or separate tray assembly.
+	_add_box_package_part(box_package_preview, "ClosedPackageBody", Vector3(1.86, 3.36, 0.43), Vector3.ZERO, box_package_color)
 
 	box_package_logo_sprite = Sprite3D.new()
 	box_package_logo_sprite.name = "CompanyLogoPrint"
 	box_package_logo_sprite.pixel_size = 0.003
 	box_package_logo_sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	box_package_lid.add_child(box_package_logo_sprite)
+	box_package_preview.add_child(box_package_logo_sprite)
 
 	box_package_name_label = Label3D.new()
 	box_package_name_label.name = "CompanyNamePrint"
@@ -11755,12 +11713,11 @@ func _rebuild_box_package_preview() -> void:
 	box_package_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box_package_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	box_package_name_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	box_package_lid.add_child(box_package_name_label)
+	box_package_preview.add_child(box_package_name_label)
 
 	_refresh_box_package_material()
 	_refresh_box_package_branding()
-	_refresh_box_package_lid_transform()
-	box_package_preview.visible = box_package_preview_mode and box_package_enabled
+	box_package_preview.visible = box_package_preview_mode
 
 
 func _refresh_box_package_material() -> void:
@@ -11786,13 +11743,6 @@ func _collect_box_package_meshes(root: Node) -> Array[MeshInstance3D]:
 	return found
 
 
-func _refresh_box_package_lid_transform() -> void:
-	if not is_instance_valid(box_package_lid):
-		return
-	box_package_lid.position = Vector3(0.0, 2.10 if box_package_open else 0.0, 0.10 if box_package_open else 0.0)
-	box_package_lid.rotation_degrees = Vector3(-8.0 if box_package_open else 0.0, 0.0, 0.0)
-
-
 func _refresh_box_package_branding() -> void:
 	if not is_instance_valid(box_package_preview):
 		return
@@ -11806,13 +11756,13 @@ func _refresh_box_package_branding() -> void:
 			logo_texture.region = Rect2(Vector2(float(logo_index % 10) * 100.0, floorf(float(logo_index) / 10.0) * 100.0), Vector2(100.0, 100.0))
 			box_package_logo_sprite.texture = logo_texture
 		box_package_logo_sprite.modulate = ink_color
-		box_package_logo_sprite.position = Vector3(box_package_logo_position.x, box_package_logo_position.y, 0.292)
+		box_package_logo_sprite.position = Vector3(box_package_logo_position.x, box_package_logo_position.y, 0.218)
 		box_package_logo_sprite.visible = box_package_logo_visible
 	if is_instance_valid(box_package_name_label):
 		box_package_name_label.text = box_company_name.to_upper()
 		box_package_name_label.font_size = 46 if box_company_name.length() <= 14 else (38 if box_company_name.length() <= 22 else 30)
 		box_package_name_label.modulate = ink_color
-		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.292)
+		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.218)
 		box_package_name_label.visible = box_package_name_visible
 
 
