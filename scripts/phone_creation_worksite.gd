@@ -97,6 +97,7 @@ var rear_camera_panel: Control
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
+var specification_readout_scroll: ScrollContainer
 var specification_readout: HBoxContainer
 var specification_readout_left: VBoxContainer
 var specification_readout_right: VBoxContainer
@@ -298,15 +299,30 @@ func _build_interface() -> void:
 			_apply_worksite_preview_studio_lighting(preview_viewport)
 
 	# Software specifications replace the 3D preview during the final software
-	# steps. Each side is an independent vertical stack, so a multi-line value
-	# never pushes the next entry in the neighbouring column down.
+	# steps. One shared, invisible vertical scroll area moves both columns
+	# together; it is hidden and disabled whenever the 3D phone is displayed.
+	specification_readout_scroll = ScrollContainer.new()
+	specification_readout_scroll.name = "SpecificationReadoutScroll"
+	specification_readout_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	specification_readout_scroll.offset_left = 12.0
+	specification_readout_scroll.offset_right = -12.0
+	specification_readout_scroll.offset_top = 12.0
+	specification_readout_scroll.offset_bottom = -12.0
+	specification_readout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	specification_readout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var specification_scroll_bar := specification_readout_scroll.get_v_scroll_bar()
+	specification_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	specification_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	specification_readout_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	specification_readout_scroll.visible = false
+	preview_region.add_child(specification_readout_scroll)
+
+	# The two columns remain inside one horizontal row, preserving their
+	# independent vertical stacks while the parent scrolls as a single unit.
 	specification_readout = HBoxContainer.new()
 	specification_readout.name = "ProgressiveSpecificationReadout"
-	specification_readout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	specification_readout.offset_left = 12.0
-	specification_readout.offset_right = -12.0
-	specification_readout.offset_top = 12.0
-	specification_readout.offset_bottom = -12.0
+	specification_readout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	specification_readout.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	specification_readout.add_theme_constant_override("separation", 16)
 	specification_readout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	specification_readout.visible = false
@@ -314,6 +330,8 @@ func _build_interface() -> void:
 	specification_readout_left = VBoxContainer.new()
 	specification_readout_left.name = "SpecificationReadoutLeftColumn"
 	specification_readout_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	specification_readout_left.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	specification_readout_left.alignment = BoxContainer.ALIGNMENT_CENTER
 	specification_readout_left.add_theme_constant_override("separation", 8)
 	specification_readout_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	specification_readout.add_child(specification_readout_left)
@@ -321,11 +339,13 @@ func _build_interface() -> void:
 	specification_readout_right = VBoxContainer.new()
 	specification_readout_right.name = "SpecificationReadoutRightColumn"
 	specification_readout_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	specification_readout_right.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	specification_readout_right.alignment = BoxContainer.ALIGNMENT_CENTER
 	specification_readout_right.add_theme_constant_override("separation", 8)
 	specification_readout_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	specification_readout.add_child(specification_readout_right)
 
-	preview_region.add_child(specification_readout)
+	specification_readout_scroll.add_child(specification_readout)
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "PhoneTypeSelectionScroll"
@@ -704,8 +724,11 @@ func _set_ram_selection_preview(enabled: bool) -> void:
 	var phone_preview := phone_editor.get("preview_container") as Control if is_instance_valid(phone_editor) else null
 	if is_instance_valid(phone_preview):
 		phone_preview.visible = not enabled
-	if is_instance_valid(specification_readout):
-		specification_readout.visible = enabled
+	if is_instance_valid(specification_readout_scroll):
+		specification_readout_scroll.visible = enabled
+		specification_readout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if enabled else ScrollContainer.SCROLL_MODE_DISABLED
+		if not enabled:
+			specification_readout_scroll.scroll_vertical = 0
 
 
 func _update_ram_selection_display(
@@ -779,11 +802,11 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("CHARGING SPEED", charging_speed)
 	if wireless_charge != "Not set":
 		_add_specification_readout_entry("WIRELESS CHARGING", wireless_charge)
-	if sensors_step_visited:
+	if sensors_step_visited and not sensors.is_empty():
 		var sensor_summary_parts := PackedStringArray()
 		for sensor_name in sensors:
 			sensor_summary_parts.append(str(sensor_name))
-		var sensor_summary := "None enabled" if sensor_summary_parts.is_empty() else "\n".join(sensor_summary_parts)
+		var sensor_summary := "\n".join(sensor_summary_parts)
 		_add_specification_readout_entry("SENSORS", sensor_summary)
 	if front_camera_mp != "Not set":
 		_add_specification_readout_entry("FRONT CAMERA MP", front_camera_mp)
