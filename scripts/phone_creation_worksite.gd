@@ -3455,15 +3455,22 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	image_margin.add_theme_constant_override("margin_bottom", 8)
 	image_card.add_child(image_margin)
 
-	var port_image := TextureRect.new()
-	port_image.name = "NextChargingPortImage"
-	port_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	port_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	port_image.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	port_image.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if ResourceLoader.exists(next_image_path):
+		var port_image := TextureRect.new()
+		port_image.name = "NextChargingPortImage"
+		port_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		port_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		port_image.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		port_image.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		port_image.texture = load(next_image_path) as Texture2D
-	image_margin.add_child(port_image)
+		image_margin.add_child(port_image)
+	else:
+		var missing_image_note := _make_label("ADD IMAGE ASSET\\n" + next_image_path.get_file(), 12, Color("#9bd6a7"))
+		missing_image_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		missing_image_note.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		missing_image_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		missing_image_note.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		image_margin.add_child(missing_image_note)
 
 	var name_label := _make_label("NEXT UPGRADE  ·  " + next_name.to_upper(), 17 if compact else 23, Color.WHITE)
 	detail.add_child(name_label)
