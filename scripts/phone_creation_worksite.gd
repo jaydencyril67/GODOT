@@ -780,17 +780,29 @@ func _update_ram_selection_display(
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
-	# Keep each subject/value pair in one Label. Separate child Labels inside
-	# a narrow GridContainer cell were allowing the subject to collapse to a
-	# one-character-wide strip on compact landscape screens.
-	var entry := _label(caption_text + ":  " + value_text, 20, Color("#f1f5f1"))
-	entry.autowrap_mode = TextServer.AUTOWRAP_OFF
-	entry.clip_text = true
+	# Keep the subject and selected value on one horizontal row, with separate
+	# typography so the subject stays green and the value stays white.
+	var entry := HBoxContainer.new()
+	entry.add_theme_constant_override("separation", 8)
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	entry.custom_minimum_size.x = 0
 	entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	specification_readout.add_child(entry)
 
+	var subject := _label(caption_text + ":", 18, Color("#9bd6a7"))
+	subject.autowrap_mode = TextServer.AUTOWRAP_OFF
+	subject.clip_text = true
+	subject.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	subject.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	entry.add_child(subject)
+
+	var body := _label(value_text, 24, Color("#ffffff"))
+	body.autowrap_mode = TextServer.AUTOWRAP_OFF
+	body.clip_text = true
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.custom_minimum_size.x = 0
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	entry.add_child(body)
+
+	specification_readout.add_child(entry)
 
 func _update_step_progress(step: int) -> void:
 	var progress_value := clampi(step + 1, 1, 30)
