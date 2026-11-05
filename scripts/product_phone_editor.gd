@@ -982,6 +982,9 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	software_editor_features.erase("RAM Technology")
 	software_editor_features.erase("RAM")
 	software_editor_features.erase("Internal Storage")
+	software_editor_features.erase("Network")
+	software_editor_features.erase("WiFi")
+	software_editor_features.erase("Bluetooth")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
 		software_editor_features,
@@ -9803,7 +9806,7 @@ func _notify_worksite_ram_selection_changed() -> void:
 	if not is_instance_valid(worksite_owner):
 		return
 	if worksite_owner.has_method("_update_ram_selection_display"):
-		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity)
+		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version)
 	if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 		worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
 	if worksite_owner.has_method("_refresh_ram_capacity_step"):
@@ -9860,7 +9863,7 @@ func _on_rom_capacity_selected(capacity: String) -> void:
 	_refresh_rom_capacity_selection_ui(active_feature_panel)
 	if is_instance_valid(worksite_owner):
 		if worksite_owner.has_method("_update_ram_selection_display"):
-			worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity)
+			worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version)
 		if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
 
@@ -10201,7 +10204,8 @@ func _on_bluetooth_version_selected(version: String) -> void:
 	if software_value_labels.has("BLUETOOTH") and is_instance_valid(software_value_labels["BLUETOOTH"]):
 		var bluetooth_label: Label = software_value_labels["BLUETOOTH"]
 		bluetooth_label.text = version
-	_show_bluetooth_controls()
+	_refresh_connectivity_selection_ui(active_feature_panel, "bluetooth")
+	_notify_worksite_connectivity_selection_changed()
 
 
 func _show_wifi_controls() -> void:
@@ -10255,7 +10259,8 @@ func _on_wifi_standard_selected(standard: String) -> void:
 	if software_value_labels.has("WI-FI") and is_instance_valid(software_value_labels["WI-FI"]):
 		var wifi_label: Label = software_value_labels["WI-FI"]
 		wifi_label.text = standard
-	_show_wifi_controls()
+	_refresh_connectivity_selection_ui(active_feature_panel, "wifi")
+	_notify_worksite_connectivity_selection_changed()
 
 
 func _show_sensor_controls() -> void:
@@ -10421,7 +10426,66 @@ func _on_mobile_network_selected(network: String) -> void:
 	if software_value_labels.has("MOBILE NETWORK") and is_instance_valid(software_value_labels["MOBILE NETWORK"]):
 		var network_label: Label = software_value_labels["MOBILE NETWORK"]
 		network_label.text = network
-	_show_mobile_network_controls()
+	_refresh_connectivity_selection_ui(active_feature_panel, "internet")
+	_notify_worksite_connectivity_selection_changed()
+
+
+func _refresh_connectivity_selection_ui(panel: Control, selection_kind: String) -> void:
+	if not is_instance_valid(panel):
+		return
+	for child in panel.find_children("*", "Button", true, false):
+		var option := child as Button
+		if not is_instance_valid(option):
+			continue
+		var selected := false
+		match selection_kind:
+			"internet":
+				if not option.name.begins_with("MobileNetworkOption_"):
+					continue
+				var network := option.tooltip_text
+				var display_name := network
+				match network:
+					"2G (GSM / EDGE)":
+						display_name = "2G"
+					"3G (UMTS / HSPA)":
+						display_name = "3G"
+					"4G (LTE)":
+						display_name = "4G LTE"
+					"4G+ (LTE-Advanced)":
+						display_name = "4G+"
+					"5G-Advanced":
+						display_name = "5G-A"
+				selected = selected_mobile_network == network
+				option.text = display_name + ("  ✓" if selected else "")
+			"wifi":
+				if not option.name.begins_with("WiFiOption_"):
+					continue
+				var standard := option.tooltip_text
+				selected = selected_wifi_standard == standard
+				option.text = "Wi-Fi " + standard.get_slice(" ", 1).split(" ")[0] + ("  ✓" if selected else "")
+			"bluetooth":
+				if not option.name.begins_with("BluetoothOption_"):
+					continue
+				var version := option.tooltip_text
+				selected = selected_bluetooth_version == version
+				option.text = version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS") + ("  ✓" if selected else "")
+		_style_staff_button(option, selected)
+	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons"):
+		worksite_owner.call("_style_ram_selector_buttons", panel)
+
+
+func _notify_worksite_connectivity_selection_changed() -> void:
+	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
+		return
+	worksite_owner.call(
+		"_update_ram_selection_display",
+		selected_ram_technology,
+		selected_ram_capacity,
+		selected_rom_capacity,
+		selected_mobile_network,
+		selected_wifi_standard,
+		selected_bluetooth_version
+	)
 
 
 func _on_left_tools_previous_pressed() -> void:
