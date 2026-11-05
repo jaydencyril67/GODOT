@@ -975,12 +975,12 @@ func _show_worksite_sensor_controls() -> void:
 	for sensor_name in sensor_names:
 		var row := HBoxContainer.new()
 		row.name = "SensorRow_" + sensor_name.replace(" ", "_").replace("/", "_")
-		row.custom_minimum_size = Vector2(0, 44)
+		row.custom_minimum_size = Vector2(0, 54)
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_theme_constant_override("separation", 5)
 		options.add_child(row)
 
-		var sensor_label := _label(sensor_name, 13, Color("#e7f6ff"))
+		var sensor_label := _label(sensor_name, 16, Color("#e7f6ff"))
 		sensor_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		sensor_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		sensor_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -990,7 +990,7 @@ func _show_worksite_sensor_controls() -> void:
 		var enabled := bool(sensors.get(sensor_name, false))
 		var toggle := TextureButton.new()
 		toggle.name = "SensorEnabledToggle"
-		toggle.custom_minimum_size = Vector2(38, 38)
+		toggle.custom_minimum_size = Vector2(42, 42)
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		toggle.ignore_texture_size = true
