@@ -9803,8 +9803,12 @@ func _on_ram_technology_selected(technology: String) -> void:
 	_notify_worksite_ram_selection_changed()
 
 func _notify_worksite_ram_selection_changed() -> void:
-	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_update_ram_selection_display"):
+	if not is_instance_valid(worksite_owner):
+		return
+	if worksite_owner.has_method("_update_ram_selection_display"):
 		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity)
+	if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
+		worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
 
 
 func _refresh_ram_technology_selection_ui() -> void:
