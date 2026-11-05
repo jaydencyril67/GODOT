@@ -91,7 +91,9 @@ var rear_camera_panel: Control
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
-var specification_readout: VBoxContainer
+var specification_readout: HBoxContainer
+var specification_readout_columns: Array[VBoxContainer] = []
+var specification_readout_existing_count := 0
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
@@ -289,9 +291,9 @@ func _build_interface() -> void:
 			_apply_worksite_preview_studio_lighting(preview_viewport)
 
 	# Software specifications replace the 3D preview during the final software
-	# steps. Entries are added only as the user selects them, and the VBox grows
-	# naturally while keeping the complete list vertically centred.
-	specification_readout = VBoxContainer.new()
+	# steps. The readout changes from one centred column to two balanced columns
+	# once the longer charging steps begin.
+	specification_readout = HBoxContainer.new()
 	specification_readout.name = "ProgressiveSpecificationReadout"
 	specification_readout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	specification_readout.offset_left = 12.0
@@ -299,7 +301,7 @@ func _build_interface() -> void:
 	specification_readout.offset_top = 18.0
 	specification_readout.offset_bottom = -18.0
 	specification_readout.alignment = BoxContainer.ALIGNMENT_CENTER
-	specification_readout.add_theme_constant_override("separation", 18)
+	specification_readout.add_theme_constant_override("separation", 22)
 	specification_readout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	specification_readout.visible = false
 	preview_region.add_child(specification_readout)
@@ -650,6 +652,20 @@ func _update_ram_selection_display(
 	for child in specification_readout.get_children():
 		specification_readout.remove_child(child)
 		child.queue_free()
+	specification_readout_columns.clear()
+	specification_readout_existing_count = 0
+
+	var column_count := 2 if wizard_step >= 22 else 1
+	for column_index in range(column_count):
+		var column := VBoxContainer.new()
+		column.name = "SpecificationColumn%d" % (column_index + 1)
+		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		column.alignment = BoxContainer.ALIGNMENT_CENTER
+		column.add_theme_constant_override("separation", 18)
+		column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		specification_readout.add_child(column)
+		specification_readout_columns.append(column)
 
 	# Keep every completed selection visible while navigating between the
 	# RAM technology, RAM capacity and internal storage steps. Visibility is
@@ -675,12 +691,26 @@ func _update_ram_selection_display(
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
+	if specification_readout_columns.is_empty():
+		return
+
+	# Balance the previously selected specifications between both columns.
+	# Newly introduced charging specifications are always placed in the
+	# right-hand column, beside the existing selections.
+	var column_index := 0
+	if specification_readout_columns.size() > 1:
+		if caption_text == "CHARGING SPEED" or caption_text == "WIRELESS CHARGING":
+			column_index = 1
+		else:
+			column_index = specification_readout_existing_count % 2
+			specification_readout_existing_count += 1
+
 	var entry := VBoxContainer.new()
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	entry.alignment = BoxContainer.ALIGNMENT_CENTER
 	entry.add_theme_constant_override("separation", 3)
 	entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	specification_readout.add_child(entry)
+	specification_readout_columns[column_index].add_child(entry)
 
 	var caption := _label(caption_text, 13, Color("#c3cec6"))
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
