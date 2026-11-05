@@ -2280,17 +2280,36 @@ func _show_back_design_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# Layout A: one compact management strip, one working strip, then the
-	# full-size controller anchored at the bottom of the available panel.
-	var management := HBoxContainer.new()
-	management.name = "BackDesignManagementStrip"
-	management.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	management.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(management)
+	# Match the Rare Camera hierarchy: mode tabs first, then selector,
+	# horizontal adjustment, and the controller with Add/Remove flanking it.
+	var top_controls := HBoxContainer.new()
+	top_controls.name = "BackDesignTopControls"
+	top_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_controls.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(top_controls)
 
-	_make_editor_icon_button(management, "BackDesignAddButton", "+", "Add raised box", Callable(self, "_add_back_design_box"), control_height, true)
-	_make_editor_icon_button(management, "BackDesignRemoveButton", "−", "Remove selected box", Callable(self, "_remove_selected_back_design_box"), control_height, false)
-	_make_editor_icon_button(management, "BackDesignColorButton", "C", "Edit raised box color", Callable(self, "_show_device_color_controls").bind(true), control_height, false)
+	for mode in ["SIZE", "MOVE"]:
+		var mode_button := Button.new()
+		mode_button.name = "BackDesignMode%s" % mode.capitalize()
+		mode_button.text = mode
+		mode_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mode_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(mode_button, button_font_size)
+		_style_back_design_button(mode_button, back_design_mode == mode)
+		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
+		top_controls.add_child(mode_button)
+
+	var color_button := Button.new()
+	color_button.name = "BackDesignColorButton"
+	color_button.text = "COLOR"
+	color_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	color_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(color_button, button_font_size)
+	_style_back_design_button(color_button, false)
+	color_button.pressed.connect(_show_device_color_controls.bind(true))
+	top_controls.add_child(color_button)
 
 	back_design_selection_button = Button.new()
 	back_design_selection_button.name = "BackDesignBoxSelector"
@@ -2301,7 +2320,7 @@ func _show_back_design_controls() -> void:
 	_apply_research_typography(back_design_selection_button, button_font_size)
 	_style_back_design_button(back_design_selection_button, true)
 	back_design_selection_button.pressed.connect(_toggle_back_design_selection_popup)
-	management.add_child(back_design_selection_button)
+	active_feature_panel.add_child(back_design_selection_button)
 
 	back_design_selection_popup = PanelContainer.new()
 	back_design_selection_popup.name = "BackDesignCustomDropdown"
@@ -2343,75 +2362,55 @@ func _show_back_design_controls() -> void:
 	else:
 		active_feature_panel.add_child(back_design_selection_popup)
 
-	var work_row := HBoxContainer.new()
-	work_row.name = "BackDesignCompactControls"
-	work_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	work_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	work_row.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(work_row)
-
-	var mode_column := VBoxContainer.new()
-	mode_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mode_column.add_theme_constant_override("separation", 5)
-	work_row.add_child(mode_column)
-	var mode_heading := _make_label("EDIT MODE", 10, Color("#a8cfad"))
-	mode_column.add_child(mode_heading)
-
-	var modes := HBoxContainer.new()
-	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modes.add_theme_constant_override("separation", 6)
-	mode_column.add_child(modes)
-	for mode in ["SIZE", "MOVE"]:
-		var mode_button := Button.new()
-		mode_button.text = mode
-		mode_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
-		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(mode_button, button_font_size)
-		_style_back_design_button(mode_button, back_design_mode == mode)
-		mode_button.pressed.connect(_set_back_design_mode.bind(mode))
-		modes.add_child(mode_button)
-
-	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 11, Color("#dce9df"))
-	back_design_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	mode_column.add_child(back_design_size_label)
-
-	var rounding_column := VBoxContainer.new()
-	rounding_column.name = "BackDesignVerticalRoundingControl"
-	rounding_column.custom_minimum_size.x = 66
-	rounding_column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	rounding_column.add_theme_constant_override("separation", 2)
-	work_row.add_child(rounding_column)
+	var rounding_section := VBoxContainer.new()
+	rounding_section.name = "BackDesignRoundingSection"
+	rounding_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rounding_section.add_theme_constant_override("separation", 3)
+	active_feature_panel.add_child(rounding_section)
+	var rounding_header := HBoxContainer.new()
+	rounding_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rounding_section.add_child(rounding_header)
 	var rounding_heading := _make_label("ROUND", 10, Color("#b9d9bf"))
-	rounding_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rounding_column.add_child(rounding_heading)
-	back_design_border_slider = VSlider.new()
+	rounding_header.add_child(rounding_heading)
+	back_design_border_label = _make_label("NO BOX SELECTED", 10, Color("#dce9df"))
+	back_design_border_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_design_border_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rounding_header.add_child(back_design_border_label)
+
+	back_design_border_slider = HSlider.new()
+	back_design_border_slider.name = "BackDesignHorizontalRoundingSlider"
 	back_design_border_slider.min_value = 0.0
 	back_design_border_slider.max_value = 0.45
 	back_design_border_slider.step = 0.01
-	back_design_border_slider.custom_minimum_size = Vector2(34, 108 if tight else 120)
-	back_design_border_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	back_design_border_slider.custom_minimum_size = Vector2(0, 24)
+	back_design_border_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_border_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_back_design_slider(back_design_border_slider)
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
-	rounding_column.add_child(back_design_border_slider)
-	back_design_border_label = _make_label("0%", 10, Color("#dce9df"))
-	back_design_border_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rounding_column.add_child(back_design_border_label)
+	rounding_section.add_child(back_design_border_slider)
 
-	var bottom_spacer := Control.new()
-	bottom_spacer.name = "BackDesignControllerFlexSpace"
-	bottom_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	bottom_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	active_feature_panel.add_child(bottom_spacer)
+	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 10, Color("#dce9df"))
+	back_design_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	back_design_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	active_feature_panel.add_child(back_design_size_label)
+
+	var pad_control_row := HBoxContainer.new()
+	pad_control_row.name = "BackDesignPadWithManagement"
+	pad_control_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_control_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
+	active_feature_panel.add_child(pad_control_row)
+
+	_make_editor_icon_button(pad_control_row, "BackDesignAddButton", "+", "Add raised box", Callable(self, "_add_back_design_box"), control_height, true)
 
 	var pad_center := CenterContainer.new()
 	pad_center.name = "BackDesignDirectionControllerCenter"
 	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad_center.size_flags_vertical = Control.SIZE_SHRINK_END
-	active_feature_panel.add_child(pad_center)
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_child(pad_center)
 	var pad_shell := PanelContainer.new()
 	pad_shell.name = "BackDesignDirectionController"
-	pad_shell.custom_minimum_size = Vector2(248, 248) if not tight else Vector2(224, 224)
+	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
 	pad_shell_style.bg_color = Color("#0b2112")
 	pad_shell_style.border_color = Color("#477d53")
@@ -2454,58 +2453,24 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_spacer(pad)
 	_add_back_design_pad_button(pad, "↓" if not shrinking else "↑", Vector2i(0, -1))
 	_add_back_design_pad_spacer(pad)
+
+	_make_editor_icon_button(pad_control_row, "BackDesignRemoveButton", "−", "Remove selected box", Callable(self, "_remove_selected_back_design_box"), control_height, false)
 	_refresh_back_design_panel()
-	if worksite_creation_mode:
-		_apply_worksite_back_hardware_panel_layout()
+
 
 func _apply_worksite_back_hardware_panel_layout() -> void:
-	# This layout override is exclusive to the NEW phone-creation worksite.
+	# Raised Back Design now owns its complete layout in its builder. This
+	# worksite hook remains only to clean up any legacy rear-hardware spacer.
 	if not worksite_creation_mode or not is_instance_valid(active_feature_panel):
 		return
-	var panel := active_feature_panel
-	var is_back_design := panel.name == "BackDesignControls"
-	if not is_back_design:
-		# Rear Camera & Flash now has its own compact vertical sequence:
-		# mode tabs, component management, horizontal size slider, movement pad.
-		# Remove any legacy flex spacer, but do not relocate the pad or resize
-		# the new horizontal slider.
-		var rear_spacer := panel.find_child("RearHardwareControllerFlexSpace", true, false) as Control
-		if is_instance_valid(rear_spacer):
-			var rear_spacer_parent := rear_spacer.get_parent()
-			if is_instance_valid(rear_spacer_parent):
-				rear_spacer_parent.remove_child(rear_spacer)
-			rear_spacer.queue_free()
+	if active_feature_panel.name == "BackDesignControls":
 		return
-
-	var spacer := panel.find_child("BackDesignControllerFlexSpace", true, false) as Control
-	if is_instance_valid(spacer):
-		var spacer_parent := spacer.get_parent()
+	var rear_spacer := active_feature_panel.find_child("RearHardwareControllerFlexSpace", true, false) as Control
+	if is_instance_valid(rear_spacer):
+		var spacer_parent := rear_spacer.get_parent()
 		if is_instance_valid(spacer_parent):
-			spacer_parent.remove_child(spacer)
-		spacer.queue_free()
-
-	var sliders := panel.find_children("*", "VSlider", true, false)
-	if not sliders.is_empty():
-		var slider := sliders[0] as Control
-		slider.custom_minimum_size.y = 290.0
-
-	var work_row := panel.find_child("BackDesignCompactControls", true, false) as HBoxContainer
-	var pad_center := panel.find_child("BackDesignDirectionControllerCenter", true, false) as Control
-	if not is_instance_valid(work_row) or not is_instance_valid(pad_center) or work_row.get_child_count() == 0:
-		return
-
-	# The 290px slider determines the height of the horizontal work row.
-	# Put the direction pad underneath the left-side mode controls.
-	var mode_column := work_row.get_child(0) as Control
-	if not is_instance_valid(mode_column):
-		return
-	if pad_center.get_parent() != mode_column:
-		var old_parent := pad_center.get_parent()
-		if is_instance_valid(old_parent):
-			old_parent.remove_child(pad_center)
-		mode_column.add_child(pad_center)
-	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			spacer_parent.remove_child(rear_spacer)
+		rear_spacer.queue_free()
 
 
 func _make_editor_icon_button(parent: Control, node_name: String, caption: String, tooltip: String, pressed_callback: Callable, diameter: float, active: bool) -> Button:
