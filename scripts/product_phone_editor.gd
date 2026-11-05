@@ -9314,6 +9314,47 @@ func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: V
 
 
 
+func _set_worksite_ram_specs_preview(enabled: bool, worksite_host: Control = null) -> void:
+	if not is_instance_valid(software_summary_panel) or not is_instance_valid(preview_stack):
+		return
+	if enabled:
+		if not is_instance_valid(worksite_host):
+			return
+		if software_summary_panel.get_parent() != worksite_host:
+			var old_parent := software_summary_panel.get_parent()
+			if is_instance_valid(old_parent):
+				old_parent.remove_child(software_summary_panel)
+			worksite_host.add_child(software_summary_panel)
+		software_summary_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		software_summary_panel.offset_left = 0.0
+		software_summary_panel.offset_top = 0.0
+		software_summary_panel.offset_right = 0.0
+		software_summary_panel.offset_bottom = 0.0
+		software_summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		software_summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		software_summary_panel.visible = true
+		if is_instance_valid(preview_container):
+			preview_container.visible = false
+		_update_camera_software_summary()
+		_update_sensor_software_summary()
+		_update_memory_clock_software_summary()
+		_update_cooling_software_summary()
+	else:
+		if software_summary_panel.get_parent() != preview_stack:
+			var old_parent := software_summary_panel.get_parent()
+			if is_instance_valid(old_parent):
+				old_parent.remove_child(software_summary_panel)
+			preview_stack.add_child(software_summary_panel)
+		software_summary_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		software_summary_panel.offset_left = 0.0
+		software_summary_panel.offset_top = 0.0
+		software_summary_panel.offset_right = 0.0
+		software_summary_panel.offset_bottom = 0.0
+		software_summary_panel.visible = false
+		if is_instance_valid(preview_container):
+			preview_container.visible = true
+
+
 func _build_software_summary_panel() -> void:
 	software_summary_panel = _make_glass_panel(Color(0.10, 0.31, 0.48, 0.58))
 	software_summary_panel.name = "PhoneSoftwareSpecificationPanel"
