@@ -429,10 +429,15 @@ func _cache_current_step_panel() -> void:
 	# Nested raised-box color editing is a temporary view of the Back Design
 	# step. Close its floating overlays and restore the parent controls before
 	# caching the step, so returning later restores the correct main view.
-	if wizard_step == 13 and bool(phone_editor.get("back_design_color_mode")):
-		if phone_editor.has_method("_close_worksite_back_design_color_view"):
-			phone_editor.call("_close_worksite_back_design_color_view")
-		phone_editor.call("_show_back_design_controls")
+	if wizard_step == 13:
+		if bool(phone_editor.get("back_design_color_mode")):
+			if phone_editor.has_method("_close_worksite_back_design_color_view"):
+				phone_editor.call("_close_worksite_back_design_color_view")
+			phone_editor.call("_show_back_design_controls")
+		elif phone_editor.has_method("_close_back_design_selection_popup"):
+			phone_editor.call("_close_back_design_selection_popup")
+	elif wizard_step == 14 and phone_editor.has_method("_close_rear_hardware_selection_popup"):
+		phone_editor.call("_close_rear_hardware_selection_popup")
 
 	var current_panel := phone_editor.get("active_feature_panel") as Control
 	if is_instance_valid(current_panel):
@@ -479,7 +484,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			if is_instance_valid(parent):
 				parent.remove_child(panel)
 			panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
 			selection_stack.add_child(panel)
 			panel.show()
 			step_panels[step] = panel
