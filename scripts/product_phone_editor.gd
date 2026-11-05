@@ -11799,6 +11799,9 @@ func _refresh_box_package_branding() -> void:
 
 
 func _show_phone_case_controls() -> void:
+	if worksite_creation_mode and is_instance_valid(worksite_owner) and worksite_owner.has_method("_show_worksite_phone_case_controls"):
+		worksite_owner.call("_show_worksite_phone_case_controls")
+		return
 	if not is_instance_valid(right_tools_content):
 		return
 	phone_case_color_mode=false
@@ -11918,6 +11921,9 @@ void fragment(){
 
 
 func _show_phone_case_design_controls() -> void:
+	if worksite_creation_mode and is_instance_valid(worksite_owner) and worksite_owner.has_method("_show_worksite_phone_case_design_controls"):
+		worksite_owner.call("_show_worksite_phone_case_design_controls")
+		return
 	if not is_instance_valid(right_tools_content) or not phone_case_custom_enabled or not phone_case_built:
 		return
 	phone_case_color_mode=false
