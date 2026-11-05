@@ -616,11 +616,14 @@ func _update_ram_selection_display(technology: String, capacity: String, storage
 		specification_readout.remove_child(child)
 		child.queue_free()
 
-	if wizard_step >= 15 and technology != "Not set":
+	# Keep every completed selection visible while navigating between the
+	# RAM technology, RAM capacity and internal storage steps. Visibility is
+	# driven by whether a value has been selected, not the current step number.
+	if technology != "Not set":
 		_add_specification_readout_entry("RAM TECHNOLOGY", technology)
-	if wizard_step >= 16 and capacity != "Not set":
+	if capacity != "Not set":
 		_add_specification_readout_entry("RAM", capacity)
-	if wizard_step >= 17 and storage != "Not set":
+	if storage != "Not set":
 		_add_specification_readout_entry("INTERNAL STORAGE", storage)
 
 
