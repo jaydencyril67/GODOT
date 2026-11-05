@@ -5430,6 +5430,11 @@ func _show_charger_controls(page: String = "HOME") -> void:
 
 
 func _show_screen_protector_controls() -> void:
+	# The Worksite owns the migrated controls. Keep the original builder below
+	# intact for any non-Worksite use of the legacy editor.
+	if worksite_creation_mode and is_instance_valid(worksite_owner):
+		worksite_owner.call("_show_worksite_protection_glass_controls")
+		return
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
