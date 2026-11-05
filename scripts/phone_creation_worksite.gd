@@ -567,6 +567,8 @@ func _on_next_pressed() -> void:
 		_show_box_package_step()
 	elif wizard_step == 30:
 		_show_phone_case_step()
+	elif wizard_step == 31:
+		_show_charger_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -589,6 +591,8 @@ func _cache_current_step_panel() -> void:
 		_show_worksite_box_package_controls()
 	elif wizard_step == 31 and bool(phone_editor.get("phone_case_color_mode")):
 		_show_worksite_phone_case_controls()
+	elif wizard_step == 32 and bool(phone_editor.get("charger_color_mode")):
+		_show_worksite_charger_controls("HOME")
 
 	var current_panel := phone_editor.get("active_feature_panel") as Control
 	if is_instance_valid(current_panel):
@@ -614,9 +618,13 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	_prepare_step_panels_for_navigation()
 	if previous_step == 30 and step != 30:
 		phone_editor.call("_set_box_package_preview_mode", false)
+	if previous_step == 32 and step != 32:
+		phone_editor.call("_set_charger_preview_mode", false)
 	wizard_step = step
 	if step == 30:
 		phone_editor.call("_set_box_package_preview_mode", true)
+	if step == 32:
+		phone_editor.call("_set_charger_preview_mode", true)
 	if step >= 22:
 		charging_speed_step_visited = true
 	if step >= 23:
@@ -1407,6 +1415,275 @@ func _open_worksite_phone_case_color_controls() -> void:
 	back_button.pressed.connect(_show_worksite_phone_case_controls)
 
 
+
+func _show_worksite_charger_controls(page: String = "HOME") -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+
+	var normalized_page := page.to_upper()
+	if normalized_page == "FINISH":
+		_open_worksite_charger_color_controls()
+		return
+	if not ["HOME", "PLUG", "CABLE", "POWER"].has(normalized_page):
+		normalized_page = "HOME"
+
+	var previous_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(previous_panel):
+		var previous_parent := previous_panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(previous_panel)
+		previous_panel.queue_free()
+
+	phone_editor.set("charger_controls_page", normalized_page)
+	phone_editor.set("charger_color_mode", false)
+
+	var panel := VBoxContainer.new()
+	panel.name = "WorksiteChargerControls_" + normalized_page
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+	selection_stack.add_child(panel)
+
+	if normalized_page != "HOME":
+		var header := HBoxContainer.new()
+		header.add_theme_constant_override("separation", 8)
+		panel.add_child(header)
+
+		var back_button := Button.new()
+		back_button.name = "ChargerSettingsBack"
+		back_button.text = "‹"
+		back_button.custom_minimum_size = Vector2(42, 40)
+		back_button.focus_mode = Control.FOCUS_NONE
+		_style_button(back_button, false)
+		back_button.add_theme_font_size_override("font_size", 24)
+		back_button.pressed.connect(_show_worksite_charger_controls.bind("HOME"))
+		header.add_child(back_button)
+
+		var page_title := _label("CHARGER " + normalized_page, 17, Color("#c7eacb"))
+		page_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		page_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		header.add_child(page_title)
+
+		match normalized_page:
+			"PLUG":
+				var plug_heading := _label("WALL PLUG STANDARD", 14, Color("#9bd6a7"))
+				panel.add_child(plug_heading)
+				for plug_name in ["UK", "EU", "US", "Universal"]:
+					var plug_button := Button.new()
+					plug_button.name = "ChargerPlug_" + plug_name
+					plug_button.text = plug_name + ("   ✓ SELECTED" if str(phone_editor.get("charger_plug_type")) == plug_name else "")
+					plug_button.custom_minimum_size = Vector2(0, 48)
+					plug_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					plug_button.focus_mode = Control.FOCUS_NONE
+					_style_button(plug_button, str(phone_editor.get("charger_plug_type")) == plug_name)
+					plug_button.pressed.connect(Callable(phone_editor, "_on_charger_plug_selected").bind(plug_name))
+					panel.add_child(plug_button)
+				var plug_note := _label("Changes the physical wall-pin layout on the 3D adapter.", 12, Color("#b8d8be"))
+				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				panel.add_child(plug_note)
+
+			"CABLE":
+				var cable_heading := _label("PHYSICAL CHARGING CABLE", 14, Color("#9bd6a7"))
+				panel.add_child(cable_heading)
+				_add_worksite_charger_toggle(
+					panel,
+					"ENABLE PHYSICAL CABLE",
+					"charger_cable_enabled",
+					"_on_charger_cable_enabled_toggled",
+					"EnableChargingCableModel"
+				)
+				var compatible_cable_options: Array = phone_editor.call("_charger_cable_options_for_phone")
+				for cable_name_value in compatible_cable_options:
+					var cable_name := str(cable_name_value)
+					var cable_button := Button.new()
+					cable_button.name = "ChargerCable_" + cable_name.replace(" ", "").replace("-", "")
+					cable_button.text = cable_name + ("   ✓ SELECTED" if str(phone_editor.get("charger_cable_type")) == cable_name else "")
+					cable_button.custom_minimum_size = Vector2(0, 48)
+					cable_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					cable_button.focus_mode = Control.FOCUS_NONE
+					_style_button(cable_button, str(phone_editor.get("charger_cable_type")) == cable_name)
+					cable_button.pressed.connect(Callable(phone_editor, "_on_charger_cable_selected").bind(cable_name))
+					panel.add_child(cable_button)
+
+				var cable_note_text := "A short U-shaped cable with a phone-side connector that matches the selected charging port."
+				if str(phone_editor.get("charge_port_type")) == "None":
+					cable_note_text = "Choose a phone charging port first. Compatible cable connectors will appear automatically."
+				var cable_note := _label(cable_note_text, 12, Color("#b8d8be"))
+				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				panel.add_child(cable_note)
+
+			"POWER":
+				var wattage_heading := _label("OUTPUT POWER", 14, Color("#9bd6a7"))
+				panel.add_child(wattage_heading)
+
+				var wattage_value := _label("%d W" % int(phone_editor.get("charger_wattage")), 32, Color("#ffffff"), HORIZONTAL_ALIGNMENT_CENTER)
+				wattage_value.name = "ChargerOutputWattageValue"
+				wattage_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				panel.add_child(wattage_value)
+				phone_editor.set("charger_wattage_label", wattage_value)
+
+				var wattage_range := _label("2W — 200W · INDEPENDENT ADAPTER OUTPUT", 11, Color("#b8d8be"), HORIZONTAL_ALIGNMENT_CENTER)
+				wattage_range.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				panel.add_child(wattage_range)
+
+				var slider_row := HBoxContainer.new()
+				slider_row.name = "ChargerWattageVerticalSliderRow"
+				slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+				slider_row.add_theme_constant_override("separation", 12)
+				panel.add_child(slider_row)
+
+				var minimum := _label("2W", 12, Color("#b8d8be"))
+				minimum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				slider_row.add_child(minimum)
+
+				var wattage_slider := VSlider.new()
+				wattage_slider.name = "ChargerOutputVerticalSlider"
+				wattage_slider.min_value = 2
+				wattage_slider.max_value = 200
+				wattage_slider.step = 1
+				wattage_slider.value = int(phone_editor.get("charger_wattage"))
+				wattage_slider.custom_minimum_size = Vector2(52, 245)
+				wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+				wattage_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				wattage_slider.focus_mode = Control.FOCUS_NONE
+				wattage_slider.tick_count = 0
+				wattage_slider.value_changed.connect(Callable(phone_editor, "_on_charger_wattage_changed"))
+				phone_editor.call("_style_custom_slider", wattage_slider)
+				slider_row.add_child(wattage_slider)
+				phone_editor.set("charger_wattage_slider", wattage_slider)
+
+				var maximum := _label("200W", 12, Color("#b8d8be"))
+				maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				slider_row.add_child(maximum)
+
+	else:
+		var heading := _label("CHARGER ADAPTER", 20, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+		heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.add_child(heading)
+
+		var description := _label("Configure the adapter, cable and output power. Drag the centre preview to inspect the product from every angle.", 12, Color("#dce9df"))
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(description)
+
+		_add_worksite_charger_toggle(
+			panel,
+			"ENABLE CHARGER MODEL",
+			"charger_enabled",
+			"_on_charger_enabled_toggled",
+			"EnableChargerPreview"
+		)
+		_add_worksite_charger_toggle(
+			panel,
+			"ENABLE PHYSICAL CABLE",
+			"charger_cable_enabled",
+			"_on_charger_cable_enabled_toggled",
+			"EnableChargingCableModelHome"
+		)
+
+		var plug_option := Button.new()
+		plug_option.name = "OpenChargerPlugSettings"
+		plug_option.text = "PLUG STANDARD     ›     " + str(phone_editor.get("charger_plug_type"))
+		plug_option.custom_minimum_size = Vector2(0, 48)
+		plug_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		plug_option.focus_mode = Control.FOCUS_NONE
+		_style_button(plug_option, false)
+		plug_option.pressed.connect(_show_worksite_charger_controls.bind("PLUG"))
+		panel.add_child(plug_option)
+
+		var cable_option := Button.new()
+		cable_option.name = "OpenChargerCableSettings"
+		cable_option.text = "CABLE TYPE     ›     " + str(phone_editor.get("charger_cable_type"))
+		cable_option.custom_minimum_size = Vector2(0, 48)
+		cable_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cable_option.focus_mode = Control.FOCUS_NONE
+		_style_button(cable_option, false)
+		cable_option.pressed.connect(_show_worksite_charger_controls.bind("CABLE"))
+		panel.add_child(cable_option)
+
+		var power_option := Button.new()
+		power_option.name = "OpenChargerPowerSettings"
+		power_option.text = "OUTPUT POWER     ›     %d W" % int(phone_editor.get("charger_wattage"))
+		power_option.custom_minimum_size = Vector2(0, 48)
+		power_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		power_option.focus_mode = Control.FOCUS_NONE
+		_style_button(power_option, false)
+		power_option.pressed.connect(_show_worksite_charger_controls.bind("POWER"))
+		panel.add_child(power_option)
+
+		var color_option := Button.new()
+		color_option.name = "OpenChargerFinishSettings"
+		color_option.text = "ADAPTER COLOUR     ›     #" + Color(phone_editor.get("charger_body_color")).to_html(false).to_upper()
+		color_option.custom_minimum_size = Vector2(0, 48)
+		color_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		color_option.focus_mode = Control.FOCUS_NONE
+		_style_button(color_option, true)
+		color_option.pressed.connect(_open_worksite_charger_color_controls)
+		panel.add_child(color_option)
+
+	step_panels[32] = panel
+
+
+func _add_worksite_charger_toggle(
+	parent: Control,
+	caption: String,
+	property_name: String,
+	callback_name: String,
+	control_name: String
+) -> void:
+	var row := HBoxContainer.new()
+	row.name = control_name + "Row"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+
+	var caption_label := _label(caption, 14, Color("#e7f6ff"))
+	caption_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(caption_label)
+
+	var enabled := bool(phone_editor.get(property_name))
+	var toggle := TextureButton.new()
+	toggle.name = control_name
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	var unchecked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", false)
+	var checked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", true)
+	toggle.texture_normal = unchecked_icon
+	toggle.texture_hover = unchecked_icon
+	toggle.texture_pressed = checked_icon
+	toggle.texture_disabled = unchecked_icon
+	toggle.toggle_mode = true
+	toggle.button_pressed = enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.toggled.connect(Callable(phone_editor, callback_name))
+	row.add_child(toggle)
+
+
+func _open_worksite_charger_color_controls() -> void:
+	phone_editor.call("_show_device_color_controls", false, false, true)
+	var color_panel := phone_editor.get("active_feature_panel") as Control
+	if not is_instance_valid(color_panel) or color_panel.get_child_count() == 0:
+		return
+	var header := color_panel.get_child(0) as HBoxContainer
+	if not is_instance_valid(header) or header.get_child_count() == 0:
+		return
+	var back_button := header.get_child(0) as Button
+	if not is_instance_valid(back_button):
+		return
+	var legacy_back_callback := Callable(phone_editor, "_show_charger_controls")
+	if back_button.pressed.is_connected(legacy_back_callback):
+		back_button.pressed.disconnect(legacy_back_callback)
+	back_button.pressed.connect(_show_worksite_charger_controls.bind("HOME"))
+
+
+func _show_worksite_charger_controls(page: String = "HOME") -> void:
+
 func _show_worksite_sensor_controls() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
@@ -1605,6 +1882,10 @@ func _show_box_package_step() -> void:
 
 func _show_phone_case_step() -> void:
 	_show_worksite_step(31, "_show_worksite_phone_case_controls")
+
+
+func _show_charger_step() -> void:
+	_show_worksite_step(32, "_show_worksite_charger_controls")
 
 
 func _keep_step_navigation_active() -> void:
