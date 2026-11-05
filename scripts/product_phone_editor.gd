@@ -11442,94 +11442,149 @@ func _show_box_package_controls() -> void:
 	box_package_color_mode = false
 	for child in right_tools_content.get_children():
 		child.queue_free()
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	var tight := viewport_size.y < 560.0 or viewport_size.x < 520.0
+	var control_height := 40.0 if tight else 44.0
+	var button_font_size := 12 if tight else 13
+
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BoxPackageControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 7)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	var heading := _make_label("BOX PACKAGE", 18, Color("#c7eacb"))
+	var heading := _make_label("BOX PACKAGE", 16, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var description := _make_label("Design the retail box for this phone. Drag the centre preview to inspect the packaging from every angle.", 12, Color("#dce9df"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
+
+	# Match the Raised Back Design / Rear Camera panel hierarchy:
+	# top-level choices, selected-item control, horizontal size adjustment,
+	# then a centred directional controller.
+	var top_controls := HBoxContainer.new()
+	top_controls.name = "BoxPackageTopControls"
+	top_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_controls.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(top_controls)
+
+	for target in ["LOGO", "NAME"]:
+		var target_button := Button.new()
+		target_button.name = "BoxPackageTarget%s" % target.capitalize()
+		target_button.text = target
+		target_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+		target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		target_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(target_button, button_font_size)
+		_style_back_design_button(target_button, box_package_position_target == target)
+		target_button.pressed.connect(_set_box_package_position_target.bind(target))
+		top_controls.add_child(target_button)
 
 	var color_button := Button.new()
 	color_button.name = "EditBoxPackageColor"
-	color_button.text = "CHANGE BOX COLOUR"
-	color_button.custom_minimum_size.y = 42 if compact else 46
+	color_button.text = "COLOR"
+	color_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
 	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	color_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(color_button, 13)
-	_style_staff_button(color_button, true)
+	_apply_research_typography(color_button, button_font_size)
+	_style_back_design_button(color_button, false)
 	color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, false, false, false, true))
-	active_feature_panel.add_child(color_button)
+	top_controls.add_child(color_button)
 
-	var branding_heading := _make_label("COMPANY BRANDING", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(branding_heading)
-	var size_heading := _make_label("BRANDING SIZE", 12, Color("#a9e3ff"))
-	active_feature_panel.add_child(size_heading)
-	for target in ["LOGO", "NAME"]:
-		var size_row := HBoxContainer.new()
-		size_row.name = "BoxPackage%sSizeRow" % target.capitalize()
-		size_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		size_row.add_theme_constant_override("separation", 8)
-		active_feature_panel.add_child(size_row)
-		var size_label := _make_label(target, 11, Color("#e6f5ff"))
-		size_label.custom_minimum_size.x = 48
-		size_row.add_child(size_label)
-		var size_slider := HSlider.new()
-		size_slider.name = "BoxPackage%sSize" % target.capitalize()
-		size_slider.min_value = 0.45 if target == "LOGO" else 18.0
-		size_slider.max_value = 1.8 if target == "LOGO" else 84.0
-		size_slider.step = 0.05 if target == "LOGO" else 1.0
-		size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		size_slider.custom_minimum_size = Vector2(0, 26)
-		size_slider.value = box_package_logo_scale if target == "LOGO" else box_package_name_font_size
-		size_slider.value_changed.connect(_on_box_package_branding_size_changed.bind(target))
-		size_row.add_child(size_slider)
+	var selected_target_button := Button.new()
+	selected_target_button.name = "BoxPackageBrandingSelector"
+	selected_target_button.text = "EDITING  %s  ▼" % box_package_position_target
+	selected_target_button.custom_minimum_size = Vector2(0, control_height)
+	selected_target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selected_target_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(selected_target_button, button_font_size)
+	_style_back_design_button(selected_target_button, true)
+	selected_target_button.pressed.connect(_set_box_package_position_target.bind("NAME" if box_package_position_target == "LOGO" else "LOGO"))
+	active_feature_panel.add_child(selected_target_button)
 
-	var position_heading := _make_label("BRANDING POSITION", 13, Color("#a9e3ff"))
-	active_feature_panel.add_child(position_heading)
-	var target_row := HBoxContainer.new()
-	target_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	target_row.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(target_row)
-	for target in ["LOGO", "NAME"]:
-		var target_button := Button.new()
-		target_button.text = target
-		target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		target_button.custom_minimum_size.y = 40 if compact else 44
-		_apply_research_typography(target_button, 12)
-		_style_staff_button(target_button, box_package_position_target == target)
-		target_button.pressed.connect(_set_box_package_position_target.bind(target))
-		target_row.add_child(target_button)
+	var size_section := VBoxContainer.new()
+	size_section.name = "BoxPackageBrandingSizeSection"
+	size_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_section.add_theme_constant_override("separation", 3)
+	active_feature_panel.add_child(size_section)
+	var size_header := HBoxContainer.new()
+	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_section.add_child(size_header)
+	var size_heading := _make_label("SIZE", 10, Color("#b9d8e9"))
+	size_header.add_child(size_heading)
+	var size_value := _make_label("LOGO  %.2f×" % box_package_logo_scale if box_package_position_target == "LOGO" else "NAME  %d" % box_package_name_font_size, 11, Color("#d5e9f5"))
+	size_value.name = "BoxPackageBrandingSizeValue"
+	size_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	size_header.add_child(size_value)
+
+	var size_slider := HSlider.new()
+	size_slider.name = "BoxPackageBrandingHorizontalSizeSlider"
+	size_slider.min_value = 0.45 if box_package_position_target == "LOGO" else 18.0
+	size_slider.max_value = 1.8 if box_package_position_target == "LOGO" else 84.0
+	size_slider.step = 0.05 if box_package_position_target == "LOGO" else 1.0
+	size_slider.custom_minimum_size = Vector2(0, 24)
+	size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	size_slider.value = box_package_logo_scale if box_package_position_target == "LOGO" else box_package_name_font_size
+	_style_back_design_slider(size_slider)
+	size_slider.value_changed.connect(_on_box_package_branding_size_changed.bind(box_package_position_target))
+	size_section.add_child(size_slider)
+
+	var pad_control_row := HBoxContainer.new()
+	pad_control_row.name = "BoxPackagePositionControllerRow"
+	pad_control_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_control_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
+	active_feature_panel.add_child(pad_control_row)
+
+	var pad_center := CenterContainer.new()
+	pad_center.name = "BoxPackagePositionControllerCenter"
+	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_child(pad_center)
+
+	var pad_shell := PanelContainer.new()
+	pad_shell.name = "BoxPackagePositionController"
+	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
+	var pad_shell_style := StyleBoxFlat.new()
+	pad_shell_style.bg_color = Color(0.28, 0.61, 0.80, 0.18)
+	pad_shell_style.border_color = Color(0.86, 0.97, 1.0, 0.72)
+	pad_shell_style.set_border_width_all(1)
+	pad_shell_style.set_corner_radius_all(16)
+	pad_shell_style.content_margin_left = 8
+	pad_shell_style.content_margin_right = 8
+	pad_shell_style.content_margin_top = 8
+	pad_shell_style.content_margin_bottom = 8
+	pad_shell.add_theme_stylebox_override("panel", pad_shell_style)
+	pad_center.add_child(pad_shell)
+
 	var position_pad := GridContainer.new()
 	position_pad.name = "BoxPackagePositionPad"
 	position_pad.columns = 3
-	position_pad.add_theme_constant_override("h_separation", 6)
-	position_pad.add_theme_constant_override("v_separation", 5)
-	position_pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(position_pad)
+	position_pad.add_theme_constant_override("h_separation", 18 if not tight else 16)
+	position_pad.add_theme_constant_override("v_separation", 6)
+	position_pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	position_pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pad_shell.add_child(position_pad)
 	_add_box_package_position_pad_spacer(position_pad)
-	_add_box_package_position_button(position_pad, "↑", Vector2i(0, 1), compact)
+	_add_box_package_position_button(position_pad, "↑", Vector2i(0, 1), tight)
 	_add_box_package_position_pad_spacer(position_pad)
-	_add_box_package_position_button(position_pad, "←", Vector2i(-1, 0), compact)
-	var position_center := Button.new()
-	position_center.text = "RESET"
-	position_center.custom_minimum_size = Vector2(54, 42)
-	_apply_research_typography(position_center, 10)
-	_style_staff_button(position_center, true)
-	position_center.pressed.connect(_reset_box_package_position)
-	position_pad.add_child(position_center)
-	_add_box_package_position_button(position_pad, "→", Vector2i(1, 0), compact)
+	_add_box_package_position_button(position_pad, "←", Vector2i(-1, 0), tight)
+	var reset_button := Button.new()
+	reset_button.name = "BoxPackagePositionResetButton"
+	reset_button.text = "RESET"
+	reset_button.custom_minimum_size = Vector2(76, 42)
+	reset_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	reset_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_apply_research_typography(reset_button, 10 if tight else 11)
+	_style_back_design_button(reset_button, true)
+	reset_button.pressed.connect(_reset_box_package_position)
+	position_pad.add_child(reset_button)
+	_add_box_package_position_button(position_pad, "→", Vector2i(1, 0), tight)
 	_add_box_package_position_pad_spacer(position_pad)
-	_add_box_package_position_button(position_pad, "↓", Vector2i(0, -1), compact)
+	_add_box_package_position_button(position_pad, "↓", Vector2i(0, -1), tight)
 	_add_box_package_position_pad_spacer(position_pad)
-
 
 
 func _add_box_package_position_pad_spacer(parent: GridContainer) -> void:
