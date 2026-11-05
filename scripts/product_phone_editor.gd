@@ -1490,7 +1490,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		gradient_direction_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(gradient_direction_button, 13)
-		_style_staff_button(gradient_direction_button, false)
+		_style_back_design_button(gradient_direction_button, false)
 		gradient_direction_button.pressed.connect(_show_gradient_direction_controls)
 		gradient_options.add_child(gradient_direction_button)
 		gradient_options.visible = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
@@ -1949,10 +1949,7 @@ func _show_gradient_direction_controls() -> void:
 	back_button.custom_minimum_size = Vector2(34, 32)
 	back_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(back_button, 25)
-	if back_design_color_mode:
-		_style_back_design_button(back_button, false)
-	else:
-		_style_staff_button(back_button, false)
+	_style_back_design_button(back_button, false)
 	back_button.pressed.connect(_return_to_gradient_color_controls)
 	header.add_child(back_button)
 	var title := _make_label("GRADIENT DIRECTION", 16, Color("#c7eacb"))
@@ -1976,7 +1973,7 @@ func _show_gradient_direction_controls() -> void:
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(option, 13)
-		_style_staff_button(option, index == _get_active_gradient_direction())
+		_style_back_design_button(option, index == _get_active_gradient_direction())
 		option.pressed.connect(_select_gradient_direction.bind(index))
 		options.add_child(option)
 	if back_design_color_mode:
@@ -2015,7 +2012,7 @@ func _select_gradient_direction(index: int) -> void:
 				var option := child as Button
 				var option_index := int(option.name.trim_prefix("GradientDirectionOption"))
 				option.text = _gradient_direction_name(option_index) + ("  ✓" if option_index == selected_direction else "")
-				_style_staff_button(option, option_index == selected_direction)
+				_style_back_design_button(option, option_index == selected_direction)
 	if is_instance_valid(gradient_direction_button):
 		gradient_direction_button.text = "GRADIENT DIRECTION  ·  " + _gradient_direction_name(selected_direction)
 
