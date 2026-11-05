@@ -1204,10 +1204,6 @@ func _cache_current_step_panel() -> void:
 			if self.has_method("_close_worksite_back_design_color_view"):
 				self.call("_close_worksite_back_design_color_view")
 			self.call("_show_back_design_controls")
-		elif self.has_method("_close_back_design_selection_popup"):
-			self.call("_close_back_design_selection_popup")
-	elif wizard_step == 14 and self.has_method("_close_rear_hardware_selection_popup"):
-		self.call("_close_rear_hardware_selection_popup")
 	elif wizard_step == 30 and bool(self.get("box_package_color_mode")):
 		_show_worksite_box_package_controls()
 	elif wizard_step == 31 and bool(self.get("phone_case_color_mode")):
