@@ -985,6 +985,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	software_editor_features.erase("Network")
 	software_editor_features.erase("WiFi")
 	software_editor_features.erase("Bluetooth")
+	software_editor_features.erase("Battery")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
 		software_editor_features,
@@ -9806,7 +9807,7 @@ func _notify_worksite_ram_selection_changed() -> void:
 	if not is_instance_valid(worksite_owner):
 		return
 	if worksite_owner.has_method("_update_ram_selection_display"):
-		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version)
+		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version, selected_battery_capacity)
 	if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 		worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
 	if worksite_owner.has_method("_refresh_ram_capacity_step"):
@@ -9939,7 +9940,39 @@ func _on_battery_capacity_selected(capacity: String) -> void:
 	if software_value_labels.has("BATTERY") and is_instance_valid(software_value_labels["BATTERY"]):
 		var battery_label: Label = software_value_labels["BATTERY"]
 		battery_label.text = capacity
-	_show_battery_controls()
+	_refresh_battery_capacity_selection_ui(active_feature_panel)
+	_notify_worksite_battery_selection_changed()
+
+
+func _refresh_battery_capacity_selection_ui(panel: Control) -> void:
+	if not is_instance_valid(panel) or panel.name != "BatterySelectionControls":
+		return
+	var options := panel.find_child("BatteryCapacityGrid", true, false) as GridContainer
+	if not is_instance_valid(options):
+		return
+	for child in options.get_children():
+		var option := child as Button
+		if not is_instance_valid(option):
+			continue
+			var capacity := option.tooltip_text
+			var selected := selected_battery_capacity == capacity
+			option.text = capacity + ("  ✓" if selected else "")
+			_style_staff_button(option, selected)
+
+
+func _notify_worksite_battery_selection_changed() -> void:
+	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
+		return
+	worksite_owner.call(
+		"_update_ram_selection_display",
+		selected_ram_technology,
+		selected_ram_capacity,
+		selected_rom_capacity,
+		selected_mobile_network,
+		selected_wifi_standard,
+		selected_bluetooth_version,
+		selected_battery_capacity
+	)
 
 
 func _show_charging_speed_controls() -> void:
@@ -10484,7 +10517,8 @@ func _notify_worksite_connectivity_selection_changed() -> void:
 		selected_rom_capacity,
 		selected_mobile_network,
 		selected_wifi_standard,
-		selected_bluetooth_version
+		selected_bluetooth_version,
+		selected_battery_capacity
 	)
 
 
