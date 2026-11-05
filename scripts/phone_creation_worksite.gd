@@ -565,6 +565,8 @@ func _on_next_pressed() -> void:
 		_show_cooling_system_step()
 	elif wizard_step == 29:
 		_show_box_package_step()
+	elif wizard_step == 30:
+		_show_phone_case_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -585,6 +587,8 @@ func _cache_current_step_panel() -> void:
 		phone_editor.call("_close_rear_hardware_selection_popup")
 	elif wizard_step == 30 and bool(phone_editor.get("box_package_color_mode")):
 		_show_worksite_box_package_controls()
+	elif wizard_step == 31 and bool(phone_editor.get("phone_case_color_mode")):
+		_show_worksite_phone_case_controls()
 
 	var current_panel := phone_editor.get("active_feature_panel") as Control
 	if is_instance_valid(current_panel):
@@ -1186,6 +1190,212 @@ func _open_worksite_box_package_color_controls() -> void:
 	back_button.pressed.connect(_show_worksite_box_package_controls)
 
 
+
+func _show_worksite_phone_case_controls() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+
+	var previous_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(previous_panel):
+		var previous_parent := previous_panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(previous_panel)
+		previous_panel.queue_free()
+
+	phone_editor.set("phone_case_color_mode", false)
+	var panel := VBoxContainer.new()
+	panel.name = "WorksitePhoneCaseControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+	selection_stack.add_child(panel)
+
+	var heading := _label("PHONE CASE", 20, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+
+	var description := _label("Build a protective shell fitted to this phone's current geometry and hardware.", 13, Color("#dce9df"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel.add_child(description)
+
+	_add_worksite_phone_case_toggle(panel)
+
+	if bool(phone_editor.get("phone_case_building")):
+		var building_heading := _label("BUILDING CASE", 16, Color("#9bd6a7"), HORIZONTAL_ALIGNMENT_CENTER)
+		building_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.add_child(building_heading)
+
+		var shimmer := ColorRect.new()
+		shimmer.name = "PhoneCaseBuildShimmer"
+		shimmer.custom_minimum_size = Vector2(0, 12)
+		shimmer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var shader := Shader.new()
+		shader.code = """
+shader_type canvas_item;
+uniform vec4 base_color : source_color = vec4(0.06,0.14,0.09,1.0);
+uniform vec4 shine_color : source_color = vec4(0.38,0.78,0.46,1.0);
+void fragment() {
+	float sweep = fract(UV.x * 1.25 - TIME * 0.72);
+	float shine = smoothstep(0.02,0.18,sweep) * (1.0-smoothstep(0.22,0.42,sweep));
+	COLOR = mix(base_color, shine_color, shine * 0.9);
+}
+"""
+		var shimmer_material := ShaderMaterial.new()
+		shimmer_material.shader = shader
+		shimmer.material = shimmer_material
+		panel.add_child(shimmer)
+
+		var building_note := _label("Matching cameras, speakers, charging port and side buttons…", 12, Color("#b8d8be"))
+		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(building_note)
+	elif bool(phone_editor.get("phone_case_custom_enabled")) and bool(phone_editor.get("phone_case_built")):
+		var ready_label := _label("CUSTOM CASE FITTED TO CURRENT DEVICE", 13, Color("#9bd6a7"))
+		panel.add_child(ready_label)
+
+		var color_button := Button.new()
+		color_button.name = "EditPhoneCaseColor"
+		color_button.text = "CHANGE CASE COLOUR"
+		color_button.custom_minimum_size = Vector2(0, 44)
+		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		color_button.focus_mode = Control.FOCUS_NONE
+		_style_button(color_button, true)
+		color_button.pressed.connect(_open_worksite_phone_case_color_controls)
+		panel.add_child(color_button)
+
+		var design_button := Button.new()
+		design_button.name = "EditPhoneCaseDesign"
+		design_button.text = "CHANGE CASE DESIGN"
+		design_button.custom_minimum_size = Vector2(0, 44)
+		design_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		design_button.focus_mode = Control.FOCUS_NONE
+		_style_button(design_button, false)
+		design_button.pressed.connect(_show_worksite_phone_case_design_controls)
+		panel.add_child(design_button)
+	else:
+		var disabled_note := _label("Enable the custom case to generate its fitted 3D shell.", 12, Color("#b8d8be"))
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(disabled_note)
+
+	var preview := phone_editor.get("phone_case_preview") as Node3D
+	if is_instance_valid(preview):
+		preview.visible = (
+			bool(phone_editor.get("phone_case_custom_enabled"))
+			and bool(phone_editor.get("phone_case_built"))
+			and not bool(phone_editor.get("phone_case_building"))
+			and not bool(phone_editor.get("charger_preview_mode"))
+			and not bool(phone_editor.get("box_package_preview_mode"))
+		)
+
+
+func _add_worksite_phone_case_toggle(parent: Control) -> void:
+	var row := HBoxContainer.new()
+	row.name = "EnableCustomCaseRow"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+
+	var caption := _label("ENABLE CUSTOM CASE", 14, Color("#e7f6ff"))
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(caption)
+
+	var enabled := bool(phone_editor.get("phone_case_custom_enabled"))
+	var toggle := TextureButton.new()
+	toggle.name = "EnableCustomPhoneCaseCheckbox"
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	var unchecked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", false)
+	var checked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", true)
+	toggle.texture_normal = unchecked_icon
+	toggle.texture_hover = unchecked_icon
+	toggle.texture_pressed = checked_icon
+	toggle.texture_disabled = unchecked_icon
+	toggle.toggle_mode = true
+	toggle.button_pressed = enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.toggled.connect(Callable(phone_editor, "_on_phone_case_custom_toggled"))
+	row.add_child(toggle)
+
+
+func _show_worksite_phone_case_design_controls() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	if not bool(phone_editor.get("phone_case_custom_enabled")) or not bool(phone_editor.get("phone_case_built")):
+		_show_worksite_phone_case_controls()
+		return
+
+	var previous_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(previous_panel):
+		var previous_parent := previous_panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(previous_panel)
+		previous_panel.queue_free()
+
+	phone_editor.set("phone_case_color_mode", false)
+	var panel := VBoxContainer.new()
+	panel.name = "WorksitePhoneCaseDesignControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+	selection_stack.add_child(panel)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 7)
+	panel.add_child(header)
+	var back_button := Button.new()
+	back_button.name = "BackToPhoneCaseControls"
+	back_button.text = "‹"
+	back_button.custom_minimum_size = Vector2(38, 38)
+	back_button.focus_mode = Control.FOCUS_NONE
+	_style_button(back_button, false)
+	back_button.pressed.connect(_show_worksite_phone_case_controls)
+	header.add_child(back_button)
+
+	var title := _label("CASE BACK DESIGN", 17, Color("#c7eacb"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+
+	var note := _label("Choose a finish for the back of your case. Your selected colour and gradient stay unchanged.", 12, Color("#dce9df"))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel.add_child(note)
+
+	var design_names := ["Smooth", "Carbon Weave", "Hex Pattern", "Racing Stripes", "Grip Ridges"]
+	var selected_style := int(phone_editor.get("phone_case_design_style"))
+	for index in range(design_names.size()):
+		var option := Button.new()
+		option.name = "PhoneCaseDesignOption_%02d" % index
+		option.text = design_names[index].to_upper() + ("   ✓ ACTIVE" if index == selected_style else "")
+		option.custom_minimum_size = Vector2(0, 48)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_style_button(option, index == selected_style)
+		option.pressed.connect(Callable(phone_editor, "_on_phone_case_design_selected").bind(index))
+		panel.add_child(option)
+
+
+func _open_worksite_phone_case_color_controls() -> void:
+	phone_editor.call("_show_device_color_controls", false, true)
+	var color_panel := phone_editor.get("active_feature_panel") as Control
+	if not is_instance_valid(color_panel) or color_panel.get_child_count() == 0:
+		return
+	var header := color_panel.get_child(0) as HBoxContainer
+	if not is_instance_valid(header) or header.get_child_count() == 0:
+		return
+	var back_button := header.get_child(0) as Button
+	if not is_instance_valid(back_button):
+		return
+	var legacy_back_callback := Callable(phone_editor, "_show_phone_case_controls")
+	if back_button.pressed.is_connected(legacy_back_callback):
+		back_button.pressed.disconnect(legacy_back_callback)
+	back_button.pressed.connect(_show_worksite_phone_case_controls)
+
+
 func _show_worksite_sensor_controls() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
@@ -1380,6 +1590,10 @@ func _show_cooling_system_step() -> void:
 
 func _show_box_package_step() -> void:
 	_show_worksite_step(30, "_show_worksite_box_package_controls")
+
+
+func _show_phone_case_step() -> void:
+	_show_worksite_step(31, "_show_worksite_phone_case_controls")
 
 
 func _keep_step_navigation_active() -> void:
