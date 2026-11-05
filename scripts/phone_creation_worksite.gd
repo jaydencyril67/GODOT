@@ -990,7 +990,7 @@ func _show_worksite_sensor_controls() -> void:
 		var enabled := bool(sensors.get(sensor_name, false))
 		var toggle := TextureButton.new()
 		toggle.name = "SensorEnabledToggle"
-		toggle.custom_minimum_size = Vector2(42, 42)
+		toggle.custom_minimum_size = Vector2(38, 38)
 		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 		toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		toggle.ignore_texture_size = true
