@@ -1,7 +1,6 @@
 extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
-const PhonePreviewEngineScene: PackedScene = preload("res://scenes/phone_preview_engine.tscn")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
@@ -29,7 +28,7 @@ var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
-var phone_editor: Node3D
+var phone_research_worksite: Node3D
 var phone_creation_worksite: Node3D
 var home_navigation_layer: CanvasLayer
 var home_company_label: Label
@@ -96,7 +95,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research_phone", "office", "staff_market", "staff_management", "phone_editor", "phone_creation_worksite"]:
+	if current_screen not in ["home", "headquarters", "create", "research", "research_phone", "office", "staff_market", "staff_management", "phone_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -231,17 +230,17 @@ func _save_career() -> bool:
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
-func _dispose_phone_editor() -> void:
-	if not is_instance_valid(phone_editor):
-		phone_editor = null
+func _dispose_phone_research_worksite() -> void:
+	if not is_instance_valid(phone_research_worksite):
+		phone_research_worksite = null
 		return
 	# CanvasLayers render independently of their Node3D parent, so hide the
 	# editor's interface before deferred deletion to prevent a transition flash.
-	for child in phone_editor.get_children():
+	for child in phone_research_worksite.get_children():
 		if child is CanvasLayer:
 			child.hide()
-	phone_editor.queue_free()
-	phone_editor = null
+	phone_research_worksite.queue_free()
+	phone_research_worksite = null
 
 
 func _clear_world() -> void:
@@ -585,7 +584,7 @@ func _begin_fresh_game() -> void:
 	game_date_unix = 1262304000.0
 	game_clock_paused = false
 	last_saved_game_day = -1
-	_dispose_phone_editor()
+	_dispose_phone_research_worksite()
 	_clear_world()
 	_show_profile()
 
@@ -2455,21 +2454,21 @@ func _restore_home_after_standalone_screen() -> void:
 
 
 func _show_research_phone() -> void:
-	_dispose_phone_editor()
-	phone_editor = PhonePreviewEngineScene.instantiate() as Node3D
-	phone_editor.name = "Phone_Research_Screen"
-	phone_editor.set("research_mode", true)
-	phone_editor.connect("back_requested", Callable(self, "_return_from_research_phone"))
-	phone_editor.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
-	phone_editor.call("set_research_data", career.get("phone_design_research", {}), float(career.get("balance", 10000000.0)))
+	_dispose_phone_research_worksite()
+	phone_research_worksite = PhoneCreationWorksiteScene.instantiate() as Node3D
+	phone_research_worksite.name = "Phone_Research_Screen"
+	phone_research_worksite.set("research_mode", true)
+	phone_research_worksite.connect("back_requested", Callable(self, "_return_from_research_phone"))
+	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
+	phone_research_worksite.call("set_research_data", career.get("phone_design_research", {}), float(career.get("balance", 10000000.0)))
 	if is_instance_valid(ui_layer):
 		ui_layer.hide()
-	add_child(phone_editor)
+	add_child(phone_research_worksite)
 	current_screen = "research_phone"
 
 
 func _return_from_research_phone() -> void:
-	_dispose_phone_editor()
+	_dispose_phone_research_worksite()
 	current_screen = "research"
 	if is_instance_valid(ui_layer):
 		ui_layer.show()
@@ -2534,8 +2533,8 @@ func _apply_phone_design_research_upgrade(research_id: String) -> void:
 	_show_finance_toast(-upgrade_cost, "RESEARCH UPGRADE")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_editor):
-		phone_editor.call("set_research_data", career.get("phone_design_research", {}), float(career["balance"]))
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", career.get("phone_design_research", {}), float(career["balance"]))
 func _return_to_home() -> void:
 	_restore_home_after_standalone_screen()
 
