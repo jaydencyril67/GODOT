@@ -492,7 +492,6 @@ var software_summary_panel: PanelContainer
 
 var software_value_labels: Dictionary = {}
 
-var worksite_owner: Node
 
 var selected_ram_capacity := "Not set"
 
@@ -726,7 +725,6 @@ func _build_preview_world() -> void:
 	# Worksite owns the live preview viewport directly. There is no nested
 	# editor node, preview-engine scene, or second editor interface.
 	worksite_creation_mode = true
-	worksite_owner = self
 	preview_container = SubViewportContainer.new()
 	preview_container.name = "RotatablePhonePreview"
 	preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -11395,8 +11393,7 @@ func _on_cooling_system_selected(cooling_type: String) -> void:
 			var selected: bool = cooling_option == selected_cooling_system
 			option_button.text = cooling_option + ("   ✓ SELECTED" if selected else "")
 			_style_staff_button(option_button, selected)
-		if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons"):
-			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
+		_style_ram_selector_buttons(active_feature_panel)
 	_notify_worksite_full_selection_changed()
 
 func _show_refresh_rate_controls() -> void:
@@ -11460,8 +11457,7 @@ func _on_refresh_rate_selected(rate_text: String) -> void:
 			var selected := option_text == selected_refresh_rate
 			option_button.text = option_text + ("   ✓ SELECTED" if selected else "")
 			_style_staff_button(option_button, selected)
-		if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons"):
-			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
+		_style_ram_selector_buttons(active_feature_panel)
 	_notify_worksite_full_selection_changed()
 
 func _show_ram_controls() -> void:
@@ -11603,10 +11599,7 @@ func _on_ram_technology_selected(technology: String) -> void:
 	_notify_worksite_ram_selection_changed()
 
 func _notify_worksite_full_selection_changed() -> void:
-	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
-		return
-	worksite_owner.call(
-		"_update_ram_selection_display",
+	_update_ram_selection_display(
 		selected_ram_technology,
 		selected_ram_capacity,
 		selected_rom_capacity,
@@ -11626,10 +11619,9 @@ func _notify_worksite_full_selection_changed() -> void:
 
 func _notify_worksite_ram_selection_changed() -> void:
 	_notify_worksite_full_selection_changed()
-	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
-		worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
-	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_refresh_ram_capacity_step"):
-		worksite_owner.call("_refresh_ram_capacity_step")
+	if is_instance_valid(active_feature_panel):
+		_style_ram_selector_buttons(active_feature_panel)
+	_refresh_ram_capacity_step()
 
 func _refresh_ram_technology_selection_ui() -> void:
 	if not is_instance_valid(active_feature_panel):
@@ -11677,10 +11669,9 @@ func _on_rom_capacity_selected(capacity: String) -> void:
 		var rom_label: Label = software_value_labels["ROM"]
 		rom_label.text = capacity
 	_refresh_rom_capacity_selection_ui(active_feature_panel)
-	if is_instance_valid(worksite_owner):
-		_notify_worksite_full_selection_changed()
-		if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
-			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
+	_notify_worksite_full_selection_changed()
+	if is_instance_valid(active_feature_panel):
+		_style_ram_selector_buttons(active_feature_panel)
 
 func _refresh_rom_capacity_selection_ui(panel: Control) -> void:
 	if not is_instance_valid(panel) or panel.name != "ROMSelectionControls":
@@ -12186,8 +12177,7 @@ func _refresh_connectivity_selection_ui(panel: Control, selection_kind: String) 
 				selected = selected_bluetooth_version == version
 				option.text = version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS") + ("  ✓" if selected else "")
 		_style_staff_button(option, selected)
-	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons"):
-		worksite_owner.call("_style_ram_selector_buttons", panel)
+	_style_ram_selector_buttons(panel)
 
 func _notify_worksite_connectivity_selection_changed() -> void:
 	_notify_worksite_full_selection_changed()
