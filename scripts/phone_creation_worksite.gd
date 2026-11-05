@@ -125,6 +125,12 @@ func _build_preview_world() -> void:
 	phone_editor.worksite_creation_mode = true
 	phone_editor.worksite_owner = self
 	add_child(phone_editor)
+	# Slightly tighten the default camera distance for a larger phone preview
+	# without changing the device's real dimensions or its mesh proportions.
+	var phone_preview_camera := phone_editor.get("preview_camera") as Camera3D
+	if is_instance_valid(phone_preview_camera):
+		phone_preview_camera.position = Vector3(0.0, 0.0, 4.9)
+		phone_preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 	if phone_editor.has_signal("worksite_nested_color_view_opened"):
 		phone_editor.connect("worksite_nested_color_view_opened", _on_nested_color_view_opened)
 
