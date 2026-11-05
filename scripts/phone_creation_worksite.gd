@@ -762,11 +762,8 @@ func _update_ram_selection_display(
 	if wireless_charge != "Not set":
 		_add_specification_readout_entry("WIRELESS CHARGING", wireless_charge)
 	if sensors_step_visited:
-		if sensors.is_empty():
-			_add_specification_readout_entry("SENSOR", "None enabled")
-		else:
-			for sensor_name in sensors:
-				_add_specification_readout_entry("SENSOR", str(sensor_name))
+		var sensor_summary := "None enabled" if sensors.is_empty() else ", ".join(PackedStringArray(sensors).map(func(sensor_name: Variant) -> String: return str(sensor_name)))
+		_add_specification_readout_entry("SENSORS", sensor_summary)
 	if front_camera_mp != "Not set":
 		_add_specification_readout_entry("FRONT CAMERA MP", front_camera_mp)
 	if rear_camera_mp != "Not set":
