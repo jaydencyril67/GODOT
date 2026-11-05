@@ -12,7 +12,7 @@ var cooling_system_step_visited := false
 signal back_requested
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
-const PhoneEditorScene = preload("res://scenes/product_phone_editor.tscn")
+const PhonePreviewEngineScene = preload("res://scenes/phone_preview_engine.tscn")
 
 
 class GlassArrowButton extends Button:
@@ -120,7 +120,7 @@ func _build_preview_world() -> void:
 	# state, materials, display construction and foldable hierarchy are reused.
 	# Its full-screen editor UI is hidden; only its original preview viewport is
 	# moved into this worksite's left-hand preview region.
-	phone_editor = PhoneEditorScene.instantiate()
+	phone_editor = PhonePreviewEngineScene.instantiate()
 	phone_editor.name = "ReusedPhoneEditorEngine"
 	phone_editor.worksite_creation_mode = true
 	phone_editor.worksite_owner = self
