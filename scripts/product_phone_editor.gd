@@ -5200,6 +5200,10 @@ func _on_charger_color_selected(value: String) -> void:
 
 
 func _show_charger_controls(page: String = "HOME") -> void:
+	if worksite_creation_mode and is_instance_valid(worksite_owner) and worksite_owner.has_method("_show_worksite_charger_controls"):
+		charger_controls_page = page
+		worksite_owner.call("_show_worksite_charger_controls", page)
+		return
 	if not is_instance_valid(right_tools_content):
 		return
 	charger_controls_page = page
