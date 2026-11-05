@@ -8060,7 +8060,7 @@ func _get_style_pen_marker_layout() -> Dictionary:
 			var candidate_x := lerpf(straight_start_x, 0.0, float(step) / 80.0)
 			var candidate := Vector2(candidate_x, bottom_y + edge_inset)
 			var clear := true
-			for speaker_x in left_speaker_positions:
+			for speaker_x in speaker_positions:
 				var speaker_center := Vector2(speaker_x, bottom_y + 0.0045)
 				if candidate.distance_to(speaker_center) < required_clearance:
 					clear = false
