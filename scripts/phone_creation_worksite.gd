@@ -3,6 +3,11 @@ extends Node3D
 var charging_speed_step_visited := false
 var wireless_charge_step_visited := false
 var sensors_step_visited := false
+var front_camera_mp_step_visited := false
+var rear_camera_mp_step_visited := false
+var memory_clock_step_visited := false
+var refresh_rate_step_visited := false
+var cooling_system_step_visited := false
 
 signal back_requested
 
@@ -235,7 +240,7 @@ func _build_interface() -> void:
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 25
+	progress_bar.max_value = 30
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -512,6 +517,16 @@ func _on_next_pressed() -> void:
 		_show_wireless_charge_step()
 	elif wizard_step == 23:
 		_show_sensors_step()
+	elif wizard_step == 24:
+		_show_front_camera_mp_step()
+	elif wizard_step == 25:
+		_show_rear_camera_mp_step()
+	elif wizard_step == 26:
+		_show_memory_clock_step()
+	elif wizard_step == 27:
+		_show_refresh_rate_step()
+	elif wizard_step == 28:
+		_show_cooling_system_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -549,7 +564,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
-	if step < 15 or step > 24:
+	if step < 15 or step > 29:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
 	wizard_step = step
@@ -559,6 +574,16 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 		wireless_charge_step_visited = true
 	if step >= 24:
 		sensors_step_visited = true
+	if step >= 25:
+		front_camera_mp_step_visited = true
+	if step >= 26:
+		rear_camera_mp_step_visited = true
+	if step >= 27:
+		memory_clock_step_visited = true
+	if step >= 28:
+		refresh_rate_step_visited = true
+	if step >= 29:
+		cooling_system_step_visited = true
 	type_step_content.hide()
 	phone_editor.set("active_feature_panel", null)
 
@@ -590,10 +615,10 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 	if is_instance_valid(panel):
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
-		if step >= 15 and step <= 24:
+		if step >= 15 and step <= 29:
 			_style_ram_selector_buttons(panel)
 
-	if step >= 15 and step <= 24:
+	if step >= 15 and step <= 29:
 		_set_ram_selection_preview(true)
 		_update_ram_selection_display(
 			str(phone_editor.get("selected_ram_technology")),
@@ -605,7 +630,12 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			str(phone_editor.get("selected_battery_capacity")),
 			str(phone_editor.get("selected_charging_speed")) + "W" if charging_speed_step_visited else "Not set",
 			(str(phone_editor.get("selected_wireless_charging_speed")) + "W" if bool(phone_editor.get("selected_wireless_charge_enabled")) else "Disabled") if wireless_charge_step_visited else "Not set",
-			str(phone_editor.call("_get_enabled_sensor_summary")) if sensors_step_visited else "Not set"
+			str(phone_editor.call("_get_enabled_sensor_summary")) if sensors_step_visited else "Not set",
+			str(phone_editor.call("_get_front_camera_mp_summary")) if front_camera_mp_step_visited else "Not set",
+			str(phone_editor.call("_get_rear_camera_mp_summary")) if rear_camera_mp_step_visited else "Not set",
+			str(phone_editor.get("selected_memory_clock")) if memory_clock_step_visited else "Not set",
+			str(phone_editor.get("selected_refresh_rate")) if refresh_rate_step_visited else "Not set",
+			str(phone_editor.get("selected_cooling_system")) if cooling_system_step_visited else "Not set"
 		)
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
@@ -652,7 +682,12 @@ func _update_ram_selection_display(
 	battery: String = "Not set",
 	charging_speed: String = "Not set",
 	wireless_charge: String = "Not set",
-	sensors: String = "Not set"
+	sensors: String = "Not set",
+	front_camera_mp: String = "Not set",
+	rear_camera_mp: String = "Not set",
+	memory_clock: String = "Not set",
+	refresh_rate: String = "Not set",
+	cooling_system: String = "Not set"
 ) -> void:
 	if not is_instance_valid(specification_readout):
 		return
@@ -668,6 +703,20 @@ func _update_ram_selection_display(
 		sensors = "Not set"
 	elif sensors == "Not set" and is_instance_valid(phone_editor) and phone_editor.has_method("_get_enabled_sensor_summary"):
 		sensors = str(phone_editor.call("_get_enabled_sensor_summary"))
+	if not front_camera_mp_step_visited:
+		front_camera_mp = "Not set"
+	elif front_camera_mp == "Not set" and is_instance_valid(phone_editor) and phone_editor.has_method("_get_front_camera_mp_summary"):
+		front_camera_mp = str(phone_editor.call("_get_front_camera_mp_summary"))
+	if not rear_camera_mp_step_visited:
+		rear_camera_mp = "Not set"
+	elif rear_camera_mp == "Not set" and is_instance_valid(phone_editor) and phone_editor.has_method("_get_rear_camera_mp_summary"):
+		rear_camera_mp = str(phone_editor.call("_get_rear_camera_mp_summary"))
+	if not memory_clock_step_visited:
+		memory_clock = "Not set"
+	if not refresh_rate_step_visited:
+		refresh_rate = "Not set"
+	if not cooling_system_step_visited:
+		cooling_system = "Not set"
 
 	for child in specification_readout.get_children():
 		specification_readout.remove_child(child)
@@ -710,6 +759,16 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("WIRELESS CHARGING", wireless_charge)
 	if sensors != "Not set":
 		_add_specification_readout_entry("SENSORS", sensors)
+	if front_camera_mp != "Not set":
+		_add_specification_readout_entry("FRONT CAMERA MP", front_camera_mp)
+	if rear_camera_mp != "Not set":
+		_add_specification_readout_entry("REAR CAMERA MP", rear_camera_mp)
+	if memory_clock != "Not set":
+		_add_specification_readout_entry("MEMORY CLOCK", memory_clock)
+	if refresh_rate != "Not set":
+		_add_specification_readout_entry("REFRESH RATE", refresh_rate)
+	if cooling_system != "Not set":
+		_add_specification_readout_entry("COOLING SYSTEM", cooling_system)
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
@@ -737,8 +796,8 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 25)
-	progress_number.text = "STEP %d / 25" % progress_value
+	var progress_value := clampi(step + 1, 1, 30)
+	progress_number.text = "STEP %d / 30" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -848,6 +907,26 @@ func _show_wireless_charge_step() -> void:
 
 func _show_sensors_step() -> void:
 	_show_worksite_step(24, "_show_sensor_controls")
+
+
+func _show_front_camera_mp_step() -> void:
+	_show_worksite_step(25, "_show_front_camera_mp_controls")
+
+
+func _show_rear_camera_mp_step() -> void:
+	_show_worksite_step(26, "_show_rear_camera_mp_controls")
+
+
+func _show_memory_clock_step() -> void:
+	_show_worksite_step(27, "_show_memory_clock_controls")
+
+
+func _show_refresh_rate_step() -> void:
+	_show_worksite_step(28, "_show_refresh_rate_controls")
+
+
+func _show_cooling_system_step() -> void:
+	_show_worksite_step(29, "_show_cooling_system_controls")
 
 
 func _keep_step_navigation_active() -> void:
