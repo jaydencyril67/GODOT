@@ -199,7 +199,7 @@ var rear_hardware_selection_popup: PanelContainer
 var rear_hardware_selection_scroll: ScrollContainer
 var rear_hardware_selection_items: VBoxContainer
 var rear_hardware_size_label: Label
-var rear_hardware_size_slider: VSlider
+var rear_hardware_size_slider: HSlider
 var rear_hardware_add_button: Button
 var rear_hardware_remove_button: Button
 var rear_hardware_previous_button: Button
