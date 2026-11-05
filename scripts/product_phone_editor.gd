@@ -10227,7 +10227,7 @@ func _show_wifi_controls() -> void:
 	# Non-scrollable two-column grid for all Wi-Fi standards.
 	var options := GridContainer.new()
 	options.name = "WiFiStandardOptions"
-	options.columns = 1
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	options.add_theme_constant_override("h_separation", 6)
@@ -10368,13 +10368,13 @@ func _show_mobile_network_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT MOBILE NETWORK", 17, Color("#c7eacb"))
+	var heading := _make_label("SELECT INTERNET NETWORK", 17, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
 	var options := GridContainer.new()
 	options.name = "MobileNetworkOptions"
-	options.columns = 1
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	options.add_theme_constant_override("h_separation", 6)
