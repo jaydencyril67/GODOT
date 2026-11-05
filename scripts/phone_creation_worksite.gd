@@ -1,5 +1,8 @@
 extends Node3D
 
+var charging_speed_step_visited := false
+var wireless_charge_step_visited := false
+
 signal back_requested
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
@@ -222,14 +225,14 @@ func _build_interface() -> void:
 	progress.custom_minimum_size = Vector2(150, 38)
 	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-	progress_number = _label("STEP 1 / 22", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 24", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 22
+	progress_bar.max_value = 24
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -500,6 +503,10 @@ func _on_next_pressed() -> void:
 		_show_bluetooth_step()
 	elif wizard_step == 20:
 		_show_battery_step()
+	elif wizard_step == 21:
+		_show_charging_speed_step()
+	elif wizard_step == 22:
+		_show_wireless_charge_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -537,10 +544,14 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
-	if step < 15 or step > 21:
+	if step < 15 or step > 23:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
 	wizard_step = step
+	if step >= 22:
+		charging_speed_step_visited = true
+	if step >= 23:
+		wireless_charge_step_visited = true
 	type_step_content.hide()
 	phone_editor.set("active_feature_panel", null)
 
@@ -572,10 +583,10 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 	if is_instance_valid(panel):
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
-		if step >= 15 and step <= 21:
+		if step >= 15 and step <= 23:
 			_style_ram_selector_buttons(panel)
 
-	if step >= 15 and step <= 20:
+	if step >= 15 and step <= 23:
 		_set_ram_selection_preview(true)
 		_update_ram_selection_display(
 			str(phone_editor.get("selected_ram_technology")),
@@ -584,7 +595,9 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			str(phone_editor.get("selected_mobile_network")),
 			str(phone_editor.get("selected_wifi_standard")),
 			str(phone_editor.get("selected_bluetooth_version")),
-			str(phone_editor.get("selected_battery_capacity"))
+			str(phone_editor.get("selected_battery_capacity")),
+			str(phone_editor.get("selected_charging_speed")) + "W" if charging_speed_step_visited else "Not set",
+			(str(phone_editor.get("selected_wireless_charging_speed")) + "W" if bool(phone_editor.get("selected_wireless_charge_enabled")) else "Disabled") if wireless_charge_step_visited else "Not set"
 		)
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
@@ -628,7 +641,9 @@ func _update_ram_selection_display(
 	internet: String = "Not set",
 	wifi: String = "Not set",
 	bluetooth: String = "Not set",
-	battery: String = "Not set"
+	battery: String = "Not set",
+	charging_speed: String = "Not set",
+	wireless_charge: String = "Not set"
 ) -> void:
 	if not is_instance_valid(specification_readout):
 		return
@@ -653,6 +668,10 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("BLUETOOTH", bluetooth)
 	if battery != "Not set":
 		_add_specification_readout_entry("BATTERY", battery)
+	if charging_speed != "Not set":
+		_add_specification_readout_entry("CHARGING SPEED", charging_speed)
+	if wireless_charge != "Not set":
+		_add_specification_readout_entry("WIRELESS CHARGING", wireless_charge)
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
@@ -672,8 +691,8 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 22)
-	progress_number.text = "STEP %d / 22" % progress_value
+	var progress_value := clampi(step + 1, 1, 24)
+	progress_number.text = "STEP %d / 24" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -771,6 +790,14 @@ func _show_bluetooth_step() -> void:
 
 func _show_battery_step() -> void:
 	_show_worksite_step(21, "_show_battery_controls")
+
+
+func _show_charging_speed_step() -> void:
+	_show_worksite_step(22, "_show_charging_speed_controls")
+
+
+func _show_wireless_charge_step() -> void:
+	_show_worksite_step(23, "_show_wireless_charge_controls")
 
 
 func _keep_step_navigation_active() -> void:
