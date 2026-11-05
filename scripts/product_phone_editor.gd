@@ -7983,6 +7983,46 @@ func _refresh_phone_side_buttons() -> void:
 	_route_foldable_accessories()
 
 
+func _get_phone_speaker_x_positions() -> Array[float]:
+	var positions: Array[float] = []
+	if speaker_count <= 0:
+		return positions
+
+	# The reserved opening is deliberately based on the largest supported
+	# connector, not the currently selected connector. Changing port type can
+	# therefore never move the black speaker openings.
+	var reserved_port_half_width := 0.115
+	var edge_margin := 0.035
+	if selected_phone_type == "Fold":
+		# Fold connectors are mounted on the fixed leaf, not at the handset
+		# centre. Keep every speaker on the opposite, moving leaf.
+		var layout := _get_foldable_segment_layout()
+		var fixed_offset: Vector3 = layout["fixed_offset"]
+		var moving_offset: Vector3 = layout["moving_offset"]
+		var segment_size: Vector3 = layout["segment_size"]
+		var min_x := fixed_offset.x + reserved_port_half_width + edge_margin
+		var outer_corner_radius := 0.32 * float(border_radius_level) / 6.0
+		var outer_edge_inset := maxf(edge_margin, minf(outer_corner_radius * 0.35, 0.09))
+		var max_x := _active_phone_size().x * 0.5 - outer_edge_inset
+		# Keep the row within the moving leaf even on unusually narrow models.
+		var moving_left := moving_offset.x - segment_size.x * 0.5 + edge_margin
+		min_x = maxf(min_x, moving_left)
+		if max_x < min_x:
+			max_x = min_x
+		for index in range(speaker_count):
+			var fraction := 0.5 if speaker_count == 1 else float(index) / float(speaker_count - 1)
+			positions.append(lerpf(min_x, max_x, fraction))
+		return positions
+
+	var left_count := int(ceil(float(speaker_count) * 0.5))
+	var right_count := speaker_count - left_count
+	for index in range(left_count):
+		positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * 0.045))
+	for index in range(right_count):
+		positions.append(reserved_port_half_width + edge_margin + float(index) * 0.045)
+	return positions
+
+
 func _get_style_pen_marker_layout() -> Dictionary:
 	# Keep the marker and the pouch opening on the exact same calculated point.
 	var corner_radius := 0.32 * float(border_radius_level) / 6.0
@@ -7995,13 +8035,7 @@ func _get_style_pen_marker_layout() -> Dictionary:
 	var marker_position := Vector2(left_edge + corner_radius + circle_radius + 0.012, bottom_y + edge_inset)
 	var marker_rotation := 0.0
 	var found_position := false
-	var left_count := int(ceil(float(speaker_count) * 0.5))
-	var reserved_port_half_width := 0.115
-	var edge_margin := 0.035
-	var hole_spacing := 0.045
-	var left_speaker_positions: Array[float] = []
-	for index in range(left_count):
-		left_speaker_positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * hole_spacing))
+	var speaker_positions := _get_phone_speaker_x_positions()
 	var required_clearance := circle_radius + speaker_radius + speaker_clearance
 	if corner_radius > 0.08:
 		var arc_center := Vector2(left_edge + corner_radius, bottom_y + corner_radius)
@@ -8010,7 +8044,7 @@ func _get_style_pen_marker_layout() -> Dictionary:
 			var angle := -PI * 0.5 - deg_to_rad(float(step))
 			var candidate := arc_center + Vector2(cos(angle), sin(angle)) * arc_path_radius
 			var clear := true
-			for speaker_x in left_speaker_positions:
+			for speaker_x in speaker_positions:
 				var speaker_center := Vector2(speaker_x, bottom_y + 0.0045)
 				if candidate.distance_to(speaker_center) < required_clearance:
 					clear = false
@@ -8299,23 +8333,11 @@ func _refresh_phone_speakers() -> void:
 	speaker_set.name = "PhoneSpeakerOpenings"
 	phone_body.add_child(speaker_set)
 
-	# Fixed center clearance for every supported connector. Speaker placement
-	# never reads charge_port_type or port dimensions, so port edits cannot
-	# move, resize, or reshape these circles.
+	# Speaker positions reserve the full connector zone and do not depend
+	# on the selected port type. Fold models use the opposite leaf from the port.
 	var bottom_y := -_active_phone_size().y * 0.5
-	var reserved_port_half_width := 0.115
-	var edge_margin := 0.035
-	var hole_spacing := 0.045
 	var hole_radius := 0.012
-	var left_count := int(ceil(float(speaker_count) * 0.5))
-	var right_count := speaker_count - left_count
-	var positions: Array[float] = []
-
-	# Keep the speaker layout fixed and independent of optional hardware.
-	for index in range(left_count):
-		positions.append(-(reserved_port_half_width + edge_margin + float(left_count - 1 - index) * hole_spacing))
-	for index in range(right_count):
-		positions.append(reserved_port_half_width + edge_margin + float(index) * hole_spacing)
+	var positions := _get_phone_speaker_x_positions()
 
 	var hole_material := StandardMaterial3D.new()
 	# Unshaded + pure black albedo keeps the speaker faces black under every
@@ -11160,13 +11182,7 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		_case_side_opening(combiner, -1.0, sim_tray_y, 0.25, depth, wall, "SIMTrayOpening")
 
 	if speaker_count > 0 and (selected_phone_type == "Fold" or include_port):
-		var left_count := int(ceil(float(speaker_count) * 0.5))
-		var right_count := speaker_count - left_count
-		var speaker_xs: Array[float] = []
-		for index in range(left_count):
-			speaker_xs.append(-(0.115 + 0.035 + float(left_count - 1 - index) * 0.045))
-		for index in range(right_count):
-			speaker_xs.append(0.115 + 0.035 + float(index) * 0.045)
+		var speaker_xs := _get_phone_speaker_x_positions()
 		for index in range(speaker_xs.size()):
 			var speaker_x := speaker_xs[index]
 			if absf(speaker_x - centre.x) > segment_size.x * 0.5:
@@ -11348,18 +11364,9 @@ func _rebuild_phone_case_geometry() -> void:
 			pen_cut.position = Vector3(pen_position.x, -_active_phone_size().y*0.5, 0.0)
 			_case_subtract(combiner,pen_cut)
 
-	# Bottom speaker openings are placed from the same formula as the live phone.
+	# Match the live handset speaker row exactly, including Fold port clearance.
 	if speaker_count>0:
-		var reserved := 0.115
-		var margin := 0.035
-		var spacing := 0.045
-		var left_count := int(ceil(float(speaker_count)*0.5))
-		var right_count := speaker_count-left_count
-		var xs: Array[float] = []
-		for i in range(left_count):
-			xs.append(-(reserved+margin+float(left_count-1-i)*spacing))
-		for i in range(right_count):
-			xs.append(reserved+margin+float(i)*spacing)
+		var xs := _get_phone_speaker_x_positions()
 		for i in range(xs.size()):
 			var speaker_cut := CSGCylinder3D.new()
 			speaker_cut.name = "SpeakerOpening_%02d" % (i+1)
