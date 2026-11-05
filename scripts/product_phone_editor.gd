@@ -6059,16 +6059,18 @@ func _get_front_camera_mp_layout() -> Array:
 		var inner_row: Array = [
 			{"label": "INNER 01", "property": "front_camera_megapixels"}
 		]
-		if is_dual_punch:
-			inner_row.append({"label": "INNER 02", "property": "front_camera_secondary_megapixels"})
-		rows.append(inner_row)
-
 		var outer_row: Array = [
 			{"label": "OUTER 01", "property": "front_camera_outer_megapixels"}
 		]
 		if is_dual_punch:
+			inner_row.append({"label": "INNER 02", "property": "front_camera_secondary_megapixels"})
 			outer_row.append({"label": "OUTER 02", "property": "front_camera_outer_secondary_megapixels"})
-		rows.append(outer_row)
+		rows.append(inner_row)
+		if is_dual_punch:
+			rows.append(outer_row)
+		else:
+			# A non-dual Flip/Fold has one inner and one outer camera side by side.
+			rows[0].append(outer_row[0])
 	else:
 		var standard_row: Array = [
 			{"label": "01", "property": "front_camera_megapixels"}
