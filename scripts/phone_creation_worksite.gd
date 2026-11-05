@@ -783,7 +783,7 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 	# Keep each subject/value pair in one Label. Separate child Labels inside
 	# a narrow GridContainer cell were allowing the subject to collapse to a
 	# one-character-wide strip on compact landscape screens.
-	var entry := _label(caption_text + ":  " + value_text, 42, Color("#f1f5f1"))
+	var entry := _label(caption_text + ":  " + value_text, 20, Color("#f1f5f1"))
 	entry.autowrap_mode = TextServer.AUTOWRAP_OFF
 	entry.clip_text = true
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
