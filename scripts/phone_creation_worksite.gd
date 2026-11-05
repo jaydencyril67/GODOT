@@ -507,6 +507,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
+	if step != 15 and phone_editor.has_method("_set_worksite_ram_specs_preview"):
+		phone_editor.call("_set_worksite_ram_specs_preview", false)
 	_prepare_step_panels_for_navigation()
 	wizard_step = step
 	type_step_content.hide()
@@ -539,6 +541,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			panel.show()
 			step_panels[step] = panel
 
+	if step == 15 and phone_editor.has_method("_set_worksite_ram_specs_preview"):
+		phone_editor.call("_set_worksite_ram_specs_preview", true, preview_region)
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
 	_keep_step_navigation_active()
