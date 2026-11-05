@@ -946,29 +946,16 @@ func _show_worksite_sensor_controls() -> void:
 	count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(count_label)
 
-	# Give the selector a real minimum viewport height. The parent step panel
-	# uses SHRINK_BEGIN, so an unconstrained ScrollContainer can otherwise
-	# collapse and leave the right-hand sensor options invisible.
-	var scroll := ScrollContainer.new()
-	scroll.name = "PhoneSensorOptionsScroll"
-	scroll.custom_minimum_size = Vector2(0, 270)
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	var scroll_bar := scroll.get_v_scroll_bar()
-	scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(scroll)
-
+	# All ten sensor choices fit directly in the right panel: five rows,
+	# two columns, with no ScrollContainer and no scrolling interaction.
 	var options := GridContainer.new()
 	options.name = "PhoneSensorOptions"
 	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	options.add_theme_constant_override("h_separation", 10)
-	options.add_theme_constant_override("v_separation", 9)
-	scroll.add_child(options)
+	options.add_theme_constant_override("v_separation", 8)
+	panel.add_child(options)
 
 	var sensors: Dictionary = phone_editor.get("selected_phone_sensors")
 	var sensor_names: Array[String] = []
