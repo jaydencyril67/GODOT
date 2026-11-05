@@ -9864,7 +9864,7 @@ func _on_rom_capacity_selected(capacity: String) -> void:
 	_refresh_rom_capacity_selection_ui(active_feature_panel)
 	if is_instance_valid(worksite_owner):
 		if worksite_owner.has_method("_update_ram_selection_display"):
-			worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version)
+			worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version, selected_battery_capacity)
 		if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
 
