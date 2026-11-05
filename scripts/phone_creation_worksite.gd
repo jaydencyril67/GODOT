@@ -485,9 +485,23 @@ func _apply_worksite_back_hardware_layout(panel: Control) -> void:
 		var slider := sliders[0] as Control
 		slider.custom_minimum_size.y = 290.0
 
-	var pad_name := "BackDesignDirectionControllerCenter" if panel.name == "BackDesignControls" else "RearHardwareDirectionControllerCenter"
+	var is_back_design := panel.name == "BackDesignControls"
+	var pad_name := "BackDesignDirectionControllerCenter" if is_back_design else "RearHardwareDirectionControllerCenter"
 	var pad_center := panel.find_child(pad_name, true, false) as Control
-	if is_instance_valid(pad_center):
+	var work_row_name := "BackDesignCompactControls" if is_back_design else "RearHardwareCompactControls"
+	var work_row := panel.find_child(work_row_name, true, false) as HBoxContainer
+	if is_instance_valid(pad_center) and is_instance_valid(work_row) and work_row.get_child_count() > 0:
+		# The 290px vertical slider makes the HBox row tall. Keep the direction
+		# pad in the mode column instead of placing it after that entire row.
+		# This puts the pad immediately below the mode buttons/label while the
+		# tall slider remains alongside it on the right.
+		var mode_column := work_row.get_child(0) as Control
+		if is_instance_valid(mode_column) and pad_center.get_parent() != mode_column:
+			var old_parent := pad_center.get_parent()
+			if is_instance_valid(old_parent):
+				old_parent.remove_child(pad_center)
+			mode_column.add_child(pad_center)
+		pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 
