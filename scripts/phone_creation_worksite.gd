@@ -233,7 +233,7 @@ func _build_interface() -> void:
 	progress.custom_minimum_size = Vector2(150, 38)
 	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-	progress_number = _label("STEP 1 / 25", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 30", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
