@@ -473,7 +473,7 @@ func _apply_worksite_back_hardware_layout(panel: Control) -> void:
 	var spacer_name := "BackDesignControllerFlexSpace" if panel.name == "BackDesignControls" else "RearHardwareControllerFlexSpace"
 	var spacer := panel.find_child(spacer_name, true, false) as Control
 	if is_instance_valid(spacer):
-		spacer.custom_minimum_size.y = 24.0
+		spacer.custom_minimum_size.y = 5.0
 		spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var sliders := panel.find_children("*", "VSlider", true, false)
 	if not sliders.is_empty():
