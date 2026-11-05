@@ -977,9 +977,11 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	tools_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	tools_scroll.add_child(tools_content)
 
+	var software_editor_features := _get_software_research_features()
+	software_editor_features.erase("RAM Technology")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
-		_get_software_research_features(),
+		software_editor_features,
 		_get_extras_research_features()
 	]
 	for page_index in range(page_feature_lists.size()):
@@ -9784,7 +9786,21 @@ func _on_ram_technology_selected(technology: String) -> void:
 	if software_value_labels.has("RAM TECHNOLOGY") and is_instance_valid(software_value_labels["RAM TECHNOLOGY"]):
 		var technology_label: Label = software_value_labels["RAM TECHNOLOGY"]
 		technology_label.text = selected_ram_technology
-	_show_ram_technology_controls()
+	_refresh_ram_technology_selection_ui()
+
+
+func _refresh_ram_technology_selection_ui() -> void:
+	if not is_instance_valid(active_feature_panel):
+		return
+	var current := active_feature_panel.find_child("CurrentRAMTechnologyLabel", true, false) as Label
+	if is_instance_valid(current):
+		current.text = "CURRENT: " + selected_ram_technology.to_upper()
+	for technology in ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"]:
+		var option := active_feature_panel.find_child("RAMTechnologyOption_" + technology, true, false) as Button
+		if not is_instance_valid(option):
+			continue
+		option.text = technology + ("   ✓ SELECTED" if selected_ram_technology == technology else "")
+		_style_staff_button(option, selected_ram_technology == technology)
 
 
 func _show_rom_controls() -> void:
