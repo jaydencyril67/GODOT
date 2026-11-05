@@ -553,13 +553,19 @@ var research_content_panel: Control
 
 var research_balance_label: Label
 
+var research_points_label: Label
+
 var research_levels: Dictionary = {}
 
 var research_balance := 0.0
 
+var research_points := 0
+
 var research_item_cards: Dictionary = {}
 
 var research_view := "HARDWARE"
+
+var research_detail_feature := ""
 
 var left_tools_page := 0
 
@@ -3212,13 +3218,17 @@ func _build_research_ui() -> void:
 	page.add_child(research_content)
 	_build_design_research_content(research_content)
 
-func set_research_data(levels: Dictionary, balance: float) -> void:
+func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> void:
 	research_levels = levels.duplicate(true)
 	research_balance = balance
+	research_points = maxi(0, points)
 	if is_instance_valid(research_balance_label):
 		research_balance_label.text = "AVAILABLE BALANCE  " + _format_research_money(research_balance)
 	if is_instance_valid(research_content_panel):
-		_refresh_design_research_cards()
+		if research_detail_feature == "Charge Port":
+			_build_design_research_content(research_content_panel)
+		else:
+			_refresh_design_research_cards()
 
 func _build_design_research_content(parent: Control) -> void:
 	research_content_panel = parent
@@ -3228,6 +3238,10 @@ func _build_design_research_content(parent: Control) -> void:
 	research_item_cards.clear()
 
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
+	if research_detail_feature == "Charge Port":
+		_build_charge_port_research_detail(parent, compact)
+		return
+
 	_build_research_view_selector(parent, compact)
 
 	if research_view == "HARDWARE":
@@ -3331,7 +3345,10 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		# Intentionally no pressed signal: these are placeholder buttons for now.
+		if feature_name == "Charge Port":
+			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
+		# Other research categories remain placeholders until their individual
+		# progression screens are implemented.
 		content.add_child(dummy_button)
 
 	# Keep every category at the same row count as Hardware. Empty trailing
@@ -3351,6 +3368,172 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 func _build_extras_research_content(parent: Control, compact: bool) -> void:
 	_build_research_feature_grid(parent, compact, "EXTRAS & ACCESSORIES", "Extras", _get_extras_research_features())
+
+
+func _on_research_feature_selected(feature_name: String) -> void:
+	if feature_name != "Charge Port":
+		return
+	research_detail_feature = feature_name
+	if is_instance_valid(research_content_panel):
+		_build_design_research_content(research_content_panel)
+
+
+func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
+	var port_names := [
+		"DC Barrel Jack",
+		"Mini-USB (Mini-B)",
+		"Micro-USB (Micro-B)",
+		"Apple Lightning",
+		"USB Type-C"
+	]
+	var port_descriptions := [
+		"A traditional cylindrical power connector used on early portable electronics.",
+		"A compact USB connector that helped standardize charging on older mobile devices.",
+		"A smaller USB connector widely used on mobile phones before reversible USB-C.",
+		"Apple's compact reversible connector introduced for its mobile devices.",
+		"A modern reversible connector designed for charging and data across many device types."
+	]
+	var port_image_paths := [
+		"res://assets/research/charging_ports/dc_barrel_jack.jpg",
+		"res://assets/research/charging_ports/mini_usb_mini_b.jpg",
+		"res://assets/research/charging_ports/micro_usb_micro_b.jpg",
+		"res://assets/research/charging_ports/apple_lightning.jpg",
+		"res://assets/research/charging_ports/usb_type_c.jpg"
+	]
+
+	var completed_count := clampi(int(research_levels.get("charge_port_level", 0)), 0, port_names.size())
+	var detail := VBoxContainer.new()
+	detail.name = "ChargePortResearchDetail"
+	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	detail.add_theme_constant_override("separation", 10 if compact else 14)
+	parent.add_child(detail)
+
+	var top_row := HBoxContainer.new()
+	top_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	detail.add_child(top_row)
+	var back_button := Button.new()
+	back_button.text = "‹  HARDWARE"
+	back_button.custom_minimum_size = Vector2(132 if compact else 156, 40 if compact else 44)
+	back_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(back_button, 12 if compact else 14)
+	_style_staff_back_button(back_button)
+	back_button.pressed.connect(_on_charge_port_research_back_pressed)
+	top_row.add_child(back_button)
+
+	var heading := _make_label("CHARGING PORT RESEARCH", 18 if compact else 25, Color.WHITE)
+	detail.add_child(heading)
+	var subtitle := _make_label("Research the next charging connector for your phone lineup.", 11 if compact else 13, Color("#aebdca"))
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_child(subtitle)
+
+	if completed_count >= port_names.size():
+		var complete_card := _make_staff_style_card()
+		complete_card.name = "ChargePortResearchCompleted"
+		complete_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		detail.add_child(complete_card)
+		var complete_text := _make_label("ALL CURRENT CHARGING PORTS RESEARCHED\nUSB Type-C is the latest connector currently available in your phone editor.", 15, Color("#c7eacb"))
+		complete_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		complete_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		complete_card.add_child(complete_text)
+		return
+
+	var next_name: String = port_names[completed_count]
+	var next_image_path: String = port_image_paths[completed_count]
+	var image_card := _make_staff_style_card()
+	image_card.name = "NextChargingPortImageCard"
+	image_card.custom_minimum_size = Vector2(0, 205 if compact else 270)
+	image_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail.add_child(image_card)
+
+	var image_margin := MarginContainer.new()
+	image_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	image_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	image_margin.add_theme_constant_override("margin_left", 8)
+	image_margin.add_theme_constant_override("margin_right", 8)
+	image_margin.add_theme_constant_override("margin_top", 8)
+	image_margin.add_theme_constant_override("margin_bottom", 8)
+	image_card.add_child(image_margin)
+
+	var port_image := TextureRect.new()
+	port_image.name = "NextChargingPortImage"
+	port_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	port_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	port_image.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	port_image.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if ResourceLoader.exists(next_image_path):
+		port_image.texture = load(next_image_path) as Texture2D
+	image_margin.add_child(port_image)
+
+	var name_label := _make_label("NEXT UPGRADE  ·  " + next_name.to_upper(), 17 if compact else 23, Color.WHITE)
+	detail.add_child(name_label)
+	var description := _make_label(port_descriptions[completed_count], 11 if compact else 13, Color("#c1ccd7"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_child(description)
+
+	var requirement_card := _make_staff_style_card()
+	requirement_card.name = "ChargePortResearchRequirements"
+	requirement_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail.add_child(requirement_card)
+	var requirement_margin := MarginContainer.new()
+	requirement_margin.add_theme_constant_override("margin_left", 14)
+	requirement_margin.add_theme_constant_override("margin_right", 14)
+	requirement_margin.add_theme_constant_override("margin_top", 10)
+	requirement_margin.add_theme_constant_override("margin_bottom", 10)
+	requirement_card.add_child(requirement_margin)
+	var requirement_content := VBoxContainer.new()
+	requirement_content.add_theme_constant_override("separation", 7)
+	requirement_margin.add_child(requirement_content)
+
+	var points_cost := 10 + completed_count * 2
+	var money_cost := 100000.0 + float(completed_count) * 20000.0
+	var requirements_title := _make_label("RESEARCH REQUIREMENTS", 12 if compact else 14, Color("#9bd6a7"))
+	requirement_content.add_child(requirements_title)
+	var points_row := HBoxContainer.new()
+	points_row.add_child(_make_label("Research points required", 12, Color("#c1ccd7")))
+	var points_value := _make_label("%d RP" % points_cost, 13, Color.WHITE)
+	points_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	points_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	points_row.add_child(points_value)
+	requirement_content.add_child(points_row)
+
+	var money_row := HBoxContainer.new()
+	money_row.add_child(_make_label("Money required", 12, Color("#c1ccd7")))
+	var money_value := _make_label(_format_research_money(money_cost), 13, Color.WHITE)
+	money_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	money_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money_row.add_child(money_value)
+	requirement_content.add_child(money_row)
+
+	var divider := HSeparator.new()
+	requirement_content.add_child(divider)
+	research_points_label = _make_label("YOUR RESEARCH POINTS  ·  %d RP" % research_points, 11 if compact else 12, Color("#c7eacb"))
+	requirement_content.add_child(research_points_label)
+	var balance_value := _make_label("YOUR AVAILABLE BALANCE  ·  " + _format_research_money(research_balance), 11 if compact else 12, Color("#c7eacb"))
+	requirement_content.add_child(balance_value)
+
+	var upgrade_button := Button.new()
+	upgrade_button.name = "ResearchNextChargingPortButton"
+	upgrade_button.text = "RESEARCH UPGRADE"
+	upgrade_button.custom_minimum_size.y = 46 if compact else 52
+	upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	upgrade_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(upgrade_button, 13 if compact else 15)
+	_style_staff_button(upgrade_button, true)
+	upgrade_button.disabled = research_points < points_cost or research_balance < money_cost
+	upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind("charge_port"))
+	detail.add_child(upgrade_button)
+
+	var progress_note := _make_label("UPGRADES COMPLETED  ·  %d / %d" % [completed_count, port_names.size()], 10 if compact else 11, Color("#8193a5"))
+	progress_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	detail.add_child(progress_note)
+
+
+func _on_charge_port_research_back_pressed() -> void:
+	research_detail_feature = ""
+	if is_instance_valid(research_content_panel):
+		_build_design_research_content(research_content_panel)
+
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
 	var selector := HBoxContainer.new()
