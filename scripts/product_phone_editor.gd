@@ -1477,7 +1477,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_toggle.texture_hover = _make_side_button_checkbox_icon(false)
 		gradient_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 		gradient_toggle.toggle_mode = true
-		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)))
+		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
 		gradient_toggle.focus_mode = Control.FOCUS_NONE
 		gradient_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 		if return_to_back_design:
@@ -1499,7 +1499,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		_style_back_design_button(gradient_direction_button, false)
 		gradient_direction_button.pressed.connect(_show_gradient_direction_controls)
 		gradient_options.add_child(gradient_direction_button)
-		gradient_options.visible = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
+		gradient_options.visible = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
 
 	var picker_columns := HBoxContainer.new()
 	picker_columns.name = "DeviceColorPickerColumns"
@@ -1533,7 +1533,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	if uses_dual_color_pickers:
 		var gradient_picker := _build_device_color_picker_panel(true, color_viewport_size)
 		picker_columns.add_child(gradient_picker)
-		var gradient_picker_enabled := (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
+		var gradient_picker_enabled := (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
 		_set_device_gradient_picker_enabled(gradient_picker, gradient_picker_enabled)
 	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode)))
