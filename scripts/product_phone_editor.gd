@@ -2603,11 +2603,11 @@ func _position_back_design_selection_popup() -> void:
 		return
 	if not back_design_selection_popup.visible:
 		return
-	var popup_parent := rear_hardware_selection_popup.get_parent() as Control
+	var popup_parent: Control
 	if not worksite_creation_mode:
 		popup_parent = get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-	if not is_instance_valid(popup_parent):
-		return
+		if not is_instance_valid(popup_parent):
+			return
 	var viewport_rect := get_viewport().get_visible_rect()
 	var button_rect := back_design_selection_button.get_global_rect()
 	var viewport_padding := 8.0
