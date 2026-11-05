@@ -9673,17 +9673,13 @@ func _show_ram_controls() -> void:
 	var heading := _make_label("SELECT RAM", 18, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var scroll := ScrollContainer.new()
-	scroll.name = "RAMOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	active_feature_panel.add_child(scroll)
-	var options := VBoxContainer.new()
+	var options := GridContainer.new()
 	options.name = "RAMOptions"
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
+	options.add_theme_constant_override("h_separation", 8)
+	options.add_theme_constant_override("v_separation", 8)
+	active_feature_panel.add_child(options)
 	_refresh_ram_capacity_selection_ui(active_feature_panel)
 
 
@@ -9704,7 +9700,7 @@ func _on_ram_capacity_selected(capacity: String) -> void:
 func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 	if not is_instance_valid(panel) or panel.name != "RAMSelectionControls":
 		return
-	var options := panel.find_child("RAMOptions", true, false) as VBoxContainer
+	var options := panel.find_child("RAMOptions", true, false) as GridContainer
 	if not is_instance_valid(options):
 		return
 	for child in options.get_children():
@@ -9714,7 +9710,7 @@ func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 		var option := Button.new()
 		option.name = "RAMOption_" + capacity.replace(" ", "")
 		option.text = capacity + ("   ✓ SELECTED" if selected_ram_capacity == capacity else "")
-		option.custom_minimum_size.y = 43
+		option.custom_minimum_size.y = 48
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 14)
 		_style_staff_button(option, selected_ram_capacity == capacity)
@@ -9760,21 +9756,18 @@ func _show_ram_technology_controls() -> void:
 	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(current)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "RAMTechnologyOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	active_feature_panel.add_child(scroll)
-	var options := VBoxContainer.new()
+	var options := GridContainer.new()
+	options.name = "RAMTechnologyOptions"
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
+	options.add_theme_constant_override("h_separation", 8)
+	options.add_theme_constant_override("v_separation", 8)
+	active_feature_panel.add_child(options)
 	for technology in ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"]:
 		var option := Button.new()
 		option.name = "RAMTechnologyOption_" + technology
 		option.text = technology + ("   ✓ SELECTED" if selected_ram_technology == technology else "")
-		option.custom_minimum_size.y = 43
+		option.custom_minimum_size.y = 48
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 14)
 		_style_staff_button(option, selected_ram_technology == technology)
