@@ -3083,6 +3083,45 @@ func _label(value: String, size: int, color: Color, alignment: HorizontalAlignme
 	_apply_bold_font(label)
 	return label
 
+func _show_phone_type_controls() -> void:
+	if not is_instance_valid(right_tools_content):
+		return
+	for child in right_tools_content.get_children():
+		child.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "PhoneTypeControls"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 10)
+	right_tools_content.add_child(active_feature_panel)
+
+	var heading := _make_label("PHONE TYPE", 19, Color("#c7eacb"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(heading)
+	var description := _make_label("Choose the chassis architecture. Foldables get a separated frame, a precision hinge and independent inner / outer displays.", 12, Color("#dce9df"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(description)
+
+	for phone_type in ["Standard", "Flip", "Fold"]:
+		var option := Button.new()
+		option.name = "PhoneType_" + phone_type
+		option.text = phone_type.to_upper() + ("     ✓ SELECTED" if selected_phone_type == phone_type else "")
+		option.custom_minimum_size = Vector2(0, 50)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_phone_type == phone_type)
+		option.pressed.connect(_on_phone_type_selected.bind(phone_type))
+		active_feature_panel.add_child(option)
+
+	var note_text := "Standard uses one rigid display chassis." if selected_phone_type == "Standard" else ("Flip uses a horizontal clamshell hinge and a compact cover display." if selected_phone_type == "Flip" else "Fold uses a book-style centre hinge, a wide inner display and a full-height cover display.")
+	var note := _make_label(note_text, 12, Color("#a8dcb0"))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(note)
+
+
+
 # --- Phone creation and research logic migrated into PhoneCreationWorksite ---
 
 func _active_phone_size() -> Vector3:
