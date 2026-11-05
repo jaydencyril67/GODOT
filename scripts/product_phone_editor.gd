@@ -9720,10 +9720,6 @@ func _show_ram_controls() -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	active_feature_panel.add_child(scroll)
 	var options := VBoxContainer.new()
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
-	var options := VBoxContainer.new()
 	options.name = "RAMOptions"
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.add_theme_constant_override("separation", 7)
