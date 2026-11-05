@@ -5573,33 +5573,38 @@ func _refresh_phone_screen() -> void:
 	# Flagship OLED-family and MicroLED finishes stay close in tone but use
 	# lower roughness and stronger specular response for a polished black-glass look.
 	var screen_colors := {
-		"TFT LCD": Color("#263746"),
-		"LED-LCD": Color("#223342"),
-		"IPS LCD": Color("#1d2d3d"),
-		"Mini-LED LCD": Color("#172535"),
-		"OLED": Color("#111b28"),
-		"AMOLED": Color("#0e1723"),
-		"Super AMOLED": Color("#0b131f"),
-		"Dynamic AMOLED": Color("#09111d"),
-		"LTPO AMOLED": Color("#080f1b"),
-		"MicroLED": Color("#070d18")
+		"TFT LCD": Color("#223342"),
+		"LED-LCD": Color("#1d2d3d"),
+		"IPS LCD": Color("#172535"),
+		"Mini-LED LCD": Color("#111b28"),
+		"OLED": Color("#0e1723"),
+		"AMOLED": Color("#0b131f"),
+		"Super AMOLED": Color("#09111d"),
+		"Dynamic AMOLED": Color("#080f1b"),
+		"LTPO AMOLED": Color("#070d18"),
+		"MicroLED": Color("#02050a")
 	}
 	var screen_roughness := {
-		"TFT LCD": 0.30,
-		"LED-LCD": 0.27,
-		"IPS LCD": 0.24,
-		"Mini-LED LCD": 0.19,
-		"OLED": 0.15,
-		"AMOLED": 0.11,
-		"Super AMOLED": 0.075,
-		"Dynamic AMOLED": 0.060,
-		"LTPO AMOLED": 0.045,
-		"MicroLED": 0.035
+		"TFT LCD": 0.27,
+		"LED-LCD": 0.24,
+		"IPS LCD": 0.19,
+		"Mini-LED LCD": 0.15,
+		"OLED": 0.11,
+		"AMOLED": 0.075,
+		"Super AMOLED": 0.060,
+		"Dynamic AMOLED": 0.045,
+		"LTPO AMOLED": 0.035,
+		"MicroLED": 0.022
 	}
 	display_material.albedo_color = screen_colors.get(selected_screen_type, Color("#0e1723"))
 	display_material.roughness = screen_roughness.get(selected_screen_type, 0.12)
-	display_material.metallic = 0.18 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.04
-	display_material.metallic_specular = 0.85 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.55
+	var premium_screen_tier := selected_screen_type in ["AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED"]
+	display_material.metallic = 0.18 if premium_screen_tier else 0.04
+	display_material.metallic_specular = 0.85 if premium_screen_tier else 0.55
+	if selected_screen_type == "MicroLED":
+		# MicroLED is the new top tier: near-black polished glass with restrained reflection.
+		display_material.metallic = 0.02
+		display_material.metallic_specular = 0.34
 	display_material.emission_enabled = true
 	display_material.emission = display_material.albedo_color
 	display_material.emission_energy_multiplier = 0.025
@@ -5741,16 +5746,26 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius, outer_corner_mask)
 	var glass_material := StandardMaterial3D.new()
 	var screen_colors := {
-		"TFT LCD": Color("#263746"), "LED-LCD": Color("#223342"),
-		"IPS LCD": Color("#1d2d3d"), "Mini-LED LCD": Color("#172535"),
-		"OLED": Color("#111b28"), "AMOLED": Color("#0e1723"),
-		"Super AMOLED": Color("#0b131f"), "Dynamic AMOLED": Color("#09111d"),
-		"LTPO AMOLED": Color("#080f1b"), "MicroLED": Color("#070d18")
+		"TFT LCD": Color("#223342"), "LED-LCD": Color("#1d2d3d"),
+		"IPS LCD": Color("#172535"), "Mini-LED LCD": Color("#111b28"),
+		"OLED": Color("#0e1723"), "AMOLED": Color("#0b131f"),
+		"Super AMOLED": Color("#09111d"), "Dynamic AMOLED": Color("#080f1b"),
+		"LTPO AMOLED": Color("#070d18"), "MicroLED": Color("#02050a")
 	}
 	glass_material.albedo_color = screen_colors.get(selected_screen_type, Color("#0e1723"))
-	glass_material.roughness = 0.075 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.15
+	var outer_screen_roughness := {
+		"TFT LCD": 0.27, "LED-LCD": 0.24, "IPS LCD": 0.19,
+		"Mini-LED LCD": 0.15, "OLED": 0.11, "AMOLED": 0.075,
+		"Super AMOLED": 0.060, "Dynamic AMOLED": 0.045,
+		"LTPO AMOLED": 0.035, "MicroLED": 0.022
+	}
+	glass_material.roughness = outer_screen_roughness.get(selected_screen_type, 0.12)
 	glass_material.metallic = 0.10
 	glass_material.metallic_specular = 0.82
+	if selected_screen_type == "MicroLED":
+		# Keep the new MicroLED finish glossy, but reduce reflected light.
+		glass_material.metallic = 0.02
+		glass_material.metallic_specular = 0.34
 	glass_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	glass_material.emission_enabled = true
 	glass_material.emission = glass_material.albedo_color
@@ -5839,16 +5854,21 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 		"LTPO AMOLED": Color("#080f1b"), "MicroLED": Color("#070d18")
 	}
 	var roughness := {
-		"TFT LCD": 0.30, "LED-LCD": 0.27, "IPS LCD": 0.24,
-		"Mini-LED LCD": 0.19, "OLED": 0.15, "AMOLED": 0.11,
-		"Super AMOLED": 0.075, "Dynamic AMOLED": 0.060,
-		"LTPO AMOLED": 0.045, "MicroLED": 0.035
+		"TFT LCD": 0.27, "LED-LCD": 0.24, "IPS LCD": 0.19,
+		"Mini-LED LCD": 0.15, "OLED": 0.11, "AMOLED": 0.075,
+		"Super AMOLED": 0.060, "Dynamic AMOLED": 0.045,
+		"LTPO AMOLED": 0.035, "MicroLED": 0.022
 	}
 	var display_material := StandardMaterial3D.new()
 	display_material.albedo_color = colors.get(selected_screen_type, Color("#0e1723"))
 	display_material.roughness = roughness.get(selected_screen_type, 0.12)
-	display_material.metallic = 0.18 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.04
-	display_material.metallic_specular = 0.85 if selected_screen_type in ["Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"] else 0.55
+	var premium_screen_tier := selected_screen_type in ["AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED"]
+	display_material.metallic = 0.18 if premium_screen_tier else 0.04
+	display_material.metallic_specular = 0.85 if premium_screen_tier else 0.55
+	if selected_screen_type == "MicroLED":
+		# MicroLED is the new top tier: near-black polished glass with restrained reflection.
+		display_material.metallic = 0.02
+		display_material.metallic_specular = 0.34
 	display_material.emission_enabled = true
 	display_material.emission = display_material.albedo_color
 	display_material.emission_energy_multiplier = 0.025
