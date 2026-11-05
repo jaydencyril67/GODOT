@@ -569,6 +569,8 @@ func _on_next_pressed() -> void:
 		_show_phone_case_step()
 	elif wizard_step == 31:
 		_show_charger_step()
+	elif wizard_step == 32:
+		_show_protection_glass_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -1625,6 +1627,150 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 	step_panels[32] = panel
 
 
+
+func _show_worksite_protection_glass_controls() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	if wizard_step != 33:
+		return
+	var previous_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(previous_panel):
+		var previous_parent := previous_panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(previous_panel)
+		previous_panel.queue_free()
+	var panel := VBoxContainer.new()
+	panel.name = "WorksiteProtectionGlassControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+	selection_stack.add_child(panel)
+	var heading := _label("PROTECTION GLASS", 20, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+	var description := _label("Install precision-cut tempered glass fitted to the active display, curves and front-camera layout.", 12, Color("#dce9df"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel.add_child(description)
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "ProtectionGlassEnableRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.add_theme_constant_override("separation", 8)
+	panel.add_child(enable_row)
+	var enable_label := _label("INSTALL PROTECTION GLASS", 14, Color("#e7f6ff"))
+	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_label)
+	var screen_is_enabled := bool(phone_editor.get("screen_enabled"))
+	var protector_toggle := TextureButton.new()
+	protector_toggle.name = "EnableProtectionGlass"
+	protector_toggle.custom_minimum_size = Vector2(40, 40)
+	protector_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	protector_toggle.ignore_texture_size = true
+	protector_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	var unchecked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", false)
+	var checked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", true)
+	protector_toggle.texture_normal = unchecked_icon
+	protector_toggle.texture_hover = unchecked_icon
+	protector_toggle.texture_pressed = checked_icon
+	protector_toggle.texture_disabled = unchecked_icon
+	protector_toggle.toggle_mode = true
+	protector_toggle.button_pressed = bool(phone_editor.get("screen_protector_enabled"))
+	protector_toggle.disabled = not screen_is_enabled
+	protector_toggle.focus_mode = Control.FOCUS_NONE
+	protector_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	protector_toggle.toggled.connect(Callable(phone_editor, "_on_screen_protector_toggled"))
+	enable_row.add_child(protector_toggle)
+	if not screen_is_enabled:
+		var screen_hint := _label("Enable the phone screen first. Protection glass fits the active display surfaces.", 12, Color("#e6c98d"))
+		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(screen_hint)
+		step_panels[33] = panel
+		return
+	if not bool(phone_editor.get("screen_protector_enabled")):
+		var disabled_note := _label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#b8d8be"))
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(disabled_note)
+		step_panels[33] = panel
+		return
+	panel.add_child(_label("GLASS FINISH", 14, Color("#9bd6a7")))
+	for finish_name in ["Ultra Clear", "Matte", "Anti-Reflective"]:
+		var finish_button := Button.new()
+		finish_button.name = "ProtectorFinish_" + finish_name.replace("-", "").replace(" ", "")
+		finish_button.text = finish_name.to_upper() + ("   ✓" if str(phone_editor.get("screen_protector_finish")) == finish_name else "")
+		finish_button.custom_minimum_size = Vector2(0, 44)
+		finish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		finish_button.focus_mode = Control.FOCUS_NONE
+		var is_selected := str(phone_editor.get("screen_protector_finish")) == finish_name
+		_style_button(finish_button, is_selected)
+		finish_button.pressed.connect(Callable(phone_editor, "_on_screen_protector_finish_selected").bind(finish_name))
+		panel.add_child(finish_button)
+	panel.add_child(_label("GLASS THICKNESS", 14, Color("#9bd6a7")))
+	var thickness_label := _label("", 13, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	thickness_label.name = "ProtectionGlassThicknessValue"
+	thickness_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(thickness_label)
+	phone_editor.set("screen_protector_thickness_label", thickness_label)
+	var thickness_slider := HSlider.new()
+	thickness_slider.name = "ProtectionGlassThicknessSlider"
+	thickness_slider.min_value = 0.003
+	thickness_slider.max_value = 0.009
+	thickness_slider.step = 0.0005
+	thickness_slider.value = float(phone_editor.get("screen_protector_thickness"))
+	thickness_slider.custom_minimum_size = Vector2(0, 38)
+	thickness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	thickness_slider.focus_mode = Control.FOCUS_NONE
+	phone_editor.call("_style_custom_slider", thickness_slider)
+	thickness_slider.value_changed.connect(Callable(phone_editor, "_on_screen_protector_thickness_changed"))
+	panel.add_child(thickness_slider)
+	phone_editor.call("_update_screen_protector_thickness_label")
+	if bool(phone_editor.get("screen_protector_building")):
+		var build_panel := PanelContainer.new()
+		build_panel.name = "ProtectionGlassBuildLoading"
+		var build_style := StyleBoxFlat.new()
+		build_style.bg_color = Color("#0c2a16")
+		build_style.border_color = Color("#3d8b50")
+		build_style.set_border_width_all(1)
+		build_style.set_corner_radius_all(10)
+		build_style.content_margin_left = 12
+		build_style.content_margin_right = 12
+		build_style.content_margin_top = 12
+		build_style.content_margin_bottom = 12
+		build_panel.add_theme_stylebox_override("panel", build_style)
+		panel.add_child(build_panel)
+		var loading := VBoxContainer.new()
+		loading.add_theme_constant_override("separation", 9)
+		build_panel.add_child(loading)
+		var loading_title := _label("Building protection glass", 16, Color("#eaf8ed"), HORIZONTAL_ALIGNMENT_CENTER)
+		loading.add_child(loading_title)
+		var shimmer := ColorRect.new()
+		shimmer.name = "ProtectionGlassBuildShimmer"
+		shimmer.custom_minimum_size = Vector2(0, 12)
+		shimmer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var shimmer_shader := Shader.new()
+		shimmer_shader.code = """
+shader_type canvas_item;
+uniform vec4 base_color : source_color = vec4(0.04,0.16,0.08,1.0);
+uniform vec4 shine_color : source_color = vec4(0.38,0.78,0.46,1.0);
+void fragment(){
+	float sweep=fract(UV.x*1.25-TIME*0.72);
+	float shine=smoothstep(0.02,0.18,sweep)*(1.0-smoothstep(0.22,0.42,sweep));
+	COLOR=mix(base_color,shine_color,shine*0.9);
+}
+"""
+		var shimmer_material := ShaderMaterial.new()
+		shimmer_material.shader = shimmer_shader
+		shimmer.material = shimmer_material
+		loading.add_child(shimmer)
+		var building_note := _label("Matching the display shape, curves and front-camera cutouts…", 11, Color("#b8d8be"), HORIZONTAL_ALIGNMENT_CENTER)
+		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		loading.add_child(building_note)
+	var cutout_note := _label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#9bd6a7"), HORIZONTAL_ALIGNMENT_CENTER)
+	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel.add_child(cutout_note)
+	step_panels[33] = panel
+
+
 func _add_worksite_charger_toggle(
 	parent: Control,
 	caption: String,
@@ -1885,6 +2031,10 @@ func _show_phone_case_step() -> void:
 
 func _show_charger_step() -> void:
 	_show_worksite_step(32, "_show_worksite_charger_controls")
+
+
+func _show_protection_glass_step() -> void:
+	_show_worksite_step(33, "_show_worksite_protection_glass_controls")
 
 
 func _keep_step_navigation_active() -> void:
