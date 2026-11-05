@@ -339,7 +339,7 @@ var volume_button_y := 0.34
 var power_button_edge := "right"
 var volume_button_edge := "left"
 var camera_side_button_enabled := false
-var camera_side_button_y := 0.12
+var camera_side_button_y := -0.62
 var sound_button_enabled := false
 var sim_tray_enabled := false
 var sim_tray_y := -0.58
@@ -7818,7 +7818,7 @@ func _refresh_phone_side_buttons() -> void:
 		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + single_key_length * 0.52 + rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
 		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - single_key_length * 0.52 - rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
 	if camera_side_button_enabled:
-		_add_phone_side_button(button_root, "QuickCameraSideButton", 1.0, camera_side_button_y, 0.19, key_radius * 0.88, frame_material, key_material)
+		_add_phone_camera_shutter_button(button_root, camera_side_button_y, key_radius, frame_material)
 	if sound_button_enabled:
 		# Reduce the complete rounded key length (including its capsule ends)
 		# by 1.2x, rather than only shortening the straight center section.
@@ -7999,6 +7999,72 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 		key.rotation_degrees.z = 90.0
 	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(key)
+
+func _add_phone_camera_shutter_button(parent: Node3D, position_y: float, radius: float, frame_material: Material) -> void:
+	# A dedicated camera key is a compact, tactile two-stage shutter control.
+	var unit_per_mm := _active_phone_size().y / 150.0
+	var button_depth := (1.2 * unit_per_mm) / 0.95
+	var button_width := maxf(radius * 1.12, 0.022)
+	var button_length := 0.105
+	var side_edge := _active_phone_size().x * 0.5
+	var outer_material := StandardMaterial3D.new()
+	outer_material.albedo_color = device_body_color.darkened(0.24)
+	outer_material.metallic = 0.52
+	outer_material.roughness = 0.28
+	outer_material.specular = 0.78
+	var face_material := StandardMaterial3D.new()
+	face_material.albedo_color = device_body_color.lightened(0.10)
+	face_material.metallic = 0.38
+	face_material.roughness = 0.24
+	face_material.specular = 0.82
+
+	var recess := MeshInstance3D.new()
+	recess.name = "QuickCameraSideButtonRecess"
+	var recess_mesh := BoxMesh.new()
+	recess_mesh.size = Vector3(radius * 0.58, button_length + button_width * 1.9, button_width * 1.65)
+	recess.mesh = recess_mesh
+	recess.material_override = frame_material
+	recess.position = Vector3(side_edge - radius * 0.22, position_y, 0.0)
+	recess.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(recess)
+
+	var collar := MeshInstance3D.new()
+	collar.name = "QuickCameraSideButtonMetalCollar"
+	var collar_mesh := CapsuleMesh.new()
+	collar_mesh.radius = button_width * 0.56
+	collar_mesh.height = button_length + button_width * 1.12
+	collar_mesh.radial_segments = 32
+	collar_mesh.rings = 8
+	collar.mesh = collar_mesh
+	collar.scale = Vector3(button_depth * 0.78 / (button_width * 1.12), 1.0, 1.0)
+	collar.material_override = outer_material
+	collar.position = Vector3(side_edge + button_depth * 0.30, position_y, 0.0)
+	collar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(collar)
+
+	var key := MeshInstance3D.new()
+	key.name = "QuickCameraSideButton"
+	var key_mesh := CapsuleMesh.new()
+	key_mesh.radius = button_width * 0.5
+	key_mesh.height = button_length + button_width
+	key_mesh.radial_segments = 32
+	key_mesh.rings = 8
+	key.mesh = key_mesh
+	key.scale = Vector3(button_depth / button_width, 1.0, 1.0)
+	key.material_override = face_material
+	key.position = Vector3(side_edge + button_depth * 0.48, position_y, 0.0)
+	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(key)
+
+	var stage_mark := MeshInstance3D.new()
+	stage_mark.name = "QuickCameraShutterStageMark"
+	var mark_mesh := BoxMesh.new()
+	mark_mesh.size = Vector3(0.0015, button_width * 0.72, 0.0018)
+	stage_mark.mesh = mark_mesh
+	stage_mark.material_override = outer_material
+	stage_mark.position = Vector3(side_edge + button_depth * 0.49, position_y + button_length * 0.18, 0.0)
+	stage_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(stage_mark)
 
 func _show_speaker_controls() -> void:
 	if not is_instance_valid(right_tools_content):
