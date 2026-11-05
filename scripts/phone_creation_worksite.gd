@@ -883,7 +883,7 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 
 func _update_step_progress(step: int) -> void:
 	var progress_value := clampi(step + 1, 1, 37)
-	progress_number.text = "STEP %d / 30" % progress_value
+	progress_number.text = "STEP %d / 37" % progress_value
 	progress_bar.value = progress_value
 
 
