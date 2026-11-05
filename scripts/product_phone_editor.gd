@@ -195,10 +195,6 @@ var next_rear_camera_id := 1
 var next_rear_flash_id := 1
 var rear_hardware_item_label: Label
 var rear_hardware_selection_button: Button
-var rear_hardware_selection_popup: PanelContainer
-var rear_hardware_popup_layer: CanvasLayer
-var rear_hardware_selection_scroll: ScrollContainer
-var rear_hardware_selection_items: VBoxContainer
 var rear_hardware_size_label: Label
 var rear_hardware_size_slider: HSlider
 var rear_hardware_add_button: Button
@@ -366,9 +362,6 @@ var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
 var next_back_design_box_id := 1
 var back_design_selection_button: Button
-var back_design_selection_popup: PanelContainer
-var back_design_selection_scroll: ScrollContainer
-var back_design_selection_items: VBoxContainer
 var back_design_size_label: Label
 var back_design_border_label: Label
 var back_design_border_slider: HSlider
@@ -1179,8 +1172,6 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 
 
 func _on_tool_feature_pressed(feature_name: String) -> void:
-	_close_rear_hardware_selection_popup()
-	_close_back_design_selection_popup()
 	_set_charger_preview_mode(false)
 	if feature_name == "Box Package":
 		_set_box_package_preview_mode(true)
@@ -1342,18 +1333,11 @@ func _on_phone_type_selected(phone_type: String) -> void:
 func _close_worksite_back_design_color_view() -> void:
 	# Close overlays that live outside the mounted color panel so they cannot
 	# intercept input after the wizard moves to another step.
-	_close_back_design_selection_popup()
-	if is_instance_valid(back_design_selection_popup):
-		back_design_selection_popup.queue_free()
-		back_design_selection_popup = null
-		back_design_selection_scroll = null
-		back_design_selection_items = null
 	back_design_color_mode = false
 	back_design_gradient_color_edit_mode = false
 
 
 func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false, for_box_package: bool = false) -> void:
-	_close_back_design_selection_popup()
 	back_design_color_mode = return_to_back_design
 	# New Worksite raised boxes always open with independent base and gradient colors.
 	# This also normalizes boxes carried over from older saved editor state.
@@ -2085,12 +2069,6 @@ func _on_device_body_color_changed(color: Color) -> void:
 
 
 func _show_back_design_controls() -> void:
-	_close_back_design_selection_popup()
-	if is_instance_valid(back_design_selection_popup):
-		back_design_selection_popup.queue_free()
-		back_design_selection_popup = null
-		back_design_selection_scroll = null
-		back_design_selection_items = null
 	back_design_color_mode = false
 
 	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
@@ -2163,45 +2141,6 @@ func _show_back_design_controls() -> void:
 	back_design_selection_button.pressed.connect(_show_back_design_selection_controls)
 	active_feature_panel.add_child(back_design_selection_button)
 
-	back_design_selection_popup = PanelContainer.new()
-	back_design_selection_popup.name = "BackDesignCustomDropdown"
-	back_design_selection_popup.visible = false
-	back_design_selection_popup.z_index = 4096
-	back_design_selection_popup.mouse_filter = Control.MOUSE_FILTER_STOP
-	var dropdown_panel_style := StyleBoxFlat.new()
-	dropdown_panel_style.bg_color = Color("#07190d")
-	dropdown_panel_style.border_color = Color("#65d783")
-	dropdown_panel_style.set_border_width_all(2)
-	dropdown_panel_style.set_corner_radius_all(12)
-	dropdown_panel_style.content_margin_left = 8
-	dropdown_panel_style.content_margin_right = 8
-	dropdown_panel_style.content_margin_top = 8
-	dropdown_panel_style.content_margin_bottom = 8
-	back_design_selection_popup.add_theme_stylebox_override("panel", dropdown_panel_style)
-	back_design_selection_scroll = ScrollContainer.new()
-	back_design_selection_scroll.name = "BackDesignDropdownScroll"
-	back_design_selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	back_design_selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	back_design_selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	back_design_selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	back_design_selection_scroll.follow_focus = false
-	back_design_selection_scroll.scroll_deadzone = 2
-	back_design_selection_scroll.clip_contents = true
-	back_design_selection_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
-	var dropdown_scroll_bar := back_design_selection_scroll.get_v_scroll_bar()
-	dropdown_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	dropdown_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	back_design_selection_popup.add_child(back_design_selection_scroll)
-	back_design_selection_items = VBoxContainer.new()
-	back_design_selection_items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	back_design_selection_items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	back_design_selection_items.add_theme_constant_override("separation", 7)
-	back_design_selection_scroll.add_child(back_design_selection_items)
-	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-	if is_instance_valid(editor_root):
-		editor_root.add_child(back_design_selection_popup)
-	else:
-		active_feature_panel.add_child(back_design_selection_popup)
 
 	var rounding_section := VBoxContainer.new()
 	rounding_section.name = "BackDesignRoundingSection"
@@ -2385,105 +2324,6 @@ func _add_back_design_flexible_space(parent: Control) -> void:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(spacer)
-
-func _toggle_back_design_selection_popup() -> void:
-	if not is_instance_valid(back_design_selection_popup):
-		return
-	if back_design_boxes.is_empty():
-		_rebuild_back_design_selection_popup()
-		return
-	_rebuild_back_design_selection_popup()
-	back_design_selection_popup.visible = not back_design_selection_popup.visible
-	if back_design_selection_popup.visible:
-		back_design_selection_popup.move_to_front()
-		call_deferred("_position_back_design_selection_popup")
-
-
-func _close_back_design_selection_popup() -> void:
-	if is_instance_valid(back_design_selection_popup):
-		back_design_selection_popup.visible = false
-
-
-func _position_back_design_selection_popup() -> void:
-	if not is_instance_valid(back_design_selection_popup) or not is_instance_valid(back_design_selection_button):
-		return
-	if not back_design_selection_popup.visible:
-		return
-	var popup_parent := back_design_selection_popup.get_parent() as Control
-	if not is_instance_valid(popup_parent):
-		return
-	var viewport_rect := get_viewport().get_visible_rect()
-	var button_rect := back_design_selection_button.get_global_rect()
-	var viewport_padding := 8.0
-	var side_gap := 6.0
-	var viewport_size := viewport_rect.size
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
-		return
-	var popup_width := clampf(button_rect.size.x, 160.0, viewport_size.x - viewport_padding * 2.0)
-	var content_height := back_design_selection_items.get_combined_minimum_size().y + 20.0 if is_instance_valid(back_design_selection_items) else 80.0
-	var desired_height := minf(maxf(content_height, 80.0), viewport_size.y * 0.48)
-	var available_above := maxf(0.0, button_rect.position.y - viewport_rect.position.y - side_gap - viewport_padding)
-	var button_bottom := button_rect.position.y + button_rect.size.y
-	var available_below := maxf(0.0, viewport_rect.end.y - button_bottom - side_gap - viewport_padding)
-	var open_below := available_below >= desired_height or available_below >= available_above
-	# Never silently close the selector because the worksite's scroll position
-	# leaves little room. Use a compact overlay and clamp it inside the viewport.
-	var popup_height := minf(desired_height, maxf(80.0, viewport_size.y - viewport_padding * 2.0))
-	back_design_selection_popup.custom_minimum_size = Vector2(popup_width, popup_height)
-	back_design_selection_popup.size = Vector2(popup_width, popup_height)
-	if is_instance_valid(back_design_selection_scroll):
-		back_design_selection_scroll.custom_minimum_size = Vector2(0.0, maxf(48.0, popup_height - 20.0))
-	var popup_y := button_bottom + side_gap if open_below else button_rect.position.y - popup_height - side_gap
-	popup_y = clampf(popup_y, viewport_rect.position.y + viewport_padding, viewport_rect.end.y - popup_height - viewport_padding)
-	var max_popup_x := viewport_rect.end.x - popup_width - viewport_padding
-	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + viewport_padding, max_popup_x)
-	# Convert viewport/global coordinates into the actual popup parent's
-	# local space. This works for both the worksite panel and legacy editor.
-	back_design_selection_popup.position = popup_parent.to_local(Vector2(popup_x, popup_y))
-	back_design_selection_popup.move_to_front()
-
-func _rebuild_back_design_selection_popup() -> void:
-	if not is_instance_valid(back_design_selection_items):
-		return
-	for child in back_design_selection_items.get_children():
-		child.queue_free()
-	for index in range(back_design_boxes.size()):
-		var box: Dictionary = back_design_boxes[index]
-		var item := Button.new()
-		item.text = "RAISED BOX  %d%s" % [int(box["id"]), "   ✓ SELECTED" if index == selected_back_design_box else ""]
-		item.custom_minimum_size = Vector2(0, 48)
-		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		item.focus_mode = Control.FOCUS_NONE
-		item.mouse_filter = Control.MOUSE_FILTER_PASS
-		item.add_theme_font_size_override("font_size", 15)
-		for state in ["normal", "hover", "pressed", "focus"]:
-			var option_style := StyleBoxFlat.new()
-			option_style.bg_color = Color("#12351c") if state != "pressed" else Color("#285c35")
-			if state == "hover":
-				option_style.bg_color = Color("#1c4728")
-			option_style.border_color = Color("#4d8d5b")
-			option_style.set_border_width_all(1)
-			option_style.set_corner_radius_all(8)
-			option_style.content_margin_left = 14
-			item.add_theme_stylebox_override(state, option_style)
-		item.add_theme_color_override("font_color", Color("#e5f4e7"))
-		item.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		item.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-		item.pressed.connect(_select_back_design_box.bind(index))
-		back_design_selection_items.add_child(item)
-	back_design_selection_button.disabled = back_design_boxes.is_empty()
-	if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		var selected: Dictionary = back_design_boxes[selected_back_design_box]
-		back_design_selection_button.text = "RAISED BOX  %d  ▼" % int(selected["id"])
-	else:
-		back_design_selection_button.text = "CHOOSE RAISED BOX  ▼"
-	if back_design_boxes.is_empty():
-		back_design_selection_button.text = "ADD A BOX TO SELECT"
-		back_design_selection_popup.visible = false
-	elif back_design_selection_popup.visible:
-		call_deferred("_position_back_design_selection_popup")
-
 
 func _style_back_design_button(button: Button, active: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
@@ -6597,15 +6437,6 @@ func _style_custom_slider(slider: Slider) -> void:
 
 
 func _show_rear_camera_controls() -> void:
-	_close_rear_hardware_selection_popup()
-	if is_instance_valid(rear_hardware_selection_popup):
-		rear_hardware_selection_popup.queue_free()
-		rear_hardware_selection_popup = null
-		rear_hardware_selection_scroll = null
-		rear_hardware_selection_items = null
-	if is_instance_valid(rear_hardware_popup_layer):
-		rear_hardware_popup_layer.queue_free()
-		rear_hardware_popup_layer = null
 
 	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
 	if not is_instance_valid(panel_host):
@@ -6671,55 +6502,6 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_selection_button.pressed.connect(_show_rear_hardware_selection_controls)
 	management.add_child(rear_hardware_selection_button)
 
-	rear_hardware_selection_popup = PanelContainer.new()
-	rear_hardware_selection_popup.name = "RearHardwareItemDropdown"
-	rear_hardware_selection_popup.visible = false
-	rear_hardware_selection_popup.z_index = 4096
-	rear_hardware_selection_popup.mouse_filter = Control.MOUSE_FILTER_STOP
-	var dropdown_style := StyleBoxFlat.new()
-	dropdown_style.bg_color = Color("#07190d")
-	dropdown_style.border_color = Color("#65d783")
-	dropdown_style.set_border_width_all(2)
-	dropdown_style.set_corner_radius_all(12)
-	dropdown_style.content_margin_left = 8
-	dropdown_style.content_margin_right = 8
-	dropdown_style.content_margin_top = 8
-	dropdown_style.content_margin_bottom = 8
-	rear_hardware_selection_popup.add_theme_stylebox_override("panel", dropdown_style)
-	rear_hardware_selection_scroll = ScrollContainer.new()
-	rear_hardware_selection_scroll.name = "RearHardwareDropdownScroll"
-	rear_hardware_selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rear_hardware_selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rear_hardware_selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	rear_hardware_selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	rear_hardware_selection_scroll.follow_focus = false
-	rear_hardware_selection_scroll.scroll_deadzone = 2
-	rear_hardware_selection_scroll.clip_contents = true
-	rear_hardware_selection_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
-	var dropdown_scroll_bar := rear_hardware_selection_scroll.get_v_scroll_bar()
-	dropdown_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
-	dropdown_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rear_hardware_selection_popup.add_child(rear_hardware_selection_scroll)
-	rear_hardware_selection_items = VBoxContainer.new()
-	rear_hardware_selection_items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rear_hardware_selection_items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	rear_hardware_selection_items.add_theme_constant_override("separation", 7)
-	rear_hardware_selection_scroll.add_child(rear_hardware_selection_items)
-	if worksite_creation_mode:
-		# The legacy editor CanvasLayer is deliberately hidden in the new worksite.
-		# Host the dropdown on its own visible layer so it can overlay the cached
-		# step panel instead of being trapped beneath the hidden interface.
-		rear_hardware_popup_layer = CanvasLayer.new()
-		rear_hardware_popup_layer.name = "RearHardwareDropdownLayer"
-		rear_hardware_popup_layer.layer = 60
-		add_child(rear_hardware_popup_layer)
-		rear_hardware_popup_layer.add_child(rear_hardware_selection_popup)
-	else:
-		var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-		if is_instance_valid(editor_root):
-			editor_root.add_child(rear_hardware_selection_popup)
-		else:
-			active_feature_panel.add_child(rear_hardware_selection_popup)
 
 	# Size is now a full-width horizontal control directly below management.
 	var size_section := VBoxContainer.new()
@@ -6981,109 +6763,6 @@ func _on_rear_hardware_size_changed(value: float) -> void:
 		rear_camera_modules[selected_index] = module
 	_refresh_rear_hardware_visuals()
 	_refresh_rear_hardware_panel()
-
-
-func _toggle_rear_hardware_selection_popup() -> void:
-	if not is_instance_valid(rear_hardware_selection_popup):
-		return
-	_rebuild_rear_hardware_selection_popup()
-	if _get_rear_hardware_modules().is_empty():
-		return
-	rear_hardware_selection_popup.visible = not rear_hardware_selection_popup.visible
-	if rear_hardware_selection_popup.visible:
-		rear_hardware_selection_popup.move_to_front()
-		call_deferred("_position_rear_hardware_selection_popup")
-
-
-func _close_rear_hardware_selection_popup() -> void:
-	if is_instance_valid(rear_hardware_selection_popup):
-		rear_hardware_selection_popup.visible = false
-
-
-func _position_rear_hardware_selection_popup() -> void:
-	if not is_instance_valid(rear_hardware_selection_popup) or not is_instance_valid(rear_hardware_selection_button):
-		return
-	if not rear_hardware_selection_popup.visible:
-		return
-	var popup_parent: Control
-	if not worksite_creation_mode:
-		popup_parent = get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-		if not is_instance_valid(popup_parent):
-			return
-	var viewport_rect := get_viewport().get_visible_rect()
-	var button_rect := rear_hardware_selection_button.get_global_rect()
-	var padding := 8.0
-	var gap := 6.0
-	var viewport_size := viewport_rect.size
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
-		return
-	var popup_width := clampf(button_rect.size.x, 160.0, viewport_size.x - padding * 2.0)
-	var content_height := rear_hardware_selection_items.get_combined_minimum_size().y + 20.0 if is_instance_valid(rear_hardware_selection_items) else 80.0
-	var desired_height := minf(maxf(content_height, 80.0), viewport_size.y * 0.48)
-	var button_bottom := button_rect.position.y + button_rect.size.y
-	var above := maxf(0.0, button_rect.position.y - viewport_rect.position.y - gap - padding)
-	var below := maxf(0.0, viewport_rect.end.y - button_bottom - gap - padding)
-	var open_below := below >= desired_height or below >= above
-	var popup_height := minf(desired_height, maxf(80.0, viewport_size.y - padding * 2.0))
-	rear_hardware_selection_popup.custom_minimum_size = Vector2(popup_width, popup_height)
-	rear_hardware_selection_popup.size = Vector2(popup_width, popup_height)
-	if is_instance_valid(rear_hardware_selection_scroll):
-		rear_hardware_selection_scroll.custom_minimum_size = Vector2(0.0, maxf(48.0, popup_height - 20.0))
-	var popup_y := button_bottom + gap if open_below else button_rect.position.y - popup_height - gap
-	popup_y = clampf(popup_y, viewport_rect.position.y + padding, viewport_rect.end.y - popup_height - padding)
-	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + padding, viewport_rect.end.x - popup_width - padding)
-	var popup_viewport_position := Vector2(popup_x, popup_y)
-	if worksite_creation_mode:
-		# CanvasLayer controls use viewport coordinates directly.
-		rear_hardware_selection_popup.position = popup_viewport_position
-	else:
-		rear_hardware_selection_popup.position = popup_parent.to_local(popup_viewport_position)
-	rear_hardware_selection_popup.move_to_front()
-
-
-func _rebuild_rear_hardware_selection_popup() -> void:
-	if not is_instance_valid(rear_hardware_selection_items) or not is_instance_valid(rear_hardware_selection_button):
-		return
-	for child in rear_hardware_selection_items.get_children():
-		child.queue_free()
-	var modules := _get_rear_hardware_modules()
-	var selected_index := _get_rear_hardware_selected_index()
-	var kind_name := "FLASH" if rear_hardware_mode == "FLASH" else "CAMERA"
-	for index in range(modules.size()):
-		var module: Dictionary = modules[index]
-		var item := Button.new()
-		item.text = "%s  %02d%s" % [kind_name, int(module["id"]), "   ✓ SELECTED" if index == selected_index else ""]
-		item.custom_minimum_size = Vector2(0, 48)
-		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		item.focus_mode = Control.FOCUS_NONE
-		item.mouse_filter = Control.MOUSE_FILTER_PASS
-		item.add_theme_font_size_override("font_size", 15)
-		for state in ["normal", "hover", "pressed", "focus"]:
-			var item_style := StyleBoxFlat.new()
-			item_style.bg_color = Color("#12351c") if state != "pressed" else Color("#285c35")
-			if state == "hover":
-				item_style.bg_color = Color("#1c4728")
-			item_style.border_color = Color("#4d8d5b")
-			item_style.set_border_width_all(1)
-			item_style.set_corner_radius_all(8)
-			item_style.content_margin_left = 14
-			item.add_theme_stylebox_override(state, item_style)
-		item.add_theme_color_override("font_color", Color("#e5f4e7"))
-		item.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		item.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-		item.pressed.connect(_select_rear_hardware_module.bind(index))
-		rear_hardware_selection_items.add_child(item)
-	rear_hardware_selection_button.disabled = modules.is_empty()
-	if selected_index >= 0 and selected_index < modules.size():
-		var selected: Dictionary = modules[selected_index]
-		rear_hardware_selection_button.text = "%s  %02d  ▼" % [kind_name, int(selected["id"])]
-	else:
-		rear_hardware_selection_button.text = "ADD A %s TO SELECT  ▼" % kind_name
-	if modules.is_empty():
-		rear_hardware_selection_popup.visible = false
-	elif rear_hardware_selection_popup.visible:
-		call_deferred("_position_rear_hardware_selection_popup")
 
 
 func _select_rear_hardware_module(index: int) -> void:
