@@ -376,7 +376,6 @@ var back_design_gradient_enabled_without_box := false
 var box_package_preview: Node3D
 var box_package_preview_mode := false
 var box_package_position_target := "LOGO"
-var box_package_position_step := 0.08
 var box_package_color_mode := false
 var box_package_color := Color("#e8edf2")
 var box_package_gradient_color := Color("#536dfe")
