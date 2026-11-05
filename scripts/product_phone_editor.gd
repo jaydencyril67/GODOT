@@ -7628,10 +7628,7 @@ func _show_side_button_controls() -> void:
 	var title := _make_label("SIDE BUTTONS", 21, Color("#c7eacb"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
-	var description := _make_label("Add tactile controls and a SIM tray to the phone frame.", 12, Color("#c7eacb"))
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
+	# Keep the section focused on the controls; no explanatory subtitle.
 
 	_add_optional_side_feature_row("SIDE BUTTON", "camera", camera_side_button_enabled, true, camera_side_button_y)
 	_add_optional_side_feature_row("SOUND BUTTON", "sound", sound_button_enabled, false, volume_button_y)
@@ -7786,6 +7783,30 @@ func _restore_foldable_accessories_from_group(group_name: String) -> void:
 	_apply_phone_fold_angle()
 
 
+func _get_resolved_power_volume_positions(single_key_length: float, key_radius: float) -> Dictionary:
+	# Keep the volume rocker as one unit. If both controls share an edge,
+	# automatically move the rocker past the power key instead of allowing
+	# either control to intersect or visually climb over the other.
+	var resolved_power := power_button_y
+	var resolved_volume := volume_button_y
+	if not power_button_enabled or not volume_button_enabled or power_button_edge != volume_button_edge:
+		return {"power": resolved_power, "volume": resolved_volume}
+	var edge_scale := _active_phone_size().x * 0.42 if power_button_edge == "top" else 1.0
+	var power_half_extent := (single_key_length + maxf(key_radius * 1.35, 0.024)) * 0.5
+	var rocker_half_extent := single_key_length * 1.02 + 0.018
+	var required_distance := (power_half_extent + rocker_half_extent + 0.025) / maxf(edge_scale, 0.001)
+	if absf(resolved_volume - resolved_power) < required_distance:
+		var travel_direction := signf(resolved_volume - resolved_power)
+		if is_zero_approx(travel_direction):
+			travel_direction = -1.0
+		resolved_volume = clampf(resolved_power + travel_direction * required_distance, -1.20, 1.20)
+		# If the requested travel direction reaches the edge limit, jump to
+		# the opposite clear side so the controls never overlap.
+		if absf(resolved_volume - resolved_power) < required_distance * 0.98:
+			resolved_volume = clampf(resolved_power - travel_direction * required_distance, -1.20, 1.20)
+	return {"power": resolved_power, "volume": resolved_volume}
+
+
 func _refresh_phone_side_buttons() -> void:
 	if not is_instance_valid(phone_body):
 		return
@@ -7811,12 +7832,15 @@ func _refresh_phone_side_buttons() -> void:
 	var key_radius := clampf(current_depth * 0.27, 0.018, 0.036)
 	var key_length := 0.30 * side_button_length_scale
 	var single_key_length := key_length * 0.46
+	var resolved_positions := _get_resolved_power_volume_positions(single_key_length, key_radius)
+	var resolved_power_y: float = resolved_positions["power"]
+	var resolved_volume_y: float = resolved_positions["volume"]
 	if power_button_enabled:
-		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, single_key_length, key_radius, frame_material, key_material, power_button_edge)
+		_add_phone_side_button(button_root, "PowerButton", 1.0, resolved_power_y, single_key_length, key_radius, frame_material, key_material, power_button_edge)
 	if volume_button_enabled:
 		var rocker_gap := 0.018
-		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + single_key_length * 0.52 + rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
-		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - single_key_length * 0.52 - rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
+		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, resolved_volume_y + single_key_length * 0.52 + rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
+		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, resolved_volume_y - single_key_length * 0.52 - rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
 	if camera_side_button_enabled:
 		_add_phone_camera_shutter_button(button_root, camera_side_button_y, key_radius, frame_material)
 	if sound_button_enabled:
@@ -7966,8 +7990,9 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	var side_edge := _active_phone_size().x * 0.5
 	var top_edge := _active_phone_size().y * 0.5
 	var on_top_edge := edge == "top"
-	var edge_position := Vector3(position_y * (_active_phone_size().x * 0.42), top_edge + button_depth * 0.45, 0.0) if on_top_edge else Vector3(side_sign * (side_edge + button_depth * 0.45), position_y, 0.0)
-	var edge_backing_position := Vector3(edge_position.x, top_edge - radius * 0.35, 0.0) if on_top_edge else Vector3(side_sign * (side_edge - radius * 0.35), position_y, 0.0)
+	var resolved_side_sign := -1.0 if edge == "left" else 1.0 if edge == "right" else side_sign
+	var edge_position := Vector3(position_y * (_active_phone_size().x * 0.42), top_edge + button_depth * 0.45, 0.0) if on_top_edge else Vector3(resolved_side_sign * (side_edge + button_depth * 0.45), position_y, 0.0)
+	var edge_backing_position := Vector3(edge_position.x, top_edge - radius * 0.35, 0.0) if on_top_edge else Vector3(resolved_side_sign * (side_edge - radius * 0.35), position_y, 0.0)
 
 	var backing := MeshInstance3D.new()
 	backing.name = node_name + "Recess"
@@ -10745,12 +10770,15 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 				_case_subtract(combiner, pen_cut)
 
 	var key_length := 0.30 * side_button_length_scale * 0.46
+	var resolved_positions := _get_resolved_power_volume_positions(key_length, clampf(_phone_depth_for_thickness_level() * 0.27, 0.018, 0.036))
+	var resolved_power_y: float = resolved_positions["power"]
+	var resolved_volume_y: float = resolved_positions["volume"]
 	if power_button_enabled:
-		_case_side_opening(combiner, 1.0, power_button_y, key_length + 0.06, depth, wall, "PowerButtonOpening")
+		_case_side_opening(combiner, 1.0, resolved_power_y, key_length + 0.06, depth, wall, "PowerButtonOpening")
 	if volume_button_enabled:
 		var volume_key_length := key_length * 0.46
-		_case_side_opening(combiner, -1.0, volume_button_y + volume_key_length * 0.52 + 0.018, volume_key_length, depth, wall, "VolumeUpOpening")
-		_case_side_opening(combiner, -1.0, volume_button_y - volume_key_length * 0.52 - 0.018, volume_key_length, depth, wall, "VolumeDownOpening")
+		_case_side_opening(combiner, -1.0, resolved_volume_y + volume_key_length * 0.52 + 0.018, volume_key_length, depth, wall, "VolumeUpOpening")
+		_case_side_opening(combiner, -1.0, resolved_volume_y - volume_key_length * 0.52 - 0.018, volume_key_length, depth, wall, "VolumeDownOpening")
 	if camera_side_button_enabled:
 		_case_side_opening(combiner, 1.0, camera_side_button_y, 0.17, depth, wall, "CameraSideButtonOpening")
 	if sound_button_enabled:
@@ -10975,15 +11003,18 @@ func _rebuild_phone_case_geometry() -> void:
 
 	# Side button, SIM tray and optional side controls track their live positions.
 	var key_length := 0.30*side_button_length_scale*0.46
+	var resolved_positions := _get_resolved_power_volume_positions(key_length, clampf(_phone_depth_for_thickness_level()*0.27,0.018,0.036))
+	var resolved_power_y: float = resolved_positions["power"]
+	var resolved_volume_y: float = resolved_positions["volume"]
 	if power_button_enabled:
-		_case_side_opening(combiner,1.0,power_button_y,key_length+0.06,depth,wall,"PowerButtonOpening")
+		_case_side_opening(combiner,1.0,resolved_power_y,key_length+0.06,depth,wall,"PowerButtonOpening")
 	if volume_button_enabled:
 		var gap := 0.018
 		# Keep the two volume-key apertures separate, with a visible bridge of
 		# case material between them so each key has its own defined outline.
 		var volume_key_length := key_length*0.46
-		_case_side_opening(combiner,-1.0,volume_button_y+volume_key_length*0.52+gap,volume_key_length,depth,wall,"VolumeUpOpening")
-		_case_side_opening(combiner,-1.0,volume_button_y-volume_key_length*0.52-gap,volume_key_length,depth,wall,"VolumeDownOpening")
+		_case_side_opening(combiner,-1.0,resolved_volume_y+volume_key_length*0.52+gap,volume_key_length,depth,wall,"VolumeUpOpening")
+		_case_side_opening(combiner,-1.0,resolved_volume_y-volume_key_length*0.52-gap,volume_key_length,depth,wall,"VolumeDownOpening")
 	if camera_side_button_enabled:
 		_case_side_opening(combiner,1.0,camera_side_button_y,0.25,depth,wall,"CameraSideButtonOpening")
 	if sound_button_enabled:
