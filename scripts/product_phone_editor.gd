@@ -375,7 +375,7 @@ var back_design_selection_scroll: ScrollContainer
 var back_design_selection_items: VBoxContainer
 var back_design_size_label: Label
 var back_design_border_label: Label
-var back_design_border_slider: VSlider
+var back_design_border_slider: HSlider
 var back_design_mode := "MOVE"
 var back_design_size_action := "EXPAND"
 var back_design_color_mode := false
@@ -1899,9 +1899,11 @@ func _create_back_box_gradient_popup(open_on_create: bool) -> void:
 	if is_instance_valid(back_box_gradient_popup):
 		back_box_gradient_popup.queue_free()
 		back_box_gradient_popup = null
-	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-	if not is_instance_valid(editor_root):
-		return
+	var popup_parent: Control
+	if not worksite_creation_mode:
+		popup_parent = get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+		if not is_instance_valid(popup_parent):
+			return
 	back_box_gradient_popup = PanelContainer.new()
 	back_box_gradient_popup.name = "BackBoxGradientOptions"
 	back_box_gradient_popup.visible = open_on_create
@@ -2568,11 +2570,9 @@ func _position_back_design_selection_popup() -> void:
 		return
 	if not back_design_selection_popup.visible:
 		return
-	var popup_parent: Control
-	if not worksite_creation_mode:
-		popup_parent = get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-		if not is_instance_valid(popup_parent):
-			return
+	var popup_parent := back_design_selection_popup.get_parent() as Control
+	if not is_instance_valid(popup_parent):
+		return
 	var viewport_rect := get_viewport().get_visible_rect()
 	var button_rect := back_design_selection_button.get_global_rect()
 	var viewport_padding := 8.0
@@ -2598,9 +2598,9 @@ func _position_back_design_selection_popup() -> void:
 	popup_y = clampf(popup_y, viewport_rect.position.y + viewport_padding, viewport_rect.end.y - popup_height - viewport_padding)
 	var max_popup_x := viewport_rect.end.x - popup_width - viewport_padding
 	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + viewport_padding, max_popup_x)
-	# This popup is a normal child of the full-screen editor root, so convert
-	# viewport/global coordinates into the root's local coordinate space.
-	back_design_selection_popup.position = editor_root.to_local(Vector2(popup_x, popup_y))
+	# Convert viewport/global coordinates into the actual popup parent's
+	# local space. This works for both the worksite panel and legacy editor.
+	back_design_selection_popup.position = popup_parent.to_local(Vector2(popup_x, popup_y))
 	back_design_selection_popup.move_to_front()
 
 func _rebuild_back_design_selection_popup() -> void:
