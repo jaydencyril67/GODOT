@@ -2,6 +2,7 @@ extends Node3D
 
 var charging_speed_step_visited := false
 var wireless_charge_step_visited := false
+var sensors_step_visited := false
 
 signal back_requested
 
@@ -227,14 +228,14 @@ func _build_interface() -> void:
 	progress.custom_minimum_size = Vector2(150, 38)
 	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-	progress_number = _label("STEP 1 / 24", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 25", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 24
+	progress_bar.max_value = 25
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -509,6 +510,8 @@ func _on_next_pressed() -> void:
 		_show_charging_speed_step()
 	elif wizard_step == 22:
 		_show_wireless_charge_step()
+	elif wizard_step == 23:
+		_show_sensors_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -546,7 +549,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
-	if step < 15 or step > 23:
+	if step < 15 or step > 24:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
 	wizard_step = step
@@ -554,6 +557,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 		charging_speed_step_visited = true
 	if step >= 23:
 		wireless_charge_step_visited = true
+	if step >= 24:
+		sensors_step_visited = true
 	type_step_content.hide()
 	phone_editor.set("active_feature_panel", null)
 
@@ -585,10 +590,10 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 	if is_instance_valid(panel):
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
-		if step >= 15 and step <= 23:
+		if step >= 15 and step <= 24:
 			_style_ram_selector_buttons(panel)
 
-	if step >= 15 and step <= 23:
+	if step >= 15 and step <= 24:
 		_set_ram_selection_preview(true)
 		_update_ram_selection_display(
 			str(phone_editor.get("selected_ram_technology")),
@@ -599,7 +604,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			str(phone_editor.get("selected_bluetooth_version")),
 			str(phone_editor.get("selected_battery_capacity")),
 			str(phone_editor.get("selected_charging_speed")) + "W" if charging_speed_step_visited else "Not set",
-			(str(phone_editor.get("selected_wireless_charging_speed")) + "W" if bool(phone_editor.get("selected_wireless_charge_enabled")) else "Disabled") if wireless_charge_step_visited else "Not set"
+			(str(phone_editor.get("selected_wireless_charging_speed")) + "W" if bool(phone_editor.get("selected_wireless_charge_enabled")) else "Disabled") if wireless_charge_step_visited else "Not set",
+			str(phone_editor.call("_get_enabled_sensor_summary")) if sensors_step_visited else "Not set"
 		)
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
@@ -645,7 +651,8 @@ func _update_ram_selection_display(
 	bluetooth: String = "Not set",
 	battery: String = "Not set",
 	charging_speed: String = "Not set",
-	wireless_charge: String = "Not set"
+	wireless_charge: String = "Not set",
+	sensors: String = "Not set"
 ) -> void:
 	if not is_instance_valid(specification_readout):
 		return
@@ -657,6 +664,10 @@ func _update_ram_selection_display(
 		charging_speed = "Not set"
 	if not wireless_charge_step_visited:
 		wireless_charge = "Not set"
+	if not sensors_step_visited:
+		sensors = "Not set"
+	elif sensors == "Not set" and is_instance_valid(phone_editor) and phone_editor.has_method("_get_enabled_sensor_summary"):
+		sensors = str(phone_editor.call("_get_enabled_sensor_summary"))
 
 	for child in specification_readout.get_children():
 		specification_readout.remove_child(child)
@@ -697,6 +708,8 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("CHARGING SPEED", charging_speed)
 	if wireless_charge != "Not set":
 		_add_specification_readout_entry("WIRELESS CHARGING", wireless_charge)
+	if sensors != "Not set":
+		_add_specification_readout_entry("SENSORS", sensors)
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
@@ -724,8 +737,8 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 24)
-	progress_number.text = "STEP %d / 24" % progress_value
+	var progress_value := clampi(step + 1, 1, 25)
+	progress_number.text = "STEP %d / 25" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -831,6 +844,10 @@ func _show_charging_speed_step() -> void:
 
 func _show_wireless_charge_step() -> void:
 	_show_worksite_step(23, "_show_wireless_charge_controls")
+
+
+func _show_sensors_step() -> void:
+	_show_worksite_step(24, "_show_sensor_controls")
 
 
 func _keep_step_navigation_active() -> void:
