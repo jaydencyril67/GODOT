@@ -286,6 +286,8 @@ var selected_cooling_system := "Not set"
 var selected_ram_technology := "Not set"
 var selected_rom_capacity := "Not set"
 var selected_battery_capacity := "Not set"
+var battery_capacity_slider: VSlider
+var battery_capacity_value_label: Label
 var selected_charging_speed := 2
 var selected_wireless_charge_enabled := false
 var selected_wireless_charging_speed := 5
@@ -9908,59 +9910,73 @@ func _show_battery_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# A fixed two-column grid presents all 16 capacities in eight rows.
-	# No ScrollContainer is used, so the battery panel itself never scrolls.
-	var options := GridContainer.new()
-	options.name = "BatteryCapacityGrid"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	options.add_theme_constant_override("h_separation", 7)
-	options.add_theme_constant_override("v_separation", 7)
-	active_feature_panel.add_child(options)
+	var initial_capacity := 1000
+	if selected_battery_capacity != "Not set":
+		initial_capacity = clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, 8000)
+		initial_capacity = 1000 + roundi(float(initial_capacity - 1000) / 250.0) * 250
 
-	for capacity in ["1,000 mAh", "1,500 mAh", "2,000 mAh", "2,500 mAh", "3,000 mAh", "3,500 mAh", "4,000 mAh", "4,500 mAh", "5,000 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "7,750 mAh", "8,000 mAh"]:
-		var option := Button.new()
-		option.name = "BatteryOption_" + capacity.replace(",", "").replace(" ", "")
-		option.tooltip_text = capacity
-		option.text = capacity + ("  ✓" if selected_battery_capacity == capacity else "")
-		option.custom_minimum_size = Vector2(0, 39)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 15)
-		var battery_option_font := FontVariation.new()
-		battery_option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-		battery_option_font.variation_embolden = 1.5
-		option.add_theme_font_override("font", battery_option_font)
-		_style_staff_button(option, selected_battery_capacity == capacity)
-		option.pressed.connect(_on_battery_capacity_selected.bind(capacity))
-		options.add_child(option)
+	battery_capacity_value_label = _make_label(
+		(_format_integer_with_commas(initial_capacity) + " mAh") if selected_battery_capacity != "Not set" else "NOT SELECTED",
+		30,
+		Color.WHITE
+	)
+	battery_capacity_value_label.name = "BatteryCapacityValue"
+	battery_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(battery_capacity_value_label)
+
+	var range_hint := _make_label("1,000 mAh  —  8,000 mAh", 12, Color("#a9c9dc"))
+	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(range_hint)
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "BatteryCapacitySliderRow"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	slider_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(slider_row)
+
+	var minimum_label := _make_label("1,000", 11, Color("#a9c9dc"))
+	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(minimum_label)
+
+	battery_capacity_slider = VSlider.new()
+	battery_capacity_slider.name = "BatteryCapacityVerticalSlider"
+	battery_capacity_slider.min_value = 1000
+	battery_capacity_slider.max_value = 8000
+	battery_capacity_slider.step = 250
+	battery_capacity_slider.value = initial_capacity
+	battery_capacity_slider.custom_minimum_size = Vector2(52, 320)
+	battery_capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	battery_capacity_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	battery_capacity_slider.focus_mode = Control.FOCUS_NONE
+	battery_capacity_slider.tick_count = 0
+	battery_capacity_slider.value_changed.connect(_on_battery_capacity_slider_changed)
+	_style_custom_slider(battery_capacity_slider)
+	slider_row.add_child(battery_capacity_slider)
+
+	var maximum_label := _make_label("8,000", 11, Color("#a9c9dc"))
+	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(maximum_label)
 
 
-func _on_battery_capacity_selected(capacity: String) -> void:
-	if not ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"].has(capacity):
-		return
-	selected_battery_capacity = capacity
+func _on_battery_capacity_slider_changed(value: float) -> void:
+	var capacity := clampi(1000 + roundi((value - 1000.0) / 250.0) * 250, 1000, 8000)
+	selected_battery_capacity = _format_integer_with_commas(capacity) + " mAh"
+	_update_battery_capacity_controls()
+
+
+func _update_battery_capacity_controls() -> void:
+	if is_instance_valid(battery_capacity_value_label):
+		battery_capacity_value_label.text = selected_battery_capacity
+	if is_instance_valid(battery_capacity_slider):
+		var capacity := clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, 8000)
+		if not is_equal_approx(battery_capacity_slider.value, float(capacity)):
+			battery_capacity_slider.set_value_no_signal(capacity)
 	if software_value_labels.has("BATTERY") and is_instance_valid(software_value_labels["BATTERY"]):
 		var battery_label: Label = software_value_labels["BATTERY"]
-		battery_label.text = capacity
-	_refresh_battery_capacity_selection_ui(active_feature_panel)
+		battery_label.text = selected_battery_capacity
 	_notify_worksite_battery_selection_changed()
-
-
-func _refresh_battery_capacity_selection_ui(panel: Control) -> void:
-	if not is_instance_valid(panel) or panel.name != "BatterySelectionControls":
-		return
-	var options := panel.find_child("BatteryCapacityGrid", true, false) as GridContainer
-	if not is_instance_valid(options):
-		return
-	for child in options.get_children():
-		var option := child as Button
-		if not is_instance_valid(option):
-			continue
-		var capacity := option.tooltip_text
-		var selected := selected_battery_capacity == capacity
-		option.text = capacity + ("  ✓" if selected else "")
-		_style_staff_button(option, selected)
 
 
 func _notify_worksite_battery_selection_changed() -> void:
