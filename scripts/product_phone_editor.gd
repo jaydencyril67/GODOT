@@ -2459,14 +2459,24 @@ func _show_back_design_controls() -> void:
 
 func _apply_worksite_back_hardware_panel_layout() -> void:
 	# This layout override is exclusive to the NEW phone-creation worksite.
-	# It is called whenever either panel is rebuilt, so mode changes and
-	# selection updates cannot restore the old bottom-anchored direction pad.
 	if not worksite_creation_mode or not is_instance_valid(active_feature_panel):
 		return
 	var panel := active_feature_panel
 	var is_back_design := panel.name == "BackDesignControls"
-	var spacer_name := "BackDesignControllerFlexSpace" if is_back_design else "RearHardwareControllerFlexSpace"
-	var spacer := panel.find_child(spacer_name, true, false) as Control
+	if not is_back_design:
+		# Rear Camera & Flash now has its own compact vertical sequence:
+		# mode tabs, component management, horizontal size slider, movement pad.
+		# Remove any legacy flex spacer, but do not relocate the pad or resize
+		# the new horizontal slider.
+		var rear_spacer := panel.find_child("RearHardwareControllerFlexSpace", true, false) as Control
+		if is_instance_valid(rear_spacer):
+			var rear_spacer_parent := rear_spacer.get_parent()
+			if is_instance_valid(rear_spacer_parent):
+				rear_spacer_parent.remove_child(rear_spacer)
+			rear_spacer.queue_free()
+		return
+
+	var spacer := panel.find_child("BackDesignControllerFlexSpace", true, false) as Control
 	if is_instance_valid(spacer):
 		var spacer_parent := spacer.get_parent()
 		if is_instance_valid(spacer_parent):
@@ -2478,16 +2488,13 @@ func _apply_worksite_back_hardware_panel_layout() -> void:
 		var slider := sliders[0] as Control
 		slider.custom_minimum_size.y = 290.0
 
-	var work_row_name := "BackDesignCompactControls" if is_back_design else "RearHardwareCompactControls"
-	var pad_name := "BackDesignDirectionControllerCenter" if is_back_design else "RearHardwareDirectionControllerCenter"
-	var work_row := panel.find_child(work_row_name, true, false) as HBoxContainer
-	var pad_center := panel.find_child(pad_name, true, false) as Control
+	var work_row := panel.find_child("BackDesignCompactControls", true, false) as HBoxContainer
+	var pad_center := panel.find_child("BackDesignDirectionControllerCenter", true, false) as Control
 	if not is_instance_valid(work_row) or not is_instance_valid(pad_center) or work_row.get_child_count() == 0:
 		return
 
 	# The 290px slider determines the height of the horizontal work row.
-	# Put the direction pad underneath the left-side mode controls instead
-	# of after the whole row, keeping it close to the upper controls.
+	# Put the direction pad underneath the left-side mode controls.
 	var mode_column := work_row.get_child(0) as Control
 	if not is_instance_valid(mode_column):
 		return
