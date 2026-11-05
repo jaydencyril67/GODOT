@@ -765,7 +765,7 @@ func _update_ram_selection_display(
 		var sensor_summary_parts := PackedStringArray()
 		for sensor_name in sensors:
 			sensor_summary_parts.append(str(sensor_name))
-		var sensor_summary := "None enabled" if sensor_summary_parts.is_empty() else ", ".join(sensor_summary_parts)
+		var sensor_summary := "None enabled" if sensor_summary_parts.is_empty() else "\n".join(sensor_summary_parts)
 		_add_specification_readout_entry("SENSORS", sensor_summary)
 	if front_camera_mp != "Not set":
 		_add_specification_readout_entry("FRONT CAMERA MP", front_camera_mp)
