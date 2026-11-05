@@ -295,7 +295,7 @@ func _build_interface() -> void:
 
 	navigation_layer = CanvasLayer.new()
 	navigation_layer.name = "WorksiteNavigationOverlay"
-	navigation_layer.layer = 100
+	navigation_layer.layer = 127
 	add_child(navigation_layer)
 
 	var navigation_root := Control.new()
@@ -601,6 +601,13 @@ func _show_home_button_step() -> void:
 func _keep_step_navigation_active() -> void:
 	# These are persistent wizard controls, not step-validation indicators.
 	# Their handlers safely do nothing at the first/last boundary when needed.
+	if is_instance_valid(navigation_layer):
+		# Keep wizard navigation above every editor-created popup/overlay.
+		navigation_layer.layer = 127
+	if is_instance_valid(navigation_bar):
+		navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+		navigation_bar.z_index = 1000
+		navigation_bar.z_as_relative = false
 	if is_instance_valid(wizard_back_button):
 		wizard_back_button.disabled = false
 		wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -689,7 +696,10 @@ func _show_rear_camera_step() -> void:
 func _on_wizard_back_pressed() -> void:
 	_keep_step_navigation_active()
 	if wizard_step == 14:
-		_discard_panel(rear_camera_panel)
+		# Rare Camera can rebuild its own editor panel when CAMERA/FLASH mode
+		# changes. Never rely on the original cached panel reference here:
+		# release whichever panel is currently mounted by the editor engine.
+		_release_mounted_editor_panel()
 		rear_camera_panel = null
 		wizard_step = 13
 		back_design_panel = _mount_original_panel("_show_back_design_controls")
