@@ -8631,16 +8631,18 @@ func _refresh_phone_charge_port() -> void:
 	var contact_face_y := bottom_y + recess_depth * 0.54
 
 	var bezel_material := StandardMaterial3D.new()
-	bezel_material.albedo_color = Color("#000000")
-	bezel_material.metallic = 0.0
-	bezel_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	bezel_material.roughness = 1.0
+	# A restrained brushed-silver rim gives the connector a machined metal edge.
+	bezel_material.albedo_color = Color("#b7c0c8")
+	bezel_material.metallic = 0.72
+	bezel_material.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+	bezel_material.roughness = 0.34
 	bezel_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var gasket_material := StandardMaterial3D.new()
-	gasket_material.albedo_color = Color("#000000")
+	# Keep the insulating seal dark so the metal lip stays visually separated.
+	gasket_material.albedo_color = Color("#20252b")
 	gasket_material.metallic = 0.0
 	gasket_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	gasket_material.roughness = 1.0
+	gasket_material.roughness = 0.92
 	gasket_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var cavity_material := StandardMaterial3D.new()
 	cavity_material.albedo_color = Color("#000000")
@@ -8649,27 +8651,29 @@ func _refresh_phone_charge_port() -> void:
 	cavity_material.roughness = 1.0
 	cavity_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var cavity_wall_material := StandardMaterial3D.new()
-	cavity_wall_material.albedo_color = Color("#000000")
-	cavity_wall_material.metallic = 0.0
-	cavity_wall_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	cavity_wall_material.roughness = 1.0
+	# Recessed side walls are graphite, not bright chrome or phone-body metal.
+	cavity_wall_material.albedo_color = Color("#303943")
+	cavity_wall_material.metallic = 0.28
+	cavity_wall_material.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+	cavity_wall_material.roughness = 0.58
 	cavity_wall_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	if circular:
-		cavity_wall_material.albedo_color = Color("#000000")
-		cavity_wall_material.metallic = 0.0
-		cavity_wall_material.roughness = 1.0
+		cavity_wall_material.albedo_color = Color("#202830")
+		cavity_wall_material.metallic = 0.18
+		cavity_wall_material.roughness = 0.72
 	var tongue_material := StandardMaterial3D.new()
-	# Connector tongues and contact beds are insulating polymer, not bare metal.
-	tongue_material.albedo_color = Color("#000000")
-	tongue_material.metallic = 0.0
-	tongue_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	tongue_material.roughness = 1.0
+	# The connector tongue has a muted silver-grey finish over its insulating base.
+	tongue_material.albedo_color = Color("#a5afb8")
+	tongue_material.metallic = 0.58
+	tongue_material.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+	tongue_material.roughness = 0.42
 	tongue_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var contact_material := StandardMaterial3D.new()
-	contact_material.albedo_color = Color("#000000")
-	contact_material.metallic = 0.0
-	contact_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	contact_material.roughness = 1.0
+	# Contact pads use a warm, subdued gold rather than glossy yellow.
+	contact_material.albedo_color = Color("#c49a45")
+	contact_material.metallic = 0.78
+	contact_material.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+	contact_material.roughness = 0.36
 	contact_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	# Actual aperture: the phone frame mesh is cut around this profile. These
