@@ -2553,6 +2553,7 @@ func _select_back_design_box(index: int) -> void:
 	if index < 0 or index >= back_design_boxes.size():
 		return
 	selected_back_design_box = index
+	_show_back_design_controls()
 	_refresh_back_design_boxes()
 	_refresh_back_design_panel()
 
