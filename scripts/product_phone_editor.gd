@@ -11415,7 +11415,7 @@ func _rebuild_phone_case_geometry() -> void:
 		popup_cut.size = Vector3(0.22,0.16,depth+wall*2.0+0.08)
 		popup_cut.position = Vector3(0.0,_active_phone_size().y*0.5+0.045,0.0)
 		_case_subtract(combiner,popup_cut)
-	phone_case_preview.visible = left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not charger_preview_mode
+	phone_case_preview.visible = left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not charger_preview_mode and not box_package_preview_mode
 
 
 func _queue_phone_case_sync() -> void:
