@@ -2380,7 +2380,8 @@ func _show_back_design_controls() -> void:
 	rounding_column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	rounding_column.add_theme_constant_override("separation", 2)
 	work_row.add_child(rounding_column)
-	var rounding_heading := _make_label("ROUND", 10, Color("#b9d9bf"), HORIZONTAL_ALIGNMENT_CENTER)
+	var rounding_heading := _make_label("ROUND", 10, Color("#b9d9bf"))
+	rounding_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rounding_column.add_child(rounding_heading)
 	back_design_border_slider = VSlider.new()
 	back_design_border_slider.min_value = 0.0
@@ -2392,7 +2393,8 @@ func _show_back_design_controls() -> void:
 	_style_back_design_slider(back_design_border_slider)
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	rounding_column.add_child(back_design_border_slider)
-	back_design_border_label = _make_label("0%", 10, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	back_design_border_label = _make_label("0%", 10, Color("#dce9df"))
+	back_design_border_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rounding_column.add_child(back_design_border_label)
 
 	var bottom_spacer := Control.new()
@@ -6764,7 +6766,8 @@ func _show_rear_camera_controls() -> void:
 	size_column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	size_column.add_theme_constant_override("separation", 2)
 	work_row.add_child(size_column)
-	var size_heading := _make_label("SIZE", 10, Color("#b9d9bf"), HORIZONTAL_ALIGNMENT_CENTER)
+	var size_heading := _make_label("SIZE", 10, Color("#b9d9bf"))
+	size_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	size_column.add_child(size_heading)
 	rear_hardware_size_slider = VSlider.new()
 	rear_hardware_size_slider.min_value = 0.04 if rear_hardware_mode == "CAMERA" else 0.025
