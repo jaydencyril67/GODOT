@@ -988,6 +988,13 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	software_editor_features.erase("Battery")
 	software_editor_features.erase("Charging Speed")
 	software_editor_features.erase("Wireless Charge")
+	# These five software controls now live as individual Worksite wizard steps.
+	software_editor_features.erase("Sensors")
+	software_editor_features.erase("Front Camera MP")
+	software_editor_features.erase("Rear Camera MP")
+	software_editor_features.erase("Memory Clock")
+	software_editor_features.erase("Refresh Rate")
+	software_editor_features.erase("Cooling System Design")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
 		software_editor_features,
@@ -9466,6 +9473,7 @@ func _update_camera_software_summary() -> void:
 	if software_value_labels.has("REAR CAMERAS") and is_instance_valid(software_value_labels["REAR CAMERAS"]):
 		var rear_label: Label = software_value_labels["REAR CAMERAS"]
 		rear_label.text = _get_rear_camera_mp_summary()
+	_notify_worksite_full_selection_changed()
 
 
 func _show_memory_clock_controls() -> void:
@@ -9538,6 +9546,7 @@ func _on_memory_clock_slider_changed(value: float) -> void:
 	if software_value_labels.has("MEMORY CLOCK") and is_instance_valid(software_value_labels["MEMORY CLOCK"]):
 		var clock_label: Label = software_value_labels["MEMORY CLOCK"]
 		clock_label.text = selected_memory_clock
+	_notify_worksite_full_selection_changed()
 
 
 func _show_cooling_system_controls() -> void:
@@ -9604,7 +9613,21 @@ func _on_cooling_system_selected(cooling_type: String) -> void:
 	if software_value_labels.has("COOLING SYSTEM") and is_instance_valid(software_value_labels["COOLING SYSTEM"]):
 		var cooling_label: Label = software_value_labels["COOLING SYSTEM"]
 		cooling_label.text = selected_cooling_system
-	_show_cooling_system_controls()
+	if is_instance_valid(active_feature_panel):
+		var current := active_feature_panel.find_child("CurrentCoolingSystemLabel", true, false) as Label
+		if is_instance_valid(current):
+			current.text = "CURRENT: " + selected_cooling_system.to_upper()
+		for cooling_option in ["No Dedicated Cooling", "Graphite Sheet", "Graphite + Copper Foil", "Graphene Composite", "Heat Pipe", "Vapor Chamber", "Dual Vapor Chamber", "Vapor Chamber + Graphite Stack"]:
+			var option_name := "CoolingSystemOption_" + cooling_option.replace(" ", "").replace("+", "Plus")
+			var option_button := active_feature_panel.find_child(option_name, true, false) as Button
+			if not is_instance_valid(option_button):
+				continue
+			var selected := cooling_option == selected_cooling_system
+			option_button.text = cooling_option + ("   ✓ SELECTED" if selected else "")
+			_style_staff_button(option_button, selected)
+		if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons"):
+			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
+	_notify_worksite_full_selection_changed()
 
 
 func _show_refresh_rate_controls() -> void:
@@ -9662,7 +9685,21 @@ func _on_refresh_rate_selected(rate_text: String) -> void:
 	if software_value_labels.has("REFRESH RATE") and is_instance_valid(software_value_labels["REFRESH RATE"]):
 		var refresh_label: Label = software_value_labels["REFRESH RATE"]
 		refresh_label.text = selected_refresh_rate
-	_show_refresh_rate_controls()
+	if is_instance_valid(active_feature_panel):
+		var current := active_feature_panel.find_child("CurrentRefreshRateLabel", true, false) as Label
+		if is_instance_valid(current):
+			current.text = "CURRENT: " + selected_refresh_rate.to_upper()
+		for rate in [60, 90, 120, 144, 165, 240]:
+			var option_button := active_feature_panel.find_child("RefreshRateOption_%dHz" % rate, true, false) as Button
+			if not is_instance_valid(option_button):
+				continue
+			var option_text := "%d Hz" % rate
+			var selected := option_text == selected_refresh_rate
+			option_button.text = option_text + ("   ✓ SELECTED" if selected else "")
+			_style_staff_button(option_button, selected)
+		if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons"):
+			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
+	_notify_worksite_full_selection_changed()
 
 
 func _show_ram_controls() -> void:
@@ -9806,14 +9843,34 @@ func _on_ram_technology_selected(technology: String) -> void:
 
 	_notify_worksite_ram_selection_changed()
 
-func _notify_worksite_ram_selection_changed() -> void:
-	if not is_instance_valid(worksite_owner):
+func _notify_worksite_full_selection_changed() -> void:
+	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
 		return
-	if worksite_owner.has_method("_update_ram_selection_display"):
-		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version, selected_battery_capacity)
-	if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
+	worksite_owner.call(
+		"_update_ram_selection_display",
+		selected_ram_technology,
+		selected_ram_capacity,
+		selected_rom_capacity,
+		selected_mobile_network,
+		selected_wifi_standard,
+		selected_bluetooth_version,
+		selected_battery_capacity,
+		str(selected_charging_speed) + "W",
+		(str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled"),
+		_get_enabled_sensor_summary(),
+		_get_front_camera_mp_summary(),
+		_get_rear_camera_mp_summary(),
+		selected_memory_clock,
+		selected_refresh_rate,
+		selected_cooling_system
+	)
+
+
+func _notify_worksite_ram_selection_changed() -> void:
+	_notify_worksite_full_selection_changed()
+	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 		worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
-	if worksite_owner.has_method("_refresh_ram_capacity_step"):
+	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_refresh_ram_capacity_step"):
 		worksite_owner.call("_refresh_ram_capacity_step")
 
 
@@ -9866,8 +9923,7 @@ func _on_rom_capacity_selected(capacity: String) -> void:
 		rom_label.text = capacity
 	_refresh_rom_capacity_selection_ui(active_feature_panel)
 	if is_instance_valid(worksite_owner):
-		if worksite_owner.has_method("_update_ram_selection_display"):
-			worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity, selected_mobile_network, selected_wifi_standard, selected_bluetooth_version, selected_battery_capacity)
+		_notify_worksite_full_selection_changed()
 		if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
 
@@ -9979,35 +10035,11 @@ func _update_battery_capacity_controls() -> void:
 
 
 func _notify_worksite_battery_selection_changed() -> void:
-	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
-		return
-	worksite_owner.call(
-		"_update_ram_selection_display",
-		selected_ram_technology,
-		selected_ram_capacity,
-		selected_rom_capacity,
-		selected_mobile_network,
-		selected_wifi_standard,
-		selected_bluetooth_version,
-		selected_battery_capacity
-	)
+	_notify_worksite_full_selection_changed()
 
 
 func _notify_worksite_power_selection_changed() -> void:
-	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
-		return
-	worksite_owner.call(
-		"_update_ram_selection_display",
-		selected_ram_technology,
-		selected_ram_capacity,
-		selected_rom_capacity,
-		selected_mobile_network,
-		selected_wifi_standard,
-		selected_bluetooth_version,
-		selected_battery_capacity,
-		str(selected_charging_speed) + "W",
-		(str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
-	)
+	_notify_worksite_full_selection_changed()
 
 
 func _show_charging_speed_controls() -> void:
@@ -10387,21 +10419,7 @@ func _on_phone_sensor_toggled(enabled: bool, sensor_name: String, count_label: L
 
 
 func _notify_worksite_sensor_selection_changed() -> void:
-	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
-		return
-	worksite_owner.call(
-		"_update_ram_selection_display",
-		selected_ram_technology,
-		selected_ram_capacity,
-		selected_rom_capacity,
-		selected_mobile_network,
-		selected_wifi_standard,
-		selected_bluetooth_version,
-		selected_battery_capacity,
-		str(selected_charging_speed) + "W",
-		(str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled"),
-		_get_enabled_sensor_summary()
-	)
+	_notify_worksite_full_selection_changed()
 
 
 func _show_mobile_network_controls() -> void:
@@ -10523,18 +10541,7 @@ func _refresh_connectivity_selection_ui(panel: Control, selection_kind: String) 
 
 
 func _notify_worksite_connectivity_selection_changed() -> void:
-	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
-		return
-	worksite_owner.call(
-		"_update_ram_selection_display",
-		selected_ram_technology,
-		selected_ram_capacity,
-		selected_rom_capacity,
-		selected_mobile_network,
-		selected_wifi_standard,
-		selected_bluetooth_version,
-		selected_battery_capacity
-	)
+	_notify_worksite_full_selection_changed()
 
 
 func _on_left_tools_previous_pressed() -> void:
