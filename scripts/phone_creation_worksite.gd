@@ -316,6 +316,7 @@ func _build_interface() -> void:
 	specification_readout_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	specification_readout_scroll.visible = false
 	preview_region.add_child(specification_readout_scroll)
+	specification_readout_scroll.resized.connect(_update_specification_readout_alignment)
 
 	# The two columns remain inside one horizontal row, preserving their
 	# independent vertical stacks while the parent scrolls as a single unit.
@@ -729,6 +730,23 @@ func _set_ram_selection_preview(enabled: bool) -> void:
 		specification_readout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if enabled else ScrollContainer.SCROLL_MODE_DISABLED
 		if not enabled:
 			specification_readout_scroll.scroll_vertical = 0
+		if enabled:
+			call_deferred("_update_specification_readout_alignment")
+
+
+func _update_specification_readout_alignment() -> void:
+	if not is_instance_valid(specification_readout_scroll) or not is_instance_valid(specification_readout_left) or not is_instance_valid(specification_readout_right):
+		return
+	# Keep short readouts visually centered. Once either column exceeds the
+	# viewport, align both columns to the top so scrolling never leaves the
+	# shorter column awkwardly floating halfway down the content.
+	var content_height := maxf(
+		specification_readout_left.get_combined_minimum_size().y,
+		specification_readout_right.get_combined_minimum_size().y
+	)
+	var alignment := BoxContainer.ALIGNMENT_CENTER if content_height <= specification_readout_scroll.size.y + 1.0 else BoxContainer.ALIGNMENT_BEGIN
+	specification_readout_left.alignment = alignment
+	specification_readout_right.alignment = alignment
 
 
 func _update_ram_selection_display(
@@ -818,6 +836,7 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("REFRESH RATE", refresh_rate)
 	if cooling_system != "Not set":
 		_add_specification_readout_entry("COOLING SYSTEM", cooling_system)
+	call_deferred("_update_specification_readout_alignment")
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
