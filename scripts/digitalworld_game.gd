@@ -1209,15 +1209,21 @@ func _create_company() -> void:
 	_show_city()
 
 func _load_game_pressed() -> void:
-	if _load_career():
-		_show_city()
-	else:
+	# _ready() already loaded the save before presenting the landing page.
+	# Re-reading and migrating the same file on button press only blocks the
+	# first visible frame of the transition, so use the prepared in-memory career.
+	if career.is_empty() or str(career.get("company_name", "")).is_empty():
 		_show_notice("NO SAVED COMPANY", "No saved Digital World Mobiles company was found on this device. Choose NEW GAME to establish one.")
+		return
+	_show_city()
 
 func _show_city() -> void:
-	# Every new or returning company lands on Home at its currently owned building.
+	# Put the loading UI on screen before billing, saving, or constructing the HQ.
+	# _show_home_scene() keeps this same layer alive while the 3D scene is prepared.
 	upgrade_level = clampi(upgrade_level, 0, 10)
 	selected_upgrade = maxi(upgrade_level, 1)
+	headquarters_loading_finish_started = false
+	_show_headquarters_loading_screen()
 	_process_pending_monthly_expenses()
 	_show_home_scene()
 
@@ -1232,9 +1238,9 @@ func _show_home_scene() -> void:
 		return
 
 	current_screen = "home"
-	headquarters_loading_finish_started = false
 	_clear_world()
-	_show_headquarters_loading_screen()
+	# The loading layer was shown by _show_city() before any synchronous work.
+	# Keep it visible and give it a rendered frame before refreshing/generating HQ.
 	# Let the HQ preparation screen render before refreshing the market and generating buildings.
 	await get_tree().process_frame
 	_refresh_staff_market_on_startup()
