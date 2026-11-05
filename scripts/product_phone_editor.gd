@@ -3890,6 +3890,9 @@ func _add_accessory_label(parent: Node3D, node_name: String, label_text: String,
 
 
 func _show_smartwatch_controls() -> void:
+	if worksite_creation_mode and is_instance_valid(worksite_owner):
+		worksite_owner.call("_show_worksite_smartwatch_controls")
+		return
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
