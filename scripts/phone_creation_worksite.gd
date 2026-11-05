@@ -1150,40 +1150,6 @@ func _show_worksite_box_package_controls() -> void:
 	step_panels[30] = panel
 
 
-func _add_worksite_box_package_toggle(parent: Control, caption: String, property_name: String, callback_name: String) -> void:
-	var row := HBoxContainer.new()
-	row.name = property_name + "Row"
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 8)
-	parent.add_child(row)
-
-	var caption_label := _label(caption, 14, Color("#e7f6ff"))
-	caption_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(caption_label)
-
-	var enabled := bool(phone_editor.get(property_name))
-	var toggle := TextureButton.new()
-	toggle.name = property_name + "Toggle"
-	toggle.custom_minimum_size = Vector2(38, 38)
-	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	var unchecked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", false)
-	var checked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", true)
-	toggle.texture_normal = unchecked_icon
-	toggle.texture_hover = unchecked_icon
-	toggle.texture_pressed = checked_icon
-	toggle.texture_disabled = unchecked_icon
-	toggle.toggle_mode = true
-	toggle.button_pressed = enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	toggle.toggled.connect(Callable(phone_editor, callback_name))
-	row.add_child(toggle)
-
-
 func _add_worksite_box_package_position_spacer(parent: GridContainer) -> void:
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(48, 42)
@@ -1210,11 +1176,6 @@ func _on_worksite_box_package_branding_size_changed(value: float, target: String
 	phone_editor.call("_refresh_box_package_branding")
 func _on_worksite_box_package_position_target_selected(target: String) -> void:
 	phone_editor.set("box_package_position_target", target)
-	_show_worksite_box_package_controls()
-
-
-func _on_worksite_box_package_movement_selected(step: float) -> void:
-	phone_editor.set("box_package_position_step", step)
 	_show_worksite_box_package_controls()
 
 
