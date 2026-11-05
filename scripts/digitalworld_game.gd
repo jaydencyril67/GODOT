@@ -196,7 +196,8 @@ func _load_career() -> bool:
 		"next_staff_candidate_id": int(config.get_value("career", "next_staff_candidate_id", 1)),
 		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
 		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false)),
-		"phone_design_research": config.get_value("career", "phone_design_research", {})
+		"phone_design_research": config.get_value("career", "phone_design_research", {}),
+		"phone_charge_port_research_level": clampi(int(config.get_value("career", "phone_charge_port_research_level", 0)), 0, 5)
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
@@ -227,6 +228,7 @@ func _save_career() -> bool:
 	config.set_value("career", "last_candidate_refresh_month", str(career.get("last_candidate_refresh_month", _get_game_month_key(game_date_unix))))
 	config.set_value("career", "staff_market_initialized", bool(career.get("staff_market_initialized", false)))
 	config.set_value("career", "phone_design_research", career.get("phone_design_research", {}))
+	config.set_value("career", "phone_charge_port_research_level", clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -2460,7 +2462,7 @@ func _show_research_phone() -> void:
 	phone_research_worksite.set("research_mode", true)
 	phone_research_worksite.connect("back_requested", Callable(self, "_return_from_research_phone"))
 	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
-	phone_research_worksite.call("set_research_data", career.get("phone_design_research", {}), float(career.get("balance", 10000000.0)))
+	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
 	if is_instance_valid(ui_layer):
 		ui_layer.hide()
 	add_child(phone_research_worksite)
@@ -2474,7 +2476,16 @@ func _return_from_research_phone() -> void:
 		ui_layer.show()
 
 
+func _get_phone_research_ui_data() -> Dictionary:
+	var research_data: Dictionary = career.get("phone_design_research", {}).duplicate(true)
+	research_data["charge_port_level"] = clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	return research_data
+
+
 func _on_phone_design_research_upgrade(research_id: String) -> void:
+	if research_id == "charge_port":
+		_on_phone_charge_port_research_upgrade()
+		return
 	var research_names := {
 		"screen_size": "Screen size",
 		"phone_thickness": "Phone thickness",
@@ -2496,6 +2507,58 @@ func _on_phone_design_research_upgrade(research_id: String) -> void:
 		_show_notice("INSUFFICIENT BALANCE", "Upgrading %s to level %d requires %s. Your available balance is %s." % [research_names[research_id], current_level + 1, _format_balance(upgrade_cost), _format_balance(previous_balance)])
 		return
 	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Upgrade %s from Level %d to Level %d?\n\nCost: %s" % [research_names[research_id], current_level, current_level + 1, _format_balance(upgrade_cost)], "UPGRADE", Callable(self, "_apply_phone_design_research_upgrade").bind(research_id))
+
+
+func _on_phone_charge_port_research_upgrade() -> void:
+	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	if completed_count >= 5:
+		_show_notice("RESEARCH COMPLETE", "All charging-port technologies currently available in the phone editor have been researched.")
+		return
+	var port_names := ["DC Barrel Jack", "Mini-USB (Mini-B)", "Micro-USB (Micro-B)", "Apple Lightning", "USB Type-C"]
+	var next_name: String = port_names[completed_count]
+	var points_cost := 10 + completed_count * 2
+	var money_cost := 100000.0 + float(completed_count) * 20000.0
+	var available_points := maxi(0, int(career.get("research_points", 0)))
+	var available_balance := float(career.get("balance", 10000000.0))
+	if available_points < points_cost:
+		_show_notice("INSUFFICIENT RESEARCH POINTS", "Researching %s requires %d RP. Your available research points: %d RP." % [next_name, points_cost, available_points])
+		return
+	if available_balance < money_cost:
+		_show_notice("INSUFFICIENT BALANCE", "Researching %s requires %s. Your available balance is %s." % [next_name, _format_balance(money_cost), _format_balance(available_balance)])
+		return
+	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Research %s?\n\nResearch points: %d RP\nMoney: %s" % [next_name, points_cost, _format_balance(money_cost)], "RESEARCH", Callable(self, "_apply_phone_charge_port_research_upgrade"))
+
+
+func _apply_phone_charge_port_research_upgrade() -> void:
+	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	if completed_count >= 5:
+		return
+	var points_cost := 10 + completed_count * 2
+	var money_cost := 100000.0 + float(completed_count) * 20000.0
+	var previous_level := completed_count
+	var previous_points := maxi(0, int(career.get("research_points", 0)))
+	var previous_balance := float(career.get("balance", 10000000.0))
+	if previous_points < points_cost or previous_balance < money_cost:
+		_on_phone_charge_port_research_upgrade()
+		return
+
+	career["phone_charge_port_research_level"] = completed_count + 1
+	career["research_points"] = previous_points - points_cost
+	career["balance"] = previous_balance - money_cost
+	if not _save_career():
+		career["phone_charge_port_research_level"] = previous_level
+		career["research_points"] = previous_points
+		career["balance"] = previous_balance
+		_show_notice("RESEARCH NOT SAVED", "The charging-port upgrade could not be saved. Your research progress and balances have not changed.")
+		return
+
+	_update_home_status_bar()
+	_update_staff_office_balance()
+	_show_finance_toast(-money_cost, "CHARGING PORT RESEARCH")
+	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
+		world_root.set_company_balance(float(career["balance"]))
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _apply_phone_design_research_upgrade(research_id: String) -> void:
@@ -2534,7 +2597,7 @@ func _apply_phone_design_research_upgrade(research_id: String) -> void:
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
 	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", career.get("phone_design_research", {}), float(career["balance"]))
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career.get("research_points", 0)))
 func _return_to_home() -> void:
 	_restore_home_after_standalone_screen()
 
