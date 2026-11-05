@@ -7604,7 +7604,7 @@ func _on_side_button_position_step(side: String, direction: int) -> void:
 		power_button_y = clampf(power_button_y + float(direction) * 0.06, -1.20, 1.20)
 	else:
 		volume_button_y = clampf(volume_button_y + float(direction) * 0.06, -1.20, 1.20)
-	_normalize_power_volume_positions(side)
+	_normalize_power_volume_positions("power" if side == "right" else "volume")
 	_refresh_phone_side_buttons()
 
 func _show_side_button_controls() -> void:
