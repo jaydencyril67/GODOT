@@ -291,7 +291,6 @@ var battery_capacity_value_label: Label
 var selected_charging_speed := 2
 var selected_wireless_charge_enabled := false
 var selected_wireless_charging_speed := 5
-var wireless_charge_enable_checkbox: Button
 var wireless_charging_speed_slider: VSlider
 var wireless_charging_speed_value_label: Label
 var selected_bluetooth_version := "Not set"
