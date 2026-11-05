@@ -135,18 +135,18 @@ func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> v
 		elif child is OmniLight3D:
 			var fill_light := child as OmniLight3D
 			fill_light.light_color = Color("#dce5df")
-			fill_light.light_energy = 0.34
+			fill_light.light_energy = 0.38
 			fill_light.omni_range = 8.0
 
 	if directional_lights.size() > 0:
 		var key_light := directional_lights[0]
 		key_light.light_color = Color("#fffdf8")
-		key_light.light_energy = 1.12
+		key_light.light_energy = 1.20
 		key_light.shadow_enabled = false
 	if directional_lights.size() > 1:
 		var rim_light := directional_lights[1]
 		rim_light.light_color = Color("#d5e2d9")
-		rim_light.light_energy = 0.72
+		rim_light.light_energy = 0.78
 		rim_light.shadow_enabled = false
 
 	var environment_node := preview_viewport.get_node_or_null("PhonePreviewWorld/WorldEnvironment") as WorldEnvironment
@@ -154,7 +154,7 @@ func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> v
 		var environment := environment_node.environment
 		environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 		environment.ambient_light_color = Color("#aeb8b1")
-		environment.ambient_light_energy = 0.62
+		environment.ambient_light_energy = 0.66
 		environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 		if is_instance_valid(environment.sky) and environment.sky.sky_material is ProceduralSkyMaterial:
 			var studio_sky_material := environment.sky.sky_material as ProceduralSkyMaterial
