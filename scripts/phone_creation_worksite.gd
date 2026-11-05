@@ -478,7 +478,7 @@ func _apply_worksite_back_hardware_layout(panel: Control) -> void:
 	var sliders := panel.find_children("*", "VSlider", true, false)
 	if not sliders.is_empty():
 		var slider := sliders[0] as Control
-		slider.custom_minimum_size.y = 250.0
+		slider.custom_minimum_size.y = 290.0
 
 
 func _show_thickness_step() -> void:
