@@ -7511,8 +7511,8 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 		edge_button.custom_minimum_size = Vector2(0, 34)
 		edge_button.focus_mode = Control.FOCUS_NONE
 		_style_power_volume_position_button(edge_button)
-		edge_button.button_pressed = edge == edge_name
 		edge_button.toggle_mode = true
+		edge_button.button_pressed = edge == edge_name
 		edge_button.pressed.connect(_on_side_button_edge_selected.bind(side, edge_name))
 		edge_row.add_child(edge_button)
 	var position_title := _make_label("POSITION ALONG EDGE", 14, Color("#c7eacb"))
