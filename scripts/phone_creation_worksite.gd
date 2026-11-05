@@ -222,14 +222,14 @@ func _build_interface() -> void:
 	progress.custom_minimum_size = Vector2(150, 38)
 	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-	progress_number = _label("STEP 1 / 21", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 22", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 21
+	progress_bar.max_value = 22
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -498,6 +498,8 @@ func _on_next_pressed() -> void:
 		_show_wifi_step()
 	elif wizard_step == 19:
 		_show_bluetooth_step()
+	elif wizard_step == 20:
+		_show_battery_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -535,7 +537,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
-	if step < 15 or step > 20:
+	if step < 15 or step > 21:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
 	wizard_step = step
@@ -570,7 +572,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 	if is_instance_valid(panel):
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
-		if step >= 15 and step <= 20:
+		if step >= 15 and step <= 21:
 			_style_ram_selector_buttons(panel)
 
 	if step >= 15 and step <= 20:
@@ -581,7 +583,8 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			str(phone_editor.get("selected_rom_capacity")),
 			str(phone_editor.get("selected_mobile_network")),
 			str(phone_editor.get("selected_wifi_standard")),
-			str(phone_editor.get("selected_bluetooth_version"))
+			str(phone_editor.get("selected_bluetooth_version")),
+			str(phone_editor.get("selected_battery_capacity"))
 		)
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
@@ -624,7 +627,8 @@ func _update_ram_selection_display(
 	storage: String = "Not set",
 	internet: String = "Not set",
 	wifi: String = "Not set",
-	bluetooth: String = "Not set"
+	bluetooth: String = "Not set",
+	battery: String = "Not set"
 ) -> void:
 	if not is_instance_valid(specification_readout):
 		return
@@ -647,6 +651,8 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("WI-FI", wifi)
 	if bluetooth != "Not set":
 		_add_specification_readout_entry("BLUETOOTH", bluetooth)
+	if battery != "Not set":
+		_add_specification_readout_entry("BATTERY", battery)
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
@@ -666,8 +672,8 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 21)
-	progress_number.text = "STEP %d / 21" % progress_value
+	var progress_value := clampi(step + 1, 1, 22)
+	progress_number.text = "STEP %d / 22" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -761,6 +767,10 @@ func _show_wifi_step() -> void:
 
 func _show_bluetooth_step() -> void:
 	_show_worksite_step(20, "_show_bluetooth_controls")
+
+
+func _show_battery_step() -> void:
+	_show_worksite_step(21, "_show_battery_controls")
 
 
 func _keep_step_navigation_active() -> void:
