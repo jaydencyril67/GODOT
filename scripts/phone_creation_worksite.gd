@@ -97,9 +97,7 @@ var rear_camera_panel: Control
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
-var specification_readout: HBoxContainer
-var specification_readout_columns: Array[VBoxContainer] = []
-var specification_readout_existing_count := 0
+var specification_readout: GridContainer
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
@@ -299,15 +297,16 @@ func _build_interface() -> void:
 	# Software specifications replace the 3D preview during the final software
 	# steps. The readout changes from one centred column to two balanced columns
 	# once the longer charging steps begin.
-	specification_readout = HBoxContainer.new()
+	specification_readout = GridContainer.new()
 	specification_readout.name = "ProgressiveSpecificationReadout"
+	specification_readout.columns = 2
 	specification_readout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	specification_readout.offset_left = 12.0
 	specification_readout.offset_right = -12.0
-	specification_readout.offset_top = 18.0
-	specification_readout.offset_bottom = -18.0
-	specification_readout.alignment = BoxContainer.ALIGNMENT_CENTER
-	specification_readout.add_theme_constant_override("separation", 22)
+	specification_readout.offset_top = 12.0
+	specification_readout.offset_bottom = -12.0
+	specification_readout.add_theme_constant_override("h_separation", 16)
+	specification_readout.add_theme_constant_override("v_separation", 8)
 	specification_readout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	specification_readout.visible = false
 	preview_region.add_child(specification_readout)
@@ -742,23 +741,8 @@ func _update_ram_selection_display(
 	for child in specification_readout.get_children():
 		specification_readout.remove_child(child)
 		child.queue_free()
-	specification_readout_columns.clear()
-	specification_readout_existing_count = 0
 
-	var column_count := 2
-	for column_index in range(column_count):
-		var column := VBoxContainer.new()
-		column.name = "SpecificationColumn%d" % (column_index + 1)
-		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		column.alignment = BoxContainer.ALIGNMENT_CENTER
-		column.add_theme_constant_override("separation", 5)
-		column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		specification_readout.add_child(column)
-		specification_readout_columns.append(column)
-
-	# Keep every completed selection visible while navigating between steps.
-	# Entries remain in strict left-right order across the two fixed columns.
+	# GridContainer places entries left-to-right, then starts the next row.
 	if technology != "Not set":
 		_add_specification_readout_entry("RAM TECHNOLOGY", technology)
 	if capacity != "Not set":
@@ -794,62 +778,20 @@ func _update_ram_selection_display(
 	if cooling_system != "Not set":
 		_add_specification_readout_entry("COOLING SYSTEM", cooling_system)
 
-	_apply_specification_readout_density()
-
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
-	if specification_readout_columns.is_empty():
-		return
-
-	# Fill the two columns in strict left-right order. Keep each subject and
-	# value together on one compact horizontal line instead of stacking them.
-	var column_index := specification_readout_existing_count % 2
-	specification_readout_existing_count += 1
-
 	var entry := HBoxContainer.new()
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	entry.alignment = BoxContainer.ALIGNMENT_CENTER
-	entry.add_theme_constant_override("separation", 4)
 	entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	specification_readout_columns[column_index].add_child(entry)
+	specification_readout.add_child(entry)
 
-	var caption := _label(caption_text + ":", 11, Color("#c3cec6"))
+	var caption := _label(caption_text + ":", 12, Color("#c3cec6"))
 	caption.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	entry.add_child(caption)
 
-	var value := _label(value_text, 18, Color("#f1f5f1"))
+	var value := _label(value_text, 17, Color("#f1f5f1"))
 	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	entry.add_child(value)
-
-
-func _apply_specification_readout_density() -> void:
-	if specification_readout_existing_count <= 0:
-		return
-
-	# Adapt spacing and type size to the actual readout height and row count.
-	# This keeps the two-column readout scroll-free without shrinking text
-	# below a readable minimum.
-	var rows_per_column := ceili(float(specification_readout_existing_count) / 2.0)
-	var available_height := maxf(180.0, preview_region.size.y - 36.0)
-	var target_row_height := available_height / float(maxi(rows_per_column, 1))
-	var value_font_size := clampi(roundi(target_row_height * 0.48), 15, 19)
-	var caption_font_size := clampi(value_font_size - 6, 10, 13)
-	var row_separation := 3 if rows_per_column >= 9 else 5
-	var column_separation := 3 if rows_per_column >= 9 else 6
-
-	specification_readout.add_theme_constant_override("separation", column_separation)
-	for column in specification_readout_columns:
-		column.add_theme_constant_override("separation", row_separation)
-		for entry in column.get_children():
-			if entry is HBoxContainer:
-				for item in entry.get_children():
-					if item is Label:
-						if item == entry.get_child(0):
-							item.add_theme_font_size_override("font_size", caption_font_size)
-						else:
-							item.add_theme_font_size_override("font_size", value_font_size)
 
 
 func _update_step_progress(step: int) -> void:
