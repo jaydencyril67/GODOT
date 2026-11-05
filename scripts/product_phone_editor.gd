@@ -11705,7 +11705,7 @@ func _rebuild_box_package_preview() -> void:
 	var lid_front_depth: float = 0.036
 	var lid_skirt_depth: float = 0.251
 	var base_depth: float = 0.228
-	var seam_depth: float = 0.012
+	var seam_depth: float = 0.004
 
 	# Solid lower base, set just inside the lid's side walls.
 	_add_box_package_part(
@@ -11713,7 +11713,7 @@ func _rebuild_box_package_preview() -> void:
 		"PackageBaseBody",
 		Vector3(package_width - lid_wall * 2.0, package_height - lid_wall * 2.0, base_depth),
 		Vector3(0.0, 0.0, -package_depth * 0.5 + base_depth * 0.5),
-		box_package_color.darkened(0.045),
+		box_package_color.darkened(0.015),
 		0.88
 	)
 
@@ -11729,18 +11729,18 @@ func _rebuild_box_package_preview() -> void:
 	)
 
 	var lid_skirt_center_z := package_depth * 0.5 - lid_front_depth - lid_skirt_depth * 0.5
-	_add_box_package_part(box_package_preview, "LidSideWall_Left", Vector3(lid_wall, package_height, lid_skirt_depth), Vector3(-package_width * 0.5 + lid_wall * 0.5, 0.0, lid_skirt_center_z), box_package_color.darkened(0.055), 0.88)
-	_add_box_package_part(box_package_preview, "LidSideWall_Right", Vector3(lid_wall, package_height, lid_skirt_depth), Vector3(package_width * 0.5 - lid_wall * 0.5, 0.0, lid_skirt_center_z), box_package_color.darkened(0.055), 0.88)
-	_add_box_package_part(box_package_preview, "LidSideWall_Top", Vector3(package_width, lid_wall, lid_skirt_depth), Vector3(0.0, package_height * 0.5 - lid_wall * 0.5, lid_skirt_center_z), box_package_color.darkened(0.055), 0.88)
-	_add_box_package_part(box_package_preview, "LidSideWall_Bottom", Vector3(package_width, lid_wall, lid_skirt_depth), Vector3(0.0, -package_height * 0.5 + lid_wall * 0.5, lid_skirt_center_z), box_package_color.darkened(0.055), 0.88)
+	_add_box_package_part(box_package_preview, "LidSideWall_Left", Vector3(lid_wall, package_height, lid_skirt_depth), Vector3(-package_width * 0.5 + lid_wall * 0.5, 0.0, lid_skirt_center_z), box_package_color.darkened(0.020), 0.88)
+	_add_box_package_part(box_package_preview, "LidSideWall_Right", Vector3(lid_wall, package_height, lid_skirt_depth), Vector3(package_width * 0.5 - lid_wall * 0.5, 0.0, lid_skirt_center_z), box_package_color.darkened(0.020), 0.88)
+	_add_box_package_part(box_package_preview, "LidSideWall_Top", Vector3(package_width, lid_wall, lid_skirt_depth), Vector3(0.0, package_height * 0.5 - lid_wall * 0.5, lid_skirt_center_z), box_package_color.darkened(0.020), 0.88)
+	_add_box_package_part(box_package_preview, "LidSideWall_Bottom", Vector3(package_width, lid_wall, lid_skirt_depth), Vector3(0.0, -package_height * 0.5 + lid_wall * 0.5, lid_skirt_center_z), box_package_color.darkened(0.020), 0.88)
 
 	# A narrow dark reveal runs around all four sides where the fitted lid
 	# meets the lower base. It is fixed in place, not an opening mechanism.
 	var seam_center_z := -package_depth * 0.5 + base_depth - seam_depth * 0.5
-	_add_box_package_part(box_package_preview, "LidSeam_Left", Vector3(0.010, package_height, seam_depth), Vector3(-package_width * 0.5 + 0.005, 0.0, seam_center_z), box_package_color.darkened(0.34), 0.92)
-	_add_box_package_part(box_package_preview, "LidSeam_Right", Vector3(0.010, package_height, seam_depth), Vector3(package_width * 0.5 - 0.005, 0.0, seam_center_z), box_package_color.darkened(0.34), 0.92)
-	_add_box_package_part(box_package_preview, "LidSeam_Top", Vector3(package_width, 0.010, seam_depth), Vector3(0.0, package_height * 0.5 - 0.005, seam_center_z), box_package_color.darkened(0.34), 0.92)
-	_add_box_package_part(box_package_preview, "LidSeam_Bottom", Vector3(package_width, 0.010, seam_depth), Vector3(0.0, -package_height * 0.5 + 0.005, seam_center_z), box_package_color.darkened(0.34), 0.92)
+	_add_box_package_part(box_package_preview, "LidSeam_Left", Vector3(0.003, package_height, seam_depth), Vector3(-package_width * 0.5 + 0.0015, 0.0, seam_center_z), box_package_color.darkened(0.10), 0.92)
+	_add_box_package_part(box_package_preview, "LidSeam_Right", Vector3(0.003, package_height, seam_depth), Vector3(package_width * 0.5 - 0.0015, 0.0, seam_center_z), box_package_color.darkened(0.10), 0.92)
+	_add_box_package_part(box_package_preview, "LidSeam_Top", Vector3(package_width, 0.003, seam_depth), Vector3(0.0, package_height * 0.5 - 0.0015, seam_center_z), box_package_color.darkened(0.10), 0.92)
+	_add_box_package_part(box_package_preview, "LidSeam_Bottom", Vector3(package_width, 0.003, seam_depth), Vector3(0.0, -package_height * 0.5 + 0.0015, seam_center_z), box_package_color.darkened(0.10), 0.92)
 
 	box_package_logo_sprite = Sprite3D.new()
 	box_package_logo_sprite.name = "CompanyLogoPrint"
@@ -11770,13 +11770,13 @@ func _refresh_box_package_material() -> void:
 		var shade := box_package_color
 		var roughness := 0.84
 		if part.name.begins_with("LidSideWall"):
-			shade = box_package_color.darkened(0.055)
+			shade = box_package_color.darkened(0.020)
 			roughness = 0.88
 		elif part.name == "PackageBaseBody":
-			shade = box_package_color.darkened(0.045)
+			shade = box_package_color.darkened(0.015)
 			roughness = 0.88
 		elif part.name.begins_with("LidSeam"):
-			shade = box_package_color.darkened(0.34)
+			shade = box_package_color.darkened(0.10)
 			roughness = 0.92
 		part.material_override = _make_box_package_material(shade, roughness)
 	_refresh_box_package_branding()
