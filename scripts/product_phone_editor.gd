@@ -979,6 +979,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 
 	var software_editor_features := _get_software_research_features()
 	software_editor_features.erase("RAM Technology")
+	software_editor_features.erase("RAM")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
 		software_editor_features,
@@ -9398,6 +9399,7 @@ func _build_software_summary_panel() -> void:
 
 	software_value_labels.clear()
 	var specifications := [
+		["RAM TECHNOLOGY", selected_ram_technology],
 		["RAM", selected_ram_capacity],
 		["ROM", selected_rom_capacity],
 		["BATTERY", selected_battery_capacity],
@@ -9414,7 +9416,6 @@ func _build_software_summary_panel() -> void:
 		["REAR CAMERAS", _get_rear_camera_mp_summary()],
 		["CHIPSET", "Not set"],
 		["OPERATING SYSTEM", "Not set"],
-		["RAM TECHNOLOGY", selected_ram_technology],
 		["STORAGE TYPE", "Not set"],
 		["CONNECTIVITY", "Not set"],
 		["SENSORS", _get_enabled_sensor_summary()]
@@ -9721,6 +9722,33 @@ func _show_ram_controls() -> void:
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	options.add_theme_constant_override("separation", 7)
 	scroll.add_child(options)
+	var options := VBoxContainer.new()
+	options.name = "RAMOptions"
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("separation", 7)
+	scroll.add_child(options)
+	_refresh_ram_capacity_selection_ui(active_feature_panel)
+
+
+func _on_ram_capacity_selected(capacity: String) -> void:
+	if not _get_supported_ram_capacities(selected_ram_technology).has(capacity):
+		return
+	selected_ram_capacity = capacity
+	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
+		var ram_label: Label = software_value_labels["RAM"]
+		ram_label.text = capacity
+	_refresh_ram_capacity_selection_ui(active_feature_panel)
+
+
+func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
+	if not is_instance_valid(panel) or panel.name != "RAMSelectionControls":
+		return
+	var options := panel.find_child("RAMOptions", true, false) as VBoxContainer
+	if not is_instance_valid(options):
+		return
+	for child in options.get_children():
+		options.remove_child(child)
+		child.queue_free()
 	for capacity in _get_supported_ram_capacities(selected_ram_technology):
 		var option := Button.new()
 		option.name = "RAMOption_" + capacity.replace(" ", "")
@@ -9731,17 +9759,6 @@ func _show_ram_controls() -> void:
 		_style_staff_button(option, selected_ram_capacity == capacity)
 		option.pressed.connect(_on_ram_capacity_selected.bind(capacity))
 		options.add_child(option)
-
-
-func _on_ram_capacity_selected(capacity: String) -> void:
-	if not _get_supported_ram_capacities(selected_ram_technology).has(capacity):
-		return
-	selected_ram_capacity = capacity
-	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
-		var ram_label: Label = software_value_labels["RAM"]
-		ram_label.text = capacity
-	_show_ram_controls()
-
 
 func _get_supported_ram_capacities(technology: String) -> Array:
 	var all_capacities := ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
