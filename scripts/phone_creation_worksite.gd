@@ -1016,12 +1016,109 @@ func _show_worksite_sensor_controls() -> void:
 	phone_editor.call("_update_sensor_count_label", count_label)
 
 
+func _show_worksite_front_camera_mp_controls() -> void:
+	if not is_instance_valid(phone_editor):
+		return
+
+	var panel := VBoxContainer.new()
+	panel.name = "WorksiteFrontCameraMegapixelControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+
+	var heading := _label("FRONT CAMERA MP", 19, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+
+	if not bool(phone_editor.get("front_camera_enabled")):
+		var hint := _label("ENABLE THE FRONT CAMERA IN HARDWARE FIRST", 14, Color("#d8eaf5"), HORIZONTAL_ALIGNMENT_CENTER)
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(hint)
+		return
+
+	# Keep camera megapixel controls on the Worksite itself instead of creating
+	# them inside the hidden legacy editor interface. Two cameras fit per row.
+	var options := GridContainer.new()
+	options.name = "WorksiteFrontCameraMegapixelOptions"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 10)
+	options.add_theme_constant_override("v_separation", 8)
+	panel.add_child(options)
+
+	var primary_mp := int(phone_editor.get("front_camera_megapixels"))
+	var primary_card := phone_editor.call("_make_camera_mp_slider_card", "01", primary_mp, func(next_mp: int) -> void:
+		phone_editor.set("front_camera_megapixels", next_mp)
+		phone_editor.call("_update_camera_software_summary")
+	) as Control
+	options.add_child(primary_card)
+
+	if str(phone_editor.get("front_camera_style")) == "Dual Punch-Hole":
+		var secondary_mp := int(phone_editor.get("front_camera_secondary_megapixels"))
+		var secondary_card := phone_editor.call("_make_camera_mp_slider_card", "02", secondary_mp, func(next_mp: int) -> void:
+			phone_editor.set("front_camera_secondary_megapixels", next_mp)
+			phone_editor.call("_update_camera_software_summary")
+		) as Control
+		options.add_child(secondary_card)
+
+
+func _show_worksite_rear_camera_mp_controls() -> void:
+	if not is_instance_valid(phone_editor):
+		return
+
+	var panel := VBoxContainer.new()
+	panel.name = "WorksiteRearCameraMegapixelControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+
+	var heading := _label("REAR CAMERA MP", 19, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+
+	var camera_modules: Array = phone_editor.get("rear_camera_modules")
+	if camera_modules.is_empty():
+		var hint := _label("ADD REAR CAMERAS IN HARDWARE FIRST", 14, Color("#d8eaf5"), HORIZONTAL_ALIGNMENT_CENTER)
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(hint)
+		return
+
+	# Each camera gets one slider card in a two-column grid; no scroll area is
+	# created for this step.
+	var options := GridContainer.new()
+	options.name = "WorksiteRearCameraMegapixelOptions"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 10)
+	options.add_theme_constant_override("v_separation", 8)
+	panel.add_child(options)
+
+	for camera_index in range(camera_modules.size()):
+		var camera_data: Dictionary = camera_modules[camera_index]
+		var camera_id := int(camera_data.get("id", camera_index + 1))
+		var megapixels := int(camera_data.get("mp", 12))
+		var card := phone_editor.call("_make_camera_mp_slider_card", "%02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
+			var live_modules: Array = phone_editor.get("rear_camera_modules")
+			for module_index in range(live_modules.size()):
+				var module_data: Dictionary = live_modules[module_index]
+				if int(module_data.get("id", -1)) == camera_id:
+					module_data["mp"] = next_mp
+					live_modules[module_index] = module_data
+					break
+			phone_editor.set("rear_camera_modules", live_modules)
+			phone_editor.call("_update_camera_software_summary")
+		) as Control
+		options.add_child(card)
+
+
 func _show_front_camera_mp_step() -> void:
-	_show_worksite_step(25, "_show_front_camera_mp_controls")
+	_show_worksite_step(25, "_show_worksite_front_camera_mp_controls")
 
 
 func _show_rear_camera_mp_step() -> void:
-	_show_worksite_step(26, "_show_rear_camera_mp_controls")
+	_show_worksite_step(26, "_show_worksite_rear_camera_mp_controls")
 
 
 func _show_memory_clock_step() -> void:
