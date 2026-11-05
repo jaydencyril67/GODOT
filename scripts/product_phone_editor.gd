@@ -2208,7 +2208,7 @@ func _show_back_design_controls() -> void:
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	rounding_section.add_child(back_design_border_slider)
 
-	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 10, Color("#dce9df"))
+	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 10, Color("#d5e9f5"))
 	back_design_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	back_design_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	active_feature_panel.add_child(back_design_size_label)
@@ -2302,7 +2302,7 @@ func _make_editor_icon_button(parent: Control, node_name: String, caption: Strin
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(button, 30 if diameter >= 52.0 else 27)
-	_style_staff_button(button, active)
+	_style_staff_circle_button(button, active, diameter)
 	button.pressed.connect(pressed_callback)
 	parent.add_child(button)
 	return button
@@ -2350,6 +2350,16 @@ func _style_back_design_button(button: Button, active: bool) -> void:
 	_style_staff_button(button, active)
 
 
+func _style_staff_circle_button(button: Button, active: bool, diameter: float) -> void:
+	_style_staff_button(button, active)
+	# Keep the circular D-pad and +/- silhouettes while borrowing the exact
+	# blue-glass colors and state styling from the shared Worksite buttons.
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := button.get_theme_stylebox(state).duplicate() as StyleBoxFlat
+		style.set_corner_radius_all(int(diameter * 0.5))
+		button.add_theme_stylebox_override(state, style)
+
+
 func _style_back_design_slider(slider: Slider) -> void:
 	_style_custom_slider(slider)
 
@@ -2380,7 +2390,7 @@ func _add_editor_direction_pad_button(parent: GridContainer, caption: String, di
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_apply_research_typography(button, 29 if not tight else 27)
 	button.focus_mode = Control.FOCUS_NONE
-	_style_staff_button(button, true)
+	_style_staff_circle_button(button, true, diameter)
 	button.pressed.connect(pressed_callback.bind(direction))
 	parent.add_child(button)
 
