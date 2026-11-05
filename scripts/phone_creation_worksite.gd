@@ -587,6 +587,18 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	type_step_content.hide()
 	phone_editor.set("active_feature_panel", null)
 
+	# Camera megapixel panels depend on the camera hardware configured in
+	# earlier steps. Rebuild these two panels on each visit so added, removed,
+	# or changed camera modules are always represented by the current hardware.
+	if step == 25 or step == 26:
+		var stale_camera_panel := step_panels.get(step) as Control
+		if is_instance_valid(stale_camera_panel):
+			var stale_parent := stale_camera_panel.get_parent()
+			if is_instance_valid(stale_parent):
+				stale_parent.remove_child(stale_camera_panel)
+			stale_camera_panel.queue_free()
+		step_panels.erase(step)
+
 	var panel := step_panels.get(step) as Control
 	if is_instance_valid(panel):
 		# Reattach only if an editor subview moved this cached panel elsewhere.
