@@ -6067,19 +6067,20 @@ func _show_front_camera_mp_controls() -> void:
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(hint)
 		return
-	var row := HBoxContainer.new()
-	row.name = "FrontCameraMegapixelSliderRow"
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 2)
-	active_feature_panel.add_child(row)
-	row.add_child(_make_camera_mp_slider_card("01", front_camera_megapixels, func(megapixels: int) -> void:
+	var options := GridContainer.new()
+	options.name = "FrontCameraMegapixelOptions"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 12)
+	options.add_theme_constant_override("v_separation", 8)
+	active_feature_panel.add_child(options)
+	options.add_child(_make_camera_mp_slider_card("01", front_camera_megapixels, func(megapixels: int) -> void:
 		front_camera_megapixels = megapixels
 		_update_camera_software_summary()
 	))
 	if front_camera_style == "Dual Punch-Hole":
-		row.add_child(_make_camera_mp_slider_card("02", front_camera_secondary_megapixels, func(megapixels: int) -> void:
+		options.add_child(_make_camera_mp_slider_card("02", front_camera_secondary_megapixels, func(megapixels: int) -> void:
 			front_camera_secondary_megapixels = megapixels
 			_update_camera_software_summary()
 		))
@@ -6104,18 +6105,19 @@ func _show_rear_camera_mp_controls() -> void:
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(hint)
 		return
-	var slider_row := HBoxContainer.new()
-	slider_row.name = "RearCameraMegapixelSliders"
-	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	slider_row.add_theme_constant_override("separation", 2)
-	active_feature_panel.add_child(slider_row)
+	var slider_grid := GridContainer.new()
+	slider_grid.name = "RearCameraMegapixelSliders"
+	slider_grid.columns = 2
+	slider_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	slider_grid.add_theme_constant_override("h_separation", 12)
+	slider_grid.add_theme_constant_override("v_separation", 8)
+	active_feature_panel.add_child(slider_grid)
 	for camera_index in range(rear_camera_modules.size()):
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
 		var camera_id := int(camera_data.get("id", camera_index + 1))
 		var megapixels := int(camera_data.get("mp", 12))
-		slider_row.add_child(_make_camera_mp_slider_card("%02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
+		slider_grid.add_child(_make_camera_mp_slider_card("%02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
 			for module_index in range(rear_camera_modules.size()):
 				if int(rear_camera_modules[module_index].get("id", -1)) == camera_id:
 					rear_camera_modules[module_index]["mp"] = next_mp
@@ -9574,18 +9576,14 @@ func _show_cooling_system_controls() -> void:
 	current.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(current)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "CoolingSystemOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	active_feature_panel.add_child(scroll)
-	var options := VBoxContainer.new()
+	var options := GridContainer.new()
 	options.name = "CoolingSystemOptions"
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
+	options.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 10)
+	options.add_theme_constant_override("v_separation", 8)
+	active_feature_panel.add_child(options)
 
 	var cooling_options := [
 		"No Dedicated Cooling",
@@ -9655,19 +9653,14 @@ func _show_refresh_rate_controls() -> void:
 	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(current)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "RefreshRateOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	active_feature_panel.add_child(scroll)
-
-	var options := VBoxContainer.new()
+	var options := GridContainer.new()
 	options.name = "RefreshRateOptions"
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
+	options.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 10)
+	options.add_theme_constant_override("v_separation", 8)
+	active_feature_panel.add_child(options)
 
 	for rate in [60, 90, 120, 144, 165, 240]:
 		var rate_text := "%d Hz" % rate
