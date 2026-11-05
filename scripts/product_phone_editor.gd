@@ -5569,9 +5569,8 @@ func _refresh_phone_screen() -> void:
 	display_material.roughness = 0.20
 	display_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	display_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	# The panel gets progressively darker as the technology tier rises.
-	# Flagship OLED-family and MicroLED finishes stay close in tone but use
-	# lower roughness and stronger specular response for a polished black-glass look.
+	# Each technology inherits the next tier's previous screen finish.
+	# MicroLED receives a new near-black polished finish with restrained reflections.
 	var screen_colors := {
 		"TFT LCD": Color("#223342"),
 		"LED-LCD": Color("#1d2d3d"),
@@ -5847,11 +5846,11 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
 	var moving_corner_mask := _foldable_half_corner_mask(true)
 	var colors := {
-		"TFT LCD": Color("#263746"), "LED-LCD": Color("#223342"),
-		"IPS LCD": Color("#1d2d3d"), "Mini-LED LCD": Color("#172535"),
-		"OLED": Color("#111b28"), "AMOLED": Color("#0e1723"),
-		"Super AMOLED": Color("#0b131f"), "Dynamic AMOLED": Color("#09111d"),
-		"LTPO AMOLED": Color("#080f1b"), "MicroLED": Color("#070d18")
+		"TFT LCD": Color("#223342"), "LED-LCD": Color("#1d2d3d"),
+		"IPS LCD": Color("#172535"), "Mini-LED LCD": Color("#111b28"),
+		"OLED": Color("#0e1723"), "AMOLED": Color("#0b131f"),
+		"Super AMOLED": Color("#09111d"), "Dynamic AMOLED": Color("#080f1b"),
+		"LTPO AMOLED": Color("#070d18"), "MicroLED": Color("#02050a")
 	}
 	var roughness := {
 		"TFT LCD": 0.27, "LED-LCD": 0.24, "IPS LCD": 0.19,
