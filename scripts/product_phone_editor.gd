@@ -2474,10 +2474,12 @@ func _show_back_design_selection_controls() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
-	var list := VBoxContainer.new()
+	var list := GridContainer.new()
 	list.name = "BackDesignBoxOptions"
+	list.columns = 2
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.add_theme_constant_override("separation", 7)
+	list.add_theme_constant_override("h_separation", 7)
+	list.add_theme_constant_override("v_separation", 7)
 	active_feature_panel.add_child(list)
 	for index in range(back_design_boxes.size()):
 		var box: Dictionary = back_design_boxes[index]
@@ -2527,10 +2529,12 @@ func _show_rear_hardware_selection_controls() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
-	var list := VBoxContainer.new()
+	var list := GridContainer.new()
 	list.name = "RearHardwareOptions"
+	list.columns = 2
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.add_theme_constant_override("separation", 7)
+	list.add_theme_constant_override("h_separation", 7)
+	list.add_theme_constant_override("v_separation", 7)
 	active_feature_panel.add_child(list)
 	var selected_index := _get_rear_hardware_selected_index()
 	for index in range(modules.size()):
