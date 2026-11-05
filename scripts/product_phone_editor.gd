@@ -361,10 +361,6 @@ var device_gradient_direction := 0 # 0 vertical, 1 horizontal, 2 diagonal, 3 rad
 var gradient_color_edit_mode := false
 var back_design_gradient_color_edit_mode := false
 var gradient_direction_button: Button
-var gradient_direction_popup: PanelContainer
-var back_box_gradient_popup: PanelContainer
-var gradient_direction_items: VBoxContainer
-var gradient_popup_layer: CanvasLayer
 var device_color_hex_label: Label
 var back_design_boxes: Array[Dictionary] = []
 var selected_back_design_box := -1
@@ -1347,12 +1343,6 @@ func _close_worksite_back_design_color_view() -> void:
 	# Close overlays that live outside the mounted color panel so they cannot
 	# intercept input after the wizard moves to another step.
 	_close_back_design_selection_popup()
-	if is_instance_valid(back_box_gradient_popup):
-		back_box_gradient_popup.queue_free()
-		back_box_gradient_popup = null
-	if is_instance_valid(gradient_direction_popup):
-		gradient_direction_popup.queue_free()
-		gradient_direction_popup = null
 	if is_instance_valid(back_design_selection_popup):
 		back_design_selection_popup.queue_free()
 		back_design_selection_popup = null
@@ -1364,12 +1354,6 @@ func _close_worksite_back_design_color_view() -> void:
 
 func _show_device_color_controls(return_to_back_design: bool = false, for_phone_case: bool = false, for_charger: bool = false, for_smartwatch: bool = false, for_power_bank: bool = false, for_earbuds: bool = false, for_box_package: bool = false) -> void:
 	_close_back_design_selection_popup()
-	if is_instance_valid(back_box_gradient_popup):
-		back_box_gradient_popup.queue_free()
-		back_box_gradient_popup = null
-	if is_instance_valid(gradient_direction_popup):
-		gradient_direction_popup.queue_free()
-		gradient_direction_popup = null
 	back_design_color_mode = return_to_back_design
 	# New Worksite raised boxes always open with independent base and gradient colors.
 	# This also normalizes boxes carried over from older saved editor state.
@@ -1852,8 +1836,6 @@ func _on_back_box_gradient_toggled(enabled: bool) -> void:
 			back_design_gradient_enabled_without_box = enabled
 			if not enabled:
 				back_design_gradient_color_edit_mode = false
-				if is_instance_valid(gradient_direction_popup):
-					gradient_direction_popup.visible = false
 			var empty_gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
 			if is_instance_valid(empty_gradient_options):
 				empty_gradient_options.visible = enabled
@@ -1864,8 +1846,6 @@ func _on_back_box_gradient_toggled(enabled: bool) -> void:
 	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
 	if not enabled:
 		back_design_gradient_color_edit_mode = false
-		if is_instance_valid(gradient_direction_popup):
-			gradient_direction_popup.visible = false
 	_refresh_back_design_boxes()
 	var gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(gradient_options):
@@ -1874,13 +1854,6 @@ func _on_back_box_gradient_toggled(enabled: bool) -> void:
 	if is_instance_valid(gradient_picker):
 		_set_device_gradient_picker_enabled(gradient_picker, enabled)
 	_refresh_device_color_editor_controls()
-
-func _close_back_box_gradient_popup() -> void:
-	if is_instance_valid(back_box_gradient_popup):
-		back_box_gradient_popup.visible = false
-	if is_instance_valid(gradient_direction_popup):
-		gradient_direction_popup.visible = false
-
 
 func _on_back_box_gradient_color_target_selected(use_gradient_color: bool) -> void:
 	back_design_gradient_color_edit_mode = use_gradient_color
@@ -1935,13 +1908,6 @@ func _refresh_device_color_editor_controls() -> void:
 	var selected_gradient_edit := phone_case_gradient_color_edit_mode if phone_case_color_mode else gradient_color_edit_mode
 	if is_instance_valid(base_button): _style_staff_button(base_button, not selected_gradient_edit)
 	if is_instance_valid(gradient_button): _style_staff_button(gradient_button, selected_gradient_edit)
-	var box_base_button: Button = null
-	var box_gradient_button: Button = null
-	if is_instance_valid(back_box_gradient_popup):
-		box_base_button = back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxColor") as Button
-		box_gradient_button = back_box_gradient_popup.get_node_or_null("BackBoxGradientColorTargets/EditBackBoxGradientColor") as Button
-	if is_instance_valid(box_base_button): _style_staff_button(box_base_button, not back_design_gradient_color_edit_mode)
-	if is_instance_valid(box_gradient_button): _style_staff_button(box_gradient_button, back_design_gradient_color_edit_mode)
 
 
 func _gradient_direction_name(index: int) -> String:
@@ -2123,12 +2089,6 @@ func _on_device_body_color_changed(color: Color) -> void:
 
 func _show_back_design_controls() -> void:
 	_close_back_design_selection_popup()
-	if is_instance_valid(back_box_gradient_popup):
-		back_box_gradient_popup.queue_free()
-		back_box_gradient_popup = null
-	if is_instance_valid(gradient_direction_popup):
-		gradient_direction_popup.queue_free()
-		gradient_direction_popup = null
 	if is_instance_valid(back_design_selection_popup):
 		back_design_selection_popup.queue_free()
 		back_design_selection_popup = null
