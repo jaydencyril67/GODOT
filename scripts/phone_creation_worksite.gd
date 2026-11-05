@@ -264,7 +264,6 @@ var phone_body: MeshInstance3D
 
 var phone_screen: MeshInstance3D
 
-var worksite_creation_mode := false
 
 var fold_angle_degrees := 0.0
 
@@ -724,7 +723,6 @@ func set_company_branding(company_name: String, logo_id: int) -> void:
 func _build_preview_world() -> void:
 	# Worksite owns the live preview viewport directly. There is no nested
 	# editor node, preview-engine scene, or second editor interface.
-	worksite_creation_mode = true
 	preview_container = SubViewportContainer.new()
 	preview_container.name = "RotatablePhonePreview"
 	preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1196,7 +1194,7 @@ func _on_next_pressed() -> void:
 
 
 func _cache_current_step_panel() -> void:
-	if wizard_step <= 0 or not true:
+	if wizard_step <= 0:
 		return
 
 	# Nested raised-box color editing is a temporary view of the Back Design
@@ -1356,15 +1354,11 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 
 func _refresh_ram_capacity_step() -> void:
-	if not true:
-		return
 	var ram_panel := step_panels.get(16) as Control
 	if not is_instance_valid(ram_panel):
 		return
-	if self.has_method("_refresh_ram_capacity_selection_ui"):
-		self.call("_refresh_ram_capacity_selection_ui", ram_panel)
+	_refresh_ram_capacity_selection_ui(ram_panel)
 	_style_ram_selector_buttons(ram_panel)
-
 
 func _style_ram_selector_buttons(panel: Control) -> void:
 	for child in panel.find_children("*", "Button", true, false):
@@ -1378,7 +1372,7 @@ func _style_ram_selector_buttons(panel: Control) -> void:
 
 
 func _set_ram_selection_preview(enabled: bool) -> void:
-	var phone_preview := self.get("preview_container") as Control if true else null
+	var phone_preview := preview_container
 	if is_instance_valid(phone_preview):
 		phone_preview.visible = not enabled
 	# The readout is explicitly hidden during construction, so its visibility
@@ -1430,7 +1424,7 @@ func _update_ram_selection_display(
 	if not is_instance_valid(specification_readout):
 		return
 
-	# Editor callbacks can refresh the full specification list while the user
+	# Feature selections can refresh the full specification list while the user
 	# is still on an earlier step. Do not expose a future step's value until
 	# that step has actually been reached.
 	if not charging_speed_step_visited:
@@ -1439,16 +1433,16 @@ func _update_ram_selection_display(
 		wireless_charge = "Not set"
 	if not sensors_step_visited:
 		sensors = []
-	elif sensors.is_empty() and true and self.has_method("_get_enabled_sensor_names"):
-		sensors = self.call("_get_enabled_sensor_names")
+	elif sensors.is_empty():
+		sensors = _get_enabled_sensor_names()
 	if not front_camera_mp_step_visited:
 		front_camera_mp = "Not set"
-	elif front_camera_mp == "Not set" and true and self.has_method("_get_front_camera_mp_summary"):
-		front_camera_mp = str(self.call("_get_front_camera_mp_summary"))
+	elif front_camera_mp == "Not set":
+		front_camera_mp = _get_front_camera_mp_summary()
 	if not rear_camera_mp_step_visited:
 		rear_camera_mp = "Not set"
-	elif rear_camera_mp == "Not set" and true and self.has_method("_get_rear_camera_mp_summary"):
-		rear_camera_mp = str(self.call("_get_rear_camera_mp_summary"))
+	elif rear_camera_mp == "Not set":
+		rear_camera_mp = _get_rear_camera_mp_summary()
 	if not memory_clock_step_visited:
 		memory_clock = "Not set"
 	if not refresh_rate_step_visited:
@@ -2785,9 +2779,6 @@ func _show_worksite_sensor_controls() -> void:
 
 
 func _show_worksite_front_camera_mp_controls() -> void:
-	if not true:
-		return
-
 	var panel := VBoxContainer.new()
 	panel.name = "WorksiteFrontCameraMegapixelControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2826,9 +2817,6 @@ func _show_worksite_front_camera_mp_controls() -> void:
 
 
 func _show_worksite_rear_camera_mp_controls() -> void:
-	if not true:
-		return
-
 	var panel := VBoxContainer.new()
 	panel.name = "WorksiteRearCameraMegapixelControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3826,7 +3814,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	back_design_color_mode = return_to_back_design
 	# New Worksite raised boxes always open with independent base and gradient colors.
 	# This also normalizes boxes carried over from older saved editor state.
-	if return_to_back_design and worksite_creation_mode and not back_design_boxes.is_empty():
+	if return_to_back_design and not back_design_boxes.is_empty():
 		if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size():
 			selected_back_design_box = back_design_boxes.size() - 1
 		back_design_boxes[selected_back_design_box]["use_device_color"] = false
@@ -3907,7 +3895,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		use_device_color.texture_hover = _make_side_button_checkbox_icon(false)
 		use_device_color.texture_pressed = _make_side_button_checkbox_icon(true)
 		use_device_color.toggle_mode = true
-		use_device_color.button_pressed = bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode))
+		use_device_color.button_pressed = bool(back_design_boxes[selected_back_design_box].get("use_device_color", false))
 		use_device_color.focus_mode = Control.FOCUS_NONE
 		use_device_color.mouse_filter = Control.MOUSE_FILTER_STOP
 		use_device_color.toggled.connect(_on_back_design_use_device_color_toggled)
@@ -3916,7 +3904,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		if not use_device_color.button_pressed:
 			back_design_gradient_color_edit_mode = false
 
-	if (not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) or (return_to_back_design and worksite_creation_mode and (back_design_boxes.is_empty() or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false))))) or (return_to_back_design and not worksite_creation_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))):
+	if (not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) or (return_to_back_design and (back_design_boxes.is_empty() or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false))))):
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3977,18 +3965,8 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		and not for_earbuds
 		and (
 			not return_to_back_design
-			or (
-				worksite_creation_mode
-				and (
-					back_design_boxes.is_empty()
-					or (has_valid_back_box and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false)))
-				)
-			)
-			or (
-				not worksite_creation_mode
-				and has_valid_back_box
-				and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", true))
-			)
+			or back_design_boxes.is_empty()
+			or (has_valid_back_box and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false)))
 		)
 	)
 	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
@@ -3999,11 +3977,10 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		var gradient_picker_enabled := (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
 		_set_device_gradient_picker_enabled(gradient_picker, gradient_picker_enabled)
 	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode)))
+		_set_back_design_custom_color_controls_enabled(not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false)))
 	if return_to_back_design:
 		_add_back_design_flexible_space(active_feature_panel)
-		if worksite_creation_mode:
-			worksite_nested_color_view_opened.emit()
+		worksite_nested_color_view_opened.emit()
 
 func _get_active_color_picker_color() -> Color:
 	if box_package_color_mode:
@@ -4020,7 +3997,7 @@ func _get_active_color_picker_color() -> Color:
 		return phone_case_gradient_color if phone_case_gradient_color_edit_mode else phone_case_color
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		var box: Dictionary = back_design_boxes[selected_back_design_box]
-		if bool(box.get("use_device_color", not worksite_creation_mode)):
+		if bool(box.get("use_device_color", false)):
 			return device_body_color
 		if back_design_gradient_color_edit_mode:
 			return Color(box.get("gradient_color", Color("#536dfe")))
@@ -4285,16 +4262,15 @@ void fragment() {
 
 func _on_back_box_gradient_toggled(enabled: bool) -> void:
 	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size():
-		if worksite_creation_mode:
-			back_design_gradient_enabled_without_box = enabled
-			if not enabled:
-				back_design_gradient_color_edit_mode = false
-			var empty_gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
-			if is_instance_valid(empty_gradient_options):
-				empty_gradient_options.visible = enabled
-			var empty_gradient_picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/GradientColorPicker") as Control if is_instance_valid(active_feature_panel) else null
-			if is_instance_valid(empty_gradient_picker):
-				_set_device_gradient_picker_enabled(empty_gradient_picker, enabled)
+		back_design_gradient_enabled_without_box = enabled
+		if not enabled:
+			back_design_gradient_color_edit_mode = false
+		var empty_gradient_options := active_feature_panel.get_node_or_null("GradientOptions") as Control if is_instance_valid(active_feature_panel) else null
+		if is_instance_valid(empty_gradient_options):
+			empty_gradient_options.visible = enabled
+		var empty_gradient_picker := active_feature_panel.get_node_or_null("DeviceColorPickerColumns/GradientColorPicker") as Control if is_instance_valid(active_feature_panel) else null
+		if is_instance_valid(empty_gradient_picker):
+			_set_device_gradient_picker_enabled(empty_gradient_picker, enabled)
 		return
 	back_design_boxes[selected_back_design_box]["gradient_enabled"] = enabled
 	if not enabled:
@@ -4521,7 +4497,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 			phone_case_color = selected_color
 		_refresh_phone_case_material()
 	elif back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
-		if bool(back_design_boxes[selected_back_design_box].get("use_device_color", not worksite_creation_mode)): return
+		if bool(back_design_boxes[selected_back_design_box].get("use_device_color", false)): return
 		if back_design_gradient_color_edit_mode:
 			back_design_boxes[selected_back_design_box]["gradient_color"] = selected_color
 		else:
@@ -4715,7 +4691,7 @@ func _show_back_design_controls() -> void:
 func _apply_worksite_back_hardware_panel_layout() -> void:
 	# Raised Back Design now owns its complete layout in its builder. This
 	# worksite hook remains only to clean up any legacy rear-hardware spacer.
-	if not worksite_creation_mode or not is_instance_valid(active_feature_panel):
+	if not is_instance_valid(active_feature_panel):
 		return
 	if active_feature_panel.name == "BackDesignControls":
 		return
@@ -4844,7 +4820,7 @@ func _add_back_design_box() -> void:
 		while x <= max_x and not placed:
 			var box_position := Vector2(x, y)
 			if _back_design_position_is_free(box_position, box_size, -1):
-				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08, "use_device_color": not worksite_creation_mode, "custom_color": device_body_color, "gradient_color": device_gradient_color, "gradient_enabled": back_design_gradient_enabled_without_box if worksite_creation_mode else false, "gradient_direction": device_gradient_direction})
+				back_design_boxes.append({"id": next_back_design_box_id, "position": box_position, "size": box_size, "border": 0.08, "use_device_color": false, "custom_color": device_body_color, "gradient_color": device_gradient_color, "gradient_enabled": back_design_gradient_enabled_without_box, "gradient_direction": device_gradient_direction})
 				selected_back_design_box = back_design_boxes.size() - 1
 				next_back_design_box_id += 1
 				placed = true
@@ -5185,7 +5161,7 @@ func _refresh_back_design_boxes() -> void:
 		raised.name = "RaisedBackBox_%d" % int(box["id"])
 		raised.mesh = _make_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), 0.035 / 1.10 / 1.5)
 		var material := StandardMaterial3D.new()
-		var box_uses_device_color := bool(box.get("use_device_color", not worksite_creation_mode))
+		var box_uses_device_color := bool(box.get("use_device_color", false))
 		var box_color: Color = device_body_color if box_uses_device_color else Color(box.get("custom_color", device_body_color))
 		if box_uses_device_color:
 			material.albedo_color = box_color.lightened(0.045) if index == selected_back_design_box else box_color.darkened(0.10)
