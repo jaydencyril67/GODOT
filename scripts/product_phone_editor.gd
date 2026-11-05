@@ -2160,7 +2160,7 @@ func _show_back_design_controls() -> void:
 	back_design_selection_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(back_design_selection_button, button_font_size)
 	_style_back_design_button(back_design_selection_button, true)
-	back_design_selection_button.pressed.connect(_toggle_back_design_selection_popup)
+	back_design_selection_button.pressed.connect(_show_back_design_selection_controls)
 	active_feature_panel.add_child(back_design_selection_button)
 
 	back_design_selection_popup = PanelContainer.new()
@@ -2603,12 +2603,116 @@ func _remove_selected_back_design_box() -> void:
 	_refresh_back_design_boxes()
 	_refresh_back_design_panel()
 
+func _show_back_design_selection_controls() -> void:
+	if back_design_boxes.is_empty():
+		return
+	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
+	if not is_instance_valid(panel_host):
+		return
+	if is_instance_valid(active_feature_panel):
+		panel_host.remove_child(active_feature_panel)
+		active_feature_panel.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "BackDesignBoxSelection"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	panel_host.add_child(active_feature_panel)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 7)
+	active_feature_panel.add_child(header)
+	var back := Button.new()
+	back.name = "BackDesignSelectionBackButton"
+	back.text = "‹"
+	back.custom_minimum_size = Vector2(36, 34)
+	back.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(back, 25)
+	_style_back_design_button(back, false)
+	back.pressed.connect(_show_back_design_controls)
+	header.add_child(back)
+	var title := _make_label("SELECT RAISED BOX", 15, Color("#c7eacb"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+	var list := VBoxContainer.new()
+	list.name = "BackDesignBoxOptions"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 7)
+	active_feature_panel.add_child(list)
+	for index in range(back_design_boxes.size()):
+		var box: Dictionary = back_design_boxes[index]
+		var option := Button.new()
+		option.name = "BackDesignBoxOption%d" % index
+		option.text = "RAISED BOX  %02d%s" % [int(box["id"]), "   ✓ SELECTED" if index == selected_back_design_box else ""]
+		option.custom_minimum_size.y = 48
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		option.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(option, 13)
+		_style_back_design_button(option, index == selected_back_design_box)
+		option.pressed.connect(_select_back_design_box.bind(index))
+		list.add_child(option)
+	_add_back_design_flexible_space(active_feature_panel)
+
+
+func _show_rear_hardware_selection_controls() -> void:
+	var modules := _get_rear_hardware_modules()
+	if modules.is_empty():
+		return
+	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
+	if not is_instance_valid(panel_host):
+		return
+	if is_instance_valid(active_feature_panel):
+		panel_host.remove_child(active_feature_panel)
+		active_feature_panel.queue_free()
+	active_feature_panel = VBoxContainer.new()
+	active_feature_panel.name = "RearHardwareSelection"
+	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 9)
+	panel_host.add_child(active_feature_panel)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 7)
+	active_feature_panel.add_child(header)
+	var back := Button.new()
+	back.name = "RearHardwareSelectionBackButton"
+	back.text = "‹"
+	back.custom_minimum_size = Vector2(36, 34)
+	back.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(back, 25)
+	_style_back_design_button(back, false)
+	back.pressed.connect(_show_rear_camera_controls)
+	header.add_child(back)
+	var title := _make_label("SELECT " + rear_hardware_mode, 15, Color("#c7eacb"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+	var list := VBoxContainer.new()
+	list.name = "RearHardwareOptions"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 7)
+	active_feature_panel.add_child(list)
+	var selected_index := _get_rear_hardware_selected_index()
+	for index in range(modules.size()):
+		var module: Dictionary = modules[index]
+		var option := Button.new()
+		option.name = "RearHardwareOption%d" % index
+		option.text = "%s  %02d%s" % [rear_hardware_mode, int(module["id"]), "   ✓ SELECTED" if index == selected_index else ""]
+		option.custom_minimum_size.y = 48
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		option.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(option, 13)
+		_style_back_design_button(option, index == selected_index)
+		option.pressed.connect(_select_rear_hardware_module.bind(index))
+		list.add_child(option)
+	_add_back_design_flexible_space(active_feature_panel)
+
+
 func _select_back_design_box(index: int) -> void:
 	if index < 0 or index >= back_design_boxes.size():
 		return
 	selected_back_design_box = index
-	if is_instance_valid(back_design_selection_popup):
-		back_design_selection_popup.visible = false
 	_refresh_back_design_boxes()
 	_refresh_back_design_panel()
 
@@ -2687,7 +2791,9 @@ func _on_back_design_border_changed(value: float) -> void:
 func _refresh_back_design_panel() -> void:
 	if not is_instance_valid(back_design_selection_button):
 		return
-	_rebuild_back_design_selection_popup()
+	if is_instance_valid(back_design_selection_button):
+		back_design_selection_button.disabled = back_design_boxes.is_empty()
+		back_design_selection_button.text = "ADD A BOX TO SELECT" if back_design_boxes.is_empty() else "RAISED BOX  %d  ›" % int(back_design_boxes[selected_back_design_box]["id"])
 	var has_box := selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size()
 	if has_box:
 		var selected: Dictionary = back_design_boxes[selected_back_design_box]
@@ -6562,7 +6668,7 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_selection_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(rear_hardware_selection_button, button_font_size)
 	_style_back_design_button(rear_hardware_selection_button, true)
-	rear_hardware_selection_button.pressed.connect(_toggle_rear_hardware_selection_popup)
+	rear_hardware_selection_button.pressed.connect(_show_rear_hardware_selection_controls)
 	management.add_child(rear_hardware_selection_button)
 
 	rear_hardware_selection_popup = PanelContainer.new()
@@ -6985,7 +7091,7 @@ func _select_rear_hardware_module(index: int) -> void:
 	if index < 0 or index >= modules.size():
 		return
 	_set_rear_hardware_selected_index(index)
-	_close_rear_hardware_selection_popup()
+	_show_rear_camera_controls()
 	_refresh_rear_hardware_panel()
 
 
@@ -7005,7 +7111,9 @@ func _refresh_rear_hardware_panel() -> void:
 		rear_hardware_size_label.text = "ADD A %s TO BEGIN" % kind_name
 	rear_hardware_size_slider.disabled = not has_selection
 	rear_hardware_remove_button.disabled = not has_selection
-	_rebuild_rear_hardware_selection_popup()
+	if is_instance_valid(rear_hardware_selection_button):
+		rear_hardware_selection_button.disabled = modules.is_empty()
+		rear_hardware_selection_button.text = "%s  %02d  ›" % [kind_name, int(modules[selected_index]["id"])] if has_selection else "ADD A %s TO SELECT" % kind_name
 	var camera_limit_reached := rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS
 	var flash_limit_reached := rear_hardware_mode == "FLASH" and rear_flash_modules.size() >= MAX_REAR_FLASHES
 	rear_hardware_add_button.text = "MAX 5 CAMERAS" if camera_limit_reached else ("MAX 5 FLASHES" if flash_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"))
