@@ -1477,7 +1477,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_toggle.texture_hover = _make_side_button_checkbox_icon(false)
 		gradient_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 		gradient_toggle.toggle_mode = true
-		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
+		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)))
 		gradient_toggle.focus_mode = Control.FOCUS_NONE
 		gradient_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 		if return_to_back_design:
@@ -11751,6 +11751,41 @@ func _rebuild_box_package_preview() -> void:
 	box_package_preview.visible = box_package_preview_mode
 
 
+func _create_box_package_front_material() -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, cull_disabled;
+uniform vec4 solid_color : source_color = vec4(0.9, 0.9, 0.9, 1.0);
+uniform vec4 gradient_color : source_color = vec4(0.32, 0.42, 0.95, 1.0);
+uniform bool gradient_enabled = false;
+uniform int gradient_direction = 0;
+varying vec2 local_uv;
+void vertex() {
+	local_uv = UV;
+}
+void fragment() {
+	float t = local_uv.y;
+	if (gradient_direction == 1) {
+		t = local_uv.x;
+	} else if (gradient_direction == 2) {
+		t = clamp((local_uv.x + local_uv.y) * 0.5, 0.0, 1.0);
+	} else if (gradient_direction == 3) {
+		t = clamp(length((local_uv - vec2(0.5)) * vec2(1.0, 1.8)) * 1.4142, 0.0, 1.0);
+	}
+	ALBEDO = gradient_enabled ? mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0)) : solid_color.rgb;
+	ROUGHNESS = 0.84;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("solid_color", box_package_color)
+	material.set_shader_parameter("gradient_color", box_package_gradient_color)
+	material.set_shader_parameter("gradient_enabled", box_package_gradient_enabled)
+	material.set_shader_parameter("gradient_direction", box_package_gradient_direction)
+	return material
+
+
 func _refresh_box_package_material() -> void:
 	if not is_instance_valid(box_package_preview):
 		return
@@ -11766,7 +11801,10 @@ func _refresh_box_package_material() -> void:
 		elif part.name.begins_with("LidSeam"):
 			shade = box_package_color.darkened(0.10)
 			roughness = 0.92
-		part.material_override = _make_box_package_material(shade, roughness)
+		if part.name == "LidFrontFace":
+			part.material_override = _create_box_package_front_material()
+		else:
+			part.material_override = _make_box_package_material(shade, roughness)
 	_refresh_box_package_branding()
 
 
