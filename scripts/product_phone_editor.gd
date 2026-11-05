@@ -5572,16 +5572,16 @@ func _refresh_phone_screen() -> void:
 	# Each technology inherits the next tier's previous screen finish.
 	# MicroLED receives a new near-black polished finish with restrained reflections.
 	var screen_colors := {
-		"TFT LCD": Color("#223342"),
-		"LED-LCD": Color("#1d2d3d"),
-		"IPS LCD": Color("#172535"),
-		"Mini-LED LCD": Color("#111b28"),
-		"OLED": Color("#0e1723"),
-		"AMOLED": Color("#0b131f"),
-		"Super AMOLED": Color("#09111d"),
-		"Dynamic AMOLED": Color("#080f1b"),
-		"LTPO AMOLED": Color("#070d18"),
-		"MicroLED": Color("#02050a")
+		"TFT LCD": Color("#303030"),
+		"LED-LCD": Color("#292929"),
+		"IPS LCD": Color("#222222"),
+		"Mini-LED LCD": Color("#1c1c1c"),
+		"OLED": Color("#171717"),
+		"AMOLED": Color("#121212"),
+		"Super AMOLED": Color("#0e0e0e"),
+		"Dynamic AMOLED": Color("#0a0a0a"),
+		"LTPO AMOLED": Color("#060606"),
+		"MicroLED": Color("#020202")
 	}
 	var screen_roughness := {
 		"TFT LCD": 0.27,
@@ -5745,11 +5745,11 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius, outer_corner_mask)
 	var glass_material := StandardMaterial3D.new()
 	var screen_colors := {
-		"TFT LCD": Color("#223342"), "LED-LCD": Color("#1d2d3d"),
-		"IPS LCD": Color("#172535"), "Mini-LED LCD": Color("#111b28"),
-		"OLED": Color("#0e1723"), "AMOLED": Color("#0b131f"),
-		"Super AMOLED": Color("#09111d"), "Dynamic AMOLED": Color("#080f1b"),
-		"LTPO AMOLED": Color("#070d18"), "MicroLED": Color("#02050a")
+		"TFT LCD": Color("#303030"), "LED-LCD": Color("#292929"),
+		"IPS LCD": Color("#222222"), "Mini-LED LCD": Color("#1c1c1c"),
+		"OLED": Color("#171717"), "AMOLED": Color("#121212"),
+		"Super AMOLED": Color("#0e0e0e"), "Dynamic AMOLED": Color("#0a0a0a"),
+		"LTPO AMOLED": Color("#060606"), "MicroLED": Color("#020202")
 	}
 	glass_material.albedo_color = screen_colors.get(selected_screen_type, Color("#0e1723"))
 	var outer_screen_roughness := {
@@ -5846,11 +5846,11 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
 	var moving_corner_mask := _foldable_half_corner_mask(true)
 	var colors := {
-		"TFT LCD": Color("#223342"), "LED-LCD": Color("#1d2d3d"),
-		"IPS LCD": Color("#172535"), "Mini-LED LCD": Color("#111b28"),
-		"OLED": Color("#0e1723"), "AMOLED": Color("#0b131f"),
-		"Super AMOLED": Color("#09111d"), "Dynamic AMOLED": Color("#080f1b"),
-		"LTPO AMOLED": Color("#070d18"), "MicroLED": Color("#02050a")
+		"TFT LCD": Color("#303030"), "LED-LCD": Color("#292929"),
+		"IPS LCD": Color("#222222"), "Mini-LED LCD": Color("#1c1c1c"),
+		"OLED": Color("#171717"), "AMOLED": Color("#121212"),
+		"Super AMOLED": Color("#0e0e0e"), "Dynamic AMOLED": Color("#0a0a0a"),
+		"LTPO AMOLED": Color("#060606"), "MicroLED": Color("#020202")
 	}
 	var roughness := {
 		"TFT LCD": 0.27, "LED-LCD": 0.24, "IPS LCD": 0.19,
