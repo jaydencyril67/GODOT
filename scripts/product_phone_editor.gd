@@ -4103,7 +4103,7 @@ func _set_earbuds_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
 	if is_instance_valid(charger_preview):
 		charger_preview.visible = not enabled and charger_preview_mode and (charger_enabled or (charger_cable_enabled and not _charger_device_connector().is_empty()))
 	if is_instance_valid(wireless_earbuds_preview):
@@ -4283,7 +4283,7 @@ func _set_power_bank_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled and not smartwatch_preview_mode and not charger_preview_mode
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not enabled and not smartwatch_preview_mode and not charger_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+		phone_case_preview.visible = not enabled and not smartwatch_preview_mode and not charger_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
 	if is_instance_valid(charger_preview):
 		charger_preview.visible = not enabled and not smartwatch_preview_mode and charger_preview_mode and (charger_enabled or (charger_cable_enabled and not _charger_device_connector().is_empty()))
 	if is_instance_valid(smartwatch_preview):
@@ -5111,7 +5111,7 @@ func _set_smartwatch_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled and not charger_preview_mode
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not enabled and not charger_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+		phone_case_preview.visible = not enabled and not charger_preview_mode and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
 	if is_instance_valid(charger_preview):
 		charger_preview.visible = not enabled and charger_preview_mode and (charger_enabled or (charger_cable_enabled and not _charger_device_connector().is_empty()))
 	if is_instance_valid(smartwatch_preview):
@@ -5132,7 +5132,7 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
 	if is_instance_valid(charger_preview):
 		charger_preview.position = Vector3.ZERO
 		if not enabled:
@@ -11649,7 +11649,7 @@ func _set_box_package_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(phone_body):
 		phone_body.visible = not enabled or not box_package_enabled
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1
+		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
 	if is_instance_valid(charger_preview):
 		charger_preview.visible = false
 	if is_instance_valid(smartwatch_preview):
