@@ -780,17 +780,18 @@ func _update_ram_selection_display(
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
-	# Keep the subject and selected value on one horizontal row, with separate
-	# typography so the subject stays green and the value stays white.
-	var entry := HBoxContainer.new()
-	entry.add_theme_constant_override("separation", 8)
+	# Each grid cell stacks its green subject above its larger white value.
+	# GridContainer keeps these subject/value pairs arranged left-to-right in
+	# two columns, then continues on the next row.
+	var entry := VBoxContainer.new()
+	entry.add_theme_constant_override("separation", 3)
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var subject := _label(caption_text + ":", 18, Color("#9bd6a7"))
+	var subject := _label(caption_text, 18, Color("#9bd6a7"))
 	subject.autowrap_mode = TextServer.AUTOWRAP_OFF
 	subject.clip_text = true
-	subject.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	subject.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	subject.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	entry.add_child(subject)
 
