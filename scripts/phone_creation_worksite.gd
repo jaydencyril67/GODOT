@@ -780,20 +780,16 @@ func _update_ram_selection_display(
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
-	var entry := HBoxContainer.new()
+	# Keep each subject/value pair in one Label. Separate child Labels inside
+	# a narrow GridContainer cell were allowing the subject to collapse to a
+	# one-character-wide strip on compact landscape screens.
+	var entry := _label(caption_text + ":  " + value_text, 14, Color("#f1f5f1"))
+	entry.autowrap_mode = TextServer.AUTOWRAP_OFF
+	entry.clip_text = true
 	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	entry.custom_minimum_size.x = 0
 	entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	specification_readout.add_child(entry)
-
-	var caption := _label(caption_text + ":", 12, Color("#c3cec6"))
-	caption.autowrap_mode = TextServer.AUTOWRAP_OFF
-	caption.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	entry.add_child(caption)
-
-	var value := _label(value_text, 17, Color("#f1f5f1"))
-	value.autowrap_mode = TextServer.AUTOWRAP_OFF
-	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	entry.add_child(value)
 
 
 func _update_step_progress(step: int) -> void:
