@@ -6744,9 +6744,6 @@ func _show_rear_camera_controls() -> void:
 	management.add_theme_constant_override("separation", 6)
 	active_feature_panel.add_child(management)
 
-	rear_hardware_add_button = _make_editor_icon_button(management, "RearHardwareAddButton", "+", "Add camera or flash", Callable(self, "_add_rear_hardware_module"), control_height, true)
-	rear_hardware_remove_button = _make_editor_icon_button(management, "RearHardwareRemoveButton", "−", "Remove selected component", Callable(self, "_remove_rear_hardware_module"), control_height, false)
-
 	rear_hardware_selection_button = Button.new()
 	rear_hardware_selection_button.name = "RearHardwareItemSelector"
 	rear_hardware_selection_button.text = "CAMERA  ▼" if rear_hardware_mode == "CAMERA" else "FLASH  ▼"
@@ -6827,12 +6824,22 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_size_slider.value_changed.connect(_on_rear_hardware_size_changed)
 	size_section.add_child(rear_hardware_size_slider)
 
-	# Keep the movement pad close to the size control; no expanding spacer.
+	# Keep the movement pad close to the size control and flank it with
+	# the add/remove controls, vertically centred against the pad.
+	var pad_control_row := HBoxContainer.new()
+	pad_control_row.name = "RearHardwarePadWithManagement"
+	pad_control_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_control_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
+	active_feature_panel.add_child(pad_control_row)
+
+	rear_hardware_add_button = _make_editor_icon_button(pad_control_row, "RearHardwareAddButton", "+", "Add camera or flash", Callable(self, "_add_rear_hardware_module"), control_height, true)
+
 	var pad_center := CenterContainer.new()
 	pad_center.name = "RearHardwareDirectionControllerCenter"
 	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_child(pad_center)
+	pad_control_row.add_child(pad_center)
 	var pad_shell := PanelContainer.new()
 	pad_shell.name = "RearHardwareDirectionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
@@ -6874,6 +6881,8 @@ func _show_rear_camera_controls() -> void:
 	_add_back_design_pad_spacer(pad)
 	_add_rear_hardware_pad_button(pad, "↓", Vector2i(0, -1), tight)
 	_add_back_design_pad_spacer(pad)
+
+	rear_hardware_remove_button = _make_editor_icon_button(pad_control_row, "RearHardwareRemoveButton", "−", "Remove selected component", Callable(self, "_remove_rear_hardware_module"), control_height, false)
 	_refresh_rear_hardware_panel()
 func _add_rear_hardware_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool) -> void:
 	_add_editor_direction_pad_button(parent, caption, direction, tight, Callable(self, "_on_rear_hardware_pad_pressed"))
