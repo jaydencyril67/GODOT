@@ -461,8 +461,24 @@ func _mount_original_panel(method_name: String) -> Control:
 	# bottom-centered without making these two compact editor steps scroll.
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if method_name in ["_show_back_design_controls", "_show_rear_camera_controls"] else Control.SIZE_SHRINK_BEGIN
 	selection_stack.add_child(panel)
+	if method_name in ["_show_back_design_controls", "_show_rear_camera_controls"]:
+		_apply_worksite_back_hardware_layout(panel)
 	_keep_step_navigation_active()
 	return panel
+
+
+func _apply_worksite_back_hardware_layout(panel: Control) -> void:
+	# These dimensions belong to the NEW creation worksite only. The legacy
+	# product editor keeps its own original spacing and slider dimensions.
+	var spacer_name := "BackDesignControllerFlexSpace" if panel.name == "BackDesignControls" else "RearHardwareControllerFlexSpace"
+	var slider_name := "BackDesignBorderSlider" if panel.name == "BackDesignControls" else "RearHardwareSizeSlider"
+	var spacer := panel.find_child(spacer_name, true, false) as Control
+	if is_instance_valid(spacer):
+		spacer.custom_minimum_size.y = 24.0
+		spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var slider := panel.find_child(slider_name, true, false) as Control
+	if is_instance_valid(slider):
+		slider.custom_minimum_size.y = 250.0
 
 
 func _show_thickness_step() -> void:
