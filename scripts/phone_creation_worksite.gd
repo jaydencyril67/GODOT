@@ -118,6 +118,53 @@ func _build_preview_world() -> void:
 		editor_interface.hide()
 
 
+
+func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> void:
+	if not is_instance_valid(preview_viewport):
+		return
+	var preview_world := preview_viewport.get_node_or_null("PhonePreviewWorld") as Node3D
+	if not is_instance_valid(preview_world):
+		return
+
+	# Neutral studio illumination keeps dark chassis colours readable without
+	# changing their materials or tinting the selected device colour.
+	var directional_lights: Array[DirectionalLight3D] = []
+	for child in preview_world.get_children():
+		if child is DirectionalLight3D:
+			directional_lights.append(child as DirectionalLight3D)
+		elif child is OmniLight3D:
+			var fill_light := child as OmniLight3D
+			fill_light.light_color = Color("#dce5df")
+			fill_light.light_energy = 0.34
+			fill_light.omni_range = 8.0
+
+	if directional_lights.size() > 0:
+		var key_light := directional_lights[0]
+		key_light.light_color = Color("#fffdf8")
+		key_light.light_energy = 1.12
+		key_light.shadow_enabled = false
+	if directional_lights.size() > 1:
+		var rim_light := directional_lights[1]
+		rim_light.light_color = Color("#d5e2d9")
+		rim_light.light_energy = 0.72
+		rim_light.shadow_enabled = false
+
+	var environment_node := preview_viewport.get_node_or_null("PhonePreviewWorld/WorldEnvironment") as WorldEnvironment
+	if is_instance_valid(environment_node) and is_instance_valid(environment_node.environment):
+		var environment := environment_node.environment
+		environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		environment.ambient_light_color = Color("#aeb8b1")
+		environment.ambient_light_energy = 0.62
+		environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+		if is_instance_valid(environment.sky) and environment.sky.sky_material is ProceduralSkyMaterial:
+			var studio_sky_material := environment.sky.sky_material as ProceduralSkyMaterial
+			studio_sky_material.sky_top_color = Color("#77817b")
+			studio_sky_material.sky_horizon_color = Color("#d4d9d5")
+			studio_sky_material.ground_horizon_color = Color("#727b75")
+			studio_sky_material.ground_bottom_color = Color("#343b37")
+			studio_sky_material.sky_energy_multiplier = 0.9
+			studio_sky_material.ground_energy_multiplier = 0.72
+
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneCreationWorksiteInterface"
@@ -133,7 +180,7 @@ func _build_interface() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.name = "WorksiteBackdrop"
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color("#080b09")
+	backdrop.color = Color("#292d2b")
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
 	root.resized.connect(_apply_responsive_layout)
@@ -234,6 +281,7 @@ func _build_interface() -> void:
 			if is_instance_valid(preview_environment) and is_instance_valid(preview_environment.environment):
 				preview_environment.environment.background_mode = Environment.BG_COLOR
 				preview_environment.environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
+			_apply_worksite_preview_studio_lighting(preview_viewport)
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "PhoneTypeSelectionScroll"
