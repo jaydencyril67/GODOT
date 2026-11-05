@@ -379,8 +379,12 @@ var box_package_position_target := "LOGO"
 var box_package_position_step := 0.08
 var box_package_color_mode := false
 var box_package_color := Color("#e8edf2")
-var box_package_logo_visible := true
-var box_package_name_visible := true
+var box_package_gradient_color := Color("#536dfe")
+var box_package_gradient_enabled := false
+var box_package_gradient_direction := 0
+var box_package_gradient_color_edit_mode := false
+var box_package_logo_scale := 1.0
+var box_package_name_font_size := 46
 var box_company_name := "YOUR COMPANY"
 var box_company_logo_id := 1
 var box_package_logo_position := Vector2(0.0, 0.66)
@@ -1542,7 +1546,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 
 func _get_active_color_picker_color() -> Color:
 	if box_package_color_mode:
-		return box_package_color
+		return box_package_gradient_color if box_package_gradient_color_edit_mode else box_package_color
 	if charger_color_mode:
 		return charger_body_color
 	if smartwatch_color_mode:
@@ -1871,6 +1875,8 @@ func _on_gradient_color_target_selected(use_gradient_color: bool) -> void:
 		back_design_gradient_color_edit_mode = use_gradient_color
 	elif phone_case_color_mode:
 		phone_case_gradient_color_edit_mode = use_gradient_color
+	elif box_package_color_mode:
+		box_package_gradient_color_edit_mode = use_gradient_color
 	else:
 		gradient_color_edit_mode = use_gradient_color
 	_refresh_device_color_editor_controls()
@@ -1920,6 +1926,8 @@ func _gradient_direction_name(index: int) -> String:
 func _get_active_gradient_direction() -> int:
 	if phone_case_color_mode:
 		return phone_case_gradient_direction
+	if box_package_color_mode:
+		return box_package_gradient_direction
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		return int(back_design_boxes[selected_back_design_box].get("gradient_direction", 0))
 	return device_gradient_direction
@@ -2002,6 +2010,9 @@ func _select_gradient_direction(index: int) -> void:
 	elif back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		back_design_boxes[selected_back_design_box]["gradient_direction"] = selected_direction
 		_refresh_back_design_boxes()
+	elif box_package_color_mode:
+		box_package_gradient_direction = selected_direction
+		_refresh_box_package_material()
 	else:
 		device_gradient_direction = selected_direction
 		if is_instance_valid(phone_body):
@@ -2025,6 +2036,11 @@ func _on_device_gradient_toggled(enabled: bool) -> void:
 		if not enabled:
 			phone_case_gradient_color_edit_mode = false
 		_refresh_phone_case_material()
+	elif box_package_color_mode:
+		box_package_gradient_enabled = enabled
+		if not enabled:
+			box_package_gradient_color_edit_mode = false
+		_refresh_box_package_material()
 	else:
 		device_gradient_enabled = enabled
 		if is_instance_valid(phone_body):
@@ -2054,7 +2070,10 @@ func _on_device_body_color_changed(color: Color) -> void:
 		wireless_earbuds_body_color = selected_color
 		_rebuild_earbuds_preview()
 	elif box_package_color_mode:
-		box_package_color = selected_color
+		if box_package_gradient_color_edit_mode:
+			box_package_gradient_color = selected_color
+		else:
+			box_package_color = selected_color
 		_refresh_box_package_material()
 	elif phone_case_color_mode:
 		if phone_case_gradient_color_edit_mode:
@@ -11496,8 +11515,27 @@ func _show_box_package_controls() -> void:
 
 	var branding_heading := _make_label("COMPANY BRANDING", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(branding_heading)
-	_add_box_package_toggle(active_feature_panel, "ShowCompanyLogo", "SHOW COMPANY LOGO", box_package_logo_visible, Callable(self, "_on_box_package_logo_visibility_toggled"))
-	_add_box_package_toggle(active_feature_panel, "ShowCompanyName", "SHOW COMPANY NAME", box_package_name_visible, Callable(self, "_on_box_package_name_visibility_toggled"))
+	var size_heading := _make_label("BRANDING SIZE", 12, Color("#a9e3ff"))
+	active_feature_panel.add_child(size_heading)
+	for target in ["LOGO", "NAME"]:
+		var size_row := HBoxContainer.new()
+		size_row.name = "BoxPackage%sSizeRow" % target.capitalize()
+		size_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		size_row.add_theme_constant_override("separation", 8)
+		active_feature_panel.add_child(size_row)
+		var size_label := _make_label(target, 11, Color("#e6f5ff"))
+		size_label.custom_minimum_size.x = 48
+		size_row.add_child(size_label)
+		var size_slider := HSlider.new()
+		size_slider.name = "BoxPackage%sSize" % target.capitalize()
+		size_slider.min_value = 0.45 if target == "LOGO" else 18.0
+		size_slider.max_value = 1.8 if target == "LOGO" else 84.0
+		size_slider.step = 0.05 if target == "LOGO" else 1.0
+		size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		size_slider.custom_minimum_size = Vector2(0, 26)
+		size_slider.value = box_package_logo_scale if target == "LOGO" else box_package_name_font_size
+		size_slider.value_changed.connect(_on_box_package_branding_size_changed.bind(target))
+		size_row.add_child(size_slider)
 
 	var position_heading := _make_label("BRANDING POSITION", 13, Color("#a9e3ff"))
 	active_feature_panel.add_child(position_heading)
@@ -11536,49 +11574,7 @@ func _show_box_package_controls() -> void:
 	_add_box_package_position_pad_spacer(position_pad)
 	_add_box_package_position_button(position_pad, "↓", Vector2i(0, -1), compact)
 	_add_box_package_position_pad_spacer(position_pad)
-	var step_row := HBoxContainer.new()
-	step_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	step_row.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(step_row)
-	var step_label := _make_label("MOVEMENT", 10, Color("#d7eaf5"))
-	step_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	step_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	step_row.add_child(step_label)
-	for step in [0.03, 0.08, 0.16]:
-		var step_button := Button.new()
-		step_button.text = "SMALL" if is_equal_approx(step, 0.03) else ("MED" if is_equal_approx(step, 0.08) else "LARGE")
-		step_button.custom_minimum_size = Vector2(54, 36)
-		_apply_research_typography(step_button, 10)
-		_style_staff_button(step_button, is_equal_approx(box_package_position_step, step))
-		step_button.pressed.connect(_set_box_package_position_step.bind(step))
-		step_row.add_child(step_button)
 
-
-func _add_box_package_toggle(parent: Control, control_name: String, caption: String, enabled: bool, callback: Callable) -> void:
-	var row := HBoxContainer.new()
-	row.name = control_name + "Row"
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 8)
-	parent.add_child(row)
-	var label := _make_label(caption, 12, Color("#e6f5ff"))
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var toggle := TextureButton.new()
-	toggle.name = control_name
-	toggle.custom_minimum_size = Vector2(38, 38)
-	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.toggle_mode = true
-	toggle.button_pressed = enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	toggle.toggled.connect(callback)
-	row.add_child(toggle)
 
 
 func _add_box_package_position_pad_spacer(parent: GridContainer) -> void:
@@ -11604,13 +11600,16 @@ func _set_box_package_position_target(target: String) -> void:
 	_show_box_package_controls()
 
 
-func _set_box_package_position_step(step: float) -> void:
-	box_package_position_step = step
-	_show_box_package_controls()
+func _on_box_package_branding_size_changed(value: float, target: String) -> void:
+	if target == "LOGO":
+		box_package_logo_scale = value
+	else:
+		box_package_name_font_size = int(round(value))
+	_refresh_box_package_branding()
 
 
 func _move_box_package_branding(direction: Vector2i) -> void:
-	var offset := Vector2(direction) * box_package_position_step
+	var offset := Vector2(direction) * 0.08
 	if box_package_position_target == "LOGO":
 		box_package_logo_position.x = clampf(box_package_logo_position.x + offset.x, -0.55, 0.55)
 		box_package_logo_position.y = clampf(box_package_logo_position.y + offset.y, -1.20, 1.20)
@@ -11625,16 +11624,6 @@ func _reset_box_package_position() -> void:
 		box_package_logo_position = Vector2(0.0, 0.66)
 	else:
 		box_package_name_position = Vector2(0.0, -0.62)
-	_refresh_box_package_branding()
-
-
-func _on_box_package_logo_visibility_toggled(enabled: bool) -> void:
-	box_package_logo_visible = enabled
-	_refresh_box_package_branding()
-
-
-func _on_box_package_name_visibility_toggled(enabled: bool) -> void:
-	box_package_name_visible = enabled
 	_refresh_box_package_branding()
 
 
@@ -11806,13 +11795,12 @@ func _refresh_box_package_branding() -> void:
 			box_package_logo_sprite.texture = logo_texture
 		box_package_logo_sprite.modulate = ink_color
 		box_package_logo_sprite.position = Vector3(box_package_logo_position.x, box_package_logo_position.y, 0.253)
-		box_package_logo_sprite.visible = box_package_logo_visible
+		box_package_logo_sprite.scale = Vector3.ONE * box_package_logo_scale
 	if is_instance_valid(box_package_name_label):
 		box_package_name_label.text = box_company_name.to_upper()
-		box_package_name_label.font_size = 46 if box_company_name.length() <= 14 else (38 if box_company_name.length() <= 22 else 30)
+		box_package_name_label.font_size = box_package_name_font_size
 		box_package_name_label.modulate = ink_color
 		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.253)
-		box_package_name_label.visible = box_package_name_visible
 
 
 func _show_phone_case_controls() -> void:
