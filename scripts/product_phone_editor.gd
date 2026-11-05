@@ -980,6 +980,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	var software_editor_features := _get_software_research_features()
 	software_editor_features.erase("RAM Technology")
 	software_editor_features.erase("RAM")
+	software_editor_features.erase("RAM")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
 		software_editor_features,
@@ -9738,6 +9739,9 @@ func _on_ram_capacity_selected(capacity: String) -> void:
 		var ram_label: Label = software_value_labels["RAM"]
 		ram_label.text = capacity
 	_refresh_ram_capacity_selection_ui(active_feature_panel)
+	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
+		var summary_ram_label: Label = software_value_labels["RAM"]
+		summary_ram_label.text = selected_ram_capacity
 
 
 func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
