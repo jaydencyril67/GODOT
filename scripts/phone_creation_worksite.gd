@@ -1056,7 +1056,7 @@ func _show_worksite_front_camera_mp_controls() -> void:
 			var camera_entry: Dictionary = camera_entry_value
 			var property_name := str(camera_entry.get("property", "front_camera_megapixels"))
 			var camera_label := str(camera_entry.get("label", "01"))
-			var megapixels := int(phone_editor.get(property_name))
+			var megapixels := int(phone_editor.get(StringName(property_name)))
 			var callback := Callable(phone_editor, "_set_front_camera_mp_value").bind(property_name)
 			var card := phone_editor.call("_make_camera_mp_slider_card", camera_label, megapixels, callback) as Control
 			camera_row.add_child(card)
