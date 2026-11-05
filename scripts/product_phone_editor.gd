@@ -7783,7 +7783,7 @@ func _get_power_volume_min_spacing(single_key_length: float, key_radius: float, 
 	var edge_scale := _active_phone_size().x * 0.42 if edge == "top" else 1.0
 	var button_width := maxf(key_radius * 1.35, 0.024)
 	var power_half_extent := (single_key_length + button_width) * 0.5
-	var rocker_half_extent := single_key_length * 1.02 + 0.018
+	var rocker_half_extent := single_key_length * 1.02 + 0.018 + button_width * 0.5
 	return (power_half_extent + rocker_half_extent + 0.025) / maxf(edge_scale, 0.001)
 
 
