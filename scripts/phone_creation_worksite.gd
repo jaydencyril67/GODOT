@@ -235,14 +235,14 @@ func _build_interface() -> void:
 	progress.custom_minimum_size = Vector2(150, 38)
 	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-	progress_number = _label("STEP 1 / 30", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 37", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 30
+	progress_bar.max_value = 37
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -563,6 +563,8 @@ func _on_next_pressed() -> void:
 		_show_refresh_rate_step()
 	elif wizard_step == 28:
 		_show_cooling_system_step()
+	elif wizard_step == 29:
+		_show_box_package_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -581,6 +583,8 @@ func _cache_current_step_panel() -> void:
 			phone_editor.call("_close_back_design_selection_popup")
 	elif wizard_step == 14 and phone_editor.has_method("_close_rear_hardware_selection_popup"):
 		phone_editor.call("_close_rear_hardware_selection_popup")
+	elif wizard_step == 30 and bool(phone_editor.get("box_package_color_mode")):
+		_show_worksite_box_package_controls()
 
 	var current_panel := phone_editor.get("active_feature_panel") as Control
 	if is_instance_valid(current_panel):
@@ -600,10 +604,15 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
+	var previous_step := wizard_step
 	if step < 15 or step > 29:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
+	if previous_step == 30 and step != 30:
+		phone_editor.call("_set_box_package_preview_mode", false)
 	wizard_step = step
+	if step == 30:
+		phone_editor.call("_set_box_package_preview_mode", true)
 	if step >= 22:
 		charging_speed_step_visited = true
 	if step >= 23:
@@ -873,7 +882,7 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 	specification_readout_entry_count += 1
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 30)
+	var progress_value := clampi(step + 1, 1, 37)
 	progress_number.text = "STEP %d / 30" % progress_value
 	progress_bar.value = progress_value
 
@@ -984,6 +993,197 @@ func _show_wireless_charge_step() -> void:
 
 func _show_sensors_step() -> void:
 	_show_worksite_step(24, "_show_worksite_sensor_controls")
+
+
+
+func _show_worksite_box_package_controls() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+
+	var previous_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(previous_panel):
+		var previous_parent := previous_panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(previous_panel)
+		previous_panel.queue_free()
+
+	phone_editor.set("box_package_color_mode", false)
+	var panel := VBoxContainer.new()
+	panel.name = "WorksiteBoxPackageControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+	selection_stack.add_child(panel)
+
+	var heading := _label("BOX PACKAGE", 20, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+
+	_add_worksite_box_package_toggle(panel, "SHOW BOX PACKAGE", "box_package_enabled", "_on_box_package_enabled_toggled")
+	_add_worksite_box_package_toggle(panel, "OPEN BOX LID", "box_package_open", "_on_box_package_open_toggled")
+
+	var color_button := Button.new()
+	color_button.name = "EditBoxPackageColor"
+	color_button.text = "CHANGE BOX COLOUR"
+	color_button.custom_minimum_size = Vector2(0, 44)
+	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	color_button.focus_mode = Control.FOCUS_NONE
+	_style_button(color_button, true)
+	color_button.pressed.connect(_open_worksite_box_package_color_controls)
+	panel.add_child(color_button)
+
+	var branding_heading := _label("COMPANY BRANDING", 15, Color("#9bd6a7"))
+	panel.add_child(branding_heading)
+	_add_worksite_box_package_toggle(panel, "SHOW COMPANY LOGO", "box_package_logo_visible", "_on_box_package_logo_visibility_toggled")
+	_add_worksite_box_package_toggle(panel, "SHOW COMPANY NAME", "box_package_name_visible", "_on_box_package_name_visibility_toggled")
+
+	var position_heading := _label("BRANDING POSITION", 15, Color("#9bd6a7"))
+	panel.add_child(position_heading)
+
+	var target_row := HBoxContainer.new()
+	target_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	target_row.add_theme_constant_override("separation", 8)
+	panel.add_child(target_row)
+	for target in ["LOGO", "NAME"]:
+		var target_button := Button.new()
+		target_button.name = "BoxPackagePositionTarget_" + target
+		target_button.text = target
+		target_button.custom_minimum_size = Vector2(0, 42)
+		target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		target_button.focus_mode = Control.FOCUS_NONE
+		_style_button(target_button, str(phone_editor.get("box_package_position_target")) == target)
+		target_button.pressed.connect(_on_worksite_box_package_position_target_selected.bind(target))
+		target_row.add_child(target_button)
+
+	var position_pad := GridContainer.new()
+	position_pad.name = "BoxPackagePositionPad"
+	position_pad.columns = 3
+	position_pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	position_pad.add_theme_constant_override("h_separation", 7)
+	position_pad.add_theme_constant_override("v_separation", 6)
+	panel.add_child(position_pad)
+	_add_worksite_box_package_position_spacer(position_pad)
+	_add_worksite_box_package_position_button(position_pad, "↑", Vector2i(0, 1))
+	_add_worksite_box_package_position_spacer(position_pad)
+	_add_worksite_box_package_position_button(position_pad, "←", Vector2i(-1, 0))
+	var reset_button := Button.new()
+	reset_button.name = "ResetBoxPackageBrandingPosition"
+	reset_button.text = "RESET"
+	reset_button.custom_minimum_size = Vector2(64, 42)
+	reset_button.focus_mode = Control.FOCUS_NONE
+	reset_button.add_theme_font_size_override("font_size", 11)
+	_style_button(reset_button, true)
+	reset_button.pressed.connect(Callable(phone_editor, "_reset_box_package_position"))
+	position_pad.add_child(reset_button)
+	_add_worksite_box_package_position_button(position_pad, "→", Vector2i(1, 0))
+	_add_worksite_box_package_position_spacer(position_pad)
+	_add_worksite_box_package_position_button(position_pad, "↓", Vector2i(0, -1))
+	_add_worksite_box_package_position_spacer(position_pad)
+
+	var movement_row := HBoxContainer.new()
+	movement_row.name = "BoxPackageMovementSize"
+	movement_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	movement_row.add_theme_constant_override("separation", 6)
+	panel.add_child(movement_row)
+	var movement_label := _label("MOVEMENT", 12, Color("#dce9df"))
+	movement_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	movement_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	movement_row.add_child(movement_label)
+	for movement in [
+		{"label": "SMALL", "value": 0.03},
+		{"label": "MED", "value": 0.08},
+		{"label": "LARGE", "value": 0.16}
+	]:
+		var movement_button := Button.new()
+		movement_button.text = str(movement["label"])
+		movement_button.custom_minimum_size = Vector2(58, 38)
+		movement_button.focus_mode = Control.FOCUS_NONE
+		movement_button.add_theme_font_size_override("font_size", 10)
+		_style_button(movement_button, is_equal_approx(float(phone_editor.get("box_package_position_step")), float(movement["value"])))
+		movement_button.pressed.connect(_on_worksite_box_package_movement_selected.bind(float(movement["value"])))
+		movement_row.add_child(movement_button)
+
+	step_panels[30] = panel
+
+
+func _add_worksite_box_package_toggle(parent: Control, caption: String, property_name: String, callback_name: String) -> void:
+	var row := HBoxContainer.new()
+	row.name = property_name + "Row"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+
+	var caption_label := _label(caption, 14, Color("#e7f6ff"))
+	caption_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(caption_label)
+
+	var enabled := bool(phone_editor.get(property_name))
+	var toggle := TextureButton.new()
+	toggle.name = property_name + "Toggle"
+	toggle.custom_minimum_size = Vector2(38, 38)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toggle.ignore_texture_size = true
+	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	var unchecked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", false)
+	var checked_icon: Texture2D = phone_editor.call("_make_side_button_checkbox_icon", true)
+	toggle.texture_normal = unchecked_icon
+	toggle.texture_hover = unchecked_icon
+	toggle.texture_pressed = checked_icon
+	toggle.texture_disabled = unchecked_icon
+	toggle.toggle_mode = true
+	toggle.button_pressed = enabled
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle.toggled.connect(Callable(phone_editor, callback_name))
+	row.add_child(toggle)
+
+
+func _add_worksite_box_package_position_spacer(parent: GridContainer) -> void:
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(48, 42)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(spacer)
+
+
+func _add_worksite_box_package_position_button(parent: GridContainer, caption: String, direction: Vector2i) -> void:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(48, 42)
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_font_size_override("font_size", 21)
+	_style_button(button, true)
+	button.pressed.connect(Callable(phone_editor, "_move_box_package_branding").bind(direction))
+	parent.add_child(button)
+
+
+func _on_worksite_box_package_position_target_selected(target: String) -> void:
+	phone_editor.set("box_package_position_target", target)
+	_show_worksite_box_package_controls()
+
+
+func _on_worksite_box_package_movement_selected(step: float) -> void:
+	phone_editor.set("box_package_position_step", step)
+	_show_worksite_box_package_controls()
+
+
+func _open_worksite_box_package_color_controls() -> void:
+	phone_editor.call("_show_device_color_controls", false, false, false, false, false, false, true)
+	var color_panel := phone_editor.get("active_feature_panel") as Control
+	if not is_instance_valid(color_panel) or color_panel.get_child_count() == 0:
+		return
+	var header := color_panel.get_child(0) as HBoxContainer
+	if not is_instance_valid(header) or header.get_child_count() == 0:
+		return
+	var back_button := header.get_child(0) as Button
+	if not is_instance_valid(back_button):
+		return
+	var legacy_back_callback := Callable(phone_editor, "_show_box_package_controls")
+	if back_button.pressed.is_connected(legacy_back_callback):
+		back_button.pressed.disconnect(legacy_back_callback)
+	back_button.pressed.connect(_show_worksite_box_package_controls)
 
 
 func _show_worksite_sensor_controls() -> void:
@@ -1176,6 +1376,10 @@ func _show_refresh_rate_step() -> void:
 
 func _show_cooling_system_step() -> void:
 	_show_worksite_step(29, "_show_cooling_system_controls")
+
+
+func _show_box_package_step() -> void:
+	_show_worksite_step(30, "_show_worksite_box_package_controls")
 
 
 func _keep_step_navigation_active() -> void:
