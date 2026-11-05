@@ -2040,7 +2040,7 @@ func _show_worksite_protection_glass_controls() -> void:
 		finish_button.custom_minimum_size = Vector2(0, 44)
 		finish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		finish_button.focus_mode = Control.FOCUS_NONE
-		var is_selected := str(phone_editor.get("screen_protector_finish")) == finish_name
+		var is_selected: bool = str(phone_editor.get("screen_protector_finish")) == str(finish_name)
 		_style_button(finish_button, is_selected)
 		finish_button.pressed.connect(Callable(phone_editor, "_on_screen_protector_finish_selected").bind(finish_name))
 		panel.add_child(finish_button)
