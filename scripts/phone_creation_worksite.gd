@@ -1780,22 +1780,7 @@ func _on_worksite_box_package_position_target_selected(target: String) -> void:
 
 
 func _open_worksite_box_package_color_controls() -> void:
-	self.call("_show_device_color_controls", false, false, false, false, false, false, true)
-	var color_panel := self.get("active_feature_panel") as Control
-	if not is_instance_valid(color_panel) or color_panel.get_child_count() == 0:
-		return
-	var header := color_panel.get_child(0) as HBoxContainer
-	if not is_instance_valid(header) or header.get_child_count() == 0:
-		return
-	var back_button := header.get_child(0) as Button
-	if not is_instance_valid(back_button):
-		return
-	var legacy_back_callback := Callable(self, "_show_box_package_controls")
-	if back_button.pressed.is_connected(legacy_back_callback):
-		back_button.pressed.disconnect(legacy_back_callback)
-	back_button.pressed.connect(_show_worksite_box_package_controls)
-
-
+	_show_device_color_controls(false, false, false, false, false, false, true)
 
 func _show_worksite_phone_case_controls() -> void:
 	if not is_instance_valid(selection_stack):
@@ -1997,22 +1982,7 @@ func _show_worksite_phone_case_design_controls() -> void:
 
 
 func _open_worksite_phone_case_color_controls() -> void:
-	self.call("_show_device_color_controls", false, true)
-	var color_panel := self.get("active_feature_panel") as Control
-	if not is_instance_valid(color_panel) or color_panel.get_child_count() == 0:
-		return
-	var header := color_panel.get_child(0) as HBoxContainer
-	if not is_instance_valid(header) or header.get_child_count() == 0:
-		return
-	var back_button := header.get_child(0) as Button
-	if not is_instance_valid(back_button):
-		return
-	var legacy_back_callback := Callable(self, "_show_phone_case_controls")
-	if back_button.pressed.is_connected(legacy_back_callback):
-		back_button.pressed.disconnect(legacy_back_callback)
-	back_button.pressed.connect(_show_worksite_phone_case_controls)
-
-
+	_show_device_color_controls(false, true)
 
 func _show_worksite_charger_controls(page: String = "HOME") -> void:
 	if not is_instance_valid(selection_stack):
@@ -2723,22 +2693,16 @@ func _add_worksite_charger_toggle(
 
 
 func _open_worksite_charger_color_controls() -> void:
-	self.call("_show_device_color_controls", false, false, true)
-	var color_panel := self.get("active_feature_panel") as Control
+	_show_device_color_controls(false, false, true)
+	var color_panel := active_feature_panel
 	if not is_instance_valid(color_panel) or color_panel.get_child_count() == 0:
 		return
 	var header := color_panel.get_child(0) as HBoxContainer
 	if not is_instance_valid(header) or header.get_child_count() == 0:
 		return
 	var back_button := header.get_child(0) as Button
-	if not is_instance_valid(back_button):
-		return
-	_style_button(back_button, false)
-	var legacy_back_callback := Callable(self, "_show_charger_controls")
-	if back_button.pressed.is_connected(legacy_back_callback):
-		back_button.pressed.disconnect(legacy_back_callback)
-	back_button.pressed.connect(_show_worksite_charger_controls.bind("HOME"))
-
+	if is_instance_valid(back_button):
+		_style_button(back_button, false)
 
 func _show_worksite_sensor_controls() -> void:
 	if not is_instance_valid(selection_stack):
@@ -3757,7 +3721,7 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	_set_charger_preview_mode(false)
 	if feature_name == "Box Package":
 		_set_box_package_preview_mode(true)
-		_show_box_package_controls()
+		_show_worksite_box_package_controls()
 		return
 	if box_package_preview_mode:
 		_set_box_package_preview_mode(false)
@@ -3765,33 +3729,33 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 		_set_smartwatch_preview_mode(false)
 		_set_power_bank_preview_mode(false)
 		_set_earbuds_preview_mode(true)
-		_show_earbuds_controls()
+		_show_worksite_earbuds_controls()
 		return
 	if feature_name == "Smartwatch":
 		_set_power_bank_preview_mode(false)
 		_set_smartwatch_preview_mode(true)
-		_show_smartwatch_controls()
+		_show_worksite_smartwatch_controls()
 		return
 	if feature_name == "Power Bank":
 		_set_smartwatch_preview_mode(false)
 		_set_power_bank_preview_mode(true)
-		_show_power_bank_controls()
+		_show_worksite_power_bank_controls()
 		return
 	if feature_name == "Phone Case":
-		_show_phone_case_controls()
+		_show_worksite_phone_case_controls()
 		return
 	if feature_name == "Protection Glass":
-		_show_screen_protector_controls()
+		_show_worksite_protection_glass_controls()
 		return
 	if feature_name == "Charger":
 		_set_charger_preview_mode(true)
-		_show_charger_controls()
+		_show_worksite_charger_controls()
 		return
 	if feature_name == "Charging Cable":
 		# Opening the cable editor must not silently enable the charger.
 		_set_charger_preview_mode(true)
 		_rebuild_charger_preview()
-		_show_charger_controls("CABLE")
+		_show_worksite_charger_controls("CABLE")
 		return
 	if feature_name == "Phone Type":
 		_show_phone_type_controls()
@@ -3822,9 +3786,9 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	elif feature_name in ["Rare Camera", "Rear Camera"]:
 		_show_rear_camera_controls()
 	elif feature_name == "Front Camera MP":
-		_show_front_camera_mp_controls()
+		_show_worksite_front_camera_mp_controls()
 	elif feature_name == "Rear Camera MP":
-		_show_rear_camera_mp_controls()
+		_show_worksite_rear_camera_mp_controls()
 	elif feature_name == "Back Design":
 		_show_back_design_controls()
 	elif feature_name == "RAM":
@@ -3846,7 +3810,7 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	elif feature_name == "Network":
 		_show_mobile_network_controls()
 	elif feature_name == "Sensors":
-		_show_sensor_controls()
+		_show_worksite_sensor_controls()
 	elif feature_name == "Refresh Rate":
 		_show_refresh_rate_controls()
 	elif feature_name == "Memory Clock":
@@ -3907,7 +3871,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 			_style_back_design_button(back_button, false)
 		else:
 			_style_staff_button(back_button, false)
-		back_button.pressed.connect(_show_box_package_controls if for_box_package else (_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else (_show_earbuds_controls if for_earbuds else _show_back_design_controls))))))
+		back_button.pressed.connect(_show_worksite_box_package_controls if for_box_package else (_show_worksite_charger_controls if for_charger else (_show_worksite_phone_case_controls if for_phone_case else (_show_worksite_smartwatch_controls if for_smartwatch else (_show_worksite_power_bank_controls if for_power_bank else (_show_worksite_earbuds_controls if for_earbuds else _show_back_design_controls))))))
 		color_header.add_child(back_button)
 		var color_heading := "BOX PACKAGE COLOR" if for_box_package else ("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else ("WIRELESS EARBUDS COLOR" if for_earbuds else "BACK DESIGN COLOR")))))
 		var color_title := _make_label(color_heading, 16, Color("#c7eacb"))
@@ -6037,21 +6001,21 @@ func _build_screen_protector_async(display: MeshInstance3D, screen_width: float,
 	protector.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	display.add_child(protector)
 	screen_protector_building = false
-	_show_screen_protector_controls()
+	_show_worksite_protection_glass_controls()
 
 func _on_screen_protector_toggled(enabled: bool) -> void:
 	screen_protector_enabled = enabled
 	screen_protector_build_token += 1
 	screen_protector_building = enabled
 	_refresh_phone_screen()
-	_show_screen_protector_controls()
+	_show_worksite_protection_glass_controls()
 
 func _on_screen_protector_finish_selected(finish_name: String) -> void:
 	if not ["Ultra Clear", "Matte", "Anti-Reflective"].has(finish_name):
 		return
 	screen_protector_finish = finish_name
 	_refresh_phone_screen()
-	_show_screen_protector_controls()
+	_show_worksite_protection_glass_controls()
 
 func _on_screen_protector_thickness_changed(value: float) -> void:
 	screen_protector_thickness = clampf(value, 0.003, 0.009)
@@ -6285,66 +6249,11 @@ func _add_accessory_label(parent: Node3D, node_name: String, label_text: String,
 	parent.add_child(label)
 	return label
 
-func _show_smartwatch_controls() -> void:
-	if worksite_creation_mode and is_instance_valid(worksite_owner):
-		worksite_owner.call("_show_worksite_smartwatch_controls")
-		return
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "SmartwatchControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 10)
-	right_tools_content.add_child(active_feature_panel)
-
-	var heading := _make_label("SMART WATCH", 18, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	var description := _make_label("Add a 3D smartwatch accessory to the product preview. Drag the centre preview to inspect it.", 12, Color("#dce9df"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
-
-	var enable_row := HBoxContainer.new()
-	enable_row.name = "SmartwatchEnableRow"
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE SMART WATCH", 13, Color("#e7f6e9"))
-	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	enable_row.add_child(enable_label)
-	var toggle := TextureButton.new()
-	toggle.name = "EnableSmartwatchModel"
-	toggle.custom_minimum_size = Vector2(40, 40)
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.toggle_mode = true
-	toggle.button_pressed = smartwatch_enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.toggled.connect(_on_smartwatch_enabled_toggled)
-	enable_row.add_child(toggle)
-
-	if smartwatch_enabled:
-		var color_button := Button.new()
-		color_button.name = "OpenSmartwatchDeviceColorEditor"
-		color_button.text = "CUSTOMIZE SMART WATCH COLOR  ›"
-		color_button.custom_minimum_size = Vector2(0, 46)
-		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(color_button, 13)
-		_style_staff_button(color_button, false)
-		color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, true, false))
-		active_feature_panel.add_child(color_button)
-
 func _on_smartwatch_enabled_toggled(enabled: bool) -> void:
 	smartwatch_enabled = enabled
 	_rebuild_smartwatch_preview()
 	_set_smartwatch_preview_mode(true)
-	_show_smartwatch_controls()
+	_show_worksite_smartwatch_controls()
 
 func _on_smartwatch_color_selected(color_name: String, color: Color) -> void:
 	smartwatch_color_name = color_name
@@ -6508,66 +6417,11 @@ func _set_earbuds_preview_mode(enabled: bool) -> void:
 		preview_camera.fov = 35.0 if enabled else 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
-func _show_earbuds_controls() -> void:
-	if worksite_creation_mode and is_instance_valid(worksite_owner):
-		worksite_owner.call("_show_worksite_earbuds_controls")
-		return
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "WirelessEarbudsControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 10)
-	right_tools_content.add_child(active_feature_panel)
-
-	var heading := _make_label("WIRELESS EARBUDS", 18, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	var description := _make_label("Add a rotatable 3D wireless earbuds case with the lid fully closed and the earbuds stored inside.", 12, Color("#dce9df"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
-
-	var enable_row := HBoxContainer.new()
-	enable_row.name = "WirelessEarbudsEnableRow"
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE EARBUDS CASE", 13, Color("#e7f6e9"))
-	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	enable_row.add_child(enable_label)
-	var toggle := TextureButton.new()
-	toggle.name = "EnableWirelessEarbudsModel"
-	toggle.custom_minimum_size = Vector2(40, 40)
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.toggle_mode = true
-	toggle.button_pressed = wireless_earbuds_enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.toggled.connect(_on_earbuds_enabled_toggled)
-	enable_row.add_child(toggle)
-
-	if wireless_earbuds_enabled:
-		var color_button := Button.new()
-		color_button.name = "OpenWirelessEarbudsDeviceColorEditor"
-		color_button.text = "CUSTOMIZE CASE COLOR  ›"
-		color_button.custom_minimum_size = Vector2(0, 46)
-		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(color_button, 13)
-		_style_staff_button(color_button, false)
-		color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, false, false, true))
-		active_feature_panel.add_child(color_button)
-
 func _on_earbuds_enabled_toggled(enabled: bool) -> void:
 	wireless_earbuds_enabled = enabled
 	_rebuild_earbuds_preview()
 	_set_earbuds_preview_mode(true)
-	_show_earbuds_controls()
+	_show_worksite_earbuds_controls()
 
 func _rebuild_power_bank_preview() -> void:
 	if not is_instance_valid(power_bank_preview):
@@ -6690,102 +6544,11 @@ func _set_power_bank_preview_mode(enabled: bool) -> void:
 		preview_camera.fov = 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
-func _show_power_bank_controls() -> void:
-	if worksite_creation_mode and is_instance_valid(worksite_owner):
-		worksite_owner.call("_show_worksite_power_bank_controls")
-		return
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "PowerBankControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 10)
-	right_tools_content.add_child(active_feature_panel)
-
-	var heading := _make_label("POWER BANK", 18, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	var description := _make_label("Add a rotatable 3D power bank to the centre preview. Choose its finish below.", 12, Color("#dce9df"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
-
-	var enable_row := HBoxContainer.new()
-	enable_row.name = "PowerBankEnableRow"
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE POWER BANK", 13, Color("#e7f6e9"))
-	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	enable_row.add_child(enable_label)
-	var toggle := TextureButton.new()
-	toggle.name = "EnablePowerBankModel"
-	toggle.custom_minimum_size = Vector2(40, 40)
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.toggle_mode = true
-	toggle.button_pressed = power_bank_enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.toggled.connect(_on_power_bank_enabled_toggled)
-	enable_row.add_child(toggle)
-
-	if power_bank_enabled:
-		var capacity_heading := _make_label("BATTERY CAPACITY", 14, Color("#9bd6a7"))
-		capacity_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		active_feature_panel.add_child(capacity_heading)
-
-		power_bank_capacity_value_label = _make_label(_format_power_bank_capacity(power_bank_capacity_mah), 22, Color("#e7f6e9"))
-		power_bank_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		active_feature_panel.add_child(power_bank_capacity_value_label)
-
-		var capacity_slider := VSlider.new()
-		capacity_slider.name = "PowerBankCapacitySlider"
-		capacity_slider.min_value = 10000
-		capacity_slider.max_value = 25000
-		capacity_slider.step = 500
-		capacity_slider.value = power_bank_capacity_mah
-		capacity_slider.tick_count = 31
-		capacity_slider.custom_minimum_size = Vector2(76, 270)
-		capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		capacity_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		capacity_slider.focus_mode = Control.FOCUS_NONE
-		capacity_slider.value_changed.connect(_on_power_bank_capacity_changed)
-		_style_custom_slider(capacity_slider)
-		active_feature_panel.add_child(capacity_slider)
-
-		var range_row := HBoxContainer.new()
-		range_row.name = "PowerBankCapacityRange"
-		range_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		range_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		var minimum := _make_label("10,000 mAh", 11, Color("#b8d8be"))
-		minimum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		range_row.add_child(minimum)
-		var maximum := _make_label("25,000 mAh", 11, Color("#b8d8be"))
-		maximum.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		maximum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		range_row.add_child(maximum)
-		active_feature_panel.add_child(range_row)
-
-		var color_button := Button.new()
-		color_button.name = "OpenPowerBankDeviceColorEditor"
-		color_button.text = "CUSTOMIZE POWER BANK COLOR  ›"
-		color_button.custom_minimum_size = Vector2(0, 46)
-		color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(color_button, 13)
-		_style_staff_button(color_button, false)
-		color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, false, true))
-		active_feature_panel.add_child(color_button)
-
 func _on_power_bank_enabled_toggled(enabled: bool) -> void:
 	power_bank_enabled = enabled
 	_rebuild_power_bank_preview()
 	_set_power_bank_preview_mode(true)
-	_show_power_bank_controls()
+	_show_worksite_power_bank_controls()
 
 func _format_power_bank_capacity(capacity: int) -> String:
 	return "%s mAh" % _format_integer_with_commas(capacity)
@@ -7529,14 +7292,14 @@ func _on_charger_enabled_toggled(enabled: bool) -> void:
 func _on_charger_wattage_selected(value: int) -> void:
 	charger_wattage = clampi(value, 2, 200)
 	_rebuild_charger_preview()
-	_show_charger_controls("POWER")
+	_show_worksite_charger_controls("POWER")
 
 func _on_charger_plug_selected(value: String) -> void:
 	if not ["UK", "EU", "US", "Universal"].has(value):
 		return
 	charger_plug_type = value
 	_rebuild_charger_preview()
-	_show_charger_controls("PLUG")
+	_show_worksite_charger_controls("PLUG")
 
 func _charger_output_connector() -> String:
 	return "USB-A" if charger_cable_type.begins_with("USB-A") else "USB-C"
@@ -7545,14 +7308,14 @@ func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
 	charger_cable_enabled = enabled and not _charger_device_connector().is_empty()
 	_rebuild_charger_preview()
 	var return_page := "HOME" if charger_controls_page == "HOME" else "CABLE"
-	_show_charger_controls(return_page)
+	_show_worksite_charger_controls(return_page)
 
 func _on_charger_cable_selected(value: String) -> void:
 	if not _charger_cable_options_for_phone().has(value):
 		return
 	charger_cable_type = value
 	_rebuild_charger_preview()
-	_show_charger_controls("CABLE")
+	_show_worksite_charger_controls("CABLE")
 
 func _on_charger_color_selected(value: String) -> void:
 	match value:
@@ -7563,379 +7326,7 @@ func _on_charger_color_selected(value: String) -> void:
 		"Midnight Black":
 			charger_body_color = Color("#111820")
 	_rebuild_charger_preview()
-	_show_charger_controls("FINISH")
-
-func _show_charger_controls(page: String = "HOME") -> void:
-	if worksite_creation_mode and is_instance_valid(worksite_owner) and worksite_owner.has_method("_show_worksite_charger_controls"):
-		charger_controls_page = page
-		worksite_owner.call("_show_worksite_charger_controls", page)
-		return
-	if not is_instance_valid(right_tools_content):
-		return
-	charger_controls_page = page
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "ChargerControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 9)
-	right_tools_content.add_child(active_feature_panel)
-
-	if page != "HOME":
-		var header := HBoxContainer.new()
-		header.add_theme_constant_override("separation", 8)
-		active_feature_panel.add_child(header)
-		var back := Button.new()
-		back.name = "ChargerSettingsBack"
-		back.text = "‹"
-		back.custom_minimum_size = Vector2(42, 40)
-		back.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(back, 24)
-		_style_staff_button(back, false)
-		back.pressed.connect(_show_charger_controls.bind("HOME"))
-		header.add_child(back)
-		var page_title := _make_label("CHARGER " + page, 16, Color("#c7eacb"))
-		page_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		page_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		header.add_child(page_title)
-
-		match page:
-			"PLUG":
-				var plug_heading := _make_label("WALL PLUG STANDARD", 13, Color("#9bd6a7"))
-				active_feature_panel.add_child(plug_heading)
-				for plug_name in ["UK", "EU", "US", "Universal"]:
-					var plug_button := Button.new()
-					plug_button.name = "ChargerPlug_" + plug_name
-					plug_button.text = plug_name + ("   ✓  SELECTED" if charger_plug_type == plug_name else "")
-					plug_button.custom_minimum_size = Vector2(0, 48)
-					plug_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					plug_button.focus_mode = Control.FOCUS_NONE
-					_apply_research_typography(plug_button, 13)
-					_style_staff_button(plug_button, charger_plug_type == plug_name)
-					plug_button.pressed.connect(_on_charger_plug_selected.bind(plug_name))
-					active_feature_panel.add_child(plug_button)
-				var plug_note := _make_label("Changes the physical wall-pin layout on the 3D adapter.", 11, Color("#b8d8be"))
-				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-				active_feature_panel.add_child(plug_note)
-			"CABLE":
-				var cable_heading := _make_label("PHYSICAL CHARGING CABLE", 13, Color("#9bd6a7"))
-				active_feature_panel.add_child(cable_heading)
-				var cable_enable_row := HBoxContainer.new()
-				cable_enable_row.name = "ChargingCableEnableRow"
-				cable_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				active_feature_panel.add_child(cable_enable_row)
-				var cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e7f6e9"))
-				cable_enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				cable_enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-				cable_enable_row.add_child(cable_enable_label)
-				var cable_toggle := TextureButton.new()
-				cable_toggle.name = "EnableChargingCableModel"
-				cable_toggle.custom_minimum_size = Vector2(40, 40)
-				cable_toggle.ignore_texture_size = true
-				cable_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-				cable_toggle.texture_normal = _make_side_button_checkbox_icon(false)
-				cable_toggle.texture_hover = _make_side_button_checkbox_icon(false)
-				cable_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-				cable_toggle.toggle_mode = true
-				cable_toggle.button_pressed = charger_cable_enabled
-				cable_toggle.focus_mode = Control.FOCUS_NONE
-				cable_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-				cable_toggle.toggled.connect(_on_charger_cable_enabled_toggled)
-				cable_enable_row.add_child(cable_toggle)
-				var compatible_cable_options := _charger_cable_options_for_phone()
-				for cable_name in compatible_cable_options:
-					var cable_button := Button.new()
-					cable_button.name = "ChargerCable_" + cable_name.replace(" ", "").replace("-", "")
-					cable_button.text = cable_name + ("   ✓  SELECTED" if charger_cable_type == cable_name else "")
-					cable_button.custom_minimum_size = Vector2(0, 48)
-					cable_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					cable_button.focus_mode = Control.FOCUS_NONE
-					_apply_research_typography(cable_button, 13)
-					_style_staff_button(cable_button, charger_cable_type == cable_name)
-					cable_button.pressed.connect(_on_charger_cable_selected.bind(cable_name))
-					active_feature_panel.add_child(cable_button)
-				var cable_note_text := "A short U-shaped cable with a phone-side plug that matches the selected charging port."
-				if charge_port_type == "None":
-					cable_note_text = "Choose a phone charging port first. The cable connector options will then match it automatically."
-				var cable_note := _make_label(cable_note_text, 11, Color("#b8d8be"))
-				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-				active_feature_panel.add_child(cable_note)
-			"POWER":
-				var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#9bd6a7"))
-				active_feature_panel.add_child(wattage_heading)
-				charger_wattage_label = _make_label("%d W" % charger_wattage, 32, Color.WHITE)
-				charger_wattage_label.name = "ChargerOutputWattageValue"
-				charger_wattage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				active_feature_panel.add_child(charger_wattage_label)
-				var wattage_range := _make_label("2W  —  200W  ·  INDEPENDENT ADAPTER OUTPUT", 11, Color("#b8d8be"))
-				wattage_range.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				active_feature_panel.add_child(wattage_range)
-				var slider_row := HBoxContainer.new()
-				slider_row.name = "ChargerWattageVerticalSliderRow"
-				slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
-				slider_row.add_theme_constant_override("separation", 12)
-				active_feature_panel.add_child(slider_row)
-				var minimum := _make_label("2W", 11, Color("#b8d8be"))
-				minimum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-				slider_row.add_child(minimum)
-				charger_wattage_slider = VSlider.new()
-				charger_wattage_slider.name = "ChargerOutputVerticalSlider"
-				charger_wattage_slider.min_value = 2
-				charger_wattage_slider.max_value = 200
-				charger_wattage_slider.step = 1
-				charger_wattage_slider.value = charger_wattage
-				charger_wattage_slider.custom_minimum_size = Vector2(52, 245)
-				charger_wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
-				charger_wattage_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-				charger_wattage_slider.focus_mode = Control.FOCUS_NONE
-				charger_wattage_slider.tick_count = 0
-				charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
-				_style_custom_slider(charger_wattage_slider)
-				slider_row.add_child(charger_wattage_slider)
-				var maximum := _make_label("200W", 11, Color("#b8d8be"))
-				maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-				slider_row.add_child(maximum)
-			"FINISH":
-				_show_device_color_controls(false, false, true)
-		return
-
-	var heading := _make_label("CHARGER ADAPTER", 18, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	var description := _make_label("Configure the adapter one setting at a time. Drag the centre preview to inspect every side.", 12, Color("#dce9df"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
-	var enable_row := HBoxContainer.new()
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE CHARGER MODEL", 13, Color("#e7f6e9"))
-	enable_row.add_child(enable_label)
-	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var toggle := TextureButton.new()
-	toggle.name = "EnableChargerPreview"
-	toggle.custom_minimum_size = Vector2(40, 40)
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.toggle_mode = true
-	toggle.button_pressed = charger_enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.toggled.connect(_on_charger_enabled_toggled)
-	enable_row.add_child(toggle)
-
-	var home_cable_enable_row := HBoxContainer.new()
-	home_cable_enable_row.name = "HomeChargingCableEnableRow"
-	home_cable_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(home_cable_enable_row)
-	var home_cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e7f6e9"))
-	home_cable_enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_cable_enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	home_cable_enable_row.add_child(home_cable_enable_label)
-	var home_cable_toggle := TextureButton.new()
-	home_cable_toggle.name = "EnableChargingCableModelHome"
-	home_cable_toggle.custom_minimum_size = Vector2(40, 40)
-	home_cable_toggle.ignore_texture_size = true
-	home_cable_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	home_cable_toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	home_cable_toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	home_cable_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	home_cable_toggle.toggle_mode = true
-	home_cable_toggle.button_pressed = charger_cable_enabled
-	home_cable_toggle.focus_mode = Control.FOCUS_NONE
-	home_cable_toggle.toggled.connect(_on_charger_cable_enabled_toggled)
-	home_cable_enable_row.add_child(home_cable_toggle)
-
-	var plug_option := Button.new()
-	plug_option.name = "OpenChargerPlugSettings"
-	plug_option.text = "PLUG STANDARD     ›     " + charger_plug_type
-	plug_option.custom_minimum_size = Vector2(0, 48)
-	plug_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	plug_option.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(plug_option, 13)
-	_style_staff_button(plug_option, false)
-	plug_option.pressed.connect(_show_charger_controls.bind("PLUG"))
-	active_feature_panel.add_child(plug_option)
-
-	var cable_option := Button.new()
-	cable_option.name = "OpenChargerCableSettings"
-	cable_option.text = "CABLE TYPE     ›     " + charger_cable_type
-	cable_option.custom_minimum_size = Vector2(0, 48)
-	cable_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cable_option.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(cable_option, 13)
-	_style_staff_button(cable_option, false)
-	cable_option.pressed.connect(_show_charger_controls.bind("CABLE"))
-	active_feature_panel.add_child(cable_option)
-
-	var power_option := Button.new()
-	power_option.name = "OpenChargerPowerSettings"
-	power_option.text = "OUTPUT POWER     ›     %d W" % charger_wattage
-	power_option.custom_minimum_size = Vector2(0, 48)
-	power_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	power_option.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(power_option, 13)
-	_style_staff_button(power_option, false)
-	power_option.pressed.connect(_show_charger_controls.bind("POWER"))
-	active_feature_panel.add_child(power_option)
-
-	var finish_name := "Pearl White" if charger_body_color == Color("#e8edf2") else ("Graphite" if charger_body_color == Color("#303943") else "Midnight Black")
-	var finish_option := Button.new()
-	finish_option.name = "OpenChargerFinishSettings"
-	finish_option.text = "ADAPTER COLOR     ›     " + finish_name
-	finish_option.custom_minimum_size = Vector2(0, 48)
-	finish_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	finish_option.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(finish_option, 13)
-	_style_staff_button(finish_option, false)
-	finish_option.pressed.connect(_show_device_color_controls.bind(false, false, true))
-	active_feature_panel.add_child(finish_option)
-
-func _show_screen_protector_controls() -> void:
-	# The Worksite owns the migrated controls. Keep the original builder below
-	# intact for any non-Worksite use of the legacy editor.
-	if worksite_creation_mode and is_instance_valid(worksite_owner):
-		worksite_owner.call("_show_worksite_protection_glass_controls")
-		return
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "ScreenProtectorControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 9)
-	right_tools_content.add_child(active_feature_panel)
-
-	var heading := _make_label("PROTECTION GLASS", 18, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	var description := _make_label("A precision-cut tempered-glass layer fitted to the active display and front-camera layout.", 12, Color("#dce9df"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
-
-	var enable_row := HBoxContainer.new()
-	enable_row.name = "ScreenProtectorEnableRow"
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enable_row.add_theme_constant_override("separation", 9)
-	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("INSTALL PROTECTION GLASS", 13, Color("#e7f6e9"))
-	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	enable_row.add_child(enable_label)
-	var toggle := TextureButton.new()
-	toggle.name = "EnableProtectionGlass"
-	toggle.custom_minimum_size = Vector2(40, 40)
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.toggle_mode = true
-	toggle.button_pressed = screen_protector_enabled
-	toggle.disabled = not screen_enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	toggle.toggled.connect(_on_screen_protector_toggled)
-	enable_row.add_child(toggle)
-
-	if not screen_enabled:
-		var screen_hint := _make_label("Enable the screen first. Protection glass will fit the active display surfaces.", 12, Color("#f1ca82"))
-		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		active_feature_panel.add_child(screen_hint)
-		return
-
-	if not screen_protector_enabled:
-		var disabled_note := _make_label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#b8d8be"))
-		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		active_feature_panel.add_child(disabled_note)
-		return
-
-	var finish_heading := _make_label("GLASS FINISH", 13, Color("#9bd6a7"))
-	active_feature_panel.add_child(finish_heading)
-	for finish_name in ["Ultra Clear", "Matte", "Anti-Reflective"]:
-		var finish_button := Button.new()
-		finish_button.name = "ProtectorFinish_" + finish_name.replace("-", "").replace(" ", "")
-		finish_button.text = finish_name.to_upper() + ("   ✓" if screen_protector_finish == finish_name else "")
-		finish_button.custom_minimum_size = Vector2(0, 42)
-		finish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		finish_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(finish_button, 12)
-		_style_staff_button(finish_button, screen_protector_finish == finish_name)
-		finish_button.pressed.connect(_on_screen_protector_finish_selected.bind(finish_name))
-		active_feature_panel.add_child(finish_button)
-
-	var thickness_heading := _make_label("GLASS THICKNESS", 13, Color("#9bd6a7"))
-	active_feature_panel.add_child(thickness_heading)
-	screen_protector_thickness_label = _make_label("", 12, Color("#c7eacb"))
-	screen_protector_thickness_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(screen_protector_thickness_label)
-	var thickness_slider := HSlider.new()
-	thickness_slider.name = "ProtectionGlassThicknessSlider"
-	thickness_slider.min_value = 0.003
-	thickness_slider.max_value = 0.009
-	thickness_slider.step = 0.0005
-	thickness_slider.value = screen_protector_thickness
-	thickness_slider.custom_minimum_size = Vector2(0, 38)
-	thickness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_custom_slider(thickness_slider)
-	thickness_slider.value_changed.connect(_on_screen_protector_thickness_changed)
-	active_feature_panel.add_child(thickness_slider)
-	_update_screen_protector_thickness_label()
-
-	if screen_protector_building:
-		# Match the Phone Case build card exactly: same framed panel, typography,
-		# animated shader shimmer and supporting build note.
-		var panel := PanelContainer.new()
-		panel.name = "ProtectionGlassBuildLoading"
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#0c2a16")
-		style.border_color = Color("#2d7540")
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(10)
-		style.content_margin_left = 12
-		style.content_margin_right = 12
-		style.content_margin_top = 12
-		style.content_margin_bottom = 12
-		panel.add_theme_stylebox_override("panel", style)
-		active_feature_panel.add_child(panel)
-		var loading := VBoxContainer.new()
-		loading.add_theme_constant_override("separation", 9)
-		panel.add_child(loading)
-		var text_label := _make_label("Building protection glass", 16, Color("#eaf8ff"))
-		text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		loading.add_child(text_label)
-		var shimmer := ColorRect.new()
-		shimmer.name = "ProtectionGlassBuildShimmer"
-		shimmer.custom_minimum_size = Vector2(0, 12)
-		shimmer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var shader := Shader.new()
-		shader.code = """
-shader_type canvas_item;
-uniform vec4 base_color : source_color = vec4(0.10,0.30,0.44,1.0);
-uniform vec4 shine_color : source_color = vec4(0.48,0.82,1.0,1.0);
-void fragment(){
-	float sweep=fract(UV.x*1.25-TIME*0.72);
-	float shine=smoothstep(0.02,0.18,sweep)*(1.0-smoothstep(0.22,0.42,sweep));
-	COLOR=mix(base_color,shine_color,shine*0.9);
-}
-"""
-		var shimmer_material := ShaderMaterial.new()
-		shimmer_material.shader = shader
-		shimmer.material = shimmer_material
-		loading.add_child(shimmer)
-		var building_note := _make_label("Matching the display shape, curves and front-camera cutouts…", 11, Color("#a9d9ad"))
-		building_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		loading.add_child(building_note)
-	var cutout_note := _make_label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#8bd696"))
-	cutout_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(cutout_note)
+	_show_worksite_charger_controls("FINISH")
 
 func _refresh_phone_screen() -> void:
 	if not is_instance_valid(phone_body):
@@ -8477,81 +7868,6 @@ func _get_front_camera_mp_layout() -> Array:
 func _set_front_camera_mp_value(megapixels: int, property_name: String) -> void:
 	set(StringName(property_name), megapixels)
 	_update_camera_software_summary()
-
-func _show_front_camera_mp_controls() -> void:
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "FrontCameraMegapixelControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 8)
-	right_tools_content.add_child(active_feature_panel)
-	var heading := _make_label("FRONT CAMERA MP", 16, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	if not front_camera_enabled:
-		var hint := _make_label("Enable the front camera in HARDWARE.", 13, Color("#c7eacb"))
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		active_feature_panel.add_child(hint)
-		return
-
-	var camera_rows := _get_front_camera_mp_layout()
-	for row_index in range(camera_rows.size()):
-		var row_data: Array = camera_rows[row_index]
-		var camera_row := HBoxContainer.new()
-		camera_row.name = "FrontCameraMegapixelRow_%d" % (row_index + 1)
-		camera_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		camera_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		camera_row.add_theme_constant_override("separation", 12)
-		active_feature_panel.add_child(camera_row)
-		for camera_entry_value in row_data:
-			var camera_entry: Dictionary = camera_entry_value
-			var property_name := str(camera_entry.get("property", "front_camera_megapixels"))
-			var camera_label := str(camera_entry.get("label", "01"))
-			var megapixels := int(get(property_name))
-			var callback := Callable(self, "_set_front_camera_mp_value").bind(property_name)
-			camera_row.add_child(_make_camera_mp_slider_card(camera_label, megapixels, callback))
-
-func _show_rear_camera_mp_controls() -> void:
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "RearCameraMegapixelControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 4)
-	right_tools_content.add_child(active_feature_panel)
-	var heading := _make_label("REAR CAMERA MP", 16, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	if rear_camera_modules.is_empty():
-		var hint := _make_label("Add rear cameras in HARDWARE.", 13, Color("#c7eacb"))
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		active_feature_panel.add_child(hint)
-		return
-
-	var slider_row := HBoxContainer.new()
-	slider_row.name = "RearCameraMegapixelSliders"
-	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	slider_row.add_theme_constant_override("separation", 8)
-	active_feature_panel.add_child(slider_row)
-	for camera_index in range(rear_camera_modules.size()):
-		var camera_data: Dictionary = rear_camera_modules[camera_index]
-		var camera_id := int(camera_data.get("id", camera_index + 1))
-		var megapixels := int(camera_data.get("mp", 12))
-		slider_row.add_child(_make_camera_mp_slider_card("%02d" % (camera_index + 1), megapixels, func(next_mp: int) -> void:
-			for module_index in range(rear_camera_modules.size()):
-				if int(rear_camera_modules[module_index].get("id", -1)) == camera_id:
-					rear_camera_modules[module_index]["mp"] = next_mp
-					break
-			_update_camera_software_summary()
-		))
 
 func _show_front_camera_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -12733,75 +12049,6 @@ func _on_wifi_standard_selected(standard: String) -> void:
 	_refresh_connectivity_selection_ui(active_feature_panel, "wifi")
 	_notify_worksite_connectivity_selection_changed()
 
-func _show_sensor_controls() -> void:
-	if not is_instance_valid(right_tools_content):
-		return
-	for child in right_tools_content.get_children():
-		child.queue_free()
-
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "PhoneSensorSelectionControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 8)
-	right_tools_content.add_child(active_feature_panel)
-
-	var heading := _make_label("PHONE SENSORS", 21, Color("#c7eacb"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	var count_label := _make_label("", 15, Color("#dce9df"))
-	count_label.name = "EnabledSensorCount"
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(count_label)
-
-	var scroll := ScrollContainer.new()
-	scroll.name = "PhoneSensorOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	active_feature_panel.add_child(scroll)
-
-	var options := VBoxContainer.new()
-	options.name = "PhoneSensorOptions"
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
-
-	for sensor_name in selected_phone_sensors.keys():
-		var row := HBoxContainer.new()
-		row.name = "SensorRow_" + str(sensor_name).replace(" ", "_").replace("/", "_")
-		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_theme_constant_override("separation", 8)
-		options.add_child(row)
-
-		var sensor_label := _make_label(str(sensor_name), 16, Color("#e7f6ff"))
-		sensor_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		sensor_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		sensor_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		row.add_child(sensor_label)
-
-		var toggle := TextureButton.new()
-		toggle.name = "SensorEnabledToggle"
-		toggle.custom_minimum_size = Vector2(42, 42)
-		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-		toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		toggle.ignore_texture_size = true
-		toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		toggle.texture_normal = _make_side_button_checkbox_icon(bool(selected_phone_sensors[sensor_name]))
-		toggle.texture_hover = _make_side_button_checkbox_icon(bool(selected_phone_sensors[sensor_name]))
-		toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-		toggle.texture_disabled = _make_side_button_checkbox_icon(false)
-		toggle.toggle_mode = true
-		toggle.button_pressed = bool(selected_phone_sensors[sensor_name])
-		toggle.tooltip_text = "Enable or disable " + str(sensor_name)
-		toggle.focus_mode = Control.FOCUS_NONE
-		toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-		toggle.toggled.connect(_on_phone_sensor_toggled.bind(str(sensor_name), count_label, toggle))
-		row.add_child(toggle)
-
-	_update_sensor_count_label(count_label)
-
 func _update_sensor_count_label(count_label: Label) -> void:
 	if not is_instance_valid(count_label):
 		return
@@ -13635,159 +12882,9 @@ func _update_phone_case_preview_mode() -> void:
 	if is_instance_valid(phone_case_preview):
 		phone_case_preview.visible=left_tools_page!=1 and phone_case_custom_enabled and phone_case_built and not phone_case_building and not box_package_preview_mode
 	if left_tools_page==2:
-		_show_phone_case_controls()
+		_show_worksite_phone_case_controls()
 	else:
 		preview_mouse_dragging=false
-
-func _show_box_package_controls() -> void:
-	if not is_instance_valid(right_tools_content):
-		return
-	box_package_color_mode = false
-	for child in right_tools_content.get_children():
-		child.queue_free()
-
-	var viewport_size := get_viewport().get_visible_rect().size
-	var tight := viewport_size.y < 560.0 or viewport_size.x < 520.0
-	var control_height := 40.0 if tight else 44.0
-	var button_font_size := 12 if tight else 13
-
-	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "BoxPackageControls"
-	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
-	right_tools_content.add_child(active_feature_panel)
-
-	var heading := _make_label("BOX PACKAGE", 16, Color("#dce9df"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-
-	# Match the Raised Back Design / Rear Camera panel hierarchy:
-	# top-level choices, selected-item control, horizontal size adjustment,
-	# then a centred directional controller.
-	var top_controls := HBoxContainer.new()
-	top_controls.name = "BoxPackageTopControls"
-	top_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_controls.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(top_controls)
-
-	for target in ["LOGO", "NAME"]:
-		var target_button := Button.new()
-		target_button.name = "BoxPackageTarget%s" % target.capitalize()
-		target_button.text = target
-		target_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
-		target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		target_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(target_button, button_font_size)
-		_style_back_design_button(target_button, box_package_position_target == target)
-		target_button.pressed.connect(_set_box_package_position_target.bind(target))
-		top_controls.add_child(target_button)
-
-	var color_button := Button.new()
-	color_button.name = "EditBoxPackageColor"
-	color_button.text = "COLOR"
-	color_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
-	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	color_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(color_button, button_font_size)
-	_style_back_design_button(color_button, false)
-	color_button.pressed.connect(_show_device_color_controls.bind(false, false, false, false, false, false, true))
-	top_controls.add_child(color_button)
-
-	var selected_target_button := Button.new()
-	selected_target_button.name = "BoxPackageBrandingSelector"
-	selected_target_button.text = "EDITING  %s  ▼" % box_package_position_target
-	selected_target_button.custom_minimum_size = Vector2(0, control_height)
-	selected_target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selected_target_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(selected_target_button, button_font_size)
-	_style_back_design_button(selected_target_button, true)
-	selected_target_button.pressed.connect(_set_box_package_position_target.bind("NAME" if box_package_position_target == "LOGO" else "LOGO"))
-	active_feature_panel.add_child(selected_target_button)
-
-	var size_section := VBoxContainer.new()
-	size_section.name = "BoxPackageBrandingSizeSection"
-	size_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	size_section.add_theme_constant_override("separation", 3)
-	active_feature_panel.add_child(size_section)
-	var size_header := HBoxContainer.new()
-	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	size_section.add_child(size_header)
-	var size_heading := _make_label("SIZE", 10, Color("#b8d8be"))
-	size_header.add_child(size_heading)
-	var size_value := _make_label("LOGO  %.2f×" % box_package_logo_scale if box_package_position_target == "LOGO" else "NAME  %d" % box_package_name_font_size, 11, Color("#dce9df"))
-	size_value.name = "BoxPackageBrandingSizeValue"
-	size_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	size_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	size_header.add_child(size_value)
-
-	var size_slider := HSlider.new()
-	size_slider.name = "BoxPackageBrandingHorizontalSizeSlider"
-	size_slider.min_value = 0.45 if box_package_position_target == "LOGO" else 18.0
-	size_slider.max_value = 1.8 if box_package_position_target == "LOGO" else 84.0
-	size_slider.step = 0.05 if box_package_position_target == "LOGO" else 1.0
-	size_slider.custom_minimum_size = Vector2(0, 24)
-	size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	size_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	size_slider.value = box_package_logo_scale if box_package_position_target == "LOGO" else box_package_name_font_size
-	_style_back_design_slider(size_slider)
-	size_slider.value_changed.connect(_on_box_package_branding_size_changed.bind(box_package_position_target))
-	size_section.add_child(size_slider)
-
-	var pad_control_row := HBoxContainer.new()
-	pad_control_row.name = "BoxPackagePositionControllerRow"
-	pad_control_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad_control_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
-	active_feature_panel.add_child(pad_control_row)
-
-	var pad_center := CenterContainer.new()
-	pad_center.name = "BoxPackagePositionControllerCenter"
-	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	pad_control_row.add_child(pad_center)
-
-	var pad_shell := PanelContainer.new()
-	pad_shell.name = "BoxPackagePositionController"
-	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
-	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
-	pad_shell_style.border_color = Color(0.68, 0.82, 0.70, 0.72)
-	pad_shell_style.set_border_width_all(1)
-	pad_shell_style.set_corner_radius_all(16)
-	pad_shell_style.content_margin_left = 8
-	pad_shell_style.content_margin_right = 8
-	pad_shell_style.content_margin_top = 8
-	pad_shell_style.content_margin_bottom = 8
-	pad_shell.add_theme_stylebox_override("panel", pad_shell_style)
-	pad_center.add_child(pad_shell)
-
-	var position_pad := GridContainer.new()
-	position_pad.name = "BoxPackagePositionPad"
-	position_pad.columns = 3
-	position_pad.add_theme_constant_override("h_separation", 18 if not tight else 16)
-	position_pad.add_theme_constant_override("v_separation", 6)
-	position_pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	position_pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	pad_shell.add_child(position_pad)
-	_add_box_package_position_pad_spacer(position_pad)
-	_add_box_package_position_button(position_pad, "↑", Vector2i(0, 1), tight)
-	_add_box_package_position_pad_spacer(position_pad)
-	_add_box_package_position_button(position_pad, "←", Vector2i(-1, 0), tight)
-	var reset_button := Button.new()
-	reset_button.name = "BoxPackagePositionResetButton"
-	reset_button.text = "RESET"
-	reset_button.custom_minimum_size = Vector2(76, 42)
-	reset_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	reset_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_research_typography(reset_button, 10 if tight else 11)
-	_style_back_design_button(reset_button, true)
-	reset_button.pressed.connect(_reset_box_package_position)
-	position_pad.add_child(reset_button)
-	_add_box_package_position_button(position_pad, "→", Vector2i(1, 0), tight)
-	_add_box_package_position_pad_spacer(position_pad)
-	_add_box_package_position_button(position_pad, "↓", Vector2i(0, -1), tight)
-	_add_box_package_position_pad_spacer(position_pad)
 
 func _add_box_package_position_pad_spacer(parent: GridContainer) -> void:
 	var spacer := Control.new()
@@ -13807,7 +12904,7 @@ func _add_box_package_position_button(parent: GridContainer, caption: String, di
 
 func _set_box_package_position_target(target: String) -> void:
 	box_package_position_target = target
-	_show_box_package_controls()
+	_show_worksite_box_package_controls()
 
 func _on_box_package_branding_size_changed(value: float, target: String) -> void:
 	if target == "LOGO":
@@ -14039,180 +13136,10 @@ func _refresh_box_package_branding() -> void:
 		box_package_name_label.modulate = ink_color
 		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.253)
 
-func _show_phone_case_controls() -> void:
-	if worksite_creation_mode and is_instance_valid(worksite_owner) and worksite_owner.has_method("_show_worksite_phone_case_controls"):
-		worksite_owner.call("_show_worksite_phone_case_controls")
-		return
-	if not is_instance_valid(right_tools_content):
-		return
-	phone_case_color_mode=false
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel=VBoxContainer.new()
-	active_feature_panel.name="PhoneCaseControls"
-	active_feature_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation",10)
-	right_tools_content.add_child(active_feature_panel)
-
-	var heading := _make_label("PHONE CASE",18,Color("#c7eacb"))
-	heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(heading)
-	var description := _make_label("Build a protective shell fitted to this phone's current geometry and hardware.",13,Color("#dce9df"))
-	description.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(description)
-
-	var row := HBoxContainer.new()
-	row.name="EnableCustomCaseRow"
-	row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(row)
-	var label := _make_label("ENABLE CUSTOM CASE",14,Color("#e7f6e9"))
-	label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var toggle := TextureButton.new()
-	toggle.name="EnableCustomPhoneCaseCheckbox"
-	toggle.custom_minimum_size=Vector2(40,40)
-	toggle.ignore_texture_size=true
-	toggle.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal=_make_side_button_checkbox_icon(false)
-	toggle.texture_hover=_make_side_button_checkbox_icon(false)
-	toggle.texture_pressed=_make_side_button_checkbox_icon(true)
-	toggle.toggle_mode=true
-	toggle.button_pressed=phone_case_custom_enabled
-	toggle.focus_mode=Control.FOCUS_NONE
-	toggle.mouse_filter=Control.MOUSE_FILTER_STOP
-	toggle.toggled.connect(_on_phone_case_custom_toggled)
-	row.add_child(toggle)
-
-	if phone_case_building:
-		var panel := PanelContainer.new()
-		panel.name="PhoneCaseBuildLoading"
-		var style := StyleBoxFlat.new()
-		style.bg_color=Color("#0c2a16")
-		style.border_color=Color("#2d7540")
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(10)
-		style.content_margin_left=12
-		style.content_margin_right=12
-		style.content_margin_top=12
-		style.content_margin_bottom=12
-		panel.add_theme_stylebox_override("panel",style)
-		active_feature_panel.add_child(panel)
-		var loading:=VBoxContainer.new()
-		loading.add_theme_constant_override("separation",9)
-		panel.add_child(loading)
-		var text_label:=_make_label("Building case",16,Color("#eaf8ff"))
-		text_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-		loading.add_child(text_label)
-		var shimmer:=ColorRect.new()
-		shimmer.name="CaseBuildShimmer"
-		shimmer.custom_minimum_size=Vector2(0,12)
-		shimmer.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		var shader:=Shader.new()
-		shader.code="""
-shader_type canvas_item;
-uniform vec4 base_color : source_color = vec4(0.10,0.30,0.44,1.0);
-uniform vec4 shine_color : source_color = vec4(0.48,0.82,1.0,1.0);
-void fragment(){
-	float sweep=fract(UV.x*1.25-TIME*0.72);
-	float shine=smoothstep(0.02,0.18,sweep)*(1.0-smoothstep(0.22,0.42,sweep));
-	COLOR=mix(base_color,shine_color,shine*0.9);
-}
-"""
-		var shimmer_material:=ShaderMaterial.new()
-		shimmer_material.shader=shader
-		shimmer.material=shimmer_material
-		loading.add_child(shimmer)
-		var building_note:=_make_label("Matching the cameras, speaker openings, port and buttons…",11,Color("#a9d9ad"))
-		building_note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-		building_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		loading.add_child(building_note)
-	elif phone_case_custom_enabled and phone_case_built:
-		var case_ready_label:=_make_label("CUSTOM CASE FITTED TO CURRENT DEVICE",12,Color("#8bd696"))
-		case_ready_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-		active_feature_panel.add_child(case_ready_label)
-		var color_button:=Button.new()
-		color_button.name="EditPhoneCaseColor"
-		color_button.text="CHANGE CASE COLOR"
-		color_button.custom_minimum_size.y=44
-		color_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		color_button.focus_mode=Control.FOCUS_NONE
-		_apply_research_typography(color_button,13)
-		_style_staff_button(color_button,true)
-		color_button.pressed.connect(_show_device_color_controls.bind(false,true))
-		active_feature_panel.add_child(color_button)
-
-		var design_button:=Button.new()
-		design_button.name="EditPhoneCaseDesign"
-		design_button.text="CHANGE CASE DESIGN"
-		design_button.custom_minimum_size.y=44
-		design_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		design_button.focus_mode=Control.FOCUS_NONE
-		_apply_research_typography(design_button,13)
-		_style_staff_button(design_button,false)
-		design_button.pressed.connect(_show_phone_case_design_controls)
-		active_feature_panel.add_child(design_button)
-	else:
-		var disabled_note:=_make_label("Enable the custom case to generate the fitted 3D shell.",12,Color("#b8d8be"))
-		disabled_note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-		disabled_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		active_feature_panel.add_child(disabled_note)
-
-func _show_phone_case_design_controls() -> void:
-	if worksite_creation_mode and is_instance_valid(worksite_owner) and worksite_owner.has_method("_show_worksite_phone_case_design_controls"):
-		worksite_owner.call("_show_worksite_phone_case_design_controls")
-		return
-	if not is_instance_valid(right_tools_content) or not phone_case_custom_enabled or not phone_case_built:
-		return
-	phone_case_color_mode=false
-	for child in right_tools_content.get_children():
-		child.queue_free()
-	active_feature_panel=VBoxContainer.new()
-	active_feature_panel.name="PhoneCaseDesignControls"
-	active_feature_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation",9)
-	right_tools_content.add_child(active_feature_panel)
-
-	var header:=HBoxContainer.new()
-	header.add_theme_constant_override("separation",7)
-	active_feature_panel.add_child(header)
-	var back_button:=Button.new()
-	back_button.name="BackToPhoneCaseControls"
-	back_button.text="‹"
-	back_button.custom_minimum_size=Vector2(36,36)
-	back_button.focus_mode=Control.FOCUS_NONE
-	_apply_research_typography(back_button,24)
-	_style_staff_button(back_button,false)
-	back_button.pressed.connect(_show_phone_case_controls)
-	header.add_child(back_button)
-	var title:=_make_label("CASE BACK DESIGN",16,Color("#c7eacb"))
-	title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	title.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-	header.add_child(title)
-
-	var note:=_make_label("Choose a finish for the pouch back. Your selected color and gradient stay unchanged.",12,Color("#b9d9bf"))
-	note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(note)
-
-	for index in range(PHONE_CASE_DESIGN_NAMES.size()):
-		var option:=Button.new()
-		option.name="PhoneCaseDesignOption_%02d" % index
-		option.text=PHONE_CASE_DESIGN_NAMES[index].to_upper() + ("   ✓ ACTIVE" if index==phone_case_design_style else "")
-		option.custom_minimum_size=Vector2(0,48)
-		option.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		option.focus_mode=Control.FOCUS_NONE
-		_apply_research_typography(option,13)
-		_style_staff_button(option,index==phone_case_design_style)
-		option.pressed.connect(_on_phone_case_design_selected.bind(index))
-		active_feature_panel.add_child(option)
-
 func _on_phone_case_design_selected(index: int) -> void:
 	phone_case_design_style=clampi(index,0,PHONE_CASE_DESIGN_NAMES.size()-1)
 	_refresh_phone_case_material()
-	_show_phone_case_design_controls()
+	_show_worksite_phone_case_design_controls()
 
 func _on_phone_case_custom_toggled(enabled: bool) -> void:
 	phone_case_custom_enabled=enabled
@@ -14223,7 +13150,7 @@ func _on_phone_case_custom_toggled(enabled: bool) -> void:
 		phone_case_built=false
 		if is_instance_valid(phone_case_preview):
 			phone_case_preview.visible=false
-		_show_phone_case_controls()
+		_show_worksite_phone_case_controls()
 		var token:=phone_case_build_token
 		get_tree().create_timer(1.15).timeout.connect(_complete_phone_case_build.bind(token))
 	else:
@@ -14234,7 +13161,7 @@ func _on_phone_case_custom_toggled(enabled: bool) -> void:
 				child.free()
 			phone_case_preview.visible=false
 		phone_case_shell=null
-		_show_phone_case_controls()
+		_show_worksite_phone_case_controls()
 
 func _complete_phone_case_build(token: int) -> void:
 	if token!=phone_case_build_token or not phone_case_custom_enabled:
@@ -14244,7 +13171,7 @@ func _complete_phone_case_build(token: int) -> void:
 	phone_case_built=true
 	if is_instance_valid(phone_case_preview):
 		phone_case_preview.visible=left_tools_page!=1 and not charger_preview_mode and not box_package_preview_mode
-	_show_phone_case_controls()
+	_show_worksite_phone_case_controls()
 
 func _make_label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
