@@ -1734,7 +1734,7 @@ func _apply_device_color_hex(value: String) -> void:
 	_on_device_body_color_changed(Color.from_string("#" + hex_value, _get_active_color_picker_color()))
 
 
-func _create_device_body_material(geometry_offset: Vector2 = Vector2.ZERO, mesh_size_override: Vector3 = Vector3.ZERO) -> ShaderMaterial:
+func _create_device_body_material(geometry_offset: Vector2 = Vector2.ZERO, mesh_size_override: Vector3 = Vector3.ZERO, include_charging_port_inner_walls: bool = true) -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """
 shader_type spatial;
@@ -1802,7 +1802,7 @@ void fragment() {
 	material.set_shader_parameter("gradient_direction", device_gradient_direction)
 	material.set_shader_parameter("geometry_offset", geometry_offset)
 	var port_mesh_size := mesh_size_override if mesh_size_override.x > 0.0 and mesh_size_override.y > 0.0 else _active_phone_size()
-	if charge_port_type != "None" and charge_port_opening_points.size() >= 3:
+	if include_charging_port_inner_walls and charge_port_type != "None" and charge_port_opening_points.size() >= 3:
 		var port_min := Vector2(INF, INF)
 		var port_max := Vector2(-INF, -INF)
 		for point in charge_port_opening_points:
@@ -8799,7 +8799,7 @@ func _refresh_foldable_frame_materials() -> void:
 	if is_instance_valid(fixed_frame):
 		fixed_frame.material_override = _create_device_body_material(Vector2(fixed_frame.position.x, fixed_frame.position.y), fixed_frame.mesh.get_aabb().size if is_instance_valid(fixed_frame.mesh) else Vector3.ZERO)
 	if is_instance_valid(moving_frame):
-		moving_frame.material_override = _create_device_body_material(Vector2(moving_frame.position.x, moving_frame.position.y))
+		moving_frame.material_override = _create_device_body_material(Vector2(moving_frame.position.x, moving_frame.position.y), Vector3.ZERO, false)
 	var hinge_root := phone_body.get_node_or_null("PhoneFoldableHinge")
 	var hinge_spine := hinge_root.get_node_or_null("SeamlessHingeCover") as MeshInstance3D if is_instance_valid(hinge_root) else null
 	if is_instance_valid(hinge_spine):
@@ -8881,6 +8881,10 @@ func _refresh_foldable_hardware() -> void:
 		previous_hinge.free()
 	if selected_phone_type == "Standard":
 		phone_body.mesh = _create_rounded_phone_mesh(0.32 * float(border_radius_level) / 6.0, charge_port_opening_points)
+		# Port points are calculated immediately before this rebuild. Recreate
+		# the standard chassis material now so its shader receives the aperture
+		# bounds and colours the exposed cut walls black.
+		phone_body.material_override = _create_device_body_material()
 		fold_angle_degrees = 0.0
 		fold_target_angle_degrees = 0.0
 		return
@@ -8915,7 +8919,7 @@ func _refresh_foldable_hardware() -> void:
 	var moving_frame := MeshInstance3D.new()
 	moving_frame.name = "PhoneFoldableMovingFrame"
 	moving_frame.mesh = _create_rounded_phone_mesh(radius, PackedVector2Array(), segment_size, moving_corner_mask)
-	moving_frame.material_override = _create_device_body_material(Vector2(moving_offset.x, moving_offset.y))
+	moving_frame.material_override = _create_device_body_material(Vector2(moving_offset.x, moving_offset.y), Vector3.ZERO, false)
 	moving_frame.position = moving_offset
 	moving_frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	moving_half.add_child(moving_frame)
