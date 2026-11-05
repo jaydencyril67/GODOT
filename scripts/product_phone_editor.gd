@@ -986,6 +986,8 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	software_editor_features.erase("WiFi")
 	software_editor_features.erase("Bluetooth")
 	software_editor_features.erase("Battery")
+	software_editor_features.erase("Charging Speed")
+	software_editor_features.erase("Wireless Charge")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
 		software_editor_features,
@@ -9976,6 +9978,23 @@ func _notify_worksite_battery_selection_changed() -> void:
 	)
 
 
+func _notify_worksite_power_selection_changed() -> void:
+	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
+		return
+	worksite_owner.call(
+		"_update_ram_selection_display",
+		selected_ram_technology,
+		selected_ram_capacity,
+		selected_rom_capacity,
+		selected_mobile_network,
+		selected_wifi_standard,
+		selected_bluetooth_version,
+		selected_battery_capacity,
+		str(selected_charging_speed) + "W",
+		(str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
+	)
+
+
 func _show_charging_speed_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -10087,6 +10106,7 @@ func _update_charging_speed_controls() -> void:
 	if software_value_labels.has("CHARGING SPEED") and is_instance_valid(software_value_labels["CHARGING SPEED"]):
 		var speed_label: Label = software_value_labels["CHARGING SPEED"]
 		speed_label.text = str(selected_charging_speed) + "W"
+	_notify_worksite_power_selection_changed()
 
 
 func _show_wireless_charge_controls() -> void:
@@ -10185,6 +10205,7 @@ func _update_wireless_charge_controls() -> void:
 	if software_value_labels.has("WIRELESS CHARGING") and is_instance_valid(software_value_labels["WIRELESS CHARGING"]):
 		var wireless_label: Label = software_value_labels["WIRELESS CHARGING"]
 		wireless_label.text = (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
+	_notify_worksite_power_selection_changed()
 
 
 func _show_bluetooth_controls() -> void:
