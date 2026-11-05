@@ -1682,8 +1682,6 @@ func _open_worksite_charger_color_controls() -> void:
 	back_button.pressed.connect(_show_worksite_charger_controls.bind("HOME"))
 
 
-func _show_worksite_charger_controls(page: String = "HOME") -> void:
-
 func _show_worksite_sensor_controls() -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
