@@ -2387,7 +2387,7 @@ func _show_back_design_controls() -> void:
 	back_design_border_slider.min_value = 0.0
 	back_design_border_slider.max_value = 0.45
 	back_design_border_slider.step = 0.01
-	back_design_border_slider.custom_minimum_size = Vector2(34, 250)
+	back_design_border_slider.custom_minimum_size = Vector2(34, 108 if tight else 120)
 	back_design_border_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back_design_border_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_back_design_slider(back_design_border_slider)
@@ -2399,8 +2399,7 @@ func _show_back_design_controls() -> void:
 
 	var bottom_spacer := Control.new()
 	bottom_spacer.name = "BackDesignControllerFlexSpace"
-	bottom_spacer.custom_minimum_size.y = 24
-	bottom_spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bottom_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bottom_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	active_feature_panel.add_child(bottom_spacer)
 
@@ -6774,7 +6773,7 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_size_slider.min_value = 0.04 if rear_hardware_mode == "CAMERA" else 0.025
 	rear_hardware_size_slider.max_value = 0.17 if rear_hardware_mode == "CAMERA" else 0.10
 	rear_hardware_size_slider.step = 0.005
-	rear_hardware_size_slider.custom_minimum_size = Vector2(34, 250)
+	rear_hardware_size_slider.custom_minimum_size = Vector2(34, 108 if tight else 120)
 	rear_hardware_size_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	rear_hardware_size_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_back_design_slider(rear_hardware_size_slider)
@@ -6783,8 +6782,7 @@ func _show_rear_camera_controls() -> void:
 
 	var bottom_spacer := Control.new()
 	bottom_spacer.name = "RearHardwareControllerFlexSpace"
-	bottom_spacer.custom_minimum_size.y = 24
-	bottom_spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bottom_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bottom_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	active_feature_panel.add_child(bottom_spacer)
 
