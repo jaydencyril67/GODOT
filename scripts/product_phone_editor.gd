@@ -9803,7 +9803,7 @@ func _notify_worksite_ram_selection_changed() -> void:
 	if not is_instance_valid(worksite_owner):
 		return
 	if worksite_owner.has_method("_update_ram_selection_display"):
-		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity)
+		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity)
 	if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
 		worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
 	if worksite_owner.has_method("_refresh_ram_capacity_step"):
