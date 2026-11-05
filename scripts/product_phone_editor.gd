@@ -339,7 +339,7 @@ var volume_button_y := 0.34
 var power_button_edge := "right"
 var volume_button_edge := "left"
 var camera_side_button_enabled := false
-var camera_side_button_y := -0.62
+var camera_side_button_y := -0.48
 var sound_button_enabled := false
 var sim_tray_enabled := false
 var sim_tray_y := -0.58
@@ -10752,7 +10752,7 @@ func _add_foldable_case_segment(parent: Node3D, segment_size: Vector2, centre: V
 		_case_side_opening(combiner, -1.0, volume_button_y + volume_key_length * 0.52 + 0.018, volume_key_length, depth, wall, "VolumeUpOpening")
 		_case_side_opening(combiner, -1.0, volume_button_y - volume_key_length * 0.52 - 0.018, volume_key_length, depth, wall, "VolumeDownOpening")
 	if camera_side_button_enabled:
-		_case_side_opening(combiner, 1.0, camera_side_button_y, 0.25, depth, wall, "CameraSideButtonOpening")
+		_case_side_opening(combiner, 1.0, camera_side_button_y, 0.17, depth, wall, "CameraSideButtonOpening")
 	if sound_button_enabled:
 		var case_phone_depth := _phone_depth_for_thickness_level()
 		var case_key_radius := clampf(case_phone_depth * 0.27, 0.018, 0.036) * 0.78
