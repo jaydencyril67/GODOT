@@ -10383,6 +10383,25 @@ func _on_phone_sensor_toggled(enabled: bool, sensor_name: String, count_label: L
 		toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 	_update_sensor_count_label(count_label)
 	_update_sensor_software_summary()
+	_notify_worksite_sensor_selection_changed()
+
+
+func _notify_worksite_sensor_selection_changed() -> void:
+	if not is_instance_valid(worksite_owner) or not worksite_owner.has_method("_update_ram_selection_display"):
+		return
+	worksite_owner.call(
+		"_update_ram_selection_display",
+		selected_ram_technology,
+		selected_ram_capacity,
+		selected_rom_capacity,
+		selected_mobile_network,
+		selected_wifi_standard,
+		selected_bluetooth_version,
+		selected_battery_capacity,
+		str(selected_charging_speed) + "W",
+		(str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled"),
+		_get_enabled_sensor_summary()
+	)
 
 
 func _show_mobile_network_controls() -> void:
