@@ -642,7 +642,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			str(phone_editor.get("selected_battery_capacity")),
 			str(phone_editor.get("selected_charging_speed")) + "W" if charging_speed_step_visited else "Not set",
 			(str(phone_editor.get("selected_wireless_charging_speed")) + "W" if bool(phone_editor.get("selected_wireless_charge_enabled")) else "Disabled") if wireless_charge_step_visited else "Not set",
-			str(phone_editor.call("_get_enabled_sensor_summary")) if sensors_step_visited else "Not set",
+			phone_editor.call("_get_enabled_sensor_names") if sensors_step_visited else [],
 			str(phone_editor.call("_get_front_camera_mp_summary")) if front_camera_mp_step_visited else "Not set",
 			str(phone_editor.call("_get_rear_camera_mp_summary")) if rear_camera_mp_step_visited else "Not set",
 			str(phone_editor.get("selected_memory_clock")) if memory_clock_step_visited else "Not set",
@@ -694,7 +694,7 @@ func _update_ram_selection_display(
 	battery: String = "Not set",
 	charging_speed: String = "Not set",
 	wireless_charge: String = "Not set",
-	sensors: String = "Not set",
+	sensors: Array = [],
 	front_camera_mp: String = "Not set",
 	rear_camera_mp: String = "Not set",
 	memory_clock: String = "Not set",
@@ -712,9 +712,9 @@ func _update_ram_selection_display(
 	if not wireless_charge_step_visited:
 		wireless_charge = "Not set"
 	if not sensors_step_visited:
-		sensors = "Not set"
-	elif sensors == "Not set" and is_instance_valid(phone_editor) and phone_editor.has_method("_get_enabled_sensor_summary"):
-		sensors = str(phone_editor.call("_get_enabled_sensor_summary"))
+		sensors = []
+	elif sensors.is_empty() and is_instance_valid(phone_editor) and phone_editor.has_method("_get_enabled_sensor_names"):
+		sensors = phone_editor.call("_get_enabled_sensor_names")
 	if not front_camera_mp_step_visited:
 		front_camera_mp = "Not set"
 	elif front_camera_mp == "Not set" and is_instance_valid(phone_editor) and phone_editor.has_method("_get_front_camera_mp_summary"):
@@ -769,8 +769,12 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("CHARGING SPEED", charging_speed)
 	if wireless_charge != "Not set":
 		_add_specification_readout_entry("WIRELESS CHARGING", wireless_charge)
-	if sensors != "Not set":
-		_add_specification_readout_entry("SENSORS", sensors)
+	if sensors_step_visited:
+		if sensors.is_empty():
+			_add_specification_readout_entry("SENSOR", "None enabled")
+		else:
+			for sensor_name in sensors:
+				_add_specification_readout_entry("SENSOR", str(sensor_name))
 	if front_camera_mp != "Not set":
 		_add_specification_readout_entry("FRONT CAMERA MP", front_camera_mp)
 	if rear_camera_mp != "Not set":
@@ -918,7 +922,75 @@ func _show_wireless_charge_step() -> void:
 
 
 func _show_sensors_step() -> void:
-	_show_worksite_step(24, "_show_sensor_controls")
+	_show_worksite_step(24, "_show_worksite_sensor_controls")
+
+
+func _show_worksite_sensor_controls() -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+	var panel := VBoxContainer.new()
+	panel.name = "PhoneSensorSelectionControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_theme_constant_override("separation", 8)
+	phone_editor.set("active_feature_panel", panel)
+
+	var heading := _label("PHONE SENSORS", 20, Color("#c7eacb"), HORIZONTAL_ALIGNMENT_CENTER)
+	panel.add_child(heading)
+	var count_label := _label("", 14, Color("#d8f1ff"), HORIZONTAL_ALIGNMENT_CENTER)
+	count_label.name = "EnabledSensorCount"
+	panel.add_child(count_label)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "PhoneSensorOptionsScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	panel.add_child(scroll)
+
+	var options := GridContainer.new()
+	options.name = "PhoneSensorOptions"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 8)
+	options.add_theme_constant_override("v_separation", 7)
+	scroll.add_child(options)
+
+	var sensors: Dictionary = phone_editor.get("selected_phone_sensors")
+	for sensor_value in sensors.keys():
+		var sensor_name := str(sensor_value)
+		var row := HBoxContainer.new()
+		row.name = "SensorRow_" + sensor_name.replace(" ", "_").replace("/", "_")
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 5)
+		options.add_child(row)
+
+		var sensor_label := _label(sensor_name, 13, Color("#e7f6ff"))
+		sensor_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sensor_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		sensor_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(sensor_label)
+
+		var enabled := bool(sensors[sensor_value])
+		var toggle := TextureButton.new()
+		toggle.name = "SensorEnabledToggle"
+		toggle.custom_minimum_size = Vector2(34, 34)
+		toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+		toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		toggle.ignore_texture_size = true
+		toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		toggle.texture_normal = phone_editor.call("_make_side_button_checkbox_icon", enabled)
+		toggle.texture_hover = phone_editor.call("_make_side_button_checkbox_icon", enabled)
+		toggle.texture_pressed = phone_editor.call("_make_side_button_checkbox_icon", true)
+		toggle.toggle_mode = true
+		toggle.button_pressed = enabled
+		toggle.tooltip_text = "Enable or disable " + sensor_name
+		toggle.focus_mode = Control.FOCUS_NONE
+		toggle.toggled.connect(Callable(phone_editor, "_on_phone_sensor_toggled").bind(sensor_name, count_label, toggle))
+		row.add_child(toggle)
+
+	phone_editor.call("_update_sensor_count_label", count_label)
 
 
 func _show_front_camera_mp_step() -> void:
