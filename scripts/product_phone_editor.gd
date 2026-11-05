@@ -1477,7 +1477,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_toggle.texture_hover = _make_side_button_checkbox_icon(false)
 		gradient_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 		gradient_toggle.toggle_mode = true
-		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled)
+		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
 		gradient_toggle.focus_mode = Control.FOCUS_NONE
 		gradient_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 		if return_to_back_design:
@@ -1512,7 +1512,6 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		and not for_smartwatch
 		and not for_power_bank
 		and not for_earbuds
-		and not for_box_package
 		and (
 			not return_to_back_design
 			or (
@@ -1909,11 +1908,11 @@ func _refresh_device_color_editor_controls() -> void:
 		var hex_input := picker.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = selected_color.to_html(false).to_upper()
-		var picker_enabled: bool = not use_gradient_color or (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else (phone_case_gradient_enabled if phone_case_color_mode else device_gradient_enabled))
+		var picker_enabled: bool = not use_gradient_color or (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else (box_package_gradient_enabled if box_package_color_mode else (phone_case_gradient_enabled if phone_case_color_mode else device_gradient_enabled)))
 		_set_device_gradient_picker_enabled(picker, picker_enabled)
 	var base_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditDeviceColor") as Button
 	var gradient_button := active_feature_panel.get_node_or_null("GradientOptions/GradientColorTargets/EditGradientColor") as Button
-	var selected_gradient_edit := phone_case_gradient_color_edit_mode if phone_case_color_mode else gradient_color_edit_mode
+	var selected_gradient_edit := box_package_gradient_color_edit_mode if box_package_color_mode else (phone_case_gradient_color_edit_mode if phone_case_color_mode else gradient_color_edit_mode)
 	if is_instance_valid(base_button): _style_staff_button(base_button, not selected_gradient_edit)
 	if is_instance_valid(gradient_button): _style_staff_button(gradient_button, selected_gradient_edit)
 
