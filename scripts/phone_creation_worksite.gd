@@ -88,9 +88,7 @@ var rear_camera_panel: Control
 var phone_editor: Node
 var worksite_body: BoxContainer
 var preview_region: Control
-var ram_selection_display: VBoxContainer
-var ram_technology_value_label: Label
-var ram_capacity_value_label: Label
+var specification_readout: VBoxContainer
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
@@ -287,34 +285,21 @@ func _build_interface() -> void:
 				preview_environment.environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
 			_apply_worksite_preview_studio_lighting(preview_viewport)
 
-	# RAM steps replace the 3D preview with a small selection readout directly
-	# on the shared charcoal worksite background. This is not a card or panel.
-	ram_selection_display = VBoxContainer.new()
-	ram_selection_display.name = "RAMSelectionReadout"
-	ram_selection_display.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ram_selection_display.offset_left = 12.0
-	ram_selection_display.offset_right = -12.0
-	ram_selection_display.offset_top = 18.0
-	ram_selection_display.offset_bottom = -18.0
-	ram_selection_display.alignment = BoxContainer.ALIGNMENT_CENTER
-	ram_selection_display.add_theme_constant_override("separation", 18)
-	ram_selection_display.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ram_selection_display.visible = false
-	preview_region.add_child(ram_selection_display)
-
-	var technology_caption := _label("RAM TECHNOLOGY", 14, Color("#c3cec6"))
-	technology_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ram_selection_display.add_child(technology_caption)
-	ram_technology_value_label = _label("Not set", 27, Color("#f1f5f1"))
-	ram_technology_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ram_selection_display.add_child(ram_technology_value_label)
-
-	var capacity_caption := _label("RAM", 14, Color("#c3cec6"))
-	capacity_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ram_selection_display.add_child(capacity_caption)
-	ram_capacity_value_label = _label("Not set", 27, Color("#f1f5f1"))
-	ram_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ram_selection_display.add_child(ram_capacity_value_label)
+	# Software specifications replace the 3D preview during the final software
+	# steps. Entries are added only as the user selects them, and the VBox grows
+	# naturally while keeping the complete list vertically centred.
+	specification_readout = VBoxContainer.new()
+	specification_readout.name = "ProgressiveSpecificationReadout"
+	specification_readout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	specification_readout.offset_left = 12.0
+	specification_readout.offset_right = -12.0
+	specification_readout.offset_top = 18.0
+	specification_readout.offset_bottom = -18.0
+	specification_readout.alignment = BoxContainer.ALIGNMENT_CENTER
+	specification_readout.add_theme_constant_override("separation", 18)
+	specification_readout.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	specification_readout.visible = false
+	preview_region.add_child(specification_readout)
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "PhoneTypeSelectionScroll"
@@ -505,6 +490,8 @@ func _on_next_pressed() -> void:
 		_show_ram_technology_step()
 	elif wizard_step == 15:
 		_show_ram_step()
+	elif wizard_step == 16:
+		_show_internal_storage_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -542,7 +529,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
-	if step != 15 and step != 16:
+	if step < 15 or step > 17:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
 	wizard_step = step
@@ -577,12 +564,16 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 	if is_instance_valid(panel):
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
-		if step == 15 or step == 16:
+		if step >= 15 and step <= 17:
 			_style_ram_selector_buttons(panel)
 
-	if step == 15 or step == 16:
+	if step >= 15 and step <= 17:
 		_set_ram_selection_preview(true)
-		_update_ram_selection_display(str(phone_editor.get("selected_ram_technology")), str(phone_editor.get("selected_ram_capacity")))
+		_update_ram_selection_display(
+			str(phone_editor.get("selected_ram_technology")),
+			str(phone_editor.get("selected_ram_capacity")),
+			str(phone_editor.get("selected_rom_capacity"))
+		)
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
 	_keep_step_navigation_active()
@@ -614,20 +605,44 @@ func _set_ram_selection_preview(enabled: bool) -> void:
 	var phone_preview := phone_editor.get("preview_container") as Control if is_instance_valid(phone_editor) else null
 	if is_instance_valid(phone_preview):
 		phone_preview.visible = not enabled
-	if is_instance_valid(ram_selection_display):
-		ram_selection_display.visible = enabled
+	if is_instance_valid(specification_readout):
+		specification_readout.visible = enabled
 
 
-func _update_ram_selection_display(technology: String, capacity: String) -> void:
-	if is_instance_valid(ram_technology_value_label):
-		ram_technology_value_label.text = technology
-	if is_instance_valid(ram_capacity_value_label):
-		ram_capacity_value_label.text = capacity
+func _update_ram_selection_display(technology: String, capacity: String, storage: String = "Not set") -> void:
+	if not is_instance_valid(specification_readout):
+		return
+	for child in specification_readout.get_children():
+		specification_readout.remove_child(child)
+		child.queue_free()
+
+	if wizard_step >= 15 and technology != "Not set":
+		_add_specification_readout_entry("RAM TECHNOLOGY", technology)
+	if wizard_step >= 16 and capacity != "Not set":
+		_add_specification_readout_entry("RAM", capacity)
+	if wizard_step >= 17 and storage != "Not set":
+		_add_specification_readout_entry("INTERNAL STORAGE", storage)
+
+
+func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
+	var entry := VBoxContainer.new()
+	entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	entry.alignment = BoxContainer.ALIGNMENT_CENTER
+	entry.add_theme_constant_override("separation", 3)
+	entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	specification_readout.add_child(entry)
+
+	var caption := _label(caption_text, 13, Color("#c3cec6"))
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	entry.add_child(caption)
+	var value := _label(value_text, 26, Color("#f1f5f1"))
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	entry.add_child(value)
 
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 17)
-	progress_number.text = "STEP %d / 17" % progress_value
+	var progress_value := clampi(step + 1, 1, 18)
+	progress_number.text = "STEP %d / 18" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -705,6 +720,10 @@ func _show_ram_technology_step() -> void:
 
 func _show_ram_step() -> void:
 	_show_worksite_step(16, "_show_ram_controls")
+
+
+func _show_internal_storage_step() -> void:
+	_show_worksite_step(17, "_show_rom_controls")
 
 
 func _keep_step_navigation_active() -> void:
