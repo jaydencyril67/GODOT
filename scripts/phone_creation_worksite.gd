@@ -575,10 +575,10 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			panel.show()
 			step_panels[step] = panel
 
-	# RAM selectors contain expanding ScrollContainers. Their parent must also
-	# expand in the worksite or the option lists collapse to zero height.
 	if is_instance_valid(panel):
-		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 or step == 15 or step == 16 else Control.SIZE_SHRINK_BEGIN
+		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
+		if step == 15 or step == 16:
+			_style_ram_selector_buttons(panel)
 
 	if step == 15 or step == 16:
 		_set_ram_selection_preview(true)
@@ -586,6 +586,17 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
 	_keep_step_navigation_active()
+
+
+func _style_ram_selector_buttons(panel: Control) -> void:
+	for child in panel.find_children("*", "Button", true, false):
+		var option := child as Button
+		if not is_instance_valid(option):
+			continue
+		var selected := option.text.contains("✓ SELECTED")
+		_style_button(option, selected)
+		option.custom_minimum_size.y = 48
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 func _set_ram_selection_preview(enabled: bool) -> void:
