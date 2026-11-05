@@ -2584,9 +2584,12 @@ func _select_back_design_box(index: int) -> void:
 
 func _back_design_position_is_free(box_position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
 	var half := box_size * 0.5
-	# The phone body and other raised boxes are the only placement constraints.
+	# Raised panels stay on the physical rear surface and never cross the
+	# reserved cover-display footprint of a Flip/Fold handset.
 	if absf(box_position.x) + half.x > _active_phone_size().x * 0.5: return false
 	if absf(box_position.y) + half.y > _active_phone_size().y * 0.5: return false
+	if _overlaps_foldable_outer_display(box_position, half):
+		return false
 	for index in range(back_design_boxes.size()):
 		if index == ignore_index: continue
 		var other: Dictionary = back_design_boxes[index]
@@ -2594,6 +2597,25 @@ func _back_design_position_is_free(box_position: Vector2, box_size: Vector2, ign
 		var other_position: Vector2 = other["position"]
 		if absf(box_position.x - other_position.x) < half.x + other_half.x and absf(box_position.y - other_position.y) < half.y + other_half.y: return false
 	return true
+
+
+func _find_back_design_safe_position(box_size: Vector2) -> Vector2:
+	var half := box_size * 0.5
+	var body_half := _active_phone_size() * 0.5
+	var min_x := -body_half.x + half.x
+	var max_x := body_half.x - half.x
+	var min_y := -body_half.y + half.y
+	var max_y := body_half.y - half.y
+	var y := max_y
+	while y >= min_y:
+		var x := min_x
+		while x <= max_x:
+			var candidate := Vector2(x, y)
+			if _back_design_position_is_free(candidate, box_size, -1):
+				return candidate
+			x += 0.08
+		y -= 0.08
+	return Vector2(1000.0, 1000.0)
 
 func _on_back_design_pad_pressed(direction: Vector2i) -> void:
 	if selected_back_design_box < 0 or selected_back_design_box >= back_design_boxes.size():
@@ -5545,6 +5567,10 @@ void fragment(){
 func _refresh_phone_screen() -> void:
 	if not is_instance_valid(phone_body):
 		return
+	# Recheck rear-face accessories whenever display geometry is refreshed.
+	# Enabling a cover display or changing foldable dimensions must not leave
+	# an existing camera, flash or raised panel underneath its glass.
+	var foldable_accessories_relocated := _relocate_foldable_back_features_from_outer_display()
 	var foldable_protector_token := -1
 	if selected_phone_type != "Standard" and screen_protector_enabled:
 		screen_protector_build_token += 1
@@ -5569,6 +5595,8 @@ func _refresh_phone_screen() -> void:
 		_route_foldable_accessories()
 		_apply_phone_fold_angle()
 		_queue_phone_case_sync()
+		if foldable_accessories_relocated:
+			_refresh_back_design_boxes()
 		return
 
 	var display := MeshInstance3D.new()
@@ -6757,27 +6785,36 @@ func _cycle_rear_hardware_selection(direction: int) -> void:
 
 
 func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vector2:
-	for row in range(8):
-		for column in range(3):
-			var candidate := Vector2.ZERO
-			if kind == "FLASH":
-				candidate = Vector2(0.38, 1.18 - float(row) * 0.22)
-			else:
-				candidate = Vector2(-0.46 + float(column) * 0.29, 1.18 - float(row) * 0.30)
+	# Search the complete usable rear face. Foldable cover-display space is
+	# excluded by _rear_module_position_is_free, so spawning naturally moves
+	# to the other clear portion of the back instead of failing in one corner.
+	var extent := module_size * 1.22
+	var body_half := _active_phone_size() * 0.5
+	var min_x := -body_half.x + extent + 0.025
+	var max_x := body_half.x - extent - 0.025
+	var min_y := -body_half.y + extent + 0.025
+	var max_y := body_half.y - extent - 0.025
+	var y := max_y
+	while y >= min_y:
+		var x := min_x
+		while x <= max_x:
+			var candidate := Vector2(x, y)
 			if _rear_module_position_is_free(candidate, module_size, kind, -1):
 				return candidate
+			x += 0.12
+		y -= 0.12
 	return Vector2(1000.0, 1000.0)
 
 
 func _rear_module_position_is_free(candidate_position: Vector2, module_size: float, kind: String, ignore_index: int) -> bool:
-	# The only placement limits are the physical phone-back boundary and
-	# keeping every camera/flash separate from every other hardware module.
-	# Back Design boxes are NOT placement zones or obstacles: hardware can
-	# cross their edges freely in either direction.
-	var extent := module_size * 1.22
+	# Cameras and flashes may sit on raised boxes, but never on a Flip/Fold
+	# cover display or its bezel. Keep their complete housing footprint clear.
+	var extent := module_size * 1.22 + 0.015
 	if absf(candidate_position.x) + extent > _active_phone_size().x * 0.5 - 0.025:
 		return false
 	if absf(candidate_position.y) + extent > _active_phone_size().y * 0.5 - 0.025:
+		return false
+	if _overlaps_foldable_outer_display(candidate_position, Vector2.ONE * extent):
 		return false
 	for index in range(rear_camera_modules.size()):
 		if kind == "CAMERA" and index == ignore_index:
@@ -8875,6 +8912,92 @@ func _refresh_foldable_frame_materials() -> void:
 		edge_material.metallic = 0.78
 		edge_material.roughness = 0.22
 		hinge_edge.material_override = edge_material
+
+
+func _get_foldable_outer_display_clearance_rect(clearance: float = 0.045) -> Rect2:
+	if selected_phone_type == "Standard" or not screen_enabled:
+		return Rect2()
+	var layout := _get_foldable_segment_layout()
+	var fixed_offset: Vector3 = layout["fixed_offset"]
+	var moving_offset: Vector3 = layout["moving_offset"]
+	var panel_width: float
+	var panel_height: float
+	var display_center := Vector2.ZERO
+	if selected_phone_type == "Fold":
+		panel_width = (_active_phone_size().x - 0.014) * 0.5 - 0.12
+		panel_height = _active_phone_size().y - 0.20
+		display_center.x = fixed_offset.x
+	else:
+		panel_width = _active_phone_size().x - 0.18
+		panel_height = (_active_phone_size().y - 0.014) * 0.5 - 0.12
+		display_center.y = moving_offset.y
+	panel_width = maxf(0.28, panel_width)
+	panel_height = maxf(0.42, panel_height)
+	# Match the outer display bezel dimensions and add a fitting margin so
+	# raised features cannot touch the visible glass edge or its bezel.
+	var protected_size := Vector2(panel_width + 0.035, panel_height + 0.035) + Vector2.ONE * clearance * 2.0
+	return Rect2(display_center - protected_size * 0.5, protected_size)
+
+
+func _overlaps_foldable_outer_display(position: Vector2, half_extents: Vector2) -> bool:
+	var protected_rect := _get_foldable_outer_display_clearance_rect()
+	if protected_rect.size == Vector2.ZERO:
+		return false
+	var feature_rect := Rect2(position - half_extents, half_extents * 2.0)
+	return protected_rect.intersects(feature_rect, true)
+
+
+func _relocate_foldable_back_features_from_outer_display() -> bool:
+	if selected_phone_type == "Standard" or not screen_enabled:
+		return false
+	var changed := false
+
+	# Preserve every raised box and its styling/ID. Only relocate boxes whose
+	# footprint now intersects the cover display after a type/size change.
+	var previous_boxes: Array[Dictionary] = back_design_boxes.duplicate(true)
+	back_design_boxes.clear()
+	for box in previous_boxes:
+		var box_size: Vector2 = box["size"]
+		var box_position: Vector2 = box["position"]
+		if not _back_design_position_is_free(box_position, box_size, -1):
+			box_position = _find_back_design_safe_position(box_size)
+			if box_position.x > 900.0:
+				continue
+			box["position"] = box_position
+			changed = true
+		back_design_boxes.append(box)
+	if selected_back_design_box >= back_design_boxes.size():
+		selected_back_design_box = back_design_boxes.size() - 1
+
+	# Keep camera and flash IDs, sizes, megapixels and selection order while
+	# finding a legal rear-face location outside the cover-display footprint.
+	var previous_cameras: Array[Dictionary] = rear_camera_modules.duplicate(true)
+	var previous_flashes: Array[Dictionary] = rear_flash_modules.duplicate(true)
+	rear_camera_modules.clear()
+	rear_flash_modules.clear()
+	for module in previous_cameras:
+		var module_size := float(module["size"])
+		var module_position: Vector2 = module["position"]
+		if not _rear_module_position_is_free(module_position, module_size, "CAMERA", -1):
+			module_position = _find_rear_hardware_spawn_position("CAMERA", module_size)
+			if module_position.x > 900.0:
+				continue
+			module["position"] = module_position
+			changed = true
+		rear_camera_modules.append(module)
+	for module in previous_flashes:
+		var module_size := float(module["size"])
+		var module_position: Vector2 = module["position"]
+		if not _rear_module_position_is_free(module_position, module_size, "FLASH", -1):
+			module_position = _find_rear_hardware_spawn_position("FLASH", module_size)
+			if module_position.x > 900.0:
+				continue
+			module["position"] = module_position
+			changed = true
+		rear_flash_modules.append(module)
+	rear_camera_selected_index = mini(rear_camera_selected_index, rear_camera_modules.size() - 1)
+	rear_flash_selected_index = mini(rear_flash_selected_index, rear_flash_modules.size() - 1)
+	return changed
 
 
 func _get_foldable_segment_layout() -> Dictionary:
