@@ -4115,6 +4115,9 @@ func _set_earbuds_preview_mode(enabled: bool) -> void:
 
 
 func _show_earbuds_controls() -> void:
+	if worksite_creation_mode and is_instance_valid(worksite_owner):
+		worksite_owner.call("_show_worksite_earbuds_controls")
+		return
 	if not is_instance_valid(right_tools_content):
 		return
 	for child in right_tools_content.get_children():
