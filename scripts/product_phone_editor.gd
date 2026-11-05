@@ -7577,6 +7577,7 @@ func _on_side_button_toggled(enabled: bool, side: String) -> void:
 		power_button_enabled = enabled
 	else:
 		volume_button_enabled = enabled
+	_normalize_power_volume_positions()
 	_refresh_phone_side_buttons()
 
 
@@ -7585,6 +7586,7 @@ func _on_side_button_edge_selected(side: String, edge: String) -> void:
 		power_button_edge = edge
 	else:
 		volume_button_edge = edge
+	_normalize_power_volume_positions(side)
 	_refresh_phone_side_buttons()
 	if is_instance_valid(active_feature_panel):
 		var section_name := "Power" if side == "right" else "Volume"
@@ -7600,12 +7602,9 @@ func _on_side_button_edge_selected(side: String, edge: String) -> void:
 func _on_side_button_position_step(side: String, direction: int) -> void:
 	if side == "right":
 		power_button_y = clampf(power_button_y + float(direction) * 0.06, -1.20, 1.20)
-		if is_instance_valid(power_button_position_label):
-			power_button_position_label.text = "%d%%" % roundi(power_button_y / 1.20 * 100.0)
 	else:
 		volume_button_y = clampf(volume_button_y + float(direction) * 0.06, -1.20, 1.20)
-		if is_instance_valid(volume_button_position_label):
-			volume_button_position_label.text = "%d%%" % roundi(volume_button_y / 1.20 * 100.0)
+	_normalize_power_volume_positions(side)
 	_refresh_phone_side_buttons()
 
 func _show_side_button_controls() -> void:
@@ -7778,28 +7777,67 @@ func _restore_foldable_accessories_from_group(group_name: String) -> void:
 	_apply_phone_fold_angle()
 
 
-func _get_resolved_power_volume_positions(single_key_length: float, key_radius: float) -> Dictionary:
-	# Keep the volume rocker as one unit. If both controls share an edge,
-	# automatically move the rocker past the power key instead of allowing
-	# either control to intersect or visually climb over the other.
-	var resolved_power := power_button_y
-	var resolved_volume := volume_button_y
-	if not power_button_enabled or not volume_button_enabled or power_button_edge != volume_button_edge:
-		return {"power": resolved_power, "volume": resolved_volume}
-	var edge_scale := _active_phone_size().x * 0.42 if power_button_edge == "top" else 1.0
-	var power_half_extent := (single_key_length + maxf(key_radius * 1.35, 0.024)) * 0.5
+func _get_power_volume_min_spacing(single_key_length: float, key_radius: float, edge: String) -> float:
+	# Convert the physical button extents into the normalized position scale
+	# used by the edge controls. Top-edge positions map onto phone width.
+	var edge_scale := _active_phone_size().x * 0.42 if edge == "top" else 1.0
+	var button_width := maxf(key_radius * 1.35, 0.024)
+	var power_half_extent := (single_key_length + button_width) * 0.5
 	var rocker_half_extent := single_key_length * 1.02 + 0.018
-	var required_distance := (power_half_extent + rocker_half_extent + 0.025) / maxf(edge_scale, 0.001)
-	if absf(resolved_volume - resolved_power) < required_distance:
-		var travel_direction := signf(resolved_volume - resolved_power)
-		if is_zero_approx(travel_direction):
-			travel_direction = -1.0
-		resolved_volume = clampf(resolved_power + travel_direction * required_distance, -1.20, 1.20)
-		# If the requested travel direction reaches the edge limit, jump to
-		# the opposite clear side so the controls never overlap.
-		if absf(resolved_volume - resolved_power) < required_distance * 0.98:
-			resolved_volume = clampf(resolved_power - travel_direction * required_distance, -1.20, 1.20)
-	return {"power": resolved_power, "volume": resolved_volume}
+	return (power_half_extent + rocker_half_extent + 0.025) / maxf(edge_scale, 0.001)
+
+
+func _normalize_power_volume_positions(moving_side: String = "") -> void:
+	if not power_button_enabled or not volume_button_enabled or power_button_edge != volume_button_edge:
+		return
+	var single_key_length := 0.30 * side_button_length_scale * 0.46
+	var key_radius := clampf(_phone_depth_for_thickness_level() * 0.27, 0.018, 0.036)
+	var spacing := _get_power_volume_min_spacing(single_key_length, key_radius, power_button_edge)
+	var power_position := power_button_y
+	var volume_position := volume_button_y
+
+	if power_button_edge == "top":
+		# Top edge: power must remain to the right of volume.
+		if power_position < volume_position + spacing:
+			if moving_side == "power":
+				volume_position = power_position - spacing
+			else:
+				power_position = volume_position + spacing
+		if volume_position < -1.20:
+			var correction := -1.20 - volume_position
+			volume_position += correction
+			power_position += correction
+		if power_position > 1.20:
+			var correction := power_position - 1.20
+			power_position -= correction
+			volume_position -= correction
+	else:
+		# Left/right edge: power must remain below volume.
+		if power_position > volume_position - spacing:
+			if moving_side == "power":
+				volume_position = power_position + spacing
+			else:
+				power_position = volume_position - spacing
+		if volume_position > 1.20:
+			var correction := volume_position - 1.20
+			power_position -= correction
+			volume_position -= correction
+		if power_position < -1.20:
+			var correction := -1.20 - power_position
+			power_position += correction
+			volume_position += correction
+
+	power_button_y = clampf(power_position, -1.20, 1.20)
+	volume_button_y = clampf(volume_position, -1.20, 1.20)
+	if is_instance_valid(power_button_position_label):
+		power_button_position_label.text = "%d%%" % roundi(power_button_y / 1.20 * 100.0)
+	if is_instance_valid(volume_button_position_label):
+		volume_button_position_label.text = "%d%%" % roundi(volume_button_y / 1.20 * 100.0)
+
+
+func _get_resolved_power_volume_positions(single_key_length: float, key_radius: float) -> Dictionary:
+	# Rendering and case cut-outs use the same stored, ordered positions.
+	return {"power": power_button_y, "volume": volume_button_y}
 
 
 func _refresh_phone_side_buttons() -> void:
