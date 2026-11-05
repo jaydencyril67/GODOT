@@ -6712,7 +6712,25 @@ func _show_rear_camera_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# Layout A: matching compact management strip and working strip.
+	# Mode switchers lead the workspace so Camera/Flash is the first decision.
+	var modes := HBoxContainer.new()
+	modes.name = "RearHardwareModeSwitchers"
+	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	modes.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(modes)
+	for mode in ["CAMERA", "FLASH"]:
+		var mode_button := Button.new()
+		mode_button.name = "RearHardwareMode%s" % mode.capitalize()
+		mode_button.text = mode
+		mode_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mode_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(mode_button, button_font_size)
+		_style_back_design_button(mode_button, rear_hardware_mode == mode)
+		mode_button.pressed.connect(_set_rear_hardware_mode.bind(mode))
+		modes.add_child(mode_button)
+
+	# Component management follows the mode switchers.
 	var management := HBoxContainer.new()
 	management.name = "RearHardwareManagementStrip"
 	management.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -6773,72 +6791,44 @@ func _show_rear_camera_controls() -> void:
 	else:
 		active_feature_panel.add_child(rear_hardware_selection_popup)
 
-	var work_row := HBoxContainer.new()
-	work_row.name = "RearHardwareCompactControls"
-	work_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	work_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	work_row.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(work_row)
-
-	var mode_column := VBoxContainer.new()
-	mode_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mode_column.add_theme_constant_override("separation", 5)
-	work_row.add_child(mode_column)
-	var mode_heading := _make_label("COMPONENT MODE", 10, Color("#a8cfad"))
-	mode_column.add_child(mode_heading)
-
-	var modes := HBoxContainer.new()
-	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modes.add_theme_constant_override("separation", 6)
-	mode_column.add_child(modes)
-	for mode in ["CAMERA", "FLASH"]:
-		var mode_button := Button.new()
-		mode_button.text = mode
-		mode_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
-		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(mode_button, button_font_size)
-		_style_back_design_button(mode_button, rear_hardware_mode == mode)
-		mode_button.pressed.connect(_set_rear_hardware_mode.bind(mode))
-		modes.add_child(mode_button)
-
-	rear_hardware_size_label = _make_label("ADD A COMPONENT TO BEGIN", 11, Color("#dce9df"))
-	rear_hardware_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	mode_column.add_child(rear_hardware_size_label)
-
-	var size_column := VBoxContainer.new()
-	size_column.name = "RearHardwareVerticalSizeControl"
-	size_column.custom_minimum_size.x = 66
-	size_column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	size_column.add_theme_constant_override("separation", 2)
-	work_row.add_child(size_column)
+	# Size is now a full-width horizontal control directly below management.
+	var size_section := VBoxContainer.new()
+	size_section.name = "RearHardwareSizeSection"
+	size_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_section.add_theme_constant_override("separation", 3)
+	active_feature_panel.add_child(size_section)
+	var size_header := HBoxContainer.new()
+	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_section.add_child(size_header)
 	var size_heading := _make_label("SIZE", 10, Color("#b9d9bf"))
-	size_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	size_column.add_child(size_heading)
-	rear_hardware_size_slider = VSlider.new()
+	size_header.add_child(size_heading)
+	rear_hardware_size_label = _make_label("ADD A COMPONENT TO BEGIN", 11, Color("#dce9df"))
+	rear_hardware_size_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rear_hardware_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	size_header.add_child(rear_hardware_size_label)
+
+	rear_hardware_size_slider = HSlider.new()
+	rear_hardware_size_slider.name = "RearHardwareHorizontalSizeSlider"
 	rear_hardware_size_slider.min_value = 0.04 if rear_hardware_mode == "CAMERA" else 0.025
 	rear_hardware_size_slider.max_value = 0.17 if rear_hardware_mode == "CAMERA" else 0.10
 	rear_hardware_size_slider.step = 0.005
-	rear_hardware_size_slider.custom_minimum_size = Vector2(34, 108 if tight else 120)
-	rear_hardware_size_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	rear_hardware_size_slider.custom_minimum_size = Vector2(0, 24)
+	rear_hardware_size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rear_hardware_size_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_back_design_slider(rear_hardware_size_slider)
 	rear_hardware_size_slider.value_changed.connect(_on_rear_hardware_size_changed)
-	size_column.add_child(rear_hardware_size_slider)
+	size_section.add_child(rear_hardware_size_slider)
 
-	var bottom_spacer := Control.new()
-	bottom_spacer.name = "RearHardwareControllerFlexSpace"
-	bottom_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	bottom_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	active_feature_panel.add_child(bottom_spacer)
-
+	# Keep the movement pad close to the size control; no expanding spacer.
 	var pad_center := CenterContainer.new()
 	pad_center.name = "RearHardwareDirectionControllerCenter"
 	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad_center.size_flags_vertical = Control.SIZE_SHRINK_END
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	active_feature_panel.add_child(pad_center)
 	var pad_shell := PanelContainer.new()
 	pad_shell.name = "RearHardwareDirectionController"
-	pad_shell.custom_minimum_size = Vector2(248, 248) if not tight else Vector2(224, 224)
+	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
 	pad_shell_style.bg_color = Color("#0b2112")
 	pad_shell_style.border_color = Color("#477d53")
@@ -6866,7 +6856,7 @@ func _show_rear_camera_controls() -> void:
 	var pad_center_button := Button.new()
 	pad_center_button.name = "RearHardwareMoveCenterButton"
 	pad_center_button.text = "MOVE"
-	pad_center_button.custom_minimum_size = Vector2(76, 42)
+	pad_center_button.custom_minimum_size = Vector2(64, 38)
 	pad_center_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	pad_center_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_apply_research_typography(pad_center_button, 10 if tight else 11)
@@ -6878,9 +6868,6 @@ func _show_rear_camera_controls() -> void:
 	_add_rear_hardware_pad_button(pad, "↓", Vector2i(0, -1), tight)
 	_add_back_design_pad_spacer(pad)
 	_refresh_rear_hardware_panel()
-	if worksite_creation_mode:
-		_apply_worksite_back_hardware_panel_layout()
-
 func _add_rear_hardware_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool) -> void:
 	_add_editor_direction_pad_button(parent, caption, direction, tight, Callable(self, "_on_rear_hardware_pad_pressed"))
 
