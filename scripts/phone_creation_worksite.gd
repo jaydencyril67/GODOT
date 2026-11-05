@@ -222,14 +222,14 @@ func _build_interface() -> void:
 	progress.custom_minimum_size = Vector2(150, 38)
 	progress.add_theme_constant_override("separation", 4)
 	top_bar.add_child(progress)
-	progress_number = _label("STEP 1 / 18", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 21", 11, Color("#dce9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 18
+	progress_bar.max_value = 21
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -492,6 +492,12 @@ func _on_next_pressed() -> void:
 		_show_ram_step()
 	elif wizard_step == 16:
 		_show_internal_storage_step()
+	elif wizard_step == 17:
+		_show_internet_selection_step()
+	elif wizard_step == 18:
+		_show_wifi_step()
+	elif wizard_step == 19:
+		_show_bluetooth_step()
 
 
 func _cache_current_step_panel() -> void:
@@ -529,7 +535,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
 		return
 
-	if step < 15 or step > 17:
+	if step < 15 or step > 20:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
 	wizard_step = step
@@ -564,15 +570,18 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 	if is_instance_valid(panel):
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
-		if step >= 15 and step <= 17:
+		if step >= 15 and step <= 20:
 			_style_ram_selector_buttons(panel)
 
-	if step >= 15 and step <= 17:
+	if step >= 15 and step <= 20:
 		_set_ram_selection_preview(true)
 		_update_ram_selection_display(
 			str(phone_editor.get("selected_ram_technology")),
 			str(phone_editor.get("selected_ram_capacity")),
-			str(phone_editor.get("selected_rom_capacity"))
+			str(phone_editor.get("selected_rom_capacity")),
+			str(phone_editor.get("selected_mobile_network")),
+			str(phone_editor.get("selected_wifi_standard")),
+			str(phone_editor.get("selected_bluetooth_version"))
 		)
 	_update_step_progress(step)
 	selection_scroll.scroll_vertical = 0
@@ -595,7 +604,7 @@ func _style_ram_selector_buttons(panel: Control) -> void:
 		var option := child as Button
 		if not is_instance_valid(option):
 			continue
-		var selected := option.text.contains("✓ SELECTED")
+		var selected := option.text.contains("✓")
 		_style_button(option, selected)
 		option.custom_minimum_size.y = 48
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -609,7 +618,14 @@ func _set_ram_selection_preview(enabled: bool) -> void:
 		specification_readout.visible = enabled
 
 
-func _update_ram_selection_display(technology: String, capacity: String, storage: String = "Not set") -> void:
+func _update_ram_selection_display(
+	technology: String,
+	capacity: String,
+	storage: String = "Not set",
+	internet: String = "Not set",
+	wifi: String = "Not set",
+	bluetooth: String = "Not set"
+) -> void:
 	if not is_instance_valid(specification_readout):
 		return
 	for child in specification_readout.get_children():
@@ -625,6 +641,12 @@ func _update_ram_selection_display(technology: String, capacity: String, storage
 		_add_specification_readout_entry("RAM", capacity)
 	if storage != "Not set":
 		_add_specification_readout_entry("INTERNAL STORAGE", storage)
+	if internet != "Not set":
+		_add_specification_readout_entry("INTERNET SELECTION", internet)
+	if wifi != "Not set":
+		_add_specification_readout_entry("WI-FI", wifi)
+	if bluetooth != "Not set":
+		_add_specification_readout_entry("BLUETOOTH", bluetooth)
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
@@ -644,8 +666,8 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 18)
-	progress_number.text = "STEP %d / 18" % progress_value
+	var progress_value := clampi(step + 1, 1, 21)
+	progress_number.text = "STEP %d / 21" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -727,6 +749,18 @@ func _show_ram_step() -> void:
 
 func _show_internal_storage_step() -> void:
 	_show_worksite_step(17, "_show_rom_controls")
+
+
+func _show_internet_selection_step() -> void:
+	_show_worksite_step(18, "_show_mobile_network_controls")
+
+
+func _show_wifi_step() -> void:
+	_show_worksite_step(19, "_show_wifi_controls")
+
+
+func _show_bluetooth_step() -> void:
+	_show_worksite_step(20, "_show_bluetooth_controls")
 
 
 func _keep_step_navigation_active() -> void:
