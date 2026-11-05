@@ -3051,12 +3051,19 @@ func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: 
 	row.add_theme_constant_override("separation", 9)
 	parent.add_child(row)
 
+	var label := _make_label(label_text, 14, Color.WHITE)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(label)
+
 	var toggle := Button.new()
 	toggle.name = toggle_name
 	toggle.toggle_mode = true
 	toggle.button_pressed = enabled
 	toggle.text = "✓" if enabled else ""
 	toggle.custom_minimum_size = Vector2(34, 34)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	toggle.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(toggle, 17)
@@ -3067,17 +3074,11 @@ func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: 
 			style.bg_color = Color("#168343")
 		style.border_color = Color("#8fd8a1")
 		style.set_border_width_all(2)
-		style.set_corner_radius_all(7)
+		style.set_corner_radius_all(5)
 		toggle.add_theme_stylebox_override(state, style)
 	toggle.add_theme_color_override("font_color", Color.WHITE)
 	toggle.toggled.connect(callback)
 	row.add_child(toggle)
-
-	var label := _make_label(label_text, 14, Color.WHITE)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	row.add_child(label)
 
 
 func _show_screen_tech_controls() -> void:
