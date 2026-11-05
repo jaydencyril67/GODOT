@@ -874,9 +874,8 @@ func _build_interface() -> void:
 
 	var viewport_container := preview_container
 	if is_instance_valid(viewport_container):
-		# Move the original editor's live SubViewportContainer, not a recreated
-		# preview. The original editor remains alive and continues handling
-		# rotation, fold gestures and mesh rebuilds for this exact viewport.
+		# Mount the Worksite-owned SubViewportContainer directly in the preview
+		# region. The Worksite handles rotation, fold gestures and mesh rebuilds.
 		var original_parent := viewport_container.get_parent()
 		if is_instance_valid(original_parent):
 			original_parent.remove_child(viewport_container)
@@ -1058,8 +1057,8 @@ func _build_interface() -> void:
 	navigation_bar.add_child(next_button)
 	_keep_step_navigation_active()
 	_apply_responsive_layout()
-	# Start with Standard selected in both the worksite controls and the
-	# original editor engine, so the preview and Next state are immediately ready.
+	# Start with Standard selected so the Worksite preview and Next state are
+	# immediately ready.
 	_on_phone_type_selected("Standard")
 
 
@@ -1298,7 +1297,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 
 	var panel := step_panels.get(step) as Control
 	if is_instance_valid(panel):
-		# Reattach only if an editor subview moved this cached panel elsewhere.
+		# Reattach only if a temporary Worksite view moved this cached panel.
 		var parent := panel.get_parent()
 		if parent != selection_stack:
 			if is_instance_valid(parent):
