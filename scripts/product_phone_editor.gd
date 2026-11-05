@@ -336,6 +336,8 @@ var power_button_enabled := false
 var volume_button_enabled := false
 var power_button_y := 0.72
 var volume_button_y := 0.34
+var power_button_edge := "right"
+var volume_button_edge := "left"
 var camera_side_button_enabled := false
 var camera_side_button_y := 0.12
 var sound_button_enabled := false
@@ -7126,8 +7128,8 @@ func _show_power_volume_controls() -> void:
 	cards_column.size_flags_stretch_ratio = 3.2
 	cards_column.add_theme_constant_override("separation", 10)
 	controls_row.add_child(cards_column)
-	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y, cards_column)
-	_add_side_button_controls("VOLUME ROCKER", "left", volume_button_enabled, volume_button_y, cards_column)
+	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y, power_button_edge, cards_column)
+	_add_side_button_controls("VOLUME ROCKER", "left", volume_button_enabled, volume_button_y, volume_button_edge, cards_column)
 
 	var length_column := VBoxContainer.new()
 	length_column.name = "ButtonLengthColumn"
@@ -7444,13 +7446,13 @@ func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
-func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float, parent: Control) -> void:
+func _add_side_button_controls(caption: String, side: String, enabled: bool, position_y: float, edge: String, parent: Control) -> void:
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	# Keep the complete control stack inside the panel on compact screens.
 	# The panel's own margins are additional to the VBox content height.
-	section.custom_minimum_size = Vector2(0.0, 184.0)
+	section.custom_minimum_size = Vector2(0.0, 222.0)
 	var section_style := StyleBoxFlat.new()
 	section_style.bg_color = Color(0.035, 0.12, 0.065, 0.88)
 	section_style.border_color = Color(0.28, 0.62, 0.38, 0.58)
@@ -7495,7 +7497,25 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	toggle.pressed.connect(_on_side_button_toggle_pressed.bind(toggle, side))
 	heading_row.add_child(toggle)
-	var position_title := _make_label("VERTICAL POSITION", 14, Color("#c7eacb"))
+	var edge_title := _make_label("EDGE POSITION", 13, Color("#c7eacb"))
+	content.add_child(edge_title)
+	var edge_row := HBoxContainer.new()
+	edge_row.name = "ButtonEdgeChoices"
+	edge_row.add_theme_constant_override("separation", 6)
+	content.add_child(edge_row)
+	for edge_name in ["left", "top", "right"]:
+		var edge_button := Button.new()
+		edge_button.name = "Edge_" + edge_name.capitalize()
+		edge_button.text = edge_name.to_upper()
+		edge_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		edge_button.custom_minimum_size = Vector2(0, 34)
+		edge_button.focus_mode = Control.FOCUS_NONE
+		_style_power_volume_position_button(edge_button)
+		edge_button.button_pressed = edge == edge_name
+		edge_button.toggle_mode = true
+		edge_button.pressed.connect(_on_side_button_edge_selected.bind(side, edge_name))
+		edge_row.add_child(edge_button)
+	var position_title := _make_label("POSITION ALONG EDGE", 14, Color("#c7eacb"))
 	position_title.custom_minimum_size.y = 22.0
 	content.add_child(position_title)
 	var position_row := HBoxContainer.new()
@@ -7563,6 +7583,23 @@ func _on_side_button_toggled(enabled: bool, side: String) -> void:
 	else:
 		volume_button_enabled = enabled
 	_refresh_phone_side_buttons()
+
+
+func _on_side_button_edge_selected(side: String, edge: String) -> void:
+	if side == "right":
+		power_button_edge = edge
+	else:
+		volume_button_edge = edge
+	_refresh_phone_side_buttons()
+	if is_instance_valid(active_feature_panel):
+		var section_name := "Power" if side == "right" else "Volume"
+		var toggle := active_feature_panel.find_child("Custom" + section_name + "ButtonCheckbox", true, false)
+		if is_instance_valid(toggle):
+			var card := toggle.get_parent().get_parent()
+			var edge_row := card.find_child("ButtonEdgeChoices", true, false) as HBoxContainer
+			if is_instance_valid(edge_row):
+				for child in edge_row.get_children():
+					child.button_pressed = child.name == "Edge_" + edge.capitalize()
 
 
 func _on_side_button_position_step(side: String, direction: int) -> void:
@@ -7775,11 +7812,11 @@ func _refresh_phone_side_buttons() -> void:
 	var key_length := 0.30 * side_button_length_scale
 	var single_key_length := key_length * 0.46
 	if power_button_enabled:
-		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, single_key_length, key_radius, frame_material, key_material)
+		_add_phone_side_button(button_root, "PowerButton", 1.0, power_button_y, single_key_length, key_radius, frame_material, key_material, power_button_edge)
 	if volume_button_enabled:
 		var rocker_gap := 0.018
-		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + single_key_length * 0.52 + rocker_gap, single_key_length, key_radius, frame_material, key_material)
-		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - single_key_length * 0.52 - rocker_gap, single_key_length, key_radius, frame_material, key_material)
+		_add_phone_side_button(button_root, "VolumeUpButton", -1.0, volume_button_y + single_key_length * 0.52 + rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
+		_add_phone_side_button(button_root, "VolumeDownButton", -1.0, volume_button_y - single_key_length * 0.52 - rocker_gap, single_key_length, key_radius, frame_material, key_material, volume_button_edge)
 	if camera_side_button_enabled:
 		_add_phone_side_button(button_root, "QuickCameraSideButton", 1.0, camera_side_button_y, 0.19, key_radius * 0.88, frame_material, key_material)
 	if sound_button_enabled:
@@ -7919,7 +7956,7 @@ func _add_phone_sim_tray(parent: Node3D, side_sign: float, position_y: float, fr
 	parent.add_child(eject_hole)
 
 
-func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material) -> void:
+func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float, position_y: float, length: float, radius: float, frame_material: Material, key_material: Material, edge: String = "") -> void:
 	# Keep the recess below the frame surface and give the actual key a
 	# clearly visible, subtle 1.2 mm stand-off. The previous 0.5 mm projection
 	# was too shallow to read in the 3D preview, making the buttons look flush.
@@ -7927,6 +7964,10 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	var button_depth := (1.2 * unit_per_mm) / 0.95
 	var button_width := maxf(radius * 1.35, 0.024)
 	var side_edge := _active_phone_size().x * 0.5
+	var top_edge := _active_phone_size().y * 0.5
+	var on_top_edge := edge == "top"
+	var edge_position := Vector3(position_y * (_active_phone_size().x * 0.42), top_edge + button_depth * 0.45, 0.0) if on_top_edge else Vector3(side_sign * (side_edge + button_depth * 0.45), position_y, 0.0)
+	var edge_backing_position := Vector3(edge_position.x, top_edge - radius * 0.35, 0.0) if on_top_edge else Vector3(side_sign * (side_edge - radius * 0.35), position_y, 0.0)
 
 	var backing := MeshInstance3D.new()
 	backing.name = node_name + "Recess"
@@ -7934,7 +7975,9 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	recess_mesh.size = Vector3(radius * 0.5, length + radius * 0.7, button_width * 1.45)
 	backing.mesh = recess_mesh
 	backing.material_override = frame_material
-	backing.position = Vector3(side_sign * (side_edge - radius * 0.35), position_y, 0.0)
+	backing.position = edge_backing_position
+	if on_top_edge:
+		backing.rotation_degrees.z = 90.0
 	backing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(backing)
 
@@ -7951,7 +7994,9 @@ func _add_phone_side_button(parent: Node3D, node_name: String, side_sign: float,
 	key.scale = Vector3(button_depth / button_width, 1.0, 1.0)
 	key.material_override = key_material
 	# Center the shallow rounded key just beyond the side plane.
-	key.position = Vector3(side_sign * (side_edge + button_depth * 0.45), position_y, 0.0)
+	key.position = edge_position
+	if on_top_edge:
+		key.rotation_degrees.z = 90.0
 	key.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(key)
 
@@ -10435,12 +10480,14 @@ func _case_subtract(combiner: CSGCombiner3D, cutter: CSGShape3D) -> void:
 func _case_side_opening(combiner: CSGCombiner3D, side: float, y: float, length: float, depth: float, wall: float, opening_name: String) -> void:
 	var opening := CSGBox3D.new()
 	opening.name = opening_name
-	# Cut only a button-width band through the side wall. The former fixed
-	# 72 mm depth spanned the complete phone thickness and could open the back.
-	# Leave a case-material margin on both the front and rear faces.
 	var side_cut_depth := minf(0.056, maxf(0.026, depth * 0.50))
-	opening.size = Vector3(wall * 2.0 + 0.055, maxf(length + 0.008, 0.045), side_cut_depth)
-	opening.position = Vector3(side * _active_phone_size().x * 0.5, y, 0.0)
+	var edge := power_button_edge if opening_name.begins_with("Power") else volume_button_edge if opening_name.begins_with("Volume") else "side"
+	if edge == "top":
+		opening.size = Vector3(maxf(length + 0.008, 0.045), wall * 2.0 + 0.055, side_cut_depth)
+		opening.position = Vector3(y * (_active_phone_size().x * 0.42), _active_phone_size().y * 0.5, 0.0)
+	else:
+		opening.size = Vector3(wall * 2.0 + 0.055, maxf(length + 0.008, 0.045), side_cut_depth)
+		opening.position = Vector3(side * _active_phone_size().x * 0.5, y, 0.0)
 	_case_subtract(combiner, opening)
 
 
