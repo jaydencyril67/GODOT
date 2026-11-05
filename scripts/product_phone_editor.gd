@@ -276,6 +276,7 @@ var phone_case_design_style := 0
 var preview_stack: VBoxContainer
 var software_summary_panel: PanelContainer
 var software_value_labels: Dictionary = {}
+var worksite_owner: Node
 var selected_ram_capacity := "Not set"
 var selected_refresh_rate := "Not set"
 var selected_memory_clock := "Not set"
@@ -9316,47 +9317,6 @@ func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: V
 
 
 
-func _set_worksite_ram_specs_preview(enabled: bool, worksite_host: Control = null) -> void:
-	if not is_instance_valid(software_summary_panel) or not is_instance_valid(preview_stack):
-		return
-	if enabled:
-		if not is_instance_valid(worksite_host):
-			return
-		if software_summary_panel.get_parent() != worksite_host:
-			var old_parent := software_summary_panel.get_parent()
-			if is_instance_valid(old_parent):
-				old_parent.remove_child(software_summary_panel)
-			worksite_host.add_child(software_summary_panel)
-		software_summary_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		software_summary_panel.offset_left = 0.0
-		software_summary_panel.offset_top = 0.0
-		software_summary_panel.offset_right = 0.0
-		software_summary_panel.offset_bottom = 0.0
-		software_summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		software_summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		software_summary_panel.visible = true
-		if is_instance_valid(preview_container):
-			preview_container.visible = false
-		_update_camera_software_summary()
-		_update_sensor_software_summary()
-		_update_memory_clock_software_summary()
-		_update_cooling_software_summary()
-	else:
-		if software_summary_panel.get_parent() != preview_stack:
-			var old_parent := software_summary_panel.get_parent()
-			if is_instance_valid(old_parent):
-				old_parent.remove_child(software_summary_panel)
-			preview_stack.add_child(software_summary_panel)
-		software_summary_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		software_summary_panel.offset_left = 0.0
-		software_summary_panel.offset_top = 0.0
-		software_summary_panel.offset_right = 0.0
-		software_summary_panel.offset_bottom = 0.0
-		software_summary_panel.visible = false
-		if is_instance_valid(preview_container):
-			preview_container.visible = true
-
-
 func _build_software_summary_panel() -> void:
 	software_summary_panel = _make_glass_panel(Color(0.10, 0.31, 0.48, 0.58))
 	software_summary_panel.name = "PhoneSoftwareSpecificationPanel"
@@ -9739,6 +9699,7 @@ func _on_ram_capacity_selected(capacity: String) -> void:
 		var summary_ram_label: Label = software_value_labels["RAM"]
 		summary_ram_label.text = selected_ram_capacity
 
+	_notify_worksite_ram_selection_changed()
 
 func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 	if not is_instance_valid(panel) or panel.name != "RAMSelectionControls":
@@ -9845,6 +9806,12 @@ func _on_ram_technology_selected(technology: String) -> void:
 		var technology_label: Label = software_value_labels["RAM TECHNOLOGY"]
 		technology_label.text = selected_ram_technology
 	_refresh_ram_technology_selection_ui()
+
+	_notify_worksite_ram_selection_changed()
+
+func _notify_worksite_ram_selection_changed() -> void:
+	if is_instance_valid(worksite_owner) and worksite_owner.has_method("_update_ram_selection_display"):
+		worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity)
 
 
 func _refresh_ram_technology_selection_ui() -> void:
