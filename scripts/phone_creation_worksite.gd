@@ -588,6 +588,17 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	_keep_step_navigation_active()
 
 
+func _refresh_ram_capacity_step() -> void:
+	if not is_instance_valid(phone_editor):
+		return
+	var ram_panel := step_panels.get(16) as Control
+	if not is_instance_valid(ram_panel):
+		return
+	if phone_editor.has_method("_refresh_ram_capacity_selection_ui"):
+		phone_editor.call("_refresh_ram_capacity_selection_ui", ram_panel)
+	_style_ram_selector_buttons(ram_panel)
+
+
 func _style_ram_selector_buttons(panel: Control) -> void:
 	for child in panel.find_children("*", "Button", true, false):
 		var option := child as Button
