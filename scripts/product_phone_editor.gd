@@ -629,7 +629,7 @@ func _build_research_ui() -> void:
 	var header := VBoxContainer.new()
 	header.add_theme_constant_override("separation", 5)
 	page.add_child(header)
-	header.add_child(_make_label("DIGITALWORLD  /  RESEARCH  /  PHONE", 11 if compact else 13, Color("#a9e3ff")))
+	header.add_child(_make_label("DIGITALWORLD  /  RESEARCH  /  PHONE", 11 if compact else 13, Color("#9bd6a7")))
 
 	var hero_row := HBoxContainer.new()
 	hero_row.name = "PhoneResearchHeroRow"
@@ -874,11 +874,11 @@ func _on_design_research_upgrade_pressed(research_id: String) -> void:
 func _make_staff_style_card() -> PanelContainer:
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.32, 0.66, 0.88, 0.27)
-	style.border_color = Color(0.86, 0.97, 1.0, 0.92)
+	style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
+	style.border_color = Color(0.68, 0.82, 0.70, 0.72)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0.0, 0.16, 0.34, 0.42)
+	style.shadow_color = Color(0.0, 0.10, 0.03, 0.30)
 	style.shadow_size = 18
 	style.shadow_offset = Vector2(0, 5)
 	style.anti_aliasing = true
@@ -886,8 +886,8 @@ func _make_staff_style_card() -> PanelContainer:
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var glass_gradient := Gradient.new()
-	glass_gradient.set_color(0, Color(0.92, 0.98, 1.0, 0.30))
-	glass_gradient.set_color(1, Color(0.76, 0.91, 1.0, 0.0))
+	glass_gradient.set_color(0, Color(0.88, 1.0, 0.89, 0.22))
+	glass_gradient.set_color(1, Color(0.72, 0.91, 0.75, 0.0))
 	var glass_texture := GradientTexture2D.new()
 	glass_texture.gradient = glass_gradient
 	glass_texture.fill_from = Vector2(0.0, 0.0)
@@ -904,20 +904,21 @@ func _make_staff_style_card() -> PanelContainer:
 	return card
 
 
+
 func _style_staff_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
+		style.bg_color = Color(0.075, 0.16, 0.095, 0.88) if primary else Color(0.12, 0.15, 0.13, 0.76)
 		if state == "hover":
-			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+			style.bg_color = Color(0.12, 0.25, 0.15, 0.94) if primary else Color(0.19, 0.23, 0.20, 0.88)
 		elif state == "pressed":
-			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
+			style.bg_color = Color(0.055, 0.12, 0.07, 0.98) if primary else Color(0.08, 0.11, 0.09, 0.94)
 		elif state == "disabled":
-			style.bg_color = Color(0.35, 0.49, 0.59, 0.20)
-		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
+			style.bg_color = Color(0.10, 0.13, 0.11, 0.58)
+		style.border_color = Color(0.68, 0.91, 0.73, 0.78) if primary else Color(0.78, 0.85, 0.80, 0.34)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
 		style.shadow_size = 7
 		style.shadow_offset = Vector2(0, 2)
 		style.anti_aliasing = true
@@ -925,21 +926,22 @@ func _style_staff_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color("#a9c9dc"))
+	button.add_theme_color_override("font_disabled_color", Color("#91b69a"))
+
 
 
 func _style_staff_back_button(button: Button) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.72, 0.89, 0.98, 0.14)
+		style.bg_color = Color(0.12, 0.15, 0.13, 0.76)
 		if state == "hover":
-			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+			style.bg_color = Color(0.19, 0.23, 0.20, 0.88)
 		elif state == "pressed":
-			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
-		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
+			style.bg_color = Color(0.08, 0.11, 0.09, 0.94)
+		style.border_color = Color(0.78, 0.85, 0.80, 0.34)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
 		style.shadow_size = 7
 		style.shadow_offset = Vector2(0, 2)
 		style.anti_aliasing = true
@@ -951,7 +953,7 @@ func _style_staff_back_button(button: Button) -> void:
 
 
 func _make_tools_card(card_name: String, include_controls: bool) -> PanelContainer:
-	var tools_panel := _make_glass_panel(Color(0.28, 0.61, 0.80, 0.30))
+	var tools_panel := _make_glass_panel(Color(0.10, 0.24, 0.13, 0.30))
 	tools_panel.name = card_name
 	tools_panel.custom_minimum_size.x = 273
 	tools_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1024,10 +1026,10 @@ func _make_glass_panel(fill_color: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill_color
-	style.border_color = Color(0.86, 0.97, 1.0, 0.90)
+	style.border_color = Color(0.68, 0.82, 0.70, 0.72)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0.0, 0.16, 0.34, 0.35)
+	style.shadow_color = Color(0.0, 0.10, 0.03, 0.30)
 	style.shadow_size = 12
 	style.shadow_offset = Vector2(0, 4)
 	style.anti_aliasing = true
@@ -1173,12 +1175,12 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	button.add_theme_font_size_override("font_size", 16)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
+		style.bg_color = Color(0.12, 0.15, 0.13, 0.76)
 		if state == "hover":
-			style.bg_color = Color(0.76, 0.92, 1.0, 0.38)
+			style.bg_color = Color(0.19, 0.23, 0.20, 0.88)
 		elif state == "pressed" or state == "focus":
-			style.bg_color = Color(0.60, 0.84, 0.96, 0.25)
-		style.border_color = Color(0.91, 0.98, 1.0, 0.92)
+			style.bg_color = Color(0.08, 0.11, 0.09, 0.94)
+		style.border_color = Color(0.78, 0.85, 0.80, 0.34)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
 		style.content_margin_left = 7
@@ -1612,7 +1614,7 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 		selected_color = _get_active_color_picker_color()
 	else:
 		selected_color = phone_case_gradient_color if phone_case_color_mode and use_gradient_color else (phone_case_color if phone_case_color_mode else (device_gradient_color if use_gradient_color else device_body_color))
-	picker.add_child(_make_label("COLOR SPECTRUM", 11, Color("#a9e3ff")))
+	picker.add_child(_make_label("COLOR SPECTRUM", 11, Color("#9bd6a7")))
 	var spectrum := DeviceColorSpectrum.new()
 	spectrum.name = "DeviceColorSpectrum"
 	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1620,19 +1622,19 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	spectrum.set_color_value(selected_color)
 	spectrum.color_changed.connect(_on_color_picker_panel_changed.bind(use_gradient_color))
 	picker.add_child(spectrum)
-	picker.add_child(_make_label("HUE", 11, Color("#a9e3ff")))
+	picker.add_child(_make_label("HUE", 11, Color("#9bd6a7")))
 	var hue_bar := DeviceHueBar.new()
 	hue_bar.name = "DeviceColorHue"
 	hue_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hue_bar.set_hue(selected_color.h)
 	hue_bar.hue_changed.connect(_on_color_picker_panel_hue_changed.bind(use_gradient_color))
 	picker.add_child(hue_bar)
-	var selected_label := _make_label("#" + selected_color.to_html(false).to_upper(), 12, Color("#e5f6ff"))
+	var selected_label := _make_label("#" + selected_color.to_html(false).to_upper(), 12, Color("#e7f6e9"))
 	selected_label.name = "SelectedColorHex"
 	picker.add_child(selected_label)
 	if not use_gradient_color:
 		device_color_hex_label = selected_label
-	picker.add_child(_make_label("HEX CODE", 11, Color("#a9e3ff")))
+	picker.add_child(_make_label("HEX CODE", 11, Color("#9bd6a7")))
 	var hex_row := HBoxContainer.new()
 	hex_row.name = "CustomHexEntry"
 	hex_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1645,7 +1647,7 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	hex_input.max_length = 7
 	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hex_input.custom_minimum_size = Vector2(0, 36)
-	hex_input.add_theme_color_override("font_color", Color("#edf8ff"))
+	hex_input.add_theme_color_override("font_color", Color("#edf8ee"))
 	hex_input.add_theme_color_override("font_placeholder_color", Color("#78937c"))
 	hex_input.add_theme_color_override("caret_color", Color("#75d58a"))
 	var hex_normal := StyleBoxFlat.new()
@@ -1907,7 +1909,7 @@ func _refresh_device_color_editor_controls() -> void:
 		var hex_label := picker.get_node_or_null("SelectedColorHex") as Label
 		if is_instance_valid(hex_label):
 			hex_label.text = "#" + selected_color.to_html(false).to_upper()
-			hex_label.add_theme_color_override("font_color", Color("#e5f6ff"))
+			hex_label.add_theme_color_override("font_color", Color("#e7f6e9"))
 		var hex_input := picker.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = selected_color.to_html(false).to_upper()
@@ -2099,7 +2101,7 @@ func _on_device_body_color_changed(color: Color) -> void:
 		_refresh_foldable_frame_materials()
 	if is_instance_valid(device_color_hex_label):
 		device_color_hex_label.text = "#" + _get_active_color_picker_color().to_html(false).to_upper()
-		device_color_hex_label.add_theme_color_override("font_color", Color("#d8f1ff"))
+		device_color_hex_label.add_theme_color_override("font_color", Color("#dce9df"))
 	if is_instance_valid(active_feature_panel):
 		_refresh_device_color_editor_controls()
 	if not phone_case_color_mode and not box_package_color_mode and not charger_color_mode:
@@ -2134,7 +2136,7 @@ func _show_back_design_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
 	panel_host.add_child(active_feature_panel)
 
-	var heading := _make_label("BACK DESIGN", 16, Color("#d8eaf5"))
+	var heading := _make_label("BACK DESIGN", 16, Color("#dce9df"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -2189,9 +2191,9 @@ func _show_back_design_controls() -> void:
 	var rounding_header := HBoxContainer.new()
 	rounding_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rounding_section.add_child(rounding_header)
-	var rounding_heading := _make_label("ROUND", 10, Color("#b9d8e9"))
+	var rounding_heading := _make_label("ROUND", 10, Color("#b8d8be"))
 	rounding_header.add_child(rounding_heading)
-	back_design_border_label = _make_label("NO BOX SELECTED", 10, Color("#d5e9f5"))
+	back_design_border_label = _make_label("NO BOX SELECTED", 10, Color("#dce9df"))
 	back_design_border_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_border_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	rounding_header.add_child(back_design_border_label)
@@ -2208,7 +2210,7 @@ func _show_back_design_controls() -> void:
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	rounding_section.add_child(back_design_border_slider)
 
-	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 10, Color("#d5e9f5"))
+	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 10, Color("#dce9df"))
 	back_design_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	back_design_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	active_feature_panel.add_child(back_design_size_label)
@@ -2231,8 +2233,8 @@ func _show_back_design_controls() -> void:
 	pad_shell.name = "BackDesignDirectionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color(0.28, 0.61, 0.80, 0.18)
-	pad_shell_style.border_color = Color(0.86, 0.97, 1.0, 0.72)
+	pad_shell_style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
+	pad_shell_style.border_color = Color(0.68, 0.82, 0.70, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -2345,7 +2347,7 @@ func _add_back_design_flexible_space(parent: Control) -> void:
 	parent.add_child(spacer)
 
 func _style_back_design_button(button: Button, active: bool) -> void:
-	# Raised Back Design and Rear Camera share the same blue-glass button
+	# Raised Back Design and Rear Camera use the Worksite green button
 	# treatment used by the other Worksite controls.
 	_style_staff_button(button, active)
 
@@ -2353,7 +2355,7 @@ func _style_back_design_button(button: Button, active: bool) -> void:
 func _style_staff_circle_button(button: Button, active: bool, diameter: float) -> void:
 	_style_staff_button(button, active)
 	# Keep the circular D-pad and +/- silhouettes while borrowing the exact
-	# blue-glass colors and state styling from the shared Worksite buttons.
+	# green colors and state styling from the shared Worksite buttons.
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := button.get_theme_stylebox(state).duplicate() as StyleBoxFlat
 		style.set_corner_radius_all(int(diameter * 0.5))
@@ -2462,7 +2464,7 @@ func _show_back_design_selection_controls() -> void:
 	_style_back_design_button(back, false)
 	back.pressed.connect(_show_back_design_controls)
 	header.add_child(back)
-	var title := _make_label("SELECT RAISED BOX", 15, Color("#d8eaf5"))
+	var title := _make_label("SELECT RAISED BOX", 15, Color("#dce9df"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
@@ -2517,7 +2519,7 @@ func _show_rear_hardware_selection_controls() -> void:
 	_style_back_design_button(back, false)
 	back.pressed.connect(_show_rear_camera_controls)
 	header.add_child(back)
-	var title := _make_label("SELECT " + rear_hardware_mode, 15, Color("#d8eaf5"))
+	var title := _make_label("SELECT " + rear_hardware_mode, 15, Color("#dce9df"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
@@ -3886,7 +3888,7 @@ func _show_smartwatch_controls() -> void:
 	enable_row.name = "SmartwatchEnableRow"
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE SMART WATCH", 13, Color("#e6f5ff"))
+	var enable_label := _make_label("ENABLE SMART WATCH", 13, Color("#e7f6e9"))
 	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	enable_row.add_child(enable_label)
@@ -4114,7 +4116,7 @@ func _show_earbuds_controls() -> void:
 	enable_row.name = "WirelessEarbudsEnableRow"
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE EARBUDS CASE", 13, Color("#e6f5ff"))
+	var enable_label := _make_label("ENABLE EARBUDS CASE", 13, Color("#e7f6e9"))
 	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	enable_row.add_child(enable_label)
@@ -4237,7 +4239,7 @@ func _rebuild_power_bank_preview() -> void:
 		var indicator := _add_charger_cylinder(power_bank_preview, "PowerBankStatusLED_%d" % indicator_index, 0.012, 0.008, Vector3(-0.045 + float(indicator_index) * 0.03, 0.385, 0.151), indicator_material if indicator_index < 3 else frame_material, 20)
 		indicator.rotation_degrees.x = 90.0
 
-	_add_accessory_label(power_bank_preview, "PowerBankCapacityMark", _format_power_bank_capacity(power_bank_capacity_mah), 13, 0.0035, Color("#a9c7d9"), Vector3(0.0, -0.64, 0.147))
+	_add_accessory_label(power_bank_preview, "PowerBankCapacityMark", _format_power_bank_capacity(power_bank_capacity_mah), 13, 0.0035, Color("#b8d8be"), Vector3(0.0, -0.64, 0.147))
 
 	# A small tactile power key is fitted to the side wall, with a metal edge.
 	var side_button := _add_charger_cylinder(power_bank_preview, "PowerBankSidePowerButton", 0.043, 0.032, Vector3(0.574, 0.39, 0.0), frame_material, 32)
@@ -4299,7 +4301,7 @@ func _show_power_bank_controls() -> void:
 	enable_row.name = "PowerBankEnableRow"
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE POWER BANK", 13, Color("#e6f5ff"))
+	var enable_label := _make_label("ENABLE POWER BANK", 13, Color("#e7f6e9"))
 	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	enable_row.add_child(enable_label)
@@ -4318,11 +4320,11 @@ func _show_power_bank_controls() -> void:
 	enable_row.add_child(toggle)
 
 	if power_bank_enabled:
-		var capacity_heading := _make_label("BATTERY CAPACITY", 14, Color("#a9e3ff"))
+		var capacity_heading := _make_label("BATTERY CAPACITY", 14, Color("#9bd6a7"))
 		capacity_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(capacity_heading)
 
-		power_bank_capacity_value_label = _make_label(_format_power_bank_capacity(power_bank_capacity_mah), 22, Color("#e6f5ff"))
+		power_bank_capacity_value_label = _make_label(_format_power_bank_capacity(power_bank_capacity_mah), 22, Color("#e7f6e9"))
 		power_bank_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(power_bank_capacity_value_label)
 
@@ -4345,10 +4347,10 @@ func _show_power_bank_controls() -> void:
 		range_row.name = "PowerBankCapacityRange"
 		range_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		range_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		var minimum := _make_label("10,000 mAh", 11, Color("#a9c9dc"))
+		var minimum := _make_label("10,000 mAh", 11, Color("#b8d8be"))
 		minimum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		range_row.add_child(minimum)
-		var maximum := _make_label("25,000 mAh", 11, Color("#a9c9dc"))
+		var maximum := _make_label("25,000 mAh", 11, Color("#b8d8be"))
 		maximum.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		maximum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		range_row.add_child(maximum)
@@ -5216,7 +5218,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 
 		match page:
 			"PLUG":
-				var plug_heading := _make_label("WALL PLUG STANDARD", 13, Color("#a9e3ff"))
+				var plug_heading := _make_label("WALL PLUG STANDARD", 13, Color("#9bd6a7"))
 				active_feature_panel.add_child(plug_heading)
 				for plug_name in ["UK", "EU", "US", "Universal"]:
 					var plug_button := Button.new()
@@ -5229,17 +5231,17 @@ func _show_charger_controls(page: String = "HOME") -> void:
 					_style_staff_button(plug_button, charger_plug_type == plug_name)
 					plug_button.pressed.connect(_on_charger_plug_selected.bind(plug_name))
 					active_feature_panel.add_child(plug_button)
-				var plug_note := _make_label("Changes the physical wall-pin layout on the 3D adapter.", 11, Color("#a9c9dc"))
+				var plug_note := _make_label("Changes the physical wall-pin layout on the 3D adapter.", 11, Color("#b8d8be"))
 				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(plug_note)
 			"CABLE":
-				var cable_heading := _make_label("PHYSICAL CHARGING CABLE", 13, Color("#a9e3ff"))
+				var cable_heading := _make_label("PHYSICAL CHARGING CABLE", 13, Color("#9bd6a7"))
 				active_feature_panel.add_child(cable_heading)
 				var cable_enable_row := HBoxContainer.new()
 				cable_enable_row.name = "ChargingCableEnableRow"
 				cable_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				active_feature_panel.add_child(cable_enable_row)
-				var cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e6f5ff"))
+				var cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e7f6e9"))
 				cable_enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				cable_enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				cable_enable_row.add_child(cable_enable_label)
@@ -5272,17 +5274,17 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				var cable_note_text := "A short U-shaped cable with a phone-side plug that matches the selected charging port."
 				if charge_port_type == "None":
 					cable_note_text = "Choose a phone charging port first. The cable connector options will then match it automatically."
-				var cable_note := _make_label(cable_note_text, 11, Color("#a9c9dc"))
+				var cable_note := _make_label(cable_note_text, 11, Color("#b8d8be"))
 				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				active_feature_panel.add_child(cable_note)
 			"POWER":
-				var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#a9e3ff"))
+				var wattage_heading := _make_label("OUTPUT POWER", 13, Color("#9bd6a7"))
 				active_feature_panel.add_child(wattage_heading)
 				charger_wattage_label = _make_label("%d W" % charger_wattage, 32, Color.WHITE)
 				charger_wattage_label.name = "ChargerOutputWattageValue"
 				charger_wattage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				active_feature_panel.add_child(charger_wattage_label)
-				var wattage_range := _make_label("2W  —  200W  ·  INDEPENDENT ADAPTER OUTPUT", 11, Color("#a9c9dc"))
+				var wattage_range := _make_label("2W  —  200W  ·  INDEPENDENT ADAPTER OUTPUT", 11, Color("#b8d8be"))
 				wattage_range.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				active_feature_panel.add_child(wattage_range)
 				var slider_row := HBoxContainer.new()
@@ -5291,7 +5293,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
 				slider_row.add_theme_constant_override("separation", 12)
 				active_feature_panel.add_child(slider_row)
-				var minimum := _make_label("2W", 11, Color("#a9c9dc"))
+				var minimum := _make_label("2W", 11, Color("#b8d8be"))
 				minimum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				slider_row.add_child(minimum)
 				charger_wattage_slider = VSlider.new()
@@ -5308,7 +5310,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				charger_wattage_slider.value_changed.connect(_on_charger_wattage_changed)
 				_style_custom_slider(charger_wattage_slider)
 				slider_row.add_child(charger_wattage_slider)
-				var maximum := _make_label("200W", 11, Color("#a9c9dc"))
+				var maximum := _make_label("200W", 11, Color("#b8d8be"))
 				maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				slider_row.add_child(maximum)
 			"FINISH":
@@ -5324,7 +5326,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 	var enable_row := HBoxContainer.new()
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("ENABLE CHARGER MODEL", 13, Color("#e6f5ff"))
+	var enable_label := _make_label("ENABLE CHARGER MODEL", 13, Color("#e7f6e9"))
 	enable_row.add_child(enable_label)
 	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var toggle := TextureButton.new()
@@ -5345,7 +5347,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 	home_cable_enable_row.name = "HomeChargingCableEnableRow"
 	home_cable_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(home_cable_enable_row)
-	var home_cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e6f5ff"))
+	var home_cable_enable_label := _make_label("ENABLE PHYSICAL CABLE", 13, Color("#e7f6e9"))
 	home_cable_enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	home_cable_enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	home_cable_enable_row.add_child(home_cable_enable_label)
@@ -5438,7 +5440,7 @@ func _show_screen_protector_controls() -> void:
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enable_row.add_theme_constant_override("separation", 9)
 	active_feature_panel.add_child(enable_row)
-	var enable_label := _make_label("INSTALL PROTECTION GLASS", 13, Color("#e6f5ff"))
+	var enable_label := _make_label("INSTALL PROTECTION GLASS", 13, Color("#e7f6e9"))
 	enable_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	enable_row.add_child(enable_label)
@@ -5465,12 +5467,12 @@ func _show_screen_protector_controls() -> void:
 		return
 
 	if not screen_protector_enabled:
-		var disabled_note := _make_label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#a9c9dc"))
+		var disabled_note := _make_label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#b8d8be"))
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		active_feature_panel.add_child(disabled_note)
 		return
 
-	var finish_heading := _make_label("GLASS FINISH", 13, Color("#a9e3ff"))
+	var finish_heading := _make_label("GLASS FINISH", 13, Color("#9bd6a7"))
 	active_feature_panel.add_child(finish_heading)
 	for finish_name in ["Ultra Clear", "Matte", "Anti-Reflective"]:
 		var finish_button := Button.new()
@@ -5484,7 +5486,7 @@ func _show_screen_protector_controls() -> void:
 		finish_button.pressed.connect(_on_screen_protector_finish_selected.bind(finish_name))
 		active_feature_panel.add_child(finish_button)
 
-	var thickness_heading := _make_label("GLASS THICKNESS", 13, Color("#a9e3ff"))
+	var thickness_heading := _make_label("GLASS THICKNESS", 13, Color("#9bd6a7"))
 	active_feature_panel.add_child(thickness_heading)
 	screen_protector_thickness_label = _make_label("", 12, Color("#c7eacb"))
 	screen_protector_thickness_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -6043,7 +6045,7 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	var value_label := _make_label("%d MP" % current_mp, 12, Color.WHITE)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(value_label)
-	var high_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1], 9, Color("#91b8cc"))
+	var high_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1], 9, Color("#91b8a0"))
 	high_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(high_label)
 	var slider := VSlider.new()
@@ -6061,7 +6063,7 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 		callback.call(megapixels)
 	)
 	card.add_child(slider)
-	var low_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[0], 9, Color("#91b8cc"))
+	var low_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[0], 9, Color("#91b8a0"))
 	low_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(low_label)
 	return card
@@ -6564,7 +6566,7 @@ func _show_rear_camera_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
 	panel_host.add_child(active_feature_panel)
 
-	var heading := _make_label("REAR CAMERA & FLASH", 16, Color("#d8eaf5"))
+	var heading := _make_label("REAR CAMERA & FLASH", 16, Color("#dce9df"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -6614,9 +6616,9 @@ func _show_rear_camera_controls() -> void:
 	var size_header := HBoxContainer.new()
 	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_section.add_child(size_header)
-	var size_heading := _make_label("SIZE", 10, Color("#b9d8e9"))
+	var size_heading := _make_label("SIZE", 10, Color("#b8d8be"))
 	size_header.add_child(size_heading)
-	rear_hardware_size_label = _make_label("ADD A COMPONENT TO BEGIN", 11, Color("#d5e9f5"))
+	rear_hardware_size_label = _make_label("ADD A COMPONENT TO BEGIN", 11, Color("#dce9df"))
 	rear_hardware_size_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rear_hardware_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	rear_hardware_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -6654,8 +6656,8 @@ func _show_rear_camera_controls() -> void:
 	pad_shell.name = "RearHardwareDirectionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color(0.28, 0.61, 0.80, 0.18)
-	pad_shell_style.border_color = Color(0.86, 0.97, 1.0, 0.72)
+	pad_shell_style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
+	pad_shell_style.border_color = Color(0.68, 0.82, 0.70, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -7103,7 +7105,7 @@ func _show_border_radius_controls() -> void:
 	meter_row.add_child(level_labels)
 
 	for level in range(6, -1, -1):
-		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
+		var level_label := _make_label(str(level), 14, Color("#dce9df"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		level_labels.add_child(level_label)
@@ -7122,7 +7124,7 @@ func _show_border_radius_controls() -> void:
 	_style_custom_slider(meter)
 	meter_row.add_child(meter)
 
-	border_radius_value_label = _make_label("LEVEL %d / 6" % border_radius_level, 16, Color("#a9e3ff"))
+	border_radius_value_label = _make_label("LEVEL %d / 6" % border_radius_level, 16, Color("#9bd6a7"))
 	border_radius_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(border_radius_value_label)
 
@@ -7163,7 +7165,7 @@ func _show_thickness_controls() -> void:
 	meter_row.add_child(level_labels)
 
 	for level in range(12, -1, -1):
-		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
+		var level_label := _make_label(str(level), 14, Color("#dce9df"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		level_labels.add_child(level_label)
@@ -7182,7 +7184,7 @@ func _show_thickness_controls() -> void:
 	_style_custom_slider(meter)
 	meter_row.add_child(meter)
 
-	phone_thickness_value_label = _make_label("LEVEL %d / 12" % phone_thickness_level, 16, Color("#a9e3ff"))
+	phone_thickness_value_label = _make_label("LEVEL %d / 12" % phone_thickness_level, 16, Color("#9bd6a7"))
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
 
@@ -7231,7 +7233,7 @@ func _show_power_volume_controls() -> void:
 	length_column.add_theme_constant_override("separation", 8)
 	controls_row.add_child(length_column)
 
-	var length_title := _make_label("LENGTH", 15, Color("#d8f1ff"))
+	var length_title := _make_label("LENGTH", 15, Color("#dce9df"))
 	length_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	length_column.add_child(length_title)
 
@@ -7248,7 +7250,7 @@ func _show_power_volume_controls() -> void:
 	_style_custom_slider(length_slider)
 	length_column.add_child(length_slider)
 
-	side_button_length_label = _make_label("%d%%" % roundi(side_button_length_scale * 100.0), 15, Color("#a9e3ff"))
+	side_button_length_label = _make_label("%d%%" % roundi(side_button_length_scale * 100.0), 15, Color("#9bd6a7"))
 	side_button_length_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	length_column.add_child(side_button_length_label)
 
@@ -8278,7 +8280,7 @@ func _show_speaker_controls() -> void:
 	meter_row.add_child(level_labels)
 
 	for level in range(12, -1, -1):
-		var level_label := _make_label(str(level), 14, Color("#d8f1ff"))
+		var level_label := _make_label(str(level), 14, Color("#dce9df"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		level_labels.add_child(level_label)
@@ -8297,7 +8299,7 @@ func _show_speaker_controls() -> void:
 	_style_custom_slider(meter)
 	meter_row.add_child(meter)
 
-	speaker_count_value_label = _make_label("SPEAKERS %d / 12" % speaker_count, 16, Color("#a9e3ff"))
+	speaker_count_value_label = _make_label("SPEAKERS %d / 12" % speaker_count, 16, Color("#9bd6a7"))
 	speaker_count_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(speaker_count_value_label)
 
@@ -9510,7 +9512,7 @@ func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: V
 
 
 func _build_software_summary_panel() -> void:
-	software_summary_panel = _make_glass_panel(Color(0.10, 0.31, 0.48, 0.58))
+	software_summary_panel = _make_glass_panel(Color(0.035, 0.12, 0.065, 0.88))
 	software_summary_panel.name = "PhoneSoftwareSpecificationPanel"
 	software_summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	software_summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -9544,7 +9546,7 @@ func _build_software_summary_panel() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_research_typography(heading, 21)
 	content.add_child(heading)
-	var subtitle := _make_label("DEVICE CONFIGURATION", 14, Color("#a9c9dc"))
+	var subtitle := _make_label("DEVICE CONFIGURATION", 14, Color("#b8d8be"))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_research_typography(subtitle, 14)
 	content.add_child(subtitle)
@@ -9578,7 +9580,7 @@ func _build_software_summary_panel() -> void:
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_theme_constant_override("separation", 8)
 		content.add_child(row)
-		var name_label := _make_label(str(specification[0]) + ":", 15, Color("#d8f1ff"))
+		var name_label := _make_label(str(specification[0]) + ":", 15, Color("#dce9df"))
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(name_label, 15)
 		row.add_child(name_label)
@@ -9589,7 +9591,7 @@ func _build_software_summary_panel() -> void:
 		_apply_research_typography(value_label, 15)
 		row.add_child(value_label)
 		software_value_labels[str(specification[0])] = value_label
-	var hint := _make_label("Choose a software feature from the left panel to configure this device.", 13, Color("#a9c9dc"))
+	var hint := _make_label("Choose a software feature from the left panel to configure this device.", 13, Color("#b8d8be"))
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_research_typography(hint, 13)
 	content.add_child(hint)
@@ -9688,12 +9690,12 @@ func _show_memory_clock_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	memory_clock_value_label = _make_label("CURRENT: " + selected_memory_clock.to_upper(), 16, Color("#d8f1ff"))
+	memory_clock_value_label = _make_label("CURRENT: " + selected_memory_clock.to_upper(), 16, Color("#dce9df"))
 	memory_clock_value_label.name = "CurrentMemoryClockLabel"
 	memory_clock_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(memory_clock_value_label)
 
-	var range_heading := _make_label("4267 MHz", 13, Color("#a9e3ff"))
+	var range_heading := _make_label("4267 MHz", 13, Color("#9bd6a7"))
 	range_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(range_heading)
 
@@ -9717,11 +9719,11 @@ func _show_memory_clock_controls() -> void:
 	_style_custom_slider(memory_clock_slider)
 	slider_center.add_child(memory_clock_slider)
 
-	var minimum_label := _make_label("400 MHz", 13, Color("#a9e3ff"))
+	var minimum_label := _make_label("400 MHz", 13, Color("#9bd6a7"))
 	minimum_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(minimum_label)
 
-	var instruction := _make_label("DRAG THE SLIDER TO SET THE MEMORY CLOCK", 12, Color("#91b8ce"))
+	var instruction := _make_label("DRAG THE SLIDER TO SET THE MEMORY CLOCK", 12, Color("#91b8a0"))
 	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(instruction)
@@ -9760,7 +9762,7 @@ func _show_cooling_system_controls() -> void:
 	var heading := _make_label("COOLING SYSTEM", 18, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var current := _make_label("CURRENT: " + selected_cooling_system.to_upper(), 14, Color("#d8f1ff"))
+	var current := _make_label("CURRENT: " + selected_cooling_system.to_upper(), 14, Color("#dce9df"))
 	current.name = "CurrentCoolingSystemLabel"
 	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	current.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -9838,7 +9840,7 @@ func _show_refresh_rate_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	var current := _make_label("CURRENT: " + (selected_refresh_rate.to_upper() if selected_refresh_rate != "Not set" else "NOT SET"), 14, Color("#d8f1ff"))
+	var current := _make_label("CURRENT: " + (selected_refresh_rate.to_upper() if selected_refresh_rate != "Not set" else "NOT SET"), 14, Color("#dce9df"))
 	current.name = "CurrentRefreshRateLabel"
 	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(current)
@@ -10166,7 +10168,7 @@ func _show_battery_controls() -> void:
 	battery_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(battery_capacity_value_label)
 
-	var range_hint := _make_label("1,000 mAh  —  8,000 mAh", 12, Color("#a9c9dc"))
+	var range_hint := _make_label("1,000 mAh  —  8,000 mAh", 12, Color("#b8d8be"))
 	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(range_hint)
 
@@ -10178,7 +10180,7 @@ func _show_battery_controls() -> void:
 	slider_row.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(slider_row)
 
-	var minimum_label := _make_label("1,000", 11, Color("#a9c9dc"))
+	var minimum_label := _make_label("1,000", 11, Color("#b8d8be"))
 	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(minimum_label)
 
@@ -10197,7 +10199,7 @@ func _show_battery_controls() -> void:
 	_style_custom_slider(battery_capacity_slider)
 	slider_row.add_child(battery_capacity_slider)
 
-	var maximum_label := _make_label("8,000", 11, Color("#a9c9dc"))
+	var maximum_label := _make_label("8,000", 11, Color("#b8d8be"))
 	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(maximum_label)
 
@@ -10250,7 +10252,7 @@ func _show_charging_speed_controls() -> void:
 	charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(charging_speed_value_label)
 
-	var range_hint := _make_label("2W  —  200W", 12, Color("#a9c9dc"))
+	var range_hint := _make_label("2W  —  200W", 12, Color("#b8d8be"))
 	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(range_hint)
 
@@ -10262,7 +10264,7 @@ func _show_charging_speed_controls() -> void:
 	slider_row.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(slider_row)
 
-	var minimum_label := _make_label("2W", 11, Color("#a9c9dc"))
+	var minimum_label := _make_label("2W", 11, Color("#b8d8be"))
 	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(minimum_label)
 
@@ -10281,7 +10283,7 @@ func _show_charging_speed_controls() -> void:
 	_style_custom_slider(charging_speed_slider)
 	slider_row.add_child(charging_speed_slider)
 
-	var maximum_label := _make_label("200W", 11, Color("#a9c9dc"))
+	var maximum_label := _make_label("200W", 11, Color("#b8d8be"))
 	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(maximum_label)
 
@@ -10326,7 +10328,7 @@ func _show_wireless_charge_controls() -> void:
 	wireless_charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(wireless_charging_speed_value_label)
 
-	var range_hint := _make_label("0W (DISABLED)  —  80W", 12, Color("#a9c9dc"))
+	var range_hint := _make_label("0W (DISABLED)  —  80W", 12, Color("#b8d8be"))
 	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(range_hint)
 
@@ -10337,7 +10339,7 @@ func _show_wireless_charge_controls() -> void:
 	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	active_feature_panel.add_child(slider_row)
 
-	var minimum_label := _make_label("0W", 11, Color("#a9c9dc"))
+	var minimum_label := _make_label("0W", 11, Color("#b8d8be"))
 	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(minimum_label)
 
@@ -10356,7 +10358,7 @@ func _show_wireless_charge_controls() -> void:
 	_style_custom_slider(wireless_charging_speed_slider)
 	slider_row.add_child(wireless_charging_speed_slider)
 
-	var maximum_label := _make_label("80W", 11, Color("#a9c9dc"))
+	var maximum_label := _make_label("80W", 11, Color("#b8d8be"))
 	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(maximum_label)
 
@@ -10514,7 +10516,7 @@ func _show_sensor_controls() -> void:
 	var heading := _make_label("PHONE SENSORS", 21, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var count_label := _make_label("", 15, Color("#d8f1ff"))
+	var count_label := _make_label("", 15, Color("#dce9df"))
 	count_label.name = "EnabledSensorCount"
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(count_label)
@@ -11455,7 +11457,7 @@ func _show_box_package_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("BOX PACKAGE", 16, Color("#d8eaf5"))
+	var heading := _make_label("BOX PACKAGE", 16, Color("#dce9df"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -11510,9 +11512,9 @@ func _show_box_package_controls() -> void:
 	var size_header := HBoxContainer.new()
 	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_section.add_child(size_header)
-	var size_heading := _make_label("SIZE", 10, Color("#b9d8e9"))
+	var size_heading := _make_label("SIZE", 10, Color("#b8d8be"))
 	size_header.add_child(size_heading)
-	var size_value := _make_label("LOGO  %.2f×" % box_package_logo_scale if box_package_position_target == "LOGO" else "NAME  %d" % box_package_name_font_size, 11, Color("#d5e9f5"))
+	var size_value := _make_label("LOGO  %.2f×" % box_package_logo_scale if box_package_position_target == "LOGO" else "NAME  %d" % box_package_name_font_size, 11, Color("#dce9df"))
 	size_value.name = "BoxPackageBrandingSizeValue"
 	size_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -11548,8 +11550,8 @@ func _show_box_package_controls() -> void:
 	pad_shell.name = "BoxPackagePositionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color(0.28, 0.61, 0.80, 0.18)
-	pad_shell_style.border_color = Color(0.86, 0.97, 1.0, 0.72)
+	pad_shell_style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
+	pad_shell_style.border_color = Color(0.68, 0.82, 0.70, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -11879,7 +11881,7 @@ func _show_phone_case_controls() -> void:
 	row.name="EnableCustomCaseRow"
 	row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(row)
-	var label := _make_label("ENABLE CUSTOM CASE",14,Color("#e6f5ff"))
+	var label := _make_label("ENABLE CUSTOM CASE",14,Color("#e7f6e9"))
 	label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
@@ -11967,7 +11969,7 @@ void fragment(){
 		design_button.pressed.connect(_show_phone_case_design_controls)
 		active_feature_panel.add_child(design_button)
 	else:
-		var disabled_note:=_make_label("Enable the custom case to generate the fitted 3D shell.",12,Color("#a9c9dc"))
+		var disabled_note:=_make_label("Enable the custom case to generate the fitted 3D shell.",12,Color("#b8d8be"))
 		disabled_note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 		disabled_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		active_feature_panel.add_child(disabled_note)
