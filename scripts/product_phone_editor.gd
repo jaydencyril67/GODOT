@@ -311,8 +311,6 @@ var selected_phone_sensors: Dictionary = {
 }
 var charging_speed_value_label: Label
 var charging_speed_slider: VSlider
-var charging_speed_decrease_button: Button
-var charging_speed_increase_button: Button
 var research_mode := false
 var research_content_panel: Control
 var research_balance_label: Label
@@ -9913,7 +9911,7 @@ func _show_battery_controls() -> void:
 	var initial_capacity := 1000
 	if selected_battery_capacity != "Not set":
 		initial_capacity = clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, 8000)
-		initial_capacity = 1000 + roundi(float(initial_capacity - 1000) / 250.0) * 250
+		initial_capacity = 1000 + roundi(float(initial_capacity - 1000) / 100.0) * 100
 
 	battery_capacity_value_label = _make_label(
 		(_format_integer_with_commas(initial_capacity) + " mAh") if selected_battery_capacity != "Not set" else "NOT SELECTED",
@@ -9944,7 +9942,7 @@ func _show_battery_controls() -> void:
 	battery_capacity_slider.name = "BatteryCapacityVerticalSlider"
 	battery_capacity_slider.min_value = 1000
 	battery_capacity_slider.max_value = 8000
-	battery_capacity_slider.step = 250
+	battery_capacity_slider.step = 100
 	battery_capacity_slider.value = initial_capacity
 	battery_capacity_slider.custom_minimum_size = Vector2(52, 320)
 	battery_capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -9961,7 +9959,7 @@ func _show_battery_controls() -> void:
 
 
 func _on_battery_capacity_slider_changed(value: float) -> void:
-	var capacity := clampi(1000 + roundi((value - 1000.0) / 250.0) * 250, 1000, 8000)
+	var capacity := clampi(1000 + roundi((value - 1000.0) / 100.0) * 100, 1000, 8000)
 	selected_battery_capacity = _format_integer_with_commas(capacity) + " mAh"
 	_update_battery_capacity_controls()
 
@@ -10067,33 +10065,6 @@ func _show_charging_speed_controls() -> void:
 	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(maximum_label)
 
-	var adjustment_row := HBoxContainer.new()
-	adjustment_row.name = "ChargingSpeedFineAdjustment"
-	adjustment_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	adjustment_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	adjustment_row.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(adjustment_row)
-
-	charging_speed_decrease_button = Button.new()
-	charging_speed_decrease_button.name = "DecreaseChargingSpeed"
-	charging_speed_decrease_button.text = "−  1W"
-	charging_speed_decrease_button.custom_minimum_size = Vector2(76, 42)
-	charging_speed_decrease_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(charging_speed_decrease_button, 14)
-	_style_staff_button(charging_speed_decrease_button, false)
-	charging_speed_decrease_button.pressed.connect(_adjust_charging_speed.bind(-1))
-	adjustment_row.add_child(charging_speed_decrease_button)
-
-	charging_speed_increase_button = Button.new()
-	charging_speed_increase_button.name = "IncreaseChargingSpeed"
-	charging_speed_increase_button.text = "+  1W"
-	charging_speed_increase_button.custom_minimum_size = Vector2(76, 42)
-	charging_speed_increase_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(charging_speed_increase_button, 14)
-	_style_staff_button(charging_speed_increase_button, false)
-	charging_speed_increase_button.pressed.connect(_adjust_charging_speed.bind(1))
-	adjustment_row.add_child(charging_speed_increase_button)
-
 	_update_charging_speed_controls()
 
 
@@ -10103,22 +10074,11 @@ func _on_charging_speed_changed(value: float) -> void:
 	_update_charging_speed_controls()
 
 
-func _adjust_charging_speed(amount: int) -> void:
-	selected_charging_speed = clampi(selected_charging_speed + amount, 2, 200)
-	if is_instance_valid(charging_speed_slider):
-		charging_speed_slider.set_value_no_signal(selected_charging_speed)
-	_update_charging_speed_controls()
-
-
 func _update_charging_speed_controls() -> void:
 	if is_instance_valid(charging_speed_value_label):
 		charging_speed_value_label.text = str(selected_charging_speed) + "W"
 	if is_instance_valid(charging_speed_slider) and not is_equal_approx(charging_speed_slider.value, float(selected_charging_speed)):
 		charging_speed_slider.set_value_no_signal(selected_charging_speed)
-	if is_instance_valid(charging_speed_decrease_button):
-		charging_speed_decrease_button.disabled = selected_charging_speed <= 2
-	if is_instance_valid(charging_speed_increase_button):
-		charging_speed_increase_button.disabled = selected_charging_speed >= 200
 	if software_value_labels.has("CHARGING SPEED") and is_instance_valid(software_value_labels["CHARGING SPEED"]):
 		var speed_label: Label = software_value_labels["CHARGING SPEED"]
 		speed_label.text = str(selected_charging_speed) + "W"
@@ -10141,18 +10101,15 @@ func _show_wireless_charge_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	wireless_charge_enable_checkbox = Button.new()
-	wireless_charge_enable_checkbox.name = "CustomWirelessChargeCheckbox"
-	wireless_charge_enable_checkbox.toggle_mode = true
-	wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
-	wireless_charge_enable_checkbox.text = ("☑  ENABLE WIRELESS CHARGING" if selected_wireless_charge_enabled else "□  ENABLE WIRELESS CHARGING")
-	wireless_charge_enable_checkbox.custom_minimum_size = Vector2(0, 48)
-	wireless_charge_enable_checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wireless_charge_enable_checkbox.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(wireless_charge_enable_checkbox, 15)
-	_style_staff_button(wireless_charge_enable_checkbox, selected_wireless_charge_enabled)
-	wireless_charge_enable_checkbox.toggled.connect(_on_wireless_charge_enabled_changed)
-	active_feature_panel.add_child(wireless_charge_enable_checkbox)
+	_add_screen_enablement_row(
+		active_feature_panel,
+		"WirelessChargeEnablementRow",
+		"CustomWirelessChargeCheckbox",
+		"Enable Wireless Charging",
+		selected_wireless_charge_enabled,
+		Callable(self, "_on_wireless_charge_enabled_changed")
+	)
+	wireless_charge_enable_checkbox = active_feature_panel.get_node("WirelessChargeEnablementRow/CustomWirelessChargeCheckbox") as Button
 
 	wireless_charging_speed_value_label = _make_label(str(selected_wireless_charging_speed) + "W", 29, Color.WHITE)
 	wireless_charging_speed_value_label.name = "WirelessChargingSpeedValue"
@@ -10211,8 +10168,7 @@ func _on_wireless_charging_speed_changed(value: float) -> void:
 func _update_wireless_charge_controls() -> void:
 	if is_instance_valid(wireless_charge_enable_checkbox):
 		wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
-		wireless_charge_enable_checkbox.text = ("☑  ENABLE WIRELESS CHARGING" if selected_wireless_charge_enabled else "□  ENABLE WIRELESS CHARGING")
-		_style_staff_button(wireless_charge_enable_checkbox, selected_wireless_charge_enabled)
+		wireless_charge_enable_checkbox.text = "✓" if selected_wireless_charge_enabled else ""
 	if is_instance_valid(wireless_charging_speed_slider):
 		wireless_charging_speed_slider.editable = selected_wireless_charge_enabled
 		if not is_equal_approx(wireless_charging_speed_slider.value, float(selected_wireless_charging_speed)):
