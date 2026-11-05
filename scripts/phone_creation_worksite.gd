@@ -1241,7 +1241,7 @@ func _prepare_step_panels_for_navigation() -> void:
 
 
 func _show_worksite_step(step: int, builder_method: String = "") -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 
 	var previous_step := wizard_step
@@ -1646,7 +1646,7 @@ func _show_sensors_step() -> void:
 
 
 func _show_worksite_box_package_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 
 	var previous_panel := self.get("active_feature_panel") as Control
@@ -1798,7 +1798,7 @@ func _open_worksite_box_package_color_controls() -> void:
 
 
 func _show_worksite_phone_case_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 	if wizard_step != 31:
 		var stale_case_panel := step_panels.get(31) as Control
@@ -1937,7 +1937,7 @@ func _add_worksite_phone_case_toggle(parent: Control) -> void:
 
 
 func _show_worksite_phone_case_design_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 	if wizard_step != 31:
 		return
@@ -2015,7 +2015,7 @@ func _open_worksite_phone_case_color_controls() -> void:
 
 
 func _show_worksite_charger_controls(page: String = "HOME") -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 
 	var normalized_page := page.to_upper()
@@ -2227,7 +2227,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 
 
 func _show_worksite_power_bank_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 	if wizard_step != 36:
 		return
@@ -2336,7 +2336,7 @@ func _show_worksite_power_bank_controls() -> void:
 
 
 func _on_worksite_power_bank_capacity_changed(value: float) -> void:
-	if not true or wizard_step != 36:
+	if wizard_step != 36:
 		return
 	var capacity := clampi(roundi(value / 500.0) * 500, 10000, 25000)
 	self.set("power_bank_capacity_mah", capacity)
@@ -2349,7 +2349,7 @@ func _on_worksite_power_bank_capacity_changed(value: float) -> void:
 
 
 func _open_worksite_power_bank_color_controls() -> void:
-	if not true or wizard_step != 36:
+	if wizard_step != 36:
 		return
 	self.call("_show_device_color_controls", false, false, false, false, true)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2363,7 +2363,7 @@ func _open_worksite_power_bank_color_controls() -> void:
 
 
 func _show_worksite_smartwatch_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 	if wizard_step != 35:
 		return
@@ -2439,7 +2439,7 @@ func _show_worksite_smartwatch_controls() -> void:
 
 
 func _open_worksite_smartwatch_color_controls() -> void:
-	if not true or wizard_step != 35:
+	if wizard_step != 35:
 		return
 	self.call("_show_device_color_controls", false, false, false, true, false)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2453,7 +2453,7 @@ func _open_worksite_smartwatch_color_controls() -> void:
 
 
 func _show_worksite_earbuds_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 	if wizard_step != 34:
 		return
@@ -2526,7 +2526,7 @@ func _show_worksite_earbuds_controls() -> void:
 
 
 func _open_worksite_earbuds_color_controls() -> void:
-	if not true or wizard_step != 34:
+	if wizard_step != 34:
 		return
 	self.call("_show_device_color_controls", false, false, false, false, false, true)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2540,7 +2540,7 @@ func _open_worksite_earbuds_color_controls() -> void:
 
 
 func _show_worksite_protection_glass_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 	if wizard_step != 33:
 		return
@@ -2741,7 +2741,7 @@ func _open_worksite_charger_color_controls() -> void:
 
 
 func _show_worksite_sensor_controls() -> void:
-	if not true or not is_instance_valid(selection_stack):
+	if not is_instance_valid(selection_stack):
 		return
 
 	var panel := VBoxContainer.new()
