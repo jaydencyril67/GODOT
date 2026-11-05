@@ -1081,8 +1081,27 @@ func _show_worksite_box_package_controls() -> void:
 
 	var branding_heading := _label("COMPANY BRANDING", 15, Color("#9bd6a7"))
 	panel.add_child(branding_heading)
-	_add_worksite_box_package_toggle(panel, "SHOW COMPANY LOGO", "box_package_logo_visible", "_on_box_package_logo_visibility_toggled")
-	_add_worksite_box_package_toggle(panel, "SHOW COMPANY NAME", "box_package_name_visible", "_on_box_package_name_visibility_toggled")
+	var size_heading := _label("BRANDING SIZE", 13, Color("#9bd6a7"))
+	panel.add_child(size_heading)
+	for target in ["LOGO", "NAME"]:
+		var size_row := HBoxContainer.new()
+		size_row.name = "BoxPackage%sSizeRow" % target.capitalize()
+		size_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		size_row.add_theme_constant_override("separation", 8)
+		panel.add_child(size_row)
+		var size_label := _label(target, 12, Color("#e7f6ff"))
+		size_label.custom_minimum_size.x = 54
+		size_row.add_child(size_label)
+		var size_slider := HSlider.new()
+		size_slider.name = "BoxPackage%sSize" % target.capitalize()
+		size_slider.min_value = 0.45 if target == "LOGO" else 18.0
+		size_slider.max_value = 1.8 if target == "LOGO" else 84.0
+		size_slider.step = 0.05 if target == "LOGO" else 1.0
+		size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		size_slider.custom_minimum_size = Vector2(0, 26)
+		size_slider.value = float(phone_editor.get("box_package_logo_scale")) if target == "LOGO" else float(phone_editor.get("box_package_name_font_size"))
+		size_slider.value_changed.connect(_on_worksite_box_package_branding_size_changed.bind(target))
+		size_row.add_child(size_slider)
 
 	var position_heading := _label("BRANDING POSITION", 15, Color("#9bd6a7"))
 	panel.add_child(position_heading)
@@ -1127,28 +1146,6 @@ func _show_worksite_box_package_controls() -> void:
 	_add_worksite_box_package_position_button(position_pad, "↓", Vector2i(0, -1))
 	_add_worksite_box_package_position_spacer(position_pad)
 
-	var movement_row := HBoxContainer.new()
-	movement_row.name = "BoxPackageMovementSize"
-	movement_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	movement_row.add_theme_constant_override("separation", 6)
-	panel.add_child(movement_row)
-	var movement_label := _label("MOVEMENT", 12, Color("#dce9df"))
-	movement_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	movement_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	movement_row.add_child(movement_label)
-	for movement in [
-		{"label": "SMALL", "value": 0.03},
-		{"label": "MED", "value": 0.08},
-		{"label": "LARGE", "value": 0.16}
-	]:
-		var movement_button := Button.new()
-		movement_button.text = str(movement["label"])
-		movement_button.custom_minimum_size = Vector2(58, 38)
-		movement_button.focus_mode = Control.FOCUS_NONE
-		movement_button.add_theme_font_size_override("font_size", 10)
-		_style_button(movement_button, is_equal_approx(float(phone_editor.get("box_package_position_step")), float(movement["value"])))
-		movement_button.pressed.connect(_on_worksite_box_package_movement_selected.bind(float(movement["value"])))
-		movement_row.add_child(movement_button)
 
 	step_panels[30] = panel
 
@@ -1205,6 +1202,12 @@ func _add_worksite_box_package_position_button(parent: GridContainer, caption: S
 	parent.add_child(button)
 
 
+func _on_worksite_box_package_branding_size_changed(value: float, target: String) -> void:
+	if target == "LOGO":
+		phone_editor.set("box_package_logo_scale", value)
+	else:
+		phone_editor.set("box_package_name_font_size", int(round(value)))
+	phone_editor.call("_refresh_box_package_branding")
 func _on_worksite_box_package_position_target_selected(target: String) -> void:
 	phone_editor.set("box_package_position_target", target)
 	_show_worksite_box_package_controls()
