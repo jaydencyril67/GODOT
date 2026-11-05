@@ -981,7 +981,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	var software_editor_features := _get_software_research_features()
 	software_editor_features.erase("RAM Technology")
 	software_editor_features.erase("RAM")
-	software_editor_features.erase("RAM")
+	software_editor_features.erase("Internal Storage")
 	var page_feature_lists := [
 		_get_hardware_research_features(),
 		software_editor_features,
@@ -9836,29 +9836,18 @@ func _show_rom_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT ROM", 18, Color("#c7eacb"))
+	var heading := _make_label("SELECT INTERNAL STORAGE", 18, Color("#c7eacb"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var scroll := ScrollContainer.new()
-	scroll.name = "ROMOptionsScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	active_feature_panel.add_child(scroll)
-	var options := VBoxContainer.new()
+	var options := GridContainer.new()
+	options.name = "ROMOptions"
+	options.columns = 2
 	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("separation", 7)
-	scroll.add_child(options)
-	for capacity in ["4 GB", "8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"]:
-		var option := Button.new()
-		option.name = "ROMOption_" + capacity.replace(" ", "")
-		option.text = capacity + ("   ✓ SELECTED" if selected_rom_capacity == capacity else "")
-		option.custom_minimum_size.y = 43
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_rom_capacity == capacity)
-		option.pressed.connect(_on_rom_capacity_selected.bind(capacity))
-		options.add_child(option)
+	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	options.add_theme_constant_override("h_separation", 8)
+	options.add_theme_constant_override("v_separation", 8)
+	active_feature_panel.add_child(options)
+	_refresh_rom_capacity_selection_ui(active_feature_panel)
 
 
 func _on_rom_capacity_selected(capacity: String) -> void:
@@ -9868,7 +9857,33 @@ func _on_rom_capacity_selected(capacity: String) -> void:
 	if software_value_labels.has("ROM") and is_instance_valid(software_value_labels["ROM"]):
 		var rom_label: Label = software_value_labels["ROM"]
 		rom_label.text = capacity
-	_show_rom_controls()
+	_refresh_rom_capacity_selection_ui(active_feature_panel)
+	if is_instance_valid(worksite_owner):
+		if worksite_owner.has_method("_update_ram_selection_display"):
+			worksite_owner.call("_update_ram_selection_display", selected_ram_technology, selected_ram_capacity, selected_rom_capacity)
+		if worksite_owner.has_method("_style_ram_selector_buttons") and is_instance_valid(active_feature_panel):
+			worksite_owner.call("_style_ram_selector_buttons", active_feature_panel)
+
+
+func _refresh_rom_capacity_selection_ui(panel: Control) -> void:
+	if not is_instance_valid(panel) or panel.name != "ROMSelectionControls":
+		return
+	var options := panel.find_child("ROMOptions", true, false) as GridContainer
+	if not is_instance_valid(options):
+		return
+	for child in options.get_children():
+		options.remove_child(child)
+		child.queue_free()
+	for capacity in ["4 GB", "8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"]:
+		var option := Button.new()
+		option.name = "ROMOption_" + capacity.replace(" ", "")
+		option.text = capacity + ("   ✓ SELECTED" if selected_rom_capacity == capacity else "")
+		option.custom_minimum_size.y = 48
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_research_typography(option, 14)
+		_style_staff_button(option, selected_rom_capacity == capacity)
+		option.pressed.connect(_on_rom_capacity_selected.bind(capacity))
+		options.add_child(option)
 
 
 func _show_battery_controls() -> void:
