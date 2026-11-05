@@ -1607,6 +1607,8 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		var selected_box: Dictionary = back_design_boxes[selected_back_design_box]
 		selected_color = Color(selected_box.get("gradient_color", Color("#536dfe"))) if use_gradient_color else Color(selected_box.get("custom_color", device_body_color))
+	elif box_package_color_mode:
+		selected_color = box_package_gradient_color if use_gradient_color else box_package_color
 	elif special_color_mode:
 		selected_color = _get_active_color_picker_color()
 	else:
@@ -1893,6 +1895,8 @@ func _refresh_device_color_editor_controls() -> void:
 		if back_design_color_mode and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 			var selected_box: Dictionary = back_design_boxes[selected_back_design_box]
 			selected_color = Color(selected_box.get("gradient_color", Color("#536dfe"))) if use_gradient_color else Color(selected_box.get("custom_color", device_body_color))
+		elif box_package_color_mode:
+			selected_color = box_package_gradient_color if use_gradient_color else box_package_color
 		elif special_color_mode:
 			selected_color = _get_active_color_picker_color()
 		else:
