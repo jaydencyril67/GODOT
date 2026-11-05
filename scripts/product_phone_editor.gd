@@ -10134,15 +10134,49 @@ func _show_wireless_charge_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	_add_screen_enablement_row(
-		active_feature_panel,
-		"WirelessChargeEnablementRow",
-		"CustomWirelessChargeCheckbox",
-		"Enable Wireless Charging",
-		selected_wireless_charge_enabled,
-		Callable(self, "_on_wireless_charge_enabled_changed")
-	)
-	wireless_charge_enable_checkbox = active_feature_panel.get_node("WirelessChargeEnablementRow/CustomWirelessChargeCheckbox") as Button
+	# Keep the enablement control in its own fixed square slot. The wireless
+	# speed slider is a separate row below and must never influence checkbox sizing.
+	var enablement_row := HBoxContainer.new()
+	enablement_row.name = "WirelessChargeEnablementRow"
+	enablement_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enablement_row.add_theme_constant_override("separation", 9)
+	active_feature_panel.add_child(enablement_row)
+
+	var enablement_label := _make_label("Enable Wireless Charging", 14, Color.WHITE)
+	enablement_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enablement_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	enablement_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	enablement_row.add_child(enablement_label)
+
+	var checkbox_slot := CenterContainer.new()
+	checkbox_slot.name = "WirelessChargeCheckboxSlot"
+	checkbox_slot.custom_minimum_size = Vector2(34, 34)
+	checkbox_slot.size_flags_horizontal = Control.SIZE_SHRINK_END
+	checkbox_slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	enablement_row.add_child(checkbox_slot)
+
+	wireless_charge_enable_checkbox = Button.new()
+	wireless_charge_enable_checkbox.name = "CustomWirelessChargeCheckbox"
+	wireless_charge_enable_checkbox.toggle_mode = true
+	wireless_charge_enable_checkbox.button_pressed = selected_wireless_charge_enabled
+	wireless_charge_enable_checkbox.text = "✓" if selected_wireless_charge_enabled else ""
+	wireless_charge_enable_checkbox.custom_minimum_size = Vector2(34, 34)
+	wireless_charge_enable_checkbox.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	wireless_charge_enable_checkbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	wireless_charge_enable_checkbox.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(wireless_charge_enable_checkbox, 17)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var checkbox_style := StyleBoxFlat.new()
+		checkbox_style.bg_color = Color("#174b28") if state != "hover" else Color("#205d37")
+		if state == "pressed" or state == "focus":
+			checkbox_style.bg_color = Color("#168343")
+		checkbox_style.border_color = Color("#8fd8a1")
+		checkbox_style.set_border_width_all(2)
+		checkbox_style.set_corner_radius_all(5)
+		wireless_charge_enable_checkbox.add_theme_stylebox_override(state, checkbox_style)
+	wireless_charge_enable_checkbox.add_theme_color_override("font_color", Color.WHITE)
+	wireless_charge_enable_checkbox.toggled.connect(Callable(self, "_on_wireless_charge_enabled_changed"))
+	checkbox_slot.add_child(wireless_charge_enable_checkbox)
 
 	wireless_charging_speed_value_label = _make_label(str(selected_wireless_charging_speed) + "W", 29, Color.WHITE)
 	wireless_charging_speed_value_label.name = "WirelessChargingSpeedValue"
