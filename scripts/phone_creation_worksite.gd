@@ -461,48 +461,8 @@ func _mount_original_panel(method_name: String) -> Control:
 	# follow the upper controls directly instead of being pushed toward the bottom.
 	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	selection_stack.add_child(panel)
-	if method_name in ["_show_back_design_controls", "_show_rear_camera_controls"]:
-		_apply_worksite_back_hardware_layout(panel)
 	_keep_step_navigation_active()
 	return panel
-
-
-func _apply_worksite_back_hardware_layout(panel: Control) -> void:
-	# These dimensions belong to the NEW creation worksite only. The legacy
-	# product editor keeps its original slider dimensions and layout.
-	# Remove the old flexible spacer entirely: even a zero minimum can leave
-	# surplus VBox space between the controls and the directional pad.
-	var spacer_name := "BackDesignControllerFlexSpace" if panel.name == "BackDesignControls" else "RearHardwareControllerFlexSpace"
-	var spacer := panel.find_child(spacer_name, true, false) as Control
-	if is_instance_valid(spacer):
-		var spacer_parent := spacer.get_parent()
-		if is_instance_valid(spacer_parent):
-			spacer_parent.remove_child(spacer)
-		spacer.queue_free()
-
-	var sliders := panel.find_children("*", "VSlider", true, false)
-	if not sliders.is_empty():
-		var slider := sliders[0] as Control
-		slider.custom_minimum_size.y = 290.0
-
-	var is_back_design := panel.name == "BackDesignControls"
-	var pad_name := "BackDesignDirectionControllerCenter" if is_back_design else "RearHardwareDirectionControllerCenter"
-	var pad_center := panel.find_child(pad_name, true, false) as Control
-	var work_row_name := "BackDesignCompactControls" if is_back_design else "RearHardwareCompactControls"
-	var work_row := panel.find_child(work_row_name, true, false) as HBoxContainer
-	if is_instance_valid(pad_center) and is_instance_valid(work_row) and work_row.get_child_count() > 0:
-		# The 290px vertical slider makes the HBox row tall. Keep the direction
-		# pad in the mode column instead of placing it after that entire row.
-		# This puts the pad immediately below the mode buttons/label while the
-		# tall slider remains alongside it on the right.
-		var mode_column := work_row.get_child(0) as Control
-		if is_instance_valid(mode_column) and pad_center.get_parent() != mode_column:
-			var old_parent := pad_center.get_parent()
-			if is_instance_valid(old_parent):
-				old_parent.remove_child(pad_center)
-			mode_column.add_child(pad_center)
-		pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 
 func _show_thickness_step() -> void:
