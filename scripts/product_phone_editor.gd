@@ -9920,6 +9920,7 @@ func _show_battery_controls() -> void:
 	for capacity in ["1,000 mAh", "1,250 mAh", "1,500 mAh", "1,750 mAh", "2,000 mAh", "2,250 mAh", "2,500 mAh", "2,750 mAh", "3,000 mAh", "3,250 mAh", "3,500 mAh", "3,750 mAh", "4,000 mAh", "4,250 mAh", "4,500 mAh", "4,750 mAh", "5,000 mAh", "5,250 mAh", "5,500 mAh", "6,000 mAh", "6,500 mAh", "7,000 mAh", "7,500 mAh", "8,000 mAh"]:
 		var option := Button.new()
 		option.name = "BatteryOption_" + capacity.replace(",", "").replace(" ", "")
+		option.tooltip_text = capacity
 		option.text = capacity + ("  ✓" if selected_battery_capacity == capacity else "")
 		option.custom_minimum_size = Vector2(0, 39)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -9954,10 +9955,10 @@ func _refresh_battery_capacity_selection_ui(panel: Control) -> void:
 		var option := child as Button
 		if not is_instance_valid(option):
 			continue
-			var capacity := option.tooltip_text
-			var selected := selected_battery_capacity == capacity
-			option.text = capacity + ("  ✓" if selected else "")
-			_style_staff_button(option, selected)
+		var capacity := option.tooltip_text
+		var selected := selected_battery_capacity == capacity
+		option.text = capacity + ("  ✓" if selected else "")
+		_style_staff_button(option, selected)
 
 
 func _notify_worksite_battery_selection_changed() -> void:
