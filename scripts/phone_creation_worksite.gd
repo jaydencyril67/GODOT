@@ -786,10 +786,12 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 	specification_readout.add_child(entry)
 
 	var caption := _label(caption_text + ":", 12, Color("#c3cec6"))
+	caption.autowrap_mode = TextServer.AUTOWRAP_OFF
 	caption.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	entry.add_child(caption)
 
 	var value := _label(value_text, 17, Color("#f1f5f1"))
+	value.autowrap_mode = TextServer.AUTOWRAP_OFF
 	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	entry.add_child(value)
 
