@@ -725,6 +725,11 @@ func _set_ram_selection_preview(enabled: bool) -> void:
 	var phone_preview := phone_editor.get("preview_container") as Control if is_instance_valid(phone_editor) else null
 	if is_instance_valid(phone_preview):
 		phone_preview.visible = not enabled
+	# The readout is explicitly hidden during construction, so its visibility
+	# must follow the preview mode too. Showing only the parent ScrollContainer
+	# leaves every specification invisible even though its entries are updated.
+	if is_instance_valid(specification_readout):
+		specification_readout.visible = enabled
 	if is_instance_valid(specification_readout_scroll):
 		specification_readout_scroll.visible = enabled
 		specification_readout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if enabled else ScrollContainer.SCROLL_MODE_DISABLED
