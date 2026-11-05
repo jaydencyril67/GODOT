@@ -196,6 +196,7 @@ var next_rear_flash_id := 1
 var rear_hardware_item_label: Label
 var rear_hardware_selection_button: Button
 var rear_hardware_selection_popup: PanelContainer
+var rear_hardware_popup_layer: CanvasLayer
 var rear_hardware_selection_scroll: ScrollContainer
 var rear_hardware_selection_items: VBoxContainer
 var rear_hardware_size_label: Label
@@ -2602,8 +2603,10 @@ func _position_back_design_selection_popup() -> void:
 		return
 	if not back_design_selection_popup.visible:
 		return
-	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-	if not is_instance_valid(editor_root):
+	var popup_parent := rear_hardware_selection_popup.get_parent() as Control
+	if not worksite_creation_mode:
+		popup_parent = get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+	if not is_instance_valid(popup_parent):
 		return
 	var viewport_rect := get_viewport().get_visible_rect()
 	var button_rect := back_design_selection_button.get_global_rect()
@@ -6690,6 +6693,9 @@ func _show_rear_camera_controls() -> void:
 		rear_hardware_selection_popup = null
 		rear_hardware_selection_scroll = null
 		rear_hardware_selection_items = null
+	if is_instance_valid(rear_hardware_popup_layer):
+		rear_hardware_popup_layer.queue_free()
+		rear_hardware_popup_layer = null
 
 	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
 	if not is_instance_valid(panel_host):
@@ -6789,11 +6795,21 @@ func _show_rear_camera_controls() -> void:
 	rear_hardware_selection_items.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	rear_hardware_selection_items.add_theme_constant_override("separation", 7)
 	rear_hardware_selection_scroll.add_child(rear_hardware_selection_items)
-	var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
-	if is_instance_valid(editor_root):
-		editor_root.add_child(rear_hardware_selection_popup)
+	if worksite_creation_mode:
+		# The legacy editor CanvasLayer is deliberately hidden in the new worksite.
+		# Host the dropdown on its own visible layer so it can overlay the cached
+		# step panel instead of being trapped beneath the hidden interface.
+		rear_hardware_popup_layer = CanvasLayer.new()
+		rear_hardware_popup_layer.name = "RearHardwareDropdownLayer"
+		rear_hardware_popup_layer.layer = 60
+		add_child(rear_hardware_popup_layer)
+		rear_hardware_popup_layer.add_child(rear_hardware_selection_popup)
 	else:
-		active_feature_panel.add_child(rear_hardware_selection_popup)
+		var editor_root := get_node_or_null("PhoneEditorInterface/PhoneEditorRoot") as Control
+		if is_instance_valid(editor_root):
+			editor_root.add_child(rear_hardware_selection_popup)
+		else:
+			active_feature_panel.add_child(rear_hardware_selection_popup)
 
 	# Size is now a full-width horizontal control directly below management.
 	var size_section := VBoxContainer.new()
@@ -7104,7 +7120,12 @@ func _position_rear_hardware_selection_popup() -> void:
 	var popup_y := button_bottom + gap if open_below else button_rect.position.y - popup_height - gap
 	popup_y = clampf(popup_y, viewport_rect.position.y + padding, viewport_rect.end.y - popup_height - padding)
 	var popup_x := clampf(button_rect.position.x, viewport_rect.position.x + padding, viewport_rect.end.x - popup_width - padding)
-	rear_hardware_selection_popup.position = editor_root.to_local(Vector2(popup_x, popup_y))
+	var popup_viewport_position := Vector2(popup_x, popup_y)
+	if worksite_creation_mode:
+		# CanvasLayer controls use viewport coordinates directly.
+		rear_hardware_selection_popup.position = popup_viewport_position
+	else:
+		rear_hardware_selection_popup.position = popup_parent.to_local(popup_viewport_position)
 	rear_hardware_selection_popup.move_to_front()
 
 
