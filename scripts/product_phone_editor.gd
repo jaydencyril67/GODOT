@@ -6742,7 +6742,13 @@ func _add_rear_hardware_module() -> void:
 	if rear_hardware_mode == "FLASH" and rear_flash_modules.size() >= MAX_REAR_FLASHES:
 		_refresh_rear_hardware_panel()
 		return
+	# New components inherit the size of the most recently added component
+	# of the same kind. Each module keeps its own size after creation, so later
+	# resizing never changes any existing camera or flash.
+	var modules := _get_rear_hardware_modules()
 	var module_size := _get_rear_hardware_default_size()
+	if not modules.is_empty():
+		module_size = float(modules[modules.size() - 1].get("size", module_size))
 	var spawn_position := _find_rear_hardware_spawn_position(rear_hardware_mode, module_size)
 	if spawn_position.x > 900.0:
 		return
