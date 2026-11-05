@@ -2199,7 +2199,7 @@ func _show_back_design_controls() -> void:
 	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
 	active_feature_panel.add_child(pad_control_row)
 
-	_make_editor_icon_button(pad_control_row, "BackDesignAddButton", "+", "Add raised box", Callable(self, "_add_back_design_box"), control_height, true)
+	_make_editor_icon_button(pad_control_row, "BackDesignAddButton", "+", "Add raised box", Callable(self, "_add_back_design_box"), 64.0 if not tight else 56.0, true)
 
 	var pad_center := CenterContainer.new()
 	pad_center.name = "BackDesignDirectionControllerCenter"
@@ -2252,7 +2252,7 @@ func _show_back_design_controls() -> void:
 	_add_back_design_pad_button(pad, "↓" if not shrinking else "↑", Vector2i(0, -1))
 	_add_back_design_pad_spacer(pad)
 
-	_make_editor_icon_button(pad_control_row, "BackDesignRemoveButton", "−", "Remove selected box", Callable(self, "_remove_selected_back_design_box"), control_height, false)
+	_make_editor_icon_button(pad_control_row, "BackDesignRemoveButton", "−", "Remove selected box", Callable(self, "_remove_selected_back_design_box"), 64.0 if not tight else 56.0, false)
 	_refresh_back_design_panel()
 
 
@@ -2280,7 +2280,7 @@ func _make_editor_icon_button(parent: Control, node_name: String, caption: Strin
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(button, 19 if diameter >= 44.0 else 17)
+	_apply_research_typography(button, 30 if diameter >= 52.0 else 27)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color("#174326") if active else Color("#102b19")
@@ -6669,7 +6669,7 @@ func _show_rear_camera_controls() -> void:
 	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
 	active_feature_panel.add_child(pad_control_row)
 
-	rear_hardware_add_button = _make_editor_icon_button(pad_control_row, "RearHardwareAddButton", "+", "Add camera or flash", Callable(self, "_add_rear_hardware_module"), control_height, true)
+	rear_hardware_add_button = _make_editor_icon_button(pad_control_row, "RearHardwareAddButton", "+", "Add camera or flash", Callable(self, "_add_rear_hardware_module"), 64.0 if not tight else 56.0, true)
 
 	var pad_center := CenterContainer.new()
 	pad_center.name = "RearHardwareDirectionControllerCenter"
@@ -6718,7 +6718,7 @@ func _show_rear_camera_controls() -> void:
 	_add_rear_hardware_pad_button(pad, "↓", Vector2i(0, -1), tight)
 	_add_back_design_pad_spacer(pad)
 
-	rear_hardware_remove_button = _make_editor_icon_button(pad_control_row, "RearHardwareRemoveButton", "−", "Remove selected component", Callable(self, "_remove_rear_hardware_module"), control_height, false)
+	rear_hardware_remove_button = _make_editor_icon_button(pad_control_row, "RearHardwareRemoveButton", "−", "Remove selected component", Callable(self, "_remove_rear_hardware_module"), 64.0 if not tight else 56.0, false)
 	_refresh_rear_hardware_panel()
 func _add_rear_hardware_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool) -> void:
 	_add_editor_direction_pad_button(parent, caption, direction, tight, Callable(self, "_on_rear_hardware_pad_pressed"))
