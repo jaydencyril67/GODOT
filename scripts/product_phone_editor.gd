@@ -7497,8 +7497,6 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	toggle.pressed.connect(_on_side_button_toggle_pressed.bind(toggle, side))
 	heading_row.add_child(toggle)
-	var edge_title := _make_label("EDGE POSITION", 13, Color("#c7eacb"))
-	content.add_child(edge_title)
 	var edge_row := HBoxContainer.new()
 	edge_row.name = "ButtonEdgeChoices"
 	edge_row.add_theme_constant_override("separation", 6)
@@ -7515,9 +7513,6 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 		edge_button.button_pressed = edge == edge_name
 		edge_button.pressed.connect(_on_side_button_edge_selected.bind(side, edge_name))
 		edge_row.add_child(edge_button)
-	var position_title := _make_label("POSITION ALONG EDGE", 14, Color("#c7eacb"))
-	position_title.custom_minimum_size.y = 22.0
-	content.add_child(position_title)
 	var position_row := HBoxContainer.new()
 	position_row.custom_minimum_size.y = 54.0
 	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
