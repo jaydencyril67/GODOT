@@ -1032,7 +1032,7 @@ func _show_worksite_front_camera_mp_controls() -> void:
 	panel.add_child(heading)
 
 	if not bool(phone_editor.get("front_camera_enabled")):
-		var hint := _label("ENABLE THE FRONT CAMERA IN HARDWARE FIRST", 14, Color("#d8eaf5"), HORIZONTAL_ALIGNMENT_CENTER)
+		var hint := _label("Front camera not enabled", 11, Color("#91b8a0"), HORIZONTAL_ALIGNMENT_CENTER)
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		panel.add_child(hint)
 		return
@@ -1080,7 +1080,7 @@ func _show_worksite_rear_camera_mp_controls() -> void:
 
 	var camera_modules: Array = phone_editor.get("rear_camera_modules")
 	if camera_modules.is_empty():
-		var hint := _label("ADD REAR CAMERAS IN HARDWARE FIRST", 14, Color("#d8eaf5"), HORIZONTAL_ALIGNMENT_CENTER)
+		var hint := _label("No rear cameras added", 11, Color("#91b8a0"), HORIZONTAL_ALIGNMENT_CENTER)
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		panel.add_child(hint)
 		return
