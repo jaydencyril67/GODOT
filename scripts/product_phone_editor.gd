@@ -11698,14 +11698,14 @@ func _rebuild_box_package_preview() -> void:
 	# Galaxy S26 Ultra-style retail proportions, scaled from the listed
 	# 182.5 x 96.1 x 27.5 mm package dimensions.
 	# The front lid and lower base remain permanently fitted together.
-	const package_width := 1.76
-	const package_height := 3.34
-	const package_depth := 0.503
-	const lid_wall := 0.028
-	const lid_front_depth := 0.036
-	const lid_skirt_depth := 0.251
-	const base_depth := 0.228
-	const seam_depth := 0.012
+	var package_width: float = 1.76
+	var package_height: float = 3.34
+	var package_depth: float = 0.503
+	var lid_wall: float = 0.028
+	var lid_front_depth: float = 0.036
+	var lid_skirt_depth: float = 0.251
+	var base_depth: float = 0.228
+	var seam_depth: float = 0.012
 
 	# Solid lower base, set just inside the lid's side walls.
 	_add_box_package_part(
@@ -11736,7 +11736,7 @@ func _rebuild_box_package_preview() -> void:
 
 	# A narrow dark reveal runs around all four sides where the fitted lid
 	# meets the lower base. It is fixed in place, not an opening mechanism.
-	var seam_center_z := -package_depth * 0.5 + base_depth
+	var seam_center_z := -package_depth * 0.5 + base_depth - seam_depth * 0.5
 	_add_box_package_part(box_package_preview, "LidSeam_Left", Vector3(0.010, package_height, seam_depth), Vector3(-package_width * 0.5 + 0.005, 0.0, seam_center_z), box_package_color.darkened(0.34), 0.92)
 	_add_box_package_part(box_package_preview, "LidSeam_Right", Vector3(0.010, package_height, seam_depth), Vector3(package_width * 0.5 - 0.005, 0.0, seam_center_z), box_package_color.darkened(0.34), 0.92)
 	_add_box_package_part(box_package_preview, "LidSeam_Top", Vector3(package_width, 0.010, seam_depth), Vector3(0.0, package_height * 0.5 - 0.005, seam_center_z), box_package_color.darkened(0.34), 0.92)
