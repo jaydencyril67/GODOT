@@ -490,7 +490,7 @@ func _build_editor_ui() -> void:
 	left_tools_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_child(left_tools_panel)
 
-	var preview_panel := _make_glass_panel(Color(0.22, 0.53, 0.72, 0.24))
+	var preview_panel := _make_glass_panel(Color(0.035, 0.12, 0.065, 0.72))
 	preview_panel.name = "PhonePreviewCard"
 	preview_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
