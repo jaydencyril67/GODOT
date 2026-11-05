@@ -93,6 +93,7 @@ var selection_region: MarginContainer
 var selection_stack: VBoxContainer
 var navigation_layer: CanvasLayer
 var navigation_bar: HBoxContainer
+var step_panels: Dictionary = {}
 
 
 func _ready() -> void:
@@ -421,188 +422,151 @@ func _on_next_pressed() -> void:
 		_show_rear_camera_step()
 
 
-func _discard_panel(panel: Control) -> void:
-	if not is_instance_valid(panel):
+func _cache_current_step_panel() -> void:
+	if wizard_step <= 0 or not is_instance_valid(phone_editor):
 		return
-	var parent := panel.get_parent()
-	if is_instance_valid(parent):
-		parent.remove_child(panel)
-	panel.queue_free()
 
+	# Nested raised-box color editing is a temporary view of the Back Design
+	# step. Close its floating overlays and restore the parent controls before
+	# caching the step, so returning later restores the correct main view.
+	if wizard_step == 13 and bool(phone_editor.get("back_design_color_mode")):
+		if phone_editor.has_method("_close_worksite_back_design_color_view"):
+			phone_editor.call("_close_worksite_back_design_color_view")
+		phone_editor.call("_show_back_design_controls")
 
-func _release_mounted_editor_panel() -> void:
-	if not is_instance_valid(phone_editor):
-		return
-	# Leaving a nested color view must also clear its floating popups and mode.
-	if bool(phone_editor.get("back_design_color_mode")) and phone_editor.has_method("_close_worksite_back_design_color_view"):
-		phone_editor.call("_close_worksite_back_design_color_view")
 	var current_panel := phone_editor.get("active_feature_panel") as Control
 	if is_instance_valid(current_panel):
-		var current_parent := current_panel.get_parent()
-		if is_instance_valid(current_parent) and current_parent == selection_stack:
-			current_parent.remove_child(current_panel)
-			current_panel.queue_free()
-	# The editor may otherwise keep pointing at a panel that the worksite has
-	# removed. The next editor view must create a fresh panel for this step.
+		step_panels[wizard_step] = current_panel
+		current_panel.hide()
+
+
+func _prepare_step_panels_for_navigation() -> void:
+	_cache_current_step_panel()
+	for step_key in step_panels.keys():
+		var panel := step_panels[step_key] as Control
+		if is_instance_valid(panel):
+			panel.hide()
+
+
+func _show_worksite_step(step: int, builder_method: String = "") -> void:
+	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
+		return
+
+	_prepare_step_panels_for_navigation()
+	wizard_step = step
+	type_step_content.hide()
 	phone_editor.set("active_feature_panel", null)
 
+	var panel := step_panels.get(step) as Control
+	if is_instance_valid(panel):
+		# Reattach only if an editor subview moved this cached panel elsewhere.
+		var parent := panel.get_parent()
+		if parent != selection_stack:
+			if is_instance_valid(parent):
+				parent.remove_child(panel)
+			selection_stack.add_child(panel)
+		panel.show()
+		phone_editor.set("active_feature_panel", panel)
+	else:
+		if builder_method.is_empty():
+			return
+		# Each builder runs only the first time its step is visited. Its control
+		# tree is then kept alive and reused by every later Previous/Next visit.
+		phone_editor.call(builder_method)
+		panel = phone_editor.get("active_feature_panel") as Control
+		if is_instance_valid(panel):
+			var parent := panel.get_parent()
+			if is_instance_valid(parent):
+				parent.remove_child(panel)
+			panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			selection_stack.add_child(panel)
+			panel.show()
+			step_panels[step] = panel
 
-func _mount_original_panel(method_name: String) -> Control:
-	_release_mounted_editor_panel()
-	phone_editor.call(method_name)
-	var panel := phone_editor.get("active_feature_panel") as Control
-	if not is_instance_valid(panel):
-		return null
-	var parent := panel.get_parent()
-	if is_instance_valid(parent):
-		parent.remove_child(panel)
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Keep these two worksite panels content-sized. Their direction pads must
-	# follow the upper controls directly instead of being pushed toward the bottom.
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	selection_stack.add_child(panel)
+	_update_step_progress(step)
+	selection_scroll.scroll_vertical = 0
 	_keep_step_navigation_active()
-	return panel
+
+
+func _update_step_progress(step: int) -> void:
+	var progress_value := clampi(step + 1, 1, 15)
+	progress_number.text = "STEP %d / 15" % progress_value
+	progress_bar.value = progress_value
 
 
 func _show_thickness_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	wizard_step = 1
-	type_step_content.hide()
-	thickness_panel = _mount_original_panel("_show_thickness_controls")
-	progress_number.text = "STEP 2 / 15"
-	progress_bar.value = 2
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(1, "_show_thickness_controls")
 
 
 func _show_border_radius_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(thickness_panel)
-	thickness_panel = null
-	wizard_step = 2
-	border_radius_panel = _mount_original_panel("_show_border_radius_controls")
-	progress_number.text = "STEP 3 / 15"
-	progress_bar.value = 3
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(2, "_show_border_radius_controls")
 
 
 func _show_screen_tech_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(border_radius_panel)
-	border_radius_panel = null
-	wizard_step = 3
-	screen_tech_panel = _mount_original_panel("_show_screen_tech_controls")
-	progress_number.text = "STEP 4 / 15"
-	progress_bar.value = 4
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(3, "_show_screen_tech_controls")
 
 
 func _show_screen_size_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(screen_tech_panel)
-	screen_tech_panel = null
-	wizard_step = 4
-	# Reuse the editor's live width and height controls. They are arranged in
-	# two independent vertical slider columns inside one horizontal row.
-	screen_size_panel = _mount_original_panel("_show_screen_size_controls")
-	progress_number.text = "STEP 5 / 15"
-	progress_bar.value = 5
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(4, "_show_screen_size_controls")
 
 
 func _show_screen_type_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(screen_size_panel)
-	screen_size_panel = null
-	wizard_step = 5
-	# Reuse the editor's existing screen-shape choices and curve eligibility
-	# rules so this worksite step changes the actual live phone display.
-	screen_type_panel = _mount_original_panel("_show_screen_type_controls")
-	progress_number.text = "STEP 6 / 15"
-	progress_bar.value = 6
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(5, "_show_screen_type_controls")
 
 
 func _show_power_volume_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(screen_type_panel)
-	screen_type_panel = null
-	wizard_step = 6
-	# Reuse the original live power and volume controls, including their
-	# enablement, side placement, position and shared length adjustment.
-	power_volume_panel = _mount_original_panel("_show_power_volume_controls")
-	progress_number.text = "STEP 7 / 15"
-	progress_bar.value = 7
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(6, "_show_power_volume_controls")
 
 
 func _show_speakers_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(power_volume_panel)
-	power_volume_panel = null
-	wizard_step = 7
-	# Reuse the live speaker-count control and its existing phone-mesh updates.
-	speaker_panel = _mount_original_panel("_show_speaker_controls")
-	progress_number.text = "STEP 8 / 15"
-	progress_bar.value = 8
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(7, "_show_speaker_controls")
 
 
 func _show_charge_port_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(speaker_panel)
-	speaker_panel = null
-	wizard_step = 8
-	charge_port_panel = _mount_original_panel("_show_charge_port_controls")
-	# The main editor gives this control panel the full available height. Keep
-	# that same expansion in the worksite so the connector options scroll area
-	# receives the same usable space instead of being shrink-wrapped.
+	_show_worksite_step(8, "_show_charge_port_controls")
 	if is_instance_valid(charge_port_panel):
 		charge_port_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	progress_number.text = "STEP 9 / 15"
-	progress_bar.value = 9
-	selection_scroll.scroll_vertical = 0
 
 
 func _show_side_button_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(charge_port_panel)
-	charge_port_panel = null
-	wizard_step = 9
-	# Reuse the original side-button controls and live geometry callbacks.
-	side_button_panel = _mount_original_panel("_show_side_button_controls")
-	progress_number.text = "STEP 10 / 15"
-	progress_bar.value = 10
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(9, "_show_side_button_controls")
 
 
 func _show_home_button_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(side_button_panel)
-	side_button_panel = null
-	wizard_step = 10
-	# Reuse the original Home Button options and live handset/display callbacks.
-	home_button_panel = _mount_original_panel("_show_home_button_controls")
-	progress_number.text = "STEP 11 / 15"
-	progress_bar.value = 11
-	selection_scroll.scroll_vertical = 0
+	_show_worksite_step(10, "_show_home_button_controls")
+
+
+func _show_device_color_step() -> void:
+	_show_worksite_step(11, "_show_device_color_controls")
+	# Keep the HUE section clean in the worksite by removing only the selected
+	# color readout. The cached HUE bar and HEX input remain interactive.
+	var active_panel := phone_editor.get("active_feature_panel") as Control
+	if is_instance_valid(active_panel):
+		var hue_preview_row := active_panel.find_child("SelectedDeviceColor", true, false) as Control
+		if is_instance_valid(hue_preview_row):
+			var preview_parent := hue_preview_row.get_parent()
+			if is_instance_valid(preview_parent):
+				preview_parent.remove_child(hue_preview_row)
+			hue_preview_row.queue_free()
+
+
+func _show_front_camera_step() -> void:
+	_show_worksite_step(12, "_show_front_camera_controls")
+
+
+func _show_back_design_step() -> void:
+	_show_worksite_step(13, "_show_back_design_controls")
+
+
+func _show_rear_camera_step() -> void:
+	_show_worksite_step(14, "_show_rear_camera_controls")
 
 
 func _keep_step_navigation_active() -> void:
 	# These are persistent wizard controls, not step-validation indicators.
 	# Their handlers safely do nothing at the first/last boundary when needed.
 	if is_instance_valid(navigation_layer):
-		# Keep wizard navigation above every editor-created popup/overlay.
 		navigation_layer.layer = 127
 	if is_instance_valid(navigation_bar):
 		navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -617,188 +581,26 @@ func _keep_step_navigation_active() -> void:
 		next_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		next_button.modulate.a = 1.0
 
+
 func _on_nested_color_view_opened() -> void:
-	# A nested color editor replaces the mounted Back Design panel directly,
-	# bypassing _mount_original_panel(). Reassert both controls and keep their
-	# overlay above every editor popup/canvas layer.
 	_keep_step_navigation_active()
-	if is_instance_valid(navigation_layer):
-		navigation_layer.layer = 100
-	if is_instance_valid(navigation_bar):
-		navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
-		navigation_bar.z_index = 1000
-		navigation_bar.z_as_relative = false
 	call_deferred("_keep_step_navigation_active")
-
-func _show_device_color_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(home_button_panel)
-	home_button_panel = null
-	wizard_step = 11
-	# Use the original device-wide color picker, including live body material,
-	# gradient, RGB/hex and preview updates.
-	device_color_panel = _mount_original_panel("_show_device_color_controls")
-	# Keep the HUE section clean in the new worksite: remove the selected-color preview/readout row.
-	# The live HUE bar and HEX CODE input remain available for precise color selection.
-	if is_instance_valid(device_color_panel):
-		var hue_preview_row := device_color_panel.find_child("SelectedDeviceColor", true, false) as Control
-		if is_instance_valid(hue_preview_row):
-			var preview_parent := hue_preview_row.get_parent()
-			if is_instance_valid(preview_parent):
-				preview_parent.remove_child(hue_preview_row)
-			hue_preview_row.queue_free()
-	progress_number.text = "STEP 12 / 15"
-	progress_bar.value = 12
-	selection_scroll.scroll_vertical = 0
-
-
-func _show_front_camera_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(device_color_panel)
-	device_color_panel = null
-	wizard_step = 12
-	# Reuse the original front-camera enablement and style controls, preserving
-	# its existing live camera geometry and preview callbacks.
-	front_camera_panel = _mount_original_panel("_show_front_camera_controls")
-	progress_number.text = "STEP 13 / 15"
-	progress_bar.value = 13
-	selection_scroll.scroll_vertical = 0
-
-
-func _show_back_design_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(front_camera_panel)
-	front_camera_panel = null
-	wizard_step = 13
-	# Reuse the original raised back-design box editor and its live geometry.
-	back_design_panel = _mount_original_panel("_show_back_design_controls")
-	progress_number.text = "STEP 14 / 15"
-	progress_bar.value = 14
-	selection_scroll.scroll_vertical = 0
-
-
-func _show_rear_camera_step() -> void:
-	if not is_instance_valid(phone_editor) or not is_instance_valid(selection_stack):
-		return
-	_discard_panel(back_design_panel)
-	back_design_panel = null
-	wizard_step = 14
-	# Reuse the original rear camera/flash module controls and live preview.
-	rear_camera_panel = _mount_original_panel("_show_rear_camera_controls")
-	progress_number.text = "STEP 15 / 15"
-	progress_bar.value = 15
-	selection_scroll.scroll_vertical = 0
 
 
 func _on_wizard_back_pressed() -> void:
 	_keep_step_navigation_active()
-	if wizard_step == 14:
-		# Rare Camera can rebuild its own editor panel when CAMERA/FLASH mode
-		# changes. Never rely on the original cached panel reference here:
-		# release whichever panel is currently mounted by the editor engine.
-		_release_mounted_editor_panel()
-		rear_camera_panel = null
-		wizard_step = 13
-		back_design_panel = _mount_original_panel("_show_back_design_controls")
-		progress_number.text = "STEP 14 / 15"
-		progress_bar.value = 14
-	elif wizard_step == 13:
-		_discard_panel(back_design_panel)
-		back_design_panel = null
-		wizard_step = 12
-		front_camera_panel = _mount_original_panel("_show_front_camera_controls")
-		progress_number.text = "STEP 13 / 15"
-		progress_bar.value = 13
-	elif wizard_step == 12:
-		_discard_panel(front_camera_panel)
-		front_camera_panel = null
-		wizard_step = 11
-		device_color_panel = _mount_original_panel("_show_device_color_controls")
-		progress_number.text = "STEP 12 / 15"
-		progress_bar.value = 12
-	elif wizard_step == 11:
-		_discard_panel(device_color_panel)
-		device_color_panel = null
-		wizard_step = 10
-		home_button_panel = _mount_original_panel("_show_home_button_controls")
-		progress_number.text = "STEP 11 / 15"
-		progress_bar.value = 11
-	elif wizard_step == 10:
-		_discard_panel(home_button_panel)
-		home_button_panel = null
-		wizard_step = 9
-		side_button_panel = _mount_original_panel("_show_side_button_controls")
-		progress_number.text = "STEP 10 / 15"
-		progress_bar.value = 10
-	elif wizard_step == 9:
-		_discard_panel(side_button_panel)
-		side_button_panel = null
-		wizard_step = 8
-		charge_port_panel = _mount_original_panel("_show_charge_port_controls")
-		if is_instance_valid(charge_port_panel):
-			charge_port_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		progress_number.text = "STEP 9 / 15"
-		progress_bar.value = 9
-	elif wizard_step == 8:
-		_discard_panel(charge_port_panel)
-		charge_port_panel = null
-		wizard_step = 7
-		speaker_panel = _mount_original_panel("_show_speaker_controls")
-		progress_number.text = "STEP 8 / 15"
-		progress_bar.value = 8
-	elif wizard_step == 7:
-		_discard_panel(speaker_panel)
-		speaker_panel = null
-		wizard_step = 6
-		power_volume_panel = _mount_original_panel("_show_power_volume_controls")
-		progress_number.text = "STEP 7 / 15"
-		progress_bar.value = 7
-	elif wizard_step == 6:
-		_discard_panel(power_volume_panel)
-		power_volume_panel = null
-		wizard_step = 5
-		screen_type_panel = _mount_original_panel("_show_screen_type_controls")
-		progress_number.text = "STEP 6 / 15"
-		progress_bar.value = 6
-	elif wizard_step == 5:
-		_discard_panel(screen_type_panel)
-		screen_type_panel = null
-		wizard_step = 4
-		screen_size_panel = _mount_original_panel("_show_screen_size_controls")
-		progress_number.text = "STEP 5 / 15"
-		progress_bar.value = 5
-	elif wizard_step == 4:
-		_discard_panel(screen_size_panel)
-		screen_size_panel = null
-		wizard_step = 3
-		screen_tech_panel = _mount_original_panel("_show_screen_tech_controls")
-		progress_number.text = "STEP 4 / 15"
-		progress_bar.value = 4
-	elif wizard_step == 3:
-		_discard_panel(screen_tech_panel)
-		screen_tech_panel = null
-		wizard_step = 2
-		border_radius_panel = _mount_original_panel("_show_border_radius_controls")
-		progress_number.text = "STEP 3 / 15"
-		progress_bar.value = 3
-	elif wizard_step == 2:
-		_discard_panel(border_radius_panel)
-		border_radius_panel = null
-		wizard_step = 1
-		thickness_panel = _mount_original_panel("_show_thickness_controls")
-		progress_number.text = "STEP 2 / 15"
-		progress_bar.value = 2
-	elif wizard_step == 1:
-		_discard_panel(thickness_panel)
-		thickness_panel = null
+	if wizard_step <= 0:
+		return
+	if wizard_step == 1:
+		_prepare_step_panels_for_navigation()
 		wizard_step = 0
 		type_step_content.show()
-		progress_number.text = "STEP 1 / 15"
-		progress_bar.value = 1
-	selection_scroll.scroll_vertical = 0
+		phone_editor.set("active_feature_panel", null)
+		_update_step_progress(0)
+		selection_scroll.scroll_vertical = 0
+		return
+	_show_worksite_step(wizard_step - 1)
+
 
 func _style_arrow_button(button: Button) -> void:
 	# Clean, bold text navigation. Keep the controls floating directly on the
