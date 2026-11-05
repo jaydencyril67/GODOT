@@ -313,7 +313,7 @@ func _build_interface() -> void:
 	var specification_scroll_bar := specification_readout_scroll.get_v_scroll_bar()
 	specification_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	specification_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	specification_readout_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	specification_readout_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	specification_readout_scroll.visible = false
 	preview_region.add_child(specification_readout_scroll)
 
