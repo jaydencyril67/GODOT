@@ -9617,12 +9617,12 @@ func _on_cooling_system_selected(cooling_type: String) -> void:
 		var current := active_feature_panel.find_child("CurrentCoolingSystemLabel", true, false) as Label
 		if is_instance_valid(current):
 			current.text = "CURRENT: " + selected_cooling_system.to_upper()
-		for cooling_option in ["No Dedicated Cooling", "Graphite Sheet", "Graphite + Copper Foil", "Graphene Composite", "Heat Pipe", "Vapor Chamber", "Dual Vapor Chamber", "Vapor Chamber + Graphite Stack"]:
-			var option_name := "CoolingSystemOption_" + cooling_option.replace(" ", "").replace("+", "Plus")
-			var option_button := active_feature_panel.find_child(option_name, true, false) as Button
+		for cooling_option: String in ["No Dedicated Cooling", "Graphite Sheet", "Graphite + Copper Foil", "Graphene Composite", "Heat Pipe", "Vapor Chamber", "Dual Vapor Chamber", "Vapor Chamber + Graphite Stack"]:
+			var option_name: String = "CoolingSystemOption_" + cooling_option.replace(" ", "").replace("+", "Plus")
+			var option_button: Button = active_feature_panel.find_child(option_name, true, false) as Button
 			if not is_instance_valid(option_button):
 				continue
-			var selected := cooling_option == selected_cooling_system
+			var selected: bool = cooling_option == selected_cooling_system
 			option_button.text = cooling_option + ("   ✓ SELECTED" if selected else "")
 			_style_staff_button(option_button, selected)
 		if is_instance_valid(worksite_owner) and worksite_owner.has_method("_style_ram_selector_buttons"):
