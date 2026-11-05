@@ -1,7 +1,7 @@
 extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
-const PhoneEditorScene: PackedScene = preload("res://scenes/product_phone_editor.tscn")
+const PhonePreviewEngineScene: PackedScene = preload("res://scenes/phone_preview_engine.tscn")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
@@ -2456,7 +2456,7 @@ func _restore_home_after_standalone_screen() -> void:
 
 func _show_research_phone() -> void:
 	_dispose_phone_editor()
-	phone_editor = PhoneEditorScene.instantiate() as Node3D
+	phone_editor = PhonePreviewEngineScene.instantiate() as Node3D
 	phone_editor.name = "Phone_Research_Screen"
 	phone_editor.set("research_mode", true)
 	phone_editor.connect("back_requested", Callable(self, "_return_from_research_phone"))
@@ -2564,10 +2564,10 @@ func _style_create_glass_button(button: Button, primary: bool) -> void:
 
 func _on_create_category_pressed(category: String) -> void:
 	if category.to_upper() == "PHONE":
-		_show_phone_editor()
+		_show_phone_creation_worksite()
 		return
 	if category.to_upper() == "OPERATING SYSTEM":
-		_show_phone_creation_worksite()
+		_show_notice("OPERATING SYSTEM", "Operating System creation is temporarily dormant and will return in a future update.")
 		return
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
@@ -2625,62 +2625,6 @@ func _return_from_phone_creation_worksite() -> void:
 		ui_layer = create_ui_layer
 		ui_root = create_ui_root
 
-
-func _show_phone_editor() -> void:
-	# Ignore duplicate activation while the Phone Editor is already open.
-	# Re-instantiating a CanvasLayer every time the button receives input can
-	# briefly leave overlapping UI layers on mobile.
-	if current_screen == "phone_editor" and is_instance_valid(phone_editor):
-		phone_editor.show()
-		var existing_interface := phone_editor.get_node_or_null("PhoneEditorInterface") as CanvasLayer
-		if is_instance_valid(existing_interface):
-			existing_interface.show()
-		return
-
-	_dispose_phone_editor()
-
-	# Make the Phone Editor an exclusive screen. Hide every persistent screen
-	# layer that can outlive a page transition, not only the Create page.
-	if is_instance_valid(ui_layer):
-		ui_layer.hide()
-	if is_instance_valid(create_ui_layer):
-		create_ui_layer.hide()
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
-	if is_instance_valid(staff_ui_layer):
-		staff_ui_layer.hide()
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
-
-	ui_layer = null
-	ui_root = null
-	current_screen = "phone_editor"
-
-	phone_editor = PhoneEditorScene.instantiate() as Node3D
-	if not is_instance_valid(phone_editor):
-		current_screen = "create"
-		if is_instance_valid(create_ui_layer):
-			create_ui_layer.show()
-			ui_layer = create_ui_layer
-			ui_root = create_ui_root
-		push_error("Phone Editor scene could not be instantiated.")
-		return
-
-	phone_editor.name = "Phone_Product_Editor"
-	phone_editor.call("set_company_branding", str(career.get("company_name", "YOUR COMPANY")), int(career.get("logo_id", 1)))
-	phone_editor.connect("back_requested", Callable(self, "_return_from_phone_editor"))
-	add_child(phone_editor)
-
-
-func _return_from_phone_editor() -> void:
-	# Switch the state before removing the editor so no frame treats the
-	# outgoing screen as active while the Create page is being restored.
-	current_screen = "create"
-	_dispose_phone_editor()
-	if is_instance_valid(create_ui_layer):
-		create_ui_layer.show()
-		ui_layer = create_ui_layer
-		ui_root = create_ui_root
 
 
 func _on_headquarters_preview_level_changed(level: int) -> void:
