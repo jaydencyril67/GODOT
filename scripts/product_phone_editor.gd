@@ -565,7 +565,7 @@ func _build_editor_ui() -> void:
 	right_tools_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right_tools_content.add_theme_constant_override("separation", 14)
 	right_tools_panel.add_child(right_tools_content)
-	var initial_hint := _make_label("SELECT A FEATURE", 18, Color("#c7eacb"))
+	var initial_hint := _make_label("SELECT A FEATURE", 18, Color("#d8eaf5"))
 	initial_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	initial_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	initial_hint.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -641,7 +641,7 @@ func _build_research_ui() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hero_row.add_child(heading)
 	heading.add_child(_make_label("PHONE DESIGN RESEARCH", 27 if compact else 36, Color.WHITE))
-	research_balance_label = _make_label("AVAILABLE BALANCE  " + _format_research_money(research_balance), 11 if compact else 12, Color("#c7eacb"))
+	research_balance_label = _make_label("AVAILABLE BALANCE  " + _format_research_money(research_balance), 11 if compact else 12, Color("#d8eaf5"))
 	heading.add_child(research_balance_label)
 
 	var back_button := Button.new()
@@ -1307,7 +1307,7 @@ func _show_phone_type_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("PHONE TYPE", 19, Color("#c7eacb"))
+	var heading := _make_label("PHONE TYPE", 19, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Choose the chassis architecture. Foldables get a separated frame, a precision hinge and independent inner / outer displays.", 12, Color("#d5e9f5"))
@@ -1408,12 +1408,12 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		back_button.pressed.connect(_show_box_package_controls if for_box_package else (_show_charger_controls if for_charger else (_show_phone_case_controls if for_phone_case else (_show_smartwatch_controls if for_smartwatch else (_show_power_bank_controls if for_power_bank else (_show_earbuds_controls if for_earbuds else _show_back_design_controls))))))
 		color_header.add_child(back_button)
 		var color_heading := "BOX PACKAGE COLOR" if for_box_package else ("CHARGER COLOR" if for_charger else ("CASE COLOR" if for_phone_case else ("SMART WATCH COLOR" if for_smartwatch else ("POWER BANK COLOR" if for_power_bank else ("WIRELESS EARBUDS COLOR" if for_earbuds else "BACK DESIGN COLOR")))))
-		var color_title := _make_label(color_heading, 16, Color("#c7eacb"))
+		var color_title := _make_label(color_heading, 16, Color("#d8eaf5"))
 		color_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		color_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		color_header.add_child(color_title)
 	else:
-		var title := _make_label("DEVICE COLOR", 18, Color("#c7eacb"))
+		var title := _make_label("DEVICE COLOR", 18, Color("#d8eaf5"))
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(title)
 	var back_design_toggle_row: HBoxContainer
@@ -1598,7 +1598,7 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	picker.add_theme_constant_override("separation", 5)
-	var heading := _make_label("GRADIENT" if use_gradient_color else "NORMAL", 14, Color("#c7eacb"))
+	var heading := _make_label("GRADIENT" if use_gradient_color else "NORMAL", 14, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	picker.add_child(heading)
 	var special_color_mode := back_design_color_mode or charger_color_mode or smartwatch_color_mode or power_bank_color_mode or wireless_earbuds_color_mode or box_package_color_mode
@@ -1964,7 +1964,7 @@ func _show_gradient_direction_controls() -> void:
 	_style_back_design_button(back_button, false)
 	back_button.pressed.connect(_return_to_gradient_color_controls)
 	header.add_child(back_button)
-	var title := _make_label("GRADIENT DIRECTION", 16, Color("#c7eacb"))
+	var title := _make_label("GRADIENT DIRECTION", 16, Color("#d8eaf5"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
@@ -2134,7 +2134,7 @@ func _show_back_design_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
 	panel_host.add_child(active_feature_panel)
 
-	var heading := _make_label("BACK DESIGN", 16, Color("#c7eacb"))
+	var heading := _make_label("BACK DESIGN", 16, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -2189,9 +2189,9 @@ func _show_back_design_controls() -> void:
 	var rounding_header := HBoxContainer.new()
 	rounding_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rounding_section.add_child(rounding_header)
-	var rounding_heading := _make_label("ROUND", 10, Color("#b9d9bf"))
+	var rounding_heading := _make_label("ROUND", 10, Color("#b9d8e9"))
 	rounding_header.add_child(rounding_heading)
-	back_design_border_label = _make_label("NO BOX SELECTED", 10, Color("#dce9df"))
+	back_design_border_label = _make_label("NO BOX SELECTED", 10, Color("#d5e9f5"))
 	back_design_border_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back_design_border_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	rounding_header.add_child(back_design_border_label)
@@ -2208,7 +2208,7 @@ func _show_back_design_controls() -> void:
 	back_design_border_slider.value_changed.connect(_on_back_design_border_changed)
 	rounding_section.add_child(back_design_border_slider)
 
-	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 10, Color("#dce9df"))
+	back_design_size_label = _make_label("ADD A BOX TO BEGIN", 10, Color("#d5e9f5"))
 	back_design_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	back_design_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	active_feature_panel.add_child(back_design_size_label)
@@ -2231,8 +2231,8 @@ func _show_back_design_controls() -> void:
 	pad_shell.name = "BackDesignDirectionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color("#0b2112")
-	pad_shell_style.border_color = Color("#477d53")
+	pad_shell_style.bg_color = Color(0.28, 0.61, 0.80, 0.18)
+	pad_shell_style.border_color = Color(0.86, 0.97, 1.0, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -2302,27 +2302,7 @@ func _make_editor_icon_button(parent: Control, node_name: String, caption: Strin
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(button, 30 if diameter >= 52.0 else 27)
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#174326") if active else Color("#102b19")
-		if state == "hover":
-			style.bg_color = Color("#205632")
-		elif state == "pressed":
-			style.bg_color = Color("#2d7040")
-		elif state == "disabled":
-			style.bg_color = Color("#17251a")
-		style.border_color = Color("#75b983") if active else Color("#4e8058")
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(int(diameter * 0.5))
-		style.content_margin_left = 0
-		style.content_margin_right = 0
-		style.content_margin_top = 0
-		style.content_margin_bottom = 0
-		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#e5f4e7"))
-	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-	button.add_theme_color_override("font_disabled_color", Color("#91aa95"))
+	_style_staff_button(button, active)
 	button.pressed.connect(pressed_callback)
 	parent.add_child(button)
 	return button
@@ -2365,27 +2345,9 @@ func _add_back_design_flexible_space(parent: Control) -> void:
 	parent.add_child(spacer)
 
 func _style_back_design_button(button: Button, active: bool) -> void:
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#174326") if active else Color("#102b19")
-		if state == "hover":
-			style.bg_color = Color("#205632")
-		elif state == "pressed":
-			style.bg_color = Color("#2d7040")
-		elif state == "disabled":
-			style.bg_color = Color("#17251a")
-		style.border_color = Color("#5c9b69") if active else Color("#3e7049")
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(8)
-		style.content_margin_left = 5
-		style.content_margin_right = 5
-		style.content_margin_top = 2
-		style.content_margin_bottom = 2
-		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#e5f4e7"))
-	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-	button.add_theme_color_override("font_disabled_color", Color("#91aa95"))
+	# Raised Back Design and Rear Camera share the same blue-glass button
+	# treatment used by the other Worksite controls.
+	_style_staff_button(button, active)
 
 
 func _style_back_design_slider(slider: Slider) -> void:
@@ -2418,26 +2380,7 @@ func _add_editor_direction_pad_button(parent: GridContainer, caption: String, di
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_apply_research_typography(button, 29 if not tight else 27)
 	button.focus_mode = Control.FOCUS_NONE
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var circle_style := StyleBoxFlat.new()
-		circle_style.bg_color = Color("#173c22")
-		if state == "hover":
-			circle_style.bg_color = Color("#205632")
-		elif state == "pressed":
-			circle_style.bg_color = Color("#285c35")
-		elif state == "disabled":
-			circle_style.bg_color = Color("#17251a")
-		circle_style.border_color = Color("#75b983")
-		circle_style.set_border_width_all(1)
-		circle_style.set_corner_radius_all(int(diameter * 0.5))
-		circle_style.content_margin_left = 0
-		circle_style.content_margin_right = 0
-		circle_style.content_margin_top = 0
-		circle_style.content_margin_bottom = 0
-		button.add_theme_stylebox_override(state, circle_style)
-	button.add_theme_color_override("font_color", Color("#eff8f0"))
-	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	_style_staff_button(button, true)
 	button.pressed.connect(pressed_callback.bind(direction))
 	parent.add_child(button)
 
@@ -2509,7 +2452,7 @@ func _show_back_design_selection_controls() -> void:
 	_style_back_design_button(back, false)
 	back.pressed.connect(_show_back_design_controls)
 	header.add_child(back)
-	var title := _make_label("SELECT RAISED BOX", 15, Color("#c7eacb"))
+	var title := _make_label("SELECT RAISED BOX", 15, Color("#d8eaf5"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
@@ -2564,7 +2507,7 @@ func _show_rear_hardware_selection_controls() -> void:
 	_style_back_design_button(back, false)
 	back.pressed.connect(_show_rear_camera_controls)
 	header.add_child(back)
-	var title := _make_label("SELECT " + rear_hardware_mode, 15, Color("#c7eacb"))
+	var title := _make_label("SELECT " + rear_hardware_mode, 15, Color("#d8eaf5"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
@@ -2838,7 +2781,7 @@ func _show_screen_size_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("SCREEN SIZE", 18, Color("#c7eacb"))
+	var title := _make_label("SCREEN SIZE", 18, Color("#d8eaf5"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
@@ -2957,7 +2900,7 @@ func _show_screen_type_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("SCREEN TYPE", 18, Color("#c7eacb"))
+	var title := _make_label("SCREEN TYPE", 18, Color("#d8eaf5"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 	var description := _make_label("Choose a flat display or a curved edge design.", 12, Color("#d8eaf5"))
@@ -3141,7 +3084,7 @@ func _show_screen_tech_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("SCREEN TECHNOLOGY", 18, Color("#c7eacb"))
+	var title := _make_label("SCREEN TECHNOLOGY", 18, Color("#d8eaf5"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
@@ -3922,7 +3865,7 @@ func _show_smartwatch_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SMART WATCH", 18, Color("#c7eacb"))
+	var heading := _make_label("SMART WATCH", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Add a 3D smartwatch accessory to the product preview. Drag the centre preview to inspect it.", 12, Color("#d5e9f5"))
@@ -4150,7 +4093,7 @@ func _show_earbuds_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("WIRELESS EARBUDS", 18, Color("#c7eacb"))
+	var heading := _make_label("WIRELESS EARBUDS", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Add a rotatable 3D wireless earbuds case with the lid fully closed and the earbuds stored inside.", 12, Color("#d5e9f5"))
@@ -4335,7 +4278,7 @@ func _show_power_bank_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("POWER BANK", 18, Color("#c7eacb"))
+	var heading := _make_label("POWER BANK", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Add a rotatable 3D power bank to the centre preview. Choose its finish below.", 12, Color("#d5e9f5"))
@@ -5256,7 +5199,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 		_style_staff_button(back, false)
 		back.pressed.connect(_show_charger_controls.bind("HOME"))
 		header.add_child(back)
-		var page_title := _make_label("CHARGER " + page, 16, Color("#c7eacb"))
+		var page_title := _make_label("CHARGER " + page, 16, Color("#d8eaf5"))
 		page_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		header.add_child(page_title)
@@ -5362,7 +5305,7 @@ func _show_charger_controls(page: String = "HOME") -> void:
 				_show_device_color_controls(false, false, true)
 		return
 
-	var heading := _make_label("CHARGER ADAPTER", 18, Color("#c7eacb"))
+	var heading := _make_label("CHARGER ADAPTER", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Configure the adapter one setting at a time. Drag the centre preview to inspect every side.", 12, Color("#d5e9f5"))
@@ -5473,7 +5416,7 @@ func _show_screen_protector_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("PROTECTION GLASS", 18, Color("#c7eacb"))
+	var heading := _make_label("PROTECTION GLASS", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("A precision-cut tempered-glass layer fitted to the active display and front-camera layout.", 12, Color("#d5e9f5"))
@@ -6083,7 +6026,7 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	card.add_theme_constant_override("separation", 2)
-	var title := _make_label(title_text, 11, Color("#c7eacb"))
+	var title := _make_label(title_text, 11, Color("#d8eaf5"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.clip_text = true
 	card.add_child(title)
@@ -6162,7 +6105,7 @@ func _show_front_camera_mp_controls() -> void:
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
-	var heading := _make_label("FRONT CAMERA MP", 16, Color("#c7eacb"))
+	var heading := _make_label("FRONT CAMERA MP", 16, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	if not front_camera_enabled:
@@ -6201,7 +6144,7 @@ func _show_rear_camera_mp_controls() -> void:
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 4)
 	right_tools_content.add_child(active_feature_panel)
-	var heading := _make_label("REAR CAMERA MP", 16, Color("#c7eacb"))
+	var heading := _make_label("REAR CAMERA MP", 16, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	if rear_camera_modules.is_empty():
@@ -6241,7 +6184,7 @@ func _show_front_camera_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("FRONT CAMERA", 19, Color("#c7eacb"))
+	var title := _make_label("FRONT CAMERA", 19, Color("#d8eaf5"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
@@ -6611,7 +6554,7 @@ func _show_rear_camera_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
 	panel_host.add_child(active_feature_panel)
 
-	var heading := _make_label("REAR CAMERA & FLASH", 16, Color("#c7eacb"))
+	var heading := _make_label("REAR CAMERA & FLASH", 16, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -6661,9 +6604,9 @@ func _show_rear_camera_controls() -> void:
 	var size_header := HBoxContainer.new()
 	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_section.add_child(size_header)
-	var size_heading := _make_label("SIZE", 10, Color("#b9d9bf"))
+	var size_heading := _make_label("SIZE", 10, Color("#b9d8e9"))
 	size_header.add_child(size_heading)
-	rear_hardware_size_label = _make_label("ADD A COMPONENT TO BEGIN", 11, Color("#dce9df"))
+	rear_hardware_size_label = _make_label("ADD A COMPONENT TO BEGIN", 11, Color("#d5e9f5"))
 	rear_hardware_size_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rear_hardware_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	rear_hardware_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -6701,8 +6644,8 @@ func _show_rear_camera_controls() -> void:
 	pad_shell.name = "RearHardwareDirectionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color("#0b2112")
-	pad_shell_style.border_color = Color("#477d53")
+	pad_shell_style.bg_color = Color(0.28, 0.61, 0.80, 0.18)
+	pad_shell_style.border_color = Color(0.86, 0.97, 1.0, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -7131,7 +7074,7 @@ func _show_border_radius_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Adjust the curvature of the phone's outer corners", 12, Color("#c7eacb"))
+	var description := _make_label("Adjust the curvature of the phone's outer corners", 12, Color("#d8eaf5"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -7191,7 +7134,7 @@ func _show_thickness_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Make the phone body slimmer or thicker", 12, Color("#c7eacb"))
+	var description := _make_label("Make the phone body slimmer or thicker", 12, Color("#d8eaf5"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -7312,7 +7255,7 @@ func _show_home_button_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("HOME BUTTON", 19, Color("#c7eacb"))
+	var title := _make_label("HOME BUTTON", 19, Color("#d8eaf5"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
@@ -7753,7 +7696,7 @@ func _show_side_button_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("SIDE BUTTONS", 21, Color("#c7eacb"))
+	var title := _make_label("SIDE BUTTONS", 21, Color("#d8eaf5"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 	# Keep the section focused on the controls; no explanatory subtitle.
@@ -7809,7 +7752,7 @@ func _add_optional_side_feature_row(caption: String, feature: String, enabled: b
 	header.add_child(toggle)
 
 	if with_position:
-		var position_caption := _make_label("POSITION ON PHONE SIDE", 12, Color("#c7eacb"))
+		var position_caption := _make_label("POSITION ON PHONE SIDE", 12, Color("#d8eaf5"))
 		content.add_child(position_caption)
 		var controls := HBoxContainer.new()
 		controls.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -8306,7 +8249,7 @@ func _show_speaker_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Choose how many speaker openings appear along the bottom edge", 12, Color("#c7eacb"))
+	var description := _make_label("Choose how many speaker openings appear along the bottom edge", 12, Color("#d8eaf5"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -8426,7 +8369,7 @@ func _show_charge_port_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Five established phone connector types", 12, Color("#c7eacb"))
+	var description := _make_label("Five established phone connector types", 12, Color("#d8eaf5"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -9587,7 +9530,7 @@ func _build_software_summary_panel() -> void:
 	content.add_theme_constant_override("separation", 14)
 	scroll.add_child(content)
 
-	var heading := _make_label("SOFTWARE SPECIFICATIONS", 21, Color("#c7eacb"))
+	var heading := _make_label("SOFTWARE SPECIFICATIONS", 21, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_research_typography(heading, 21)
 	content.add_child(heading)
@@ -9731,7 +9674,7 @@ func _show_memory_clock_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("MEMORY CLOCK", 18, Color("#c7eacb"))
+	var heading := _make_label("MEMORY CLOCK", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -9804,7 +9747,7 @@ func _show_cooling_system_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("COOLING SYSTEM", 18, Color("#c7eacb"))
+	var heading := _make_label("COOLING SYSTEM", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var current := _make_label("CURRENT: " + selected_cooling_system.to_upper(), 14, Color("#d8f1ff"))
@@ -9881,7 +9824,7 @@ func _show_refresh_rate_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("DISPLAY REFRESH RATE", 18, Color("#c7eacb"))
+	var heading := _make_label("DISPLAY REFRESH RATE", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -9948,7 +9891,7 @@ func _show_ram_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT RAM", 18, Color("#c7eacb"))
+	var heading := _make_label("SELECT RAM", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var options := GridContainer.new()
@@ -9986,7 +9929,7 @@ func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 		child.queue_free()
 	var supported_capacities := _get_supported_ram_capacities(selected_ram_technology)
 	if selected_ram_technology == "Not set" or supported_capacities.is_empty():
-		var prompt := _make_label("SELECT RAM TECHNOLOGY FIRST", 14, Color("#c7eacb"))
+		var prompt := _make_label("SELECT RAM TECHNOLOGY FIRST", 14, Color("#d8eaf5"))
 		prompt.name = "RAMTechnologyRequiredLabel"
 		prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		options.add_child(prompt)
@@ -10033,7 +9976,7 @@ func _show_ram_technology_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT RAM TECHNOLOGY", 18, Color("#c7eacb"))
+	var heading := _make_label("SELECT RAM TECHNOLOGY", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var current := _make_label("CURRENT: " + selected_ram_technology.to_upper(), 13, Color.WHITE)
@@ -10134,7 +10077,7 @@ func _show_rom_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT INTERNAL STORAGE", 18, Color("#c7eacb"))
+	var heading := _make_label("SELECT INTERNAL STORAGE", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var options := GridContainer.new()
@@ -10195,7 +10138,7 @@ func _show_battery_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT BATTERY CAPACITY", 18, Color("#c7eacb"))
+	var heading := _make_label("SELECT BATTERY CAPACITY", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -10288,7 +10231,7 @@ func _show_charging_speed_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("WIRED CHARGING SPEED", 17, Color("#c7eacb"))
+	var heading := _make_label("WIRED CHARGING SPEED", 17, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -10364,7 +10307,7 @@ func _show_wireless_charge_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("WIRELESS CHARGING", 17, Color("#c7eacb"))
+	var heading := _make_label("WIRELESS CHARGING", 17, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -10447,7 +10390,7 @@ func _show_bluetooth_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT BLUETOOTH VERSION", 17, Color("#c7eacb"))
+	var heading := _make_label("SELECT BLUETOOTH VERSION", 17, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -10502,7 +10445,7 @@ func _show_wifi_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT WI-FI STANDARD", 17, Color("#c7eacb"))
+	var heading := _make_label("SELECT WI-FI STANDARD", 17, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -10558,7 +10501,7 @@ func _show_sensor_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("PHONE SENSORS", 21, Color("#c7eacb"))
+	var heading := _make_label("PHONE SENSORS", 21, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var count_label := _make_label("", 15, Color("#d8f1ff"))
@@ -10655,7 +10598,7 @@ func _show_mobile_network_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT INTERNET NETWORK", 17, Color("#c7eacb"))
+	var heading := _make_label("SELECT INTERNET NETWORK", 17, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
@@ -11497,7 +11440,7 @@ func _show_box_package_controls() -> void:
 	right_tools_content.add_child(active_feature_panel)
 
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	var heading := _make_label("BOX PACKAGE", 18, Color("#c7eacb"))
+	var heading := _make_label("BOX PACKAGE", 18, Color("#d8eaf5"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Design the retail box for this phone. Drag the centre preview to inspect the packaging from every angle.", 12, Color("#d5e9f5"))
@@ -11859,7 +11802,7 @@ func _show_phone_case_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation",10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("PHONE CASE",18,Color("#c7eacb"))
+	var heading := _make_label("PHONE CASE",18,Color("#d8eaf5"))
 	heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Build a protective shell fitted to this phone's current geometry and hardware.",13,Color("#d5e9f5"))
@@ -11993,7 +11936,7 @@ func _show_phone_case_design_controls() -> void:
 	_style_staff_button(back_button,false)
 	back_button.pressed.connect(_show_phone_case_controls)
 	header.add_child(back_button)
-	var title:=_make_label("CASE BACK DESIGN",16,Color("#c7eacb"))
+	var title:=_make_label("CASE BACK DESIGN",16,Color("#d8eaf5"))
 	title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	title.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
