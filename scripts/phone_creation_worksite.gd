@@ -614,12 +614,16 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			return
 		# Each builder runs only the first time its step is visited. Its control
 		# tree is then kept alive and reused by every later Previous/Next visit.
-		# The Sensors builder belongs to this worksite script; all other
-		# migrated feature builders remain methods on the phone editor.
-		if builder_method == "_show_worksite_sensor_controls":
+		# Builders may belong either to this worksite or to the phone editor.
+		# Resolve the owner by method availability instead of hard-coding a
+		# single exception, so every migrated step uses the correct script.
+		if has_method(builder_method):
 			call(builder_method)
-		else:
+		elif phone_editor.has_method(builder_method):
 			phone_editor.call(builder_method)
+		else:
+			push_error("Worksite step builder not found: " + builder_method)
+			return
 		panel = phone_editor.get("active_feature_panel") as Control
 		if is_instance_valid(panel):
 			var parent := panel.get_parent()
