@@ -3243,6 +3243,8 @@ func set_front_camera_research_level(level: int) -> void:
 		enable_toggle.disabled = researched_front_camera_count <= 0
 	for style_name in front_camera_option_buttons:
 		var option: Button = front_camera_option_buttons[style_name]
+		if not is_instance_valid(option):
+			continue
 		option.disabled = not front_camera_enabled or FRONT_CAMERA_STYLES.find(style_name) >= researched_front_camera_count
 		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(style_name) + 2, 9), style_name == front_camera_style)
 	if is_instance_valid(phone_body):
