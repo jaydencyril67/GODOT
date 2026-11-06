@@ -1,7 +1,7 @@
 extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
-const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
+const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
@@ -95,7 +95,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research_phone", "office", "staff_market", "staff_management", "phone_creation_worksite"]:
+	if current_screen not in ["home", "headquarters", "create", "research", "research", "office", "staff_market", "staff_management", "phone_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -2469,26 +2469,26 @@ func _restore_home_after_standalone_screen() -> void:
 
 
 func _show_research_phone() -> void:
+	# Attach the research UI controller to the already-active screen root.
+	# Do not instantiate the phone worksite scene or create another CanvasLayer.
 	_dispose_phone_research_worksite()
-	phone_research_worksite = PhoneCreationWorksiteScene.instantiate() as Node3D
-	phone_research_worksite.name = "Phone_Research_Screen"
+	if not is_instance_valid(ui_root):
+		push_error("Cannot show Phone Research: the existing Research screen root is missing.")
+		return
+	phone_research_worksite = Node3D.new()
+	phone_research_worksite.name = "PhoneResearchUIController"
+	phone_research_worksite.set_script(PhoneCreationWorksiteScript)
 	phone_research_worksite.set("research_mode", true)
-	phone_research_worksite.connect("back_requested", Callable(self, "_return_from_research_phone"))
+	phone_research_worksite.set("research_ui_host", ui_root)
 	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
-	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
-	# Keep the main Research page alive underneath this CanvasLayer. The phone
-	# research interface supplies its own full-screen dark overlay (layer 50),
-	# so this is an overlay transition rather than replacing the Research page.
-	# Charge Port then opens its detail panel inside this same research interface.
 	add_child(phone_research_worksite)
-	current_screen = "research_phone"
+	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
+	current_screen = "research"
 
 
 func _return_from_research_phone() -> void:
 	_dispose_phone_research_worksite()
 	current_screen = "research"
-	if is_instance_valid(ui_layer):
-		ui_layer.show()
 
 
 func _get_phone_research_ui_data() -> Dictionary:
@@ -2595,7 +2595,7 @@ func _process_phone_charge_port_research() -> void:
 
 	if is_instance_valid(phone_research_worksite):
 		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
-	if current_screen == "research_phone":
+	if current_screen == "research":
 		_show_notice("CHARGING PORT RESEARCH COMPLETE", "The next charging-port technology has been unlocked in your phone editor.")
 
 
