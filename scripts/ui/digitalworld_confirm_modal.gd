@@ -24,6 +24,15 @@ func show_confirmation(title_text: String, message_text: String, action_text: St
 	_open_overlay()
 
 
+func show_action_prompt(title_text: String, message_text: String, action_text: String, action: Callable) -> void:
+	_pending_action = action
+	_title.text = title_text.to_upper()
+	_message.text = message_text
+	_confirm_button.text = action_text.to_upper()
+	_cancel_button.hide()
+	_open_overlay()
+
+
 func show_notice(title_text: String, message_text: String) -> void:
 	_pending_action = Callable()
 	_title.text = title_text.to_upper()
