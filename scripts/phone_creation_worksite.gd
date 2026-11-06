@@ -3458,6 +3458,11 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	var missing_points := maxi(0, points_cost - research_points)
 	var missing_money := maxf(0.0, money_cost - research_balance)
 	var can_afford := missing_points == 0 and missing_money <= 0.01
+	var active_level := int(research_levels.get("charge_port_active_level", -1))
+	var completion_unix := float(research_levels.get("charge_port_completion_unix", 0.0))
+	var current_game_unix := float(research_levels.get("game_date_unix", 0.0))
+	var is_researching := active_level == completed_count and completion_unix > current_game_unix
+	var remaining_days := maxi(0, ceili((completion_unix - current_game_unix) / 86400.0)) if is_researching else 7
 	var info_column := VBoxContainer.new()
 	info_column.name = "ChargePortResearchInformation"
 	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3513,6 +3518,14 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	money_row.add_child(money_value)
 	requirements_stack.add_child(money_row)
 
+	var time_row := HBoxContainer.new()
+	time_row.add_child(_make_label("Research time", 12, Color("#c1ccd7")))
+	var time_value := _make_label("7 in-game days", 12, Color.WHITE)
+	time_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	time_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	time_row.add_child(time_value)
+	requirements_stack.add_child(time_row)
+
 	var separator := HSeparator.new()
 	separator.add_theme_color_override("separator", Color(0.65, 0.78, 0.68, 0.30))
 	requirements_stack.add_child(separator)
@@ -3558,20 +3571,25 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 		progress_segments.add_child(segment)
 	progress_stack.add_child(progress_segments)
 
+	if is_researching:
+		var active_note := _make_label("RESEARCH IN PROGRESS  •  %d IN-GAME DAYS REMAINING" % remaining_days, 11, Color("#c7eacb"))
+		active_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		info_column.add_child(active_note)
+
 	var upgrade_button := Button.new()
 	upgrade_button.name = "ResearchNextChargingPortButton"
-	upgrade_button.text = "RESEARCH NEXT TECHNOLOGY" if can_afford else "CHECK RESEARCH REQUIREMENTS"
+	upgrade_button.text = "RESEARCH IN PROGRESS" if is_researching else "RESEARCH"
 	upgrade_button.custom_minimum_size.y = 42 if compact else 46
 	upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upgrade_button.focus_mode = Control.FOCUS_NONE
 	upgrade_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_apply_research_typography(upgrade_button, 12 if compact else 13)
 	_style_staff_button(upgrade_button, true)
-	upgrade_button.disabled = false
+	upgrade_button.disabled = is_researching or not can_afford
 	upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind("charge_port"))
 	info_column.add_child(upgrade_button)
 
-	var interaction_note := _make_label("Your next connector unlocks permanently in the phone editor.", 9, Color("#8fa195"))
+	var interaction_note := _make_label("Research runs for 7 in-game days. It pauses whenever the game clock is paused.", 9, Color("#8fa195"))
 	interaction_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_column.add_child(interaction_note)
 
