@@ -549,6 +549,8 @@ var charging_speed_slider: VSlider
 
 var research_mode := false
 
+var research_ui_host: Control
+
 var research_ui_root: Control
 
 var charge_port_research_overlay: Control
@@ -3146,17 +3148,17 @@ func _apply_research_typography(control: Control, font_size: int) -> void:
 	control.add_theme_font_size_override("font_size", font_size)
 
 func _build_research_ui() -> void:
+	if not is_instance_valid(research_ui_host):
+		push_error("Phone Research requires the existing Research screen root.")
+		return
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	var layer := CanvasLayer.new()
-	layer.name = "PhoneResearchInterface"
-	layer.layer = 50
-	add_child(layer)
-
+	# Mount the research interface directly inside the current screen root.
+	# There is no second CanvasLayer or independently instantiated scene.
 	var root := Control.new()
-	root.name = "PhoneResearchRoot"
+	root.name = "PhoneResearchOverlay"
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_PASS
-	layer.add_child(root)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	research_ui_host.add_child(root)
 	research_ui_root = root
 
 	var background := ColorRect.new()
@@ -3176,8 +3178,6 @@ func _build_research_ui() -> void:
 	var outer := MarginContainer.new()
 	outer.name = "PhoneResearchPageMargin"
 	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	outer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_theme_constant_override("margin_left", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_right", 18 if compact else 42)
 	outer.add_theme_constant_override("margin_top", 18 if compact else 28)
@@ -3209,16 +3209,6 @@ func _build_research_ui() -> void:
 	research_balance_label = _make_label("AVAILABLE BALANCE  " + _format_research_money(research_balance), 11 if compact else 12, Color("#c7eacb"))
 	heading.add_child(research_balance_label)
 
-	var back_button := Button.new()
-	back_button.text = "BACK"
-	back_button.custom_minimum_size = Vector2(104 if compact else 120, 46 if compact else 50)
-	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_research_typography(back_button, 15 if compact else 16)
-	_style_staff_back_button(back_button)
-	back_button.pressed.connect(_on_back_pressed)
-	hero_row.add_child(back_button)
-
 	var research_content := VBoxContainer.new()
 	research_content.name = "PhoneDesignResearchContent"
 	research_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3226,6 +3216,7 @@ func _build_research_ui() -> void:
 	research_content.add_theme_constant_override("separation", 12)
 	page.add_child(research_content)
 	_build_design_research_content(research_content)
+
 
 func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> void:
 	research_levels = levels.duplicate(true)
@@ -3386,75 +3377,19 @@ func _on_research_feature_selected(feature_name: String) -> void:
 
 
 func _show_charge_port_research_overlay() -> void:
-	if not is_instance_valid(research_ui_root):
-		push_error("Cannot show Charge Port research: the Phone Research screen root is missing.")
+	if not is_instance_valid(research_content_panel):
+		push_error("Cannot show Charge Port research: the existing research content host is missing.")
 		return
-	if is_instance_valid(charge_port_research_overlay):
-		charge_port_research_overlay.queue_free()
-
 	research_detail_feature = "Charge Port"
+	# Replace the hardware feature grid in place on the existing dark screen.
+	# This is deliberately not a modal, dialog, or navigation transition.
+	for child in research_content_panel.get_children():
+		child.queue_free()
+	charge_port_research_overlay = research_content_panel
+	charge_port_research_overlay_content = research_content_panel
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.x < 900.0 or viewport_size.y < 560.0
-
-	var overlay := Control.new()
-	overlay.name = "ChargePortResearchOverlay"
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	research_ui_root.add_child(overlay)
-	charge_port_research_overlay = overlay
-
-	var scrim := ColorRect.new()
-	scrim.name = "ChargePortResearchScrim"
-	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.002, 0.006, 0.004, 0.88)
-	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.add_child(scrim)
-
-	var center := CenterContainer.new()
-	center.name = "ChargePortResearchCenter"
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.add_theme_constant_override("margin_left", 12 if compact else 34)
-	center.add_theme_constant_override("margin_right", 12 if compact else 34)
-	center.add_theme_constant_override("margin_top", 10 if compact else 24)
-	center.add_theme_constant_override("margin_bottom", 10 if compact else 24)
-	overlay.add_child(center)
-
-	var frame := PanelContainer.new()
-	frame.name = "ChargePortResearchDialog"
-	frame.custom_minimum_size = Vector2(
-		minf(920.0, maxf(280.0, viewport_size.x - (24.0 if compact else 68.0))),
-		minf(720.0, maxf(220.0, viewport_size.y - (20.0 if compact else 48.0)))
-	)
-	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var frame_style := StyleBoxFlat.new()
-	frame_style.bg_color = Color(0.025, 0.065, 0.042, 0.98)
-	frame_style.border_color = Color(0.62, 0.87, 0.67, 0.92)
-	frame_style.set_border_width_all(1)
-	frame_style.border_width_top = 2
-	frame_style.set_corner_radius_all(18)
-	frame_style.shadow_color = Color(0.0, 0.025, 0.008, 0.76)
-	frame_style.shadow_size = 24
-	frame_style.shadow_offset = Vector2(0.0, 7.0)
-	frame_style.anti_aliasing = true
-	frame.add_theme_stylebox_override("panel", frame_style)
-	center.add_child(frame)
-
-	var frame_margin := MarginContainer.new()
-	frame_margin.add_theme_constant_override("margin_left", 12 if compact else 22)
-	frame_margin.add_theme_constant_override("margin_right", 12 if compact else 22)
-	frame_margin.add_theme_constant_override("margin_top", 10 if compact else 18)
-	frame_margin.add_theme_constant_override("margin_bottom", 10 if compact else 18)
-	frame.add_child(frame_margin)
-
-	var detail_host := VBoxContainer.new()
-	detail_host.name = "ChargePortResearchDialogContent"
-	detail_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	detail_host.add_theme_constant_override("separation", 8)
-	frame_margin.add_child(detail_host)
-	charge_port_research_overlay_content = detail_host
-	_build_charge_port_research_detail(detail_host, compact)
+	_build_charge_port_research_detail(research_content_panel, compact)
 
 
 func _refresh_charge_port_research_overlay() -> void:
@@ -3505,15 +3440,6 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	top_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_row.add_theme_constant_override("separation", 10)
 	detail.add_child(top_row)
-
-	var back_button := Button.new()
-	back_button.text = "‹  HARDWARE"
-	back_button.custom_minimum_size = Vector2(116 if compact else 142, 38 if compact else 42)
-	back_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(back_button, 12 if compact else 13)
-	_style_staff_back_button(back_button)
-	back_button.pressed.connect(_on_charge_port_research_back_pressed)
-	top_row.add_child(back_button)
 
 	var title_stack := VBoxContainer.new()
 	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
