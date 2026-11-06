@@ -3436,10 +3436,11 @@ func _show_charge_port_research_overlay() -> void:
 	frame_margin.add_theme_constant_override("margin_bottom", 10 if compact else 18)
 	frame.add_child(frame_margin)
 
-	var detail_host := Control.new()
+	var detail_host := VBoxContainer.new()
 	detail_host.name = "ChargePortResearchDialogContent"
 	detail_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	detail_host.add_theme_constant_override("separation", 8)
 	frame_margin.add_child(detail_host)
 	charge_port_research_overlay_content = detail_host
 	_build_charge_port_research_detail(detail_host, compact)
