@@ -112,6 +112,8 @@ func _process(delta: float) -> void:
 	if current_day != previous_day:
 		_save_career()
 		last_saved_game_day = current_day
+		if int(career.get("phone_charge_port_research_active_level", -1)) >= 0 and is_instance_valid(phone_research_worksite):
+			phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	_update_home_status_bar()
 
 
