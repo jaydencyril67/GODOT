@@ -2560,7 +2560,7 @@ func _show_phone_charge_port_research_prompt() -> void:
 
 func _show_phone_front_camera_research_prompt() -> void:
 	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8)
-	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
+	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
 	if completed_count >= camera_styles.size():
 		_show_notice("RESEARCH COMPLETE", "All front-camera designs currently available in the phone editor have been researched.")
 		return
@@ -2578,7 +2578,7 @@ func _show_phone_front_camera_research_prompt() -> void:
 
 func _on_phone_front_camera_research_upgrade() -> void:
 	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8)
-	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
+	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
 	if completed_count >= camera_styles.size():
 		_show_notice("RESEARCH COMPLETE", "All front-camera designs currently available in the phone editor have been researched.")
 		return
