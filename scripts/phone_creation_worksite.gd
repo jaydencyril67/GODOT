@@ -3458,91 +3458,12 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	var missing_points := maxi(0, points_cost - research_points)
 	var missing_money := maxf(0.0, money_cost - research_balance)
 	var can_afford := missing_points == 0 and missing_money <= 0.01
-	var viewport_size := get_viewport().get_visible_rect().size
-	var landscape_layout := viewport_size.x >= viewport_size.y * 1.15
-
-	var content_row: BoxContainer = HBoxContainer.new() if landscape_layout else VBoxContainer.new()
-	content_row.name = "ChargePortResearchContentRow"
-	content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content_row.add_theme_constant_override("separation", 12 if compact else 16)
-	detail.add_child(content_row)
-
-	var visual_card := _make_staff_style_card()
-	visual_card.name = "ChargePortTechnologyVisual"
-	visual_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	visual_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	visual_card.size_flags_stretch_ratio = 0.88 if landscape_layout else 1.0
-	visual_card.custom_minimum_size = Vector2(0, 170 if not landscape_layout else 220)
-	content_row.add_child(visual_card)
-
-	var visual_stack := VBoxContainer.new()
-	visual_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	visual_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	visual_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	visual_stack.add_theme_constant_override("separation", 5)
-	visual_card.add_child(visual_stack)
-
-	var visual_caption := _make_label("CONNECTOR PROFILE", 9 if compact else 10, Color("#9bd6a7"))
-	visual_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	visual_stack.add_child(visual_caption)
-
-	var connector_art := Control.new()
-	connector_art.name = "ConnectorTechnicalIllustration"
-	connector_art.custom_minimum_size = Vector2(0, 112 if compact else 150)
-	connector_art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	connector_art.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	connector_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	visual_stack.add_child(connector_art)
-	connector_art.draw.connect(func() -> void:
-		var bounds := connector_art.size
-		if bounds.x < 20.0 or bounds.y < 20.0:
-			return
-		var centre := bounds * 0.5
-		var scale_factor := minf(bounds.x / 250.0, bounds.y / 145.0)
-		var plug_width := (104.0 if completed_count == 0 else (118.0 if completed_count < 3 else 126.0)) * scale_factor
-		var plug_height := (64.0 if completed_count == 0 else (58.0 if completed_count < 3 else 52.0)) * scale_factor
-		var plug_rect := Rect2(centre.x - plug_width * 0.5, centre.y - plug_height * 0.5, plug_width, plug_height)
-		connector_art.draw_rect(Rect2(0, 0, bounds.x, bounds.y), Color(0.035, 0.055, 0.045, 0.20), true)
-		for grid_x in range(1, 8):
-			var gx := bounds.x * float(grid_x) / 8.0
-			connector_art.draw_line(Vector2(gx, 8), Vector2(gx, bounds.y - 8), Color(0.55, 0.78, 0.60, 0.07), 1.0)
-		for grid_y in range(1, 4):
-			var gy := bounds.y * float(grid_y) / 4.0
-			connector_art.draw_line(Vector2(8, gy), Vector2(bounds.x - 8, gy), Color(0.55, 0.78, 0.60, 0.07), 1.0)
-		connector_art.draw_rect(plug_rect.grow(5.0 * scale_factor), Color("#78947f"), false, 2.0 * scale_factor)
-		connector_art.draw_rect(plug_rect, Color("#b7c4ba"), true)
-		connector_art.draw_rect(plug_rect, Color("#e1e9e2"), false, 1.5 * scale_factor)
-		var socket_rect := plug_rect.grow(-9.0 * scale_factor)
-		connector_art.draw_rect(socket_rect, Color("#18231d"), true)
-		var pin_count := 2 if completed_count == 0 else (5 if completed_count == 1 else (5 if completed_count == 2 else (8 if completed_count == 3 else 9)))
-		for pin_index in range(pin_count):
-			var columns := 3 if pin_count > 5 else pin_count
-			var rows := ceili(float(pin_count) / float(columns))
-			var pin_x := socket_rect.position.x + socket_rect.size.x * (float(pin_index % columns) + 0.5) / float(columns)
-			var pin_y := socket_rect.position.y + socket_rect.size.y * (float(pin_index / columns) + 0.5) / float(rows)
-			connector_art.draw_circle(Vector2(pin_x, pin_y), maxf(2.0, 3.0 * scale_factor), Color("#9bd6a7"))
-		var cable_start := Vector2(centre.x, plug_rect.position.y + plug_rect.size.y)
-		connector_art.draw_line(cable_start, cable_start + Vector2(0, 13.0 * scale_factor), Color("#8d9b91"), 5.0 * scale_factor, true)
-		connector_art.draw_line(cable_start + Vector2(0, 13.0 * scale_factor), cable_start + Vector2(0, 24.0 * scale_factor), Color("#48564c"), 3.0 * scale_factor, true)
-	)
-	connector_art.resized.connect(connector_art.queue_redraw)
-	connector_art.queue_redraw()
-	var visual_name := _make_label(next_name.to_upper(), 14 if compact else 17, Color.WHITE)
-	visual_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	visual_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	visual_stack.add_child(visual_name)
-	var visual_tag := _make_label("TECHNOLOGY %d OF 5" % (completed_count + 1), 9, Color("#a8b9ac"))
-	visual_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	visual_stack.add_child(visual_tag)
-
 	var info_column := VBoxContainer.new()
 	info_column.name = "ChargePortResearchInformation"
 	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	info_column.size_flags_stretch_ratio = 1.35 if landscape_layout else 1.0
 	info_column.add_theme_constant_override("separation", 8)
-	content_row.add_child(info_column)
+	detail.add_child(info_column)
 
 	var description_card := _make_staff_style_card()
 	description_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
