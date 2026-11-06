@@ -95,9 +95,29 @@ func _run_transition_checks() -> void:
 	if not is_instance_valid(research_canvas) or not is_instance_valid(research_canvas.get_node_or_null("PhoneResearchRoot/DigitalWorld_Obsidian_Background")):
 		_fail("Phone research is missing its full-screen dark overlay layer.")
 		return
+	var research_root = research_worksite.research_ui_root
+	var hardware_content_panel = research_worksite.research_content_panel
+	var original_hardware_section = hardware_content_panel.get_node_or_null("HardwareResearchSection")
+	if not is_instance_valid(original_hardware_section):
+		_fail("Phone research did not build its original Hardware research section.")
+		return
 	research_worksite._on_research_feature_selected("Charge Port")
+	var charge_port_overlay = research_root.get_node_or_null("ChargePortResearchOverlay")
 	if game.phone_research_worksite != research_worksite or research_worksite.research_detail_feature != "Charge Port" or game.current_screen != "research_phone":
-		_fail("Charge Port research navigated away instead of opening in the existing dark research layer.")
+		_fail("Charge Port research changed the active screen instead of opening a modal.")
+		return
+	if not is_instance_valid(charge_port_overlay) or not is_instance_valid(charge_port_overlay.get_node_or_null("ChargePortResearchScrim")):
+		_fail("Charge Port research did not open its dark overlay.")
+		return
+	if research_worksite.research_content_panel != hardware_content_panel or not is_instance_valid(original_hardware_section):
+		_fail("Opening Charge Port research replaced the Hardware page underneath the overlay.")
+		return
+	research_worksite._on_charge_port_research_back_pressed()
+	if research_worksite.research_detail_feature != "" or is_instance_valid(research_worksite.charge_port_research_overlay):
+		_fail("Closing Charge Port research did not dismiss its overlay cleanly.")
+		return
+	if not is_instance_valid(original_hardware_section):
+		_fail("Closing Charge Port research did not preserve the Hardware research page.")
 		return
 	game._return_from_research_phone()
 	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
