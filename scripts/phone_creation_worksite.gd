@@ -593,6 +593,8 @@ var speaker_count_value_label: Label
 
 var charge_port_type := "None"
 
+var researched_charge_port_count := 0
+
 var charge_port_opening_points := PackedVector2Array()
 
 var charge_port_value_label: Label
@@ -3229,6 +3231,9 @@ func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> v
 			_build_design_research_content(research_content_panel)
 		else:
 			_refresh_design_research_cards()
+
+func set_charge_port_research_level(level: int) -> void:
+	researched_charge_port_count = clampi(level, 0, 5)
 
 func _build_design_research_content(parent: Control) -> void:
 	research_content_panel = parent
@@ -10185,7 +10190,7 @@ func _show_charge_port_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Five established phone connector types", 12, Color("#c7eacb"))
+	var description := _make_label("%d of 5 charging-port technologies researched" % researched_charge_port_count, 12, Color("#c7eacb"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -10210,14 +10215,16 @@ func _show_charge_port_controls() -> void:
 	options.add_theme_constant_override("v_separation", 7)
 	port_scroll.add_child(options)
 
-	var port_types := [
-		"None",
-		"USB Type-C",
-		"Apple Lightning",
-		"Micro-USB (Micro-B)",
+	var port_types := ["None"]
+	var research_port_types := [
+		"DC Barrel Jack",
 		"Mini-USB (Mini-B)",
-		"DC Barrel Jack"
+		"Micro-USB (Micro-B)",
+		"Apple Lightning",
+		"USB Type-C"
 	]
+	for research_index in range(mini(researched_charge_port_count, research_port_types.size())):
+		port_types.append(research_port_types[research_index])
 	for port_index in range(port_types.size()):
 		var port_type: String = port_types[port_index]
 		var option_button := Button.new()
@@ -10233,6 +10240,17 @@ func _show_charge_port_controls() -> void:
 		options.add_child(option_button)
 
 func _on_charge_port_selected(port_type: String) -> void:
+	if port_type != "None":
+		var research_port_types := [
+			"DC Barrel Jack",
+			"Mini-USB (Mini-B)",
+			"Micro-USB (Micro-B)",
+			"Apple Lightning",
+			"USB Type-C"
+		]
+		var required_research_count := research_port_types.find(port_type) + 1
+		if required_research_count <= 0 or required_research_count > researched_charge_port_count:
+			return
 	charge_port_type = port_type
 	if charge_port_type == "None":
 		charger_cable_enabled = false
