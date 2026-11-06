@@ -2482,6 +2482,7 @@ func _show_research_phone() -> void:
 	phone_research_worksite.set("research_mode", true)
 	phone_research_worksite.set("research_ui_host", ui_root)
 	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
+	phone_research_worksite.connect("charge_port_research_prompt_requested", Callable(self, "_show_phone_charge_port_research_prompt"))
 	add_child(phone_research_worksite)
 	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
 	current_screen = "research"
@@ -2526,6 +2527,24 @@ func _on_phone_design_research_upgrade(research_id: String) -> void:
 		_show_notice("INSUFFICIENT BALANCE", "Upgrading %s to level %d requires %s. Your available balance is %s." % [research_names[research_id], current_level + 1, _format_balance(upgrade_cost), _format_balance(previous_balance)])
 		return
 	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Upgrade %s from Level %d to Level %d?\n\nCost: %s" % [research_names[research_id], current_level, current_level + 1, _format_balance(upgrade_cost)], "UPGRADE", Callable(self, "_apply_phone_design_research_upgrade").bind(research_id))
+
+
+func _show_phone_charge_port_research_prompt() -> void:
+	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	if completed_count >= 5:
+		_show_notice("RESEARCH COMPLETE", "All charging-port technologies currently available in the phone editor have been researched.")
+		return
+	var active_level := int(career.get("phone_charge_port_research_active_level", -1))
+	if active_level >= 0:
+		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current charging-port research must finish before another connector can be researched.")
+		return
+	var port_names := ["DC Barrel Jack", "Mini-USB (Mini-B)", "Micro-USB (Micro-B)", "Apple Lightning", "USB Type-C"]
+	var next_name: String = port_names[completed_count]
+	var points_cost := 10 + completed_count * 2
+	var money_cost := 100000.0 + float(completed_count) * 20000.0
+	var prompt_message := "%s\n\nResearch points required: %d RP\nResearch cost: %s" % [next_name, points_cost, _format_balance(money_cost)]
+	if is_instance_valid(confirm_modal):
+		confirm_modal.show_action_prompt("CHARGING PORT RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_charge_port_research_upgrade"))
 
 
 func _on_phone_charge_port_research_upgrade() -> void:
