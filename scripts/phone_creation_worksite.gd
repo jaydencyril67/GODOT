@@ -3419,7 +3419,7 @@ func _show_charge_port_research_overlay() -> void:
 	center.add_theme_constant_override("margin_bottom", 10 if compact else 24)
 	overlay.add_child(center)
 
-	var frame := _make_staff_style_card()
+	var frame := PanelContainer.new()
 	frame.name = "ChargePortResearchDialog"
 	frame.custom_minimum_size = Vector2(
 		minf(920.0, maxf(280.0, viewport_size.x - (24.0 if compact else 68.0))),
@@ -3427,6 +3427,17 @@ func _show_charge_port_research_overlay() -> void:
 	)
 	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var frame_style := StyleBoxFlat.new()
+	frame_style.bg_color = Color(0.025, 0.065, 0.042, 0.98)
+	frame_style.border_color = Color(0.62, 0.87, 0.67, 0.92)
+	frame_style.set_border_width_all(1)
+	frame_style.border_width_top = 2
+	frame_style.set_corner_radius_all(18)
+	frame_style.shadow_color = Color(0.0, 0.025, 0.008, 0.76)
+	frame_style.shadow_size = 24
+	frame_style.shadow_offset = Vector2(0.0, 7.0)
+	frame_style.anti_aliasing = true
+	frame.add_theme_stylebox_override("panel", frame_style)
 	center.add_child(frame)
 
 	var frame_margin := MarginContainer.new()
