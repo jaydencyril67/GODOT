@@ -2,6 +2,7 @@ extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
+const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
