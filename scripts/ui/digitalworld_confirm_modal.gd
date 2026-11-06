@@ -7,6 +7,7 @@ var _title: Label
 var _message: Label
 var _confirm_button: Button
 var _cancel_button: Button
+var _actions: BoxContainer
 
 
 func _ready() -> void:
@@ -29,7 +30,28 @@ func show_action_prompt(title_text: String, message_text: String, action_text: S
 	_title.text = title_text.to_upper()
 	_message.text = message_text
 	_confirm_button.text = action_text.to_upper()
-	_cancel_button.hide()
+	_cancel_button.text = "CLOSE"
+	if not (_actions is HBoxContainer):
+		var previous_actions := _actions
+		var horizontal_actions := HBoxContainer.new()
+		horizontal_actions.alignment = BoxContainer.ALIGNMENT_CENTER
+		horizontal_actions.add_theme_constant_override("separation", 12)
+		var parent := previous_actions.get_parent()
+		var previous_index := previous_actions.get_index()
+		parent.remove_child(previous_actions)
+		parent.add_child(horizontal_actions)
+		parent.move_child(horizontal_actions, previous_index)
+		previous_actions.remove_child(_cancel_button)
+		horizontal_actions.add_child(_cancel_button)
+		previous_actions.remove_child(_confirm_button)
+		horizontal_actions.add_child(_confirm_button)
+		previous_actions.queue_free()
+		_actions = horizontal_actions
+	_cancel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_confirm_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_cancel_button.custom_minimum_size.x = 0
+	_confirm_button.custom_minimum_size.x = 0
+	_cancel_button.show()
 	_open_overlay()
 
 
@@ -113,6 +135,7 @@ func _build_modal() -> void:
 		actions = VBoxContainer.new()
 	else:
 		actions = HBoxContainer.new()
+	_actions = actions
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 12 if compact else 14)
 	_content.add_child(actions)
