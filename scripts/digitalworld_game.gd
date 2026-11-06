@@ -2476,8 +2476,10 @@ func _show_research_phone() -> void:
 	phone_research_worksite.connect("back_requested", Callable(self, "_return_from_research_phone"))
 	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
 	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
-	if is_instance_valid(ui_layer):
-		ui_layer.hide()
+	# Keep the main Research page alive underneath this CanvasLayer. The phone
+	# research interface supplies its own full-screen dark overlay (layer 50),
+	# so this is an overlay transition rather than replacing the Research page.
+	# Charge Port then opens its detail panel inside this same research interface.
 	add_child(phone_research_worksite)
 	current_screen = "research_phone"
 
