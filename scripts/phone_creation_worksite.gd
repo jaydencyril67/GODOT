@@ -3392,153 +3392,266 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 		"USB Type-C"
 	]
 	var port_descriptions := [
-		"A traditional cylindrical power connector used on early portable electronics.",
-		"A compact USB connector that helped standardize charging on older mobile devices.",
-		"A smaller USB connector widely used on mobile phones before reversible USB-C.",
-		"Apple's compact reversible connector introduced for its mobile devices.",
+		"A traditional round power connector used by early portable electronics.",
+		"A compact USB connector that brought a smaller charging interface to mobile devices.",
+		"A slimmer USB connector widely used on phones before reversible USB-C.",
+		"A compact reversible connector introduced for Apple's mobile devices.",
 		"A modern reversible connector designed for charging and data across many device types."
 	]
-	var port_image_paths := [
-		"res://assets/research/charging_ports/dc_barrel_jack.jpg",
-		"res://assets/research/charging_ports/mini_usb_mini_b.jpg",
-		"res://assets/research/charging_ports/micro_usb_micro_b.jpg",
-		"res://assets/research/charging_ports/apple_lightning.jpg",
-		"res://assets/research/charging_ports/usb_type_c.jpg"
-	]
-
 	var completed_count := clampi(int(research_levels.get("charge_port_level", 0)), 0, port_names.size())
+	var detail_scroll := ScrollContainer.new()
+	detail_scroll.name = "ChargePortResearchScroll"
+	detail_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	detail_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	detail_scroll.get_v_scroll_bar().modulate = Color(1, 1, 1, 0)
+	detail_scroll.get_v_scroll_bar().mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(detail_scroll)
+
 	var detail := VBoxContainer.new()
 	detail.name = "ChargePortResearchDetail"
 	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	detail.add_theme_constant_override("separation", 10 if compact else 14)
-	parent.add_child(detail)
+	detail.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	detail.add_theme_constant_override("separation", 10)
+	detail_scroll.add_child(detail)
 
 	var top_row := HBoxContainer.new()
-	top_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	top_row.name = "ChargePortResearchHeader"
+	top_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_theme_constant_override("separation", 10)
 	detail.add_child(top_row)
+
 	var back_button := Button.new()
 	back_button.text = "‹  HARDWARE"
-	back_button.custom_minimum_size = Vector2(132 if compact else 156, 40 if compact else 44)
+	back_button.custom_minimum_size = Vector2(116 if compact else 142, 38 if compact else 42)
 	back_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(back_button, 12 if compact else 14)
+	_apply_research_typography(back_button, 12 if compact else 13)
 	_style_staff_back_button(back_button)
 	back_button.pressed.connect(_on_charge_port_research_back_pressed)
 	top_row.add_child(back_button)
 
-	var heading := _make_label("CHARGING PORT RESEARCH", 18 if compact else 25, Color.WHITE)
-	detail.add_child(heading)
-	var subtitle := _make_label("Research the next charging connector for your phone lineup.", 11 if compact else 13, Color("#aebdca"))
-	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	detail.add_child(subtitle)
+	var title_stack := VBoxContainer.new()
+	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_stack.add_theme_constant_override("separation", 1)
+	top_row.add_child(title_stack)
+	var heading := _make_label("CHARGING PORT", 19 if compact else 24, Color.WHITE)
+	title_stack.add_child(heading)
+	var eyebrow := _make_label("HARDWARE TECHNOLOGY  /  NEXT UNLOCK", 9 if compact else 10, Color("#9bd6a7"))
+	title_stack.add_child(eyebrow)
 
 	if completed_count >= port_names.size():
 		var complete_card := _make_staff_style_card()
-		complete_card.name = "ChargePortResearchCompleted"
+		complete_card.custom_minimum_size = Vector2(0, 110)
 		complete_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		detail.add_child(complete_card)
-		var complete_text := _make_label("ALL CURRENT CHARGING PORTS RESEARCHED\nUSB Type-C is the latest connector currently available in your phone editor.", 15, Color("#c7eacb"))
+		var complete_text := _make_label("ALL FIVE CONNECTOR TECHNOLOGIES UNLOCKED\nUSB Type-C is currently the newest charging port available in the phone editor.", 14, Color("#c7eacb"))
 		complete_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		complete_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		complete_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		complete_card.add_child(complete_text)
 		return
 
 	var next_name: String = port_names[completed_count]
-	var next_image_path: String = port_image_paths[completed_count]
-	var image_card := _make_staff_style_card()
-	image_card.name = "NextChargingPortImageCard"
-	image_card.custom_minimum_size = Vector2(0, 205 if compact else 270)
-	image_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail.add_child(image_card)
-
-	var image_margin := MarginContainer.new()
-	image_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	image_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	image_margin.add_theme_constant_override("margin_left", 8)
-	image_margin.add_theme_constant_override("margin_right", 8)
-	image_margin.add_theme_constant_override("margin_top", 8)
-	image_margin.add_theme_constant_override("margin_bottom", 8)
-	image_card.add_child(image_margin)
-
-	if ResourceLoader.exists(next_image_path):
-		var port_image := TextureRect.new()
-		port_image.name = "NextChargingPortImage"
-		port_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		port_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		port_image.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		port_image.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		port_image.texture = load(next_image_path) as Texture2D
-		image_margin.add_child(port_image)
-	else:
-		var missing_image_note := _make_label("ADD IMAGE ASSET\\n" + next_image_path.get_file(), 12, Color("#9bd6a7"))
-		missing_image_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		missing_image_note.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		missing_image_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		missing_image_note.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		image_margin.add_child(missing_image_note)
-
-	var name_label := _make_label("NEXT UPGRADE  ·  " + next_name.to_upper(), 17 if compact else 23, Color.WHITE)
-	detail.add_child(name_label)
-	var description := _make_label(port_descriptions[completed_count], 11 if compact else 13, Color("#c1ccd7"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	detail.add_child(description)
-
-	var requirement_card := _make_staff_style_card()
-	requirement_card.name = "ChargePortResearchRequirements"
-	requirement_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail.add_child(requirement_card)
-	var requirement_margin := MarginContainer.new()
-	requirement_margin.add_theme_constant_override("margin_left", 14)
-	requirement_margin.add_theme_constant_override("margin_right", 14)
-	requirement_margin.add_theme_constant_override("margin_top", 10)
-	requirement_margin.add_theme_constant_override("margin_bottom", 10)
-	requirement_card.add_child(requirement_margin)
-	var requirement_content := VBoxContainer.new()
-	requirement_content.add_theme_constant_override("separation", 7)
-	requirement_margin.add_child(requirement_content)
-
 	var points_cost := 10 + completed_count * 2
 	var money_cost := 100000.0 + float(completed_count) * 20000.0
-	var requirements_title := _make_label("RESEARCH REQUIREMENTS", 12 if compact else 14, Color("#9bd6a7"))
-	requirement_content.add_child(requirements_title)
+	var missing_points := maxi(0, points_cost - research_points)
+	var missing_money := maxf(0.0, money_cost - research_balance)
+	var can_afford := missing_points == 0 and missing_money <= 0.01
+	var viewport_size := get_viewport().get_visible_rect().size
+	var landscape_layout := viewport_size.x >= viewport_size.y * 1.15
+
+	var content_row := BoxContainer.new()
+	content_row.name = "ChargePortResearchContentRow"
+	content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_row.add_theme_constant_override("separation", 12 if compact else 16)
+	content_row.vertical = not landscape_layout
+	detail.add_child(content_row)
+
+	var visual_card := _make_staff_style_card()
+	visual_card.name = "ChargePortTechnologyVisual"
+	visual_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	visual_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	visual_card.size_flags_stretch_ratio = 0.88 if landscape_layout else 1.0
+	visual_card.custom_minimum_size = Vector2(0, 170 if not landscape_layout else 220)
+	content_row.add_child(visual_card)
+
+	var visual_stack := VBoxContainer.new()
+	visual_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	visual_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	visual_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	visual_stack.add_theme_constant_override("separation", 5)
+	visual_card.add_child(visual_stack)
+
+	var visual_caption := _make_label("CONNECTOR PROFILE", 9 if compact else 10, Color("#9bd6a7"))
+	visual_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	visual_stack.add_child(visual_caption)
+
+	var connector_art := Control.new()
+	connector_art.name = "ConnectorTechnicalIllustration"
+	connector_art.custom_minimum_size = Vector2(0, 112 if compact else 150)
+	connector_art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	connector_art.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	connector_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	visual_stack.add_child(connector_art)
+	connector_art.draw.connect(func() -> void:
+		var bounds := connector_art.size
+		if bounds.x < 20.0 or bounds.y < 20.0:
+			return
+		var centre := bounds * 0.5
+		var scale_factor := minf(bounds.x / 250.0, bounds.y / 145.0)
+		var plug_width := (104.0 if completed_count == 0 else (118.0 if completed_count < 3 else 126.0)) * scale_factor
+		var plug_height := (64.0 if completed_count == 0 else (58.0 if completed_count < 3 else 52.0)) * scale_factor
+		var plug_rect := Rect2(centre.x - plug_width * 0.5, centre.y - plug_height * 0.5, plug_width, plug_height)
+		connector_art.draw_rect(Rect2(0, 0, bounds.x, bounds.y), Color(0.035, 0.055, 0.045, 0.20), true)
+		for grid_x in range(1, 8):
+			var gx := bounds.x * float(grid_x) / 8.0
+			connector_art.draw_line(Vector2(gx, 8), Vector2(gx, bounds.y - 8), Color(0.55, 0.78, 0.60, 0.07), 1.0)
+		for grid_y in range(1, 4):
+			var gy := bounds.y * float(grid_y) / 4.0
+			connector_art.draw_line(Vector2(8, gy), Vector2(bounds.x - 8, gy), Color(0.55, 0.78, 0.60, 0.07), 1.0)
+		connector_art.draw_rect(plug_rect.grow(5.0 * scale_factor), Color("#78947f"), false, 2.0 * scale_factor)
+		connector_art.draw_rect(plug_rect, Color("#b7c4ba"), true)
+		connector_art.draw_rect(plug_rect, Color("#e1e9e2"), false, 1.5 * scale_factor)
+		var socket_rect := plug_rect.grow(-9.0 * scale_factor)
+		connector_art.draw_rect(socket_rect, Color("#18231d"), true)
+		var pin_count := 2 if completed_count == 0 else (5 if completed_count == 1 else (5 if completed_count == 2 else (8 if completed_count == 3 else 9)))
+		for pin_index in range(pin_count):
+			var columns := 3 if pin_count > 5 else pin_count
+			var rows := ceili(float(pin_count) / float(columns))
+			var pin_x := socket_rect.position.x + socket_rect.size.x * (float(pin_index % columns) + 0.5) / float(columns)
+			var pin_y := socket_rect.position.y + socket_rect.size.y * (float(pin_index / columns) + 0.5) / float(rows)
+			connector_art.draw_circle(Vector2(pin_x, pin_y), maxf(2.0, 3.0 * scale_factor), Color("#9bd6a7"))
+		var cable_start := Vector2(centre.x, plug_rect.position.y + plug_rect.size.y)
+		connector_art.draw_line(cable_start, cable_start + Vector2(0, 13.0 * scale_factor), Color("#8d9b91"), 5.0 * scale_factor, true)
+		connector_art.draw_line(cable_start + Vector2(0, 13.0 * scale_factor), cable_start + Vector2(0, 24.0 * scale_factor), Color("#48564c"), 3.0 * scale_factor, true)
+	)
+	var visual_name := _make_label(next_name.to_upper(), 14 if compact else 17, Color.WHITE)
+	visual_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	visual_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	visual_stack.add_child(visual_name)
+	var visual_tag := _make_label("TECHNOLOGY %d OF 5" % (completed_count + 1), 9, Color("#a8b9ac"))
+	visual_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	visual_stack.add_child(visual_tag)
+
+	var info_column := VBoxContainer.new()
+	info_column.name = "ChargePortResearchInformation"
+	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	info_column.size_flags_stretch_ratio = 1.35 if landscape_layout else 1.0
+	info_column.add_theme_constant_override("separation", 8)
+	content_row.add_child(info_column)
+
+	var description_card := _make_staff_style_card()
+	description_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_column.add_child(description_card)
+	var description_margin := MarginContainer.new()
+	description_margin.add_theme_constant_override("margin_left", 12)
+	description_margin.add_theme_constant_override("margin_right", 12)
+	description_margin.add_theme_constant_override("margin_top", 9)
+	description_margin.add_theme_constant_override("margin_bottom", 9)
+	description_card.add_child(description_margin)
+	var description_stack := VBoxContainer.new()
+	description_stack.add_theme_constant_override("separation", 4)
+	description_margin.add_child(description_stack)
+	description_stack.add_child(_make_label("WHAT YOU ARE UNLOCKING", 10, Color("#9bd6a7")))
+	var description := _make_label(port_descriptions[completed_count], 12 if compact else 13, Color("#d0d9d2"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description_stack.add_child(description)
+
+	var requirements_card := _make_staff_style_card()
+	requirements_card.name = "ChargePortResearchRequirements"
+	requirements_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_column.add_child(requirements_card)
+	var requirements_margin := MarginContainer.new()
+	requirements_margin.add_theme_constant_override("margin_left", 12)
+	requirements_margin.add_theme_constant_override("margin_right", 12)
+	requirements_margin.add_theme_constant_override("margin_top", 9)
+	requirements_margin.add_theme_constant_override("margin_bottom", 9)
+	requirements_card.add_child(requirements_margin)
+	var requirements_stack := VBoxContainer.new()
+	requirements_stack.add_theme_constant_override("separation", 6)
+	requirements_margin.add_child(requirements_stack)
+	requirements_stack.add_child(_make_label("RESEARCH COST", 10, Color("#9bd6a7")))
+
 	var points_row := HBoxContainer.new()
-	points_row.add_child(_make_label("Research points required", 12, Color("#c1ccd7")))
-	var points_value := _make_label("%d RP" % points_cost, 13, Color.WHITE)
+	points_row.add_child(_make_label("Research points", 12, Color("#c1ccd7")))
+	var points_value := _make_label("%d RP" % points_cost, 12, Color.WHITE)
 	points_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	points_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	points_row.add_child(points_value)
-	requirement_content.add_child(points_row)
+	requirements_stack.add_child(points_row)
 
 	var money_row := HBoxContainer.new()
-	money_row.add_child(_make_label("Money required", 12, Color("#c1ccd7")))
-	var money_value := _make_label(_format_research_money(money_cost), 13, Color.WHITE)
+	money_row.add_child(_make_label("Company funds", 12, Color("#c1ccd7")))
+	var money_value := _make_label(_format_research_money(money_cost), 12, Color.WHITE)
 	money_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	money_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	money_row.add_child(money_value)
-	requirement_content.add_child(money_row)
+	requirements_stack.add_child(money_row)
 
-	var divider := HSeparator.new()
-	requirement_content.add_child(divider)
-	research_points_label = _make_label("YOUR RESEARCH POINTS  ·  %d RP" % research_points, 11 if compact else 12, Color("#c7eacb"))
-	requirement_content.add_child(research_points_label)
-	var balance_value := _make_label("YOUR AVAILABLE BALANCE  ·  " + _format_research_money(research_balance), 11 if compact else 12, Color("#c7eacb"))
-	requirement_content.add_child(balance_value)
+	var separator := HSeparator.new()
+	separator.add_theme_color_override("separator", Color(0.65, 0.78, 0.68, 0.30))
+	requirements_stack.add_child(separator)
+
+	research_points_label = _make_label("AVAILABLE  %d RP" % research_points, 10, Color("#c7eacb"))
+	requirements_stack.add_child(research_points_label)
+	var balance_label := _make_label("AVAILABLE  " + _format_research_money(research_balance), 10, Color("#c7eacb"))
+	requirements_stack.add_child(balance_label)
+
+	if missing_points > 0:
+		var points_hint := _make_label("Need %d more research points" % missing_points, 10, Color("#e3b77e"))
+		requirements_stack.add_child(points_hint)
+	if missing_money > 0.01:
+		var money_hint := _make_label("Need %s more company funds" % _format_research_money(missing_money), 10, Color("#e3b77e"))
+		requirements_stack.add_child(money_hint)
+
+	var progress_card := _make_staff_style_card()
+	progress_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_column.add_child(progress_card)
+	var progress_margin := MarginContainer.new()
+	progress_margin.add_theme_constant_override("margin_left", 12)
+	progress_margin.add_theme_constant_override("margin_right", 12)
+	progress_margin.add_theme_constant_override("margin_top", 7)
+	progress_margin.add_theme_constant_override("margin_bottom", 7)
+	progress_card.add_child(progress_margin)
+	var progress_stack := VBoxContainer.new()
+	progress_stack.add_theme_constant_override("separation", 5)
+	progress_margin.add_child(progress_stack)
+	var progress_header := HBoxContainer.new()
+	progress_header.add_child(_make_label("UNLOCK PROGRESS", 9, Color("#a8b9ac")))
+	var progress_value := _make_label("%d / 5" % completed_count, 10, Color.WHITE)
+	progress_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	progress_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	progress_header.add_child(progress_value)
+	progress_stack.add_child(progress_header)
+	var progress_segments := HBoxContainer.new()
+	progress_segments.add_theme_constant_override("separation", 4)
+	for segment_index in range(5):
+		var segment := ColorRect.new()
+		segment.custom_minimum_size = Vector2(0, 5)
+		segment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		segment.color = Color("#9bd6a7") if segment_index < completed_count else Color(0.38, 0.45, 0.40, 0.42)
+		progress_segments.add_child(segment)
+	progress_stack.add_child(progress_segments)
 
 	var upgrade_button := Button.new()
 	upgrade_button.name = "ResearchNextChargingPortButton"
-	upgrade_button.text = "RESEARCH UPGRADE"
-	upgrade_button.custom_minimum_size.y = 46 if compact else 52
+	upgrade_button.text = "RESEARCH NEXT TECHNOLOGY" if can_afford else "CHECK RESEARCH REQUIREMENTS"
+	upgrade_button.custom_minimum_size.y = 42 if compact else 46
 	upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upgrade_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(upgrade_button, 13 if compact else 15)
+	upgrade_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_apply_research_typography(upgrade_button, 12 if compact else 13)
 	_style_staff_button(upgrade_button, true)
-	upgrade_button.disabled = research_points < points_cost or research_balance < money_cost
+	upgrade_button.disabled = false
 	upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind("charge_port"))
-	detail.add_child(upgrade_button)
+	info_column.add_child(upgrade_button)
 
-	var progress_note := _make_label("UPGRADES COMPLETED  ·  %d / %d" % [completed_count, port_names.size()], 10 if compact else 11, Color("#8193a5"))
-	progress_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	detail.add_child(progress_note)
+	var interaction_note := _make_label("Your next connector unlocks permanently in the phone editor.", 9, Color("#8fa195"))
+	interaction_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_column.add_child(interaction_note)
 
 
 func _on_charge_port_research_back_pressed() -> void:
