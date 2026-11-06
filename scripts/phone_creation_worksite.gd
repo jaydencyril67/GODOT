@@ -3526,6 +3526,8 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 		connector_art.draw_line(cable_start, cable_start + Vector2(0, 13.0 * scale_factor), Color("#8d9b91"), 5.0 * scale_factor, true)
 		connector_art.draw_line(cable_start + Vector2(0, 13.0 * scale_factor), cable_start + Vector2(0, 24.0 * scale_factor), Color("#48564c"), 3.0 * scale_factor, true)
 	)
+	connector_art.resized.connect(connector_art.queue_redraw)
+	connector_art.queue_redraw()
 	var visual_name := _make_label(next_name.to_upper(), 14 if compact else 17, Color.WHITE)
 	visual_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	visual_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
