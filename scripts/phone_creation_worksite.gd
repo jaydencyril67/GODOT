@@ -109,6 +109,7 @@ var step_panels: Dictionary = {}
 
 signal research_upgrade_requested(research_id: String)
 signal charge_port_research_prompt_requested
+signal front_camera_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -603,6 +604,8 @@ var speaker_count_value_label: Label
 var charge_port_type := "None"
 
 var researched_charge_port_count := 0
+
+var researched_front_camera_count := 0
 
 var charge_port_opening_points := PackedVector2Array()
 
@@ -3231,6 +3234,9 @@ func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> v
 func set_charge_port_research_level(level: int) -> void:
 	researched_charge_port_count = clampi(level, 0, 5)
 
+func set_front_camera_research_level(level: int) -> void:
+	researched_front_camera_count = clampi(level, 0, FRONT_CAMERA_STYLES.size())
+
 func _build_design_research_content(parent: Control) -> void:
 	research_content_panel = parent
 	for child in parent.get_children():
@@ -3338,12 +3344,12 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 		var dummy_button := Button.new()
 		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name == "Charge Port" else "SELECT"
+		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera"] else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		if feature_name == "Charge Port":
+		if feature_name in ["Charge Port", "Front Camera"]:
 			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
 		# Other research categories remain placeholders until their individual
 		# progression screens are implemented.
@@ -3369,9 +3375,10 @@ func _build_extras_research_content(parent: Control, compact: bool) -> void:
 
 
 func _on_research_feature_selected(feature_name: String) -> void:
-	if feature_name != "Charge Port":
-		return
-	charge_port_research_prompt_requested.emit()
+	if feature_name == "Charge Port":
+		charge_port_research_prompt_requested.emit()
+	elif feature_name == "Front Camera":
+		front_camera_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
@@ -7907,6 +7914,7 @@ func _show_front_camera_controls() -> void:
 	enable_toggle.name = "FrontCameraEnablement"
 	enable_toggle.toggle_mode = true
 	enable_toggle.button_pressed = front_camera_enabled
+	enable_toggle.disabled = researched_front_camera_count <= 0
 	enable_toggle.text = "✓" if front_camera_enabled else ""
 	enable_toggle.custom_minimum_size = Vector2(30, 30)
 	enable_toggle.focus_mode = Control.FOCUS_NONE
@@ -7947,7 +7955,7 @@ func _show_front_camera_controls() -> void:
 		option.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(option, 12)
 		_style_screen_type_option(option, mini(index + 2, 9), style_name == front_camera_style)
-		option.disabled = not front_camera_enabled
+		option.disabled = not front_camera_enabled or index >= researched_front_camera_count
 		option.pressed.connect(_on_front_camera_style_selected.bind(style_name))
 		style_list.add_child(option)
 		front_camera_option_buttons[style_name] = option
