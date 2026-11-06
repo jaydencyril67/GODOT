@@ -103,6 +103,7 @@ func _process(delta: float) -> void:
 	var game_time_delta := delta * 28800.0
 	game_date_unix += game_time_delta
 	_accrue_research_points(game_time_delta)
+	_process_phone_charge_port_research()
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month:
@@ -197,7 +198,9 @@ func _load_career() -> bool:
 		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
 		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false)),
 		"phone_design_research": config.get_value("career", "phone_design_research", {}),
-		"phone_charge_port_research_level": clampi(int(config.get_value("career", "phone_charge_port_research_level", 0)), 0, 5)
+		"phone_charge_port_research_level": clampi(int(config.get_value("career", "phone_charge_port_research_level", 0)), 0, 5),
+		"phone_charge_port_research_active_level": int(config.get_value("career", "phone_charge_port_research_active_level", -1)),
+		"phone_charge_port_research_completion_unix": float(config.get_value("career", "phone_charge_port_research_completion_unix", 0.0))
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
@@ -229,6 +232,8 @@ func _save_career() -> bool:
 	config.set_value("career", "staff_market_initialized", bool(career.get("staff_market_initialized", false)))
 	config.set_value("career", "phone_design_research", career.get("phone_design_research", {}))
 	config.set_value("career", "phone_charge_port_research_level", clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5))
+	config.set_value("career", "phone_charge_port_research_active_level", int(career.get("phone_charge_port_research_active_level", -1)))
+	config.set_value("career", "phone_charge_port_research_completion_unix", float(career.get("phone_charge_port_research_completion_unix", 0.0)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -1189,6 +1194,12 @@ func _create_company() -> void:
 		career["research_points"] = 0
 	if not career.has("research_points_progress"):
 		career["research_points_progress"] = 0.0
+	if not career.has("phone_charge_port_research_level"):
+		career["phone_charge_port_research_level"] = 0
+	if not career.has("phone_charge_port_research_active_level"):
+		career["phone_charge_port_research_active_level"] = -1
+	if not career.has("phone_charge_port_research_completion_unix"):
+		career["phone_charge_port_research_completion_unix"] = 0.0
 	if not career.has("game_date_unix"):
 		game_date_unix = 1262304000.0
 		career["game_date_unix"] = game_date_unix
@@ -2479,6 +2490,9 @@ func _return_from_research_phone() -> void:
 func _get_phone_research_ui_data() -> Dictionary:
 	var research_data: Dictionary = career.get("phone_design_research", {}).duplicate(true)
 	research_data["charge_port_level"] = clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	research_data["charge_port_active_level"] = int(career.get("phone_charge_port_research_active_level", -1))
+	research_data["charge_port_completion_unix"] = float(career.get("phone_charge_port_research_completion_unix", 0.0))
+	research_data["game_date_unix"] = game_date_unix
 	return research_data
 
 
@@ -2514,6 +2528,10 @@ func _on_phone_charge_port_research_upgrade() -> void:
 	if completed_count >= 5:
 		_show_notice("RESEARCH COMPLETE", "All charging-port technologies currently available in the phone editor have been researched.")
 		return
+	var active_level := int(career.get("phone_charge_port_research_active_level", -1))
+	if active_level >= 0:
+		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current charging-port research must finish before another connector can be researched.")
+		return
 	var port_names := ["DC Barrel Jack", "Mini-USB (Mini-B)", "Micro-USB (Micro-B)", "Apple Lightning", "USB Type-C"]
 	var next_name: String = port_names[completed_count]
 	var points_cost := 10 + completed_count * 2
@@ -2526,30 +2544,21 @@ func _on_phone_charge_port_research_upgrade() -> void:
 	if available_balance < money_cost:
 		_show_notice("INSUFFICIENT BALANCE", "Researching %s requires %s. Your available balance is %s." % [next_name, _format_balance(money_cost), _format_balance(available_balance)])
 		return
-	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Research %s?\n\nResearch points: %d RP\nMoney: %s" % [next_name, points_cost, _format_balance(money_cost)], "RESEARCH", Callable(self, "_apply_phone_charge_port_research_upgrade"))
 
-
-func _apply_phone_charge_port_research_upgrade() -> void:
-	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
-	if completed_count >= 5:
-		return
-	var points_cost := 10 + completed_count * 2
-	var money_cost := 100000.0 + float(completed_count) * 20000.0
-	var previous_level := completed_count
-	var previous_points := maxi(0, int(career.get("research_points", 0)))
-	var previous_balance := float(career.get("balance", 10000000.0))
-	if previous_points < points_cost or previous_balance < money_cost:
-		_on_phone_charge_port_research_upgrade()
-		return
-
-	career["phone_charge_port_research_level"] = completed_count + 1
+	var previous_points := available_points
+	var previous_balance := available_balance
+	var previous_active_level := int(career.get("phone_charge_port_research_active_level", -1))
+	var previous_completion := float(career.get("phone_charge_port_research_completion_unix", 0.0))
 	career["research_points"] = previous_points - points_cost
 	career["balance"] = previous_balance - money_cost
+	career["phone_charge_port_research_active_level"] = completed_count
+	career["phone_charge_port_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
 	if not _save_career():
-		career["phone_charge_port_research_level"] = previous_level
 		career["research_points"] = previous_points
 		career["balance"] = previous_balance
-		_show_notice("RESEARCH NOT SAVED", "The charging-port upgrade could not be saved. Your research progress and balances have not changed.")
+		career["phone_charge_port_research_active_level"] = previous_active_level
+		career["phone_charge_port_research_completion_unix"] = previous_completion
+		_show_notice("RESEARCH NOT SAVED", "The charging-port research could not be saved. No research points or company funds were deducted.")
 		return
 
 	_update_home_status_bar()
@@ -2559,6 +2568,31 @@ func _apply_phone_charge_port_research_upgrade() -> void:
 		world_root.set_company_balance(float(career["balance"]))
 	if is_instance_valid(phone_research_worksite):
 		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
+
+
+func _process_phone_charge_port_research() -> void:
+	var active_level := int(career.get("phone_charge_port_research_active_level", -1))
+	if active_level < 0:
+		return
+	var completion_unix := float(career.get("phone_charge_port_research_completion_unix", 0.0))
+	if completion_unix <= 0.0 or game_date_unix < completion_unix:
+		return
+
+	var current_level := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	career["phone_charge_port_research_level"] = maxi(current_level, active_level + 1)
+	career["phone_charge_port_research_active_level"] = -1
+	career["phone_charge_port_research_completion_unix"] = 0.0
+	if not _save_career():
+		# Keep the completion pending so it can be retried on the next game tick.
+		career["phone_charge_port_research_level"] = current_level
+		career["phone_charge_port_research_active_level"] = active_level
+		career["phone_charge_port_research_completion_unix"] = completion_unix
+		return
+
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
+	if current_screen == "research_phone":
+		_show_notice("CHARGING PORT RESEARCH COMPLETE", "The next charging-port technology has been unlocked in your phone editor.")
 
 
 func _apply_phone_design_research_upgrade(research_id: String) -> void:
