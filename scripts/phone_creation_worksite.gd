@@ -549,6 +549,12 @@ var charging_speed_slider: VSlider
 
 var research_mode := false
 
+var research_ui_root: Control
+
+var charge_port_research_overlay: Control
+
+var charge_port_research_overlay_content: Control
+
 var research_content_panel: Control
 
 var research_balance_label: Label
@@ -3151,6 +3157,7 @@ func _build_research_ui() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	layer.add_child(root)
+	research_ui_root = root
 
 	var background := ColorRect.new()
 	background.name = "DigitalWorld_Obsidian_Background"
@@ -3226,11 +3233,10 @@ func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> v
 	research_points = maxi(0, points)
 	if is_instance_valid(research_balance_label):
 		research_balance_label.text = "AVAILABLE BALANCE  " + _format_research_money(research_balance)
-	if is_instance_valid(research_content_panel):
-		if research_detail_feature == "Charge Port":
-			_build_design_research_content(research_content_panel)
-		else:
-			_refresh_design_research_cards()
+	if is_instance_valid(charge_port_research_overlay_content) and research_detail_feature == "Charge Port":
+		_refresh_charge_port_research_overlay()
+	elif is_instance_valid(research_content_panel):
+		_refresh_design_research_cards()
 
 func set_charge_port_research_level(level: int) -> void:
 	researched_charge_port_count = clampi(level, 0, 5)
@@ -3243,10 +3249,8 @@ func _build_design_research_content(parent: Control) -> void:
 	research_item_cards.clear()
 
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	if research_detail_feature == "Charge Port":
-		_build_charge_port_research_detail(parent, compact)
-		return
-
+	# Charge Port details are presented in a modal overlay. The Hardware grid
+	# stays mounted underneath instead of being replaced by another page.
 	_build_research_view_selector(parent, compact)
 
 	if research_view == "HARDWARE":
@@ -3378,9 +3382,77 @@ func _build_extras_research_content(parent: Control, compact: bool) -> void:
 func _on_research_feature_selected(feature_name: String) -> void:
 	if feature_name != "Charge Port":
 		return
-	research_detail_feature = feature_name
-	if is_instance_valid(research_content_panel):
-		_build_design_research_content(research_content_panel)
+	_show_charge_port_research_overlay()
+
+
+func _show_charge_port_research_overlay() -> void:
+	if not is_instance_valid(research_ui_root):
+		push_error("Cannot show Charge Port research: the Phone Research screen root is missing.")
+		return
+	if is_instance_valid(charge_port_research_overlay):
+		charge_port_research_overlay.queue_free()
+
+	research_detail_feature = "Charge Port"
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.x < 900.0 or viewport_size.y < 560.0
+
+	var overlay := Control.new()
+	overlay.name = "ChargePortResearchOverlay"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	research_ui_root.add_child(overlay)
+	charge_port_research_overlay = overlay
+
+	var scrim := ColorRect.new()
+	scrim.name = "ChargePortResearchScrim"
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.color = Color(0.002, 0.006, 0.004, 0.88)
+	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(scrim)
+
+	var center := CenterContainer.new()
+	center.name = "ChargePortResearchCenter"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.add_theme_constant_override("margin_left", 12 if compact else 34)
+	center.add_theme_constant_override("margin_right", 12 if compact else 34)
+	center.add_theme_constant_override("margin_top", 10 if compact else 24)
+	center.add_theme_constant_override("margin_bottom", 10 if compact else 24)
+	overlay.add_child(center)
+
+	var frame := _make_staff_style_card()
+	frame.name = "ChargePortResearchDialog"
+	frame.custom_minimum_size = Vector2(
+		minf(920.0, maxf(280.0, viewport_size.x - (24.0 if compact else 68.0))),
+		minf(720.0, maxf(220.0, viewport_size.y - (20.0 if compact else 48.0)))
+	)
+	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	center.add_child(frame)
+
+	var frame_margin := MarginContainer.new()
+	frame_margin.add_theme_constant_override("margin_left", 12 if compact else 22)
+	frame_margin.add_theme_constant_override("margin_right", 12 if compact else 22)
+	frame_margin.add_theme_constant_override("margin_top", 10 if compact else 18)
+	frame_margin.add_theme_constant_override("margin_bottom", 10 if compact else 18)
+	frame.add_child(frame_margin)
+
+	var detail_host := Control.new()
+	detail_host.name = "ChargePortResearchDialogContent"
+	detail_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	frame_margin.add_child(detail_host)
+	charge_port_research_overlay_content = detail_host
+	_build_charge_port_research_detail(detail_host, compact)
+
+
+func _refresh_charge_port_research_overlay() -> void:
+	if not is_instance_valid(charge_port_research_overlay_content):
+		return
+	for child in charge_port_research_overlay_content.get_children():
+		child.queue_free()
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.x < 900.0 or viewport_size.y < 560.0
+	_build_charge_port_research_detail(charge_port_research_overlay_content, compact)
 
 
 func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
@@ -3597,8 +3669,11 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 
 func _on_charge_port_research_back_pressed() -> void:
 	research_detail_feature = ""
-	if is_instance_valid(research_content_panel):
-		_build_design_research_content(research_content_panel)
+	charge_port_research_overlay_content = null
+	if is_instance_valid(charge_port_research_overlay):
+		charge_port_research_overlay.hide()
+		charge_port_research_overlay.queue_free()
+	charge_port_research_overlay = null
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
