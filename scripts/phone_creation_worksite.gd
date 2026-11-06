@@ -3412,7 +3412,7 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	var detail := VBoxContainer.new()
 	detail.name = "ChargePortResearchDetail"
 	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail.add_theme_constant_override("separation", 10)
 	detail_scroll.add_child(detail)
 
@@ -3461,12 +3461,11 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var landscape_layout := viewport_size.x >= viewport_size.y * 1.15
 
-	var content_row := BoxContainer.new()
+	var content_row: BoxContainer = HBoxContainer.new() if landscape_layout else VBoxContainer.new()
 	content_row.name = "ChargePortResearchContentRow"
 	content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content_row.add_theme_constant_override("separation", 12 if compact else 16)
-	content_row.vertical = not landscape_layout
 	detail.add_child(content_row)
 
 	var visual_card := _make_staff_style_card()
