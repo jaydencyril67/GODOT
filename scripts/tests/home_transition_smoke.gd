@@ -78,6 +78,32 @@ func _run_transition_checks() -> void:
 	if headquarters.building_root != original_building:
 		_fail("Opening Research replaced the headquarters building.")
 		return
+
+	# Phone research must be a dark CanvasLayer overlay over the retained
+	# Research page. Selecting Charge Port changes the detail panel in-place;
+	# it must not replace the Worksite or navigate to another scene.
+	var research_page_layer = game.ui_layer
+	game._show_research_phone()
+	if game.current_screen != "research_phone" or not is_instance_valid(game.phone_research_worksite):
+		_fail("Phone research did not open its research overlay.")
+		return
+	if not is_instance_valid(research_page_layer) or not research_page_layer.visible:
+		_fail("Phone research replaced or hid the underlying Research page layer.")
+		return
+	var research_worksite = game.phone_research_worksite
+	var research_canvas = research_worksite.get_node_or_null("PhoneResearchInterface")
+	if not is_instance_valid(research_canvas) or not is_instance_valid(research_canvas.get_node_or_null("PhoneResearchRoot/DigitalWorld_Obsidian_Background")):
+		_fail("Phone research is missing its full-screen dark overlay layer.")
+		return
+	research_worksite._on_research_feature_selected("Charge Port")
+	if game.phone_research_worksite != research_worksite or research_worksite.research_detail_feature != "Charge Port" or game.current_screen != "research_phone":
+		_fail("Charge Port research navigated away instead of opening in the existing dark research layer.")
+		return
+	game._return_from_research_phone()
+	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
+		_fail("Closing phone research did not reveal the original Research page.")
+		return
+
 	game._return_home_from_research()
 	if game.current_screen != "home" or game.world_root != headquarters or not headquarters.visible:
 		_fail("Returning from Research did not restore the original Home scene.")
