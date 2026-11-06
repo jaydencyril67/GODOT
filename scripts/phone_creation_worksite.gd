@@ -3520,7 +3520,8 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 
 	var time_row := HBoxContainer.new()
 	time_row.add_child(_make_label("Research time", 12, Color("#c1ccd7")))
-	var time_value := _make_label("7 in-game days", 12, Color.WHITE)
+	var time_text := ("%d in-game days remaining" % remaining_days) if is_researching else "7 in-game days"
+	var time_value := _make_label(time_text, 12, Color.WHITE)
 	time_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	time_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	time_row.add_child(time_value)
@@ -3585,7 +3586,7 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	upgrade_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_apply_research_typography(upgrade_button, 12 if compact else 13)
 	_style_staff_button(upgrade_button, true)
-	upgrade_button.disabled = is_researching or not can_afford
+	upgrade_button.disabled = is_researching
 	upgrade_button.pressed.connect(_on_design_research_upgrade_pressed.bind("charge_port"))
 	info_column.add_child(upgrade_button)
 
