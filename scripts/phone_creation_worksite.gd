@@ -307,7 +307,7 @@ const MAX_REAR_CAMERAS := 5
 
 const MAX_REAR_FLASHES := 5
 
-var front_camera_style := "Punch-Hole"
+var front_camera_style := "Bezel Camera"
 
 const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
 
@@ -3236,6 +3236,17 @@ func set_charge_port_research_level(level: int) -> void:
 
 func set_front_camera_research_level(level: int) -> void:
 	researched_front_camera_count = clampi(level, 0, FRONT_CAMERA_STYLES.size())
+	if FRONT_CAMERA_STYLES.find(front_camera_style) >= researched_front_camera_count and researched_front_camera_count > 0:
+		front_camera_style = FRONT_CAMERA_STYLES[researched_front_camera_count - 1]
+	var enable_toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") as Button if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(enable_toggle):
+		enable_toggle.disabled = researched_front_camera_count <= 0
+	for style_name in front_camera_option_buttons:
+		var option: Button = front_camera_option_buttons[style_name]
+		option.disabled = not front_camera_enabled or FRONT_CAMERA_STYLES.find(style_name) >= researched_front_camera_count
+		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(style_name) + 2, 9), style_name == front_camera_style)
+	if is_instance_valid(phone_body):
+		_refresh_phone_screen()
 
 func _build_design_research_content(parent: Control) -> void:
 	research_content_panel = parent
@@ -7970,7 +7981,7 @@ func _on_front_camera_enablement_toggled(enabled: bool) -> void:
 		toggle.text = "✓" if enabled else ""
 	for style_name in front_camera_option_buttons:
 		var option: Button = front_camera_option_buttons[style_name]
-		option.disabled = not enabled
+		option.disabled = not enabled or FRONT_CAMERA_STYLES.find(style_name) >= researched_front_camera_count
 
 func _on_front_camera_style_selected(style_name: String) -> void:
 	if not FRONT_CAMERA_STYLES.has(style_name):
