@@ -3344,8 +3344,8 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 		content.add_child(feature_label)
 
 		var dummy_button := Button.new()
-		dummy_button.name = "DummyFeatureButton"
-		dummy_button.text = "SELECT"
+		dummy_button.name = "ResearchFeatureButton"
+		dummy_button.text = "RESEARCH" if feature_name == "Charge Port" else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
@@ -3410,7 +3410,7 @@ func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
 	parent.add_child(detail_scroll)
 
 	var detail := VBoxContainer.new()
-	detail.name = "ChargePortResearchDetail"
+	detail.name = "ChargePortResearchPanel"
 	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail.add_theme_constant_override("separation", 10)
