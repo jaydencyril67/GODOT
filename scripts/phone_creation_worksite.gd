@@ -108,6 +108,7 @@ var step_panels: Dictionary = {}
 
 
 signal research_upgrade_requested(research_id: String)
+signal charge_port_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -3224,9 +3225,7 @@ func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> v
 	research_points = maxi(0, points)
 	if is_instance_valid(research_balance_label):
 		research_balance_label.text = "AVAILABLE BALANCE  " + _format_research_money(research_balance)
-	if is_instance_valid(charge_port_research_overlay_content) and research_detail_feature == "Charge Port":
-		_refresh_charge_port_research_overlay()
-	elif is_instance_valid(research_content_panel):
+	if is_instance_valid(research_content_panel):
 		_refresh_design_research_cards()
 
 func set_charge_port_research_level(level: int) -> void:
@@ -3240,8 +3239,7 @@ func _build_design_research_content(parent: Control) -> void:
 	research_item_cards.clear()
 
 	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	# Charge Port details are presented in a modal overlay. The Hardware grid
-	# stays mounted underneath instead of being replaced by another page.
+	# Charge Port opens the shared confirmation-alert popup; this page stays mounted.
 	_build_research_view_selector(parent, compact)
 
 	if research_view == "HARDWARE":
@@ -3373,111 +3371,7 @@ func _build_extras_research_content(parent: Control, compact: bool) -> void:
 func _on_research_feature_selected(feature_name: String) -> void:
 	if feature_name != "Charge Port":
 		return
-	_show_charge_port_research_overlay()
-
-
-func _show_charge_port_research_overlay() -> void:
-	if not is_instance_valid(research_content_panel):
-		push_error("Cannot show Charge Port research: the existing research content host is missing.")
-		return
-	research_detail_feature = "Charge Port"
-	# Replace the hardware feature grid in place on the existing dark screen.
-	# This is deliberately not a modal, dialog, or navigation transition.
-	for child in research_content_panel.get_children():
-		child.queue_free()
-	charge_port_research_overlay = research_content_panel
-	charge_port_research_overlay_content = research_content_panel
-	var viewport_size := get_viewport().get_visible_rect().size
-	var compact := viewport_size.x < 900.0 or viewport_size.y < 560.0
-	_build_charge_port_research_detail(research_content_panel, compact)
-
-
-func _refresh_charge_port_research_overlay() -> void:
-	if not is_instance_valid(charge_port_research_overlay_content):
-		return
-	for child in charge_port_research_overlay_content.get_children():
-		child.queue_free()
-	var viewport_size := get_viewport().get_visible_rect().size
-	var compact := viewport_size.x < 900.0 or viewport_size.y < 560.0
-	_build_charge_port_research_detail(charge_port_research_overlay_content, compact)
-
-
-func _build_charge_port_research_detail(parent: Control, compact: bool) -> void:
-	var port_names := [
-		"DC Barrel Jack",
-		"Mini-USB (Mini-B)",
-		"Micro-USB (Micro-B)",
-		"Apple Lightning",
-		"USB Type-C"
-	]
-	var completed_count := clampi(int(research_levels.get("charge_port_level", 0)), 0, port_names.size())
-
-	var center := CenterContainer.new()
-	center.name = "ChargePortResearchContent"
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	parent.add_child(center)
-
-	var content := VBoxContainer.new()
-	content.name = "ChargePortResearchDetails"
-	content.custom_minimum_size.x = 360.0 if compact else 480.0
-	content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	content.add_theme_constant_override("separation", 18 if compact else 24)
-	center.add_child(content)
-
-	if completed_count >= port_names.size():
-		var complete_label := _make_label("ALL CHARGING PORTS RESEARCHED", 16 if compact else 21, Color("#c7eacb"))
-		complete_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		content.add_child(complete_label)
-		return
-
-	var next_name: String = port_names[completed_count]
-	var points_cost := 10 + completed_count * 2
-	var money_cost := 100000.0 + float(completed_count) * 20000.0
-	var active_level := int(research_levels.get("charge_port_active_level", -1))
-	var completion_unix := float(research_levels.get("charge_port_completion_unix", 0.0))
-	var current_game_unix := float(research_levels.get("game_date_unix", 0.0))
-	var is_researching := active_level == completed_count and completion_unix > current_game_unix
-	var remaining_days := maxi(0, ceili((completion_unix - current_game_unix) / 86400.0)) if is_researching else 0
-
-	var heading := _make_label(next_name, 23 if compact else 30, Color.WHITE)
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(heading)
-
-	var points_label := _make_label("Research points required:  %d RP" % points_cost, 13 if compact else 16, Color("#d5e2d8"))
-	points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(points_label)
-
-	var money_label := _make_label("Research cost:  " + _format_research_money(money_cost), 13 if compact else 16, Color("#d5e2d8"))
-	money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(money_label)
-
-	var action_button := Button.new()
-	action_button.name = "ResearchNextChargingPortButton"
-	action_button.text = "RESEARCH IN PROGRESS" if is_researching else "RESEARCH"
-	action_button.custom_minimum_size = Vector2(0, 44 if compact else 52)
-	action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	action_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(action_button, 12 if compact else 14)
-	_style_staff_button(action_button, true)
-	action_button.disabled = is_researching
-	action_button.pressed.connect(_on_design_research_upgrade_pressed.bind("charge_port"))
-	content.add_child(action_button)
-
-	if is_researching:
-		var status := _make_label("%d in-game days remaining" % remaining_days, 11 if compact else 13, Color("#9bd6a7"))
-		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		content.add_child(status)
-
-
-func _on_charge_port_research_back_pressed() -> void:
-	research_detail_feature = ""
-	charge_port_research_overlay_content = null
-	if is_instance_valid(charge_port_research_overlay):
-		charge_port_research_overlay.hide()
-		charge_port_research_overlay.queue_free()
-	charge_port_research_overlay = null
+	charge_port_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
