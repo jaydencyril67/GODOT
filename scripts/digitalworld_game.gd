@@ -2677,6 +2677,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
+	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("phone_charge_port_research_level", 0)))
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
