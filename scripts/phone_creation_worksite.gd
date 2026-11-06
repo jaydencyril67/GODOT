@@ -309,7 +309,7 @@ const MAX_REAR_FLASHES := 5
 
 var front_camera_style := "Bezel Camera"
 
-const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
+const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
 
 var front_camera_option_buttons: Dictionary = {}
 
