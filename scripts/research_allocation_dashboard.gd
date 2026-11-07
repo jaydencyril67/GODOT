@@ -168,17 +168,21 @@ func _build_shell() -> void:
 
 	var top_bar := HBoxContainer.new()
 	top_bar.name = "ResearchTopBar"
-	top_bar.custom_minimum_size.y = _scaled(56.0)
+	top_bar.custom_minimum_size = Vector2(0.0, _scaled(64.0))
+	top_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	top_bar.add_theme_constant_override("separation", roundi(_scaled(18.0)))
 	page_root.add_child(top_bar)
 
 	var back := _button("‹  BACK", false, TEXT_MAIN)
 	back.custom_minimum_size = Vector2(_scaled(116.0), _scaled(48.0))
+	back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(func(): back_requested.emit())
 	top_bar.add_child(back)
 
 	var title_stack := VBoxContainer.new()
 	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	title_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	title_stack.add_theme_constant_override("separation", 1)
 	top_bar.add_child(title_stack)
@@ -189,19 +193,27 @@ func _build_shell() -> void:
 	title_stack.add_child(_label(company_name.to_upper(), 11, TEXT_MUTED))
 
 	var capital_stack := VBoxContainer.new()
+	capital_stack.custom_minimum_size.x = _scaled(190.0)
+	capital_stack.size_flags_horizontal = Control.SIZE_SHRINK_END
+	capital_stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	capital_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	capital_stack.add_theme_constant_override("separation", 1)
 	top_bar.add_child(capital_stack)
 	var capital_caption := _label("AVAILABLE CAPITAL", 10, TEXT_MUTED)
 	capital_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	capital_caption.custom_minimum_size.x = _scaled(180.0)
+	capital_caption.autowrap_mode = TextServer.AUTOWRAP_OFF
 	capital_stack.add_child(capital_caption)
 	capital_value_label = _label(_format_currency(company_balance), 17, ACCENT)
 	capital_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	capital_value_label.custom_minimum_size.x = _scaled(180.0)
+	capital_value_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	capital_stack.add_child(capital_value_label)
 
 	var separator := ColorRect.new()
 	separator.color = Color("#3B3832")
 	separator.custom_minimum_size.y = 1
+	separator.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	separator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page_root.add_child(separator)
 
