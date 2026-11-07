@@ -213,8 +213,6 @@ func _load_career() -> bool:
 	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 0)), 0, 10)
 	if not str(career.get("company_name", "")).is_empty():
 		_ensure_staff_data()
-	if migrated_default_models:
-		_save_career()
 	return not str(career.get("company_name", "")).is_empty()
 
 func _save_career() -> bool:
