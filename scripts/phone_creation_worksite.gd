@@ -5393,7 +5393,7 @@ func _refresh_screen_technology_ui() -> void:
 		screen_next_upgrade_label.text = "NEXT UPGRADE: " + ScreenTechnologySystem.get_quality_display_name(next_quality).to_upper()
 	if is_instance_valid(screen_next_milestone_label):
 		var next_technology := ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]) + 1)
-		screen_next_milestone_label.text = "NEXT TECHNOLOGY: %s\\nALL THREE QUALITIES MUST REACH LEVEL %d" % [next_technology.to_upper(), next_required_level]
+		screen_next_milestone_label.text = "NEXT TECHNOLOGY: %s\nALL THREE QUALITIES MUST REACH LEVEL %d" % [next_technology.to_upper(), next_required_level]
 
 	for quality in ScreenTechnologySystem.QUALITY_ORDER:
 		if not screen_quality_value_labels.has(quality):
