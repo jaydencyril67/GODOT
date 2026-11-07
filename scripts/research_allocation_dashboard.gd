@@ -311,7 +311,10 @@ func _build_active_research(project: Dictionary) -> void:
 	var active_heading := _label("ACTIVE RESEARCH", 13, ACCENT)
 	active_heading.name = "ActiveResearchHeading"
 	body_content.add_child(active_heading)
-	body_content.add_child(_label(str(project.get("component", project.get("title", "Research project"))), 27, TEXT_MAIN))
+	var component_name := str(project.get("component", project.get("title", "Research project")))
+	if component_name == "Screen Technology":
+		component_name = "Screen Tech"
+	body_content.add_child(_label(component_name, 27, TEXT_MAIN))
 
 	var completed_hours := maxf(0.0, float(project.get("work_completed_hours", 0.0)))
 	var required_hours := maxf(1.0, float(project.get("work_required_hours", 1.0)))
