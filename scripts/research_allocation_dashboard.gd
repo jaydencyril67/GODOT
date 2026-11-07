@@ -95,7 +95,7 @@ func _ready() -> void:
 
 func _build_dashboard() -> void:
 	var viewport_size := get_viewport_rect().size
-	var compact := viewport_size.y < 520.0
+	var compact := viewport_size.y < 560.0 or viewport_size.x < 900.0
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
