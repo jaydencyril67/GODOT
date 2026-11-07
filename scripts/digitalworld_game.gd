@@ -232,13 +232,13 @@ func _load_career() -> bool:
 			career["phone_speaker_research_active_level"] = 1
 		career["phone_default_models_migrated"] = true
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
-	if migrated_default_models:
-		_save_career()
 	game_clock_paused = bool(career.get("game_clock_paused", false))
 	last_saved_game_day = floori(game_date_unix / 86400.0)
 	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 0)), 0, 10)
 	if not str(career.get("company_name", "")).is_empty():
 		_ensure_staff_data()
+	if migrated_default_models:
+		_save_career()
 	return not str(career.get("company_name", "")).is_empty()
 
 func _save_career() -> bool:
