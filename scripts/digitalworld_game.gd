@@ -2577,6 +2577,44 @@ func _get_research_dashboard_data() -> Dictionary:
 	}
 
 
+func get_research_workforce_summary() -> Dictionary:
+	return ResearchManagerScript.get_workforce_summary(career)
+
+
+func commission_research_project(request: Dictionary) -> Dictionary:
+	var previous_career := career.duplicate(true)
+	var result: Dictionary = ResearchManagerScript.commission_project(career, request, game_date_unix)
+	if not bool(result.get("ok", false)):
+		return result
+	if not _save_career():
+		career = previous_career
+		return {"ok": false, "error": "The project could not be saved. No funds were deducted."}
+	_update_home_status_bar()
+	return result
+
+
+func approve_research_project(project_id: String, results: Array) -> Dictionary:
+	var previous_career := career.duplicate(true)
+	var result: Dictionary = ResearchManagerScript.approve_project(career, project_id, results, game_date_unix)
+	if not bool(result.get("ok", false)):
+		return result
+	if not _save_career():
+		career = previous_career
+		return {"ok": false, "error": "The approval could not be saved. The project remains awaiting validation."}
+	return result
+
+
+func reject_research_project(project_id: String, review_note: String) -> Dictionary:
+	var previous_career := career.duplicate(true)
+	var result: Dictionary = ResearchManagerScript.reject_project(career, project_id, review_note)
+	if not bool(result.get("ok", false)):
+		return result
+	if not _save_career():
+		career = previous_career
+		return {"ok": false, "error": "The review could not be saved. The project remains awaiting validation."}
+	return result
+
+
 func _on_research_strategy_changed(strategy: Dictionary) -> void:
 	career["research_strategy"] = strategy.duplicate(true)
 	_save_career()
