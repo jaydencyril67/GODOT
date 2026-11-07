@@ -9,6 +9,18 @@ const STATUS_AWAITING_VALIDATION := "awaiting_validation"
 const STATUS_APPROVED := "approved"
 const STATUS_REJECTED := "rejected"
 const STATUS_CANCELLED := "cancelled"
+const COMPONENT_CATALOGUE := [
+	"Phone Type", "Phone Thickness", "Border Radius", "Screen Technology",
+	"Screen Size", "Screen Type", "Power & Volume Buttons", "Speakers",
+	"Charging Port", "Side Buttons", "Home Button", "Device Colour",
+	"Front Camera", "Back Design", "Rear Camera",
+	"RAM Technology", "RAM", "Internal Storage", "Mobile Internet", "Wi-Fi",
+	"Bluetooth", "Battery", "Charging Speed", "Wireless Charging", "Sensors",
+	"Front Camera Megapixels", "Rear Camera Megapixels", "Memory Clock",
+	"Refresh Rate", "Cooling System",
+	"Box Package", "Phone Case", "Charger", "Protection Glass",
+	"Wireless Earbuds", "Smartwatch", "Power Bank"
+]
 
 
 static func ensure_state(career: Dictionary) -> void:
@@ -69,6 +81,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		components.append(single_component)
 	if components.is_empty():
 		return _failure("Choose at least one technology component for this project.")
+	for component in components:
+		if not COMPONENT_CATALOGUE.has(component):
+			return _failure("The selected component is not part of the company's technology catalogue: " + component)
 
 	var title := str(request.get("title", "")).strip_edges()
 	if title.is_empty():
@@ -206,8 +221,12 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Every research result must be a structured technology record.")
 		var result: Dictionary = result_value.duplicate(true)
 		var component := str(result.get("component", "")).strip_edges()
+		var metric := str(result.get("metric", "")).strip_edges()
+		var value := str(result.get("value", "")).strip_edges()
 		if component.is_empty() or not project_components.has(component):
 			return _failure("Each result must refer to a component included in this project.")
+		if metric.is_empty() or value.is_empty():
+			return _failure("Each approved finding must include a measured attribute and result value.")
 		var component_history: Array = technologies.get(component, [])
 		component_history.append(result)
 		technologies[component] = component_history
