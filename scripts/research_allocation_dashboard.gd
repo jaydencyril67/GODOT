@@ -48,6 +48,7 @@ var workspace: PanelContainer
 var workspace_content: VBoxContainer
 var staff_count_label: Label
 var available_staff_label: Label
+var available_hours_label: Label
 var active_projects_label: Label
 var review_projects_label: Label
 var balance_label: Label
@@ -175,6 +176,7 @@ func _build_workforce_summary(compact: bool) -> void:
 
 	staff_count_label = _metric(row, "RESEARCH STAFF", "0", compact)
 	available_staff_label = _metric(row, "AVAILABLE", "0", compact)
+	available_hours_label = _metric(row, "AVAILABLE WORK / DAY", "0.0 H", compact)
 	active_projects_label = _metric(row, "ACTIVE PROJECTS", "0", compact)
 	review_projects_label = _metric(row, "AWAITING REVIEW", "0", compact)
 
@@ -244,6 +246,7 @@ func _refresh_dashboard() -> void:
 	})
 	staff_count_label.text = str(workforce.get("staff_count", 0))
 	available_staff_label.text = str(workforce.get("available_staff_count", 0))
+	available_hours_label.text = "%.1f H" % float(workforce.get("productive_hours_per_game_day", 0.0))
 	active_projects_label.text = str(_count_projects_with_status("active"))
 	review_projects_label.text = str(_count_projects_with_status("awaiting_validation"))
 	_rebuild_project_list()
