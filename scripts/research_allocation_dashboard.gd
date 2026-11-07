@@ -217,9 +217,16 @@ func _build_workspace(parent: HBoxContainer) -> void:
 	workspace.size_flags_stretch_ratio = 1.35
 	workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(workspace)
+	var scroll := ScrollContainer.new()
+	scroll.name = "ResearchWorkspaceScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	workspace.add_child(scroll)
 	workspace_content = VBoxContainer.new()
+	workspace_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	workspace_content.add_theme_constant_override("separation", 8)
-	workspace.add_child(_padded(workspace_content, true))
+	scroll.add_child(_padded(workspace_content, true))
 
 
 func _refresh_dashboard() -> void:
@@ -299,20 +306,19 @@ func _select_project(project_id: String) -> void:
 
 func _show_new_project_form() -> void:
 	selected_project_id = ""
+	selected_components.clear()
+	selected_staff_ids.clear()
+	pending_results.clear()
 	_clear_workspace()
 	var compact := get_viewport_rect().size.y < 560.0
 	workspace_content.add_child(_label("COMMISSION RESEARCH", 10 if compact else 12, ACCENT))
 	workspace_content.add_child(_label("Create a funded R&D project", 17 if compact else 22, TEXT_MAIN))
 	workspace_content.add_child(_label("Define the technical objective, approve a budget and assign available Research employees.", 9 if compact else 11, TEXT_MUTED))
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	workspace_content.add_child(scroll)
 	var form := VBoxContainer.new()
 	form.add_theme_constant_override("separation", 6)
 	form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(form)
+	workspace_content.add_child(form)
 
 	project_title_input = _line_edit("e.g. Improve IPS display contrast", false)
 	form.add_child(_field_block(form, "PROJECT NAME", project_title_input))
@@ -422,7 +428,7 @@ func _update_component_summary() -> void:
 		component_summary_label.text = "No components selected."
 		component_summary_label.add_theme_color_override("font_color", TEXT_MUTED)
 	else:
-		component_summary_label.text = "SELECTED:  " + "   ·   ".join(selected_components)
+		component_summary_label.text = "SELECTED:  " + _join_values(selected_components, "   ·   ")
 		component_summary_label.add_theme_color_override("font_color", ACCENT)
 
 
@@ -461,7 +467,7 @@ func _show_project_details(project: Dictionary) -> void:
 	workspace_content.add_child(_label(str(project.get("title", "Research project")), 17 if compact else 22, TEXT_MAIN))
 	workspace_content.add_child(_label(_status_text(status).to_upper(), 9, _status_color(status)))
 
-	var body_text := "Components: " + ", ".join(project.get("components", []))
+	var body_text := "Components: " + _join_values(project.get("components", []), ", ")
 	workspace_content.add_child(_label(body_text, 9, TEXT_MUTED))
 	var objective := str(project.get("objective", ""))
 	if not objective.is_empty():
@@ -492,7 +498,7 @@ func _show_project_details(project: Dictionary) -> void:
 		var employee := _find_employee(str(staff_id_value))
 		if not employee.is_empty():
 			assigned_names.append(str(employee.get("full_name", employee.get("name", staff_id_value))))
-	workspace_content.add_child(_label("Assigned team: " + (", ".join(assigned_names) if not assigned_names.is_empty() else "No current team members"), 9, TEXT_MUTED))
+	workspace_content.add_child(_label("Assigned team: " + (_join_values(assigned_names, ", ") if not assigned_names.is_empty() else "No current team members"), 9, TEXT_MUTED))
 	workspace_content.add_child(_label("Approved budget: %s" % _format_currency(float(project.get("budget", 0.0))), 9, TEXT_MUTED))
 
 	var pause_reason := str(project.get("pause_reason", ""))
@@ -600,7 +606,7 @@ func _format_pending_results() -> String:
 			str(result.get("value", "")),
 			str(result.get("unit", ""))
 		])
-	return "\n".join(lines)
+	return _join_values(lines, "\n")
 
 
 func _on_approve_project_pressed(project_id: String) -> void:
@@ -694,7 +700,7 @@ func _metric(parent: HBoxContainer, caption: String, value: String, compact: boo
 	return value_label
 
 
-func _field_block(_parent: Control, caption: String, field: Control) -> VBoxContainer:
+func _field_block(_parent: Variant, caption: String, field: Control) -> VBoxContainer:
 	var block := VBoxContainer.new()
 	block.add_theme_constant_override("separation", 2)
 	block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -826,6 +832,13 @@ func _status_color(status: String) -> Color:
 		"approved": return GREEN
 		"rejected": return Color("#df7777")
 		_: return TEXT_MUTED
+
+
+func _join_values(values: Array, separator: String) -> String:
+	var parts: Array[String] = []
+	for value in values:
+		parts.append(str(value))
+	return separator.join(PackedStringArray(parts))
 
 
 func _format_currency(amount: float) -> String:
