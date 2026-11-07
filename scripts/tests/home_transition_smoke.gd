@@ -117,12 +117,14 @@ func _run_transition_checks() -> void:
 		_fail("The R&D centre did not identify the available Research employee.")
 		return
 
+	var estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_smoke_01"], game.career.get("staff_employees", []))
+	if not bool(estimate.get("ok", false)) or int(estimate.get("expected_duration_days", 0)) != 15 or not is_equal_approx(float(estimate.get("success_chance", 0.0)), 95.0):
+		_fail("Research duration and success chance were not calculated from the assigned employee's efficiency.")
+		return
+
 	var commission_result: Dictionary = game.commission_research_project({
-		"title": "Battery research smoke test",
-		"components": ["Battery"],
-		"objective": "Validate improved battery energy density.",
+		"component": "Screen Tech",
 		"budget": 1000000.0,
-		"required_work_hours": 100.0,
 		"staff_ids": ["researcher_smoke_01"]
 	})
 	if not bool(commission_result.get("ok", false)):
@@ -132,7 +134,7 @@ func _run_transition_checks() -> void:
 		_fail("Commissioning a research project did not deduct its approved budget correctly.")
 		return
 	var created_project: Dictionary = commission_result.get("project", {})
-	var completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 13.0, game.game_date_unix + 86400.0 * 13.0)
+	var completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 16.0, game.game_date_unix + 86400.0 * 16.0)
 	if completed_ids.is_empty():
 		_fail("The assigned research team did not complete its engineering work.")
 		return
@@ -142,8 +144,8 @@ func _run_transition_checks() -> void:
 		return
 	var project_id := str(created_project.get("id", ""))
 	var approval_result: Dictionary = game.approve_research_project(project_id, [{
-		"component": "Battery",
-		"metric": "Energy density",
+		"component": "Screen Technology",
+		"metric": "Display contrast",
 		"value": "Improved test sample",
 		"unit": "",
 		"notes": "Recorded after prototype testing."
@@ -151,8 +153,8 @@ func _run_transition_checks() -> void:
 	if not bool(approval_result.get("ok", false)):
 		_fail("A completed R&D project could not pass technical validation: %s" % str(approval_result.get("error", "")))
 		return
-	var battery_history: Array = game.career.get("research_technologies", {}).get("Battery", [])
-	if battery_history.size() != 1 or str(battery_history[0].get("metric", "")) != "Energy density":
+	var screen_history: Array = game.career.get("research_technologies", {}).get("Screen Technology", [])
+	if screen_history.size() != 1 or str(screen_history[0].get("metric", "")) != "Display contrast":
 		_fail("Approved R&D findings were not stored in the company's technology records.")
 		return
 	dashboard.call("configure", game._get_research_dashboard_data())
