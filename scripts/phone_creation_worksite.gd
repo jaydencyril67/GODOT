@@ -370,7 +370,7 @@ var bezel_height_value_label: Label
 var bezel_height_slider: VSlider
 
 var screen_shape_mode := "Flat screen"
-var curve_screen_unlocked := false
+var curve_screen_unlocked := true
 
 var side_curve_enabled := false
 
@@ -513,7 +513,7 @@ var battery_capacity_slider: VSlider
 
 var battery_capacity_value_label: Label
 
-var researched_battery_capacity_level := 1
+var researched_battery_capacity_level := 15
 
 var selected_charging_speed := 2
 
@@ -526,13 +526,13 @@ var wireless_charging_speed_slider: VSlider
 var wireless_charging_speed_value_label: Label
 
 var selected_bluetooth_version := "Bluetooth 2.0 + EDR"
-var researched_bluetooth_level := 1
+var researched_bluetooth_level := 14
 
 var selected_wifi_standard := "Wi-Fi 1 (802.11b)"
-var researched_wifi_level := 1
+var researched_wifi_level := 8
 
 var selected_mobile_network := "2G (GSM / EDGE)"
-var researched_mobile_internet_level := 1
+var researched_mobile_internet_level := 7
 
 var selected_phone_sensors: Dictionary = {
 	"Fingerprint Sensor": false,
@@ -574,7 +574,7 @@ var phone_thickness_value_label: Label
 
 var speaker_count := 1
 
-var researched_speaker_count := 1
+var researched_speaker_count := 12
 
 var speaker_count_slider: VSlider
 
@@ -582,9 +582,9 @@ var speaker_count_value_label: Label
 
 var charge_port_type := "DC Barrel Jack"
 
-var researched_charge_port_count := 1
+var researched_charge_port_count := 5
 
-var researched_front_camera_count := 1
+var researched_front_camera_count := FRONT_CAMERA_STYLES.size()
 
 var charge_port_opening_points := PackedVector2Array()
 
@@ -3123,52 +3123,51 @@ func _apply_research_typography(control: Control, font_size: int) -> void:
 	control.add_theme_font_override("font", stix_font)
 	control.add_theme_font_size_override("font_size", font_size)
 
-func set_battery_capacity_research_level(level: int) -> void:
-	researched_battery_capacity_level = clampi(level, 1, 15)
-	var unlocked_max := 1000 + (researched_battery_capacity_level - 1) * 500
+func set_battery_capacity_research_level(_level: int) -> void:
+	# Legacy compatibility hook: research no longer limits phone creation.
+	researched_battery_capacity_level = 15
+	var available_max := 8000
 	if selected_battery_capacity != "Not set":
-		var selected := clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, unlocked_max)
+		var selected := clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, available_max)
 		selected = 1000 + roundi(float(selected - 1000) / 10.0) * 10
 		selected_battery_capacity = _format_integer_with_commas(selected) + " mAh"
 	if is_instance_valid(battery_capacity_slider):
-		battery_capacity_slider.max_value = unlocked_max
-		battery_capacity_slider.value = clampf(battery_capacity_slider.value, 1000.0, float(unlocked_max))
+		battery_capacity_slider.max_value = available_max
+		battery_capacity_slider.value = clampf(battery_capacity_slider.value, 1000.0, float(available_max))
 	if is_instance_valid(battery_capacity_value_label):
 		battery_capacity_value_label.text = selected_battery_capacity if selected_battery_capacity != "Not set" else "NOT SELECTED"
 
-func set_curve_screen_research_unlocked(unlocked: bool) -> void:
-	curve_screen_unlocked = unlocked
-	if not curve_screen_unlocked and screen_shape_mode == "Curve screen":
-		screen_shape_mode = "Flat screen"
-		side_curve_enabled = false
-		vertical_curve_enabled = false
+func set_curve_screen_research_unlocked(_unlocked: bool) -> void:
+	# Legacy compatibility hook: curved-screen mode is no longer research-gated.
+	curve_screen_unlocked = true
 	_refresh_screen_type_controls()
 
-func set_charge_port_research_level(level: int) -> void:
-	researched_charge_port_count = clampi(level, 1, 5)
+func set_charge_port_research_level(_level: int) -> void:
+	# Legacy compatibility hook: expose every charging-port technology.
+	researched_charge_port_count = 5
 
-func set_speaker_research_level(level: int) -> void:
-	researched_speaker_count = clampi(level, 1, 12)
-	speaker_count = mini(speaker_count, researched_speaker_count)
+func set_speaker_research_level(_level: int) -> void:
+	# Legacy compatibility hook: expose the complete speaker-count range.
+	researched_speaker_count = 12
+	speaker_count = clampi(speaker_count, 0, researched_speaker_count)
 	if is_instance_valid(speaker_count_slider):
 		speaker_count_slider.max_value = researched_speaker_count
 		speaker_count_slider.value = speaker_count
 	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS %d / %d UNLOCKED" % [speaker_count, researched_speaker_count]
+		speaker_count_value_label.text = "SPEAKERS %d / 12" % speaker_count
 	_refresh_phone_speakers()
 
-func set_front_camera_research_level(level: int) -> void:
-	researched_front_camera_count = clampi(level, 1, FRONT_CAMERA_STYLES.size())
-	if FRONT_CAMERA_STYLES.find(front_camera_style) >= researched_front_camera_count and researched_front_camera_count > 0:
-		front_camera_style = FRONT_CAMERA_STYLES[researched_front_camera_count - 1]
+func set_front_camera_research_level(_level: int) -> void:
+	# Legacy compatibility hook: expose every front-camera design.
+	researched_front_camera_count = FRONT_CAMERA_STYLES.size()
 	var enable_toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") as Button if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(enable_toggle):
-		enable_toggle.disabled = researched_front_camera_count <= 0
+		enable_toggle.disabled = false
 	for style_name in front_camera_option_buttons:
 		var option: Button = front_camera_option_buttons[style_name]
 		if not is_instance_valid(option):
 			continue
-		option.disabled = not front_camera_enabled or FRONT_CAMERA_STYLES.find(style_name) >= researched_front_camera_count
+		option.disabled = not front_camera_enabled
 		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(style_name) + 2, 9), style_name == front_camera_style)
 	if is_instance_valid(phone_body):
 		_refresh_phone_screen()
@@ -5126,7 +5125,7 @@ func _show_screen_type_controls() -> void:
 	for mode in ["Flat screen", "Curve screen"]:
 		var option := Button.new()
 		option.name = mode.replace(" ", "") + "Option"
-		option.text = mode + ("  [LOCKED]" if mode == "Curve screen" and not curve_screen_unlocked else "")
+		option.text = mode
 		option.custom_minimum_size = Vector2(0, 44)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
@@ -5165,7 +5164,7 @@ func _make_curve_toggle(node_name: String, label_text: String, enabled: bool) ->
 	return toggle
 
 func _on_screen_shape_selected(mode: String) -> void:
-	if mode == "Curve screen" and (not curve_screen_unlocked or not (_is_screen_width_max() or _is_screen_height_max())):
+	if mode == "Curve screen" and not (_is_screen_width_max() or _is_screen_height_max()):
 		return
 	screen_shape_mode = mode
 	if mode == "Flat screen":
@@ -5216,7 +5215,7 @@ func _refresh_screen_type_controls() -> void:
 		return
 	var width_max := _is_screen_width_max()
 	var height_max := _is_screen_height_max()
-	var curve_allowed := curve_screen_unlocked and (width_max or height_max)
+	var curve_allowed := width_max or height_max
 	if screen_shape_mode == "Curve screen" and not curve_allowed:
 		screen_shape_mode = "Flat screen"
 		side_curve_enabled = false
@@ -5225,7 +5224,7 @@ func _refresh_screen_type_controls() -> void:
 		var option: Button = screen_shape_buttons[mode]
 		option.button_pressed = screen_shape_mode == mode
 		option.disabled = mode == "Curve screen" and not curve_allowed
-		option.text = mode + ("  [LOCKED]" if mode == "Curve screen" and not curve_screen_unlocked else "")
+		option.text = mode
 		_style_screen_type_option(option, 0 if mode == "Flat screen" else 5, screen_shape_mode == mode)
 	if is_instance_valid(side_curve_toggle):
 		side_curve_toggle.disabled = screen_shape_mode != "Curve screen" or not width_max
@@ -7676,7 +7675,7 @@ func _show_front_camera_controls() -> void:
 	enable_toggle.name = "FrontCameraEnablement"
 	enable_toggle.toggle_mode = true
 	enable_toggle.button_pressed = front_camera_enabled
-	enable_toggle.disabled = researched_front_camera_count <= 0
+	enable_toggle.disabled = false
 	enable_toggle.text = "✓" if front_camera_enabled else ""
 	enable_toggle.custom_minimum_size = Vector2(30, 30)
 	enable_toggle.focus_mode = Control.FOCUS_NONE
@@ -7717,7 +7716,7 @@ func _show_front_camera_controls() -> void:
 		option.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(option, 12)
 		_style_screen_type_option(option, mini(index + 2, 9), style_name == front_camera_style)
-		option.disabled = not front_camera_enabled or index >= researched_front_camera_count
+		option.disabled = not front_camera_enabled
 		option.pressed.connect(_on_front_camera_style_selected.bind(style_name))
 		style_list.add_child(option)
 		front_camera_option_buttons[style_name] = option
@@ -7732,7 +7731,7 @@ func _on_front_camera_enablement_toggled(enabled: bool) -> void:
 		toggle.text = "✓" if enabled else ""
 	for style_name in front_camera_option_buttons:
 		var option: Button = front_camera_option_buttons[style_name]
-		option.disabled = not enabled or FRONT_CAMERA_STYLES.find(style_name) >= researched_front_camera_count
+		option.disabled = not enabled
 
 func _on_front_camera_style_selected(style_name: String) -> void:
 	if not FRONT_CAMERA_STYLES.has(style_name):
@@ -9687,7 +9686,7 @@ func _show_speaker_controls() -> void:
 	level_labels.add_theme_constant_override("separation", 0)
 	meter_row.add_child(level_labels)
 
-	for level in range(researched_speaker_count, -1, -1):
+	for level in range(12, -1, -1):
 		var level_label := _make_label(str(level), 14, Color("#dce9df"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -9696,10 +9695,10 @@ func _show_speaker_controls() -> void:
 	var meter := VSlider.new()
 	meter.name = "SpeakerCountLevelMeter"
 	meter.min_value = 0
-	meter.max_value = researched_speaker_count
+	meter.max_value = 12
 	meter.step = 1
 	meter.value = speaker_count
-	meter.tick_count = researched_speaker_count + 1
+	meter.tick_count = 13
 	meter.custom_minimum_size = Vector2(76, 320)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -9708,14 +9707,14 @@ func _show_speaker_controls() -> void:
 	speaker_count_slider = meter
 	meter_row.add_child(meter)
 
-	speaker_count_value_label = _make_label("SPEAKERS %d / %d UNLOCKED" % [speaker_count, researched_speaker_count], 16, Color("#9bd6a7"))
+	speaker_count_value_label = _make_label("SPEAKERS %d / 12" % speaker_count, 16, Color("#9bd6a7"))
 	speaker_count_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(speaker_count_value_label)
 
 func _on_speaker_count_changed(value: float) -> void:
-	speaker_count = clampi(roundi(value), 0, researched_speaker_count)
+	speaker_count = clampi(roundi(value), 0, 12)
 	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS %d / %d UNLOCKED" % [speaker_count, researched_speaker_count]
+		speaker_count_value_label.text = "SPEAKERS %d / 12" % speaker_count
 	_refresh_phone_speakers()
 
 func _refresh_phone_speakers() -> void:
@@ -9788,7 +9787,7 @@ func _show_charge_port_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("%d of 5 charging-port technologies researched" % researched_charge_port_count, 12, Color("#c7eacb"))
+	var description := _make_label("All 5 charging-port technologies are available.", 12, Color("#c7eacb"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -9821,8 +9820,7 @@ func _show_charge_port_controls() -> void:
 		"Apple Lightning",
 		"USB Type-C"
 	]
-	for research_index in range(mini(researched_charge_port_count, research_port_types.size())):
-		port_types.append(research_port_types[research_index])
+	port_types.append_array(research_port_types)
 	for port_index in range(port_types.size()):
 		var port_type: String = port_types[port_index]
 		var option_button := Button.new()
@@ -9838,17 +9836,16 @@ func _show_charge_port_controls() -> void:
 		options.add_child(option_button)
 
 func _on_charge_port_selected(port_type: String) -> void:
-	if port_type != "None":
-		var research_port_types := [
-			"DC Barrel Jack",
-			"Mini-USB (Mini-B)",
-			"Micro-USB (Micro-B)",
-			"Apple Lightning",
-			"USB Type-C"
-		]
-		var required_research_count := research_port_types.find(port_type) + 1
-		if required_research_count <= 0 or required_research_count > researched_charge_port_count:
-			return
+	var available_port_types := [
+		"None",
+		"DC Barrel Jack",
+		"Mini-USB (Mini-B)",
+		"Micro-USB (Micro-B)",
+		"Apple Lightning",
+		"USB Type-C"
+	]
+	if not available_port_types.has(port_type):
+		return
 	charge_port_type = port_type
 	if charge_port_type == "None":
 		charger_cable_enabled = false
@@ -11511,7 +11508,7 @@ func _show_battery_controls() -> void:
 	if selected_battery_capacity != "Not set":
 		initial_capacity = clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, 8000)
 		initial_capacity = 1000 + roundi(float(initial_capacity - 1000) / 10.0) * 10
-		initial_capacity = mini(initial_capacity, 1000 + (researched_battery_capacity_level - 1) * 500)
+		initial_capacity = clampi(initial_capacity, 1000, 8000)
 
 	battery_capacity_value_label = _make_label(
 		(_format_integer_with_commas(initial_capacity) + " mAh") if selected_battery_capacity != "Not set" else "NOT SELECTED",
@@ -11522,8 +11519,8 @@ func _show_battery_controls() -> void:
 	battery_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(battery_capacity_value_label)
 
-	var unlocked_max := 1000 + (researched_battery_capacity_level - 1) * 500
-	var range_hint := _make_label("UNLOCKED RANGE: 1,000 — %s mAh" % _format_integer_with_commas(unlocked_max), 12, Color("#b8d8be"))
+	var available_max := 8000
+	var range_hint := _make_label("AVAILABLE RANGE: 1,000 — 8,000 mAh", 12, Color("#b8d8be"))
 	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(range_hint)
 
@@ -11542,7 +11539,7 @@ func _show_battery_controls() -> void:
 	battery_capacity_slider = VSlider.new()
 	battery_capacity_slider.name = "BatteryCapacityVerticalSlider"
 	battery_capacity_slider.min_value = 1000
-	battery_capacity_slider.max_value = unlocked_max
+	battery_capacity_slider.max_value = available_max
 	battery_capacity_slider.step = 10
 	battery_capacity_slider.value = initial_capacity
 	battery_capacity_slider.custom_minimum_size = Vector2(52, 320)
@@ -11559,8 +11556,7 @@ func _show_battery_controls() -> void:
 	slider_row.add_child(maximum_label)
 
 func _on_battery_capacity_slider_changed(value: float) -> void:
-	var unlocked_max := 1000 + (researched_battery_capacity_level - 1) * 500
-	var capacity := clampi(1000 + roundi((value - 1000.0) / 10.0) * 10, 1000, unlocked_max)
+	var capacity := clampi(1000 + roundi((value - 1000.0) / 10.0) * 10, 1000, 8000)
 	selected_battery_capacity = _format_integer_with_commas(capacity) + " mAh"
 	_update_battery_capacity_controls()
 
@@ -11767,10 +11763,9 @@ func _show_bluetooth_controls() -> void:
 		var option := Button.new()
 		option.name = "BluetoothOption_" + version.replace(" ", "").replace("+", "").replace(".", "_")
 		var button_label: String = version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS")
-		var unlocked := version_index < researched_bluetooth_level
-		option.text = button_label + ("  ✓" if selected_bluetooth_version == version else ("  🔒" if not unlocked else ""))
-		option.tooltip_text = version + (" — LOCKED" if not unlocked else "")
-		option.disabled = not unlocked
+		option.text = button_label + ("  ✓" if selected_bluetooth_version == version else "")
+		option.tooltip_text = version
+		option.disabled = false
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 15)
@@ -11782,20 +11777,16 @@ func _show_bluetooth_controls() -> void:
 		option.pressed.connect(_on_bluetooth_version_selected.bind(version))
 		options.add_child(option)
 
-func set_bluetooth_research_level(level: int) -> void:
-	researched_bluetooth_level = clampi(level, 1, 14)
-	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
-	var selected_index := bluetooth_versions.find(selected_bluetooth_version)
-	if selected_index < 0 or selected_index >= researched_bluetooth_level:
-		selected_bluetooth_version = bluetooth_versions[researched_bluetooth_level - 1]
+func set_bluetooth_research_level(_level: int) -> void:
+	# Legacy compatibility hook: expose every Bluetooth version.
+	researched_bluetooth_level = 14
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "BluetoothSelectionControls":
 		_show_bluetooth_controls()
 
 
 func _on_bluetooth_version_selected(version: String) -> void:
 	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
-	var version_index := bluetooth_versions.find(version)
-	if version_index < 0 or version_index >= researched_bluetooth_level:
+	if not bluetooth_versions.has(version):
 		return
 	selected_bluetooth_version = version
 	if software_value_labels.has("BLUETOOTH") and is_instance_valid(software_value_labels["BLUETOOTH"]):
@@ -11836,10 +11827,9 @@ func _show_wifi_controls() -> void:
 		var option := Button.new()
 		option.name = "WiFiOption_" + standard.replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace(",", "")
 		var button_label: String = "Wi-Fi " + standard.get_slice(" ", 1).split(" ")[0]
-		var unlocked := standard_index < researched_wifi_level
-		option.text = button_label + ("  ✓" if selected_wifi_standard == standard else ("  🔒" if not unlocked else ""))
-		option.tooltip_text = standard + (" — LOCKED" if not unlocked else "")
-		option.disabled = not unlocked
+		option.text = button_label + ("  ✓" if selected_wifi_standard == standard else "")
+		option.tooltip_text = standard
+		option.disabled = false
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 15)
@@ -11851,20 +11841,16 @@ func _show_wifi_controls() -> void:
 		option.pressed.connect(_on_wifi_standard_selected.bind(standard))
 		options.add_child(option)
 
-func set_wifi_research_level(level: int) -> void:
-	researched_wifi_level = clampi(level, 1, 8)
-	var wifi_standards := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
-	var selected_index := wifi_standards.find(selected_wifi_standard)
-	if selected_index < 0 or selected_index >= researched_wifi_level:
-		selected_wifi_standard = wifi_standards[researched_wifi_level - 1]
+func set_wifi_research_level(_level: int) -> void:
+	# Legacy compatibility hook: expose every Wi-Fi standard.
+	researched_wifi_level = 8
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "WiFiSelectionControls":
 		_show_wifi_controls()
 
 
 func _on_wifi_standard_selected(standard: String) -> void:
 	var wifi_standards := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
-	var standard_index := wifi_standards.find(standard)
-	if standard_index < 0 or standard_index >= researched_wifi_level:
+	if not wifi_standards.has(standard):
 		return
 	selected_wifi_standard = standard
 	if software_value_labels.has("WI-FI") and is_instance_valid(software_value_labels["WI-FI"]):
@@ -11948,10 +11934,9 @@ func _show_mobile_network_controls() -> void:
 				display_name = "4G+"
 			"5G-Advanced":
 				display_name = "5G-A"
-		var unlocked := network_index < researched_mobile_internet_level
-		option.text = display_name + ("  ✓" if selected_mobile_network == network else ("  🔒" if not unlocked else ""))
+		option.text = display_name + ("  ✓" if selected_mobile_network == network else "")
 		option.tooltip_text = network
-		option.disabled = not unlocked
+		option.disabled = false
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 15)
@@ -11963,20 +11948,16 @@ func _show_mobile_network_controls() -> void:
 		option.pressed.connect(_on_mobile_network_selected.bind(network))
 		options.add_child(option)
 
-func set_mobile_internet_research_level(level: int) -> void:
-	researched_mobile_internet_level = clampi(level, 1, 7)
-	var networks := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
-	var selected_index := networks.find(selected_mobile_network)
-	if selected_index < 0 or selected_index >= researched_mobile_internet_level:
-		selected_mobile_network = networks[researched_mobile_internet_level - 1]
+func set_mobile_internet_research_level(_level: int) -> void:
+	# Legacy compatibility hook: expose every mobile-network generation.
+	researched_mobile_internet_level = 7
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "MobileNetworkSelectionControls":
 		_show_mobile_network_controls()
 
 
 func _on_mobile_network_selected(network: String) -> void:
 	var networks := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
-	var network_index := networks.find(network)
-	if network_index < 0 or network_index >= researched_mobile_internet_level:
+	if not networks.has(network):
 		return
 	selected_mobile_network = network
 	if software_value_labels.has("MOBILE NETWORK") and is_instance_valid(software_value_labels["MOBILE NETWORK"]):
