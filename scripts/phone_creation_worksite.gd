@@ -3226,7 +3226,7 @@ func _make_staff_style_card() -> PanelContainer:
 
 	var glass_gradient := Gradient.new()
 	glass_gradient.set_color(0, Color(0.88, 1.0, 0.89, 0.22))
-	glass_gradient.set_color(1, Color(0.72, 0.91, 0.75, 0.0))
+	glass_gradient.set_color(1, Color(0.88, 0.78, 0.62, 0.0))
 	var glass_texture := GradientTexture2D.new()
 	glass_texture.gradient = glass_gradient
 	glass_texture.fill_from = Vector2(0.0, 0.0)
@@ -5328,7 +5328,7 @@ func _show_screen_tech_controls() -> void:
 
 	var separator := ColorRect.new()
 	separator.custom_minimum_size = Vector2(0, 1)
-	separator.color = Color(0.58, 0.82, 0.63, 0.30)
+	separator.color = Color(0.78, 0.62, 0.38, 0.30)
 	active_feature_panel.add_child(separator)
 
 	screen_quality_value_labels.clear()
@@ -8919,8 +8919,8 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var section_style := StyleBoxFlat.new()
-	section_style.bg_color = Color(0.035, 0.12, 0.065, 0.88)
-	section_style.border_color = Color(0.28, 0.62, 0.38, 0.58)
+	section_style.bg_color = Color(0.075, 0.080, 0.082, 0.92)
+	section_style.border_color = Color(0.58, 0.46, 0.29, 0.62)
 	section_style.set_border_width_all(1)
 	section_style.set_corner_radius_all(12)
 	section_style.content_margin_left = 12
@@ -8989,7 +8989,7 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 	_style_power_volume_position_button(down)
 	down.pressed.connect(_on_side_button_position_step.bind(side, -1))
 	position_row.add_child(down)
-	var position_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 17, Color("#b8e8c2"))
+	var position_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 17, Color("#D3AA6B"))
 	position_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	position_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	position_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -9010,22 +9010,22 @@ func _style_power_volume_position_button(button: Button) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.035, 0.16, 0.075, 0.88)
-		style.border_color = Color(0.30, 0.68, 0.40, 0.72)
+		style.border_color = Color(0.68, 0.52, 0.30, 0.76)
 		if state == "hover":
-			style.bg_color = Color(0.07, 0.27, 0.12, 0.96)
+			style.bg_color = Color(0.18, 0.13, 0.07, 0.96)
 		elif state == "pressed":
-			style.bg_color = Color(0.08, 0.38, 0.16, 1.0)
+			style.bg_color = Color(0.30, 0.20, 0.09, 1.0)
 		elif state == "disabled":
-			style.bg_color = Color(0.035, 0.12, 0.065, 0.45)
-			style.border_color = Color(0.20, 0.38, 0.25, 0.42)
+			style.bg_color = Color(0.075, 0.080, 0.082, 0.52)
+			style.border_color = Color(0.34, 0.29, 0.21, 0.44)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.0, 0.12, 0.04, 0.28)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.30)
 		style.shadow_size = 7
 		style.shadow_offset = Vector2(0, 2)
 		style.anti_aliasing = true
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#e8f6eb"))
+	button.add_theme_color_override("font_color", Color("#EEE9DF"))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_color_override("font_disabled_color", Color("#A9A092"))
@@ -9092,8 +9092,8 @@ func _add_optional_side_feature_row(caption: String, feature: String, enabled: b
 	var section := PanelContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.035, 0.12, 0.065, 0.88)
-	style.border_color = Color(0.28, 0.62, 0.38, 0.58)
+	style.bg_color = Color(0.075, 0.080, 0.082, 0.92)
+	style.border_color = Color(0.58, 0.46, 0.29, 0.62)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(11)
 	style.content_margin_left = 12
@@ -10864,7 +10864,7 @@ func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: V
 	surface.add_vertex(c)
 
 func _build_software_summary_panel() -> void:
-	software_summary_panel = _make_glass_panel(Color(0.035, 0.12, 0.065, 0.88))
+	software_summary_panel = _make_glass_panel(Color(0.075, 0.080, 0.082, 0.92))
 	software_summary_panel.name = "PhoneSoftwareSpecificationPanel"
 	software_summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	software_summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
