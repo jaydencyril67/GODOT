@@ -161,6 +161,8 @@ func _build_dashboard() -> void:
 	priority_level_picker.custom_minimum_size.x = 112 if compact else 142
 	for level in PRIORITY_LEVELS:
 		priority_level_picker.add_item(level)
+	priority_component_picker.select(0)
+	priority_level_picker.select(1)
 	selector_row.add_child(priority_level_picker)
 	var apply_button := _button("SET PRIORITY", compact, true)
 	apply_button.pressed.connect(_apply_component_priority)
@@ -299,7 +301,7 @@ func _show_history() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var close := _button("CLOSE  ×", true, false)
-	close.pressed.connect(func(): history_overlay.queue_free(); history_overlay = null)
+	close.pressed.connect(_close_history)
 	header.add_child(close)
 	var hint := _label("Completed discoveries and research milestones will appear here.", 10, TEXT_MUTED)
 	content.add_child(hint)
@@ -324,6 +326,11 @@ func _show_history() -> void:
 			item_content.add_child(_label(str(entry.get("title", "Research milestone")), 11, TEXT_MAIN))
 			item_content.add_child(_label(str(entry.get("detail", entry.get("description", ""))), 9, TEXT_MUTED))
 			item_content.add_child(_label(str(entry.get("date", "")), 8, ACCENT))
+
+func _close_history() -> void:
+	if is_instance_valid(history_overlay):
+		history_overlay.queue_free()
+	history_overlay = null
 
 func _normalize_loaded_strategy() -> void:
 	var total := int(strategy["Hardware"]) + int(strategy["Software"]) + int(strategy["Extras"])
