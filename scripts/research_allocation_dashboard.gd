@@ -7,11 +7,11 @@ signal project_reject_requested(project_id: String, review_note: String)
 
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
-const TEXT_MAIN := Color("#f1f5fb")
-const TEXT_MUTED := Color("#a7b4c7")
-const ACCENT := Color("#4f9fe8")
-const GREEN := Color("#70d48b")
-const BLUE := Color("#42c7ee")
+const TEXT_MAIN := Color("#EEE9DF")
+const TEXT_MUTED := Color("#AAA49A")
+const ACCENT := Color("#C58A3A")
+const SUCCESS := Color("#7FA88A")
+const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
 const COMPONENT_LABELS := ["Screen Tech", "Phone Thickness", "Border Radius"]
@@ -60,13 +60,13 @@ func _build_shell() -> void:
 	var background := ColorRect.new()
 	background.name = "ResearchManagementBackground"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color("#070b12")
+	background.color = Color("#111315")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 
 	var atmosphere := ColorRect.new()
 	atmosphere.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	atmosphere.color = Color(0.025, 0.055, 0.11, 0.34)
+	atmosphere.color = Color(0.075, 0.065, 0.052, 0.28)
 	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(atmosphere)
 
@@ -131,7 +131,7 @@ func _build_empty_scene() -> void:
 	body.add_child(body_content)
 
 	body_content.add_child(_label("NO ACTIVE RESEARCHES", 27, TEXT_MAIN))
-	var create := _button("CREATE RESEARCH", true, GREEN)
+	var create := _button("CREATE RESEARCH", true, ACCENT)
 	create.name = "CreateResearchButton"
 	create.custom_minimum_size = Vector2(260, 58)
 	create.pressed.connect(_open_creation_scene)
@@ -189,7 +189,7 @@ func _build_creation_scene() -> void:
 	estimate_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body_content.add_child(estimate_label)
 
-	start_button = _button("START RESEARCH", true, GREEN)
+	start_button = _button("START RESEARCH", true, ACCENT)
 	start_button.name = "StartResearchButton"
 	start_button.custom_minimum_size.y = 54
 	start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -343,7 +343,7 @@ func _build_active_research(project: Dictionary) -> void:
 	active_remaining_label = _label("%d IN-GAME DAYS REMAINING" % remaining_days, 13, TEXT_MUTED)
 	body_content.add_child(active_remaining_label)
 
-	body_content.add_child(_label("ESTIMATED SUCCESS CHANCE  %.0f%%" % float(project.get("success_chance", 0.0)), 16, GREEN))
+	body_content.add_child(_label("ESTIMATED SUCCESS CHANCE  %.0f%%" % float(project.get("success_chance", 0.0)), 16, SUCCESS))
 	body_content.add_child(_label("INVESTMENT  %s" % _format_currency(float(project.get("budget", 0.0))), 13, TEXT_MUTED))
 
 	var assigned_names: Array[String] = []
@@ -443,7 +443,7 @@ func _button(value: String, primary: bool, accent: Color) -> Button:
 	button.add_theme_color_override("font_color", TEXT_MAIN)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("#17365a") if primary else Color("#101a29")
+	normal.bg_color = Color("#805821") if primary else Color("#202326")
 	normal.border_color = accent
 	normal.set_border_width_all(1)
 	normal.set_corner_radius_all(8)
@@ -452,7 +452,7 @@ func _button(value: String, primary: bool, accent: Color) -> Button:
 	normal.content_margin_top = 9
 	normal.content_margin_bottom = 9
 	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color("#244b75") if primary else Color("#182b42")
+	hover.bg_color = Color("#956A2E") if primary else Color("#2A2E30")
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", hover)
@@ -463,8 +463,8 @@ func _style_option(option: OptionButton) -> void:
 	option.add_theme_font_size_override("font_size", 16)
 	option.add_theme_color_override("font_color", TEXT_MAIN)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#101a29")
-	style.border_color = Color("#315d86")
+	style.bg_color = Color("#202326")
+	style.border_color = Color("#514B40")
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
 	style.content_margin_left = 10
@@ -481,7 +481,7 @@ func _style_input(input: LineEdit) -> void:
 	for state in ["normal", "focus"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color("#101a29")
-		style.border_color = Color("#315d86") if state == "normal" else ACCENT
+		style.border_color = Color("#514B40") if state == "normal" else ACCENT
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(6)
 		style.content_margin_left = 10
