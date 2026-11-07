@@ -167,7 +167,7 @@ func _build_empty_scene() -> void:
 	heading_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	heading_stack.add_child(_label("RESEARCH OPERATIONS", 25, TEXT_MAIN))
-	heading_stack.add_child(_label("Direct company capital into the next generation of technology.", 13, TEXT_MUTED))
+	heading_stack.add_child(_label("Assign your Research team to accelerate the next technology improvement.", 13, TEXT_MUTED))
 	page_heading.add_child(heading_stack)
 
 	var status := _label("NO ACTIVE PROJECT", 12, ACCENT)
@@ -183,7 +183,7 @@ func _build_empty_scene() -> void:
 	var launch_panel := _add_panel(main_row, 1.55)
 	launch_panel.add_child(_label("R&D DIRECTOR'S OFFICE  /  PROJECT COMMISSIONING", 11, ACCENT))
 	launch_panel.add_child(_label("BUILD THE NEXT GENERATION", 34, TEXT_MAIN))
-	var explanation := _label("Your company has no research project in development. Choose a technology target and assign your Research team to begin engineering work.", 16, TEXT_MUTED)
+	var explanation := _label("Your company has no research project in development. Choose a technology target and assign Research staff to begin work.", 16, TEXT_MUTED)
 	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	launch_panel.add_child(explanation)
 
@@ -212,7 +212,7 @@ func _build_empty_scene() -> void:
 	capacity_divider.color = Color("#3B3832")
 	capacity_divider.custom_minimum_size.y = 1
 	capacity_panel.add_child(capacity_divider)
-	_add_large_metric(capacity_panel, "%.1f HRS" % float(workforce.get("productive_hours_per_game_day", 0.0)), "DAILY TEAM CAPACITY", TEXT_MAIN)
+	_add_large_metric(capacity_panel, "%.0f%%" % float(workforce.get("available_efficiency", 0.0)), "AVAILABLE STAFF EFFICIENCY", TEXT_MAIN)
 	_add_large_metric(capacity_panel, str(total_staff), "TOTAL RESEARCH STAFF", TEXT_MUTED)
 	var capacity_note := _label("Researchers already assigned to an active project are not counted as available.", 12, TEXT_MUTED)
 	capacity_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -366,8 +366,8 @@ func _update_research_estimate() -> void:
 	var estimate := ResearchManagerScript.estimate_research(component, assigned_staff_ids, staff_employees)
 	var estimate_valid := bool(estimate.get("ok", false))
 	if estimate_valid:
-		estimate_label.text = "ESTIMATED DURATION  %d IN-GAME DAYS\nESTIMATED SUCCESS CHANCE  %.0f%%" % [
-			int(estimate.get("expected_duration_days", 0)),
+		estimate_label.text = "ESTIMATED DURATION  %s IN-GAME DAYS\nESTIMATED SUCCESS CHANCE  %.0f%%" % [
+			_format_research_days(float(estimate.get("expected_duration_days", 0.0))),
 			float(estimate.get("success_chance", 0.0))
 		]
 		estimate_label.add_theme_color_override("font_color", ACCENT)
@@ -419,12 +419,10 @@ func _build_active_research(project: Dictionary) -> void:
 	page_heading.add_child(_label("PROJECT  " + active_project_id, 12, ACCENT))
 	body_content.add_child(page_heading)
 
-	var completed_hours := maxf(0.0, float(project.get("work_completed_hours", 0.0)))
-	var required_hours := maxf(1.0, float(project.get("work_required_hours", 1.0)))
-	var progress := clampf(completed_hours / required_hours, 0.0, 1.0)
-	var daily_hours := maxf(0.1, float(project.get("daily_work_hours", 0.0)))
-	var remaining_hours := maxf(0.0, required_hours - completed_hours)
-	var remaining_days := int(ceil(remaining_hours / daily_hours))
+	var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
+	var required_days := maxf(1.0, float(project.get("required_research_days", 30.0)))
+	var progress := clampf(completed_days / required_days, 0.0, 1.0)
+	var remaining_days := maxf(0.0, required_days - completed_days)
 
 	var main_row := HBoxContainer.new()
 	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -468,9 +466,9 @@ func _build_active_research(project: Dictionary) -> void:
 	active_progress_bar.add_theme_stylebox_override("fill", progress_fill)
 	progress_panel.add_child(active_progress_bar)
 
-	active_remaining_label = _label("%d IN-GAME DAYS REMAINING" % remaining_days, 17, TEXT_MAIN)
+	active_remaining_label = _label("%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days), 17, TEXT_MAIN)
 	progress_panel.add_child(active_remaining_label)
-	progress_panel.add_child(_label("%.1f OF %.1f ENGINEERING HOURS COMPLETED" % [completed_hours, required_hours], 12, TEXT_MUTED))
+	progress_panel.add_child(_label("%s OF %s RESEARCH DAYS COMPLETED" % [_format_research_days(completed_days), _format_research_days(required_days)], 12, TEXT_MUTED))
 	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
 	if not pause_reason.is_empty():
 		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 13, ORANGE)
@@ -617,17 +615,16 @@ func update_live_progress(projects: Array, balance: float, employees: Array) -> 
 	if str(active_project.get("id", "")) != active_project_id:
 		_render_scene()
 		return
-	var completed_hours := maxf(0.0, float(active_project.get("work_completed_hours", 0.0)))
-	var required_hours := maxf(1.0, float(active_project.get("work_required_hours", 1.0)))
-	var progress := clampf(completed_hours / required_hours, 0.0, 1.0)
-	var daily_hours := maxf(0.1, float(active_project.get("daily_work_hours", 0.0)))
-	var remaining_days := int(ceil(maxf(0.0, required_hours - completed_hours) / daily_hours))
+	var completed_days := maxf(0.0, float(active_project.get("completed_research_days", 0.0)))
+	var required_days := maxf(1.0, float(active_project.get("required_research_days", 30.0)))
+	var progress := clampf(completed_days / required_days, 0.0, 1.0)
+	var remaining_days := maxf(0.0, required_days - completed_days)
 	if is_instance_valid(active_progress_bar):
 		active_progress_bar.value = progress * 100.0
 	if is_instance_valid(active_progress_label):
 		active_progress_label.text = "%d%%" % roundi(progress * 100.0)
 	if is_instance_valid(active_remaining_label):
-		active_remaining_label.text = "%d IN-GAME DAYS REMAINING" % remaining_days
+		active_remaining_label.text = "%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days)
 
 
 func _clear_body() -> void:
@@ -710,6 +707,12 @@ func _style_input(input: LineEdit) -> void:
 		style.content_margin_top = 10
 		style.content_margin_bottom = 10
 		input.add_theme_stylebox_override(state, style)
+
+func _format_research_days(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return str(roundi(value))
+	return "%.1f" % value
+
 
 func _format_currency(value: float) -> String:
 	return "₦" + _format_number(value)
