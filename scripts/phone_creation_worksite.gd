@@ -12281,7 +12281,7 @@ func _show_mobile_network_controls() -> void:
 				display_name = "5G-A"
 		var unlocked := network_index < researched_mobile_internet_level
 		option.text = display_name + ("  ✓" if selected_mobile_network == network else ("  🔒" if not unlocked else ""))
-		option.tooltip_text = network + (" — LOCKED" if not unlocked else "")
+		option.tooltip_text = network
 		option.disabled = not unlocked
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
