@@ -233,7 +233,7 @@ func _run_screen_technology_checks() -> bool:
 	ScreenTechnologySystem.upgrade(visual_state)
 	var reflection_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
 	var reflection_color: Color = reflection_profile["albedo_color"]
-	if not is_equal_approx(float(shininess_profile["specular"]), float(reflection_profile["specular"])):
+	if is_equal_approx(float(shininess_profile["specular"]), float(reflection_profile["specular"])):
 		_fail("Reflection reduction did not change its own screen property.")
 		return false
 	if not is_equal_approx(shininess_color.r, reflection_color.r) or not is_equal_approx(float(shininess_profile["roughness"]), float(reflection_profile["roughness"])):
