@@ -57,21 +57,22 @@ class AllocationDial extends Control:
 		var radius := minf(size.x, size.y) * 0.465
 		draw_circle(centre + Vector2(0, 6), radius + 1.0, Color(0.0, 0.0, 0.0, 0.48))
 		draw_circle(centre, radius, Color(accent.r * 0.22, accent.g * 0.22, accent.b * 0.22, 0.96))
-		draw_circle(centre, radius - 10.0, Color("#09120f"))
-		draw_arc(centre, radius - 5.0, 0.0, TAU, 100, Color(accent.r, accent.g, accent.b, 0.28), 2.0, true)
-		draw_arc(centre, radius - 17.0, 0.0, TAU, 100, Color(0.85, 1.0, 0.88, 0.10), 1.0, true)
+		draw_circle(centre, radius - 19.0, Color("#09120f"))
+		draw_arc(centre, radius - 9.0, 0.0, TAU, 120, Color(accent.r, accent.g, accent.b, 0.38), 5.0, true)
+		draw_arc(centre, radius - 23.0, 0.0, TAU, 120, Color(0.85, 1.0, 0.88, 0.18), 2.0, true)
 		for tick in range(36):
 			var angle := -PI * 0.5 + TAU * float(tick) / 36.0
 			var outer := centre + Vector2(cos(angle), sin(angle)) * (radius - 2.0)
-			var inner := centre + Vector2(cos(angle), sin(angle)) * (radius - (10.0 if tick % 3 == 0 else 6.0))
-			draw_line(inner, outer, Color(accent.r, accent.g, accent.b, 0.45 if tick % 3 == 0 else 0.20), 1.3, true)
+			var inner := centre + Vector2(cos(angle), sin(angle)) * (radius - (20.0 if tick % 3 == 0 else 13.0))
+			draw_line(inner, outer, Color(accent.r, accent.g, accent.b, 0.72 if tick % 3 == 0 else 0.36), 3.0 if tick % 3 == 0 else 2.0, true)
 		var end_angle := -PI * 0.5 + TAU * allocation / 100.0
 		if allocation > 0.05:
-			draw_arc(centre, radius - 5.0, -PI * 0.5, end_angle, 100, accent, 7.0, true)
-		var pointer := centre + Vector2(cos(end_angle), sin(end_angle)) * (radius - 5.0)
-		draw_circle(pointer, 8.0, Color("#06100b"))
-		draw_circle(pointer, 5.0, accent)
-		draw_arc(centre, radius - 23.0, -PI * 0.5, TAU * 0.5, 60, Color(1.0, 1.0, 1.0, 0.045), 1.0, true)
+			draw_arc(centre, radius - 9.0, -PI * 0.5, end_angle, 120, accent, 16.0, true)
+		var pointer := centre + Vector2(cos(end_angle), sin(end_angle)) * (radius - 9.0)
+		draw_circle(pointer, 13.0, Color("#06100b"))
+		draw_circle(pointer, 9.0, accent)
+		draw_circle(pointer, 4.0, Color("#f2fff4"))
+		draw_arc(centre, radius - 31.0, -PI * 0.5, TAU * 0.5, 60, Color(1.0, 1.0, 1.0, 0.07), 2.0, true)
 
 	func _gui_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -99,7 +100,7 @@ class AllocationDial extends Control:
 		var centre := size * 0.5
 		var radius := minf(size.x, size.y) * 0.465
 		var distance := point.distance_to(centre)
-		if distance < radius * 0.64 or distance > radius * 1.08:
+		if distance < radius * 0.52 or distance > radius * 1.14:
 			return false
 		_dragging = true
 		_last_angle = atan2(point.y - centre.y, point.x - centre.x)
