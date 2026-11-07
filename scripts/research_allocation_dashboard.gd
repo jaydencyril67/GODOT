@@ -268,6 +268,7 @@ func _rebuild_project_list() -> void:
 		"rejected": "NOT APPROVED",
 		"approved": "APPROVED DISCOVERIES"
 	}
+	var has_projects := false
 	for status in ordered_statuses:
 		var section_projects: Array = []
 		for project_value in research_projects:
@@ -275,6 +276,7 @@ func _rebuild_project_list() -> void:
 				section_projects.append(project_value)
 		if section_projects.is_empty():
 			continue
+		has_projects = true
 		var section_label := _label(titles[status], 8, _status_color(status))
 		project_list.add_child(section_label)
 		for project in section_projects:
@@ -296,7 +298,7 @@ func _rebuild_project_list() -> void:
 			button.add_theme_stylebox_override("hover", _button_style(true, _status_color(status)))
 			button.pressed.connect(_select_project.bind(str(project.get("id", ""))))
 			project_list.add_child(button)
-	if project_list.get_child_count() == 0:
+	if not has_projects:
 		var empty := _label("No research projects yet.\nCommission your company's first R&D project.", 10, TEXT_MUTED)
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.custom_minimum_size.y = 54
