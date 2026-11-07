@@ -258,7 +258,11 @@ func _build_empty_scene() -> void:
 	page_heading.add_child(heading_stack)
 
 	var status := _label("NO ACTIVE PROJECT", 12, ACCENT)
+	status.custom_minimum_size.x = _scaled(150.0)
+	status.size_flags_horizontal = Control.SIZE_SHRINK_END
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	page_heading.add_child(status)
 
 	var main_row := _new_main_row()
