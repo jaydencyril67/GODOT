@@ -3223,6 +3223,16 @@ func _build_research_ui() -> void:
 	research_balance_label = _make_label("AVAILABLE BALANCE  " + _format_research_money(research_balance), 11 if compact else 12, Color("#c7eacb"))
 	heading.add_child(research_balance_label)
 
+	var back_button := Button.new()
+	back_button.name = "PhoneResearchBackButton"
+	back_button.text = "‹  BACK"
+	back_button.custom_minimum_size = Vector2(112 if compact else 132, 40 if compact else 46)
+	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_apply_research_typography(back_button, 13 if compact else 15)
+	_style_staff_button(back_button, false)
+	back_button.pressed.connect(func(): back_requested.emit())
+	hero_row.add_child(back_button)
+
 	var research_content := VBoxContainer.new()
 	research_content.name = "PhoneDesignResearchContent"
 	research_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3230,6 +3240,15 @@ func _build_research_ui() -> void:
 	research_content.add_theme_constant_override("separation", 12)
 	page.add_child(research_content)
 	_build_design_research_content(research_content)
+
+
+func close_research_ui() -> void:
+	# The overlay is hosted by the existing Research screen, not by this
+	# Node3D controller, so it must be explicitly removed on Back.
+	if is_instance_valid(research_ui_root):
+		research_ui_root.queue_free()
+	research_ui_root = null
+	research_content_panel = null
 
 
 func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> void:
@@ -3442,21 +3461,7 @@ func _on_research_feature_selected(feature_name: String) -> void:
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
-	# Keep the return action clearly above the three research category tabs.
-	var back_row := HBoxContainer.new()
-	back_row.name = "PhoneResearchBackRow"
-	back_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	parent.add_child(back_row)
-
-	var back_button := Button.new()
-	back_button.name = "PhoneResearchBackButton"
-	back_button.text = "‹  BACK"
-	back_button.custom_minimum_size = Vector2(112 if compact else 132, 40 if compact else 46)
-	_apply_research_typography(back_button, 13 if compact else 15)
-	_style_staff_button(back_button, false)
-	back_button.pressed.connect(func(): back_requested.emit())
-	back_row.add_child(back_button)
-
+	# Category tabs stay together; the Back action lives in the hero row.
 	var selector := HBoxContainer.new()
 	selector.name = "PhoneResearchDepartmentSelector"
 	selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
