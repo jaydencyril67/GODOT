@@ -2612,18 +2612,6 @@ func _on_phone_design_research_upgrade(research_id: String) -> void:
 	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Upgrade %s from Level %d to Level %d?\n\nCost: %s" % [research_names[research_id], current_level, current_level + 1, _format_balance(upgrade_cost)], "UPGRADE", Callable(self, "_apply_phone_design_research_upgrade").bind(research_id))
 
 
-func _show_curve_screen_research_prompt() -> void:
-	if bool(career.get("phone_curve_screen_research_unlocked", false)):
-		_show_notice("RESEARCH COMPLETE", "Curve Screen is already unlocked in your phone editor.")
-		return
-	if bool(career.get("phone_curve_screen_research_active", false)):
-		var remaining_days := maxi(0, ceili((float(career.get("phone_curve_screen_research_completion_unix", 0.0)) - game_date_unix) / 86400.0))
-		_show_notice("CURVE SCREEN RESEARCH IN PROGRESS", "Curve Screen research is underway. Estimated time remaining: %d in-game days." % remaining_days)
-		return
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("CURVE SCREEN RESEARCH", "Curve Screen\n\nResearch points required: 1,000 RP\nResearch cost: $10,000,000\nResearch duration: 7 in-game days", "RESEARCH", Callable(self, "_on_curve_screen_research_upgrade"))
-
-
 func _on_curve_screen_research_upgrade() -> void:
 	if bool(career.get("phone_curve_screen_research_unlocked", false)) or bool(career.get("phone_curve_screen_research_active", false)):
 		return
@@ -2674,42 +2662,6 @@ func _process_curve_screen_research() -> void:
 		phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
 	if current_screen == "research":
 		_show_notice("CURVE SCREEN RESEARCH COMPLETE", "Curve Screen is now unlocked in your phone editor.")
-
-
-func _show_phone_charge_port_research_prompt() -> void:
-	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
-	if completed_count >= 5:
-		_show_notice("RESEARCH COMPLETE", "All charging-port technologies currently available in the phone editor have been researched.")
-		return
-	var active_level := int(career.get("phone_charge_port_research_active_level", -1))
-	if active_level >= 0:
-		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current charging-port research must finish before another connector can be researched.")
-		return
-	var port_names := ["DC Barrel Jack", "Mini-USB (Mini-B)", "Micro-USB (Micro-B)", "Apple Lightning", "USB Type-C"]
-	var next_name: String = port_names[completed_count]
-	var points_cost := 10 + completed_count * 2
-	var money_cost := 100000.0 + float(completed_count) * 20000.0
-	var prompt_message := "%s\n\nResearch points required: %d RP\nResearch cost: %s" % [next_name, points_cost, _format_balance(money_cost)]
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("CHARGING PORT RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_charge_port_research_upgrade"))
-
-
-func _show_phone_front_camera_research_prompt() -> void:
-	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
-	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
-	if completed_count >= camera_styles.size():
-		_show_notice("RESEARCH COMPLETE", "All front-camera designs currently available in the phone editor have been researched.")
-		return
-	var active_level := int(career.get("phone_front_camera_research_active_level", -1))
-	if active_level >= 0:
-		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current front-camera design research must finish before another design can be researched.")
-		return
-	var next_name: String = camera_styles[completed_count]
-	var points_cost := 50 * (completed_count + 1)
-	var money_cost := 200000.0 + float(completed_count) * 100000.0
-	var prompt_message := "%s\\n\\nResearch points required: %d RP\\nResearch cost: %s" % [next_name, points_cost, _format_balance(money_cost)]
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("FRONT CAMERA RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_front_camera_research_upgrade"))
 
 
 func _on_phone_front_camera_research_upgrade() -> void:
@@ -2776,22 +2728,6 @@ func _process_phone_front_camera_research() -> void:
 		_show_notice("FRONT CAMERA RESEARCH COMPLETE", "The next front-camera design has been unlocked in your phone editor.")
 
 
-func _show_phone_speaker_research_prompt() -> void:
-	var completed_count := clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12)
-	if completed_count >= 12:
-		_show_notice("RESEARCH COMPLETE", "All 12 speaker openings have been unlocked.")
-		return
-	if int(career.get("phone_speaker_research_active_level", -1)) >= 0:
-		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current speaker research must finish before another speaker opening can be unlocked.")
-		return
-	var next_count := completed_count + 1
-	var points_cost := 10 + completed_count * 2
-	var money_cost := 50000.0 + float(completed_count) * 20000.0
-	var prompt_message := "Speaker opening %d\n\nResearch points required: %d RP\nResearch cost: %s" % [next_count, points_cost, _format_balance(money_cost)]
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("SPEAKER RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_speaker_research_upgrade"))
-
-
 func _on_phone_speaker_research_upgrade() -> void:
 	var completed_count := clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12)
 	if completed_count >= 12:
@@ -2855,25 +2791,6 @@ func _process_phone_speaker_research() -> void:
 		_show_notice("SPEAKER RESEARCH COMPLETE", "Speaker opening %d has been unlocked in your phone editor." % int(career["phone_speaker_research_level"]))
 
 
-func _show_phone_mobile_internet_research_prompt() -> void:
-	var completed_level := clampi(int(career.get("phone_mobile_internet_research_level", 1)), 1, 7)
-	var network_versions := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
-	if completed_level >= network_versions.size():
-		_show_notice("RESEARCH COMPLETE", "All mobile internet standards currently available in the phone editor have been unlocked.")
-		return
-	var active_level := int(career.get("phone_mobile_internet_research_active_level", -1))
-	if active_level >= 0:
-		var remaining_days := maxi(0, ceili((float(career.get("phone_mobile_internet_research_completion_unix", 0.0)) - game_date_unix) / 86400.0))
-		_show_notice("MOBILE INTERNET RESEARCH IN PROGRESS", "Your next mobile network standard is already being researched. Estimated time remaining: %d in-game days." % remaining_days)
-		return
-	var next_version: String = network_versions[completed_level]
-	var points_cost := completed_level * 50
-	var money_cost := float(completed_level + 1) * 100000.0
-	var prompt_message := "%s\n\nResearch points required: %d RP\nResearch cost: %s\nResearch duration: 7 in-game days" % [next_version, points_cost, _format_balance(money_cost)]
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("MOBILE INTERNET RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_mobile_internet_research_upgrade"))
-
-
 func _on_phone_mobile_internet_research_upgrade() -> void:
 	var completed_level := clampi(int(career.get("phone_mobile_internet_research_level", 1)), 1, 7)
 	if completed_level >= 7 or int(career.get("phone_mobile_internet_research_active_level", -1)) >= 0:
@@ -2931,25 +2848,6 @@ func _process_phone_mobile_internet_research() -> void:
 	if current_screen == "research":
 		var network_versions := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
 		_show_notice("MOBILE INTERNET RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % network_versions[int(career["phone_mobile_internet_research_level"]) - 1])
-
-
-func _show_phone_bluetooth_research_prompt() -> void:
-	var completed_level := clampi(int(career.get("phone_bluetooth_research_level", 1)), 1, 14)
-	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
-	if completed_level >= bluetooth_versions.size():
-		_show_notice("RESEARCH COMPLETE", "All Bluetooth versions currently available in the phone editor have been unlocked.")
-		return
-	var active_level := int(career.get("phone_bluetooth_research_active_level", -1))
-	if active_level >= 0:
-		var remaining_days := maxi(0, ceili((float(career.get("phone_bluetooth_research_completion_unix", 0.0)) - game_date_unix) / 86400.0))
-		_show_notice("BLUETOOTH RESEARCH IN PROGRESS", "Your next Bluetooth version is already being researched. Estimated time remaining: %d in-game days." % remaining_days)
-		return
-	var next_version: String = bluetooth_versions[completed_level]
-	var points_cost := completed_level * 50
-	var money_cost := float(completed_level + 1) * 100000.0
-	var prompt_message := "%s\n\nResearch points required: %d RP\nResearch cost: %s\nResearch duration: 7 in-game days" % [next_version, points_cost, _format_balance(money_cost)]
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("BLUETOOTH VERSION RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_bluetooth_research_upgrade"))
 
 
 func _on_phone_bluetooth_research_upgrade() -> void:
@@ -3011,25 +2909,6 @@ func _process_phone_bluetooth_research() -> void:
 		_show_notice("BLUETOOTH RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % bluetooth_versions[int(career["phone_bluetooth_research_level"]) - 1])
 
 
-func _show_phone_wifi_research_prompt() -> void:
-	var completed_level := clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
-	var wifi_names := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
-	if completed_level >= wifi_names.size():
-		_show_notice("RESEARCH COMPLETE", "All Wi-Fi standards currently available in the phone editor have been unlocked.")
-		return
-	var active_level := int(career.get("phone_wifi_research_active_level", -1))
-	if active_level >= 0:
-		var remaining_days := maxi(0, ceili((float(career.get("phone_wifi_research_completion_unix", 0.0)) - game_date_unix) / 86400.0))
-		_show_notice("WI-FI RESEARCH IN PROGRESS", "Your next Wi-Fi standard is already being researched. Estimated time remaining: %d in-game days." % remaining_days)
-		return
-	var next_name: String = wifi_names[completed_level]
-	var points_cost := completed_level * 50
-	var money_cost := float(completed_level + 1) * 100000.0
-	var prompt_message := "%s\n\nResearch points required: %d RP\nResearch cost: %s\nResearch duration: 7 in-game days" % [next_name, points_cost, _format_balance(money_cost)]
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("WI-FI STANDARD RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_wifi_research_upgrade"))
-
-
 func _on_phone_wifi_research_upgrade() -> void:
 	var completed_level := clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
 	if completed_level >= 8 or int(career.get("phone_wifi_research_active_level", -1)) >= 0:
@@ -3087,21 +2966,6 @@ func _process_phone_wifi_research() -> void:
 	if current_screen == "research":
 		var wifi_names := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
 		_show_notice("WI-FI RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % wifi_names[int(career["phone_wifi_research_level"]) - 1])
-
-
-func _show_phone_battery_capacity_research_prompt() -> void:
-	var completed_level := clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15)
-	if completed_level >= 15:
-		_show_notice("RESEARCH COMPLETE", "Maximum battery capacity of 8,000 mAh has been unlocked.")
-		return
-	if int(career.get("phone_battery_capacity_research_active_level", -1)) >= 0:
-		var remaining_days := maxi(0, ceili((float(career.get("phone_battery_capacity_research_completion_unix", 0.0)) - game_date_unix) / 86400.0))
-		_show_notice("BATTERY RESEARCH IN PROGRESS", "Your next battery capacity upgrade is already being researched. Estimated time remaining: %d in-game days." % remaining_days)
-		return
-	var next_capacity := 1000 + completed_level * 500
-	var prompt_message := "%s mAh battery capacity\n\nResearch points required: 100 RP\nResearch cost: $500,000\nResearch duration: 7 in-game days" % _format_count(next_capacity)
-	if is_instance_valid(confirm_modal):
-		confirm_modal.show_action_prompt("BATTERY CAPACITY RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_battery_capacity_research_upgrade"))
 
 
 func _on_phone_battery_capacity_research_upgrade() -> void:
