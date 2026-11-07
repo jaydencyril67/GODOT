@@ -98,5 +98,5 @@ static func get_visual_profile(state: Dictionary) -> Dictionary:
 		"albedo_color": screen_color,
 		"roughness": screen_roughness,
 		"metallic": screen_metallic,
-		"metallic_specular": screen_specular
+		"specular": screen_specular
 	}
