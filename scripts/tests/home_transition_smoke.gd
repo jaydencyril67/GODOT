@@ -89,15 +89,15 @@ func _run_transition_checks() -> void:
 		_fail("Opening Research replaced the headquarters building.")
 		return
 
-	# Phone now opens the dedicated Company Research Allocation Dashboard.
+	# Phone now opens the company R&D management centre.
 	# The dashboard overlays the existing Research page without rebuilding it.
 	var research_page_layer = game.ui_layer
 	game._on_research_category_pressed("PHONE")
 	if game.current_screen != "research_allocation" or not is_instance_valid(game.research_allocation_dashboard):
-		_fail("Phone did not open the Company Research Allocation Dashboard.")
+		_fail("Phone did not open the R&D management centre.")
 		return
 	if not is_instance_valid(research_page_layer) or not research_page_layer.visible:
-		_fail("Opening Research Allocation hid or replaced the underlying Research page.")
+		_fail("Opening the R&D centre hid or replaced the underlying Research page.")
 		return
 	var dashboard = game.research_allocation_dashboard
 	if not dashboard.has_signal("project_commission_requested") or not dashboard.has_signal("project_approve_requested") or not dashboard.has_signal("project_reject_requested"):
@@ -137,14 +137,29 @@ func _run_transition_checks() -> void:
 	if stored_projects.is_empty() or str(stored_projects[0].get("status", "")) != "awaiting_validation":
 		_fail("Completed R&D work did not move into technical validation.")
 		return
+	var project_id := str(created_project.get("id", ""))
+	var approval_result: Dictionary = game.approve_research_project(project_id, [{
+		"component": "Battery",
+		"metric": "Energy density",
+		"value": "Improved test sample",
+		"unit": "",
+		"notes": "Recorded after prototype testing."
+	}])
+	if not bool(approval_result.get("ok", false)):
+		_fail("A completed R&D project could not pass technical validation: %s" % str(approval_result.get("error", "")))
+		return
+	var battery_history: Array = game.career.get("research_technologies", {}).get("Battery", [])
+	if battery_history.size() != 1 or str(battery_history[0].get("metric", "")) != "Energy density":
+		_fail("Approved R&D findings were not stored in the company's technology records.")
+		return
 	dashboard.call("configure", game._get_research_dashboard_data())
 
 	game._return_from_research_allocation_dashboard()
 	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
-		_fail("Closing Research Allocation did not reveal the original Research page.")
+		_fail("Closing the R&D centre did not reveal the original Research page.")
 		return
 	if is_instance_valid(game.research_allocation_dashboard):
-		_fail("Closing Research Allocation did not dispose of its dashboard scene.")
+		_fail("Closing the R&D centre did not dispose of its dashboard scene.")
 		return
 
 	game._return_home_from_research()
