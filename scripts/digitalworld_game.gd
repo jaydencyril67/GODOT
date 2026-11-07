@@ -107,6 +107,8 @@ func _process(delta: float) -> void:
 	var completed_rd_projects: Array = ResearchManagerScript.advance_projects(career, game_time_delta, game_date_unix)
 	if not completed_rd_projects.is_empty():
 		_save_career()
+		if is_instance_valid(research_allocation_dashboard):
+			research_allocation_dashboard.call("update_live_progress", career.get("research_projects", []), float(career.get("balance", 0.0)), career.get("staff_employees", []))
 	_process_phone_charge_port_research()
 	_process_phone_front_camera_research()
 	_process_phone_speaker_research()
@@ -122,6 +124,8 @@ func _process(delta: float) -> void:
 	if current_day != previous_day:
 		_save_career()
 		last_saved_game_day = current_day
+		if is_instance_valid(research_allocation_dashboard):
+			research_allocation_dashboard.call("update_live_progress", career.get("research_projects", []), float(career.get("balance", 0.0)), career.get("staff_employees", []))
 	_update_home_status_bar()
 
 
