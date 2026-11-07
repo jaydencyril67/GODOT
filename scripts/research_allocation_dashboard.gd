@@ -183,7 +183,7 @@ func _build_empty_scene() -> void:
 	var launch_panel := _add_panel(main_row, 1.55)
 	launch_panel.add_child(_label("R&D DIRECTOR'S OFFICE  /  PROJECT COMMISSIONING", 11, ACCENT))
 	launch_panel.add_child(_label("BUILD THE NEXT GENERATION", 34, TEXT_MAIN))
-	var explanation := _label("Your company has no research project in development. Choose a technology target, commit a budget and assign your Research team to begin engineering work.", 16, TEXT_MUTED)
+	var explanation := _label("Your company has no research project in development. Choose a technology target and assign your Research team to begin engineering work.", 16, TEXT_MUTED)
 	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	launch_panel.add_child(explanation)
 
