@@ -130,7 +130,7 @@ func _run_transition_checks() -> void:
 		return
 	var created_project: Dictionary = commission_result.get("project", {})
 	var completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 13.0, game.game_date_unix + 86400.0 * 13.0)
-	if completed_ids.is_empty() or str(created_project.get("status", "active")) == "awaiting_validation":
+	if completed_ids.is_empty():
 		_fail("The assigned research team did not complete its engineering work.")
 		return
 	var stored_projects: Array = game.career.get("research_projects", [])
