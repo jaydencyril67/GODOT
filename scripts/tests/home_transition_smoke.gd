@@ -79,49 +79,47 @@ func _run_transition_checks() -> void:
 		_fail("Opening Research replaced the headquarters building.")
 		return
 
-	# Phone research must be a dark CanvasLayer overlay over the retained
-	# Research page. Selecting Charge Port changes the detail panel in-place;
-	# it must not replace the Worksite or navigate to another scene.
+	# Phone now opens the dedicated Company Research Allocation Dashboard.
+	# The dashboard overlays the existing Research page without rebuilding it.
 	var research_page_layer = game.ui_layer
-	game._show_research_phone()
-	if game.current_screen != "research_phone" or not is_instance_valid(game.phone_research_worksite):
-		_fail("Phone research did not open its research overlay.")
+	game._show_research_allocation_dashboard()
+	if game.current_screen != "research_allocation" or not is_instance_valid(game.research_allocation_dashboard):
+		_fail("Phone did not open the Company Research Allocation Dashboard.")
 		return
 	if not is_instance_valid(research_page_layer) or not research_page_layer.visible:
-		_fail("Phone research replaced or hid the underlying Research page layer.")
+		_fail("Opening Research Allocation hid or replaced the underlying Research page.")
 		return
-	var research_worksite = game.phone_research_worksite
-	var research_canvas = research_worksite.get_node_or_null("PhoneResearchInterface")
-	if not is_instance_valid(research_canvas) or not is_instance_valid(research_canvas.get_node_or_null("PhoneResearchRoot/DigitalWorld_Obsidian_Background")):
-		_fail("Phone research is missing its full-screen dark overlay layer.")
+	var dashboard = game.research_allocation_dashboard
+	if dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard") != null:
+		_fail("Research dashboard has an unexpected duplicate content root.")
 		return
-	var research_root = research_worksite.research_ui_root
-	var hardware_content_panel = research_worksite.research_content_panel
-	var original_hardware_section = hardware_content_panel.get_node_or_null("HardwareResearchSection")
-	if not is_instance_valid(original_hardware_section):
-		_fail("Phone research did not build its original Hardware research section.")
+	var initial_strategy: Dictionary = dashboard.strategy
+	var initial_total := int(initial_strategy.get("Hardware", 0)) + int(initial_strategy.get("Software", 0)) + int(initial_strategy.get("Extras", 0))
+	if initial_total != 100:
+		_fail("Default company research allocation does not total 100%.")
 		return
-	research_worksite._on_research_feature_selected("Charge Port")
-	var charge_port_overlay = research_root.get_node_or_null("ChargePortResearchOverlay")
-	if game.phone_research_worksite != research_worksite or research_worksite.research_detail_feature != "Charge Port" or game.current_screen != "research_phone":
-		_fail("Charge Port research changed the active screen instead of opening a modal.")
+	dashboard._on_strategy_slider_changed(70.0, "Hardware")
+	var updated_strategy: Dictionary = game.career.get("research_strategy", {})
+	var updated_total := int(updated_strategy.get("Hardware", 0)) + int(updated_strategy.get("Software", 0)) + int(updated_strategy.get("Extras", 0))
+	if updated_total != 100 or int(updated_strategy.get("Hardware", 0)) != 70:
+		_fail("Changing a department allocation did not preserve the 100% total.")
 		return
-	if not is_instance_valid(charge_port_overlay) or not is_instance_valid(charge_port_overlay.get_node_or_null("ChargePortResearchScrim")):
-		_fail("Charge Port research did not open its dark overlay.")
+	dashboard.priority_component_picker.select(0)
+	dashboard.priority_level_picker.select(2)
+	dashboard._apply_component_priority()
+	if str(game.career.get("research_component_priorities", {}).get("Battery", "")) != "High":
+		_fail("Component priority was not saved to the company career.")
 		return
-	if research_worksite.research_content_panel != hardware_content_panel or not is_instance_valid(original_hardware_section):
-		_fail("Opening Charge Port research replaced the Hardware page underneath the overlay.")
+	dashboard._show_history()
+	if not is_instance_valid(dashboard.get_node_or_null("RecentResearchHistoryOverlay")):
+		_fail("The Recent Research history view did not open.")
 		return
-	research_worksite._on_charge_port_research_back_pressed()
-	if research_worksite.research_detail_feature != "" or is_instance_valid(research_worksite.charge_port_research_overlay):
-		_fail("Closing Charge Port research did not dismiss its overlay cleanly.")
-		return
-	if not is_instance_valid(original_hardware_section):
-		_fail("Closing Charge Port research did not preserve the Hardware research page.")
-		return
-	game._return_from_research_phone()
+	game._return_from_research_allocation_dashboard()
 	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
-		_fail("Closing phone research did not reveal the original Research page.")
+		_fail("Closing Research Allocation did not reveal the original Research page.")
+		return
+	if is_instance_valid(game.research_allocation_dashboard):
+		_fail("Closing Research Allocation did not dispose of its dashboard scene.")
 		return
 
 	game._return_home_from_research()
