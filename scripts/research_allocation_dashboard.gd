@@ -56,6 +56,7 @@ var selected_project_id := ""
 var selected_components: Array[String] = []
 var selected_staff_ids: Array[String] = []
 var staff_checkboxes: Dictionary = {}
+var staff_assignment_container: VBoxContainer
 var component_option: OptionButton
 var component_summary_label: Label
 var project_title_input: LineEdit
@@ -361,8 +362,18 @@ func _show_new_project_form() -> void:
 	finance_row.add_child(_field_block(null, "ESTIMATED WORK (HOURS)", project_work_hours_input))
 	form.add_child(finance_row)
 
-	form.add_child(_label("ASSIGN AVAILABLE RESEARCH EMPLOYEES", 9, ACCENT))
-	_add_staff_assignment_controls(form, compact)
+	var staff_toggle := _button("ASSIGN RESEARCHERS  +", false, BLUE, compact)
+	staff_toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	form.add_child(staff_toggle)
+	staff_assignment_container = VBoxContainer.new()
+	staff_assignment_container.visible = false
+	staff_assignment_container.add_theme_constant_override("separation", 8)
+	form.add_child(staff_assignment_container)
+	staff_toggle.pressed.connect(func():
+		staff_assignment_container.visible = not staff_assignment_container.visible
+		staff_toggle.text = "ASSIGN RESEARCHERS  −" if staff_assignment_container.visible else "ASSIGN RESEARCHERS  +"
+	)
+	_add_staff_assignment_controls(staff_assignment_container, compact)
 
 	var commission := _button("APPROVE BUDGET & COMMISSION PROJECT", true, GREEN, compact)
 	commission.custom_minimum_size.y = 38
