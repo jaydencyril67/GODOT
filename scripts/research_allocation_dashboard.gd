@@ -73,6 +73,7 @@ var feedback_label: Label
 var project_progress_bar: ProgressBar
 var project_progress_label: Label
 var selected_project_status := ""
+var project_list_expanded := false
 
 
 func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
@@ -93,7 +94,7 @@ func _ready() -> void:
 
 func _build_dashboard() -> void:
 	var viewport_size := get_viewport_rect().size
-	var compact := viewport_size.y < 560.0 or viewport_size.x < 900.0
+	var compact := viewport_size.y < 520.0
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
@@ -113,17 +114,17 @@ func _build_dashboard() -> void:
 	var frame := MarginContainer.new()
 	frame.name = "ResearchManagementFrame"
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	frame.add_theme_constant_override("margin_left", 12 if compact else 28)
-	frame.add_theme_constant_override("margin_right", 12 if compact else 28)
-	frame.add_theme_constant_override("margin_top", 8 if compact else 18)
-	frame.add_theme_constant_override("margin_bottom", 8 if compact else 16)
+	frame.add_theme_constant_override("margin_left", 18 if compact else 34)
+	frame.add_theme_constant_override("margin_right", 18 if compact else 34)
+	frame.add_theme_constant_override("margin_top", 12 if compact else 22)
+	frame.add_theme_constant_override("margin_bottom", 12 if compact else 20)
 	add_child(frame)
 
 	page_root = VBoxContainer.new()
 	page_root.name = "ResearchManagementPage"
 	page_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_root.add_theme_constant_override("separation", 7 if compact else 12)
+	page_root.add_theme_constant_override("separation", 10 if compact else 16)
 	frame.add_child(page_root)
 
 	_build_header(compact)
@@ -153,8 +154,8 @@ func _build_header(compact: bool) -> void:
 	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_stack.add_theme_constant_override("separation", 1)
 	header.add_child(title_stack)
-	title_stack.add_child(_label("COMPANY OPERATIONS  /  INNOVATION", 8 if compact else 10, ACCENT))
-	title_stack.add_child(_label("Research & Development", 18 if compact else 27, TEXT_MAIN))
+	title_stack.add_child(_label("COMPANY  /  INNOVATION", 12 if compact else 14, ACCENT))
+	title_stack.add_child(_label("Research & Development", 24 if compact else 32, TEXT_MAIN))
 
 	balance_label = _label(_format_currency(company_balance), 12 if compact else 15, GREEN)
 	balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -196,24 +197,18 @@ func _build_project_column(parent: HBoxContainer, compact: bool) -> void:
 
 	var heading := HBoxContainer.new()
 	content.add_child(heading)
-	var title := _label("PROJECT PORTFOLIO", 10 if compact else 12, TEXT_MAIN)
+	var title := _label("RESEARCH PROJECTS", 14 if compact else 17, TEXT_MAIN)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
 	var new_button := _button("+ NEW", true, GREEN, compact)
 	new_button.pressed.connect(_show_new_project_form)
 	heading.add_child(new_button)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "ResearchProjectListScroll"
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	content.add_child(scroll)
-
 	project_list = VBoxContainer.new()
 	project_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	project_list.add_theme_constant_override("separation", 5)
-	scroll.add_child(project_list)
+	project_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	project_list.add_theme_constant_override("separation", 9)
+	content.add_child(project_list)
 
 
 func _build_workspace(parent: HBoxContainer) -> void:
@@ -223,17 +218,11 @@ func _build_workspace(parent: HBoxContainer) -> void:
 	workspace.size_flags_stretch_ratio = 1.35
 	workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(workspace)
-	var scroll := ScrollContainer.new()
-	scroll.name = "ResearchWorkspaceScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	workspace.add_child(scroll)
 	workspace_content = VBoxContainer.new()
 	workspace_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	workspace_content.add_theme_constant_override("separation", 8)
-	scroll.add_child(_padded(workspace_content, true))
+	workspace_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	workspace_content.add_theme_constant_override("separation", 12)
+	workspace.add_child(_padded(workspace_content, true))
 
 
 func _refresh_dashboard() -> void:
@@ -280,7 +269,7 @@ func _rebuild_project_list() -> void:
 		if section_projects.is_empty():
 			continue
 		has_projects = true
-		var section_label := _label(titles[status], 8, _status_color(status))
+		var section_label := _label(titles[status], 13, _status_color(status))
 		project_list.add_child(section_label)
 		for project in section_projects:
 			var button := Button.new()
@@ -290,10 +279,10 @@ func _rebuild_project_list() -> void:
 				_status_text(status)
 			]
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			button.custom_minimum_size.y = 48
+			button.custom_minimum_size.y = 66
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			button.focus_mode = Control.FOCUS_NONE
-			button.add_theme_font_size_override("font_size", 9)
+			button.add_theme_font_size_override("font_size", 14)
 			button.add_theme_color_override("font_color", TEXT_MAIN)
 			button.add_theme_color_override("font_hover_color", Color.WHITE)
 			var selected := str(project.get("id", "")) == selected_project_id
@@ -304,7 +293,7 @@ func _rebuild_project_list() -> void:
 	if not has_projects:
 		var empty := _label("No research projects yet.\nCommission your company's first R&D project.", 10, TEXT_MUTED)
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.custom_minimum_size.y = 54
+		empty.custom_minimum_size.y = 80
 		project_list.add_child(empty)
 
 
@@ -320,7 +309,7 @@ func _show_new_project_form() -> void:
 	selected_staff_ids.clear()
 	pending_results.clear()
 	_clear_workspace()
-	var compact := get_viewport_rect().size.y < 560.0
+	var compact := get_viewport_rect().size.y < 520.0
 	workspace_content.add_child(_label("COMMISSION RESEARCH", 10 if compact else 12, ACCENT))
 	workspace_content.add_child(_label("Create a funded R&D project", 17 if compact else 22, TEXT_MAIN))
 	workspace_content.add_child(_label("Define the technical objective, approve a budget and assign available Research employees.", 9 if compact else 11, TEXT_MUTED))
@@ -359,7 +348,7 @@ func _show_new_project_form() -> void:
 	project_objective_input.placeholder_text = "Describe what the research should improve or discover..."
 	project_objective_input.custom_minimum_size.y = 54
 	project_objective_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	project_objective_input.add_theme_font_size_override("font_size", 10)
+	project_objective_input.add_theme_font_size_override("font_size", 14)
 	form.add_child(_field_block(form, "RESEARCH OBJECTIVE", project_objective_input))
 
 	var finance_row := HBoxContainer.new()
@@ -401,7 +390,7 @@ func _add_staff_assignment_controls(parent: VBoxContainer, compact: bool) -> voi
 		var checkbox := CheckBox.new()
 		checkbox.text = "%s  ·  %s  ·  %d%%" % [name, position, efficiency]
 		checkbox.disabled = employee_id.is_empty() or occupied.has(employee_id)
-		checkbox.add_theme_font_size_override("font_size", 9 if compact else 10)
+		checkbox.add_theme_font_size_override("font_size", 13 if compact else 15)
 		checkbox.add_theme_color_override("font_color", TEXT_MAIN)
 		checkbox.add_theme_color_override("font_disabled_color", TEXT_MUTED)
 		checkbox.focus_mode = Control.FOCUS_NONE
@@ -511,7 +500,7 @@ func _show_project_details(project: Dictionary) -> void:
 	project_progress_bar.max_value = 100.0
 	project_progress_bar.value = progress * 100.0
 	project_progress_bar.show_percentage = false
-	project_progress_bar.custom_minimum_size.y = 8
+	project_progress_bar.custom_minimum_size.y = 12
 	workspace_content.add_child(project_progress_bar)
 	workspace_content.add_child(_label("%.1f / %.1f engineering hours completed" % [completed_hours, required_hours], 8, TEXT_MUTED))
 
@@ -565,7 +554,7 @@ func _build_validation_panel(project: Dictionary, compact: bool) -> void:
 	review_notes_input = TextEdit.new()
 	review_notes_input.placeholder_text = "Test conditions, comparison with existing technology, reliability notes..."
 	review_notes_input.custom_minimum_size.y = 42
-	review_notes_input.add_theme_font_size_override("font_size", 9)
+	review_notes_input.add_theme_font_size_override("font_size", 14)
 	workspace_content.add_child(_field_block(null, "TEST NOTES", review_notes_input))
 
 	var add_result := _button("ADD VALIDATED FINDING", false, BLUE, compact)
@@ -773,7 +762,7 @@ func _line_edit(placeholder: String, numeric: bool) -> LineEdit:
 	var input := LineEdit.new()
 	input.placeholder_text = placeholder
 	input.clear_button_enabled = true
-	input.custom_minimum_size.y = 32
+	input.custom_minimum_size.y = 42
 	input.add_theme_font_size_override("font_size", 10)
 	if numeric:
 		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL
@@ -787,19 +776,19 @@ func _apply_line_edit_style(input: LineEdit) -> void:
 		style.bg_color = Color("#101b15")
 		style.border_color = Color("#41624a") if state == "normal" else ACCENT
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(7)
+		style.set_corner_radius_all(3)
 		style.content_margin_left = 8
 		style.content_margin_right = 8
-		style.content_margin_top = 5
-		style.content_margin_bottom = 5
+		style.content_margin_top = 8
+		style.content_margin_bottom = 8
 		input.add_theme_stylebox_override(state, style)
 	input.add_theme_color_override("font_color", TEXT_MAIN)
 	input.add_theme_color_override("font_placeholder_color", TEXT_MUTED)
 
 
 func _apply_option_style(option: OptionButton) -> void:
-	option.custom_minimum_size.y = 32
-	option.add_theme_font_size_override("font_size", 9)
+	option.custom_minimum_size.y = 42
+	option.add_theme_font_size_override("font_size", 13)
 	option.add_theme_color_override("font_color", TEXT_MAIN)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("#101b15")
@@ -816,10 +805,10 @@ func _apply_option_style(option: OptionButton) -> void:
 func _panel() -> PanelContainer:
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL
-	style.border_color = PANEL_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.bg_color = Color("#0b120e")
+	style.border_color = Color.TRANSPARENT
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 7
@@ -841,8 +830,8 @@ func _padded(content: Control, compact: bool) -> MarginContainer:
 func _button(value: String, primary: bool, accent: Color, compact: bool) -> Button:
 	var button := Button.new()
 	button.text = value
-	button.custom_minimum_size = Vector2(76 if compact else 100, 30 if compact else 36)
-	button.add_theme_font_size_override("font_size", 8 if compact else 10)
+	button.custom_minimum_size = Vector2(104 if compact else 128, 42 if compact else 48)
+	button.add_theme_font_size_override("font_size", 12 if compact else 14)
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_color_override("font_color", TEXT_MAIN)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
@@ -855,21 +844,21 @@ func _button(value: String, primary: bool, accent: Color, compact: bool) -> Butt
 
 func _button_style(primary: bool, accent: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(accent.r * 0.22, accent.g * 0.22, accent.b * 0.22, 0.94) if primary else Color("#101b15")
+	style.bg_color = Color(accent.r * 0.25, accent.g * 0.25, accent.b * 0.25, 0.96) if primary else Color("#17221b")
 	style.border_color = Color(accent.r, accent.g, accent.b, 0.88 if primary else 0.55)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(3)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
-	style.content_margin_top = 6
-	style.content_margin_bottom = 6
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
 	return style
 
 
 func _label(value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_font_size_override("font_size", maxi(12, font_size))
 	label.add_theme_color_override("font_color", color)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	return label
