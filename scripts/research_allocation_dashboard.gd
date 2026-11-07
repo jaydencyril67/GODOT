@@ -385,7 +385,7 @@ func _button(value: String, compact: bool, primary: bool) -> Button:
 	normal.set_border_width_all(1)
 	normal.set_corner_radius_all(8)
 	button.add_theme_stylebox_override("normal", normal)
-	var hover := normal.duplicate()
+	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = Color("#315b3d")
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_color_override("font_color", TEXT_MAIN)
