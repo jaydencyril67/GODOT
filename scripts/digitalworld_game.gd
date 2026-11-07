@@ -2505,6 +2505,7 @@ func _show_research_phone() -> void:
 	phone_research_worksite.connect("charge_port_research_prompt_requested", Callable(self, "_show_phone_charge_port_research_prompt"))
 	phone_research_worksite.connect("front_camera_research_prompt_requested", Callable(self, "_show_phone_front_camera_research_prompt"))
 	phone_research_worksite.connect("speaker_research_prompt_requested", Callable(self, "_show_phone_speaker_research_prompt"))
+	phone_research_worksite.connect("screen_shape_research_prompt_requested", Callable(self, "_show_curve_screen_research_prompt"))
 	add_child(phone_research_worksite)
 	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
 	current_screen = "research"
