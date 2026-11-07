@@ -216,7 +216,24 @@ func _load_career() -> bool:
 		"phone_curve_screen_research_active": bool(config.get_value("career", "phone_curve_screen_research_active", false)),
 		"phone_curve_screen_research_completion_unix": float(config.get_value("career", "phone_curve_screen_research_completion_unix", 0.0))
 	}
+	# One-time migration: the old system counted researched models from zero.
+	# The first model is now a free default, so legacy zero-progress saves start
+	# with one unlocked model. Existing research progress remains unchanged.
+	var migrated_default_models := not bool(config.get_value("career", "phone_default_models_migrated", false))
+	if migrated_default_models:
+		career["phone_charge_port_research_level"] = maxi(1, int(career.get("phone_charge_port_research_level", 0)))
+		career["phone_front_camera_research_level"] = maxi(1, int(career.get("phone_front_camera_research_level", 0)))
+		career["phone_speaker_research_level"] = maxi(1, int(career.get("phone_speaker_research_level", 0)))
+		if int(career.get("phone_charge_port_research_active_level", -1)) == 0:
+			career["phone_charge_port_research_active_level"] = 1
+		if int(career.get("phone_front_camera_research_active_level", -1)) == 0:
+			career["phone_front_camera_research_active_level"] = 1
+		if int(career.get("phone_speaker_research_active_level", -1)) == 0:
+			career["phone_speaker_research_active_level"] = 1
+		career["phone_default_models_migrated"] = true
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
+	if migrated_default_models:
+		_save_career()
 	game_clock_paused = bool(career.get("game_clock_paused", false))
 	last_saved_game_day = floori(game_date_unix / 86400.0)
 	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 0)), 0, 10)
@@ -257,6 +274,7 @@ func _save_career() -> bool:
 	config.set_value("career", "phone_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
 	config.set_value("career", "phone_curve_screen_research_active", bool(career.get("phone_curve_screen_research_active", false)))
 	config.set_value("career", "phone_curve_screen_research_completion_unix", float(career.get("phone_curve_screen_research_completion_unix", 0.0)))
+	config.set_value("career", "phone_default_models_migrated", bool(career.get("phone_default_models_migrated", false)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -1218,13 +1236,13 @@ func _create_company() -> void:
 	if not career.has("research_points_progress"):
 		career["research_points_progress"] = 0.0
 	if not career.has("phone_charge_port_research_level"):
-		career["phone_charge_port_research_level"] = 0
+		career["phone_charge_port_research_level"] = 1
 	if not career.has("phone_charge_port_research_active_level"):
 		career["phone_charge_port_research_active_level"] = -1
 	if not career.has("phone_charge_port_research_completion_unix"):
 		career["phone_charge_port_research_completion_unix"] = 0.0
 	if not career.has("phone_speaker_research_level"):
-		career["phone_speaker_research_level"] = 0
+		career["phone_speaker_research_level"] = 1
 	if not career.has("phone_speaker_research_active_level"):
 		career["phone_speaker_research_active_level"] = -1
 	if not career.has("phone_speaker_research_completion_unix"):
