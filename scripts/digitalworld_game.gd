@@ -3001,6 +3001,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("phone_charge_port_research_level", 0)))
 	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("phone_front_camera_research_level", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("phone_speaker_research_level", 0)))
+	phone_creation_worksite.call("set_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
