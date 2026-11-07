@@ -113,6 +113,7 @@ signal charge_port_research_prompt_requested
 signal front_camera_research_prompt_requested
 signal speaker_research_prompt_requested
 signal battery_research_prompt_requested
+signal wifi_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -534,7 +535,8 @@ var wireless_charging_speed_value_label: Label
 
 var selected_bluetooth_version := "Not set"
 
-var selected_wifi_standard := "Not set"
+var selected_wifi_standard := "Wi-Fi 1 (802.11b)"
+var researched_wifi_level := 1
 
 var selected_mobile_network := "Not set"
 
@@ -3417,12 +3419,12 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 		var dummy_button := Button.new()
 		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery"] else "SELECT"
+		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi"] else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery"]:
+		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi"]:
 			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
 		# Other research categories remain placeholders until their individual
 		# progression screens are implemented.
@@ -3458,6 +3460,8 @@ func _on_research_feature_selected(feature_name: String) -> void:
 		screen_shape_research_prompt_requested.emit()
 	elif feature_name == "Battery":
 		battery_research_prompt_requested.emit()
+	elif feature_name == "WiFi":
+		wifi_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
@@ -12133,12 +12137,16 @@ func _show_wifi_controls() -> void:
 	options.add_theme_constant_override("v_separation", 6)
 	active_feature_panel.add_child(options)
 
-	for standard in ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]:
+	var wifi_standards := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
+	for standard_index in range(wifi_standards.size()):
+		var standard: String = wifi_standards[standard_index]
 		var option := Button.new()
 		option.name = "WiFiOption_" + standard.replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace(",", "")
 		var button_label: String = "Wi-Fi " + standard.get_slice(" ", 1).split(" ")[0]
-		option.text = button_label + ("  ✓" if selected_wifi_standard == standard else "")
-		option.tooltip_text = standard
+		var unlocked := standard_index < researched_wifi_level
+		option.text = button_label + ("  ✓" if selected_wifi_standard == standard else ("  🔒" if not unlocked else ""))
+		option.tooltip_text = standard + (" — LOCKED" if not unlocked else "")
+		option.disabled = not unlocked
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 15)
@@ -12150,8 +12158,20 @@ func _show_wifi_controls() -> void:
 		option.pressed.connect(_on_wifi_standard_selected.bind(standard))
 		options.add_child(option)
 
+func set_wifi_research_level(level: int) -> void:
+	researched_wifi_level = clampi(level, 1, 8)
+	var wifi_standards := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
+	var selected_index := wifi_standards.find(selected_wifi_standard)
+	if selected_index < 0 or selected_index >= researched_wifi_level:
+		selected_wifi_standard = wifi_standards[researched_wifi_level - 1]
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "WiFiSelectionControls":
+		_show_wifi_controls()
+
+
 func _on_wifi_standard_selected(standard: String) -> void:
-	if not ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"].has(standard):
+	var wifi_standards := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
+	var standard_index := wifi_standards.find(standard)
+	if standard_index < 0 or standard_index >= researched_wifi_level:
 		return
 	selected_wifi_standard = standard
 	if software_value_labels.has("WI-FI") and is_instance_valid(software_value_labels["WI-FI"]):
