@@ -24,9 +24,11 @@ var research_technologies: Dictionary = {}
 var research_history: Array = []
 
 var page_root: VBoxContainer
-var body: CenterContainer
+var body: MarginContainer
 var body_content: VBoxContainer
-var component_option: OptionButton
+var company_name := "YOUR COMPANY"
+var selected_component_index := 0
+var component_buttons: Array[Button] = []
 var investment_input: LineEdit
 var estimate_label: Label
 var start_button: Button
@@ -39,6 +41,7 @@ var creation_mode := false
 
 
 func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
+	company_name = str(data.get("company_name", "Your Company"))
 	company_balance = maxf(0.0, float(data.get("balance", 0.0)))
 	staff_employees = data.get("staff_employees", []).duplicate(true)
 	research_projects = data.get("research_projects", []).duplicate(true)
@@ -83,30 +86,53 @@ func _build_shell() -> void:
 	page_root.name = "ResearchManagementPage"
 	page_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_root.add_theme_constant_override("separation", 8)
+	page_root.add_theme_constant_override("separation", 10)
 	frame.add_child(page_root)
 
 	var top_bar := HBoxContainer.new()
 	top_bar.name = "ResearchTopBar"
+	top_bar.custom_minimum_size.y = 56
+	top_bar.add_theme_constant_override("separation", 18)
 	page_root.add_child(top_bar)
 
 	var back := _button("‹  BACK", false, TEXT_MAIN)
-	back.custom_minimum_size = Vector2(112, 42)
+	back.custom_minimum_size = Vector2(116, 48)
 	back.pressed.connect(func(): back_requested.emit())
 	top_bar.add_child(back)
 
-	var section_title := _label("RESEARCH", 13, ACCENT)
-	section_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	section_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	top_bar.add_child(section_title)
+	var title_stack := VBoxContainer.new()
+	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	title_stack.add_theme_constant_override("separation", 1)
+	top_bar.add_child(title_stack)
 
-	body = CenterContainer.new()
+	var section_title := _label("RESEARCH & DEVELOPMENT", 20, TEXT_MAIN)
+	section_title.add_theme_font_size_override("font_size", 20)
+	title_stack.add_child(section_title)
+	title_stack.add_child(_label(company_name.to_upper(), 11, TEXT_MUTED))
+
+	var capital_stack := VBoxContainer.new()
+	capital_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	capital_stack.add_theme_constant_override("separation", 1)
+	top_bar.add_child(capital_stack)
+	var capital_caption := _label("AVAILABLE CAPITAL", 10, TEXT_MUTED)
+	capital_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	capital_stack.add_child(capital_caption)
+	var capital_value := _label(_format_currency(company_balance), 17, ACCENT)
+	capital_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	capital_stack.add_child(capital_value)
+
+	var separator := ColorRect.new()
+	separator.color = Color("#3B3832")
+	separator.custom_minimum_size.y = 1
+	separator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page_root.add_child(separator)
+
+	body = MarginContainer.new()
 	body.name = "ResearchManagementBody"
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_root.add_child(body)
-
 
 func _render_scene() -> void:
 	if not is_instance_valid(body):
@@ -116,6 +142,7 @@ func _render_scene() -> void:
 	active_progress_bar = null
 	active_progress_label = null
 	active_remaining_label = null
+	component_buttons.clear()
 
 	var active_project := _get_active_project()
 	if not active_project.is_empty():
@@ -125,83 +152,190 @@ func _render_scene() -> void:
 	else:
 		_build_empty_scene()
 
-
 func _build_empty_scene() -> void:
-	body_content = _new_center_content()
+	body_content = _new_screen_root()
 	body.add_child(body_content)
 
-	body_content.add_child(_label("NO ACTIVE RESEARCHES", 27, TEXT_MAIN))
-	var create := _button("CREATE RESEARCH", true, ACCENT)
-	create.name = "CreateResearchButton"
-	create.custom_minimum_size = Vector2(260, 58)
-	create.pressed.connect(_open_creation_scene)
-	body_content.add_child(create)
+	var page_heading := HBoxContainer.new()
+	page_heading.custom_minimum_size.y = 62
+	page_heading.add_theme_constant_override("separation", 18)
+	body_content.add_child(page_heading)
 
+	var heading_stack := VBoxContainer.new()
+	heading_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	heading_stack.add_child(_label("RESEARCH OPERATIONS", 25, TEXT_MAIN))
+	heading_stack.add_child(_label("Direct company capital into the next generation of technology.", 13, TEXT_MUTED))
+	page_heading.add_child(heading_stack)
+
+	var status := _label("NO ACTIVE PROJECT", 12, ACCENT)
+	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	page_heading.add_child(status)
+
+	var main_row := HBoxContainer.new()
+	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_row.add_theme_constant_override("separation", 14)
+	body_content.add_child(main_row)
+
+	var launch_panel := _add_panel(main_row, 1.55)
+	launch_panel.add_child(_label("R&D DIRECTOR'S OFFICE  /  PROJECT COMMISSIONING", 11, ACCENT))
+	launch_panel.add_child(_label("BUILD WHAT\'S NEXT.", 34, TEXT_MAIN))
+	var explanation := _label("Your company has no research project in development. Choose a technology target, commit a budget and assign your Research team to begin engineering work.", 16, TEXT_MUTED)
+	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	launch_panel.add_child(explanation)
+
+	var target_heading := _label("AVAILABLE DEVELOPMENT AREAS", 11, TEXT_MUTED)
+	launch_panel.add_child(target_heading)
+	var target_row := HBoxContainer.new()
+	target_row.add_theme_constant_override("separation", 8)
+	launch_panel.add_child(target_row)
+	_add_target_tile(target_row, "SCREEN TECH", "Display systems")
+	_add_target_tile(target_row, "THICKNESS", "Chassis profile")
+	_add_target_tile(target_row, "BORDER RADIUS", "Frame geometry")
+
+	var create := _button("COMMISSION A PROJECT  〉", true, ACCENT)
+	create.name = "CreateResearchButton"
+	create.custom_minimum_size = Vector2(260, 56)
+	create.pressed.connect(_open_creation_scene)
+	launch_panel.add_child(create)
+
+	var capacity_panel := _add_panel(main_row, 0.82)
+	capacity_panel.add_child(_label("RESEARCH CAPACITY", 15, TEXT_MAIN))
+	var workforce := _get_workforce_summary()
+	var available_staff := int(workforce.get("available_staff_count", 0))
+	var total_staff := int(workforce.get("staff_count", 0))
+	_add_large_metric(capacity_panel, str(available_staff), "AVAILABLE RESEARCHERS", ACCENT)
+	var capacity_divider := ColorRect.new()
+	capacity_divider.color = Color("#3B3832")
+	capacity_divider.custom_minimum_size.y = 1
+	capacity_panel.add_child(capacity_divider)
+	_add_large_metric(capacity_panel, "%.1f HRS" % float(workforce.get("productive_hours_per_game_day", 0.0)), "DAILY TEAM CAPACITY", TEXT_MAIN)
+	_add_large_metric(capacity_panel, str(total_staff), "TOTAL RESEARCH STAFF", TEXT_MUTED)
+	var capacity_note := _label("Researchers already assigned to an active project are not counted as available.", 12, TEXT_MUTED)
+	capacity_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	capacity_panel.add_child(capacity_note)
 
 func _open_creation_scene() -> void:
 	creation_mode = true
+	selected_component_index = 0
 	assigned_staff_ids.clear()
 	_render_scene()
 
-
 func _build_creation_scene() -> void:
-	body_content = _new_center_content()
+	body_content = _new_screen_root()
 	body.add_child(body_content)
-	body_content.add_child(_label("CREATE RESEARCH", 26, TEXT_MAIN))
-	var subtitle := _label("Choose one component and build your research team.", 14, TEXT_MUTED)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	body_content.add_child(subtitle)
 
-	var component_title := _label("COMPONENT TO RESEARCH", 12, ACCENT)
-	body_content.add_child(component_title)
-	component_option = OptionButton.new()
-	component_option.name = "ResearchComponentOption"
-	component_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	component_option.custom_minimum_size.y = 48
+	var page_heading := HBoxContainer.new()
+	page_heading.custom_minimum_size.y = 58
+	page_heading.add_theme_constant_override("separation", 16)
+	body_content.add_child(page_heading)
+	var heading_stack := VBoxContainer.new()
+	heading_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	heading_stack.add_child(_label("COMMISSION RESEARCH", 25, TEXT_MAIN))
+	heading_stack.add_child(_label("Select a development target, set the CEO investment and build your team.", 13, TEXT_MUTED))
+	page_heading.add_child(heading_stack)
+	var budget_badge := _label("CAPITAL  " + _format_currency(company_balance), 14, ACCENT)
+	budget_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	page_heading.add_child(budget_badge)
+
+	var main_row := HBoxContainer.new()
+	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_row.add_theme_constant_override("separation", 14)
+	body_content.add_child(main_row)
+
+	var setup_panel := _add_panel(main_row, 1.12)
+	setup_panel.add_child(_label("01  /  RESEARCH TARGET", 12, ACCENT))
+	setup_panel.add_child(_label("Choose what your engineers will develop.", 16, TEXT_MAIN))
+
+	var component_row := HBoxContainer.new()
+	component_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	component_row.add_theme_constant_override("separation", 8)
+	setup_panel.add_child(component_row)
 	for index in range(COMPONENT_LABELS.size()):
-		component_option.add_item(COMPONENT_LABELS[index], index)
-	component_option.select(0)
-	component_option.item_selected.connect(_on_research_setup_changed)
-	_style_option(component_option)
-	body_content.add_child(component_option)
+		var component_button := Button.new()
+		component_button.text = COMPONENT_LABELS[index].to_upper()
+		component_button.custom_minimum_size = Vector2(0, 102)
+		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		component_button.size_flags_vertical = Control.SIZE_FILL
+		component_button.focus_mode = Control.FOCUS_NONE
+		component_button.add_theme_font_size_override("font_size", 16)
+		component_button.pressed.connect(_on_component_selected.bind(index))
+		component_row.add_child(component_button)
+		component_buttons.append(component_button)
+	_update_component_button_styles()
 
-	var investment_title := _label("CEO INVESTMENT", 12, ACCENT)
-	body_content.add_child(investment_title)
+	var investment_heading := _label("02  /  CEO INVESTMENT", 12, ACCENT)
+	setup_panel.add_child(investment_heading)
+	var investment_row := HBoxContainer.new()
+	investment_row.add_theme_constant_override("separation", 12)
+	setup_panel.add_child(investment_row)
 	investment_input = LineEdit.new()
 	investment_input.name = "ResearchInvestmentInput"
-	investment_input.placeholder_text = "Enter amount to invest"
-	investment_input.custom_minimum_size.y = 48
+	investment_input.placeholder_text = "Enter investment amount"
+	investment_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	investment_input.custom_minimum_size.y = 58
 	investment_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	investment_input.text_changed.connect(_on_research_setup_changed)
 	_style_input(investment_input)
-	body_content.add_child(investment_input)
+	investment_row.add_child(investment_input)
+	var currency_tag := _label("NGN  ₦", 15, TEXT_MUTED)
+	currency_tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	investment_row.add_child(currency_tag)
+	var balance_line := _label("AVAILABLE COMPANY FUNDS   " + _format_currency(company_balance), 13, TEXT_MUTED)
+	setup_panel.add_child(balance_line)
+	var investment_note := _label("The committed amount is deducted from company funds when the project starts.", 12, TEXT_MUTED)
+	investment_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	setup_panel.add_child(investment_note)
 
-	var balance_line := _label("AVAILABLE FUNDS  " + _format_currency(company_balance), 12, TEXT_MUTED)
-	body_content.add_child(balance_line)
+	var team_panel := _add_panel(main_row, 0.96)
+	var team_heading := HBoxContainer.new()
+	team_panel.add_child(team_heading)
+	var team_title := _label("03  /  RESEARCH TEAM", 12, ACCENT)
+	team_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	team_heading.add_child(team_title)
+	team_heading.add_child(_label("%d STAFF" % staff_employees.filter(func(employee): return employee is Dictionary and str(employee.get("department", "")) == "Research").size(), 11, TEXT_MUTED))
 
-	body_content.add_child(_label("ASSIGN RESEARCHERS", 12, ACCENT))
+	var staff_scroll := ScrollContainer.new()
+	staff_scroll.name = "ResearchStaffScroll"
+	staff_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	staff_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	staff_scroll.custom_minimum_size.y = 150
+	staff_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	team_panel.add_child(staff_scroll)
 	var staff_list := VBoxContainer.new()
-	staff_list.add_theme_constant_override("separation", 5)
-	body_content.add_child(staff_list)
+	staff_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	staff_list.add_theme_constant_override("separation", 6)
+	staff_scroll.add_child(staff_list)
 	_build_staff_choices(staff_list)
 
-	estimate_label = _label("Select researchers to calculate the estimated time and success chance.", 13, TEXT_MUTED)
+	var estimate_heading := _label("PROJECT FORECAST", 11, TEXT_MUTED)
+	team_panel.add_child(estimate_heading)
+	estimate_label = _label("Select researchers to calculate project timing and success probability.", 15, TEXT_MAIN)
 	estimate_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body_content.add_child(estimate_label)
+	estimate_label.custom_minimum_size.y = 58
+	team_panel.add_child(estimate_label)
 
-	start_button = _button("START RESEARCH", true, ACCENT)
+	var actions := HBoxContainer.new()
+	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_theme_constant_override("separation", 12)
+	body_content.add_child(actions)
+	var cancel := _button("CANCEL", false, TEXT_MUTED)
+	cancel.custom_minimum_size = Vector2(150, 54)
+	cancel.pressed.connect(_close_creation_scene)
+	actions.add_child(cancel)
+	var action_spacer := Control.new()
+	action_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(action_spacer)
+	start_button = _button("START RESEARCH  〉", true, ACCENT)
 	start_button.name = "StartResearchButton"
-	start_button.custom_minimum_size.y = 54
-	start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	start_button.custom_minimum_size = Vector2(260, 54)
 	start_button.disabled = true
 	start_button.pressed.connect(_on_start_research_pressed)
-	body_content.add_child(start_button)
-
-	var cancel := _button("CANCEL", false, TEXT_MUTED)
-	cancel.pressed.connect(_close_creation_scene)
-	body_content.add_child(cancel)
+	actions.add_child(start_button)
 	_update_research_estimate()
-
 
 func _build_staff_choices(parent: VBoxContainer) -> void:
 	var occupied_ids := _active_project_staff_ids()
@@ -291,11 +425,8 @@ func _set_estimate_error(message: String) -> void:
 
 
 func _selected_component() -> String:
-	if not is_instance_valid(component_option):
-		return COMPONENT_VALUES[0]
-	var index := clampi(component_option.selected, 0, COMPONENT_VALUES.size() - 1)
+	var index := clampi(selected_component_index, 0, COMPONENT_VALUES.size() - 1)
 	return COMPONENT_VALUES[index]
-
 
 func _close_creation_scene() -> void:
 	creation_mode = false
@@ -306,52 +437,172 @@ func _close_creation_scene() -> void:
 func _build_active_research(project: Dictionary) -> void:
 	creation_mode = false
 	active_project_id = str(project.get("id", ""))
-	body_content = _new_center_content()
+	body_content = _new_screen_root()
 	body.add_child(body_content)
 
-	var active_heading := _label("ACTIVE RESEARCH", 13, ACCENT)
-	active_heading.name = "ActiveResearchHeading"
-	body_content.add_child(active_heading)
-	var component_name := str(project.get("component", project.get("title", "Research project")))
-	if component_name == "Screen Technology":
-		component_name = "Screen Tech"
-	body_content.add_child(_label(component_name, 27, TEXT_MAIN))
+	var page_heading := HBoxContainer.new()
+	page_heading.custom_minimum_size.y = 58
+	page_heading.add_child(_label("RESEARCH IN DEVELOPMENT", 25, TEXT_MAIN))
+	var heading_spacer := Control.new()
+	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_heading.add_child(heading_spacer)
+	page_heading.add_child(_label("PROJECT  " + active_project_id, 12, ACCENT))
+	body_content.add_child(page_heading)
 
 	var completed_hours := maxf(0.0, float(project.get("work_completed_hours", 0.0)))
 	var required_hours := maxf(1.0, float(project.get("work_required_hours", 1.0)))
 	var progress := clampf(completed_hours / required_hours, 0.0, 1.0)
+	var daily_hours := maxf(0.1, float(project.get("daily_work_hours", 0.0)))
+	var remaining_hours := maxf(0.0, required_hours - completed_hours)
+	var remaining_days := int(ceil(remaining_hours / daily_hours))
+
+	var main_row := HBoxContainer.new()
+	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_row.add_theme_constant_override("separation", 14)
+	body_content.add_child(main_row)
+
+	var progress_panel := _add_panel(main_row, 1.55)
+	progress_panel.add_child(_label("ENGINEERING PROGRAMME", 12, ACCENT))
+	var component_name := str(project.get("component", project.get("title", "Research project")))
+	if component_name == "Screen Technology":
+		component_name = "Screen Tech"
+	progress_panel.add_child(_label(component_name.to_upper(), 31, TEXT_MAIN))
+	var objective := str(project.get("objective", "")).strip_edges()
+	if not objective.is_empty():
+		var objective_label := _label(objective, 14, TEXT_MUTED)
+		objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		progress_panel.add_child(objective_label)
 
 	var progress_row := HBoxContainer.new()
-	var progress_title := _label("RESEARCH PROGRESS", 12, TEXT_MUTED)
+	progress_panel.add_child(progress_row)
+	var progress_title := _label("PROJECT COMPLETION", 12, TEXT_MUTED)
 	progress_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	progress_row.add_child(progress_title)
-	active_progress_label = _label("%d%%" % roundi(progress * 100.0), 15, ACCENT)
+	active_progress_label = _label("%d%%" % roundi(progress * 100.0), 20, ACCENT)
 	progress_row.add_child(active_progress_label)
-	body_content.add_child(progress_row)
 
 	active_progress_bar = ProgressBar.new()
 	active_progress_bar.min_value = 0.0
 	active_progress_bar.max_value = 100.0
 	active_progress_bar.value = progress * 100.0
 	active_progress_bar.show_percentage = false
-	active_progress_bar.custom_minimum_size.y = 17
-	body_content.add_child(active_progress_bar)
+	active_progress_bar.custom_minimum_size.y = 24
+	var progress_track := StyleBoxFlat.new()
+	progress_track.bg_color = Color("#303336")
+	progress_track.set_corner_radius_all(5)
+	var progress_fill := StyleBoxFlat.new()
+	progress_fill.bg_color = ACCENT
+	progress_fill.set_corner_radius_all(5)
+	active_progress_bar.add_theme_stylebox_override("background", progress_track)
+	active_progress_bar.add_theme_stylebox_override("fill", progress_fill)
+	progress_panel.add_child(active_progress_bar)
 
-	var daily_hours := maxf(0.1, float(project.get("daily_work_hours", 0.0)))
-	var remaining_hours := maxf(0.0, required_hours - completed_hours)
-	var remaining_days := int(ceil(remaining_hours / daily_hours))
-	active_remaining_label = _label("%d IN-GAME DAYS REMAINING" % remaining_days, 13, TEXT_MUTED)
-	body_content.add_child(active_remaining_label)
+	active_remaining_label = _label("%d IN-GAME DAYS REMAINING" % remaining_days, 17, TEXT_MAIN)
+	progress_panel.add_child(active_remaining_label)
+	progress_panel.add_child(_label("%.1f OF %.1f ENGINEERING HOURS COMPLETED" % [completed_hours, required_hours], 12, TEXT_MUTED))
+	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
+	if not pause_reason.is_empty():
+		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 13, ORANGE)
+		pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		progress_panel.add_child(pause_label)
 
-	body_content.add_child(_label("ESTIMATED SUCCESS CHANCE  %.0f%%" % float(project.get("success_chance", 0.0)), 16, SUCCESS))
-	body_content.add_child(_label("INVESTMENT  %s" % _format_currency(float(project.get("budget", 0.0))), 13, TEXT_MUTED))
-
+	var details_panel := _add_panel(main_row, 0.86)
+	details_panel.add_child(_label("PROJECT INTELLIGENCE", 14, TEXT_MAIN))
+	_add_large_metric(details_panel, _format_currency(float(project.get("budget", 0.0))), "CEO INVESTMENT", ACCENT)
+	_add_large_metric(details_panel, "%.0f%%" % float(project.get("success_chance", 0.0)), "PROJECTED SUCCESS", TEXT_MAIN)
+	var detail_divider := ColorRect.new()
+	detail_divider.color = Color("#3B3832")
+	detail_divider.custom_minimum_size.y = 1
+	details_panel.add_child(detail_divider)
+	details_panel.add_child(_label("ASSIGNED RESEARCHERS", 11, TEXT_MUTED))
 	var assigned_names: Array[String] = []
 	for staff_id_value in project.get("staff_ids", []):
 		var employee := _find_employee(str(staff_id_value))
 		if not employee.is_empty():
 			assigned_names.append(str(employee.get("full_name", employee.get("name", "Researcher"))))
-	body_content.add_child(_label("RESEARCH TEAM  " + _join_values(assigned_names, ", "), 13, TEXT_MUTED))
+	if assigned_names.is_empty():
+		details_panel.add_child(_label("No assigned researchers found.", 13, TEXT_MUTED))
+	else:
+		for employee_name in assigned_names:
+			details_panel.add_child(_label("•  " + employee_name, 14, TEXT_MAIN))
+
+func _add_panel(parent: Control, stretch_ratio: float = 1.0) -> VBoxContainer:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.size_flags_stretch_ratio = stretch_ratio
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1A1D1F")
+	panel_style.border_color = Color("#45423B")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(9)
+	panel_style.content_margin_left = 18
+	panel_style.content_margin_right = 18
+	panel_style.content_margin_top = 16
+	panel_style.content_margin_bottom = 16
+	panel.add_theme_stylebox_override("panel", panel_style)
+	parent.add_child(panel)
+
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 11)
+	panel.add_child(content)
+	return content
+
+
+func _add_target_tile(parent: HBoxContainer, title: String, description: String) -> void:
+	var tile := VBoxContainer.new()
+	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tile.add_theme_constant_override("separation", 3)
+	parent.add_child(tile)
+	tile.add_child(_label(title, 12, TEXT_MAIN))
+	tile.add_child(_label(description, 11, TEXT_MUTED))
+
+
+func _add_large_metric(parent: VBoxContainer, value: String, caption: String, color: Color) -> void:
+	var metric := VBoxContainer.new()
+	metric.add_theme_constant_override("separation", 2)
+	parent.add_child(metric)
+	var value_label := _label(value, 26, color)
+	value_label.add_theme_font_size_override("font_size", 26)
+	metric.add_child(value_label)
+	metric.add_child(_label(caption, 10, TEXT_MUTED))
+
+
+func _get_workforce_summary() -> Dictionary:
+	return ResearchManagerScript.get_workforce_summary({
+		"staff_employees": staff_employees,
+		"research_projects": research_projects
+	})
+
+
+func _on_component_selected(index: int) -> void:
+	selected_component_index = clampi(index, 0, COMPONENT_VALUES.size() - 1)
+	_update_component_button_styles()
+	_update_research_estimate()
+
+
+func _update_component_button_styles() -> void:
+	for index in range(component_buttons.size()):
+		var button := component_buttons[index]
+		var selected := index == selected_component_index
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color("#554021") if selected else Color("#222628")
+		normal.border_color = ACCENT if selected else Color("#49463F")
+		normal.set_border_width_all(2 if selected else 1)
+		normal.set_corner_radius_all(7)
+		normal.content_margin_left = 9
+		normal.content_margin_right = 9
+		normal.content_margin_top = 12
+		normal.content_margin_bottom = 12
+		var hover := normal.duplicate() as StyleBoxFlat
+		hover.bg_color = Color("#624A29") if selected else Color("#2B3032")
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", hover)
+
 
 
 func _get_active_project() -> Dictionary:
@@ -416,24 +667,23 @@ func _clear_body() -> void:
 		child.queue_free()
 
 
-func _new_center_content() -> VBoxContainer:
+func _new_screen_root() -> VBoxContainer:
 	var content := VBoxContainer.new()
 	content.name = "ResearchSceneContent"
-	content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	content.add_theme_constant_override("separation", 15)
-	content.custom_minimum_size.x = minf(520.0, maxf(300.0, get_viewport_rect().size.x - 72.0))
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
 	return content
 
-
-func _label(value: String, font_size: int, color: Color) -> Label:
+func _label(value: String, font_size: int, color: Color, alignment: int = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
 	var label := Label.new()
 	label.text = value
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.horizontal_alignment = alignment
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return label
-
 
 func _button(value: String, primary: bool, accent: Color) -> Button:
 	var button := Button.new()
@@ -475,21 +725,20 @@ func _style_option(option: OptionButton) -> void:
 
 
 func _style_input(input: LineEdit) -> void:
-	input.add_theme_font_size_override("font_size", 17)
+	input.add_theme_font_size_override("font_size", 22)
 	input.add_theme_color_override("font_color", TEXT_MAIN)
 	input.add_theme_color_override("font_placeholder_color", TEXT_MUTED)
 	for state in ["normal", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#101a29")
+		style.bg_color = Color("#202326")
 		style.border_color = Color("#514B40") if state == "normal" else ACCENT
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(6)
-		style.content_margin_left = 10
-		style.content_margin_right = 10
-		style.content_margin_top = 8
-		style.content_margin_bottom = 8
+		style.content_margin_left = 14
+		style.content_margin_right = 14
+		style.content_margin_top = 10
+		style.content_margin_bottom = 10
 		input.add_theme_stylebox_override(state, style)
-
 
 func _format_currency(value: float) -> String:
 	return "₦" + _format_number(value)
