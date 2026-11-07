@@ -136,6 +136,7 @@ func _build_empty_scene() -> void:
 	body_content.add_child(subtitle)
 
 	var create := _button("CREATE RESEARCH", true, GREEN)
+	create.name = "CreateResearchButton"
 	create.custom_minimum_size = Vector2(260, 58)
 	create.pressed.connect(_open_creation_scene)
 	body_content.add_child(create)
@@ -157,6 +158,7 @@ func _build_creation_scene() -> void:
 	var component_title := _label("COMPONENT TO RESEARCH", 12, ACCENT)
 	body_content.add_child(component_title)
 	component_option = OptionButton.new()
+	component_option.name = "ResearchComponentOption"
 	component_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	component_option.custom_minimum_size.y = 48
 	for index in range(COMPONENT_LABELS.size()):
@@ -169,6 +171,7 @@ func _build_creation_scene() -> void:
 	var investment_title := _label("CEO INVESTMENT", 12, ACCENT)
 	body_content.add_child(investment_title)
 	investment_input = LineEdit.new()
+	investment_input.name = "ResearchInvestmentInput"
 	investment_input.placeholder_text = "Enter amount to invest"
 	investment_input.custom_minimum_size.y = 48
 	investment_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
@@ -190,6 +193,7 @@ func _build_creation_scene() -> void:
 	body_content.add_child(estimate_label)
 
 	start_button = _button("START RESEARCH", true, GREEN)
+	start_button.name = "StartResearchButton"
 	start_button.custom_minimum_size.y = 54
 	start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	start_button.disabled = true
@@ -308,7 +312,9 @@ func _build_active_research(project: Dictionary) -> void:
 	body_content = _new_center_content()
 	body.add_child(body_content)
 
-	body_content.add_child(_label("ACTIVE RESEARCH", 13, ACCENT))
+	var active_heading := _label("ACTIVE RESEARCH", 13, ACCENT)
+	active_heading.name = "ActiveResearchHeading"
+	body_content.add_child(active_heading)
 	body_content.add_child(_label(str(project.get("component", project.get("title", "Research project"))), 27, TEXT_MAIN))
 
 	var completed_hours := maxf(0.0, float(project.get("work_completed_hours", 0.0)))
