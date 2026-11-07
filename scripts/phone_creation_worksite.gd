@@ -600,19 +600,19 @@ var phone_thickness_level := 12
 
 var phone_thickness_value_label: Label
 
-var speaker_count := 0
+var speaker_count := 1
 
-var researched_speaker_count := 0
+var researched_speaker_count := 1
 
 var speaker_count_slider: VSlider
 
 var speaker_count_value_label: Label
 
-var charge_port_type := "None"
+var charge_port_type := "DC Barrel Jack"
 
-var researched_charge_port_count := 0
+var researched_charge_port_count := 1
 
-var researched_front_camera_count := 0
+var researched_front_camera_count := 1
 
 var charge_port_opening_points := PackedVector2Array()
 
@@ -3247,10 +3247,10 @@ func set_curve_screen_research_unlocked(unlocked: bool) -> void:
 	_refresh_screen_type_controls()
 
 func set_charge_port_research_level(level: int) -> void:
-	researched_charge_port_count = clampi(level, 0, 5)
+	researched_charge_port_count = clampi(level, 1, 5)
 
 func set_speaker_research_level(level: int) -> void:
-	researched_speaker_count = clampi(level, 0, 12)
+	researched_speaker_count = clampi(level, 1, 12)
 	speaker_count = mini(speaker_count, researched_speaker_count)
 	if is_instance_valid(speaker_count_slider):
 		speaker_count_slider.max_value = researched_speaker_count
@@ -3260,7 +3260,7 @@ func set_speaker_research_level(level: int) -> void:
 	_refresh_phone_speakers()
 
 func set_front_camera_research_level(level: int) -> void:
-	researched_front_camera_count = clampi(level, 0, FRONT_CAMERA_STYLES.size())
+	researched_front_camera_count = clampi(level, 1, FRONT_CAMERA_STYLES.size())
 	if FRONT_CAMERA_STYLES.find(front_camera_style) >= researched_front_camera_count and researched_front_camera_count > 0:
 		front_camera_style = FRONT_CAMERA_STYLES[researched_front_camera_count - 1]
 	var enable_toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") as Button if is_instance_valid(active_feature_panel) else null
