@@ -114,6 +114,7 @@ signal front_camera_research_prompt_requested
 signal speaker_research_prompt_requested
 signal battery_research_prompt_requested
 signal wifi_research_prompt_requested
+signal bluetooth_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -533,7 +534,8 @@ var wireless_charging_speed_slider: VSlider
 
 var wireless_charging_speed_value_label: Label
 
-var selected_bluetooth_version := "Not set"
+var selected_bluetooth_version := "Bluetooth 2.0 + EDR"
+var researched_bluetooth_level := 1
 
 var selected_wifi_standard := "Wi-Fi 1 (802.11b)"
 var researched_wifi_level := 1
@@ -3419,12 +3421,12 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 		var dummy_button := Button.new()
 		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi"] else "SELECT"
+		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth"] else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi"]:
+		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth"]:
 			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
 		# Other research categories remain placeholders until their individual
 		# progression screens are implemented.
@@ -3462,6 +3464,8 @@ func _on_research_feature_selected(feature_name: String) -> void:
 		battery_research_prompt_requested.emit()
 	elif feature_name == "WiFi":
 		wifi_research_prompt_requested.emit()
+	elif feature_name == "Bluetooth":
+		bluetooth_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
@@ -12084,12 +12088,16 @@ func _show_bluetooth_controls() -> void:
 	options.add_theme_constant_override("v_separation", 6)
 	active_feature_panel.add_child(options)
 
-	for version in ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]:
+	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
+	for version_index in range(bluetooth_versions.size()):
+		var version: String = bluetooth_versions[version_index]
 		var option := Button.new()
 		option.name = "BluetoothOption_" + version.replace(" ", "").replace("+", "").replace(".", "_")
 		var button_label: String = version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS")
-		option.text = button_label + ("  ✓" if selected_bluetooth_version == version else "")
-		option.tooltip_text = version
+		var unlocked := version_index < researched_bluetooth_level
+		option.text = button_label + ("  ✓" if selected_bluetooth_version == version else ("  🔒" if not unlocked else ""))
+		option.tooltip_text = version + (" — LOCKED" if not unlocked else "")
+		option.disabled = not unlocked
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 15)
@@ -12101,8 +12109,20 @@ func _show_bluetooth_controls() -> void:
 		option.pressed.connect(_on_bluetooth_version_selected.bind(version))
 		options.add_child(option)
 
+func set_bluetooth_research_level(level: int) -> void:
+	researched_bluetooth_level = clampi(level, 1, 14)
+	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
+	var selected_index := bluetooth_versions.find(selected_bluetooth_version)
+	if selected_index < 0 or selected_index >= researched_bluetooth_level:
+		selected_bluetooth_version = bluetooth_versions[researched_bluetooth_level - 1]
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "BluetoothSelectionControls":
+		_show_bluetooth_controls()
+
+
 func _on_bluetooth_version_selected(version: String) -> void:
-	if not ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"].has(version):
+	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
+	var version_index := bluetooth_versions.find(version)
+	if version_index < 0 or version_index >= researched_bluetooth_level:
 		return
 	selected_bluetooth_version = version
 	if software_value_labels.has("BLUETOOTH") and is_instance_valid(software_value_labels["BLUETOOTH"]):
