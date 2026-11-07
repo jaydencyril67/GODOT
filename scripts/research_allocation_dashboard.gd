@@ -383,7 +383,7 @@ func update_live_progress(projects: Array, balance: float, employees: Array) -> 
 		return
 	var active_project := _get_active_project()
 	if active_project.is_empty():
-		if not creation_mode:
+		if not creation_mode and not active_project_id.is_empty():
 			_render_scene()
 		return
 	if str(active_project.get("id", "")) != active_project_id:
