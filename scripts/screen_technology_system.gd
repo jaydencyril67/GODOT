@@ -84,7 +84,13 @@ static func get_technology_name(milestone_index: int) -> String:
 
 static func get_next_quality(state: Dictionary) -> String:
 	ensure_state(state)
-	return str(QUALITY_ORDER[int(state["next_quality_index"])])
+	var start_index := int(state["next_quality_index"])
+	for offset in range(QUALITY_ORDER.size()):
+		var candidate_index := (start_index + offset) % QUALITY_ORDER.size()
+		var candidate_quality: String = QUALITY_ORDER[candidate_index]
+		if int(state[candidate_quality]) < MAX_QUALITY_LEVEL:
+			return candidate_quality
+	return ""
 
 
 static func get_next_milestone_requirement(state: Dictionary) -> int:
@@ -113,8 +119,8 @@ static func get_visual_profile(state: Dictionary) -> Dictionary:
 
 	# Spread each visible improvement across the complete journey to MicroLED
 	# Generation 30, so the final levels still have a meaningful visual target.
-	var darkness_progress := float(darkness_level) / float(MAX_QUALITY_LEVEL)
-	var shininess_progress := float(shininess_level) / float(MAX_QUALITY_LEVEL)
+	var darkness_progress := pow(float(darkness_level) / float(MAX_QUALITY_LEVEL), 2.5)
+	var shininess_progress := pow(float(shininess_level) / float(MAX_QUALITY_LEVEL), 2.5)
 	var reflection_progress := float(reflection_level) / float(MAX_QUALITY_LEVEL)
 	var screen_color := Color("#303030").lerp(Color("#080808"), darkness_progress)
 	var screen_roughness := lerpf(0.27, 0.06, shininess_progress)
