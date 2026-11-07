@@ -339,7 +339,7 @@ func _build_active_research(project: Dictionary) -> void:
 	active_remaining_label = _label("%d IN-GAME DAYS REMAINING" % remaining_days, 13, TEXT_MUTED)
 	body_content.add_child(active_remaining_label)
 
-	body_content.add_child(_label("SUCCESS CHANCE  %.0f%%" % float(project.get("success_chance", 0.0)), 16, GREEN))
+	body_content.add_child(_label("ESTIMATED SUCCESS CHANCE  %.0f%%" % float(project.get("success_chance", 0.0)), 16, GREEN))
 	body_content.add_child(_label("INVESTMENT  %s" % _format_currency(float(project.get("budget", 0.0))), 13, TEXT_MUTED))
 
 	var assigned_names: Array[String] = []
