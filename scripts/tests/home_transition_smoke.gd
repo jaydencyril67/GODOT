@@ -109,6 +109,14 @@ func _run_transition_checks() -> void:
 	if not is_instance_valid(dashboard.get_node_or_null("ResearchManagementFrame/ResearchManagementPage/ResearchManagementBody")):
 		_fail("The new R&D management workspace did not build.")
 		return
+	if dashboard.find_child("CreateResearchButton", true, false) == null:
+		_fail("The empty research scene did not show its Create Research button.")
+		return
+	dashboard.call("_open_creation_scene")
+	if dashboard.find_child("ResearchComponentOption", true, false) == null or dashboard.find_child("ResearchInvestmentInput", true, false) == null or dashboard.find_child("StartResearchButton", true, false) == null:
+		_fail("The progressive research creation scene did not build its required controls.")
+		return
+	dashboard.call("_close_creation_scene")
 	if dashboard.find_child("HardwareAllocationDial", true, false) != null:
 		_fail("The old department percentage dial is still present.")
 		return
