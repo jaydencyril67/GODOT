@@ -2,6 +2,7 @@ extends SceneTree
 
 const MainGameScript = preload("res://scripts/digitalworld_game.gd")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
+const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
 
 var game: Node
 
@@ -11,6 +12,8 @@ func _initialize() -> void:
 
 
 func _run_transition_checks() -> void:
+	if not _run_screen_technology_checks():
+		return
 	game = MainGameScript.new()
 	root.add_child(game)
 	await process_frame
@@ -197,6 +200,43 @@ func _run_transition_checks() -> void:
 
 	print("HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS")
 	quit(0)
+
+func _run_screen_technology_checks() -> bool:
+	var state: Dictionary = ScreenTechnologySystem.create_state()
+	if ScreenTechnologySystem.get_technology_name(0) != "TFT LCD":
+		_fail("Screen technology did not start at TFT LCD.")
+		return false
+
+	var expected_order := ["darkness", "shininess", "reflection_reduction"]
+	for click_index in range(9):
+		var result: Dictionary = ScreenTechnologySystem.upgrade(state)
+		if str(result.get("quality", "")) != expected_order[click_index % 3]:
+			_fail("Screen qualities did not upgrade in the required rotating order.")
+			return false
+		if click_index < 8 and bool(result.get("technology_unlocked", false)):
+			_fail("A screen technology unlocked before all three qualities reached their milestone.")
+			return false
+
+	if int(state.get("darkness", 0)) != 3 or int(state.get("shininess", 0)) != 3 or int(state.get("reflection_reduction", 0)) != 3:
+		_fail("The first screen milestone did not require all three qualities at level 3.")
+		return false
+	if str(ScreenTechnologySystem.get_technology_name(int(state.get("technology_milestone", 0)))) != "LED-LCD":
+		_fail("The first complete screen milestone did not unlock LED-LCD.")
+		return false
+
+	for _click_index in range(90):
+		ScreenTechnologySystem.upgrade(state)
+	if int(state.get("darkness", 0)) != 33 or int(state.get("shininess", 0)) != 33 or int(state.get("reflection_reduction", 0)) != 33:
+		_fail("Screen quality progression stopped increasing after the named technology milestones.")
+		return false
+	if str(ScreenTechnologySystem.get_technology_name(int(state.get("technology_milestone", 0)))) != "MicroLED Generation 3":
+		_fail("Screen technology naming did not continue beyond MicroLED.")
+		return false
+	if ScreenTechnologySystem.get_next_milestone_requirement(state) != 36:
+		_fail("The next screen milestone did not continue beyond the previous level.")
+		return false
+	return true
+
 
 func _wait_for_headquarters() -> bool:
 	for _frame_index in range(180):
