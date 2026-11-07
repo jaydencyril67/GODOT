@@ -38,6 +38,8 @@ var active_progress_label: Label
 var active_remaining_label: Label
 var active_project_id := ""
 var creation_mode := false
+var ui_scale := 1.0
+var _last_layout_key := ""
 
 
 func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
@@ -54,8 +56,81 @@ func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
 
 
 func _ready() -> void:
+	ui_scale = _calculate_ui_scale()
+	_last_layout_key = _get_layout_key()
+	resized.connect(_on_dashboard_resized)
 	_build_shell()
 	_render_scene()
+
+
+func _calculate_ui_scale() -> float:
+	var viewport_size := get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return 1.0
+	var width_scale := viewport_size.x / 1152.0
+	var height_scale := viewport_size.y / 648.0
+	return clampf(minf(width_scale, height_scale), 0.68, 1.0)
+
+
+func _get_layout_key() -> String:
+	var viewport_size := get_viewport_rect().size
+	return "%d:%d:%.2f" % [
+		1 if viewport_size.x < 900.0 else 0,
+		1 if viewport_size.y < 560.0 else 0,
+		_calculate_ui_scale()
+	]
+
+
+func _on_dashboard_resized() -> void:
+	var next_key := _get_layout_key()
+	if next_key == _last_layout_key:
+		return
+	ui_scale = _calculate_ui_scale()
+	_last_layout_key = next_key
+	_render_scene()
+
+
+func _scaled(value: float) -> float:
+	return maxf(1.0, value * ui_scale)
+
+
+func _scaled_font(value: int) -> int:
+	return maxi(9, roundi(float(value) * ui_scale))
+
+
+func _is_narrow_layout() -> bool:
+	return get_viewport_rect().size.x < 900.0
+
+
+func _needs_vertical_scroll() -> bool:
+	var viewport_size := get_viewport_rect().size
+	return viewport_size.x < 900.0 or viewport_size.y < 560.0
+
+
+func _new_main_row() -> BoxContainer:
+	var row: BoxContainer
+	if _is_narrow_layout():
+		row = VBoxContainer.new()
+	else:
+		row = HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", roundi(_scaled(14.0)))
+	return row
+
+
+func _mount_screen_root(content: VBoxContainer) -> void:
+	if _needs_vertical_scroll():
+		var scroll := ScrollContainer.new()
+		scroll.name = "ResearchDashboardResponsiveScroll"
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		body.add_child(scroll)
+		scroll.add_child(content)
+	else:
+		body.add_child(content)
 
 
 func _build_shell() -> void:
@@ -78,27 +153,27 @@ func _build_shell() -> void:
 	var frame := MarginContainer.new()
 	frame.name = "ResearchManagementFrame"
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	frame.add_theme_constant_override("margin_left", 22)
-	frame.add_theme_constant_override("margin_right", 22)
-	frame.add_theme_constant_override("margin_top", 16)
-	frame.add_theme_constant_override("margin_bottom", 16)
+	frame.add_theme_constant_override("margin_left", roundi(_scaled(22.0)))
+	frame.add_theme_constant_override("margin_right", roundi(_scaled(22.0)))
+	frame.add_theme_constant_override("margin_top", roundi(_scaled(16.0)))
+	frame.add_theme_constant_override("margin_bottom", roundi(_scaled(16.0)))
 	add_child(frame)
 
 	page_root = VBoxContainer.new()
 	page_root.name = "ResearchManagementPage"
 	page_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_root.add_theme_constant_override("separation", 10)
+	page_root.add_theme_constant_override("separation", roundi(_scaled(10.0)))
 	frame.add_child(page_root)
 
 	var top_bar := HBoxContainer.new()
 	top_bar.name = "ResearchTopBar"
-	top_bar.custom_minimum_size.y = 56
-	top_bar.add_theme_constant_override("separation", 18)
+	top_bar.custom_minimum_size.y = _scaled(56.0)
+	top_bar.add_theme_constant_override("separation", roundi(_scaled(18.0)))
 	page_root.add_child(top_bar)
 
 	var back := _button("‹  BACK", false, TEXT_MAIN)
-	back.custom_minimum_size = Vector2(116, 48)
+	back.custom_minimum_size = Vector2(_scaled(116.0), _scaled(48.0))
 	back.pressed.connect(func(): back_requested.emit())
 	top_bar.add_child(back)
 
@@ -109,7 +184,7 @@ func _build_shell() -> void:
 	top_bar.add_child(title_stack)
 
 	var section_title := _label("RESEARCH & DEVELOPMENT", 20, TEXT_MAIN)
-	section_title.add_theme_font_size_override("font_size", 20)
+	section_title.add_theme_font_size_override("font_size", _scaled_font(20))
 	title_stack.add_child(section_title)
 	title_stack.add_child(_label(company_name.to_upper(), 11, TEXT_MUTED))
 
@@ -156,11 +231,11 @@ func _render_scene() -> void:
 
 func _build_empty_scene() -> void:
 	body_content = _new_screen_root()
-	body.add_child(body_content)
+	_mount_screen_root(body_content)
 
 	var page_heading := HBoxContainer.new()
-	page_heading.custom_minimum_size.y = 62
-	page_heading.add_theme_constant_override("separation", 18)
+	page_heading.custom_minimum_size.y = _scaled(62.0)
+	page_heading.add_theme_constant_override("separation", roundi(_scaled(18.0)))
 	body_content.add_child(page_heading)
 
 	var heading_stack := VBoxContainer.new()
@@ -174,10 +249,7 @@ func _build_empty_scene() -> void:
 	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	page_heading.add_child(status)
 
-	var main_row := HBoxContainer.new()
-	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_row.add_theme_constant_override("separation", 14)
+	var main_row := _new_main_row()
 	body_content.add_child(main_row)
 
 	var launch_panel := _add_panel(main_row, 1.55)
@@ -226,10 +298,10 @@ func _open_creation_scene() -> void:
 
 func _build_creation_scene() -> void:
 	body_content = _new_screen_root()
-	body.add_child(body_content)
+	_mount_screen_root(body_content)
 
 	var page_heading := HBoxContainer.new()
-	page_heading.custom_minimum_size.y = 58
+	page_heading.custom_minimum_size.y = _scaled(58.0)
 	page_heading.add_theme_constant_override("separation", 16)
 	body_content.add_child(page_heading)
 	var heading_stack := VBoxContainer.new()
@@ -239,10 +311,7 @@ func _build_creation_scene() -> void:
 	heading_stack.add_child(_label("Select a development target and assign your Research team.", 13, TEXT_MUTED))
 	page_heading.add_child(heading_stack)
 
-	var main_row := HBoxContainer.new()
-	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_row.add_theme_constant_override("separation", 14)
+	var main_row := _new_main_row()
 	body_content.add_child(main_row)
 
 	var setup_panel := _add_panel(main_row, 1.12)
@@ -256,11 +325,11 @@ func _build_creation_scene() -> void:
 	for index in range(COMPONENT_LABELS.size()):
 		var component_button := Button.new()
 		component_button.text = COMPONENT_LABELS[index].to_upper()
-		component_button.custom_minimum_size = Vector2(0, 102)
+		component_button.custom_minimum_size = Vector2(0, _scaled(88.0))
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		component_button.size_flags_vertical = Control.SIZE_FILL
 		component_button.focus_mode = Control.FOCUS_NONE
-		component_button.add_theme_font_size_override("font_size", 16)
+		component_button.add_theme_font_size_override("font_size", _scaled_font(16))
 		component_button.pressed.connect(_on_component_selected.bind(index))
 		component_row.add_child(component_button)
 		component_buttons.append(component_button)
@@ -282,7 +351,7 @@ func _build_creation_scene() -> void:
 	staff_scroll.name = "ResearchStaffScroll"
 	staff_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	staff_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	staff_scroll.custom_minimum_size.y = 150
+	staff_scroll.custom_minimum_size.y = _scaled(150.0)
 	staff_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	team_panel.add_child(staff_scroll)
 	var staff_list := VBoxContainer.new()
@@ -295,7 +364,7 @@ func _build_creation_scene() -> void:
 	team_panel.add_child(estimate_heading)
 	estimate_label = _label("Select researchers to calculate project timing and success probability.", 15, TEXT_MAIN)
 	estimate_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	estimate_label.custom_minimum_size.y = 58
+	estimate_label.custom_minimum_size.y = _scaled(58.0)
 	team_panel.add_child(estimate_label)
 
 	var actions := HBoxContainer.new()
@@ -303,7 +372,7 @@ func _build_creation_scene() -> void:
 	actions.add_theme_constant_override("separation", 12)
 	body_content.add_child(actions)
 	var cancel := _button("CANCEL", false, TEXT_MUTED)
-	cancel.custom_minimum_size = Vector2(150, 54)
+	cancel.custom_minimum_size = Vector2(_scaled(150.0), _scaled(54.0))
 	cancel.pressed.connect(_close_creation_scene)
 	actions.add_child(cancel)
 	var action_spacer := Control.new()
@@ -311,7 +380,7 @@ func _build_creation_scene() -> void:
 	actions.add_child(action_spacer)
 	start_button = _button("START RESEARCH  〉", true, ACCENT)
 	start_button.name = "StartResearchButton"
-	start_button.custom_minimum_size = Vector2(260, 54)
+	start_button.custom_minimum_size = Vector2(_scaled(260.0), _scaled(54.0))
 	start_button.disabled = true
 	start_button.pressed.connect(_on_start_research_pressed)
 	actions.add_child(start_button)
@@ -333,7 +402,7 @@ func _build_staff_choices(parent: VBoxContainer) -> void:
 		var checkbox := CheckBox.new()
 		checkbox.text = "%s   ·   %d%% efficiency" % [employee_name, efficiency]
 		checkbox.disabled = employee_id.is_empty() or occupied_ids.has(employee_id)
-		checkbox.add_theme_font_size_override("font_size", 16)
+		checkbox.add_theme_font_size_override("font_size", _scaled_font(16))
 		checkbox.add_theme_color_override("font_color", TEXT_MAIN)
 		checkbox.add_theme_color_override("font_disabled_color", TEXT_MUTED)
 		checkbox.focus_mode = Control.FOCUS_NONE
@@ -408,10 +477,10 @@ func _build_active_research(project: Dictionary) -> void:
 	creation_mode = false
 	active_project_id = str(project.get("id", ""))
 	body_content = _new_screen_root()
-	body.add_child(body_content)
+	_mount_screen_root(body_content)
 
 	var page_heading := HBoxContainer.new()
-	page_heading.custom_minimum_size.y = 58
+	page_heading.custom_minimum_size.y = _scaled(58.0)
 	page_heading.add_child(_label("RESEARCH IN DEVELOPMENT", 25, TEXT_MAIN))
 	var heading_spacer := Control.new()
 	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -424,10 +493,7 @@ func _build_active_research(project: Dictionary) -> void:
 	var progress := clampf(completed_days / required_days, 0.0, 1.0)
 	var remaining_days := maxf(0.0, required_days - completed_days)
 
-	var main_row := HBoxContainer.new()
-	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_row.add_theme_constant_override("separation", 14)
+	var main_row := _new_main_row()
 	body_content.add_child(main_row)
 
 	var progress_panel := _add_panel(main_row, 1.55)
@@ -455,7 +521,7 @@ func _build_active_research(project: Dictionary) -> void:
 	active_progress_bar.max_value = 100.0
 	active_progress_bar.value = progress * 100.0
 	active_progress_bar.show_percentage = false
-	active_progress_bar.custom_minimum_size.y = 24
+	active_progress_bar.custom_minimum_size.y = _scaled(24.0)
 	var progress_track := StyleBoxFlat.new()
 	progress_track.bg_color = Color("#303336")
 	progress_track.set_corner_radius_all(5)
@@ -504,17 +570,17 @@ func _add_panel(parent: Control, stretch_ratio: float = 1.0) -> VBoxContainer:
 	panel_style.border_color = Color("#45423B")
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(9)
-	panel_style.content_margin_left = 18
-	panel_style.content_margin_right = 18
-	panel_style.content_margin_top = 16
-	panel_style.content_margin_bottom = 16
+	panel_style.content_margin_left = roundi(_scaled(18.0))
+	panel_style.content_margin_right = roundi(_scaled(18.0))
+	panel_style.content_margin_top = roundi(_scaled(16.0))
+	panel_style.content_margin_bottom = roundi(_scaled(16.0))
 	panel.add_theme_stylebox_override("panel", panel_style)
 	parent.add_child(panel)
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 11)
+	content.add_theme_constant_override("separation", roundi(_scaled(11.0)))
 	panel.add_child(content)
 	return content
 
@@ -530,10 +596,10 @@ func _add_target_tile(parent: HBoxContainer, title: String, description: String)
 
 func _add_large_metric(parent: VBoxContainer, value: String, caption: String, color: Color) -> void:
 	var metric := VBoxContainer.new()
-	metric.add_theme_constant_override("separation", 2)
+	metric.add_theme_constant_override("separation", roundi(_scaled(2.0)))
 	parent.add_child(metric)
 	var value_label := _label(value, 26, color)
-	value_label.add_theme_font_size_override("font_size", 26)
+	value_label.add_theme_font_size_override("font_size", _scaled_font(26))
 	metric.add_child(value_label)
 	metric.add_child(_label(caption, 10, TEXT_MUTED))
 
@@ -640,13 +706,13 @@ func _new_screen_root() -> VBoxContainer:
 	content.name = "ResearchSceneContent"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
+	content.add_theme_constant_override("separation", roundi(_scaled(12.0)))
 	return content
 
 func _label(value: String, font_size: int, color: Color, alignment: int = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_font_size_override("font_size", _scaled_font(font_size))
 	label.add_theme_color_override("font_color", color)
 	label.horizontal_alignment = alignment
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -657,7 +723,7 @@ func _button(value: String, primary: bool, accent: Color) -> Button:
 	var button := Button.new()
 	button.text = value
 	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", 17)
+	button.add_theme_font_size_override("font_size", _scaled_font(17))
 	button.add_theme_color_override("font_color", TEXT_MAIN)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	var normal := StyleBoxFlat.new()
@@ -665,10 +731,10 @@ func _button(value: String, primary: bool, accent: Color) -> Button:
 	normal.border_color = accent
 	normal.set_border_width_all(1)
 	normal.set_corner_radius_all(8)
-	normal.content_margin_left = 14
-	normal.content_margin_right = 14
-	normal.content_margin_top = 9
-	normal.content_margin_bottom = 9
+	normal.content_margin_left = roundi(_scaled(14.0))
+	normal.content_margin_right = roundi(_scaled(14.0))
+	normal.content_margin_top = roundi(_scaled(9.0))
+	normal.content_margin_bottom = roundi(_scaled(9.0))
 	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = Color("#956A2E") if primary else Color("#2A2E30")
 	button.add_theme_stylebox_override("normal", normal)
@@ -678,22 +744,22 @@ func _button(value: String, primary: bool, accent: Color) -> Button:
 
 
 func _style_option(option: OptionButton) -> void:
-	option.add_theme_font_size_override("font_size", 16)
+	option.add_theme_font_size_override("font_size", _scaled_font(16))
 	option.add_theme_color_override("font_color", TEXT_MAIN)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("#202326")
 	style.border_color = Color("#514B40")
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
+	style.content_margin_left = roundi(_scaled(10.0))
+	style.content_margin_right = roundi(_scaled(10.0))
 	option.add_theme_stylebox_override("normal", style)
 	option.add_theme_stylebox_override("hover", style)
 	option.add_theme_stylebox_override("pressed", style)
 
 
 func _style_input(input: LineEdit) -> void:
-	input.add_theme_font_size_override("font_size", 22)
+	input.add_theme_font_size_override("font_size", _scaled_font(22))
 	input.add_theme_color_override("font_color", TEXT_MAIN)
 	input.add_theme_color_override("font_placeholder_color", TEXT_MUTED)
 	for state in ["normal", "focus"]:
@@ -702,10 +768,10 @@ func _style_input(input: LineEdit) -> void:
 		style.border_color = Color("#514B40") if state == "normal" else ACCENT
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(6)
-		style.content_margin_left = 14
-		style.content_margin_right = 14
-		style.content_margin_top = 10
-		style.content_margin_bottom = 10
+		style.content_margin_left = roundi(_scaled(14.0))
+		style.content_margin_right = roundi(_scaled(14.0))
+		style.content_margin_top = roundi(_scaled(10.0))
+		style.content_margin_bottom = roundi(_scaled(10.0))
 		input.add_theme_stylebox_override(state, style)
 
 func _format_research_days(value: float) -> String:
