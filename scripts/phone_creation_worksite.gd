@@ -8592,7 +8592,6 @@ func _show_thickness_controls() -> void:
 	reduce_button.pressed.connect(_on_phone_thickness_test_pressed)
 	active_feature_panel.add_child(reduce_button)
 	_refresh_phone_thickness_test_ui()
-	_refresh_phone_thickness_test_ui()
 
 func _show_power_volume_controls() -> void:
 	if not is_instance_valid(right_tools_content):
