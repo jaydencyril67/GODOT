@@ -1,26 +1,26 @@
 extends RefCounted
 class_name DigitalWorldResearchManager
 
-# A research employee contributes productive engineering hours, not abstract points.
-# One fully efficient researcher contributes eight productive hours per in-game day.
+# Research is measured in real engineering hours, never research points.
 const PRODUCTIVE_HOURS_PER_DAY := 8.0
+const BASE_RESEARCH_WORK_HOURS := 120.0
 const STATUS_ACTIVE := "active"
 const STATUS_AWAITING_VALIDATION := "awaiting_validation"
 const STATUS_APPROVED := "approved"
 const STATUS_REJECTED := "rejected"
 const STATUS_CANCELLED := "cancelled"
 const COMPONENT_CATALOGUE := [
-	"Phone Type", "Phone Thickness", "Border Radius", "Screen Technology",
-	"Screen Size", "Screen Type", "Power & Volume Buttons", "Speakers",
-	"Charging Port", "Side Buttons", "Home Button", "Device Colour",
-	"Front Camera", "Back Design", "Rear Camera",
-	"RAM Technology", "RAM", "Internal Storage", "Mobile Internet", "Wi-Fi",
-	"Bluetooth", "Battery", "Charging Speed", "Wireless Charging", "Sensors",
-	"Front Camera Megapixels", "Rear Camera Megapixels", "Memory Clock",
-	"Refresh Rate", "Cooling System",
-	"Box Package", "Phone Case", "Charger", "Protection Glass",
-	"Wireless Earbuds", "Smartwatch", "Power Bank"
+	"Screen Technology",
+	"Phone Thickness",
+	"Border Radius"
 ]
+
+
+static func normalize_component(component_value: String) -> String:
+	var component := component_value.strip_edges()
+	if component == "Screen Tech":
+		return "Screen Technology"
+	return component
 
 
 static func ensure_state(career: Dictionary) -> void:
@@ -66,45 +66,77 @@ static func get_workforce_summary(career: Dictionary) -> Dictionary:
 	}
 
 
+static func estimate_research(component_value: String, requested_staff: Array, employees: Array) -> Dictionary:
+	var component := normalize_component(component_value)
+	if not COMPONENT_CATALOGUE.has(component):
+		return _failure("Choose an available research component.")
+
+	var selected_ids: Array[String] = []
+	var team_efficiency := 0.0
+	var staff_count := 0
+	for staff_value in requested_staff:
+		var staff_id := str(staff_value).strip_edges()
+		if staff_id.is_empty() or selected_ids.has(staff_id):
+			continue
+		for employee_value in employees:
+			if not (employee_value is Dictionary):
+				continue
+			var employee: Dictionary = employee_value
+			if str(employee.get("id", "")) != staff_id or str(employee.get("department", "")) != "Research":
+				continue
+			selected_ids.append(staff_id)
+			team_efficiency += float(clampi(int(employee.get("efficiency", 0)), 0, 100))
+			staff_count += 1
+			break
+
+	if staff_count == 0:
+		return _failure("Assign at least one available Research employee.")
+
+	var average_efficiency := team_efficiency / float(staff_count)
+	var daily_work_hours := (team_efficiency / 100.0) * PRODUCTIVE_HOURS_PER_DAY
+	if daily_work_hours <= 0.0:
+		return _failure("The assigned research team needs positive efficiency.")
+
+	var expected_days := maxi(1, int(ceil(BASE_RESEARCH_WORK_HOURS / daily_work_hours)))
+	# Team size increases speed; average staff efficiency determines the success chance.
+	# The chance is capped below 100% so research always retains some uncertainty.
+	var success_chance := clampf(50.0 + average_efficiency * 0.45, 50.0, 95.0)
+	return {
+		"ok": true,
+		"component": component,
+		"staff_ids": selected_ids,
+		"staff_count": staff_count,
+		"team_efficiency": team_efficiency,
+		"average_efficiency": average_efficiency,
+		"daily_work_hours": daily_work_hours,
+		"work_required_hours": BASE_RESEARCH_WORK_HOURS,
+		"expected_duration_days": expected_days,
+		"success_chance": success_chance
+	}
+
+
 static func commission_project(career: Dictionary, request: Dictionary, game_time_unix: float) -> Dictionary:
 	ensure_state(career)
 
-	var components: Array[String] = []
-	var requested_components: Variant = request.get("components", [])
-	if requested_components is Array:
-		for component_value in requested_components:
-			var component := str(component_value).strip_edges()
-			if not component.is_empty() and not components.has(component):
-				components.append(component)
-	var single_component := str(request.get("component", "")).strip_edges()
-	if components.is_empty() and not single_component.is_empty():
-		components.append(single_component)
-	if components.is_empty():
-		return _failure("Choose at least one technology component for this project.")
-	for component in components:
-		if not COMPONENT_CATALOGUE.has(component):
-			return _failure("The selected component is not part of the company's technology catalogue: " + component)
+	for project_value in career.get("research_projects", []):
+		if project_value is Dictionary and str(project_value.get("status", "")) == STATUS_ACTIVE:
+			return _failure("Finish the active research before starting another project.")
 
-	var title := str(request.get("title", "")).strip_edges()
-	if title.is_empty():
-		var component_titles := ""
-		for component in components:
-			if not component_titles.is_empty():
-				component_titles += ", "
-			component_titles += component
-		title = "Research: " + component_titles
+	var component := normalize_component(str(request.get("component", "")))
+	if component.is_empty():
+		var requested_components: Variant = request.get("components", [])
+		if requested_components is Array and not requested_components.is_empty():
+			component = normalize_component(str(requested_components[0]))
+	if not COMPONENT_CATALOGUE.has(component):
+		return _failure("Choose Screen Tech, Phone Thickness or Border Radius.")
 
 	var budget := float(request.get("budget", 0.0))
 	if budget <= 0.0:
-		return _failure("A research project must have a positive approved budget.")
-
-	var required_work_hours := float(request.get("required_work_hours", 0.0))
-	if required_work_hours <= 0.0:
-		return _failure("The project needs a valid engineering-work estimate.")
+		return _failure("Enter a research investment greater than zero.")
 
 	var requested_staff: Variant = request.get("staff_ids", [])
 	if not (requested_staff is Array) or requested_staff.is_empty():
-		return _failure("Assign at least one Research department employee.")
+		return _failure("Assign at least one available Research employee.")
 
 	var occupied_ids := _get_active_project_staff_ids(career)
 	var valid_staff_ids: Array[String] = []
@@ -114,16 +146,18 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			continue
 		var employee := _find_employee(career, staff_id)
 		if employee.is_empty() or str(employee.get("department", "")) != "Research":
-			return _failure("Every assigned employee must be an existing Research department employee.")
+			return _failure("Every assigned person must be a Research department employee.")
 		if occupied_ids.has(staff_id):
-			return _failure("An assigned employee is already working on another active research project.")
+			return _failure("An assigned researcher is already working on another active project.")
 		valid_staff_ids.append(staff_id)
-	if valid_staff_ids.is_empty():
-		return _failure("Assign at least one available Research department employee.")
+
+	var estimate := estimate_research(component, valid_staff_ids, career.get("staff_employees", []))
+	if not bool(estimate.get("ok", false)):
+		return _failure(str(estimate.get("error", "The research team could not be calculated.")))
 
 	var balance := float(career.get("balance", 0.0))
 	if balance < budget:
-		return _failure("The company does not have enough available funds for this project.")
+		return _failure("The company does not have enough available funds for this research investment.")
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
@@ -131,13 +165,19 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 
 	var project := {
 		"id": project_id,
-		"title": title,
-		"components": components,
-		"objective": str(request.get("objective", "")).strip_edges(),
-		"project_type": str(request.get("project_type", "technology_improvement")),
+		"title": "Research: " + component,
+		"component": component,
+		"components": [component],
+		"objective": "",
+		"project_type": "technology_improvement",
 		"budget": budget,
-		"work_required_hours": required_work_hours,
+		"work_required_hours": float(estimate.get("work_required_hours", BASE_RESEARCH_WORK_HOURS)),
 		"work_completed_hours": 0.0,
+		"daily_work_hours": float(estimate.get("daily_work_hours", 0.0)),
+		"estimated_duration_days": int(estimate.get("expected_duration_days", 1)),
+		"team_efficiency": float(estimate.get("team_efficiency", 0.0)),
+		"average_efficiency": float(estimate.get("average_efficiency", 0.0)),
+		"success_chance": float(estimate.get("success_chance", 50.0)),
 		"staff_ids": valid_staff_ids,
 		"status": STATUS_ACTIVE,
 		"pause_reason": "",
@@ -211,7 +251,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	if str(project.get("status", "")) != STATUS_AWAITING_VALIDATION:
 		return _failure("Only completed projects awaiting validation can be approved.")
 	if results.is_empty():
-		return _failure("Add at least one validated technology result before approving the project.")
+		return _failure("Add at least one validated technology result before approving.")
 
 	var project_components: Array = project.get("components", [])
 	var technologies: Dictionary = career.get("research_technologies", {})
@@ -220,11 +260,11 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		if not (result_value is Dictionary):
 			return _failure("Every research result must be a structured technology record.")
 		var result: Dictionary = result_value.duplicate(true)
-		var component := str(result.get("component", "")).strip_edges()
+		var component := normalize_component(str(result.get("component", "")))
 		var metric := str(result.get("metric", "")).strip_edges()
 		var value := str(result.get("value", "")).strip_edges()
 		if component.is_empty() or not project_components.has(component):
-			return _failure("Each result must refer to a component included in this project.")
+			return _failure("Each result must refer to the component included in this project.")
 		if metric.is_empty() or value.is_empty():
 			return _failure("Each approved finding must include a measured attribute and result value.")
 		var component_history: Array = technologies.get(component, [])
