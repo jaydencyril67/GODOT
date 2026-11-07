@@ -2554,6 +2554,74 @@ func _on_phone_design_research_upgrade(research_id: String) -> void:
 	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Upgrade %s from Level %d to Level %d?\n\nCost: %s" % [research_names[research_id], current_level, current_level + 1, _format_balance(upgrade_cost)], "UPGRADE", Callable(self, "_apply_phone_design_research_upgrade").bind(research_id))
 
 
+func _show_curve_screen_research_prompt() -> void:
+	if bool(career.get("phone_curve_screen_research_unlocked", false)):
+		_show_notice("RESEARCH COMPLETE", "Curve Screen is already unlocked in your phone editor.")
+		return
+	if bool(career.get("phone_curve_screen_research_active", false)):
+		var remaining_days := maxi(0, ceili((float(career.get("phone_curve_screen_research_completion_unix", 0.0)) - game_date_unix) / 86400.0))
+		_show_notice("CURVE SCREEN RESEARCH IN PROGRESS", "Curve Screen research is underway. Estimated time remaining: %d in-game days." % remaining_days)
+		return
+	if is_instance_valid(confirm_modal):
+		confirm_modal.show_action_prompt("CURVE SCREEN RESEARCH", "Curve Screen\n\nResearch points required: 1,000 RP\nResearch cost: $10,000,000\nResearch duration: 7 in-game days", "RESEARCH", Callable(self, "_on_curve_screen_research_upgrade"))
+
+
+func _on_curve_screen_research_upgrade() -> void:
+	if bool(career.get("phone_curve_screen_research_unlocked", false)) or bool(career.get("phone_curve_screen_research_active", false)):
+		return
+	var available_points := maxi(0, int(career.get("research_points", 0)))
+	var available_balance := float(career.get("balance", 10000000.0))
+	if available_points < 1000:
+		_show_notice("INSUFFICIENT RESEARCH POINTS", "Curve Screen requires 1,000 RP. Your available research points: %d RP." % available_points)
+		return
+	if available_balance < 10000000.0:
+		_show_notice("INSUFFICIENT BALANCE", "Curve Screen research requires $10,000,000. Your available balance is %s." % _format_balance(available_balance))
+		return
+	var previous_points := available_points
+	var previous_balance := available_balance
+	var previous_completion := float(career.get("phone_curve_screen_research_completion_unix", 0.0))
+	career["research_points"] = previous_points - 1000
+	career["balance"] = previous_balance - 10000000.0
+	career["phone_curve_screen_research_active"] = true
+	career["phone_curve_screen_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
+	if not _save_career():
+		career["research_points"] = previous_points
+		career["balance"] = previous_balance
+		career["phone_curve_screen_research_active"] = false
+		career["phone_curve_screen_research_completion_unix"] = previous_completion
+		_show_notice("RESEARCH NOT SAVED", "Curve Screen research could not be saved. No research points or company funds were deducted.")
+		return
+	_update_home_status_bar()
+	_update_staff_office_balance()
+	_show_finance_toast(-10000000.0, "CURVE SCREEN RESEARCH")
+	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
+		world_root.set_company_balance(float(career["balance"]))
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
+
+
+func _process_curve_screen_research() -> void:
+	if not bool(career.get("phone_curve_screen_research_active", false)):
+		return
+	var completion_unix := float(career.get("phone_curve_screen_research_completion_unix", 0.0))
+	if completion_unix <= 0.0 or game_date_unix < completion_unix:
+		return
+	career["phone_curve_screen_research_unlocked"] = true
+	career["phone_curve_screen_research_active"] = false
+	career["phone_curve_screen_research_completion_unix"] = 0.0
+	if not _save_career():
+		career["phone_curve_screen_research_unlocked"] = false
+		career["phone_curve_screen_research_active"] = true
+		career["phone_curve_screen_research_completion_unix"] = completion_unix
+		return
+	if is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
+	if current_screen == "research":
+		_show_notice("CURVE SCREEN RESEARCH COMPLETE", "Curve Screen is now unlocked in your phone editor.")
+
+
 func _show_phone_charge_port_research_prompt() -> void:
 	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
 	if completed_count >= 5:
