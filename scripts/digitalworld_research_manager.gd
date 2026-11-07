@@ -1,9 +1,9 @@
 extends RefCounted
 class_name DigitalWorldResearchManager
 
-# Research is measured in real engineering hours, never research points.
-const PRODUCTIVE_HOURS_PER_DAY := 8.0
-const BASE_RESEARCH_WORK_HOURS := 120.0
+# Research follows the in-game calendar. Assigned staff efficiency shortens the base journey.
+const BASE_RESEARCH_DURATION_DAYS := 30.0
+const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
 const STATUS_AWAITING_VALIDATION := "awaiting_validation"
 const STATUS_APPROVED := "approved"
@@ -27,6 +27,24 @@ static func ensure_state(career: Dictionary) -> void:
 	var projects_value: Variant = career.get("research_projects", [])
 	if not (projects_value is Array):
 		career["research_projects"] = []
+	var projects: Array = career.get("research_projects", [])
+	for index in range(projects.size()):
+		if not (projects[index] is Dictionary):
+			continue
+		var project: Dictionary = projects[index]
+		if not project.has("required_research_days"):
+			var team_efficiency := maxf(0.0, float(project.get("team_efficiency", 0.0)))
+			var migrated_duration := maxf(MIN_RESEARCH_DURATION_DAYS, BASE_RESEARCH_DURATION_DAYS - team_efficiency / 100.0)
+			var old_required_hours := maxf(0.001, float(project.get("work_required_hours", 120.0)))
+			var old_completed_hours := clampf(float(project.get("work_completed_hours", 0.0)) / old_required_hours, 0.0, 1.0)
+			project["required_research_days"] = migrated_duration
+			project["completed_research_days"] = migrated_duration * old_completed_hours
+			project["estimated_duration_days"] = migrated_duration
+		project.erase("work_required_hours")
+		project.erase("work_completed_hours")
+		project.erase("daily_work_hours")
+		projects[index] = project
+	career["research_projects"] = projects
 	var technologies_value: Variant = career.get("research_technologies", {})
 	if not (technologies_value is Dictionary):
 		career["research_technologies"] = {}
@@ -61,8 +79,7 @@ static func get_workforce_summary(career: Dictionary) -> Dictionary:
 		"staff_count": total_staff,
 		"available_staff_count": available_staff,
 		"total_efficiency": total_efficiency,
-		"available_efficiency": available_efficiency,
-		"productive_hours_per_game_day": available_efficiency / 100.0 * PRODUCTIVE_HOURS_PER_DAY
+		"available_efficiency": available_efficiency
 	}
 
 
@@ -93,11 +110,10 @@ static func estimate_research(component_value: String, requested_staff: Array, e
 		return _failure("Assign at least one available Research employee.")
 
 	var average_efficiency := team_efficiency / float(staff_count)
-	var daily_work_hours := (team_efficiency / 100.0) * PRODUCTIVE_HOURS_PER_DAY
-	if daily_work_hours <= 0.0:
-		return _failure("The assigned research team needs positive efficiency.")
-
-	var expected_days := maxi(1, int(ceil(BASE_RESEARCH_WORK_HOURS / daily_work_hours)))
+	var expected_days := maxf(
+		MIN_RESEARCH_DURATION_DAYS,
+		BASE_RESEARCH_DURATION_DAYS - team_efficiency / 100.0
+	)
 	# Team size increases speed; average staff efficiency determines the success chance.
 	# The chance is capped below 100% so research always retains some uncertainty.
 	var success_chance := clampf(50.0 + average_efficiency * 0.45, 50.0, 95.0)
@@ -108,8 +124,6 @@ static func estimate_research(component_value: String, requested_staff: Array, e
 		"staff_count": staff_count,
 		"team_efficiency": team_efficiency,
 		"average_efficiency": average_efficiency,
-		"daily_work_hours": daily_work_hours,
-		"work_required_hours": BASE_RESEARCH_WORK_HOURS,
 		"expected_duration_days": expected_days,
 		"success_chance": success_chance
 	}
@@ -160,10 +174,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		"components": [component],
 		"objective": "",
 		"project_type": "technology_improvement",
-		"work_required_hours": float(estimate.get("work_required_hours", BASE_RESEARCH_WORK_HOURS)),
-		"work_completed_hours": 0.0,
-		"daily_work_hours": float(estimate.get("daily_work_hours", 0.0)),
-		"estimated_duration_days": int(estimate.get("expected_duration_days", 1)),
+		"required_research_days": float(estimate.get("expected_duration_days", BASE_RESEARCH_DURATION_DAYS)),
+		"completed_research_days": 0.0,
+		"estimated_duration_days": float(estimate.get("expected_duration_days", BASE_RESEARCH_DURATION_DAYS)),
 		"team_efficiency": float(estimate.get("team_efficiency", 0.0)),
 		"average_efficiency": float(estimate.get("average_efficiency", 0.0)),
 		"success_chance": float(estimate.get("success_chance", 50.0)),
@@ -199,28 +212,27 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 			continue
 
 		var staff_ids: Array = project.get("staff_ids", [])
-		var team_efficiency := 0.0
+		var has_assigned_researcher := false
 		for employee_value in employees:
 			if not (employee_value is Dictionary):
 				continue
 			var employee: Dictionary = employee_value
 			var employee_id := str(employee.get("id", ""))
-			if not staff_ids.has(employee_id) or str(employee.get("department", "")) != "Research":
-				continue
-			team_efficiency += float(clampi(int(employee.get("efficiency", 0)), 0, 100))
+			if staff_ids.has(employee_id) and str(employee.get("department", "")) == "Research":
+				has_assigned_researcher = true
+				break
 
-		if team_efficiency <= 0.0:
+		if not has_assigned_researcher:
 			project["pause_reason"] = "No assigned Research employees are currently available."
 			continue
 
 		project["pause_reason"] = ""
-		var productive_hours := (team_efficiency / 100.0) * PRODUCTIVE_HOURS_PER_DAY * game_days
-		var required_hours := float(project.get("work_required_hours", 0.0))
-		var completed_hours := float(project.get("work_completed_hours", 0.0))
-		completed_hours = minf(required_hours, completed_hours + productive_hours)
-		project["work_completed_hours"] = completed_hours
+		var required_days := maxf(MIN_RESEARCH_DURATION_DAYS, float(project.get("required_research_days", BASE_RESEARCH_DURATION_DAYS)))
+		var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
+		completed_days = minf(required_days, completed_days + game_days)
+		project["completed_research_days"] = completed_days
 
-		if required_hours > 0.0 and completed_hours >= required_hours:
+		if completed_days >= required_days:
 			project["status"] = STATUS_AWAITING_VALIDATION
 			project["completed_at_unix"] = game_time_unix
 			completed_project_ids.append(str(project.get("id", "")))
