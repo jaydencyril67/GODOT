@@ -2591,14 +2591,14 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
-	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("phone_charge_port_research_level", 0)))
-	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("phone_front_camera_research_level", 0)))
-	phone_creation_worksite.call("set_speaker_research_level", int(career.get("phone_speaker_research_level", 0)))
-	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("phone_battery_capacity_research_level", 1)))
-	phone_creation_worksite.call("set_wifi_research_level", int(career.get("phone_wifi_research_level", 1)))
-	phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("phone_bluetooth_research_level", 1)))
-	phone_creation_worksite.call("set_mobile_internet_research_level", int(career.get("phone_mobile_internet_research_level", 1)))
-	phone_creation_worksite.call("set_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
+	phone_creation_worksite.call("set_charge_port_research_level", 5)
+	phone_creation_worksite.call("set_front_camera_research_level", 8)
+	phone_creation_worksite.call("set_speaker_research_level", 12)
+	phone_creation_worksite.call("set_battery_capacity_research_level", 15)
+	phone_creation_worksite.call("set_wifi_research_level", 8)
+	phone_creation_worksite.call("set_bluetooth_research_level", 14)
+	phone_creation_worksite.call("set_mobile_internet_research_level", 7)
+	phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
