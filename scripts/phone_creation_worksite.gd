@@ -5410,7 +5410,9 @@ func _refresh_screen_technology_ui() -> void:
 		if is_instance_valid(value_label):
 			value_label.text = "LEVEL %d / %d" % [int(screen_quality_state[quality]), displayed_max_level]
 
-	var upgrade_button := active_feature_panel.get_node_or_null("FreeScreenUpgradeTestButton") as Button if is_instance_valid(active_feature_panel) else null
+	var upgrade_button: Button = null
+	if is_instance_valid(active_feature_panel):
+		upgrade_button = active_feature_panel.get_node_or_null("FreeScreenUpgradeTestButton") as Button
 	if is_instance_valid(upgrade_button):
 		upgrade_button.disabled = is_complete
 		upgrade_button.text = "SCREEN TECHNOLOGY MAXED" if is_complete else "FREE TEST UPGRADE"
