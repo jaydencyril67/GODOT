@@ -243,8 +243,8 @@ func _on_strategy_slider_changed(value: float, changed_department: String) -> vo
 	strategy_changed.emit(strategy.duplicate(true))
 
 func _apply_component_priority() -> void:
-	var component := priority_component_picker.get_item_text(priority_component_picker.selected)
-	var priority := priority_level_picker.get_item_text(priority_level_picker.selected)
+	var component := priority_component_picker.get_item_text(priority_component_picker.get_selected())
+	var priority := priority_level_picker.get_item_text(priority_level_picker.get_selected())
 	component_priorities[component] = priority
 	_refresh_priority_rows()
 	component_priority_changed.emit(component, priority)
