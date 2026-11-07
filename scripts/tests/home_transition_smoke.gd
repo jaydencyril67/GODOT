@@ -1,6 +1,7 @@
 extends SceneTree
 
 const MainGameScript = preload("res://scripts/digitalworld_game.gd")
+const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 var game: Node
 
@@ -19,8 +20,17 @@ func _run_transition_checks() -> void:
 	game.career = {
 		"company_name": "Smoke Test Mobiles",
 		"balance": 10000000.0,
-		"research_points": 0,
-		"research_points_progress": 0.0
+		"staff_employees": [{
+			"id": "researcher_smoke_01",
+			"full_name": "Research Test Engineer",
+			"department": "Research",
+			"position": "Research Engineer",
+			"efficiency": 100,
+			"monthly_salary": 250000.0
+		}],
+		"research_projects": [],
+		"research_technologies": {},
+		"next_research_project_id": 1
 	}
 	game.upgrade_level = 1
 	game.selected_upgrade = 1
@@ -90,48 +100,45 @@ func _run_transition_checks() -> void:
 		_fail("Opening Research Allocation hid or replaced the underlying Research page.")
 		return
 	var dashboard = game.research_allocation_dashboard
-	# The old component catalogue has been removed from the Worksite UI, while
-	# its existing progression functions remain available for the next wiring phase.
-	if not game.has_method("_process_phone_charge_port_research") or not game.has_method("_process_phone_battery_research") or not game.has_method("_apply_phone_design_research_upgrade"):
-		_fail("Removing the old research interface also removed part of the existing research engine.")
+	if not dashboard.has_signal("project_commission_requested") or not dashboard.has_signal("project_approve_requested") or not dashboard.has_signal("project_reject_requested"):
+		_fail("R&D dashboard project management signals are missing.")
 		return
-	if not is_instance_valid(dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard/ResearchDashboardBody")):
-		_fail("Research dashboard did not build its three-dial game interface.")
+	if not is_instance_valid(dashboard.get_node_or_null("ResearchManagementFrame/ResearchManagementPage/ResearchManagementBody")):
+		_fail("The new R&D management workspace did not build.")
 		return
-	for department in ["Hardware", "Software", "Extras"]:
-		if not is_instance_valid(dashboard.allocation_dials.get(department)):
-			_fail("%s allocation dial was not created." % department)
-			return
-	var initial_strategy: Dictionary = dashboard.strategy
-	var initial_total := int(initial_strategy.get("Hardware", 0)) + int(initial_strategy.get("Software", 0)) + int(initial_strategy.get("Extras", 0))
-	if initial_total != 100:
-		_fail("Default company research allocation does not total 100%.")
+	if dashboard.find_child("HardwareAllocationDial", true, false) != null:
+		_fail("The old department percentage dial is still present.")
 		return
-	dashboard._apply_allocation_value(70.0, "Hardware", true)
-	var updated_strategy: Dictionary = game.career.get("research_strategy", {})
-	var updated_total := int(updated_strategy.get("Hardware", 0)) + int(updated_strategy.get("Software", 0)) + int(updated_strategy.get("Extras", 0))
-	if updated_total != 100 or int(updated_strategy.get("Hardware", 0)) != 70:
-		_fail("Steering a department dial did not preserve and save the 100% total.")
+	var workforce: Dictionary = game.get_research_workforce_summary()
+	if int(workforce.get("staff_count", 0)) != 1 or int(workforce.get("available_staff_count", 0)) != 1:
+		_fail("The R&D centre did not identify the available Research employee.")
 		return
-	dashboard.pending_department = "Hardware"
-	dashboard.pending_priority_rows = [
-		{"component": "Display", "priority": "Extreme"},
-		{"component": "Processor", "priority": "High"},
-		{"component": "Front Camera", "priority": "Low"},
-		{"component": "Rear Camera", "priority": "High"}
-	]
-	dashboard._save_department_priorities()
-	var saved_priorities: Dictionary = game.career.get("research_component_priorities", {})
-	if str(saved_priorities.get("Display", "")) != "Extreme" or str(saved_priorities.get("Processor", "")) != "High" or str(saved_priorities.get("Front Camera", "")) != "Low":
-		_fail("Department priority selections were not saved to the company career.")
+
+	var commission_result: Dictionary = game.commission_research_project({
+		"title": "Battery research smoke test",
+		"components": ["Battery"],
+		"objective": "Validate improved battery energy density.",
+		"budget": 1000000.0,
+		"required_work_hours": 100.0,
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if not bool(commission_result.get("ok", false)):
+		_fail("A valid R&D project could not be commissioned: %s" % str(commission_result.get("error", "")))
 		return
-	if saved_priorities.has("Rear Camera"):
-		_fail("The department accepted more than three priority components.")
+	if absf(float(game.career.get("balance", 0.0)) - 9000000.0) > 0.1:
+		_fail("Commissioning a research project did not deduct its approved budget correctly.")
 		return
-	dashboard._show_history()
-	if not is_instance_valid(dashboard.get_node_or_null("RecentResearchHistoryOverlay")):
-		_fail("The Recent Research history view did not open.")
+	var created_project: Dictionary = commission_result.get("project", {})
+	var completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 13.0, game.game_date_unix + 86400.0 * 13.0)
+	if completed_ids.is_empty() or str(created_project.get("status", "active")) == "awaiting_validation":
+		_fail("The assigned research team did not complete its engineering work.")
 		return
+	var stored_projects: Array = game.career.get("research_projects", [])
+	if stored_projects.is_empty() or str(stored_projects[0].get("status", "")) != "awaiting_validation":
+		_fail("Completed R&D work did not move into technical validation.")
+		return
+	dashboard.call("configure", game._get_research_dashboard_data())
+
 	game._return_from_research_allocation_dashboard()
 	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
 		_fail("Closing Research Allocation did not reveal the original Research page.")
