@@ -525,11 +525,11 @@ func _style_command_menu_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
 		if state == "pressed":
-			style.bg_color = Color(0.78, 0.91, 0.98, 0.38)
+			style.bg_color = Color(0.42, 0.32, 0.19, 0.38)
 		elif state == "hover":
-			style.bg_color = Color(0.98, 1.0, 1.0, 0.40)
+			style.bg_color = Color(0.96, 0.92, 0.84, 0.28)
 		else:
-			style.bg_color = Color(0.94, 0.98, 1.0, 0.28) if primary else Color(0.94, 0.98, 1.0, 0.22)
+			style.bg_color = Color(0.92, 0.87, 0.76, 0.20) if primary else Color(0.92, 0.87, 0.76, 0.14)
 		style.border_color = Color(1.0, 1.0, 1.0, 0.92)
 		style.set_border_width_all(2)
 		style.border_width_top = 3
@@ -549,7 +549,7 @@ func _style_command_menu_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_pressed_color", Color("#EEE9DF"))
 	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
 	_apply_shared_page_typography(button, 22)
-	button.add_theme_color_override("font_outline_color", Color(0.08, 0.20, 0.30, 0.72))
+	button.add_theme_color_override("font_outline_color", Color(0.16, 0.13, 0.08, 0.72))
 	button.add_theme_constant_override("outline_size", 1)
 	button.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.0))
 	button.add_theme_constant_override("shadow_offset_x", 0)
@@ -730,7 +730,7 @@ void fragment() {
 	menu.add_child(_label("CREATE YOUR COMPANY", 21 if compact else 23, Color("#f4f6fa"), HORIZONTAL_ALIGNMENT_CENTER))
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
-	menu_rule.color = Color(0.42, 0.68, 0.92, 0.48)
+	menu_rule.color = Color(0.68, 0.50, 0.28, 0.52)
 	menu.add_child(menu_rule)
 
 	menu.add_child(_label("FOUNDER NAME", 11, Color("#C8BCA9")))
@@ -1134,8 +1134,8 @@ func _animate_logo_picker_scroll(target: int, duration: float) -> void:
 
 func _logo_option_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.34, 0.58, 0.38) if selected else Color(0.10, 0.27, 0.48, 0.24)
-	style.border_color = Color(0.78, 0.90, 1.0, 0.70) if selected else Color(0.68, 0.84, 0.98, 0.36)
+	style.bg_color = Color(0.44, 0.28, 0.11, 0.42) if selected else Color(0.12, 0.13, 0.14, 0.22)
+	style.border_color = Color(0.80, 0.64, 0.40, 0.74) if selected else Color(0.44, 0.44, 0.41, 0.40)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(10)
 	style.shadow_size = 0
@@ -1543,7 +1543,7 @@ func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool 
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var clock_style := StyleBoxFlat.new()
 		clock_style.bg_color = Color(0.34, 0.22, 0.09, 0.92)
-		clock_style.border_color = Color(0.68, 0.84, 0.98, 0.76)
+		clock_style.border_color = Color(0.66, 0.52, 0.31, 0.78)
 		clock_style.set_border_width_all(1)
 		clock_style.set_corner_radius_all(9)
 		clock_style.content_margin_left = 7
@@ -1960,8 +1960,8 @@ void fragment() {
 	loading_progress_bar.show_percentage = false
 	loading_progress_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var progress_track := StyleBoxFlat.new()
-	progress_track.bg_color = Color(0.025, 0.075, 0.038, 0.96)
-	progress_track.border_color = Color(0.38, 0.62, 0.90, 0.72)
+	progress_track.bg_color = Color(0.055, 0.060, 0.062, 0.96)
+	progress_track.border_color = Color(0.58, 0.46, 0.29, 0.72)
 	progress_track.set_border_width_all(1)
 	progress_track.set_corner_radius_all(8)
 	loading_progress_bar.add_theme_stylebox_override("background", progress_track)
@@ -2201,7 +2201,7 @@ void fragment() {
 
 		var divider := ColorRect.new()
 		divider.custom_minimum_size = Vector2(0, 1)
-		divider.color = Color(0.42, 0.68, 0.92, 0.30)
+		divider.color = Color(0.58, 0.46, 0.29, 0.30)
 		content.add_child(divider)
 
 		var description := _label(str(category["description"]), 9 if compact else 13, Color("#CFC7BA"))
@@ -2352,7 +2352,7 @@ void fragment() {
 
 		var divider := ColorRect.new()
 		divider.custom_minimum_size = Vector2(0, 1)
-		divider.color = Color(0.42, 0.68, 0.92, 0.30)
+		divider.color = Color(0.58, 0.46, 0.29, 0.30)
 		content.add_child(divider)
 
 		var description := _label(str(category["description"]), 9 if compact else 13, Color("#CFC7BA"))
@@ -2522,24 +2522,23 @@ func _return_to_home() -> void:
 func _style_create_glass_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.60, 0.84, 0.96, 0.25) if primary else Color(0.72, 0.89, 0.98, 0.14)
+		style.bg_color = Color("#805821") if primary else Color("#292D2F")
 		if state == "hover":
-			style.bg_color = Color(0.76, 0.92, 1.0, 0.36)
+			style.bg_color = Color("#956A2E") if primary else Color("#373B3D")
 		elif state == "pressed":
-			style.bg_color = Color(0.35, 0.68, 0.88, 0.42)
-		style.border_color = Color(0.91, 0.98, 1.0, 0.96)
+			style.bg_color = Color("#61431C") if primary else Color("#202325")
+		style.border_color = Color("#A17A42") if primary else Color("#55524A")
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.0, 0.12, 0.28, 0.32)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.30)
 		style.shadow_size = 7
 		style.shadow_offset = Vector2(0, 2)
 		style.anti_aliasing = true
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#ffffff"))
-	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-	button.add_theme_color_override("font_focus_color", Color("#ffffff"))
-
+	button.add_theme_color_override("font_color", Color("#EEE9DF"))
+	button.add_theme_color_override("font_hover_color", Color("#F2EDE4"))
+	button.add_theme_color_override("font_pressed_color", Color("#F2EDE4"))
+	button.add_theme_color_override("font_focus_color", Color("#F2EDE4"))
 
 func _on_create_category_pressed(category: String) -> void:
 	if category.to_upper() == "PHONE":
@@ -3036,9 +3035,9 @@ func _show_settings() -> void:
 func _style_settings_dropdown(selector: OptionButton) -> void:
 	selector.focus_mode = Control.FOCUS_NONE
 	var field := StyleBoxFlat.new()
-	field.bg_color = Color(0.035, 0.16, 0.075, 0.82)
-	field.border_color = Color(0.62, 0.82, 0.96, 0.9)
-	field.set_border_width_all(2)
+	field.bg_color = Color("#202326")
+	field.border_color = Color("#806239")
+	field.set_border_width_all(1)
 	field.set_corner_radius_all(14)
 	field.content_margin_left = 16
 	field.content_margin_right = 16
@@ -3046,36 +3045,9 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	field.content_margin_bottom = 12
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		selector.add_theme_stylebox_override(state, field)
-	selector.add_theme_color_override("font_color", Color("#F2EDE4"))
-	selector.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	selector.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-	selector.add_theme_color_override("font_focus_color", Color("#ffffff"))
-	var popup := selector.get_popup()
-	popup.min_size = Vector2i(maxi(roundi(selector.custom_minimum_size.x), 280), 0)
-	popup.add_theme_font_size_override("font_size", 19)
-	var panel := StyleBoxFlat.new()
-	panel.bg_color = Color("#080A0A")
-	panel.border_color = Color("#C58A3A")
-	panel.set_border_width_all(2)
-	panel.set_corner_radius_all(12)
-	popup.add_theme_stylebox_override("panel", panel)
-	var item_idle := StyleBoxFlat.new()
-	item_idle.bg_color = Color("#080A0A")
-	item_idle.set_corner_radius_all(7)
-	item_idle.content_margin_left = 14
-	item_idle.content_margin_right = 14
-	item_idle.content_margin_top = 12
-	item_idle.content_margin_bottom = 12
-	popup.add_theme_stylebox_override("hover", item_idle)
-	popup.add_theme_stylebox_override("pressed", item_idle)
-	popup.add_theme_stylebox_override("focus", item_idle)
-	popup.add_theme_color_override("font_color", Color("#EEE9DF"))
-	popup.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	popup.add_theme_color_override("font_pressed_color", Color("#ffffff"))
-	popup.add_theme_color_override("font_focus_color", Color("#ffffff"))
-	popup.add_theme_constant_override("v_separation", 10)
-	popup.add_theme_constant_override("outline_size", 1)
-	popup.add_theme_color_override("font_outline_color", Color("#080A0A"))
+	selector.add_theme_color_override("font_color", Color("#EEE9DF"))
+	selector.add_theme_color_override("font_hover_color", Color("#F2EDE4"))
+	selector.add_theme_color_override("font_pressed_color", Color("#F2EDE4"))
 
 func _close_settings_overlay(shade: Control, center: Control) -> void:
 	if is_instance_valid(shade):
