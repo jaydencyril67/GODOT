@@ -69,6 +69,9 @@ var review_notes_input: TextEdit
 var review_rejection_input: LineEdit
 var pending_results: Array[Dictionary] = []
 var feedback_label: Label
+var project_progress_bar: ProgressBar
+var project_progress_label: Label
+var selected_project_status := ""
 
 
 func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
@@ -479,18 +482,20 @@ func _show_project_details(project: Dictionary) -> void:
 	var completed_hours := maxf(0.0, float(project.get("work_completed_hours", 0.0)))
 	var progress := clampf(completed_hours / required_hours, 0.0, 1.0) if required_hours > 0.0 else 0.0
 	var progress_row := HBoxContainer.new()
+	selected_project_status = status
 	var progress_label := _label("ENGINEERING WORK", 8, TEXT_MUTED)
 	progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	progress_row.add_child(progress_label)
-	progress_row.add_child(_label("%d%%" % roundi(progress * 100.0), 10, ACCENT))
+	project_progress_label = _label("%d%%" % roundi(progress * 100.0), 10, ACCENT)
+	progress_row.add_child(project_progress_label)
 	workspace_content.add_child(progress_row)
-	var progress_bar := ProgressBar.new()
-	progress_bar.min_value = 0.0
-	progress_bar.max_value = 100.0
-	progress_bar.value = progress * 100.0
-	progress_bar.show_percentage = false
-	progress_bar.custom_minimum_size.y = 8
-	workspace_content.add_child(progress_bar)
+	project_progress_bar = ProgressBar.new()
+	project_progress_bar.min_value = 0.0
+	project_progress_bar.max_value = 100.0
+	project_progress_bar.value = progress * 100.0
+	project_progress_bar.show_percentage = false
+	project_progress_bar.custom_minimum_size.y = 8
+	workspace_content.add_child(project_progress_bar)
 	workspace_content.add_child(_label("%.1f / %.1f engineering hours completed" % [completed_hours, required_hours], 8, TEXT_MUTED))
 
 	var assigned_names: Array[String] = []
@@ -679,8 +684,45 @@ func _count_projects_with_status(status: String) -> int:
 
 
 func _clear_workspace() -> void:
+	project_progress_bar = null
+	project_progress_label = null
+	selected_project_status = ""
 	for child in workspace_content.get_children():
 		child.queue_free()
+
+
+func update_live_progress(projects: Array, balance: float, employees: Array) -> void:
+	research_projects = projects.duplicate(true)
+	company_balance = maxf(0.0, balance)
+	staff_employees = employees.duplicate(true)
+	if not is_node_ready() or not is_instance_valid(project_list):
+		return
+	balance_label.text = _format_currency(company_balance)
+	var workforce := ResearchManagerScript.get_workforce_summary({
+		"staff_employees": staff_employees,
+		"research_projects": research_projects
+	})
+	staff_count_label.text = str(workforce.get("staff_count", 0))
+	available_staff_label.text = str(workforce.get("available_staff_count", 0))
+	active_projects_label.text = str(_count_projects_with_status("active"))
+	review_projects_label.text = str(_count_projects_with_status("awaiting_validation"))
+	_rebuild_project_list()
+	if selected_project_id.is_empty():
+		return
+	var selected_project := _find_project(selected_project_id)
+	if selected_project.is_empty():
+		return
+	var next_status := str(selected_project.get("status", "active"))
+	if next_status != selected_project_status:
+		_show_project_details(selected_project)
+		return
+	var required_hours := maxf(0.0, float(selected_project.get("work_required_hours", 0.0)))
+	var completed_hours := maxf(0.0, float(selected_project.get("work_completed_hours", 0.0)))
+	var progress := clampf(completed_hours / required_hours, 0.0, 1.0) if required_hours > 0.0 else 0.0
+	if is_instance_valid(project_progress_bar):
+		project_progress_bar.value = progress * 100.0
+	if is_instance_valid(project_progress_label):
+		project_progress_label.text = "%d%%" % roundi(progress * 100.0)
 
 
 func _set_feedback(message: String, success: bool) -> void:
