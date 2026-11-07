@@ -183,7 +183,7 @@ func _build_empty_scene() -> void:
 
 	var launch_panel := _add_panel(main_row, 1.55)
 	launch_panel.add_child(_label("R&D DIRECTOR'S OFFICE  /  PROJECT COMMISSIONING", 11, ACCENT))
-	launch_panel.add_child(_label("BUILD WHAT\'S NEXT.", 34, TEXT_MAIN))
+	launch_panel.add_child(_label("BUILD THE NEXT GENERATION", 34, TEXT_MAIN))
 	var explanation := _label("Your company has no research project in development. Choose a technology target, commit a budget and assign your Research team to begin engineering work.", 16, TEXT_MUTED)
 	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	launch_panel.add_child(explanation)
@@ -299,7 +299,7 @@ func _build_creation_scene() -> void:
 	var team_title := _label("03  /  RESEARCH TEAM", 12, ACCENT)
 	team_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	team_heading.add_child(team_title)
-	team_heading.add_child(_label("%d STAFF" % staff_employees.filter(func(employee): return employee is Dictionary and str(employee.get("department", "")) == "Research").size(), 11, TEXT_MUTED))
+	team_heading.add_child(_label("%d STAFF" % int(_get_workforce_summary().get("staff_count", 0)), 11, TEXT_MUTED))
 
 	var staff_scroll := ScrollContainer.new()
 	staff_scroll.name = "ResearchStaffScroll"
