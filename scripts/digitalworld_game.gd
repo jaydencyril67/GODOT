@@ -108,6 +108,7 @@ func _process(delta: float) -> void:
 	_process_phone_front_camera_research()
 	_process_phone_speaker_research()
 	_process_phone_battery_research()
+	_process_phone_wifi_research()
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month:
@@ -216,6 +217,9 @@ func _load_career() -> bool:
 		"phone_battery_capacity_research_level": clampi(int(config.get_value("career", "phone_battery_capacity_research_level", 1)), 1, 15),
 		"phone_battery_capacity_research_active_level": int(config.get_value("career", "phone_battery_capacity_research_active_level", -1)),
 		"phone_battery_capacity_research_completion_unix": float(config.get_value("career", "phone_battery_capacity_research_completion_unix", 0.0)),
+		"phone_wifi_research_level": clampi(int(config.get_value("career", "phone_wifi_research_level", 1)), 1, 8),
+		"phone_wifi_research_active_level": int(config.get_value("career", "phone_wifi_research_active_level", -1)),
+		"phone_wifi_research_completion_unix": float(config.get_value("career", "phone_wifi_research_completion_unix", 0.0)),
 		"phone_curve_screen_research_unlocked": bool(config.get_value("career", "phone_curve_screen_research_unlocked", false)),
 		"phone_curve_screen_research_active": bool(config.get_value("career", "phone_curve_screen_research_active", false)),
 		"phone_curve_screen_research_completion_unix": float(config.get_value("career", "phone_curve_screen_research_completion_unix", 0.0))
@@ -278,6 +282,9 @@ func _save_career() -> bool:
 	config.set_value("career", "phone_battery_capacity_research_level", clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15))
 	config.set_value("career", "phone_battery_capacity_research_active_level", int(career.get("phone_battery_capacity_research_active_level", -1)))
 	config.set_value("career", "phone_battery_capacity_research_completion_unix", float(career.get("phone_battery_capacity_research_completion_unix", 0.0)))
+	config.set_value("career", "phone_wifi_research_level", clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8))
+	config.set_value("career", "phone_wifi_research_active_level", int(career.get("phone_wifi_research_active_level", -1)))
+	config.set_value("career", "phone_wifi_research_completion_unix", float(career.get("phone_wifi_research_completion_unix", 0.0)))
 	config.set_value("career", "phone_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
 	config.set_value("career", "phone_curve_screen_research_active", bool(career.get("phone_curve_screen_research_active", false)))
 	config.set_value("career", "phone_curve_screen_research_completion_unix", float(career.get("phone_curve_screen_research_completion_unix", 0.0)))
@@ -2546,6 +2553,7 @@ func _show_research_phone() -> void:
 	phone_research_worksite.connect("front_camera_research_prompt_requested", Callable(self, "_show_phone_front_camera_research_prompt"))
 	phone_research_worksite.connect("speaker_research_prompt_requested", Callable(self, "_show_phone_speaker_research_prompt"))
 	phone_research_worksite.connect("battery_research_prompt_requested", Callable(self, "_show_phone_battery_capacity_research_prompt"))
+	phone_research_worksite.connect("wifi_research_prompt_requested", Callable(self, "_show_phone_wifi_research_prompt"))
 	phone_research_worksite.connect("screen_shape_research_prompt_requested", Callable(self, "_show_curve_screen_research_prompt"))
 	add_child(phone_research_worksite)
 	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
@@ -2568,6 +2576,9 @@ func _get_phone_research_ui_data() -> Dictionary:
 	research_data["battery_capacity_level"] = clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15)
 	research_data["battery_capacity_active_level"] = int(career.get("phone_battery_capacity_research_active_level", -1))
 	research_data["battery_capacity_completion_unix"] = float(career.get("phone_battery_capacity_research_completion_unix", 0.0))
+	research_data["wifi_level"] = clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
+	research_data["wifi_active_level"] = int(career.get("phone_wifi_research_active_level", -1))
+	research_data["wifi_completion_unix"] = float(career.get("phone_wifi_research_completion_unix", 0.0))
 	research_data["game_date_unix"] = game_date_unix
 	return research_data
 
@@ -2854,6 +2865,88 @@ func _process_phone_speaker_research() -> void:
 		_show_notice("SPEAKER RESEARCH COMPLETE", "Speaker opening %d has been unlocked in your phone editor." % int(career["phone_speaker_research_level"]))
 
 
+func _show_phone_wifi_research_prompt() -> void:
+	var completed_level := clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
+	var wifi_names := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
+	if completed_level >= wifi_names.size():
+		_show_notice("RESEARCH COMPLETE", "All Wi-Fi standards currently available in the phone editor have been unlocked.")
+		return
+	var active_level := int(career.get("phone_wifi_research_active_level", -1))
+	if active_level >= 0:
+		var remaining_days := maxi(0, ceili((float(career.get("phone_wifi_research_completion_unix", 0.0)) - game_date_unix) / 86400.0))
+		_show_notice("WI-FI RESEARCH IN PROGRESS", "Your next Wi-Fi standard is already being researched. Estimated time remaining: %d in-game days." % remaining_days)
+		return
+	var next_name: String = wifi_names[completed_level]
+	var points_cost := completed_level * 50
+	var money_cost := float(completed_level + 1) * 100000.0
+	var prompt_message := "%s\n\nResearch points required: %d RP\nResearch cost: %s\nResearch duration: 7 in-game days" % [next_name, points_cost, _format_balance(money_cost)]
+	if is_instance_valid(confirm_modal):
+		confirm_modal.show_action_prompt("WI-FI STANDARD RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_wifi_research_upgrade"))
+
+
+func _on_phone_wifi_research_upgrade() -> void:
+	var completed_level := clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
+	if completed_level >= 8 or int(career.get("phone_wifi_research_active_level", -1)) >= 0:
+		return
+	var points_cost := completed_level * 50
+	var money_cost := float(completed_level + 1) * 100000.0
+	var available_points := maxi(0, int(career.get("research_points", 0)))
+	var available_balance := float(career.get("balance", 10000000.0))
+	if available_points < points_cost:
+		_show_notice("INSUFFICIENT RESEARCH POINTS", "Wi-Fi research requires %d RP. Your available research points: %d RP." % [points_cost, available_points])
+		return
+	if available_balance < money_cost:
+		_show_notice("INSUFFICIENT BALANCE", "Wi-Fi research requires %s. Your available balance is %s." % [_format_balance(money_cost), _format_balance(available_balance)])
+		return
+	var previous_points := available_points
+	var previous_balance := available_balance
+	var previous_active := int(career.get("phone_wifi_research_active_level", -1))
+	var previous_completion := float(career.get("phone_wifi_research_completion_unix", 0.0))
+	career["research_points"] = previous_points - points_cost
+	career["balance"] = previous_balance - money_cost
+	career["phone_wifi_research_active_level"] = completed_level
+	career["phone_wifi_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
+	if not _save_career():
+		career["research_points"] = previous_points
+		career["balance"] = previous_balance
+		career["phone_wifi_research_active_level"] = previous_active
+		career["phone_wifi_research_completion_unix"] = previous_completion
+		_show_notice("RESEARCH NOT SAVED", "Wi-Fi research could not be saved. No research points or company funds were deducted.")
+		return
+	_update_home_status_bar()
+	_update_staff_office_balance()
+	_show_finance_toast(-money_cost, "WI-FI RESEARCH")
+	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
+		world_root.set_company_balance(float(career["balance"]))
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
+
+
+func _process_phone_wifi_research() -> void:
+	var active_level := int(career.get("phone_wifi_research_active_level", -1))
+	if active_level < 0:
+		return
+	var completion_unix := float(career.get("phone_wifi_research_completion_unix", 0.0))
+	if completion_unix <= 0.0 or game_date_unix < completion_unix:
+		return
+	var current_level := clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
+	career["phone_wifi_research_level"] = mini(current_level + 1, active_level + 1)
+	career["phone_wifi_research_active_level"] = -1
+	career["phone_wifi_research_completion_unix"] = 0.0
+	if not _save_career():
+		career["phone_wifi_research_level"] = current_level
+		career["phone_wifi_research_active_level"] = active_level
+		career["phone_wifi_research_completion_unix"] = completion_unix
+		return
+	if is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.call("set_wifi_research_level", int(career["phone_wifi_research_level"]))
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
+	if current_screen == "research":
+		var wifi_names := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
+		_show_notice("WI-FI RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % wifi_names[int(career["phone_wifi_research_level"]) - 1])
+
+
 func _show_phone_battery_capacity_research_prompt() -> void:
 	var completed_level := clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15)
 	if completed_level >= 15:
@@ -3122,6 +3215,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("phone_front_camera_research_level", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("phone_speaker_research_level", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("phone_battery_capacity_research_level", 1)))
+	phone_creation_worksite.call("set_wifi_research_level", int(career.get("phone_wifi_research_level", 1)))
 	phone_creation_worksite.call("set_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
