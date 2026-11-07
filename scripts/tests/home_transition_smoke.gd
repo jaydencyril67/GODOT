@@ -82,7 +82,7 @@ func _run_transition_checks() -> void:
 	# Phone now opens the dedicated Company Research Allocation Dashboard.
 	# The dashboard overlays the existing Research page without rebuilding it.
 	var research_page_layer = game.ui_layer
-	game._show_research_allocation_dashboard()
+	game._on_research_category_pressed("PHONE")
 	if game.current_screen != "research_allocation" or not is_instance_valid(game.research_allocation_dashboard):
 		_fail("Phone did not open the Company Research Allocation Dashboard.")
 		return
@@ -90,6 +90,9 @@ func _run_transition_checks() -> void:
 		_fail("Opening Research Allocation hid or replaced the underlying Research page.")
 		return
 	var dashboard = game.research_allocation_dashboard
+	if is_instance_valid(game.phone_research_worksite):
+		_fail("The legacy component-by-component Phone Research interface is still being instantiated.")
+		return
 	if not is_instance_valid(dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard")):
 		_fail("Research dashboard did not build its primary content root.")
 		return
