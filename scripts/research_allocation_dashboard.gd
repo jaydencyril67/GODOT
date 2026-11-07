@@ -324,6 +324,7 @@ func _build_creation_scene() -> void:
 	setup_panel.add_child(component_row)
 	for index in range(COMPONENT_LABELS.size()):
 		var component_button := Button.new()
+		component_button.name = "ResearchComponentOption" if index == 0 else "ResearchComponentOption_%d" % index
 		component_button.text = COMPONENT_LABELS[index].to_upper()
 		component_button.custom_minimum_size = Vector2(0, _scaled(88.0))
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
