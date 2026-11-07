@@ -112,6 +112,7 @@ signal research_upgrade_requested(research_id: String)
 signal charge_port_research_prompt_requested
 signal front_camera_research_prompt_requested
 signal speaker_research_prompt_requested
+signal battery_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -518,6 +519,8 @@ var selected_battery_capacity := "Not set"
 var battery_capacity_slider: VSlider
 
 var battery_capacity_value_label: Label
+
+var researched_battery_capacity_level := 1
 
 var selected_charging_speed := 2
 
@@ -3238,6 +3241,19 @@ func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> v
 	if is_instance_valid(research_content_panel):
 		_refresh_design_research_cards()
 
+func set_battery_capacity_research_level(level: int) -> void:
+	researched_battery_capacity_level = clampi(level, 1, 15)
+	var unlocked_max := 1000 + (researched_battery_capacity_level - 1) * 500
+	if selected_battery_capacity != "Not set":
+		var selected := clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, unlocked_max)
+		selected = 1000 + roundi(float(selected - 1000) / 10.0) * 10
+		selected_battery_capacity = _format_integer_with_commas(selected) + " mAh"
+	if is_instance_valid(battery_capacity_slider):
+		battery_capacity_slider.max_value = unlocked_max
+		battery_capacity_slider.value = clampf(battery_capacity_slider.value, 1000.0, float(unlocked_max))
+	if is_instance_valid(battery_capacity_value_label):
+		battery_capacity_value_label.text = selected_battery_capacity if selected_battery_capacity != "Not set" else "NOT SELECTED"
+
 func set_curve_screen_research_unlocked(unlocked: bool) -> void:
 	curve_screen_unlocked = unlocked
 	if not curve_screen_unlocked and screen_shape_mode == "Curve screen":
@@ -3382,12 +3398,12 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 		var dummy_button := Button.new()
 		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type"] else "SELECT"
+		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery"] else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type"]:
+		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery"]:
 			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
 		# Other research categories remain placeholders until their individual
 		# progression screens are implemented.
@@ -3421,6 +3437,8 @@ func _on_research_feature_selected(feature_name: String) -> void:
 		speaker_research_prompt_requested.emit()
 	elif feature_name == "Screen Type":
 		screen_shape_research_prompt_requested.emit()
+	elif feature_name == "Battery":
+		battery_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
@@ -11806,7 +11824,8 @@ func _show_battery_controls() -> void:
 	var initial_capacity := 1000
 	if selected_battery_capacity != "Not set":
 		initial_capacity = clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, 8000)
-		initial_capacity = 1000 + roundi(float(initial_capacity - 1000) / 100.0) * 100
+		initial_capacity = 1000 + roundi(float(initial_capacity - 1000) / 10.0) * 10
+		initial_capacity = mini(initial_capacity, 1000 + (researched_battery_capacity_level - 1) * 500)
 
 	battery_capacity_value_label = _make_label(
 		(_format_integer_with_commas(initial_capacity) + " mAh") if selected_battery_capacity != "Not set" else "NOT SELECTED",
@@ -11817,7 +11836,8 @@ func _show_battery_controls() -> void:
 	battery_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(battery_capacity_value_label)
 
-	var range_hint := _make_label("1,000 mAh  —  8,000 mAh", 12, Color("#b8d8be"))
+	var unlocked_max := 1000 + (researched_battery_capacity_level - 1) * 500
+	var range_hint := _make_label("UNLOCKED RANGE: 1,000 — %s mAh" % _format_integer_with_commas(unlocked_max), 12, Color("#b8d8be"))
 	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(range_hint)
 
@@ -11836,8 +11856,8 @@ func _show_battery_controls() -> void:
 	battery_capacity_slider = VSlider.new()
 	battery_capacity_slider.name = "BatteryCapacityVerticalSlider"
 	battery_capacity_slider.min_value = 1000
-	battery_capacity_slider.max_value = 8000
-	battery_capacity_slider.step = 100
+	battery_capacity_slider.max_value = unlocked_max
+	battery_capacity_slider.step = 10
 	battery_capacity_slider.value = initial_capacity
 	battery_capacity_slider.custom_minimum_size = Vector2(52, 320)
 	battery_capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -11853,7 +11873,8 @@ func _show_battery_controls() -> void:
 	slider_row.add_child(maximum_label)
 
 func _on_battery_capacity_slider_changed(value: float) -> void:
-	var capacity := clampi(1000 + roundi((value - 1000.0) / 100.0) * 100, 1000, 8000)
+	var unlocked_max := 1000 + (researched_battery_capacity_level - 1) * 500
+	var capacity := clampi(1000 + roundi((value - 1000.0) / 10.0) * 10, 1000, unlocked_max)
 	selected_battery_capacity = _format_integer_with_commas(capacity) + " mAh"
 	_update_battery_capacity_controls()
 
