@@ -119,8 +119,8 @@ static func get_visual_profile(state: Dictionary) -> Dictionary:
 
 	# Spread each visible improvement across the complete journey to MicroLED
 	# Generation 30, so the final levels still have a meaningful visual target.
-	var darkness_progress := pow(float(darkness_level) / float(MAX_QUALITY_LEVEL), 2.5)
-	var shininess_progress := pow(float(shininess_level) / float(MAX_QUALITY_LEVEL), 2.5)
+	var darkness_progress := float(darkness_level) / float(MAX_QUALITY_LEVEL)
+	var shininess_progress := float(shininess_level) / float(MAX_QUALITY_LEVEL)
 	var reflection_progress := float(reflection_level) / float(MAX_QUALITY_LEVEL)
 	var screen_color := Color("#303030").lerp(Color("#080808"), darkness_progress)
 	var screen_roughness := lerpf(0.27, 0.06, shininess_progress)
