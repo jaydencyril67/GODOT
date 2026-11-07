@@ -3,6 +3,7 @@ extends Node3D
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
+const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
@@ -30,6 +31,7 @@ var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var phone_research_worksite: Node3D
+var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var home_navigation_layer: CanvasLayer
 var home_company_label: Label
@@ -230,7 +232,10 @@ func _load_career() -> bool:
 		"phone_mobile_internet_research_completion_unix": float(config.get_value("career", "phone_mobile_internet_research_completion_unix", 0.0)),
 		"phone_curve_screen_research_unlocked": bool(config.get_value("career", "phone_curve_screen_research_unlocked", false)),
 		"phone_curve_screen_research_active": bool(config.get_value("career", "phone_curve_screen_research_active", false)),
-		"phone_curve_screen_research_completion_unix": float(config.get_value("career", "phone_curve_screen_research_completion_unix", 0.0))
+		"phone_curve_screen_research_completion_unix": float(config.get_value("career", "phone_curve_screen_research_completion_unix", 0.0)),
+		"research_strategy": config.get_value("career", "research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}),
+		"research_component_priorities": config.get_value("career", "research_component_priorities", {}),
+		"research_history": config.get_value("career", "research_history", [])
 	}
 	# One-time migration: the old system counted researched models from zero.
 	# The first model is now a free default, so legacy zero-progress saves start
@@ -302,6 +307,9 @@ func _save_career() -> bool:
 	config.set_value("career", "phone_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
 	config.set_value("career", "phone_curve_screen_research_active", bool(career.get("phone_curve_screen_research_active", false)))
 	config.set_value("career", "phone_curve_screen_research_completion_unix", float(career.get("phone_curve_screen_research_completion_unix", 0.0)))
+	config.set_value("career", "research_strategy", career.get("research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}))
+	config.set_value("career", "research_component_priorities", career.get("research_component_priorities", {}))
+	config.set_value("career", "research_history", career.get("research_history", []))
 	config.set_value("career", "phone_default_models_migrated", bool(career.get("phone_default_models_migrated", false)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
@@ -2518,7 +2526,7 @@ void fragment() {
 
 func _on_research_category_pressed(category: String) -> void:
 	if category.to_upper() == "PHONE":
-		_show_research_phone()
+		_show_research_allocation_dashboard()
 		return
 	_show_notice("RESEARCH", category.capitalize() + " research will be added here.")
 
@@ -2549,35 +2557,53 @@ func _restore_home_after_standalone_screen() -> void:
 	_show_home_navigation()
 
 
-func _show_research_phone() -> void:
-	# Attach the research UI controller to the already-active screen root.
-	# Do not instantiate the phone worksite scene or create another CanvasLayer.
-	_dispose_phone_research_worksite()
+func _show_research_allocation_dashboard() -> void:
+	# Phone now opens the company-level research dashboard, not the legacy
+	# component-by-component upgrade catalogue.
 	if not is_instance_valid(ui_root):
-		push_error("Cannot show Phone Research: the existing Research screen root is missing.")
+		push_error("Cannot open Research Allocation: the Research screen root is missing.")
 		return
-	phone_research_worksite = Node3D.new()
-	phone_research_worksite.name = "PhoneResearchUIController"
-	phone_research_worksite.set_script(PhoneCreationWorksiteScript)
-	phone_research_worksite.set("research_mode", true)
-	phone_research_worksite.set("research_ui_host", ui_root)
-	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
-	phone_research_worksite.connect("back_requested", Callable(self, "_return_from_research_phone"))
-	phone_research_worksite.connect("charge_port_research_prompt_requested", Callable(self, "_show_phone_charge_port_research_prompt"))
-	phone_research_worksite.connect("front_camera_research_prompt_requested", Callable(self, "_show_phone_front_camera_research_prompt"))
-	phone_research_worksite.connect("speaker_research_prompt_requested", Callable(self, "_show_phone_speaker_research_prompt"))
-	phone_research_worksite.connect("battery_research_prompt_requested", Callable(self, "_show_phone_battery_capacity_research_prompt"))
-	phone_research_worksite.connect("wifi_research_prompt_requested", Callable(self, "_show_phone_wifi_research_prompt"))
-	phone_research_worksite.connect("bluetooth_research_prompt_requested", Callable(self, "_show_phone_bluetooth_research_prompt"))
-	phone_research_worksite.connect("mobile_internet_research_prompt_requested", Callable(self, "_show_phone_mobile_internet_research_prompt"))
-	phone_research_worksite.connect("screen_shape_research_prompt_requested", Callable(self, "_show_curve_screen_research_prompt"))
-	add_child(phone_research_worksite)
-	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
-	current_screen = "research"
+	if is_instance_valid(research_allocation_dashboard):
+		research_allocation_dashboard.queue_free()
+	research_allocation_dashboard = ResearchAllocationDashboardScene.instantiate() as Control
+	if not is_instance_valid(research_allocation_dashboard):
+		push_error("Could not instantiate the Company Research Allocation Dashboard.")
+		return
+	research_allocation_dashboard.name = "CompanyResearchAllocationDashboard"
+	research_allocation_dashboard.call("configure", _get_research_dashboard_data())
+	research_allocation_dashboard.connect("back_requested", Callable(self, "_return_from_research_allocation_dashboard"))
+	research_allocation_dashboard.connect("strategy_changed", Callable(self, "_on_research_strategy_changed"))
+	research_allocation_dashboard.connect("component_priority_changed", Callable(self, "_on_research_component_priority_changed"))
+	ui_root.add_child(research_allocation_dashboard)
+	current_screen = "research_allocation"
 
 
-func _return_from_research_phone() -> void:
-	_dispose_phone_research_worksite()
+func _get_research_dashboard_data() -> Dictionary:
+	return {
+		"company_name": str(career.get("company_name", "Your Company")),
+		"research_points": maxi(0, int(career.get("research_points", 0))),
+		"research_strategy": career.get("research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}),
+		"research_component_priorities": career.get("research_component_priorities", {}),
+		"research_history": career.get("research_history", [])
+	}
+
+
+func _on_research_strategy_changed(strategy: Dictionary) -> void:
+	career["research_strategy"] = strategy.duplicate(true)
+	_save_career()
+
+
+func _on_research_component_priority_changed(component: String, priority: String) -> void:
+	var priorities: Dictionary = career.get("research_component_priorities", {}).duplicate(true)
+	priorities[component] = priority
+	career["research_component_priorities"] = priorities
+	_save_career()
+
+
+func _return_from_research_allocation_dashboard() -> void:
+	if is_instance_valid(research_allocation_dashboard):
+		research_allocation_dashboard.queue_free()
+	research_allocation_dashboard = null
 	current_screen = "research"
 
 
