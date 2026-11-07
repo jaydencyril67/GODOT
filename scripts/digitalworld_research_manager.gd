@@ -130,10 +130,6 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not COMPONENT_CATALOGUE.has(component):
 		return _failure("Choose Screen Tech, Phone Thickness or Border Radius.")
 
-	var budget := float(request.get("budget", 0.0))
-	if budget <= 0.0:
-		return _failure("Enter a research investment greater than zero.")
-
 	var requested_staff: Variant = request.get("staff_ids", [])
 	if not (requested_staff is Array) or requested_staff.is_empty():
 		return _failure("Assign at least one available Research employee.")
@@ -155,14 +151,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not bool(estimate.get("ok", false)):
 		return _failure(str(estimate.get("error", "The research team could not be calculated.")))
 
-	var balance := float(career.get("balance", 0.0))
-	if balance < budget:
-		return _failure("The company does not have enough available funds for this research investment.")
-
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
-	career["balance"] = balance - budget
-
 	var project := {
 		"id": project_id,
 		"title": "Research: " + component,
@@ -170,7 +160,6 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		"components": [component],
 		"objective": "",
 		"project_type": "technology_improvement",
-		"budget": budget,
 		"work_required_hours": float(estimate.get("work_required_hours", BASE_RESEARCH_WORK_HOURS)),
 		"work_completed_hours": 0.0,
 		"daily_work_hours": float(estimate.get("daily_work_hours", 0.0)),
