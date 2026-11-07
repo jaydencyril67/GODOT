@@ -22,10 +22,25 @@ The interior is built as a native Godot 3D scene and keeps the three original Di
 
 The cutaway has low exterior walls, department partitions, floor guides, room signs, visible lighting, and a fixed isometric-style camera. It intentionally has no first-person controller or movement joystick.
 
+## Research and development
+
+The company R&D centre uses funded engineering projects rather than Research Points or department percentage allocations.
+
+- The CEO commissions a project against one or more of the 37 phone technology components.
+- Company funds are reserved for the approved project budget.
+- Research department employees are assigned to projects; an employee cannot be allocated to multiple active projects.
+- Project progress is based on productive engineering hours contributed by the assigned team's combined efficiency.
+- Completed projects move to technical validation. Recorded findings must be approved before they are stored as company technology results.
+- Project records and approved technology findings are saved with the company career.
+
+The R&D workflow is an active foundation. Automatic technical-result generation and the integration of approved discoveries into phone-creation specifications are still in development.
+
 ## Native project structure
 
 - **scenes/main.tscn** — Godot startup scene.
-- **scripts/digitalworld_game.gd** — main menu, founder setup, local career save/load, screen flow, settings, and upgrade showroom UI.
+- **scripts/digitalworld_game.gd** — main menu, founder setup, local career save/load, screen flow, R&D integration, settings, and upgrade showroom UI.
+- **scripts/digitalworld_research_manager.gd** — project funding, research staffing, engineering-work progress, and technical validation records.
+- **scripts/research_allocation_dashboard.gd** — the R&D management centre interface (the filename is retained for scene compatibility).
 - **scripts/world/hq_world.gd** — the ten-plot world and headquarters selection.
 - **scripts/world/hq_cutaway.gd** — the roof-off production interior.
 - **scripts/world/hq_building_factory.gd** — the starter headquarters and ten-tier building models.
@@ -45,6 +60,8 @@ The DigitalWorld Godot Checks GitHub Actions workflow imports the project and sm
 
 ## Implementation notes
 
-The original DigitalWorld prototype exposed additional management controls (Build, Downgrade, Demolish, Create, Research, Inventory, History, and Staffs) without implementing their underlying economy or department simulation. These controls are retained as clearly labelled entries; they do not pretend to perform systems that did not exist in the source version.
+The original DigitalWorld prototype exposed additional management controls (Build, Downgrade, Demolish, Create, Inventory, History, and Staffs) without implementing their underlying economy or department simulation. Some controls remain future-facing entries; they do not pretend to perform systems that do not yet exist.
+
+The R&D interface has replaced the old percentage-allocation and Research Point dashboard. The existing 37 technology components remain the research catalogue.
 
 The 3D assets have been rebuilt with Godot-native meshes and materials. The original layout, departments, object placement, camera presentation, upgrade progression, and save flow are being carried across without bringing the web application runtime into the game.
