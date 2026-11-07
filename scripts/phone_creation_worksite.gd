@@ -3424,6 +3424,21 @@ func _on_research_feature_selected(feature_name: String) -> void:
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
+	# Keep the return action clearly above the three research category tabs.
+	var back_row := HBoxContainer.new()
+	back_row.name = "PhoneResearchBackRow"
+	back_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(back_row)
+
+	var back_button := Button.new()
+	back_button.name = "PhoneResearchBackButton"
+	back_button.text = "‹  BACK"
+	back_button.custom_minimum_size = Vector2(112 if compact else 132, 40 if compact else 46)
+	_apply_research_typography(back_button, 13 if compact else 15)
+	_style_staff_button(back_button, false)
+	back_button.pressed.connect(func(): back_requested.emit())
+	back_row.add_child(back_button)
+
 	var selector := HBoxContainer.new()
 	selector.name = "PhoneResearchDepartmentSelector"
 	selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
