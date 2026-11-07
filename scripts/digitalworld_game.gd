@@ -486,7 +486,7 @@ func _style_landing_command_button(button: Button, primary: bool) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
 	var base_fill := Color(0.16, 0.40, 0.68, 0.82) if primary else Color(0.025, 0.045, 0.075, 0.90)
-	var base_edge := Color("#dcffdf") if primary else Color(0.42, 0.68, 0.92, 0.72)
+	var base_edge := Color("#dceeff") if primary else Color(0.42, 0.68, 0.92, 0.72)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = base_fill
@@ -701,7 +701,7 @@ void fragment() {
 	command_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.018, 0.065, 0.039, 0.82)
-	panel_style.border_color = Color(0.58, 0.82, 0.63, 0.62)
+	panel_style.border_color = Color(0.42, 0.68, 0.92, 0.62)
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
 	panel_style.set_corner_radius_all(20)
@@ -724,7 +724,7 @@ void fragment() {
 	menu.add_child(_label("CREATE YOUR COMPANY", 21 if compact else 23, Color("#f4f6fa"), HORIZONTAL_ALIGNMENT_CENTER))
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
-	menu_rule.color = Color(0.58, 0.82, 0.63, 0.48)
+	menu_rule.color = Color(0.42, 0.68, 0.92, 0.48)
 	menu.add_child(menu_rule)
 
 	menu.add_child(_label("FOUNDER NAME", 11, Color("#a9c9e8")))
@@ -756,8 +756,8 @@ void fragment() {
 	preview_panel.custom_minimum_size = Vector2(0, 86 if compact else 92)
 	preview_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var preview_style := StyleBoxFlat.new()
-	preview_style.bg_color = Color(0.30, 0.62, 0.36, 0.12)
-	preview_style.border_color = Color(0.72, 0.91, 0.75, 0.32)
+	preview_style.bg_color = Color(0.18, 0.38, 0.66, 0.14)
+	preview_style.border_color = Color(0.68, 0.84, 0.98, 0.32)
 	preview_style.set_border_width_all(1)
 	preview_style.set_corner_radius_all(13)
 	preview_style.content_margin_left = 10
@@ -1131,8 +1131,8 @@ func _animate_logo_picker_scroll(target: int, duration: float) -> void:
 
 func _logo_option_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.20, 0.52, 0.27, 0.38) if selected else Color(0.18, 0.46, 0.24, 0.24)
-	style.border_color = Color(0.76, 0.94, 0.79, 0.70) if selected else Color(0.72, 0.91, 0.75, 0.36)
+	style.bg_color = Color(0.12, 0.34, 0.58, 0.38) if selected else Color(0.10, 0.27, 0.48, 0.24)
+	style.border_color = Color(0.78, 0.90, 1.0, 0.70) if selected else Color(0.68, 0.84, 0.98, 0.36)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(10)
 	style.shadow_size = 0
@@ -1516,7 +1516,7 @@ func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool 
 		metrics, "Company_Balance_Card", "AVAILABLE BALANCE", 166.0, 18, Color("#f0c36a"), compact
 	)
 	home_date_label = _make_home_metric_card(
-		metrics, "Game_Date_Card", "IN-GAME DATE", 148.0, 16, Color("#f4fbf3"), compact
+		metrics, "Game_Date_Card", "IN-GAME DATE", 148.0, 16, Color("#f4f6fa"), compact
 	)
 
 	var clock_card := _make_home_status_glass_card("Game_Clock_Card")
@@ -1577,7 +1577,7 @@ func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	insignia_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var insignia_style := StyleBoxFlat.new()
 	insignia_style.bg_color = Color(0.08, 0.25, 0.44, 0.58)
-	insignia_style.border_color = Color(0.66, 0.90, 0.69, 0.72)
+	insignia_style.border_color = Color(0.62, 0.82, 0.96, 0.72)
 	insignia_style.set_border_width_all(1)
 	insignia_style.set_corner_radius_all(14)
 	insignia_style.content_margin_left = 5
@@ -1880,7 +1880,7 @@ void fragment() {
 	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	brand.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_home_button_typography(brand, 16 if compact else 18)
-	brand.add_theme_color_override("font_color", Color("#b4e0b7"))
+	brand.add_theme_color_override("font_color", Color("#a9c9e8"))
 	brand.add_theme_color_override("font_outline_color", Color("#06180b"))
 	brand.add_theme_constant_override("outline_size", 1)
 	content.add_child(brand)
@@ -1958,13 +1958,13 @@ void fragment() {
 	loading_progress_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var progress_track := StyleBoxFlat.new()
 	progress_track.bg_color = Color(0.025, 0.075, 0.038, 0.96)
-	progress_track.border_color = Color(0.42, 0.68, 0.47, 0.72)
+	progress_track.border_color = Color(0.38, 0.62, 0.90, 0.72)
 	progress_track.set_border_width_all(1)
 	progress_track.set_corner_radius_all(8)
 	loading_progress_bar.add_theme_stylebox_override("background", progress_track)
 	var progress_fill := StyleBoxFlat.new()
-	progress_fill.bg_color = Color("#8fce96")
-	progress_fill.border_color = Color("#b9e8b9")
+	progress_fill.bg_color = Color("#4f9fe8")
+	progress_fill.border_color = Color("#b8dcff")
 	progress_fill.set_border_width_all(1)
 	progress_fill.set_corner_radius_all(8)
 	loading_progress_bar.add_theme_stylebox_override("fill", progress_fill)
@@ -2161,7 +2161,7 @@ void fragment() {
 		card.custom_minimum_size = Vector2(card_width, card_height)
 		var card_style := StyleBoxFlat.new()
 		card_style.bg_color = Color(0.018, 0.065, 0.039, 0.84)
-		card_style.border_color = Color(0.58, 0.82, 0.63, 0.62)
+		card_style.border_color = Color(0.42, 0.68, 0.92, 0.62)
 		card_style.set_border_width_all(1)
 		card_style.border_width_top = 2
 		card_style.set_corner_radius_all(18)
@@ -2188,7 +2188,7 @@ void fragment() {
 		var index := _label(str(category["number"]) + "  /  PRODUCT TYPE", 8 if compact else 10, Color("#8fc7f4"))
 		index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		top_line.add_child(index)
-		top_line.add_child(_label("✦", 12, Color("#72bd82")))
+		top_line.add_child(_label("✦", 12, Color("#8fc7f4")))
 
 		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f4f6fa"))
 		category_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2198,7 +2198,7 @@ void fragment() {
 
 		var divider := ColorRect.new()
 		divider.custom_minimum_size = Vector2(0, 1)
-		divider.color = Color(0.58, 0.82, 0.63, 0.30)
+		divider.color = Color(0.42, 0.68, 0.92, 0.30)
 		content.add_child(divider)
 
 		var description := _label(str(category["description"]), 9 if compact else 13, Color("#bdc9d8"))
@@ -2312,7 +2312,7 @@ void fragment() {
 		card.custom_minimum_size = Vector2(card_width, card_height)
 		var card_style := StyleBoxFlat.new()
 		card_style.bg_color = Color(0.018, 0.065, 0.039, 0.84)
-		card_style.border_color = Color(0.58, 0.82, 0.63, 0.62)
+		card_style.border_color = Color(0.42, 0.68, 0.92, 0.62)
 		card_style.set_border_width_all(1)
 		card_style.border_width_top = 2
 		card_style.set_corner_radius_all(18)
@@ -2339,7 +2339,7 @@ void fragment() {
 		var index := _label(str(category["number"]) + "  /  RESEARCH", 8 if compact else 10, Color("#8fc7f4"))
 		index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		top_line.add_child(index)
-		top_line.add_child(_label("✦", 12, Color("#72bd82")))
+		top_line.add_child(_label("✦", 12, Color("#8fc7f4")))
 
 		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f4f6fa"))
 		category_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2349,7 +2349,7 @@ void fragment() {
 
 		var divider := ColorRect.new()
 		divider.custom_minimum_size = Vector2(0, 1)
-		divider.color = Color(0.58, 0.82, 0.63, 0.30)
+		divider.color = Color(0.42, 0.68, 0.92, 0.30)
 		content.add_child(divider)
 
 		var description := _label(str(category["description"]), 9 if compact else 13, Color("#bdc9d8"))
@@ -3034,7 +3034,7 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	selector.focus_mode = Control.FOCUS_NONE
 	var field := StyleBoxFlat.new()
 	field.bg_color = Color(0.035, 0.16, 0.075, 0.82)
-	field.border_color = Color(0.66, 0.91, 0.68, 0.9)
+	field.border_color = Color(0.62, 0.82, 0.96, 0.9)
 	field.set_border_width_all(2)
 	field.set_corner_radius_all(14)
 	field.content_margin_left = 16
@@ -3163,9 +3163,9 @@ func _hero_font_base(font_variation: FontVariation) -> void:
 func _style_glass_menu_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.22, 0.56, 0.30, 0.38) if primary else Color(0.58, 0.84, 0.63, 0.20)
+		style.bg_color = Color(0.14, 0.38, 0.66, 0.38) if primary else Color(0.58, 0.78, 0.94, 0.20)
 		if state == "hover":
-			style.bg_color = Color(0.34, 0.72, 0.42, 0.52) if primary else Color(0.74, 0.93, 0.76, 0.34)
+			style.bg_color = Color(0.22, 0.54, 0.86, 0.52) if primary else Color(0.82, 0.90, 1.0, 0.34)
 		elif state == "pressed":
 			style.bg_color = Color(0.035, 0.24, 0.08, 0.62)
 		style.border_color = Color(0.90, 0.98, 1.0, 0.94)
@@ -3207,9 +3207,9 @@ func _apply_menu_3d_label(label: Label, depth: int = 3) -> void:
 func _style_button(button: Button, primary: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#237d38") if primary else Color(0.82, 0.93, 0.92, 0.32)
+		style.bg_color = Color("#2867a8") if primary else Color(0.82, 0.93, 0.92, 0.32)
 		if state == "hover":
-			style.bg_color = Color("#329b4a") if primary else Color(0.9, 0.97, 0.94, 0.5)
+			style.bg_color = Color("#3d8ed5") if primary else Color(0.9, 0.97, 0.94, 0.5)
 		style.border_color = Color(1, 1, 1, 0.82)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(9)
@@ -3221,13 +3221,13 @@ func _style_button(button: Button, primary: bool) -> void:
 
 func _style_line_edit(field: LineEdit) -> void:
 	field.add_theme_color_override("font_color", Color("#183d22"))
-	field.add_theme_color_override("font_placeholder_color", Color("#66876b"))
-	field.add_theme_color_override("caret_color", Color("#237d38"))
-	field.add_theme_color_override("selection_color", Color(0.20, 0.58, 0.28, 0.34))
+	field.add_theme_color_override("font_placeholder_color", Color("#8194aa"))
+	field.add_theme_color_override("caret_color", Color("#2867a8"))
+	field.add_theme_color_override("selection_color", Color(0.20, 0.48, 0.78, 0.34))
 	for state in ["normal", "focus", "read_only"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.94, 0.98, 1.0, 0.97)
-		style.border_color = Color("#bceac4") if state != "focus" else Color("#4fc56b")
+		style.border_color = Color("#b8dcff") if state != "focus" else Color("#4f9fe8")
 		style.set_border_width_all(2)
 		style.set_corner_radius_all(10)
 		style.shadow_color = Color(0.02, 0.20, 0.04, 0.16)
