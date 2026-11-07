@@ -3635,7 +3635,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	software_editor_features.erase("RAM Technology")
 	software_editor_features.erase("RAM")
 	software_editor_features.erase("Internal Storage")
-	software_editor_features.erase("Network")
+	software_editor_features.erase("Mobile Internet")
 	software_editor_features.erase("WiFi")
 	software_editor_features.erase("Bluetooth")
 	software_editor_features.erase("Battery")
