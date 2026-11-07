@@ -2559,10 +2559,11 @@ func _show_research_allocation_dashboard() -> void:
 		push_error("Could not instantiate the Company Research Allocation Dashboard.")
 		return
 	research_allocation_dashboard.name = "CompanyResearchAllocationDashboard"
-	research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
+	research_allocation_dashboard.call("configure", _get_research_dashboard_data())
 	research_allocation_dashboard.connect("back_requested", Callable(self, "_return_from_research_allocation_dashboard"))
-	research_allocation_dashboard.connect("strategy_changed", Callable(self, "_on_research_strategy_changed"))
-	research_allocation_dashboard.connect("component_priorities_changed", Callable(self, "_on_research_component_priorities_changed"))
+	research_allocation_dashboard.connect("project_commission_requested", Callable(self, "_on_rd_project_commission_requested"))
+	research_allocation_dashboard.connect("project_approve_requested", Callable(self, "_on_rd_project_approve_requested"))
+	research_allocation_dashboard.connect("project_reject_requested", Callable(self, "_on_rd_project_reject_requested"))
 	ui_root.add_child(research_allocation_dashboard)
 	current_screen = "research_allocation"
 
@@ -2570,11 +2571,45 @@ func _show_research_allocation_dashboard() -> void:
 func _get_research_dashboard_data() -> Dictionary:
 	return {
 		"company_name": str(career.get("company_name", "Your Company")),
-		"research_points": maxi(0, int(career.get("research_points", 0))),
-		"research_strategy": career.get("research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}),
-		"research_component_priorities": career.get("research_component_priorities", {}),
-		"research_history": career.get("research_history", [])
+		"balance": float(career.get("balance", 0.0)),
+		"staff_employees": career.get("staff_employees", []),
+		"research_projects": career.get("research_projects", []),
+		"research_technologies": career.get("research_technologies", {}),
+		"research_history": career.get("research_history", []),
+		"game_date_unix": game_date_unix
 	}
+
+
+func _refresh_research_dashboard() -> void:
+	if is_instance_valid(research_allocation_dashboard):
+		research_allocation_dashboard.call("configure", _get_research_dashboard_data())
+
+
+func _on_rd_project_commission_requested(request: Dictionary) -> void:
+	var result := commission_research_project(request)
+	if not bool(result.get("ok", false)):
+		_show_notice("PROJECT NOT COMMISSIONED", str(result.get("error", "The project could not be commissioned.")))
+		return
+	_refresh_research_dashboard()
+	_show_notice("PROJECT COMMISSIONED", "Research project %s has been funded and assigned to its research team." % str(result.get("project", {}).get("id", "")))
+
+
+func _on_rd_project_approve_requested(project_id: String, results: Array) -> void:
+	var result := approve_research_project(project_id, results)
+	if not bool(result.get("ok", false)):
+		_show_notice("APPROVAL FAILED", str(result.get("error", "The research findings could not be approved.")))
+		return
+	_refresh_research_dashboard()
+	_show_notice("RESEARCH APPROVED", "The validated findings have been recorded in the company's technology development history.")
+
+
+func _on_rd_project_reject_requested(project_id: String, review_note: String) -> void:
+	var result := reject_research_project(project_id, review_note)
+	if not bool(result.get("ok", false)):
+		_show_notice("REVIEW FAILED", str(result.get("error", "The research findings could not be rejected.")))
+		return
+	_refresh_research_dashboard()
+	_show_notice("FINDINGS REJECTED", "The project review decision has been recorded.")
 
 
 func get_research_workforce_summary() -> Dictionary:
