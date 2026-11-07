@@ -1,7 +1,6 @@
 extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
-const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
@@ -30,7 +29,6 @@ var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
-var phone_research_worksite: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var home_navigation_layer: CanvasLayer
@@ -121,8 +119,6 @@ func _process(delta: float) -> void:
 	if current_day != previous_day:
 		_save_career()
 		last_saved_game_day = current_day
-		if is_instance_valid(phone_research_worksite):
-			phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	_update_home_status_bar()
 
 
@@ -313,23 +309,6 @@ func _save_career() -> bool:
 	config.set_value("career", "phone_default_models_migrated", bool(career.get("phone_default_models_migrated", false)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
-
-func _dispose_phone_research_worksite() -> void:
-	if not is_instance_valid(phone_research_worksite):
-		phone_research_worksite = null
-		return
-	# Phone Research is mounted directly under the existing Research screen.
-	# Remove that hosted overlay explicitly before freeing its controller.
-	if phone_research_worksite.has_method("close_research_ui"):
-		phone_research_worksite.call("close_research_ui")
-	# CanvasLayers render independently of their Node3D parent, so hide any
-	# editor interface before deferred deletion to prevent a transition flash.
-	for child in phone_research_worksite.get_children():
-		if child is CanvasLayer:
-			child.hide()
-	phone_research_worksite.queue_free()
-	phone_research_worksite = null
-
 
 func _clear_world() -> void:
 	if is_instance_valid(world_root):
@@ -672,7 +651,6 @@ func _begin_fresh_game() -> void:
 	game_date_unix = 1262304000.0
 	game_clock_paused = false
 	last_saved_game_day = -1
-	_dispose_phone_research_worksite()
 	_clear_world()
 	_show_profile()
 
@@ -2607,30 +2585,6 @@ func _return_from_research_allocation_dashboard() -> void:
 	current_screen = "research"
 
 
-func _get_phone_research_ui_data() -> Dictionary:
-	var research_data: Dictionary = career.get("phone_design_research", {}).duplicate(true)
-	research_data["charge_port_level"] = clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
-	research_data["charge_port_active_level"] = int(career.get("phone_charge_port_research_active_level", -1))
-	research_data["charge_port_completion_unix"] = float(career.get("phone_charge_port_research_completion_unix", 0.0))
-	research_data["front_camera_level"] = clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
-	research_data["front_camera_active_level"] = int(career.get("phone_front_camera_research_active_level", -1))
-	research_data["front_camera_completion_unix"] = float(career.get("phone_front_camera_research_completion_unix", 0.0))
-	research_data["battery_capacity_level"] = clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15)
-	research_data["battery_capacity_active_level"] = int(career.get("phone_battery_capacity_research_active_level", -1))
-	research_data["battery_capacity_completion_unix"] = float(career.get("phone_battery_capacity_research_completion_unix", 0.0))
-	research_data["wifi_level"] = clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
-	research_data["wifi_active_level"] = int(career.get("phone_wifi_research_active_level", -1))
-	research_data["wifi_completion_unix"] = float(career.get("phone_wifi_research_completion_unix", 0.0))
-	research_data["bluetooth_level"] = clampi(int(career.get("phone_bluetooth_research_level", 1)), 1, 14)
-	research_data["bluetooth_active_level"] = int(career.get("phone_bluetooth_research_active_level", -1))
-	research_data["bluetooth_completion_unix"] = float(career.get("phone_bluetooth_research_completion_unix", 0.0))
-	research_data["mobile_internet_level"] = clampi(int(career.get("phone_mobile_internet_research_level", 1)), 1, 7)
-	research_data["mobile_internet_active_level"] = int(career.get("phone_mobile_internet_research_active_level", -1))
-	research_data["mobile_internet_completion_unix"] = float(career.get("phone_mobile_internet_research_completion_unix", 0.0))
-	research_data["game_date_unix"] = game_date_unix
-	return research_data
-
-
 func _on_phone_design_research_upgrade(research_id: String) -> void:
 	if research_id == "charge_port":
 		_on_phone_charge_port_research_upgrade()
@@ -2700,8 +2654,6 @@ func _on_curve_screen_research_upgrade() -> void:
 	_show_finance_toast(-10000000.0, "CURVE SCREEN RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_curve_screen_research() -> void:
@@ -2720,8 +2672,6 @@ func _process_curve_screen_research() -> void:
 		return
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		_show_notice("CURVE SCREEN RESEARCH COMPLETE", "Curve Screen is now unlocked in your phone editor.")
 
@@ -2802,8 +2752,6 @@ func _on_phone_front_camera_research_upgrade() -> void:
 	_show_finance_toast(-money_cost, "FRONT CAMERA RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_phone_front_camera_research() -> void:
@@ -2822,8 +2770,6 @@ func _process_phone_front_camera_research() -> void:
 		career["phone_front_camera_research_active_level"] = active_level
 		career["phone_front_camera_research_completion_unix"] = completion_unix
 		return
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_front_camera_research_level", int(career["phone_front_camera_research_level"]))
 	if current_screen == "research":
@@ -2885,8 +2831,6 @@ func _on_phone_speaker_research_upgrade() -> void:
 	_show_finance_toast(-money_cost, "SPEAKER RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_phone_speaker_research() -> void:
@@ -2907,8 +2851,6 @@ func _process_phone_speaker_research() -> void:
 		return
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_speaker_research_level", int(career["phone_speaker_research_level"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		_show_notice("SPEAKER RESEARCH COMPLETE", "Speaker opening %d has been unlocked in your phone editor." % int(career["phone_speaker_research_level"]))
 
@@ -2966,8 +2908,6 @@ func _on_phone_mobile_internet_research_upgrade() -> void:
 	_show_finance_toast(-money_cost, "MOBILE INTERNET RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_phone_mobile_internet_research() -> void:
@@ -2988,8 +2928,6 @@ func _process_phone_mobile_internet_research() -> void:
 		return
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_mobile_internet_research_level", int(career["phone_mobile_internet_research_level"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		var network_versions := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
 		_show_notice("MOBILE INTERNET RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % network_versions[int(career["phone_mobile_internet_research_level"]) - 1])
@@ -3048,8 +2986,6 @@ func _on_phone_bluetooth_research_upgrade() -> void:
 	_show_finance_toast(-money_cost, "BLUETOOTH RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_phone_bluetooth_research() -> void:
@@ -3070,8 +3006,6 @@ func _process_phone_bluetooth_research() -> void:
 		return
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_bluetooth_research_level", int(career["phone_bluetooth_research_level"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
 		_show_notice("BLUETOOTH RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % bluetooth_versions[int(career["phone_bluetooth_research_level"]) - 1])
@@ -3130,8 +3064,6 @@ func _on_phone_wifi_research_upgrade() -> void:
 	_show_finance_toast(-money_cost, "WI-FI RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_phone_wifi_research() -> void:
@@ -3152,8 +3084,6 @@ func _process_phone_wifi_research() -> void:
 		return
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_wifi_research_level", int(career["phone_wifi_research_level"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		var wifi_names := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
 		_show_notice("WI-FI RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % wifi_names[int(career["phone_wifi_research_level"]) - 1])
@@ -3206,8 +3136,6 @@ func _on_phone_battery_capacity_research_upgrade() -> void:
 	_show_finance_toast(-500000.0, "BATTERY CAPACITY RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_phone_battery_research() -> void:
@@ -3228,8 +3156,6 @@ func _process_phone_battery_research() -> void:
 		return
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_battery_capacity_research_level", int(career["phone_battery_capacity_research_level"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		var unlocked_capacity := 1000 + (int(career["phone_battery_capacity_research_level"]) - 1) * 500
 		_show_notice("BATTERY RESEARCH COMPLETE", "%s mAh maximum battery capacity is now unlocked." % _format_count(unlocked_capacity))
@@ -3278,8 +3204,6 @@ func _on_phone_charge_port_research_upgrade() -> void:
 	_show_finance_toast(-money_cost, "CHARGING PORT RESEARCH")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
 
 
 func _process_phone_charge_port_research() -> void:
@@ -3301,8 +3225,6 @@ func _process_phone_charge_port_research() -> void:
 		career["phone_charge_port_research_completion_unix"] = completion_unix
 		return
 
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		_show_notice("CHARGING PORT RESEARCH COMPLETE", "The next charging-port technology has been unlocked in your phone editor.")
 
@@ -3342,8 +3264,6 @@ func _apply_phone_design_research_upgrade(research_id: String) -> void:
 	_show_finance_toast(-upgrade_cost, "RESEARCH UPGRADE")
 	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
 		world_root.set_company_balance(float(career["balance"]))
-	if is_instance_valid(phone_research_worksite):
-		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career.get("research_points", 0)))
 func _return_to_home() -> void:
 	_restore_home_after_standalone_screen()
 
