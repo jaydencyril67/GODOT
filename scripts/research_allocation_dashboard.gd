@@ -5,15 +5,14 @@ signal strategy_changed(strategy: Dictionary)
 signal component_priorities_changed(priorities: Dictionary)
 
 const DEPARTMENTS := ["Hardware", "Software", "Extras"]
-# Authoritative research catalogue: mirrors Phone Creation Worksite steps 1–36.
-# Step 1–14 = Hardware, 15–29 = Software, 30–36 = Extras.
-# Phone Type is the initial device choice, not a research component step.
+# Authoritative research catalogue: mirrors all 37 Phone Creation Worksite steps.
+# Step 1–15 = Hardware, 16–30 = Software, 31–37 = Extras.
 const DEPARTMENT_COMPONENTS := {
 	"Hardware": [
-		"Phone Thickness", "Border Radius", "Screen Technology", "Screen Size",
-		"Screen Type", "Power & Volume Buttons", "Speakers", "Charging Port",
-		"Side Buttons", "Home Button", "Device Colour", "Front Camera",
-		"Back Design", "Rear Camera"
+		"Phone Type", "Phone Thickness", "Border Radius", "Screen Technology",
+		"Screen Size", "Screen Type", "Power & Volume Buttons", "Speakers",
+		"Charging Port", "Side Buttons", "Home Button", "Device Colour",
+		"Front Camera", "Back Design", "Rear Camera"
 	],
 	"Software": [
 		"RAM Technology", "RAM", "Internal Storage", "Mobile Internet", "Wi-Fi",
