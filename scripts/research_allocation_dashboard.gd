@@ -222,6 +222,7 @@ func _build_staff_choices(parent: VBoxContainer) -> void:
 		checkbox.add_theme_color_override("font_color", TEXT_MAIN)
 		checkbox.add_theme_color_override("font_disabled_color", TEXT_MUTED)
 		checkbox.focus_mode = Control.FOCUS_NONE
+		checkbox.button_pressed = assigned_staff_ids.has(employee_id)
 		checkbox.toggled.connect(_on_staff_toggled.bind(employee_id))
 		parent.add_child(checkbox)
 	if not found_staff:
@@ -382,7 +383,8 @@ func update_live_progress(projects: Array, balance: float, employees: Array) -> 
 		return
 	var active_project := _get_active_project()
 	if active_project.is_empty():
-		_render_scene()
+		if not creation_mode:
+			_render_scene()
 		return
 	if str(active_project.get("id", "")) != active_project_id:
 		_render_scene()
