@@ -7246,6 +7246,7 @@ func _refresh_phone_screen() -> void:
 		display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
 
 	var display_material := _create_screen_visual_material()
+	display.material_override = display_material
 	var current_depth := _phone_depth_for_thickness_level()
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
