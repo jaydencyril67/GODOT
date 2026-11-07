@@ -5287,6 +5287,19 @@ func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: 
 	toggle.toggled.connect(callback)
 	row.add_child(toggle)
 
+func _create_component_test_button(button_name: String, button_text: String, callback: Callable) -> Button:
+	var test_button := Button.new()
+	test_button.name = button_name
+	test_button.text = button_text
+	test_button.custom_minimum_size = Vector2(0, 44)
+	test_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	test_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(test_button, 13)
+	_style_staff_button(test_button, true)
+	test_button.pressed.connect(callback)
+	return test_button
+
+
 func _show_screen_tech_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -5346,15 +5359,7 @@ func _show_screen_tech_controls() -> void:
 	screen_next_milestone_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(screen_next_milestone_label)
 
-	var upgrade_button := Button.new()
-	upgrade_button.name = "FreeScreenUpgradeTestButton"
-	upgrade_button.text = "FREE TEST UPGRADE"
-	upgrade_button.custom_minimum_size = Vector2(0, 44)
-	upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upgrade_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(upgrade_button, 13)
-	_style_staff_button(upgrade_button, true)
-	upgrade_button.pressed.connect(_on_free_screen_upgrade_test_pressed)
+	var upgrade_button := _create_component_test_button("FreeScreenUpgradeTestButton", "FREE TEST UPGRADE", _on_free_screen_upgrade_test_pressed)
 	active_feature_panel.add_child(upgrade_button)
 
 	screen_upgrade_feedback_label = _make_label("Each click improves one quality in order. All three must reach level 3 to unlock the next technology.", 10, Color("#a9c9af"))
@@ -7239,7 +7244,7 @@ func _refresh_phone_screen() -> void:
 	var screen_height := _active_phone_size().y if screen_shape_mode == "Curve screen" and vertical_curve_enabled else maxf(0.60, _active_phone_size().y - bezel_height * 2.0)
 	# The display inherits the phone's exact outer corner radius so curved
 	# glass and frame stay visually aligned as Border Radius is upgraded.
-	var screen_radius := 0.32 * float(border_radius_level) / 6.0
+	var screen_radius := _phone_corner_radius()
 	if screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled):
 		display.mesh = _create_curved_screen_mesh(screen_width, screen_height, screen_radius, side_curve_enabled, vertical_curve_enabled)
 	else:
@@ -7362,7 +7367,7 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	# leaf, so its local corner mask must be the opposite of the fixed frame;
 	# Flip remains on the moving leaf and uses that leaf's own outside corners.
 	var outer_corner_mask := _foldable_half_corner_mask(true)
-	var radius := minf(0.32 * float(border_radius_level) / 6.0, minf(panel_width, panel_height) * 0.45)
+	var radius := minf(_phone_corner_radius(), minf(panel_width, panel_height) * 0.45)
 
 	var bezel := MeshInstance3D.new()
 	bezel.name = "OuterDisplayBezel"
@@ -7438,7 +7443,7 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 		moving_offset.y = moving_inner_edge + segment_height * 0.5
 
 	var current_depth := _phone_depth_for_thickness_level()
-	var screen_radius := 0.32 * float(border_radius_level) / 6.0
+	var screen_radius := _phone_corner_radius()
 	var foldable_curve_active := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	# Match Standard-phone Curve screen sizing: enabled curve directions run
 	# right to the physical outer chassis edge (no inset bezel). The hinge-side
@@ -7755,7 +7760,7 @@ func _front_camera_screen_surface_z(x: float, y: float, screen_width: float, scr
 func _side_camera_safe_y(fallback_y: float) -> float:
 	# Enforce an exact, cumulative downward movement of 0.012 units per
 	# border-radius level. Level 0 keeps the normal top inset unchanged.
-	return fallback_y - (0.012 * float(border_radius_level))
+	return fallback_y - (0.072 * float(border_radius_level) / 20.0)
 
 func _refresh_front_camera(display: MeshInstance3D, screen_width: float, screen_height: float) -> void:
 	if not front_camera_enabled:
@@ -8517,47 +8522,18 @@ func _show_border_radius_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Adjust the curvature of the phone's outer corners", 12, Color("#c7eacb"))
+	var description := _make_label("Each test upgrade rounds the phone's corners a little more. Level 0 keeps the original sharp edges.", 12, Color("#c7eacb"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	var meter_row := HBoxContainer.new()
-	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	meter_row.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(meter_row)
-
-	var level_labels := VBoxContainer.new()
-	level_labels.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	level_labels.alignment = BoxContainer.ALIGNMENT_CENTER
-	level_labels.add_theme_constant_override("separation", 0)
-	meter_row.add_child(level_labels)
-
-	for level in range(6, -1, -1):
-		var level_label := _make_label(str(level), 14, Color("#dce9df"))
-		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		level_labels.add_child(level_label)
-
-	var meter := VSlider.new()
-	meter.name = "BorderRadiusLevelMeter"
-	meter.min_value = 0
-	meter.max_value = 6
-	meter.step = 1
-	meter.value = border_radius_level
-	meter.tick_count = 7
-	meter.custom_minimum_size = Vector2(76, 320)
-	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	meter.value_changed.connect(_on_border_radius_level_changed)
-	_style_custom_slider(meter)
-	meter_row.add_child(meter)
-
-	border_radius_value_label = _make_label("LEVEL %d / 6" % border_radius_level, 16, Color("#9bd6a7"))
+	border_radius_value_label = _make_label("", 16, Color("#9bd6a7"))
 	border_radius_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(border_radius_value_label)
+
+	var radius_button := _create_component_test_button("TestBorderRadiusButton", "TEST BORDER RADIUS", _on_border_radius_test_pressed)
+	active_feature_panel.add_child(radius_button)
+	_refresh_border_radius_test_ui()
 
 func _show_thickness_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -8584,12 +8560,7 @@ func _show_thickness_controls() -> void:
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
 
-	var reduce_button := Button.new()
-	reduce_button.name = "TestPhoneThicknessReductionButton"
-	reduce_button.text = "TEST THICKNESS REDUCTION"
-	reduce_button.custom_minimum_size = Vector2(0, 52)
-	reduce_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	reduce_button.pressed.connect(_on_phone_thickness_test_pressed)
+	var reduce_button := _create_component_test_button("TestPhoneThicknessReductionButton", "TEST THICKNESS REDUCTION", _on_phone_thickness_test_pressed)
 	active_feature_panel.add_child(reduce_button)
 	_refresh_phone_thickness_test_ui()
 
@@ -9377,7 +9348,7 @@ func _get_phone_speaker_x_positions() -> Array[float]:
 		var layout := _get_foldable_segment_layout()
 		var moving_offset: Vector3 = layout["moving_offset"]
 		var segment_size: Vector3 = layout["segment_size"]
-		var outer_corner_radius := 0.32 * float(border_radius_level) / 6.0
+		var outer_corner_radius := _phone_corner_radius()
 		var outer_edge_inset := maxf(edge_margin, minf(outer_corner_radius * 0.35, 0.09))
 		var moving_left := moving_offset.x - segment_size.x * 0.5 + edge_margin
 		var moving_right := moving_offset.x + segment_size.x * 0.5 - outer_edge_inset
@@ -9399,7 +9370,7 @@ func _get_phone_speaker_x_positions() -> Array[float]:
 
 func _get_style_pen_marker_layout() -> Dictionary:
 	# Keep the marker and the pouch opening on the exact same calculated point.
-	var corner_radius := 0.32 * float(border_radius_level) / 6.0
+	var corner_radius := _phone_corner_radius()
 	var bottom_y := -_active_phone_size().y * 0.5
 	var left_edge := -_active_phone_size().x * 0.5
 	var circle_radius := 0.025
@@ -10061,7 +10032,7 @@ func _refresh_phone_charge_port() -> void:
 	# bottom rail. If the frame is very thin, the whole aperture scales evenly.
 	var current_phone_depth := _phone_depth_for_thickness_level()
 	var half_phone_depth := current_phone_depth * 0.5
-	var current_corner_radius := 0.32 * float(border_radius_level) / 6.0
+	var current_corner_radius := _phone_corner_radius()
 	var port_frame_half_width := _active_phone_size().x * 0.5
 	var port_local_offset := Vector2.ZERO
 	var flat_bottom_half_width := maxf(0.02, port_frame_half_width - current_corner_radius)
@@ -10235,6 +10206,12 @@ func _refresh_phone_charge_port() -> void:
 		barrel_pin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		port_root.add_child(barrel_pin)
 
+func _phone_corner_radius() -> float:
+	# Level 0 remains perfectly sharp. Twenty finite upgrades reach a fuller
+	# 0.40-unit corner radius, above the previous 0.32 maximum.
+	return 0.40 * float(clampi(border_radius_level, 0, 20)) / 20.0
+
+
 func _phone_depth_for_thickness_level(level: int = -1) -> float:
 	# Twenty finite reductions run from the original maximum thickness to a
 	# slightly slimmer minimum. Level 0 is the untouched maximum; level 20
@@ -10275,11 +10252,20 @@ func _refresh_phone_mesh() -> void:
 	_apply_phone_fold_angle()
 	_queue_phone_case_sync()
 
-func _on_border_radius_level_changed(value: float) -> void:
-	border_radius_level = clampi(roundi(value), 0, 6)
+func _refresh_border_radius_test_ui() -> void:
 	if is_instance_valid(border_radius_value_label):
-		border_radius_value_label.text = "LEVEL %d / 6" % border_radius_level
+		border_radius_value_label.text = "BORDER UPGRADES: %d / 20" % border_radius_level
+	var button := active_feature_panel.get_node_or_null("TestBorderRadiusButton") as Button if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(button):
+		button.disabled = border_radius_level >= 20
+		button.text = "MAXIMUM BORDER RADIUS REACHED" if border_radius_level >= 20 else "TEST BORDER RADIUS"
+
+func _on_border_radius_test_pressed() -> void:
+	if border_radius_level >= 20:
+		return
+	border_radius_level += 1
 	_refresh_phone_mesh()
+	_refresh_border_radius_test_ui()
 
 func _refresh_foldable_frame_materials() -> void:
 	if not is_instance_valid(phone_body) or selected_phone_type == "Standard":
@@ -10450,7 +10436,7 @@ func _refresh_foldable_hardware() -> void:
 	if is_instance_valid(previous_hinge):
 		previous_hinge.free()
 	if selected_phone_type == "Standard":
-		phone_body.mesh = _create_rounded_phone_mesh(0.32 * float(border_radius_level) / 6.0, charge_port_opening_points)
+		phone_body.mesh = _create_rounded_phone_mesh(_phone_corner_radius(), charge_port_opening_points)
 		# Port points are calculated immediately before this rebuild. Recreate
 		# the standard chassis material now so its shader receives the aperture
 		# bounds and colours the exposed cut walls black.
@@ -10460,7 +10446,7 @@ func _refresh_foldable_hardware() -> void:
 		return
 
 	phone_body.mesh = null
-	var radius := 0.32 * float(border_radius_level) / 6.0
+	var radius := _phone_corner_radius()
 	var current_depth := _phone_depth_for_thickness_level()
 	var panels := Node3D.new()
 	panels.name = "PhoneFoldablePanels"
@@ -12223,7 +12209,7 @@ func _case_outline_for_size(size: Vector2, expansion: float, corner_mask: int = 
 	# Fold/Flip case lips remain square at hinge-side corners.
 	var half_w := size.x * 0.5 + expansion
 	var half_h := size.y * 0.5 + expansion
-	var radius := clampf(0.32 * float(border_radius_level) / 6.0 + expansion, 0.001, minf(half_w, half_h) - 0.001)
+	var radius := clampf(_phone_corner_radius() + expansion, 0.001, minf(half_w, half_h) - 0.001)
 	var corner_points := [
 		Vector2(half_w, half_h), Vector2(-half_w, half_h),
 		Vector2(-half_w, -half_h), Vector2(half_w, -half_h)
