@@ -72,7 +72,12 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 
 	var title := str(request.get("title", "")).strip_edges()
 	if title.is_empty():
-		title = "Research: " + ", ".join(components)
+		var component_titles := ""
+		for component in components:
+			if not component_titles.is_empty():
+				component_titles += ", "
+			component_titles += component
+		title = "Research: " + component_titles
 
 	var budget := float(request.get("budget", 0.0))
 	if budget <= 0.0:
