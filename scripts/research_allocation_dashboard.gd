@@ -759,7 +759,7 @@ func _line_edit(placeholder: String, numeric: bool) -> LineEdit:
 	input.custom_minimum_size.y = 32
 	input.add_theme_font_size_override("font_size", 10)
 	if numeric:
-		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
+		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL
 	_apply_line_edit_style(input)
 	return input
 
