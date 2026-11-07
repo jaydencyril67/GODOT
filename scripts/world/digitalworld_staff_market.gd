@@ -434,7 +434,7 @@ func _employee_card(employee: Dictionary) -> Control:
 	stack.add_child(profile_spacer)
 
 	var divider := HSeparator.new()
-	divider.add_theme_color_override("separator_color", Color(0.68, 0.82, 0.96, 0.42))
+	divider.add_theme_color_override("separator_color", Color(0.62, 0.52, 0.36, 0.40))
 	stack.add_child(divider)
 	stack.add_child(_label("DEPARTMENT  " + str(employee.get("department", "Unassigned")).to_upper(), 12, WHITE))
 	stack.add_child(_label("AGE  %d YEARS   /   EXPERIENCE  %s YEARS" % [int(employee.get("age", 0)), str(employee.get("experience", 0))], 12, MUTED))
