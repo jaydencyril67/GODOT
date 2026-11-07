@@ -7,9 +7,9 @@ signal project_reject_requested(project_id: String, review_note: String)
 
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
-const TEXT_MAIN := Color("#f0f5f1")
-const TEXT_MUTED := Color("#9eafa4")
-const ACCENT := Color("#9bd6a7")
+const TEXT_MAIN := Color("#f1f5fb")
+const TEXT_MUTED := Color("#a7b4c7")
+const ACCENT := Color("#4f9fe8")
 const GREEN := Color("#70d48b")
 const BLUE := Color("#42c7ee")
 const ORANGE := Color("#ffb45c")
@@ -60,13 +60,13 @@ func _build_shell() -> void:
 	var background := ColorRect.new()
 	background.name = "ResearchManagementBackground"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color("#050a08")
+	background.color = Color("#070b12")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 
 	var atmosphere := ColorRect.new()
 	atmosphere.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	atmosphere.color = Color(0.025, 0.085, 0.055, 0.34)
+	atmosphere.color = Color(0.025, 0.055, 0.11, 0.34)
 	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(atmosphere)
 
@@ -443,7 +443,7 @@ func _button(value: String, primary: bool, accent: Color) -> Button:
 	button.add_theme_color_override("font_color", TEXT_MAIN)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("#24402d") if primary else Color("#111b15")
+	normal.bg_color = Color("#17365a") if primary else Color("#101a29")
 	normal.border_color = accent
 	normal.set_border_width_all(1)
 	normal.set_corner_radius_all(8)
@@ -452,7 +452,7 @@ func _button(value: String, primary: bool, accent: Color) -> Button:
 	normal.content_margin_top = 9
 	normal.content_margin_bottom = 9
 	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color("#31563d") if primary else Color("#1a2a20")
+	hover.bg_color = Color("#244b75") if primary else Color("#182b42")
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", hover)
@@ -463,8 +463,8 @@ func _style_option(option: OptionButton) -> void:
 	option.add_theme_font_size_override("font_size", 16)
 	option.add_theme_color_override("font_color", TEXT_MAIN)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#101b15")
-	style.border_color = Color("#41624a")
+	style.bg_color = Color("#101a29")
+	style.border_color = Color("#315d86")
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
 	style.content_margin_left = 10
@@ -480,8 +480,8 @@ func _style_input(input: LineEdit) -> void:
 	input.add_theme_color_override("font_placeholder_color", TEXT_MUTED)
 	for state in ["normal", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#101b15")
-		style.border_color = Color("#41624a") if state == "normal" else ACCENT
+		style.bg_color = Color("#101a29")
+		style.border_color = Color("#315d86") if state == "normal" else ACCENT
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(6)
 		style.content_margin_left = 10
