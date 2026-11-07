@@ -30,7 +30,6 @@ var capital_value_label: Label
 var company_name := "YOUR COMPANY"
 var selected_component_index := 0
 var component_buttons: Array[Button] = []
-var investment_input: LineEdit
 var estimate_label: Label
 var start_button: Button
 var assigned_staff_ids: Array[String] = []
@@ -237,11 +236,8 @@ func _build_creation_scene() -> void:
 	heading_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	heading_stack.add_child(_label("COMMISSION RESEARCH", 25, TEXT_MAIN))
-	heading_stack.add_child(_label("Select a development target, set the CEO investment and build your team.", 13, TEXT_MUTED))
+	heading_stack.add_child(_label("Select a development target and assign your Research team.", 13, TEXT_MUTED))
 	page_heading.add_child(heading_stack)
-	var budget_badge := _label("CAPITAL  " + _format_currency(company_balance), 14, ACCENT)
-	budget_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	page_heading.add_child(budget_badge)
 
 	var main_row := HBoxContainer.new()
 	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -270,28 +266,9 @@ func _build_creation_scene() -> void:
 		component_buttons.append(component_button)
 	_update_component_button_styles()
 
-	var investment_heading := _label("02  /  CEO INVESTMENT", 12, ACCENT)
-	setup_panel.add_child(investment_heading)
-	var investment_row := HBoxContainer.new()
-	investment_row.add_theme_constant_override("separation", 12)
-	setup_panel.add_child(investment_row)
-	investment_input = LineEdit.new()
-	investment_input.name = "ResearchInvestmentInput"
-	investment_input.placeholder_text = "Enter investment amount"
-	investment_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	investment_input.custom_minimum_size.y = 58
-	investment_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
-	investment_input.text_changed.connect(_on_research_setup_changed)
-	_style_input(investment_input)
-	investment_row.add_child(investment_input)
-	var currency_tag := _label("NGN  ₦", 15, TEXT_MUTED)
-	currency_tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	investment_row.add_child(currency_tag)
-	var balance_line := _label("AVAILABLE COMPANY FUNDS   " + _format_currency(company_balance), 13, TEXT_MUTED)
-	setup_panel.add_child(balance_line)
-	var investment_note := _label("The committed amount is deducted from company funds when the project starts.", 12, TEXT_MUTED)
-	investment_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	setup_panel.add_child(investment_note)
+	var selection_note := _label("Research is funded through the company's existing payroll. No separate project payment is required.", 13, TEXT_MUTED)
+	selection_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	setup_panel.add_child(selection_note)
 
 	var team_panel := _add_panel(main_row, 0.96)
 	var team_heading := HBoxContainer.new()
@@ -387,8 +364,6 @@ func _update_research_estimate() -> void:
 		return
 	var component := _selected_component()
 	var estimate := ResearchManagerScript.estimate_research(component, assigned_staff_ids, staff_employees)
-	var investment_text := investment_input.text.strip_edges().replace(",", "") if is_instance_valid(investment_input) else ""
-	var valid_investment := investment_text.is_valid_float() and float(investment_text) > 0.0 and float(investment_text) <= company_balance
 	var estimate_valid := bool(estimate.get("ok", false))
 	if estimate_valid:
 		estimate_label.text = "ESTIMATED DURATION  %d IN-GAME DAYS\nESTIMATED SUCCESS CHANCE  %.0f%%" % [
@@ -399,23 +374,15 @@ func _update_research_estimate() -> void:
 	else:
 		estimate_label.text = str(estimate.get("error", "Assign researchers to see the estimate."))
 		estimate_label.add_theme_color_override("font_color", TEXT_MUTED)
-	start_button.disabled = not estimate_valid or not valid_investment
+	start_button.disabled = not estimate_valid
 
 
 func _on_start_research_pressed() -> void:
-	var investment_text := investment_input.text.strip_edges().replace(",", "")
 	if assigned_staff_ids.is_empty():
 		_set_estimate_error("Assign at least one Research employee.")
 		return
-	if not investment_text.is_valid_float() or float(investment_text) <= 0.0:
-		_set_estimate_error("Enter a valid research investment.")
-		return
-	if float(investment_text) > company_balance:
-		_set_estimate_error("The investment is higher than the company's available funds.")
-		return
 	var request := {
 		"component": _selected_component(),
-		"budget": float(investment_text),
 		"staff_ids": assigned_staff_ids.duplicate()
 	}
 	project_commission_requested.emit(request)
@@ -512,7 +479,6 @@ func _build_active_research(project: Dictionary) -> void:
 
 	var details_panel := _add_panel(main_row, 0.86)
 	details_panel.add_child(_label("PROJECT INTELLIGENCE", 14, TEXT_MAIN))
-	_add_large_metric(details_panel, _format_currency(float(project.get("budget", 0.0))), "CEO INVESTMENT", ACCENT)
 	_add_large_metric(details_panel, "%.0f%%" % float(project.get("success_chance", 0.0)), "PROJECTED SUCCESS", TEXT_MAIN)
 	var detail_divider := ColorRect.new()
 	detail_divider.color = Color("#3B3832")
