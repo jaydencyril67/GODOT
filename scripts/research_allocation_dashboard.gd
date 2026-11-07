@@ -367,13 +367,14 @@ func _build_creation_scene() -> void:
 	var staff_scroll := ScrollContainer.new()
 	staff_scroll.name = "ResearchStaffScroll"
 	staff_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	staff_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	staff_scroll.custom_minimum_size.y = _scaled(150.0)
+	staff_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	staff_scroll.custom_minimum_size = Vector2(0.0, _scaled(220.0 if not _is_narrow_layout() else 190.0))
 	staff_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	team_panel.add_child(staff_scroll)
 	var staff_list := VBoxContainer.new()
 	staff_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	staff_list.add_theme_constant_override("separation", 6)
+	staff_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	staff_list.add_theme_constant_override("separation", roundi(_scaled(9.0)))
 	staff_scroll.add_child(staff_list)
 	_build_staff_choices(staff_list)
 
@@ -419,7 +420,15 @@ func _build_staff_choices(parent: VBoxContainer) -> void:
 		var checkbox := CheckBox.new()
 		checkbox.text = "%s   ·   %d%% efficiency" % [employee_name, efficiency]
 		checkbox.disabled = employee_id.is_empty() or occupied_ids.has(employee_id)
-		checkbox.add_theme_font_size_override("font_size", _scaled_font(16))
+		checkbox.custom_minimum_size = Vector2(0.0, _scaled(54.0))
+		checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		checkbox.add_theme_font_size_override("font_size", _scaled_font(22))
+		var staff_font := FontVariation.new()
+		staff_font.base_font = checkbox.get_theme_font("font")
+		staff_font.variation_embolden = 0.65
+		checkbox.add_theme_font_override("font", staff_font)
+		checkbox.add_theme_constant_override("icon_max_width", roundi(_scaled(32.0)))
+		checkbox.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
 		checkbox.add_theme_color_override("font_color", TEXT_MAIN)
 		checkbox.add_theme_color_override("font_disabled_color", TEXT_MUTED)
 		checkbox.focus_mode = Control.FOCUS_NONE
