@@ -137,14 +137,13 @@ func _run_transition_checks() -> void:
 
 	var commission_result: Dictionary = game.commission_research_project({
 		"component": "Screen Tech",
-		"budget": 1000000.0,
 		"staff_ids": ["researcher_smoke_01"]
 	})
 	if not bool(commission_result.get("ok", false)):
 		_fail("A valid R&D project could not be commissioned: %s" % str(commission_result.get("error", "")))
 		return
-	if absf(float(game.career.get("balance", 0.0)) - 9000000.0) > 0.1:
-		_fail("Commissioning a research project did not deduct its approved budget correctly.")
+	if absf(float(game.career.get("balance", 0.0)) - 10000000.0) > 0.1:
+		_fail("Starting research incorrectly deducted a separate project fee from company funds.")
 		return
 	var created_project: Dictionary = commission_result.get("project", {})
 	var completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 16.0, game.game_date_unix + 86400.0 * 16.0)
