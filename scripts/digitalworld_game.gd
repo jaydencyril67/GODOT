@@ -106,6 +106,7 @@ func _process(delta: float) -> void:
 	_accrue_research_points(game_time_delta)
 	_process_phone_charge_port_research()
 	_process_phone_front_camera_research()
+	_process_phone_speaker_research()
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month:
@@ -207,7 +208,10 @@ func _load_career() -> bool:
 		"phone_charge_port_research_completion_unix": float(config.get_value("career", "phone_charge_port_research_completion_unix", 0.0)),
 		"phone_front_camera_research_level": clampi(int(config.get_value("career", "phone_front_camera_research_level", 0)), 0, 8),
 		"phone_front_camera_research_active_level": int(config.get_value("career", "phone_front_camera_research_active_level", -1)),
-		"phone_front_camera_research_completion_unix": float(config.get_value("career", "phone_front_camera_research_completion_unix", 0.0))
+		"phone_front_camera_research_completion_unix": float(config.get_value("career", "phone_front_camera_research_completion_unix", 0.0)),
+		"phone_speaker_research_level": clampi(int(config.get_value("career", "phone_speaker_research_level", 0)), 0, 12),
+		"phone_speaker_research_active_level": int(config.get_value("career", "phone_speaker_research_active_level", -1)),
+		"phone_speaker_research_completion_unix": float(config.get_value("career", "phone_speaker_research_completion_unix", 0.0))
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
@@ -244,6 +248,9 @@ func _save_career() -> bool:
 	config.set_value("career", "phone_front_camera_research_level", clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8))
 	config.set_value("career", "phone_front_camera_research_active_level", int(career.get("phone_front_camera_research_active_level", -1)))
 	config.set_value("career", "phone_front_camera_research_completion_unix", float(career.get("phone_front_camera_research_completion_unix", 0.0)))
+	config.set_value("career", "phone_speaker_research_level", clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12))
+	config.set_value("career", "phone_speaker_research_active_level", int(career.get("phone_speaker_research_active_level", -1)))
+	config.set_value("career", "phone_speaker_research_completion_unix", float(career.get("phone_speaker_research_completion_unix", 0.0)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -1210,6 +1217,12 @@ func _create_company() -> void:
 		career["phone_charge_port_research_active_level"] = -1
 	if not career.has("phone_charge_port_research_completion_unix"):
 		career["phone_charge_port_research_completion_unix"] = 0.0
+	if not career.has("phone_speaker_research_level"):
+		career["phone_speaker_research_level"] = 0
+	if not career.has("phone_speaker_research_active_level"):
+		career["phone_speaker_research_active_level"] = -1
+	if not career.has("phone_speaker_research_completion_unix"):
+		career["phone_speaker_research_completion_unix"] = 0.0
 	if not career.has("game_date_unix"):
 		game_date_unix = 1262304000.0
 		career["game_date_unix"] = game_date_unix
@@ -2491,6 +2504,7 @@ func _show_research_phone() -> void:
 	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
 	phone_research_worksite.connect("charge_port_research_prompt_requested", Callable(self, "_show_phone_charge_port_research_prompt"))
 	phone_research_worksite.connect("front_camera_research_prompt_requested", Callable(self, "_show_phone_front_camera_research_prompt"))
+	phone_research_worksite.connect("speaker_research_prompt_requested", Callable(self, "_show_phone_speaker_research_prompt"))
 	add_child(phone_research_worksite)
 	phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 10000000.0)), int(career.get("research_points", 0)))
 	current_screen = "research"
@@ -2642,6 +2656,89 @@ func _process_phone_front_camera_research() -> void:
 		phone_creation_worksite.call("set_front_camera_research_level", int(career["phone_front_camera_research_level"]))
 	if current_screen == "research":
 		_show_notice("FRONT CAMERA RESEARCH COMPLETE", "The next front-camera design has been unlocked in your phone editor.")
+
+
+func _show_phone_speaker_research_prompt() -> void:
+	var completed_count := clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12)
+	if completed_count >= 12:
+		_show_notice("RESEARCH COMPLETE", "All 12 speaker openings have been unlocked.")
+		return
+	if int(career.get("phone_speaker_research_active_level", -1)) >= 0:
+		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current speaker research must finish before another speaker opening can be unlocked.")
+		return
+	var next_count := completed_count + 1
+	var points_cost := 10 + completed_count * 2
+	var money_cost := 50000.0 + float(completed_count) * 20000.0
+	var prompt_message := "Speaker opening %d\n\nResearch points required: %d RP\nResearch cost: %s" % [next_count, points_cost, _format_balance(money_cost)]
+	if is_instance_valid(confirm_modal):
+		confirm_modal.show_action_prompt("SPEAKER RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_speaker_research_upgrade"))
+
+
+func _on_phone_speaker_research_upgrade() -> void:
+	var completed_count := clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12)
+	if completed_count >= 12:
+		_show_notice("RESEARCH COMPLETE", "All 12 speaker openings have been unlocked.")
+		return
+	if int(career.get("phone_speaker_research_active_level", -1)) >= 0:
+		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current speaker research must finish before another speaker opening can be unlocked.")
+		return
+	var next_count := completed_count + 1
+	var points_cost := 10 + completed_count * 2
+	var money_cost := 50000.0 + float(completed_count) * 20000.0
+	var available_points := maxi(0, int(career.get("research_points", 0)))
+	var available_balance := float(career.get("balance", 10000000.0))
+	if available_points < points_cost:
+		_show_notice("INSUFFICIENT RESEARCH POINTS", "Unlocking speaker %d requires %d RP. Your available research points: %d RP." % [next_count, points_cost, available_points])
+		return
+	if available_balance < money_cost:
+		_show_notice("INSUFFICIENT BALANCE", "Unlocking speaker %d requires %s. Your available balance is %s." % [next_count, _format_balance(money_cost), _format_balance(available_balance)])
+		return
+	var previous_points := available_points
+	var previous_balance := available_balance
+	var previous_active_level := int(career.get("phone_speaker_research_active_level", -1))
+	var previous_completion := float(career.get("phone_speaker_research_completion_unix", 0.0))
+	career["research_points"] = previous_points - points_cost
+	career["balance"] = previous_balance - money_cost
+	career["phone_speaker_research_active_level"] = completed_count
+	career["phone_speaker_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
+	if not _save_career():
+		career["research_points"] = previous_points
+		career["balance"] = previous_balance
+		career["phone_speaker_research_active_level"] = previous_active_level
+		career["phone_speaker_research_completion_unix"] = previous_completion
+		_show_notice("RESEARCH NOT SAVED", "The speaker research could not be saved. No research points or company funds were deducted.")
+		return
+	_update_home_status_bar()
+	_update_staff_office_balance()
+	_show_finance_toast(-money_cost, "SPEAKER RESEARCH")
+	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
+		world_root.set_company_balance(float(career["balance"]))
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career["balance"]), int(career["research_points"]))
+
+
+func _process_phone_speaker_research() -> void:
+	var active_level := int(career.get("phone_speaker_research_active_level", -1))
+	if active_level < 0:
+		return
+	var completion_unix := float(career.get("phone_speaker_research_completion_unix", 0.0))
+	if completion_unix <= 0.0 or game_date_unix < completion_unix:
+		return
+	var current_level := clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12)
+	career["phone_speaker_research_level"] = mini(current_level + 1, active_level + 1)
+	career["phone_speaker_research_active_level"] = -1
+	career["phone_speaker_research_completion_unix"] = 0.0
+	if not _save_career():
+		career["phone_speaker_research_level"] = current_level
+		career["phone_speaker_research_active_level"] = active_level
+		career["phone_speaker_research_completion_unix"] = completion_unix
+		return
+	if is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.call("set_speaker_research_level", int(career["phone_speaker_research_level"]))
+	if is_instance_valid(phone_research_worksite):
+		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
+	if current_screen == "research":
+		_show_notice("SPEAKER RESEARCH COMPLETE", "Speaker opening %d has been unlocked in your phone editor." % int(career["phone_speaker_research_level"]))
 
 
 func _on_phone_charge_port_research_upgrade() -> void:
@@ -2834,6 +2931,7 @@ func _show_phone_creation_worksite() -> void:
 	add_child(phone_creation_worksite)
 	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("phone_charge_port_research_level", 0)))
 	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("phone_front_camera_research_level", 0)))
+	phone_creation_worksite.call("set_speaker_research_level", int(career.get("phone_speaker_research_level", 0)))
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
