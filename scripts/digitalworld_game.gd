@@ -289,8 +289,12 @@ func _dispose_phone_research_worksite() -> void:
 	if not is_instance_valid(phone_research_worksite):
 		phone_research_worksite = null
 		return
-	# CanvasLayers render independently of their Node3D parent, so hide the
-	# editor's interface before deferred deletion to prevent a transition flash.
+	# Phone Research is mounted directly under the existing Research screen.
+	# Remove that hosted overlay explicitly before freeing its controller.
+	if phone_research_worksite.has_method("close_research_ui"):
+		phone_research_worksite.call("close_research_ui")
+	# CanvasLayers render independently of their Node3D parent, so hide any
+	# editor interface before deferred deletion to prevent a transition flash.
 	for child in phone_research_worksite.get_children():
 		if child is CanvasLayer:
 			child.hide()
