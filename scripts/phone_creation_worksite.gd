@@ -3346,7 +3346,7 @@ func _get_software_research_features() -> Array:
 	return [
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
-		"Network", "Sensors", "Front Camera MP", "Rear Camera MP",
+		"Mobile Internet", "Sensors", "Front Camera MP", "Rear Camera MP",
 		"Memory Clock", "Refresh Rate", "Cooling System Design"
 	]
 
@@ -3423,12 +3423,12 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 		var dummy_button := Button.new()
 		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Network"] else "SELECT"
+		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Mobile Internet"] else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Network"]:
+		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Mobile Internet"]:
 			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
 		# Other research categories remain placeholders until their individual
 		# progression screens are implemented.
@@ -3468,7 +3468,7 @@ func _on_research_feature_selected(feature_name: String) -> void:
 		wifi_research_prompt_requested.emit()
 	elif feature_name == "Bluetooth":
 		bluetooth_research_prompt_requested.emit()
-	elif feature_name == "Network":
+	elif feature_name == "Mobile Internet":
 		mobile_internet_research_prompt_requested.emit()
 
 
