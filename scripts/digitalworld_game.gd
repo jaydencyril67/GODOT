@@ -3048,6 +3048,33 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	selector.add_theme_color_override("font_color", Color("#EEE9DF"))
 	selector.add_theme_color_override("font_hover_color", Color("#F2EDE4"))
 	selector.add_theme_color_override("font_pressed_color", Color("#F2EDE4"))
+	selector.add_theme_color_override("font_focus_color", Color("#F2EDE4"))
+	var popup := selector.get_popup()
+	popup.min_size = Vector2i(maxi(roundi(selector.custom_minimum_size.x), 280), 0)
+	popup.add_theme_font_size_override("font_size", 19)
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color("#1B1E20")
+	panel.border_color = Color("#C58A3A")
+	panel.set_border_width_all(2)
+	panel.set_corner_radius_all(12)
+	popup.add_theme_stylebox_override("panel", panel)
+	var item_idle := StyleBoxFlat.new()
+	item_idle.bg_color = Color("#1B1E20")
+	item_idle.set_corner_radius_all(7)
+	item_idle.content_margin_left = 14
+	item_idle.content_margin_right = 14
+	item_idle.content_margin_top = 12
+	item_idle.content_margin_bottom = 12
+	popup.add_theme_stylebox_override("hover", item_idle)
+	popup.add_theme_stylebox_override("pressed", item_idle)
+	popup.add_theme_stylebox_override("focus", item_idle)
+	popup.add_theme_color_override("font_color", Color("#EEE9DF"))
+	popup.add_theme_color_override("font_hover_color", Color("#F2EDE4"))
+	popup.add_theme_color_override("font_pressed_color", Color("#F2EDE4"))
+	popup.add_theme_color_override("font_focus_color", Color("#F2EDE4"))
+	popup.add_theme_constant_override("v_separation", 10)
+	popup.add_theme_constant_override("outline_size", 1)
+	popup.add_theme_color_override("font_outline_color", Color("#101214"))
 
 func _close_settings_overlay(shade: Control, center: Control) -> void:
 	if is_instance_valid(shade):
