@@ -888,11 +888,11 @@ func _open_logo_picker() -> void:
 	var grid_width := float(columns * tile_size + (columns - 1) * grid_gap)
 	var grid_height := float(rows * tile_size + (rows - 1) * grid_gap)
 
-	# Match Settings and Exit: a dedicated deep-emerald screen with centred content.
+	# Match Settings and Exit: a dedicated graphite screen with centred content.
 	var scrim := ColorRect.new()
 	scrim.name = "InsigniaDarkScreen"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.002, 0.008, 0.025, 0.88)
+	scrim.color = Color(0.004, 0.004, 0.004, 0.90)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
 
@@ -1408,8 +1408,8 @@ func _show_home_navigation() -> void:
 
 	_build_home_status_bar(root, compact, viewport_size.x < 640.0 or viewport_size.x < viewport_size.y * 1.1)
 
-	# A floating command dock keeps navigation consistent with the emerald glass
-	# styling while leaving the building visible through the centre of the screen.
+	# A floating command dock uses the graphite-and-amber interface styling
+	# while leaving the building visible through the centre of the screen.
 	var bottom_panel := PanelContainer.new()
 	bottom_panel.name = "Home_Bottom_Navigation"
 	bottom_panel.anchor_left = 0.0
@@ -1421,12 +1421,12 @@ func _show_home_navigation() -> void:
 	bottom_panel.offset_right = -18.0 if not compact else -10.0
 	bottom_panel.offset_bottom = -12.0 if not compact else -10.0
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.008, 0.018, 0.038, 0.78)
+	panel_style.bg_color = Color(0.025, 0.028, 0.030, 0.86)
 	panel_style.border_color = Color(0.58, 0.46, 0.29, 0.72)
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
 	panel_style.set_corner_radius_all(17)
-	panel_style.shadow_color = Color(0.0, 0.025, 0.008, 0.52)
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.52)
 	panel_style.shadow_size = 16
 	panel_style.shadow_offset = Vector2(0.0, 5.0)
 	panel_style.anti_aliasing = true
@@ -1600,7 +1600,7 @@ func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	insignia_frame.add_child(insignia)
 
 	var accent := ColorRect.new()
-	accent.name = "Identity_Emerald_Accent"
+	accent.name = "Identity_Amber_Accent"
 	accent.custom_minimum_size = Vector2(3.0, 48.0)
 	accent.color = Color("#C58A3A")
 	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1827,8 +1827,8 @@ func _show_headquarters_loading_screen() -> void:
 	var compact := viewport_size.y < 540.0 or viewport_size.x < 920.0
 	var content_width := minf(620.0, maxf(270.0, viewport_size.x - (56.0 if compact else 88.0)))
 
-	# The preparation page now uses the same deep emerald atmosphere as the
-	# landing, Settings, and insignia screens instead of the old blue panel.
+	# The preparation page uses the graphite atmosphere and subtle warm-metal
+	# accent shared by the landing and company setup screens.
 	var background := ColorRect.new()
 	background.name = "Headquarters_Preparation_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1841,10 +1841,10 @@ void fragment() {
 	vec2 stretched = p * vec2(1.0, 1.25);
 	float glow = exp(-dot(stretched, stretched) * 5.0);
 	float edge = smoothstep(0.12, 0.82, length(p));
-	vec3 emerald = vec3(0.018, 0.105, 0.043);
-	vec3 deep = vec3(0.004, 0.018, 0.009);
-	vec3 base = mix(emerald, deep, edge * 0.88);
-	base += vec3(0.006, 0.025, 0.010) * glow;
+	vec3 graphite = vec3(0.075, 0.078, 0.080);
+	vec3 deep = vec3(0.012, 0.014, 0.015);
+	vec3 base = mix(graphite, deep, edge * 0.88);
+	base += vec3(0.035, 0.022, 0.008) * glow;
 	COLOR = vec4(base, 1.0);
 }
 """
