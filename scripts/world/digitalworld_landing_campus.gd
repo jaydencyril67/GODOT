@@ -4,11 +4,11 @@ signal cinematic_reveal_finished
 
 # A compact premium 3D hero composition for the landing page.
 # This deliberately contains no city, streets, campus, or surrounding buildings.
-const ELECTRIC_BLUE := Color("#4f9fe8")
-const ELECTRIC_BLUE_LIGHT := Color("#b8dcff")
-const OBSIDIAN := Color("#090d11")
-const DARK_METAL := Color("#171e22")
-const GLASS := Color("#344653")
+const AMBER_ACCENT := Color("#C58A3A")
+const AMBER_ACCENT_LIGHT := Color("#E1BD80")
+const OBSIDIAN := Color("#111315")
+const DARK_METAL := Color("#24282A")
+const GLASS := Color("#414347")
 
 var landing_camera: Camera3D
 var animated_emissive_materials: Array[StandardMaterial3D] = []
@@ -38,9 +38,9 @@ func _build_environment() -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#070b12")
+	environment.background_color = Color("#101214")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#c4cedd")
+	environment.ambient_light_color = Color("#D0C6B8")
 	environment.ambient_light_energy = 0.72
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world_environment.environment = environment
@@ -58,32 +58,32 @@ func _build_environment() -> void:
 	var key_light := DirectionalLight3D.new()
 	key_light.name = "Soft_Hero_Key_Light"
 	key_light.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
-	key_light.light_color = Color("#dce8f8")
+	key_light.light_color = Color("#E8DFCF")
 	key_light.light_energy = 1.35
 	key_light.shadow_enabled = true
 	key_light.directional_shadow_max_distance = 40.0
 	add_child(key_light)
 
 	var rim_light := OmniLight3D.new()
-	rim_light.name = "Emerald_Rim_Light"
+	rim_light.name = "Amber_Rim_Light"
 	rim_light.position = Vector3(-8.0, 5.0, -3.0)
-	rim_light.light_color = ELECTRIC_BLUE_LIGHT
+	rim_light.light_color = AMBER_ACCENT_LIGHT
 	rim_light.light_energy = 1.05
 	rim_light.omni_range = 24.0
 	add_child(rim_light)
 
 
 func _build_hero_design() -> void:
-	var stage_material := _material(Color("#101722"), 0.78, 0.42)
+	var stage_material := _material(Color("#17191B"), 0.78, 0.42)
 	var dark_metal := _material(DARK_METAL, 0.34, 0.72)
-	var phone_body := _material(Color("#aebbb2"), 0.24, 0.82)
-	var screen_material := _material(Color("#07101c"), 0.16, 0.38)
+	var phone_body := _material(Color("#B9B0A2"), 0.24, 0.82)
+	var screen_material := _material(Color("#090B0D"), 0.16, 0.38)
 	var glass_material := _material(GLASS, 0.12, 0.48)
-	var blue_accent := _emissive_material(ELECTRIC_BLUE, Color("#2867a8"), 0.78)
-	var soft_blue_accent := _emissive_material(ELECTRIC_BLUE_LIGHT, Color("#79baff"), 0.54)
-	var white_glint := _emissive_material(Color("#eaf4ff"), Color("#b9dcff"), 0.38)
-	animated_emissive_materials.append(blue_accent)
-	animated_emissive_materials.append(soft_blue_accent)
+	var amber_accent := _emissive_material(AMBER_ACCENT, Color("#805621"), 0.48)
+	var soft_amber_accent := _emissive_material(AMBER_ACCENT_LIGHT, Color("#B88A42"), 0.34)
+	var white_glint := _emissive_material(Color("#F3EDE2"), Color("#E0C897"), 0.28)
+	animated_emissive_materials.append(amber_accent)
+	animated_emissive_materials.append(soft_amber_accent)
 
 	# A single sculptural presentation stage, not an environment or city.
 	_add_cylinder(self, 8.2, 0.42, Vector3(0.0, -0.18, 0.0), stage_material, "Floating_Obsidian_Podium")
@@ -101,8 +101,8 @@ func _build_hero_design() -> void:
 	_add_box(device, Vector3(5.72, 11.48, 0.045), Vector3(0.0, 0.0, 0.305), screen_material, "Obsidian_Display")
 
 	# Layered display graphics create depth without text or a flat background image.
-	_add_box(device, Vector3(4.65, 0.045, 0.025), Vector3(0.0, 2.55, 0.34), blue_accent, "Display_Upper_Accent")
-	_add_box(device, Vector3(3.75, 0.035, 0.025), Vector3(0.0, -2.7, 0.34), soft_blue_accent, "Display_Lower_Accent")
+	_add_box(device, Vector3(4.65, 0.045, 0.025), Vector3(0.0, 2.55, 0.34), amber_accent, "Display_Upper_Accent")
+	_add_box(device, Vector3(3.75, 0.035, 0.025), Vector3(0.0, -2.7, 0.34), soft_amber_accent, "Display_Lower_Accent")
 	_add_box(device, Vector3(0.055, 6.9, 0.025), Vector3(-2.12, 0.0, 0.34), glass_material, "Display_Left_Glass_Line")
 	_add_box(device, Vector3(0.055, 6.9, 0.025), Vector3(2.12, 0.0, 0.34), glass_material, "Display_Right_Glass_Line")
 	_add_box(device, Vector3(1.25, 0.11, 0.04), Vector3(0.0, 5.35, 0.36), dark_metal, "Earpiece")
@@ -114,7 +114,7 @@ func _build_hero_design() -> void:
 	for lens_position in [Vector3(-2.12, 4.78, -0.43), Vector3(-1.42, 4.78, -0.43), Vector3(-2.12, 3.95, -0.43)]:
 		_add_sphere(device, 0.23, lens_position, glass_material, "Rear_Camera_Lens")
 		_add_sphere(device, 0.095, lens_position + Vector3(0.0, 0.0, -0.10), white_glint, "Lens_Reflection")
-	_add_sphere(device, 0.13, Vector3(-1.42, 3.95, -0.43), soft_blue_accent, "Camera_Flash")
+	_add_sphere(device, 0.13, Vector3(-1.42, 3.95, -0.43), soft_amber_accent, "Camera_Flash")
 
 
 
