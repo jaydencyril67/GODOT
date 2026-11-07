@@ -26,6 +26,7 @@ var research_history: Array = []
 var page_root: VBoxContainer
 var body: MarginContainer
 var body_content: VBoxContainer
+var capital_value_label: Label
 var company_name := "YOUR COMPANY"
 var selected_component_index := 0
 var component_buttons: Array[Button] = []
@@ -43,6 +44,8 @@ var creation_mode := false
 func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
 	company_name = str(data.get("company_name", "Your Company"))
 	company_balance = maxf(0.0, float(data.get("balance", 0.0)))
+	if is_instance_valid(capital_value_label):
+		capital_value_label.text = _format_currency(company_balance)
 	staff_employees = data.get("staff_employees", []).duplicate(true)
 	research_projects = data.get("research_projects", []).duplicate(true)
 	research_technologies = data.get("research_technologies", {}).duplicate(true)
@@ -118,9 +121,9 @@ func _build_shell() -> void:
 	var capital_caption := _label("AVAILABLE CAPITAL", 10, TEXT_MUTED)
 	capital_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	capital_stack.add_child(capital_caption)
-	var capital_value := _label(_format_currency(company_balance), 17, ACCENT)
-	capital_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	capital_stack.add_child(capital_value)
+	capital_value_label = _label(_format_currency(company_balance), 17, ACCENT)
+	capital_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	capital_stack.add_child(capital_value_label)
 
 	var separator := ColorRect.new()
 	separator.color = Color("#3B3832")
@@ -635,6 +638,8 @@ func _find_employee(employee_id: String) -> Dictionary:
 func update_live_progress(projects: Array, balance: float, employees: Array) -> void:
 	research_projects = projects.duplicate(true)
 	company_balance = maxf(0.0, balance)
+	if is_instance_valid(capital_value_label):
+		capital_value_label.text = _format_currency(company_balance)
 	staff_employees = employees.duplicate(true)
 	if not is_node_ready():
 		return
