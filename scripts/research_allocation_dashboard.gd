@@ -146,6 +146,7 @@ func _open_creation_scene() -> void:
 
 func _build_creation_scene() -> void:
 	body_content = _new_center_content()
+	body.add_child(body_content)
 	body_content.add_child(_label("CREATE RESEARCH", 26, TEXT_MAIN))
 	var subtitle := _label("Choose one component and build your research team.", 14, TEXT_MUTED)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
