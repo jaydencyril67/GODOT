@@ -17,12 +17,12 @@ const LOGO_NAMES := [
 	"Northstar", "Vector", "Aether", "Pulse", "Forge", "Meridian", "Lumen", "Cobalt", "Terra", "Frontier"
 ]
 
-const NAVY := Color("#ffffff")
-const BLUE := Color("#36a85b")
-const PANEL := Color(0.075, 0.12, 0.13, 0.94)
-const PALE := Color("#e8eee8")
-const MUTED := Color("#a6b5b1")
-const ACCENT := Color("#d8e6bd")
+const NAVY := Color("#111a28")
+const BLUE := Color("#4f9fe8")
+const PANEL := Color(0.045, 0.065, 0.10, 0.94)
+const PALE := Color("#eef2f7")
+const MUTED := Color("#a6b1c2")
+const ACCENT := Color("#e6b85c")
 
 var ui_layer: CanvasLayer
 var ui_root: Control
@@ -313,26 +313,26 @@ func _show_menu() -> void:
 	welcome.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	showcase.add_child(welcome)
 
-	var eyebrow := _label("DIGITAL WORLD MOBILES", 9 if compact else 11, Color("#a9d9ad"))
+	var eyebrow := _label("DIGITAL WORLD MOBILES", 9 if compact else 11, Color("#8fc7f4"))
 	eyebrow.name = "Landing_Eyebrow"
 	welcome.add_child(eyebrow)
 
 	# The headline is split into two independently revealed lines.
-	var title_line_one := _label("BUILD YOUR", 25 if compact else 37, Color("#f4fff3"))
+	var title_line_one := _label("BUILD YOUR", 25 if compact else 37, Color("#f4f6fa"))
 	title_line_one.name = "Landing_Hero_Line_One"
 	title_line_one.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_apply_menu_3d_label(title_line_one, 1)
 	welcome.add_child(title_line_one)
-	var title_line_two := _label("TECHNOLOGY EMPIRE.", 25 if compact else 37, Color("#f4fff3"))
+	var title_line_two := _label("TECHNOLOGY EMPIRE.", 25 if compact else 37, Color("#f4f6fa"))
 	title_line_two.name = "Landing_Hero_Line_Two"
 	title_line_two.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_apply_menu_3d_label(title_line_two, 1)
 	welcome.add_child(title_line_two)
 
-	var caption_line_one := _label("Design the devices. Build your company.", 12 if compact else 15, Color("#dcebdd"))
+	var caption_line_one := _label("Design the devices. Build your company.", 12 if compact else 15, Color("#cbd5e2"))
 	caption_line_one.name = "Landing_Caption_Line_One"
 	welcome.add_child(caption_line_one)
-	var caption_line_two := _label("Lead the next generation of mobile technology.", 12 if compact else 15, Color("#dcebdd"))
+	var caption_line_two := _label("Lead the next generation of mobile technology.", 12 if compact else 15, Color("#cbd5e2"))
 	caption_line_two.name = "Landing_Caption_Line_Two"
 	welcome.add_child(caption_line_two)
 
@@ -349,8 +349,8 @@ func _show_menu() -> void:
 	command_panel.custom_minimum_size = Vector2(270.0 if compact else 330.0, 0.0)
 	command_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.018, 0.025, 0.021, 0.90)
-	panel_style.border_color = Color("#9bd6a0")
+	panel_style.bg_color = Color(0.018, 0.025, 0.041, 0.90)
+	panel_style.border_color = Color("#4f9fe8")
 	panel_style.border_color.a = 0.84
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
@@ -370,13 +370,13 @@ func _show_menu() -> void:
 	var menu := VBoxContainer.new()
 	menu.add_theme_constant_override("separation", 11 if compact else 14)
 	command_panel.add_child(menu)
-	var menu_heading := _label("DIGITAL WORLD MOBILES", 9 if compact else 10, Color("#a9d9ad"), HORIZONTAL_ALIGNMENT_CENTER)
+	var menu_heading := _label("DIGITAL WORLD MOBILES", 9 if compact else 10, Color("#8fc7f4"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_heading)
-	var menu_title := _label("YOUR COMPANY STARTS HERE", 16 if compact else 19, Color("#f4fff3"), HORIZONTAL_ALIGNMENT_CENTER)
+	var menu_title := _label("YOUR COMPANY STARTS HERE", 16 if compact else 19, Color("#f4f6fa"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(menu_title)
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
-	menu_rule.color = Color(0.54, 0.88, 0.62, 0.82)
+	menu_rule.color = Color(0.28, 0.62, 0.94, 0.82)
 	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
@@ -392,9 +392,9 @@ func _show_menu() -> void:
 
 	var footer_rule := ColorRect.new()
 	footer_rule.custom_minimum_size = Vector2(0, 1)
-	footer_rule.color = Color(0.54, 0.88, 0.62, 0.38)
+	footer_rule.color = Color(0.28, 0.62, 0.94, 0.38)
 	menu.add_child(footer_rule)
-	var footer := _label("POWERED BY KINGSHALL", 8 if compact else 9, Color("#91b99a"), HORIZONTAL_ALIGNMENT_CENTER)
+	var footer := _label("POWERED BY KINGSHALL", 8 if compact else 9, Color("#93a5bb"), HORIZONTAL_ALIGNMENT_CENTER)
 	menu.add_child(footer)
 
 	landing_world.connect("cinematic_reveal_finished", _animate_landing_menu.bind(root, welcome, command_area, command_panel, landing_buttons))
@@ -485,8 +485,8 @@ func _style_landing_command_button(button: Button, primary: bool) -> void:
 	# Emerald glass controls matching the confirmation alerts; no hover or focus flash.
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	var base_fill := Color(0.22, 0.56, 0.30, 0.78) if primary else Color(0.035, 0.09, 0.05, 0.88)
-	var base_edge := Color("#dcffdf") if primary else Color(0.61, 0.84, 0.64, 0.72)
+	var base_fill := Color(0.16, 0.40, 0.68, 0.82) if primary else Color(0.025, 0.045, 0.075, 0.90)
+	var base_edge := Color("#dcffdf") if primary else Color(0.42, 0.68, 0.92, 0.72)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = base_fill
@@ -503,12 +503,12 @@ func _style_landing_command_button(button: Button, primary: bool) -> void:
 		style.content_margin_top = 10
 		style.content_margin_bottom = 10
 		button.add_theme_stylebox_override(state, style)
-	var text_color := Color("#f5fff4") if primary else Color("#eaffea")
+	var text_color := Color("#f5f8fc") if primary else Color("#eaf4ff")
 	button.add_theme_color_override("font_color", text_color)
 	button.add_theme_color_override("font_hover_color", text_color)
 	button.add_theme_color_override("font_pressed_color", text_color)
 	button.add_theme_color_override("font_focus_color", text_color)
-	button.add_theme_color_override("font_disabled_color", Color("#91b99a"))
+	button.add_theme_color_override("font_disabled_color", Color("#93a5bb"))
 	_apply_shared_page_typography(button, 15)
 	button.add_theme_color_override("font_outline_color", Color("#090b10"))
 	button.add_theme_constant_override("outline_size", 1)
@@ -665,15 +665,15 @@ void fragment() {
 	welcome.name = "CompanySetupWelcome"
 	welcome.add_theme_constant_override("separation", 9)
 	showcase.add_child(welcome)
-	welcome.add_child(_label("YOUR COMPANY. YOUR LEGACY.", 10 if compact else 11, Color("#8fbd9a")))
-	var welcome_title := _label("BUILD THE\nNEXT GENERATION.", 27 if compact else 36, Color("#f4f8f3"))
+	welcome.add_child(_label("YOUR COMPANY. YOUR LEGACY.", 10 if compact else 11, Color("#91bce7")))
+	var welcome_title := _label("BUILD THE\nNEXT GENERATION.", 27 if compact else 36, Color("#f4f6fa"))
 	welcome_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_menu_3d_label(welcome_title, 1)
 	welcome.add_child(welcome_title)
 	var welcome_caption := _label(
 		"Put your name behind the technology.\nChoose an identity and establish your company.",
 		13 if compact else 15,
-		Color("#b5c7b9")
+		Color("#bdc9d8")
 	)
 	welcome_caption.add_theme_constant_override("line_separation", 4)
 	welcome.add_child(welcome_caption)
@@ -721,13 +721,13 @@ void fragment() {
 	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu.add_theme_constant_override("separation", 9)
 	command_panel.add_child(menu)
-	menu.add_child(_label("CREATE YOUR COMPANY", 21 if compact else 23, Color("#f1f7f0"), HORIZONTAL_ALIGNMENT_CENTER))
+	menu.add_child(_label("CREATE YOUR COMPANY", 21 if compact else 23, Color("#f4f6fa"), HORIZONTAL_ALIGNMENT_CENTER))
 	var menu_rule := ColorRect.new()
 	menu_rule.custom_minimum_size = Vector2(0, 1)
 	menu_rule.color = Color(0.58, 0.82, 0.63, 0.48)
 	menu.add_child(menu_rule)
 
-	menu.add_child(_label("FOUNDER NAME", 11, Color("#c9e5cd")))
+	menu.add_child(_label("FOUNDER NAME", 11, Color("#a9c9e8")))
 	full_name_input = LineEdit.new()
 	full_name_input.name = "FounderNameInput"
 	full_name_input.placeholder_text = "Enter your full name"
@@ -738,7 +738,7 @@ void fragment() {
 	_style_company_setup_input(full_name_input)
 	menu.add_child(full_name_input)
 
-	menu.add_child(_label("COMPANY NAME", 11, Color("#c9e5cd")))
+	menu.add_child(_label("COMPANY NAME", 11, Color("#a9c9e8")))
 	company_name_input = LineEdit.new()
 	company_name_input.name = "CompanyNameInput"
 	company_name_input.placeholder_text = "Enter your company name"
@@ -749,7 +749,7 @@ void fragment() {
 	_style_company_setup_input(company_name_input)
 	menu.add_child(company_name_input)
 
-	menu.add_child(_label("COMPANY INSIGNIA", 11, Color("#c9e5cd")))
+	menu.add_child(_label("COMPANY INSIGNIA", 11, Color("#a9c9e8")))
 	selected_logo_id = clampi(int(career.get("logo_id", 1)), 1, 50)
 	var preview_panel := PanelContainer.new()
 	preview_panel.name = "CompanyInsigniaPreview"
@@ -784,8 +784,8 @@ void fragment() {
 	preview_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_copy.alignment = BoxContainer.ALIGNMENT_CENTER
 	preview_copy.add_theme_constant_override("separation", 4)
-	preview_copy.add_child(_label("YOUR SELECTED MARK", 9, Color("#a8d5b0")))
-	var selected_name := _label("%02d / 50  ·  %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()], 12, Color("#f3faf3"))
+	preview_copy.add_child(_label("YOUR SELECTED MARK", 9, Color("#8fc7f4")))
+	var selected_name := _label("%02d / 50  ·  %s" % [selected_logo_id, LOGO_NAMES[selected_logo_id - 1].to_upper()], 12, Color("#f4f6fa"))
 	selected_name.name = "SelectedInsigniaName"
 	preview_copy.add_child(selected_name)
 	preview_row.add_child(preview_copy)
@@ -820,14 +820,14 @@ void fragment() {
 
 
 func _style_company_setup_input(field: LineEdit) -> void:
-	field.add_theme_color_override("font_color", Color("#f3faf3"))
-	field.add_theme_color_override("font_placeholder_color", Color("#8eaa94"))
-	field.add_theme_color_override("caret_color", Color("#b3e7bb"))
-	field.add_theme_color_override("selection_color", Color(0.24, 0.62, 0.34, 0.38))
+	field.add_theme_color_override("font_color", Color("#f4f6fa"))
+	field.add_theme_color_override("font_placeholder_color", Color("#91a2b8"))
+	field.add_theme_color_override("caret_color", Color("#75b8f0"))
+	field.add_theme_color_override("selection_color", Color(0.20, 0.52, 0.82, 0.38))
 	for state in ["normal", "focus", "read_only"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.008, 0.035, 0.018, 0.82)
-		style.border_color = Color(0.60, 0.82, 0.63, 0.58)
+		style.bg_color = Color(0.008, 0.018, 0.038, 0.84)
+		style.border_color = Color(0.40, 0.65, 0.90, 0.58)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(10)
 		style.content_margin_left = 13
@@ -887,7 +887,7 @@ func _open_logo_picker() -> void:
 	var scrim := ColorRect.new()
 	scrim.name = "InsigniaDarkScreen"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(0.002, 0.018, 0.009, 0.86)
+	scrim.color = Color(0.002, 0.008, 0.025, 0.88)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	logo_picker_layer.add_child(scrim)
 
@@ -913,15 +913,15 @@ func _open_logo_picker() -> void:
 	accent.name = "InsigniaAccent"
 	accent.custom_minimum_size = Vector2(76 if compact else 96, 3)
 	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	accent.color = Color("#a9d9ad")
+	accent.color = Color("#8fc7f4")
 	stack.add_child(accent)
 
-	var eyebrow := _label("DIGITAL WORLD MOBILES", 10 if compact else 13, Color("#a9d9ad"), HORIZONTAL_ALIGNMENT_CENTER)
+	var eyebrow := _label("DIGITAL WORLD MOBILES", 10 if compact else 13, Color("#8fc7f4"), HORIZONTAL_ALIGNMENT_CENTER)
 	stack.add_child(eyebrow)
-	var heading := _label("CHOOSE YOUR INSIGNIA", 22 if compact else 30, Color("#f4fff3"), HORIZONTAL_ALIGNMENT_CENTER)
+	var heading := _label("CHOOSE YOUR INSIGNIA", 22 if compact else 30, Color("#f4f6fa"), HORIZONTAL_ALIGNMENT_CENTER)
 	_apply_menu_3d_label(heading, 2)
 	stack.add_child(heading)
-	var description := _label("50 distinctive marks  ·  Select one to represent your company", 11 if compact else 14, Color("#c4d9c7"), HORIZONTAL_ALIGNMENT_CENTER)
+	var description := _label("50 distinctive marks  ·  Select one to represent your company", 11 if compact else 14, Color("#b6c9df"), HORIZONTAL_ALIGNMENT_CENTER)
 	stack.add_child(description)
 
 	# This fixed-height viewport is intentionally non-scrollable; every logo is visible.
@@ -1001,8 +1001,8 @@ func _style_company_glass_button(button: Button, _selected: bool = false) -> voi
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.18, 0.46, 0.24, 0.34)
-	style.border_color = Color(0.72, 0.91, 0.75, 0.54)
+	style.bg_color = Color(0.12, 0.32, 0.56, 0.34)
+	style.border_color = Color(0.68, 0.84, 0.98, 0.54)
 	style.set_border_width_all(1)
 	style.border_width_top = 2
 	style.set_corner_radius_all(12)
@@ -1016,11 +1016,11 @@ func _style_company_glass_button(button: Button, _selected: bool = false) -> voi
 	style.content_margin_bottom = 9
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		button.add_theme_stylebox_override(state, style)
-	button.add_theme_color_override("font_color", Color("#f3faf3"))
-	button.add_theme_color_override("font_hover_color", Color("#f3faf3"))
-	button.add_theme_color_override("font_pressed_color", Color("#f3faf3"))
-	button.add_theme_color_override("font_focus_color", Color("#f3faf3"))
-	button.add_theme_color_override("font_disabled_color", Color("#f3faf3"))
+	button.add_theme_color_override("font_color", Color("#f4f6fa"))
+	button.add_theme_color_override("font_hover_color", Color("#f4f6fa"))
+	button.add_theme_color_override("font_pressed_color", Color("#f4f6fa"))
+	button.add_theme_color_override("font_focus_color", Color("#f4f6fa"))
+	button.add_theme_color_override("font_disabled_color", Color("#f4f6fa"))
 	button.add_theme_color_override("font_outline_color", Color(0.0, 0.08, 0.03, 0.0))
 	button.add_theme_constant_override("outline_size", 0)
 	button.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
@@ -1418,8 +1418,8 @@ func _show_home_navigation() -> void:
 	bottom_panel.offset_right = -18.0 if not compact else -10.0
 	bottom_panel.offset_bottom = -12.0 if not compact else -10.0
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.008, 0.035, 0.018, 0.76)
-	panel_style.border_color = Color(0.62, 0.86, 0.66, 0.72)
+	panel_style.bg_color = Color(0.008, 0.018, 0.038, 0.78)
+	panel_style.border_color = Color(0.42, 0.68, 0.92, 0.72)
 	panel_style.set_border_width_all(1)
 	panel_style.border_width_top = 2
 	panel_style.set_corner_radius_all(17)
@@ -1513,7 +1513,7 @@ func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool 
 	header.add_child(metrics)
 
 	home_balance_label = _make_home_metric_card(
-		metrics, "Company_Balance_Card", "AVAILABLE BALANCE", 166.0, 18, Color("#c4f5c9"), compact
+		metrics, "Company_Balance_Card", "AVAILABLE BALANCE", 166.0, 18, Color("#f0c36a"), compact
 	)
 	home_date_label = _make_home_metric_card(
 		metrics, "Game_Date_Card", "IN-GAME DATE", 148.0, 16, Color("#f4fbf3"), compact
@@ -1528,7 +1528,7 @@ func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool 
 	clock_content.add_theme_constant_override("separation", 2)
 	clock_content.alignment = BoxContainer.ALIGNMENT_CENTER
 	clock_card.add_child(clock_content)
-	clock_content.add_child(_label("GAME CLOCK", 9, Color("#addbb0"), HORIZONTAL_ALIGNMENT_CENTER))
+	clock_content.add_child(_label("GAME CLOCK", 9, Color("#a9c9e8"), HORIZONTAL_ALIGNMENT_CENTER))
 
 	home_time_button = Button.new()
 	home_time_button.name = "Game_Time_Control"
@@ -1539,8 +1539,8 @@ func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool 
 	_apply_home_bold_typography(home_time_button, 15)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var clock_style := StyleBoxFlat.new()
-		clock_style.bg_color = Color(0.14, 0.40, 0.21, 0.88)
-		clock_style.border_color = Color(0.72, 0.92, 0.74, 0.76)
+		clock_style.bg_color = Color(0.10, 0.30, 0.52, 0.88)
+		clock_style.border_color = Color(0.68, 0.84, 0.98, 0.76)
 		clock_style.set_border_width_all(1)
 		clock_style.set_corner_radius_all(9)
 		clock_style.content_margin_left = 7
@@ -1549,11 +1549,11 @@ func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool 
 		clock_style.content_margin_bottom = 4
 		clock_style.anti_aliasing = true
 		home_time_button.add_theme_stylebox_override(state, clock_style)
-	home_time_button.add_theme_color_override("font_color", Color("#f5fff4"))
-	home_time_button.add_theme_color_override("font_hover_color", Color("#f5fff4"))
-	home_time_button.add_theme_color_override("font_pressed_color", Color("#f5fff4"))
-	home_time_button.add_theme_color_override("font_focus_color", Color("#f5fff4"))
-	home_time_button.add_theme_color_override("font_disabled_color", Color("#f5fff4"))
+	home_time_button.add_theme_color_override("font_color", Color("#f5f8fc"))
+	home_time_button.add_theme_color_override("font_hover_color", Color("#f5f8fc"))
+	home_time_button.add_theme_color_override("font_pressed_color", Color("#f5f8fc"))
+	home_time_button.add_theme_color_override("font_focus_color", Color("#f5f8fc"))
+	home_time_button.add_theme_color_override("font_disabled_color", Color("#f5f8fc"))
 	home_time_button.pressed.connect(_toggle_game_clock)
 	clock_content.add_child(home_time_button)
 
@@ -1576,7 +1576,7 @@ func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	insignia_frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	insignia_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var insignia_style := StyleBoxFlat.new()
-	insignia_style.bg_color = Color(0.12, 0.34, 0.17, 0.58)
+	insignia_style.bg_color = Color(0.08, 0.25, 0.44, 0.58)
 	insignia_style.border_color = Color(0.66, 0.90, 0.69, 0.72)
 	insignia_style.set_border_width_all(1)
 	insignia_style.set_corner_radius_all(14)
@@ -1599,7 +1599,7 @@ func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	var accent := ColorRect.new()
 	accent.name = "Identity_Emerald_Accent"
 	accent.custom_minimum_size = Vector2(3.0, 48.0)
-	accent.color = Color("#8bd696")
+	accent.color = Color("#4f9fe8")
 	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	identity.add_child(accent)
 
@@ -1611,7 +1611,7 @@ func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	copy.alignment = BoxContainer.ALIGNMENT_CENTER
 	identity.add_child(copy)
 
-	var brand_line := _label("DIGITAL WORLD MOBILES  /  POWERED BY KINGSHALL", 9, Color("#a9d9ad"))
+	var brand_line := _label("DIGITAL WORLD MOBILES  /  POWERED BY KINGSHALL", 9, Color("#8fc7f4"))
 	brand_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	brand_line.clip_text = true
@@ -1631,7 +1631,7 @@ func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	home_company_label.tooltip_text = home_company_label.text
 	_apply_home_bold_typography(home_company_label, 25 if not compact else 22)
 	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
-	home_company_label.add_theme_color_override("font_outline_color", Color("#041509"))
+	home_company_label.add_theme_color_override("font_outline_color", Color("#04101d"))
 	home_company_label.add_theme_constant_override("outline_size", 2)
 	copy.add_child(home_company_label)
 
@@ -1639,7 +1639,7 @@ func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
 	if founder_name.is_empty():
 		founder_name = "FOUNDER"
 	var office_detail := "NO HEADQUARTERS OWNED" if upgrade_level <= 0 else "HEADQUARTERS  /  LEVEL %02d" % upgrade_level
-	var detail := _label("%s   •   FOUNDER: %s" % [office_detail, founder_name], 8, Color("#b5d5ba"))
+	var detail := _label("%s   •   FOUNDER: %s" % [office_detail, founder_name], 8, Color("#b7c8dc"))
 	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	detail.clip_text = true
@@ -1667,7 +1667,7 @@ func _make_home_metric_card(
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(content)
 
-	var caption_label := _label(caption, 8, Color("#addbb0"), HORIZONTAL_ALIGNMENT_CENTER)
+	var caption_label := _label(caption, 8, Color("#a9c9e8"), HORIZONTAL_ALIGNMENT_CENTER)
 	caption_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	caption_label.clip_text = true
 	content.add_child(caption_label)
@@ -1681,7 +1681,7 @@ func _make_home_metric_card(
 	value_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_apply_home_bold_typography(value_label, value_font_size if not compact else mini(value_font_size, 14))
 	value_label.add_theme_color_override("font_color", value_color)
-	value_label.add_theme_color_override("font_outline_color", Color("#041509"))
+	value_label.add_theme_color_override("font_outline_color", Color("#04101d"))
 	value_label.add_theme_constant_override("outline_size", 1)
 	content.add_child(value_label)
 	return value_label
@@ -1692,7 +1692,7 @@ func _make_home_status_glass_card(card_name: String) -> PanelContainer:
 	card.name = card_name
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.008, 0.035, 0.018, 0.78)
-	style.border_color = Color(0.56, 0.82, 0.61, 0.68)
+	style.border_color = Color(0.40, 0.65, 0.90, 0.68)
 	style.set_border_width_all(1)
 	style.border_width_top = 2
 	style.set_corner_radius_all(14)
@@ -1871,7 +1871,7 @@ void fragment() {
 	accent.name = "Preparation_Accent"
 	accent.custom_minimum_size = Vector2(96.0, 4.0)
 	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	accent.color = Color("#a9d9ad")
+	accent.color = Color("#8fc7f4")
 	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(accent)
 
@@ -1892,7 +1892,7 @@ void fragment() {
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.custom_minimum_size = Vector2(0.0, 58.0 if compact else 70.0)
 	_apply_home_button_typography(title, 29 if compact else 36)
-	title.add_theme_color_override("font_color", Color("#f5fff4"))
+	title.add_theme_color_override("font_color", Color("#f5f8fc"))
 	title.add_theme_color_override("font_outline_color", Color("#031008"))
 	title.add_theme_constant_override("outline_size", 2)
 	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.025, 0.008, 0.9))
@@ -1936,7 +1936,7 @@ void fragment() {
 	progress_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	progress_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_apply_home_button_typography(progress_caption, 12 if compact else 14)
-	progress_caption.add_theme_color_override("font_color", Color("#a9d9ad"))
+	progress_caption.add_theme_color_override("font_color", Color("#8fc7f4"))
 	progress_heading.add_child(progress_caption)
 
 	loading_percent_label = Label.new()
@@ -1945,7 +1945,7 @@ void fragment() {
 	loading_percent_label.custom_minimum_size = Vector2(58.0, 0.0)
 	loading_percent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_apply_home_button_typography(loading_percent_label, 14 if compact else 16)
-	loading_percent_label.add_theme_color_override("font_color", Color("#f4fff3"))
+	loading_percent_label.add_theme_color_override("font_color", Color("#f4f6fa"))
 	progress_heading.add_child(loading_percent_label)
 
 	loading_progress_bar = ProgressBar.new()
@@ -1974,7 +1974,7 @@ void fragment() {
 	footer.text = "POWERED BY KINGSHALL"
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_home_button_typography(footer, 11 if compact else 12)
-	footer.add_theme_color_override("font_color", Color("#91b99a"))
+	footer.add_theme_color_override("font_color", Color("#93a5bb"))
 	content.add_child(footer)
 
 	# A restrained entrance and breathing accent keep the screen polished
@@ -2185,23 +2185,23 @@ void fragment() {
 		var top_line := HBoxContainer.new()
 		top_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		content.add_child(top_line)
-		var index := _label(str(category["number"]) + "  /  PRODUCT TYPE", 8 if compact else 10, Color("#a8d5b0"))
+		var index := _label(str(category["number"]) + "  /  PRODUCT TYPE", 8 if compact else 10, Color("#8fc7f4"))
 		index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		top_line.add_child(index)
 		top_line.add_child(_label("✦", 12, Color("#72bd82")))
 
-		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f3faf3"))
+		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f4f6fa"))
 		category_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_menu_3d_label(category_title, 1)
 		content.add_child(category_title)
-		content.add_child(_label(str(category["descriptor"]), 8 if compact else 10, Color("#8fbd9a")))
+		content.add_child(_label(str(category["descriptor"]), 8 if compact else 10, Color("#91bce7")))
 
 		var divider := ColorRect.new()
 		divider.custom_minimum_size = Vector2(0, 1)
 		divider.color = Color(0.58, 0.82, 0.63, 0.30)
 		content.add_child(divider)
 
-		var description := _label(str(category["description"]), 9 if compact else 13, Color("#b5c7b9"))
+		var description := _label(str(category["description"]), 9 if compact else 13, Color("#bdc9d8"))
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		content.add_child(description)
@@ -2336,23 +2336,23 @@ void fragment() {
 		var top_line := HBoxContainer.new()
 		top_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		content.add_child(top_line)
-		var index := _label(str(category["number"]) + "  /  RESEARCH", 8 if compact else 10, Color("#a8d5b0"))
+		var index := _label(str(category["number"]) + "  /  RESEARCH", 8 if compact else 10, Color("#8fc7f4"))
 		index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		top_line.add_child(index)
 		top_line.add_child(_label("✦", 12, Color("#72bd82")))
 
-		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f3faf3"))
+		var category_title := _label(str(category["name"]), 15 if compact else 22, Color("#f4f6fa"))
 		category_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_menu_3d_label(category_title, 1)
 		content.add_child(category_title)
-		content.add_child(_label(str(category["descriptor"]), 8 if compact else 10, Color("#8fbd9a")))
+		content.add_child(_label(str(category["descriptor"]), 8 if compact else 10, Color("#91bce7")))
 
 		var divider := ColorRect.new()
 		divider.custom_minimum_size = Vector2(0, 1)
 		divider.color = Color(0.58, 0.82, 0.63, 0.30)
 		content.add_child(divider)
 
-		var description := _label(str(category["description"]), 9 if compact else 13, Color("#b5c7b9"))
+		var description := _label(str(category["description"]), 9 if compact else 13, Color("#bdc9d8"))
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		content.add_child(description)
@@ -2969,7 +2969,7 @@ func _show_settings() -> void:
 	var shade := ColorRect.new()
 	shade.name = "Settings_Dim_Backdrop"
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.002, 0.018, 0.009, 0.86)
+	shade.color = Color(0.002, 0.008, 0.025, 0.88)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	ui_root.add_child(shade)
 
@@ -2992,14 +2992,14 @@ func _show_settings() -> void:
 	var accent := ColorRect.new()
 	accent.custom_minimum_size = Vector2(96, 4)
 	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	accent.color = Color("#a9d9ad")
+	accent.color = Color("#8fc7f4")
 	stack.add_child(accent)
-	var eyebrow := _label("DIGITAL WORLD MOBILES", 13 if compact else 16, Color("#a9d9ad"), HORIZONTAL_ALIGNMENT_CENTER)
+	var eyebrow := _label("DIGITAL WORLD MOBILES", 13 if compact else 16, Color("#8fc7f4"), HORIZONTAL_ALIGNMENT_CENTER)
 	stack.add_child(eyebrow)
-	var heading := _label("SETTINGS", 28 if compact else 34, Color("#f4fff3"), HORIZONTAL_ALIGNMENT_CENTER)
+	var heading := _label("SETTINGS", 28 if compact else 34, Color("#f4f6fa"), HORIZONTAL_ALIGNMENT_CENTER)
 	_apply_menu_3d_label(heading, 2)
 	stack.add_child(heading)
-	var description := _label("Personalise the presentation and sound of your game.", 16 if compact else 20, Color("#dcebdd"), HORIZONTAL_ALIGNMENT_CENTER)
+	var description := _label("Personalise the presentation and sound of your game.", 16 if compact else 20, Color("#cbd5e2"), HORIZONTAL_ALIGNMENT_CENTER)
 	stack.add_child(description)
 
 	var quality_label := _label("GRAPHICS QUALITY", 16 if compact else 19, Color("#f0fff0"))
@@ -3052,7 +3052,7 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	popup.add_theme_font_size_override("font_size", 19)
 	var panel := StyleBoxFlat.new()
 	panel.bg_color = Color("#07190d")
-	panel.border_color = Color("#9bd6a0")
+	panel.border_color = Color("#4f9fe8")
 	panel.set_border_width_all(2)
 	panel.set_corner_radius_all(12)
 	popup.add_theme_stylebox_override("panel", panel)
@@ -3066,7 +3066,7 @@ func _style_settings_dropdown(selector: OptionButton) -> void:
 	popup.add_theme_stylebox_override("hover", item_idle)
 	popup.add_theme_stylebox_override("pressed", item_idle)
 	popup.add_theme_stylebox_override("focus", item_idle)
-	popup.add_theme_color_override("font_color", Color("#eaffea"))
+	popup.add_theme_color_override("font_color", Color("#eaf4ff"))
 	popup.add_theme_color_override("font_hover_color", Color("#ffffff"))
 	popup.add_theme_color_override("font_pressed_color", Color("#ffffff"))
 	popup.add_theme_color_override("font_focus_color", Color("#ffffff"))
