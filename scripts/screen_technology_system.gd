@@ -1,5 +1,4 @@
 extends RefCounted
-class_name ScreenTechnologySystem
 
 const QUALITY_ORDER := ["darkness", "shininess", "reflection_reduction"]
 const TECHNOLOGY_NAMES := [
