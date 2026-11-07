@@ -7186,7 +7186,7 @@ func _create_screen_visual_material() -> StandardMaterial3D:
 	material.albedo_color = profile["albedo_color"]
 	material.roughness = float(profile["roughness"])
 	material.metallic = float(profile["metallic"])
-	material.metallic_specular = float(profile["metallic_specular"])
+	material.specular = float(profile["specular"])
 	material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.emission_enabled = true
