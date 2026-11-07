@@ -572,7 +572,7 @@ var border_radius_level := 0
 
 var border_radius_value_label: Label
 
-var phone_thickness_level := 12
+var phone_thickness_level := 0
 
 var phone_thickness_value_label: Label
 
@@ -8575,47 +8575,23 @@ func _show_thickness_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Make the phone body slimmer or thicker", 12, Color("#c7eacb"))
+	var description := _make_label("Each test upgrade makes the 3D phone slightly slimmer. The original maximum thickness is preserved.", 12, Color("#c7eacb"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	var meter_row := HBoxContainer.new()
-	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	meter_row.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(meter_row)
-
-	var level_labels := VBoxContainer.new()
-	level_labels.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	level_labels.alignment = BoxContainer.ALIGNMENT_CENTER
-	level_labels.add_theme_constant_override("separation", 0)
-	meter_row.add_child(level_labels)
-
-	for level in range(12, -1, -1):
-		var level_label := _make_label(str(level), 14, Color("#dce9df"))
-		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		level_labels.add_child(level_label)
-
-	var meter := VSlider.new()
-	meter.name = "PhoneThicknessLevelMeter"
-	meter.min_value = 0
-	meter.max_value = 12
-	meter.step = 1
-	meter.value = phone_thickness_level
-	meter.tick_count = 13
-	meter.custom_minimum_size = Vector2(64, 320)
-	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	meter.value_changed.connect(_on_phone_thickness_level_changed)
-	_style_custom_slider(meter)
-	meter_row.add_child(meter)
-
-	phone_thickness_value_label = _make_label("LEVEL %d / 12" % phone_thickness_level, 16, Color("#9bd6a7"))
+	phone_thickness_value_label = _make_label("", 16, Color("#9bd6a7"))
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
+
+	var reduce_button := Button.new()
+	reduce_button.name = "TestPhoneThicknessReductionButton"
+	reduce_button.text = "TEST THICKNESS REDUCTION"
+	reduce_button.custom_minimum_size = Vector2(0, 52)
+	reduce_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reduce_button.pressed.connect(_on_phone_thickness_test_pressed)
+	active_feature_panel.add_child(reduce_button)
+	_refresh_phone_thickness_test_ui()
 
 func _show_power_volume_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -10260,20 +10236,26 @@ func _refresh_phone_charge_port() -> void:
 		port_root.add_child(barrel_pin)
 
 func _phone_depth_for_thickness_level(level: int = -1) -> float:
-	# Preserve the complete original 0-10 thickness curve at levels 2-12.
-	# The former level 10 (thickest) is now level 12 without changing its
-	# physical depth. Levels 1 and 0 add two thinner settings below the
-	# former minimum depth.
-	var resolved_level := phone_thickness_level if level < 0 else clampi(level, 0, 12)
-	if resolved_level <= 2:
-		return lerpf(0.04, 0.08, float(resolved_level) / 2.0)
-	return lerpf(0.08, _active_phone_size().z, float(resolved_level - 2) / 10.0)
+	# Twenty finite reductions run from the original maximum thickness to a
+	# slightly slimmer minimum. Level 0 is the untouched maximum; level 20
+	# is the final reduction.
+	var resolved_level := phone_thickness_level if level < 0 else clampi(level, 0, 20)
+	return lerpf(_active_phone_size().z, 0.035, float(resolved_level) / 20.0)
 
-func _on_phone_thickness_level_changed(value: float) -> void:
-	phone_thickness_level = clampi(roundi(value), 0, 12)
+func _refresh_phone_thickness_test_ui() -> void:
 	if is_instance_valid(phone_thickness_value_label):
-		phone_thickness_value_label.text = "LEVEL %d / 12" % phone_thickness_level
+		phone_thickness_value_label.text = "THICKNESS REDUCTIONS: %d / 20" % phone_thickness_level
+	var button := active_feature_panel.get_node_or_null("TestPhoneThicknessReductionButton") as Button if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(button):
+		button.disabled = phone_thickness_level >= 20
+		button.text = "MAXIMUM SLIMNESS REACHED" if phone_thickness_level >= 20 else "TEST THICKNESS REDUCTION"
+
+func _on_phone_thickness_test_pressed() -> void:
+	if phone_thickness_level >= 20:
+		return
+	phone_thickness_level += 1
 	_refresh_phone_mesh()
+	_refresh_phone_thickness_test_ui()
 
 func _refresh_phone_mesh() -> void:
 	if not is_instance_valid(phone_body):
