@@ -3,6 +3,7 @@ extends Node3D
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
+const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
@@ -103,7 +104,9 @@ func _process(delta: float) -> void:
 	# One complete in-game day passes every three real-world seconds.
 	var game_time_delta := delta * 28800.0
 	game_date_unix += game_time_delta
-	_accrue_research_points(game_time_delta)
+	var completed_rd_projects: Array = ResearchManagerScript.advance_projects(career, game_time_delta, game_date_unix)
+	if not completed_rd_projects.is_empty():
+		_save_career()
 	_process_phone_charge_port_research()
 	_process_phone_front_camera_research()
 	_process_phone_speaker_research()
@@ -231,8 +234,12 @@ func _load_career() -> bool:
 		"phone_curve_screen_research_completion_unix": float(config.get_value("career", "phone_curve_screen_research_completion_unix", 0.0)),
 		"research_strategy": config.get_value("career", "research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}),
 		"research_component_priorities": config.get_value("career", "research_component_priorities", {}),
-		"research_history": config.get_value("career", "research_history", [])
+		"research_history": config.get_value("career", "research_history", []),
+		"research_projects": config.get_value("career", "research_projects", []),
+		"research_technologies": config.get_value("career", "research_technologies", {}),
+		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
+	ResearchManagerScript.ensure_state(career)
 	# One-time migration: the old system counted researched models from zero.
 	# The first model is now a free default, so legacy zero-progress saves start
 	# with one unlocked model. Existing research progress remains unchanged.
@@ -306,6 +313,9 @@ func _save_career() -> bool:
 	config.set_value("career", "research_strategy", career.get("research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}))
 	config.set_value("career", "research_component_priorities", career.get("research_component_priorities", {}))
 	config.set_value("career", "research_history", career.get("research_history", []))
+	config.set_value("career", "research_projects", career.get("research_projects", []))
+	config.set_value("career", "research_technologies", career.get("research_technologies", {}))
+	config.set_value("career", "next_research_project_id", int(career.get("next_research_project_id", 1)))
 	config.set_value("career", "phone_default_models_migrated", bool(career.get("phone_default_models_migrated", false)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
@@ -1280,6 +1290,7 @@ func _create_company() -> void:
 	if not career.has("last_payroll_billed_month"):
 		career["last_payroll_billed_month"] = _get_game_month_key(game_date_unix)
 	_ensure_staff_data()
+	ResearchManagerScript.ensure_state(career)
 	if str(career.get("created_at", "")).is_empty():
 		career["created_at"] = Time.get_datetime_string_from_system(true)
 	upgrade_level = 0
