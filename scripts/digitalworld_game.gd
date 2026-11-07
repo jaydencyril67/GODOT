@@ -203,13 +203,13 @@ func _load_career() -> bool:
 		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
 		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false)),
 		"phone_design_research": config.get_value("career", "phone_design_research", {}),
-		"phone_charge_port_research_level": clampi(int(config.get_value("career", "phone_charge_port_research_level", 0)), 0, 5),
+		"phone_charge_port_research_level": clampi(int(config.get_value("career", "phone_charge_port_research_level", 1)), 1, 5),
 		"phone_charge_port_research_active_level": int(config.get_value("career", "phone_charge_port_research_active_level", -1)),
 		"phone_charge_port_research_completion_unix": float(config.get_value("career", "phone_charge_port_research_completion_unix", 0.0)),
-		"phone_front_camera_research_level": clampi(int(config.get_value("career", "phone_front_camera_research_level", 0)), 0, 8),
+		"phone_front_camera_research_level": clampi(int(config.get_value("career", "phone_front_camera_research_level", 1)), 1, 8),
 		"phone_front_camera_research_active_level": int(config.get_value("career", "phone_front_camera_research_active_level", -1)),
 		"phone_front_camera_research_completion_unix": float(config.get_value("career", "phone_front_camera_research_completion_unix", 0.0)),
-		"phone_speaker_research_level": clampi(int(config.get_value("career", "phone_speaker_research_level", 0)), 0, 12),
+		"phone_speaker_research_level": clampi(int(config.get_value("career", "phone_speaker_research_level", 1)), 1, 12),
 		"phone_speaker_research_active_level": int(config.get_value("career", "phone_speaker_research_active_level", -1)),
 		"phone_speaker_research_completion_unix": float(config.get_value("career", "phone_speaker_research_completion_unix", 0.0)),
 		"phone_curve_screen_research_unlocked": bool(config.get_value("career", "phone_curve_screen_research_unlocked", false)),
@@ -262,13 +262,13 @@ func _save_career() -> bool:
 	config.set_value("career", "last_candidate_refresh_month", str(career.get("last_candidate_refresh_month", _get_game_month_key(game_date_unix))))
 	config.set_value("career", "staff_market_initialized", bool(career.get("staff_market_initialized", false)))
 	config.set_value("career", "phone_design_research", career.get("phone_design_research", {}))
-	config.set_value("career", "phone_charge_port_research_level", clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5))
+	config.set_value("career", "phone_charge_port_research_level", clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5))
 	config.set_value("career", "phone_charge_port_research_active_level", int(career.get("phone_charge_port_research_active_level", -1)))
 	config.set_value("career", "phone_charge_port_research_completion_unix", float(career.get("phone_charge_port_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_front_camera_research_level", clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8))
+	config.set_value("career", "phone_front_camera_research_level", clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8))
 	config.set_value("career", "phone_front_camera_research_active_level", int(career.get("phone_front_camera_research_active_level", -1)))
 	config.set_value("career", "phone_front_camera_research_completion_unix", float(career.get("phone_front_camera_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_speaker_research_level", clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12))
+	config.set_value("career", "phone_speaker_research_level", clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12))
 	config.set_value("career", "phone_speaker_research_active_level", int(career.get("phone_speaker_research_active_level", -1)))
 	config.set_value("career", "phone_speaker_research_completion_unix", float(career.get("phone_speaker_research_completion_unix", 0.0)))
 	config.set_value("career", "phone_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
@@ -1243,6 +1243,10 @@ func _create_company() -> void:
 		career["phone_charge_port_research_completion_unix"] = 0.0
 	if not career.has("phone_speaker_research_level"):
 		career["phone_speaker_research_level"] = 1
+	if not career.has("phone_front_camera_research_level"):
+		career["phone_front_camera_research_level"] = 1
+	if not career.has("phone_default_models_migrated"):
+		career["phone_default_models_migrated"] = true
 	if not career.has("phone_speaker_research_active_level"):
 		career["phone_speaker_research_active_level"] = -1
 	if not career.has("phone_speaker_research_completion_unix"):
@@ -2542,10 +2546,10 @@ func _return_from_research_phone() -> void:
 
 func _get_phone_research_ui_data() -> Dictionary:
 	var research_data: Dictionary = career.get("phone_design_research", {}).duplicate(true)
-	research_data["charge_port_level"] = clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	research_data["charge_port_level"] = clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
 	research_data["charge_port_active_level"] = int(career.get("phone_charge_port_research_active_level", -1))
 	research_data["charge_port_completion_unix"] = float(career.get("phone_charge_port_research_completion_unix", 0.0))
-	research_data["front_camera_level"] = clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8)
+	research_data["front_camera_level"] = clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
 	research_data["front_camera_active_level"] = int(career.get("phone_front_camera_research_active_level", -1))
 	research_data["front_camera_completion_unix"] = float(career.get("phone_front_camera_research_completion_unix", 0.0))
 	research_data["game_date_unix"] = game_date_unix
@@ -2648,7 +2652,7 @@ func _process_curve_screen_research() -> void:
 
 
 func _show_phone_charge_port_research_prompt() -> void:
-	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
 	if completed_count >= 5:
 		_show_notice("RESEARCH COMPLETE", "All charging-port technologies currently available in the phone editor have been researched.")
 		return
@@ -2666,7 +2670,7 @@ func _show_phone_charge_port_research_prompt() -> void:
 
 
 func _show_phone_front_camera_research_prompt() -> void:
-	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8)
+	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
 	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
 	if completed_count >= camera_styles.size():
 		_show_notice("RESEARCH COMPLETE", "All front-camera designs currently available in the phone editor have been researched.")
@@ -2684,7 +2688,7 @@ func _show_phone_front_camera_research_prompt() -> void:
 
 
 func _on_phone_front_camera_research_upgrade() -> void:
-	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8)
+	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
 	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
 	if completed_count >= camera_styles.size():
 		_show_notice("RESEARCH COMPLETE", "All front-camera designs currently available in the phone editor have been researched.")
@@ -2734,7 +2738,7 @@ func _process_phone_front_camera_research() -> void:
 	var completion_unix := float(career.get("phone_front_camera_research_completion_unix", 0.0))
 	if completion_unix <= 0.0 or game_date_unix < completion_unix:
 		return
-	var current_level := clampi(int(career.get("phone_front_camera_research_level", 0)), 0, 8)
+	var current_level := clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
 	career["phone_front_camera_research_level"] = mini(current_level + 1, active_level + 1)
 	career["phone_front_camera_research_active_level"] = -1
 	career["phone_front_camera_research_completion_unix"] = 0.0
@@ -2752,7 +2756,7 @@ func _process_phone_front_camera_research() -> void:
 
 
 func _show_phone_speaker_research_prompt() -> void:
-	var completed_count := clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12)
+	var completed_count := clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12)
 	if completed_count >= 12:
 		_show_notice("RESEARCH COMPLETE", "All 12 speaker openings have been unlocked.")
 		return
@@ -2768,7 +2772,7 @@ func _show_phone_speaker_research_prompt() -> void:
 
 
 func _on_phone_speaker_research_upgrade() -> void:
-	var completed_count := clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12)
+	var completed_count := clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12)
 	if completed_count >= 12:
 		_show_notice("RESEARCH COMPLETE", "All 12 speaker openings have been unlocked.")
 		return
@@ -2817,7 +2821,7 @@ func _process_phone_speaker_research() -> void:
 	var completion_unix := float(career.get("phone_speaker_research_completion_unix", 0.0))
 	if completion_unix <= 0.0 or game_date_unix < completion_unix:
 		return
-	var current_level := clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12)
+	var current_level := clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12)
 	career["phone_speaker_research_level"] = mini(current_level + 1, active_level + 1)
 	career["phone_speaker_research_active_level"] = -1
 	career["phone_speaker_research_completion_unix"] = 0.0
@@ -2835,7 +2839,7 @@ func _process_phone_speaker_research() -> void:
 
 
 func _on_phone_charge_port_research_upgrade() -> void:
-	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
 	if completed_count >= 5:
 		_show_notice("RESEARCH COMPLETE", "All charging-port technologies currently available in the phone editor have been researched.")
 		return
@@ -2889,7 +2893,7 @@ func _process_phone_charge_port_research() -> void:
 	if completion_unix <= 0.0 or game_date_unix < completion_unix:
 		return
 
-	var current_level := clampi(int(career.get("phone_charge_port_research_level", 0)), 0, 5)
+	var current_level := clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
 	career["phone_charge_port_research_level"] = maxi(current_level, active_level + 1)
 	career["phone_charge_port_research_active_level"] = -1
 	career["phone_charge_port_research_completion_unix"] = 0.0
