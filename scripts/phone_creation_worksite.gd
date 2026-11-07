@@ -5402,12 +5402,12 @@ func _refresh_screen_technology_ui() -> void:
 		if is_instance_valid(value_label):
 			value_label.text = "LEVEL %d / %d" % [int(screen_quality_state[quality]), next_required_level]
 
-	# Disable the test button at MicroLED Generation 30; progression itself remains uncapped.
+	# Disable the test button at MicroLED Generation 20; progression itself remains uncapped.
 	var upgrade_button: Button = null
 	if is_instance_valid(active_feature_panel):
 		upgrade_button = active_feature_panel.get_node_or_null("FreeScreenUpgradeTestButton") as Button
 	if is_instance_valid(upgrade_button):
-		upgrade_button.disabled = int(screen_quality_state["technology_milestone"]) >= 38
+		upgrade_button.disabled = int(screen_quality_state["technology_milestone"]) >= 28
 
 
 func _on_free_screen_upgrade_test_pressed() -> void:
