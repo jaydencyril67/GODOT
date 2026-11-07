@@ -10,6 +10,7 @@ var refresh_rate_step_visited := false
 var cooling_system_step_visited := false
 
 signal back_requested
+signal screen_shape_research_prompt_requested
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
 class GlassArrowButton extends Button:
@@ -375,6 +376,7 @@ var bezel_height_value_label: Label
 var bezel_height_slider: VSlider
 
 var screen_shape_mode := "Flat screen"
+var curve_screen_unlocked := false
 
 var side_curve_enabled := false
 
@@ -3236,6 +3238,14 @@ func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> v
 	if is_instance_valid(research_content_panel):
 		_refresh_design_research_cards()
 
+func set_curve_screen_research_unlocked(unlocked: bool) -> void:
+	curve_screen_unlocked = unlocked
+	if not curve_screen_unlocked and screen_shape_mode == "Curve screen":
+		screen_shape_mode = "Flat screen"
+		side_curve_enabled = false
+		vertical_curve_enabled = false
+	_refresh_screen_type_controls()
+
 func set_charge_port_research_level(level: int) -> void:
 	researched_charge_port_count = clampi(level, 0, 5)
 
@@ -3372,12 +3382,12 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 		var dummy_button := Button.new()
 		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers"] else "SELECT"
+		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type"] else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		if feature_name in ["Charge Port", "Front Camera", "Speakers"]:
+		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type"]:
 			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
 		# Other research categories remain placeholders until their individual
 		# progression screens are implemented.
@@ -3409,6 +3419,8 @@ func _on_research_feature_selected(feature_name: String) -> void:
 		front_camera_research_prompt_requested.emit()
 	elif feature_name == "Speakers":
 		speaker_research_prompt_requested.emit()
+	elif feature_name == "Screen Type":
+		screen_shape_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
@@ -5395,7 +5407,7 @@ func _show_screen_type_controls() -> void:
 	for mode in ["Flat screen", "Curve screen"]:
 		var option := Button.new()
 		option.name = mode.replace(" ", "") + "Option"
-		option.text = mode
+		option.text = mode + ("  [LOCKED]" if mode == "Curve screen" and not curve_screen_unlocked else "")
 		option.custom_minimum_size = Vector2(0, 44)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
@@ -5434,7 +5446,7 @@ func _make_curve_toggle(node_name: String, label_text: String, enabled: bool) ->
 	return toggle
 
 func _on_screen_shape_selected(mode: String) -> void:
-	if mode == "Curve screen" and not (_is_screen_width_max() or _is_screen_height_max()):
+	if mode == "Curve screen" and (not curve_screen_unlocked or not (_is_screen_width_max() or _is_screen_height_max())):
 		return
 	screen_shape_mode = mode
 	if mode == "Flat screen":
@@ -5485,7 +5497,7 @@ func _refresh_screen_type_controls() -> void:
 		return
 	var width_max := _is_screen_width_max()
 	var height_max := _is_screen_height_max()
-	var curve_allowed := width_max or height_max
+	var curve_allowed := curve_screen_unlocked and (width_max or height_max)
 	if screen_shape_mode == "Curve screen" and not curve_allowed:
 		screen_shape_mode = "Flat screen"
 		side_curve_enabled = false
@@ -5494,6 +5506,7 @@ func _refresh_screen_type_controls() -> void:
 		var option: Button = screen_shape_buttons[mode]
 		option.button_pressed = screen_shape_mode == mode
 		option.disabled = mode == "Curve screen" and not curve_allowed
+		option.text = mode + ("  [LOCKED]" if mode == "Curve screen" and not curve_screen_unlocked else "")
 		_style_screen_type_option(option, 0 if mode == "Flat screen" else 5, screen_shape_mode == mode)
 	if is_instance_valid(side_curve_toggle):
 		side_curve_toggle.disabled = screen_shape_mode != "Curve screen" or not width_max
