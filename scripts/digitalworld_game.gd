@@ -97,7 +97,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research", "office", "staff_market", "staff_management", "phone_creation_worksite"]:
+	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "office", "staff_market", "staff_management", "phone_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
