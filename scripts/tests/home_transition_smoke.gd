@@ -90,8 +90,10 @@ func _run_transition_checks() -> void:
 		_fail("Opening Research Allocation hid or replaced the underlying Research page.")
 		return
 	var dashboard = game.research_allocation_dashboard
-	if is_instance_valid(game.phone_research_worksite):
-		_fail("The legacy component-by-component Phone Research interface is still being instantiated.")
+	# The old component catalogue has been removed from the Worksite UI, while
+	# its existing progression functions remain available for the next wiring phase.
+	if not game.has_method("_process_phone_charge_port_research") or not game.has_method("_process_phone_battery_research") or not game.has_method("_apply_phone_design_research_upgrade"):
+		_fail("Removing the old research interface also removed part of the existing research engine.")
 		return
 	if not is_instance_valid(dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard")):
 		_fail("Research dashboard did not build its primary content root.")
