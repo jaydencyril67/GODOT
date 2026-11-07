@@ -749,7 +749,7 @@ func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> v
 			directional_lights.append(child as DirectionalLight3D)
 		elif child is OmniLight3D:
 			var fill_light := child as OmniLight3D
-			fill_light.light_color = Color("#dce5df")
+			fill_light.light_color = Color("#D8D1C5")
 			fill_light.light_energy = 0.38
 			fill_light.omni_range = 8.0
 
@@ -760,7 +760,7 @@ func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> v
 		key_light.shadow_enabled = false
 	if directional_lights.size() > 1:
 		var rim_light := directional_lights[1]
-		rim_light.light_color = Color("#d5e2d9")
+		rim_light.light_color = Color("#C7BBA6")
 		rim_light.light_energy = 0.78
 		rim_light.shadow_enabled = false
 
@@ -768,15 +768,15 @@ func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> v
 	if is_instance_valid(environment_node) and is_instance_valid(environment_node.environment):
 		var environment := environment_node.environment
 		environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		environment.ambient_light_color = Color("#aeb8b1")
+		environment.ambient_light_color = Color("#B6B0A5")
 		environment.ambient_light_energy = 0.66
 		environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 		if is_instance_valid(environment.sky) and environment.sky.sky_material is ProceduralSkyMaterial:
 			var studio_sky_material := environment.sky.sky_material as ProceduralSkyMaterial
-			studio_sky_material.sky_top_color = Color("#77817b")
-			studio_sky_material.sky_horizon_color = Color("#d4d9d5")
-			studio_sky_material.ground_horizon_color = Color("#727b75")
-			studio_sky_material.ground_bottom_color = Color("#343b37")
+			studio_sky_material.sky_top_color = Color("#77736C")
+			studio_sky_material.sky_horizon_color = Color("#D5CFC3")
+			studio_sky_material.ground_horizon_color = Color("#716C63")
+			studio_sky_material.ground_bottom_color = Color("#34312D")
 			studio_sky_material.sky_energy_multiplier = 0.9
 			studio_sky_material.ground_energy_multiplier = 0.72
 
@@ -795,7 +795,7 @@ func _build_interface() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.name = "WorksiteBackdrop"
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color("#292d2b")
+	backdrop.color = Color("#292B2D")
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
 	root.resized.connect(_apply_responsive_layout)
@@ -846,10 +846,10 @@ func _build_interface() -> void:
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
-	progress_fill.bg_color = Color("#4f9a60")
+	progress_fill.bg_color = Color("#C58A3A")
 	progress_fill.set_corner_radius_all(4)
 	var progress_track := StyleBoxFlat.new()
-	progress_track.bg_color = Color("#26332a")
+	progress_track.bg_color = Color("#292D2F")
 	progress_track.set_corner_radius_all(4)
 	progress_bar.add_theme_stylebox_override("fill", progress_fill)
 	progress_bar.add_theme_stylebox_override("background", progress_track)
@@ -1727,8 +1727,8 @@ func _show_worksite_box_package_controls() -> void:
 	pad_shell.name = "BoxPackagePositionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
-	pad_shell_style.border_color = Color(0.68, 0.82, 0.70, 0.72)
+	pad_shell_style.bg_color = Color(0.12, 0.13, 0.14, 0.72)
+	pad_shell_style.border_color = Color(0.58, 0.46, 0.29, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -2581,7 +2581,7 @@ func _show_worksite_protection_glass_controls() -> void:
 	protector_toggle.toggled.connect(Callable(self, "_on_screen_protector_toggled"))
 	enable_row.add_child(protector_toggle)
 	if not screen_is_enabled:
-		var screen_hint := _label("Enable the phone screen first. Protection glass fits the active display surfaces.", 12, Color("#e6c98d"))
+		var screen_hint := _label("Enable the phone screen first. Protection glass fits the active display surfaces.", 12, Color("#D3AA6B"))
 		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		panel.add_child(screen_hint)
 		step_panels[33] = panel
@@ -2627,8 +2627,8 @@ func _show_worksite_protection_glass_controls() -> void:
 		var build_panel := PanelContainer.new()
 		build_panel.name = "ProtectionGlassBuildLoading"
 		var build_style := StyleBoxFlat.new()
-		build_style.bg_color = Color("#0c2a16")
-		build_style.border_color = Color("#3d8b50")
+		build_style.bg_color = Color("#202326")
+		build_style.border_color = Color("#806239")
 		build_style.set_border_width_all(1)
 		build_style.set_corner_radius_all(10)
 		build_style.content_margin_left = 12
@@ -2640,7 +2640,7 @@ func _show_worksite_protection_glass_controls() -> void:
 		var loading := VBoxContainer.new()
 		loading.add_theme_constant_override("separation", 9)
 		build_panel.add_child(loading)
-		var loading_title := _label("Building protection glass", 16, Color("#eaf8ed"), HORIZONTAL_ALIGNMENT_CENTER)
+		var loading_title := _label("Building protection glass", 16, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
 		loading.add_child(loading_title)
 		var shimmer := ColorRect.new()
 		shimmer.name = "ProtectionGlassBuildShimmer"
@@ -2738,7 +2738,7 @@ func _show_worksite_sensor_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
 
-	var count_label := _label("", 14, Color("#d8f1ff"), HORIZONTAL_ALIGNMENT_CENTER)
+	var count_label := _label("", 14, Color("#D6D0C5"), HORIZONTAL_ALIGNMENT_CENTER)
 	count_label.name = "EnabledSensorCount"
 	count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(count_label)
@@ -2991,7 +2991,7 @@ func _style_arrow_button(button: Button) -> void:
 		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
 	button.add_theme_color_override("font_color", Color("#EEE9DF"))
 	button.add_theme_color_override("font_hover_color", Color("#C58A3A"))
-	button.add_theme_color_override("font_pressed_color", Color("#6fbd80"))
+	button.add_theme_color_override("font_pressed_color", Color("#C58A3A"))
 	button.add_theme_color_override("font_disabled_color", Color("#928B80"))
 	button.add_theme_color_override("font_outline_color", Color("#000000"))
 	button.add_theme_constant_override("outline_size", 0)
@@ -3092,7 +3092,7 @@ func _show_phone_type_controls() -> void:
 		active_feature_panel.add_child(option)
 
 	var note_text := "Standard uses one rigid display chassis." if selected_phone_type == "Standard" else ("Flip uses a horizontal clamshell hinge and a compact cover display." if selected_phone_type == "Flip" else "Fold uses a book-style centre hinge, a wide inner display and a full-height cover display.")
-	var note := _make_label(note_text, 12, Color("#a8dcb0"))
+	var note := _make_label(note_text, 12, Color("#C58A3A"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(note)
 
@@ -3213,11 +3213,11 @@ func _get_extras_research_features() -> Array:
 func _make_staff_style_card() -> PanelContainer:
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
-	style.border_color = Color(0.68, 0.82, 0.70, 0.72)
+	style.bg_color = Color(0.12, 0.13, 0.14, 0.72)
+	style.border_color = Color(0.58, 0.46, 0.29, 0.72)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0.0, 0.10, 0.03, 0.30)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.30)
 	style.shadow_size = 18
 	style.shadow_offset = Vector2(0, 5)
 	style.anti_aliasing = true
@@ -3225,7 +3225,7 @@ func _make_staff_style_card() -> PanelContainer:
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var glass_gradient := Gradient.new()
-	glass_gradient.set_color(0, Color(0.88, 1.0, 0.89, 0.22))
+	glass_gradient.set_color(0, Color(0.94, 0.86, 0.72, 0.14))
 	glass_gradient.set_color(1, Color(0.88, 0.78, 0.62, 0.0))
 	var glass_texture := GradientTexture2D.new()
 	glass_texture.gradient = glass_gradient
@@ -3391,10 +3391,10 @@ func _get_preview_viewport() -> SubViewport:
 	# image-based ambient light and PBR reflections on the frame and glass.
 	var studio_sky := Sky.new()
 	var studio_sky_material := ProceduralSkyMaterial.new()
-	studio_sky_material.sky_top_color = Color("#1b3e5c")
-	studio_sky_material.sky_horizon_color = Color("#dceaf5")
-	studio_sky_material.ground_horizon_color = Color("#718ba4")
-	studio_sky_material.ground_bottom_color = Color("#102236")
+	studio_sky_material.sky_top_color = Color("#35383A")
+	studio_sky_material.sky_horizon_color = Color("#D5CFC3")
+	studio_sky_material.ground_horizon_color = Color("#77736C")
+	studio_sky_material.ground_bottom_color = Color("#17191B")
 	studio_sky_material.sky_energy_multiplier = 0.85
 	studio_sky_material.ground_energy_multiplier = 0.65
 	studio_sky_material.sun_angle_max = 0.0
@@ -3459,7 +3459,7 @@ func _get_preview_viewport() -> SubViewport:
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
-	key_light.light_color = Color("#f3f8ff")
+	key_light.light_color = Color("#EEE9DF")
 	key_light.light_energy = 0.82
 	# The preview parts do not cast shadows, so a shadow map adds cost without
 	# improving the product silhouette.
@@ -3468,14 +3468,14 @@ func _get_preview_viewport() -> SubViewport:
 
 	var rim_light := DirectionalLight3D.new()
 	rim_light.rotation_degrees = Vector3(18.0, 142.0, -8.0)
-	rim_light.light_color = Color("#a3d9ae")
+	rim_light.light_color = Color("#C7BBA6")
 	rim_light.light_energy = 0.28
 	rim_light.shadow_enabled = false
 	preview_world.add_child(rim_light)
 
 	var fill_light := OmniLight3D.new()
 	fill_light.position = Vector3(-2.2, 1.4, 2.8)
-	fill_light.light_color = Color("#a3d9ae")
+	fill_light.light_color = Color("#C7BBA6")
 	fill_light.light_energy = 0.16
 	fill_light.omni_range = 8.0
 	preview_world.add_child(fill_light)
@@ -3883,7 +3883,7 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	hue_bar.set_hue(selected_color.h)
 	hue_bar.hue_changed.connect(_on_color_picker_panel_hue_changed.bind(use_gradient_color))
 	picker.add_child(hue_bar)
-	var selected_label := _make_label("#" + selected_color.to_html(false).to_upper(), 12, Color("#e7f6e9"))
+	var selected_label := _make_label("#" + selected_color.to_html(false).to_upper(), 12, Color("#EEE9DF"))
 	selected_label.name = "SelectedColorHex"
 	picker.add_child(selected_label)
 	if not use_gradient_color:
@@ -3901,18 +3901,18 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	hex_input.max_length = 7
 	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hex_input.custom_minimum_size = Vector2(0, 36)
-	hex_input.add_theme_color_override("font_color", Color("#edf8ee"))
-	hex_input.add_theme_color_override("font_placeholder_color", Color("#78937c"))
-	hex_input.add_theme_color_override("caret_color", Color("#75d58a"))
+	hex_input.add_theme_color_override("font_color", Color("#EEE9DF"))
+	hex_input.add_theme_color_override("font_placeholder_color", Color("#928B80"))
+	hex_input.add_theme_color_override("caret_color", Color("#C58A3A"))
 	var hex_normal := StyleBoxFlat.new()
-	hex_normal.bg_color = Color("#101d13")
+	hex_normal.bg_color = Color("#202326")
 	hex_normal.set_corner_radius_all(7)
 	hex_normal.set_border_width_all(1)
-	hex_normal.border_color = Color("#315a38")
+	hex_normal.border_color = Color("#514B40")
 	hex_normal.content_margin_left = 7.0
 	hex_normal.content_margin_right = 7.0
 	var hex_focus := hex_normal.duplicate() as StyleBoxFlat
-	hex_focus.border_color = Color("#64d783")
+	hex_focus.border_color = Color("#C58A3A")
 	hex_focus.set_border_width_all(2)
 	hex_input.add_theme_stylebox_override("normal", hex_normal)
 	hex_input.add_theme_stylebox_override("focus", hex_focus)
@@ -3925,15 +3925,15 @@ func _build_device_color_picker_panel(use_gradient_color: bool, viewport_size: V
 	apply_button.focus_mode = Control.FOCUS_NONE
 	_apply_research_typography(apply_button, 11)
 	var apply_normal := StyleBoxFlat.new()
-	apply_normal.bg_color = Color("#5A401F")
+	apply_normal.bg_color = Color("#805821")
 	apply_normal.set_corner_radius_all(7)
 	apply_normal.set_border_width_all(1)
-	apply_normal.border_color = Color("#4dbb6a")
+	apply_normal.border_color = Color("#A17A42")
 	var apply_hover := apply_normal.duplicate() as StyleBoxFlat
-	apply_hover.bg_color = Color("#206b35")
+	apply_hover.bg_color = Color("#956A2E")
 	apply_button.add_theme_stylebox_override("normal", apply_normal)
 	apply_button.add_theme_stylebox_override("hover", apply_hover)
-	apply_button.add_theme_color_override("font_color", Color("#effaff"))
+	apply_button.add_theme_color_override("font_color", Color("#EEE9DF"))
 	hex_row.add_child(apply_button)
 	apply_button.pressed.connect(_on_color_picker_hex_submitted.bind(hex_input, use_gradient_color))
 	hex_input.text_submitted.connect(_on_color_picker_hex_text_submitted.bind(use_gradient_color))
@@ -4148,7 +4148,7 @@ func _refresh_device_color_editor_controls() -> void:
 		var hex_label := picker.get_node_or_null("SelectedColorHex") as Label
 		if is_instance_valid(hex_label):
 			hex_label.text = "#" + selected_color.to_html(false).to_upper()
-			hex_label.add_theme_color_override("font_color", Color("#e7f6e9"))
+			hex_label.add_theme_color_override("font_color", Color("#EEE9DF"))
 		var hex_input := picker.get_node_or_null("CustomHexEntry/DeviceColorHexInput") as LineEdit
 		if is_instance_valid(hex_input):
 			hex_input.text = selected_color.to_html(false).to_upper()
@@ -4464,8 +4464,8 @@ func _show_back_design_controls() -> void:
 	pad_shell.name = "BackDesignDirectionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
-	pad_shell_style.border_color = Color(0.68, 0.82, 0.70, 0.72)
+	pad_shell_style.bg_color = Color(0.12, 0.13, 0.14, 0.72)
+	pad_shell_style.border_color = Color(0.58, 0.46, 0.29, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -4543,8 +4543,8 @@ func _make_editor_control_card(parent: Control, card_name: String, heading_text:
 	panel.name = card_name
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#0d1710")
-	panel_style.border_color = Color("#263e2b")
+	panel_style.bg_color = Color("#202326")
+	panel_style.border_color = Color("#514B40")
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(14)
 	panel_style.content_margin_left = 12
@@ -4559,7 +4559,7 @@ func _make_editor_control_card(parent: Control, card_name: String, heading_text:
 	content.add_theme_constant_override("separation", 7 if tight else 9)
 	panel.add_child(content)
 
-	var heading := _make_label(heading_text, 11 if tight else 12, Color("#a8cfad"))
+	var heading := _make_label(heading_text, 11 if tight else 12, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	content.add_child(heading)
 	return content
@@ -4572,14 +4572,13 @@ func _add_back_design_flexible_space(parent: Control) -> void:
 	parent.add_child(spacer)
 
 func _style_back_design_button(button: Button, active: bool) -> void:
-	# Raised Back Design and Rear Camera use the Worksite green button
-	# treatment used by the other Worksite controls.
+	# Raised Back Design and Rear Camera use the shared graphite-and-amber button treatment.
 	_style_staff_button(button, active)
 
 func _style_staff_circle_button(button: Button, active: bool, diameter: float) -> void:
 	_style_staff_button(button, active)
 	# Keep the circular D-pad and +/- silhouettes while borrowing the exact
-	# green colors and state styling from the shared Worksite buttons.
+	# shared graphite-and-amber state styling from the Worksite buttons.
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := button.get_theme_stylebox(state).duplicate() as StyleBoxFlat
 		style.set_corner_radius_all(int(diameter * 0.5))
@@ -5276,7 +5275,7 @@ func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: 
 	_apply_research_typography(toggle, 17)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#5A401F") if state != "hover" else Color("#805A2A")
+		style.bg_color = Color("#805821") if state != "hover" else Color("#805A2A")
 		if state == "pressed" or state == "focus":
 			style.bg_color = Color("#966A2F")
 		style.border_color = Color("#C58A3A")
@@ -5318,11 +5317,11 @@ func _show_screen_tech_controls() -> void:
 
 	_add_screen_enablement_row(active_feature_panel, "ScreenEnablementRow", "ScreenEnablement", "Enable Screen", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
 
-	var technology_caption := _make_label("CURRENT TECHNOLOGY", 10, Color("#9fbca4"))
+	var technology_caption := _make_label("CURRENT TECHNOLOGY", 10, Color("#A9A092"))
 	technology_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(technology_caption)
 
-	screen_technology_name_label = _make_label(current_screen_technology, 19, Color("#f1fff3"))
+	screen_technology_name_label = _make_label(current_screen_technology, 19, Color("#EEE9DF"))
 	screen_technology_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(screen_technology_name_label)
 
@@ -5344,17 +5343,17 @@ func _show_screen_tech_controls() -> void:
 		quality_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.add_child(quality_name)
 
-		var value_label := _make_label("LEVEL 0", 11, Color("#bceac4"))
+		var value_label := _make_label("LEVEL 0", 11, Color("#D3AA6B"))
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		value_label.custom_minimum_size.x = 74
 		row.add_child(value_label)
 		screen_quality_value_labels[quality] = value_label
 
-	screen_next_upgrade_label = _make_label("", 12, Color("#d9f4dd"))
+	screen_next_upgrade_label = _make_label("", 12, Color("#D6D0C5"))
 	screen_next_upgrade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(screen_next_upgrade_label)
 
-	screen_next_milestone_label = _make_label("", 10, Color("#b5c7b9"))
+	screen_next_milestone_label = _make_label("", 10, Color("#AAA49A"))
 	screen_next_milestone_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	screen_next_milestone_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(screen_next_milestone_label)
@@ -5362,7 +5361,7 @@ func _show_screen_tech_controls() -> void:
 	var upgrade_button := _create_component_test_button("FreeScreenUpgradeTestButton", "FREE TEST UPGRADE", _on_free_screen_upgrade_test_pressed)
 	active_feature_panel.add_child(upgrade_button)
 
-	screen_upgrade_feedback_label = _make_label("Each click improves one quality in order. All three must reach level 3 to unlock the next technology.", 10, Color("#a9c9af"))
+	screen_upgrade_feedback_label = _make_label("Each click improves one quality in order. All three must reach level 3 to unlock the next technology.", 10, Color("#AAA49A"))
 	screen_upgrade_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	screen_upgrade_feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(screen_upgrade_feedback_label)
@@ -7687,7 +7686,7 @@ func _show_front_camera_controls() -> void:
 	_apply_research_typography(enable_toggle, 17)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var toggle_style := StyleBoxFlat.new()
-		toggle_style.bg_color = Color("#5A401F") if state != "hover" else Color("#805A2A")
+		toggle_style.bg_color = Color("#805821") if state != "hover" else Color("#805A2A")
 		if state == "pressed" or state == "focus":
 			toggle_style.bg_color = Color("#966A2F")
 		toggle_style.border_color = Color("#C58A3A")
@@ -8115,8 +8114,8 @@ func _show_rear_camera_controls() -> void:
 	pad_shell.name = "RearHardwareDirectionController"
 	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
 	var pad_shell_style := StyleBoxFlat.new()
-	pad_shell_style.bg_color = Color(0.10, 0.24, 0.13, 0.30)
-	pad_shell_style.border_color = Color(0.68, 0.82, 0.70, 0.72)
+	pad_shell_style.bg_color = Color(0.12, 0.13, 0.14, 0.72)
+	pad_shell_style.border_color = Color(0.58, 0.46, 0.29, 0.72)
 	pad_shell_style.set_border_width_all(1)
 	pad_shell_style.set_corner_radius_all(16)
 	pad_shell_style.content_margin_left = 8
@@ -8468,7 +8467,7 @@ func _refresh_rear_hardware_visuals() -> void:
 		flash_housing_material.metallic = 0.78
 		flash_housing_material.roughness = 0.24
 		var flash_rim_material := StandardMaterial3D.new()
-		flash_rim_material.albedo_color = Color("#65d783") if flash_is_selected else Color("#aab4bd")
+		flash_rim_material.albedo_color = Color("#C58A3A") if flash_is_selected else Color("#aab4bd")
 		flash_rim_material.metallic = 0.76
 		flash_rim_material.roughness = 0.24
 		var flash_diffuser_material := StandardMaterial3D.new()
@@ -8667,7 +8666,7 @@ func _show_home_button_controls() -> void:
 	_apply_research_typography(enable_toggle, 17)
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var toggle_style := StyleBoxFlat.new()
-		toggle_style.bg_color = Color("#5A401F") if state != "hover" else Color("#805A2A")
+		toggle_style.bg_color = Color("#805821") if state != "hover" else Color("#805A2A")
 		if state == "pressed" or state == "focus":
 			toggle_style.bg_color = Color("#966A2F")
 		toggle_style.border_color = Color("#C58A3A")
@@ -8905,7 +8904,7 @@ func _make_side_button_checkbox_icon(checked: bool) -> Texture2D:
 	var image := Image.new()
 	var svg := ""
 	if checked:
-		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#72d987" fill-opacity="0.30" stroke="#C58A3A" stroke-width="2.5"/><path d="M9 18.5l6 6L27.5 12" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#C58A3A" fill-opacity="0.30" stroke="#C58A3A" stroke-width="2.5"/><path d="M9 18.5l6 6L27.5 12" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
 	else:
 		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#C58A3A" fill-opacity="0.10" stroke="#C58A3A" stroke-width="2.5"/></svg>"""
 	var error := image.load_svg_from_string(svg)
@@ -9009,12 +9008,12 @@ func _add_side_button_controls(caption: String, side: String, enabled: bool, pos
 func _style_power_volume_position_button(button: Button) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.035, 0.16, 0.075, 0.88)
+		style.bg_color = Color(0.12, 0.13, 0.14, 0.88)
 		style.border_color = Color(0.68, 0.52, 0.30, 0.76)
 		if state == "hover":
-			style.bg_color = Color(0.18, 0.13, 0.07, 0.96)
+			style.bg_color = Color(0.27, 0.18, 0.09, 0.96)
 		elif state == "pressed":
-			style.bg_color = Color(0.30, 0.20, 0.09, 1.0)
+			style.bg_color = Color(0.38, 0.25, 0.12, 1.0)
 		elif state == "disabled":
 			style.bg_color = Color(0.075, 0.080, 0.082, 0.52)
 			style.border_color = Color(0.34, 0.29, 0.21, 0.44)
@@ -9739,7 +9738,7 @@ func _show_charge_port_controls() -> void:
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	var selected_label := _make_label("SELECTED: " + charge_port_type.to_upper(), 13, Color("#a8dcb0"))
+	var selected_label := _make_label("SELECTED: " + charge_port_type.to_upper(), 13, Color("#C58A3A"))
 	selected_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(selected_label)
 	charge_port_value_label = selected_label
@@ -9804,7 +9803,7 @@ func _on_charge_port_selected(port_type: String) -> void:
 		charger_cable_type = adapter_connector + " to " + phone_connector
 	if is_instance_valid(charge_port_value_label):
 		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
-		charge_port_value_label.add_theme_color_override("font_color", Color("#a8dcb0"))
+		charge_port_value_label.add_theme_color_override("font_color", Color("#C58A3A"))
 	# Rebuild both the receptacle and whichever chassis architecture is active.
 	_refresh_phone_mesh()
 
