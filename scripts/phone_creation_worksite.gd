@@ -1490,7 +1490,7 @@ func _update_ram_selection_display(
 
 
 func _add_specification_readout_entry(caption_text: String, value_text: String) -> void:
-	# Each grid cell stacks its green subject above its larger white value.
+	# Each grid cell stacks its highlighted subject above its larger white value.
 	# GridContainer keeps these subject/value pairs arranged left-to-right in
 	# two columns, then continues on the next row.
 	var entry := VBoxContainer.new()
