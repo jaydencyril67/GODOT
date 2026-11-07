@@ -110,6 +110,7 @@ var step_panels: Dictionary = {}
 signal research_upgrade_requested(research_id: String)
 signal charge_port_research_prompt_requested
 signal front_camera_research_prompt_requested
+signal speaker_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -598,6 +599,10 @@ var phone_thickness_level := 12
 var phone_thickness_value_label: Label
 
 var speaker_count := 0
+
+var researched_speaker_count := 0
+
+var speaker_count_slider: VSlider
 
 var speaker_count_value_label: Label
 
@@ -3234,6 +3239,16 @@ func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> v
 func set_charge_port_research_level(level: int) -> void:
 	researched_charge_port_count = clampi(level, 0, 5)
 
+func set_speaker_research_level(level: int) -> void:
+	researched_speaker_count = clampi(level, 0, 12)
+	speaker_count = mini(speaker_count, researched_speaker_count)
+	if is_instance_valid(speaker_count_slider):
+		speaker_count_slider.max_value = researched_speaker_count
+		speaker_count_slider.value = speaker_count
+	if is_instance_valid(speaker_count_value_label):
+		speaker_count_value_label.text = "SPEAKERS %d / %d UNLOCKED" % [speaker_count, researched_speaker_count]
+	_refresh_phone_speakers()
+
 func set_front_camera_research_level(level: int) -> void:
 	researched_front_camera_count = clampi(level, 0, FRONT_CAMERA_STYLES.size())
 	if FRONT_CAMERA_STYLES.find(front_camera_style) >= researched_front_camera_count and researched_front_camera_count > 0:
@@ -3392,6 +3407,8 @@ func _on_research_feature_selected(feature_name: String) -> void:
 		charge_port_research_prompt_requested.emit()
 	elif feature_name == "Front Camera":
 		front_camera_research_prompt_requested.emit()
+	elif feature_name == "Speakers":
+		speaker_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
@@ -9938,7 +9955,7 @@ func _show_speaker_controls() -> void:
 	level_labels.add_theme_constant_override("separation", 0)
 	meter_row.add_child(level_labels)
 
-	for level in range(12, -1, -1):
+	for level in range(researched_speaker_count, -1, -1):
 		var level_label := _make_label(str(level), 14, Color("#dce9df"))
 		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -9947,25 +9964,26 @@ func _show_speaker_controls() -> void:
 	var meter := VSlider.new()
 	meter.name = "SpeakerCountLevelMeter"
 	meter.min_value = 0
-	meter.max_value = 12
+	meter.max_value = researched_speaker_count
 	meter.step = 1
 	meter.value = speaker_count
-	meter.tick_count = 13
+	meter.tick_count = researched_speaker_count + 1
 	meter.custom_minimum_size = Vector2(76, 320)
 	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	meter.value_changed.connect(_on_speaker_count_changed)
 	_style_custom_slider(meter)
+	speaker_count_slider = meter
 	meter_row.add_child(meter)
 
-	speaker_count_value_label = _make_label("SPEAKERS %d / 12" % speaker_count, 16, Color("#9bd6a7"))
+	speaker_count_value_label = _make_label("SPEAKERS %d / %d UNLOCKED" % [speaker_count, researched_speaker_count], 16, Color("#9bd6a7"))
 	speaker_count_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(speaker_count_value_label)
 
 func _on_speaker_count_changed(value: float) -> void:
-	speaker_count = clampi(roundi(value), 0, 12)
+	speaker_count = clampi(roundi(value), 0, researched_speaker_count)
 	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS %d / 12" % speaker_count
+		speaker_count_value_label.text = "SPEAKERS %d / %d UNLOCKED" % [speaker_count, researched_speaker_count]
 	_refresh_phone_speakers()
 
 func _refresh_phone_speakers() -> void:
