@@ -101,7 +101,7 @@ func show_custom_picker(options: Array, title_text: String, selected_value: Stri
 
 	var shade := ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.001, 0.009, 0.005, 0.91)
+	shade.color = Color(0.001, 0.006, 0.022, 0.92)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_picker_overlay.add_child(shade)
 
@@ -126,14 +126,14 @@ func show_custom_picker(options: Array, title_text: String, selected_value: Stri
 	var accent := ColorRect.new()
 	accent.custom_minimum_size = Vector2(76, 4)
 	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	accent.color = Color("#a9d9ad")
+	accent.color = Color("#8fc7f4")
 	alert_content.add_child(accent)
 
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 8)
 	alert_content.add_child(header)
 
-	var heading := _make_label(title_text.to_upper(), 19, Color("#effff0"))
+	var heading := _make_label(title_text.to_upper(), 19, Color("#f0f5fb"))
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(heading)
@@ -145,7 +145,7 @@ func show_custom_picker(options: Array, title_text: String, selected_value: Stri
 	close_button.pressed.connect(_close_custom_picker)
 	header.add_child(close_button)
 
-	var hint := _make_label("CHOOSE ONE OPTION", 11, Color("#9eafa4"))
+	var hint := _make_label("CHOOSE ONE OPTION", 11, Color("#a7b4c7"))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	alert_content.add_child(hint)
 
@@ -158,7 +158,7 @@ func show_custom_picker(options: Array, title_text: String, selected_value: Stri
 	alert_content.add_child(options_grid)
 
 	if options.is_empty():
-		var empty := _make_label("No available options.", 15, Color("#9eafa4"))
+		var empty := _make_label("No available options.", 15, Color("#a7b4c7"))
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		alert_content.add_child(empty)
 	else:
@@ -172,7 +172,7 @@ func show_custom_picker(options: Array, title_text: String, selected_value: Stri
 			option_button.pressed.connect(_choose_custom_picker_option.bind(option_text, on_selected))
 			options_grid.add_child(option_button)
 
-	var footer_note := _make_label("SELECTING AN OPTION RETURNS TO THE PREVIOUS ALERT", 9, Color("#718477"))
+	var footer_note := _make_label("SELECTING AN OPTION RETURNS TO THE PREVIOUS ALERT", 9, Color("#8394aa"))
 	footer_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	alert_content.add_child(footer_note)
 
@@ -212,7 +212,7 @@ func _build_modal() -> void:
 
 	_shade = ColorRect.new()
 	_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_shade.color = Color(0.002, 0.018, 0.009, 0.84)
+	_shade.color = Color(0.002, 0.008, 0.025, 0.86)
 	_shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_shade)
 
@@ -237,19 +237,19 @@ func _build_modal() -> void:
 	var accent := ColorRect.new()
 	accent.custom_minimum_size = Vector2(92, 4)
 	accent.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	accent.color = Color("#a9d9ad")
+	accent.color = Color("#8fc7f4")
 	_content.add_child(accent)
 
-	_title = _make_label("", 28, Color("#f4fff3"))
+	_title = _make_label("", 28, Color("#f4f6fa"))
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_color_override("font_outline_color", Color(0.0, 0.12, 0.035, 0.9))
+	_title.add_theme_color_override("font_outline_color", Color(0.02, 0.10, 0.22, 0.9))
 	_title.add_theme_constant_override("outline_size", 2)
 	_title.add_theme_constant_override("shadow_offset_x", 2)
 	_title.add_theme_constant_override("shadow_offset_y", 3)
 	_title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	_content.add_child(_title)
 
-	_message = _make_label("", 19, Color("#dcebdd"))
+	_message = _make_label("", 19, Color("#cbd5e2"))
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.custom_minimum_size.y = 28
 	_content.add_child(_message)
@@ -311,23 +311,23 @@ func _refresh_responsive_type() -> void:
 
 func _style_button(button: Button, primary: bool) -> void:
 	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_color_override("font_color", Color("#f5fff4"))
+	button.add_theme_color_override("font_color", Color("#f5f8fc"))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_outline_color", Color("#12351c"))
+	button.add_theme_color_override("font_outline_color", Color("#102b49"))
 	button.add_theme_constant_override("outline_size", 1)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.22, 0.56, 0.30, 0.56) if primary else Color(0.72, 0.88, 0.73, 0.20)
+		style.bg_color = Color(0.14, 0.38, 0.66, 0.56) if primary else Color(0.70, 0.82, 0.94, 0.20)
 		if state == "hover":
-			style.bg_color = Color(0.34, 0.72, 0.42, 0.72) if primary else Color(0.82, 0.96, 0.84, 0.34)
+			style.bg_color = Color(0.22, 0.54, 0.86, 0.72) if primary else Color(0.82, 0.90, 1.0, 0.34)
 		elif state == "pressed":
-			style.bg_color = Color(0.08, 0.31, 0.15, 0.78)
-		style.border_color = Color(0.86, 1.0, 0.87, 0.92)
+			style.bg_color = Color(0.06, 0.20, 0.42, 0.78)
+		style.border_color = Color(0.84, 0.92, 1.0, 0.92)
 		style.set_border_width_all(1)
 		style.border_width_top = 3
 		style.set_corner_radius_all(14)
-		style.shadow_color = Color(0.0, 0.12, 0.025, 0.62)
+		style.shadow_color = Color(0.0, 0.06, 0.18, 0.62)
 		style.shadow_size = 14
 		style.shadow_offset = Vector2(0, 4)
 		style.anti_aliasing = true
