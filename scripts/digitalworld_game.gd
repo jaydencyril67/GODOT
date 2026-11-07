@@ -2860,7 +2860,7 @@ func _show_phone_battery_capacity_research_prompt() -> void:
 		_show_notice("BATTERY RESEARCH IN PROGRESS", "Your next battery capacity upgrade is already being researched. Estimated time remaining: %d in-game days." % remaining_days)
 		return
 	var next_capacity := 1000 + completed_level * 500
-	var prompt_message := "%s mAh battery capacity\n\nResearch points required: 100 RP\nResearch cost: $500,000\nResearch duration: 7 in-game days" % _format_integer_with_commas(next_capacity)
+	var prompt_message := "%s mAh battery capacity\n\nResearch points required: 100 RP\nResearch cost: $500,000\nResearch duration: 7 in-game days" % _format_count(next_capacity)
 	if is_instance_valid(confirm_modal):
 		confirm_modal.show_action_prompt("BATTERY CAPACITY RESEARCH", prompt_message, "RESEARCH", Callable(self, "_on_phone_battery_capacity_research_upgrade"))
 
@@ -2923,7 +2923,7 @@ func _process_phone_battery_research() -> void:
 		phone_research_worksite.call("set_research_data", _get_phone_research_ui_data(), float(career.get("balance", 0.0)), int(career.get("research_points", 0)))
 	if current_screen == "research":
 		var unlocked_capacity := 1000 + (int(career["phone_battery_capacity_research_level"]) - 1) * 500
-		_show_notice("BATTERY RESEARCH COMPLETE", "%s mAh maximum battery capacity is now unlocked." % _format_integer_with_commas(unlocked_capacity))
+		_show_notice("BATTERY RESEARCH COMPLETE", "%s mAh maximum battery capacity is now unlocked." % _format_count(unlocked_capacity))
 
 
 func _on_phone_charge_port_research_upgrade() -> void:
