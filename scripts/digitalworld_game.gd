@@ -211,7 +211,10 @@ func _load_career() -> bool:
 		"phone_front_camera_research_completion_unix": float(config.get_value("career", "phone_front_camera_research_completion_unix", 0.0)),
 		"phone_speaker_research_level": clampi(int(config.get_value("career", "phone_speaker_research_level", 0)), 0, 12),
 		"phone_speaker_research_active_level": int(config.get_value("career", "phone_speaker_research_active_level", -1)),
-		"phone_speaker_research_completion_unix": float(config.get_value("career", "phone_speaker_research_completion_unix", 0.0))
+		"phone_speaker_research_completion_unix": float(config.get_value("career", "phone_speaker_research_completion_unix", 0.0)),
+		"phone_curve_screen_research_unlocked": bool(config.get_value("career", "phone_curve_screen_research_unlocked", false)),
+		"phone_curve_screen_research_active": bool(config.get_value("career", "phone_curve_screen_research_active", false)),
+		"phone_curve_screen_research_completion_unix": float(config.get_value("career", "phone_curve_screen_research_completion_unix", 0.0))
 	}
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
@@ -251,6 +254,9 @@ func _save_career() -> bool:
 	config.set_value("career", "phone_speaker_research_level", clampi(int(career.get("phone_speaker_research_level", 0)), 0, 12))
 	config.set_value("career", "phone_speaker_research_active_level", int(career.get("phone_speaker_research_active_level", -1)))
 	config.set_value("career", "phone_speaker_research_completion_unix", float(career.get("phone_speaker_research_completion_unix", 0.0)))
+	config.set_value("career", "phone_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
+	config.set_value("career", "phone_curve_screen_research_active", bool(career.get("phone_curve_screen_research_active", false)))
+	config.set_value("career", "phone_curve_screen_research_completion_unix", float(career.get("phone_curve_screen_research_completion_unix", 0.0)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
