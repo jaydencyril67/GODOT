@@ -5384,38 +5384,30 @@ func _refresh_screen_technology_ui() -> void:
 		screen_quality_state = ScreenTechnologySystem.create_state()
 	ScreenTechnologySystem.ensure_state(screen_quality_state)
 	current_screen_technology = ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]))
-	var is_complete := int(screen_quality_state["technology_milestone"]) >= ScreenTechnologySystem.FINAL_TECHNOLOGY_MILESTONE
 	var next_required_level := ScreenTechnologySystem.get_next_milestone_requirement(screen_quality_state)
-	var displayed_max_level := ScreenTechnologySystem.MAX_QUALITY_LEVEL if is_complete else next_required_level
 
 	if is_instance_valid(screen_technology_name_label):
 		screen_technology_name_label.text = current_screen_technology
 	if is_instance_valid(screen_next_upgrade_label):
-		if is_complete:
-			screen_next_upgrade_label.text = "ALL SCREEN QUALITIES FULLY REFINED"
-		else:
-			var next_quality := ScreenTechnologySystem.get_next_quality(screen_quality_state)
-			screen_next_upgrade_label.text = "NEXT UPGRADE: " + ScreenTechnologySystem.get_quality_display_name(next_quality).to_upper()
+		var next_quality := ScreenTechnologySystem.get_next_quality(screen_quality_state)
+		screen_next_upgrade_label.text = "NEXT UPGRADE: " + ScreenTechnologySystem.get_quality_display_name(next_quality).to_upper()
 	if is_instance_valid(screen_next_milestone_label):
-		if is_complete:
-			screen_next_milestone_label.text = "MAXIMUM SCREEN TECHNOLOGY REACHED\nMICROLED GENERATION 30 IS THE FINAL UPGRADE"
-		else:
-			var next_technology := ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]) + 1)
-			screen_next_milestone_label.text = "NEXT TECHNOLOGY: %s\nALL THREE QUALITIES MUST REACH LEVEL %d" % [next_technology.to_upper(), next_required_level]
+		var next_technology := ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]) + 1)
+		screen_next_milestone_label.text = "NEXT TECHNOLOGY: %s\\nALL THREE QUALITIES MUST REACH LEVEL %d" % [next_technology.to_upper(), next_required_level]
 
 	for quality in ScreenTechnologySystem.QUALITY_ORDER:
 		if not screen_quality_value_labels.has(quality):
 			continue
 		var value_label: Label = screen_quality_value_labels[quality]
 		if is_instance_valid(value_label):
-			value_label.text = "LEVEL %d / %d" % [int(screen_quality_state[quality]), displayed_max_level]
+			value_label.text = "LEVEL %d / %d" % [int(screen_quality_state[quality]), next_required_level]
 
+	# Disable the test button at MicroLED Generation 30; progression itself remains uncapped.
 	var upgrade_button: Button = null
 	if is_instance_valid(active_feature_panel):
 		upgrade_button = active_feature_panel.get_node_or_null("FreeScreenUpgradeTestButton") as Button
 	if is_instance_valid(upgrade_button):
-		upgrade_button.disabled = is_complete
-		upgrade_button.text = "SCREEN TECHNOLOGY MAXED" if is_complete else "FREE TEST UPGRADE"
+		upgrade_button.disabled = int(screen_quality_state["technology_milestone"]) >= 38
 
 
 func _on_free_screen_upgrade_test_pressed() -> void:
@@ -5424,11 +5416,6 @@ func _on_free_screen_upgrade_test_pressed() -> void:
 	_refresh_phone_screen()
 	_refresh_screen_technology_ui()
 
-	if bool(result.get("completed", false)):
-		if is_instance_valid(screen_upgrade_feedback_label):
-			screen_upgrade_feedback_label.text = "MAXIMUM REFINEMENT REACHED. MICROLED GENERATION 30 IS COMPLETE."
-		return
-
 	if bool(result.get("technology_unlocked", false)):
 		if is_instance_valid(screen_upgrade_feedback_label):
 			screen_upgrade_feedback_label.text = "NEW TECHNOLOGY UNLOCKED: " + current_screen_technology.to_upper()
@@ -5436,7 +5423,6 @@ func _on_free_screen_upgrade_test_pressed() -> void:
 		var improved_quality := ScreenTechnologySystem.get_quality_display_name(str(result.get("quality", "")))
 		if is_instance_valid(screen_upgrade_feedback_label):
 			screen_upgrade_feedback_label.text = "%s improved to level %d." % [improved_quality, int(result.get("quality_level", 0))]
-
 
 func _style_screen_type_option(option: Button, _rank: int, selected: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
