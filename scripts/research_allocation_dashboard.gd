@@ -205,6 +205,7 @@ func _build_project_column(parent: HBoxContainer, compact: bool) -> void:
 	scroll.name = "ResearchProjectListScroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	content.add_child(scroll)
 
 	project_list = VBoxContainer.new()
@@ -225,6 +226,7 @@ func _build_workspace(parent: HBoxContainer) -> void:
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	workspace.add_child(scroll)
 	workspace_content = VBoxContainer.new()
 	workspace_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -339,6 +341,9 @@ func _show_new_project_form() -> void:
 	var add_component_button := _button("ADD", true, BLUE, compact)
 	add_component_button.pressed.connect(_add_selected_component)
 	component_row.add_child(add_component_button)
+	var undo_component_button := _button("UNDO", false, ORANGE, compact)
+	undo_component_button.pressed.connect(_remove_last_component)
+	component_row.add_child(undo_component_button)
 	form.add_child(_field_block(form, "TECHNOLOGY COMPONENTS", component_row))
 
 	component_summary_label = _label("No components selected.", 9, TEXT_MUTED)
@@ -421,6 +426,13 @@ func _add_selected_component() -> void:
 		_set_feedback("That component is already included in this project.", false)
 		return
 	selected_components.append(component)
+	_update_component_summary()
+
+
+func _remove_last_component() -> void:
+	if selected_components.is_empty():
+		return
+	selected_components.pop_back()
 	_update_component_summary()
 
 
