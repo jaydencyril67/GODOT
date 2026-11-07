@@ -209,9 +209,11 @@ func _run_screen_technology_checks() -> bool:
 
 	var visual_state: Dictionary = ScreenTechnologySystem.create_state()
 	var base_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
+	var base_color: Color = base_profile["albedo_color"]
 	ScreenTechnologySystem.upgrade(visual_state)
 	var darkness_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
-	if is_equal_approx(Color(base_profile["albedo_color"]).r, Color(darkness_profile["albedo_color"]).r):
+	var darkness_color: Color = darkness_profile["albedo_color"]
+	if is_equal_approx(base_color.r, darkness_color.r):
 		_fail("Darkness upgrades did not change the screen's black depth.")
 		return false
 	if not is_equal_approx(float(base_profile["roughness"]), float(darkness_profile["roughness"])) or not is_equal_approx(float(base_profile["metallic_specular"]), float(darkness_profile["metallic_specular"])):
@@ -220,7 +222,8 @@ func _run_screen_technology_checks() -> bool:
 
 	ScreenTechnologySystem.upgrade(visual_state)
 	var shininess_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
-	if not is_equal_approx(Color(darkness_profile["albedo_color"]).r, Color(shininess_profile["albedo_color"]).r) or is_equal_approx(float(darkness_profile["roughness"]), float(shininess_profile["roughness"])):
+	var shininess_color: Color = shininess_profile["albedo_color"]
+	if not is_equal_approx(darkness_color.r, shininess_color.r) or is_equal_approx(float(darkness_profile["roughness"]), float(shininess_profile["roughness"])):
 		_fail("A shininess upgrade did not independently refine the screen finish.")
 		return false
 	if not is_equal_approx(float(darkness_profile["metallic_specular"]), float(shininess_profile["metallic_specular"])):
@@ -229,10 +232,11 @@ func _run_screen_technology_checks() -> bool:
 
 	ScreenTechnologySystem.upgrade(visual_state)
 	var reflection_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
+	var reflection_color: Color = reflection_profile["albedo_color"]
 	if not is_equal_approx(float(shininess_profile["metallic_specular"]), float(reflection_profile["metallic_specular"])):
 		_fail("Reflection reduction did not change its own screen property.")
 		return false
-	if not is_equal_approx(Color(shininess_profile["albedo_color"]).r, Color(reflection_profile["albedo_color"]).r) or not is_equal_approx(float(shininess_profile["roughness"]), float(reflection_profile["roughness"])):
+	if not is_equal_approx(shininess_color.r, reflection_color.r) or not is_equal_approx(float(shininess_profile["roughness"]), float(reflection_profile["roughness"])):
 		_fail("A reflection reduction upgrade changed another screen quality.")
 		return false
 
