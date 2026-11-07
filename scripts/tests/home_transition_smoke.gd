@@ -95,25 +95,38 @@ func _run_transition_checks() -> void:
 	if not game.has_method("_process_phone_charge_port_research") or not game.has_method("_process_phone_battery_research") or not game.has_method("_apply_phone_design_research_upgrade"):
 		_fail("Removing the old research interface also removed part of the existing research engine.")
 		return
-	if not is_instance_valid(dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard")):
-		_fail("Research dashboard did not build its primary content root.")
+	if not is_instance_valid(dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard/ResearchDashboardBody")):
+		_fail("Research dashboard did not build its three-dial game interface.")
 		return
+	for department in ["Hardware", "Software", "Extras"]:
+		if not is_instance_valid(dashboard.allocation_dials.get(department)):
+			_fail("%s allocation dial was not created." % department)
+			return
 	var initial_strategy: Dictionary = dashboard.strategy
 	var initial_total := int(initial_strategy.get("Hardware", 0)) + int(initial_strategy.get("Software", 0)) + int(initial_strategy.get("Extras", 0))
 	if initial_total != 100:
 		_fail("Default company research allocation does not total 100%.")
 		return
-	dashboard._on_strategy_slider_changed(70.0, "Hardware")
+	dashboard._apply_allocation_value(70.0, "Hardware", true)
 	var updated_strategy: Dictionary = game.career.get("research_strategy", {})
 	var updated_total := int(updated_strategy.get("Hardware", 0)) + int(updated_strategy.get("Software", 0)) + int(updated_strategy.get("Extras", 0))
 	if updated_total != 100 or int(updated_strategy.get("Hardware", 0)) != 70:
-		_fail("Changing a department allocation did not preserve the 100% total.")
+		_fail("Steering a department dial did not preserve and save the 100% total.")
 		return
-	dashboard.priority_component_picker.select(0)
-	dashboard.priority_level_picker.select(2)
-	dashboard._apply_component_priority()
-	if str(game.career.get("research_component_priorities", {}).get("Battery", "")) != "High":
-		_fail("Component priority was not saved to the company career.")
+	dashboard.pending_department = "Hardware"
+	dashboard.pending_priority_rows = [
+		{"component": "Display", "priority": "Extreme"},
+		{"component": "Processor", "priority": "High"},
+		{"component": "Front Camera", "priority": "Low"},
+		{"component": "Rear Camera", "priority": "High"}
+	]
+	dashboard._save_department_priorities()
+	var saved_priorities: Dictionary = game.career.get("research_component_priorities", {})
+	if str(saved_priorities.get("Display", "")) != "Extreme" or str(saved_priorities.get("Processor", "")) != "High" or str(saved_priorities.get("Front Camera", "")) != "Low":
+		_fail("Department priority selections were not saved to the company career.")
+		return
+	if saved_priorities.has("Rear Camera"):
+		_fail("The department accepted more than three priority components.")
 		return
 	dashboard._show_history()
 	if not is_instance_valid(dashboard.get_node_or_null("RecentResearchHistoryOverlay")):
