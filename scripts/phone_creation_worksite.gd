@@ -115,6 +115,7 @@ signal speaker_research_prompt_requested
 signal battery_research_prompt_requested
 signal wifi_research_prompt_requested
 signal bluetooth_research_prompt_requested
+signal mobile_internet_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -540,7 +541,8 @@ var researched_bluetooth_level := 1
 var selected_wifi_standard := "Wi-Fi 1 (802.11b)"
 var researched_wifi_level := 1
 
-var selected_mobile_network := "Not set"
+var selected_mobile_network := "2G (GSM / EDGE)"
+var researched_mobile_internet_level := 1
 
 var selected_phone_sensors: Dictionary = {
 	"Fingerprint Sensor": false,
@@ -3421,12 +3423,12 @@ func _build_research_feature_grid(parent: Control, compact: bool, section_captio
 
 		var dummy_button := Button.new()
 		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth"] else "SELECT"
+		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Network"] else "SELECT"
 		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
 		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(dummy_button, 11 if short_screen else 12)
 		_style_staff_button(dummy_button, false)
-		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth"]:
+		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Network"]:
 			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
 		# Other research categories remain placeholders until their individual
 		# progression screens are implemented.
@@ -3466,6 +3468,8 @@ func _on_research_feature_selected(feature_name: String) -> void:
 		wifi_research_prompt_requested.emit()
 	elif feature_name == "Bluetooth":
 		bluetooth_research_prompt_requested.emit()
+	elif feature_name == "Network":
+		mobile_internet_research_prompt_requested.emit()
 
 
 func _build_research_view_selector(parent: Control, compact: bool) -> void:
@@ -12259,7 +12263,8 @@ func _show_mobile_network_controls() -> void:
 		"5G SA",
 		"5G-Advanced"
 	]
-	for network in networks:
+	for network_index in range(networks.size()):
+		var network: String = networks[network_index]
 		var option := Button.new()
 		option.name = "MobileNetworkOption_" + network.replace(" ", "").replace("/", "_").replace("(", "").replace(")", "").replace("+", "Plus")
 		var display_name: String = network
@@ -12274,8 +12279,10 @@ func _show_mobile_network_controls() -> void:
 				display_name = "4G+"
 			"5G-Advanced":
 				display_name = "5G-A"
-		option.text = display_name + ("  ✓" if selected_mobile_network == network else "")
-		option.tooltip_text = network
+		var unlocked := network_index < researched_mobile_internet_level
+		option.text = display_name + ("  ✓" if selected_mobile_network == network else ("  🔒" if not unlocked else ""))
+		option.tooltip_text = network + (" — LOCKED" if not unlocked else "")
+		option.disabled = not unlocked
 		option.custom_minimum_size = Vector2(0, 42)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(option, 15)
@@ -12287,8 +12294,20 @@ func _show_mobile_network_controls() -> void:
 		option.pressed.connect(_on_mobile_network_selected.bind(network))
 		options.add_child(option)
 
+func set_mobile_internet_research_level(level: int) -> void:
+	researched_mobile_internet_level = clampi(level, 1, 7)
+	var networks := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
+	var selected_index := networks.find(selected_mobile_network)
+	if selected_index < 0 or selected_index >= researched_mobile_internet_level:
+		selected_mobile_network = networks[researched_mobile_internet_level - 1]
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "MobileNetworkSelectionControls":
+		_show_mobile_network_controls()
+
+
 func _on_mobile_network_selected(network: String) -> void:
-	if not ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"].has(network):
+	var networks := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
+	var network_index := networks.find(network)
+	if network_index < 0 or network_index >= researched_mobile_internet_level:
 		return
 	selected_mobile_network = network
 	if software_value_labels.has("MOBILE NETWORK") and is_instance_valid(software_value_labels["MOBILE NETWORK"]):
