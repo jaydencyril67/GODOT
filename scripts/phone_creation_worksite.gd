@@ -1,5 +1,7 @@
 extends Node3D
 
+const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
+
 var charging_speed_step_visited := false
 var wireless_charge_step_visited := false
 var sensors_step_visited := false
@@ -382,13 +384,15 @@ var side_curve_toggle: Button
 
 var vertical_curve_toggle: Button
 
-var selected_screen_type := "TFT LCD"
+var screen_quality_state: Dictionary = {}
+var current_screen_technology := "TFT LCD"
+var screen_technology_name_label: Label
+var screen_next_upgrade_label: Label
+var screen_next_milestone_label: Label
+var screen_upgrade_feedback_label: Label
+var screen_quality_value_labels: Dictionary = {}
 
 var screen_enable_checkbox: CheckBox
-
-var screen_type_buttons: Dictionary = {}
-
-const SCREEN_TYPE_ORDER := ["TFT LCD", "LED-LCD", "IPS LCD", "Mini-LED LCD", "OLED", "AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED", "MicroLED"]
 
 var preview_camera: Camera3D
 
@@ -703,6 +707,8 @@ var box_package_logo_sprite: Sprite3D
 var box_package_name_label: Label3D
 
 func _ready() -> void:
+	screen_quality_state = ScreenTechnologySystem.create_state()
+	current_screen_technology = ScreenTechnologySystem.get_technology_name(0)
 	_build_preview_world()
 	_build_interface()
 
@@ -1107,7 +1113,7 @@ func _update_preview_for_phone_type(phone_type: String) -> void:
 	if software_value_labels.has("PHONE TYPE") and is_instance_valid(software_value_labels["PHONE TYPE"]):
 		var phone_type_label: Label = software_value_labels["PHONE TYPE"]
 		phone_type_label.text = selected_phone_type
-	_refresh_screen_type_buttons()
+	_refresh_screen_technology_ui()
 func _on_next_pressed() -> void:
 	_keep_step_navigation_active()
 	if selected_phone_type.is_empty():
@@ -5290,7 +5296,7 @@ func _show_screen_tech_controls() -> void:
 	active_feature_panel.name = "ScreenTechControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 10)
+	active_feature_panel.add_theme_constant_override("separation", 9)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("SCREEN TECHNOLOGY", 18, Color("#c7eacb"))
@@ -5299,33 +5305,65 @@ func _show_screen_tech_controls() -> void:
 
 	_add_screen_enablement_row(active_feature_panel, "ScreenEnablementRow", "ScreenEnablement", "Enable Screen", screen_enabled, Callable(self, "_on_screen_enablement_toggled"))
 
-	var type_grid := GridContainer.new()
-	type_grid.name = "ScreenTypeOptions"
-	type_grid.columns = 2
-	type_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_grid.add_theme_constant_override("h_separation", 8)
-	type_grid.add_theme_constant_override("v_separation", 6)
-	active_feature_panel.add_child(type_grid)
+	var technology_caption := _make_label("CURRENT TECHNOLOGY", 10, Color("#9fbca4"))
+	technology_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(technology_caption)
 
-	screen_type_buttons.clear()
-	for index in range(SCREEN_TYPE_ORDER.size()):
-		var type_name: String = SCREEN_TYPE_ORDER[index]
-		var option := Button.new()
-		option.name = "ScreenType_" + type_name.replace(" ", "").replace("-", "")
-		option.text = "%02d   %s" % [index + 1, type_name]
-		option.custom_minimum_size = Vector2(0, 50.0)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.focus_mode = Control.FOCUS_NONE
-		var screen_font := FontVariation.new()
-		screen_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-		screen_font.variation_embolden = 1.5
-		option.add_theme_font_override("font", screen_font)
-		option.add_theme_font_size_override("font_size", 17)
-		_style_screen_type_option(option, index, type_name == selected_screen_type)
-		option.pressed.connect(_on_screen_type_selected.bind(type_name))
-		type_grid.add_child(option)
-		screen_type_buttons[type_name] = option
-	_refresh_screen_type_buttons()
+	screen_technology_name_label = _make_label(current_screen_technology, 19, Color("#f1fff3"))
+	screen_technology_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(screen_technology_name_label)
+
+	var separator := ColorRect.new()
+	separator.custom_minimum_size = Vector2(0, 1)
+	separator.color = Color(0.58, 0.82, 0.63, 0.30)
+	active_feature_panel.add_child(separator)
+
+	screen_quality_value_labels.clear()
+	for quality in ScreenTechnologySystem.QUALITY_ORDER:
+		var row := HBoxContainer.new()
+		row.name = "ScreenQuality_" + quality
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 8)
+		active_feature_panel.add_child(row)
+
+		var quality_name := _make_label(ScreenTechnologySystem.get_quality_display_name(quality), 11, Color("#e5eee7"))
+		quality_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		quality_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(quality_name)
+
+		var value_label := _make_label("LEVEL 0", 11, Color("#bceac4"))
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		value_label.custom_minimum_size.x = 74
+		row.add_child(value_label)
+		screen_quality_value_labels[quality] = value_label
+
+	screen_next_upgrade_label = _make_label("", 12, Color("#d9f4dd"))
+	screen_next_upgrade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(screen_next_upgrade_label)
+
+	screen_next_milestone_label = _make_label("", 10, Color("#b5c7b9"))
+	screen_next_milestone_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	screen_next_milestone_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(screen_next_milestone_label)
+
+	var upgrade_button := Button.new()
+	upgrade_button.name = "FreeScreenUpgradeTestButton"
+	upgrade_button.text = "FREE TEST UPGRADE"
+	upgrade_button.custom_minimum_size = Vector2(0, 44)
+	upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	upgrade_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(upgrade_button, 13)
+	_style_staff_button(upgrade_button, true)
+	upgrade_button.pressed.connect(_on_free_screen_upgrade_test_pressed)
+	active_feature_panel.add_child(upgrade_button)
+
+	screen_upgrade_feedback_label = _make_label("Each click improves one quality in order. All three must reach level 3 to unlock the next technology.", 10, Color("#a9c9af"))
+	screen_upgrade_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	screen_upgrade_feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(screen_upgrade_feedback_label)
+
+	_refresh_screen_technology_ui()
+
 
 func _on_screen_enablement_toggled(enabled: bool) -> void:
 	screen_enabled = enabled
@@ -5333,15 +5371,49 @@ func _on_screen_enablement_toggled(enabled: bool) -> void:
 	var toggle := active_feature_panel.get_node_or_null("ScreenEnablementRow/ScreenEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
 		toggle.text = "✓" if enabled else ""
-	_refresh_screen_type_buttons()
+	_refresh_screen_technology_ui()
 
-func _on_screen_type_selected(type_name: String) -> void:
-	selected_screen_type = type_name
+
+func _refresh_screen_technology_ui() -> void:
+	if screen_quality_state.is_empty():
+		screen_quality_state = ScreenTechnologySystem.create_state()
+	ScreenTechnologySystem.ensure_state(screen_quality_state)
+	current_screen_technology = ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]))
+	var next_required_level := ScreenTechnologySystem.get_next_milestone_requirement(screen_quality_state)
+
+	if is_instance_valid(screen_technology_name_label):
+		screen_technology_name_label.text = current_screen_technology
+	if is_instance_valid(screen_next_upgrade_label):
+		var next_quality := ScreenTechnologySystem.get_next_quality(screen_quality_state)
+		screen_next_upgrade_label.text = "NEXT UPGRADE: " + ScreenTechnologySystem.get_quality_display_name(next_quality).to_upper()
+	if is_instance_valid(screen_next_milestone_label):
+		var next_technology := ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]) + 1)
+		screen_next_milestone_label.text = "NEXT TECHNOLOGY: %s\nALL THREE QUALITIES MUST REACH LEVEL %d" % [next_technology.to_upper(), next_required_level]
+
+	for quality in ScreenTechnologySystem.QUALITY_ORDER:
+		if not screen_quality_value_labels.has(quality):
+			continue
+		var value_label: Label = screen_quality_value_labels[quality]
+		if is_instance_valid(value_label):
+			value_label.text = "LEVEL %d / %d" % [int(screen_quality_state[quality]), next_required_level]
+
+
+func _on_free_screen_upgrade_test_pressed() -> void:
+	var result: Dictionary = ScreenTechnologySystem.upgrade(screen_quality_state)
+	current_screen_technology = str(result.get("technology", current_screen_technology))
 	_refresh_phone_screen()
-	_refresh_screen_type_buttons()
+	_refresh_screen_technology_ui()
+
+	if bool(result.get("technology_unlocked", false)):
+		if is_instance_valid(screen_upgrade_feedback_label):
+			screen_upgrade_feedback_label.text = "NEW TECHNOLOGY UNLOCKED: " + current_screen_technology.to_upper()
+	else:
+		var improved_quality := ScreenTechnologySystem.get_quality_display_name(str(result.get("quality", "")))
+		if is_instance_valid(screen_upgrade_feedback_label):
+			screen_upgrade_feedback_label.text = "%s improved to level %d." % [improved_quality, int(result.get("quality_level", 0))]
+
 
 func _style_screen_type_option(option: Button, _rank: int, selected: bool) -> void:
-	# Match the worksite's dark translucent glass buttons and green brand rim.
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.075, 0.16, 0.095, 0.88) if selected else Color(0.12, 0.15, 0.13, 0.76)
@@ -5377,16 +5449,6 @@ func _style_screen_type_option(option: Button, _rank: int, selected: bool) -> vo
 	reflection.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reflection.queue_redraw()
 
-func _refresh_screen_type_buttons() -> void:
-	for index in range(SCREEN_TYPE_ORDER.size()):
-		var type_name: String = SCREEN_TYPE_ORDER[index]
-		if not screen_type_buttons.has(type_name):
-			continue
-		var option: Button = screen_type_buttons[type_name]
-		if not is_instance_valid(option):
-			continue
-		_style_screen_type_option(option, index, type_name == selected_screen_type)
-		option.disabled = not screen_enabled
 
 func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float, corner_mask: int = 15) -> Mesh:
 	# A true rounded-rectangle extrusion keeps the glass and button outlines
@@ -7118,6 +7180,21 @@ func _on_charger_color_selected(value: String) -> void:
 	_rebuild_charger_preview()
 	_show_worksite_charger_controls("FINISH")
 
+func _create_screen_visual_material() -> StandardMaterial3D:
+	var profile: Dictionary = ScreenTechnologySystem.get_visual_profile(screen_quality_state)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = profile["albedo_color"]
+	material.roughness = float(profile["roughness"])
+	material.metallic = float(profile["metallic"])
+	material.metallic_specular = float(profile["metallic_specular"])
+	material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.emission_enabled = true
+	material.emission = material.albedo_color
+	material.emission_energy_multiplier = 0.025
+	return material
+
+
 func _refresh_phone_screen() -> void:
 	if not is_instance_valid(phone_body):
 		return
@@ -7168,50 +7245,7 @@ func _refresh_phone_screen() -> void:
 	else:
 		display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
 
-	var display_material := StandardMaterial3D.new()
-	display_material.metallic = 0.02
-	display_material.roughness = 0.20
-	display_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
-	display_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	# Each technology inherits the next tier's previous screen finish.
-	# MicroLED receives a new near-black polished finish with restrained reflections.
-	var screen_colors := {
-		"TFT LCD": Color("#303030"),
-		"LED-LCD": Color("#292929"),
-		"IPS LCD": Color("#222222"),
-		"Mini-LED LCD": Color("#1c1c1c"),
-		"OLED": Color("#171717"),
-		"AMOLED": Color("#121212"),
-		"Super AMOLED": Color("#0e0e0e"),
-		"Dynamic AMOLED": Color("#0a0a0a"),
-		"LTPO AMOLED": Color("#060606"),
-		"MicroLED": Color("#020202")
-	}
-	var screen_roughness := {
-		"TFT LCD": 0.27,
-		"LED-LCD": 0.24,
-		"IPS LCD": 0.19,
-		"Mini-LED LCD": 0.15,
-		"OLED": 0.11,
-		"AMOLED": 0.075,
-		"Super AMOLED": 0.060,
-		"Dynamic AMOLED": 0.045,
-		"LTPO AMOLED": 0.035,
-		"MicroLED": 0.022
-	}
-	display_material.albedo_color = screen_colors.get(selected_screen_type, Color("#0e1723"))
-	display_material.roughness = screen_roughness.get(selected_screen_type, 0.12)
-	var premium_screen_tier := selected_screen_type in ["AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED"]
-	display_material.metallic = 0.18 if premium_screen_tier else 0.04
-	display_material.metallic_specular = 0.85 if premium_screen_tier else 0.55
-	if selected_screen_type == "MicroLED":
-		# MicroLED is the new top tier: near-black polished glass with restrained reflection.
-		display_material.metallic = 0.02
-		display_material.metallic_specular = 0.34
-	display_material.emission_enabled = true
-	display_material.emission = display_material.albedo_color
-	display_material.emission_energy_multiplier = 0.025
-	display.material_override = display_material
+	var display_material := _create_screen_visual_material()
 	var current_depth := _phone_depth_for_thickness_level()
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
 	display.position = Vector3(0.0, 0.0, current_depth * 0.5 + (0.0315 if curved_display else 0.0035))
@@ -7345,32 +7379,7 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 	var glass := MeshInstance3D.new()
 	glass.name = "OuterDisplayGlass"
 	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius, outer_corner_mask)
-	var glass_material := StandardMaterial3D.new()
-	var screen_colors := {
-		"TFT LCD": Color("#303030"), "LED-LCD": Color("#292929"),
-		"IPS LCD": Color("#222222"), "Mini-LED LCD": Color("#1c1c1c"),
-		"OLED": Color("#171717"), "AMOLED": Color("#121212"),
-		"Super AMOLED": Color("#0e0e0e"), "Dynamic AMOLED": Color("#0a0a0a"),
-		"LTPO AMOLED": Color("#060606"), "MicroLED": Color("#020202")
-	}
-	glass_material.albedo_color = screen_colors.get(selected_screen_type, Color("#0e1723"))
-	var outer_screen_roughness := {
-		"TFT LCD": 0.27, "LED-LCD": 0.24, "IPS LCD": 0.19,
-		"Mini-LED LCD": 0.15, "OLED": 0.11, "AMOLED": 0.075,
-		"Super AMOLED": 0.060, "Dynamic AMOLED": 0.045,
-		"LTPO AMOLED": 0.035, "MicroLED": 0.022
-	}
-	glass_material.roughness = outer_screen_roughness.get(selected_screen_type, 0.12)
-	glass_material.metallic = 0.10
-	glass_material.metallic_specular = 0.82
-	if selected_screen_type == "MicroLED":
-		# Keep the new MicroLED finish glossy, but reduce reflected light.
-		glass_material.metallic = 0.02
-		glass_material.metallic_specular = 0.34
-	glass_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	glass_material.emission_enabled = true
-	glass_material.emission = glass_material.albedo_color
-	glass_material.emission_energy_multiplier = 0.025
+	var glass_material := _create_screen_visual_material()
 	glass.material_override = glass_material
 	glass.rotation.y = PI
 	glass.position = Vector3(center_x, center_y, -current_depth * 0.5 - 0.008)
@@ -7446,33 +7455,7 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var glass_z := current_depth * 0.5 + (0.0315 if foldable_curve_active else 0.0035)
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
 	var moving_corner_mask := _foldable_half_corner_mask(true)
-	var colors := {
-		"TFT LCD": Color("#303030"), "LED-LCD": Color("#292929"),
-		"IPS LCD": Color("#222222"), "Mini-LED LCD": Color("#1c1c1c"),
-		"OLED": Color("#171717"), "AMOLED": Color("#121212"),
-		"Super AMOLED": Color("#0e0e0e"), "Dynamic AMOLED": Color("#0a0a0a"),
-		"LTPO AMOLED": Color("#060606"), "MicroLED": Color("#020202")
-	}
-	var roughness := {
-		"TFT LCD": 0.27, "LED-LCD": 0.24, "IPS LCD": 0.19,
-		"Mini-LED LCD": 0.15, "OLED": 0.11, "AMOLED": 0.075,
-		"Super AMOLED": 0.060, "Dynamic AMOLED": 0.045,
-		"LTPO AMOLED": 0.035, "MicroLED": 0.022
-	}
-	var display_material := StandardMaterial3D.new()
-	display_material.albedo_color = colors.get(selected_screen_type, Color("#0e1723"))
-	display_material.roughness = roughness.get(selected_screen_type, 0.12)
-	var premium_screen_tier := selected_screen_type in ["AMOLED", "Super AMOLED", "Dynamic AMOLED", "LTPO AMOLED"]
-	display_material.metallic = 0.18 if premium_screen_tier else 0.04
-	display_material.metallic_specular = 0.85 if premium_screen_tier else 0.55
-	if selected_screen_type == "MicroLED":
-		# MicroLED is the new top tier: near-black polished glass with restrained reflection.
-		display_material.metallic = 0.02
-		display_material.metallic_specular = 0.34
-	display_material.emission_enabled = true
-	display_material.emission = display_material.albedo_color
-	display_material.emission_energy_multiplier = 0.025
-	display_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var display_material := _create_screen_visual_material()
 
 	var display_root := Node3D.new()
 	display_root.name = "PhoneDisplayPanel"
