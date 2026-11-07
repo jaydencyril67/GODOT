@@ -90,10 +90,10 @@ static func get_visual_profile(state: Dictionary) -> Dictionary:
 	var reflection_level := int(state["reflection_reduction"])
 
 	# Each quality changes only its own visual property.
-	var screen_color := Color("#303030") * pow(0.88, float(darkness_level))
-	var screen_roughness := 0.04 + 0.24 * pow(0.90, float(shininess_level))
-	var screen_metallic := 0.04 + 0.56 * (1.0 - pow(0.94, float(shininess_level)))
-	var screen_specular := maxf(0.025, 0.90 * pow(0.88, float(reflection_level)))
+	var screen_color := Color("#303030") * pow(0.92, float(darkness_level))
+	var screen_roughness := 0.28 * pow(0.92, float(shininess_level))
+	var screen_metallic := 0.95 * (1.0 - pow(0.97, float(shininess_level)))
+	var screen_specular := 0.90 * pow(0.92, float(reflection_level))
 
 	return {
 		"albedo_color": screen_color,
