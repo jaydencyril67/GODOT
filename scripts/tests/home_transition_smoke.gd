@@ -207,6 +207,35 @@ func _run_screen_technology_checks() -> bool:
 		_fail("Screen technology did not start at TFT LCD.")
 		return false
 
+	var visual_state: Dictionary = ScreenTechnologySystem.create_state()
+	var base_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
+	ScreenTechnologySystem.upgrade(visual_state)
+	var darkness_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
+	if is_equal_approx(Color(base_profile["albedo_color"]).r, Color(darkness_profile["albedo_color"]).r):
+		_fail("Darkness upgrades did not change the screen's black depth.")
+		return false
+	if not is_equal_approx(float(base_profile["roughness"]), float(darkness_profile["roughness"])) or not is_equal_approx(float(base_profile["metallic_specular"]), float(darkness_profile["metallic_specular"])):
+		_fail("A darkness upgrade changed another screen quality.")
+		return false
+
+	ScreenTechnologySystem.upgrade(visual_state)
+	var shininess_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
+	if not is_equal_approx(Color(darkness_profile["albedo_color"]).r, Color(shininess_profile["albedo_color"]).r) or is_equal_approx(float(darkness_profile["roughness"]), float(shininess_profile["roughness"])):
+		_fail("A shininess upgrade did not independently refine the screen finish.")
+		return false
+	if not is_equal_approx(float(darkness_profile["metallic_specular"]), float(shininess_profile["metallic_specular"])):
+		_fail("A shininess upgrade changed reflection reduction.")
+		return false
+
+	ScreenTechnologySystem.upgrade(visual_state)
+	var reflection_profile: Dictionary = ScreenTechnologySystem.get_visual_profile(visual_state)
+	if not is_equal_approx(float(shininess_profile["metallic_specular"]), float(reflection_profile["metallic_specular"])):
+		_fail("Reflection reduction did not change its own screen property.")
+		return false
+	if not is_equal_approx(Color(shininess_profile["albedo_color"]).r, Color(reflection_profile["albedo_color"]).r) or not is_equal_approx(float(shininess_profile["roughness"]), float(reflection_profile["roughness"])):
+		_fail("A reflection reduction upgrade changed another screen quality.")
+		return false
+
 	var expected_order := ["darkness", "shininess", "reflection_reduction"]
 	for click_index in range(9):
 		var result: Dictionary = ScreenTechnologySystem.upgrade(state)
