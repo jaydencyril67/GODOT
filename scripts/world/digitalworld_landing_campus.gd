@@ -79,11 +79,11 @@ func _build_hero_design() -> void:
 	var phone_body := _material(Color("#aebbb2"), 0.24, 0.82)
 	var screen_material := _material(Color("#07101c"), 0.16, 0.38)
 	var glass_material := _material(GLASS, 0.12, 0.48)
-	var emerald := _emissive_material(ELECTRIC_BLUE, Color("#2867a8"), 0.78)
-	var soft_emerald := _emissive_material(ELECTRIC_BLUE_LIGHT, Color("#79baff"), 0.54)
+	var blue_accent := _emissive_material(ELECTRIC_BLUE, Color("#2867a8"), 0.78)
+	var soft_blue_accent := _emissive_material(ELECTRIC_BLUE_LIGHT, Color("#79baff"), 0.54)
 	var white_glint := _emissive_material(Color("#eaf4ff"), Color("#b9dcff"), 0.38)
-	animated_emissive_materials.append(emerald)
-	animated_emissive_materials.append(soft_emerald)
+	animated_emissive_materials.append(blue_accent)
+	animated_emissive_materials.append(soft_blue_accent)
 
 	# A single sculptural presentation stage, not an environment or city.
 	_add_cylinder(self, 8.2, 0.42, Vector3(0.0, -0.18, 0.0), stage_material, "Floating_Obsidian_Podium")
@@ -101,8 +101,8 @@ func _build_hero_design() -> void:
 	_add_box(device, Vector3(5.72, 11.48, 0.045), Vector3(0.0, 0.0, 0.305), screen_material, "Obsidian_Display")
 
 	# Layered display graphics create depth without text or a flat background image.
-	_add_box(device, Vector3(4.65, 0.045, 0.025), Vector3(0.0, 2.55, 0.34), emerald, "Display_Upper_Accent")
-	_add_box(device, Vector3(3.75, 0.035, 0.025), Vector3(0.0, -2.7, 0.34), soft_emerald, "Display_Lower_Accent")
+	_add_box(device, Vector3(4.65, 0.045, 0.025), Vector3(0.0, 2.55, 0.34), blue_accent, "Display_Upper_Accent")
+	_add_box(device, Vector3(3.75, 0.035, 0.025), Vector3(0.0, -2.7, 0.34), soft_blue_accent, "Display_Lower_Accent")
 	_add_box(device, Vector3(0.055, 6.9, 0.025), Vector3(-2.12, 0.0, 0.34), glass_material, "Display_Left_Glass_Line")
 	_add_box(device, Vector3(0.055, 6.9, 0.025), Vector3(2.12, 0.0, 0.34), glass_material, "Display_Right_Glass_Line")
 	_add_box(device, Vector3(1.25, 0.11, 0.04), Vector3(0.0, 5.35, 0.36), dark_metal, "Earpiece")
@@ -114,7 +114,7 @@ func _build_hero_design() -> void:
 	for lens_position in [Vector3(-2.12, 4.78, -0.43), Vector3(-1.42, 4.78, -0.43), Vector3(-2.12, 3.95, -0.43)]:
 		_add_sphere(device, 0.23, lens_position, glass_material, "Rear_Camera_Lens")
 		_add_sphere(device, 0.095, lens_position + Vector3(0.0, 0.0, -0.10), white_glint, "Lens_Reflection")
-	_add_sphere(device, 0.13, Vector3(-1.42, 3.95, -0.43), soft_emerald, "Camera_Flash")
+	_add_sphere(device, 0.13, Vector3(-1.42, 3.95, -0.43), soft_blue_accent, "Camera_Flash")
 
 
 
