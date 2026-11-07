@@ -90,8 +90,8 @@ func _run_transition_checks() -> void:
 		_fail("Opening Research Allocation hid or replaced the underlying Research page.")
 		return
 	var dashboard = game.research_allocation_dashboard
-	if dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard") != null:
-		_fail("Research dashboard has an unexpected duplicate content root.")
+	if not is_instance_valid(dashboard.get_node_or_null("ResearchDashboardFrame/CompanyResearchAllocationDashboard")):
+		_fail("Research dashboard did not build its primary content root.")
 		return
 	var initial_strategy: Dictionary = dashboard.strategy
 	var initial_total := int(initial_strategy.get("Hardware", 0)) + int(initial_strategy.get("Software", 0)) + int(initial_strategy.get("Extras", 0))
