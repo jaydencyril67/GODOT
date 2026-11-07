@@ -131,10 +131,6 @@ func _build_empty_scene() -> void:
 	body.add_child(body_content)
 
 	body_content.add_child(_label("NO ACTIVE RESEARCHES", 27, TEXT_MAIN))
-	var subtitle := _label("Your research team is ready for its next project.", 15, TEXT_MUTED)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	body_content.add_child(subtitle)
-
 	var create := _button("CREATE RESEARCH", true, GREEN)
 	create.name = "CreateResearchButton"
 	create.custom_minimum_size = Vector2(260, 58)
@@ -257,7 +253,7 @@ func _update_research_estimate() -> void:
 	var valid_investment := investment_text.is_valid_float() and float(investment_text) > 0.0 and float(investment_text) <= company_balance
 	var estimate_valid := bool(estimate.get("ok", false))
 	if estimate_valid:
-		estimate_label.text = "ESTIMATED DURATION  %d IN-GAME DAYS\nSUCCESS CHANCE  %.0f%%" % [
+		estimate_label.text = "ESTIMATED DURATION  %d IN-GAME DAYS\nESTIMATED SUCCESS CHANCE  %.0f%%" % [
 			int(estimate.get("expected_duration_days", 0)),
 			float(estimate.get("success_chance", 0.0))
 		]
