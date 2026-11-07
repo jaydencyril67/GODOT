@@ -3287,7 +3287,7 @@ func _style_staff_back_button(button: Button) -> void:
 	button.add_theme_color_override("font_focus_color", Color.WHITE)
 
 func _make_tools_card(card_name: String, include_controls: bool) -> PanelContainer:
-	var tools_panel := _make_glass_panel(Color(0.10, 0.24, 0.13, 0.30))
+	var tools_panel := _make_glass_panel(Color(0.12, 0.13, 0.14, 0.72))
 	tools_panel.name = card_name
 	tools_panel.custom_minimum_size.x = 273
 	tools_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -3359,10 +3359,10 @@ func _make_glass_panel(fill_color: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill_color
-	style.border_color = Color(0.68, 0.82, 0.70, 0.72)
+	style.border_color = Color(0.58, 0.46, 0.29, 0.72)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(18)
-	style.shadow_color = Color(0.0, 0.10, 0.03, 0.30)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.30)
 	style.shadow_size = 12
 	style.shadow_offset = Vector2(0, 4)
 	style.anti_aliasing = true
