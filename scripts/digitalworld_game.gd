@@ -2530,6 +2530,7 @@ func _show_research_phone() -> void:
 	phone_research_worksite.set("research_mode", true)
 	phone_research_worksite.set("research_ui_host", ui_root)
 	phone_research_worksite.connect("research_upgrade_requested", Callable(self, "_on_phone_design_research_upgrade"))
+	phone_research_worksite.connect("back_requested", Callable(self, "_return_from_research_phone"))
 	phone_research_worksite.connect("charge_port_research_prompt_requested", Callable(self, "_show_phone_charge_port_research_prompt"))
 	phone_research_worksite.connect("front_camera_research_prompt_requested", Callable(self, "_show_phone_front_camera_research_prompt"))
 	phone_research_worksite.connect("speaker_research_prompt_requested", Callable(self, "_show_phone_speaker_research_prompt"))
