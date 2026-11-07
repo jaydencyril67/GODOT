@@ -4,8 +4,8 @@ signal cinematic_reveal_finished
 
 # A compact premium 3D hero composition for the landing page.
 # This deliberately contains no city, streets, campus, or surrounding buildings.
-const EMERALD := Color("#36a85b")
-const EMERALD_LIGHT := Color("#b8f5c3")
+const ELECTRIC_BLUE := Color("#4f9fe8")
+const ELECTRIC_BLUE_LIGHT := Color("#b8dcff")
 const OBSIDIAN := Color("#090d11")
 const DARK_METAL := Color("#171e22")
 const GLASS := Color("#344653")
@@ -38,9 +38,9 @@ func _build_environment() -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#050a08")
+	environment.background_color = Color("#070b12")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#c3d2c8")
+	environment.ambient_light_color = Color("#c4cedd")
 	environment.ambient_light_energy = 0.72
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world_environment.environment = environment
@@ -58,7 +58,7 @@ func _build_environment() -> void:
 	var key_light := DirectionalLight3D.new()
 	key_light.name = "Soft_Hero_Key_Light"
 	key_light.rotation_degrees = Vector3(-42.0, -28.0, 0.0)
-	key_light.light_color = Color("#e5f0e8")
+	key_light.light_color = Color("#dce8f8")
 	key_light.light_energy = 1.35
 	key_light.shadow_enabled = true
 	key_light.directional_shadow_max_distance = 40.0
@@ -67,21 +67,21 @@ func _build_environment() -> void:
 	var rim_light := OmniLight3D.new()
 	rim_light.name = "Emerald_Rim_Light"
 	rim_light.position = Vector3(-8.0, 5.0, -3.0)
-	rim_light.light_color = EMERALD_LIGHT
+	rim_light.light_color = ELECTRIC_BLUE_LIGHT
 	rim_light.light_energy = 1.05
 	rim_light.omni_range = 24.0
 	add_child(rim_light)
 
 
 func _build_hero_design() -> void:
-	var stage_material := _material(Color("#101a15"), 0.78, 0.42)
+	var stage_material := _material(Color("#101722"), 0.78, 0.42)
 	var dark_metal := _material(DARK_METAL, 0.34, 0.72)
 	var phone_body := _material(Color("#aebbb2"), 0.24, 0.82)
-	var screen_material := _material(Color("#07120d"), 0.16, 0.38)
+	var screen_material := _material(Color("#07101c"), 0.16, 0.38)
 	var glass_material := _material(GLASS, 0.12, 0.48)
-	var emerald := _emissive_material(EMERALD, Color("#238c45"), 0.78)
-	var soft_emerald := _emissive_material(EMERALD_LIGHT, Color("#6edc87"), 0.54)
-	var white_glint := _emissive_material(Color("#e4ffe9"), Color("#b7ffd0"), 0.38)
+	var emerald := _emissive_material(ELECTRIC_BLUE, Color("#2867a8"), 0.78)
+	var soft_emerald := _emissive_material(ELECTRIC_BLUE_LIGHT, Color("#79baff"), 0.54)
+	var white_glint := _emissive_material(Color("#eaf4ff"), Color("#b9dcff"), 0.38)
 	animated_emissive_materials.append(emerald)
 	animated_emissive_materials.append(soft_emerald)
 
