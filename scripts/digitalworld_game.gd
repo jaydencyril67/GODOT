@@ -2548,10 +2548,10 @@ func _show_research_allocation_dashboard() -> void:
 		push_error("Could not instantiate the Company Research Allocation Dashboard.")
 		return
 	research_allocation_dashboard.name = "CompanyResearchAllocationDashboard"
-	research_allocation_dashboard.call("configure", _get_research_dashboard_data())
+	research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
 	research_allocation_dashboard.connect("back_requested", Callable(self, "_return_from_research_allocation_dashboard"))
 	research_allocation_dashboard.connect("strategy_changed", Callable(self, "_on_research_strategy_changed"))
-	research_allocation_dashboard.connect("component_priority_changed", Callable(self, "_on_research_component_priority_changed"))
+	research_allocation_dashboard.connect("component_priorities_changed", Callable(self, "_on_research_component_priorities_changed"))
 	ui_root.add_child(research_allocation_dashboard)
 	current_screen = "research_allocation"
 
@@ -2575,6 +2575,10 @@ func _on_research_component_priority_changed(component: String, priority: String
 	var priorities: Dictionary = career.get("research_component_priorities", {}).duplicate(true)
 	priorities[component] = priority
 	career["research_component_priorities"] = priorities
+	_save_career()
+
+func _on_research_component_priorities_changed(priorities: Dictionary) -> void:
+	career["research_component_priorities"] = priorities.duplicate(true)
 	_save_career()
 
 
