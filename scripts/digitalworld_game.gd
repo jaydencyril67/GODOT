@@ -38,7 +38,6 @@ var home_date_label: Label
 var home_balance_label: Label
 var home_finance_toast: Label
 var home_finance_toast_tween: Tween
-var home_research_points_label: Label
 var home_time_button: Button
 var staff_ui_layer: CanvasLayer
 var staff_screen
@@ -109,13 +108,6 @@ func _process(delta: float) -> void:
 		_save_career()
 		if is_instance_valid(research_allocation_dashboard):
 			research_allocation_dashboard.call("update_live_progress", career.get("research_projects", []), float(career.get("balance", 0.0)), career.get("staff_employees", []))
-	_process_phone_charge_port_research()
-	_process_phone_front_camera_research()
-	_process_phone_speaker_research()
-	_process_phone_battery_research()
-	_process_phone_wifi_research()
-	_process_phone_bluetooth_research()
-	_process_phone_mobile_internet_research()
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month:
@@ -200,8 +192,6 @@ func _load_career() -> bool:
 		"created_at": str(config.get_value("career", "created_at", "")),
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
-		"research_points": maxi(0, int(config.get_value("career", "research_points", 0))),
-		"research_points_progress": maxf(0.0, float(config.get_value("career", "research_points_progress", 0.0))),
 		"game_date_unix": float(config.get_value("career", "game_date_unix", 1262304000.0)),
 		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
 		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
@@ -211,54 +201,12 @@ func _load_career() -> bool:
 		"next_staff_candidate_id": int(config.get_value("career", "next_staff_candidate_id", 1)),
 		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
 		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false)),
-		"phone_design_research": config.get_value("career", "phone_design_research", {}),
-		"phone_charge_port_research_level": clampi(int(config.get_value("career", "phone_charge_port_research_level", 1)), 1, 5),
-		"phone_charge_port_research_active_level": int(config.get_value("career", "phone_charge_port_research_active_level", -1)),
-		"phone_charge_port_research_completion_unix": float(config.get_value("career", "phone_charge_port_research_completion_unix", 0.0)),
-		"phone_front_camera_research_level": clampi(int(config.get_value("career", "phone_front_camera_research_level", 1)), 1, 8),
-		"phone_front_camera_research_active_level": int(config.get_value("career", "phone_front_camera_research_active_level", -1)),
-		"phone_front_camera_research_completion_unix": float(config.get_value("career", "phone_front_camera_research_completion_unix", 0.0)),
-		"phone_speaker_research_level": clampi(int(config.get_value("career", "phone_speaker_research_level", 1)), 1, 12),
-		"phone_speaker_research_active_level": int(config.get_value("career", "phone_speaker_research_active_level", -1)),
-		"phone_speaker_research_completion_unix": float(config.get_value("career", "phone_speaker_research_completion_unix", 0.0)),
-		"phone_battery_capacity_research_level": clampi(int(config.get_value("career", "phone_battery_capacity_research_level", 1)), 1, 15),
-		"phone_battery_capacity_research_active_level": int(config.get_value("career", "phone_battery_capacity_research_active_level", -1)),
-		"phone_battery_capacity_research_completion_unix": float(config.get_value("career", "phone_battery_capacity_research_completion_unix", 0.0)),
-		"phone_wifi_research_level": clampi(int(config.get_value("career", "phone_wifi_research_level", 1)), 1, 8),
-		"phone_wifi_research_active_level": int(config.get_value("career", "phone_wifi_research_active_level", -1)),
-		"phone_wifi_research_completion_unix": float(config.get_value("career", "phone_wifi_research_completion_unix", 0.0)),
-		"phone_bluetooth_research_level": clampi(int(config.get_value("career", "phone_bluetooth_research_level", 1)), 1, 14),
-		"phone_bluetooth_research_active_level": int(config.get_value("career", "phone_bluetooth_research_active_level", -1)),
-		"phone_bluetooth_research_completion_unix": float(config.get_value("career", "phone_bluetooth_research_completion_unix", 0.0)),
-		"phone_mobile_internet_research_level": clampi(int(config.get_value("career", "phone_mobile_internet_research_level", 1)), 1, 7),
-		"phone_mobile_internet_research_active_level": int(config.get_value("career", "phone_mobile_internet_research_active_level", -1)),
-		"phone_mobile_internet_research_completion_unix": float(config.get_value("career", "phone_mobile_internet_research_completion_unix", 0.0)),
-		"phone_curve_screen_research_unlocked": bool(config.get_value("career", "phone_curve_screen_research_unlocked", false)),
-		"phone_curve_screen_research_active": bool(config.get_value("career", "phone_curve_screen_research_active", false)),
-		"phone_curve_screen_research_completion_unix": float(config.get_value("career", "phone_curve_screen_research_completion_unix", 0.0)),
-		"research_strategy": config.get_value("career", "research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}),
-		"research_component_priorities": config.get_value("career", "research_component_priorities", {}),
 		"research_history": config.get_value("career", "research_history", []),
 		"research_projects": config.get_value("career", "research_projects", []),
 		"research_technologies": config.get_value("career", "research_technologies", {}),
 		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
 	ResearchManagerScript.ensure_state(career)
-	# One-time migration: the old system counted researched models from zero.
-	# The first model is now a free default, so legacy zero-progress saves start
-	# with one unlocked model. Existing research progress remains unchanged.
-	var migrated_default_models := not bool(config.get_value("career", "phone_default_models_migrated", false))
-	if migrated_default_models:
-		career["phone_charge_port_research_level"] = maxi(1, int(career.get("phone_charge_port_research_level", 0)))
-		career["phone_front_camera_research_level"] = maxi(1, int(career.get("phone_front_camera_research_level", 0)))
-		career["phone_speaker_research_level"] = maxi(1, int(career.get("phone_speaker_research_level", 0)))
-		if int(career.get("phone_charge_port_research_active_level", -1)) == 0:
-			career["phone_charge_port_research_active_level"] = 1
-		if int(career.get("phone_front_camera_research_active_level", -1)) == 0:
-			career["phone_front_camera_research_active_level"] = 1
-		if int(career.get("phone_speaker_research_active_level", -1)) == 0:
-			career["phone_speaker_research_active_level"] = 1
-		career["phone_default_models_migrated"] = true
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
 	last_saved_game_day = floori(game_date_unix / 86400.0)
@@ -278,8 +226,6 @@ func _save_career() -> bool:
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
 	config.set_value("career", "upgrade_level", upgrade_level)
 	config.set_value("career", "balance", float(career.get("balance", 10000000.0)))
-	config.set_value("career", "research_points", maxi(0, int(career.get("research_points", 0))))
-	config.set_value("career", "research_points_progress", maxf(0.0, float(career.get("research_points_progress", 0.0))))
 	config.set_value("career", "game_date_unix", game_date_unix)
 	config.set_value("career", "game_clock_paused", game_clock_paused)
 	config.set_value("career", "last_rent_billed_month", str(career.get("last_rent_billed_month", _get_game_month_key(game_date_unix))))
@@ -289,38 +235,10 @@ func _save_career() -> bool:
 	config.set_value("career", "next_staff_candidate_id", int(career.get("next_staff_candidate_id", 1)))
 	config.set_value("career", "last_candidate_refresh_month", str(career.get("last_candidate_refresh_month", _get_game_month_key(game_date_unix))))
 	config.set_value("career", "staff_market_initialized", bool(career.get("staff_market_initialized", false)))
-	config.set_value("career", "phone_design_research", career.get("phone_design_research", {}))
-	config.set_value("career", "phone_charge_port_research_level", clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5))
-	config.set_value("career", "phone_charge_port_research_active_level", int(career.get("phone_charge_port_research_active_level", -1)))
-	config.set_value("career", "phone_charge_port_research_completion_unix", float(career.get("phone_charge_port_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_front_camera_research_level", clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8))
-	config.set_value("career", "phone_front_camera_research_active_level", int(career.get("phone_front_camera_research_active_level", -1)))
-	config.set_value("career", "phone_front_camera_research_completion_unix", float(career.get("phone_front_camera_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_speaker_research_level", clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12))
-	config.set_value("career", "phone_speaker_research_active_level", int(career.get("phone_speaker_research_active_level", -1)))
-	config.set_value("career", "phone_speaker_research_completion_unix", float(career.get("phone_speaker_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_battery_capacity_research_level", clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15))
-	config.set_value("career", "phone_battery_capacity_research_active_level", int(career.get("phone_battery_capacity_research_active_level", -1)))
-	config.set_value("career", "phone_battery_capacity_research_completion_unix", float(career.get("phone_battery_capacity_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_wifi_research_level", clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8))
-	config.set_value("career", "phone_wifi_research_active_level", int(career.get("phone_wifi_research_active_level", -1)))
-	config.set_value("career", "phone_wifi_research_completion_unix", float(career.get("phone_wifi_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_bluetooth_research_level", clampi(int(career.get("phone_bluetooth_research_level", 1)), 1, 14))
-	config.set_value("career", "phone_bluetooth_research_active_level", int(career.get("phone_bluetooth_research_active_level", -1)))
-	config.set_value("career", "phone_bluetooth_research_completion_unix", float(career.get("phone_bluetooth_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_mobile_internet_research_level", clampi(int(career.get("phone_mobile_internet_research_level", 1)), 1, 7))
-	config.set_value("career", "phone_mobile_internet_research_active_level", int(career.get("phone_mobile_internet_research_active_level", -1)))
-	config.set_value("career", "phone_mobile_internet_research_completion_unix", float(career.get("phone_mobile_internet_research_completion_unix", 0.0)))
-	config.set_value("career", "phone_curve_screen_research_unlocked", bool(career.get("phone_curve_screen_research_unlocked", false)))
-	config.set_value("career", "phone_curve_screen_research_active", bool(career.get("phone_curve_screen_research_active", false)))
-	config.set_value("career", "phone_curve_screen_research_completion_unix", float(career.get("phone_curve_screen_research_completion_unix", 0.0)))
-	config.set_value("career", "research_strategy", career.get("research_strategy", {"Hardware": 60, "Software": 30, "Extras": 10}))
-	config.set_value("career", "research_component_priorities", career.get("research_component_priorities", {}))
 	config.set_value("career", "research_history", career.get("research_history", []))
 	config.set_value("career", "research_projects", career.get("research_projects", []))
 	config.set_value("career", "research_technologies", career.get("research_technologies", {}))
 	config.set_value("career", "next_research_project_id", int(career.get("next_research_project_id", 1)))
-	config.set_value("career", "phone_default_models_migrated", bool(career.get("phone_default_models_migrated", false)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -1263,26 +1181,6 @@ func _create_company() -> void:
 	career["logo_id"] = selected_logo_id
 	if not career.has("balance"):
 		career["balance"] = 10000000.0
-	if not career.has("research_points"):
-		career["research_points"] = 0
-	if not career.has("research_points_progress"):
-		career["research_points_progress"] = 0.0
-	if not career.has("phone_charge_port_research_level"):
-		career["phone_charge_port_research_level"] = 1
-	if not career.has("phone_charge_port_research_active_level"):
-		career["phone_charge_port_research_active_level"] = -1
-	if not career.has("phone_charge_port_research_completion_unix"):
-		career["phone_charge_port_research_completion_unix"] = 0.0
-	if not career.has("phone_speaker_research_level"):
-		career["phone_speaker_research_level"] = 1
-	if not career.has("phone_front_camera_research_level"):
-		career["phone_front_camera_research_level"] = 1
-	if not career.has("phone_default_models_migrated"):
-		career["phone_default_models_migrated"] = true
-	if not career.has("phone_speaker_research_active_level"):
-		career["phone_speaker_research_active_level"] = -1
-	if not career.has("phone_speaker_research_completion_unix"):
-		career["phone_speaker_research_completion_unix"] = 0.0
 	if not career.has("game_date_unix"):
 		game_date_unix = 1262304000.0
 		career["game_date_unix"] = game_date_unix
@@ -1619,9 +1517,6 @@ func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool 
 	home_balance_label = _make_home_metric_card(
 		metrics, "Company_Balance_Card", "AVAILABLE BALANCE", 166.0, 18, Color("#c4f5c9"), compact
 	)
-	home_research_points_label = _make_home_metric_card(
-		metrics, "Research_Points_Card", "RESEARCH POINTS", 148.0, 16, Color("#e6f4e6"), compact
-	)
 	home_date_label = _make_home_metric_card(
 		metrics, "Game_Date_Card", "IN-GAME DATE", 148.0, 16, Color("#f4fbf3"), compact
 	)
@@ -1828,46 +1723,6 @@ func _format_game_date(timestamp: float) -> String:
 	return "%d%s %s %04d" % [day, suffix, month_names[int(date["month"]) - 1], int(date["year"])]
 
 
-func _get_research_department_stats() -> Dictionary:
-	var research_staff_count := 0
-	var total_efficiency := 0.0
-	for employee_value in career.get("staff_employees", []):
-		if not (employee_value is Dictionary):
-			continue
-		var employee: Dictionary = employee_value
-		if str(employee.get("department", "")) != "Research":
-			continue
-		research_staff_count += 1
-		total_efficiency += float(clampi(int(employee.get("efficiency", 0)), 0, 100))
-
-	var average_efficiency := total_efficiency / float(research_staff_count) if research_staff_count > 0 else 0.0
-	# One researcher at 100% efficiency produces one point per in-game day.
-	# Summing individual efficiency is equivalent to staff count multiplied by average efficiency.
-	var daily_output := total_efficiency / 100.0
-	return {
-		"staff_count": research_staff_count,
-		"average_efficiency": average_efficiency,
-		"daily_output": daily_output
-	}
-
-
-func _accrue_research_points(game_time_delta: float) -> void:
-	if game_time_delta <= 0.0:
-		return
-	var research_stats := _get_research_department_stats()
-	var daily_output := float(research_stats.get("daily_output", 0.0))
-	if daily_output <= 0.0:
-		return
-
-	var accumulated_progress := maxf(0.0, float(career.get("research_points_progress", 0.0)))
-	accumulated_progress += daily_output * game_time_delta / 86400.0
-	var whole_points := floori(accumulated_progress)
-	if whole_points > 0:
-		career["research_points"] = maxi(0, int(career.get("research_points", 0))) + whole_points
-		accumulated_progress -= float(whole_points)
-	career["research_points_progress"] = clampf(accumulated_progress, 0.0, 0.9999999)
-
-
 func _format_count(amount: int) -> String:
 	var digits := str(maxi(amount, 0))
 	var formatted := ""
@@ -1893,8 +1748,6 @@ func _update_home_status_bar() -> void:
 		home_date_label.text = _format_game_date(game_date_unix)
 	if is_instance_valid(home_balance_label):
 		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
-	if is_instance_valid(home_research_points_label):
-		home_research_points_label.text = "%s RP" % _format_count(int(career.get("research_points", 0)))
 	if is_instance_valid(home_company_label):
 		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
 		home_company_label.tooltip_text = home_company_label.text
@@ -2654,22 +2507,6 @@ func reject_research_project(project_id: String, review_note: String) -> Diction
 	return result
 
 
-func _on_research_strategy_changed(strategy: Dictionary) -> void:
-	career["research_strategy"] = strategy.duplicate(true)
-	_save_career()
-
-
-func _on_research_component_priority_changed(component: String, priority: String) -> void:
-	var priorities: Dictionary = career.get("research_component_priorities", {}).duplicate(true)
-	priorities[component] = priority
-	career["research_component_priorities"] = priorities
-	_save_career()
-
-func _on_research_component_priorities_changed(priorities: Dictionary) -> void:
-	career["research_component_priorities"] = priorities.duplicate(true)
-	_save_career()
-
-
 func _return_from_research_allocation_dashboard() -> void:
 	if is_instance_valid(research_allocation_dashboard):
 		research_allocation_dashboard.queue_free()
@@ -2677,549 +2514,6 @@ func _return_from_research_allocation_dashboard() -> void:
 	current_screen = "research"
 
 
-func _on_phone_design_research_upgrade(research_id: String) -> void:
-	if research_id == "charge_port":
-		_on_phone_charge_port_research_upgrade()
-		return
-	var research_names := {
-		"screen_size": "Screen size",
-		"phone_thickness": "Phone thickness",
-		"bezel_width": "Bezel width",
-		"frame_material": "Frame material",
-		"body_finish": "Body finish",
-		"camera_module": "Camera-module design"
-	}
-	if not research_names.has(research_id):
-		return
-	var research_levels: Dictionary = career.get("phone_design_research", {})
-	var current_level := clampi(int(research_levels.get(research_id, 1)), 1, 20)
-	if current_level >= 20:
-		_show_notice("MAXIMUM RESEARCH LEVEL", str(research_names[research_id]) + " has already reached level 20.")
-		return
-	var upgrade_cost := 250000.0 * float(current_level)
-	var previous_balance := float(career.get("balance", 10000000.0))
-	if previous_balance < upgrade_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Upgrading %s to level %d requires %s. Your available balance is %s." % [research_names[research_id], current_level + 1, _format_balance(upgrade_cost), _format_balance(previous_balance)])
-		return
-	_show_confirmation("CONFIRM RESEARCH UPGRADE", "Upgrade %s from Level %d to Level %d?\n\nCost: %s" % [research_names[research_id], current_level, current_level + 1, _format_balance(upgrade_cost)], "UPGRADE", Callable(self, "_apply_phone_design_research_upgrade").bind(research_id))
-
-
-func _on_curve_screen_research_upgrade() -> void:
-	if bool(career.get("phone_curve_screen_research_unlocked", false)) or bool(career.get("phone_curve_screen_research_active", false)):
-		return
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < 1000:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Curve Screen requires 1,000 RP. Your available research points: %d RP." % available_points)
-		return
-	if available_balance < 10000000.0:
-		_show_notice("INSUFFICIENT BALANCE", "Curve Screen research requires $10,000,000. Your available balance is %s." % _format_balance(available_balance))
-		return
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_completion := float(career.get("phone_curve_screen_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - 1000
-	career["balance"] = previous_balance - 10000000.0
-	career["phone_curve_screen_research_active"] = true
-	career["phone_curve_screen_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_curve_screen_research_active"] = false
-		career["phone_curve_screen_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "Curve Screen research could not be saved. No research points or company funds were deducted.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-10000000.0, "CURVE SCREEN RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_curve_screen_research() -> void:
-	if not bool(career.get("phone_curve_screen_research_active", false)):
-		return
-	var completion_unix := float(career.get("phone_curve_screen_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-	career["phone_curve_screen_research_unlocked"] = true
-	career["phone_curve_screen_research_active"] = false
-	career["phone_curve_screen_research_completion_unix"] = 0.0
-	if not _save_career():
-		career["phone_curve_screen_research_unlocked"] = false
-		career["phone_curve_screen_research_active"] = true
-		career["phone_curve_screen_research_completion_unix"] = completion_unix
-		return
-	if is_instance_valid(phone_creation_worksite):
-		phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
-	if current_screen == "research":
-		_show_notice("CURVE SCREEN RESEARCH COMPLETE", "Curve Screen is now unlocked in your phone editor.")
-
-
-func _on_phone_front_camera_research_upgrade() -> void:
-	var completed_count := clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
-	var camera_styles := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
-	if completed_count >= camera_styles.size():
-		_show_notice("RESEARCH COMPLETE", "All front-camera designs currently available in the phone editor have been researched.")
-		return
-	if int(career.get("phone_front_camera_research_active_level", -1)) >= 0:
-		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current front-camera design research must finish before another design can be researched.")
-		return
-	var next_name: String = camera_styles[completed_count]
-	var points_cost := 50 * (completed_count + 1)
-	var money_cost := 200000.0 + float(completed_count) * 100000.0
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < points_cost:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Researching %s requires %d RP. Your available research points: %d RP." % [next_name, points_cost, available_points])
-		return
-	if available_balance < money_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Researching %s requires %s. Your available balance is %s." % [next_name, _format_balance(money_cost), _format_balance(available_balance)])
-		return
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_active_level := int(career.get("phone_front_camera_research_active_level", -1))
-	var previous_completion := float(career.get("phone_front_camera_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - points_cost
-	career["balance"] = previous_balance - money_cost
-	career["phone_front_camera_research_active_level"] = completed_count
-	career["phone_front_camera_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_front_camera_research_active_level"] = previous_active_level
-		career["phone_front_camera_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "The front-camera research could not be saved. No research points or company funds were deducted.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-money_cost, "FRONT CAMERA RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_phone_front_camera_research() -> void:
-	var active_level := int(career.get("phone_front_camera_research_active_level", -1))
-	if active_level < 0:
-		return
-	var completion_unix := float(career.get("phone_front_camera_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-	var current_level := clampi(int(career.get("phone_front_camera_research_level", 1)), 1, 8)
-	career["phone_front_camera_research_level"] = mini(current_level + 1, active_level + 1)
-	career["phone_front_camera_research_active_level"] = -1
-	career["phone_front_camera_research_completion_unix"] = 0.0
-	if not _save_career():
-		career["phone_front_camera_research_level"] = current_level
-		career["phone_front_camera_research_active_level"] = active_level
-		career["phone_front_camera_research_completion_unix"] = completion_unix
-		return
-	if is_instance_valid(phone_creation_worksite):
-		phone_creation_worksite.call("set_front_camera_research_level", int(career["phone_front_camera_research_level"]))
-	if current_screen == "research":
-		_show_notice("FRONT CAMERA RESEARCH COMPLETE", "The next front-camera design has been unlocked in your phone editor.")
-
-
-func _on_phone_speaker_research_upgrade() -> void:
-	var completed_count := clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12)
-	if completed_count >= 12:
-		_show_notice("RESEARCH COMPLETE", "All 12 speaker openings have been unlocked.")
-		return
-	if int(career.get("phone_speaker_research_active_level", -1)) >= 0:
-		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current speaker research must finish before another speaker opening can be unlocked.")
-		return
-	var next_count := completed_count + 1
-	var points_cost := 10 + completed_count * 2
-	var money_cost := 50000.0 + float(completed_count) * 20000.0
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < points_cost:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Unlocking speaker %d requires %d RP. Your available research points: %d RP." % [next_count, points_cost, available_points])
-		return
-	if available_balance < money_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Unlocking speaker %d requires %s. Your available balance is %s." % [next_count, _format_balance(money_cost), _format_balance(available_balance)])
-		return
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_active_level := int(career.get("phone_speaker_research_active_level", -1))
-	var previous_completion := float(career.get("phone_speaker_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - points_cost
-	career["balance"] = previous_balance - money_cost
-	career["phone_speaker_research_active_level"] = completed_count
-	career["phone_speaker_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_speaker_research_active_level"] = previous_active_level
-		career["phone_speaker_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "The speaker research could not be saved. No research points or company funds were deducted.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-money_cost, "SPEAKER RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_phone_speaker_research() -> void:
-	var active_level := int(career.get("phone_speaker_research_active_level", -1))
-	if active_level < 0:
-		return
-	var completion_unix := float(career.get("phone_speaker_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-	var current_level := clampi(int(career.get("phone_speaker_research_level", 1)), 1, 12)
-	career["phone_speaker_research_level"] = mini(current_level + 1, active_level + 1)
-	career["phone_speaker_research_active_level"] = -1
-	career["phone_speaker_research_completion_unix"] = 0.0
-	if not _save_career():
-		career["phone_speaker_research_level"] = current_level
-		career["phone_speaker_research_active_level"] = active_level
-		career["phone_speaker_research_completion_unix"] = completion_unix
-		return
-	if is_instance_valid(phone_creation_worksite):
-		phone_creation_worksite.call("set_speaker_research_level", int(career["phone_speaker_research_level"]))
-	if current_screen == "research":
-		_show_notice("SPEAKER RESEARCH COMPLETE", "Speaker opening %d has been unlocked in your phone editor." % int(career["phone_speaker_research_level"]))
-
-
-func _on_phone_mobile_internet_research_upgrade() -> void:
-	var completed_level := clampi(int(career.get("phone_mobile_internet_research_level", 1)), 1, 7)
-	if completed_level >= 7 or int(career.get("phone_mobile_internet_research_active_level", -1)) >= 0:
-		return
-	var points_cost := completed_level * 50
-	var money_cost := float(completed_level + 1) * 100000.0
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < points_cost:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Mobile internet research requires %d RP. Your available research points: %d RP." % [points_cost, available_points])
-		return
-	if available_balance < money_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Mobile internet research requires %s. Your available balance is %s." % [_format_balance(money_cost), _format_balance(available_balance)])
-		return
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_active := int(career.get("phone_mobile_internet_research_active_level", -1))
-	var previous_completion := float(career.get("phone_mobile_internet_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - points_cost
-	career["balance"] = previous_balance - money_cost
-	career["phone_mobile_internet_research_active_level"] = completed_level
-	career["phone_mobile_internet_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_mobile_internet_research_active_level"] = previous_active
-		career["phone_mobile_internet_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "Mobile internet research could not be saved. No research points or company funds were deducted.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-money_cost, "MOBILE INTERNET RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_phone_mobile_internet_research() -> void:
-	var active_level := int(career.get("phone_mobile_internet_research_active_level", -1))
-	if active_level < 0:
-		return
-	var completion_unix := float(career.get("phone_mobile_internet_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-	var current_level := clampi(int(career.get("phone_mobile_internet_research_level", 1)), 1, 7)
-	career["phone_mobile_internet_research_level"] = mini(current_level + 1, active_level + 1)
-	career["phone_mobile_internet_research_active_level"] = -1
-	career["phone_mobile_internet_research_completion_unix"] = 0.0
-	if not _save_career():
-		career["phone_mobile_internet_research_level"] = current_level
-		career["phone_mobile_internet_research_active_level"] = active_level
-		career["phone_mobile_internet_research_completion_unix"] = completion_unix
-		return
-	if is_instance_valid(phone_creation_worksite):
-		phone_creation_worksite.call("set_mobile_internet_research_level", int(career["phone_mobile_internet_research_level"]))
-	if current_screen == "research":
-		var network_versions := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
-		_show_notice("MOBILE INTERNET RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % network_versions[int(career["phone_mobile_internet_research_level"]) - 1])
-
-
-func _on_phone_bluetooth_research_upgrade() -> void:
-	var completed_level := clampi(int(career.get("phone_bluetooth_research_level", 1)), 1, 14)
-	if completed_level >= 14 or int(career.get("phone_bluetooth_research_active_level", -1)) >= 0:
-		return
-	var points_cost := completed_level * 50
-	var money_cost := float(completed_level + 1) * 100000.0
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < points_cost:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Bluetooth research requires %d RP. Your available research points: %d RP." % [points_cost, available_points])
-		return
-	if available_balance < money_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Bluetooth research requires %s. Your available balance is %s." % [_format_balance(money_cost), _format_balance(available_balance)])
-		return
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_active := int(career.get("phone_bluetooth_research_active_level", -1))
-	var previous_completion := float(career.get("phone_bluetooth_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - points_cost
-	career["balance"] = previous_balance - money_cost
-	career["phone_bluetooth_research_active_level"] = completed_level
-	career["phone_bluetooth_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_bluetooth_research_active_level"] = previous_active
-		career["phone_bluetooth_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "Bluetooth research could not be saved. No research points or company funds were deducted.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-money_cost, "BLUETOOTH RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_phone_bluetooth_research() -> void:
-	var active_level := int(career.get("phone_bluetooth_research_active_level", -1))
-	if active_level < 0:
-		return
-	var completion_unix := float(career.get("phone_bluetooth_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-	var current_level := clampi(int(career.get("phone_bluetooth_research_level", 1)), 1, 14)
-	career["phone_bluetooth_research_level"] = mini(current_level + 1, active_level + 1)
-	career["phone_bluetooth_research_active_level"] = -1
-	career["phone_bluetooth_research_completion_unix"] = 0.0
-	if not _save_career():
-		career["phone_bluetooth_research_level"] = current_level
-		career["phone_bluetooth_research_active_level"] = active_level
-		career["phone_bluetooth_research_completion_unix"] = completion_unix
-		return
-	if is_instance_valid(phone_creation_worksite):
-		phone_creation_worksite.call("set_bluetooth_research_level", int(career["phone_bluetooth_research_level"]))
-	if current_screen == "research":
-		var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
-		_show_notice("BLUETOOTH RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % bluetooth_versions[int(career["phone_bluetooth_research_level"]) - 1])
-
-
-func _on_phone_wifi_research_upgrade() -> void:
-	var completed_level := clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
-	if completed_level >= 8 or int(career.get("phone_wifi_research_active_level", -1)) >= 0:
-		return
-	var points_cost := completed_level * 50
-	var money_cost := float(completed_level + 1) * 100000.0
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < points_cost:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Wi-Fi research requires %d RP. Your available research points: %d RP." % [points_cost, available_points])
-		return
-	if available_balance < money_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Wi-Fi research requires %s. Your available balance is %s." % [_format_balance(money_cost), _format_balance(available_balance)])
-		return
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_active := int(career.get("phone_wifi_research_active_level", -1))
-	var previous_completion := float(career.get("phone_wifi_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - points_cost
-	career["balance"] = previous_balance - money_cost
-	career["phone_wifi_research_active_level"] = completed_level
-	career["phone_wifi_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_wifi_research_active_level"] = previous_active
-		career["phone_wifi_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "Wi-Fi research could not be saved. No research points or company funds were deducted.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-money_cost, "WI-FI RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_phone_wifi_research() -> void:
-	var active_level := int(career.get("phone_wifi_research_active_level", -1))
-	if active_level < 0:
-		return
-	var completion_unix := float(career.get("phone_wifi_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-	var current_level := clampi(int(career.get("phone_wifi_research_level", 1)), 1, 8)
-	career["phone_wifi_research_level"] = mini(current_level + 1, active_level + 1)
-	career["phone_wifi_research_active_level"] = -1
-	career["phone_wifi_research_completion_unix"] = 0.0
-	if not _save_career():
-		career["phone_wifi_research_level"] = current_level
-		career["phone_wifi_research_active_level"] = active_level
-		career["phone_wifi_research_completion_unix"] = completion_unix
-		return
-	if is_instance_valid(phone_creation_worksite):
-		phone_creation_worksite.call("set_wifi_research_level", int(career["phone_wifi_research_level"]))
-	if current_screen == "research":
-		var wifi_names := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
-		_show_notice("WI-FI RESEARCH COMPLETE", "%s is now unlocked in your phone editor." % wifi_names[int(career["phone_wifi_research_level"]) - 1])
-
-
-func _on_phone_battery_capacity_research_upgrade() -> void:
-	var completed_level := clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15)
-	if completed_level >= 15 or int(career.get("phone_battery_capacity_research_active_level", -1)) >= 0:
-		return
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < 100:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Battery capacity research requires 100 RP. Your available research points: %d RP." % available_points)
-		return
-	if available_balance < 500000.0:
-		_show_notice("INSUFFICIENT BALANCE", "Battery capacity research requires $500,000. Your available balance is %s." % _format_balance(available_balance))
-		return
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_active := int(career.get("phone_battery_capacity_research_active_level", -1))
-	var previous_completion := float(career.get("phone_battery_capacity_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - 100
-	career["balance"] = previous_balance - 500000.0
-	career["phone_battery_capacity_research_active_level"] = completed_level
-	career["phone_battery_capacity_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_battery_capacity_research_active_level"] = previous_active
-		career["phone_battery_capacity_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "Battery capacity research could not be saved. No research points or company funds were deducted.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-500000.0, "BATTERY CAPACITY RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_phone_battery_research() -> void:
-	var active_level := int(career.get("phone_battery_capacity_research_active_level", -1))
-	if active_level < 0:
-		return
-	var completion_unix := float(career.get("phone_battery_capacity_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-	var current_level := clampi(int(career.get("phone_battery_capacity_research_level", 1)), 1, 15)
-	career["phone_battery_capacity_research_level"] = mini(current_level + 1, active_level + 1)
-	career["phone_battery_capacity_research_active_level"] = -1
-	career["phone_battery_capacity_research_completion_unix"] = 0.0
-	if not _save_career():
-		career["phone_battery_capacity_research_level"] = current_level
-		career["phone_battery_capacity_research_active_level"] = active_level
-		career["phone_battery_capacity_research_completion_unix"] = completion_unix
-		return
-	if is_instance_valid(phone_creation_worksite):
-		phone_creation_worksite.call("set_battery_capacity_research_level", int(career["phone_battery_capacity_research_level"]))
-	if current_screen == "research":
-		var unlocked_capacity := 1000 + (int(career["phone_battery_capacity_research_level"]) - 1) * 500
-		_show_notice("BATTERY RESEARCH COMPLETE", "%s mAh maximum battery capacity is now unlocked." % _format_count(unlocked_capacity))
-
-
-func _on_phone_charge_port_research_upgrade() -> void:
-	var completed_count := clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
-	if completed_count >= 5:
-		_show_notice("RESEARCH COMPLETE", "All charging-port technologies currently available in the phone editor have been researched.")
-		return
-	var active_level := int(career.get("phone_charge_port_research_active_level", -1))
-	if active_level >= 0:
-		_show_notice("RESEARCH ALREADY IN PROGRESS", "Your current charging-port research must finish before another connector can be researched.")
-		return
-	var port_names := ["DC Barrel Jack", "Mini-USB (Mini-B)", "Micro-USB (Micro-B)", "Apple Lightning", "USB Type-C"]
-	var next_name: String = port_names[completed_count]
-	var points_cost := 10 + completed_count * 2
-	var money_cost := 100000.0 + float(completed_count) * 20000.0
-	var available_points := maxi(0, int(career.get("research_points", 0)))
-	var available_balance := float(career.get("balance", 10000000.0))
-	if available_points < points_cost:
-		_show_notice("INSUFFICIENT RESEARCH POINTS", "Researching %s requires %d RP. Your available research points: %d RP." % [next_name, points_cost, available_points])
-		return
-	if available_balance < money_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Researching %s requires %s. Your available balance is %s." % [next_name, _format_balance(money_cost), _format_balance(available_balance)])
-		return
-
-	var previous_points := available_points
-	var previous_balance := available_balance
-	var previous_active_level := int(career.get("phone_charge_port_research_active_level", -1))
-	var previous_completion := float(career.get("phone_charge_port_research_completion_unix", 0.0))
-	career["research_points"] = previous_points - points_cost
-	career["balance"] = previous_balance - money_cost
-	career["phone_charge_port_research_active_level"] = completed_count
-	career["phone_charge_port_research_completion_unix"] = game_date_unix + 7.0 * 86400.0
-	if not _save_career():
-		career["research_points"] = previous_points
-		career["balance"] = previous_balance
-		career["phone_charge_port_research_active_level"] = previous_active_level
-		career["phone_charge_port_research_completion_unix"] = previous_completion
-		_show_notice("RESEARCH NOT SAVED", "The charging-port research could not be saved. No research points or company funds were deducted.")
-		return
-
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-money_cost, "CHARGING PORT RESEARCH")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-
-
-func _process_phone_charge_port_research() -> void:
-	var active_level := int(career.get("phone_charge_port_research_active_level", -1))
-	if active_level < 0:
-		return
-	var completion_unix := float(career.get("phone_charge_port_research_completion_unix", 0.0))
-	if completion_unix <= 0.0 or game_date_unix < completion_unix:
-		return
-
-	var current_level := clampi(int(career.get("phone_charge_port_research_level", 1)), 1, 5)
-	career["phone_charge_port_research_level"] = maxi(current_level, active_level + 1)
-	career["phone_charge_port_research_active_level"] = -1
-	career["phone_charge_port_research_completion_unix"] = 0.0
-	if not _save_career():
-		# Keep the completion pending so it can be retried on the next game tick.
-		career["phone_charge_port_research_level"] = current_level
-		career["phone_charge_port_research_active_level"] = active_level
-		career["phone_charge_port_research_completion_unix"] = completion_unix
-		return
-
-	if current_screen == "research":
-		_show_notice("CHARGING PORT RESEARCH COMPLETE", "The next charging-port technology has been unlocked in your phone editor.")
-
-
-func _apply_phone_design_research_upgrade(research_id: String) -> void:
-	var research_names := {
-		"screen_size": "Screen size",
-		"phone_thickness": "Phone thickness",
-		"bezel_width": "Bezel width",
-		"frame_material": "Frame material",
-		"body_finish": "Body finish",
-		"camera_module": "Camera-module design"
-	}
-	if not research_names.has(research_id):
-		return
-	var research_levels: Dictionary = career.get("phone_design_research", {}).duplicate(true)
-	var current_level := clampi(int(research_levels.get(research_id, 1)), 1, 20)
-	if current_level >= 20:
-		_show_notice("MAXIMUM RESEARCH LEVEL", str(research_names[research_id]) + " has already reached level 20.")
-		return
-	var upgrade_cost := 250000.0 * float(current_level)
-	var previous_balance := float(career.get("balance", 10000000.0))
-	if previous_balance < upgrade_cost:
-		_show_notice("INSUFFICIENT BALANCE", "Upgrading %s to level %d requires %s. Your available balance is %s." % [research_names[research_id], current_level + 1, _format_balance(upgrade_cost), _format_balance(previous_balance)])
-		return
-	var previous_levels := research_levels.duplicate(true)
-	research_levels[research_id] = current_level + 1
-	career["phone_design_research"] = research_levels
-	career["balance"] = previous_balance - upgrade_cost
-	if not _save_career():
-		career["phone_design_research"] = previous_levels
-		career["balance"] = previous_balance
-		_show_notice("RESEARCH NOT SAVED", "The research upgrade could not be saved. Your research level and balance have not changed.")
-		return
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-upgrade_cost, "RESEARCH UPGRADE")
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
 func _return_to_home() -> void:
 	_restore_home_after_standalone_screen()
 
@@ -3354,12 +2648,6 @@ func _process_monthly_staff_payroll(month_key: String) -> void:
 
 
 func _ensure_staff_data() -> void:
-	if not career.has("research_points"):
-		career["research_points"] = 0
-	if not career.has("research_points_progress"):
-		career["research_points_progress"] = 0.0
-	else:
-		career["research_points_progress"] = fposmod(float(career["research_points_progress"]), 1.0)
 	if not career.has("staff_candidates") or not (career.get("staff_candidates") is Array):
 		career["staff_candidates"] = []
 	if not career.has("staff_employees") or not (career.get("staff_employees") is Array):
