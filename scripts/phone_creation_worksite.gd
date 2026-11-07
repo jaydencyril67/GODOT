@@ -10,7 +10,6 @@ var refresh_rate_step_visited := false
 var cooling_system_step_visited := false
 
 signal back_requested
-signal screen_shape_research_prompt_requested
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
 class GlassArrowButton extends Button:
@@ -107,15 +106,6 @@ var navigation_bar: HBoxContainer
 var step_panels: Dictionary = {}
 
 
-
-signal research_upgrade_requested(research_id: String)
-signal charge_port_research_prompt_requested
-signal front_camera_research_prompt_requested
-signal speaker_research_prompt_requested
-signal battery_research_prompt_requested
-signal wifi_research_prompt_requested
-signal bluetooth_research_prompt_requested
-signal mobile_internet_research_prompt_requested
 
 signal worksite_nested_color_view_opened
 
@@ -561,33 +551,6 @@ var charging_speed_value_label: Label
 
 var charging_speed_slider: VSlider
 
-var research_mode := false
-
-var research_ui_host: Control
-
-var research_ui_root: Control
-
-var charge_port_research_overlay: Control
-
-var charge_port_research_overlay_content: Control
-
-var research_content_panel: Control
-
-var research_balance_label: Label
-
-var research_points_label: Label
-
-var research_levels: Dictionary = {}
-
-var research_balance := 0.0
-
-var research_points := 0
-
-var research_item_cards: Dictionary = {}
-
-var research_view := "HARDWARE"
-
-var research_detail_feature := ""
 
 var left_tools_page := 0
 
@@ -740,11 +703,6 @@ var box_package_logo_sprite: Sprite3D
 var box_package_name_label: Label3D
 
 func _ready() -> void:
-	# Phone Design Research uses the same Worksite owner in research mode.
-	# Normal product creation initializes the Worksite's own preview and wizard.
-	if research_mode:
-		_build_research_ui()
-		return
 	_build_preview_world()
 	_build_interface()
 
@@ -3141,8 +3099,6 @@ func _exit_tree() -> void:
 	active_screen_protector_build_tweens.clear()
 
 func _process(delta: float) -> void:
-	if research_mode:
-		return
 	if box_package_preview_mode or selected_phone_type == "Standard":
 		return
 	var fold_angle_delta := fold_target_angle_degrees - fold_angle_degrees
@@ -3166,105 +3122,6 @@ func _apply_research_typography(control: Control, font_size: int) -> void:
 	stix_font.variation_embolden = 0.7
 	control.add_theme_font_override("font", stix_font)
 	control.add_theme_font_size_override("font_size", font_size)
-
-func _build_research_ui() -> void:
-	if not is_instance_valid(research_ui_host):
-		push_error("Phone Research requires the existing Research screen root.")
-		return
-	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	# Mount the research interface directly inside the current screen root.
-	# There is no second CanvasLayer or independently instantiated scene.
-	var root := Control.new()
-	root.name = "PhoneResearchOverlay"
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_STOP
-	research_ui_host.add_child(root)
-	research_ui_root = root
-
-	var background := ColorRect.new()
-	background.name = "DigitalWorld_Obsidian_Background"
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color("#07090e")
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(background)
-
-	var shade := ColorRect.new()
-	shade.name = "Shared_Background_Overlay"
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.008, 0.010, 0.015, 0.58)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(shade)
-
-	var outer := MarginContainer.new()
-	outer.name = "PhoneResearchPageMargin"
-	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	outer.add_theme_constant_override("margin_left", 18 if compact else 42)
-	outer.add_theme_constant_override("margin_right", 18 if compact else 42)
-	outer.add_theme_constant_override("margin_top", 18 if compact else 28)
-	outer.add_theme_constant_override("margin_bottom", 24)
-	root.add_child(outer)
-
-	var page := VBoxContainer.new()
-	page.name = "PhoneResearchPageContent"
-	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_theme_constant_override("separation", 15 if compact else 18)
-	outer.add_child(page)
-
-	var header := VBoxContainer.new()
-	header.add_theme_constant_override("separation", 5)
-	page.add_child(header)
-	header.add_child(_make_label("DIGITALWORLD  /  RESEARCH  /  PHONE", 11 if compact else 13, Color("#9bd6a7")))
-
-	var hero_row := HBoxContainer.new()
-	hero_row.name = "PhoneResearchHeroRow"
-	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero_row.add_theme_constant_override("separation", 12)
-	header.add_child(hero_row)
-
-	var heading := VBoxContainer.new()
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero_row.add_child(heading)
-	heading.add_child(_make_label("PHONE DESIGN RESEARCH", 27 if compact else 36, Color.WHITE))
-	research_balance_label = _make_label("AVAILABLE BALANCE  " + _format_research_money(research_balance), 11 if compact else 12, Color("#c7eacb"))
-	heading.add_child(research_balance_label)
-
-	var back_button := Button.new()
-	back_button.name = "PhoneResearchBackButton"
-	back_button.text = "‹  BACK"
-	back_button.custom_minimum_size = Vector2(112 if compact else 132, 40 if compact else 46)
-	back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_research_typography(back_button, 13 if compact else 15)
-	_style_staff_button(back_button, false)
-	back_button.pressed.connect(func(): back_requested.emit())
-	hero_row.add_child(back_button)
-
-	var research_content := VBoxContainer.new()
-	research_content.name = "PhoneDesignResearchContent"
-	research_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	research_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	research_content.add_theme_constant_override("separation", 12)
-	page.add_child(research_content)
-	_build_design_research_content(research_content)
-
-
-func close_research_ui() -> void:
-	# The overlay is hosted by the existing Research screen, not by this
-	# Node3D controller, so it must be explicitly removed on Back.
-	if is_instance_valid(research_ui_root):
-		research_ui_root.queue_free()
-	research_ui_root = null
-	research_content_panel = null
-
-
-func set_research_data(levels: Dictionary, balance: float, points: int = 0) -> void:
-	research_levels = levels.duplicate(true)
-	research_balance = balance
-	research_points = maxi(0, points)
-	if is_instance_valid(research_balance_label):
-		research_balance_label.text = "AVAILABLE BALANCE  " + _format_research_money(research_balance)
-	if is_instance_valid(research_content_panel):
-		_refresh_design_research_cards()
 
 func set_battery_capacity_research_level(level: int) -> void:
 	researched_battery_capacity_level = clampi(level, 1, 15)
@@ -3316,24 +3173,6 @@ func set_front_camera_research_level(level: int) -> void:
 	if is_instance_valid(phone_body):
 		_refresh_phone_screen()
 
-func _build_design_research_content(parent: Control) -> void:
-	research_content_panel = parent
-	for child in parent.get_children():
-		child.hide()
-		child.queue_free()
-	research_item_cards.clear()
-
-	var compact := get_viewport().get_visible_rect().size.x < 900.0
-	# Charge Port opens the shared confirmation-alert popup; this page stays mounted.
-	_build_research_view_selector(parent, compact)
-
-	if research_view == "HARDWARE":
-		_build_hardware_research_grid(parent, compact)
-	elif research_view == "SOFTWARE":
-		_build_software_research_grid(parent, compact)
-	else:
-		_build_extras_research_content(parent, compact)
-
 func _get_hardware_research_features() -> Array:
 	return [
 		"Phone Type", "Screen Tech", "Power/Volume Buttons", "Thickness",
@@ -3355,176 +3194,6 @@ func _get_extras_research_features() -> Array:
 		"Box Package", "Phone Case", "Charger",
 		"Protection Glass", "Wireless Earbuds", "Smartwatch", "Power Bank",
 	]
-
-func _build_hardware_research_grid(parent: Control, compact: bool) -> void:
-	_build_research_feature_grid(parent, compact, "HARDWARE FEATURES", "Hardware", _get_hardware_research_features())
-
-func _build_software_research_grid(parent: Control, compact: bool) -> void:
-	_build_research_feature_grid(parent, compact, "SOFTWARE FEATURES", "Software", _get_software_research_features())
-
-func _build_research_feature_grid(parent: Control, compact: bool, section_caption: String, grid_prefix: String, features: Array) -> void:
-	var viewport_size := get_viewport().get_visible_rect().size
-	var aspect_ratio := viewport_size.x / maxf(viewport_size.y, 1.0)
-	var columns := 6 if aspect_ratio >= 1.55 else (5 if aspect_ratio >= 1.2 else 3)
-	var short_screen := viewport_size.y < 430.0
-	var card_height := 58.0 if short_screen else (82.0 if compact else 104.0)
-
-	var section := VBoxContainer.new()
-	section.name = grid_prefix + "ResearchSection"
-	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	section.add_theme_constant_override("separation", 5)
-	parent.add_child(section)
-
-	var section_title := _make_label(section_caption, 13 if compact else 16, Color("#b9eaff"))
-	section.add_child(section_title)
-
-	var grid := GridContainer.new()
-	grid.name = grid_prefix + "ResearchFeatureGrid"
-	grid.columns = columns
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8 if compact else 12)
-	grid.add_theme_constant_override("v_separation", 7 if compact else 10)
-	section.add_child(grid)
-
-	for feature_value in features:
-		var feature_name := str(feature_value)
-		var card := _make_staff_style_card()
-		card.name = feature_name.replace("/", "_").replace(" ", "") + "_" + grid_prefix + "Card"
-		card.custom_minimum_size = Vector2(0, card_height)
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		grid.add_child(card)
-
-		var margin := MarginContainer.new()
-		margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		margin.add_theme_constant_override("margin_left", 5 if short_screen else 9)
-		margin.add_theme_constant_override("margin_right", 5 if short_screen else 9)
-		margin.add_theme_constant_override("margin_top", 3 if short_screen else 7)
-		margin.add_theme_constant_override("margin_bottom", 3 if short_screen else 7)
-		card.add_child(margin)
-
-		var content := VBoxContainer.new()
-		content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		content.alignment = BoxContainer.ALIGNMENT_CENTER
-		content.add_theme_constant_override("separation", 3 if short_screen else 5)
-		margin.add_child(content)
-
-		var feature_label := _make_label(feature_name.to_upper(), 9 if short_screen else (10 if compact else 12), Color.WHITE)
-		feature_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		feature_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		feature_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		feature_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		feature_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		content.add_child(feature_label)
-
-		var dummy_button := Button.new()
-		dummy_button.name = "ResearchFeatureButton"
-		dummy_button.text = "RESEARCH" if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Mobile Internet"] else "SELECT"
-		dummy_button.custom_minimum_size.y = 25 if short_screen else 32
-		dummy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(dummy_button, 11 if short_screen else 12)
-		_style_staff_button(dummy_button, false)
-		if feature_name in ["Charge Port", "Front Camera", "Speakers", "Screen Type", "Battery", "WiFi", "Bluetooth", "Mobile Internet"]:
-			dummy_button.pressed.connect(_on_research_feature_selected.bind(feature_name))
-		# Other research categories remain placeholders until their individual
-		# progression screens are implemented.
-		content.add_child(dummy_button)
-
-	# Keep every category at the same row count as Hardware. Empty trailing
-	# cells preserve the Hardware card height without stretching shorter grids.
-	if grid_prefix != "Hardware":
-		var hardware_row_count := ceili(24.0 / float(columns))
-		var target_grid_slots := hardware_row_count * columns
-		var spacer_count := maxi(0, target_grid_slots - features.size())
-		for spacer_index in range(spacer_count):
-			var spacer := Control.new()
-			spacer.name = grid_prefix + "ResearchEmptySlot" + str(spacer_index + 1)
-			spacer.custom_minimum_size = Vector2(0, card_height)
-			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			grid.add_child(spacer)
-
-func _build_extras_research_content(parent: Control, compact: bool) -> void:
-	_build_research_feature_grid(parent, compact, "EXTRAS & ACCESSORIES", "Extras", _get_extras_research_features())
-
-
-func _on_research_feature_selected(feature_name: String) -> void:
-	if feature_name == "Charge Port":
-		charge_port_research_prompt_requested.emit()
-	elif feature_name == "Front Camera":
-		front_camera_research_prompt_requested.emit()
-	elif feature_name == "Speakers":
-		speaker_research_prompt_requested.emit()
-	elif feature_name == "Screen Type":
-		screen_shape_research_prompt_requested.emit()
-	elif feature_name == "Battery":
-		battery_research_prompt_requested.emit()
-	elif feature_name == "WiFi":
-		wifi_research_prompt_requested.emit()
-	elif feature_name == "Bluetooth":
-		bluetooth_research_prompt_requested.emit()
-	elif feature_name == "Mobile Internet":
-		mobile_internet_research_prompt_requested.emit()
-
-
-func _build_research_view_selector(parent: Control, compact: bool) -> void:
-	# Category tabs stay together; the Back action lives in the hero row.
-	var selector := HBoxContainer.new()
-	selector.name = "PhoneResearchDepartmentSelector"
-	selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selector.alignment = BoxContainer.ALIGNMENT_END
-	selector.add_theme_constant_override("separation", 7 if compact else 10)
-	parent.add_child(selector)
-
-	for view_name in ["HARDWARE", "SOFTWARE", "EXTRAS"]:
-		var button := Button.new()
-		button.text = view_name
-		button.custom_minimum_size = Vector2(112 if compact else 148, 40 if compact else 46)
-		_apply_research_typography(button, 12 if compact else 14)
-		_style_staff_button(button, research_view == view_name)
-		button.pressed.connect(_on_research_view_selected.bind(view_name))
-		selector.add_child(button)
-
-func _on_research_view_selected(view_name: String) -> void:
-	if not ["HARDWARE", "SOFTWARE", "EXTRAS"].has(view_name):
-		return
-	if research_view == view_name:
-		return
-	research_view = view_name
-	if is_instance_valid(research_content_panel):
-		_build_design_research_content(research_content_panel)
-
-func _refresh_design_research_cards() -> void:
-	for research_id in research_item_cards:
-		var entry: Dictionary = research_item_cards[research_id]
-		var level := clampi(int(research_levels.get(research_id, 1)), 1, 20)
-		var cost := 250000.0 * float(level)
-		var level_label: Label = entry["level"]
-		var upgrade_button: Button = entry["button"]
-		level_label.text = "CURRENT LEVEL: %d / 20" % level
-		if level >= 20:
-			upgrade_button.text = "MAXIMUM LEVEL"
-			upgrade_button.disabled = true
-		else:
-			upgrade_button.text = "UPGRADE TO %d  •  %s" % [level + 1, _format_research_money(cost)]
-			upgrade_button.disabled = research_balance < cost
-
-func _format_research_money(amount: float) -> String:
-	var digits := str(roundi(amount))
-	var formatted := ""
-	for index in range(digits.length()):
-		if index > 0 and (digits.length() - index) % 3 == 0:
-			formatted += ","
-		formatted += digits.substr(index, 1)
-	return "$" + formatted
-
-func _on_design_research_upgrade_pressed(research_id: String) -> void:
-	research_upgrade_requested.emit(research_id)
 
 func _make_staff_style_card() -> PanelContainer:
 	var card := PanelContainer.new()
@@ -13350,7 +13019,7 @@ func _make_label(caption: String, font_size: int, color: Color) -> Label:
 	return label
 
 func _input(event: InputEvent) -> void:
-	if research_mode or left_tools_page == 1 or not is_instance_valid(preview_container) or not preview_container.is_visible_in_tree():
+	if left_tools_page == 1 or not is_instance_valid(preview_container) or not preview_container.is_visible_in_tree():
 		return
 
 	var preview_rect := preview_container.get_global_rect()
