@@ -113,8 +113,13 @@ func _run_transition_checks() -> void:
 		_fail("The empty research scene did not show its Create Research button.")
 		return
 	dashboard.call("_open_creation_scene")
-	if dashboard.find_child("ResearchComponentOption", true, false) == null or dashboard.find_child("ResearchInvestmentInput", true, false) == null or dashboard.find_child("StartResearchButton", true, false) == null:
-		_fail("The progressive research creation scene did not build its required controls.")
+	await process_frame
+	var missing_creation_controls: Array[String] = []
+	for control_name in ["ResearchComponentOption", "ResearchInvestmentInput", "StartResearchButton"]:
+		if dashboard.find_child(control_name, true, false) == null:
+			missing_creation_controls.append(control_name)
+	if not missing_creation_controls.is_empty():
+		_fail("The progressive research creation scene is missing: %s. Creation mode: %s." % [", ".join(missing_creation_controls), str(dashboard.get("creation_mode"))])
 		return
 	dashboard.call("_close_creation_scene")
 	if dashboard.find_child("HardwareAllocationDial", true, false) != null:
