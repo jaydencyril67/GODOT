@@ -106,8 +106,20 @@ func _process(delta: float) -> void:
 	var completed_rd_projects: Array = ResearchManagerScript.advance_projects(career, game_time_delta, game_date_unix)
 	if not completed_rd_projects.is_empty():
 		_save_career()
+		for completed_id in completed_rd_projects:
+			for project_value in career.get("research_projects", []):
+				if not (project_value is Dictionary) or str(project_value.get("id", "")) != completed_id:
+					continue
+				var completed_project: Dictionary = project_value
+				var component_name := str(completed_project.get("component", "Research"))
+				if str(completed_project.get("status", "")) == ResearchManagerScript.STATUS_SUCCESSFUL:
+					var level := int(career.get("research_component_levels", {}).get(component_name, 0))
+					_show_notice("RESEARCH SUCCESSFUL", "%s advanced to researched level %d." % [component_name, level])
+				else:
+					_show_notice("RESEARCH UNSUCCESSFUL", "%s research did not produce a successful result." % component_name)
+				break
 		if is_instance_valid(research_allocation_dashboard):
-			research_allocation_dashboard.call("update_live_progress", career.get("research_projects", []), float(career.get("balance", 0.0)), career.get("staff_employees", []))
+			research_allocation_dashboard.call("configure", _get_research_dashboard_data())
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month:
@@ -204,6 +216,7 @@ func _load_career() -> bool:
 		"research_history": config.get_value("career", "research_history", []),
 		"research_projects": config.get_value("career", "research_projects", []),
 		"research_technologies": config.get_value("career", "research_technologies", {}),
+		"research_component_levels": config.get_value("career", "research_component_levels", {}),
 		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
 	ResearchManagerScript.ensure_state(career)
@@ -236,6 +249,7 @@ func _save_career() -> bool:
 	config.set_value("career", "research_history", career.get("research_history", []))
 	config.set_value("career", "research_projects", career.get("research_projects", []))
 	config.set_value("career", "research_technologies", career.get("research_technologies", {}))
+	config.set_value("career", "research_component_levels", career.get("research_component_levels", {}))
 	config.set_value("career", "next_research_project_id", int(career.get("next_research_project_id", 1)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
@@ -2597,6 +2611,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_front_camera_research_level", 8)
 	phone_creation_worksite.call("set_speaker_research_level", 12)
 	phone_creation_worksite.call("set_battery_capacity_research_level", 15)
+	phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
 	phone_creation_worksite.call("set_wifi_research_level", 8)
 	phone_creation_worksite.call("set_bluetooth_research_level", 14)
 	phone_creation_worksite.call("set_mobile_internet_research_level", 7)
