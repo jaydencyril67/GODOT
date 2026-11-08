@@ -190,7 +190,6 @@ func _build_shell() -> void:
 	var section_title := _label("RESEARCH & DEVELOPMENT", 20, TEXT_MAIN)
 	section_title.add_theme_font_size_override("font_size", _scaled_font(20))
 	title_stack.add_child(section_title)
-	title_stack.add_child(_label(company_name.to_upper(), 11, TEXT_MUTED))
 
 	var capital_stack := VBoxContainer.new()
 	capital_stack.custom_minimum_size.x = _scaled(190.0)
@@ -627,7 +626,8 @@ func _add_target_tile(parent: HBoxContainer, title: String, description: String)
 	tile.add_theme_constant_override("separation", 3)
 	parent.add_child(tile)
 	tile.add_child(_label(title, 12, TEXT_MAIN))
-	tile.add_child(_label(description, 11, TEXT_MUTED))
+	if not description.is_empty():
+		tile.add_child(_label(description, 11, TEXT_MUTED))
 
 
 func _add_large_metric(parent: VBoxContainer, value: String, caption: String, color: Color) -> void:
