@@ -2612,6 +2612,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_speaker_research_level", 12)
 	phone_creation_worksite.call("set_battery_capacity_research_level", 15)
 	phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
+	phone_creation_worksite.call("set_border_radius_research_level", int(career.get("research_component_levels", {}).get("Border Radius", 0)))
 	phone_creation_worksite.call("set_wifi_research_level", 8)
 	phone_creation_worksite.call("set_bluetooth_research_level", 14)
 	phone_creation_worksite.call("set_mobile_internet_research_level", 7)
