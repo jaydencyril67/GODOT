@@ -114,12 +114,21 @@ func _run_transition_checks() -> void:
 		return
 	dashboard.call("_open_creation_scene")
 	await process_frame
-	var missing_creation_controls: Array[String] = []
-	for control_name in ["ResearchComponentOption", "StartResearchButton"]:
+	for control_name in ["ResearchComponentOption", "ResearchNextButton"]:
 		if dashboard.find_child(control_name, true, false) == null:
-			missing_creation_controls.append(control_name)
-	if not missing_creation_controls.is_empty():
-		_fail("The progressive research creation scene is missing: %s. Creation mode: %s." % [", ".join(missing_creation_controls), str(dashboard.get("creation_mode"))])
+			_fail("The component-selection step is missing %s." % control_name)
+			return
+	if dashboard.find_child("ResearchStaffScroll", true, false) != null:
+		_fail("Staff selection appeared before the component-selection step was completed.")
+		return
+	dashboard.call("_open_staff_selection_step")
+	await process_frame
+	for control_name in ["ResearchStaffScroll", "ResearchCreateButton"]:
+		if dashboard.find_child(control_name, true, false) == null:
+			_fail("The staff-selection step is missing %s." % control_name)
+			return
+	if dashboard.find_child("ResearchComponentOption", true, false) != null:
+		_fail("Component selection remained visible during the staff-selection step.")
 		return
 	if dashboard.find_child("ResearchInvestmentInput", true, false) != null:
 		_fail("Research creation still shows a separate upfront investment field.")
