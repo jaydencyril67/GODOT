@@ -307,7 +307,7 @@ func _build_component_selection_scene() -> void:
 		var component_button := Button.new()
 		component_button.name = "ResearchComponentOption" if index == 0 else "ResearchComponentOption_%d" % index
 		component_button.text = COMPONENT_LABELS[index].to_upper()
-		component_button.custom_minimum_size = Vector2(_scaled(220.0), _scaled(130.0))
+		component_button.custom_minimum_size = Vector2(_scaled(170.0), _scaled(90.0))
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		component_button.focus_mode = Control.FOCUS_NONE
 		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
@@ -402,13 +402,13 @@ func _build_staff_choices(parent: GridContainer) -> void:
 		var staff_button := Button.new()
 		staff_button.name = "ResearchStaff_%s" % employee_id.validate_node_name()
 		staff_button.text = employee_name.to_upper()
-		staff_button.custom_minimum_size = Vector2(_scaled(210.0), _scaled(104.0))
+		staff_button.custom_minimum_size = Vector2(_scaled(150.0), _scaled(68.0))
 		staff_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		staff_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		staff_button.disabled = unavailable
 		staff_button.focus_mode = Control.FOCUS_NONE
 		staff_button.clip_text = true
-		staff_button.add_theme_font_size_override("font_size", _scaled_font(20))
+		staff_button.add_theme_font_size_override("font_size", _scaled_font(17))
 		staff_button.add_theme_color_override("font_color", TEXT_MAIN)
 		staff_button.add_theme_color_override("font_disabled_color", TEXT_MUTED)
 		var normal := StyleBoxFlat.new()
