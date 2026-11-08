@@ -403,23 +403,11 @@ func _build_staff_choices(parent: VBoxContainer) -> void:
 		staff_row.custom_minimum_size = Vector2(0.0, _scaled(58.0))
 		staff_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		staff_row.add_theme_constant_override("separation", roundi(_scaled(14.0)))
-		var row_style := StyleBoxFlat.new()
-		row_style.bg_color = Color("#29251E") if selected else Color("#202326")
-		row_style.border_color = ACCENT if selected else Color("#49463F")
-		row_style.set_border_width_all(1 if selected else 1)
-		row_style.set_corner_radius_all(7)
-		row_style.content_margin_left = roundi(_scaled(12.0))
-		row_style.content_margin_right = roundi(_scaled(12.0))
-		row_style.content_margin_top = roundi(_scaled(5.0))
-		row_style.content_margin_bottom = roundi(_scaled(5.0))
-		var row_panel := PanelContainer.new()
-		row_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row_panel.add_theme_stylebox_override("panel", row_style)
-		staff_row.add_child(row_panel)
 		var row_content := HBoxContainer.new()
 		row_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		row_content.add_theme_constant_override("separation", roundi(_scaled(12.0)))
-		row_panel.add_child(row_content)
+		staff_row.add_child(row_content)
 		var check_button := Button.new()
 		check_button.custom_minimum_size = Vector2(_scaled(34.0), _scaled(34.0))
 		check_button.disabled = unavailable
@@ -596,27 +584,12 @@ func _build_active_research(project: Dictionary) -> void:
 			details_panel.add_child(_label("•  " + employee_name, 14, TEXT_MAIN))
 
 func _add_panel(parent: Control, stretch_ratio: float = 1.0) -> VBoxContainer:
-	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.size_flags_stretch_ratio = stretch_ratio
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1A1D1F")
-	panel_style.border_color = Color("#45423B")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(9)
-	panel_style.content_margin_left = roundi(_scaled(18.0))
-	panel_style.content_margin_right = roundi(_scaled(18.0))
-	panel_style.content_margin_top = roundi(_scaled(16.0))
-	panel_style.content_margin_bottom = roundi(_scaled(16.0))
-	panel.add_theme_stylebox_override("panel", panel_style)
-	parent.add_child(panel)
-
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", roundi(_scaled(11.0)))
-	panel.add_child(content)
+	content.size_flags_stretch_ratio = stretch_ratio
+	content.add_theme_constant_override("separation", roundi(_scaled(18.0)))
+	parent.add_child(content)
 	return content
 
 
