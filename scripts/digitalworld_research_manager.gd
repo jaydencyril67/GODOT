@@ -16,7 +16,8 @@ const COMPONENT_CATALOGUE := [
 	"Screen Technology",
 	"Phone Thickness",
 	"Border Radius",
-	"Speakers"
+	"Speakers",
+	"Charge Port"
 ]
 
 
@@ -149,7 +150,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		if requested_components is Array and not requested_components.is_empty():
 			component = normalize_component(str(requested_components[0]))
 	if not COMPONENT_CATALOGUE.has(component):
-		return _failure("Choose Screen Tech, Phone Thickness or Border Radius.")
+		return _failure("Choose an available research component.")
 
 	var requested_staff: Variant = request.get("staff_ids", [])
 	if not (requested_staff is Array) or requested_staff.is_empty():
@@ -253,6 +254,9 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 					component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
 				elif component == "Speakers":
 					component_levels[component] = mini(11, int(component_levels.get(component, 0)) + 1)
+				elif component == "Charge Port":
+					# The first port is the baseline; each success unlocks the next port.
+					component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
 				career["research_component_levels"] = component_levels
 			else:
 				project["status"] = STATUS_UNSUCCESSFUL
