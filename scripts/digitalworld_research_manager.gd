@@ -15,7 +15,8 @@ const STATUS_CANCELLED := "cancelled"
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
 	"Phone Thickness",
-	"Border Radius"
+	"Border Radius",
+	"Speakers"
 ]
 
 
@@ -250,6 +251,9 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 				if component in ["Phone Thickness", "Border Radius"]:
 					var component_levels: Dictionary = career.get("research_component_levels", {})
 					component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
+				elif component == "Speakers":
+					var component_levels: Dictionary = career.get("research_component_levels", {})
+					component_levels[component] = mini(11, int(component_levels.get(component, 0)) + 1)
 					career["research_component_levels"] = component_levels
 			else:
 				project["status"] = STATUS_UNSUCCESSFUL
