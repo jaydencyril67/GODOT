@@ -585,11 +585,11 @@ var phone_thickness_increase_button: Button
 
 var speaker_count := 1
 
-var researched_speaker_count := 12
-
-var speaker_count_slider: VSlider
+var researched_speaker_count := 1
 
 var speaker_count_value_label: Label
+var speaker_count_decrease_button: Button
+var speaker_count_increase_button: Button
 
 var charge_port_type := "DC Barrel Jack"
 
@@ -3169,16 +3169,13 @@ func set_charge_port_research_level(_level: int) -> void:
 	# Legacy compatibility hook: expose every charging-port technology.
 	researched_charge_port_count = 5
 
-func set_speaker_research_level(_level: int) -> void:
-	# Legacy compatibility hook: expose the complete speaker-count range.
-	researched_speaker_count = 12
-	speaker_count = clampi(speaker_count, 0, researched_speaker_count)
-	if is_instance_valid(speaker_count_slider):
-		speaker_count_slider.max_value = researched_speaker_count
-		speaker_count_slider.value = speaker_count
-	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS %d / 12" % speaker_count
+func set_speaker_research_level(level: int) -> void:
+	# One successful Speakers research unlocks one additional speaker,
+	# starting from the single base speaker and stopping at twelve total.
+	researched_speaker_count = 1 + clampi(level, 0, 11)
+	speaker_count = clampi(speaker_count, 1, researched_speaker_count)
 	_refresh_phone_speakers()
+	_refresh_speaker_count_controls()
 
 func set_front_camera_research_level(_level: int) -> void:
 	# Legacy compatibility hook: expose every front-camera design.
@@ -9652,61 +9649,70 @@ func _show_speaker_controls() -> void:
 	active_feature_panel.name = "SpeakerControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 14)
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("PHONE SPEAKERS", 19, Color.WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Choose how many speaker openings appear along the bottom edge", 12, Color("#D3AA6B"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
-
-	var meter_row := HBoxContainer.new()
-	meter_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	meter_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	meter_row.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(meter_row)
-
-	var level_labels := VBoxContainer.new()
-	level_labels.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	level_labels.alignment = BoxContainer.ALIGNMENT_CENTER
-	level_labels.add_theme_constant_override("separation", 0)
-	meter_row.add_child(level_labels)
-
-	for level in range(12, -1, -1):
-		var level_label := _make_label(str(level), 14, Color("#E5E0D6"))
-		level_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		level_labels.add_child(level_label)
-
-	var meter := VSlider.new()
-	meter.name = "SpeakerCountLevelMeter"
-	meter.min_value = 0
-	meter.max_value = 12
-	meter.step = 1
-	meter.value = speaker_count
-	meter.tick_count = 13
-	meter.custom_minimum_size = Vector2(76, 320)
-	meter.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	meter.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	meter.value_changed.connect(_on_speaker_count_changed)
-	_style_custom_slider(meter)
-	speaker_count_slider = meter
-	meter_row.add_child(meter)
-
-	speaker_count_value_label = _make_label("SPEAKERS %d / 12" % speaker_count, 16, Color("#C58A3A"))
+	speaker_count_value_label = _make_label("", 16, Color("#C58A3A"))
 	speaker_count_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(speaker_count_value_label)
 
-func _on_speaker_count_changed(value: float) -> void:
-	speaker_count = clampi(roundi(value), 0, 12)
+	var controls_center := CenterContainer.new()
+	controls_center.name = "SpeakerCountControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
+	var controls := HBoxContainer.new()
+	controls.name = "SpeakerCountLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 12)
+	controls_center.add_child(controls)
+
+	speaker_count_decrease_button = Button.new()
+	speaker_count_decrease_button.name = "DecreaseSpeakerCountButton"
+	speaker_count_decrease_button.text = "−"
+	_style_level_circle_button(speaker_count_decrease_button)
+	speaker_count_decrease_button.pressed.connect(_on_speaker_count_decrease_pressed)
+	controls.add_child(speaker_count_decrease_button)
+
+	speaker_count_increase_button = Button.new()
+	speaker_count_increase_button.name = "IncreaseSpeakerCountButton"
+	speaker_count_increase_button.text = "+"
+	_style_level_circle_button(speaker_count_increase_button)
+	speaker_count_increase_button.pressed.connect(_on_speaker_count_increase_pressed)
+	controls.add_child(speaker_count_increase_button)
+
+	_refresh_speaker_count_controls()
+
+
+func _refresh_speaker_count_controls() -> void:
 	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS %d / 12" % speaker_count
+		speaker_count_value_label.text = "SPEAKERS  %d / %d" % [speaker_count, researched_speaker_count]
+	if is_instance_valid(speaker_count_decrease_button):
+		speaker_count_decrease_button.disabled = speaker_count <= 1
+	if is_instance_valid(speaker_count_increase_button):
+		speaker_count_increase_button.disabled = speaker_count >= researched_speaker_count
+
+
+func _on_speaker_count_decrease_pressed() -> void:
+	if speaker_count <= 1:
+		return
+	speaker_count -= 1
 	_refresh_phone_speakers()
+	_refresh_speaker_count_controls()
+
+
+func _on_speaker_count_increase_pressed() -> void:
+	if speaker_count >= researched_speaker_count:
+		return
+	speaker_count += 1
+	_refresh_phone_speakers()
+	_refresh_speaker_count_controls()
+
 
 func _refresh_phone_speakers() -> void:
 	if not is_instance_valid(phone_body):
