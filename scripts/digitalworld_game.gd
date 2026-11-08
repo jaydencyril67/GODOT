@@ -2609,7 +2609,7 @@ func _show_phone_creation_worksite() -> void:
 	add_child(phone_creation_worksite)
 	phone_creation_worksite.call("set_charge_port_research_level", 5)
 	phone_creation_worksite.call("set_front_camera_research_level", 8)
-	phone_creation_worksite.call("set_speaker_research_level", 12)
+	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", 15)
 	phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
 	phone_creation_worksite.call("set_border_radius_research_level", int(career.get("research_component_levels", {}).get("Border Radius", 0)))
