@@ -574,7 +574,11 @@ var border_radius_value_label: Label
 
 var phone_thickness_level := 0
 
+var phone_thickness_research_level := 0
+
 var phone_thickness_value_label: Label
+var phone_thickness_decrease_button: Button
+var phone_thickness_increase_button: Button
 
 var speaker_count := 1
 
@@ -8556,17 +8560,31 @@ func _show_thickness_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Each test upgrade makes the 3D phone slightly slimmer. The original maximum thickness is preserved.", 12, Color("#D3AA6B"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
-
 	phone_thickness_value_label = _make_label("", 16, Color("#C58A3A"))
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
 
-	var reduce_button := _create_component_test_button("TestPhoneThicknessReductionButton", "TEST THICKNESS REDUCTION", _on_phone_thickness_test_pressed)
-	active_feature_panel.add_child(reduce_button)
+	var controls := HBoxContainer.new()
+	controls.name = "PhoneThicknessLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 18)
+	active_feature_panel.add_child(controls)
+
+	phone_thickness_decrease_button = Button.new()
+	phone_thickness_decrease_button.name = "DecreasePhoneThicknessButton"
+	phone_thickness_decrease_button.text = "−"
+	phone_thickness_decrease_button.custom_minimum_size = Vector2(64, 64)
+	phone_thickness_decrease_button.add_theme_font_size_override("font_size", 34)
+	phone_thickness_decrease_button.pressed.connect(_on_phone_thickness_decrease_pressed)
+	controls.add_child(phone_thickness_decrease_button)
+
+	phone_thickness_increase_button = Button.new()
+	phone_thickness_increase_button.name = "IncreasePhoneThicknessButton"
+	phone_thickness_increase_button.text = "+"
+	phone_thickness_increase_button.custom_minimum_size = Vector2(64, 64)
+	phone_thickness_increase_button.add_theme_font_size_override("font_size", 34)
+	phone_thickness_increase_button.pressed.connect(_on_phone_thickness_increase_pressed)
+	controls.add_child(phone_thickness_increase_button)
 	_refresh_phone_thickness_test_ui()
 
 func _show_power_volume_controls() -> void:
@@ -10224,16 +10242,32 @@ func _phone_depth_for_thickness_level(level: int = -1) -> float:
 	var resolved_level := phone_thickness_level if level < 0 else clampi(level, 0, 20)
 	return lerpf(_active_phone_size().z, 0.035, float(resolved_level) / 20.0)
 
+func set_phone_thickness_research_level(level: int) -> void:
+	phone_thickness_research_level = clampi(level, 0, 20)
+	phone_thickness_level = mini(phone_thickness_level, phone_thickness_research_level)
+	_refresh_phone_mesh()
+	_refresh_phone_thickness_test_ui()
+
+
 func _refresh_phone_thickness_test_ui() -> void:
 	if is_instance_valid(phone_thickness_value_label):
-		phone_thickness_value_label.text = "THICKNESS REDUCTIONS: %d / 20" % phone_thickness_level
-	var button := active_feature_panel.get_node_or_null("TestPhoneThicknessReductionButton") as Button if is_instance_valid(active_feature_panel) else null
-	if is_instance_valid(button):
-		button.disabled = phone_thickness_level >= 20
-		button.text = "MAXIMUM SLIMNESS REACHED" if phone_thickness_level >= 20 else "TEST THICKNESS REDUCTION"
+		phone_thickness_value_label.text = "THICKNESS LEVEL  %d / %d" % [phone_thickness_level, phone_thickness_research_level]
+	if is_instance_valid(phone_thickness_decrease_button):
+		phone_thickness_decrease_button.disabled = phone_thickness_level <= 0
+	if is_instance_valid(phone_thickness_increase_button):
+		phone_thickness_increase_button.disabled = phone_thickness_level >= phone_thickness_research_level
 
-func _on_phone_thickness_test_pressed() -> void:
-	if phone_thickness_level >= 20:
+
+func _on_phone_thickness_decrease_pressed() -> void:
+	if phone_thickness_level <= 0:
+		return
+	phone_thickness_level -= 1
+	_refresh_phone_mesh()
+	_refresh_phone_thickness_test_ui()
+
+
+func _on_phone_thickness_increase_pressed() -> void:
+	if phone_thickness_level >= phone_thickness_research_level:
 		return
 	phone_thickness_level += 1
 	_refresh_phone_mesh()
