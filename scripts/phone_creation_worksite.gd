@@ -8526,8 +8526,9 @@ func _show_border_radius_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BorderRadiusControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 14)
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("BORDER RADIUS", 19, Color.WHITE)
@@ -8541,7 +8542,9 @@ func _show_border_radius_controls() -> void:
 	var controls := HBoxContainer.new()
 	controls.name = "BorderRadiusLevelControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 18)
+	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	controls.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(controls)
 
 	border_radius_decrease_button = Button.new()
@@ -8567,8 +8570,9 @@ func _show_thickness_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "ThicknessControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 14)
+	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("PHONE THICKNESS", 19, Color.WHITE)
@@ -8582,7 +8586,9 @@ func _show_thickness_controls() -> void:
 	var controls := HBoxContainer.new()
 	controls.name = "PhoneThicknessLevelControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 18)
+	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	controls.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(controls)
 
 	phone_thickness_decrease_button = Button.new()
@@ -8595,7 +8601,7 @@ func _show_thickness_controls() -> void:
 	phone_thickness_increase_button = Button.new()
 	phone_thickness_increase_button.name = "IncreasePhoneThicknessButton"
 	phone_thickness_increase_button.text = "+"
-	_style_level_circle_button(phone_thickness_decrease_button)
+	_style_level_circle_button(phone_thickness_increase_button)
 	phone_thickness_increase_button.pressed.connect(_on_phone_thickness_increase_pressed)
 	controls.add_child(phone_thickness_increase_button)
 	_refresh_phone_thickness_test_ui()
