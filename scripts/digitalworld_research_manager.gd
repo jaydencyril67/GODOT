@@ -8,6 +8,9 @@ const STATUS_ACTIVE := "active"
 const STATUS_AWAITING_VALIDATION := "awaiting_validation"
 const STATUS_APPROVED := "approved"
 const STATUS_REJECTED := "rejected"
+const STATUS_SUCCESSFUL := "successful"
+const STATUS_UNSUCCESSFUL := "unsuccessful"
+const RESEARCH_SUCCESS_CHANCE := 0.70
 const STATUS_CANCELLED := "cancelled"
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
@@ -45,6 +48,9 @@ static func ensure_state(career: Dictionary) -> void:
 		project.erase("daily_work_hours")
 		projects[index] = project
 	career["research_projects"] = projects
+	var component_levels_value: Variant = career.get("research_component_levels", {})
+	if not (component_levels_value is Dictionary):
+		career["research_component_levels"] = {}
 	var technologies_value: Variant = career.get("research_technologies", {})
 	if not (technologies_value is Dictionary):
 		career["research_technologies"] = {}
@@ -233,8 +239,20 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 		project["completed_research_days"] = completed_days
 
 		if completed_days >= required_days:
-			project["status"] = STATUS_AWAITING_VALIDATION
 			project["completed_at_unix"] = game_time_unix
+			var success_roll := randf()
+			var successful := success_roll < RESEARCH_SUCCESS_CHANCE
+			project["success_roll"] = success_roll
+			project["success_chance"] = RESEARCH_SUCCESS_CHANCE * 100.0
+			if successful:
+				project["status"] = STATUS_SUCCESSFUL
+				var component := normalize_component(str(project.get("component", "")))
+				if component == "Phone Thickness":
+					var component_levels: Dictionary = career.get("research_component_levels", {})
+					component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
+					career["research_component_levels"] = component_levels
+			else:
+				project["status"] = STATUS_UNSUCCESSFUL
 			completed_project_ids.append(str(project.get("id", "")))
 
 	career["research_projects"] = projects
