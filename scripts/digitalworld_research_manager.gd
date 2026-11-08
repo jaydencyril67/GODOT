@@ -247,7 +247,7 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 			if successful:
 				project["status"] = STATUS_SUCCESSFUL
 				var component := normalize_component(str(project.get("component", "")))
-				if component == "Phone Thickness":
+				if component in ["Phone Thickness", "Border Radius"]:
 					var component_levels: Dictionary = career.get("research_component_levels", {})
 					component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
 					career["research_component_levels"] = component_levels
