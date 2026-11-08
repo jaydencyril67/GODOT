@@ -1327,7 +1327,11 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			step_panels[step] = panel
 
 	if is_instance_valid(panel):
-		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if step == 8 else Control.SIZE_SHRINK_BEGIN
+		# Thickness and border-radius controls need the full right-hand workspace:
+		# their CenterContainer positions the +/- pair vertically below the
+		# heading and level readout. Do not let navigation collapse these panels.
+		var panel_uses_full_height := step == 8 or panel.name == "ThicknessControls" or panel.name == "BorderRadiusControls"
+		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if panel_uses_full_height else Control.SIZE_SHRINK_BEGIN
 		if step >= 15 and step <= 29:
 			_style_ram_selector_buttons(panel)
 
