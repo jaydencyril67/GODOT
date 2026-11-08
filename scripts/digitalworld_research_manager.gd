@@ -248,13 +248,12 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 			if successful:
 				project["status"] = STATUS_SUCCESSFUL
 				var component := normalize_component(str(project.get("component", "")))
+				var component_levels: Dictionary = career.get("research_component_levels", {})
 				if component in ["Phone Thickness", "Border Radius"]:
-					var component_levels: Dictionary = career.get("research_component_levels", {})
 					component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
 				elif component == "Speakers":
-					var component_levels: Dictionary = career.get("research_component_levels", {})
 					component_levels[component] = mini(11, int(component_levels.get(component, 0)) + 1)
-					career["research_component_levels"] = component_levels
+				career["research_component_levels"] = component_levels
 			else:
 				project["status"] = STATUS_UNSUCCESSFUL
 			completed_project_ids.append(str(project.get("id", "")))
