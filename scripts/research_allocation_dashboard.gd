@@ -344,39 +344,23 @@ func _build_staff_selection_scene() -> void:
 	body_content = _new_screen_root()
 	_mount_screen_root(body_content)
 
-	var heading := _label("SELECT RESEARCH STAFF", 26, TEXT_MAIN)
-	heading.custom_minimum_size.y = _scaled(58.0)
-	body_content.add_child(heading)
-
-	var selected_target := _label(_selected_component().to_upper(), 18, ACCENT)
-	selected_target.custom_minimum_size.y = _scaled(36.0)
-	body_content.add_child(selected_target)
-
-	var team_heading := HBoxContainer.new()
-	team_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body_content.add_child(team_heading)
-	var team_title := _label("RESEARCH STAFF", 16, TEXT_MAIN)
-	team_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	team_heading.add_child(team_title)
-	team_heading.add_child(_label("%d STAFF" % int(_get_workforce_summary().get("staff_count", 0)), 13, TEXT_MUTED))
-
 	var staff_scroll := ScrollContainer.new()
 	staff_scroll.name = "ResearchStaffScroll"
 	staff_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	staff_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	staff_scroll.custom_minimum_size.y = _scaled(190.0)
 	staff_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	staff_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	body_content.add_child(staff_scroll)
-	var staff_list := VBoxContainer.new()
-	staff_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	staff_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	staff_list.add_theme_constant_override("separation", roundi(_scaled(9.0)))
-	staff_scroll.add_child(staff_list)
-	_build_staff_choices(staff_list)
 
-	estimate_label = _label("SELECT STAFF TO VIEW THE ESTIMATE", 17, TEXT_MAIN)
-	estimate_label.custom_minimum_size.y = _scaled(48.0)
-	body_content.add_child(estimate_label)
+	var staff_grid := GridContainer.new()
+	staff_grid.name = "ResearchStaffGrid"
+	staff_grid.columns = 3
+	staff_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	staff_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	staff_grid.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
+	staff_grid.add_theme_constant_override("v_separation", roundi(_scaled(12.0)))
+	staff_scroll.add_child(staff_grid)
+	_build_staff_choices(staff_grid)
 
 	var actions := HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -402,64 +386,50 @@ func _return_to_component_step() -> void:
 	creation_step = 1
 	_render_scene()
 
-func _build_staff_choices(parent: VBoxContainer) -> void:
+func _build_staff_choices(parent: GridContainer) -> void:
 	var occupied_ids := _active_project_staff_ids()
-	var found_staff := false
 	for employee_value in staff_employees:
 		if not (employee_value is Dictionary):
 			continue
 		var employee: Dictionary = employee_value
 		if str(employee.get("department", "")) != "Research":
 			continue
-		found_staff = true
 		var employee_id := str(employee.get("id", ""))
 		var employee_name := str(employee.get("full_name", employee.get("name", "Research employee")))
-		var efficiency := clampi(int(employee.get("efficiency", 0)), 0, 100)
 		var selected := assigned_staff_ids.has(employee_id)
 		var unavailable := employee_id.is_empty() or occupied_ids.has(employee_id)
-		var staff_row := HBoxContainer.new()
-		staff_row.custom_minimum_size = Vector2(0.0, _scaled(58.0))
-		staff_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		staff_row.add_theme_constant_override("separation", roundi(_scaled(14.0)))
-		var row_content := HBoxContainer.new()
-		row_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		row_content.add_theme_constant_override("separation", roundi(_scaled(12.0)))
-		staff_row.add_child(row_content)
-		var check_button := Button.new()
-		check_button.custom_minimum_size = Vector2(_scaled(34.0), _scaled(34.0))
-		check_button.disabled = unavailable
-		check_button.text = "✓" if selected else ""
-		check_button.add_theme_font_size_override("font_size", _scaled_font(21))
-		check_button.add_theme_color_override("font_color", Color("#17191B"))
-		check_button.focus_mode = Control.FOCUS_NONE
-		var check_normal := StyleBoxFlat.new()
-		check_normal.bg_color = ACCENT if selected else Color("#17191B")
-		check_normal.border_color = ACCENT if selected else Color("#777064")
-		check_normal.set_border_width_all(2)
-		check_normal.set_corner_radius_all(6)
-		var check_hover := check_normal.duplicate() as StyleBoxFlat
-		check_hover.bg_color = Color("#D7A653") if selected else Color("#303336")
-		check_button.add_theme_stylebox_override("normal", check_normal)
-		check_button.add_theme_stylebox_override("hover", check_hover)
-		check_button.add_theme_stylebox_override("pressed", check_hover)
-		row_content.add_child(check_button)
-		var staff_label := _label("%s   ·   %d%% EFFICIENCY" % [employee_name, efficiency], 19, TEXT_MAIN)
-		staff_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		staff_label.add_theme_font_size_override("font_size", _scaled_font(19))
-		var staff_font := FontVariation.new()
-		staff_font.base_font = staff_label.get_theme_font("font")
-		staff_font.variation_embolden = 0.65
-		staff_label.add_theme_font_override("font", staff_font)
-		if unavailable:
-			staff_label.add_theme_color_override("font_color", TEXT_MUTED)
-		row_content.add_child(staff_label)
-		check_button.pressed.connect(_on_staff_toggled.bind(not selected, employee_id))
-		parent.add_child(staff_row)
-	if not found_staff:
-		var empty_staff := _label("No Research employees are available. Assign employees to the Research department first.", 13, ORANGE)
-		empty_staff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		parent.add_child(empty_staff)
+
+		var staff_button := Button.new()
+		staff_button.name = "ResearchStaff_%s" % employee_id.validate_node_name()
+		staff_button.text = employee_name.to_upper()
+		staff_button.custom_minimum_size = Vector2(_scaled(210.0), _scaled(104.0))
+		staff_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		staff_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		staff_button.disabled = unavailable
+		staff_button.focus_mode = Control.FOCUS_NONE
+		staff_button.clip_text = true
+		staff_button.add_theme_font_size_override("font_size", _scaled_font(20))
+		staff_button.add_theme_color_override("font_color", TEXT_MAIN)
+		staff_button.add_theme_color_override("font_disabled_color", TEXT_MUTED)
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color("#554021") if selected else Color("#222628")
+		normal.border_color = ACCENT if selected else Color("#49463F")
+		normal.set_border_width_all(3 if selected else 1)
+		normal.set_corner_radius_all(8)
+		normal.content_margin_left = roundi(_scaled(10.0))
+		normal.content_margin_right = roundi(_scaled(10.0))
+		normal.content_margin_top = roundi(_scaled(10.0))
+		normal.content_margin_bottom = roundi(_scaled(10.0))
+		var hover := normal.duplicate() as StyleBoxFlat
+		hover.bg_color = Color("#624A29") if selected else Color("#303638")
+		var pressed := normal.duplicate() as StyleBoxFlat
+		pressed.bg_color = Color("#70512B")
+		staff_button.add_theme_stylebox_override("normal", normal)
+		staff_button.add_theme_stylebox_override("hover", hover)
+		staff_button.add_theme_stylebox_override("pressed", pressed)
+		staff_button.add_theme_stylebox_override("disabled", normal)
+		staff_button.pressed.connect(_on_staff_toggled.bind(not selected, employee_id))
+		parent.add_child(staff_button)
 
 
 func _on_staff_toggled(checked: bool, employee_id: String) -> void:
@@ -468,7 +438,7 @@ func _on_staff_toggled(checked: bool, employee_id: String) -> void:
 			assigned_staff_ids.append(employee_id)
 	else:
 		assigned_staff_ids.erase(employee_id)
-	_update_research_estimate()
+	_render_scene()
 
 
 func _on_research_setup_changed(_value = null) -> void:
@@ -476,21 +446,11 @@ func _on_research_setup_changed(_value = null) -> void:
 
 
 func _update_research_estimate() -> void:
-	if not is_instance_valid(estimate_label) or not is_instance_valid(start_button):
+	if not is_instance_valid(start_button):
 		return
 	var component := _selected_component()
 	var estimate := ResearchManagerScript.estimate_research(component, assigned_staff_ids, staff_employees)
-	var estimate_valid := bool(estimate.get("ok", false))
-	if estimate_valid:
-		estimate_label.text = "ESTIMATED DURATION  %s IN-GAME DAYS\nESTIMATED SUCCESS CHANCE  %.0f%%" % [
-			_format_research_days(float(estimate.get("expected_duration_days", 0.0))),
-			float(estimate.get("success_chance", 0.0))
-		]
-		estimate_label.add_theme_color_override("font_color", ACCENT)
-	else:
-		estimate_label.text = str(estimate.get("error", "Assign researchers to see the estimate."))
-		estimate_label.add_theme_color_override("font_color", TEXT_MUTED)
-	start_button.disabled = not estimate_valid
+	start_button.disabled = not bool(estimate.get("ok", false))
 
 
 func _on_start_research_pressed() -> void:
