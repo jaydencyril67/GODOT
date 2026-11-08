@@ -38,6 +38,7 @@ var active_progress_label: Label
 var active_remaining_label: Label
 var active_project_id := ""
 var creation_mode := false
+var creation_step := 1
 var ui_scale := 1.0
 var _last_layout_key := ""
 
@@ -236,7 +237,10 @@ func _render_scene() -> void:
 	if not active_project.is_empty():
 		_build_active_research(active_project)
 	elif creation_mode:
-		_build_creation_scene()
+		if creation_step == 1:
+			_build_component_selection_scene()
+		else:
+			_build_staff_selection_scene()
 	else:
 		_build_empty_scene()
 
@@ -276,63 +280,93 @@ func _build_empty_scene() -> void:
 
 func _open_creation_scene() -> void:
 	creation_mode = true
+	creation_step = 1
 	selected_component_index = 0
 	assigned_staff_ids.clear()
 	_render_scene()
 
-func _build_creation_scene() -> void:
+
+func _build_component_selection_scene() -> void:
 	body_content = _new_screen_root()
 	_mount_screen_root(body_content)
 
-	var page_heading := HBoxContainer.new()
-	page_heading.custom_minimum_size.y = _scaled(58.0)
-	page_heading.add_theme_constant_override("separation", 16)
-	body_content.add_child(page_heading)
-	var heading := _label("NEW PROJECT", 22, TEXT_MAIN)
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	page_heading.add_child(heading)
+	var heading := _label("SELECT COMPONENT", 26, TEXT_MAIN)
+	heading.custom_minimum_size.y = _scaled(58.0)
+	body_content.add_child(heading)
 
-	var main_row := _new_main_row()
-	body_content.add_child(main_row)
+	var choices := GridContainer.new()
+	choices.name = "ResearchComponentChoices"
+	choices.columns = 3 if not _is_narrow_layout() else 1
+	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	choices.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	choices.add_theme_constant_override("h_separation", roundi(_scaled(14.0)))
+	choices.add_theme_constant_override("v_separation", roundi(_scaled(14.0)))
+	body_content.add_child(choices)
 
-	var setup_panel := _add_panel(main_row, 1.12)
-	setup_panel.add_child(_label("01  /  TARGET", 13, ACCENT))
-
-	var component_row := HBoxContainer.new()
-	component_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	component_row.add_theme_constant_override("separation", 8)
-	setup_panel.add_child(component_row)
 	for index in range(COMPONENT_LABELS.size()):
 		var component_button := Button.new()
 		component_button.name = "ResearchComponentOption" if index == 0 else "ResearchComponentOption_%d" % index
 		component_button.text = COMPONENT_LABELS[index].to_upper()
-		component_button.custom_minimum_size = Vector2(0, _scaled(88.0))
+		component_button.custom_minimum_size = Vector2(_scaled(220.0), _scaled(130.0))
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		component_button.size_flags_vertical = Control.SIZE_FILL
 		component_button.focus_mode = Control.FOCUS_NONE
-		component_button.add_theme_font_size_override("font_size", _scaled_font(16))
+		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
 		component_button.pressed.connect(_on_component_selected.bind(index))
-		component_row.add_child(component_button)
+		choices.add_child(component_button)
 		component_buttons.append(component_button)
 	_update_component_button_styles()
 
+	var actions := HBoxContainer.new()
+	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_theme_constant_override("separation", roundi(_scaled(12.0)))
+	body_content.add_child(actions)
+	var cancel := _button("CANCEL", false, TEXT_MUTED)
+	cancel.custom_minimum_size = Vector2(_scaled(150.0), _scaled(54.0))
+	cancel.pressed.connect(_close_creation_scene)
+	actions.add_child(cancel)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(spacer)
+	var next := _button("NEXT  〉", true, ACCENT)
+	next.name = "ResearchNextButton"
+	next.custom_minimum_size = Vector2(_scaled(220.0), _scaled(54.0))
+	next.pressed.connect(_open_staff_selection_step)
+	actions.add_child(next)
 
-	var team_panel := _add_panel(main_row, 0.96)
+
+func _open_staff_selection_step() -> void:
+	creation_step = 2
+	assigned_staff_ids.clear()
+	_render_scene()
+
+
+func _build_staff_selection_scene() -> void:
+	body_content = _new_screen_root()
+	_mount_screen_root(body_content)
+
+	var heading := _label("SELECT RESEARCH STAFF", 26, TEXT_MAIN)
+	heading.custom_minimum_size.y = _scaled(58.0)
+	body_content.add_child(heading)
+
+	var selected_target := _label(_selected_component().to_upper(), 18, ACCENT)
+	selected_target.custom_minimum_size.y = _scaled(36.0)
+	body_content.add_child(selected_target)
+
 	var team_heading := HBoxContainer.new()
-	team_panel.add_child(team_heading)
-	var team_title := _label("02  /  STAFF", 13, ACCENT)
+	team_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body_content.add_child(team_heading)
+	var team_title := _label("RESEARCH STAFF", 16, TEXT_MAIN)
 	team_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	team_heading.add_child(team_title)
-	team_heading.add_child(_label("%d STAFF" % int(_get_workforce_summary().get("staff_count", 0)), 11, TEXT_MUTED))
+	team_heading.add_child(_label("%d STAFF" % int(_get_workforce_summary().get("staff_count", 0)), 13, TEXT_MUTED))
 
 	var staff_scroll := ScrollContainer.new()
 	staff_scroll.name = "ResearchStaffScroll"
 	staff_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	staff_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	staff_scroll.custom_minimum_size = Vector2(0.0, _scaled(220.0 if not _is_narrow_layout() else 190.0))
+	staff_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	staff_scroll.custom_minimum_size.y = _scaled(190.0)
 	staff_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	team_panel.add_child(staff_scroll)
+	body_content.add_child(staff_scroll)
 	var staff_list := VBoxContainer.new()
 	staff_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	staff_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -340,28 +374,33 @@ func _build_creation_scene() -> void:
 	staff_scroll.add_child(staff_list)
 	_build_staff_choices(staff_list)
 
-	estimate_label = _label("DURATION  —     SUCCESS  —", 17, TEXT_MAIN)
-	estimate_label.custom_minimum_size.y = _scaled(34.0)
-	team_panel.add_child(estimate_label)
+	estimate_label = _label("SELECT STAFF TO VIEW THE ESTIMATE", 17, TEXT_MAIN)
+	estimate_label.custom_minimum_size.y = _scaled(48.0)
+	body_content.add_child(estimate_label)
 
 	var actions := HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_theme_constant_override("separation", 12)
+	actions.add_theme_constant_override("separation", roundi(_scaled(12.0)))
 	body_content.add_child(actions)
-	var cancel := _button("CANCEL", false, TEXT_MUTED)
-	cancel.custom_minimum_size = Vector2(_scaled(150.0), _scaled(54.0))
-	cancel.pressed.connect(_close_creation_scene)
-	actions.add_child(cancel)
-	var action_spacer := Control.new()
-	action_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_child(action_spacer)
-	start_button = _button("START RESEARCH  〉", true, ACCENT)
-	start_button.name = "StartResearchButton"
+	var back_step := _button("‹  BACK", false, TEXT_MUTED)
+	back_step.custom_minimum_size = Vector2(_scaled(150.0), _scaled(54.0))
+	back_step.pressed.connect(_return_to_component_step)
+	actions.add_child(back_step)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(spacer)
+	start_button = _button("CREATE RESEARCH", true, ACCENT)
+	start_button.name = "ResearchCreateButton"
 	start_button.custom_minimum_size = Vector2(_scaled(260.0), _scaled(54.0))
 	start_button.disabled = true
 	start_button.pressed.connect(_on_start_research_pressed)
 	actions.add_child(start_button)
 	_update_research_estimate()
+
+
+func _return_to_component_step() -> void:
+	creation_step = 1
+	_render_scene()
 
 func _build_staff_choices(parent: VBoxContainer) -> void:
 	var occupied_ids := _active_project_staff_ids()
@@ -477,6 +516,7 @@ func _selected_component() -> String:
 
 func _close_creation_scene() -> void:
 	creation_mode = false
+	creation_step = 1
 	assigned_staff_ids.clear()
 	_render_scene()
 
