@@ -244,56 +244,35 @@ func _build_empty_scene() -> void:
 	body_content = _new_screen_root()
 	_mount_screen_root(body_content)
 
-	var page_heading := HBoxContainer.new()
-	page_heading.custom_minimum_size.y = _scaled(62.0)
-	page_heading.add_theme_constant_override("separation", roundi(_scaled(18.0)))
-	body_content.add_child(page_heading)
+	var center := CenterContainer.new()
+	center.name = "NoActiveContractCenter"
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body_content.add_child(center)
 
-	var heading_spacer := Control.new()
-	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_heading.add_child(heading_spacer)
+	var empty_state := VBoxContainer.new()
+	empty_state.name = "NoActiveContractContent"
+	empty_state.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	empty_state.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	empty_state.add_theme_constant_override("separation", roundi(_scaled(22.0)))
+	center.add_child(empty_state)
 
-	var status := _label("NO ACTIVE PROJECT", 12, ACCENT)
-	status.custom_minimum_size.x = _scaled(150.0)
-	status.size_flags_horizontal = Control.SIZE_SHRINK_END
-	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status.autowrap_mode = TextServer.AUTOWRAP_OFF
-	page_heading.add_child(status)
+	var status := _label("NO ACTIVE CONTRACT", 26, TEXT_MAIN, HORIZONTAL_ALIGNMENT_CENTER)
+	status.add_theme_font_size_override("font_size", _scaled_font(26))
+	status.custom_minimum_size.x = _scaled(320.0)
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var status_font := FontVariation.new()
+	status_font.base_font = status.get_theme_font("font")
+	status_font.variation_embolden = 0.8
+	status.add_theme_font_override("font", status_font)
+	empty_state.add_child(status)
 
-	var main_row := _new_main_row()
-	body_content.add_child(main_row)
-
-	var launch_panel := _add_panel(main_row, 1.55)
-	launch_panel.add_child(_label("NEW PROJECT", 18, ACCENT))
-
-	var target_heading := _label("RESEARCH TARGET", 13, TEXT_MUTED)
-	launch_panel.add_child(target_heading)
-	var target_row := HBoxContainer.new()
-	target_row.add_theme_constant_override("separation", 8)
-	launch_panel.add_child(target_row)
-	_add_target_tile(target_row, "SCREEN TECH", "")
-	_add_target_tile(target_row, "THICKNESS", "")
-	_add_target_tile(target_row, "BORDER RADIUS", "")
-
-	var create := _button("COMMISSION A PROJECT  〉", true, ACCENT)
+	var create := _button("CREATE NEW", true, ACCENT)
 	create.name = "CreateResearchButton"
-	create.custom_minimum_size = Vector2(260, 56)
+	create.custom_minimum_size = Vector2(_scaled(300.0), _scaled(64.0))
+	create.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	create.pressed.connect(_open_creation_scene)
-	launch_panel.add_child(create)
-
-	var capacity_panel := _add_panel(main_row, 0.82)
-	capacity_panel.add_child(_label("RESEARCH CAPACITY", 15, TEXT_MAIN))
-	var workforce := _get_workforce_summary()
-	var available_staff := int(workforce.get("available_staff_count", 0))
-	var total_staff := int(workforce.get("staff_count", 0))
-	_add_large_metric(capacity_panel, str(available_staff), "AVAILABLE RESEARCHERS", ACCENT)
-	var capacity_divider := ColorRect.new()
-	capacity_divider.color = Color("#3B3832")
-	capacity_divider.custom_minimum_size.y = 1
-	capacity_panel.add_child(capacity_divider)
-	_add_large_metric(capacity_panel, "%.0f%%" % float(workforce.get("available_efficiency", 0.0)), "AVAILABLE STAFF EFFICIENCY", TEXT_MAIN)
-	_add_large_metric(capacity_panel, str(total_staff), "TOTAL RESEARCH STAFF", TEXT_MUTED)
+	empty_state.add_child(create)
 
 func _open_creation_scene() -> void:
 	creation_mode = true
