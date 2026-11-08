@@ -2607,7 +2607,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
-	phone_creation_worksite.call("set_charge_port_research_level", 5)
+	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
 	phone_creation_worksite.call("set_front_camera_research_level", 8)
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", 15)
