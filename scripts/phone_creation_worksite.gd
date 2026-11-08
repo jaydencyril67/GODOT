@@ -8547,16 +8547,14 @@ func _show_border_radius_controls() -> void:
 	border_radius_decrease_button = Button.new()
 	border_radius_decrease_button.name = "DecreaseBorderRadiusButton"
 	border_radius_decrease_button.text = "−"
-	border_radius_decrease_button.custom_minimum_size = Vector2(64, 64)
-	border_radius_decrease_button.add_theme_font_size_override("font_size", 34)
+	_style_level_circle_button(border_radius_decrease_button)
 	border_radius_decrease_button.pressed.connect(_on_border_radius_decrease_pressed)
 	controls.add_child(border_radius_decrease_button)
 
 	border_radius_increase_button = Button.new()
 	border_radius_increase_button.name = "IncreaseBorderRadiusButton"
 	border_radius_increase_button.text = "+"
-	border_radius_increase_button.custom_minimum_size = Vector2(64, 64)
-	border_radius_increase_button.add_theme_font_size_override("font_size", 34)
+	_style_level_circle_button(border_radius_increase_button)
 	border_radius_increase_button.pressed.connect(_on_border_radius_increase_pressed)
 	controls.add_child(border_radius_increase_button)
 	_refresh_border_radius_test_ui()
@@ -8590,16 +8588,14 @@ func _show_thickness_controls() -> void:
 	phone_thickness_decrease_button = Button.new()
 	phone_thickness_decrease_button.name = "DecreasePhoneThicknessButton"
 	phone_thickness_decrease_button.text = "−"
-	phone_thickness_decrease_button.custom_minimum_size = Vector2(64, 64)
-	phone_thickness_decrease_button.add_theme_font_size_override("font_size", 34)
+	_style_level_circle_button(phone_thickness_decrease_button)
 	phone_thickness_decrease_button.pressed.connect(_on_phone_thickness_decrease_pressed)
 	controls.add_child(phone_thickness_decrease_button)
 
 	phone_thickness_increase_button = Button.new()
 	phone_thickness_increase_button.name = "IncreasePhoneThicknessButton"
 	phone_thickness_increase_button.text = "+"
-	phone_thickness_increase_button.custom_minimum_size = Vector2(64, 64)
-	phone_thickness_increase_button.add_theme_font_size_override("font_size", 34)
+	_style_level_circle_button(phone_thickness_decrease_button)
 	phone_thickness_increase_button.pressed.connect(_on_phone_thickness_increase_pressed)
 	controls.add_child(phone_thickness_increase_button)
 	_refresh_phone_thickness_test_ui()
@@ -10313,6 +10309,45 @@ func set_border_radius_research_level(level: int) -> void:
 	border_radius_level = mini(border_radius_level, border_radius_research_level)
 	_refresh_phone_mesh()
 	_refresh_border_radius_test_ui()
+
+
+func _style_level_circle_button(button: Button) -> void:
+	var diameter := _scaled(68.0)
+	button.custom_minimum_size = Vector2(diameter, diameter)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_font_size_override("font_size", _scaled_font(38))
+	var bold_font := FontVariation.new()
+	bold_font.base_font = button.get_theme_font("font")
+	bold_font.variation_embolden = 1.0
+	button.add_theme_font_override("font", bold_font)
+	button.add_theme_color_override("font_color", Color("#F2EDE3"))
+	button.add_theme_color_override("font_hover_color", Color("#17191B"))
+	button.add_theme_color_override("font_pressed_color", Color("#17191B"))
+	button.add_theme_color_override("font_disabled_color", Color("#77736B"))
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("#292D30")
+	normal.border_color = Color("#C58A3A")
+	normal.set_border_width_all(roundi(_scaled(2.0)))
+	normal.set_corner_radius_all(roundi(diameter * 0.5))
+	normal.content_margin_left = 0
+	normal.content_margin_right = 0
+	normal.content_margin_top = 0
+	normal.content_margin_bottom = 0
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color("#C58A3A")
+	hover.border_color = Color("#E0AD62")
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color("#A96F27")
+	var disabled := normal.duplicate() as StyleBoxFlat
+	disabled.bg_color = Color("#202326")
+	disabled.border_color = Color("#55514A")
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
 
 
 func _refresh_border_radius_test_ui() -> void:
