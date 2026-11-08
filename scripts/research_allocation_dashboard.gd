@@ -75,9 +75,8 @@ func _calculate_ui_scale() -> float:
 
 func _get_layout_key() -> String:
 	var viewport_size := get_viewport_rect().size
-	return "%d:%d:%.2f" % [
-		1 if viewport_size.x < 900.0 else 0,
-		1 if viewport_size.y < 560.0 else 0,
+	return "%d:%.2f" % [
+		1 if viewport_size.x < viewport_size.y * 1.25 else 0,
 		_calculate_ui_scale()
 	]
 
@@ -100,12 +99,13 @@ func _scaled_font(value: int) -> int:
 
 
 func _is_narrow_layout() -> bool:
-	return get_viewport_rect().size.x < 900.0
+	var viewport_size := get_viewport_rect().size
+	return viewport_size.x < viewport_size.y * 1.25
 
 
 func _needs_vertical_scroll() -> bool:
 	var viewport_size := get_viewport_rect().size
-	return viewport_size.x < 900.0 or viewport_size.y < 560.0
+	return viewport_size.x < viewport_size.y * 1.25
 
 
 func _new_main_row() -> BoxContainer:
@@ -489,11 +489,15 @@ func _build_active_research(project: Dictionary) -> void:
 
 	var page_heading := HBoxContainer.new()
 	page_heading.custom_minimum_size.y = _scaled(58.0)
-	page_heading.add_child(_label("RESEARCH IN DEVELOPMENT", 25, TEXT_MAIN))
-	var heading_spacer := Control.new()
-	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_heading.add_child(heading_spacer)
-	page_heading.add_child(_label("PROJECT  " + active_project_id, 12, ACCENT))
+	page_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var active_title := _label("RESEARCH IN DEVELOPMENT", 25, TEXT_MAIN)
+	active_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	page_heading.add_child(active_title)
+	var project_label := _label("PROJECT  " + active_project_id, 12, ACCENT)
+	project_label.size_flags_horizontal = Control.SIZE_SHRINK_END
+	project_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	page_heading.add_child(project_label)
 	body_content.add_child(page_heading)
 
 	var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
