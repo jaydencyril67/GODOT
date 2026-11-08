@@ -10312,13 +10312,15 @@ func set_border_radius_research_level(level: int) -> void:
 
 
 func _style_level_circle_button(button: Button) -> void:
-	var diameter := _scaled(68.0)
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var control_scale: float = clampf(minf(viewport_size.x / 1152.0, viewport_size.y / 648.0), 0.68, 1.0)
+	var diameter: float = maxf(1.0, 68.0 * control_scale)
 	button.custom_minimum_size = Vector2(diameter, diameter)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", _scaled_font(38))
+	button.add_theme_font_size_override("font_size", maxi(9, roundi(38.0 * control_scale)))
 	var bold_font := FontVariation.new()
 	bold_font.base_font = button.get_theme_font("font")
 	bold_font.variation_embolden = 1.0
@@ -10330,7 +10332,7 @@ func _style_level_circle_button(button: Button) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color("#292D30")
 	normal.border_color = Color("#C58A3A")
-	normal.set_border_width_all(roundi(_scaled(2.0)))
+	normal.set_border_width_all(maxi(1, roundi(2.0 * control_scale)))
 	normal.set_corner_radius_all(roundi(diameter * 0.5))
 	normal.content_margin_left = 0
 	normal.content_margin_right = 0
