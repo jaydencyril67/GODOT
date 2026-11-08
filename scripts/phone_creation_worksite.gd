@@ -570,7 +570,10 @@ var smartwatch_preview_mode := false
 
 var border_radius_level := 0
 
+var border_radius_research_level := 0
 var border_radius_value_label: Label
+var border_radius_decrease_button: Button
+var border_radius_increase_button: Button
 
 var phone_thickness_level := 0
 
@@ -8531,17 +8534,31 @@ func _show_border_radius_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("Each test upgrade rounds the phone's corners a little more. Level 0 keeps the original sharp edges.", 12, Color("#D3AA6B"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
-
 	border_radius_value_label = _make_label("", 16, Color("#C58A3A"))
 	border_radius_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(border_radius_value_label)
 
-	var radius_button := _create_component_test_button("TestBorderRadiusButton", "TEST BORDER RADIUS", _on_border_radius_test_pressed)
-	active_feature_panel.add_child(radius_button)
+	var controls := HBoxContainer.new()
+	controls.name = "BorderRadiusLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 18)
+	active_feature_panel.add_child(controls)
+
+	border_radius_decrease_button = Button.new()
+	border_radius_decrease_button.name = "DecreaseBorderRadiusButton"
+	border_radius_decrease_button.text = "−"
+	border_radius_decrease_button.custom_minimum_size = Vector2(64, 64)
+	border_radius_decrease_button.add_theme_font_size_override("font_size", 34)
+	border_radius_decrease_button.pressed.connect(_on_border_radius_decrease_pressed)
+	controls.add_child(border_radius_decrease_button)
+
+	border_radius_increase_button = Button.new()
+	border_radius_increase_button.name = "IncreaseBorderRadiusButton"
+	border_radius_increase_button.text = "+"
+	border_radius_increase_button.custom_minimum_size = Vector2(64, 64)
+	border_radius_increase_button.add_theme_font_size_override("font_size", 34)
+	border_radius_increase_button.pressed.connect(_on_border_radius_increase_pressed)
+	controls.add_child(border_radius_increase_button)
 	_refresh_border_radius_test_ui()
 
 func _show_thickness_controls() -> void:
@@ -10291,16 +10308,32 @@ func _refresh_phone_mesh() -> void:
 	_apply_phone_fold_angle()
 	_queue_phone_case_sync()
 
+func set_border_radius_research_level(level: int) -> void:
+	border_radius_research_level = clampi(level, 0, 20)
+	border_radius_level = mini(border_radius_level, border_radius_research_level)
+	_refresh_phone_mesh()
+	_refresh_border_radius_test_ui()
+
+
 func _refresh_border_radius_test_ui() -> void:
 	if is_instance_valid(border_radius_value_label):
-		border_radius_value_label.text = "BORDER UPGRADES: %d / 20" % border_radius_level
-	var button := active_feature_panel.get_node_or_null("TestBorderRadiusButton") as Button if is_instance_valid(active_feature_panel) else null
-	if is_instance_valid(button):
-		button.disabled = border_radius_level >= 20
-		button.text = "MAXIMUM BORDER RADIUS REACHED" if border_radius_level >= 20 else "TEST BORDER RADIUS"
+		border_radius_value_label.text = "BORDER RADIUS LEVEL  %d / %d" % [border_radius_level, border_radius_research_level]
+	if is_instance_valid(border_radius_decrease_button):
+		border_radius_decrease_button.disabled = border_radius_level <= 0
+	if is_instance_valid(border_radius_increase_button):
+		border_radius_increase_button.disabled = border_radius_level >= border_radius_research_level
 
-func _on_border_radius_test_pressed() -> void:
-	if border_radius_level >= 20:
+
+func _on_border_radius_decrease_pressed() -> void:
+	if border_radius_level <= 0:
+		return
+	border_radius_level -= 1
+	_refresh_phone_mesh()
+	_refresh_border_radius_test_ui()
+
+
+func _on_border_radius_increase_pressed() -> void:
+	if border_radius_level >= border_radius_research_level:
 		return
 	border_radius_level += 1
 	_refresh_phone_mesh()
