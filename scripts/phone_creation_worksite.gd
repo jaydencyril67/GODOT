@@ -8549,7 +8549,7 @@ func _show_border_radius_controls() -> void:
 	var controls := HBoxContainer.new()
 	controls.name = "BorderRadiusLevelControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 12)
+	controls.add_theme_constant_override("separation", 30)
 	controls_center.add_child(controls)
 
 	border_radius_decrease_button = Button.new()
@@ -8597,7 +8597,7 @@ func _show_thickness_controls() -> void:
 	var controls := HBoxContainer.new()
 	controls.name = "PhoneThicknessLevelControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 12)
+	controls.add_theme_constant_override("separation", 30)
 	controls_center.add_child(controls)
 
 	phone_thickness_decrease_button = Button.new()
@@ -9673,7 +9673,7 @@ func _show_speaker_controls() -> void:
 	var controls := HBoxContainer.new()
 	controls.name = "SpeakerCountLevelControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 12)
+	controls.add_theme_constant_override("separation", 30)
 	controls_center.add_child(controls)
 
 	speaker_count_decrease_button = Button.new()
