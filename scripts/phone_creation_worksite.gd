@@ -14,6 +14,13 @@ var cooling_system_step_visited := false
 signal back_requested
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
+const CHARGE_PORT_RESEARCH_ORDER := [
+	"DC Barrel Jack",
+	"Mini-USB (Mini-B)",
+	"Micro-USB (Micro-B)",
+	"Apple Lightning",
+	"USB Type-C"
+]
 class GlassArrowButton extends Button:
 	var points_right := true
 	func _ready() -> void:
@@ -593,7 +600,7 @@ var speaker_count_increase_button: Button
 
 var charge_port_type := "DC Barrel Jack"
 
-var researched_charge_port_count := 5
+var researched_charge_port_count := 1
 
 var researched_front_camera_count := FRONT_CAMERA_STYLES.size()
 
@@ -3169,9 +3176,13 @@ func set_curve_screen_research_unlocked(_unlocked: bool) -> void:
 	curve_screen_unlocked = true
 	_refresh_screen_type_controls()
 
-func set_charge_port_research_level(_level: int) -> void:
-	# Legacy compatibility hook: expose every charging-port technology.
-	researched_charge_port_count = 5
+func set_charge_port_research_level(level: int) -> void:
+	# DC Barrel Jack is the baseline. Each successful research unlocks the next
+	# connector in chronological order, up to the newest USB Type-C design.
+	researched_charge_port_count = 1 + clampi(level, 0, CHARGE_PORT_RESEARCH_ORDER.size() - 1)
+	var selected_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
+	if selected_port_index >= researched_charge_port_count:
+		charge_port_type = CHARGE_PORT_RESEARCH_ORDER[researched_charge_port_count - 1]
 
 func set_speaker_research_level(level: int) -> void:
 	# One successful Speakers research unlocks one additional speaker,
@@ -9788,7 +9799,11 @@ func _show_charge_port_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label("All 5 charging-port technologies are available.", 12, Color("#D3AA6B"))
+	var description := _make_label(
+		"UNLOCKED %d / %d  ·  OLDEST FIRST" % [researched_charge_port_count, CHARGE_PORT_RESEARCH_ORDER.size()],
+		12,
+		Color("#D3AA6B")
+	)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
@@ -9814,39 +9829,28 @@ func _show_charge_port_controls() -> void:
 	port_scroll.add_child(options)
 
 	var port_types := ["None"]
-	var research_port_types := [
-		"DC Barrel Jack",
-		"Mini-USB (Mini-B)",
-		"Micro-USB (Micro-B)",
-		"Apple Lightning",
-		"USB Type-C"
-	]
-	port_types.append_array(research_port_types)
+	port_types.append_array(CHARGE_PORT_RESEARCH_ORDER)
 	for port_index in range(port_types.size()):
 		var port_type: String = port_types[port_index]
+		var is_unlocked := port_index == 0 or port_index - 1 < researched_charge_port_count
 		var option_button := Button.new()
 		option_button.name = "ChargePort_" + port_type.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-		option_button.text = port_type
-		option_button.tooltip_text = port_type
+		option_button.text = port_type if is_unlocked else "LOCKED  ·  " + port_type
+		option_button.tooltip_text = port_type if is_unlocked else "Complete Charge Port research to unlock this design."
 		option_button.custom_minimum_size = Vector2(0, 50)
 		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		option_button.disabled = not is_unlocked
 		_apply_research_typography(option_button, 13)
 		_style_screen_type_option(option_button, port_index, port_type == charge_port_type)
 		option_button.pressed.connect(_on_charge_port_selected.bind(port_type))
 		options.add_child(option_button)
 
 func _on_charge_port_selected(port_type: String) -> void:
-	var available_port_types := [
-		"None",
-		"DC Barrel Jack",
-		"Mini-USB (Mini-B)",
-		"Micro-USB (Micro-B)",
-		"Apple Lightning",
-		"USB Type-C"
-	]
-	if not available_port_types.has(port_type):
-		return
+	if port_type != "None":
+		var research_port_index := CHARGE_PORT_RESEARCH_ORDER.find(port_type)
+		if research_port_index < 0 or research_port_index >= researched_charge_port_count:
+			return
 	charge_port_type = port_type
 	if charge_port_type == "None":
 		charger_cable_enabled = false
