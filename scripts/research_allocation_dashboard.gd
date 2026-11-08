@@ -417,24 +417,59 @@ func _build_staff_choices(parent: VBoxContainer) -> void:
 		var employee_id := str(employee.get("id", ""))
 		var employee_name := str(employee.get("full_name", employee.get("name", "Research employee")))
 		var efficiency := clampi(int(employee.get("efficiency", 0)), 0, 100)
-		var checkbox := CheckBox.new()
-		checkbox.text = "%s   ·   %d%% efficiency" % [employee_name, efficiency]
-		checkbox.disabled = employee_id.is_empty() or occupied_ids.has(employee_id)
-		checkbox.custom_minimum_size = Vector2(0.0, _scaled(54.0))
-		checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		checkbox.add_theme_font_size_override("font_size", _scaled_font(22))
+		var selected := assigned_staff_ids.has(employee_id)
+		var unavailable := employee_id.is_empty() or occupied_ids.has(employee_id)
+		var staff_row := HBoxContainer.new()
+		staff_row.custom_minimum_size = Vector2(0.0, _scaled(58.0))
+		staff_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		staff_row.add_theme_constant_override("separation", roundi(_scaled(14.0)))
+		var row_style := StyleBoxFlat.new()
+		row_style.bg_color = Color("#29251E") if selected else Color("#202326")
+		row_style.border_color = ACCENT if selected else Color("#49463F")
+		row_style.set_border_width_all(1 if selected else 1)
+		row_style.set_corner_radius_all(7)
+		row_style.content_margin_left = roundi(_scaled(12.0))
+		row_style.content_margin_right = roundi(_scaled(12.0))
+		row_style.content_margin_top = roundi(_scaled(5.0))
+		row_style.content_margin_bottom = roundi(_scaled(5.0))
+		var row_panel := PanelContainer.new()
+		row_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row_panel.add_theme_stylebox_override("panel", row_style)
+		staff_row.add_child(row_panel)
+		var row_content := HBoxContainer.new()
+		row_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row_content.add_theme_constant_override("separation", roundi(_scaled(12.0)))
+		row_panel.add_child(row_content)
+		var check_button := Button.new()
+		check_button.custom_minimum_size = Vector2(_scaled(34.0), _scaled(34.0))
+		check_button.disabled = unavailable
+		check_button.text = "✓" if selected else ""
+		check_button.add_theme_font_size_override("font_size", _scaled_font(21))
+		check_button.add_theme_color_override("font_color", Color("#17191B"))
+		check_button.focus_mode = Control.FOCUS_NONE
+		var check_normal := StyleBoxFlat.new()
+		check_normal.bg_color = ACCENT if selected else Color("#17191B")
+		check_normal.border_color = ACCENT if selected else Color("#777064")
+		check_normal.set_border_width_all(2)
+		check_normal.set_corner_radius_all(6)
+		var check_hover := check_normal.duplicate() as StyleBoxFlat
+		check_hover.bg_color = Color("#D7A653") if selected else Color("#303336")
+		check_button.add_theme_stylebox_override("normal", check_normal)
+		check_button.add_theme_stylebox_override("hover", check_hover)
+		check_button.add_theme_stylebox_override("pressed", check_hover)
+		row_content.add_child(check_button)
+		var staff_label := _label("%s   ·   %d%% EFFICIENCY" % [employee_name, efficiency], 19, TEXT_MAIN)
+		staff_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		staff_label.add_theme_font_size_override("font_size", _scaled_font(19))
 		var staff_font := FontVariation.new()
-		staff_font.base_font = checkbox.get_theme_font("font")
+		staff_font.base_font = staff_label.get_theme_font("font")
 		staff_font.variation_embolden = 0.65
-		checkbox.add_theme_font_override("font", staff_font)
-		checkbox.add_theme_constant_override("icon_max_width", roundi(_scaled(32.0)))
-		checkbox.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
-		checkbox.add_theme_color_override("font_color", TEXT_MAIN)
-		checkbox.add_theme_color_override("font_disabled_color", TEXT_MUTED)
-		checkbox.focus_mode = Control.FOCUS_NONE
-		checkbox.button_pressed = assigned_staff_ids.has(employee_id)
-		checkbox.toggled.connect(_on_staff_toggled.bind(employee_id))
-		parent.add_child(checkbox)
+		staff_label.add_theme_font_override("font", staff_font)
+		if unavailable:
+			staff_label.add_theme_color_override("font_color", TEXT_MUTED)
+		row_content.add_child(staff_label)
+		check_button.pressed.connect(_on_staff_toggled.bind(not selected, employee_id))
+		parent.add_child(staff_row)
 	if not found_staff:
 		var empty_staff := _label("No Research employees are available. Assign employees to the Research department first.", 13, ORANGE)
 		empty_staff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
