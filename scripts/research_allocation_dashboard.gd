@@ -250,12 +250,9 @@ func _build_empty_scene() -> void:
 	page_heading.add_theme_constant_override("separation", roundi(_scaled(18.0)))
 	body_content.add_child(page_heading)
 
-	var heading_stack := VBoxContainer.new()
-	heading_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	heading_stack.add_child(_label("RESEARCH OPERATIONS", 25, TEXT_MAIN))
-	heading_stack.add_child(_label("Assign your Research team to accelerate the next technology improvement.", 13, TEXT_MUTED))
-	page_heading.add_child(heading_stack)
+	var heading_spacer := Control.new()
+	heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_heading.add_child(heading_spacer)
 
 	var status := _label("NO ACTIVE PROJECT", 12, ACCENT)
 	status.custom_minimum_size.x = _scaled(150.0)
@@ -269,20 +266,16 @@ func _build_empty_scene() -> void:
 	body_content.add_child(main_row)
 
 	var launch_panel := _add_panel(main_row, 1.55)
-	launch_panel.add_child(_label("R&D DIRECTOR'S OFFICE  /  PROJECT COMMISSIONING", 11, ACCENT))
-	launch_panel.add_child(_label("BUILD THE NEXT GENERATION", 34, TEXT_MAIN))
-	var explanation := _label("Your company has no research project in development. Choose a technology target and assign Research staff to begin work.", 16, TEXT_MUTED)
-	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	launch_panel.add_child(explanation)
+	launch_panel.add_child(_label("NEW PROJECT", 18, ACCENT))
 
-	var target_heading := _label("AVAILABLE DEVELOPMENT AREAS", 11, TEXT_MUTED)
+	var target_heading := _label("RESEARCH TARGET", 13, TEXT_MUTED)
 	launch_panel.add_child(target_heading)
 	var target_row := HBoxContainer.new()
 	target_row.add_theme_constant_override("separation", 8)
 	launch_panel.add_child(target_row)
-	_add_target_tile(target_row, "SCREEN TECH", "Display systems")
-	_add_target_tile(target_row, "THICKNESS", "Chassis profile")
-	_add_target_tile(target_row, "BORDER RADIUS", "Frame geometry")
+	_add_target_tile(target_row, "SCREEN TECH", "")
+	_add_target_tile(target_row, "THICKNESS", "")
+	_add_target_tile(target_row, "BORDER RADIUS", "")
 
 	var create := _button("COMMISSION A PROJECT  〉", true, ACCENT)
 	create.name = "CreateResearchButton"
@@ -302,9 +295,6 @@ func _build_empty_scene() -> void:
 	capacity_panel.add_child(capacity_divider)
 	_add_large_metric(capacity_panel, "%.0f%%" % float(workforce.get("available_efficiency", 0.0)), "AVAILABLE STAFF EFFICIENCY", TEXT_MAIN)
 	_add_large_metric(capacity_panel, str(total_staff), "TOTAL RESEARCH STAFF", TEXT_MUTED)
-	var capacity_note := _label("Researchers already assigned to an active project are not counted as available.", 12, TEXT_MUTED)
-	capacity_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	capacity_panel.add_child(capacity_note)
 
 func _open_creation_scene() -> void:
 	creation_mode = true
@@ -320,19 +310,16 @@ func _build_creation_scene() -> void:
 	page_heading.custom_minimum_size.y = _scaled(58.0)
 	page_heading.add_theme_constant_override("separation", 16)
 	body_content.add_child(page_heading)
-	var heading_stack := VBoxContainer.new()
-	heading_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	heading_stack.add_child(_label("COMMISSION RESEARCH", 25, TEXT_MAIN))
-	heading_stack.add_child(_label("Select a development target and assign your Research team.", 13, TEXT_MUTED))
-	page_heading.add_child(heading_stack)
+	var heading := _label("NEW PROJECT", 22, TEXT_MAIN)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	page_heading.add_child(heading)
 
 	var main_row := _new_main_row()
 	body_content.add_child(main_row)
 
 	var setup_panel := _add_panel(main_row, 1.12)
-	setup_panel.add_child(_label("01  /  RESEARCH TARGET", 12, ACCENT))
-	setup_panel.add_child(_label("Choose what your engineers will develop.", 16, TEXT_MAIN))
+	setup_panel.add_child(_label("01  /  TARGET", 13, ACCENT))
 
 	var component_row := HBoxContainer.new()
 	component_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -352,14 +339,11 @@ func _build_creation_scene() -> void:
 		component_buttons.append(component_button)
 	_update_component_button_styles()
 
-	var selection_note := _label("Research is funded through the company's existing payroll. No separate project payment is required.", 13, TEXT_MUTED)
-	selection_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	setup_panel.add_child(selection_note)
 
 	var team_panel := _add_panel(main_row, 0.96)
 	var team_heading := HBoxContainer.new()
 	team_panel.add_child(team_heading)
-	var team_title := _label("03  /  RESEARCH TEAM", 12, ACCENT)
+	var team_title := _label("02  /  STAFF", 13, ACCENT)
 	team_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	team_heading.add_child(team_title)
 	team_heading.add_child(_label("%d STAFF" % int(_get_workforce_summary().get("staff_count", 0)), 11, TEXT_MUTED))
@@ -378,11 +362,8 @@ func _build_creation_scene() -> void:
 	staff_scroll.add_child(staff_list)
 	_build_staff_choices(staff_list)
 
-	var estimate_heading := _label("PROJECT FORECAST", 11, TEXT_MUTED)
-	team_panel.add_child(estimate_heading)
-	estimate_label = _label("Select researchers to calculate project timing and success probability.", 15, TEXT_MAIN)
-	estimate_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	estimate_label.custom_minimum_size.y = _scaled(58.0)
+	estimate_label = _label("DURATION  —     SUCCESS  —", 17, TEXT_MAIN)
+	estimate_label.custom_minimum_size.y = _scaled(34.0)
 	team_panel.add_child(estimate_label)
 
 	var actions := HBoxContainer.new()
@@ -558,17 +539,11 @@ func _build_active_research(project: Dictionary) -> void:
 	body_content.add_child(main_row)
 
 	var progress_panel := _add_panel(main_row, 1.55)
-	progress_panel.add_child(_label("ENGINEERING PROGRAMME", 12, ACCENT))
+
 	var component_name := str(project.get("component", project.get("title", "Research project")))
 	if component_name == "Screen Technology":
 		component_name = "Screen Tech"
 	progress_panel.add_child(_label(component_name.to_upper(), 31, TEXT_MAIN))
-	var objective := str(project.get("objective", "")).strip_edges()
-	if not objective.is_empty():
-		var objective_label := _label(objective, 14, TEXT_MUTED)
-		objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		progress_panel.add_child(objective_label)
-
 	var progress_row := HBoxContainer.new()
 	progress_panel.add_child(progress_row)
 	var progress_title := _label("PROJECT COMPLETION", 12, TEXT_MUTED)
@@ -595,7 +570,7 @@ func _build_active_research(project: Dictionary) -> void:
 
 	active_remaining_label = _label("%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days), 17, TEXT_MAIN)
 	progress_panel.add_child(active_remaining_label)
-	progress_panel.add_child(_label("%s OF %s RESEARCH DAYS COMPLETED" % [_format_research_days(completed_days), _format_research_days(required_days)], 12, TEXT_MUTED))
+
 	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
 	if not pause_reason.is_empty():
 		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 13, ORANGE)
@@ -603,13 +578,13 @@ func _build_active_research(project: Dictionary) -> void:
 		progress_panel.add_child(pause_label)
 
 	var details_panel := _add_panel(main_row, 0.86)
-	details_panel.add_child(_label("PROJECT INTELLIGENCE", 14, TEXT_MAIN))
-	_add_large_metric(details_panel, "%.0f%%" % float(project.get("success_chance", 0.0)), "PROJECTED SUCCESS", TEXT_MAIN)
+	details_panel.add_child(_label("PROJECT DATA", 14, TEXT_MAIN))
+	_add_large_metric(details_panel, "%.0f%%" % float(project.get("success_chance", 0.0)), "SUCCESS", TEXT_MAIN)
 	var detail_divider := ColorRect.new()
 	detail_divider.color = Color("#3B3832")
 	detail_divider.custom_minimum_size.y = 1
 	details_panel.add_child(detail_divider)
-	details_panel.add_child(_label("ASSIGNED RESEARCHERS", 11, TEXT_MUTED))
+	details_panel.add_child(_label("STAFF", 11, TEXT_MUTED))
 	var assigned_names: Array[String] = []
 	for staff_id_value in project.get("staff_ids", []):
 		var employee := _find_employee(str(staff_id_value))
