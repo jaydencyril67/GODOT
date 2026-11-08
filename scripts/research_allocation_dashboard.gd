@@ -296,7 +296,7 @@ func _build_component_selection_scene() -> void:
 
 	var choices := GridContainer.new()
 	choices.name = "ResearchComponentChoices"
-	choices.columns = 3 if not _is_narrow_layout() else 1
+	choices.columns = 4
 	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	choices.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	choices.add_theme_constant_override("h_separation", roundi(_scaled(14.0)))
@@ -307,7 +307,7 @@ func _build_component_selection_scene() -> void:
 		var component_button := Button.new()
 		component_button.name = "ResearchComponentOption" if index == 0 else "ResearchComponentOption_%d" % index
 		component_button.text = COMPONENT_LABELS[index].to_upper()
-		component_button.custom_minimum_size = Vector2(_scaled(170.0), _scaled(90.0))
+		component_button.custom_minimum_size = Vector2(_scaled(170.0), _scaled(68.0))
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		component_button.focus_mode = Control.FOCUS_NONE
 		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
@@ -354,7 +354,7 @@ func _build_staff_selection_scene() -> void:
 
 	var staff_grid := GridContainer.new()
 	staff_grid.name = "ResearchStaffGrid"
-	staff_grid.columns = 3
+	staff_grid.columns = 4
 	staff_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	staff_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	staff_grid.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
