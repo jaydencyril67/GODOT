@@ -8526,7 +8526,7 @@ func _show_border_radius_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "BorderRadiusControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
 	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
@@ -8539,13 +8539,17 @@ func _show_border_radius_controls() -> void:
 	border_radius_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(border_radius_value_label)
 
+	var controls_center := CenterContainer.new()
+	controls_center.name = "BorderRadiusLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
 	var controls := HBoxContainer.new()
 	controls.name = "BorderRadiusLevelControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	controls.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(controls)
+	controls_center.add_child(controls)
 
 	border_radius_decrease_button = Button.new()
 	border_radius_decrease_button.name = "DecreaseBorderRadiusButton"
@@ -8570,7 +8574,7 @@ func _show_thickness_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "ThicknessControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
 	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
@@ -8583,13 +8587,17 @@ func _show_thickness_controls() -> void:
 	phone_thickness_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(phone_thickness_value_label)
 
+	var controls_center := CenterContainer.new()
+	controls_center.name = "PhoneThicknessLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
 	var controls := HBoxContainer.new()
 	controls.name = "PhoneThicknessLevelControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	controls.add_theme_constant_override("separation", 12)
-	active_feature_panel.add_child(controls)
+	controls_center.add_child(controls)
 
 	phone_thickness_decrease_button = Button.new()
 	phone_thickness_decrease_button.name = "DecreasePhoneThicknessButton"
