@@ -118,6 +118,8 @@ func _process(delta: float) -> void:
 				else:
 					_show_notice("RESEARCH UNSUCCESSFUL", "%s research did not produce a successful result." % component_name)
 				break
+		if is_instance_valid(phone_creation_worksite):
+			phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 		if is_instance_valid(research_allocation_dashboard):
 			research_allocation_dashboard.call("configure", _get_research_dashboard_data())
 	var current_day := floori(game_date_unix / 86400.0)
@@ -2609,6 +2611,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
+	phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
 	phone_creation_worksite.call("set_home_button_research_level", int(career.get("research_component_levels", {}).get("Home Button", 0)))
 	phone_creation_worksite.call("set_front_camera_research_level", 8)
