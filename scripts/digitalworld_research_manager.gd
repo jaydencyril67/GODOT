@@ -1,6 +1,8 @@
 extends RefCounted
 class_name DigitalWorldResearchManager
 
+const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
+
 # Research follows the in-game calendar. Assigned staff efficiency shortens the base journey.
 const BASE_RESEARCH_DURATION_DAYS := 30.0
 const MIN_RESEARCH_DURATION_DAYS := 1.0
@@ -257,6 +259,12 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 				elif component == "Home Button":
 					# Circle is the baseline; each success unlocks the next home-button design.
 					component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
+				elif component == "Screen Technology":
+					# TFT LCD is the baseline; each success unlocks the next listed display technology.
+					component_levels[component] = mini(
+						ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1,
+						int(component_levels.get(component, 0)) + 1
+					)
 				career["research_component_levels"] = component_levels
 			else:
 				project["status"] = STATUS_UNSUCCESSFUL
