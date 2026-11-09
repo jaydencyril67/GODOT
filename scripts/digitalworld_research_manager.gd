@@ -140,10 +140,6 @@ static func estimate_research(component_value: String, requested_staff: Array, e
 static func commission_project(career: Dictionary, request: Dictionary, game_time_unix: float) -> Dictionary:
 	ensure_state(career)
 
-	for project_value in career.get("research_projects", []):
-		if project_value is Dictionary and str(project_value.get("status", "")) == STATUS_ACTIVE:
-			return _failure("Finish the active research before starting another project.")
-
 	var component := normalize_component(str(request.get("component", "")))
 	if component.is_empty():
 		var requested_components: Variant = request.get("components", [])
