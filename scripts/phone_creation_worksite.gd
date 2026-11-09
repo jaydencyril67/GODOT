@@ -396,11 +396,12 @@ var vertical_curve_toggle: Button
 
 var screen_quality_state: Dictionary = {}
 var current_screen_technology := "TFT LCD"
+var screen_technology_research_level := 0
+var screen_technology_level := 0
 var screen_technology_name_label: Label
-var screen_next_upgrade_label: Label
-var screen_next_milestone_label: Label
-var screen_upgrade_feedback_label: Label
-var screen_quality_value_labels: Dictionary = {}
+var screen_technology_value_label: Label
+var screen_technology_decrease_button: Button
+var screen_technology_increase_button: Button
 
 var screen_enable_checkbox: CheckBox
 
@@ -3181,6 +3182,13 @@ func set_curve_screen_research_unlocked(_unlocked: bool) -> void:
 	curve_screen_unlocked = true
 	_refresh_screen_type_controls()
 
+func set_screen_technology_research_level(level: int) -> void:
+	# TFT LCD is the baseline; each successful research unlocks one newer screen.
+	screen_technology_research_level = clampi(level, 0, ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1)
+	screen_technology_level = clampi(screen_technology_level, 0, screen_technology_research_level)
+	_refresh_screen_technology_ui()
+
+
 func set_charge_port_research_level(level: int) -> void:
 	# DC Barrel Jack is the baseline. Each successful research unlocks the next
 	# connector in chronological order, up to the newest USB Type-C design.
@@ -5334,8 +5342,8 @@ func _show_screen_tech_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "ScreenTechControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("SCREEN TECHNOLOGY", 18, Color("#D3AA6B"))
@@ -5352,46 +5360,40 @@ func _show_screen_tech_controls() -> void:
 	screen_technology_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(screen_technology_name_label)
 
+	screen_technology_value_label = _make_label("", 11, Color("#D3AA6B"))
+	screen_technology_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(screen_technology_value_label)
+
 	var separator := ColorRect.new()
 	separator.custom_minimum_size = Vector2(0, 1)
 	separator.color = Color(0.78, 0.62, 0.38, 0.30)
 	active_feature_panel.add_child(separator)
 
-	screen_quality_value_labels.clear()
-	for quality in ScreenTechnologySystem.QUALITY_ORDER:
-		var row := HBoxContainer.new()
-		row.name = "ScreenQuality_" + quality
-		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_theme_constant_override("separation", 8)
-		active_feature_panel.add_child(row)
+	var controls_center := CenterContainer.new()
+	controls_center.name = "ScreenTechnologyLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
 
-		var quality_name := _make_label(ScreenTechnologySystem.get_quality_display_name(quality), 11, Color("#E4DED3"))
-		quality_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		quality_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		row.add_child(quality_name)
+	var controls := HBoxContainer.new()
+	controls.name = "ScreenTechnologyLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
 
-		var value_label := _make_label("LEVEL 0", 11, Color("#D3AA6B"))
-		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		value_label.custom_minimum_size.x = 74
-		row.add_child(value_label)
-		screen_quality_value_labels[quality] = value_label
+	screen_technology_decrease_button = Button.new()
+	screen_technology_decrease_button.name = "DecreaseScreenTechnologyButton"
+	screen_technology_decrease_button.text = "−"
+	_style_level_circle_button(screen_technology_decrease_button)
+	screen_technology_decrease_button.pressed.connect(_on_screen_technology_decrease_pressed)
+	controls.add_child(screen_technology_decrease_button)
 
-	screen_next_upgrade_label = _make_label("", 12, Color("#D6D0C5"))
-	screen_next_upgrade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(screen_next_upgrade_label)
-
-	screen_next_milestone_label = _make_label("", 10, Color("#AAA49A"))
-	screen_next_milestone_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	screen_next_milestone_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(screen_next_milestone_label)
-
-	var upgrade_button := _create_component_test_button("FreeScreenUpgradeTestButton", "FREE TEST UPGRADE", _on_free_screen_upgrade_test_pressed)
-	active_feature_panel.add_child(upgrade_button)
-
-	screen_upgrade_feedback_label = _make_label("Each click improves one quality in order. All three must reach level 3 to unlock the next technology.", 10, Color("#AAA49A"))
-	screen_upgrade_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	screen_upgrade_feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(screen_upgrade_feedback_label)
+	screen_technology_increase_button = Button.new()
+	screen_technology_increase_button.name = "IncreaseScreenTechnologyButton"
+	screen_technology_increase_button.text = "+"
+	_style_level_circle_button(screen_technology_increase_button)
+	screen_technology_increase_button.pressed.connect(_on_screen_technology_increase_pressed)
+	controls.add_child(screen_technology_increase_button)
 
 	_refresh_screen_technology_ui()
 
@@ -5406,49 +5408,40 @@ func _on_screen_enablement_toggled(enabled: bool) -> void:
 
 
 func _refresh_screen_technology_ui() -> void:
-	if screen_quality_state.is_empty():
-		screen_quality_state = ScreenTechnologySystem.create_state()
-	ScreenTechnologySystem.ensure_state(screen_quality_state)
-	current_screen_technology = ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]))
-	var next_required_level := ScreenTechnologySystem.get_next_milestone_requirement(screen_quality_state)
+	screen_technology_research_level = clampi(
+		screen_technology_research_level,
+		0,
+		ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1
+	)
+	screen_technology_level = clampi(screen_technology_level, 0, screen_technology_research_level)
+	current_screen_technology = ScreenTechnologySystem.get_technology_name(screen_technology_level)
 
 	if is_instance_valid(screen_technology_name_label):
 		screen_technology_name_label.text = current_screen_technology
-	if is_instance_valid(screen_next_upgrade_label):
-		var next_quality := ScreenTechnologySystem.get_next_quality(screen_quality_state)
-		screen_next_upgrade_label.text = "NEXT UPGRADE: " + ScreenTechnologySystem.get_quality_display_name(next_quality).to_upper()
-	if is_instance_valid(screen_next_milestone_label):
-		var next_technology := ScreenTechnologySystem.get_technology_name(int(screen_quality_state["technology_milestone"]) + 1)
-		screen_next_milestone_label.text = "NEXT TECHNOLOGY: %s\nALL THREE QUALITIES MUST REACH LEVEL %d" % [next_technology.to_upper(), next_required_level]
-
-	for quality in ScreenTechnologySystem.QUALITY_ORDER:
-		if not screen_quality_value_labels.has(quality):
-			continue
-		var value_label: Label = screen_quality_value_labels[quality]
-		if is_instance_valid(value_label):
-			value_label.text = "LEVEL %d / %d" % [int(screen_quality_state[quality]), next_required_level]
-
-	# Disable the test button at MicroLED Generation 20; progression itself remains uncapped.
-	var upgrade_button: Button = null
-	if is_instance_valid(active_feature_panel):
-		upgrade_button = active_feature_panel.get_node_or_null("FreeScreenUpgradeTestButton") as Button
-	if is_instance_valid(upgrade_button):
-		upgrade_button.disabled = int(screen_quality_state["technology_milestone"]) >= 28
+	if is_instance_valid(screen_technology_value_label):
+		screen_technology_value_label.text = "LEVEL %d / %d" % [
+			screen_technology_level + 1,
+			screen_technology_research_level + 1
+		]
+	if is_instance_valid(screen_technology_decrease_button):
+		screen_technology_decrease_button.disabled = screen_technology_level <= 0
+	if is_instance_valid(screen_technology_increase_button):
+		screen_technology_increase_button.disabled = screen_technology_level >= screen_technology_research_level
 
 
-func _on_free_screen_upgrade_test_pressed() -> void:
-	var result: Dictionary = ScreenTechnologySystem.upgrade(screen_quality_state)
-	current_screen_technology = str(result.get("technology", current_screen_technology))
-	_refresh_phone_screen()
+func _on_screen_technology_decrease_pressed() -> void:
+	if screen_technology_level <= 0:
+		return
+	screen_technology_level -= 1
 	_refresh_screen_technology_ui()
 
-	if bool(result.get("technology_unlocked", false)):
-		if is_instance_valid(screen_upgrade_feedback_label):
-			screen_upgrade_feedback_label.text = "NEW TECHNOLOGY UNLOCKED: " + current_screen_technology.to_upper()
-	else:
-		var improved_quality := ScreenTechnologySystem.get_quality_display_name(str(result.get("quality", "")))
-		if is_instance_valid(screen_upgrade_feedback_label):
-			screen_upgrade_feedback_label.text = "%s improved to level %d." % [improved_quality, int(result.get("quality_level", 0))]
+
+func _on_screen_technology_increase_pressed() -> void:
+	if screen_technology_level >= screen_technology_research_level:
+		return
+	screen_technology_level += 1
+	_refresh_screen_technology_ui()
+
 
 func _style_screen_type_option(option: Button, _rank: int, selected: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
