@@ -350,7 +350,10 @@ var rear_hardware_next_button: Button
 
 const HOME_BUTTON_TYPES := ["Circle Home Button", "Oval Home Button", "Square Home Button", "Recent · Home · Back (Physical)", "On-screen"]
 
-var home_button_option_buttons: Dictionary = {}
+var home_button_research_level := 0
+var home_button_value_label: Label
+var home_button_decrease_button: Button
+var home_button_increase_button: Button
 
 var screen_enabled := false
 
@@ -8704,17 +8707,19 @@ func _show_home_button_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "HomeButtonControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 10)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("HOME BUTTON", 19, Color("#D3AA6B"))
+	var title := _make_label("HOME BUTTON", 19, Color.WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
 	var enable_row := HBoxContainer.new()
 	enable_row.name = "HomeButtonEnablementRow"
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	enable_row.add_theme_constant_override("separation", 9)
 	active_feature_panel.add_child(enable_row)
 
@@ -8743,28 +8748,68 @@ func _show_home_button_controls() -> void:
 	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	enable_row.add_child(enable_label)
 
-	var type_grid := GridContainer.new()
-	type_grid.name = "HomeButtonTypes"
-	type_grid.columns = 1
-	type_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_grid.add_theme_constant_override("v_separation", 7)
-	active_feature_panel.add_child(type_grid)
+	home_button_value_label = _make_label("", 16, Color("#C58A3A"))
+	home_button_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(home_button_value_label)
 
-	home_button_option_buttons.clear()
-	for index in range(HOME_BUTTON_TYPES.size()):
-		var type_name: String = HOME_BUTTON_TYPES[index]
-		var option := Button.new()
-		option.name = "HomeButton_" + type_name.replace(" ", "")
-		option.text = type_name
-		option.custom_minimum_size = Vector2(0, 44)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(option, 13)
-		_style_screen_type_option(option, mini(index, 9), type_name == home_button_type)
-		option.pressed.connect(_on_home_button_type_selected.bind(type_name))
-		option.disabled = not home_button_enabled
-		type_grid.add_child(option)
-		home_button_option_buttons[type_name] = option
+	var controls_center := CenterContainer.new()
+	controls_center.name = "HomeButtonLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
+	var controls := HBoxContainer.new()
+	controls.name = "HomeButtonLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
+
+	home_button_decrease_button = Button.new()
+	home_button_decrease_button.name = "DecreaseHomeButtonButton"
+	home_button_decrease_button.text = "−"
+	_style_level_circle_button(home_button_decrease_button)
+	home_button_decrease_button.pressed.connect(_on_home_button_decrease_pressed)
+	controls.add_child(home_button_decrease_button)
+
+	home_button_increase_button = Button.new()
+	home_button_increase_button.name = "IncreaseHomeButtonButton"
+	home_button_increase_button.text = "+"
+	_style_level_circle_button(home_button_increase_button)
+	home_button_increase_button.pressed.connect(_on_home_button_increase_pressed)
+	controls.add_child(home_button_increase_button)
+
+	_refresh_home_button_controls()
+
+
+func set_home_button_research_level(level: int) -> void:
+	home_button_research_level = clampi(level, 0, HOME_BUTTON_TYPES.size() - 1)
+	var selected_index := HOME_BUTTON_TYPES.find(home_button_type)
+	if selected_index < 0:
+		home_button_type = HOME_BUTTON_TYPES[0]
+	elif selected_index > home_button_research_level:
+		home_button_type = HOME_BUTTON_TYPES[home_button_research_level]
+	_refresh_phone_home_button()
+	if home_button_type == "On-screen":
+		_refresh_phone_screen()
+	_refresh_home_button_controls()
+
+
+func _refresh_home_button_controls() -> void:
+	var selected_index := HOME_BUTTON_TYPES.find(home_button_type)
+	if is_instance_valid(home_button_value_label):
+		home_button_value_label.text = "%s  ·  %d / %d" % [
+			home_button_type.to_upper(),
+			selected_index + 1,
+			home_button_research_level + 1
+		]
+	if is_instance_valid(home_button_decrease_button):
+		home_button_decrease_button.disabled = not home_button_enabled or selected_index <= 0
+	if is_instance_valid(home_button_increase_button):
+		home_button_increase_button.disabled = (
+			not home_button_enabled
+			or selected_index >= home_button_research_level
+		)
+
 
 func _on_home_button_enablement_toggled(enabled: bool) -> void:
 	home_button_enabled = enabled
@@ -8774,17 +8819,36 @@ func _on_home_button_enablement_toggled(enabled: bool) -> void:
 	var toggle := active_feature_panel.get_node_or_null("HomeButtonEnablementRow/HomeButtonEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
 		toggle.text = "✓" if enabled else ""
-	for option_name in home_button_option_buttons:
-		var option: Button = home_button_option_buttons[option_name]
-		option.disabled = not enabled
+	_refresh_home_button_controls()
+
 
 func _on_home_button_type_selected(type_name: String) -> void:
+	var selected_index := HOME_BUTTON_TYPES.find(type_name)
+	if selected_index < 0 or selected_index > home_button_research_level:
+		return
 	home_button_type = type_name
 	_refresh_phone_home_button()
 	_refresh_phone_screen()
-	for option_name in home_button_option_buttons:
-		var option: Button = home_button_option_buttons[option_name]
-		_style_screen_type_option(option, mini(HOME_BUTTON_TYPES.find(option_name), 9), option_name == home_button_type)
+	_refresh_home_button_controls()
+
+
+func _on_home_button_decrease_pressed() -> void:
+	if not home_button_enabled:
+		return
+	var selected_index := HOME_BUTTON_TYPES.find(home_button_type)
+	if selected_index <= 0:
+		return
+	_on_home_button_type_selected(HOME_BUTTON_TYPES[selected_index - 1])
+
+
+func _on_home_button_increase_pressed() -> void:
+	if not home_button_enabled:
+		return
+	var selected_index := HOME_BUTTON_TYPES.find(home_button_type)
+	var next_index := selected_index + 1
+	if next_index > home_button_research_level or next_index >= HOME_BUTTON_TYPES.size():
+		return
+	_on_home_button_type_selected(HOME_BUTTON_TYPES[next_index])
 
 func _refresh_phone_home_button() -> void:
 	if not is_instance_valid(phone_body):
