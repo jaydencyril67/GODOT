@@ -8712,16 +8712,23 @@ func _show_home_button_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
+	var header_row := HBoxContainer.new()
+	header_row.name = "HomeButtonHeaderRow"
+	header_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	active_feature_panel.add_child(header_row)
+
 	var title := _make_label("HOME BUTTON", 19, Color.WHITE)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(title)
+	header_row.add_child(title)
 
 	var enable_row := HBoxContainer.new()
 	enable_row.name = "HomeButtonEnablementRow"
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.size_flags_horizontal = Control.SIZE_SHRINK_END
 	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	enable_row.add_theme_constant_override("separation", 9)
-	active_feature_panel.add_child(enable_row)
+	header_row.add_child(enable_row)
 
 	var enable_toggle := Button.new()
 	enable_toggle.name = "HomeButtonEnablement"
@@ -8743,10 +8750,6 @@ func _show_home_button_controls() -> void:
 	enable_toggle.add_theme_color_override("font_color", Color.WHITE)
 	enable_toggle.toggled.connect(_on_home_button_enablement_toggled)
 	enable_row.add_child(enable_toggle)
-
-	var enable_label := _make_label("Home Button Enablement", 14, Color.WHITE)
-	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	enable_row.add_child(enable_label)
 
 	home_button_value_label = _make_label("", 16, Color("#C58A3A"))
 	home_button_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
