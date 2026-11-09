@@ -17,7 +17,8 @@ const COMPONENT_CATALOGUE := [
 	"Phone Thickness",
 	"Border Radius",
 	"Speakers",
-	"Charge Port"
+	"Charge Port",
+	"Home Button"
 ]
 
 
@@ -252,6 +253,9 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 					component_levels[component] = mini(11, int(component_levels.get(component, 0)) + 1)
 				elif component == "Charge Port":
 					# The first port is the baseline; each success unlocks the next port.
+					component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
+				elif component == "Home Button":
+					# Circle is the baseline; each success unlocks the next home-button design.
 					component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
 				career["research_component_levels"] = component_levels
 			else:
