@@ -2462,8 +2462,10 @@ func _on_rd_project_commission_requested(request: Dictionary) -> void:
 	if not bool(result.get("ok", false)):
 		_show_notice("PROJECT NOT COMMISSIONED", str(result.get("error", "The project could not be commissioned.")))
 		return
+	if is_instance_valid(research_allocation_dashboard):
+		research_allocation_dashboard.call("complete_creation_flow")
 	_refresh_research_dashboard()
-	_show_notice("PROJECT COMMISSIONED", "Research project %s has been funded and assigned to its research team." % str(result.get("project", {}).get("id", "")))
+	_show_notice("PROJECT COMMISSIONED", "Research project %s has been created and assigned to its research team." % str(result.get("project", {}).get("id", "")))
 
 
 func _on_rd_project_approve_requested(project_id: String, results: Array) -> void:
