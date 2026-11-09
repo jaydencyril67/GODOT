@@ -33,9 +33,9 @@ var component_buttons: Array[Button] = []
 var estimate_label: Label
 var start_button: Button
 var assigned_staff_ids: Array[String] = []
-var active_progress_bar: ProgressBar
-var active_progress_label: Label
-var active_remaining_label: Label
+var active_progress_bars: Dictionary = {}
+var active_progress_labels: Dictionary = {}
+var active_remaining_labels: Dictionary = {}
 var active_project_id := ""
 var creation_mode := false
 var creation_step := 1
@@ -228,19 +228,21 @@ func _render_scene() -> void:
 		return
 	_clear_body()
 	active_project_id = ""
-	active_progress_bar = null
-	active_progress_label = null
-	active_remaining_label = null
+	active_progress_bars.clear()
+	active_progress_labels.clear()
+	active_remaining_labels.clear()
 	component_buttons.clear()
 
-	var active_project := _get_active_project()
-	if not active_project.is_empty():
-		_build_active_research(active_project)
-	elif creation_mode:
+	if creation_mode:
 		if creation_step == 1:
 			_build_component_selection_scene()
 		else:
 			_build_staff_selection_scene()
+		return
+
+	var active_projects := _get_active_projects()
+	if not active_projects.is_empty():
+		_build_active_research(active_projects)
 	else:
 		_build_empty_scene()
 
@@ -284,6 +286,12 @@ func _open_creation_scene() -> void:
 	selected_component_index = 0
 	assigned_staff_ids.clear()
 	_render_scene()
+
+
+func complete_creation_flow() -> void:
+	creation_mode = false
+	creation_step = 1
+	assigned_staff_ids.clear()
 
 
 func _build_component_selection_scene() -> void:
@@ -481,74 +489,127 @@ func _close_creation_scene() -> void:
 	_render_scene()
 
 
-func _build_active_research(project: Dictionary) -> void:
-	creation_mode = false
-	active_project_id = str(project.get("id", ""))
+func _build_active_research(projects: Array[Dictionary]) -> void:
 	body_content = _new_screen_root()
-	_mount_screen_root(body_content)
+	# Keep the project header and Create button fixed while the active projects scroll.
+	body.add_child(body_content)
 
-	var page_heading := HBoxContainer.new()
-	page_heading.custom_minimum_size.y = _scaled(58.0)
-	page_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var active_title := _label("RESEARCH IN DEVELOPMENT", 25, TEXT_MAIN)
-	active_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_title.autowrap_mode = TextServer.AUTOWRAP_OFF
-	page_heading.add_child(active_title)
-	var project_label := _label("PROJECT  " + active_project_id, 12, ACCENT)
-	project_label.size_flags_horizontal = Control.SIZE_SHRINK_END
-	project_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	page_heading.add_child(project_label)
-	body_content.add_child(page_heading)
+	if _is_narrow_layout():
+		var narrow_header := VBoxContainer.new()
+		narrow_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		narrow_header.add_theme_constant_override("separation", roundi(_scaled(8.0)))
+		body_content.add_child(narrow_header)
+		var narrow_title := _label("RESEARCH IN DEVELOPMENT", 22, TEXT_MAIN)
+		narrow_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+		narrow_header.add_child(narrow_title)
+		var narrow_actions := HBoxContainer.new()
+		narrow_actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		narrow_header.add_child(narrow_actions)
+		var active_count := _label("%d ACTIVE PROJECTS" % projects.size(), 12, ACCENT)
+		active_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		narrow_actions.add_child(active_count)
+		var create_button := _button("CREATE NEW", true, ACCENT)
+		create_button.name = "CreateResearchWhileActiveButton"
+		create_button.custom_minimum_size = Vector2(_scaled(164.0), _scaled(48.0))
+		create_button.pressed.connect(_open_creation_scene)
+		narrow_actions.add_child(create_button)
+	else:
+		var page_heading := HBoxContainer.new()
+		page_heading.custom_minimum_size.y = _scaled(58.0)
+		page_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		page_heading.add_child(_label("RESEARCH IN DEVELOPMENT", 25, TEXT_MAIN))
+		var heading_spacer := Control.new()
+		heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		page_heading.add_child(heading_spacer)
+		page_heading.add_child(_label("%d ACTIVE PROJECTS" % projects.size(), 12, ACCENT))
+		var create_button := _button("CREATE NEW", true, ACCENT)
+		create_button.name = "CreateResearchWhileActiveButton"
+		create_button.custom_minimum_size = Vector2(_scaled(180.0), _scaled(48.0))
+		create_button.pressed.connect(_open_creation_scene)
+		page_heading.add_child(create_button)
+		body_content.add_child(page_heading)
 
+	var project_scroll := ScrollContainer.new()
+	project_scroll.name = "ActiveResearchProjectsScroll"
+	project_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	project_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	project_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	project_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	body_content.add_child(project_scroll)
+
+	var project_list := VBoxContainer.new()
+	project_list.name = "ActiveResearchProjectsList"
+	project_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	project_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	project_list.add_theme_constant_override("separation", roundi(_scaled(18.0)))
+	project_scroll.add_child(project_list)
+
+	for project in projects:
+		_build_active_research_project(project, project_list)
+
+
+func _build_active_research_project(project: Dictionary, parent: Control) -> void:
+	var project_id := str(project.get("id", ""))
 	var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
 	var required_days := maxf(1.0, float(project.get("required_research_days", 30.0)))
 	var progress := clampf(completed_days / required_days, 0.0, 1.0)
 	var remaining_days := maxf(0.0, required_days - completed_days)
 
 	var main_row := _new_main_row()
-	body_content.add_child(main_row)
+	main_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(main_row)
 
 	var progress_panel := _add_panel(main_row, 1.55)
-
+	progress_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	progress_panel.add_theme_constant_override("separation", roundi(_scaled(10.0)))
 	var component_name := str(project.get("component", project.get("title", "Research project")))
 	if component_name == "Screen Technology":
 		component_name = "Screen Tech"
-	progress_panel.add_child(_label(component_name.to_upper(), 31, TEXT_MAIN))
+	var component_label := _label(component_name.to_upper(), 27, TEXT_MAIN)
+	component_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	progress_panel.add_child(component_label)
+
 	var progress_row := HBoxContainer.new()
 	progress_panel.add_child(progress_row)
 	var progress_title := _label("PROJECT COMPLETION", 12, TEXT_MUTED)
 	progress_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	progress_row.add_child(progress_title)
-	active_progress_label = _label("%d%%" % roundi(progress * 100.0), 20, ACCENT)
-	progress_row.add_child(active_progress_label)
+	var progress_label := _label("%d%%" % roundi(progress * 100.0), 20, ACCENT)
+	progress_row.add_child(progress_label)
 
-	active_progress_bar = ProgressBar.new()
-	active_progress_bar.min_value = 0.0
-	active_progress_bar.max_value = 100.0
-	active_progress_bar.value = progress * 100.0
-	active_progress_bar.show_percentage = false
-	active_progress_bar.custom_minimum_size.y = _scaled(24.0)
+	var progress_bar := ProgressBar.new()
+	progress_bar.min_value = 0.0
+	progress_bar.max_value = 100.0
+	progress_bar.value = progress * 100.0
+	progress_bar.show_percentage = false
+	progress_bar.custom_minimum_size.y = _scaled(22.0)
 	var progress_track := StyleBoxFlat.new()
 	progress_track.bg_color = Color("#303336")
 	progress_track.set_corner_radius_all(5)
 	var progress_fill := StyleBoxFlat.new()
 	progress_fill.bg_color = ACCENT
 	progress_fill.set_corner_radius_all(5)
-	active_progress_bar.add_theme_stylebox_override("background", progress_track)
-	active_progress_bar.add_theme_stylebox_override("fill", progress_fill)
-	progress_panel.add_child(active_progress_bar)
+	progress_bar.add_theme_stylebox_override("background", progress_track)
+	progress_bar.add_theme_stylebox_override("fill", progress_fill)
+	progress_panel.add_child(progress_bar)
 
-	active_remaining_label = _label("%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days), 17, TEXT_MAIN)
-	progress_panel.add_child(active_remaining_label)
-
+	var remaining_label := _label("%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days), 15, TEXT_MAIN)
+	progress_panel.add_child(remaining_label)
 	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
 	if not pause_reason.is_empty():
 		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 13, ORANGE)
 		pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		progress_panel.add_child(pause_label)
 
+	active_progress_bars[project_id] = progress_bar
+	active_progress_labels[project_id] = progress_label
+	active_remaining_labels[project_id] = remaining_label
+
 	var details_panel := _add_panel(main_row, 0.86)
-	details_panel.add_child(_label("PROJECT DATA", 14, TEXT_MAIN))
+	details_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	details_panel.add_theme_constant_override("separation", roundi(_scaled(9.0)))
+	details_panel.add_child(_label("PROJECT  " + project_id, 13, ACCENT))
 	_add_large_metric(details_panel, "%.0f%%" % float(project.get("success_chance", 0.0)), "SUCCESS", TEXT_MAIN)
 	var detail_divider := ColorRect.new()
 	detail_divider.color = Color("#3B3832")
@@ -630,12 +691,14 @@ func _update_component_button_styles() -> void:
 
 
 
-func _get_active_project() -> Dictionary:
+func _get_active_projects() -> Array[Dictionary]:
+	var active_projects: Array[Dictionary] = []
+	# Newest projects appear first while all active projects remain visible.
 	for index in range(research_projects.size() - 1, -1, -1):
 		var value: Variant = research_projects[index]
 		if value is Dictionary and str(value.get("status", "")) == "active":
-			return value
-	return {}
+			active_projects.append(value)
+	return active_projects
 
 
 func _active_project_staff_ids() -> Array[String]:
@@ -663,26 +726,31 @@ func update_live_progress(projects: Array, balance: float, employees: Array) -> 
 	if is_instance_valid(capital_value_label):
 		capital_value_label.text = _format_currency(company_balance)
 	staff_employees = employees.duplicate(true)
-	if not is_node_ready():
+	if not is_node_ready() or creation_mode:
 		return
-	var active_project := _get_active_project()
-	if active_project.is_empty():
-		if not creation_mode and not active_project_id.is_empty():
-			_render_scene()
-		return
-	if str(active_project.get("id", "")) != active_project_id:
+
+	var active_projects := _get_active_projects()
+	if active_projects.size() != active_progress_bars.size():
 		_render_scene()
 		return
-	var completed_days := maxf(0.0, float(active_project.get("completed_research_days", 0.0)))
-	var required_days := maxf(1.0, float(active_project.get("required_research_days", 30.0)))
-	var progress := clampf(completed_days / required_days, 0.0, 1.0)
-	var remaining_days := maxf(0.0, required_days - completed_days)
-	if is_instance_valid(active_progress_bar):
-		active_progress_bar.value = progress * 100.0
-	if is_instance_valid(active_progress_label):
-		active_progress_label.text = "%d%%" % roundi(progress * 100.0)
-	if is_instance_valid(active_remaining_label):
-		active_remaining_label.text = "%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days)
+	for project in active_projects:
+		var project_id := str(project.get("id", ""))
+		if not active_progress_bars.has(project_id):
+			_render_scene()
+			return
+		var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
+		var required_days := maxf(1.0, float(project.get("required_research_days", 30.0)))
+		var progress := clampf(completed_days / required_days, 0.0, 1.0)
+		var remaining_days := maxf(0.0, required_days - completed_days)
+		var progress_bar := active_progress_bars.get(project_id) as ProgressBar
+		var progress_label := active_progress_labels.get(project_id) as Label
+		var remaining_label := active_remaining_labels.get(project_id) as Label
+		if is_instance_valid(progress_bar):
+			progress_bar.value = progress * 100.0
+		if is_instance_valid(progress_label):
+			progress_label.text = "%d%%" % roundi(progress * 100.0)
+		if is_instance_valid(remaining_label):
+			remaining_label.text = "%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days)
 
 
 func _clear_body() -> void:
