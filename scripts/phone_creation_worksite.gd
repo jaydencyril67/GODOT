@@ -8752,6 +8752,9 @@ func _show_home_button_controls() -> void:
 	controls_center.name = "HomeButtonLevelControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Reserve a generous responsive control zone below the labels so the
+	# buttons sit in the middle of the available worksite area.
+	controls_center.custom_minimum_size = Vector2(0, 360)
 	active_feature_panel.add_child(controls_center)
 
 	var controls := HBoxContainer.new()
