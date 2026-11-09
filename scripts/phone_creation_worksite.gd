@@ -5373,6 +5373,9 @@ func _show_screen_tech_controls() -> void:
 	controls_center.name = "ScreenTechnologyLevelControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Match the Home Button control zone: keep level buttons vertically
+	# centered in the available worksite area, away from the hero labels.
+	controls_center.custom_minimum_size = Vector2(0, 360)
 	active_feature_panel.add_child(controls_center)
 
 	var controls := HBoxContainer.new()
