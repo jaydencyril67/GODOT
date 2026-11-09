@@ -607,6 +607,8 @@ var researched_front_camera_count := FRONT_CAMERA_STYLES.size()
 var charge_port_opening_points := PackedVector2Array()
 
 var charge_port_value_label: Label
+var charge_port_decrease_button: Button
+var charge_port_increase_button: Button
 
 var power_button_enabled := false
 
@@ -3181,8 +3183,11 @@ func set_charge_port_research_level(level: int) -> void:
 	# connector in chronological order, up to the newest USB Type-C design.
 	researched_charge_port_count = 1 + clampi(level, 0, CHARGE_PORT_RESEARCH_ORDER.size() - 1)
 	var selected_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
-	if selected_port_index >= researched_charge_port_count:
+	if charge_port_type != "None" and selected_port_index < 0:
+		charge_port_type = CHARGE_PORT_RESEARCH_ORDER[0]
+	elif selected_port_index >= researched_charge_port_count:
 		charge_port_type = CHARGE_PORT_RESEARCH_ORDER[researched_charge_port_count - 1]
+	_refresh_charge_port_controls()
 
 func set_speaker_research_level(level: int) -> void:
 	# One successful Speakers research unlocks one additional speaker,
@@ -9792,59 +9797,87 @@ func _show_charge_port_controls() -> void:
 	active_feature_panel.name = "ChargePortControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("CHARGING PORT", 19, Color.WHITE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	var description := _make_label(
-		"UNLOCKED %d / %d  ·  OLDEST FIRST" % [researched_charge_port_count, CHARGE_PORT_RESEARCH_ORDER.size()],
-		12,
-		Color("#D3AA6B")
-	)
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(description)
+	charge_port_value_label = _make_label("", 16, Color("#C58A3A"))
+	charge_port_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(charge_port_value_label)
 
-	var selected_label := _make_label("SELECTED: " + charge_port_type.to_upper(), 13, Color("#C58A3A"))
-	selected_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(selected_label)
-	charge_port_value_label = selected_label
+	var controls_center := CenterContainer.new()
+	controls_center.name = "ChargePortLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
 
-	var port_scroll := ScrollContainer.new()
-	port_scroll.name = "ChargePortOptionsScroll"
-	port_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	port_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	port_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	port_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	active_feature_panel.add_child(port_scroll)
+	var controls := HBoxContainer.new()
+	controls.name = "ChargePortLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
 
-	var options := GridContainer.new()
-	options.name = "ChargePortOptionsGrid"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("v_separation", 7)
-	port_scroll.add_child(options)
+	charge_port_decrease_button = Button.new()
+	charge_port_decrease_button.name = "DecreaseChargePortButton"
+	charge_port_decrease_button.text = "−"
+	_style_level_circle_button(charge_port_decrease_button)
+	charge_port_decrease_button.pressed.connect(_on_charge_port_decrease_pressed)
+	controls.add_child(charge_port_decrease_button)
 
-	var port_types := ["None"]
-	port_types.append_array(CHARGE_PORT_RESEARCH_ORDER)
-	for port_index in range(port_types.size()):
-		var port_type: String = port_types[port_index]
-		var is_unlocked := port_index == 0 or port_index - 1 < researched_charge_port_count
-		var option_button := Button.new()
-		option_button.name = "ChargePort_" + port_type.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-		option_button.text = port_type if is_unlocked else "LOCKED  ·  " + port_type
-		option_button.tooltip_text = port_type if is_unlocked else "Complete Charge Port research to unlock this design."
-		option_button.custom_minimum_size = Vector2(0, 50)
-		option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		option_button.disabled = not is_unlocked
-		_apply_research_typography(option_button, 13)
-		_style_screen_type_option(option_button, port_index, port_type == charge_port_type)
-		option_button.pressed.connect(_on_charge_port_selected.bind(port_type))
-		options.add_child(option_button)
+	charge_port_increase_button = Button.new()
+	charge_port_increase_button.name = "IncreaseChargePortButton"
+	charge_port_increase_button.text = "+"
+	_style_level_circle_button(charge_port_increase_button)
+	charge_port_increase_button.pressed.connect(_on_charge_port_increase_pressed)
+	controls.add_child(charge_port_increase_button)
+
+	_refresh_charge_port_controls()
+
+
+func _refresh_charge_port_controls() -> void:
+	var selected_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
+	if is_instance_valid(charge_port_value_label):
+		if charge_port_type == "None":
+			charge_port_value_label.text = "NO PORT  ·  0 / %d" % researched_charge_port_count
+		else:
+			charge_port_value_label.text = "%s  ·  %d / %d" % [
+				charge_port_type.to_upper(),
+				selected_port_index + 1,
+				researched_charge_port_count
+			]
+	if is_instance_valid(charge_port_decrease_button):
+		charge_port_decrease_button.disabled = charge_port_type == "None"
+	if is_instance_valid(charge_port_increase_button):
+		charge_port_increase_button.disabled = (
+			charge_port_type != "None"
+			and selected_port_index >= researched_charge_port_count - 1
+		)
+
+
+func _on_charge_port_decrease_pressed() -> void:
+	if charge_port_type == "None":
+		return
+	var selected_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
+	if selected_port_index <= 0:
+		_on_charge_port_selected("None")
+	else:
+		_on_charge_port_selected(CHARGE_PORT_RESEARCH_ORDER[selected_port_index - 1])
+
+
+func _on_charge_port_increase_pressed() -> void:
+	if charge_port_type == "None":
+		_on_charge_port_selected(CHARGE_PORT_RESEARCH_ORDER[0])
+		return
+	var selected_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
+	var next_port_index := selected_port_index + 1
+	if next_port_index >= researched_charge_port_count or next_port_index >= CHARGE_PORT_RESEARCH_ORDER.size():
+		return
+	_on_charge_port_selected(CHARGE_PORT_RESEARCH_ORDER[next_port_index])
+
 
 func _on_charge_port_selected(port_type: String) -> void:
 	if port_type != "None":
@@ -9861,10 +9894,10 @@ func _on_charge_port_selected(port_type: String) -> void:
 	if not phone_connector.is_empty():
 		charger_cable_type = adapter_connector + " to " + phone_connector
 	if is_instance_valid(charge_port_value_label):
-		charge_port_value_label.text = "SELECTED: " + charge_port_type.to_upper()
-		charge_port_value_label.add_theme_color_override("font_color", Color("#C58A3A"))
+		_refresh_charge_port_controls()
 	# Rebuild both the receptacle and whichever chassis architecture is active.
 	_refresh_phone_mesh()
+	_refresh_charge_port_controls()
 
 func _make_port_outline(width: float, height: float, corner_radius: float, segments: int = 5) -> PackedVector2Array:
 	var points := PackedVector2Array()
