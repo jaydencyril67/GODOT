@@ -308,6 +308,49 @@ func _run_transition_checks() -> void:
 	if int(game.career.get("research_component_levels", {}).get("RAM", 0)) != 1:
 		_fail("Technical approval did not unlock the next RAM capacity tier.")
 		return
+
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Internal Storage"):
+		_fail("Internal Storage is missing from the R&D component catalogue.")
+		return
+	var storage_commission: Dictionary = game.commission_research_project({
+		"component": "Internal Storage",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if not bool(storage_commission.get("ok", false)):
+		_fail("An Internal Storage research project could not be commissioned: %s" % str(storage_commission.get("error", "")))
+		return
+	var storage_project: Dictionary = storage_commission.get("project", {})
+	var storage_projects: Array = game.career.get("research_projects", [])
+	for project_index in range(storage_projects.size()):
+		if str(storage_projects[project_index].get("id", "")) == str(storage_project.get("id", "")):
+			storage_projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = storage_projects
+	var storage_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
+		game.career,
+		86400.0 * 29.0,
+		game.game_date_unix + 86400.0 * 29.0
+	)
+	if not storage_completed_ids.has(str(storage_project.get("id", ""))):
+		_fail("The Internal Storage project did not complete after its estimated 29-day duration.")
+		return
+	if int(game.career.get("research_component_levels", {}).get("Internal Storage", 0)) != 0:
+		_fail("Internal Storage unlocked before its completed project passed technical validation.")
+		return
+	var storage_validation: Dictionary = game.approve_research_project(str(storage_project.get("id", "")), [{
+		"component": "Internal Storage",
+		"metric": "Maximum validated internal storage capacity",
+		"value": "4 GB",
+		"unit": "",
+		"notes": "Validated storage-density improvement beyond the 2 GB baseline."
+	}])
+	if not bool(storage_validation.get("ok", false)):
+		_fail("A completed Internal Storage project could not pass technical validation: %s" % str(storage_validation.get("error", "")))
+		return
+	if int(game.career.get("research_component_levels", {}).get("Internal Storage", 0)) != 1:
+		_fail("Technical approval did not unlock the next Internal Storage capacity tier.")
+		return
+
 	dashboard.call("configure", game._get_research_dashboard_data())
 
 	game._return_from_research_allocation_dashboard()
