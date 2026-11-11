@@ -120,6 +120,7 @@ func _process(delta: float) -> void:
 				break
 		if is_instance_valid(phone_creation_worksite):
 			phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
+			phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 		if is_instance_valid(research_allocation_dashboard):
 			research_allocation_dashboard.call("configure", _get_research_dashboard_data())
 	var current_day := floori(game_date_unix / 86400.0)
@@ -2614,7 +2615,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
 	phone_creation_worksite.call("set_home_button_research_level", int(career.get("research_component_levels", {}).get("Home Button", 0)))
-	phone_creation_worksite.call("set_front_camera_research_level", 8)
+	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", 15)
 	phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
