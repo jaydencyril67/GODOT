@@ -303,13 +303,13 @@ var home_button_enabled := false
 
 var front_camera_enabled := false
 
-var front_camera_megapixels := 12
+var front_camera_megapixels := 1
 
-var front_camera_secondary_megapixels := 12
+var front_camera_secondary_megapixels := 1
 
-var front_camera_outer_megapixels := 12
+var front_camera_outer_megapixels := 1
 
-var front_camera_outer_secondary_megapixels := 12
+var front_camera_outer_secondary_megapixels := 1
 
 const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
 
@@ -321,6 +321,10 @@ const MAX_REAR_FLASHES := 5
 
 var front_camera_style := "Bezel Camera"
 var front_camera_research_level := 0
+var front_camera_mp_research_level := 0
+var front_camera_mp_sliders: Array[VSlider] = []
+var front_camera_mp_value_labels: Array[Label] = []
+var front_camera_mp_max_labels: Array[Label] = []
 var front_camera_value_label: Label
 var front_camera_decrease_button: Button
 var front_camera_increase_button: Button
@@ -3024,6 +3028,9 @@ func set_phone_sensor_research_levels(levels: Dictionary) -> void:
 
 
 func _show_worksite_front_camera_mp_controls() -> void:
+	front_camera_mp_sliders.clear()
+	front_camera_mp_value_labels.clear()
+	front_camera_mp_max_labels.clear()
 	var panel := VBoxContainer.new()
 	panel.name = "WorksiteFrontCameraMegapixelControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3057,7 +3064,16 @@ func _show_worksite_front_camera_mp_controls() -> void:
 			var camera_label := str(camera_entry.get("label", "01"))
 			var megapixels := int(self.get(StringName(property_name)))
 			var callback := Callable(self, "_set_front_camera_mp_value").bind(property_name)
-			var card := self.call("_make_camera_mp_slider_card", camera_label, megapixels, callback) as Control
+			var card := self.call("_make_camera_mp_slider_card", camera_label, megapixels, callback, _get_front_camera_mp_maximum()) as Control
+			var mp_slider := card.find_child("CameraMPValueSlider", true, false) as VSlider
+			var mp_value_label := card.find_child("CameraMPValueLabel", true, false) as Label
+			var mp_max_label := card.find_child("CameraMPMaximumLabel", true, false) as Label
+			if is_instance_valid(mp_slider):
+				front_camera_mp_sliders.append(mp_slider)
+			if is_instance_valid(mp_value_label):
+				front_camera_mp_value_labels.append(mp_value_label)
+			if is_instance_valid(mp_max_label):
+				front_camera_mp_max_labels.append(mp_max_label)
 			camera_row.add_child(card)
 
 
@@ -3565,6 +3581,37 @@ func set_speaker_research_level(level: int) -> void:
 	speaker_count = clampi(speaker_count, 1, researched_speaker_count)
 	_refresh_phone_speakers()
 	_refresh_speaker_count_controls()
+
+func set_front_camera_mp_research_level(level: int) -> void:
+	# The 1MP starting resolution is available immediately; approved R&D expands
+	# the maximum selectable resolution up to 300MP.
+	front_camera_mp_research_level = clampi(level, 0, ResearchManagerScript.FRONT_CAMERA_MP_RESEARCH_UPGRADES)
+	var available_maximum := _get_front_camera_mp_maximum()
+	for property_name in ["front_camera_megapixels", "front_camera_secondary_megapixels", "front_camera_outer_megapixels", "front_camera_outer_secondary_megapixels"]:
+		set(StringName(property_name), clampi(int(get(StringName(property_name))), ResearchManagerScript.FRONT_CAMERA_MP_BASE, available_maximum))
+	for index in range(front_camera_mp_sliders.size()):
+		var slider := front_camera_mp_sliders[index]
+		if is_instance_valid(slider):
+			slider.min_value = ResearchManagerScript.FRONT_CAMERA_MP_BASE
+			slider.max_value = available_maximum
+			var camera_rows: Array = _get_front_camera_mp_layout()
+			var camera_properties: Array[String] = []
+			for camera_row_value in camera_rows:
+				for camera_entry_value in camera_row_value:
+					camera_properties.append(str(camera_entry_value.get("property", "front_camera_megapixels")))
+			if index < camera_properties.size():
+				var selected_mp := int(get(StringName(camera_properties[index])))
+				slider.set_value_no_signal(selected_mp)
+				if index < front_camera_mp_value_labels.size() and is_instance_valid(front_camera_mp_value_labels[index]):
+					front_camera_mp_value_labels[index].text = "%d MP" % selected_mp
+			if index < front_camera_mp_max_labels.size() and is_instance_valid(front_camera_mp_max_labels[index]):
+				front_camera_mp_max_labels[index].text = str(available_maximum)
+	_update_camera_software_summary()
+
+
+func _get_front_camera_mp_maximum() -> int:
+	return ResearchManagerScript.get_front_camera_mp_max_for_level(front_camera_mp_research_level)
+
 
 func set_front_camera_research_level(level: int) -> void:
 	# Bezel Camera is the baseline. Each successful R&D project unlocks exactly
@@ -8018,7 +8065,7 @@ func _camera_mp_slider_index(megapixels: int) -> int:
 func _style_camera_mp_slider(slider: VSlider) -> void:
 	_style_custom_slider(slider)
 
-func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable) -> VBoxContainer:
+func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable, front_camera_maximum: int = -1) -> VBoxContainer:
 	var card := VBoxContainer.new()
 	card.custom_minimum_size = Vector2(64, 0)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -8028,28 +8075,37 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.clip_text = true
 	card.add_child(title)
-	var value_label := _make_label("%d MP" % current_mp, 12, Color.WHITE)
+
+	var uses_research_ceiling := front_camera_maximum >= ResearchManagerScript.FRONT_CAMERA_MP_BASE
+	var maximum_mp := front_camera_maximum if uses_research_ceiling else CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1]
+	var minimum_mp := ResearchManagerScript.FRONT_CAMERA_MP_BASE if uses_research_ceiling else CAMERA_MEGAPIXEL_STEPS[0]
+	var safe_current_mp := clampi(current_mp, minimum_mp, maximum_mp)
+	var value_label := _make_label("%d MP" % safe_current_mp, 12, Color.WHITE)
+	value_label.name = "CameraMPValueLabel"
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(value_label)
-	var high_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1], 9, Color("#A9A092"))
+	var high_label := _make_label("%d" % maximum_mp, 9, Color("#A9A092"))
+	high_label.name = "CameraMPMaximumLabel"
 	high_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(high_label)
+
 	var slider := VSlider.new()
-	slider.min_value = 0
-	slider.max_value = CAMERA_MEGAPIXEL_STEPS.size() - 1
+	slider.name = "CameraMPValueSlider"
+	slider.min_value = minimum_mp if uses_research_ceiling else 0
+	slider.max_value = maximum_mp if uses_research_ceiling else CAMERA_MEGAPIXEL_STEPS.size() - 1
 	slider.step = 1
-	slider.value = _camera_mp_slider_index(current_mp)
+	slider.value = safe_current_mp if uses_research_ceiling else _camera_mp_slider_index(current_mp)
 	slider.custom_minimum_size = Vector2(30, 320)
 	slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_camera_mp_slider(slider)
 	slider.value_changed.connect(func(value: float) -> void:
-		var megapixels := _camera_mp_from_slider_index(roundi(value))
+		var megapixels := clampi(roundi(value), minimum_mp, maximum_mp) if uses_research_ceiling else _camera_mp_from_slider_index(roundi(value))
 		value_label.text = "%d MP" % megapixels
 		callback.call(megapixels)
 	)
 	card.add_child(slider)
-	var low_label := _make_label("%d" % CAMERA_MEGAPIXEL_STEPS[0], 9, Color("#A9A092"))
+	var low_label := _make_label("%d" % minimum_mp, 9, Color("#A9A092"))
 	low_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card.add_child(low_label)
 	return card
@@ -8086,7 +8142,7 @@ func _get_front_camera_mp_layout() -> Array:
 	return rows
 
 func _set_front_camera_mp_value(megapixels: int, property_name: String) -> void:
-	set(StringName(property_name), megapixels)
+	set(StringName(property_name), clampi(megapixels, ResearchManagerScript.FRONT_CAMERA_MP_BASE, _get_front_camera_mp_maximum()))
 	_update_camera_software_summary()
 
 func _show_front_camera_controls() -> void:
