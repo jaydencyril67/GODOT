@@ -857,8 +857,7 @@ func _build_preview_world() -> void:
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	preview_container.add_child(_get_preview_viewport())
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 4.9)
-		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
+		preview_camera.look_at_from_position(Vector3(0.0, 0.0, 4.9), Vector3.ZERO, Vector3.UP)
 	worksite_nested_color_view_opened.connect(_on_nested_color_view_opened)
 func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> void:
 	if not is_instance_valid(preview_viewport):
