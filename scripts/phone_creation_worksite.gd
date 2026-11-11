@@ -567,7 +567,13 @@ var selected_bluetooth_version := "Bluetooth 2.0 + EDR"
 var researched_bluetooth_level := 14
 
 var selected_wifi_standard := "Wi-Fi 1 (802.11b)"
-var researched_wifi_level := 8
+var wifi_level := 0
+var wifi_research_level := 0
+var wifi_generation_label: Label
+var wifi_research_label: Label
+var wifi_value_label: Label
+var wifi_decrease_button: Button
+var wifi_increase_button: Button
 
 var selected_mobile_network := "1G (AMPS)"
 var mobile_network_level := 0
@@ -12290,60 +12296,142 @@ func _show_wifi_controls() -> void:
 	active_feature_panel.name = "WiFiSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT WI-FI STANDARD", 17, Color("#D3AA6B"))
+	var heading := _make_label("WI-FI TECHNOLOGY", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# Non-scrollable two-column grid for all Wi-Fi standards.
-	var options := GridContainer.new()
-	options.name = "WiFiStandardOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	options.add_theme_constant_override("h_separation", 6)
-	options.add_theme_constant_override("v_separation", 6)
-	active_feature_panel.add_child(options)
+	wifi_generation_label = _make_label("", 13, Color("#E5E0D6"))
+	wifi_generation_label.name = "WiFiGenerationLabel"
+	wifi_generation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(wifi_generation_label)
 
-	var wifi_standards := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
-	for standard_index in range(wifi_standards.size()):
-		var standard: String = wifi_standards[standard_index]
-		var option := Button.new()
-		option.name = "WiFiOption_" + standard.replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace(",", "")
-		var button_label: String = "Wi-Fi " + standard.get_slice(" ", 1).split(" ")[0]
-		option.text = button_label + ("  ✓" if selected_wifi_standard == standard else "")
-		option.tooltip_text = standard
-		option.disabled = false
-		option.custom_minimum_size = Vector2(0, 42)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 15)
-		var option_font := FontVariation.new()
-		option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-		option_font.variation_embolden = 1.5
-		option.add_theme_font_override("font", option_font)
-		_style_staff_button(option, selected_wifi_standard == standard)
-		option.pressed.connect(_on_wifi_standard_selected.bind(standard))
-		options.add_child(option)
+	wifi_research_label = _make_label("", 13, Color("#D3AA6B"))
+	wifi_research_label.name = "WiFiResearchLevelLabel"
+	wifi_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(wifi_research_label)
 
-func set_wifi_research_level(_level: int) -> void:
-	# Legacy compatibility hook: expose every Wi-Fi standard.
-	researched_wifi_level = 8
+	var controls_center := CenterContainer.new()
+	controls_center.name = "WiFiControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
+	var controls := HBoxContainer.new()
+	controls.name = "WiFiControlRow"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
+
+	wifi_decrease_button = Button.new()
+	wifi_decrease_button.name = "DecreaseWiFiButton"
+	wifi_decrease_button.text = "−"
+	_style_level_circle_button(wifi_decrease_button)
+	wifi_decrease_button.pressed.connect(_on_wifi_decrease_pressed)
+	controls.add_child(wifi_decrease_button)
+
+	wifi_value_label = _make_label("", 20, Color.WHITE)
+	wifi_value_label.name = "WiFiTechnologyValueLabel"
+	wifi_value_label.custom_minimum_size.x = 220
+	wifi_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wifi_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(wifi_value_label)
+
+	wifi_increase_button = Button.new()
+	wifi_increase_button.name = "IncreaseWiFiButton"
+	wifi_increase_button.text = "+"
+	_style_level_circle_button(wifi_increase_button)
+	wifi_increase_button.pressed.connect(_on_wifi_increase_pressed)
+	controls.add_child(wifi_increase_button)
+
+	_refresh_wifi_selection_ui(active_feature_panel)
+
+
+func set_wifi_research_level(level: int) -> void:
+	wifi_research_level = clampi(level, 0, ResearchManagerScript.get_wifi_step_count() - 1)
+	# Wi-Fi 1 is the starting baseline; selecting research unlocks each next generation.
+	wifi_level = wifi_research_level
+	_apply_wifi_level(false)
+	_notify_worksite_connectivity_selection_changed()
+
+
+func _on_wifi_decrease_pressed() -> void:
+	if wifi_level <= 0:
+		return
+	wifi_level -= 1
+	_apply_wifi_level()
+
+
+func _on_wifi_increase_pressed() -> void:
+	if wifi_level >= wifi_research_level:
+		return
+	wifi_level += 1
+	_apply_wifi_level()
+
+
+func _apply_wifi_level(notify_selection: bool = true) -> void:
+	var entry := ResearchManagerScript.get_wifi_entry(wifi_level)
+	if entry.is_empty():
+		return
+	selected_wifi_standard = "%s (%s)" % [
+		str(entry.get("generation", "")),
+		str(entry.get("technology", ""))
+	]
+	if software_value_labels.has("WI-FI") and is_instance_valid(software_value_labels["WI-FI"]):
+		var wifi_label: Label = software_value_labels["WI-FI"]
+		wifi_label.text = selected_wifi_standard
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "WiFiSelectionControls":
-		_show_wifi_controls()
+		_refresh_wifi_selection_ui(active_feature_panel)
+		if notify_selection:
+			_notify_worksite_connectivity_selection_changed()
+
+
+func _refresh_wifi_selection_ui(panel: Control) -> void:
+	if not is_instance_valid(panel) or panel.name != "WiFiSelectionControls":
+		return
+	var entry := ResearchManagerScript.get_wifi_entry(wifi_level)
+	if entry.is_empty():
+		return
+	if is_instance_valid(wifi_generation_label):
+		wifi_generation_label.text = "%s  ·  IEEE %s" % [
+			str(entry.get("generation", "")),
+			str(entry.get("technology", ""))
+		]
+	if is_instance_valid(wifi_research_label):
+		var next_target := ResearchManagerScript.get_wifi_research_target({"Wi-Fi": wifi_research_level})
+		var next_target_text := "COMPLETE" if next_target.is_empty() else "NEXT: %s (%s)" % [
+			str(next_target.get("generation", "")),
+			str(next_target.get("technology", ""))
+		]
+		wifi_research_label.text = "WI-FI TECHNOLOGIES  %d / %d  ·  %s" % [
+			wifi_research_level + 1,
+			ResearchManagerScript.get_wifi_step_count(),
+			next_target_text
+		]
+	if is_instance_valid(wifi_value_label):
+		wifi_value_label.text = selected_wifi_standard
+	if is_instance_valid(wifi_decrease_button):
+		wifi_decrease_button.disabled = wifi_level <= 0
+	if is_instance_valid(wifi_increase_button):
+		wifi_increase_button.disabled = wifi_level >= wifi_research_level
 
 
 func _on_wifi_standard_selected(standard: String) -> void:
-	var wifi_standards := ["Wi-Fi 1 (802.11b)", "Wi-Fi 2 (802.11a)", "Wi-Fi 3 (802.11g)", "Wi-Fi 4 (802.11n)", "Wi-Fi 5 (802.11ac)", "Wi-Fi 6 (802.11ax)", "Wi-Fi 6E (802.11ax, 6 GHz)", "Wi-Fi 7 (802.11be)"]
-	if not wifi_standards.has(standard):
-		return
-	selected_wifi_standard = standard
-	if software_value_labels.has("WI-FI") and is_instance_valid(software_value_labels["WI-FI"]):
-		var wifi_label: Label = software_value_labels["WI-FI"]
-		wifi_label.text = standard
-	_refresh_connectivity_selection_ui(active_feature_panel, "wifi")
-	_notify_worksite_connectivity_selection_changed()
+	# Compatibility hook for older callers; never allow a selection above the research ceiling.
+	for index in range(wifi_research_level + 1):
+		var entry := ResearchManagerScript.get_wifi_entry(index)
+		var display_name := "%s (%s)" % [
+			str(entry.get("generation", "")),
+			str(entry.get("technology", ""))
+		]
+		if standard == display_name or standard == str(entry.get("technology", "")):
+			wifi_level = index
+			_apply_wifi_level()
+			return
+
 
 func _update_sensor_count_label(count_label: Label) -> void:
 	if not is_instance_valid(count_label):
