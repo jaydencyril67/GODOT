@@ -15,6 +15,9 @@ const STATUS_UNSUCCESSFUL := "unsuccessful"
 const RESEARCH_SUCCESS_CHANCE := 0.70
 const STATUS_CANCELLED := "cancelled"
 const FRONT_CAMERA_MODEL_COUNT := 8
+const BATTERY_CAPACITY_BASE_MAH := 1000
+const BATTERY_CAPACITY_STEP_MAH := 350
+const BATTERY_CAPACITY_RESEARCH_UPGRADES := 20
 const SCREEN_WIDTH_RESEARCH_LEVELS := 12
 const SCREEN_HEIGHT_RESEARCH_LEVELS := 12
 const REFRESH_RATE_RESEARCH_LEVELS := 30
@@ -66,7 +69,8 @@ const COMPONENT_CATALOGUE := [
 	"Memory Clock",
 	"Curved Screen Horizontal",
 	"Curved Screen Vertical",
-	"Curved Screen Both"
+	"Curved Screen Both",
+	"Battery Capacity"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -167,6 +171,34 @@ static func get_bluetooth_research_target(component_levels: Dictionary) -> Dicti
 	if target_index >= BLUETOOTH_SEQUENCE.size():
 		return {}
 	return get_bluetooth_entry(target_index)
+
+
+static func get_battery_capacity_max_for_level(level: int) -> int:
+	# Level 1 starts at 1,000 mAh; each of the next 20 approved projects adds 350 mAh.
+	var completed_upgrades := clampi(level, 0, BATTERY_CAPACITY_RESEARCH_UPGRADES)
+	return BATTERY_CAPACITY_BASE_MAH + completed_upgrades * BATTERY_CAPACITY_STEP_MAH
+
+
+static func get_battery_capacity_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_upgrades := clampi(int(component_levels.get("Battery Capacity", 0)), 0, BATTERY_CAPACITY_RESEARCH_UPGRADES)
+	if completed_upgrades >= BATTERY_CAPACITY_RESEARCH_UPGRADES:
+		return {}
+	var target_level := completed_upgrades + 2
+	var target_capacity := get_battery_capacity_max_for_level(target_level - 1)
+	return {
+		"index": target_level,
+		"technology": "%s mAh" % _format_research_integer(target_capacity),
+		"max_capacity_mah": target_capacity
+	}
+
+
+static func _format_research_integer(value: int) -> String:
+	var digits := str(value)
+	var formatted := ""
+	while digits.length() > 3:
+		formatted = "," + digits.substr(digits.length() - 3, 3) + formatted
+		digits = digits.substr(0, digits.length() - 3)
+	return digits + formatted
 
 
 static func get_phone_type_entry(index: int) -> Dictionary:
@@ -462,7 +494,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_cooling_system_research_target(career.get("research_component_levels", {}))
 	elif component == "Phone Type":
 		ordered_target = get_phone_type_research_target(career.get("research_component_levels", {}))
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type"]:
+	elif component == "Battery Capacity":
+		ordered_target = get_battery_capacity_research_target(career.get("research_component_levels", {}))
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity"]:
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -477,7 +511,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
 				return _failure("The next %s technology already has a project in progress or awaiting validation." % component)
 
-	if component in ["Screen Width", "Screen Height", "Refresh Rate", "Memory Clock"]:
+	if component in ["Screen Width", "Screen Height", "Refresh Rate", "Memory Clock", "Battery Capacity"]:
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
 				continue
@@ -502,6 +536,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate %s for mobile phone heat removal." % target_technology
 		elif component == "Phone Type":
 			project_objective = "Develop and validate the %s mobile phone chassis architecture." % target_technology
+		elif component == "Battery Capacity":
+			project_objective = "Develop and validate the next battery capacity ceiling of %s while preserving player-selected capacity in 1 mAh increments." % target_technology
 	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 	elif component == "Memory Clock":
@@ -621,6 +657,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var bluetooth_target_index := -1
 	var cooling_system_target_index := -1
 	var phone_type_target_index := -1
+	var battery_capacity_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -661,6 +698,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		var expected_phone_type := get_phone_type_entry(phone_type_target_index)
 		if expected_phone_type.is_empty() or str(project.get("research_target", "")) != str(expected_phone_type.get("technology", "")):
 			return _failure("The Phone Type project target does not match the current chassis architecture progression.")
+	elif component == "Battery Capacity":
+		battery_capacity_target_index = int(project.get("research_target_index", -1))
+		var expected_battery_target := get_battery_capacity_research_target(component_levels)
+		if expected_battery_target.is_empty() or battery_capacity_target_index != int(expected_battery_target.get("index", -1)):
+			return _failure("This Battery Capacity project is no longer the next capacity improvement.")
+		if str(project.get("research_target", "")) != str(expected_battery_target.get("technology", "")):
+			return _failure("The Battery Capacity project target does not match the current capacity progression.")
 
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
@@ -689,6 +733,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact heat-removal option assigned to this project.")
 		if result_component == "Phone Type" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact phone chassis type assigned to this project.")
+		if result_component == "Battery Capacity" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next battery capacity ceiling assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -755,6 +801,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Phone Type":
 		# Standard is the baseline; research unlocks Flip, then Fold.
 		component_levels[component] = phone_type_target_index
+	elif component == "Battery Capacity":
+		# Level 1 is the 1,000 mAh starting state; 20 approved upgrades reach 8,000 mAh at Level 21.
+		component_levels[component] = mini(BATTERY_CAPACITY_RESEARCH_UPGRADES, int(component_levels.get(component, 0)) + 1)
 	elif CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
 		# Each curved-screen design is a separate one-time approved research unlock.
 		component_levels[component] = 1
