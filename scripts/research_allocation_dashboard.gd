@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -793,6 +793,24 @@ func _build_component_selection_scene() -> void:
 						continue
 					var rear_flash_count_project: Dictionary = project_value
 					if str(rear_flash_count_project.get("component", "")) == "Rear Flash Count" and str(rear_flash_count_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
+						component_button.disabled = true
+						break
+		elif COMPONENT_VALUES[index] == "Back Raised Design":
+			var back_raised_design_target: Dictionary = ResearchManagerScript.get_back_raised_design_research_target(research_component_levels)
+			if back_raised_design_target.is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 20 RAISED BOXES"
+				component_button.disabled = true
+			else:
+				if int(research_component_levels.get("Back Raised Design", 0)) == 0:
+					component_button.tooltip_text = "First approval unlocks the Back Raised Design controls and one raised box."
+				else:
+					component_button.tooltip_text = "Next raised-box capacity: %s" % str(back_raised_design_target.get("technology", ""))
+				for project_value in research_projects:
+					if not (project_value is Dictionary):
+						continue
+					var back_raised_design_project: Dictionary = project_value
+					if str(back_raised_design_project.get("component", "")) == "Back Raised Design" and str(back_raised_design_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
 						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 						component_button.disabled = true
 						break
