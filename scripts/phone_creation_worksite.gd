@@ -8823,8 +8823,8 @@ func _get_rear_hardware_default_size() -> float:
 
 func _get_rear_hardware_addition_limit() -> int:
 	if rear_hardware_mode == "FLASH":
-		return ResearchManagerScript.get_rear_flash_count_max_for_level(rear_flash_count_research_level)
-	return ResearchManagerScript.get_rear_camera_count_max_for_level(rear_camera_count_research_level)
+		return mini(MAX_REAR_FLASHES, ResearchManagerScript.get_rear_flash_count_max_for_level(rear_flash_count_research_level))
+	return mini(MAX_REAR_CAMERAS, ResearchManagerScript.get_rear_camera_count_max_for_level(rear_camera_count_research_level))
 
 
 func _add_rear_hardware_module() -> void:
@@ -9004,9 +9004,10 @@ func _refresh_rear_hardware_panel() -> void:
 		rear_hardware_selection_button.text = "%s  %02d  ›" % [kind_name, int(modules[selected_index]["id"])] if has_selection else "ADD A %s TO SELECT" % kind_name
 	var addition_limit := _get_rear_hardware_addition_limit()
 	var addition_limit_reached := modules.size() >= addition_limit
-	rear_hardware_add_button.text = (
-		"MAX %d CAMERAS" % addition_limit if rear_hardware_mode == "CAMERA" else "MAX %d FLASHES" % addition_limit
-	) if addition_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH")
+	if addition_limit_reached:
+		rear_hardware_add_button.text = "MAX %d CAMERAS" % addition_limit if rear_hardware_mode == "CAMERA" else "MAX %d FLASHES" % addition_limit
+	else:
+		rear_hardware_add_button.text = "+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"
 	rear_hardware_add_button.disabled = addition_limit_reached
 	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
 
