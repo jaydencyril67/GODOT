@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -356,6 +356,13 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
+		elif COMPONENT_VALUES[index] == "Memory Clock":
+			var memory_clock_level := int(research_component_levels.get("Memory Clock", 0))
+			if memory_clock_level >= ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL:
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Research unlocks the next available memory speed."
 		component_button.pressed.connect(_on_component_selected.bind(index))
 		choices.add_child(component_button)
 		component_buttons.append(component_button)
