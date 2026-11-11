@@ -2485,7 +2485,16 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
 		phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
 		phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
-	_show_notice("RESEARCH APPROVED", "The validated findings have been recorded in the company's technology development history.")
+	var next_mobile_project: Dictionary = result.get("auto_next_project", {})
+	if not next_mobile_project.is_empty():
+		_show_notice("RESEARCH APPROVED", "The findings were validated. Research has automatically started on %s (%s) with the same team." % [
+			str(next_mobile_project.get("research_target", "")),
+			str(next_mobile_project.get("research_generation", ""))
+		])
+	elif not str(result.get("auto_next_project_error", "")).is_empty():
+		_show_notice("RESEARCH APPROVED", "The findings were validated, but the next Mobile Network project could not start automatically: %s" % str(result.get("auto_next_project_error", "")))
+	else:
+		_show_notice("RESEARCH APPROVED", "The validated findings have been recorded in the company's technology development history.")
 
 
 func _on_rd_project_reject_requested(project_id: String, review_note: String) -> void:
@@ -2518,6 +2527,20 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 	var result: Dictionary = ResearchManagerScript.approve_project(career, project_id, results, game_date_unix)
 	if not bool(result.get("ok", false)):
 		return result
+
+	var approved_project: Dictionary = result.get("project", {})
+	if str(approved_project.get("component", "")) == "Mobile Network":
+		var previous_team: Array = approved_project.get("staff_ids", []).duplicate()
+		if not previous_team.is_empty():
+			var next_project_result: Dictionary = ResearchManagerScript.commission_project(career, {
+				"component": "Mobile Network",
+				"staff_ids": previous_team
+			}, game_date_unix)
+			if bool(next_project_result.get("ok", false)):
+				result["auto_next_project"] = next_project_result.get("project", {})
+			else:
+				result["auto_next_project_error"] = str(next_project_result.get("error", "The next technology could not be started automatically."))
+
 	if not _save_career():
 		career = previous_career
 		return {"ok": false, "error": "The approval could not be saved. The project remains awaiting validation."}
