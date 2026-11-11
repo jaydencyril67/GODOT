@@ -32,6 +32,8 @@ var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
+var research_dashboard_return_to_worksite := false
+var worksite_research_overlay_layer: CanvasLayer
 var home_navigation_layer: CanvasLayer
 var home_company_label: Label
 var home_date_label: Label
@@ -2433,6 +2435,33 @@ func _restore_home_after_standalone_screen() -> void:
 	_show_home_navigation()
 
 
+func _open_research_from_phone_creation_worksite() -> void:
+	if not is_instance_valid(phone_creation_worksite):
+		return
+	if research_dashboard_return_to_worksite:
+		return
+	# The worksite runs without the normal screen UI root, so open research in
+	# a dedicated top-layer CanvasLayer and restore the same worksite on return.
+	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	phone_creation_worksite.hide()
+	for child in phone_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.hide()
+	worksite_research_overlay_layer = CanvasLayer.new()
+	worksite_research_overlay_layer.name = "WorksiteResearchOverlay"
+	worksite_research_overlay_layer.layer = 100
+	add_child(worksite_research_overlay_layer)
+	var overlay_root := Control.new()
+	overlay_root.name = "WorksiteResearchRoot"
+	overlay_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	worksite_research_overlay_layer.add_child(overlay_root)
+	ui_layer = worksite_research_overlay_layer
+	ui_root = overlay_root
+	research_dashboard_return_to_worksite = true
+	_show_research_allocation_dashboard()
+
+
 func _show_research_allocation_dashboard() -> void:
 	# Phone now opens the company-level research dashboard, not the legacy
 	# component-by-component upgrade catalogue.
@@ -2505,6 +2534,7 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
 		phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
 		phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
+	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	var approved_component := str(result.get("project", {}).get("component", ""))
 	var next_mobile_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Mobile Network" else {}
 	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Wi-Fi" else {}
@@ -2600,6 +2630,7 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		phone_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 		phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
 		phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
+	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	return result
 
 
@@ -2618,6 +2649,21 @@ func _return_from_research_allocation_dashboard() -> void:
 	if is_instance_valid(research_allocation_dashboard):
 		research_allocation_dashboard.queue_free()
 	research_allocation_dashboard = null
+	if research_dashboard_return_to_worksite:
+		research_dashboard_return_to_worksite = false
+		if is_instance_valid(worksite_research_overlay_layer):
+			worksite_research_overlay_layer.queue_free()
+		worksite_research_overlay_layer = null
+		ui_layer = null
+		ui_root = null
+		if is_instance_valid(phone_creation_worksite):
+			phone_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
+			phone_creation_worksite.show()
+			for child in phone_creation_worksite.get_children():
+				if child is CanvasLayer:
+					child.show()
+		current_screen = "phone_creation_worksite"
+		return
 	current_screen = "research"
 
 
@@ -2677,6 +2723,7 @@ func _prepare_phone_creation_worksite() -> void:
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
+	phone_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
 	phone_creation_worksite.hide()
 	for child in phone_creation_worksite.get_children():
@@ -2700,6 +2747,7 @@ func _prepare_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 	phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
 	phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
+	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("research_component_levels", {}).get("Battery Capacity", 0)))
 	phone_creation_worksite.call("set_charging_speed_research_level", int(career.get("research_component_levels", {}).get("Charging Speed", 0)))
@@ -2760,6 +2808,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 	phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
 	phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
+	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("research_component_levels", {}).get("Battery Capacity", 0)))
 	phone_creation_worksite.call("set_charging_speed_research_level", int(career.get("research_component_levels", {}).get("Charging Speed", 0)))
