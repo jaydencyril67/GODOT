@@ -18,6 +18,10 @@ const FRONT_CAMERA_MODEL_COUNT := 8
 const BATTERY_CAPACITY_BASE_MAH := 1000
 const BATTERY_CAPACITY_STEP_MAH := 350
 const BATTERY_CAPACITY_RESEARCH_UPGRADES := 20
+const CHARGING_SPEED_BASE_W := 1
+const CHARGING_SPEED_STEP_W := 3
+const CHARGING_SPEED_RESEARCH_UPGRADES := 66
+const CHARGING_SPEED_MAX_W := 200
 const SCREEN_WIDTH_RESEARCH_LEVELS := 12
 const SCREEN_HEIGHT_RESEARCH_LEVELS := 12
 const REFRESH_RATE_RESEARCH_LEVELS := 30
@@ -70,7 +74,8 @@ const COMPONENT_CATALOGUE := [
 	"Curved Screen Horizontal",
 	"Curved Screen Vertical",
 	"Curved Screen Both",
-	"Battery Capacity"
+	"Battery Capacity",
+	"Charging Speed"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -189,6 +194,32 @@ static func get_battery_capacity_research_target(component_levels: Dictionary) -
 		"index": target_level,
 		"technology": "%s mAh" % _format_research_integer(target_capacity),
 		"max_capacity_mah": target_capacity
+	}
+
+
+static func get_charging_speed_max_for_level(level: int) -> int:
+	# Level 1 starts at 1W. The first 65 upgrades add 3W each;
+	# the 66th upgrade adds 4W to reach the exact 200W ceiling.
+	var completed_upgrades := clampi(level, 0, CHARGING_SPEED_RESEARCH_UPGRADES)
+	if completed_upgrades >= CHARGING_SPEED_RESEARCH_UPGRADES:
+		return CHARGING_SPEED_MAX_W
+	return CHARGING_SPEED_BASE_W + completed_upgrades * CHARGING_SPEED_STEP_W
+
+
+static func get_charging_speed_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_upgrades := clampi(
+		int(component_levels.get("Charging Speed", 0)),
+		0,
+		CHARGING_SPEED_RESEARCH_UPGRADES
+	)
+	if completed_upgrades >= CHARGING_SPEED_RESEARCH_UPGRADES:
+		return {}
+	var target_level := completed_upgrades + 2
+	var target_maximum := get_charging_speed_max_for_level(completed_upgrades + 1)
+	return {
+		"index": target_level,
+		"technology": "%dW" % target_maximum,
+		"max_charging_speed_w": target_maximum
 	}
 
 
@@ -496,7 +527,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_phone_type_research_target(career.get("research_component_levels", {}))
 	elif component == "Battery Capacity":
 		ordered_target = get_battery_capacity_research_target(career.get("research_component_levels", {}))
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity"]:
+	elif component == "Charging Speed":
+		ordered_target = get_charging_speed_research_target(career.get("research_component_levels", {}))
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed"]:
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -538,6 +571,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate the %s mobile phone chassis architecture." % target_technology
 		elif component == "Battery Capacity":
 			project_objective = "Develop and validate the next battery capacity ceiling of %s while preserving player-selected capacity in 1 mAh increments." % target_technology
+		elif component == "Charging Speed":
+			project_objective = "Develop and validate the next wired charging-speed ceiling of %s while preserving player-selected speeds in 1W increments." % target_technology
 	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 	elif component == "Memory Clock":
@@ -658,6 +693,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var cooling_system_target_index := -1
 	var phone_type_target_index := -1
 	var battery_capacity_target_index := -1
+	var charging_speed_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -705,6 +741,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Battery Capacity project is no longer the next capacity improvement.")
 		if str(project.get("research_target", "")) != str(expected_battery_target.get("technology", "")):
 			return _failure("The Battery Capacity project target does not match the current capacity progression.")
+	elif component == "Charging Speed":
+		charging_speed_target_index = int(project.get("research_target_index", -1))
+		var expected_charging_target := get_charging_speed_research_target(component_levels)
+		if expected_charging_target.is_empty() or charging_speed_target_index != int(expected_charging_target.get("index", -1)):
+			return _failure("This Charging Speed project is no longer the next charging-speed improvement.")
+		if str(project.get("research_target", "")) != str(expected_charging_target.get("technology", "")):
+			return _failure("The Charging Speed project target does not match the current charging-speed progression.")
 
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
@@ -735,6 +778,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact phone chassis type assigned to this project.")
 		if result_component == "Battery Capacity" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next battery capacity ceiling assigned to this project.")
+		if result_component == "Charging Speed" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next wired charging-speed ceiling assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -804,6 +849,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Battery Capacity":
 		# Level 1 is the 1,000 mAh starting state; 20 approved upgrades reach 8,000 mAh at Level 21.
 		component_levels[component] = mini(BATTERY_CAPACITY_RESEARCH_UPGRADES, int(component_levels.get(component, 0)) + 1)
+	elif component == "Charging Speed":
+		# Level 1 starts at 1W; 66 approved upgrades reach 200W at Level 67.
+		component_levels[component] = mini(CHARGING_SPEED_RESEARCH_UPGRADES, int(component_levels.get(component, 0)) + 1)
 	elif CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
 		# Each curved-screen design is a separate one-time approved research unlock.
 		component_levels[component] = 1
