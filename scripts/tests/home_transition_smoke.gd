@@ -364,10 +364,22 @@ func _run_transition_checks() -> void:
 		_fail("A Memory Clock research project could not be commissioned: %s" % str(memory_clock_commission.get("error", "")))
 		return
 	var memory_clock_project: Dictionary = memory_clock_commission.get("project", {})
+	var previous_memory_clock_staff: Array = game.career.get("staff_employees", []).duplicate(true)
+	var memory_clock_test_staff: Array = previous_memory_clock_staff.duplicate(true)
+	memory_clock_test_staff.append({
+		"id": "researcher_memory_clock_02",
+		"full_name": "Second Memory Research Engineer",
+		"department": "Research",
+		"position": "Research Engineer",
+		"efficiency": 100,
+		"monthly_salary": 250000.0
+	})
+	game.career["staff_employees"] = memory_clock_test_staff
 	var duplicate_memory_clock_commission: Dictionary = game.commission_research_project({
 		"component": "Memory Clock",
-		"staff_ids": ["researcher_smoke_01"]
+		"staff_ids": ["researcher_memory_clock_02"]
 	})
+	game.career["staff_employees"] = previous_memory_clock_staff
 	if bool(duplicate_memory_clock_commission.get("ok", false)):
 		_fail("A second Memory Clock project was allowed while one was already active.")
 		return
@@ -399,7 +411,9 @@ func _run_transition_checks() -> void:
 		_fail("Technical approval did not unlock the first Memory Clock research level.")
 		return
 	var saved_memory_clock_level := int(game.career.get("research_component_levels", {}).get("Memory Clock", 0))
+	var saved_ram_technology_level := int(game.career.get("research_component_levels", {}).get("RAM Technology", 0))
 	var research_levels: Dictionary = game.career.get("research_component_levels", {})
+	research_levels["RAM Technology"] = 6
 	research_levels["Memory Clock"] = ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL
 	game.career["research_component_levels"] = research_levels
 	var maximum_memory_clock_commission: Dictionary = game.commission_research_project({
@@ -409,6 +423,7 @@ func _run_transition_checks() -> void:
 	if bool(maximum_memory_clock_commission.get("ok", false)):
 		_fail("Memory Clock research continued beyond its 120-level maximum.")
 		return
+	research_levels["RAM Technology"] = saved_ram_technology_level
 	research_levels["Memory Clock"] = saved_memory_clock_level
 	game.career["research_component_levels"] = research_levels
 
