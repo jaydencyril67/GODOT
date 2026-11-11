@@ -2503,6 +2503,8 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
 		phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("research_component_levels", {}).get("Bluetooth", 0)))
 		phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
+		phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
+		phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
 	var approved_component := str(result.get("project", {}).get("component", ""))
 	var next_mobile_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Mobile Network" else {}
 	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Wi-Fi" else {}
