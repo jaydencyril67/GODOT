@@ -2886,55 +2886,12 @@ func _show_worksite_sensor_controls() -> void:
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.custom_minimum_size = Vector2(0, 300)
-	panel.add_theme_constant_override("separation", 10)
+	panel.add_theme_constant_override("separation", 14)
 	active_feature_panel = panel
 
 	var heading := _label("PHONE SENSORS", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
-
-	phone_sensor_count_label = _label("", 13, Color("#D6D0C5"), HORIZONTAL_ALIGNMENT_CENTER)
-	phone_sensor_count_label.name = "EnabledSensorCount"
-	phone_sensor_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_child(phone_sensor_count_label)
-
-	phone_sensor_name_label = _label("", 19, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
-	phone_sensor_name_label.name = "SelectedPhoneSensor"
-	phone_sensor_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	phone_sensor_name_label.custom_minimum_size.y = 54
-	phone_sensor_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	panel.add_child(phone_sensor_name_label)
-
-	phone_sensor_status_label = _label("", 12, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
-	phone_sensor_status_label.name = "PhoneSensorResearchStatus"
-	phone_sensor_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_child(phone_sensor_status_label)
-
-	var navigation := HBoxContainer.new()
-	navigation.name = "PhoneSensorNavigation"
-	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
-	navigation.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	navigation.add_theme_constant_override("separation", 24)
-	panel.add_child(navigation)
-
-	phone_sensor_previous_button = Button.new()
-	phone_sensor_previous_button.name = "PreviousPhoneSensorButton"
-	phone_sensor_previous_button.text = "−"
-	_style_level_selector_button(phone_sensor_previous_button)
-	phone_sensor_previous_button.pressed.connect(_on_phone_sensor_previous_pressed)
-	navigation.add_child(phone_sensor_previous_button)
-
-	phone_sensor_index_label = _label("", 14, Color("#D6D0C5"), HORIZONTAL_ALIGNMENT_CENTER)
-	phone_sensor_index_label.name = "PhoneSensorIndex"
-	phone_sensor_index_label.custom_minimum_size.x = 105
-	navigation.add_child(phone_sensor_index_label)
-
-	phone_sensor_next_button = Button.new()
-	phone_sensor_next_button.name = "NextPhoneSensorButton"
-	phone_sensor_next_button.text = "+"
-	_style_level_selector_button(phone_sensor_next_button)
-	phone_sensor_next_button.pressed.connect(_on_phone_sensor_next_pressed)
-	navigation.add_child(phone_sensor_next_button)
 
 	var enable_row := HBoxContainer.new()
 	enable_row.name = "PhoneSensorEnableRow"
@@ -2943,7 +2900,7 @@ func _show_worksite_sensor_controls() -> void:
 	enable_row.add_theme_constant_override("separation", 12)
 	panel.add_child(enable_row)
 
-	var enable_label := _label("ENABLE SENSOR", 14, Color("#EEE9DF"))
+	var enable_label := _label("ENABLE", 14, Color("#EEE9DF"))
 	enable_row.add_child(enable_label)
 
 	phone_sensor_enabled_toggle = TextureButton.new()
@@ -2957,54 +2914,97 @@ func _show_worksite_sensor_controls() -> void:
 	phone_sensor_enabled_toggle.toggled.connect(_on_phone_sensor_toggled)
 	enable_row.add_child(phone_sensor_enabled_toggle)
 
+	var navigation := HBoxContainer.new()
+	navigation.name = "PhoneSensorNavigation"
+	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation.add_theme_constant_override("separation", 18)
+	panel.add_child(navigation)
+
+	phone_sensor_previous_button = Button.new()
+	phone_sensor_previous_button.name = "PreviousPhoneSensorButton"
+	phone_sensor_previous_button.text = "−"
+	_style_button(phone_sensor_previous_button, false)
+	phone_sensor_previous_button.custom_minimum_size = Vector2(56, 48)
+	phone_sensor_previous_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	phone_sensor_previous_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	phone_sensor_previous_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phone_sensor_previous_button.focus_mode = Control.FOCUS_NONE
+	phone_sensor_previous_button.pressed.connect(_on_phone_sensor_previous_pressed)
+	navigation.add_child(phone_sensor_previous_button)
+
+	phone_sensor_name_label = _label("No Sensors", 19, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
+	phone_sensor_name_label.name = "SelectedPhoneSensor"
+	phone_sensor_name_label.custom_minimum_size = Vector2(190, 64)
+	phone_sensor_name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	phone_sensor_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	phone_sensor_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	navigation.add_child(phone_sensor_name_label)
+
+	phone_sensor_next_button = Button.new()
+	phone_sensor_next_button.name = "NextPhoneSensorButton"
+	phone_sensor_next_button.text = "+"
+	_style_button(phone_sensor_next_button, false)
+	phone_sensor_next_button.custom_minimum_size = Vector2(56, 48)
+	phone_sensor_next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	phone_sensor_next_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	phone_sensor_next_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phone_sensor_next_button.focus_mode = Control.FOCUS_NONE
+	phone_sensor_next_button.pressed.connect(_on_phone_sensor_next_pressed)
+	navigation.add_child(phone_sensor_next_button)
+
 	_refresh_phone_sensor_controls()
 
 
 func _get_phone_sensor_names() -> Array[String]:
 	var names: Array[String] = []
 	for sensor_value in ResearchManagerScript.PHONE_SENSOR_COMPONENTS:
-		names.append(str(sensor_value))
+		var sensor_name := str(sensor_value)
+		if int(phone_sensor_research_levels.get(sensor_name, 0)) >= 1:
+			names.append(sensor_name)
 	return names
 
 
 func _refresh_phone_sensor_controls() -> void:
 	var sensor_names := _get_phone_sensor_names()
 	if sensor_names.is_empty():
+		selected_phone_sensor_index = 0
+		if is_instance_valid(phone_sensor_name_label):
+			phone_sensor_name_label.text = "No Sensors"
+		if is_instance_valid(phone_sensor_enabled_toggle):
+			phone_sensor_enabled_toggle.disabled = true
+			phone_sensor_enabled_toggle.set_pressed_no_signal(false)
+			var empty_checkbox_icon: Texture2D = _make_side_button_checkbox_icon(false)
+			phone_sensor_enabled_toggle.texture_normal = empty_checkbox_icon
+			phone_sensor_enabled_toggle.texture_hover = empty_checkbox_icon
+			phone_sensor_enabled_toggle.texture_pressed = empty_checkbox_icon
+			phone_sensor_enabled_toggle.texture_disabled = empty_checkbox_icon
+			phone_sensor_enabled_toggle.tooltip_text = "Research a phone sensor to enable it."
+		if is_instance_valid(phone_sensor_previous_button):
+			phone_sensor_previous_button.disabled = true
+		if is_instance_valid(phone_sensor_next_button):
+			phone_sensor_next_button.disabled = true
 		return
 
 	selected_phone_sensor_index = clampi(selected_phone_sensor_index, 0, sensor_names.size() - 1)
 	var sensor_name := sensor_names[selected_phone_sensor_index]
-	var researched := int(phone_sensor_research_levels.get(sensor_name, 0)) >= 1
 	var enabled := bool(selected_phone_sensors.get(sensor_name, false))
-	if not researched and enabled:
-		selected_phone_sensors[sensor_name] = false
-		enabled = false
 
 	if is_instance_valid(phone_sensor_name_label):
 		phone_sensor_name_label.text = sensor_name
-	if is_instance_valid(phone_sensor_index_label):
-		phone_sensor_index_label.text = "%d / %d" % [selected_phone_sensor_index + 1, sensor_names.size()]
-	if is_instance_valid(phone_sensor_status_label):
-		if researched:
-			phone_sensor_status_label.text = "RESEARCH APPROVED  ·  " + ("ENABLED" if enabled else "READY TO ENABLE")
-			phone_sensor_status_label.add_theme_color_override("font_color", Color("#8FB99B"))
-		else:
-			phone_sensor_status_label.text = "LOCKED  ·  RESEARCH REQUIRED"
-			phone_sensor_status_label.add_theme_color_override("font_color", Color("#A9A092"))
 	if is_instance_valid(phone_sensor_enabled_toggle):
-		phone_sensor_enabled_toggle.disabled = not researched
+		phone_sensor_enabled_toggle.disabled = false
 		phone_sensor_enabled_toggle.set_pressed_no_signal(enabled)
 		var checkbox_icon: Texture2D = _make_side_button_checkbox_icon(enabled)
 		phone_sensor_enabled_toggle.texture_normal = checkbox_icon
 		phone_sensor_enabled_toggle.texture_hover = checkbox_icon
 		phone_sensor_enabled_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 		phone_sensor_enabled_toggle.texture_disabled = _make_side_button_checkbox_icon(false)
-		phone_sensor_enabled_toggle.tooltip_text = "Enable or disable " + sensor_name if researched else "Research this sensor before enabling it."
+		phone_sensor_enabled_toggle.tooltip_text = "Enable or disable " + sensor_name
 	if is_instance_valid(phone_sensor_previous_button):
 		phone_sensor_previous_button.disabled = selected_phone_sensor_index <= 0
 	if is_instance_valid(phone_sensor_next_button):
 		phone_sensor_next_button.disabled = selected_phone_sensor_index >= sensor_names.size() - 1
-	_update_sensor_count_label(phone_sensor_count_label)
 
 
 func _on_phone_sensor_previous_pressed() -> void:
@@ -3014,15 +3014,28 @@ func _on_phone_sensor_previous_pressed() -> void:
 
 func _on_phone_sensor_next_pressed() -> void:
 	var sensor_names := _get_phone_sensor_names()
-	selected_phone_sensor_index = mini(sensor_names.size() - 1, selected_phone_sensor_index + 1)
+	selected_phone_sensor_index = mini(maxi(0, sensor_names.size() - 1), selected_phone_sensor_index + 1)
 	_refresh_phone_sensor_controls()
 
 
 func set_phone_sensor_research_levels(levels: Dictionary) -> void:
+	var previously_selected_sensor := ""
+	var current_names := _get_phone_sensor_names()
+	if not current_names.is_empty() and selected_phone_sensor_index < current_names.size():
+		previously_selected_sensor = current_names[selected_phone_sensor_index]
+
 	phone_sensor_research_levels = levels.duplicate(true)
-	for sensor_name in _get_phone_sensor_names():
+	for sensor_value in ResearchManagerScript.PHONE_SENSOR_COMPONENTS:
+		var sensor_name := str(sensor_value)
 		if int(phone_sensor_research_levels.get(sensor_name, 0)) < 1:
 			selected_phone_sensors[sensor_name] = false
+
+	var updated_names := _get_phone_sensor_names()
+	if not previously_selected_sensor.is_empty() and updated_names.has(previously_selected_sensor):
+		selected_phone_sensor_index = updated_names.find(previously_selected_sensor)
+	else:
+		selected_phone_sensor_index = clampi(selected_phone_sensor_index, 0, maxi(0, updated_names.size() - 1))
+
 	_update_sensor_software_summary()
 	_refresh_phone_sensor_controls()
 
