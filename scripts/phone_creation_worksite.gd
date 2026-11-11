@@ -1136,7 +1136,7 @@ func _build_interface() -> void:
 	_apply_responsive_layout()
 	# Start with Standard selected so the Worksite preview and Next state are
 	# immediately ready.
-	_on_phone_type_selected("Standard")
+	_apply_phone_type_level()
 
 
 func _apply_responsive_layout() -> void:
@@ -1197,7 +1197,6 @@ func _apply_phone_type_level() -> void:
 	selected_phone_type = PHONE_TYPES[phone_type_level]
 	_update_preview_for_phone_type(selected_phone_type)
 	_refresh_phone_type_controls()
-	_refresh_phone_type_step_options()
 
 
 func _refresh_phone_type_controls() -> void:
