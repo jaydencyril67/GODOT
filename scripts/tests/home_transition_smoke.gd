@@ -439,6 +439,12 @@ func _run_transition_checks() -> void:
 	if str(first_bluetooth_target.get("technology", "")) != "Bluetooth 1.1":
 		_fail("Bluetooth 1.0b was not treated as the baseline before Bluetooth 1.1 research.")
 		return
+	var final_bluetooth_target: Dictionary = ResearchManagerScript.get_bluetooth_research_target({
+		"Bluetooth": expected_bluetooth_versions.size() - 1
+	})
+	if not final_bluetooth_target.is_empty():
+		_fail("Bluetooth research still offers another version after Bluetooth 7.0.")
+		return
 	var bluetooth_staff: Array = game.career.get("staff_employees", []).duplicate(true)
 	bluetooth_staff.append({
 		"id": "researcher_bluetooth_01",
