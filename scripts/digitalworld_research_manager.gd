@@ -18,6 +18,10 @@ const FRONT_CAMERA_MODEL_COUNT := 8
 const SCREEN_WIDTH_RESEARCH_LEVELS := 12
 const SCREEN_HEIGHT_RESEARCH_LEVELS := 12
 const REFRESH_RATE_RESEARCH_LEVELS := 30
+const MEMORY_CLOCK_MIN_SPEED := 200
+const MEMORY_CLOCK_RESEARCH_LEVELS_PER_RANGE := 20
+const MEMORY_CLOCK_MAX_RESEARCH_LEVEL := 120
+const MEMORY_CLOCK_SPEED_TARGETS := [1066, 2133, 4266, 6400, 10700, 14400]
 const PHONE_TYPE_SEQUENCE := ["Standard", "Flip", "Fold"]
 
 const COOLING_SYSTEM_SEQUENCE := [
@@ -52,7 +56,8 @@ const COMPONENT_CATALOGUE := [
 	"Wi-Fi",
 	"Bluetooth",
 	"Cooling System Design",
-	"Phone Type"
+	"Phone Type",
+	"Memory Clock"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -233,6 +238,42 @@ static func normalize_component(component_value: String) -> String:
 	return component
 
 
+static func get_memory_clock_speed_for_level(level: int) -> int:
+	# One continuous speed ladder: every 20 approved projects unlocks the next
+	# RAM-generation speed ceiling. Level 0 is the 200 MT/s starting speed.
+	var safe_level := clampi(level, 0, MEMORY_CLOCK_MAX_RESEARCH_LEVEL)
+	var previous_level := 0
+	var previous_speed := MEMORY_CLOCK_MIN_SPEED
+	for range_index in range(MEMORY_CLOCK_SPEED_TARGETS.size()):
+		var range_end_level := (range_index + 1) * MEMORY_CLOCK_RESEARCH_LEVELS_PER_RANGE
+		var range_end_speed := int(MEMORY_CLOCK_SPEED_TARGETS[range_index])
+		if safe_level <= range_end_level:
+			var progress := float(safe_level - previous_level) / float(MEMORY_CLOCK_RESEARCH_LEVELS_PER_RANGE)
+			return roundi(lerpf(float(previous_speed), float(range_end_speed), progress))
+		previous_level = range_end_level
+		previous_speed = range_end_speed
+	return previous_speed
+
+
+static func get_memory_clock_max_level_for_ram_technology(technology: String) -> int:
+	# Hardware capability limits the slider independently of research progress.
+	match technology.strip_edges().to_upper():
+		"LPDDR2":
+			return 20
+		"LPDDR3":
+			return 40
+		"LPDDR4", "LPDDR4X":
+			return 60
+		"LPDDR5":
+			return 80
+		"LPDDR5X":
+			return 100
+		"LPDDR6":
+			return MEMORY_CLOCK_MAX_RESEARCH_LEVEL
+		_:
+			return 20
+
+
 static func ensure_state(career: Dictionary) -> void:
 	var projects_value: Variant = career.get("research_projects", [])
 	if not (projects_value is Array):
@@ -353,6 +394,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not COMPONENT_CATALOGUE.has(component):
 		return _failure("Choose an available research component.")
 
+	if component == "Memory Clock" and int(career.get("research_component_levels", {}).get("Memory Clock", 0)) >= MEMORY_CLOCK_MAX_RESEARCH_LEVEL:
+		return _failure("Memory Clock has reached its maximum research level.")
+
 	var requested_staff: Variant = request.get("staff_ids", [])
 	if not (requested_staff is Array) or requested_staff.is_empty():
 		return _failure("Assign at least one available Research employee.")
@@ -400,7 +444,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
 				return _failure("The next %s technology already has a project in progress or awaiting validation." % component)
 
-	if component in ["Screen Width", "Screen Height", "Refresh Rate"]:
+	if component in ["Screen Width", "Screen Height", "Refresh Rate", "Memory Clock"]:
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
 				continue
@@ -427,6 +471,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate the %s mobile phone chassis architecture." % target_technology
 	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
+	elif component == "Memory Clock":
+		project_objective = "Develop and validate higher memory data-transfer speeds for mobile phone RAM."
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
@@ -635,6 +681,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Refresh Rate":
 		# Thirty approvals expand the selectable refresh-rate ceiling from 60 Hz to 300 Hz.
 		component_levels[component] = mini(REFRESH_RATE_RESEARCH_LEVELS, int(component_levels.get(component, 0)) + 1)
+	elif component == "Memory Clock":
+		# Each approved project unlocks the next step on the shared 120-level speed ladder.
+		component_levels[component] = mini(MEMORY_CLOCK_MAX_RESEARCH_LEVEL, int(component_levels.get(component, 0)) + 1)
 	elif component == "Front Camera":
 		# Bezel Camera is the baseline; each approval unlocks the next design in chronological order.
 		component_levels[component] = mini(
