@@ -11550,8 +11550,10 @@ func _show_cooling_system_controls() -> void:
 	active_feature_panel.name = "CoolingSystemSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.alignment = BoxContainer.ALIGNMENT_CENTER
-	active_feature_panel.add_theme_constant_override("separation", 10)
+	# Keep the heading at the top and let the selector sit lower in the
+	# available panel space, matching Speakers and Border Radius.
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var heading := _make_label("HEAT REMOVAL SYSTEM", 18, Color("#D3AA6B"))
@@ -11567,7 +11569,7 @@ func _show_cooling_system_controls() -> void:
 	var controls := HBoxContainer.new()
 	controls.name = "CoolingSystemControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 22)
+	controls.add_theme_constant_override("separation", 30)
 	controls_center.add_child(controls)
 
 	cooling_system_decrease_button = Button.new()
