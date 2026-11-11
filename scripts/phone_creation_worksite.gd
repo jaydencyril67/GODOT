@@ -5396,9 +5396,7 @@ func _show_screen_type_controls() -> void:
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	screen_type_name_label = _make_label(_get_screen_type_name(screen_type_level), 16, Color("#EEE9DF"))
-	screen_type_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(screen_type_name_label)
+
 
 	var controls_center := CenterContainer.new()
 	controls_center.name = "ScreenTypeLevelControlsCenter"
@@ -5419,6 +5417,12 @@ func _show_screen_type_controls() -> void:
 	_style_level_selector_button(screen_type_decrease_button)
 	screen_type_decrease_button.pressed.connect(_on_screen_type_decrease_pressed)
 	controls.add_child(screen_type_decrease_button)
+
+	screen_type_name_label = _make_label(_get_screen_type_name(screen_type_level), 16, Color("#EEE9DF"))
+	screen_type_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	screen_type_name_label.custom_minimum_size = Vector2(230, 48)
+	screen_type_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(screen_type_name_label)
 
 	screen_type_increase_button = Button.new()
 	screen_type_increase_button.name = "IncreaseScreenTypeButton"
