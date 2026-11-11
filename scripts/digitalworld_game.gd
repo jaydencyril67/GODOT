@@ -1267,9 +1267,6 @@ func _show_home_scene() -> void:
 	# Let the HQ preparation screen render before refreshing the market and generating buildings.
 	await get_tree().process_frame
 	_refresh_staff_market_on_startup()
-	# Initialize the Worksite while the first company preparation screen is visible.
-	_prepare_phone_creation_worksite()
-
 	var headquarters: DigitalWorldHeadquarters = HeadquartersPreviewScript.new()
 	headquarters.name = "DigitalWorld_Home_Scene"
 	headquarters.home_mode = true
@@ -1288,6 +1285,8 @@ func _show_home_scene() -> void:
 	# Build the 3D scene off-screen. It must not render behind the preparation UI.
 	headquarters.visible = false
 	world_root = headquarters
+	# Initialize the Worksite in the same loading phase, immediately before HQ construction.
+	_prepare_phone_creation_worksite()
 	add_child(world_root)
 
 
