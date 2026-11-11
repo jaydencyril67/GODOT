@@ -736,9 +736,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif component == "Rear Camera MP":
 			project_objective = "Develop and validate the next rear-camera resolution ceiling of %s while preserving player-selected resolutions in 1MP increments." % target_technology
 		elif component == "Rear Camera Count":
-			project_objective = "Research and validate the hardware integration needed to support %s independent rear camera modules in one phone." % target_technology
+			project_objective = "Research and validate support for %s independent rear cameras in one phone." % target_technology
 		elif component == "Rear Flash Count":
-			project_objective = "Research and validate the hardware integration needed to support %s independent rear flash modules in one phone." % target_technology
+			project_objective = "Research and validate support for %s independent rear flashes in one phone." % target_technology
 		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
