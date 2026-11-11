@@ -597,11 +597,14 @@ var researched_charging_speed_level := 0
 
 var selected_wireless_charge_enabled := false
 
-var selected_wireless_charging_speed := 5
+var selected_wireless_charging_speed := 1
+var researched_wireless_charging_level := 0
 
 var wireless_charging_speed_slider: VSlider
 
 var wireless_charging_speed_value_label: Label
+var wireless_charging_speed_range_label: Label
+var wireless_charging_speed_maximum_label: Label
 
 var selected_bluetooth_version := "Bluetooth 1.0b"
 var bluetooth_level := 0
@@ -1474,7 +1477,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			str(self.get("selected_bluetooth_version")),
 			str(self.get("selected_battery_capacity")),
 			str(self.get("selected_charging_speed")) + "W" if charging_speed_step_visited else "Not set",
-			(str(self.get("selected_wireless_charging_speed")) + "W" if bool(self.get("selected_wireless_charge_enabled")) else "Disabled") if wireless_charge_step_visited else "Not set",
+			_get_wireless_charging_summary() if wireless_charge_step_visited else "Not set",
 			self.call("_get_enabled_sensor_names") if sensors_step_visited else [],
 			str(self.call("_get_front_camera_mp_summary")) if front_camera_mp_step_visited else "Not set",
 			str(self.call("_get_rear_camera_mp_summary")) if rear_camera_mp_step_visited else "Not set",
@@ -3333,6 +3336,24 @@ func set_charging_speed_research_level(level: int) -> void:
 
 func _get_charging_speed_maximum() -> int:
 	return ResearchManagerScript.get_charging_speed_max_for_level(researched_charging_speed_level)
+
+
+func set_wireless_charging_research_level(level: int) -> void:
+	# Wireless charging remains locked until its first research is approved at 1W.
+	researched_wireless_charging_level = clampi(level, 0, ResearchManagerScript.WIRELESS_CHARGING_MAX_LEVEL)
+	selected_wireless_charge_enabled = researched_wireless_charging_level > 0
+	selected_wireless_charging_speed = clampi(selected_wireless_charging_speed, 1, maxi(1, _get_wireless_charging_maximum()))
+	_update_wireless_charge_controls()
+
+
+func _get_wireless_charging_maximum() -> int:
+	return ResearchManagerScript.get_wireless_charging_max_for_level(researched_wireless_charging_level)
+
+
+func _get_wireless_charging_summary() -> String:
+	if researched_wireless_charging_level <= 0:
+		return "Research Required"
+	return "%dW" % selected_wireless_charging_speed
 
 
 func set_curve_screen_research_unlocked(_unlocked: bool) -> void:
@@ -11502,7 +11523,7 @@ func _build_software_summary_panel() -> void:
 		["MEMORY CLOCK", selected_memory_clock],
 		["COOLING SYSTEM", selected_cooling_system],
 		["CHARGING SPEED", str(selected_charging_speed) + "W"],
-		["WIRELESS CHARGING", (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")],
+		["WIRELESS CHARGING", _get_wireless_charging_summary()],
 		["BLUETOOTH", selected_bluetooth_version],
 		["WI-FI", selected_wifi_standard],
 		["MOBILE NETWORK", selected_mobile_network],
@@ -12102,7 +12123,7 @@ func _notify_worksite_full_selection_changed() -> void:
 		selected_bluetooth_version,
 		selected_battery_capacity,
 		str(selected_charging_speed) + "W",
-		(str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled"),
+		_get_wireless_charging_summary(),
 		_get_enabled_sensor_names(),
 		_get_front_camera_mp_summary(),
 		_get_rear_camera_mp_summary(),
@@ -12424,14 +12445,15 @@ func _show_wireless_charge_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	wireless_charging_speed_value_label = _make_label("Disabled" if not selected_wireless_charge_enabled else str(selected_wireless_charging_speed) + "W", 29, Color.WHITE)
+	wireless_charging_speed_value_label = _make_label(_get_wireless_charging_summary(), 29, Color.WHITE)
 	wireless_charging_speed_value_label.name = "WirelessChargingSpeedValue"
 	wireless_charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(wireless_charging_speed_value_label)
 
-	var range_hint := _make_label("0W (DISABLED)  —  80W", 12, Color("#B8AFA2"))
-	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(range_hint)
+	wireless_charging_speed_range_label = _make_label("", 12, Color("#B8AFA2"))
+	wireless_charging_speed_range_label.name = "WirelessChargingSpeedRange"
+	wireless_charging_speed_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(wireless_charging_speed_range_label)
 
 	var slider_row := HBoxContainer.new()
 	slider_row.name = "WirelessChargingSliderRow"
@@ -12440,16 +12462,17 @@ func _show_wireless_charge_controls() -> void:
 	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	active_feature_panel.add_child(slider_row)
 
-	var minimum_label := _make_label("0W", 11, Color("#B8AFA2"))
+	var minimum_label := _make_label("1W", 11, Color("#B8AFA2"))
 	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(minimum_label)
 
 	wireless_charging_speed_slider = VSlider.new()
 	wireless_charging_speed_slider.name = "WirelessChargingVerticalSlider"
-	wireless_charging_speed_slider.min_value = 0
-	wireless_charging_speed_slider.max_value = 80
+	wireless_charging_speed_slider.min_value = 1
+	wireless_charging_speed_slider.max_value = maxi(1, _get_wireless_charging_maximum())
 	wireless_charging_speed_slider.step = 1
-	wireless_charging_speed_slider.value = float(selected_wireless_charging_speed) if selected_wireless_charge_enabled else 0.0
+	wireless_charging_speed_slider.value = selected_wireless_charging_speed
+	wireless_charging_speed_slider.editable = researched_wireless_charging_level > 0
 	wireless_charging_speed_slider.custom_minimum_size = Vector2(64, 320)
 	wireless_charging_speed_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	wireless_charging_speed_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -12459,33 +12482,40 @@ func _show_wireless_charge_controls() -> void:
 	_style_custom_slider(wireless_charging_speed_slider)
 	slider_row.add_child(wireless_charging_speed_slider)
 
-	var maximum_label := _make_label("80W", 11, Color("#B8AFA2"))
-	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	slider_row.add_child(maximum_label)
+	wireless_charging_speed_maximum_label = _make_label("1W", 11, Color("#B8AFA2"))
+	wireless_charging_speed_maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(wireless_charging_speed_maximum_label)
 
 	_update_wireless_charge_controls()
+
 
 func _on_wireless_charging_speed_changed(value: float) -> void:
-	# Zero is the disabled state. Any positive slider position enables wireless
-	# charging and selects its wattage; the minimum active output remains 5W.
-	if value <= 0.0:
-		selected_wireless_charge_enabled = false
-	else:
-		selected_wireless_charge_enabled = true
-		selected_wireless_charging_speed = clampi(maxi(roundi(value), 5), 5, 80)
+	if researched_wireless_charging_level <= 0:
+		return
+	selected_wireless_charge_enabled = true
+	selected_wireless_charging_speed = clampi(roundi(value), 1, _get_wireless_charging_maximum())
 	_update_wireless_charge_controls()
 
+
 func _update_wireless_charge_controls() -> void:
+	var unlocked := researched_wireless_charging_level > 0
+	var available_maximum := maxi(1, _get_wireless_charging_maximum())
+	selected_wireless_charge_enabled = unlocked
+	selected_wireless_charging_speed = clampi(selected_wireless_charging_speed, 1, available_maximum)
 	if is_instance_valid(wireless_charging_speed_slider):
-		wireless_charging_speed_slider.editable = true
-		var slider_value := float(selected_wireless_charging_speed) if selected_wireless_charge_enabled else 0.0
-		if not is_equal_approx(wireless_charging_speed_slider.value, slider_value):
-			wireless_charging_speed_slider.set_value_no_signal(slider_value)
+		wireless_charging_speed_slider.min_value = 1
+		wireless_charging_speed_slider.max_value = available_maximum
+		wireless_charging_speed_slider.editable = unlocked
+		wireless_charging_speed_slider.set_value_no_signal(selected_wireless_charging_speed)
 	if is_instance_valid(wireless_charging_speed_value_label):
-		wireless_charging_speed_value_label.text = (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
+		wireless_charging_speed_value_label.text = _get_wireless_charging_summary()
+	if is_instance_valid(wireless_charging_speed_range_label):
+		wireless_charging_speed_range_label.text = "1W — %dW" % available_maximum if unlocked else "LOCKED — RESEARCH REQUIRED"
+	if is_instance_valid(wireless_charging_speed_maximum_label):
+		wireless_charging_speed_maximum_label.text = "%dW" % available_maximum if unlocked else "LOCKED"
 	if software_value_labels.has("WIRELESS CHARGING") and is_instance_valid(software_value_labels["WIRELESS CHARGING"]):
 		var wireless_label: Label = software_value_labels["WIRELESS CHARGING"]
-		wireless_label.text = (str(selected_wireless_charging_speed) + "W" if selected_wireless_charge_enabled else "Disabled")
+		wireless_label.text = _get_wireless_charging_summary()
 	_notify_worksite_power_selection_changed()
 
 func _show_bluetooth_controls() -> void:
