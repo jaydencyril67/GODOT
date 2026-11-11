@@ -22,7 +22,8 @@ const COMPONENT_CATALOGUE := [
 	"Speakers",
 	"Charge Port",
 	"Home Button",
-	"Front Camera"
+	"Front Camera",
+	"RAM Technology"
 ]
 
 
@@ -318,6 +319,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			FRONT_CAMERA_MODEL_COUNT - 1,
 			int(component_levels.get(component, 0)) + 1
 		)
+	elif component == "RAM Technology":
+		# LPDDR3 is the baseline; each approved project unlocks the next RAM generation.
+		component_levels[component] = mini(5, int(component_levels.get(component, 0)) + 1)
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects
