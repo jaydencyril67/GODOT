@@ -1995,7 +1995,7 @@ func _show_worksite_phone_case_controls() -> void:
 	panel.add_child(heading)
 
 	var description := _label("Build a protective shell fitted to this phone's current geometry and hardware.", 13, Color("#E5E0D6"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
 
 	_add_worksite_phone_case_toggle(panel)
@@ -2026,7 +2026,7 @@ void fragment() {
 		panel.add_child(shimmer)
 
 		var building_note := _label("Matching cameras, speakers, charging port and side buttons…", 12, Color("#B8AFA2"))
-		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(building_note)
 	elif bool(self.get("phone_case_custom_enabled")) and bool(self.get("phone_case_built")):
 		var ready_label := _label("CUSTOM CASE FITTED TO CURRENT DEVICE", 13, Color("#C58A3A"))
@@ -2053,7 +2053,7 @@ void fragment() {
 		panel.add_child(design_button)
 	else:
 		var disabled_note := _label("Enable the custom case to generate its fitted 3D shell.", 12, Color("#B8AFA2"))
-		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
 	var preview := self.get("phone_case_preview") as Node3D
@@ -2143,7 +2143,7 @@ func _show_worksite_phone_case_design_controls() -> void:
 	header.add_child(title)
 
 	var note := _label("Choose a finish for the back of your case. Your selected colour and gradient stay unchanged.", 12, Color("#E5E0D6"))
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(note)
 
 	var design_names := ["Smooth", "Carbon Weave", "Hex Pattern", "Racing Stripes", "Grip Ridges"]
@@ -2227,7 +2227,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 					plug_button.pressed.connect(Callable(self, "_on_charger_plug_selected").bind(plug_name))
 					panel.add_child(plug_button)
 				var plug_note := _label("Changes the physical wall-pin layout on the 3D adapter.", 12, Color("#B8AFA2"))
-				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				plug_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 				panel.add_child(plug_note)
 
 			"CABLE":
@@ -2257,7 +2257,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 				if str(self.get("charge_port_type")) == "None":
 					cable_note_text = "Choose a phone charging port first. Compatible cable connectors will appear automatically."
 				var cable_note := _label(cable_note_text, 12, Color("#B8AFA2"))
-				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 				panel.add_child(cable_note)
 
 			"POWER":
@@ -2311,7 +2311,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 		panel.add_child(heading)
 
 		var description := _label("Configure the adapter, cable and output power. Drag the centre preview to inspect the product from every angle.", 12, Color("#E5E0D6"))
-		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(description)
 
 		_add_worksite_charger_toggle(
@@ -2400,7 +2400,7 @@ func _show_worksite_power_bank_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
 	var description := _label("Add a rotatable 3D power bank to the product preview. Set its battery capacity and customize its body colour.", 12, Color("#E5E0D6"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
 
 	var enable_row := HBoxContainer.new()
@@ -2478,7 +2478,7 @@ func _show_worksite_power_bank_controls() -> void:
 		panel.add_child(color_button)
 	else:
 		var disabled_note := _label("Enable the power bank to show its rotatable 3D preview and unlock capacity and colour settings.", 12, Color("#B8AFA2"))
-		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
 	step_panels[36] = panel
@@ -2536,7 +2536,7 @@ func _show_worksite_smartwatch_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
 	var description := _label("Add a rotatable 3D smartwatch accessory to the product preview. Drag the centre preview to inspect the case, display and strap.", 12, Color("#E5E0D6"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
 
 	var enable_row := HBoxContainer.new()
@@ -2581,7 +2581,7 @@ func _show_worksite_smartwatch_controls() -> void:
 		panel.add_child(color_button)
 	else:
 		var disabled_note := _label("Enable the watch to show its rotatable 3D preview and unlock its custom colour.", 12, Color("#B8AFA2"))
-		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
 	step_panels[35] = panel
@@ -2625,7 +2625,7 @@ func _show_worksite_earbuds_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
 	var description := _label("Add a rotatable 3D wireless-earbuds charging case. The lid stays closed and both earbuds remain stored inside.", 12, Color("#E5E0D6"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
 
 	var enable_row := HBoxContainer.new()
@@ -2669,7 +2669,7 @@ func _show_worksite_earbuds_controls() -> void:
 		panel.add_child(color_button)
 	else:
 		var disabled_note := _label("Enable the case to show its rotatable 3D preview and unlock its custom colour.", 12, Color("#B8AFA2"))
-		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 	step_panels[34] = panel
 
@@ -2710,7 +2710,7 @@ func _show_worksite_protection_glass_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
 	var description := _label("Install precision-cut tempered glass fitted to the active display, curves and front-camera layout.", 12, Color("#E5E0D6"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
 	var enable_row := HBoxContainer.new()
 	enable_row.name = "ProtectionGlassEnableRow"
@@ -2743,13 +2743,13 @@ func _show_worksite_protection_glass_controls() -> void:
 	enable_row.add_child(protector_toggle)
 	if not screen_is_enabled:
 		var screen_hint := _label("Enable the phone screen first. Protection glass fits the active display surfaces.", 12, Color("#D3AA6B"))
-		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(screen_hint)
 		step_panels[33] = panel
 		return
 	if not bool(self.get("screen_protector_enabled")):
 		var disabled_note := _label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#B8AFA2"))
-		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 		step_panels[33] = panel
 		return
@@ -2823,10 +2823,10 @@ void fragment(){
 		shimmer.material = shimmer_material
 		loading.add_child(shimmer)
 		var building_note := _label("Matching the display shape, curves and front-camera cutouts…", 11, Color("#B8AFA2"), HORIZONTAL_ALIGNMENT_CENTER)
-		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		building_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		loading.add_child(building_note)
 	var cutout_note := _label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
-	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(cutout_note)
 	step_panels[33] = panel
 
@@ -2903,6 +2903,7 @@ func _show_worksite_sensor_controls() -> void:
 	phone_sensor_enable_row.name = "PhoneSensorEnableRow"
 	phone_sensor_enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	phone_sensor_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phone_sensor_enable_row.custom_minimum_size = Vector2(124, 42)
 	phone_sensor_enable_row.add_theme_constant_override("separation", 8)
 	panel.add_child(phone_sensor_enable_row)
 
@@ -3062,7 +3063,7 @@ func _show_worksite_front_camera_mp_controls() -> void:
 
 	if not bool(self.get("front_camera_enabled")):
 		var hint := _label("Front camera not enabled", 11, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(hint)
 		return
 
@@ -3114,7 +3115,7 @@ func _show_worksite_rear_camera_mp_controls() -> void:
 	var camera_modules: Array = self.get("rear_camera_modules")
 	if camera_modules.is_empty():
 		var hint := _label("No rear cameras added", 11, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(hint)
 		return
 
@@ -3373,7 +3374,7 @@ func _show_phone_type_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 	var description := _make_label("Choose the chassis architecture. Flip and Fold become available as their designs are researched.", 12, Color("#E5E0D6"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
@@ -4014,7 +4015,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD
 	# Make feature names larger and heavier while keeping the app's STIX font.
 	var button_font := FontVariation.new()
 	button_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
@@ -5531,7 +5532,7 @@ func _show_screen_size_controls() -> void:
 	active_feature_panel.add_child(title)
 
 	var explanation := _make_label("Adjust the display width and height independently.", 12, Color("#D3AA6B"))
-	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD
 	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(explanation)
 
@@ -5648,7 +5649,7 @@ func _show_screen_type_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 	var description := _make_label("Choose an approved screen design.", 12, Color("#D3AA6B"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
@@ -5677,7 +5678,7 @@ func _show_screen_type_controls() -> void:
 	screen_type_name_label = _make_label(_get_screen_type_name(screen_type_level), 16, Color("#EEE9DF"))
 	screen_type_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	screen_type_name_label.custom_minimum_size = Vector2(230, 48)
-	screen_type_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	screen_type_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	controls.add_child(screen_type_name_label)
 
 	screen_type_increase_button = Button.new()
@@ -5841,7 +5842,7 @@ func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: 
 	var label := _make_label(label_text, 14, Color.WHITE)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	row.add_child(label)
 
 	var toggle := Button.new()
@@ -11029,7 +11030,7 @@ func _add_hardware_selector_value_label(parent: HBoxContainer, key: String) -> v
 	value_label.name = key + "SelectorValueLabel"
 	value_label.custom_minimum_size.x = 150
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	value_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	parent.add_child(value_label)
 	hardware_selector_value_labels[key] = value_label
 	_refresh_hardware_selector_value_labels()
@@ -11758,13 +11759,13 @@ func _build_software_summary_panel() -> void:
 		row.add_child(name_label)
 		var value_label := _make_label(str(specification[1]), 15, Color.WHITE)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		value_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_research_typography(value_label, 15)
 		row.add_child(value_label)
 		software_value_labels[str(specification[0])] = value_label
 	var hint := _make_label("Choose a software feature from the left panel to configure this device.", 13, Color("#B8AFA2"))
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_apply_research_typography(hint, 13)
 	content.add_child(hint)
 	_update_camera_software_summary()
@@ -11885,7 +11886,7 @@ func _show_memory_clock_controls() -> void:
 
 	var instruction := _make_label("DRAG THE SLIDER TO SET THE MEMORY CLOCK", 12, Color("#A9A092"))
 	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD
 	active_feature_panel.add_child(instruction)
 	_refresh_memory_clock_selection_ui()
 
@@ -11982,7 +11983,7 @@ func _show_cooling_system_controls() -> void:
 	cooling_system_value_label.custom_minimum_size.x = 230
 	cooling_system_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cooling_system_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cooling_system_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cooling_system_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	controls.add_child(cooling_system_value_label)
 
 	cooling_system_increase_button = Button.new()
@@ -12780,7 +12781,7 @@ func _show_bluetooth_controls() -> void:
 	bluetooth_value_label.name = "BluetoothTechnologyValueLabel"
 	bluetooth_value_label.custom_minimum_size.x = 150
 	bluetooth_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bluetooth_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bluetooth_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	controls.add_child(bluetooth_value_label)
 
 	bluetooth_increase_button = Button.new()
@@ -12907,7 +12908,7 @@ func _show_wifi_controls() -> void:
 	wifi_value_label.name = "WiFiTechnologyValueLabel"
 	wifi_value_label.custom_minimum_size.x = 150
 	wifi_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	wifi_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	wifi_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	controls.add_child(wifi_value_label)
 
 	wifi_increase_button = Button.new()
@@ -13069,7 +13070,7 @@ func _show_mobile_network_controls() -> void:
 	mobile_network_value_label.name = "MobileNetworkTechnologyValueLabel"
 	mobile_network_value_label.custom_minimum_size.x = 150
 	mobile_network_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mobile_network_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mobile_network_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	controls.add_child(mobile_network_value_label)
 
 	mobile_network_increase_button = Button.new()
