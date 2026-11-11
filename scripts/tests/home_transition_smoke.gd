@@ -489,14 +489,23 @@ func _run_screen_technology_checks() -> bool:
 
 
 func _complete_mobile_network_research_project(expected_technology: String, expected_generation: String) -> bool:
-	var commission: Dictionary = game.commission_research_project({
-		"component": "Mobile Network",
-		"staff_ids": ["researcher_smoke_01"]
-	})
-	if not bool(commission.get("ok", false)):
-		_fail("A Mobile Network research project could not be commissioned: %s" % str(commission.get("error", "")))
-		return false
-	var project: Dictionary = commission.get("project", {})
+	var project: Dictionary = {}
+	for project_value in game.career.get("research_projects", []):
+		if not (project_value is Dictionary):
+			continue
+		var existing_project: Dictionary = project_value
+		if str(existing_project.get("component", "")) == "Mobile Network" and str(existing_project.get("research_target", "")) == expected_technology and str(existing_project.get("status", "")) == ResearchManagerScript.STATUS_ACTIVE:
+			project = existing_project.duplicate(true)
+			break
+	if project.is_empty():
+		var commission: Dictionary = game.commission_research_project({
+			"component": "Mobile Network",
+			"staff_ids": ["researcher_smoke_01"]
+		})
+		if not bool(commission.get("ok", false)):
+			_fail("A Mobile Network research project could not be commissioned: %s" % str(commission.get("error", "")))
+			return false
+		project = commission.get("project", {})
 	if str(project.get("research_target", "")) != expected_technology or str(project.get("research_generation", "")) != expected_generation:
 		_fail("Mobile Network research did not automatically target %s in %s." % [expected_technology, expected_generation])
 		return false
@@ -548,6 +557,21 @@ func _complete_mobile_network_research_project(expected_technology: String, expe
 	if int(game.career.get("research_component_levels", {}).get("Mobile Network", 0)) != expected_level:
 		_fail("Approval did not unlock the researched Mobile Network technology.")
 		return false
+	var next_target: Dictionary = ResearchManagerScript.get_mobile_network_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	var auto_next_project: Dictionary = validation.get("auto_next_project", {})
+	if next_target.is_empty():
+		if not auto_next_project.is_empty():
+			_fail("Mobile Network research continued beyond the final technology.")
+			return false
+	else:
+		if auto_next_project.is_empty():
+			_fail("The next Mobile Network technology was not started automatically after approval.")
+			return false
+		if str(auto_next_project.get("research_target", "")) != str(next_target.get("technology", "")) or str(auto_next_project.get("research_generation", "")) != str(next_target.get("generation", "")):
+			_fail("Automatic Mobile Network research did not start the next technology in sequence.")
+			return false
 	return true
 
 
