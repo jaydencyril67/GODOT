@@ -11908,6 +11908,10 @@ func _show_rom_controls() -> void:
 	internal_storage_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(internal_storage_research_label)
 
+	var selector_spacing := Control.new()
+	selector_spacing.custom_minimum_size = Vector2(0, 48)
+	active_feature_panel.add_child(selector_spacing)
+
 	var controls_center := CenterContainer.new()
 	controls_center.name = "InternalStorageCapacityControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -12324,6 +12328,10 @@ func _show_wifi_controls() -> void:
 	wifi_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(wifi_research_label)
 
+	var selector_spacing := Control.new()
+	selector_spacing.custom_minimum_size = Vector2(0, 48)
+	active_feature_panel.add_child(selector_spacing)
+
 	var controls_center := CenterContainer.new()
 	controls_center.name = "WiFiControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -12494,6 +12502,10 @@ func _show_mobile_network_controls() -> void:
 	mobile_network_research_label.name = "MobileNetworkResearchLevelLabel"
 	mobile_network_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(mobile_network_research_label)
+
+	var selector_spacing := Control.new()
+	selector_spacing.custom_minimum_size = Vector2(0, 48)
+	active_feature_panel.add_child(selector_spacing)
 
 	var controls_center := CenterContainer.new()
 	controls_center.name = "MobileNetworkControlsCenter"
