@@ -3196,8 +3196,12 @@ func _label(value: String, size: int, color: Color, alignment: HorizontalAlignme
 
 func _add_phone_type_selector(parent: Control) -> void:
 	var controls_center := CenterContainer.new()
+	controls_center.name = "PhoneTypeLevelControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Match the other hero-based selectors: reserve a 360 px control zone
+	# below the heading and description so +/- never sits tight against them.
+	controls_center.custom_minimum_size = Vector2(0, 360)
 	parent.add_child(controls_center)
 	var controls := HBoxContainer.new()
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
