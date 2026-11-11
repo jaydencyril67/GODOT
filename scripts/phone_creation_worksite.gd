@@ -1,6 +1,7 @@
 extends Node3D
 
 const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
+const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 var charging_speed_step_visited := false
 var wireless_charge_step_visited := false
@@ -568,8 +569,14 @@ var researched_bluetooth_level := 14
 var selected_wifi_standard := "Wi-Fi 1 (802.11b)"
 var researched_wifi_level := 8
 
-var selected_mobile_network := "2G (GSM / EDGE)"
-var researched_mobile_internet_level := 7
+var selected_mobile_network := "1G (AMPS)"
+var mobile_network_level := 0
+var mobile_network_research_level := 0
+var mobile_network_generation_label: Label
+var mobile_network_research_label: Label
+var mobile_network_value_label: Label
+var mobile_network_decrease_button: Button
+var mobile_network_increase_button: Button
 
 var selected_phone_sensors: Dictionary = {
 	"Fingerprint Sensor": false,
@@ -3325,7 +3332,7 @@ func _get_software_research_features() -> Array:
 	return [
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
-		"Mobile Internet", "Sensors", "Front Camera MP", "Rear Camera MP",
+		"Mobile Network", "Sensors", "Front Camera MP", "Rear Camera MP",
 		"Memory Clock", "Refresh Rate", "Cooling System Design"
 	]
 
@@ -3444,7 +3451,7 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	software_editor_features.erase("RAM Technology")
 	software_editor_features.erase("RAM")
 	software_editor_features.erase("Internal Storage")
-	software_editor_features.erase("Mobile Internet")
+	software_editor_features.erase("Mobile Network")
 	software_editor_features.erase("WiFi")
 	software_editor_features.erase("Bluetooth")
 	software_editor_features.erase("Battery")
@@ -12372,78 +12379,144 @@ func _show_mobile_network_controls() -> void:
 	active_feature_panel.name = "MobileNetworkSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT INTERNET NETWORK", 17, Color("#D3AA6B"))
+	var heading := _make_label("MOBILE NETWORK TECHNOLOGY", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	var options := GridContainer.new()
-	options.name = "MobileNetworkOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	options.add_theme_constant_override("h_separation", 6)
-	options.add_theme_constant_override("v_separation", 6)
-	active_feature_panel.add_child(options)
+	mobile_network_generation_label = _make_label("", 13, Color("#E5E0D6"))
+	mobile_network_generation_label.name = "MobileNetworkGenerationLabel"
+	mobile_network_generation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(mobile_network_generation_label)
 
-	var networks := [
-		"2G (GSM / EDGE)",
-		"3G (UMTS / HSPA)",
-		"4G (LTE)",
-		"4G+ (LTE-Advanced)",
-		"5G NSA",
-		"5G SA",
-		"5G-Advanced"
-	]
-	for network_index in range(networks.size()):
-		var network: String = networks[network_index]
-		var option := Button.new()
-		option.name = "MobileNetworkOption_" + network.replace(" ", "").replace("/", "_").replace("(", "").replace(")", "").replace("+", "Plus")
-		var display_name: String = network
-		match network:
-			"2G (GSM / EDGE)":
-				display_name = "2G"
-			"3G (UMTS / HSPA)":
-				display_name = "3G"
-			"4G (LTE)":
-				display_name = "4G LTE"
-			"4G+ (LTE-Advanced)":
-				display_name = "4G+"
-			"5G-Advanced":
-				display_name = "5G-A"
-		option.text = display_name + ("  ✓" if selected_mobile_network == network else "")
-		option.tooltip_text = network
-		option.disabled = false
-		option.custom_minimum_size = Vector2(0, 42)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 15)
-		var option_font := FontVariation.new()
-		option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-		option_font.variation_embolden = 1.5
-		option.add_theme_font_override("font", option_font)
-		_style_staff_button(option, selected_mobile_network == network)
-		option.pressed.connect(_on_mobile_network_selected.bind(network))
-		options.add_child(option)
+	mobile_network_research_label = _make_label("", 13, Color("#D3AA6B"))
+	mobile_network_research_label.name = "MobileNetworkResearchLevelLabel"
+	mobile_network_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(mobile_network_research_label)
 
-func set_mobile_internet_research_level(_level: int) -> void:
-	# Legacy compatibility hook: expose every mobile-network generation.
-	researched_mobile_internet_level = 7
+	var controls_center := CenterContainer.new()
+	controls_center.name = "MobileNetworkControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
+	var controls := HBoxContainer.new()
+	controls.name = "MobileNetworkControlRow"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
+
+	mobile_network_decrease_button = Button.new()
+	mobile_network_decrease_button.name = "DecreaseMobileNetworkButton"
+	mobile_network_decrease_button.text = "−"
+	_style_level_circle_button(mobile_network_decrease_button)
+	mobile_network_decrease_button.pressed.connect(_on_mobile_network_decrease_pressed)
+	controls.add_child(mobile_network_decrease_button)
+
+	mobile_network_value_label = _make_label("", 20, Color.WHITE)
+	mobile_network_value_label.name = "MobileNetworkTechnologyValueLabel"
+	mobile_network_value_label.custom_minimum_size.x = 190
+	mobile_network_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mobile_network_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(mobile_network_value_label)
+
+	mobile_network_increase_button = Button.new()
+	mobile_network_increase_button.name = "IncreaseMobileNetworkButton"
+	mobile_network_increase_button.text = "+"
+	_style_level_circle_button(mobile_network_increase_button)
+	mobile_network_increase_button.pressed.connect(_on_mobile_network_increase_pressed)
+	controls.add_child(mobile_network_increase_button)
+
+	_refresh_mobile_network_selection_ui(active_feature_panel)
+
+
+func set_mobile_network_research_level(level: int) -> void:
+	mobile_network_research_level = clampi(
+		level,
+		0,
+		ResearchManagerScript.get_mobile_network_step_count() - 1
+	)
+	mobile_network_level = clampi(mobile_network_level, 0, mobile_network_research_level)
+	_apply_mobile_network_level(false)
+
+
+func set_mobile_internet_research_level(level: int) -> void:
+	# Compatibility alias for older callers.
+	set_mobile_network_research_level(level)
+
+
+func _on_mobile_network_decrease_pressed() -> void:
+	if mobile_network_level <= 0:
+		return
+	mobile_network_level -= 1
+	_apply_mobile_network_level()
+
+
+func _on_mobile_network_increase_pressed() -> void:
+	if mobile_network_level >= mobile_network_research_level:
+		return
+	mobile_network_level += 1
+	_apply_mobile_network_level()
+
+
+func _apply_mobile_network_level(notify_selection: bool = true) -> void:
+	var entry := ResearchManagerScript.get_mobile_network_entry(mobile_network_level)
+	if entry.is_empty():
+		return
+	selected_mobile_network = "%s (%s)" % [
+			str(entry.get("generation", "")),
+			str(entry.get("technology", ""))
+		]
+	if software_value_labels.has("MOBILE NETWORK") and is_instance_valid(software_value_labels["MOBILE NETWORK"]):
+		var network_label: Label = software_value_labels["MOBILE NETWORK"]
+		network_label.text = selected_mobile_network
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "MobileNetworkSelectionControls":
-		_show_mobile_network_controls()
+		_refresh_mobile_network_selection_ui(active_feature_panel)
+		if notify_selection:
+			_notify_worksite_connectivity_selection_changed()
+
+
+func _refresh_mobile_network_selection_ui(panel: Control) -> void:
+	if not is_instance_valid(panel) or panel.name != "MobileNetworkSelectionControls":
+		return
+	var entry := ResearchManagerScript.get_mobile_network_entry(mobile_network_level)
+	if entry.is_empty():
+		return
+	if is_instance_valid(mobile_network_generation_label):
+		mobile_network_generation_label.text = "%s  ·  %s" % [
+			str(entry.get("generation", "")),
+			str(entry.get("generation_name", "")).to_upper()
+		]
+	if is_instance_valid(mobile_network_research_label):
+		var max_unlocked := ResearchManagerScript.get_mobile_network_entry(mobile_network_research_level)
+		mobile_network_research_label.text = "NETWORK RESEARCH  %d / %d UNLOCKED  ·  UP TO %s" % [
+			mobile_network_research_level + 1,
+			ResearchManagerScript.get_mobile_network_step_count(),
+			str(max_unlocked.get("technology", ""))
+		]
+	if is_instance_valid(mobile_network_value_label):
+		mobile_network_value_label.text = str(entry.get("technology", ""))
+	if is_instance_valid(mobile_network_decrease_button):
+		mobile_network_decrease_button.disabled = mobile_network_level <= 0
+	if is_instance_valid(mobile_network_increase_button):
+		mobile_network_increase_button.disabled = mobile_network_level >= mobile_network_research_level
 
 
 func _on_mobile_network_selected(network: String) -> void:
-	var networks := ["2G (GSM / EDGE)", "3G (UMTS / HSPA)", "4G (LTE)", "4G+ (LTE-Advanced)", "5G NSA", "5G SA", "5G-Advanced"]
-	if not networks.has(network):
-		return
-	selected_mobile_network = network
-	if software_value_labels.has("MOBILE NETWORK") and is_instance_valid(software_value_labels["MOBILE NETWORK"]):
-		var network_label: Label = software_value_labels["MOBILE NETWORK"]
-		network_label.text = network
-	_refresh_connectivity_selection_ui(active_feature_panel, "internet")
-	_notify_worksite_connectivity_selection_changed()
+	# Keep compatibility with older callers while enforcing the current R&D ceiling.
+	for index in range(mobile_network_research_level + 1):
+		var entry := ResearchManagerScript.get_mobile_network_entry(index)
+		var display_name := "%s (%s)" % [
+			str(entry.get("generation", "")),
+			str(entry.get("technology", ""))
+		]
+		if network == str(entry.get("technology", "")) or network == display_name:
+			mobile_network_level = index
+			_apply_mobile_network_level()
+			return
 
 func _refresh_connectivity_selection_ui(panel: Control, selection_kind: String) -> void:
 	if not is_instance_valid(panel):
