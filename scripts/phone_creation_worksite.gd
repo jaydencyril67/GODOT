@@ -1519,7 +1519,7 @@ func _update_ram_selection_display(
 	if storage != "Not set":
 		_add_specification_readout_entry("INTERNAL STORAGE", storage)
 	if internet != "Not set":
-		_add_specification_readout_entry("INTERNET SELECTION", internet)
+		_add_specification_readout_entry("MOBILE NETWORK", internet)
 	if wifi != "Not set":
 		_add_specification_readout_entry("WI-FI", wifi)
 	if bluetooth != "Not set":
@@ -12491,11 +12491,14 @@ func _refresh_mobile_network_selection_ui(panel: Control) -> void:
 			str(entry.get("generation_name", "")).to_upper()
 		]
 	if is_instance_valid(mobile_network_research_label):
-		var max_unlocked := ResearchManagerScript.get_mobile_network_entry(mobile_network_research_level)
-		mobile_network_research_label.text = "NETWORK RESEARCH  %d / %d UNLOCKED  ·  UP TO %s" % [
+		var next_target := ResearchManagerScript.get_mobile_network_research_target({
+			"Mobile Network": mobile_network_research_level
+		})
+		var next_target_text := "COMPLETE" if next_target.is_empty() else "NEXT: %s" % str(next_target.get("technology", ""))
+		mobile_network_research_label.text = "NETWORK TECHNOLOGIES  %d / %d  ·  %s" % [
 			mobile_network_research_level + 1,
 			ResearchManagerScript.get_mobile_network_step_count(),
-			str(max_unlocked.get("technology", ""))
+			next_target_text
 		]
 	if is_instance_valid(mobile_network_value_label):
 		mobile_network_value_label.text = str(entry.get("technology", ""))
