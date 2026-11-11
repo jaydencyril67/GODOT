@@ -136,10 +136,132 @@ func _run_charging_speed_progression_checks() -> bool:
 	return true
 
 
+func _run_wireless_charging_progression_checks() -> bool:
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Wireless Charging"):
+		_fail("Wireless Charging is missing from the R&D component catalogue.")
+		return false
+	if ResearchManagerScript.get_wireless_charging_max_for_level(0) != 0:
+		_fail("Wireless Charging was available before its first research approval.")
+		return false
+	if ResearchManagerScript.get_wireless_charging_max_for_level(1) != 1:
+		_fail("The first Wireless Charging approval did not unlock 1W.")
+		return false
+	if ResearchManagerScript.get_wireless_charging_max_for_level(2) != 4:
+		_fail("The second Wireless Charging level did not unlock 4W.")
+		return false
+	if ResearchManagerScript.get_wireless_charging_max_for_level(66) != 196:
+		_fail("Wireless Charging Level 66 did not unlock 196W.")
+		return false
+	if ResearchManagerScript.get_wireless_charging_max_for_level(67) != 200:
+		_fail("Wireless Charging Level 67 did not reach exactly 200W.")
+		return false
+
+	for level in range(1, ResearchManagerScript.WIRELESS_CHARGING_MAX_LEVEL + 1):
+		var expected_maximum := 200 if level == 67 else 1 + (level - 1) * 3
+		if ResearchManagerScript.get_wireless_charging_max_for_level(level) != expected_maximum:
+			_fail("Wireless Charging Level %d produced the wrong maximum." % level)
+			return false
+
+	var first_target: Dictionary = ResearchManagerScript.get_wireless_charging_research_target({})
+	if int(first_target.get("index", -1)) != 1 or str(first_target.get("technology", "")) != "1W":
+		_fail("The first Wireless Charging project did not unlock Level 1 at 1W.")
+		return false
+	var final_target: Dictionary = ResearchManagerScript.get_wireless_charging_research_target({"Wireless Charging": 66})
+	if int(final_target.get("index", -1)) != 67 or str(final_target.get("technology", "")) != "200W":
+		_fail("The final Wireless Charging project did not target 200W at Level 67.")
+		return false
+	if not ResearchManagerScript.get_wireless_charging_research_target({"Wireless Charging": 67}).is_empty():
+		_fail("Wireless Charging still offered research after reaching 200W.")
+		return false
+
+	var test_career: Dictionary = {
+		"staff_employees": [{
+			"id": "wireless_charging_researcher",
+			"department": "Research",
+			"efficiency": 100
+		}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Wireless Charging",
+		"staff_ids": ["wireless_charging_researcher"]
+	}, 1000.0)
+	if not bool(commission.get("ok", false)):
+		_fail("Wireless Charging could not be commissioned through the existing research pipeline.")
+		return false
+	var project: Dictionary = commission.get("project", {})
+	if str(project.get("research_target", "")) != "1W" or int(project.get("research_target_index", -1)) != 1:
+		_fail("The initial Wireless Charging project did not store its exact 1W unlock target.")
+		return false
+
+	var duplicate_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Wireless Charging",
+		"staff_ids": ["wireless_charging_researcher"]
+	}, 1000.0)
+	if bool(duplicate_commission.get("ok", false)):
+		_fail("A duplicate Wireless Charging project was allowed while the first was active.")
+		return false
+
+	var projects: Array = test_career.get("research_projects", [])
+	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var invalid_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Wireless Charging",
+		"metric": "Maximum wireless charging speed",
+		"value": "2W"
+	}], 2000.0)
+	if bool(invalid_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Wireless Charging", 0)) != 0:
+		_fail("Wireless Charging accepted a result that did not match its assigned 1W unlock target.")
+		return false
+
+	var approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Wireless Charging",
+		"metric": "Maximum wireless charging speed",
+		"value": "1W"
+	}], 2000.0)
+	if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Wireless Charging", 0)) != 1:
+		_fail("Approved Wireless Charging research did not unlock wireless charging at 1W.")
+		return false
+
+	var next_target: Dictionary = ResearchManagerScript.get_wireless_charging_research_target(test_career.get("research_component_levels", {}))
+	if int(next_target.get("index", -1)) != 2 or str(next_target.get("technology", "")) != "4W":
+		_fail("Wireless Charging research did not advance from its 1W unlock to the 4W target.")
+		return false
+
+	var next_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Wireless Charging",
+		"staff_ids": ["wireless_charging_researcher"]
+	}, 3000.0)
+	if not bool(next_commission.get("ok", false)):
+		_fail("The next Wireless Charging speed upgrade could not be commissioned.")
+		return false
+	var next_project: Dictionary = next_commission.get("project", {})
+	projects = test_career.get("research_projects", [])
+	for project_index in range(projects.size()):
+		if str(projects[project_index].get("id", "")) == str(next_project.get("id", "")):
+			projects[project_index]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+			break
+	test_career["research_projects"] = projects
+	var next_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(next_project.get("id", "")), [{
+		"component": "Wireless Charging",
+		"metric": "Maximum wireless charging speed",
+		"value": "4W"
+	}], 4000.0)
+	if not bool(next_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Wireless Charging", 0)) != 2:
+		_fail("The 4W Wireless Charging upgrade did not pass validation and advance to Level 2.")
+		return false
+	return true
+
+
 func _run_transition_checks() -> void:
 	if not _run_screen_technology_checks():
 		return
 	if not _run_charging_speed_progression_checks():
+		return
+	if not _run_wireless_charging_progression_checks():
 		return
 	if not _run_memory_clock_progression_checks():
 		return
@@ -277,6 +399,9 @@ func _run_transition_checks() -> void:
 			_fail("The technical validation screen is missing %s." % control_name)
 			return
 	var validation_value_input := review_dashboard.find_child("ValidationValueInput", true, false) as LineEdit
+	if str(review_dashboard.call("_default_validation_metric", "Wireless Charging")) != "Maximum wireless charging speed":
+		_fail("The technical review form did not provide a wireless charging validation metric.")
+		return
 	if validation_value_input.text != "4W":
 		_fail("The review form did not prefill the exact assigned Charging Speed target.")
 		return
