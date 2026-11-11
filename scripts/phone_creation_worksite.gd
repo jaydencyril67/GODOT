@@ -12335,7 +12335,7 @@ func _show_wifi_controls() -> void:
 
 	wifi_value_label = _make_label("", 20, Color.WHITE)
 	wifi_value_label.name = "WiFiTechnologyValueLabel"
-	wifi_value_label.custom_minimum_size.x = 220
+	wifi_value_label.custom_minimum_size.x = 190
 	wifi_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wifi_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.add_child(wifi_value_label)
