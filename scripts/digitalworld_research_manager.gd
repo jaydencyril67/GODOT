@@ -24,6 +24,7 @@ const COMPONENT_CATALOGUE := [
 	"Home Button",
 	"Front Camera",
 	"RAM",
+	"Internal Storage",
 	"RAM Technology"
 ]
 
@@ -323,6 +324,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "RAM":
 		# 8 GB is the baseline ceiling; each approval unlocks the next supported capacity tier.
 		component_levels[component] = mini(6, int(component_levels.get(component, 0)) + 1)
+	elif component == "Internal Storage":
+		# 2 GB is the baseline; each approval unlocks the next tier, up to 2 TB.
+		component_levels[component] = mini(10, int(component_levels.get(component, 0)) + 1)
 	elif component == "RAM Technology":
 		# LPDDR2 is the baseline; six approvals unlock the remaining six RAM generations.
 		component_levels[component] = mini(6, int(component_levels.get(component, 0)) + 1)
