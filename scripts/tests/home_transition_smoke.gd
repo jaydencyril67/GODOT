@@ -349,6 +349,100 @@ func _run_front_camera_mp_progression_checks() -> bool:
 	return true
 
 
+
+func _run_rear_camera_mp_progression_checks() -> bool:
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Rear Camera MP"):
+		_fail("Rear Camera MP is missing from the R&D component catalogue.")
+		return false
+	if ResearchManagerScript.get_rear_camera_mp_max_for_level(0) != 1:
+		_fail("Rear Camera MP did not start at the 1MP baseline.")
+		return false
+	if ResearchManagerScript.get_rear_camera_mp_max_for_level(1) != 6:
+		_fail("The first Rear Camera MP research upgrade did not raise the ceiling to 6MP.")
+		return false
+	if ResearchManagerScript.get_rear_camera_mp_max_for_level(79) != 396:
+		_fail("Rear Camera MP Level 80 did not unlock 396MP.")
+		return false
+	if ResearchManagerScript.get_rear_camera_mp_max_for_level(80) != 400:
+		_fail("The final Rear Camera MP research upgrade did not reach exactly 400MP.")
+		return false
+
+	for upgrades in range(ResearchManagerScript.REAR_CAMERA_MP_RESEARCH_UPGRADES + 1):
+		var expected_maximum := 400 if upgrades == 80 else 1 + upgrades * 5
+		if ResearchManagerScript.get_rear_camera_mp_max_for_level(upgrades) != expected_maximum:
+			_fail("Rear Camera MP upgrade %d produced the wrong selectable ceiling." % upgrades)
+			return false
+
+	var first_target: Dictionary = ResearchManagerScript.get_rear_camera_mp_research_target({})
+	if int(first_target.get("index", -1)) != 2 or str(first_target.get("technology", "")) != "6MP":
+		_fail("The first Rear Camera MP project did not target a 6MP maximum.")
+		return false
+	var final_target: Dictionary = ResearchManagerScript.get_rear_camera_mp_research_target({"Rear Camera MP": 79})
+	if int(final_target.get("index", -1)) != 81 or str(final_target.get("technology", "")) != "400MP":
+		_fail("The final Rear Camera MP project did not target 400MP at Level 81.")
+		return false
+	if not ResearchManagerScript.get_rear_camera_mp_research_target({"Rear Camera MP": 80}).is_empty():
+		_fail("Rear Camera MP still offered research after reaching 400MP.")
+		return false
+
+	var test_career: Dictionary = {
+		"staff_employees": [{
+			"id": "rear_camera_mp_researcher",
+			"department": "Research",
+			"efficiency": 100
+		}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Rear Camera MP",
+		"staff_ids": ["rear_camera_mp_researcher"]
+	}, 1000.0)
+	if not bool(commission.get("ok", false)):
+		_fail("Rear Camera MP could not be commissioned through the existing research pipeline.")
+		return false
+	var project: Dictionary = commission.get("project", {})
+	if str(project.get("research_target", "")) != "6MP" or int(project.get("research_target_index", -1)) != 2:
+		_fail("The initial Rear Camera MP project did not store its exact 6MP target.")
+		return false
+
+	var duplicate_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Rear Camera MP",
+		"staff_ids": ["rear_camera_mp_researcher"]
+	}, 1000.0)
+	if bool(duplicate_commission.get("ok", false)):
+		_fail("A duplicate Rear Camera MP project was allowed while the first was active.")
+		return false
+
+	var projects: Array = test_career.get("research_projects", [])
+	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var invalid_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Rear Camera MP",
+		"metric": "Maximum rear camera resolution",
+		"value": "7MP"
+	}], 2000.0)
+	if bool(invalid_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Rear Camera MP", 0)) != 0:
+		_fail("Rear Camera MP accepted a technical result that did not match the assigned 6MP target.")
+		return false
+
+	var approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Rear Camera MP",
+		"metric": "Maximum rear camera resolution",
+		"value": "6MP"
+	}], 2000.0)
+	if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Rear Camera MP", 0)) != 1:
+		_fail("Approved Rear Camera MP research did not unlock the 6MP ceiling.")
+		return false
+	var next_target: Dictionary = ResearchManagerScript.get_rear_camera_mp_research_target(test_career.get("research_component_levels", {}))
+	if int(next_target.get("index", -1)) != 3 or str(next_target.get("technology", "")) != "11MP":
+		_fail("Rear Camera MP research did not advance from 6MP to the 11MP target.")
+		return false
+	return true
+
+
 func _run_transition_checks() -> void:
 	if not _run_screen_technology_checks():
 		return
@@ -357,6 +451,8 @@ func _run_transition_checks() -> void:
 	if not _run_wireless_charging_progression_checks():
 		return
 	if not _run_front_camera_mp_progression_checks():
+		return
+	if not _run_rear_camera_mp_progression_checks():
 		return
 	if not _run_memory_clock_progression_checks():
 		return
