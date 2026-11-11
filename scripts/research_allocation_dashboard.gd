@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera"]
-const COMPONENT_VALUES := ["Screen Technology", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
