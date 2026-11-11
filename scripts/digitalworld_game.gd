@@ -112,9 +112,8 @@ func _process(delta: float) -> void:
 					continue
 				var completed_project: Dictionary = project_value
 				var component_name := str(completed_project.get("component", "Research"))
-				if str(completed_project.get("status", "")) == ResearchManagerScript.STATUS_SUCCESSFUL:
-					var level := int(career.get("research_component_levels", {}).get(component_name, 0))
-					_show_notice("RESEARCH SUCCESSFUL", "%s advanced to researched level %d." % [component_name, level])
+				if str(completed_project.get("status", "")) == ResearchManagerScript.STATUS_AWAITING_VALIDATION:
+					_show_notice("RESEARCH READY FOR VALIDATION", "%s completed its R&D work and is ready for technical validation." % component_name)
 				else:
 					_show_notice("RESEARCH UNSUCCESSFUL", "%s research did not produce a successful result." % component_name)
 				break
