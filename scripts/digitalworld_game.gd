@@ -2579,6 +2579,7 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_refresh_rate_research_level", int(career.get("research_component_levels", {}).get("Refresh Rate", 0)))
 		phone_creation_worksite.call("set_cooling_system_research_level", int(career.get("research_component_levels", {}).get("Cooling System Design", 0)))
+		phone_creation_worksite.call("set_phone_type_research_level", int(career.get("research_component_levels", {}).get("Phone Type", 0)))
 	return result
 
 
@@ -2695,6 +2696,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
 	phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("research_component_levels", {}).get("Bluetooth", 0)))
 	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
+	phone_creation_worksite.call("set_phone_type_research_level", int(career.get("research_component_levels", {}).get("Phone Type", 0)))
 	phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
