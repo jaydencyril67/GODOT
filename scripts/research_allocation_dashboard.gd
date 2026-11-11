@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -381,6 +381,21 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next slider maximum: %s" % str(battery_target.get("technology", ""))
+		elif COMPONENT_VALUES[index] == "Charging Speed":
+			var charging_target: Dictionary = ResearchManagerScript.get_charging_speed_research_target(research_component_levels)
+			if charging_target.is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 200W"
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Next slider maximum: %s" % str(charging_target.get("technology", ""))
+				for project_value in research_projects:
+					if not (project_value is Dictionary):
+						continue
+					var charging_project: Dictionary = project_value
+					if str(charging_project.get("component", "")) == "Charging Speed" and str(charging_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
+						component_button.disabled = true
+						break
 		elif COMPONENT_VALUES[index] == "Memory Clock":
 			var memory_clock_level := int(research_component_levels.get("Memory Clock", 0))
 			var ram_technology_level := int(research_component_levels.get("RAM Technology", 0))
