@@ -592,7 +592,8 @@ var battery_capacity_range_label: Label
 # Number of approved upgrades after the 1,000 mAh starting state (0–20).
 var researched_battery_capacity_level := 0
 
-var selected_charging_speed := 2
+var selected_charging_speed := 1
+var researched_charging_speed_level := 0
 
 var selected_wireless_charge_enabled := false
 
@@ -643,6 +644,9 @@ var selected_phone_sensors: Dictionary = {
 }
 
 var charging_speed_value_label: Label
+var charging_speed_range_label: Label
+var charging_speed_minimum_label: Label
+var charging_speed_maximum_label: Label
 
 var charging_speed_slider: VSlider
 
@@ -3318,6 +3322,18 @@ func set_battery_capacity_research_level(level: int) -> void:
 
 func _get_battery_capacity_maximum() -> int:
 	return 1000 + clampi(researched_battery_capacity_level, 0, 20) * 350
+
+
+func set_charging_speed_research_level(level: int) -> void:
+	# The starting ceiling is 1W; approved research raises it to a maximum of 200W.
+	researched_charging_speed_level = clampi(level, 0, ResearchManagerScript.CHARGING_SPEED_RESEARCH_UPGRADES)
+	selected_charging_speed = clampi(selected_charging_speed, 1, _get_charging_speed_maximum())
+	_update_charging_speed_controls()
+
+
+func _get_charging_speed_maximum() -> int:
+	return ResearchManagerScript.get_charging_speed_max_for_level(researched_charging_speed_level)
+
 
 func set_curve_screen_research_unlocked(_unlocked: bool) -> void:
 	# Legacy compatibility hook retained for older callers. Curved-screen access
@@ -12327,9 +12343,10 @@ func _show_charging_speed_controls() -> void:
 	charging_speed_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(charging_speed_value_label)
 
-	var range_hint := _make_label("2W  —  200W", 12, Color("#B8AFA2"))
-	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(range_hint)
+	var available_maximum := _get_charging_speed_maximum()
+	charging_speed_range_label = _make_label("1W  —  %dW" % available_maximum, 12, Color("#B8AFA2"))
+	charging_speed_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(charging_speed_range_label)
 
 	var slider_row := HBoxContainer.new()
 	slider_row.name = "ChargingSpeedSliderRow"
@@ -12339,14 +12356,14 @@ func _show_charging_speed_controls() -> void:
 	slider_row.add_theme_constant_override("separation", 12)
 	active_feature_panel.add_child(slider_row)
 
-	var minimum_label := _make_label("2W", 11, Color("#B8AFA2"))
-	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	slider_row.add_child(minimum_label)
+	charging_speed_minimum_label = _make_label("1W", 11, Color("#B8AFA2"))
+	charging_speed_minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(charging_speed_minimum_label)
 
 	charging_speed_slider = VSlider.new()
 	charging_speed_slider.name = "ChargingSpeedVerticalSlider"
-	charging_speed_slider.min_value = 2
-	charging_speed_slider.max_value = 200
+	charging_speed_slider.min_value = 1
+	charging_speed_slider.max_value = available_maximum
 	charging_speed_slider.step = 1
 	charging_speed_slider.value = selected_charging_speed
 	charging_speed_slider.custom_minimum_size = Vector2(64, 320)
@@ -12358,22 +12375,34 @@ func _show_charging_speed_controls() -> void:
 	_style_custom_slider(charging_speed_slider)
 	slider_row.add_child(charging_speed_slider)
 
-	var maximum_label := _make_label("200W", 11, Color("#B8AFA2"))
-	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	slider_row.add_child(maximum_label)
+	charging_speed_maximum_label = _make_label("%dW" % available_maximum, 11, Color("#B8AFA2"))
+	charging_speed_maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(charging_speed_maximum_label)
 
 	_update_charging_speed_controls()
+
 
 func _on_charging_speed_changed(value: float) -> void:
 	# Phone charging capability is independent from the adapter's maximum output.
-	selected_charging_speed = clampi(roundi(value), 2, 200)
+	selected_charging_speed = clampi(roundi(value), 1, _get_charging_speed_maximum())
 	_update_charging_speed_controls()
 
+
 func _update_charging_speed_controls() -> void:
+	var available_maximum := _get_charging_speed_maximum()
+	selected_charging_speed = clampi(selected_charging_speed, 1, available_maximum)
 	if is_instance_valid(charging_speed_value_label):
 		charging_speed_value_label.text = str(selected_charging_speed) + "W"
-	if is_instance_valid(charging_speed_slider) and not is_equal_approx(charging_speed_slider.value, float(selected_charging_speed)):
+	if is_instance_valid(charging_speed_slider):
+		charging_speed_slider.min_value = 1
+		charging_speed_slider.max_value = available_maximum
 		charging_speed_slider.set_value_no_signal(selected_charging_speed)
+	if is_instance_valid(charging_speed_range_label):
+		charging_speed_range_label.text = "1W  —  %dW" % available_maximum
+	if is_instance_valid(charging_speed_minimum_label):
+		charging_speed_minimum_label.text = "1W"
+	if is_instance_valid(charging_speed_maximum_label):
+		charging_speed_maximum_label.text = "%dW" % available_maximum
 	if software_value_labels.has("CHARGING SPEED") and is_instance_valid(software_value_labels["CHARGING SPEED"]):
 		var speed_label: Label = software_value_labels["CHARGING SPEED"]
 		speed_label.text = str(selected_charging_speed) + "W"
