@@ -114,10 +114,14 @@ func _run_transition_checks() -> void:
 		return
 	dashboard.call("_open_creation_scene")
 	await process_frame
-	for control_name in ["ResearchComponentOption", "ResearchNextButton"]:
+	for control_name in ["ResearchComponentOption", "ResearchComponentOption_1", "ResearchNextButton"]:
 		if dashboard.find_child(control_name, true, false) == null:
 			_fail("The component-selection step is missing %s." % control_name)
 			return
+	var ram_component_option := dashboard.find_child("ResearchComponentOption_1", true, false) as Button
+	if not ram_component_option.text.contains("RAM TECH"):
+		_fail("RAM Technology is missing from the R&D component selector.")
+		return
 	if dashboard.find_child("ResearchStaffScroll", true, false) != null:
 		_fail("Staff selection appeared before the component-selection step was completed.")
 		return
@@ -154,6 +158,10 @@ func _run_transition_checks() -> void:
 	var combined_staff_estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_50", "researcher_100"], duration_test_employees)
 	if not bool(combined_staff_estimate.get("ok", false)) or not is_equal_approx(float(combined_staff_estimate.get("expected_duration_days", 0.0)), 28.5):
 		_fail("Combined efficiency from the assigned researchers did not reduce the research duration correctly.")
+		return
+	var ram_estimate: Dictionary = ResearchManagerScript.estimate_research("RAM Technology", ["researcher_100"], duration_test_employees)
+	if not bool(ram_estimate.get("ok", false)):
+		_fail("RAM Technology could not be selected as an R&D research component.")
 		return
 	var maximum_efficiency_staff: Array = []
 	var maximum_efficiency_ids: Array[String] = []
@@ -225,6 +233,38 @@ func _run_transition_checks() -> void:
 	var screen_history: Array = game.career.get("research_technologies", {}).get("Screen Technology", [])
 	if screen_history.size() != 1 or str(screen_history[0].get("metric", "")) != "Display contrast":
 		_fail("Approved R&D findings were not stored in the company's technology records.")
+		return
+
+	var ram_commission: Dictionary = game.commission_research_project({
+		"component": "RAM Technology",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if not bool(ram_commission.get("ok", false)):
+		_fail("A RAM Technology research project could not be commissioned: %s" % str(ram_commission.get("error", "")))
+		return
+	var ram_project: Dictionary = ram_commission.get("project", {})
+	var ram_projects: Array = game.career.get("research_projects", [])
+	for project_index in range(ram_projects.size()):
+		if str(ram_projects[project_index].get("id", "")) == str(ram_project.get("id", "")):
+			ram_projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = ram_projects
+	var ram_completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 29.0, game.game_date_unix + 86400.0 * 29.0)
+	if not ram_completed_ids.has(str(ram_project.get("id", ""))):
+		_fail("The RAM Technology project did not complete after its estimated 29-day duration.")
+		return
+	var ram_validation: Dictionary = game.approve_research_project(str(ram_project.get("id", "")), [{
+		"component": "RAM Technology",
+		"metric": "Memory data rate",
+		"value": "Validated next-generation prototype",
+		"unit": "",
+		"notes": "Recorded after memory-subsystem testing."
+	}])
+	if not bool(ram_validation.get("ok", false)):
+		_fail("A completed RAM Technology project could not pass technical validation: %s" % str(ram_validation.get("error", "")))
+		return
+	if int(game.career.get("research_component_levels", {}).get("RAM Technology", 0)) != 1:
+		_fail("Technical approval did not unlock the next RAM Technology generation.")
 		return
 	dashboard.call("configure", game._get_research_dashboard_data())
 
