@@ -521,10 +521,13 @@ var memory_clock_value_label: Label
 
 var selected_cooling_system := "Not set"
 
-const RAM_TECHNOLOGIES := ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"]
-var selected_ram_technology := "LPDDR3"
+const RAM_TECHNOLOGIES := ["LPDDR2", "LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR6"]
+const RAM_CAPACITY_RESEARCH_STEPS := ["8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB", "64 GB"]
+var selected_ram_technology := "LPDDR2"
 var ram_technology_level := 0
 var ram_technology_research_level := 0
+var ram_capacity_research_level := 0
+var ram_capacity_research_label: Label
 var ram_technology_value_label: Label
 var ram_technology_level_label: Label
 var ram_technology_decrease_button: Button
@@ -3207,7 +3210,7 @@ func set_screen_technology_research_level(level: int) -> void:
 
 
 func set_ram_technology_research_level(level: int) -> void:
-	# LPDDR3 is the baseline. Each approved RAM Technology project unlocks one newer generation.
+	# LPDDR2 is the baseline. Each approved RAM Technology project unlocks one newer generation.
 	ram_technology_research_level = clampi(level, 0, RAM_TECHNOLOGIES.size() - 1)
 	ram_technology_level = clampi(ram_technology_level, 0, ram_technology_research_level)
 	selected_ram_technology = RAM_TECHNOLOGIES[ram_technology_level]
@@ -3216,6 +3219,28 @@ func set_ram_technology_research_level(level: int) -> void:
 	_refresh_ram_technology_selection_ui()
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "RAMTechnologySelectionControls":
 		_refresh_ram_capacity_step()
+
+
+func set_ram_capacity_research_level(level: int) -> void:
+	# 8 GB is the starting capacity ceiling; each approved RAM project unlocks the next tier.
+	ram_capacity_research_level = clampi(level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
+	if not _get_supported_ram_capacities(selected_ram_technology).has(selected_ram_capacity):
+		selected_ram_capacity = "Not set"
+	_refresh_ram_capacity_research_ui()
+	_notify_worksite_ram_selection_changed()
+
+
+func _refresh_ram_capacity_research_ui() -> void:
+	var unlocked_step := clampi(ram_capacity_research_level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
+	if is_instance_valid(ram_capacity_research_label):
+		ram_capacity_research_label.text = "CAPACITY RESEARCH  %d / %d  ·  UP TO %s" % [
+			unlocked_step + 1,
+			RAM_CAPACITY_RESEARCH_STEPS.size(),
+			RAM_CAPACITY_RESEARCH_STEPS[unlocked_step]
+		]
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "RAMSelectionControls":
+		_refresh_ram_capacity_selection_ui(active_feature_panel)
+	_refresh_ram_capacity_step()
 
 
 func set_charge_port_research_level(level: int) -> void:
@@ -11537,6 +11562,10 @@ func _show_ram_controls() -> void:
 	var heading := _make_label("SELECT RAM", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
+	ram_capacity_research_label = _make_label("", 12, Color("#AAA49A"))
+	ram_capacity_research_label.name = "RAMCapacityResearchLevelLabel"
+	ram_capacity_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(ram_capacity_research_label)
 	var options := GridContainer.new()
 	options.name = "RAMOptions"
 	options.columns = 2
@@ -11569,6 +11598,14 @@ func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 	for child in options.get_children():
 		options.remove_child(child)
 		child.queue_free()
+	var research_label := panel.find_child("RAMCapacityResearchLevelLabel", true, false) as Label
+	if is_instance_valid(research_label):
+		var unlocked_step := clampi(ram_capacity_research_level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
+		research_label.text = "CAPACITY RESEARCH  %d / %d  ·  UP TO %s" % [
+			unlocked_step + 1,
+			RAM_CAPACITY_RESEARCH_STEPS.size(),
+			RAM_CAPACITY_RESEARCH_STEPS[unlocked_step]
+		]
 	var supported_capacities := _get_supported_ram_capacities(selected_ram_technology)
 	if selected_ram_technology == "Not set" or supported_capacities.is_empty():
 		var prompt := _make_label("SELECT RAM TECHNOLOGY FIRST", 14, Color("#D3AA6B"))
@@ -11588,22 +11625,33 @@ func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 		options.add_child(option)
 
 func _get_supported_ram_capacities(technology: String) -> Array:
-	var all_capacities := ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
+	var compatible_capacities: Array = []
 	match technology:
+		"LPDDR2":
+			compatible_capacities = ["1 GB", "2 GB"]
 		"LPDDR3":
-			return ["1 GB", "2 GB", "3 GB", "4 GB"]
+			compatible_capacities = ["1 GB", "2 GB", "3 GB", "4 GB"]
 		"LPDDR4":
-			return ["1 GB", "2 GB", "3 GB", "4 GB", "6 GB", "8 GB"]
+			compatible_capacities = ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB"]
 		"LPDDR4X":
-			return ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB"]
+			compatible_capacities = ["2 GB", "3 GB", "4 GB", "6 GB", "8 GB", "12 GB"]
 		"LPDDR5":
-			return ["4 GB", "6 GB", "8 GB", "12 GB", "16 GB"]
+			compatible_capacities = ["4 GB", "6 GB", "8 GB", "12 GB", "16 GB"]
 		"LPDDR5X":
-			return ["8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
-		"LPDDR5T":
-			return ["12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
+			compatible_capacities = ["8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB"]
+		"LPDDR6":
+			compatible_capacities = ["8 GB", "12 GB", "16 GB", "24 GB", "32 GB", "64 GB"]
 		_:
 			return []
+
+	var unlocked_step := clampi(ram_capacity_research_level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
+	var maximum_capacity_gb := int(RAM_CAPACITY_RESEARCH_STEPS[unlocked_step].replace(" GB", ""))
+	var researched_capacities: Array = []
+	for capacity_value in compatible_capacities:
+		var capacity := str(capacity_value)
+		if int(capacity.replace(" GB", "")) <= maximum_capacity_gb:
+			researched_capacities.append(capacity)
+	return researched_capacities
 
 func _show_ram_technology_controls() -> void:
 	if not is_instance_valid(right_tools_content):
