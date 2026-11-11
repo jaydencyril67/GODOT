@@ -11594,36 +11594,41 @@ func _show_ram_controls() -> void:
 	active_feature_panel.name = "RAMSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var heading := _make_label("SELECT RAM", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	ram_capacity_research_label = _make_label("", 12, Color("#AAA49A"))
+	ram_capacity_research_label = _make_label("", 13, Color("#D3AA6B"))
 	ram_capacity_research_label.name = "RAMCapacityResearchLevelLabel"
 	ram_capacity_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(ram_capacity_research_label)
 
+	var controls_center := CenterContainer.new()
+	controls_center.name = "RAMCapacityControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
 	var controls := HBoxContainer.new()
 	controls.name = "RAMCapacityControls"
-	controls.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 18)
-	active_feature_panel.add_child(controls)
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
 
 	ram_capacity_decrease_button = Button.new()
 	ram_capacity_decrease_button.name = "DecreaseRAMCapacityButton"
-	ram_capacity_decrease_button.text = "-"
+	ram_capacity_decrease_button.text = "−"
 	_style_level_circle_button(ram_capacity_decrease_button)
 	ram_capacity_decrease_button.pressed.connect(_on_ram_capacity_decrease_pressed)
 	controls.add_child(ram_capacity_decrease_button)
 
-	ram_capacity_value_label = _make_label("Not set", 18, Color("#F2EDE4"))
+	ram_capacity_value_label = _make_label("Not set", 20, Color.WHITE)
 	ram_capacity_value_label.name = "RAMCapacityValueLabel"
-	ram_capacity_value_label.custom_minimum_size = Vector2(112, 54)
+	ram_capacity_value_label.custom_minimum_size.x = 150
 	ram_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ram_capacity_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	controls.add_child(ram_capacity_value_label)
 
 	ram_capacity_increase_button = Button.new()
@@ -11867,37 +11872,42 @@ func _show_rom_controls() -> void:
 	active_feature_panel.name = "InternalStorageSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var heading := _make_label("SELECT INTERNAL STORAGE", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	internal_storage_research_label = _make_label("", 12, Color("#AAA49A"))
+	internal_storage_research_label = _make_label("", 13, Color("#D3AA6B"))
 	internal_storage_research_label.name = "InternalStorageResearchLevelLabel"
 	internal_storage_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(internal_storage_research_label)
 
+	var controls_center := CenterContainer.new()
+	controls_center.name = "InternalStorageCapacityControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
 	var controls := HBoxContainer.new()
 	controls.name = "InternalStorageCapacityControls"
-	controls.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 18)
-	active_feature_panel.add_child(controls)
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
 
 	internal_storage_decrease_button = Button.new()
 	internal_storage_decrease_button.name = "DecreaseInternalStorageButton"
-	internal_storage_decrease_button.text = "-"
+	internal_storage_decrease_button.text = "−"
 	_style_level_circle_button(internal_storage_decrease_button)
 	internal_storage_decrease_button.pressed.connect(_on_internal_storage_decrease_pressed)
 	controls.add_child(internal_storage_decrease_button)
 
-	internal_storage_value_label = _make_label("2 GB", 18, Color("#F2EDE4"))
+	internal_storage_value_label = _make_label("2 GB", 20, Color.WHITE)
 	internal_storage_value_label.name = "InternalStorageCapacityValueLabel"
-	internal_storage_value_label.custom_minimum_size = Vector2(112, 54)
+	internal_storage_value_label.custom_minimum_size.x = 150
 	internal_storage_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	internal_storage_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	controls.add_child(internal_storage_value_label)
 
 	internal_storage_increase_button = Button.new()
