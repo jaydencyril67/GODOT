@@ -8077,8 +8077,8 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	card.add_child(title)
 
 	var uses_research_ceiling := front_camera_maximum >= ResearchManagerScript.FRONT_CAMERA_MP_BASE
-	var maximum_mp := front_camera_maximum if uses_research_ceiling else CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1]
-	var minimum_mp := ResearchManagerScript.FRONT_CAMERA_MP_BASE if uses_research_ceiling else CAMERA_MEGAPIXEL_STEPS[0]
+	var maximum_mp: int = front_camera_maximum if uses_research_ceiling else int(CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1])
+	var minimum_mp: int = ResearchManagerScript.FRONT_CAMERA_MP_BASE if uses_research_ceiling else int(CAMERA_MEGAPIXEL_STEPS[0])
 	var safe_current_mp := clampi(current_mp, minimum_mp, maximum_mp)
 	var value_label := _make_label("%d MP" % safe_current_mp, 12, Color.WHITE)
 	value_label.name = "CameraMPValueLabel"
