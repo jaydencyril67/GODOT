@@ -1383,6 +1383,9 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			or panel.name == "SpeakerControls"
 			or panel.name == "FrontCameraControls"
 			or panel.name == "RAMTechnologySelectionControls"
+			or panel.name == "InternalStorageSelectionControls"
+			or panel.name == "WiFiSelectionControls"
+			or panel.name == "MobileNetworkSelectionControls"
 		)
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if panel_uses_full_height else Control.SIZE_SHRINK_BEGIN
 		if step >= 15 and step <= 29:
@@ -12342,7 +12345,7 @@ func _show_wifi_controls() -> void:
 
 	wifi_value_label = _make_label("", 20, Color.WHITE)
 	wifi_value_label.name = "WiFiTechnologyValueLabel"
-	wifi_value_label.custom_minimum_size.x = 190
+	wifi_value_label.custom_minimum_size.x = 150
 	wifi_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wifi_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.add_child(wifi_value_label)
@@ -12513,7 +12516,7 @@ func _show_mobile_network_controls() -> void:
 
 	mobile_network_value_label = _make_label("", 20, Color.WHITE)
 	mobile_network_value_label.name = "MobileNetworkTechnologyValueLabel"
-	mobile_network_value_label.custom_minimum_size.x = 190
+	mobile_network_value_label.custom_minimum_size.x = 150
 	mobile_network_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mobile_network_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.add_child(mobile_network_value_label)
