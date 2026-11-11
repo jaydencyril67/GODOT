@@ -655,6 +655,7 @@ var phone_sensor_count_label: Label
 var phone_sensor_index_label: Label
 var phone_sensor_name_label: Label
 var phone_sensor_status_label: Label
+var phone_sensor_enable_row: HBoxContainer
 var phone_sensor_enabled_toggle: TextureButton
 var phone_sensor_previous_button: Button
 var phone_sensor_next_button: Button
@@ -2893,15 +2894,18 @@ func _show_worksite_sensor_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
 
-	var enable_row := HBoxContainer.new()
-	enable_row.name = "PhoneSensorEnableRow"
-	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enable_row.add_theme_constant_override("separation", 12)
-	panel.add_child(enable_row)
+	phone_sensor_enable_row = HBoxContainer.new()
+	phone_sensor_enable_row.name = "PhoneSensorEnableRow"
+	phone_sensor_enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	phone_sensor_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phone_sensor_enable_row.add_theme_constant_override("separation", 8)
+	panel.add_child(phone_sensor_enable_row)
 
 	var enable_label := _label("ENABLE", 14, Color("#EEE9DF"))
-	enable_row.add_child(enable_label)
+	enable_label.custom_minimum_size = Vector2(72, 0)
+	enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	phone_sensor_enable_row.add_child(enable_label)
 
 	phone_sensor_enabled_toggle = TextureButton.new()
 	phone_sensor_enabled_toggle.name = "SensorEnabledToggle"
@@ -2912,7 +2916,7 @@ func _show_worksite_sensor_controls() -> void:
 	phone_sensor_enabled_toggle.focus_mode = Control.FOCUS_NONE
 	phone_sensor_enabled_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	phone_sensor_enabled_toggle.toggled.connect(_on_phone_sensor_toggled)
-	enable_row.add_child(phone_sensor_enabled_toggle)
+	phone_sensor_enable_row.add_child(phone_sensor_enabled_toggle)
 
 	var navigation := HBoxContainer.new()
 	navigation.name = "PhoneSensorNavigation"
@@ -2924,12 +2928,7 @@ func _show_worksite_sensor_controls() -> void:
 	phone_sensor_previous_button = Button.new()
 	phone_sensor_previous_button.name = "PreviousPhoneSensorButton"
 	phone_sensor_previous_button.text = "−"
-	_style_button(phone_sensor_previous_button, false)
-	phone_sensor_previous_button.custom_minimum_size = Vector2(56, 48)
-	phone_sensor_previous_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	phone_sensor_previous_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	phone_sensor_previous_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phone_sensor_previous_button.focus_mode = Control.FOCUS_NONE
+	_style_level_selector_button(phone_sensor_previous_button)
 	phone_sensor_previous_button.pressed.connect(_on_phone_sensor_previous_pressed)
 	navigation.add_child(phone_sensor_previous_button)
 
@@ -2944,12 +2943,7 @@ func _show_worksite_sensor_controls() -> void:
 	phone_sensor_next_button = Button.new()
 	phone_sensor_next_button.name = "NextPhoneSensorButton"
 	phone_sensor_next_button.text = "+"
-	_style_button(phone_sensor_next_button, false)
-	phone_sensor_next_button.custom_minimum_size = Vector2(56, 48)
-	phone_sensor_next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	phone_sensor_next_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	phone_sensor_next_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phone_sensor_next_button.focus_mode = Control.FOCUS_NONE
+	_style_level_selector_button(phone_sensor_next_button)
 	phone_sensor_next_button.pressed.connect(_on_phone_sensor_next_pressed)
 	navigation.add_child(phone_sensor_next_button)
 
@@ -2969,6 +2963,8 @@ func _refresh_phone_sensor_controls() -> void:
 	var sensor_names := _get_phone_sensor_names()
 	if sensor_names.is_empty():
 		selected_phone_sensor_index = 0
+		if is_instance_valid(phone_sensor_enable_row):
+			phone_sensor_enable_row.visible = false
 		if is_instance_valid(phone_sensor_name_label):
 			phone_sensor_name_label.text = "No Sensors"
 		if is_instance_valid(phone_sensor_enabled_toggle):
@@ -2986,6 +2982,8 @@ func _refresh_phone_sensor_controls() -> void:
 			phone_sensor_next_button.disabled = true
 		return
 
+	if is_instance_valid(phone_sensor_enable_row):
+		phone_sensor_enable_row.visible = true
 	selected_phone_sensor_index = clampi(selected_phone_sensor_index, 0, sensor_names.size() - 1)
 	var sensor_name := sensor_names[selected_phone_sensor_index]
 	var enabled := bool(selected_phone_sensors.get(sensor_name, false))
