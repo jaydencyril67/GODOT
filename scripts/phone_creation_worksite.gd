@@ -2925,25 +2925,34 @@ func _show_worksite_sensor_controls() -> void:
 	phone_sensor_enabled_toggle.toggled.connect(_on_phone_sensor_toggled)
 	phone_sensor_enable_row.add_child(phone_sensor_enabled_toggle)
 
+	# Match the other hardware selectors: the heading and enable toggle stay
+	# at the top, while the compact +/- selector is centered in the remaining
+	# vertical space instead of stretching across the whole panel.
+	var navigation_center := CenterContainer.new()
+	navigation_center.name = "PhoneSensorNavigationCenter"
+	navigation_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(navigation_center)
+
 	var navigation := HBoxContainer.new()
 	navigation.name = "PhoneSensorNavigation"
 	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
-	navigation.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	navigation.custom_minimum_size = Vector2(0, 48)
-	navigation.add_theme_constant_override("separation", 10)
-	panel.add_child(navigation)
+	navigation.add_theme_constant_override("separation", 30)
+	navigation_center.add_child(navigation)
 
 	phone_sensor_previous_button = Button.new()
 	phone_sensor_previous_button.name = "PreviousPhoneSensorButton"
 	phone_sensor_previous_button.text = "−"
 	_style_level_selector_button(phone_sensor_previous_button)
+	phone_sensor_previous_button.custom_minimum_size = Vector2(56, 48)
+	phone_sensor_previous_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_sensor_previous_button.pressed.connect(_on_phone_sensor_previous_pressed)
 	navigation.add_child(phone_sensor_previous_button)
 
 	phone_sensor_name_label = _label("No Sensors", 19, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
 	phone_sensor_name_label.name = "SelectedPhoneSensor"
-	phone_sensor_name_label.custom_minimum_size = Vector2(130, 56)
-	phone_sensor_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phone_sensor_name_label.custom_minimum_size = Vector2(150, 56)
+	phone_sensor_name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_sensor_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	phone_sensor_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	navigation.add_child(phone_sensor_name_label)
@@ -2952,6 +2961,8 @@ func _show_worksite_sensor_controls() -> void:
 	phone_sensor_next_button.name = "NextPhoneSensorButton"
 	phone_sensor_next_button.text = "+"
 	_style_level_selector_button(phone_sensor_next_button)
+	phone_sensor_next_button.custom_minimum_size = Vector2(56, 48)
+	phone_sensor_next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_sensor_next_button.pressed.connect(_on_phone_sensor_next_pressed)
 	navigation.add_child(phone_sensor_next_button)
 
