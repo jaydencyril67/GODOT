@@ -14,13 +14,15 @@ const STATUS_SUCCESSFUL := "successful"
 const STATUS_UNSUCCESSFUL := "unsuccessful"
 const RESEARCH_SUCCESS_CHANCE := 0.70
 const STATUS_CANCELLED := "cancelled"
+const FRONT_CAMERA_MODEL_COUNT := 8
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
 	"Phone Thickness",
 	"Border Radius",
 	"Speakers",
 	"Charge Port",
-	"Home Button"
+	"Home Button",
+	"Front Camera"
 ]
 
 
@@ -263,6 +265,12 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 					# TFT LCD is the baseline; each success unlocks the next listed display technology.
 					component_levels[component] = mini(
 						ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1,
+						int(component_levels.get(component, 0)) + 1
+					)
+				elif component == "Front Camera":
+					# Bezel Camera is the baseline; each success unlocks the next design in chronological order.
+					component_levels[component] = mini(
+						FRONT_CAMERA_MODEL_COUNT - 1,
 						int(component_levels.get(component, 0)) + 1
 					)
 				career["research_component_levels"] = component_levels
