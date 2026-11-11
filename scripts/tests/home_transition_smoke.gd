@@ -333,7 +333,7 @@ func _run_transition_checks() -> void:
 		_fail("Technical approval did not unlock the next RAM Technology generation.")
 		return
 
-if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Memory Clock"):
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Memory Clock"):
 		_fail("Memory Clock is missing from the R&D component catalogue.")
 		return
 	var memory_clock_commission: Dictionary = game.commission_research_project({
