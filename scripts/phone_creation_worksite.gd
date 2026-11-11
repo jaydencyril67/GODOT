@@ -5389,7 +5389,7 @@ func _get_screen_height_slider_max() -> float:
 
 func _update_screen_width_slider_limit() -> void:
 	var maximum_screen_width := _get_screen_width_slider_max()
-	bezel_width = clampf(bezel_width, 0.17 - maximum_screen_width, 0.15)
+	bezel_width = clampf(bezel_width, 0.17 - maximum_screen_width, 0.120833)
 	if is_instance_valid(screen_width_slider):
 		screen_width_slider.max_value = maximum_screen_width
 		screen_width_slider.set_value_no_signal(clampf(0.17 - bezel_width, screen_width_slider.min_value, maximum_screen_width))
