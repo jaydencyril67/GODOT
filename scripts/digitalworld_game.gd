@@ -118,6 +118,8 @@ func _process(delta: float) -> void:
 					_show_notice("RESEARCH UNSUCCESSFUL", "%s research did not produce a successful result." % component_name)
 				break
 		if is_instance_valid(phone_creation_worksite):
+			phone_creation_worksite.call("set_screen_width_research_level", int(career.get("research_component_levels", {}).get("Screen Width", 0)))
+			phone_creation_worksite.call("set_screen_height_research_level", int(career.get("research_component_levels", {}).get("Screen Height", 0)))
 			phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 			phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 			phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
@@ -2481,6 +2483,8 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		return
 	_refresh_research_dashboard()
 	if is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.call("set_screen_width_research_level", int(career.get("research_component_levels", {}).get("Screen Width", 0)))
+		phone_creation_worksite.call("set_screen_height_research_level", int(career.get("research_component_levels", {}).get("Screen Height", 0)))
 		phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 		phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
 		phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
@@ -2671,6 +2675,8 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
 	phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
+	phone_creation_worksite.call("set_screen_width_research_level", int(career.get("research_component_levels", {}).get("Screen Width", 0)))
+	phone_creation_worksite.call("set_screen_height_research_level", int(career.get("research_component_levels", {}).get("Screen Height", 0)))
 	phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 	phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
 	phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
