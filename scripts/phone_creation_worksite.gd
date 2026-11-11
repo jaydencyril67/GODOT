@@ -3305,12 +3305,6 @@ func set_ram_capacity_research_level(level: int) -> void:
 
 func _refresh_ram_capacity_research_ui() -> void:
 	var unlocked_step := clampi(ram_capacity_research_level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
-	if is_instance_valid(ram_capacity_research_label):
-		ram_capacity_research_label.text = "CAPACITY RESEARCH  %d / %d  ·  UP TO %s" % [
-			unlocked_step + 1,
-			RAM_CAPACITY_RESEARCH_STEPS.size(),
-			RAM_CAPACITY_RESEARCH_STEPS[unlocked_step]
-		]
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "RAMSelectionControls":
 		_refresh_ram_capacity_selection_ui(active_feature_panel)
 	_refresh_ram_capacity_step()
@@ -3335,12 +3329,6 @@ func set_internal_storage_research_level(level: int) -> void:
 
 func _refresh_internal_storage_research_ui() -> void:
 	var unlocked_step := clampi(internal_storage_research_level, 0, INTERNAL_STORAGE_CAPACITIES.size() - 1)
-	if is_instance_valid(internal_storage_research_label):
-		internal_storage_research_label.text = "STORAGE RESEARCH  %d / %d  ·  UP TO %s" % [
-			unlocked_step + 1,
-			INTERNAL_STORAGE_CAPACITIES.size(),
-			INTERNAL_STORAGE_CAPACITIES[unlocked_step]
-		]
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "InternalStorageSelectionControls":
 		_refresh_internal_storage_selection_ui(active_feature_panel)
 
@@ -5536,10 +5524,6 @@ func _show_screen_tech_controls() -> void:
 	screen_technology_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(screen_technology_name_label)
 
-	screen_technology_value_label = _make_label("", 11, Color("#D3AA6B"))
-	screen_technology_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(screen_technology_value_label)
-
 	var separator := ColorRect.new()
 	separator.custom_minimum_size = Vector2(0, 1)
 	separator.color = Color(0.78, 0.62, 0.38, 0.30)
@@ -5599,11 +5583,6 @@ func _refresh_screen_technology_ui() -> void:
 
 	if is_instance_valid(screen_technology_name_label):
 		screen_technology_name_label.text = current_screen_technology
-	if is_instance_valid(screen_technology_value_label):
-		screen_technology_value_label.text = "LEVEL %d / %d" % [
-			screen_technology_level + 1,
-			screen_technology_research_level + 1
-		]
 	if is_instance_valid(screen_technology_decrease_button):
 		screen_technology_decrease_button.disabled = screen_technology_level <= 0
 	if is_instance_valid(screen_technology_increase_button):
@@ -7953,11 +7932,7 @@ func _refresh_front_camera_controls() -> void:
 	if selected_index < 0:
 		selected_index = 0
 	if is_instance_valid(front_camera_value_label):
-		front_camera_value_label.text = "%s  ·  %d / %d" % [
-			front_camera_style.to_upper(),
-			selected_index + 1,
-			front_camera_research_level + 1
-		]
+		front_camera_value_label.text = front_camera_style.to_upper()
 	if is_instance_valid(front_camera_decrease_button):
 		front_camera_decrease_button.disabled = not front_camera_enabled or selected_index <= 0
 	if is_instance_valid(front_camera_increase_button):
@@ -9025,11 +9000,7 @@ func _refresh_home_button_controls() -> void:
 	_refresh_hardware_selector_value_labels()
 	var selected_index := HOME_BUTTON_TYPES.find(home_button_type)
 	if is_instance_valid(home_button_value_label):
-		home_button_value_label.text = "%s  ·  %d / %d" % [
-			home_button_type.to_upper(),
-			selected_index + 1,
-			home_button_research_level + 1
-		]
+		home_button_value_label.text = home_button_type.to_upper()
 	if is_instance_valid(home_button_decrease_button):
 		home_button_decrease_button.disabled = not home_button_enabled or selected_index <= 0
 	if is_instance_valid(home_button_increase_button):
@@ -10005,7 +9976,7 @@ func _show_speaker_controls() -> void:
 func _refresh_speaker_count_controls() -> void:
 	_refresh_hardware_selector_value_labels()
 	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS  %d / %d" % [speaker_count, researched_speaker_count]
+		speaker_count_value_label.text = "SPEAKERS  %d" % speaker_count
 	if is_instance_valid(speaker_count_decrease_button):
 		speaker_count_decrease_button.disabled = speaker_count <= 1
 	if is_instance_valid(speaker_count_increase_button):
@@ -10137,14 +10108,7 @@ func _refresh_charge_port_controls() -> void:
 	_refresh_hardware_selector_value_labels()
 	var selected_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
 	if is_instance_valid(charge_port_value_label):
-		if charge_port_type == "None":
-			charge_port_value_label.text = "NO PORT  ·  0 / %d" % researched_charge_port_count
-		else:
-			charge_port_value_label.text = "%s  ·  %d / %d" % [
-				charge_port_type.to_upper(),
-				selected_port_index + 1,
-				researched_charge_port_count
-			]
+		charge_port_value_label.text = "NO PORT" if charge_port_type == "None" else charge_port_type.to_upper()
 	if is_instance_valid(charge_port_decrease_button):
 		charge_port_decrease_button.disabled = charge_port_type == "None"
 	if is_instance_valid(charge_port_increase_button):
@@ -10622,7 +10586,7 @@ func set_phone_thickness_research_level(level: int) -> void:
 func _refresh_phone_thickness_test_ui() -> void:
 	_refresh_hardware_selector_value_labels()
 	if is_instance_valid(phone_thickness_value_label):
-		phone_thickness_value_label.text = "THICKNESS LEVEL  %d / %d" % [phone_thickness_level, phone_thickness_research_level]
+		phone_thickness_value_label.text = "THICKNESS LEVEL  %d" % phone_thickness_level
 	if is_instance_valid(phone_thickness_decrease_button):
 		phone_thickness_decrease_button.disabled = phone_thickness_level <= 0
 	if is_instance_valid(phone_thickness_increase_button):
@@ -10691,13 +10655,13 @@ func _refresh_hardware_selector_value_labels() -> void:
 			"front_camera":
 				value_label.text = front_camera_style if front_camera_enabled else "Disabled"
 			"border_radius":
-				value_label.text = "LEVEL %d / %d" % [border_radius_level, border_radius_research_level]
+				value_label.text = "LEVEL %d" % border_radius_level
 			"phone_thickness":
-				value_label.text = "LEVEL %d / %d" % [phone_thickness_level, phone_thickness_research_level]
+				value_label.text = "LEVEL %d" % phone_thickness_level
 			"home_button":
 				value_label.text = home_button_type
 			"speaker_count":
-				value_label.text = "%d / %d" % [speaker_count, researched_speaker_count]
+				value_label.text = "%d" % speaker_count
 			"charge_port":
 				value_label.text = charge_port_type
 
@@ -10716,7 +10680,7 @@ func _style_level_selector_button(button: Button) -> void:
 func _refresh_border_radius_test_ui() -> void:
 	_refresh_hardware_selector_value_labels()
 	if is_instance_valid(border_radius_value_label):
-		border_radius_value_label.text = "BORDER RADIUS LEVEL  %d / %d" % [border_radius_level, border_radius_research_level]
+		border_radius_value_label.text = "BORDER RADIUS LEVEL  %d" % border_radius_level
 	if is_instance_valid(border_radius_decrease_button):
 		border_radius_decrease_button.disabled = border_radius_level <= 0
 	if is_instance_valid(border_radius_increase_button):
@@ -11730,10 +11694,6 @@ func _show_ram_controls() -> void:
 	var heading := _make_label("SELECT RAM", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	ram_capacity_research_label = _make_label("", 13, Color("#D3AA6B"))
-	ram_capacity_research_label.name = "RAMCapacityResearchLevelLabel"
-	ram_capacity_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(ram_capacity_research_label)
 
 	var controls_center := CenterContainer.new()
 	controls_center.name = "RAMCapacityControlsCenter"
@@ -11811,14 +11771,6 @@ func _on_ram_capacity_selected(capacity: String) -> void:
 func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 	if not is_instance_valid(panel) or panel.name != "RAMSelectionControls":
 		return
-	var research_label := panel.find_child("RAMCapacityResearchLevelLabel", true, false) as Label
-	if is_instance_valid(research_label):
-		var unlocked_step := clampi(ram_capacity_research_level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
-		research_label.text = "CAPACITY RESEARCH  %d / %d  ·  UP TO %s" % [
-			unlocked_step + 1,
-			RAM_CAPACITY_RESEARCH_STEPS.size(),
-			RAM_CAPACITY_RESEARCH_STEPS[unlocked_step]
-		]
 	var supported_capacities := _get_supported_ram_capacities(selected_ram_technology)
 	var selected_index := supported_capacities.find(selected_ram_capacity)
 	if is_instance_valid(ram_capacity_value_label):
@@ -11878,10 +11830,6 @@ func _show_ram_technology_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	ram_technology_level_label = _make_label("", 13, Color("#D3AA6B"))
-	ram_technology_level_label.name = "RAMTechnologyLevelLabel"
-	ram_technology_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(ram_technology_level_label)
 
 	var controls_center := CenterContainer.new()
 	controls_center.name = "RAMTechnologyLevelControlsCenter"
@@ -11982,11 +11930,6 @@ func _refresh_ram_technology_selection_ui() -> void:
 		return
 	if is_instance_valid(ram_technology_value_label):
 		ram_technology_value_label.text = selected_ram_technology
-	if is_instance_valid(ram_technology_level_label):
-		ram_technology_level_label.text = "LEVEL %d / %d UNLOCKED" % [
-			ram_technology_level + 1,
-			ram_technology_research_level + 1
-		]
 	if is_instance_valid(ram_technology_decrease_button):
 		ram_technology_decrease_button.disabled = ram_technology_level <= 0
 	if is_instance_valid(ram_technology_increase_button):
@@ -12009,10 +11952,6 @@ func _show_rom_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	internal_storage_research_label = _make_label("", 13, Color("#D3AA6B"))
-	internal_storage_research_label.name = "InternalStorageResearchLevelLabel"
-	internal_storage_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(internal_storage_research_label)
 
 	var selector_spacing := Control.new()
 	selector_spacing.custom_minimum_size = Vector2(0, 48)
@@ -12365,10 +12304,6 @@ func _show_bluetooth_controls() -> void:
 	bluetooth_generation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(bluetooth_generation_label)
 
-	bluetooth_research_label = _make_label("", 13, Color("#D3AA6B"))
-	bluetooth_research_label.name = "BluetoothResearchLevelLabel"
-	bluetooth_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(bluetooth_research_label)
 
 	var selector_spacing := Control.new()
 	selector_spacing.custom_minimum_size = Vector2(0, 48)
@@ -12457,16 +12392,6 @@ func _refresh_bluetooth_selection_ui(panel: Control) -> void:
 			str(entry.get("generation", "")),
 			str(entry.get("generation_name", "")).to_upper()
 		]
-	if is_instance_valid(bluetooth_research_label):
-		var next_target := ResearchManagerScript.get_bluetooth_research_target({
-			"Bluetooth": bluetooth_research_level
-		})
-		var next_target_text := "COMPLETE" if next_target.is_empty() else "NEXT: %s" % str(next_target.get("technology", ""))
-		bluetooth_research_label.text = "BLUETOOTH VERSIONS  %d / %d  ·  %s" % [
-			bluetooth_research_level + 1,
-			ResearchManagerScript.get_bluetooth_step_count(),
-			next_target_text
-		]
 	if is_instance_valid(bluetooth_value_label):
 		bluetooth_value_label.text = selected_bluetooth_version
 	if is_instance_valid(bluetooth_decrease_button):
@@ -12506,10 +12431,6 @@ func _show_wifi_controls() -> void:
 	wifi_generation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(wifi_generation_label)
 
-	wifi_research_label = _make_label("", 13, Color("#D3AA6B"))
-	wifi_research_label.name = "WiFiResearchLevelLabel"
-	wifi_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(wifi_research_label)
 
 	var selector_spacing := Control.new()
 	selector_spacing.custom_minimum_size = Vector2(0, 48)
@@ -12601,17 +12522,6 @@ func _refresh_wifi_selection_ui(panel: Control) -> void:
 			str(entry.get("generation", "")),
 			str(entry.get("technology", ""))
 		]
-	if is_instance_valid(wifi_research_label):
-		var next_target := ResearchManagerScript.get_wifi_research_target({"Wi-Fi": wifi_research_level})
-		var next_target_text := "COMPLETE" if next_target.is_empty() else "NEXT: %s (%s)" % [
-			str(next_target.get("generation", "")),
-			str(next_target.get("technology", ""))
-		]
-		wifi_research_label.text = "WI-FI TECHNOLOGIES  %d / %d  ·  %s" % [
-			wifi_research_level + 1,
-			ResearchManagerScript.get_wifi_step_count(),
-			next_target_text
-		]
 	if is_instance_valid(wifi_value_label):
 		wifi_value_label.text = selected_wifi_standard
 	if is_instance_valid(wifi_decrease_button):
@@ -12681,10 +12591,6 @@ func _show_mobile_network_controls() -> void:
 	mobile_network_generation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(mobile_network_generation_label)
 
-	mobile_network_research_label = _make_label("", 13, Color("#D3AA6B"))
-	mobile_network_research_label.name = "MobileNetworkResearchLevelLabel"
-	mobile_network_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(mobile_network_research_label)
 
 	var selector_spacing := Control.new()
 	selector_spacing.custom_minimum_size = Vector2(0, 48)
@@ -12784,16 +12690,6 @@ func _refresh_mobile_network_selection_ui(panel: Control) -> void:
 		mobile_network_generation_label.text = "%s  ·  %s" % [
 			str(entry.get("generation", "")),
 			str(entry.get("generation_name", "")).to_upper()
-		]
-	if is_instance_valid(mobile_network_research_label):
-		var next_target := ResearchManagerScript.get_mobile_network_research_target({
-			"Mobile Network": mobile_network_research_level
-		})
-		var next_target_text := "COMPLETE" if next_target.is_empty() else "NEXT: %s" % str(next_target.get("technology", ""))
-		mobile_network_research_label.text = "NETWORK TECHNOLOGIES  %d / %d  ·  %s" % [
-			mobile_network_research_level + 1,
-			ResearchManagerScript.get_mobile_network_step_count(),
-			next_target_text
 		]
 	if is_instance_valid(mobile_network_value_label):
 		mobile_network_value_label.text = str(entry.get("technology", ""))
