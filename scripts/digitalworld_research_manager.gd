@@ -375,16 +375,18 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		if not (result_value is Dictionary):
 			return _failure("Every research result must be a structured technology record.")
 		var result: Dictionary = result_value.duplicate(true)
-		var component := normalize_component(str(result.get("component", "")))
+		var result_component := normalize_component(str(result.get("component", "")))
 		var metric := str(result.get("metric", "")).strip_edges()
 		var value := str(result.get("value", "")).strip_edges()
-		if component.is_empty() or not project_components.has(component):
+		if result_component.is_empty() or not project_components.has(result_component):
 			return _failure("Each result must refer to the component included in this project.")
 		if metric.is_empty() or value.is_empty():
 			return _failure("Each approved finding must include a measured attribute and result value.")
-		var component_history: Array = technologies.get(component, [])
+		if result_component == "Mobile Network" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact Mobile Network technology assigned to this project.")
+		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
-		technologies[component] = component_history
+		technologies[result_component] = component_history
 		approved_results.append(result)
 
 	project["status"] = STATUS_APPROVED
