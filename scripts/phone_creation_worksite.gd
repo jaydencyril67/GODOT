@@ -523,6 +523,7 @@ var selected_cooling_system := "Not set"
 
 const RAM_TECHNOLOGIES := ["LPDDR2", "LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR6"]
 const RAM_CAPACITY_RESEARCH_STEPS := ["8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB", "64 GB"]
+const INTERNAL_STORAGE_CAPACITIES := ["2 GB", "4 GB", "8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"]
 var selected_ram_technology := "LPDDR2"
 var ram_technology_level := 0
 var ram_technology_research_level := 0
@@ -536,7 +537,12 @@ var ram_technology_level_label: Label
 var ram_technology_decrease_button: Button
 var ram_technology_increase_button: Button
 
-var selected_rom_capacity := "Not set"
+var selected_rom_capacity := "2 GB"
+var internal_storage_research_level := 0
+var internal_storage_research_label: Label
+var internal_storage_value_label: Label
+var internal_storage_decrease_button: Button
+var internal_storage_increase_button: Button
 
 var selected_battery_capacity := "Not set"
 
@@ -3244,6 +3250,35 @@ func _refresh_ram_capacity_research_ui() -> void:
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "RAMSelectionControls":
 		_refresh_ram_capacity_selection_ui(active_feature_panel)
 	_refresh_ram_capacity_step()
+
+
+func set_internal_storage_research_level(level: int) -> void:
+	# 2 GB is the baseline. Each approved Internal Storage project unlocks one
+	# newer capacity tier, ending at 2 TB.
+	internal_storage_research_level = clampi(level, 0, INTERNAL_STORAGE_CAPACITIES.size() - 1)
+	var selected_index := INTERNAL_STORAGE_CAPACITIES.find(selected_rom_capacity)
+	var unlocked_index := clampi(internal_storage_research_level, 0, INTERNAL_STORAGE_CAPACITIES.size() - 1)
+	if selected_index < 0:
+		selected_rom_capacity = INTERNAL_STORAGE_CAPACITIES[0]
+	elif selected_index > unlocked_index:
+		selected_rom_capacity = INTERNAL_STORAGE_CAPACITIES[unlocked_index]
+	if software_value_labels.has("ROM") and is_instance_valid(software_value_labels["ROM"]):
+		var rom_label: Label = software_value_labels["ROM"]
+		rom_label.text = selected_rom_capacity
+	_refresh_internal_storage_research_ui()
+	_notify_worksite_full_selection_changed()
+
+
+func _refresh_internal_storage_research_ui() -> void:
+	var unlocked_step := clampi(internal_storage_research_level, 0, INTERNAL_STORAGE_CAPACITIES.size() - 1)
+	if is_instance_valid(internal_storage_research_label):
+		internal_storage_research_label.text = "STORAGE RESEARCH  %d / %d  ·  UP TO %s" % [
+			unlocked_step + 1,
+			INTERNAL_STORAGE_CAPACITIES.size(),
+			INTERNAL_STORAGE_CAPACITIES[unlocked_step]
+		]
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "InternalStorageSelectionControls":
+		_refresh_internal_storage_selection_ui(active_feature_panel)
 
 
 func set_charge_port_research_level(level: int) -> void:
@@ -11829,7 +11864,7 @@ func _show_rom_controls() -> void:
 	for child in right_tools_content.get_children():
 		child.queue_free()
 	active_feature_panel = VBoxContainer.new()
-	active_feature_panel.name = "ROMSelectionControls"
+	active_feature_panel.name = "InternalStorageSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 9)
@@ -11838,47 +11873,89 @@ func _show_rom_controls() -> void:
 	var heading := _make_label("SELECT INTERNAL STORAGE", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var options := GridContainer.new()
-	options.name = "ROMOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	options.add_theme_constant_override("h_separation", 8)
-	options.add_theme_constant_override("v_separation", 8)
-	active_feature_panel.add_child(options)
-	_refresh_rom_capacity_selection_ui(active_feature_panel)
 
-func _on_rom_capacity_selected(capacity: String) -> void:
-	if not ["4 GB", "8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"].has(capacity):
+	internal_storage_research_label = _make_label("", 12, Color("#AAA49A"))
+	internal_storage_research_label.name = "InternalStorageResearchLevelLabel"
+	internal_storage_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(internal_storage_research_label)
+
+	var controls := HBoxContainer.new()
+	controls.name = "InternalStorageCapacityControls"
+	controls.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 18)
+	active_feature_panel.add_child(controls)
+
+	internal_storage_decrease_button = Button.new()
+	internal_storage_decrease_button.name = "DecreaseInternalStorageButton"
+	internal_storage_decrease_button.text = "-"
+	_style_level_circle_button(internal_storage_decrease_button)
+	internal_storage_decrease_button.pressed.connect(_on_internal_storage_decrease_pressed)
+	controls.add_child(internal_storage_decrease_button)
+
+	internal_storage_value_label = _make_label("2 GB", 18, Color("#F2EDE4"))
+	internal_storage_value_label.name = "InternalStorageCapacityValueLabel"
+	internal_storage_value_label.custom_minimum_size = Vector2(112, 54)
+	internal_storage_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	internal_storage_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	controls.add_child(internal_storage_value_label)
+
+	internal_storage_increase_button = Button.new()
+	internal_storage_increase_button.name = "IncreaseInternalStorageButton"
+	internal_storage_increase_button.text = "+"
+	_style_level_circle_button(internal_storage_increase_button)
+	internal_storage_increase_button.pressed.connect(_on_internal_storage_increase_pressed)
+	controls.add_child(internal_storage_increase_button)
+
+	_refresh_internal_storage_research_ui()
+	_refresh_internal_storage_selection_ui(active_feature_panel)
+
+
+func _on_internal_storage_decrease_pressed() -> void:
+	_change_internal_storage_selection(-1)
+
+
+func _on_internal_storage_increase_pressed() -> void:
+	_change_internal_storage_selection(1)
+
+
+func _change_internal_storage_selection(direction: int) -> void:
+	var unlocked_index := clampi(internal_storage_research_level, 0, INTERNAL_STORAGE_CAPACITIES.size() - 1)
+	var current_index := INTERNAL_STORAGE_CAPACITIES.find(selected_rom_capacity)
+	if current_index < 0:
+		current_index = 0
+	var next_index := current_index + direction
+	if next_index < 0 or next_index > unlocked_index:
+		return
+	_on_internal_storage_capacity_selected(INTERNAL_STORAGE_CAPACITIES[next_index])
+
+
+func _on_internal_storage_capacity_selected(capacity: String) -> void:
+	var capacity_index := INTERNAL_STORAGE_CAPACITIES.find(capacity)
+	if capacity_index < 0 or capacity_index > internal_storage_research_level:
 		return
 	selected_rom_capacity = capacity
 	if software_value_labels.has("ROM") and is_instance_valid(software_value_labels["ROM"]):
 		var rom_label: Label = software_value_labels["ROM"]
 		rom_label.text = capacity
-	_refresh_rom_capacity_selection_ui(active_feature_panel)
+	_refresh_internal_storage_selection_ui(active_feature_panel)
 	_notify_worksite_full_selection_changed()
-	if is_instance_valid(active_feature_panel):
-		_style_ram_selector_buttons(active_feature_panel)
 
-func _refresh_rom_capacity_selection_ui(panel: Control) -> void:
-	if not is_instance_valid(panel) or panel.name != "ROMSelectionControls":
+
+func _refresh_internal_storage_selection_ui(panel: Control) -> void:
+	if not is_instance_valid(panel) or panel.name != "InternalStorageSelectionControls":
 		return
-	var options := panel.find_child("ROMOptions", true, false) as GridContainer
-	if not is_instance_valid(options):
-		return
-	for child in options.get_children():
-		options.remove_child(child)
-		child.queue_free()
-	for capacity in ["4 GB", "8 GB", "16 GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"]:
-		var option := Button.new()
-		option.name = "ROMOption_" + capacity.replace(" ", "")
-		option.text = capacity + ("   ✓ SELECTED" if selected_rom_capacity == capacity else "")
-		option.custom_minimum_size.y = 48
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_rom_capacity == capacity)
-		option.pressed.connect(_on_rom_capacity_selected.bind(capacity))
-		options.add_child(option)
+	var unlocked_index := clampi(internal_storage_research_level, 0, INTERNAL_STORAGE_CAPACITIES.size() - 1)
+	var selected_index := INTERNAL_STORAGE_CAPACITIES.find(selected_rom_capacity)
+	if selected_index < 0 or selected_index > unlocked_index:
+		selected_index = 0
+		selected_rom_capacity = INTERNAL_STORAGE_CAPACITIES[0]
+	if is_instance_valid(internal_storage_value_label):
+		internal_storage_value_label.text = selected_rom_capacity
+	if is_instance_valid(internal_storage_decrease_button):
+		internal_storage_decrease_button.disabled = selected_index <= 0
+	if is_instance_valid(internal_storage_increase_button):
+		internal_storage_increase_button.disabled = selected_index >= unlocked_index
 
 func _show_battery_controls() -> void:
 	if not is_instance_valid(right_tools_content):
