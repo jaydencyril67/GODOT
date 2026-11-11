@@ -5208,11 +5208,11 @@ func _show_screen_size_controls() -> void:
 	bezel_width_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	width_column.add_child(bezel_width_value_label)
 
-	bezel_width = clampf(bezel_width, 0.17 - _get_screen_width_slider_max(), 0.12125)
+	bezel_width = clampf(bezel_width, 0.17 - _get_screen_width_slider_max(), 0.120833)
 	var width_slider := VSlider.new()
 	screen_width_slider = width_slider
 	width_slider.name = "ScreenWidthSlider"
-	width_slider.min_value = 0.04875
+	width_slider.min_value = 0.049167
 	width_slider.max_value = _get_screen_width_slider_max()
 	width_slider.step = 0.001
 	width_slider.value = clampf(0.17 - bezel_width, width_slider.min_value, width_slider.max_value)
@@ -5242,10 +5242,10 @@ func _show_screen_size_controls() -> void:
 
 	bezel_height_slider = VSlider.new()
 	bezel_height_slider.name = "ScreenHeightSlider"
-	bezel_height_slider.min_value = 0.0975
+	bezel_height_slider.min_value = 0.098167
 	bezel_height_slider.max_value = minf(0.345 - _minimum_screen_height_bezel(), _get_screen_height_slider_max())
 	bezel_height_slider.step = 0.001
-	bezel_height = clampf(bezel_height, 0.345 - bezel_height_slider.max_value, 0.2475)
+	bezel_height = clampf(bezel_height, 0.345 - bezel_height_slider.max_value, 0.246833)
 	bezel_height_slider.value = clampf(0.345 - bezel_height, bezel_height_slider.min_value, bezel_height_slider.max_value)
 	bezel_height_slider.tick_count = 14
 	bezel_height_slider.custom_minimum_size = Vector2(64, 320)
@@ -5261,7 +5261,7 @@ func _show_screen_size_controls() -> void:
 
 func _on_bezel_width_changed(value: float) -> void:
 	# The slider represents screen width: moving it up must reduce the bezel.
-	bezel_width = clampf(0.17 - value, 0.17 - _get_screen_width_slider_max(), 0.12125)
+	bezel_width = clampf(0.17 - value, 0.17 - _get_screen_width_slider_max(), 0.120833)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
@@ -5269,7 +5269,7 @@ func _on_bezel_width_changed(value: float) -> void:
 func _on_bezel_height_changed(value: float) -> void:
 	# The slider represents screen height: moving it up must reduce the bezel.
 	var minimum_bezel := maxf(_minimum_screen_height_bezel(), 0.345 - _get_screen_height_slider_max())
-	bezel_height = clampf(0.345 - value, minimum_bezel, 0.2475)
+	bezel_height = clampf(0.345 - value, minimum_bezel, 0.246833)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
@@ -5405,7 +5405,7 @@ func _minimum_screen_height_bezel() -> float:
 func _update_bezel_height_slider_limit() -> void:
 	var minimum_bezel := _minimum_screen_height_bezel()
 	var maximum_screen_height := minf(0.345 - minimum_bezel, _get_screen_height_slider_max())
-	bezel_height = clampf(bezel_height, 0.345 - maximum_screen_height, 0.2475)
+	bezel_height = clampf(bezel_height, 0.345 - maximum_screen_height, 0.246833)
 	if is_instance_valid(bezel_height_slider):
 		bezel_height_slider.max_value = maximum_screen_height
 		bezel_height_slider.set_value_no_signal(clampf(0.345 - bezel_height, bezel_height_slider.min_value, maximum_screen_height))
