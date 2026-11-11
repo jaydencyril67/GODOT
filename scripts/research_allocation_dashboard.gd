@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -556,12 +556,20 @@ func _build_component_selection_scene() -> void:
 
 	var choices := GridContainer.new()
 	choices.name = "ResearchComponentChoices"
+	var choices_scroll := ScrollContainer.new()
+	choices_scroll.name = "ResearchComponentOptionsScroll"
+	choices_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	choices_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	choices_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	choices_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	body_content.add_child(choices_scroll)
+
 	choices.columns = 4
 	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	choices.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	choices.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	choices.add_theme_constant_override("h_separation", roundi(_scaled(14.0)))
 	choices.add_theme_constant_override("v_separation", roundi(_scaled(14.0)))
-	body_content.add_child(choices)
+	choices_scroll.add_child(choices)
 
 	for index in range(COMPONENT_LABELS.size()):
 		var component_button := Button.new()
@@ -606,6 +614,24 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
+		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])):
+			var sensor_component := str(COMPONENT_VALUES[index])
+			var sensor_researched := int(research_component_levels.get(sensor_component, 0)) >= 1
+			var sensor_project_in_progress := false
+			for project_value in research_projects:
+				if not (project_value is Dictionary):
+					continue
+				var sensor_project: Dictionary = project_value
+				if str(sensor_project.get("component", "")) == sensor_component and str(sensor_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+					sensor_project_in_progress = true
+					break
+			component_button.disabled = sensor_researched or sensor_project_in_progress
+			if sensor_researched:
+				component_button.tooltip_text = "RESEARCH APPROVED — SENSOR UNLOCKED"
+			elif sensor_project_in_progress:
+				component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
+			else:
+				component_button.tooltip_text = "Commission a separate company-funded project to unlock this sensor."
 		elif COMPONENT_VALUES[index] in ["Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both"]:
 			var curved_component: String = str(COMPONENT_VALUES[index])
 			var already_researched := int(research_component_levels.get(curved_component, 0)) >= 1
