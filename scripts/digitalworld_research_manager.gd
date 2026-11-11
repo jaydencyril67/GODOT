@@ -24,6 +24,11 @@ const MEMORY_CLOCK_MAX_RESEARCH_LEVEL := 120
 const MEMORY_CLOCK_SPEED_TARGETS := [1066, 2133, 4266, 6400, 10700, 14400]
 const MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS := [20, 40, 60, 60, 80, 100, 120]
 const PHONE_TYPE_SEQUENCE := ["Standard", "Flip", "Fold"]
+const CURVED_SCREEN_RESEARCH_COMPONENTS := [
+	"Curved Screen Horizontal",
+	"Curved Screen Vertical",
+	"Curved Screen Both"
+]
 
 const COOLING_SYSTEM_SEQUENCE := [
 	"No Dedicated Cooling",
@@ -58,7 +63,10 @@ const COMPONENT_CATALOGUE := [
 	"Bluetooth",
 	"Cooling System Design",
 	"Phone Type",
-	"Memory Clock"
+	"Memory Clock",
+	"Curved Screen Horizontal",
+	"Curved Screen Vertical",
+	"Curved Screen Both"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -402,6 +410,17 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not COMPONENT_CATALOGUE.has(component):
 		return _failure("Choose an available research component.")
 
+	if CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
+		var completed_level := int(career.get("research_component_levels", {}).get(component, 0))
+		if completed_level >= 1:
+			return _failure("%s has already been researched." % component)
+		for existing_project_value in career.get("research_projects", []):
+			if not (existing_project_value is Dictionary):
+				continue
+			var existing_project: Dictionary = existing_project_value
+			if str(existing_project.get("component", "")) == component and str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+				return _failure("%s already has a research project in progress or awaiting validation." % component)
+
 	if component == "Memory Clock":
 		var memory_clock_level := int(career.get("research_component_levels", {}).get("Memory Clock", 0))
 		var ram_technology_level := int(career.get("research_component_levels", {}).get("RAM Technology", 0))
@@ -487,6 +506,14 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 	elif component == "Memory Clock":
 		project_objective = "Develop and validate higher memory data-transfer speeds for mobile phone RAM."
+	elif CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
+		match component:
+			"Curved Screen Horizontal":
+				project_objective = "Develop and validate curved display glass along the left and right edges of a mobile phone."
+			"Curved Screen Vertical":
+				project_objective = "Develop and validate curved display glass along the top and bottom edges of a mobile phone."
+			"Curved Screen Both":
+				project_objective = "Develop and validate curved display glass along all four edges of a mobile phone."
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
@@ -728,6 +755,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Phone Type":
 		# Standard is the baseline; research unlocks Flip, then Fold.
 		component_levels[component] = phone_type_target_index
+	elif CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
+		# Each curved-screen design is a separate one-time approved research unlock.
+		component_levels[component] = 1
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects
