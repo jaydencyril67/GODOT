@@ -379,9 +379,9 @@ func _default_validation_metric(component: String) -> String:
 		"Rear Camera MP":
 			return "Maximum rear camera resolution"
 		"Rear Camera Count":
-			return "Maximum rear camera modules"
+			return "Maximum number of rear cameras"
 		"Rear Flash Count":
-			return "Maximum rear flash modules"
+			return "Maximum number of rear flashes"
 		"Battery Capacity":
 			return "Maximum battery capacity"
 		"Screen Technology":
