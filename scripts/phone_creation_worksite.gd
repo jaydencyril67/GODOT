@@ -586,8 +586,11 @@ var selected_battery_capacity := "Not set"
 var battery_capacity_slider: VSlider
 
 var battery_capacity_value_label: Label
+var battery_capacity_max_label: Label
+var battery_capacity_range_label: Label
 
-var researched_battery_capacity_level := 15
+# Number of approved upgrades after the 1,000 mAh starting state (0–20).
+var researched_battery_capacity_level := 0
 
 var selected_charging_speed := 2
 
@@ -3291,19 +3294,26 @@ func _apply_research_typography(control: Control, font_size: int) -> void:
 	control.add_theme_font_override("font", stix_font)
 	control.add_theme_font_size_override("font_size", font_size)
 
-func set_battery_capacity_research_level(_level: int) -> void:
-	# Legacy compatibility hook: research no longer limits phone creation.
-	researched_battery_capacity_level = 15
-	var available_max := 8000
+func set_battery_capacity_research_level(level: int) -> void:
+	# Level 1 is the 1,000 mAh baseline; each approved upgrade adds 350 mAh.
+	researched_battery_capacity_level = clampi(level, 0, 20)
+	var available_max := _get_battery_capacity_maximum()
 	if selected_battery_capacity != "Not set":
 		var selected := clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, available_max)
-		selected = 1000 + roundi(float(selected - 1000) / 10.0) * 10
 		selected_battery_capacity = _format_integer_with_commas(selected) + " mAh"
 	if is_instance_valid(battery_capacity_slider):
 		battery_capacity_slider.max_value = available_max
 		battery_capacity_slider.value = clampf(battery_capacity_slider.value, 1000.0, float(available_max))
 	if is_instance_valid(battery_capacity_value_label):
 		battery_capacity_value_label.text = selected_battery_capacity if selected_battery_capacity != "Not set" else "NOT SELECTED"
+	if is_instance_valid(battery_capacity_max_label):
+		battery_capacity_max_label.text = _format_integer_with_commas(available_max)
+	if is_instance_valid(battery_capacity_range_label):
+		battery_capacity_range_label.text = "AVAILABLE RANGE: 1,000 — %s mAh" % _format_integer_with_commas(available_max)
+
+
+func _get_battery_capacity_maximum() -> int:
+	return 1000 + clampi(researched_battery_capacity_level, 0, 20) * 350
 
 func set_curve_screen_research_unlocked(_unlocked: bool) -> void:
 	# Legacy compatibility hook retained for older callers. Curved-screen access
@@ -12220,11 +12230,10 @@ func _show_battery_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
+	var available_max := _get_battery_capacity_maximum()
 	var initial_capacity := 1000
 	if selected_battery_capacity != "Not set":
-		initial_capacity = clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, 8000)
-		initial_capacity = 1000 + roundi(float(initial_capacity - 1000) / 10.0) * 10
-		initial_capacity = clampi(initial_capacity, 1000, 8000)
+		initial_capacity = clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, available_max)
 
 	battery_capacity_value_label = _make_label(
 		(_format_integer_with_commas(initial_capacity) + " mAh") if selected_battery_capacity != "Not set" else "NOT SELECTED",
@@ -12235,10 +12244,9 @@ func _show_battery_controls() -> void:
 	battery_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(battery_capacity_value_label)
 
-	var available_max := 8000
-	var range_hint := _make_label("AVAILABLE RANGE: 1,000 — 8,000 mAh", 12, Color("#B8AFA2"))
-	range_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(range_hint)
+	battery_capacity_range_label = _make_label("AVAILABLE RANGE: 1,000 — %s mAh" % _format_integer_with_commas(available_max), 12, Color("#B8AFA2"))
+	battery_capacity_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(battery_capacity_range_label)
 
 	var slider_row := HBoxContainer.new()
 	slider_row.name = "BatteryCapacitySliderRow"
@@ -12256,7 +12264,7 @@ func _show_battery_controls() -> void:
 	battery_capacity_slider.name = "BatteryCapacityVerticalSlider"
 	battery_capacity_slider.min_value = 1000
 	battery_capacity_slider.max_value = available_max
-	battery_capacity_slider.step = 10
+	battery_capacity_slider.step = 1
 	battery_capacity_slider.value = initial_capacity
 	battery_capacity_slider.custom_minimum_size = Vector2(52, 320)
 	battery_capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -12267,12 +12275,12 @@ func _show_battery_controls() -> void:
 	_style_custom_slider(battery_capacity_slider)
 	slider_row.add_child(battery_capacity_slider)
 
-	var maximum_label := _make_label("8,000", 11, Color("#B8AFA2"))
-	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	slider_row.add_child(maximum_label)
+	battery_capacity_max_label = _make_label(_format_integer_with_commas(available_max), 11, Color("#B8AFA2"))
+	battery_capacity_max_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(battery_capacity_max_label)
 
 func _on_battery_capacity_slider_changed(value: float) -> void:
-	var capacity := clampi(1000 + roundi((value - 1000.0) / 10.0) * 10, 1000, 8000)
+	var capacity := clampi(roundi(value), 1000, _get_battery_capacity_maximum())
 	selected_battery_capacity = _format_integer_with_commas(capacity) + " mAh"
 	_update_battery_capacity_controls()
 
@@ -12280,7 +12288,7 @@ func _update_battery_capacity_controls() -> void:
 	if is_instance_valid(battery_capacity_value_label):
 		battery_capacity_value_label.text = selected_battery_capacity
 	if is_instance_valid(battery_capacity_slider):
-		var capacity := clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, 8000)
+		var capacity := clampi(int(selected_battery_capacity.replace(",", "").replace(" mAh", "")), 1000, _get_battery_capacity_maximum())
 		if not is_equal_approx(battery_capacity_slider.value, float(capacity)):
 			battery_capacity_slider.set_value_no_signal(capacity)
 	if software_value_labels.has("BATTERY") and is_instance_valid(software_value_labels["BATTERY"]):
