@@ -25,8 +25,59 @@ const COMPONENT_CATALOGUE := [
 	"Front Camera",
 	"RAM",
 	"Internal Storage",
-	"RAM Technology"
+	"RAM Technology",
+	"Mobile Network"
 ]
+
+const MOBILE_NETWORK_SEQUENCE := [
+	{"generation": "1G", "generation_name": "Analog Cellular", "technology": "AMPS"},
+	{"generation": "1G", "generation_name": "Analog Cellular", "technology": "NMT"},
+	{"generation": "1G", "generation_name": "Analog Cellular", "technology": "TACS"},
+	{"generation": "2G", "generation_name": "Digital Cellular", "technology": "GSM"},
+	{"generation": "2G", "generation_name": "Digital Cellular", "technology": "IS-95 (cdmaOne)"},
+	{"generation": "2G", "generation_name": "Digital Cellular", "technology": "D-AMPS (IS-136)"},
+	{"generation": "2G", "generation_name": "Digital Cellular", "technology": "GPRS"},
+	{"generation": "2G", "generation_name": "Digital Cellular", "technology": "EDGE"},
+	{"generation": "3G", "generation_name": "Mobile Broadband", "technology": "UMTS / WCDMA"},
+	{"generation": "3G", "generation_name": "Mobile Broadband", "technology": "CDMA2000"},
+	{"generation": "3G", "generation_name": "Mobile Broadband", "technology": "TD-SCDMA"},
+	{"generation": "3G", "generation_name": "Mobile Broadband", "technology": "HSPA"},
+	{"generation": "3G", "generation_name": "Mobile Broadband", "technology": "HSPA+"},
+	{"generation": "4G", "generation_name": "High-Speed Mobile Broadband", "technology": "LTE"},
+	{"generation": "4G", "generation_name": "High-Speed Mobile Broadband", "technology": "LTE-Advanced"},
+	{"generation": "4G", "generation_name": "High-Speed Mobile Broadband", "technology": "LTE-Advanced Pro"},
+	{"generation": "5G", "generation_name": "New Radio", "technology": "5G NSA"},
+	{"generation": "5G", "generation_name": "New Radio", "technology": "5G SA"},
+	{"generation": "5G", "generation_name": "New Radio", "technology": "5G-Advanced"},
+	{"generation": "6G", "generation_name": "Next-Generation Wireless", "technology": "6G (IMT-2030)"},
+	{"generation": "6G", "generation_name": "Next-Generation Wireless", "technology": "Terahertz Communications"},
+	{"generation": "6G", "generation_name": "Next-Generation Wireless", "technology": "AI-Native Networking"},
+	{"generation": "6G", "generation_name": "Next-Generation Wireless", "technology": "Integrated Sensing and Communication"}
+]
+
+
+static func get_mobile_network_step_count() -> int:
+	return MOBILE_NETWORK_SEQUENCE.size()
+
+
+static func get_mobile_network_entry(index: int) -> Dictionary:
+	if index < 0 or index >= MOBILE_NETWORK_SEQUENCE.size():
+		return {}
+	var entry: Dictionary = MOBILE_NETWORK_SEQUENCE[index].duplicate(true)
+	entry["index"] = index
+	return entry
+
+
+static func get_mobile_network_research_target(component_levels: Dictionary) -> Dictionary:
+	var current_level := clampi(
+		int(component_levels.get("Mobile Network", 0)),
+		0,
+		MOBILE_NETWORK_SEQUENCE.size() - 1
+	)
+	var target_index := current_level + 1
+	if target_index >= MOBILE_NETWORK_SEQUENCE.size():
+		return {}
+	return get_mobile_network_entry(target_index)
 
 
 static func normalize_component(component_value: String) -> String:
@@ -177,14 +228,43 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not bool(estimate.get("ok", false)):
 		return _failure(str(estimate.get("error", "The research team could not be calculated.")))
 
+	var mobile_network_target: Dictionary = {}
+	if component == "Mobile Network":
+		mobile_network_target = get_mobile_network_research_target(career.get("research_component_levels", {}))
+		if mobile_network_target.is_empty():
+			return _failure("All Mobile Network technologies in the progression have already been researched.")
+		var target_index := int(mobile_network_target.get("index", -1))
+		for existing_project_value in career.get("research_projects", []):
+			if not (existing_project_value is Dictionary):
+				continue
+			var existing_project: Dictionary = existing_project_value
+			if str(existing_project.get("component", "")) != "Mobile Network":
+				continue
+			if int(existing_project.get("research_target_index", -1)) != target_index:
+				continue
+			if str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+				return _failure("The next Mobile Network technology already has a project in progress or awaiting validation.")
+
+	var project_title := "Research: " + component
+	var project_objective := ""
+	if component == "Mobile Network":
+		project_title = "Research: Mobile Network - " + str(mobile_network_target.get("technology", ""))
+		project_objective = "Develop and validate %s for %s mobile networks." % [
+			str(mobile_network_target.get("technology", "")),
+			str(mobile_network_target.get("generation", ""))
+		]
+
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
 	var project := {
 		"id": project_id,
-		"title": "Research: " + component,
+		"title": project_title,
 		"component": component,
 		"components": [component],
-		"objective": "",
+		"objective": project_objective,
+		"research_target_index": int(mobile_network_target.get("index", -1)),
+		"research_target": str(mobile_network_target.get("technology", "")),
+		"research_generation": str(mobile_network_target.get("generation", "")),
 		"project_type": "technology_improvement",
 		"required_research_days": float(estimate.get("expected_duration_days", BASE_RESEARCH_DURATION_DAYS)),
 		"completed_research_days": 0.0,
@@ -272,6 +352,19 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var project: Dictionary = projects[project_index]
 	if str(project.get("status", "")) != STATUS_AWAITING_VALIDATION:
 		return _failure("Only completed projects awaiting validation can be approved.")
+
+	var component := normalize_component(str(project.get("component", "")))
+	var component_levels: Dictionary = career.get("research_component_levels", {})
+	var mobile_network_target_index := -1
+	if component == "Mobile Network":
+		mobile_network_target_index = int(project.get("research_target_index", -1))
+		var expected_target_index := int(component_levels.get(component, 0)) + 1
+		if mobile_network_target_index != expected_target_index:
+			return _failure("This Mobile Network project is no longer the next technology in the research sequence.")
+		var expected_target := get_mobile_network_entry(mobile_network_target_index)
+		if expected_target.is_empty() or str(project.get("research_target", "")) != str(expected_target.get("technology", "")):
+			return _failure("The Mobile Network project target does not match the current research sequence.")
+
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
 
@@ -297,8 +390,6 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	project["status"] = STATUS_APPROVED
 	project["approved_at_unix"] = game_time_unix
 	project["approved_results"] = approved_results
-	var component := normalize_component(str(project.get("component", "")))
-	var component_levels: Dictionary = career.get("research_component_levels", {})
 	if component in ["Phone Thickness", "Border Radius"]:
 		component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
 	elif component == "Speakers":
@@ -330,6 +421,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "RAM Technology":
 		# LPDDR2 is the baseline; six approvals unlock the remaining six RAM generations.
 		component_levels[component] = mini(6, int(component_levels.get(component, 0)) + 1)
+	elif component == "Mobile Network":
+		# Each approved project unlocks exactly the next technology in the generation sequence.
+		component_levels[component] = mobile_network_target_index
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects
