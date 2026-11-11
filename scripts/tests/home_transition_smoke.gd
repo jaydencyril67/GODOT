@@ -11,8 +11,42 @@ func _initialize() -> void:
 	call_deferred("_run_transition_checks")
 
 
+func _run_memory_clock_progression_checks() -> bool:
+	var expected_milestones: Dictionary = {
+		0: 200,
+		20: 1066,
+		40: 2133,
+		60: 4266,
+		80: 6400,
+		100: 10700,
+		120: 14400
+	}
+	for level_value in expected_milestones.keys():
+		var level := int(level_value)
+		var expected_speed := int(expected_milestones[level_value])
+		if ResearchManagerScript.get_memory_clock_speed_for_level(level) != expected_speed:
+			_fail("Memory Clock level %d did not resolve to its expected speed." % level)
+			return false
+	var previous_speed := ResearchManagerScript.get_memory_clock_speed_for_level(0)
+	for level in range(1, ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL + 1):
+		var next_speed := ResearchManagerScript.get_memory_clock_speed_for_level(level)
+		if next_speed <= previous_speed:
+			_fail("Memory Clock speeds did not increase at every research level.")
+			return false
+		previous_speed = next_speed
+	if ResearchManagerScript.get_memory_clock_max_level_for_ram_technology("LPDDR4X") != 60:
+		_fail("LPDDR4X did not share LPDDR4's Memory Clock hardware limit.")
+		return false
+	if ResearchManagerScript.get_memory_clock_max_level_for_ram_technology("LPDDR6") != 120:
+		_fail("LPDDR6 did not receive the final Memory Clock hardware limit.")
+		return false
+	return true
+
+
 func _run_transition_checks() -> void:
 	if not _run_screen_technology_checks():
+		return
+	if not _run_memory_clock_progression_checks():
 		return
 	game = MainGameScript.new()
 	root.add_child(game)
@@ -149,6 +183,10 @@ func _run_transition_checks() -> void:
 		return
 	if not cooling_component_option.tooltip_text.contains("Graphite Sheet"):
 		_fail("Cooling System Design did not identify Graphite Sheet as its first research target.")
+		return
+	var memory_clock_component_option := dashboard.find_child("ResearchComponentOption_15", true, false) as Button
+	if not is_instance_valid(memory_clock_component_option) or not memory_clock_component_option.text.contains("MEMORY CLOCK"):
+		_fail("Memory Clock is missing from the R&D component selector.")
 		return
 	if dashboard.find_child("ResearchStaffScroll", true, false) != null:
 		_fail("Staff selection appeared before the component-selection step was completed.")
@@ -294,6 +332,65 @@ func _run_transition_checks() -> void:
 	if int(game.career.get("research_component_levels", {}).get("RAM Technology", 0)) != 1:
 		_fail("Technical approval did not unlock the next RAM Technology generation.")
 		return
+
+if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Memory Clock"):
+		_fail("Memory Clock is missing from the R&D component catalogue.")
+		return
+	var memory_clock_commission: Dictionary = game.commission_research_project({
+		"component": "Memory Clock",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if not bool(memory_clock_commission.get("ok", false)):
+		_fail("A Memory Clock research project could not be commissioned: %s" % str(memory_clock_commission.get("error", "")))
+		return
+	var memory_clock_project: Dictionary = memory_clock_commission.get("project", {})
+	var duplicate_memory_clock_commission: Dictionary = game.commission_research_project({
+		"component": "Memory Clock",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if bool(duplicate_memory_clock_commission.get("ok", false)):
+		_fail("A second Memory Clock project was allowed while one was already active.")
+		return
+	var memory_clock_projects: Array = game.career.get("research_projects", [])
+	for project_index in range(memory_clock_projects.size()):
+		if str(memory_clock_projects[project_index].get("id", "")) == str(memory_clock_project.get("id", "")):
+			memory_clock_projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = memory_clock_projects
+	var memory_clock_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
+		game.career,
+		86400.0 * 29.0,
+		game.game_date_unix + 86400.0 * 29.0
+	)
+	if not memory_clock_completed_ids.has(str(memory_clock_project.get("id", ""))):
+		_fail("The Memory Clock research project did not complete after its estimated duration.")
+		return
+	var memory_clock_validation: Dictionary = game.approve_research_project(str(memory_clock_project.get("id", "")), [{
+		"component": "Memory Clock",
+		"metric": "Highest validated memory transfer speed",
+		"value": "Next available speed step",
+		"unit": "MT/s",
+		"notes": "Validated as the next stage of the shared Memory Clock progression."
+	}])
+	if not bool(memory_clock_validation.get("ok", false)):
+		_fail("A completed Memory Clock project could not pass technical validation: %s" % str(memory_clock_validation.get("error", "")))
+		return
+	if int(game.career.get("research_component_levels", {}).get("Memory Clock", 0)) != 1:
+		_fail("Technical approval did not unlock the first Memory Clock research level.")
+		return
+	var saved_memory_clock_level := int(game.career.get("research_component_levels", {}).get("Memory Clock", 0))
+	var research_levels: Dictionary = game.career.get("research_component_levels", {})
+	research_levels["Memory Clock"] = ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL
+	game.career["research_component_levels"] = research_levels
+	var maximum_memory_clock_commission: Dictionary = game.commission_research_project({
+		"component": "Memory Clock",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if bool(maximum_memory_clock_commission.get("ok", false)):
+		_fail("Memory Clock research continued beyond its 120-level maximum.")
+		return
+	research_levels["Memory Clock"] = saved_memory_clock_level
+	game.career["research_component_levels"] = research_levels
 
 	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("RAM"):
 		_fail("RAM capacity is missing from the R&D component catalogue.")
