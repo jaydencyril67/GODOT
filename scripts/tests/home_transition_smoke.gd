@@ -266,6 +266,48 @@ func _run_transition_checks() -> void:
 	if int(game.career.get("research_component_levels", {}).get("RAM Technology", 0)) != 1:
 		_fail("Technical approval did not unlock the next RAM Technology generation.")
 		return
+
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("RAM"):
+		_fail("RAM capacity is missing from the R&D component catalogue.")
+		return
+	var ram_capacity_commission: Dictionary = game.commission_research_project({
+		"component": "RAM",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if not bool(ram_capacity_commission.get("ok", false)):
+		_fail("A RAM capacity research project could not be commissioned: %s" % str(ram_capacity_commission.get("error", "")))
+		return
+	var ram_capacity_project: Dictionary = ram_capacity_commission.get("project", {})
+	var ram_capacity_projects: Array = game.career.get("research_projects", [])
+	for project_index in range(ram_capacity_projects.size()):
+		if str(ram_capacity_projects[project_index].get("id", "")) == str(ram_capacity_project.get("id", "")):
+			ram_capacity_projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = ram_capacity_projects
+	var ram_capacity_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
+		game.career,
+		86400.0 * 29.0,
+		game.game_date_unix + 86400.0 * 29.0
+	)
+	if not ram_capacity_completed_ids.has(str(ram_capacity_project.get("id", ""))):
+		_fail("The RAM capacity project did not complete after its estimated 29-day duration.")
+		return
+	if int(game.career.get("research_component_levels", {}).get("RAM", 0)) != 0:
+		_fail("RAM capacity unlocked before its completed project passed technical validation.")
+		return
+	var ram_capacity_validation: Dictionary = game.approve_research_project(str(ram_capacity_project.get("id", "")), [{
+		"component": "RAM",
+		"metric": "Maximum validated RAM capacity",
+		"value": "12 GB",
+		"unit": "",
+		"notes": "Validated memory-density and package-capacity improvement."
+	}])
+	if not bool(ram_capacity_validation.get("ok", false)):
+		_fail("A completed RAM capacity project could not pass technical validation: %s" % str(ram_capacity_validation.get("error", "")))
+		return
+	if int(game.career.get("research_component_levels", {}).get("RAM", 0)) != 1:
+		_fail("Technical approval did not unlock the next RAM capacity tier.")
+		return
 	dashboard.call("configure", game._get_research_dashboard_data())
 
 	game._return_from_research_allocation_dashboard()
