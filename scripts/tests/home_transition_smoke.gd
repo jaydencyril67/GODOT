@@ -241,6 +241,75 @@ func _run_transition_checks() -> void:
 	if dashboard.find_child("CreateResearchButton", true, false) == null:
 		_fail("The empty research scene did not show its Create Research button.")
 		return
+
+	# Completed research must be visible and reviewable from the R&D dashboard.
+	var review_dashboard_scene := load("res://scenes/research_allocation_dashboard.tscn") as PackedScene
+	if not is_instance_valid(review_dashboard_scene):
+		_fail("The research dashboard scene could not be loaded for validation UI checks.")
+		return
+	var review_dashboard := review_dashboard_scene.instantiate() as Control
+	root.add_child(review_dashboard)
+	await process_frame
+	review_dashboard.call("configure", {
+		"company_name": "Validation UI Smoke Test",
+		"balance": 1000000.0,
+		"staff_employees": [],
+		"research_projects": [{
+			"id": "RDP-REVIEW-SMOKE",
+			"component": "Charging Speed",
+			"objective": "Validate the next wired charging-speed ceiling.",
+			"research_target": "4W",
+			"research_target_index": 2,
+			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
+			"staff_ids": []
+		}],
+		"research_technologies": {},
+		"research_component_levels": {},
+		"research_history": []
+	})
+	if review_dashboard.find_child("ReviewValidationButton", true, false) == null:
+		_fail("Completed research did not appear in the Ready for Technical Validation section.")
+		return
+	review_dashboard.call("open_validation_review", "RDP-REVIEW-SMOKE")
+	await process_frame
+	for control_name in ["ValidationReviewScreen", "ValidationMetricInput", "ValidationValueInput", "ValidationNotesInput", "ValidationReviewApproveButton", "ValidationReviewRejectButton"]:
+		if review_dashboard.find_child(control_name, true, false) == null:
+			_fail("The technical validation screen is missing %s." % control_name)
+			return
+	var validation_value_input := review_dashboard.find_child("ValidationValueInput", true, false) as LineEdit
+	if validation_value_input.text != "4W":
+		_fail("The review form did not prefill the exact assigned Charging Speed target.")
+		return
+	var captured_approvals: Array = []
+	var captured_rejections: Array = []
+	review_dashboard.project_approve_requested.connect(func(project_id: String, results: Array) -> void:
+		captured_approvals.append({"project_id": project_id, "results": results.duplicate(true)})
+	)
+	review_dashboard.project_reject_requested.connect(func(project_id: String, review_note: String) -> void:
+		captured_rejections.append({"project_id": project_id, "review_note": review_note})
+	)
+	review_dashboard.call("_on_validation_approve_pressed")
+	if captured_approvals.size() != 1:
+		_fail("The Approve Findings action did not submit the validation result.")
+		return
+	var submitted_results: Array = captured_approvals[0].get("results", [])
+	if str(captured_approvals[0].get("project_id", "")) != "RDP-REVIEW-SMOKE" or submitted_results.size() != 1 or str(submitted_results[0].get("value", "")) != "4W" or str(submitted_results[0].get("component", "")) != "Charging Speed":
+		_fail("The review form submitted the wrong project or research target.")
+		return
+	var validation_notes_input := review_dashboard.find_child("ValidationNotesInput", true, false) as TextEdit
+	validation_notes_input.text = "The test result did not meet the required target."
+	review_dashboard.call("_on_validation_reject_pressed")
+	if captured_rejections.size() != 1 or str(captured_rejections[0].get("review_note", "")) != validation_notes_input.text:
+		_fail("The Reject action did not submit the technical review reason.")
+		return
+	validation_notes_input.text = ""
+	review_dashboard.call("_on_validation_reject_pressed")
+	var review_error := review_dashboard.find_child("ValidationReviewError", true, false) as Label
+	if captured_rejections.size() != 1 or not review_error.text.contains("review reason"):
+		_fail("The review form allowed a project rejection without a reason.")
+		return
+	review_dashboard.queue_free()
+
 	dashboard.call("_open_creation_scene")
 	await process_frame
 	for control_name in ["ResearchComponentOption", "ResearchComponentOption_1", "ResearchNextButton"]:
