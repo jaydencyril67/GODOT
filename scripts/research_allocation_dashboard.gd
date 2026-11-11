@@ -72,6 +72,7 @@ func _ready() -> void:
 	_last_layout_key = _get_layout_key()
 	resized.connect(_on_dashboard_resized)
 	_build_shell()
+	_apply_shell_layout()
 	_render_scene()
 
 
@@ -427,7 +428,7 @@ func _build_validation_review_scene(project: Dictionary) -> void:
 	var objective := str(project.get("objective", "")).strip_edges()
 	if not objective.is_empty():
 		var objective_label := _label(objective, 14, TEXT_MUTED)
-		objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		review_content.add_child(objective_label)
 
 	var target := str(project.get("research_target", "")).strip_edges()
@@ -1053,7 +1054,7 @@ func _build_validation_project_card(project: Dictionary, parent: Control) -> voi
 		target_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		content.add_child(target_label)
 	var completion_note := _label("R&D completed. Technical findings require validation before the upgrade is unlocked.", 12, TEXT_MUTED)
-	completion_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	completion_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content.add_child(completion_note)
 
 	var review_button := _button("REVIEW FINDINGS  ›", true, ACCENT)
