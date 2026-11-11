@@ -358,8 +358,13 @@ func _build_component_selection_scene() -> void:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
 		elif COMPONENT_VALUES[index] == "Memory Clock":
 			var memory_clock_level := int(research_component_levels.get("Memory Clock", 0))
-			if memory_clock_level >= ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL:
-				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
+			var ram_technology_level := int(research_component_levels.get("RAM Technology", 0))
+			var memory_clock_research_ceiling := ResearchManagerScript.get_memory_clock_research_ceiling_for_ram_technology_level(ram_technology_level)
+			if memory_clock_level >= memory_clock_research_ceiling:
+				if memory_clock_research_ceiling >= ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL:
+					component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
+				else:
+					component_button.tooltip_text = "Unlock a newer RAM Technology to continue."
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Research unlocks the next available memory speed."
