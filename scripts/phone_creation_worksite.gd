@@ -5458,10 +5458,26 @@ func _is_screen_type_level_unlocked(level: int) -> bool:
 			return level == 0
 
 
+# Research unlocks the design, but the phone must also reach the required
+# physical screen dimensions before that curved design can be selected.
+func _is_screen_type_level_available(level: int) -> bool:
+	if not _is_screen_type_level_unlocked(level):
+		return false
+	match level:
+		1:
+			return _is_screen_width_max()
+		2:
+			return _is_screen_height_max()
+		3:
+			return _is_screen_width_max() and _is_screen_height_max()
+		_:
+			return level == 0
+
+
 func _find_available_screen_type_level(direction: int) -> int:
 	var candidate := screen_type_level + direction
 	while candidate >= 0 and candidate <= 3:
-		if _is_screen_type_level_unlocked(candidate):
+		if _is_screen_type_level_available(candidate):
 			return candidate
 		candidate += direction
 	return screen_type_level
@@ -5545,7 +5561,7 @@ func _is_screen_height_max() -> bool:
 	return bezel_height <= _minimum_screen_height_bezel() + 0.0005
 
 func _refresh_screen_type_controls() -> void:
-	if screen_type_level < 0 or screen_type_level > 3 or not _is_screen_type_level_unlocked(screen_type_level):
+	if screen_type_level < 0 or screen_type_level > 3 or not _is_screen_type_level_available(screen_type_level):
 		screen_type_level = 0
 	screen_shape_mode = "Flat screen" if screen_type_level == 0 else "Curve screen"
 	side_curve_enabled = screen_type_level in [1, 3]
