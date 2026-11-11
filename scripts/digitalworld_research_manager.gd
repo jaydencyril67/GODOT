@@ -27,7 +27,8 @@ const COMPONENT_CATALOGUE := [
 	"Internal Storage",
 	"RAM Technology",
 	"Mobile Network",
-	"Wi-Fi"
+	"Wi-Fi",
+	"Bluetooth"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -116,6 +117,53 @@ static func get_wifi_research_target(component_levels: Dictionary) -> Dictionary
 	if target_index >= WIFI_SEQUENCE.size():
 		return {}
 	return get_wifi_entry(target_index)
+
+
+static func get_bluetooth_research_target(component_levels: Dictionary) -> Dictionary:
+	var current_level := clampi(
+		int(component_levels.get("Bluetooth", 0)),
+		0,
+		BLUETOOTH_SEQUENCE.size() - 1
+	)
+	var target_index := current_level + 1
+	if target_index >= BLUETOOTH_SEQUENCE.size():
+		return {}
+	return get_bluetooth_entry(target_index)
+
+
+const BLUETOOTH_SEQUENCE := [
+	{"generation": "Bluetooth 1.0b", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 1.0b"},
+	{"generation": "Bluetooth 1.1", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 1.1"},
+	{"generation": "Bluetooth 1.2", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 1.2"},
+	{"generation": "Bluetooth 2.0 + EDR", "generation_name": "Enhanced Data Rate", "technology": "Bluetooth 2.0 + EDR"},
+	{"generation": "Bluetooth 2.1 + EDR", "generation_name": "Secure Simple Pairing", "technology": "Bluetooth 2.1 + EDR"},
+	{"generation": "Bluetooth 3.0 + HS", "generation_name": "High Speed", "technology": "Bluetooth 3.0 + HS"},
+	{"generation": "Bluetooth 4.0", "generation_name": "Bluetooth Low Energy", "technology": "Bluetooth 4.0"},
+	{"generation": "Bluetooth 4.1", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 4.1"},
+	{"generation": "Bluetooth 4.2", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 4.2"},
+	{"generation": "Bluetooth 5.0", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 5.0"},
+	{"generation": "Bluetooth 5.1", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 5.1"},
+	{"generation": "Bluetooth 5.2", "generation_name": "LE Audio foundation", "technology": "Bluetooth 5.2"},
+	{"generation": "Bluetooth 5.3", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 5.3"},
+	{"generation": "Bluetooth 5.4", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 5.4"},
+	{"generation": "Bluetooth 6.0", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 6.0"},
+	{"generation": "Bluetooth 6.1", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 6.1"},
+	{"generation": "Bluetooth 6.2", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 6.2"},
+	{"generation": "Bluetooth 6.3", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 6.3"},
+	{"generation": "Bluetooth 7.0", "generation_name": "Bluetooth Core Specification", "technology": "Bluetooth 7.0"}
+]
+
+
+static func get_bluetooth_step_count() -> int:
+	return BLUETOOTH_SEQUENCE.size()
+
+
+static func get_bluetooth_entry(index: int) -> Dictionary:
+	if index < 0 or index >= BLUETOOTH_SEQUENCE.size():
+		return {}
+	var entry: Dictionary = BLUETOOTH_SEQUENCE[index].duplicate(true)
+	entry["index"] = index
+	return entry
 
 
 static func normalize_component(component_value: String) -> String:
@@ -271,7 +319,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_mobile_network_research_target(career.get("research_component_levels", {}))
 	elif component == "Wi-Fi":
 		ordered_target = get_wifi_research_target(career.get("research_component_levels", {}))
-	if component in ["Mobile Network", "Wi-Fi"]:
+	elif component == "Bluetooth":
+		ordered_target = get_bluetooth_research_target(career.get("research_component_levels", {}))
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth"]:
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -294,8 +344,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		project_title = "Research: %s - %s" % [component, target_technology]
 		if component == "Mobile Network":
 			project_objective = "Develop and validate %s for %s mobile networks." % [target_technology, target_generation]
-		else:
+		elif component == "Wi-Fi":
 			project_objective = "Develop and validate IEEE %s for %s wireless networks." % [target_technology, target_generation]
+		else:
+			project_objective = "Develop and validate %s for mobile-device connectivity." % target_technology
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
@@ -400,6 +452,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var component_levels: Dictionary = career.get("research_component_levels", {})
 	var mobile_network_target_index := -1
 	var wifi_target_index := -1
+	var bluetooth_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -416,6 +469,14 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		var expected_wifi_target := get_wifi_entry(wifi_target_index)
 		if expected_wifi_target.is_empty() or str(project.get("research_target", "")) != str(expected_wifi_target.get("technology", "")):
 			return _failure("The Wi-Fi project target does not match the current research sequence.")
+	elif component == "Bluetooth":
+		bluetooth_target_index = int(project.get("research_target_index", -1))
+		var expected_bluetooth_index := int(component_levels.get(component, 0)) + 1
+		if bluetooth_target_index != expected_bluetooth_index:
+			return _failure("This Bluetooth project is no longer the next technology in the research sequence.")
+		var expected_bluetooth_target := get_bluetooth_entry(bluetooth_target_index)
+		if expected_bluetooth_target.is_empty() or str(project.get("research_target", "")) != str(expected_bluetooth_target.get("technology", "")):
+			return _failure("The Bluetooth project target does not match the current research sequence.")
 
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
@@ -438,6 +499,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact Mobile Network technology assigned to this project.")
 		if result_component == "Wi-Fi" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact Wi-Fi IEEE standard assigned to this project.")
+		if result_component == "Bluetooth" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact Bluetooth version assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -483,6 +546,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Wi-Fi":
 		# Wi-Fi 1 is the starting baseline; each approval unlocks the next Wi-Fi generation.
 		component_levels[component] = wifi_target_index
+	elif component == "Bluetooth":
+		# Bluetooth 1.0b is the baseline; each approval unlocks the next Core Specification version.
+		component_levels[component] = bluetooth_target_index
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects
