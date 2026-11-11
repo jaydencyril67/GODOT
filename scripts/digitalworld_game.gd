@@ -2452,6 +2452,7 @@ func _get_research_dashboard_data() -> Dictionary:
 		"staff_employees": career.get("staff_employees", []),
 		"research_projects": career.get("research_projects", []),
 		"research_technologies": career.get("research_technologies", {}),
+		"research_component_levels": career.get("research_component_levels", {}),
 		"research_history": career.get("research_history", []),
 		"game_date_unix": game_date_unix
 	}
@@ -2483,6 +2484,7 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 		phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
 		phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
+		phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 	_show_notice("RESEARCH APPROVED", "The validated findings have been recorded in the company's technology development history.")
 
 
@@ -2631,7 +2633,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_border_radius_research_level", int(career.get("research_component_levels", {}).get("Border Radius", 0)))
 	phone_creation_worksite.call("set_wifi_research_level", 8)
 	phone_creation_worksite.call("set_bluetooth_research_level", 14)
-	phone_creation_worksite.call("set_mobile_internet_research_level", 7)
+	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 	phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
