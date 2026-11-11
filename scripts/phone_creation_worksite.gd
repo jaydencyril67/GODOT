@@ -511,6 +511,7 @@ var preview_stack: VBoxContainer
 var software_summary_panel: PanelContainer
 
 var software_value_labels: Dictionary = {}
+var hardware_selector_value_labels: Dictionary = {}
 
 
 var selected_ram_capacity := "Not set"
@@ -5543,6 +5544,7 @@ func _show_screen_tech_controls() -> void:
 	_style_level_selector_button(screen_technology_decrease_button)
 	screen_technology_decrease_button.pressed.connect(_on_screen_technology_decrease_pressed)
 	controls.add_child(screen_technology_decrease_button)
+	_add_hardware_selector_value_label(controls, "screen_technology")
 
 	screen_technology_increase_button = Button.new()
 	screen_technology_increase_button.name = "IncreaseScreenTechnologyButton"
@@ -5564,6 +5566,7 @@ func _on_screen_enablement_toggled(enabled: bool) -> void:
 
 
 func _refresh_screen_technology_ui() -> void:
+	_refresh_hardware_selector_value_labels()
 	screen_technology_research_level = clampi(
 		screen_technology_research_level,
 		0,
@@ -7900,6 +7903,7 @@ func _show_front_camera_controls() -> void:
 	_style_level_selector_button(front_camera_decrease_button)
 	front_camera_decrease_button.pressed.connect(_on_front_camera_decrease_pressed)
 	controls.add_child(front_camera_decrease_button)
+	_add_hardware_selector_value_label(controls, "front_camera")
 
 	front_camera_increase_button = Button.new()
 	front_camera_increase_button.name = "IncreaseFrontCameraButton"
@@ -7922,6 +7926,7 @@ func _on_front_camera_enablement_toggled(enabled: bool) -> void:
 
 
 func _refresh_front_camera_controls() -> void:
+	_refresh_hardware_selector_value_labels()
 	var selected_index := FRONT_CAMERA_STYLES.find(front_camera_style)
 	if selected_index < 0:
 		selected_index = 0
@@ -8768,6 +8773,7 @@ func _show_border_radius_controls() -> void:
 	_style_level_selector_button(border_radius_decrease_button)
 	border_radius_decrease_button.pressed.connect(_on_border_radius_decrease_pressed)
 	controls.add_child(border_radius_decrease_button)
+	_add_hardware_selector_value_label(controls, "border_radius")
 
 	border_radius_increase_button = Button.new()
 	border_radius_increase_button.name = "IncreaseBorderRadiusButton"
@@ -8816,6 +8822,7 @@ func _show_thickness_controls() -> void:
 	_style_level_selector_button(phone_thickness_decrease_button)
 	phone_thickness_decrease_button.pressed.connect(_on_phone_thickness_decrease_pressed)
 	controls.add_child(phone_thickness_decrease_button)
+	_add_hardware_selector_value_label(controls, "phone_thickness")
 
 	phone_thickness_increase_button = Button.new()
 	phone_thickness_increase_button.name = "IncreasePhoneThicknessButton"
@@ -8967,6 +8974,7 @@ func _show_home_button_controls() -> void:
 	_style_level_selector_button(home_button_decrease_button)
 	home_button_decrease_button.pressed.connect(_on_home_button_decrease_pressed)
 	controls.add_child(home_button_decrease_button)
+	_add_hardware_selector_value_label(controls, "home_button")
 
 	home_button_increase_button = Button.new()
 	home_button_increase_button.name = "IncreaseHomeButtonButton"
@@ -8992,6 +9000,7 @@ func set_home_button_research_level(level: int) -> void:
 
 
 func _refresh_home_button_controls() -> void:
+	_refresh_hardware_selector_value_labels()
 	var selected_index := HOME_BUTTON_TYPES.find(home_button_type)
 	if is_instance_valid(home_button_value_label):
 		home_button_value_label.text = "%s  ·  %d / %d" % [
@@ -9959,6 +9968,7 @@ func _show_speaker_controls() -> void:
 	_style_level_selector_button(speaker_count_decrease_button)
 	speaker_count_decrease_button.pressed.connect(_on_speaker_count_decrease_pressed)
 	controls.add_child(speaker_count_decrease_button)
+	_add_hardware_selector_value_label(controls, "speaker_count")
 
 	speaker_count_increase_button = Button.new()
 	speaker_count_increase_button.name = "IncreaseSpeakerCountButton"
@@ -9971,6 +9981,7 @@ func _show_speaker_controls() -> void:
 
 
 func _refresh_speaker_count_controls() -> void:
+	_refresh_hardware_selector_value_labels()
 	if is_instance_valid(speaker_count_value_label):
 		speaker_count_value_label.text = "SPEAKERS  %d / %d" % [speaker_count, researched_speaker_count]
 	if is_instance_valid(speaker_count_decrease_button):
@@ -10088,6 +10099,7 @@ func _show_charge_port_controls() -> void:
 	_style_level_selector_button(charge_port_decrease_button)
 	charge_port_decrease_button.pressed.connect(_on_charge_port_decrease_pressed)
 	controls.add_child(charge_port_decrease_button)
+	_add_hardware_selector_value_label(controls, "charge_port")
 
 	charge_port_increase_button = Button.new()
 	charge_port_increase_button.name = "IncreaseChargePortButton"
@@ -10100,6 +10112,7 @@ func _show_charge_port_controls() -> void:
 
 
 func _refresh_charge_port_controls() -> void:
+	_refresh_hardware_selector_value_labels()
 	var selected_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
 	if is_instance_valid(charge_port_value_label):
 		if charge_port_type == "None":
@@ -10585,6 +10598,7 @@ func set_phone_thickness_research_level(level: int) -> void:
 
 
 func _refresh_phone_thickness_test_ui() -> void:
+	_refresh_hardware_selector_value_labels()
 	if is_instance_valid(phone_thickness_value_label):
 		phone_thickness_value_label.text = "THICKNESS LEVEL  %d / %d" % [phone_thickness_level, phone_thickness_research_level]
 	if is_instance_valid(phone_thickness_decrease_button):
@@ -10633,6 +10647,39 @@ func set_border_radius_research_level(level: int) -> void:
 	_refresh_border_radius_test_ui()
 
 
+func _add_hardware_selector_value_label(parent: HBoxContainer, key: String) -> void:
+	var value_label := _make_label("", 20, Color.WHITE)
+	value_label.name = key + "SelectorValueLabel"
+	value_label.custom_minimum_size.x = 150
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	parent.add_child(value_label)
+	hardware_selector_value_labels[key] = value_label
+	_refresh_hardware_selector_value_labels()
+
+
+func _refresh_hardware_selector_value_labels() -> void:
+	for key in hardware_selector_value_labels:
+		var value_label: Label = hardware_selector_value_labels[key]
+		if not is_instance_valid(value_label):
+			continue
+		match key:
+			"screen_technology":
+				value_label.text = current_screen_technology
+			"front_camera":
+				value_label.text = front_camera_style if front_camera_enabled else "Disabled"
+			"border_radius":
+				value_label.text = "LEVEL %d / %d" % [border_radius_level, border_radius_research_level]
+			"phone_thickness":
+				value_label.text = "LEVEL %d / %d" % [phone_thickness_level, phone_thickness_research_level]
+			"home_button":
+				value_label.text = home_button_type
+			"speaker_count":
+				value_label.text = "%d / %d" % [speaker_count, researched_speaker_count]
+			"charge_port":
+				value_label.text = charge_port_type
+
+
 func _style_level_selector_button(button: Button) -> void:
 	# Use the same rounded-rectangle glass treatment as the generic worksite
 	# buttons, while keeping +/- controls compact and centered in their row.
@@ -10645,6 +10692,7 @@ func _style_level_selector_button(button: Button) -> void:
 
 
 func _refresh_border_radius_test_ui() -> void:
+	_refresh_hardware_selector_value_labels()
 	if is_instance_valid(border_radius_value_label):
 		border_radius_value_label.text = "BORDER RADIUS LEVEL  %d / %d" % [border_radius_level, border_radius_research_level]
 	if is_instance_valid(border_radius_decrease_button):
