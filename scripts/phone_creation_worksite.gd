@@ -1424,7 +1424,14 @@ func _style_ram_selector_buttons(panel: Control) -> void:
 		var option := child as Button
 		if not is_instance_valid(option):
 			continue
-		if option.name in ["DecreaseRAMTechnologyButton", "IncreaseRAMTechnologyButton"]:
+		if option.name in [
+			"DecreaseRAMTechnologyButton",
+			"IncreaseRAMTechnologyButton",
+			"DecreaseRAMCapacityButton",
+			"IncreaseRAMCapacityButton"
+		]:
+			# These are the circular level controls. Keep their dedicated
+			# styling instead of replacing it with the generic option-button style.
 			continue
 		var selected := option.text.contains("✓")
 		_style_button(option, selected)
