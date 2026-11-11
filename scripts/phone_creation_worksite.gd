@@ -3245,7 +3245,7 @@ func set_screen_technology_research_level(level: int) -> void:
 
 func set_screen_width_research_level(level: int) -> void:
 	# The default width is available immediately; each approval raises the slider ceiling.
-	screen_width_research_level = clampi(level, 0, 8)
+	screen_width_research_level = clampi(level, 0, 12)
 	_update_screen_width_slider_limit()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
@@ -3253,7 +3253,7 @@ func set_screen_width_research_level(level: int) -> void:
 
 func set_screen_height_research_level(level: int) -> void:
 	# The default height is available immediately; each approval raises the slider ceiling.
-	screen_height_research_level = clampi(level, 0, 9)
+	screen_height_research_level = clampi(level, 0, 12)
 	_update_bezel_height_slider_limit()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
@@ -5377,13 +5377,13 @@ func _is_screen_width_max() -> bool:
 	return bezel_width <= 0.0205
 
 func _get_screen_width_slider_max() -> float:
-	# Eight approvals expand the maximum from the baseline to the full-width display.
-	return minf(0.15, 0.07 + float(screen_width_research_level) * 0.01)
+	# Twelve approvals distribute the same original width range into smaller steps.
+	return minf(0.15, 0.07 + float(screen_width_research_level) * (0.08 / 12.0))
 
 
 func _get_screen_height_slider_max() -> float:
-	# Nine approvals expand the maximum from the baseline to the full-height display.
-	return minf(0.325, 0.145 + float(screen_height_research_level) * 0.02)
+	# Twelve approvals distribute the same original height range into smaller steps.
+	return minf(0.325, 0.145 + float(screen_height_research_level) * (0.18 / 12.0))
 
 
 func _update_screen_width_slider_limit() -> void:
