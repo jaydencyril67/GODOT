@@ -36,6 +36,8 @@ var start_button: Button
 var assigned_staff_ids: Array[String] = []
 var active_progress_bars: Dictionary = {}
 var active_progress_labels: Dictionary = {}
+var frame_container: MarginContainer
+var top_bar_grid: GridContainer
 
 var active_project_id := ""
 var review_project_id := ""
@@ -84,19 +86,48 @@ func _calculate_ui_scale() -> float:
 
 func _get_layout_key() -> String:
 	var viewport_size := get_viewport_rect().size
-	return "%d:%.2f" % [
+	return "%d:%.2f:%d:%d" % [
 		1 if viewport_size.x < viewport_size.y * 1.25 else 0,
-		_calculate_ui_scale()
+		_calculate_ui_scale(),
+		_responsive_grid_columns(190.0, 4),
+		_responsive_grid_columns(190.0, 4)
 	]
 
 
 func _on_dashboard_resized() -> void:
+	ui_scale = _calculate_ui_scale()
 	var next_key := _get_layout_key()
+	_apply_shell_layout()
 	if next_key == _last_layout_key:
 		return
-	ui_scale = _calculate_ui_scale()
 	_last_layout_key = next_key
 	_render_scene()
+
+
+func _responsive_grid_columns(minimum_cell_width: float, maximum_columns: int) -> int:
+	var viewport_width := get_viewport_rect().size.x
+	var horizontal_insets := _scaled(52.0)
+	var gap := _scaled(12.0)
+	var available_width := maxf(1.0, viewport_width - horizontal_insets)
+	var cell_width := maxf(1.0, _scaled(minimum_cell_width))
+	return clampi(floori((available_width + gap) / (cell_width + gap)), 1, maximum_columns)
+
+
+func _apply_shell_layout() -> void:
+	var narrow := _is_narrow_layout()
+	if is_instance_valid(frame_container):
+		var horizontal_margin := roundi(_scaled(12.0 if narrow else 22.0))
+		var vertical_margin := roundi(_scaled(10.0 if narrow else 16.0))
+		frame_container.add_theme_constant_override("margin_left", horizontal_margin)
+		frame_container.add_theme_constant_override("margin_right", horizontal_margin)
+		frame_container.add_theme_constant_override("margin_top", vertical_margin)
+		frame_container.add_theme_constant_override("margin_bottom", vertical_margin)
+	if is_instance_valid(top_bar_grid):
+		top_bar_grid.columns = 1 if narrow else 3
+		top_bar_grid.add_theme_constant_override("h_separation", roundi(_scaled(12.0 if narrow else 18.0)))
+		top_bar_grid.add_theme_constant_override("v_separation", roundi(_scaled(8.0)))
+	if is_instance_valid(page_root):
+		page_root.add_theme_constant_override("separation", roundi(_scaled(10.0)))
 
 
 func _scaled(value: float) -> float:
@@ -160,63 +191,61 @@ func _build_shell() -> void:
 	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(atmosphere)
 
-	var frame := MarginContainer.new()
-	frame.name = "ResearchManagementFrame"
-	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	frame.add_theme_constant_override("margin_left", roundi(_scaled(22.0)))
-	frame.add_theme_constant_override("margin_right", roundi(_scaled(22.0)))
-	frame.add_theme_constant_override("margin_top", roundi(_scaled(16.0)))
-	frame.add_theme_constant_override("margin_bottom", roundi(_scaled(16.0)))
-	add_child(frame)
+	frame_container = MarginContainer.new()
+	frame_container.name = "ResearchManagementFrame"
+	frame_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(frame_container)
 
 	page_root = VBoxContainer.new()
 	page_root.name = "ResearchManagementPage"
 	page_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_root.add_theme_constant_override("separation", roundi(_scaled(10.0)))
-	frame.add_child(page_root)
+	frame_container.add_child(page_root)
 
-	var top_bar := HBoxContainer.new()
-	top_bar.name = "ResearchTopBar"
-	top_bar.custom_minimum_size = Vector2(0.0, _scaled(64.0))
-	top_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_bar.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	top_bar.add_theme_constant_override("separation", roundi(_scaled(18.0)))
-	page_root.add_child(top_bar)
+	top_bar_grid = GridContainer.new()
+	top_bar_grid.name = "ResearchTopBar"
+	top_bar_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	page_root.add_child(top_bar_grid)
 
 	var back := _button("‹  BACK", false, TEXT_MAIN)
 	back.custom_minimum_size = Vector2(_scaled(116.0), _scaled(48.0))
+	back.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(func(): back_requested.emit())
-	top_bar.add_child(back)
+	top_bar_grid.add_child(back)
 
 	var title_stack := VBoxContainer.new()
 	title_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	title_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	title_stack.add_theme_constant_override("separation", 1)
-	top_bar.add_child(title_stack)
+	top_bar_grid.add_child(title_stack)
 
-	var section_title := _label("RESEARCH & DEVELOPMENT", 20, TEXT_MAIN)
+	var section_title := _label("RESEARCH & DEVELOPMENT", 20, TEXT_MAIN, HORIZONTAL_ALIGNMENT_CENTER)
 	section_title.add_theme_font_size_override("font_size", _scaled_font(20))
+	section_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	section_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_stack.add_child(section_title)
 
 	var capital_stack := VBoxContainer.new()
 	capital_stack.custom_minimum_size.x = _scaled(190.0)
-	capital_stack.size_flags_horizontal = Control.SIZE_SHRINK_END
+	capital_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	capital_stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	capital_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	capital_stack.add_theme_constant_override("separation", 1)
-	top_bar.add_child(capital_stack)
+	top_bar_grid.add_child(capital_stack)
 	var capital_caption := _label("AVAILABLE CAPITAL", 10, TEXT_MUTED)
 	capital_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	capital_caption.custom_minimum_size.x = _scaled(180.0)
 	capital_caption.autowrap_mode = TextServer.AUTOWRAP_OFF
+	capital_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	capital_stack.add_child(capital_caption)
 	capital_value_label = _label(_format_currency(company_balance), 17, ACCENT)
 	capital_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	capital_value_label.custom_minimum_size.x = _scaled(180.0)
 	capital_value_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	capital_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	capital_stack.add_child(capital_value_label)
 
 	var separator := ColorRect.new()
@@ -408,9 +437,11 @@ func _build_validation_review_scene(project: Dictionary) -> void:
 		target_panel.add_theme_constant_override("separation", 3)
 		review_content.add_child(target_panel)
 		target_panel.add_child(_label("ASSIGNED RESEARCH TARGET", 11, TEXT_MUTED))
-		target_panel.add_child(_label(target, 22, ACCENT))
+		var target_label := _label(target, 22, ACCENT)
+		target_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		target_panel.add_child(target_label)
 		var target_note := _label("The validated value must match this assigned target exactly.", 12, TEXT_MUTED)
-		target_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		target_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		target_panel.add_child(target_note)
 
 	_add_validation_input(review_content, "MEASURED ATTRIBUTE", "ValidationMetricInput", _default_validation_metric(component), "Example: maximum wired charging speed")
@@ -440,7 +471,7 @@ func _build_validation_review_scene(project: Dictionary) -> void:
 
 	review_error_label = _label("", 13, ORANGE)
 	review_error_label.name = "ValidationReviewError"
-	review_error_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	review_error_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	review_content.add_child(review_error_label)
 
 	var actions := _new_main_row()
@@ -465,6 +496,10 @@ func _build_validation_review_scene(project: Dictionary) -> void:
 	approve_button.name = "ValidationReviewApproveButton"
 	approve_button.custom_minimum_size = Vector2(_scaled(205.0), _scaled(48.0))
 	approve_button.pressed.connect(_on_validation_approve_pressed)
+	if _is_narrow_layout():
+		back_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		reject_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		approve_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.add_child(approve_button)
 
 
@@ -554,7 +589,7 @@ func complete_creation_flow() -> void:
 
 func _build_component_selection_scene() -> void:
 	body_content = _new_screen_root()
-	_mount_screen_root(body_content)
+	body.add_child(body_content)
 
 	var heading := _label("SELECT COMPONENT", 26, TEXT_MAIN)
 	heading.custom_minimum_size.y = _scaled(58.0)
@@ -570,7 +605,7 @@ func _build_component_selection_scene() -> void:
 	choices_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	body_content.add_child(choices_scroll)
 
-	choices.columns = 4
+	choices.columns = _responsive_grid_columns(190.0, 4)
 	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	choices.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	choices.add_theme_constant_override("h_separation", roundi(_scaled(14.0)))
@@ -581,9 +616,10 @@ func _build_component_selection_scene() -> void:
 		var component_button := Button.new()
 		component_button.name = "ResearchComponentOption" if index == 0 else "ResearchComponentOption_%d" % index
 		component_button.text = COMPONENT_LABELS[index].to_upper()
-		component_button.custom_minimum_size = Vector2(_scaled(170.0), _scaled(68.0))
+		component_button.custom_minimum_size = Vector2(_scaled(190.0), _scaled(68.0))
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		component_button.focus_mode = Control.FOCUS_NONE
+		component_button.clip_text = true
 		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
 		if COMPONENT_VALUES[index] == "Mobile Network":
 			var mobile_target: Dictionary = ResearchManagerScript.get_mobile_network_research_target(research_component_levels)
@@ -742,22 +778,29 @@ func _build_component_selection_scene() -> void:
 		component_buttons.append(component_button)
 	_update_component_button_styles()
 
-	var actions := HBoxContainer.new()
+	var actions: BoxContainer = VBoxContainer.new() if _is_narrow_layout() else HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	actions.add_theme_constant_override("separation", roundi(_scaled(12.0)))
 	body_content.add_child(actions)
 	var cancel := _button("CANCEL", false, TEXT_MUTED)
 	cancel.custom_minimum_size = Vector2(_scaled(150.0), _scaled(54.0))
 	cancel.pressed.connect(_close_creation_scene)
-	actions.add_child(cancel)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_child(spacer)
 	var next := _button("NEXT  〉", true, ACCENT)
 	next.name = "ResearchNextButton"
 	next.custom_minimum_size = Vector2(_scaled(220.0), _scaled(54.0))
 	next.pressed.connect(_open_staff_selection_step)
-	actions.add_child(next)
+	if _is_narrow_layout():
+		cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		actions.add_child(cancel)
+		actions.add_child(next)
+	else:
+		actions.add_child(cancel)
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		actions.add_child(spacer)
+		actions.add_child(next)
 
 
 func _open_staff_selection_step() -> void:
@@ -768,7 +811,7 @@ func _open_staff_selection_step() -> void:
 
 func _build_staff_selection_scene() -> void:
 	body_content = _new_screen_root()
-	_mount_screen_root(body_content)
+	body.add_child(body_content)
 
 	var staff_scroll := ScrollContainer.new()
 	staff_scroll.name = "ResearchStaffScroll"
@@ -780,7 +823,7 @@ func _build_staff_selection_scene() -> void:
 
 	var staff_grid := GridContainer.new()
 	staff_grid.name = "ResearchStaffGrid"
-	staff_grid.columns = 4
+	staff_grid.columns = _responsive_grid_columns(190.0, 4)
 	staff_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	staff_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	staff_grid.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
@@ -788,23 +831,30 @@ func _build_staff_selection_scene() -> void:
 	staff_scroll.add_child(staff_grid)
 	_build_staff_choices(staff_grid)
 
-	var actions := HBoxContainer.new()
+	var actions: BoxContainer = VBoxContainer.new() if _is_narrow_layout() else HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	actions.add_theme_constant_override("separation", roundi(_scaled(12.0)))
 	body_content.add_child(actions)
 	var back_step := _button("‹  BACK", false, TEXT_MUTED)
 	back_step.custom_minimum_size = Vector2(_scaled(150.0), _scaled(54.0))
 	back_step.pressed.connect(_return_to_component_step)
-	actions.add_child(back_step)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_child(spacer)
 	start_button = _button("CREATE RESEARCH", true, ACCENT)
 	start_button.name = "ResearchCreateButton"
 	start_button.custom_minimum_size = Vector2(_scaled(260.0), _scaled(54.0))
 	start_button.disabled = true
 	start_button.pressed.connect(_on_start_research_pressed)
-	actions.add_child(start_button)
+	if _is_narrow_layout():
+		back_step.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		actions.add_child(back_step)
+		actions.add_child(start_button)
+	else:
+		actions.add_child(back_step)
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		actions.add_child(spacer)
+		actions.add_child(start_button)
 	_update_research_estimate()
 
 
@@ -828,7 +878,7 @@ func _build_staff_choices(parent: GridContainer) -> void:
 		var staff_button := Button.new()
 		staff_button.name = "ResearchStaff_%s" % employee_id.validate_node_name()
 		staff_button.text = employee_name.to_upper()
-		staff_button.custom_minimum_size = Vector2(_scaled(150.0), _scaled(68.0))
+		staff_button.custom_minimum_size = Vector2(_scaled(190.0), _scaled(68.0))
 		staff_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		staff_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		staff_button.disabled = unavailable
@@ -999,7 +1049,9 @@ func _build_validation_project_card(project: Dictionary, parent: Control) -> voi
 	content.add_child(_label("PROJECT  " + project_id, 11, ACCENT))
 	var target := str(project.get("research_target", "")).strip_edges()
 	if not target.is_empty():
-		content.add_child(_label("TARGET  " + target, 15, TEXT_MAIN))
+		var target_label := _label("TARGET  " + target, 15, TEXT_MAIN)
+		target_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(target_label)
 	var completion_note := _label("R&D completed. Technical findings require validation before the upgrade is unlocked.", 12, TEXT_MUTED)
 	completion_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(completion_note)
@@ -1031,7 +1083,8 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 	if component_name == "Screen Technology":
 		component_name = "Screen Tech"
 	var component_label := _label(component_name.to_upper(), 27, TEXT_MAIN)
-	component_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	component_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	component_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	progress_panel.add_child(component_label)
 
 	var progress_row := HBoxContainer.new()
@@ -1062,7 +1115,7 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
 	if not pause_reason.is_empty():
 		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 13, ORANGE)
-		pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		progress_panel.add_child(pause_label)
 
 	active_progress_bars[project_id] = progress_bar
@@ -1107,7 +1160,9 @@ func _add_target_tile(parent: HBoxContainer, title: String, description: String)
 	parent.add_child(tile)
 	tile.add_child(_label(title, 12, TEXT_MAIN))
 	if not description.is_empty():
-		tile.add_child(_label(description, 11, TEXT_MUTED))
+		var description_label := _label(description, 11, TEXT_MUTED)
+		description_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		tile.add_child(description_label)
 
 
 func _add_large_metric(parent: VBoxContainer, value: String, caption: String, color: Color) -> void:
@@ -1238,7 +1293,9 @@ func _label(value: String, font_size: int, color: Color, alignment: int = HORIZO
 	label.add_theme_color_override("font_color", color)
 	label.horizontal_alignment = alignment
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Preserve whole words in tight rows. SMART can split short words into
+	# one character per line when a container is temporarily too narrow.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	return label
 
 func _button(value: String, primary: bool, accent: Color) -> Button:
