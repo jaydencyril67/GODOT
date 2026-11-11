@@ -313,7 +313,7 @@ var front_camera_outer_secondary_megapixels := 12
 
 const CAMERA_MEGAPIXEL_STEPS := [2, 5, 8, 10, 12, 13, 16, 20, 24, 32, 40, 48, 50, 64, 108, 200]
 
-const MEMORY_CLOCK_STEPS := [400, 533, 667, 800, 933, 1067, 1200, 1375, 1600, 1867, 2133, 2750, 3200, 3733, 4267]
+# Memory Clock speed steps are calculated by DigitalWorldResearchManager from its shared research ladder.
 
 const MAX_REAR_CAMERAS := 5
 
@@ -527,11 +527,14 @@ var refresh_rate_research_level := 0
 var refresh_rate_slider: VSlider
 var refresh_rate_value_label: Label
 
-var selected_memory_clock := "Not set"
+var selected_memory_clock := "200 MT/s"
+var selected_memory_clock_level := 0
+var memory_clock_research_level := 0
 
 var memory_clock_slider: VSlider
-
 var memory_clock_value_label: Label
+var memory_clock_maximum_label: Label
+var memory_clock_minimum_label: Label
 
 var selected_cooling_system := "No Dedicated Cooling"
 var cooling_system_research_level := 0
@@ -3335,6 +3338,13 @@ func set_screen_height_research_level(level: int) -> void:
 	_refresh_screen_type_controls()
 
 
+func set_memory_clock_research_level(level: int) -> void:
+	# Memory Clock progress is shared across RAM generations and never resets.
+	memory_clock_research_level = clampi(level, 0, ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL)
+	_refresh_memory_clock_selection_ui()
+	_notify_worksite_full_selection_changed()
+
+
 func set_ram_technology_research_level(level: int) -> void:
 	# LPDDR2 is the baseline. Each approved RAM Technology project unlocks one newer generation.
 	ram_technology_research_level = clampi(level, 0, RAM_TECHNOLOGIES.size() - 1)
@@ -3343,6 +3353,7 @@ func set_ram_technology_research_level(level: int) -> void:
 	if not _get_supported_ram_capacities(selected_ram_technology).has(selected_ram_capacity):
 		selected_ram_capacity = "Not set"
 	_refresh_ram_technology_selection_ui()
+	_refresh_memory_clock_selection_ui()
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "RAMTechnologySelectionControls":
 		_refresh_ram_capacity_step()
 
@@ -11532,14 +11543,14 @@ func _show_memory_clock_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	memory_clock_value_label = _make_label("CURRENT: " + selected_memory_clock.to_upper(), 16, Color("#E5E0D6"))
+	memory_clock_value_label = _make_label("", 16, Color("#E5E0D6"))
 	memory_clock_value_label.name = "CurrentMemoryClockLabel"
 	memory_clock_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(memory_clock_value_label)
 
-	var range_heading := _make_label("4267 MHz", 13, Color("#C58A3A"))
-	range_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(range_heading)
+	memory_clock_maximum_label = _make_label("", 13, Color("#C58A3A"))
+	memory_clock_maximum_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(memory_clock_maximum_label)
 
 	var slider_center := CenterContainer.new()
 	slider_center.name = "MemoryClockSliderCenter"
@@ -11550,40 +11561,74 @@ func _show_memory_clock_controls() -> void:
 	memory_clock_slider = VSlider.new()
 	memory_clock_slider.name = "MemoryClockSlider"
 	memory_clock_slider.min_value = 0
-	memory_clock_slider.max_value = MEMORY_CLOCK_STEPS.size() - 1
+	memory_clock_slider.max_value = 0
 	memory_clock_slider.step = 1
-	memory_clock_slider.tick_count = MEMORY_CLOCK_STEPS.size()
+	memory_clock_slider.tick_count = 11
 	memory_clock_slider.custom_minimum_size = Vector2(76, 330)
 	memory_clock_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	memory_clock_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	memory_clock_slider.value = maxf(0.0, float(_get_memory_clock_index()))
 	memory_clock_slider.value_changed.connect(_on_memory_clock_slider_changed)
 	_style_custom_slider(memory_clock_slider)
 	slider_center.add_child(memory_clock_slider)
 
-	var minimum_label := _make_label("400 MHz", 13, Color("#C58A3A"))
-	minimum_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(minimum_label)
+	memory_clock_minimum_label = _make_label("200 MT/s", 13, Color("#C58A3A"))
+	memory_clock_minimum_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(memory_clock_minimum_label)
 
 	var instruction := _make_label("DRAG THE SLIDER TO SET THE MEMORY CLOCK", 12, Color("#A9A092"))
 	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	instruction.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(instruction)
+	_refresh_memory_clock_selection_ui()
+
 
 func _get_memory_clock_index() -> int:
-	for index in range(MEMORY_CLOCK_STEPS.size()):
-		if selected_memory_clock == "%d MHz" % MEMORY_CLOCK_STEPS[index]:
-			return index
-	return -1
+	return selected_memory_clock_level
 
-func _on_memory_clock_slider_changed(value: float) -> void:
-	var index := clampi(int(round(value)), 0, MEMORY_CLOCK_STEPS.size() - 1)
-	selected_memory_clock = "%d MHz" % MEMORY_CLOCK_STEPS[index]
+
+func _get_memory_clock_available_maximum_level() -> int:
+	var research_maximum_level := clampi(memory_clock_research_level, 0, ResearchManagerScript.MEMORY_CLOCK_MAX_RESEARCH_LEVEL)
+	var technology_maximum_level := ResearchManagerScript.get_memory_clock_max_level_for_ram_technology(selected_ram_technology)
+	return mini(research_maximum_level, technology_maximum_level)
+
+
+func _format_memory_clock_speed(speed: int) -> String:
+	var remaining_digits := str(speed)
+	var formatted_digits := ""
+	while remaining_digits.length() > 3:
+		formatted_digits = "," + remaining_digits.substr(remaining_digits.length() - 3, 3) + formatted_digits
+		remaining_digits = remaining_digits.substr(0, remaining_digits.length() - 3)
+	return remaining_digits + formatted_digits
+
+
+func _refresh_memory_clock_selection_ui() -> void:
+	var available_maximum_level := _get_memory_clock_available_maximum_level()
+	selected_memory_clock_level = clampi(selected_memory_clock_level, 0, available_maximum_level)
+	var selected_speed := ResearchManagerScript.get_memory_clock_speed_for_level(selected_memory_clock_level)
+	var maximum_speed := ResearchManagerScript.get_memory_clock_speed_for_level(available_maximum_level)
+	selected_memory_clock = _format_memory_clock_speed(selected_speed) + " MT/s"
+
 	if is_instance_valid(memory_clock_value_label):
 		memory_clock_value_label.text = "CURRENT: " + selected_memory_clock
+	if is_instance_valid(memory_clock_maximum_label):
+		memory_clock_maximum_label.text = "MAX AVAILABLE: " + _format_memory_clock_speed(maximum_speed) + " MT/s"
+	if is_instance_valid(memory_clock_minimum_label):
+		memory_clock_minimum_label.text = "200 MT/s"
+	if is_instance_valid(memory_clock_slider) and is_instance_valid(active_feature_panel) and active_feature_panel.name == "MemoryClockSelectionControls":
+		memory_clock_slider.min_value = 0
+		memory_clock_slider.max_value = available_maximum_level
+		memory_clock_slider.step = 1
+		memory_clock_slider.tick_count = maxi(2, mini(11, available_maximum_level + 1))
+		memory_clock_slider.set_value_no_signal(float(selected_memory_clock_level))
+		memory_clock_slider.editable = available_maximum_level > 0
 	if software_value_labels.has("MEMORY CLOCK") and is_instance_valid(software_value_labels["MEMORY CLOCK"]):
 		var clock_label: Label = software_value_labels["MEMORY CLOCK"]
 		clock_label.text = selected_memory_clock
+
+
+func _on_memory_clock_slider_changed(value: float) -> void:
+	selected_memory_clock_level = clampi(roundi(value), 0, _get_memory_clock_available_maximum_level())
+	_refresh_memory_clock_selection_ui()
 	_notify_worksite_full_selection_changed()
 
 func _show_cooling_system_controls() -> void:
@@ -11966,6 +12011,7 @@ func _apply_ram_technology_level() -> void:
 		var technology_label: Label = software_value_labels["RAM TECHNOLOGY"]
 		technology_label.text = selected_ram_technology
 	_refresh_ram_technology_selection_ui()
+	_refresh_memory_clock_selection_ui()
 	_notify_worksite_ram_selection_changed()
 
 
