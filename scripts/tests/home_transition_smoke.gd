@@ -129,6 +129,13 @@ func _run_transition_checks() -> void:
 	if not mobile_network_component_option.tooltip_text.contains("NMT"):
 		_fail("The Mobile Network research selector did not identify its next technology.")
 		return
+	var wifi_component_option := dashboard.find_child("ResearchComponentOption_10", true, false) as Button
+	if not is_instance_valid(wifi_component_option) or not wifi_component_option.text.contains("WI-FI"):
+		_fail("Wi-Fi is missing from the R&D component selector.")
+		return
+	if not wifi_component_option.tooltip_text.contains("Wi-Fi 2 (802.11a)"):
+		_fail("The Wi-Fi research selector did not identify Wi-Fi 2 as its first research target.")
+		return
 	if dashboard.find_child("ResearchStaffScroll", true, false) != null:
 		_fail("Staff selection appeared before the component-selection step was completed.")
 		return
@@ -372,6 +379,35 @@ func _run_transition_checks() -> void:
 		_fail("Completing the 1G technologies did not advance the next Mobile Network research target to 2G GSM.")
 		return
 
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Wi-Fi"):
+		_fail("Wi-Fi is missing from the R&D component catalogue.")
+		return
+	var starting_wifi_entry: Dictionary = ResearchManagerScript.get_wifi_entry(0)
+	if str(starting_wifi_entry.get("generation", "")) != "Wi-Fi 1" or str(starting_wifi_entry.get("technology", "")) != "802.11b":
+		_fail("Wi-Fi research does not start from Wi-Fi 1 (802.11b).")
+		return
+	if ResearchManagerScript.get_wifi_step_count() != 9:
+		_fail("The Wi-Fi research progression does not contain all nine planned stages.")
+		return
+	var initial_wifi_target: Dictionary = ResearchManagerScript.get_wifi_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	if str(initial_wifi_target.get("generation", "")) != "Wi-Fi 2" or str(initial_wifi_target.get("technology", "")) != "802.11a":
+		_fail("Wi-Fi 1 was not treated as the baseline before Wi-Fi 2 research.")
+		return
+	var wifi_staff: Array = game.career.get("staff_employees", []).duplicate(true)
+	wifi_staff.append({
+		"id": "researcher_wifi_01",
+		"full_name": "Wireless Network Research Engineer",
+		"department": "Research",
+		"position": "Research Engineer",
+		"efficiency": 100,
+		"monthly_salary": 250000.0
+	})
+	game.career["staff_employees"] = wifi_staff
+	if not _complete_wifi_research_project("802.11a", "Wi-Fi 2"):
+		return
+
 	dashboard.call("configure", game._get_research_dashboard_data())
 
 	game._return_from_research_allocation_dashboard()
@@ -571,6 +607,74 @@ func _complete_mobile_network_research_project(expected_technology: String, expe
 			return false
 		if str(auto_next_project.get("research_target", "")) != str(next_target.get("technology", "")) or str(auto_next_project.get("research_generation", "")) != str(next_target.get("generation", "")):
 			_fail("Automatic Mobile Network research did not start the next technology in sequence.")
+			return false
+	return true
+
+
+func _complete_wifi_research_project(expected_technology: String, expected_generation: String) -> bool:
+	var project: Dictionary = {}
+	for project_value in game.career.get("research_projects", []):
+		if not (project_value is Dictionary):
+			continue
+		var existing_project: Dictionary = project_value
+		if str(existing_project.get("component", "")) == "Wi-Fi" and str(existing_project.get("research_target", "")) == expected_technology and str(existing_project.get("status", "")) == ResearchManagerScript.STATUS_ACTIVE:
+			project = existing_project.duplicate(true)
+			break
+	if project.is_empty():
+		var commission: Dictionary = game.commission_research_project({
+			"component": "Wi-Fi",
+			"staff_ids": ["researcher_wifi_01"]
+		})
+		if not bool(commission.get("ok", false)):
+			_fail("A Wi-Fi research project could not be commissioned: %s" % str(commission.get("error", "")))
+			return false
+		project = commission.get("project", {})
+	if str(project.get("research_target", "")) != expected_technology or str(project.get("research_generation", "")) != expected_generation:
+		_fail("Wi-Fi research did not automatically target %s in %s." % [expected_technology, expected_generation])
+		return false
+
+	var projects: Array = game.career.get("research_projects", [])
+	for project_index in range(projects.size()):
+		if str(projects[project_index].get("id", "")) == str(project.get("id", "")):
+			projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = projects
+	var completed_ids: Array[String] = ResearchManagerScript.advance_projects(
+		game.career,
+		86400.0 * 29.0,
+		game.game_date_unix + 86400.0 * 29.0
+	)
+	if not completed_ids.has(str(project.get("id", ""))):
+		_fail("The Wi-Fi project for %s did not complete." % expected_technology)
+		return false
+	var validation: Dictionary = game.approve_research_project(str(project.get("id", "")), [{
+		"component": "Wi-Fi",
+		"metric": "Validated Wi-Fi IEEE standard",
+		"value": expected_technology,
+		"unit": "",
+		"notes": "IEEE standard validated as the next stage in the Wi-Fi generation progression."
+	}])
+	if not bool(validation.get("ok", false)):
+		_fail("The Wi-Fi project for %s could not pass technical validation: %s" % [expected_technology, str(validation.get("error", ""))])
+		return false
+	var expected_level := int(project.get("research_target_index", -1))
+	if int(game.career.get("research_component_levels", {}).get("Wi-Fi", 0)) != expected_level:
+		_fail("Technical approval did not unlock the researched Wi-Fi generation.")
+		return false
+	var next_target: Dictionary = ResearchManagerScript.get_wifi_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	var auto_next_project: Dictionary = validation.get("auto_next_project", {})
+	if next_target.is_empty():
+		if not auto_next_project.is_empty():
+			_fail("Wi-Fi research continued beyond the final generation.")
+			return false
+	else:
+		if auto_next_project.is_empty():
+			_fail("The next Wi-Fi generation was not started automatically after approval.")
+			return false
+		if str(auto_next_project.get("research_target", "")) != str(next_target.get("technology", "")) or str(auto_next_project.get("research_generation", "")) != str(next_target.get("generation", "")):
+			_fail("Automatic Wi-Fi research did not start the next generation in sequence.")
 			return false
 	return true
 
