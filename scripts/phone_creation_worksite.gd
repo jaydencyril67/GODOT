@@ -12439,8 +12439,10 @@ func set_mobile_network_research_level(level: int) -> void:
 		0,
 		ResearchManagerScript.get_mobile_network_step_count() - 1
 	)
-	mobile_network_level = clampi(mobile_network_level, 0, mobile_network_research_level)
+	# Move the selector to the newest approved technology when research advances.
+	mobile_network_level = mobile_network_research_level
 	_apply_mobile_network_level(false)
+	_notify_worksite_connectivity_selection_changed()
 
 
 func set_mobile_internet_research_level(level: int) -> void:
