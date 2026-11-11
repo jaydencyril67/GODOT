@@ -247,7 +247,7 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 			var project_success_chance := clampf(float(project.get("success_chance", RESEARCH_SUCCESS_CHANCE * 100.0)) / 100.0, 0.0, 1.0)
 			var successful := success_roll < project_success_chance
 			project["success_roll"] = success_roll
-			project["success_chance"] = RESEARCH_SUCCESS_CHANCE * 100.0
+			project["success_chance"] = project_success_chance * 100.0
 			if successful:
 				project["status"] = STATUS_AWAITING_VALIDATION
 
@@ -296,31 +296,28 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	project["approved_results"] = approved_results
 	var component := normalize_component(str(project.get("component", "")))
 	var component_levels: Dictionary = career.get("research_component_levels", {})
-					var component := normalize_component(str(project.get("component", "")))
-					var component_levels: Dictionary = career.get("research_component_levels", {})
-					if component in ["Phone Thickness", "Border Radius"]:
-						component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
-					elif component == "Speakers":
-						component_levels[component] = mini(11, int(component_levels.get(component, 0)) + 1)
-					elif component == "Charge Port":
-						# The first port is the baseline; each success unlocks the next port.
-						component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
-					elif component == "Home Button":
-						# Circle is the baseline; each success unlocks the next home-button design.
-						component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
-					elif component == "Screen Technology":
-						# TFT LCD is the baseline; each success unlocks the next listed display technology.
-						component_levels[component] = mini(
-							ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1,
-							int(component_levels.get(component, 0)) + 1
-						)
-					elif component == "Front Camera":
-						# Bezel Camera is the baseline; each success unlocks the next design in chronological order.
-						component_levels[component] = mini(
-							FRONT_CAMERA_MODEL_COUNT - 1,
-							int(component_levels.get(component, 0)) + 1
-						)
-					career["research_component_levels"] = component_levels
+	if component in ["Phone Thickness", "Border Radius"]:
+		component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
+	elif component == "Speakers":
+		component_levels[component] = mini(11, int(component_levels.get(component, 0)) + 1)
+	elif component == "Charge Port":
+		# The first port is the baseline; each approval unlocks the next port.
+		component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
+	elif component == "Home Button":
+		# Circle is the baseline; each approval unlocks the next home-button design.
+		component_levels[component] = mini(4, int(component_levels.get(component, 0)) + 1)
+	elif component == "Screen Technology":
+		# TFT LCD is the baseline; each approval unlocks the next listed display technology.
+		component_levels[component] = mini(
+			ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1,
+			int(component_levels.get(component, 0)) + 1
+		)
+	elif component == "Front Camera":
+		# Bezel Camera is the baseline; each approval unlocks the next design in chronological order.
+		component_levels[component] = mini(
+			FRONT_CAMERA_MODEL_COUNT - 1,
+			int(component_levels.get(component, 0)) + 1
+		)
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects
