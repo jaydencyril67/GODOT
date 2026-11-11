@@ -2578,6 +2578,7 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		return {"ok": false, "error": "The approval could not be saved. The project remains awaiting validation."}
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_refresh_rate_research_level", int(career.get("research_component_levels", {}).get("Refresh Rate", 0)))
+		phone_creation_worksite.call("set_cooling_system_research_level", int(career.get("research_component_levels", {}).get("Cooling System Design", 0)))
 	return result
 
 
@@ -2683,6 +2684,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 	phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
 	phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
+	phone_creation_worksite.call("set_cooling_system_research_level", int(career.get("research_component_levels", {}).get("Cooling System Design", 0)))
 	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
 	phone_creation_worksite.call("set_home_button_research_level", int(career.get("research_component_levels", {}).get("Home Button", 0)))
 	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))

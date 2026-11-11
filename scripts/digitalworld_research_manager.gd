@@ -18,6 +18,20 @@ const FRONT_CAMERA_MODEL_COUNT := 8
 const SCREEN_WIDTH_RESEARCH_LEVELS := 12
 const SCREEN_HEIGHT_RESEARCH_LEVELS := 12
 const REFRESH_RATE_RESEARCH_LEVELS := 30
+const COOLING_SYSTEM_SEQUENCE := [
+	"No Dedicated Cooling",
+	"Graphite Sheet",
+	"Graphite + Copper Foil",
+	"Graphene Composite",
+	"Heat Pipe",
+	"Vapor Chamber",
+	"Dual Vapor Chamber",
+	"Vapor Chamber + Graphite Stack",
+	"Internal Cooling Fan",
+	"Advanced Cooling Fan",
+	"Liquid Cooling",
+	"Advanced Liquid Cooling"
+]
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
 	"Screen Width",
@@ -34,7 +48,8 @@ const COMPONENT_CATALOGUE := [
 	"RAM Technology",
 	"Mobile Network",
 	"Wi-Fi",
-	"Bluetooth"
+	"Bluetooth",
+	"Cooling System Design"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -135,6 +150,28 @@ static func get_bluetooth_research_target(component_levels: Dictionary) -> Dicti
 	if target_index >= BLUETOOTH_SEQUENCE.size():
 		return {}
 	return get_bluetooth_entry(target_index)
+
+
+static func get_cooling_system_research_target(component_levels: Dictionary) -> Dictionary:
+	var current_level := clampi(
+		int(component_levels.get("Cooling System Design", 0)),
+		0,
+		COOLING_SYSTEM_SEQUENCE.size() - 1
+	)
+	var target_index := current_level + 1
+	if target_index >= COOLING_SYSTEM_SEQUENCE.size():
+		return {}
+	return get_cooling_system_entry(target_index)
+
+
+static func get_cooling_system_step_count() -> int:
+	return COOLING_SYSTEM_SEQUENCE.size()
+
+
+static func get_cooling_system_entry(index: int) -> Dictionary:
+	if index < 0 or index >= COOLING_SYSTEM_SEQUENCE.size():
+		return {}
+	return {"technology": COOLING_SYSTEM_SEQUENCE[index], "index": index}
 
 
 const BLUETOOTH_SEQUENCE := [
@@ -327,7 +364,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_wifi_research_target(career.get("research_component_levels", {}))
 	elif component == "Bluetooth":
 		ordered_target = get_bluetooth_research_target(career.get("research_component_levels", {}))
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth"]:
+	elif component == "Cooling System Design":
+		ordered_target = get_cooling_system_research_target(career.get("research_component_levels", {}))
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design"]:
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -363,6 +402,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate %s for %s mobile networks." % [target_technology, target_generation]
 		elif component == "Wi-Fi":
 			project_objective = "Develop and validate IEEE %s for %s wireless networks." % [target_technology, target_generation]
+		elif component == "Cooling System Design":
+			project_objective = "Develop and validate %s for mobile phone heat removal." % target_technology
 	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 
@@ -470,6 +511,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var mobile_network_target_index := -1
 	var wifi_target_index := -1
 	var bluetooth_target_index := -1
+	var cooling_system_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -494,6 +536,14 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		var expected_bluetooth_target := get_bluetooth_entry(bluetooth_target_index)
 		if expected_bluetooth_target.is_empty() or str(project.get("research_target", "")) != str(expected_bluetooth_target.get("technology", "")):
 			return _failure("The Bluetooth project target does not match the current research sequence.")
+	elif component == "Cooling System Design":
+		cooling_system_target_index = int(project.get("research_target_index", -1))
+		var expected_cooling_index := int(component_levels.get(component, 0)) + 1
+		if cooling_system_target_index != expected_cooling_index:
+			return _failure("This Cooling System project is no longer the next heat-removal option.")
+		var expected_cooling_target := get_cooling_system_entry(cooling_system_target_index)
+		if expected_cooling_target.is_empty() or str(project.get("research_target", "")) != str(expected_cooling_target.get("technology", "")):
+			return _failure("The Cooling System project target does not match the current heat-removal progression.")
 
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
@@ -518,6 +568,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact Wi-Fi IEEE standard assigned to this project.")
 		if result_component == "Bluetooth" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact Bluetooth version assigned to this project.")
+		if result_component == "Cooling System Design" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact heat-removal option assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -575,6 +627,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Bluetooth":
 		# Bluetooth 1.0b is the baseline; each approval unlocks the next Core Specification version.
 		component_levels[component] = bluetooth_target_index
+	elif component == "Cooling System Design":
+		# No Dedicated Cooling is the baseline; each approval unlocks the next heat-removal option.
+		component_levels[component] = cooling_system_target_index
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects

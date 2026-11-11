@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -348,6 +348,13 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(next_bluetooth_target.get("technology", ""))
+		elif COMPONENT_VALUES[index] == "Cooling System Design":
+			var next_cooling_target := ResearchManagerScript.get_cooling_system_research_target(research_component_levels)
+			if next_cooling_target.is_empty():
+				component_button.tooltip_text = "All heat-removal options have been researched."
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Next heat-removal option: %s" % str(next_cooling_target.get("technology", ""))
 		component_button.pressed.connect(_on_component_selected.bind(index))
 		choices.add_child(component_button)
 		component_buttons.append(component_button)

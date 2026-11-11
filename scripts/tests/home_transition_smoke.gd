@@ -143,6 +143,13 @@ func _run_transition_checks() -> void:
 	if not bluetooth_component_option.tooltip_text.contains("Bluetooth 1.1"):
 		_fail("Bluetooth research did not identify Bluetooth 1.1 as its first target.")
 		return
+	var cooling_component_option := dashboard.find_child("ResearchComponentOption_14", true, false) as Button
+	if not is_instance_valid(cooling_component_option) or not cooling_component_option.text.contains("COOLING SYSTEM"):
+		_fail("Cooling System Design is missing from the R&D component selector.")
+		return
+	if not cooling_component_option.tooltip_text.contains("Graphite Sheet"):
+		_fail("Cooling System Design did not identify Graphite Sheet as its first research target.")
+		return
 	if dashboard.find_child("ResearchStaffScroll", true, false) != null:
 		_fail("Staff selection appeared before the component-selection step was completed.")
 		return
@@ -456,6 +463,60 @@ func _run_transition_checks() -> void:
 	})
 	game.career["staff_employees"] = bluetooth_staff
 	if not _complete_bluetooth_research_project("Bluetooth 1.1"):
+		return
+
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Cooling System Design"):
+		_fail("Cooling System Design is missing from the research manager catalogue.")
+		return
+	if ResearchManagerScript.get_cooling_system_step_count() != 12:
+		_fail("The heat-removal progression does not contain all twelve planned options.")
+		return
+	var first_cooling_target: Dictionary = ResearchManagerScript.get_cooling_system_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	if str(first_cooling_target.get("technology", "")) != "Graphite Sheet":
+		_fail("No Dedicated Cooling was not treated as the baseline before Graphite Sheet research.")
+		return
+	var cooling_commission: Dictionary = game.commission_research_project({
+		"component": "Cooling System Design",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if not bool(cooling_commission.get("ok", false)):
+		_fail("A Cooling System Design research project could not be commissioned: %s" % str(cooling_commission.get("error", "")))
+		return
+	var cooling_project: Dictionary = cooling_commission.get("project", {})
+	var cooling_projects: Array = game.career.get("research_projects", [])
+	for project_index in range(cooling_projects.size()):
+		if str(cooling_projects[project_index].get("id", "")) == str(cooling_project.get("id", "")):
+			cooling_projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = cooling_projects
+	var cooling_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
+		game.career,
+		86400.0 * 29.0,
+		game.game_date_unix + 86400.0 * 29.0
+	)
+	if not cooling_completed_ids.has(str(cooling_project.get("id", ""))):
+		_fail("The Cooling System Design project did not complete after its estimated 29-day duration.")
+		return
+	var cooling_validation: Dictionary = game.approve_research_project(str(cooling_project.get("id", "")), [{
+		"component": "Cooling System Design",
+		"metric": "Heat removal technology",
+		"value": "Graphite Sheet",
+		"unit": "",
+		"notes": "Validated the first heat-removal option."
+	}])
+	if not bool(cooling_validation.get("ok", false)):
+		_fail("A completed Cooling System Design project could not pass technical validation: %s" % str(cooling_validation.get("error", "")))
+		return
+	if int(game.career.get("research_component_levels", {}).get("Cooling System Design", 0)) != 1:
+		_fail("Technical approval did not unlock Graphite Sheet for the heat-removal selector.")
+		return
+	var second_cooling_target: Dictionary = ResearchManagerScript.get_cooling_system_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	if str(second_cooling_target.get("technology", "")) != "Graphite + Copper Foil":
+		_fail("Approving Graphite Sheet did not advance the next heat-removal research target.")
 		return
 
 	dashboard.call("configure", game._get_research_dashboard_data())

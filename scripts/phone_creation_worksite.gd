@@ -527,7 +527,27 @@ var memory_clock_slider: VSlider
 
 var memory_clock_value_label: Label
 
-var selected_cooling_system := "Not set"
+var selected_cooling_system := "No Dedicated Cooling"
+var cooling_system_research_level := 0
+var cooling_system_research_label: Label
+var cooling_system_value_label: Label
+var cooling_system_decrease_button: Button
+var cooling_system_increase_button: Button
+
+const COOLING_SYSTEM_OPTIONS := [
+	"No Dedicated Cooling",
+	"Graphite Sheet",
+	"Graphite + Copper Foil",
+	"Graphene Composite",
+	"Heat Pipe",
+	"Vapor Chamber",
+	"Dual Vapor Chamber",
+	"Vapor Chamber + Graphite Stack",
+	"Internal Cooling Fan",
+	"Advanced Cooling Fan",
+	"Liquid Cooling",
+	"Advanced Liquid Cooling"
+]
 
 const RAM_TECHNOLOGIES := ["LPDDR2", "LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR6"]
 const RAM_CAPACITY_RESEARCH_STEPS := ["8 GB", "12 GB", "16 GB", "18 GB", "24 GB", "32 GB", "64 GB"]
@@ -11540,69 +11560,108 @@ func _show_cooling_system_controls() -> void:
 	active_feature_panel.name = "CoolingSystemSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("COOLING SYSTEM", 18, Color("#D3AA6B"))
+	var heading := _make_label("HEAT REMOVAL SYSTEM", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var current := _make_label("CURRENT: " + selected_cooling_system.to_upper(), 14, Color("#E5E0D6"))
-	current.name = "CurrentCoolingSystemLabel"
-	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	current.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(current)
 
-	var options := GridContainer.new()
-	options.name = "CoolingSystemOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("h_separation", 10)
-	options.add_theme_constant_override("v_separation", 8)
-	active_feature_panel.add_child(options)
+	cooling_system_research_label = _make_label("", 13, Color("#D3AA6B"))
+	cooling_system_research_label.name = "CoolingSystemResearchLevelLabel"
+	cooling_system_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(cooling_system_research_label)
 
-	var cooling_options := [
-		"No Dedicated Cooling",
-		"Graphite Sheet",
-		"Graphite + Copper Foil",
-		"Graphene Composite",
-		"Heat Pipe",
-		"Vapor Chamber",
-		"Dual Vapor Chamber",
-		"Vapor Chamber + Graphite Stack"
-	]
-	for cooling_type in cooling_options:
-		var option := Button.new()
-		option.name = "CoolingSystemOption_" + cooling_type.replace(" ", "").replace("+", "Plus")
-		option.text = cooling_type + ("   ✓ SELECTED" if selected_cooling_system == cooling_type else "")
-		option.custom_minimum_size.y = 46
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_cooling_system == cooling_type)
-		option.pressed.connect(_on_cooling_system_selected.bind(cooling_type))
-		options.add_child(option)
+	var controls_center := CenterContainer.new()
+	controls_center.name = "CoolingSystemControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
 
-func _on_cooling_system_selected(cooling_type: String) -> void:
-	if not ["No Dedicated Cooling", "Graphite Sheet", "Graphite + Copper Foil", "Graphene Composite", "Heat Pipe", "Vapor Chamber", "Dual Vapor Chamber", "Vapor Chamber + Graphite Stack"].has(cooling_type):
+	var controls := HBoxContainer.new()
+	controls.name = "CoolingSystemControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 22)
+	controls_center.add_child(controls)
+
+	cooling_system_decrease_button = Button.new()
+	cooling_system_decrease_button.name = "DecreaseCoolingSystemButton"
+	cooling_system_decrease_button.text = "−"
+	_style_level_selector_button(cooling_system_decrease_button)
+	cooling_system_decrease_button.pressed.connect(_on_cooling_system_decrease_pressed)
+	controls.add_child(cooling_system_decrease_button)
+
+	cooling_system_value_label = _make_label(selected_cooling_system, 19, Color.WHITE)
+	cooling_system_value_label.name = "CoolingSystemValueLabel"
+	cooling_system_value_label.custom_minimum_size.x = 230
+	cooling_system_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cooling_system_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cooling_system_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(cooling_system_value_label)
+
+	cooling_system_increase_button = Button.new()
+	cooling_system_increase_button.name = "IncreaseCoolingSystemButton"
+	cooling_system_increase_button.text = "+"
+	_style_level_selector_button(cooling_system_increase_button)
+	cooling_system_increase_button.pressed.connect(_on_cooling_system_increase_pressed)
+	controls.add_child(cooling_system_increase_button)
+
+	_refresh_cooling_system_selection_ui()
+
+
+func _on_cooling_system_decrease_pressed() -> void:
+	_change_cooling_system_selection(-1)
+
+
+func _on_cooling_system_increase_pressed() -> void:
+	_change_cooling_system_selection(1)
+
+
+func _change_cooling_system_selection(direction: int) -> void:
+	var current_index := COOLING_SYSTEM_OPTIONS.find(selected_cooling_system)
+	if current_index < 0:
+		current_index = 0
+	var maximum_index := clampi(cooling_system_research_level, 0, COOLING_SYSTEM_OPTIONS.size() - 1)
+	var next_index := clampi(current_index + direction, 0, maximum_index)
+	if next_index == current_index:
 		return
-	selected_cooling_system = cooling_type
-	if software_value_labels.has("COOLING SYSTEM") and is_instance_valid(software_value_labels["COOLING SYSTEM"]):
-		var cooling_label: Label = software_value_labels["COOLING SYSTEM"]
-		cooling_label.text = selected_cooling_system
-	if is_instance_valid(active_feature_panel):
-		var current := active_feature_panel.find_child("CurrentCoolingSystemLabel", true, false) as Label
-		if is_instance_valid(current):
-			current.text = "CURRENT: " + selected_cooling_system.to_upper()
-		for cooling_option: String in ["No Dedicated Cooling", "Graphite Sheet", "Graphite + Copper Foil", "Graphene Composite", "Heat Pipe", "Vapor Chamber", "Dual Vapor Chamber", "Vapor Chamber + Graphite Stack"]:
-			var option_name: String = "CoolingSystemOption_" + cooling_option.replace(" ", "").replace("+", "Plus")
-			var option_button: Button = active_feature_panel.find_child(option_name, true, false) as Button
-			if not is_instance_valid(option_button):
-				continue
-			var selected: bool = cooling_option == selected_cooling_system
-			option_button.text = cooling_option + ("   ✓ SELECTED" if selected else "")
-			_style_staff_button(option_button, selected)
-		_style_ram_selector_buttons(active_feature_panel)
+	selected_cooling_system = COOLING_SYSTEM_OPTIONS[next_index]
+	_refresh_cooling_system_selection_ui()
+	_update_cooling_software_summary()
+	_notify_worksite_full_selection_changed()
+
+
+func _refresh_cooling_system_selection_ui() -> void:
+	var current_index := COOLING_SYSTEM_OPTIONS.find(selected_cooling_system)
+	if current_index < 0:
+		current_index = 0
+		selected_cooling_system = COOLING_SYSTEM_OPTIONS[0]
+	var maximum_index := clampi(cooling_system_research_level, 0, COOLING_SYSTEM_OPTIONS.size() - 1)
+	if is_instance_valid(cooling_system_research_label):
+		cooling_system_research_label.text = "UNLOCKED OPTIONS  %d / %d" % [
+			maximum_index + 1,
+			COOLING_SYSTEM_OPTIONS.size()
+		]
+	if is_instance_valid(cooling_system_value_label):
+		cooling_system_value_label.text = selected_cooling_system
+	if is_instance_valid(cooling_system_decrease_button):
+		cooling_system_decrease_button.disabled = current_index <= 0
+	if is_instance_valid(cooling_system_increase_button):
+		cooling_system_increase_button.disabled = current_index >= maximum_index
+
+
+func set_cooling_system_research_level(level: int) -> void:
+	# No Dedicated Cooling is the baseline; each approval unlocks the next option.
+	cooling_system_research_level = clampi(level, 0, COOLING_SYSTEM_OPTIONS.size() - 1)
+	var selected_index := COOLING_SYSTEM_OPTIONS.find(selected_cooling_system)
+	if selected_index < 0:
+		selected_index = 0
+	if selected_index > cooling_system_research_level:
+		selected_index = cooling_system_research_level
+	selected_cooling_system = COOLING_SYSTEM_OPTIONS[selected_index]
+	_refresh_cooling_system_selection_ui()
+	_update_cooling_software_summary()
 	_notify_worksite_full_selection_changed()
 
 func _show_refresh_rate_controls() -> void:
