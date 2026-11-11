@@ -2485,14 +2485,25 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
 		phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
 		phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
+		phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
 	var next_mobile_project: Dictionary = result.get("auto_next_project", {})
+	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if str(result.get("project", {}).get("component", "")) == "Wi-Fi" else {}
 	if not next_mobile_project.is_empty():
 		_show_notice("RESEARCH APPROVED", "The findings were validated. Research has automatically started on %s (%s) with the same team." % [
 			str(next_mobile_project.get("research_target", "")),
 			str(next_mobile_project.get("research_generation", ""))
 		])
+	elif not next_wifi_project.is_empty():
+		_show_notice("RESEARCH APPROVED", "The findings were validated. Research has automatically started on Wi-Fi %s (%s) with the same team." % [
+			str(next_wifi_project.get("research_generation", "")).trim_prefix("Wi-Fi "),
+			str(next_wifi_project.get("research_target", ""))
+		])
 	elif not str(result.get("auto_next_project_error", "")).is_empty():
-		_show_notice("RESEARCH APPROVED", "The findings were validated, but the next Mobile Network project could not start automatically: %s" % str(result.get("auto_next_project_error", "")))
+		var approved_component := str(result.get("project", {}).get("component", ""))
+		_show_notice("RESEARCH APPROVED", "The findings were validated, but the next %s project could not start automatically: %s" % [
+			approved_component,
+			str(result.get("auto_next_project_error", ""))
+		])
 	else:
 		_show_notice("RESEARCH APPROVED", "The validated findings have been recorded in the company's technology development history.")
 
@@ -2529,11 +2540,12 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		return result
 
 	var approved_project: Dictionary = result.get("project", {})
-	if str(approved_project.get("component", "")) == "Mobile Network":
+	if str(approved_project.get("component", "")) in ["Mobile Network", "Wi-Fi"]:
+		var sequence_component := str(approved_project.get("component", ""))
 		var previous_team: Array = approved_project.get("staff_ids", []).duplicate()
 		if not previous_team.is_empty():
 			var next_project_result: Dictionary = ResearchManagerScript.commission_project(career, {
-				"component": "Mobile Network",
+				"component": sequence_component,
 				"staff_ids": previous_team
 			}, game_date_unix)
 			if bool(next_project_result.get("ok", false)):
@@ -2654,7 +2666,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_battery_capacity_research_level", 15)
 	phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
 	phone_creation_worksite.call("set_border_radius_research_level", int(career.get("research_component_levels", {}).get("Border Radius", 0)))
-	phone_creation_worksite.call("set_wifi_research_level", 8)
+	phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
 	phone_creation_worksite.call("set_bluetooth_research_level", 14)
 	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 	phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
