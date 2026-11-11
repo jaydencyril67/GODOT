@@ -2549,7 +2549,16 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 	if str(approved_project.get("component", "")) in ["Mobile Network", "Wi-Fi", "Bluetooth"]:
 		var sequence_component := str(approved_project.get("component", ""))
 		var previous_team: Array = approved_project.get("staff_ids", []).duplicate()
-		if not previous_team.is_empty():
+		var next_target: Dictionary = {}
+		var component_levels: Dictionary = career.get("research_component_levels", {})
+		match sequence_component:
+			"Mobile Network":
+				next_target = ResearchManagerScript.get_mobile_network_research_target(component_levels)
+			"Wi-Fi":
+				next_target = ResearchManagerScript.get_wifi_research_target(component_levels)
+			"Bluetooth":
+				next_target = ResearchManagerScript.get_bluetooth_research_target(component_levels)
+		if not previous_team.is_empty() and not next_target.is_empty():
 			var next_project_result: Dictionary = ResearchManagerScript.commission_project(career, {
 				"component": sequence_component,
 				"staff_ids": previous_team
