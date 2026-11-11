@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Front Camera MP", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Front Camera MP", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -344,6 +344,8 @@ func _default_validation_metric(component: String) -> String:
 			return "Maximum wired charging speed"
 		"Wireless Charging":
 			return "Maximum wireless charging speed"
+		"Front Camera MP":
+			return "Maximum front camera resolution"
 		"Battery Capacity":
 			return "Maximum battery capacity"
 		"Screen Technology":
@@ -688,6 +690,21 @@ func _build_component_selection_scene() -> void:
 						continue
 					var wireless_project: Dictionary = project_value
 					if str(wireless_project.get("component", "")) == "Wireless Charging" and str(wireless_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
+						component_button.disabled = true
+						break
+		elif COMPONENT_VALUES[index] == "Front Camera MP":
+			var front_camera_mp_target: Dictionary = ResearchManagerScript.get_front_camera_mp_research_target(research_component_levels)
+			if front_camera_mp_target.is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 300MP"
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Next front camera resolution ceiling: %s" % str(front_camera_mp_target.get("technology", ""))
+				for project_value in research_projects:
+					if not (project_value is Dictionary):
+						continue
+					var front_camera_mp_project: Dictionary = project_value
+					if str(front_camera_mp_project.get("component", "")) == "Front Camera MP" and str(front_camera_mp_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
 						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 						component_button.disabled = true
 						break
