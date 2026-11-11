@@ -136,6 +136,13 @@ func _run_transition_checks() -> void:
 	if not wifi_component_option.tooltip_text.contains("Wi-Fi 2 (802.11a)"):
 		_fail("The Wi-Fi research selector did not identify Wi-Fi 2 as its first research target.")
 		return
+	var bluetooth_component_option := dashboard.find_child("ResearchComponentOption_11", true, false) as Button
+	if not is_instance_valid(bluetooth_component_option) or not bluetooth_component_option.text.contains("BLUETOOTH"):
+		_fail("Bluetooth is missing from the R&D component selector.")
+		return
+	if not bluetooth_component_option.tooltip_text.contains("Bluetooth 1.1"):
+		_fail("Bluetooth research did not identify Bluetooth 1.1 as its first target.")
+		return
 	if dashboard.find_child("ResearchStaffScroll", true, false) != null:
 		_fail("Staff selection appeared before the component-selection step was completed.")
 		return
@@ -408,6 +415,43 @@ func _run_transition_checks() -> void:
 	if not _complete_wifi_research_project("802.11a", "Wi-Fi 2"):
 		return
 
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Bluetooth"):
+		_fail("Bluetooth is missing from the R&D component catalogue.")
+		return
+	var expected_bluetooth_versions := [
+		"Bluetooth 1.0b", "Bluetooth 1.1", "Bluetooth 1.2",
+		"Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS",
+		"Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2",
+		"Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4",
+		"Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2", "Bluetooth 6.3", "Bluetooth 7.0"
+	]
+	if ResearchManagerScript.get_bluetooth_step_count() != expected_bluetooth_versions.size():
+		_fail("Bluetooth does not contain all 19 planned Core Specification versions.")
+		return
+	for bluetooth_index in range(expected_bluetooth_versions.size()):
+		var bluetooth_entry: Dictionary = ResearchManagerScript.get_bluetooth_entry(bluetooth_index)
+		if str(bluetooth_entry.get("technology", "")) != expected_bluetooth_versions[bluetooth_index]:
+			_fail("Bluetooth version %d is missing or out of chronological order." % (bluetooth_index + 1))
+			return
+	var first_bluetooth_target: Dictionary = ResearchManagerScript.get_bluetooth_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	if str(first_bluetooth_target.get("technology", "")) != "Bluetooth 1.1":
+		_fail("Bluetooth 1.0b was not treated as the baseline before Bluetooth 1.1 research.")
+		return
+	var bluetooth_staff: Array = game.career.get("staff_employees", []).duplicate(true)
+	bluetooth_staff.append({
+		"id": "researcher_bluetooth_01",
+		"full_name": "Bluetooth Research Engineer",
+		"department": "Research",
+		"position": "Research Engineer",
+		"efficiency": 100,
+		"monthly_salary": 250000.0
+	})
+	game.career["staff_employees"] = bluetooth_staff
+	if not _complete_bluetooth_research_project("Bluetooth 1.1"):
+		return
+
 	dashboard.call("configure", game._get_research_dashboard_data())
 
 	game._return_from_research_allocation_dashboard()
@@ -675,6 +719,73 @@ func _complete_wifi_research_project(expected_technology: String, expected_gener
 			return false
 		if str(auto_next_project.get("research_target", "")) != str(next_target.get("technology", "")) or str(auto_next_project.get("research_generation", "")) != str(next_target.get("generation", "")):
 			_fail("Automatic Wi-Fi research did not start the next generation in sequence.")
+			return false
+	return true
+
+
+func _complete_bluetooth_research_project(expected_version: String) -> bool:
+	var project: Dictionary = {}
+	for project_value in game.career.get("research_projects", []):
+		if not (project_value is Dictionary):
+			continue
+		var existing_project: Dictionary = project_value
+		if str(existing_project.get("component", "")) == "Bluetooth" and str(existing_project.get("research_target", "")) == expected_version and str(existing_project.get("status", "")) == ResearchManagerScript.STATUS_ACTIVE:
+			project = existing_project.duplicate(true)
+			break
+	if project.is_empty():
+		var commission: Dictionary = game.commission_research_project({
+			"component": "Bluetooth",
+			"staff_ids": ["researcher_bluetooth_01"]
+		})
+		if not bool(commission.get("ok", false)):
+			_fail("A Bluetooth research project could not be commissioned: %s" % str(commission.get("error", "")))
+			return false
+		project = commission.get("project", {})
+	if str(project.get("research_target", "")) != expected_version:
+		_fail("Bluetooth research did not target %s." % expected_version)
+		return false
+	var projects: Array = game.career.get("research_projects", [])
+	for project_index in range(projects.size()):
+		if str(projects[project_index].get("id", "")) == str(project.get("id", "")):
+			projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = projects
+	var completed_ids: Array[String] = ResearchManagerScript.advance_projects(
+		game.career,
+		86400.0 * 29.0,
+		game.game_date_unix + 86400.0 * 29.0
+	)
+	if not completed_ids.has(str(project.get("id", ""))):
+		_fail("The Bluetooth project for %s did not complete." % expected_version)
+		return false
+	var validation: Dictionary = game.approve_research_project(str(project.get("id", "")), [{
+		"component": "Bluetooth",
+		"metric": "Validated Bluetooth Core Specification",
+		"value": expected_version,
+		"unit": "",
+		"notes": "Bluetooth version validated as the next stage in the phone connectivity progression."
+	}])
+	if not bool(validation.get("ok", false)):
+		_fail("Bluetooth %s could not pass technical validation: %s" % [expected_version, str(validation.get("error", ""))])
+		return false
+	var expected_level := int(project.get("research_target_index", -1))
+	if int(game.career.get("research_component_levels", {}).get("Bluetooth", 0)) != expected_level:
+		_fail("Technical approval did not unlock the researched Bluetooth version.")
+		return false
+	var next_target: Dictionary = ResearchManagerScript.get_bluetooth_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	var auto_next_project: Dictionary = validation.get("auto_next_project", {})
+	if next_target.is_empty():
+		if not auto_next_project.is_empty():
+			_fail("Bluetooth research continued beyond the final version.")
+			return false
+	else:
+		if auto_next_project.is_empty():
+			_fail("The next Bluetooth version was not started automatically after approval.")
+			return false
+		if str(auto_next_project.get("research_target", "")) != str(next_target.get("technology", "")):
+			_fail("Automatic Bluetooth research did not start the next version in sequence.")
 			return false
 	return true
 
