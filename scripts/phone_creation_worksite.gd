@@ -563,8 +563,14 @@ var wireless_charging_speed_slider: VSlider
 
 var wireless_charging_speed_value_label: Label
 
-var selected_bluetooth_version := "Bluetooth 2.0 + EDR"
-var researched_bluetooth_level := 14
+var selected_bluetooth_version := "Bluetooth 1.0b"
+var bluetooth_level := 0
+var bluetooth_research_level := 0
+var bluetooth_generation_label: Label
+var bluetooth_research_label: Label
+var bluetooth_value_label: Label
+var bluetooth_decrease_button: Button
+var bluetooth_increase_button: Button
 
 var selected_wifi_standard := "Wi-Fi 1 (802.11b)"
 var wifi_level := 0
@@ -1387,6 +1393,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			or panel.name == "InternalStorageSelectionControls"
 			or panel.name == "WiFiSelectionControls"
 			or panel.name == "MobileNetworkSelectionControls"
+			or panel.name == "BluetoothSelectionControls"
 		)
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if panel_uses_full_height else Control.SIZE_SHRINK_BEGIN
 		if step >= 15 and step <= 29:
@@ -12238,60 +12245,137 @@ func _show_bluetooth_controls() -> void:
 	active_feature_panel.name = "BluetoothSelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	var heading := _make_label("SELECT BLUETOOTH VERSION", 17, Color("#D3AA6B"))
+	var heading := _make_label("BLUETOOTH TECHNOLOGY", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	# Non-scrollable two-column grid. Short BT labels keep every option readable.
-	var options := GridContainer.new()
-	options.name = "BluetoothVersionOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	options.add_theme_constant_override("h_separation", 6)
-	options.add_theme_constant_override("v_separation", 6)
-	active_feature_panel.add_child(options)
+	bluetooth_generation_label = _make_label("", 13, Color("#E5E0D6"))
+	bluetooth_generation_label.name = "BluetoothGenerationLabel"
+	bluetooth_generation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(bluetooth_generation_label)
 
-	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
-	for version_index in range(bluetooth_versions.size()):
-		var version: String = bluetooth_versions[version_index]
-		var option := Button.new()
-		option.name = "BluetoothOption_" + version.replace(" ", "").replace("+", "").replace(".", "_")
-		var button_label: String = version.replace("Bluetooth ", "BT ").replace(" + EDR", " EDR").replace(" + HS", " HS")
-		option.text = button_label + ("  ✓" if selected_bluetooth_version == version else "")
-		option.tooltip_text = version
-		option.disabled = false
-		option.custom_minimum_size = Vector2(0, 42)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 15)
-		var option_font := FontVariation.new()
-		option_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-		option_font.variation_embolden = 1.5
-		option.add_theme_font_override("font", option_font)
-		_style_staff_button(option, selected_bluetooth_version == version)
-		option.pressed.connect(_on_bluetooth_version_selected.bind(version))
-		options.add_child(option)
+	bluetooth_research_label = _make_label("", 13, Color("#D3AA6B"))
+	bluetooth_research_label.name = "BluetoothResearchLevelLabel"
+	bluetooth_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(bluetooth_research_label)
 
-func set_bluetooth_research_level(_level: int) -> void:
-	# Legacy compatibility hook: expose every Bluetooth version.
-	researched_bluetooth_level = 14
+	var selector_spacing := Control.new()
+	selector_spacing.custom_minimum_size = Vector2(0, 48)
+	active_feature_panel.add_child(selector_spacing)
+
+	var controls_center := CenterContainer.new()
+	controls_center.name = "BluetoothControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
+	var controls := HBoxContainer.new()
+	controls.name = "BluetoothControlRow"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
+
+	bluetooth_decrease_button = Button.new()
+	bluetooth_decrease_button.name = "DecreaseBluetoothButton"
+	bluetooth_decrease_button.text = "−"
+	_style_level_circle_button(bluetooth_decrease_button)
+	bluetooth_decrease_button.pressed.connect(_on_bluetooth_decrease_pressed)
+	controls.add_child(bluetooth_decrease_button)
+
+	bluetooth_value_label = _make_label("", 20, Color.WHITE)
+	bluetooth_value_label.name = "BluetoothTechnologyValueLabel"
+	bluetooth_value_label.custom_minimum_size.x = 150
+	bluetooth_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bluetooth_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(bluetooth_value_label)
+
+	bluetooth_increase_button = Button.new()
+	bluetooth_increase_button.name = "IncreaseBluetoothButton"
+	bluetooth_increase_button.text = "+"
+	_style_level_circle_button(bluetooth_increase_button)
+	bluetooth_increase_button.pressed.connect(_on_bluetooth_increase_pressed)
+	controls.add_child(bluetooth_increase_button)
+
+	_refresh_bluetooth_selection_ui(active_feature_panel)
+
+
+func set_bluetooth_research_level(level: int) -> void:
+	bluetooth_research_level = clampi(level, 0, ResearchManagerScript.get_bluetooth_step_count() - 1)
+	# Bluetooth 1.0b is the baseline; each approval unlocks the next version.
+	bluetooth_level = bluetooth_research_level
+	_apply_bluetooth_level(false)
+	_notify_worksite_connectivity_selection_changed()
+
+
+func _on_bluetooth_decrease_pressed() -> void:
+	if bluetooth_level <= 0:
+		return
+	bluetooth_level -= 1
+	_apply_bluetooth_level()
+
+
+func _on_bluetooth_increase_pressed() -> void:
+	if bluetooth_level >= bluetooth_research_level:
+		return
+	bluetooth_level += 1
+	_apply_bluetooth_level()
+
+
+func _apply_bluetooth_level(notify_selection: bool = true) -> void:
+	var entry := ResearchManagerScript.get_bluetooth_entry(bluetooth_level)
+	if entry.is_empty():
+		return
+	selected_bluetooth_version = str(entry.get("technology", ""))
+	if software_value_labels.has("BLUETOOTH") and is_instance_valid(software_value_labels["BLUETOOTH"]):
+		var bluetooth_label: Label = software_value_labels["BLUETOOTH"]
+		bluetooth_label.text = selected_bluetooth_version
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "BluetoothSelectionControls":
-		_show_bluetooth_controls()
+		_refresh_bluetooth_selection_ui(active_feature_panel)
+		if notify_selection:
+			_notify_worksite_connectivity_selection_changed()
+
+
+func _refresh_bluetooth_selection_ui(panel: Control) -> void:
+	if not is_instance_valid(panel) or panel.name != "BluetoothSelectionControls":
+		return
+	var entry := ResearchManagerScript.get_bluetooth_entry(bluetooth_level)
+	if entry.is_empty():
+		return
+	if is_instance_valid(bluetooth_generation_label):
+		bluetooth_generation_label.text = "%s  ·  %s" % [
+			str(entry.get("generation", "")),
+			str(entry.get("generation_name", "")).to_upper()
+		]
+	if is_instance_valid(bluetooth_research_label):
+		var next_target := ResearchManagerScript.get_bluetooth_research_target({
+			"Bluetooth": bluetooth_research_level
+		})
+		var next_target_text := "COMPLETE" if next_target.is_empty() else "NEXT: %s" % str(next_target.get("technology", ""))
+		bluetooth_research_label.text = "BLUETOOTH VERSIONS  %d / %d  ·  %s" % [
+			bluetooth_research_level + 1,
+			ResearchManagerScript.get_bluetooth_step_count(),
+			next_target_text
+		]
+	if is_instance_valid(bluetooth_value_label):
+		bluetooth_value_label.text = selected_bluetooth_version
+	if is_instance_valid(bluetooth_decrease_button):
+		bluetooth_decrease_button.disabled = bluetooth_level <= 0
+	if is_instance_valid(bluetooth_increase_button):
+		bluetooth_increase_button.disabled = bluetooth_level >= bluetooth_research_level
 
 
 func _on_bluetooth_version_selected(version: String) -> void:
-	var bluetooth_versions := ["Bluetooth 2.0 + EDR", "Bluetooth 2.1 + EDR", "Bluetooth 3.0 + HS", "Bluetooth 4.0", "Bluetooth 4.1", "Bluetooth 4.2", "Bluetooth 5.0", "Bluetooth 5.1", "Bluetooth 5.2", "Bluetooth 5.3", "Bluetooth 5.4", "Bluetooth 6.0", "Bluetooth 6.1", "Bluetooth 6.2"]
-	if not bluetooth_versions.has(version):
-		return
-	selected_bluetooth_version = version
-	if software_value_labels.has("BLUETOOTH") and is_instance_valid(software_value_labels["BLUETOOTH"]):
-		var bluetooth_label: Label = software_value_labels["BLUETOOTH"]
-		bluetooth_label.text = version
-	_refresh_connectivity_selection_ui(active_feature_panel, "bluetooth")
-	_notify_worksite_connectivity_selection_changed()
+	# Compatibility hook for older callers; never exceed the researched version.
+	for index in range(bluetooth_research_level + 1):
+		var entry := ResearchManagerScript.get_bluetooth_entry(index)
+		if version == str(entry.get("technology", "")) or version == str(entry.get("generation", "")):
+			bluetooth_level = index
+			_apply_bluetooth_level()
+			return
 
 func _show_wifi_controls() -> void:
 	if not is_instance_valid(right_tools_content):
