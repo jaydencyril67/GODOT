@@ -313,10 +313,13 @@ const MAX_REAR_CAMERAS := 5
 const MAX_REAR_FLASHES := 5
 
 var front_camera_style := "Bezel Camera"
+var front_camera_research_level := 0
+var front_camera_value_label: Label
+var front_camera_decrease_button: Button
+var front_camera_increase_button: Button
 
+# Listed from the earliest front-camera design to the newest.
 const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
-
-var front_camera_option_buttons: Dictionary = {}
 
 var rear_camera_modules: Array[Dictionary] = []
 
@@ -605,8 +608,6 @@ var speaker_count_increase_button: Button
 var charge_port_type := "DC Barrel Jack"
 
 var researched_charge_port_count := 1
-
-var researched_front_camera_count := FRONT_CAMERA_STYLES.size()
 
 var charge_port_opening_points := PackedVector2Array()
 
@@ -3208,18 +3209,16 @@ func set_speaker_research_level(level: int) -> void:
 	_refresh_phone_speakers()
 	_refresh_speaker_count_controls()
 
-func set_front_camera_research_level(_level: int) -> void:
-	# Legacy compatibility hook: expose every front-camera design.
-	researched_front_camera_count = FRONT_CAMERA_STYLES.size()
-	var enable_toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") as Button if is_instance_valid(active_feature_panel) else null
-	if is_instance_valid(enable_toggle):
-		enable_toggle.disabled = false
-	for style_name in front_camera_option_buttons:
-		var option: Button = front_camera_option_buttons[style_name]
-		if not is_instance_valid(option):
-			continue
-		option.disabled = not front_camera_enabled
-		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(style_name) + 2, 9), style_name == front_camera_style)
+func set_front_camera_research_level(level: int) -> void:
+	# Bezel Camera is the baseline. Each successful R&D project unlocks exactly
+	# one newer design, following FRONT_CAMERA_STYLES from oldest to newest.
+	front_camera_research_level = clampi(level, 0, FRONT_CAMERA_STYLES.size() - 1)
+	var selected_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+	if selected_index < 0:
+		front_camera_style = FRONT_CAMERA_STYLES[0]
+	elif selected_index > front_camera_research_level:
+		front_camera_style = FRONT_CAMERA_STYLES[front_camera_research_level]
+	_refresh_front_camera_controls()
 	if is_instance_valid(phone_body):
 		_refresh_phone_screen()
 
@@ -7724,29 +7723,37 @@ func _show_front_camera_controls() -> void:
 	enable_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	enable_row.add_child(enable_label)
 
-	var style_list := GridContainer.new()
-	style_list.name = "FrontCameraStyles"
-	style_list.columns = 2
-	style_list.add_theme_constant_override("h_separation", 7)
-	style_list.add_theme_constant_override("v_separation", 7)
-	style_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(style_list)
+	front_camera_value_label = _make_label("", 16, Color("#C58A3A"))
+	front_camera_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(front_camera_value_label)
 
-	front_camera_option_buttons.clear()
-	for index in range(FRONT_CAMERA_STYLES.size()):
-		var style_name: String = FRONT_CAMERA_STYLES[index]
-		var option := Button.new()
-		option.name = "FrontCamera_" + style_name.replace(" ", "").replace("-", "")
-		option.text = style_name
-		option.custom_minimum_size = Vector2(0, 42)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(option, 12)
-		_style_screen_type_option(option, mini(index + 2, 9), style_name == front_camera_style)
-		option.disabled = not front_camera_enabled
-		option.pressed.connect(_on_front_camera_style_selected.bind(style_name))
-		style_list.add_child(option)
-		front_camera_option_buttons[style_name] = option
+	var controls_center := CenterContainer.new()
+	controls_center.name = "FrontCameraLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
+	var controls := HBoxContainer.new()
+	controls.name = "FrontCameraLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
+
+	front_camera_decrease_button = Button.new()
+	front_camera_decrease_button.name = "DecreaseFrontCameraButton"
+	front_camera_decrease_button.text = "−"
+	_style_level_circle_button(front_camera_decrease_button)
+	front_camera_decrease_button.pressed.connect(_on_front_camera_decrease_pressed)
+	controls.add_child(front_camera_decrease_button)
+
+	front_camera_increase_button = Button.new()
+	front_camera_increase_button.name = "IncreaseFrontCameraButton"
+	front_camera_increase_button.text = "+"
+	_style_level_circle_button(front_camera_increase_button)
+	front_camera_increase_button.pressed.connect(_on_front_camera_increase_pressed)
+	controls.add_child(front_camera_increase_button)
+
+	_refresh_front_camera_controls()
 
 func _on_front_camera_enablement_toggled(enabled: bool) -> void:
 	front_camera_enabled = enabled
@@ -7756,20 +7763,53 @@ func _on_front_camera_enablement_toggled(enabled: bool) -> void:
 	var toggle := active_feature_panel.get_node_or_null("FrontCameraEnablementRow/FrontCameraEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
 		toggle.text = "✓" if enabled else ""
-	for style_name in front_camera_option_buttons:
-		var option: Button = front_camera_option_buttons[style_name]
-		option.disabled = not enabled
+	_refresh_front_camera_controls()
 
-func _on_front_camera_style_selected(style_name: String) -> void:
-	if not FRONT_CAMERA_STYLES.has(style_name):
+
+func _refresh_front_camera_controls() -> void:
+	var selected_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+	if selected_index < 0:
+		selected_index = 0
+	if is_instance_valid(front_camera_value_label):
+		front_camera_value_label.text = "%s  ·  %d / %d" % [
+			front_camera_style.to_upper(),
+			selected_index + 1,
+			front_camera_research_level + 1
+		]
+	if is_instance_valid(front_camera_decrease_button):
+		front_camera_decrease_button.disabled = not front_camera_enabled or selected_index <= 0
+	if is_instance_valid(front_camera_increase_button):
+		front_camera_increase_button.disabled = (
+			not front_camera_enabled
+			or selected_index >= front_camera_research_level
+		)
+
+
+func _on_front_camera_decrease_pressed() -> void:
+	if not front_camera_enabled:
 		return
-	front_camera_style = style_name
+	var selected_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+	if selected_index <= 0:
+		return
+	front_camera_style = FRONT_CAMERA_STYLES[selected_index - 1]
 	_update_bezel_height_slider_limit()
 	_refresh_phone_screen()
 	_update_camera_software_summary()
-	for option_name in front_camera_option_buttons:
-		var option: Button = front_camera_option_buttons[option_name]
-		_style_screen_type_option(option, mini(FRONT_CAMERA_STYLES.find(option_name) + 2, 9), option_name == front_camera_style)
+	_refresh_front_camera_controls()
+
+
+func _on_front_camera_increase_pressed() -> void:
+	if not front_camera_enabled:
+		return
+	var selected_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+	var next_index := selected_index + 1
+	if selected_index < 0 or next_index > front_camera_research_level:
+		return
+	front_camera_style = FRONT_CAMERA_STYLES[next_index]
+	_update_bezel_height_slider_limit()
+	_refresh_phone_screen()
+	_update_camera_software_summary()
+	_refresh_front_camera_controls()
 
 func _front_camera_screen_surface_z(x: float, y: float, screen_width: float, screen_height: float) -> float:
 	# Match the exact depth profile used by _create_curved_screen_mesh so
