@@ -120,7 +120,6 @@ func _process(delta: float) -> void:
 		if is_instance_valid(phone_creation_worksite):
 			phone_creation_worksite.call("set_screen_width_research_level", int(career.get("research_component_levels", {}).get("Screen Width", 0)))
 			phone_creation_worksite.call("set_screen_height_research_level", int(career.get("research_component_levels", {}).get("Screen Height", 0)))
-	phone_creation_worksite.call("set_refresh_rate_research_level", int(career.get("research_component_levels", {}).get("Refresh Rate", 0)))
 			phone_creation_worksite.call("set_refresh_rate_research_level", int(career.get("research_component_levels", {}).get("Refresh Rate", 0)))
 			phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 			phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
