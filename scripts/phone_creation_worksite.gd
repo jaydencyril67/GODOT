@@ -375,12 +375,12 @@ var screen_protector_build_token := 0
 
 var active_screen_protector_build_tweens: Array[Tween] = []
 
-var bezel_width := 0.10
+var bezel_width := 0.120833
 var screen_width_slider: VSlider
 var screen_width_research_level := 0
 var screen_height_research_level := 0
 
-var bezel_height := 0.20
+var bezel_height := 0.246833
 
 var bezel_width_value_label: Label
 
@@ -3267,16 +3267,24 @@ func set_screen_technology_research_level(level: int) -> void:
 
 
 func set_screen_width_research_level(level: int) -> void:
-	# The default width is available immediately; each approval raises the slider ceiling.
-	screen_width_research_level = clampi(level, 0, 12)
+	var next_level := clampi(level, 0, 12)
+	var level_changed := next_level != screen_width_research_level
+	screen_width_research_level = next_level
+	if level_changed:
+		# Start at the first slider step beyond the range unlocked previously.
+		bezel_width = 0.17 - _get_screen_width_slider_default()
 	_update_screen_width_slider_limit()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
 
 
 func set_screen_height_research_level(level: int) -> void:
-	# The default height is available immediately; each approval raises the slider ceiling.
-	screen_height_research_level = clampi(level, 0, 12)
+	var next_level := clampi(level, 0, 12)
+	var level_changed := next_level != screen_height_research_level
+	screen_height_research_level = next_level
+	if level_changed:
+		# Start at the first slider step beyond the range unlocked previously.
+		bezel_height = 0.345 - _get_screen_height_slider_default()
 	_update_bezel_height_slider_limit()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
@@ -5392,9 +5400,28 @@ func _get_screen_width_slider_max() -> float:
 	return minf(0.15, 0.07 + float(screen_width_research_level) * (0.08 / 12.0))
 
 
+func _get_screen_width_slider_default() -> float:
+	const SLIDER_MINIMUM := 0.049167
+	const SLIDER_STEP := 0.001
+	if screen_width_research_level <= 0:
+		return SLIDER_MINIMUM
+	var previous_level_max := minf(0.15, 0.07 + float(screen_width_research_level - 1) * (0.08 / 12.0))
+	return minf(_get_screen_width_slider_max(), previous_level_max + SLIDER_STEP)
+
+
 func _get_screen_height_slider_max() -> float:
 	# Twelve approvals distribute the same original height range into smaller steps.
 	return minf(0.325, 0.145 + float(screen_height_research_level) * (0.18 / 12.0))
+
+
+func _get_screen_height_slider_default() -> float:
+	const SLIDER_MINIMUM := 0.098167
+	const SLIDER_STEP := 0.001
+	if screen_height_research_level <= 0:
+		return SLIDER_MINIMUM
+	var previous_level_max := minf(0.325, 0.145 + float(screen_height_research_level - 1) * (0.18 / 12.0))
+	var current_level_max := minf(0.345 - _minimum_screen_height_bezel(), _get_screen_height_slider_max())
+	return minf(current_level_max, previous_level_max + SLIDER_STEP)
 
 
 func _update_screen_width_slider_limit() -> void:
