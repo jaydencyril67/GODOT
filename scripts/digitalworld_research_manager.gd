@@ -26,7 +26,8 @@ const COMPONENT_CATALOGUE := [
 	"RAM",
 	"Internal Storage",
 	"RAM Technology",
-	"Mobile Network"
+	"Mobile Network",
+	"Wi-Fi"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -78,6 +79,43 @@ static func get_mobile_network_research_target(component_levels: Dictionary) -> 
 	if target_index >= MOBILE_NETWORK_SEQUENCE.size():
 		return {}
 	return get_mobile_network_entry(target_index)
+
+
+const WIFI_SEQUENCE := [
+	{"generation": "Wi-Fi 1", "generation_name": "Wireless LAN", "technology": "802.11b"},
+	{"generation": "Wi-Fi 2", "generation_name": "Wireless LAN", "technology": "802.11a"},
+	{"generation": "Wi-Fi 3", "generation_name": "Wireless LAN", "technology": "802.11g"},
+	{"generation": "Wi-Fi 4", "generation_name": "Wireless LAN", "technology": "802.11n"},
+	{"generation": "Wi-Fi 5", "generation_name": "Wireless LAN", "technology": "802.11ac"},
+	{"generation": "Wi-Fi 6", "generation_name": "High-Efficiency WLAN", "technology": "802.11ax"},
+	{"generation": "Wi-Fi 6E", "generation_name": "6 GHz Extension", "technology": "802.11ax (6 GHz)"},
+	{"generation": "Wi-Fi 7", "generation_name": "Extremely High Throughput", "technology": "802.11be"},
+	{"generation": "Wi-Fi 8", "generation_name": "Ultra High Reliability · Under Development", "technology": "802.11bn"}
+]
+
+
+static func get_wifi_step_count() -> int:
+	return WIFI_SEQUENCE.size()
+
+
+static func get_wifi_entry(index: int) -> Dictionary:
+	if index < 0 or index >= WIFI_SEQUENCE.size():
+		return {}
+	var entry: Dictionary = WIFI_SEQUENCE[index].duplicate(true)
+	entry["index"] = index
+	return entry
+
+
+static func get_wifi_research_target(component_levels: Dictionary) -> Dictionary:
+	var current_level := clampi(
+		int(component_levels.get("Wi-Fi", 0)),
+		0,
+		WIFI_SEQUENCE.size() - 1
+	)
+	var target_index := current_level + 1
+	if target_index >= WIFI_SEQUENCE.size():
+		return {}
+	return get_wifi_entry(target_index)
 
 
 static func normalize_component(component_value: String) -> String:
@@ -228,31 +266,36 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not bool(estimate.get("ok", false)):
 		return _failure(str(estimate.get("error", "The research team could not be calculated.")))
 
-	var mobile_network_target: Dictionary = {}
+	var ordered_target: Dictionary = {}
 	if component == "Mobile Network":
-		mobile_network_target = get_mobile_network_research_target(career.get("research_component_levels", {}))
-		if mobile_network_target.is_empty():
-			return _failure("All Mobile Network technologies in the progression have already been researched.")
-		var target_index := int(mobile_network_target.get("index", -1))
+		ordered_target = get_mobile_network_research_target(career.get("research_component_levels", {}))
+	elif component == "Wi-Fi":
+		ordered_target = get_wifi_research_target(career.get("research_component_levels", {}))
+	if component in ["Mobile Network", "Wi-Fi"]:
+		if ordered_target.is_empty():
+			return _failure("All %s technologies in the progression have already been researched." % component)
+		var target_index := int(ordered_target.get("index", -1))
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
 				continue
 			var existing_project: Dictionary = existing_project_value
-			if str(existing_project.get("component", "")) != "Mobile Network":
+			if str(existing_project.get("component", "")) != component:
 				continue
 			if int(existing_project.get("research_target_index", -1)) != target_index:
 				continue
 			if str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
-				return _failure("The next Mobile Network technology already has a project in progress or awaiting validation.")
+				return _failure("The next %s technology already has a project in progress or awaiting validation." % component)
 
 	var project_title := "Research: " + component
 	var project_objective := ""
-	if component == "Mobile Network":
-		project_title = "Research: Mobile Network - " + str(mobile_network_target.get("technology", ""))
-		project_objective = "Develop and validate %s for %s mobile networks." % [
-			str(mobile_network_target.get("technology", "")),
-			str(mobile_network_target.get("generation", ""))
-		]
+	if not ordered_target.is_empty():
+		var target_technology := str(ordered_target.get("technology", ""))
+		var target_generation := str(ordered_target.get("generation", ""))
+		project_title = "Research: %s - %s" % [component, target_technology]
+		if component == "Mobile Network":
+			project_objective = "Develop and validate %s for %s mobile networks." % [target_technology, target_generation]
+		else:
+			project_objective = "Develop and validate IEEE %s for %s wireless networks." % [target_technology, target_generation]
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
@@ -262,9 +305,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		"component": component,
 		"components": [component],
 		"objective": project_objective,
-		"research_target_index": int(mobile_network_target.get("index", -1)),
-		"research_target": str(mobile_network_target.get("technology", "")),
-		"research_generation": str(mobile_network_target.get("generation", "")),
+		"research_target_index": int(ordered_target.get("index", -1)),
+		"research_target": str(ordered_target.get("technology", "")),
+		"research_generation": str(ordered_target.get("generation", "")),
 		"project_type": "technology_improvement",
 		"required_research_days": float(estimate.get("expected_duration_days", BASE_RESEARCH_DURATION_DAYS)),
 		"completed_research_days": 0.0,
@@ -356,6 +399,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var component := normalize_component(str(project.get("component", "")))
 	var component_levels: Dictionary = career.get("research_component_levels", {})
 	var mobile_network_target_index := -1
+	var wifi_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -364,6 +408,14 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		var expected_target := get_mobile_network_entry(mobile_network_target_index)
 		if expected_target.is_empty() or str(project.get("research_target", "")) != str(expected_target.get("technology", "")):
 			return _failure("The Mobile Network project target does not match the current research sequence.")
+	elif component == "Wi-Fi":
+		wifi_target_index = int(project.get("research_target_index", -1))
+		var expected_wifi_index := int(component_levels.get(component, 0)) + 1
+		if wifi_target_index != expected_wifi_index:
+			return _failure("This Wi-Fi project is no longer the next technology in the research sequence.")
+		var expected_wifi_target := get_wifi_entry(wifi_target_index)
+		if expected_wifi_target.is_empty() or str(project.get("research_target", "")) != str(expected_wifi_target.get("technology", "")):
+			return _failure("The Wi-Fi project target does not match the current research sequence.")
 
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
@@ -384,6 +436,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Each approved finding must include a measured attribute and result value.")
 		if result_component == "Mobile Network" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact Mobile Network technology assigned to this project.")
+		if result_component == "Wi-Fi" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact Wi-Fi IEEE standard assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -426,6 +480,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Mobile Network":
 		# Each approved project unlocks exactly the next technology in the generation sequence.
 		component_levels[component] = mobile_network_target_index
+	elif component == "Wi-Fi":
+		# Wi-Fi 1 is the starting baseline; each approval unlocks the next Wi-Fi generation.
+		component_levels[component] = wifi_target_index
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects
