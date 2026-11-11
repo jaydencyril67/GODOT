@@ -15,6 +15,10 @@ const STATUS_UNSUCCESSFUL := "unsuccessful"
 const RESEARCH_SUCCESS_CHANCE := 0.70
 const STATUS_CANCELLED := "cancelled"
 const FRONT_CAMERA_MODEL_COUNT := 8
+const FRONT_CAMERA_MP_BASE := 1
+const FRONT_CAMERA_MP_STEP := 5
+const FRONT_CAMERA_MP_RESEARCH_UPGRADES := 60
+const FRONT_CAMERA_MP_MAX := 300
 const BATTERY_CAPACITY_BASE_MAH := 1000
 const BATTERY_CAPACITY_STEP_MAH := 350
 const BATTERY_CAPACITY_RESEARCH_UPGRADES := 20
@@ -76,6 +80,7 @@ const COMPONENT_CATALOGUE := [
 	"Charge Port",
 	"Home Button",
 	"Front Camera",
+	"Front Camera MP",
 	"RAM",
 	"Internal Storage",
 	"RAM Technology",
@@ -245,6 +250,32 @@ static func get_charging_speed_research_target(component_levels: Dictionary) -> 
 		"index": target_level,
 		"technology": "%dW" % target_maximum,
 		"max_charging_speed_w": target_maximum
+	}
+
+
+static func get_front_camera_mp_max_for_level(completed_upgrades: int) -> int:
+	# The 1MP baseline is available by default. The first 59 upgrades add 5MP;
+	# the final upgrade adds 4MP to reach exactly 300MP.
+	var upgrades := clampi(completed_upgrades, 0, FRONT_CAMERA_MP_RESEARCH_UPGRADES)
+	if upgrades >= FRONT_CAMERA_MP_RESEARCH_UPGRADES:
+		return FRONT_CAMERA_MP_MAX
+	return mini(FRONT_CAMERA_MP_MAX, FRONT_CAMERA_MP_BASE + upgrades * FRONT_CAMERA_MP_STEP)
+
+
+static func get_front_camera_mp_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_upgrades := clampi(
+		int(component_levels.get("Front Camera MP", 0)),
+		0,
+		FRONT_CAMERA_MP_RESEARCH_UPGRADES
+	)
+	if completed_upgrades >= FRONT_CAMERA_MP_RESEARCH_UPGRADES:
+		return {}
+	var target_level := completed_upgrades + 2
+	var target_maximum := get_front_camera_mp_max_for_level(completed_upgrades + 1)
+	return {
+		"index": target_level,
+		"technology": "%dMP" % target_maximum,
+		"max_front_camera_mp": target_maximum
 	}
 
 
@@ -592,9 +623,11 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_charging_speed_research_target(career.get("research_component_levels", {}))
 	elif component == "Wireless Charging":
 		ordered_target = get_wireless_charging_research_target(career.get("research_component_levels", {}))
+	elif component == "Front Camera MP":
+		ordered_target = get_front_camera_mp_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging"] or PHONE_SENSOR_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP"] or PHONE_SENSOR_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -623,7 +656,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		var target_technology := str(ordered_target.get("technology", ""))
 		var target_generation := str(ordered_target.get("generation", ""))
 		project_title = "Research: %s - %s" % [component, target_technology]
-		if PHONE_SENSOR_COMPONENTS.has(component):
+		if component == "Front Camera MP":
+			project_objective = "Develop and validate the next front-camera resolution ceiling of %s while preserving player-selected resolutions in 1MP increments." % target_technology
+		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
 		elif component == "Bluetooth":
@@ -765,6 +800,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var battery_capacity_target_index := -1
 	var charging_speed_target_index := -1
 	var wireless_charging_target_index := -1
+	var front_camera_mp_target_index := -1
 	var phone_sensor_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
@@ -827,6 +863,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Wireless Charging project is no longer the next charging-speed improvement.")
 		if str(project.get("research_target", "")) != str(expected_wireless_target.get("technology", "")):
 			return _failure("The Wireless Charging project target does not match the current wireless charging progression.")
+	elif component == "Front Camera MP":
+		front_camera_mp_target_index = int(project.get("research_target_index", -1))
+		var expected_front_camera_mp_target := get_front_camera_mp_research_target(component_levels)
+		if expected_front_camera_mp_target.is_empty() or front_camera_mp_target_index != int(expected_front_camera_mp_target.get("index", -1)):
+			return _failure("This Front Camera MP project is no longer the next resolution improvement.")
+		if str(project.get("research_target", "")) != str(expected_front_camera_mp_target.get("technology", "")):
+			return _failure("The Front Camera MP project target does not match the current resolution progression.")
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		phone_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or phone_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
@@ -865,6 +908,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next wired charging-speed ceiling assigned to this project.")
 		if result_component == "Wireless Charging" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next wireless charging-speed ceiling assigned to this project.")
+		if result_component == "Front Camera MP" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next front-camera resolution ceiling assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact sensor component assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
@@ -942,6 +987,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Wireless Charging":
 		# The first approval unlocks wireless charging at 1W; 66 further upgrades reach 200W.
 		component_levels[component] = wireless_charging_target_index
+	elif component == "Front Camera MP":
+		# The 1MP baseline is available by default; 60 approvals raise the ceiling to 300MP.
+		component_levels[component] = mini(FRONT_CAMERA_MP_RESEARCH_UPGRADES, int(component_levels.get(component, 0)) + 1)
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		# Every sensor is an independent, one-time approved research unlock.
 		component_levels[component] = 1
