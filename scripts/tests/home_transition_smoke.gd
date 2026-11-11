@@ -477,9 +477,19 @@ func _run_transition_checks() -> void:
 	if str(first_cooling_target.get("technology", "")) != "Graphite Sheet":
 		_fail("No Dedicated Cooling was not treated as the baseline before Graphite Sheet research.")
 		return
+	var cooling_staff: Array = game.career.get("staff_employees", []).duplicate(true)
+	cooling_staff.append({
+		"id": "researcher_cooling_01",
+		"full_name": "Thermal Systems Research Engineer",
+		"department": "Research",
+		"position": "Research Engineer",
+		"efficiency": 100,
+		"monthly_salary": 250000.0
+	})
+	game.career["staff_employees"] = cooling_staff
 	var cooling_commission: Dictionary = game.commission_research_project({
 		"component": "Cooling System Design",
-		"staff_ids": ["researcher_smoke_01"]
+		"staff_ids": ["researcher_cooling_01"]
 	})
 	if not bool(cooling_commission.get("ok", false)):
 		_fail("A Cooling System Design research project could not be commissioned: %s" % str(cooling_commission.get("error", "")))
