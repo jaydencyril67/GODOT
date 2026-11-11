@@ -1432,7 +1432,13 @@ func _style_ram_selector_buttons(panel: Control) -> void:
 			"DecreaseRAMTechnologyButton",
 			"IncreaseRAMTechnologyButton",
 			"DecreaseRAMCapacityButton",
-			"IncreaseRAMCapacityButton"
+			"IncreaseRAMCapacityButton",
+			"DecreaseInternalStorageButton",
+			"IncreaseInternalStorageButton",
+			"DecreaseWiFiButton",
+			"IncreaseWiFiButton",
+			"DecreaseMobileNetworkButton",
+			"IncreaseMobileNetworkButton"
 		]:
 			# These are the circular level controls. Keep their dedicated
 			# styling instead of replacing it with the generic option-button style.
