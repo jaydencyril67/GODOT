@@ -2486,8 +2486,9 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
 		phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 		phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
-	var next_mobile_project: Dictionary = result.get("auto_next_project", {})
-	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if str(result.get("project", {}).get("component", "")) == "Wi-Fi" else {}
+	var approved_component := str(result.get("project", {}).get("component", ""))
+	var next_mobile_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Mobile Network" else {}
+	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Wi-Fi" else {}
 	if not next_mobile_project.is_empty():
 		_show_notice("RESEARCH APPROVED", "The findings were validated. Research has automatically started on %s (%s) with the same team." % [
 			str(next_mobile_project.get("research_target", "")),
