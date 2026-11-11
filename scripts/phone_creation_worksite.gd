@@ -376,6 +376,9 @@ var screen_protector_build_token := 0
 var active_screen_protector_build_tweens: Array[Tween] = []
 
 var bezel_width := 0.10
+var screen_width_slider: VSlider
+var screen_width_research_level := 0
+var screen_height_research_level := 0
 
 var bezel_height := 0.20
 
@@ -3240,6 +3243,22 @@ func set_screen_technology_research_level(level: int) -> void:
 	_refresh_screen_technology_ui()
 
 
+func set_screen_width_research_level(level: int) -> void:
+	# The default width is available immediately; each approval raises the slider ceiling.
+	screen_width_research_level = clampi(level, 0, 8)
+	_update_screen_width_slider_limit()
+	_refresh_phone_screen()
+	_refresh_screen_type_controls()
+
+
+func set_screen_height_research_level(level: int) -> void:
+	# The default height is available immediately; each approval raises the slider ceiling.
+	screen_height_research_level = clampi(level, 0, 9)
+	_update_bezel_height_slider_limit()
+	_refresh_phone_screen()
+	_refresh_screen_type_controls()
+
+
 func set_ram_technology_research_level(level: int) -> void:
 	# LPDDR2 is the baseline. Each approved RAM Technology project unlocks one newer generation.
 	ram_technology_research_level = clampi(level, 0, RAM_TECHNOLOGIES.size() - 1)
@@ -5188,12 +5207,14 @@ func _show_screen_size_controls() -> void:
 	bezel_width_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	width_column.add_child(bezel_width_value_label)
 
+	bezel_width = clampf(bezel_width, 0.17 - _get_screen_width_slider_max(), 0.15)
 	var width_slider := VSlider.new()
+	screen_width_slider = width_slider
 	width_slider.name = "ScreenWidthSlider"
 	width_slider.min_value = 0.02
-	width_slider.max_value = 0.15
+	width_slider.max_value = _get_screen_width_slider_max()
 	width_slider.step = 0.001
-	width_slider.value = 0.17 - clampf(bezel_width, 0.02, 0.15)
+	width_slider.value = clampf(0.17 - bezel_width, width_slider.min_value, width_slider.max_value)
 	width_slider.tick_count = 14
 	width_slider.custom_minimum_size = Vector2(64, 320)
 	width_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -5221,10 +5242,10 @@ func _show_screen_size_controls() -> void:
 	bezel_height_slider = VSlider.new()
 	bezel_height_slider.name = "ScreenHeightSlider"
 	bezel_height_slider.min_value = 0.02
-	bezel_height_slider.max_value = 0.345 - _minimum_screen_height_bezel()
+	bezel_height_slider.max_value = minf(0.345 - _minimum_screen_height_bezel(), _get_screen_height_slider_max())
 	bezel_height_slider.step = 0.001
-	bezel_height = clampf(bezel_height, _minimum_screen_height_bezel(), 0.325)
-	bezel_height_slider.value = 0.345 - bezel_height
+	bezel_height = clampf(bezel_height, 0.345 - bezel_height_slider.max_value, 0.325)
+	bezel_height_slider.value = clampf(0.345 - bezel_height, bezel_height_slider.min_value, bezel_height_slider.max_value)
 	bezel_height_slider.tick_count = 14
 	bezel_height_slider.custom_minimum_size = Vector2(64, 320)
 	bezel_height_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -5238,15 +5259,16 @@ func _show_screen_size_controls() -> void:
 	_refresh_screen_type_controls()
 
 func _on_bezel_width_changed(value: float) -> void:
-	# The slider represents screen size: moving it up must reduce the bezel.
-	bezel_width = clampf(0.17 - value, 0.02, 0.15)
+	# The slider represents screen width: moving it up must reduce the bezel.
+	bezel_width = clampf(0.17 - value, 0.17 - _get_screen_width_slider_max(), 0.15)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
 
 func _on_bezel_height_changed(value: float) -> void:
-	# The slider represents screen size: moving it up must reduce the bezel.
-	bezel_height = clampf(0.345 - value, _minimum_screen_height_bezel(), 0.325)
+	# The slider represents screen height: moving it up must reduce the bezel.
+	var minimum_bezel := maxf(_minimum_screen_height_bezel(), 0.345 - _get_screen_height_slider_max())
+	bezel_height = clampf(0.345 - value, minimum_bezel, 0.325)
 	_update_bezel_value_labels()
 	_refresh_phone_screen()
 	_refresh_screen_type_controls()
@@ -5354,6 +5376,25 @@ func _on_vertical_curve_toggled(enabled: bool) -> void:
 func _is_screen_width_max() -> bool:
 	return bezel_width <= 0.0205
 
+func _get_screen_width_slider_max() -> float:
+	# Eight approvals expand the maximum from the baseline to the full-width display.
+	return minf(0.15, 0.07 + float(screen_width_research_level) * 0.01)
+
+
+func _get_screen_height_slider_max() -> float:
+	# Nine approvals expand the maximum from the baseline to the full-height display.
+	return minf(0.325, 0.145 + float(screen_height_research_level) * 0.02)
+
+
+func _update_screen_width_slider_limit() -> void:
+	var maximum_screen_width := _get_screen_width_slider_max()
+	bezel_width = clampf(bezel_width, 0.17 - maximum_screen_width, 0.15)
+	if is_instance_valid(screen_width_slider):
+		screen_width_slider.max_value = maximum_screen_width
+		screen_width_slider.set_value_no_signal(clampf(0.17 - bezel_width, screen_width_slider.min_value, maximum_screen_width))
+	_update_bezel_value_labels()
+
+
 func _minimum_screen_height_bezel() -> float:
 	# The bezel camera occupies a small permanent strip of the handset frame.
 	# Because the display remains centred, half of this reserve is the minimum
@@ -5361,12 +5402,12 @@ func _minimum_screen_height_bezel() -> float:
 	return 0.07 if front_camera_enabled and front_camera_style == "Bezel Camera" else 0.02
 
 func _update_bezel_height_slider_limit() -> void:
-	if not is_instance_valid(bezel_height_slider):
-		return
 	var minimum_bezel := _minimum_screen_height_bezel()
-	bezel_height = clampf(bezel_height, minimum_bezel, 0.325)
-	bezel_height_slider.max_value = 0.345 - minimum_bezel
-	bezel_height_slider.set_value_no_signal(0.345 - bezel_height)
+	var maximum_screen_height := minf(0.345 - minimum_bezel, _get_screen_height_slider_max())
+	bezel_height = clampf(bezel_height, 0.345 - maximum_screen_height, 0.325)
+	if is_instance_valid(bezel_height_slider):
+		bezel_height_slider.max_value = maximum_screen_height
+		bezel_height_slider.set_value_no_signal(clampf(0.345 - bezel_height, bezel_height_slider.min_value, maximum_screen_height))
 	_update_bezel_value_labels()
 
 func _is_screen_height_max() -> bool:
