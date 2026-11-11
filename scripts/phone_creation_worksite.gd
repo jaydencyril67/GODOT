@@ -5499,14 +5499,14 @@ func _show_screen_tech_controls() -> void:
 	screen_technology_decrease_button = Button.new()
 	screen_technology_decrease_button.name = "DecreaseScreenTechnologyButton"
 	screen_technology_decrease_button.text = "−"
-	_style_level_circle_button(screen_technology_decrease_button)
+	_style_level_selector_button(screen_technology_decrease_button)
 	screen_technology_decrease_button.pressed.connect(_on_screen_technology_decrease_pressed)
 	controls.add_child(screen_technology_decrease_button)
 
 	screen_technology_increase_button = Button.new()
 	screen_technology_increase_button.name = "IncreaseScreenTechnologyButton"
 	screen_technology_increase_button.text = "+"
-	_style_level_circle_button(screen_technology_increase_button)
+	_style_level_selector_button(screen_technology_increase_button)
 	screen_technology_increase_button.pressed.connect(_on_screen_technology_increase_pressed)
 	controls.add_child(screen_technology_increase_button)
 
@@ -7856,14 +7856,14 @@ func _show_front_camera_controls() -> void:
 	front_camera_decrease_button = Button.new()
 	front_camera_decrease_button.name = "DecreaseFrontCameraButton"
 	front_camera_decrease_button.text = "−"
-	_style_level_circle_button(front_camera_decrease_button)
+	_style_level_selector_button(front_camera_decrease_button)
 	front_camera_decrease_button.pressed.connect(_on_front_camera_decrease_pressed)
 	controls.add_child(front_camera_decrease_button)
 
 	front_camera_increase_button = Button.new()
 	front_camera_increase_button.name = "IncreaseFrontCameraButton"
 	front_camera_increase_button.text = "+"
-	_style_level_circle_button(front_camera_increase_button)
+	_style_level_selector_button(front_camera_increase_button)
 	front_camera_increase_button.pressed.connect(_on_front_camera_increase_pressed)
 	controls.add_child(front_camera_increase_button)
 
@@ -8724,14 +8724,14 @@ func _show_border_radius_controls() -> void:
 	border_radius_decrease_button = Button.new()
 	border_radius_decrease_button.name = "DecreaseBorderRadiusButton"
 	border_radius_decrease_button.text = "−"
-	_style_level_circle_button(border_radius_decrease_button)
+	_style_level_selector_button(border_radius_decrease_button)
 	border_radius_decrease_button.pressed.connect(_on_border_radius_decrease_pressed)
 	controls.add_child(border_radius_decrease_button)
 
 	border_radius_increase_button = Button.new()
 	border_radius_increase_button.name = "IncreaseBorderRadiusButton"
 	border_radius_increase_button.text = "+"
-	_style_level_circle_button(border_radius_increase_button)
+	_style_level_selector_button(border_radius_increase_button)
 	border_radius_increase_button.pressed.connect(_on_border_radius_increase_pressed)
 	controls.add_child(border_radius_increase_button)
 	_refresh_border_radius_test_ui()
@@ -8772,14 +8772,14 @@ func _show_thickness_controls() -> void:
 	phone_thickness_decrease_button = Button.new()
 	phone_thickness_decrease_button.name = "DecreasePhoneThicknessButton"
 	phone_thickness_decrease_button.text = "−"
-	_style_level_circle_button(phone_thickness_decrease_button)
+	_style_level_selector_button(phone_thickness_decrease_button)
 	phone_thickness_decrease_button.pressed.connect(_on_phone_thickness_decrease_pressed)
 	controls.add_child(phone_thickness_decrease_button)
 
 	phone_thickness_increase_button = Button.new()
 	phone_thickness_increase_button.name = "IncreasePhoneThicknessButton"
 	phone_thickness_increase_button.text = "+"
-	_style_level_circle_button(phone_thickness_increase_button)
+	_style_level_selector_button(phone_thickness_increase_button)
 	phone_thickness_increase_button.pressed.connect(_on_phone_thickness_increase_pressed)
 	controls.add_child(phone_thickness_increase_button)
 	_refresh_phone_thickness_test_ui()
@@ -8923,14 +8923,14 @@ func _show_home_button_controls() -> void:
 	home_button_decrease_button = Button.new()
 	home_button_decrease_button.name = "DecreaseHomeButtonButton"
 	home_button_decrease_button.text = "−"
-	_style_level_circle_button(home_button_decrease_button)
+	_style_level_selector_button(home_button_decrease_button)
 	home_button_decrease_button.pressed.connect(_on_home_button_decrease_pressed)
 	controls.add_child(home_button_decrease_button)
 
 	home_button_increase_button = Button.new()
 	home_button_increase_button.name = "IncreaseHomeButtonButton"
 	home_button_increase_button.text = "+"
-	_style_level_circle_button(home_button_increase_button)
+	_style_level_selector_button(home_button_increase_button)
 	home_button_increase_button.pressed.connect(_on_home_button_increase_pressed)
 	controls.add_child(home_button_increase_button)
 
@@ -9915,14 +9915,14 @@ func _show_speaker_controls() -> void:
 	speaker_count_decrease_button = Button.new()
 	speaker_count_decrease_button.name = "DecreaseSpeakerCountButton"
 	speaker_count_decrease_button.text = "−"
-	_style_level_circle_button(speaker_count_decrease_button)
+	_style_level_selector_button(speaker_count_decrease_button)
 	speaker_count_decrease_button.pressed.connect(_on_speaker_count_decrease_pressed)
 	controls.add_child(speaker_count_decrease_button)
 
 	speaker_count_increase_button = Button.new()
 	speaker_count_increase_button.name = "IncreaseSpeakerCountButton"
 	speaker_count_increase_button.text = "+"
-	_style_level_circle_button(speaker_count_increase_button)
+	_style_level_selector_button(speaker_count_increase_button)
 	speaker_count_increase_button.pressed.connect(_on_speaker_count_increase_pressed)
 	controls.add_child(speaker_count_increase_button)
 
@@ -10044,14 +10044,14 @@ func _show_charge_port_controls() -> void:
 	charge_port_decrease_button = Button.new()
 	charge_port_decrease_button.name = "DecreaseChargePortButton"
 	charge_port_decrease_button.text = "−"
-	_style_level_circle_button(charge_port_decrease_button)
+	_style_level_selector_button(charge_port_decrease_button)
 	charge_port_decrease_button.pressed.connect(_on_charge_port_decrease_pressed)
 	controls.add_child(charge_port_decrease_button)
 
 	charge_port_increase_button = Button.new()
 	charge_port_increase_button.name = "IncreaseChargePortButton"
 	charge_port_increase_button.text = "+"
-	_style_level_circle_button(charge_port_increase_button)
+	_style_level_selector_button(charge_port_increase_button)
 	charge_port_increase_button.pressed.connect(_on_charge_port_increase_pressed)
 	controls.add_child(charge_port_increase_button)
 
@@ -10592,45 +10592,15 @@ func set_border_radius_research_level(level: int) -> void:
 	_refresh_border_radius_test_ui()
 
 
-func _style_level_circle_button(button: Button) -> void:
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var control_scale: float = clampf(minf(viewport_size.x / 1152.0, viewport_size.y / 648.0), 0.68, 1.0)
-	var diameter: float = maxf(1.0, 68.0 * control_scale)
-	button.custom_minimum_size = Vector2(diameter, diameter)
+func _style_level_selector_button(button: Button) -> void:
+	# Use the same rounded-rectangle glass treatment as the generic worksite
+	# buttons, while keeping +/- controls compact and centered in their row.
+	_style_button(button, false)
+	button.custom_minimum_size = Vector2(56, 48)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", maxi(9, roundi(38.0 * control_scale)))
-	var bold_font := FontVariation.new()
-	bold_font.base_font = button.get_theme_font("font")
-	bold_font.variation_embolden = 1.0
-	button.add_theme_font_override("font", bold_font)
-	button.add_theme_color_override("font_color", Color("#F2EDE3"))
-	button.add_theme_color_override("font_hover_color", Color("#17191B"))
-	button.add_theme_color_override("font_pressed_color", Color("#17191B"))
-	button.add_theme_color_override("font_disabled_color", Color("#77736B"))
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("#292D30")
-	normal.border_color = Color("#C58A3A")
-	normal.set_border_width_all(maxi(1, roundi(2.0 * control_scale)))
-	normal.set_corner_radius_all(roundi(diameter * 0.5))
-	normal.content_margin_left = 0
-	normal.content_margin_right = 0
-	normal.content_margin_top = 0
-	normal.content_margin_bottom = 0
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color("#C58A3A")
-	hover.border_color = Color("#E0AD62")
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color("#A96F27")
-	var disabled := normal.duplicate() as StyleBoxFlat
-	disabled.bg_color = Color("#202326")
-	disabled.border_color = Color("#55514A")
-	button.add_theme_stylebox_override("normal", normal)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", pressed)
-	button.add_theme_stylebox_override("disabled", disabled)
 
 
 func _refresh_border_radius_test_ui() -> void:
@@ -11643,7 +11613,7 @@ func _show_ram_controls() -> void:
 	ram_capacity_decrease_button = Button.new()
 	ram_capacity_decrease_button.name = "DecreaseRAMCapacityButton"
 	ram_capacity_decrease_button.text = "−"
-	_style_level_circle_button(ram_capacity_decrease_button)
+	_style_level_selector_button(ram_capacity_decrease_button)
 	ram_capacity_decrease_button.pressed.connect(_on_ram_capacity_decrease_pressed)
 	controls.add_child(ram_capacity_decrease_button)
 
@@ -11656,7 +11626,7 @@ func _show_ram_controls() -> void:
 	ram_capacity_increase_button = Button.new()
 	ram_capacity_increase_button.name = "IncreaseRAMCapacityButton"
 	ram_capacity_increase_button.text = "+"
-	_style_level_circle_button(ram_capacity_increase_button)
+	_style_level_selector_button(ram_capacity_increase_button)
 	ram_capacity_increase_button.pressed.connect(_on_ram_capacity_increase_pressed)
 	controls.add_child(ram_capacity_increase_button)
 
@@ -11791,7 +11761,7 @@ func _show_ram_technology_controls() -> void:
 	ram_technology_decrease_button = Button.new()
 	ram_technology_decrease_button.name = "DecreaseRAMTechnologyButton"
 	ram_technology_decrease_button.text = "−"
-	_style_level_circle_button(ram_technology_decrease_button)
+	_style_level_selector_button(ram_technology_decrease_button)
 	ram_technology_decrease_button.pressed.connect(_on_ram_technology_decrease_pressed)
 	controls.add_child(ram_technology_decrease_button)
 
@@ -11804,7 +11774,7 @@ func _show_ram_technology_controls() -> void:
 	ram_technology_increase_button = Button.new()
 	ram_technology_increase_button.name = "IncreaseRAMTechnologyButton"
 	ram_technology_increase_button.text = "+"
-	_style_level_circle_button(ram_technology_increase_button)
+	_style_level_selector_button(ram_technology_increase_button)
 	ram_technology_increase_button.pressed.connect(_on_ram_technology_increase_pressed)
 	controls.add_child(ram_technology_increase_button)
 
@@ -11926,7 +11896,7 @@ func _show_rom_controls() -> void:
 	internal_storage_decrease_button = Button.new()
 	internal_storage_decrease_button.name = "DecreaseInternalStorageButton"
 	internal_storage_decrease_button.text = "−"
-	_style_level_circle_button(internal_storage_decrease_button)
+	_style_level_selector_button(internal_storage_decrease_button)
 	internal_storage_decrease_button.pressed.connect(_on_internal_storage_decrease_pressed)
 	controls.add_child(internal_storage_decrease_button)
 
@@ -11939,7 +11909,7 @@ func _show_rom_controls() -> void:
 	internal_storage_increase_button = Button.new()
 	internal_storage_increase_button.name = "IncreaseInternalStorageButton"
 	internal_storage_increase_button.text = "+"
-	_style_level_circle_button(internal_storage_increase_button)
+	_style_level_selector_button(internal_storage_increase_button)
 	internal_storage_increase_button.pressed.connect(_on_internal_storage_increase_pressed)
 	controls.add_child(internal_storage_increase_button)
 
@@ -12282,7 +12252,7 @@ func _show_bluetooth_controls() -> void:
 	bluetooth_decrease_button = Button.new()
 	bluetooth_decrease_button.name = "DecreaseBluetoothButton"
 	bluetooth_decrease_button.text = "−"
-	_style_level_circle_button(bluetooth_decrease_button)
+	_style_level_selector_button(bluetooth_decrease_button)
 	bluetooth_decrease_button.pressed.connect(_on_bluetooth_decrease_pressed)
 	controls.add_child(bluetooth_decrease_button)
 
@@ -12296,7 +12266,7 @@ func _show_bluetooth_controls() -> void:
 	bluetooth_increase_button = Button.new()
 	bluetooth_increase_button.name = "IncreaseBluetoothButton"
 	bluetooth_increase_button.text = "+"
-	_style_level_circle_button(bluetooth_increase_button)
+	_style_level_selector_button(bluetooth_increase_button)
 	bluetooth_increase_button.pressed.connect(_on_bluetooth_increase_pressed)
 	controls.add_child(bluetooth_increase_button)
 
@@ -12423,7 +12393,7 @@ func _show_wifi_controls() -> void:
 	wifi_decrease_button = Button.new()
 	wifi_decrease_button.name = "DecreaseWiFiButton"
 	wifi_decrease_button.text = "−"
-	_style_level_circle_button(wifi_decrease_button)
+	_style_level_selector_button(wifi_decrease_button)
 	wifi_decrease_button.pressed.connect(_on_wifi_decrease_pressed)
 	controls.add_child(wifi_decrease_button)
 
@@ -12437,7 +12407,7 @@ func _show_wifi_controls() -> void:
 	wifi_increase_button = Button.new()
 	wifi_increase_button.name = "IncreaseWiFiButton"
 	wifi_increase_button.text = "+"
-	_style_level_circle_button(wifi_increase_button)
+	_style_level_selector_button(wifi_increase_button)
 	wifi_increase_button.pressed.connect(_on_wifi_increase_pressed)
 	controls.add_child(wifi_increase_button)
 
@@ -12598,7 +12568,7 @@ func _show_mobile_network_controls() -> void:
 	mobile_network_decrease_button = Button.new()
 	mobile_network_decrease_button.name = "DecreaseMobileNetworkButton"
 	mobile_network_decrease_button.text = "−"
-	_style_level_circle_button(mobile_network_decrease_button)
+	_style_level_selector_button(mobile_network_decrease_button)
 	mobile_network_decrease_button.pressed.connect(_on_mobile_network_decrease_pressed)
 	controls.add_child(mobile_network_decrease_button)
 
@@ -12612,7 +12582,7 @@ func _show_mobile_network_controls() -> void:
 	mobile_network_increase_button = Button.new()
 	mobile_network_increase_button.name = "IncreaseMobileNetworkButton"
 	mobile_network_increase_button.text = "+"
-	_style_level_circle_button(mobile_network_increase_button)
+	_style_level_selector_button(mobile_network_increase_button)
 	mobile_network_increase_button.pressed.connect(_on_mobile_network_increase_pressed)
 	controls.add_child(mobile_network_increase_button)
 
