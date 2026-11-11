@@ -14,13 +14,14 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
 var research_projects: Array = []
 var research_technologies: Dictionary = {}
+var research_component_levels: Dictionary = {}
 var research_history: Array = []
 
 var page_root: VBoxContainer
@@ -51,6 +52,7 @@ func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
 	staff_employees = data.get("staff_employees", []).duplicate(true)
 	research_projects = data.get("research_projects", []).duplicate(true)
 	research_technologies = data.get("research_technologies", {}).duplicate(true)
+	research_component_levels = data.get("research_component_levels", {}).duplicate(true)
 	research_history = data.get("research_history", []).duplicate(true)
 	if is_node_ready():
 		_render_scene()
@@ -319,6 +321,16 @@ func _build_component_selection_scene() -> void:
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		component_button.focus_mode = Control.FOCUS_NONE
 		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
+		if COMPONENT_VALUES[index] == "Mobile Network":
+			var next_network_target := ResearchManagerScript.get_mobile_network_research_target(research_component_levels)
+			if next_network_target.is_empty():
+				component_button.tooltip_text = "All mobile network technologies have been researched."
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Next technology: %s (%s)" % [
+					str(next_network_target.get("technology", "")),
+					str(next_network_target.get("generation", ""))
+				]
 		component_button.pressed.connect(_on_component_selected.bind(index))
 		choices.add_child(component_button)
 		component_buttons.append(component_button)
