@@ -528,6 +528,9 @@ var ram_technology_level := 0
 var ram_technology_research_level := 0
 var ram_capacity_research_level := 0
 var ram_capacity_research_label: Label
+var ram_capacity_value_label: Label
+var ram_capacity_decrease_button: Button
+var ram_capacity_increase_button: Button
 var ram_technology_value_label: Label
 var ram_technology_level_label: Label
 var ram_technology_decrease_button: Button
@@ -11566,14 +11569,60 @@ func _show_ram_controls() -> void:
 	ram_capacity_research_label.name = "RAMCapacityResearchLevelLabel"
 	ram_capacity_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(ram_capacity_research_label)
-	var options := GridContainer.new()
-	options.name = "RAMOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("h_separation", 8)
-	options.add_theme_constant_override("v_separation", 8)
-	active_feature_panel.add_child(options)
+
+	var controls := HBoxContainer.new()
+	controls.name = "RAMCapacityControls"
+	controls.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 18)
+	active_feature_panel.add_child(controls)
+
+	ram_capacity_decrease_button = Button.new()
+	ram_capacity_decrease_button.name = "DecreaseRAMCapacityButton"
+	ram_capacity_decrease_button.text = "-"
+	_style_level_circle_button(ram_capacity_decrease_button)
+	ram_capacity_decrease_button.pressed.connect(_on_ram_capacity_decrease_pressed)
+	controls.add_child(ram_capacity_decrease_button)
+
+	ram_capacity_value_label = _make_label("Not set", 18, Color("#F2EDE4"))
+	ram_capacity_value_label.name = "RAMCapacityValueLabel"
+	ram_capacity_value_label.custom_minimum_size = Vector2(112, 54)
+	ram_capacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ram_capacity_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	controls.add_child(ram_capacity_value_label)
+
+	ram_capacity_increase_button = Button.new()
+	ram_capacity_increase_button.name = "IncreaseRAMCapacityButton"
+	ram_capacity_increase_button.text = "+"
+	_style_level_circle_button(ram_capacity_increase_button)
+	ram_capacity_increase_button.pressed.connect(_on_ram_capacity_increase_pressed)
+	controls.add_child(ram_capacity_increase_button)
+
 	_refresh_ram_capacity_selection_ui(active_feature_panel)
+
+func _on_ram_capacity_decrease_pressed() -> void:
+	_change_ram_capacity_selection(-1)
+
+
+func _on_ram_capacity_increase_pressed() -> void:
+	_change_ram_capacity_selection(1)
+
+
+func _change_ram_capacity_selection(direction: int) -> void:
+	var supported_capacities := _get_supported_ram_capacities(selected_ram_technology)
+	if supported_capacities.is_empty():
+		return
+	var current_index := supported_capacities.find(selected_ram_capacity)
+	if current_index < 0:
+		if direction < 0:
+			return
+		current_index = 0
+	else:
+		current_index += direction
+	if current_index < 0 or current_index >= supported_capacities.size():
+		return
+	_on_ram_capacity_selected(str(supported_capacities[current_index]))
+
 
 func _on_ram_capacity_selected(capacity: String) -> void:
 	if not _get_supported_ram_capacities(selected_ram_technology).has(capacity):
@@ -11582,22 +11631,17 @@ func _on_ram_capacity_selected(capacity: String) -> void:
 	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
 		var ram_label: Label = software_value_labels["RAM"]
 		ram_label.text = capacity
-	_refresh_ram_capacity_selection_ui(active_feature_panel)
+	if is_instance_valid(active_feature_panel):
+		_refresh_ram_capacity_selection_ui(active_feature_panel)
 	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
 		var summary_ram_label: Label = software_value_labels["RAM"]
 		summary_ram_label.text = selected_ram_capacity
-
 	_notify_worksite_ram_selection_changed()
+
 
 func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 	if not is_instance_valid(panel) or panel.name != "RAMSelectionControls":
 		return
-	var options := panel.find_child("RAMOptions", true, false) as GridContainer
-	if not is_instance_valid(options):
-		return
-	for child in options.get_children():
-		options.remove_child(child)
-		child.queue_free()
 	var research_label := panel.find_child("RAMCapacityResearchLevelLabel", true, false) as Label
 	if is_instance_valid(research_label):
 		var unlocked_step := clampi(ram_capacity_research_level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
@@ -11607,22 +11651,17 @@ func _refresh_ram_capacity_selection_ui(panel: Control) -> void:
 			RAM_CAPACITY_RESEARCH_STEPS[unlocked_step]
 		]
 	var supported_capacities := _get_supported_ram_capacities(selected_ram_technology)
-	if selected_ram_technology == "Not set" or supported_capacities.is_empty():
-		var prompt := _make_label("SELECT RAM TECHNOLOGY FIRST", 14, Color("#D3AA6B"))
-		prompt.name = "RAMTechnologyRequiredLabel"
-		prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		options.add_child(prompt)
-		return
-	for capacity in supported_capacities:
-		var option := Button.new()
-		option.name = "RAMOption_" + capacity.replace(" ", "")
-		option.text = capacity + ("   ✓ SELECTED" if selected_ram_capacity == capacity else "")
-		option.custom_minimum_size.y = 48
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_ram_capacity == capacity)
-		option.pressed.connect(_on_ram_capacity_selected.bind(capacity))
-		options.add_child(option)
+	var selected_index := supported_capacities.find(selected_ram_capacity)
+	if is_instance_valid(ram_capacity_value_label):
+		ram_capacity_value_label.text = selected_ram_capacity if selected_index >= 0 else "Not set"
+	if is_instance_valid(ram_capacity_decrease_button):
+		ram_capacity_decrease_button.disabled = selected_index <= 0
+	if is_instance_valid(ram_capacity_increase_button):
+		ram_capacity_increase_button.disabled = supported_capacities.is_empty() or selected_index >= supported_capacities.size() - 1
+	if supported_capacities.is_empty():
+		ram_capacity_value_label.text = "Select technology"
+		ram_capacity_increase_button.disabled = true
+		ram_capacity_decrease_button.disabled = true
 
 func _get_supported_ram_capacities(technology: String) -> Array:
 	var compatible_capacities: Array = []
