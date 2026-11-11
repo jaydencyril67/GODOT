@@ -15,8 +15,12 @@ const STATUS_UNSUCCESSFUL := "unsuccessful"
 const RESEARCH_SUCCESS_CHANCE := 0.70
 const STATUS_CANCELLED := "cancelled"
 const FRONT_CAMERA_MODEL_COUNT := 8
+const SCREEN_WIDTH_RESEARCH_LEVELS := 8
+const SCREEN_HEIGHT_RESEARCH_LEVELS := 9
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
+	"Screen Width",
+	"Screen Height",
 	"Phone Thickness",
 	"Border Radius",
 	"Speakers",
@@ -336,6 +340,14 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
 				return _failure("The next %s technology already has a project in progress or awaiting validation." % component)
 
+	if component in ["Screen Width", "Screen Height"]:
+		for existing_project_value in career.get("research_projects", []):
+			if not (existing_project_value is Dictionary):
+				continue
+			var existing_project: Dictionary = existing_project_value
+			if str(existing_project.get("component", "")) == component and str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+				return _failure("%s already has a research project in progress or awaiting validation." % component)
+
 	var project_title := "Research: " + component
 	var project_objective := ""
 	if not ordered_target.is_empty():
@@ -349,6 +361,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate %s for %s mobile networks." % [target_technology, target_generation]
 		elif component == "Wi-Fi":
 			project_objective = "Develop and validate IEEE %s for %s wireless networks." % [target_technology, target_generation]
+	elif component in ["Screen Width", "Screen Height"]:
+		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
@@ -526,6 +540,12 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1,
 			int(component_levels.get(component, 0)) + 1
 		)
+	elif component == "Screen Width":
+		# Each approval expands the maximum selectable display width by one tier.
+		component_levels[component] = mini(SCREEN_WIDTH_RESEARCH_LEVELS, int(component_levels.get(component, 0)) + 1)
+	elif component == "Screen Height":
+		# Each approval expands the maximum selectable display height by one tier.
+		component_levels[component] = mini(SCREEN_HEIGHT_RESEARCH_LEVELS, int(component_levels.get(component, 0)) + 1)
 	elif component == "Front Camera":
 		# Bezel Camera is the baseline; each approval unlocks the next design in chronological order.
 		component_levels[component] = mini(
