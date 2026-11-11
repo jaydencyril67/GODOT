@@ -26,6 +26,7 @@ const REAR_CAMERA_MP_MAX := 400
 const REAR_HARDWARE_BASE_COUNT := 1
 const REAR_HARDWARE_MAX_COUNT := 5
 const REAR_HARDWARE_COUNT_RESEARCH_UPGRADES := REAR_HARDWARE_MAX_COUNT - REAR_HARDWARE_BASE_COUNT
+const BACK_RAISED_DESIGN_MAX_BOXES := 20
 const BATTERY_CAPACITY_BASE_MAH := 1000
 const BATTERY_CAPACITY_STEP_MAH := 350
 const BATTERY_CAPACITY_RESEARCH_UPGRADES := 20
@@ -115,7 +116,8 @@ const COMPONENT_CATALOGUE := [
 	"GNSS / GPS Receiver",
 	"Rear Camera MP",
 	"Rear Camera Count",
-	"Rear Flash Count"
+	"Rear Flash Count",
+	"Back Raised Design"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -346,6 +348,29 @@ static func get_rear_camera_count_research_target(component_levels: Dictionary) 
 
 static func get_rear_flash_count_research_target(component_levels: Dictionary) -> Dictionary:
 	return _get_rear_hardware_count_research_target(component_levels, "Rear Flash Count", "flashes")
+
+
+static func get_back_raised_design_max_for_level(research_level: int) -> int:
+	# Level 0 is locked. The first approval unlocks one box; each later
+	# approval adds one more, up to twenty raised back-design boxes.
+	return clampi(research_level, 0, BACK_RAISED_DESIGN_MAX_BOXES)
+
+
+static func get_back_raised_design_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_level := clampi(
+		int(component_levels.get("Back Raised Design", 0)),
+		0,
+		BACK_RAISED_DESIGN_MAX_BOXES
+	)
+	if completed_level >= BACK_RAISED_DESIGN_MAX_BOXES:
+		return {}
+	var target_level := completed_level + 1
+	var box_name := "raised box" if target_level == 1 else "raised boxes"
+	return {
+		"index": target_level,
+		"technology": "%d %s" % [target_level, box_name],
+		"max_count": target_level
+	}
 
 
 static func get_wireless_charging_max_for_level(level: int) -> int:
@@ -700,9 +725,11 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_rear_camera_count_research_target(career.get("research_component_levels", {}))
 	elif component == "Rear Flash Count":
 		ordered_target = get_rear_flash_count_research_target(career.get("research_component_levels", {}))
+	elif component == "Back Raised Design":
+		ordered_target = get_back_raised_design_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count"] or PHONE_SENSOR_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"] or PHONE_SENSOR_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -739,6 +766,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Research and validate support for a rear camera capacity of %s in one phone." % target_technology
 		elif component == "Rear Flash Count":
 			project_objective = "Research and validate support for a rear flash capacity of %s in one phone." % target_technology
+		elif component == "Back Raised Design":
+			project_objective = "Develop and validate support for %s on the back of one phone." % target_technology
 		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
@@ -885,6 +914,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var rear_camera_mp_target_index := -1
 	var rear_camera_count_target_index := -1
 	var rear_flash_count_target_index := -1
+	var back_raised_design_target_index := -1
 	var phone_sensor_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
@@ -975,6 +1005,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Rear Flash Count project is no longer the next flash-capacity upgrade.")
 		if str(project.get("research_target", "")) != str(expected_rear_flash_count_target.get("technology", "")):
 			return _failure("The Rear Flash Count project target does not match the current flash-capacity progression.")
+	elif component == "Back Raised Design":
+		back_raised_design_target_index = int(project.get("research_target_index", -1))
+		var expected_back_raised_design_target := get_back_raised_design_research_target(component_levels)
+		if expected_back_raised_design_target.is_empty() or back_raised_design_target_index != int(expected_back_raised_design_target.get("index", -1)):
+			return _failure("This Back Raised Design project is no longer the next raised-box capacity upgrade.")
+		if str(project.get("research_target", "")) != str(expected_back_raised_design_target.get("technology", "")):
+			return _failure("The Back Raised Design project target does not match the current raised-box capacity progression.")
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		phone_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or phone_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
@@ -1019,6 +1056,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next rear-camera resolution ceiling assigned to this project.")
 		if result_component in ["Rear Camera Count", "Rear Flash Count"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next rear-hardware addition capacity assigned to this project.")
+		if result_component == "Back Raised Design" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next raised back-design box capacity assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact sensor component assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
@@ -1108,6 +1147,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Rear Flash Count":
 		# One flash is available by default; four separate approvals unlock up to five.
 		component_levels[component] = rear_flash_count_target_index
+	elif component == "Back Raised Design":
+		# Level 1 unlocks the first raised box; each approval adds one, up to twenty.
+		component_levels[component] = back_raised_design_target_index
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		# Every sensor is an independent, one-time approved research unlock.
 		component_levels[component] = 1
