@@ -2500,7 +2500,6 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 			str(next_wifi_project.get("research_target", ""))
 		])
 	elif not str(result.get("auto_next_project_error", "")).is_empty():
-		var approved_component := str(result.get("project", {}).get("component", ""))
 		_show_notice("RESEARCH APPROVED", "The findings were validated, but the next %s project could not start automatically: %s" % [
 			approved_component,
 			str(result.get("auto_next_project_error", ""))
