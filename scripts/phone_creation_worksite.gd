@@ -1081,22 +1081,7 @@ func _build_interface() -> void:
 	selection_stack.add_child(type_step_content)
 	var section_title := _label("PHONE TYPE", 22, Color("#EEE9DF"))
 	type_step_content.add_child(section_title)
-	var options := VBoxContainer.new()
-	options.add_theme_constant_override("separation", 9)
-	type_step_content.add_child(options)
-	for phone_type in PHONE_TYPES:
-		var option := Button.new()
-		option.name = phone_type.replace(" ", "") + "PhoneTypeOption"
-		option.text = phone_type
-		option.custom_minimum_size = Vector2(0, 56)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.toggle_mode = true
-		option.focus_mode = Control.FOCUS_NONE
-		_style_button(option, false)
-		option.disabled = PHONE_TYPES.find(phone_type) > phone_type_research_level
-		option.pressed.connect(_on_phone_type_selected.bind(phone_type))
-		options.add_child(option)
-		type_buttons[phone_type] = option
+	_add_phone_type_selector(type_step_content)
 
 	# Reserve the same space in the worksite VBox, but render the actual
 	# navigation controls on their own high-priority CanvasLayer. This prevents
@@ -1191,23 +1176,6 @@ func set_phone_type_research_level(level: int) -> void:
 	else:
 		phone_type_level = selected_index
 	_refresh_phone_type_controls()
-	_refresh_phone_type_step_options()
-
-
-func _on_phone_type_selected(phone_type: String) -> void:
-	var requested_index := PHONE_TYPES.find(phone_type)
-	if requested_index < 0 or requested_index > phone_type_research_level:
-		return
-	phone_type_level = requested_index
-	selected_phone_type = phone_type
-	for option_name in type_buttons:
-		var option: Button = type_buttons[option_name]
-		option.button_pressed = option_name == phone_type
-		option.disabled = PHONE_TYPES.find(str(option_name)) > phone_type_research_level
-		_style_button(option, option_name == phone_type)
-	_keep_step_navigation_active()
-	_update_preview_for_phone_type(phone_type)
-	_refresh_phone_type_controls()
 
 
 func _on_phone_type_decrease_pressed() -> void:
@@ -1241,15 +1209,6 @@ func _refresh_phone_type_controls() -> void:
 		phone_type_decrease_button.disabled = phone_type_level <= 0
 	if is_instance_valid(phone_type_increase_button):
 		phone_type_increase_button.disabled = phone_type_level >= phone_type_research_level
-
-
-func _refresh_phone_type_step_options() -> void:
-	for option_name in type_buttons:
-		var option: Button = type_buttons[option_name]
-		var option_index := PHONE_TYPES.find(str(option_name))
-		option.disabled = option_index < 0 or option_index > phone_type_research_level
-		option.button_pressed = str(option_name) == selected_phone_type
-		_style_button(option, option.button_pressed)
 
 
 
@@ -3227,6 +3186,38 @@ func _label(value: String, size: int, color: Color, alignment: HorizontalAlignme
 	_apply_bold_font(label)
 	return label
 
+func _add_phone_type_selector(parent: Control) -> void:
+	var controls_center := CenterContainer.new()
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(controls_center)
+	var controls := HBoxContainer.new()
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 14)
+	controls_center.add_child(controls)
+
+	phone_type_decrease_button = Button.new()
+	phone_type_decrease_button.name = "DecreasePhoneTypeButton"
+	phone_type_decrease_button.text = "−"
+	_style_level_selector_button(phone_type_decrease_button)
+	phone_type_decrease_button.pressed.connect(_on_phone_type_decrease_pressed)
+	controls.add_child(phone_type_decrease_button)
+
+	phone_type_value_label = _make_label(selected_phone_type.to_upper(), 19, Color.WHITE)
+	phone_type_value_label.name = "PhoneTypeValueLabel"
+	phone_type_value_label.custom_minimum_size.x = 190
+	phone_type_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phone_type_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls.add_child(phone_type_value_label)
+
+	phone_type_increase_button = Button.new()
+	phone_type_increase_button.name = "IncreasePhoneTypeButton"
+	phone_type_increase_button.text = "+"
+	_style_level_selector_button(phone_type_increase_button)
+	phone_type_increase_button.pressed.connect(_on_phone_type_increase_pressed)
+	controls.add_child(phone_type_increase_button)
+	_refresh_phone_type_controls()
+
+
 func _show_phone_type_controls() -> void:
 	if not is_instance_valid(right_tools_content):
 		return
@@ -3247,41 +3238,8 @@ func _show_phone_type_controls() -> void:
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	var controls_center := CenterContainer.new()
-	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(controls_center)
-	var controls := HBoxContainer.new()
-	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 14)
-	controls_center.add_child(controls)
+	_add_phone_type_selector(active_feature_panel)
 
-	phone_type_decrease_button = Button.new()
-	phone_type_decrease_button.name = "DecreasePhoneTypeButton"
-	phone_type_decrease_button.text = "−"
-	_style_level_selector_button(phone_type_decrease_button)
-	phone_type_decrease_button.pressed.connect(_on_phone_type_decrease_pressed)
-	controls.add_child(phone_type_decrease_button)
-
-	phone_type_value_label = _make_label(selected_phone_type.to_upper(), 19, Color.WHITE)
-	phone_type_value_label.name = "PhoneTypeValueLabel"
-	phone_type_value_label.custom_minimum_size.x = 190
-	phone_type_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	phone_type_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phone_type_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	controls.add_child(phone_type_value_label)
-
-	phone_type_increase_button = Button.new()
-	phone_type_increase_button.name = "IncreasePhoneTypeButton"
-	phone_type_increase_button.text = "+"
-	_style_level_selector_button(phone_type_increase_button)
-	phone_type_increase_button.pressed.connect(_on_phone_type_increase_pressed)
-	controls.add_child(phone_type_increase_button)
-
-	var note_text := "Standard uses one rigid display chassis." if selected_phone_type == "Standard" else ("Flip uses a horizontal clamshell hinge and a compact cover display." if selected_phone_type == "Flip" else "Fold uses a book-style centre hinge, a wide inner display and a full-height cover display.")
-	phone_type_note_label = _make_label(note_text, 12, Color("#C58A3A"))
-	phone_type_note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(phone_type_note_label)
-	_refresh_phone_type_controls()
 
 
 
