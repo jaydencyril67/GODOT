@@ -338,8 +338,10 @@ var front_camera_increase_button: Button
 const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
 
 var rear_camera_modules: Array[Dictionary] = []
+var rear_camera_count_research_level := 0
 
 var rear_flash_modules: Array[Dictionary] = []
+var rear_flash_count_research_level := 0
 
 var rear_camera_selected_index := -1
 
@@ -3618,6 +3620,22 @@ func set_speaker_research_level(level: int) -> void:
 	speaker_count = clampi(speaker_count, 1, researched_speaker_count)
 	_refresh_phone_speakers()
 	_refresh_speaker_count_controls()
+
+func set_rear_camera_count_research_level(level: int) -> void:
+	# One rear camera is available by default; each approved project unlocks one
+	# additional camera, up to five independently of flash capacity.
+	rear_camera_count_research_level = clampi(level, 0, ResearchManagerScript.REAR_HARDWARE_COUNT_RESEARCH_UPGRADES)
+	if is_instance_valid(rear_hardware_add_button) and rear_hardware_mode == "CAMERA":
+		_refresh_rear_hardware_panel()
+
+
+func set_rear_flash_count_research_level(level: int) -> void:
+	# One rear flash is available by default; each approved project unlocks one
+	# additional flash, up to five independently of camera capacity.
+	rear_flash_count_research_level = clampi(level, 0, ResearchManagerScript.REAR_HARDWARE_COUNT_RESEARCH_UPGRADES)
+	if is_instance_valid(rear_hardware_add_button) and rear_hardware_mode == "FLASH":
+		_refresh_rear_hardware_panel()
+
 
 func set_rear_camera_mp_research_level(level: int) -> void:
 	# The 1MP starting resolution is available immediately; approved R&D expands
@@ -8802,11 +8820,16 @@ func _set_rear_hardware_selected_index(index: int) -> void:
 func _get_rear_hardware_default_size() -> float:
 	return 0.060 if rear_hardware_mode == "FLASH" else 0.105
 
+
+func _get_rear_hardware_addition_limit() -> int:
+	if rear_hardware_mode == "FLASH":
+		return ResearchManagerScript.get_rear_flash_count_max_for_level(rear_flash_count_research_level)
+	return ResearchManagerScript.get_rear_camera_count_max_for_level(rear_camera_count_research_level)
+
+
 func _add_rear_hardware_module() -> void:
-	if rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS:
-		_refresh_rear_hardware_panel()
-		return
-	if rear_hardware_mode == "FLASH" and rear_flash_modules.size() >= MAX_REAR_FLASHES:
+	var modules := _get_rear_hardware_modules()
+	if modules.size() >= _get_rear_hardware_addition_limit():
 		_refresh_rear_hardware_panel()
 		return
 	# New components inherit the size of the most recently added component
@@ -8980,10 +9003,12 @@ func _refresh_rear_hardware_panel() -> void:
 	if is_instance_valid(rear_hardware_selection_button):
 		rear_hardware_selection_button.disabled = modules.is_empty()
 		rear_hardware_selection_button.text = "%s  %02d  ›" % [kind_name, int(modules[selected_index]["id"])] if has_selection else "ADD A %s TO SELECT" % kind_name
-	var camera_limit_reached := rear_hardware_mode == "CAMERA" and rear_camera_modules.size() >= MAX_REAR_CAMERAS
-	var flash_limit_reached := rear_hardware_mode == "FLASH" and rear_flash_modules.size() >= MAX_REAR_FLASHES
-	rear_hardware_add_button.text = "MAX 5 CAMERAS" if camera_limit_reached else ("MAX 5 FLASHES" if flash_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"))
-	rear_hardware_add_button.disabled = camera_limit_reached or flash_limit_reached
+	var addition_limit := _get_rear_hardware_addition_limit()
+	var addition_limit_reached := modules.size() >= addition_limit
+	rear_hardware_add_button.text = (
+		"MAX %d CAMERAS" % addition_limit if rear_hardware_mode == "CAMERA" else "MAX %d FLASHES" % addition_limit
+	) if addition_limit_reached else ("+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH")
+	rear_hardware_add_button.disabled = addition_limit_reached
 	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
 
 func _rear_hardware_back_design_index(module_position: Vector2) -> int:
