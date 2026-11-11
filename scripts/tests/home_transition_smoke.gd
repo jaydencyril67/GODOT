@@ -48,8 +48,98 @@ func _run_memory_clock_progression_checks() -> bool:
 	return true
 
 
+func _run_charging_speed_progression_checks() -> bool:
+	if ResearchManagerScript.get_charging_speed_max_for_level(0) != 1:
+		_fail("Charging Speed Level 1 did not start at 1W.")
+		return false
+	if ResearchManagerScript.get_charging_speed_max_for_level(1) != 4:
+		_fail("The first Charging Speed research upgrade did not unlock 4W.")
+		return false
+	if ResearchManagerScript.get_charging_speed_max_for_level(65) != 196:
+		_fail("Charging Speed Level 66 did not unlock 196W.")
+		return false
+	if ResearchManagerScript.get_charging_speed_max_for_level(66) != 200:
+		_fail("Charging Speed Level 67 did not reach exactly 200W.")
+		return false
+
+	for upgrade_count in range(ResearchManagerScript.CHARGING_SPEED_RESEARCH_UPGRADES + 1):
+		var expected_maximum := 200 if upgrade_count == 66 else 1 + upgrade_count * 3
+		if ResearchManagerScript.get_charging_speed_max_for_level(upgrade_count) != expected_maximum:
+			_fail("Charging Speed upgrade %d produced the wrong maximum." % upgrade_count)
+			return false
+
+	var first_target: Dictionary = ResearchManagerScript.get_charging_speed_research_target({})
+	if int(first_target.get("index", -1)) != 2 or str(first_target.get("technology", "")) != "4W":
+		_fail("The first Charging Speed research target was not Level 2 at 4W.")
+		return false
+	var final_target: Dictionary = ResearchManagerScript.get_charging_speed_research_target({"Charging Speed": 65})
+	if int(final_target.get("index", -1)) != 67 or str(final_target.get("technology", "")) != "200W":
+		_fail("The final Charging Speed research target did not unlock 200W at Level 67.")
+		return false
+	if not ResearchManagerScript.get_charging_speed_research_target({"Charging Speed": 66}).is_empty():
+		_fail("Charging Speed still offered research after reaching 200W.")
+		return false
+
+	var test_career: Dictionary = {
+		"staff_employees": [{
+			"id": "charging_speed_researcher",
+			"department": "Research",
+			"efficiency": 100
+		}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Charging Speed",
+		"staff_ids": ["charging_speed_researcher"]
+	}, 1000.0)
+	if not bool(commission.get("ok", false)):
+		_fail("Charging Speed could not be commissioned through the existing research pipeline.")
+		return false
+	var project: Dictionary = commission.get("project", {})
+	if str(project.get("research_target", "")) != "4W" or int(project.get("research_target_index", -1)) != 2:
+		_fail("The commissioned Charging Speed project did not store its exact 4W target.")
+		return false
+	var duplicate_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Charging Speed",
+		"staff_ids": ["charging_speed_researcher"]
+	}, 1000.0)
+	if bool(duplicate_commission.get("ok", false)):
+		_fail("A duplicate Charging Speed project was allowed for the same research target.")
+		return false
+
+	var projects: Array = test_career.get("research_projects", [])
+	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var invalid_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Charging Speed",
+		"metric": "Maximum wired charging speed",
+		"value": "5W"
+	}], 2000.0)
+	if bool(invalid_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Charging Speed", 0)) != 0:
+		_fail("Charging Speed accepted a validation result that did not match its assigned target.")
+		return false
+	var approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Charging Speed",
+		"metric": "Maximum wired charging speed",
+		"value": "4W"
+	}], 2000.0)
+	if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Charging Speed", 0)) != 1:
+		_fail("Approved Charging Speed research did not unlock the next research level.")
+		return false
+	var next_target: Dictionary = ResearchManagerScript.get_charging_speed_research_target(test_career.get("research_component_levels", {}))
+	if str(next_target.get("technology", "")) != "7W":
+		_fail("The next Charging Speed research target did not advance from 4W to 7W.")
+		return false
+	return true
+
+
 func _run_transition_checks() -> void:
 	if not _run_screen_technology_checks():
+		return
+	if not _run_charging_speed_progression_checks():
 		return
 	if not _run_memory_clock_progression_checks():
 		return
