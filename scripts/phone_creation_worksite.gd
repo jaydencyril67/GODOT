@@ -3188,6 +3188,7 @@ func _label(value: String, size: int, color: Color, alignment: HorizontalAlignme
 func _add_phone_type_selector(parent: Control) -> void:
 	var controls_center := CenterContainer.new()
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(controls_center)
 	var controls := HBoxContainer.new()
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -3225,7 +3226,8 @@ func _show_phone_type_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "PhoneTypeControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
 	active_feature_panel.add_theme_constant_override("separation", 10)
 	right_tools_content.add_child(active_feature_panel)
 
