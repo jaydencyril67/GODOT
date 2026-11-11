@@ -337,6 +337,8 @@ func close_validation_review() -> void:
 
 
 func _default_validation_metric(component: String) -> String:
+	if ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(component):
+		return "Sensor functionality and integration"
 	match component:
 		"Charging Speed":
 			return "Maximum wired charging speed"
