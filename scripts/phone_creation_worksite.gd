@@ -1383,6 +1383,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			or panel.name == "SpeakerControls"
 			or panel.name == "FrontCameraControls"
 			or panel.name == "RAMTechnologySelectionControls"
+			or panel.name == "RAMSelectionControls"
 			or panel.name == "InternalStorageSelectionControls"
 			or panel.name == "WiFiSelectionControls"
 			or panel.name == "MobileNetworkSelectionControls"
