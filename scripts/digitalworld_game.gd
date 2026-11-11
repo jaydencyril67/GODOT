@@ -2486,9 +2486,11 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
 		phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 		phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
+		phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("research_component_levels", {}).get("Bluetooth", 0)))
 	var approved_component := str(result.get("project", {}).get("component", ""))
 	var next_mobile_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Mobile Network" else {}
 	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Wi-Fi" else {}
+	var next_bluetooth_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Bluetooth" else {}
 	if not next_mobile_project.is_empty():
 		_show_notice("RESEARCH APPROVED", "The findings were validated. Research has automatically started on %s (%s) with the same team." % [
 			str(next_mobile_project.get("research_target", "")),
@@ -2498,6 +2500,10 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		_show_notice("RESEARCH APPROVED", "The findings were validated. Research has automatically started on Wi-Fi %s (%s) with the same team." % [
 			str(next_wifi_project.get("research_generation", "")).trim_prefix("Wi-Fi "),
 			str(next_wifi_project.get("research_target", ""))
+		])
+	elif not next_bluetooth_project.is_empty():
+		_show_notice("RESEARCH APPROVED", "The findings were validated. Research has automatically started on %s with the same team." % [
+			str(next_bluetooth_project.get("research_target", ""))
 		])
 	elif not str(result.get("auto_next_project_error", "")).is_empty():
 		_show_notice("RESEARCH APPROVED", "The findings were validated, but the next %s project could not start automatically: %s" % [
@@ -2540,7 +2546,7 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		return result
 
 	var approved_project: Dictionary = result.get("project", {})
-	if str(approved_project.get("component", "")) in ["Mobile Network", "Wi-Fi"]:
+	if str(approved_project.get("component", "")) in ["Mobile Network", "Wi-Fi", "Bluetooth"]:
 		var sequence_component := str(approved_project.get("component", ""))
 		var previous_team: Array = approved_project.get("staff_ids", []).duplicate()
 		if not previous_team.is_empty():
@@ -2667,7 +2673,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
 	phone_creation_worksite.call("set_border_radius_research_level", int(career.get("research_component_levels", {}).get("Border Radius", 0)))
 	phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
-	phone_creation_worksite.call("set_bluetooth_research_level", 14)
+	phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("research_component_levels", {}).get("Bluetooth", 0)))
 	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 	phone_creation_worksite.call("set_curve_screen_research_unlocked", true)
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
