@@ -9007,7 +9007,10 @@ func _refresh_rear_hardware_panel() -> void:
 	if addition_limit_reached:
 		var limit_unit := "CAMERA" if rear_hardware_mode == "CAMERA" else "FLASH"
 		if addition_limit != 1:
-			limit_unit += "S" if rear_hardware_mode == "CAMERA" else "ES"
+			if rear_hardware_mode == "CAMERA":
+				limit_unit += "S"
+			else:
+				limit_unit += "ES"
 		rear_hardware_add_button.text = "MAX %d %s" % [addition_limit, limit_unit]
 	else:
 		rear_hardware_add_button.text = "+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"
