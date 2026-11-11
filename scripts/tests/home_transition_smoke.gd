@@ -501,10 +501,22 @@ func _complete_mobile_network_research_project(expected_technology: String, expe
 		_fail("Mobile Network research did not automatically target %s in %s." % [expected_technology, expected_generation])
 		return false
 	if expected_technology == "NMT":
+		var original_staff: Array = game.career.get("staff_employees", []).duplicate(true)
+		var expanded_staff := original_staff.duplicate(true)
+		expanded_staff.append({
+			"id": "researcher_smoke_02",
+			"full_name": "Second Research Engineer",
+			"department": "Research",
+			"position": "Research Engineer",
+			"efficiency": 100,
+			"monthly_salary": 250000.0
+		})
+		game.career["staff_employees"] = expanded_staff
 		var duplicate_commission: Dictionary = game.commission_research_project({
 			"component": "Mobile Network",
-			"staff_ids": ["researcher_smoke_01"]
+			"staff_ids": ["researcher_smoke_02"]
 		})
+		game.career["staff_employees"] = original_staff
 		if bool(duplicate_commission.get("ok", false)):
 			_fail("A second Mobile Network project was allowed to target the same in-progress technology.")
 			return false
