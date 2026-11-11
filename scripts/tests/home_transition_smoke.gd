@@ -182,6 +182,10 @@ func _run_transition_checks() -> void:
 		_fail("Starting research incorrectly deducted a separate project fee from company funds.")
 		return
 	var created_project: Dictionary = commission_result.get("project", {})
+	# Keep this smoke test deterministic: validation-path coverage must not depend on an RNG roll.
+	var commissioned_projects: Array = game.career.get("research_projects", [])
+	commissioned_projects[0]["success_chance"] = 100.0
+	game.career["research_projects"] = commissioned_projects
 	if not is_equal_approx(float(created_project.get("required_research_days", 0.0)), 29.0):
 		_fail("The commissioned project did not store its 29-day calendar duration.")
 		return
