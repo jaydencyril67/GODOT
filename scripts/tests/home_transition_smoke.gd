@@ -206,6 +206,9 @@ func _run_transition_checks() -> void:
 		_fail("Completed R&D work did not move into technical validation.")
 		return
 	var project_id := str(created_project.get("id", ""))
+	if int(game.career.get("research_component_levels", {}).get("Screen Technology", 0)) != 0:
+		_fail("R&D unlocked a technology before technical validation was approved.")
+		return
 	var approval_result: Dictionary = game.approve_research_project(project_id, [{
 		"component": "Screen Technology",
 		"metric": "Display contrast",
@@ -215,6 +218,9 @@ func _run_transition_checks() -> void:
 	}])
 	if not bool(approval_result.get("ok", false)):
 		_fail("A completed R&D project could not pass technical validation: %s" % str(approval_result.get("error", "")))
+		return
+	if int(game.career.get("research_component_levels", {}).get("Screen Technology", 0)) != 1:
+		_fail("Technical approval did not unlock the next screen technology level.")
 		return
 	var screen_history: Array = game.career.get("research_technologies", {}).get("Screen Technology", [])
 	if screen_history.size() != 1 or str(screen_history[0].get("metric", "")) != "Display contrast":
