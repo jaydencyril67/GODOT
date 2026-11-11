@@ -130,6 +130,7 @@ func _process(delta: float) -> void:
 			phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 			phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
 			phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
+		phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
 		if is_instance_valid(research_allocation_dashboard):
 			research_allocation_dashboard.call("configure", _get_research_dashboard_data())
 	var current_day := floori(game_date_unix / 86400.0)
@@ -2499,6 +2500,7 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 		phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
 		phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("research_component_levels", {}).get("Bluetooth", 0)))
+		phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
 	var approved_component := str(result.get("project", {}).get("component", ""))
 	var next_mobile_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Mobile Network" else {}
 	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Wi-Fi" else {}
@@ -2713,6 +2715,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("research_component_levels", {}).get("Bluetooth", 0)))
 	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 	phone_creation_worksite.call("set_phone_type_research_level", int(career.get("research_component_levels", {}).get("Phone Type", 0)))
+	phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
