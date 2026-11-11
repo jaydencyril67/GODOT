@@ -36,7 +36,7 @@ var start_button: Button
 var assigned_staff_ids: Array[String] = []
 var active_progress_bars: Dictionary = {}
 var active_progress_labels: Dictionary = {}
-var active_remaining_labels: Dictionary = {}
+
 var active_project_id := ""
 var creation_mode := false
 var creation_step := 1
@@ -232,7 +232,7 @@ func _render_scene() -> void:
 	active_project_id = ""
 	active_progress_bars.clear()
 	active_progress_labels.clear()
-	active_remaining_labels.clear()
+
 	component_buttons.clear()
 
 	if creation_mode:
@@ -322,39 +322,21 @@ func _build_component_selection_scene() -> void:
 		component_button.focus_mode = Control.FOCUS_NONE
 		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
 		if COMPONENT_VALUES[index] == "Mobile Network":
-			var next_network_target := ResearchManagerScript.get_mobile_network_research_target(research_component_levels)
-			if next_network_target.is_empty():
-				component_button.tooltip_text = "All mobile network technologies have been researched."
+			if ResearchManagerScript.get_mobile_network_research_target(research_component_levels).is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
-			else:
-				component_button.tooltip_text = "Next technology: %s (%s)" % [
-					str(next_network_target.get("technology", "")),
-					str(next_network_target.get("generation", ""))
-				]
 		elif COMPONENT_VALUES[index] == "Wi-Fi":
-			var next_wifi_target := ResearchManagerScript.get_wifi_research_target(research_component_levels)
-			if next_wifi_target.is_empty():
-				component_button.tooltip_text = "All Wi-Fi technologies have been researched."
+			if ResearchManagerScript.get_wifi_research_target(research_component_levels).is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
-			else:
-				component_button.tooltip_text = "Next technology: %s (%s)" % [
-					str(next_wifi_target.get("generation", "")),
-					str(next_wifi_target.get("technology", ""))
-				]
 		elif COMPONENT_VALUES[index] == "Bluetooth":
-			var next_bluetooth_target := ResearchManagerScript.get_bluetooth_research_target(research_component_levels)
-			if next_bluetooth_target.is_empty():
-				component_button.tooltip_text = "All Bluetooth versions have been researched."
+			if ResearchManagerScript.get_bluetooth_research_target(research_component_levels).is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
-			else:
-				component_button.tooltip_text = "Next technology: %s" % str(next_bluetooth_target.get("technology", ""))
 		elif COMPONENT_VALUES[index] == "Cooling System Design":
-			var next_cooling_target := ResearchManagerScript.get_cooling_system_research_target(research_component_levels)
-			if next_cooling_target.is_empty():
-				component_button.tooltip_text = "All heat-removal options have been researched."
+			if ResearchManagerScript.get_cooling_system_research_target(research_component_levels).is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
-			else:
-				component_button.tooltip_text = "Next heat-removal option: %s" % str(next_cooling_target.get("technology", ""))
 		component_button.pressed.connect(_on_component_selected.bind(index))
 		choices.add_child(component_button)
 		component_buttons.append(component_button)
@@ -589,7 +571,7 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 	var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
 	var required_days := maxf(1.0, float(project.get("required_research_days", 30.0)))
 	var progress := clampf(completed_days / required_days, 0.0, 1.0)
-	var remaining_days := maxf(0.0, required_days - completed_days)
+
 
 	var main_row := _new_main_row()
 	main_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -630,8 +612,7 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 	progress_bar.add_theme_stylebox_override("fill", progress_fill)
 	progress_panel.add_child(progress_bar)
 
-	var remaining_label := _label("%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days), 15, TEXT_MAIN)
-	progress_panel.add_child(remaining_label)
+
 	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
 	if not pause_reason.is_empty():
 		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 13, ORANGE)
@@ -640,7 +621,7 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 
 	active_progress_bars[project_id] = progress_bar
 	active_progress_labels[project_id] = progress_label
-	active_remaining_labels[project_id] = remaining_label
+
 
 	var details_panel := _add_panel(main_row, 0.86)
 	details_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -777,16 +758,15 @@ func update_live_progress(projects: Array, balance: float, employees: Array) -> 
 		var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
 		var required_days := maxf(1.0, float(project.get("required_research_days", 30.0)))
 		var progress := clampf(completed_days / required_days, 0.0, 1.0)
-		var remaining_days := maxf(0.0, required_days - completed_days)
+
 		var progress_bar := active_progress_bars.get(project_id) as ProgressBar
 		var progress_label := active_progress_labels.get(project_id) as Label
-		var remaining_label := active_remaining_labels.get(project_id) as Label
+
 		if is_instance_valid(progress_bar):
 			progress_bar.value = progress * 100.0
 		if is_instance_valid(progress_label):
 			progress_label.text = "%d%%" % roundi(progress * 100.0)
-		if is_instance_valid(remaining_label):
-			remaining_label.text = "%s IN-GAME DAYS REMAINING" % _format_research_days(remaining_days)
+
 
 
 func _clear_body() -> void:
