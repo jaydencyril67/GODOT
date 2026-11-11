@@ -357,7 +357,7 @@ func _build_component_selection_scene() -> void:
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
 		elif COMPONENT_VALUES[index] in ["Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both"]:
-			var curved_component := COMPONENT_VALUES[index]
+			var curved_component: String = str(COMPONENT_VALUES[index])
 			var already_researched := int(research_component_levels.get(curved_component, 0)) >= 1
 			var project_in_progress := false
 			for project_value in research_projects:
