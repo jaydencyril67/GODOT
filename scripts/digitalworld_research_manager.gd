@@ -32,6 +32,19 @@ const MEMORY_CLOCK_MAX_RESEARCH_LEVEL := 120
 const MEMORY_CLOCK_SPEED_TARGETS := [1066, 2133, 4266, 6400, 10700, 14400]
 const MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS := [20, 40, 60, 60, 80, 100, 120]
 const PHONE_TYPE_SEQUENCE := ["Standard", "Flip", "Fold"]
+
+const PHONE_SENSOR_COMPONENTS := [
+	"Fingerprint Sensor",
+	"Face Recognition / Face ID",
+	"NFC Controller",
+	"Accelerometer",
+	"Gyroscope",
+	"Proximity Sensor",
+	"Ambient Light Sensor",
+	"Magnetometer / Compass",
+	"Barometer",
+	"GNSS / GPS Receiver"
+]
 const CURVED_SCREEN_RESEARCH_COMPONENTS := [
 	"Curved Screen Horizontal",
 	"Curved Screen Vertical",
@@ -77,7 +90,17 @@ const COMPONENT_CATALOGUE := [
 	"Curved Screen Both",
 	"Battery Capacity",
 	"Charging Speed",
-	"Wireless Charging"
+	"Wireless Charging",
+	"Fingerprint Sensor",
+	"Face Recognition / Face ID",
+	"NFC Controller",
+	"Accelerometer",
+	"Gyroscope",
+	"Proximity Sensor",
+	"Ambient Light Sensor",
+	"Magnetometer / Compass",
+	"Barometer",
+	"GNSS / GPS Receiver"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -521,6 +544,16 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 				return _failure("Memory Clock has reached its maximum research level.")
 			return _failure("Unlock a newer RAM Technology before researching faster Memory Clock speeds.")
 
+	if PHONE_SENSOR_COMPONENTS.has(component):
+		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
+			return _failure("%s research has already been approved." % component)
+		for existing_project_value in career.get("research_projects", []):
+			if not (existing_project_value is Dictionary):
+				continue
+			var existing_sensor_project: Dictionary = existing_project_value
+			if str(existing_sensor_project.get("component", "")) == component and str(existing_sensor_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+				return _failure("%s already has a research project in progress or awaiting validation." % component)
+
 	var requested_staff: Variant = request.get("staff_ids", [])
 	if not (requested_staff is Array) or requested_staff.is_empty():
 		return _failure("Assign at least one available Research employee.")
@@ -559,7 +592,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_charging_speed_research_target(career.get("research_component_levels", {}))
 	elif component == "Wireless Charging":
 		ordered_target = get_wireless_charging_research_target(career.get("research_component_levels", {}))
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging"]:
+	elif PHONE_SENSOR_COMPONENTS.has(component):
+		ordered_target = {"index": 1, "technology": component}
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging"] or PHONE_SENSOR_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -588,7 +623,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		var target_technology := str(ordered_target.get("technology", ""))
 		var target_generation := str(ordered_target.get("generation", ""))
 		project_title = "Research: %s - %s" % [component, target_technology]
-		if component == "Bluetooth":
+		if PHONE_SENSOR_COMPONENTS.has(component):
+			project_title = "Research: %s" % component
+			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
+		elif component == "Bluetooth":
 			project_title = "Research: %s" % target_technology
 			project_objective = "Develop and validate %s for mobile-device connectivity." % target_technology
 		elif component == "Mobile Network":
@@ -727,6 +765,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var battery_capacity_target_index := -1
 	var charging_speed_target_index := -1
 	var wireless_charging_target_index := -1
+	var phone_sensor_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -788,6 +827,10 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Wireless Charging project is no longer the next charging-speed improvement.")
 		if str(project.get("research_target", "")) != str(expected_wireless_target.get("technology", "")):
 			return _failure("The Wireless Charging project target does not match the current wireless charging progression.")
+	elif PHONE_SENSOR_COMPONENTS.has(component):
+		phone_sensor_target_index = int(project.get("research_target_index", -1))
+		if int(component_levels.get(component, 0)) >= 1 or phone_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
+			return _failure("This sensor project is no longer a valid, unapproved sensor research target.")
 
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
@@ -822,6 +865,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next wired charging-speed ceiling assigned to this project.")
 		if result_component == "Wireless Charging" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next wireless charging-speed ceiling assigned to this project.")
+		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact sensor component assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -897,6 +942,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Wireless Charging":
 		# The first approval unlocks wireless charging at 1W; 66 further upgrades reach 200W.
 		component_levels[component] = wireless_charging_target_index
+	elif PHONE_SENSOR_COMPONENTS.has(component):
+		# Every sensor is an independent, one-time approved research unlock.
+		component_levels[component] = 1
 	elif CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
 		# Each curved-screen design is a separate one-time approved research unlock.
 		component_levels[component] = 1
