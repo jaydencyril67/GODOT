@@ -319,7 +319,7 @@ var front_camera_decrease_button: Button
 var front_camera_increase_button: Button
 
 # Listed from the earliest front-camera design to the newest.
-const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Pop-Up Camera", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Under-Display Camera", "Dynamic Island"]
+const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "Side Punch-Hole", "Dual Punch-Hole", "Pop-Up Camera", "Dynamic Island", "Under-Display Camera"]
 
 var rear_camera_modules: Array[Dictionary] = []
 
