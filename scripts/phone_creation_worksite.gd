@@ -13,6 +13,7 @@ var refresh_rate_step_visited := false
 var cooling_system_step_visited := false
 
 signal back_requested
+signal research_requested
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
 const CHARGE_PORT_RESEARCH_ORDER := [
@@ -777,6 +778,10 @@ var gradient_direction_button: Button
 var device_color_hex_label: Label
 
 var back_design_boxes: Array[Dictionary] = []
+
+var back_raised_design_research_level := 0
+
+var back_design_capacity_label: Label
 
 var selected_back_design_box := -1
 
@@ -3636,6 +3641,12 @@ func set_rear_flash_count_research_level(level: int) -> void:
 		_refresh_rear_hardware_panel()
 
 
+func set_back_raised_design_research_level(level: int) -> void:
+	back_raised_design_research_level = ResearchManagerScript.get_back_raised_design_max_for_level(level)
+	if wizard_step == 13:
+		_show_back_design_controls()
+
+
 func set_rear_camera_mp_research_level(level: int) -> void:
 	# The 1MP starting resolution is available immediately; approved R&D expands
 	# every existing rear-camera slider ceiling up to 400MP.
@@ -4913,6 +4924,27 @@ func _show_back_design_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 7 if tight else 9)
 	panel_host.add_child(active_feature_panel)
 
+	if back_raised_design_research_level <= 0:
+		back_design_selection_button = null
+		back_design_size_label = null
+		back_design_border_label = null
+		back_design_border_slider = null
+		back_design_capacity_label = null
+		var locked_heading := _make_label("BACK RAISED DESIGN", 16, Color("#E5E0D6"))
+		locked_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		active_feature_panel.add_child(locked_heading)
+		var research_button := Button.new()
+		research_button.name = "BackRaisedDesignResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48 if not tight else 44)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, button_font_size)
+		_style_back_design_button(research_button, true)
+		research_button.pressed.connect(_request_back_raised_design_research)
+		active_feature_panel.add_child(research_button)
+		return
+
 	var heading := _make_label("BACK DESIGN", 16, Color("#E5E0D6"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
@@ -4948,6 +4980,19 @@ func _show_back_design_controls() -> void:
 	color_button.pressed.connect(_show_device_color_controls.bind(true))
 	top_controls.add_child(color_button)
 
+	var research_button := Button.new()
+	research_button.name = "BackDesignResearchButton"
+	research_button.text = "RESEARCH" if back_raised_design_research_level < ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES else "MAX 20"
+	research_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+	research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	research_button.focus_mode = Control.FOCUS_NONE
+	research_button.disabled = back_raised_design_research_level >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES
+	research_button.tooltip_text = "Research to unlock more raised boxes, up to 20." if not research_button.disabled else "Maximum of 20 raised boxes unlocked."
+	_apply_research_typography(research_button, button_font_size)
+	_style_back_design_button(research_button, false)
+	research_button.pressed.connect(_request_back_raised_design_research)
+	top_controls.add_child(research_button)
+
 	back_design_selection_button = Button.new()
 	back_design_selection_button.name = "BackDesignBoxSelector"
 	back_design_selection_button.text = "CHOOSE RAISED BOX  ▼"
@@ -4959,6 +5004,10 @@ func _show_back_design_controls() -> void:
 	back_design_selection_button.pressed.connect(_show_back_design_selection_controls)
 	active_feature_panel.add_child(back_design_selection_button)
 
+	back_design_capacity_label = _make_label("RAISED BOXES  0 / 1", 10, Color("#B8AFA2"))
+	back_design_capacity_label.name = "BackDesignCapacityLabel"
+	back_design_capacity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(back_design_capacity_label)
 
 	var rounding_section := VBoxContainer.new()
 	rounding_section.name = "BackDesignRoundingSection"
@@ -5170,7 +5219,21 @@ func _toggle_back_design_size_action() -> void:
 	back_design_size_action = "SHRINK" if back_design_size_action == "EXPAND" else "EXPAND"
 	_show_back_design_controls()
 
+func _request_back_raised_design_research() -> void:
+	if back_raised_design_research_level >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES:
+		return
+	research_requested.emit()
+
+
+func _get_back_raised_design_addition_limit() -> int:
+	return ResearchManagerScript.get_back_raised_design_max_for_level(back_raised_design_research_level)
+
+
 func _add_back_design_box() -> void:
+	var addition_limit := _get_back_raised_design_addition_limit()
+	if addition_limit <= 0 or back_design_boxes.size() >= addition_limit or back_design_boxes.size() >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES:
+		_refresh_back_design_panel()
+		return
 	var box_size := Vector2(0.34, 0.34)
 	var half := box_size * 0.5
 	var body_half := Vector2(_active_phone_size().x * 0.5, _active_phone_size().y * 0.5)
@@ -5413,11 +5476,26 @@ func _on_back_design_border_changed(value: float) -> void:
 	if is_instance_valid(back_design_border_label): back_design_border_label.text = "ROUNDING  %.0f%%" % (value / 0.45 * 100.0)
 
 func _refresh_back_design_panel() -> void:
+	var addition_limit := _get_back_raised_design_addition_limit()
+	var add_button := active_feature_panel.find_child("BackDesignAddButton", true, false) as Button if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(add_button):
+		add_button.disabled = addition_limit <= 0 or back_design_boxes.size() >= addition_limit or back_design_boxes.size() >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES
+		if back_design_boxes.size() >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES:
+			add_button.tooltip_text = "Maximum of 20 raised boxes reached."
+		elif back_design_boxes.size() >= addition_limit:
+			add_button.tooltip_text = "Research to unlock more raised boxes."
+		else:
+			add_button.tooltip_text = "Add raised box. Current capacity: %d." % addition_limit
+	var research_button := active_feature_panel.find_child("BackDesignResearchButton", true, false) as Button if is_instance_valid(active_feature_panel) else null
+	if is_instance_valid(research_button):
+		research_button.disabled = back_raised_design_research_level >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES
+		research_button.text = "RESEARCH" if not research_button.disabled else "MAX 20"
+	if is_instance_valid(back_design_capacity_label):
+		back_design_capacity_label.text = "RAISED BOXES  %d / %d" % [back_design_boxes.size(), addition_limit]
 	if not is_instance_valid(back_design_selection_button):
 		return
-	if is_instance_valid(back_design_selection_button):
-		back_design_selection_button.disabled = back_design_boxes.is_empty()
-		back_design_selection_button.text = "ADD A BOX TO SELECT" if back_design_boxes.is_empty() else "RAISED BOX  %d  ›" % int(back_design_boxes[selected_back_design_box]["id"])
+	back_design_selection_button.disabled = back_design_boxes.is_empty()
+	back_design_selection_button.text = "ADD A BOX TO SELECT" if back_design_boxes.is_empty() else "RAISED BOX  %d  ›" % int(back_design_boxes[selected_back_design_box]["id"])
 	var has_box := selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size()
 	if has_box:
 		var selected: Dictionary = back_design_boxes[selected_back_design_box]
