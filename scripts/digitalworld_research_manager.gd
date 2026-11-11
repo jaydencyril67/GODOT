@@ -342,12 +342,13 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		var target_technology := str(ordered_target.get("technology", ""))
 		var target_generation := str(ordered_target.get("generation", ""))
 		project_title = "Research: %s - %s" % [component, target_technology]
-		if component == "Mobile Network":
+		if component == "Bluetooth":
+			project_title = "Research: %s" % target_technology
+			project_objective = "Develop and validate %s for mobile-device connectivity." % target_technology
+		elif component == "Mobile Network":
 			project_objective = "Develop and validate %s for %s mobile networks." % [target_technology, target_generation]
 		elif component == "Wi-Fi":
 			project_objective = "Develop and validate IEEE %s for %s wireless networks." % [target_technology, target_generation]
-		else:
-			project_objective = "Develop and validate %s for mobile-device connectivity." % target_technology
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
 	career["next_research_project_id"] = int(career.get("next_research_project_id", 1)) + 1
