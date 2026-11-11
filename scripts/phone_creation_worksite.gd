@@ -8835,7 +8835,6 @@ func _add_rear_hardware_module() -> void:
 	# New components inherit the size of the most recently added component
 	# of the same kind. Each module keeps its own size after creation, so later
 	# resizing never changes any existing camera or flash.
-	var modules := _get_rear_hardware_modules()
 	var module_size := _get_rear_hardware_default_size()
 	if not modules.is_empty():
 		module_size = float(modules[modules.size() - 1].get("size", module_size))
