@@ -396,16 +396,17 @@ var bezel_height_slider: VSlider
 
 var screen_shape_mode := "Flat screen"
 var curve_screen_unlocked := true
+var screen_type_level := 0
+var curved_screen_horizontal_research_level := 0
+var curved_screen_vertical_research_level := 0
+var curved_screen_both_research_level := 0
+var screen_type_name_label: Label
+var screen_type_decrease_button: Button
+var screen_type_increase_button: Button
 
 var side_curve_enabled := false
 
 var vertical_curve_enabled := false
-
-var screen_shape_buttons: Dictionary = {}
-
-var side_curve_toggle: Button
-
-var vertical_curve_toggle: Button
 
 var screen_quality_state: Dictionary = {}
 var current_screen_technology := "TFT LCD"
@@ -3303,9 +3304,28 @@ func set_battery_capacity_research_level(_level: int) -> void:
 		battery_capacity_value_label.text = selected_battery_capacity if selected_battery_capacity != "Not set" else "NOT SELECTED"
 
 func set_curve_screen_research_unlocked(_unlocked: bool) -> void:
-	# Legacy compatibility hook: curved-screen mode is no longer research-gated.
+	# Legacy compatibility hook retained for older callers. Curved-screen access
+	# is now controlled by the three dedicated approved research projects.
 	curve_screen_unlocked = true
 	_refresh_screen_type_controls()
+
+
+func set_curved_screen_horizontal_research_level(level: int) -> void:
+	curved_screen_horizontal_research_level = clampi(level, 0, 1)
+	_refresh_screen_type_controls()
+	_refresh_phone_screen()
+
+
+func set_curved_screen_vertical_research_level(level: int) -> void:
+	curved_screen_vertical_research_level = clampi(level, 0, 1)
+	_refresh_screen_type_controls()
+	_refresh_phone_screen()
+
+
+func set_curved_screen_both_research_level(level: int) -> void:
+	curved_screen_both_research_level = clampi(level, 0, 1)
+	_refresh_screen_type_controls()
+	_refresh_phone_screen()
 
 func set_screen_technology_research_level(level: int) -> void:
 	# TFT LCD is the baseline; each successful research unlocks one newer screen.
@@ -5364,89 +5384,102 @@ func _show_screen_type_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "ScreenTypeControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("SCREEN TYPE", 18, Color("#D3AA6B"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
-	var description := _make_label("Choose a flat display or a curved edge design.", 12, Color("#D3AA6B"))
+	var description := _make_label("Choose an approved screen design.", 12, Color("#D3AA6B"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	var choices := VBoxContainer.new()
-	choices.name = "ScreenShapeChoices"
-	choices.add_theme_constant_override("separation", 8)
-	active_feature_panel.add_child(choices)
-	screen_shape_buttons.clear()
-	for mode in ["Flat screen", "Curve screen"]:
-		var option := Button.new()
-		option.name = mode.replace(" ", "") + "Option"
-		option.text = mode
-		option.custom_minimum_size = Vector2(0, 44)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.focus_mode = Control.FOCUS_NONE
-		option.toggle_mode = true
-		option.button_pressed = screen_shape_mode == mode
-		_apply_research_typography(option, 13)
-		_style_screen_type_option(option, 0 if mode == "Flat screen" else 5, screen_shape_mode == mode)
-		option.pressed.connect(_on_screen_shape_selected.bind(mode))
-		choices.add_child(option)
-		screen_shape_buttons[mode] = option
+	screen_type_name_label = _make_label(_get_screen_type_name(screen_type_level), 16, Color("#EEE9DF"))
+	screen_type_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(screen_type_name_label)
 
-	var curve_options := VBoxContainer.new()
-	curve_options.name = "CurveOptions"
-	curve_options.add_theme_constant_override("separation", 9)
-	active_feature_panel.add_child(curve_options)
+	var controls_center := CenterContainer.new()
+	controls_center.name = "ScreenTypeLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	controls_center.custom_minimum_size = Vector2(0, 360)
+	active_feature_panel.add_child(controls_center)
 
-	side_curve_toggle = _make_curve_toggle("SideCurveToggle", "Side curve", side_curve_enabled)
-	curve_options.add_child(side_curve_toggle)
-	side_curve_toggle.toggled.connect(_on_side_curve_toggled)
-	vertical_curve_toggle = _make_curve_toggle("VerticalCurveToggle", "Up & bottom curve", vertical_curve_enabled)
-	curve_options.add_child(vertical_curve_toggle)
-	vertical_curve_toggle.toggled.connect(_on_vertical_curve_toggled)
+	var controls := HBoxContainer.new()
+	controls.name = "ScreenTypeLevelControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
+
+	screen_type_decrease_button = Button.new()
+	screen_type_decrease_button.name = "DecreaseScreenTypeButton"
+	screen_type_decrease_button.text = "−"
+	_style_level_selector_button(screen_type_decrease_button)
+	screen_type_decrease_button.pressed.connect(_on_screen_type_decrease_pressed)
+	controls.add_child(screen_type_decrease_button)
+
+	screen_type_increase_button = Button.new()
+	screen_type_increase_button.name = "IncreaseScreenTypeButton"
+	screen_type_increase_button.text = "+"
+	_style_level_selector_button(screen_type_increase_button)
+	screen_type_increase_button.pressed.connect(_on_screen_type_increase_pressed)
+	controls.add_child(screen_type_increase_button)
 
 	_refresh_screen_type_controls()
 
-func _make_curve_toggle(node_name: String, label_text: String, enabled: bool) -> Button:
-	var toggle := Button.new()
-	toggle.name = node_name
-	toggle.text = ("✓  " if enabled else "□  ") + label_text
-	toggle.toggle_mode = true
-	toggle.button_pressed = enabled
-	toggle.custom_minimum_size = Vector2(0, 40)
-	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	toggle.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(toggle, 12)
-	return toggle
 
-func _on_screen_shape_selected(mode: String) -> void:
-	if mode == "Curve screen" and not (_is_screen_width_max() or _is_screen_height_max()):
+func _get_screen_type_name(level: int) -> String:
+	match level:
+		1:
+			return "CURVED SCREEN HORIZONTAL"
+		2:
+			return "CURVED SCREEN VERTICAL"
+		3:
+			return "CURVED SCREEN BOTH"
+		_:
+			return "FLAT SCREEN"
+
+
+func _is_screen_type_level_unlocked(level: int) -> bool:
+	match level:
+		1:
+			return curved_screen_horizontal_research_level >= 1
+		2:
+			return curved_screen_vertical_research_level >= 1
+		3:
+			return curved_screen_both_research_level >= 1
+		_:
+			return level == 0
+
+
+func _find_available_screen_type_level(direction: int) -> int:
+	var candidate := screen_type_level + direction
+	while candidate >= 0 and candidate <= 3:
+		if _is_screen_type_level_unlocked(candidate):
+			return candidate
+		candidate += direction
+	return screen_type_level
+
+
+func _on_screen_type_decrease_pressed() -> void:
+	var previous_level := _find_available_screen_type_level(-1)
+	if previous_level == screen_type_level:
 		return
-	screen_shape_mode = mode
-	if mode == "Flat screen":
-		side_curve_enabled = false
-		vertical_curve_enabled = false
+	screen_type_level = previous_level
 	_refresh_screen_type_controls()
 	_refresh_phone_screen()
 
-func _on_side_curve_toggled(enabled: bool) -> void:
-	if enabled and not _is_screen_width_max():
-		_refresh_screen_type_controls()
+
+func _on_screen_type_increase_pressed() -> void:
+	var next_level := _find_available_screen_type_level(1)
+	if next_level == screen_type_level:
 		return
-	side_curve_enabled = enabled
+	screen_type_level = next_level
 	_refresh_screen_type_controls()
 	_refresh_phone_screen()
 
-func _on_vertical_curve_toggled(enabled: bool) -> void:
-	if enabled and not _is_screen_height_max():
-		_refresh_screen_type_controls()
-		return
-	vertical_curve_enabled = enabled
-	_refresh_screen_type_controls()
-	_refresh_phone_screen()
 
 func _is_screen_width_max() -> bool:
 	return bezel_width <= 0.0205
@@ -5508,29 +5541,19 @@ func _is_screen_height_max() -> bool:
 	return bezel_height <= _minimum_screen_height_bezel() + 0.0005
 
 func _refresh_screen_type_controls() -> void:
-	if not is_instance_valid(active_feature_panel) or active_feature_panel.name != "ScreenTypeControls":
-		return
-	var width_max := _is_screen_width_max()
-	var height_max := _is_screen_height_max()
-	var curve_allowed := width_max or height_max
-	if screen_shape_mode == "Curve screen" and not curve_allowed:
-		screen_shape_mode = "Flat screen"
-		side_curve_enabled = false
-		vertical_curve_enabled = false
-	for mode in screen_shape_buttons:
-		var option: Button = screen_shape_buttons[mode]
-		option.button_pressed = screen_shape_mode == mode
-		option.disabled = mode == "Curve screen" and not curve_allowed
-		option.text = mode
-		_style_screen_type_option(option, 0 if mode == "Flat screen" else 5, screen_shape_mode == mode)
-	if is_instance_valid(side_curve_toggle):
-		side_curve_toggle.disabled = screen_shape_mode != "Curve screen" or not width_max
-		side_curve_toggle.button_pressed = side_curve_enabled
-		side_curve_toggle.text = ("✓  " if side_curve_enabled else "□  ") + "Side curve"
-	if is_instance_valid(vertical_curve_toggle):
-		vertical_curve_toggle.disabled = screen_shape_mode != "Curve screen" or not height_max
-		vertical_curve_toggle.button_pressed = vertical_curve_enabled
-		vertical_curve_toggle.text = ("✓  " if vertical_curve_enabled else "□  ") + "Up & bottom curve"
+	if screen_type_level < 0 or screen_type_level > 3 or not _is_screen_type_level_unlocked(screen_type_level):
+		screen_type_level = 0
+	screen_shape_mode = "Flat screen" if screen_type_level == 0 else "Curve screen"
+	side_curve_enabled = screen_type_level in [1, 3]
+	vertical_curve_enabled = screen_type_level in [2, 3]
+
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "ScreenTypeControls":
+		if is_instance_valid(screen_type_name_label):
+			screen_type_name_label.text = _get_screen_type_name(screen_type_level)
+		if is_instance_valid(screen_type_decrease_button):
+			screen_type_decrease_button.disabled = _find_available_screen_type_level(-1) == screen_type_level
+		if is_instance_valid(screen_type_increase_button):
+			screen_type_increase_button.disabled = _find_available_screen_type_level(1) == screen_type_level
 
 func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: String, label_text: String, enabled: bool, callback: Callable) -> void:
 	var row := HBoxContainer.new()
