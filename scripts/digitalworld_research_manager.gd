@@ -17,10 +17,12 @@ const STATUS_CANCELLED := "cancelled"
 const FRONT_CAMERA_MODEL_COUNT := 8
 const SCREEN_WIDTH_RESEARCH_LEVELS := 12
 const SCREEN_HEIGHT_RESEARCH_LEVELS := 12
+const REFRESH_RATE_RESEARCH_LEVELS := 30
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
 	"Screen Width",
 	"Screen Height",
+	"Refresh Rate",
 	"Phone Thickness",
 	"Border Radius",
 	"Speakers",
@@ -340,7 +342,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
 				return _failure("The next %s technology already has a project in progress or awaiting validation." % component)
 
-	if component in ["Screen Width", "Screen Height"]:
+	if component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
 				continue
@@ -361,7 +363,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate %s for %s mobile networks." % [target_technology, target_generation]
 		elif component == "Wi-Fi":
 			project_objective = "Develop and validate IEEE %s for %s wireless networks." % [target_technology, target_generation]
-	elif component in ["Screen Width", "Screen Height"]:
+	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 
 	var project_id := "RDP-%06d" % int(career.get("next_research_project_id", 1))
@@ -546,6 +548,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Screen Height":
 		# Each approval expands the maximum selectable display height by one tier.
 		component_levels[component] = mini(SCREEN_HEIGHT_RESEARCH_LEVELS, int(component_levels.get(component, 0)) + 1)
+	elif component == "Refresh Rate":
+		# Thirty approvals expand the selectable refresh-rate ceiling from 60 Hz to 300 Hz.
+		component_levels[component] = mini(REFRESH_RATE_RESEARCH_LEVELS, int(component_levels.get(component, 0)) + 1)
 	elif component == "Front Camera":
 		# Bezel Camera is the baseline; each approval unlocks the next design in chronological order.
 		component_levels[component] = mini(
