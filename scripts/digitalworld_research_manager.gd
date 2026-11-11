@@ -23,6 +23,7 @@ const COMPONENT_CATALOGUE := [
 	"Charge Port",
 	"Home Button",
 	"Front Camera",
+	"RAM",
 	"RAM Technology"
 ]
 
@@ -319,9 +320,12 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			FRONT_CAMERA_MODEL_COUNT - 1,
 			int(component_levels.get(component, 0)) + 1
 		)
+	elif component == "RAM":
+		# 8 GB is the baseline ceiling; each approval unlocks the next supported capacity tier.
+		component_levels[component] = mini(6, int(component_levels.get(component, 0)) + 1)
 	elif component == "RAM Technology":
-		# LPDDR3 is the baseline; each approved project unlocks the next RAM generation.
-		component_levels[component] = mini(5, int(component_levels.get(component, 0)) + 1)
+		# LPDDR2 is the baseline; six approvals unlock the remaining six RAM generations.
+		component_levels[component] = mini(6, int(component_levels.get(component, 0)) + 1)
 	career["research_component_levels"] = component_levels
 	projects[project_index] = project
 	career["research_projects"] = projects
