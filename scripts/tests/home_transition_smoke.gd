@@ -122,6 +122,13 @@ func _run_transition_checks() -> void:
 	if not ram_component_option.text.contains("RAM TECH"):
 		_fail("RAM Technology is missing from the R&D component selector.")
 		return
+	var mobile_network_component_option := dashboard.find_child("ResearchComponentOption_9", true, false) as Button
+	if not is_instance_valid(mobile_network_component_option) or not mobile_network_component_option.text.contains("MOBILE NETWORK"):
+		_fail("Mobile Network is missing from the R&D component selector.")
+		return
+	if not mobile_network_component_option.tooltip_text.contains("NMT"):
+		_fail("The Mobile Network research selector did not identify its next technology.")
+		return
 	if dashboard.find_child("ResearchStaffScroll", true, false) != null:
 		_fail("Staff selection appeared before the component-selection step was completed.")
 		return
@@ -351,6 +358,27 @@ func _run_transition_checks() -> void:
 		_fail("Technical approval did not unlock the next Internal Storage capacity tier.")
 		return
 
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Mobile Network"):
+		_fail("Mobile Network is missing from the R&D component catalogue.")
+		return
+	if not _complete_mobile_network_research_project("NMT", "1G"):
+		return
+	var duplicate_mobile_project: Dictionary = game.commission_research_project({
+		"component": "Mobile Network",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if bool(duplicate_mobile_project.get("ok", false)):
+		_fail("A second Mobile Network project was allowed to target the same in-progress technology.")
+		return
+	if not _complete_mobile_network_research_project("TACS", "1G"):
+		return
+	var next_mobile_target: Dictionary = ResearchManagerScript.get_mobile_network_research_target(
+		game.career.get("research_component_levels", {})
+	)
+	if str(next_mobile_target.get("generation", "")) != "2G" or str(next_mobile_target.get("technology", "")) != "GSM":
+		_fail("Completing the 1G technologies did not advance the next Mobile Network research target to 2G GSM.")
+		return
+
 	dashboard.call("configure", game._get_research_dashboard_data())
 
 	game._return_from_research_allocation_dashboard()
@@ -463,6 +491,49 @@ func _run_screen_technology_checks() -> bool:
 		return false
 	if ScreenTechnologySystem.get_next_milestone_requirement(state) != 36:
 		_fail("The next screen milestone did not continue beyond the previous level.")
+		return false
+	return true
+
+
+func _complete_mobile_network_research_project(expected_technology: String, expected_generation: String) -> bool:
+	var commission: Dictionary = game.commission_research_project({
+		"component": "Mobile Network",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if not bool(commission.get("ok", false)):
+		_fail("A Mobile Network research project could not be commissioned: %s" % str(commission.get("error", "")))
+		return false
+	var project: Dictionary = commission.get("project", {})
+	if str(project.get("research_target", "")) != expected_technology or str(project.get("research_generation", "")) != expected_generation:
+		_fail("Mobile Network research did not automatically target %s in %s." % [expected_technology, expected_generation])
+		return false
+	var projects: Array = game.career.get("research_projects", [])
+	for project_index in range(projects.size()):
+		if str(projects[project_index].get("id", "")) == str(project.get("id", "")):
+			projects[project_index]["success_chance"] = 100.0
+			break
+	game.career["research_projects"] = projects
+	var completed_ids: Array[String] = ResearchManagerScript.advance_projects(
+		game.career,
+		86400.0 * 29.0,
+		game.game_date_unix + 86400.0 * 29.0
+	)
+	if not completed_ids.has(str(project.get("id", ""))):
+		_fail("The Mobile Network project for %s did not complete." % expected_technology)
+		return false
+	var validation: Dictionary = game.approve_research_project(str(project.get("id", "")), [{
+		"component": "Mobile Network",
+		"metric": "Validated mobile network technology",
+		"value": expected_technology,
+		"unit": "",
+		"notes": "Technology validated as the next stage in the mobile network progression."
+	}])
+	if not bool(validation.get("ok", false)):
+		_fail("The Mobile Network project for %s could not pass technical validation: %s" % [expected_technology, str(validation.get("error", ""))])
+		return false
+	var expected_level := int(project.get("research_target_index", -1))
+	if int(game.career.get("research_component_levels", {}).get("Mobile Network", 0)) != expected_level:
+		_fail("Approval did not unlock the researched Mobile Network technology.")
 		return false
 	return true
 
