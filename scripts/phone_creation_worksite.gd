@@ -3642,7 +3642,10 @@ func set_rear_flash_count_research_level(level: int) -> void:
 
 
 func set_back_raised_design_research_level(level: int) -> void:
-	back_raised_design_research_level = ResearchManagerScript.get_back_raised_design_max_for_level(level)
+	var updated_level := ResearchManagerScript.get_back_raised_design_max_for_level(level)
+	if updated_level == back_raised_design_research_level:
+		return
+	back_raised_design_research_level = updated_level
 	if wizard_step == 13:
 		_show_back_design_controls()
 
