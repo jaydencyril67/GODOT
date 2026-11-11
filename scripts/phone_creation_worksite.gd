@@ -1351,7 +1351,14 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 		# Thickness and border-radius controls need the full right-hand workspace:
 		# their CenterContainer positions the +/- pair vertically below the
 		# heading and level readout. Do not let navigation collapse these panels.
-		var panel_uses_full_height := step == 8 or panel.name == "ThicknessControls" or panel.name == "BorderRadiusControls" or panel.name == "SpeakerControls"
+		var panel_uses_full_height := (
+			step == 8
+			or panel.name == "ThicknessControls"
+			or panel.name == "BorderRadiusControls"
+			or panel.name == "SpeakerControls"
+			or panel.name == "FrontCameraControls"
+			or panel.name == "RAMTechnologySelectionControls"
+		)
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if panel_uses_full_height else Control.SIZE_SHRINK_BEGIN
 		if step >= 15 and step <= 29:
 			_style_ram_selector_buttons(panel)
@@ -7704,8 +7711,9 @@ func _show_front_camera_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "FrontCameraControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 10)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var title := _make_label("FRONT CAMERA", 19, Color("#D3AA6B"))
@@ -11606,19 +11614,30 @@ func _show_ram_technology_controls() -> void:
 	active_feature_panel.name = "RAMTechnologySelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.alignment = BoxContainer.ALIGNMENT_CENTER
-	active_feature_panel.add_theme_constant_override("separation", 12)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
 	var heading := _make_label("SELECT RAM TECHNOLOGY", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
+	ram_technology_level_label = _make_label("", 13, Color("#D3AA6B"))
+	ram_technology_level_label.name = "RAMTechnologyLevelLabel"
+	ram_technology_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(ram_technology_level_label)
+
+	var controls_center := CenterContainer.new()
+	controls_center.name = "RAMTechnologyLevelControlsCenter"
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+
 	var controls := HBoxContainer.new()
 	controls.name = "RAMTechnologyControlRow"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 14)
-	active_feature_panel.add_child(controls)
+	controls.add_theme_constant_override("separation", 30)
+	controls_center.add_child(controls)
 
 	ram_technology_decrease_button = Button.new()
 	ram_technology_decrease_button.name = "DecreaseRAMTechnologyButton"
@@ -11640,10 +11659,6 @@ func _show_ram_technology_controls() -> void:
 	ram_technology_increase_button.pressed.connect(_on_ram_technology_increase_pressed)
 	controls.add_child(ram_technology_increase_button)
 
-	ram_technology_level_label = _make_label("", 13, Color("#D3AA6B"))
-	ram_technology_level_label.name = "RAMTechnologyLevelLabel"
-	ram_technology_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(ram_technology_level_label)
 	_refresh_ram_technology_selection_ui()
 
 
