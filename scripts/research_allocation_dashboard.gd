@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -340,6 +340,8 @@ func _default_validation_metric(component: String) -> String:
 	match component:
 		"Charging Speed":
 			return "Maximum wired charging speed"
+		"Wireless Charging":
+			return "Maximum wireless charging speed"
 		"Battery Capacity":
 			return "Maximum battery capacity"
 		"Screen Technology":
@@ -641,6 +643,23 @@ func _build_component_selection_scene() -> void:
 						continue
 					var charging_project: Dictionary = project_value
 					if str(charging_project.get("component", "")) == "Charging Speed" and str(charging_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
+						component_button.disabled = true
+						break
+		elif COMPONENT_VALUES[index] == "Wireless Charging":
+			var wireless_target: Dictionary = ResearchManagerScript.get_wireless_charging_research_target(research_component_levels)
+			if wireless_target.is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 200W"
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Next wireless charging maximum: %s" % str(wireless_target.get("technology", ""))
+				if int(research_component_levels.get("Wireless Charging", 0)) == 0:
+					component_button.tooltip_text = "First approval unlocks wireless charging at 1W."
+				for project_value in research_projects:
+					if not (project_value is Dictionary):
+						continue
+					var wireless_project: Dictionary = project_value
+					if str(wireless_project.get("component", "")) == "Wireless Charging" and str(wireless_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
 						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 						component_button.disabled = true
 						break
