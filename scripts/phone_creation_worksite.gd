@@ -325,6 +325,11 @@ var front_camera_mp_research_level := 0
 var front_camera_mp_sliders: Array[VSlider] = []
 var front_camera_mp_value_labels: Array[Label] = []
 var front_camera_mp_max_labels: Array[Label] = []
+var rear_camera_mp_research_level := 0
+var rear_camera_mp_sliders: Array[VSlider] = []
+var rear_camera_mp_value_labels: Array[Label] = []
+var rear_camera_mp_max_labels: Array[Label] = []
+var rear_camera_mp_slider_camera_ids: Array[int] = []
 var front_camera_value_label: Label
 var front_camera_decrease_button: Button
 var front_camera_increase_button: Button
@@ -3091,6 +3096,10 @@ func _show_worksite_front_camera_mp_controls() -> void:
 
 
 func _show_worksite_rear_camera_mp_controls() -> void:
+	rear_camera_mp_sliders.clear()
+	rear_camera_mp_value_labels.clear()
+	rear_camera_mp_max_labels.clear()
+	rear_camera_mp_slider_camera_ids.clear()
 	var panel := VBoxContainer.new()
 	panel.name = "WorksiteRearCameraMegapixelControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3121,18 +3130,19 @@ func _show_worksite_rear_camera_mp_controls() -> void:
 	for camera_index in range(camera_modules.size()):
 		var camera_data: Dictionary = camera_modules[camera_index]
 		var camera_id := int(camera_data.get("id", camera_index + 1))
-		var megapixels := int(camera_data.get("mp", 12))
-		var callback := func(next_mp: int) -> void:
-			var live_modules: Array = self.get("rear_camera_modules")
-			for module_index in range(live_modules.size()):
-				var module_data: Dictionary = live_modules[module_index]
-				if int(module_data.get("id", -1)) == camera_id:
-					module_data["mp"] = next_mp
-					live_modules[module_index] = module_data
-					break
-			self.set("rear_camera_modules", live_modules)
-			self.call("_update_camera_software_summary")
-		var card := self.call("_make_camera_mp_slider_card", "%02d" % (camera_index + 1), megapixels, callback) as Control
+		var megapixels := int(camera_data.get("mp", ResearchManagerScript.REAR_CAMERA_MP_BASE))
+		var callback := Callable(self, "_set_rear_camera_mp_value").bind(camera_id)
+		var card := self.call("_make_camera_mp_slider_card", "%02d" % (camera_index + 1), megapixels, callback, _get_rear_camera_mp_maximum()) as Control
+		var mp_slider := card.find_child("CameraMPValueSlider", true, false) as VSlider
+		var mp_value_label := card.find_child("CameraMPValueLabel", true, false) as Label
+		var mp_max_label := card.find_child("CameraMPMaximumLabel", true, false) as Label
+		if is_instance_valid(mp_slider):
+			rear_camera_mp_sliders.append(mp_slider)
+			rear_camera_mp_slider_camera_ids.append(camera_id)
+		if is_instance_valid(mp_value_label):
+			rear_camera_mp_value_labels.append(mp_value_label)
+		if is_instance_valid(mp_max_label):
+			rear_camera_mp_max_labels.append(mp_max_label)
 		slider_row.add_child(card)
 
 
@@ -3596,6 +3606,60 @@ func set_speaker_research_level(level: int) -> void:
 	speaker_count = clampi(speaker_count, 1, researched_speaker_count)
 	_refresh_phone_speakers()
 	_refresh_speaker_count_controls()
+
+func set_rear_camera_mp_research_level(level: int) -> void:
+	# The 1MP starting resolution is available immediately; approved R&D expands
+	# every existing rear-camera slider ceiling up to 400MP.
+	rear_camera_mp_research_level = clampi(level, 0, ResearchManagerScript.REAR_CAMERA_MP_RESEARCH_UPGRADES)
+	var available_maximum := _get_rear_camera_mp_maximum()
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		camera_data["mp"] = clampi(
+			int(camera_data.get("mp", ResearchManagerScript.REAR_CAMERA_MP_BASE)),
+			ResearchManagerScript.REAR_CAMERA_MP_BASE,
+			available_maximum
+		)
+		rear_camera_modules[camera_index] = camera_data
+	for slider_index in range(rear_camera_mp_sliders.size()):
+		if slider_index >= rear_camera_mp_slider_camera_ids.size():
+			break
+		var slider := rear_camera_mp_sliders[slider_index]
+		if not is_instance_valid(slider):
+			continue
+		var camera_id := rear_camera_mp_slider_camera_ids[slider_index]
+		var selected_mp := ResearchManagerScript.REAR_CAMERA_MP_BASE
+		for camera_data in rear_camera_modules:
+			if int(camera_data.get("id", -1)) == camera_id:
+				selected_mp = int(camera_data.get("mp", selected_mp))
+				break
+		slider.min_value = ResearchManagerScript.REAR_CAMERA_MP_BASE
+		slider.max_value = available_maximum
+		slider.set_value_no_signal(selected_mp)
+		if slider_index < rear_camera_mp_value_labels.size() and is_instance_valid(rear_camera_mp_value_labels[slider_index]):
+			rear_camera_mp_value_labels[slider_index].text = "%d MP" % selected_mp
+		if slider_index < rear_camera_mp_max_labels.size() and is_instance_valid(rear_camera_mp_max_labels[slider_index]):
+			rear_camera_mp_max_labels[slider_index].text = str(available_maximum)
+	_update_camera_software_summary()
+
+
+func _get_rear_camera_mp_maximum() -> int:
+	return ResearchManagerScript.get_rear_camera_mp_max_for_level(rear_camera_mp_research_level)
+
+
+func _set_rear_camera_mp_value(megapixels: int, camera_id: int) -> void:
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		if int(camera_data.get("id", -1)) != camera_id:
+			continue
+		camera_data["mp"] = clampi(
+			megapixels,
+			ResearchManagerScript.REAR_CAMERA_MP_BASE,
+			_get_rear_camera_mp_maximum()
+		)
+		rear_camera_modules[camera_index] = camera_data
+		break
+	_update_camera_software_summary()
+
 
 func set_front_camera_mp_research_level(level: int) -> void:
 	# The 1MP starting resolution is available immediately; approved R&D expands
@@ -8080,7 +8144,7 @@ func _camera_mp_slider_index(megapixels: int) -> int:
 func _style_camera_mp_slider(slider: VSlider) -> void:
 	_style_custom_slider(slider)
 
-func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable, front_camera_maximum: int = -1) -> VBoxContainer:
+func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: Callable, research_maximum: int = -1) -> VBoxContainer:
 	var card := VBoxContainer.new()
 	card.custom_minimum_size = Vector2(64, 0)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -8091,9 +8155,9 @@ func _make_camera_mp_slider_card(title_text: String, current_mp: int, callback: 
 	title.clip_text = true
 	card.add_child(title)
 
-	var uses_research_ceiling := front_camera_maximum >= ResearchManagerScript.FRONT_CAMERA_MP_BASE
-	var maximum_mp: int = front_camera_maximum if uses_research_ceiling else int(CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1])
-	var minimum_mp: int = ResearchManagerScript.FRONT_CAMERA_MP_BASE if uses_research_ceiling else int(CAMERA_MEGAPIXEL_STEPS[0])
+	var uses_research_ceiling := research_maximum >= ResearchManagerScript.FRONT_CAMERA_MP_BASE
+	var maximum_mp: int = research_maximum if uses_research_ceiling else int(CAMERA_MEGAPIXEL_STEPS[CAMERA_MEGAPIXEL_STEPS.size() - 1])
+	var minimum_mp: int = 1 if uses_research_ceiling else int(CAMERA_MEGAPIXEL_STEPS[0])
 	var safe_current_mp := clampi(current_mp, minimum_mp, maximum_mp)
 	var value_label := _make_label("%d MP" % safe_current_mp, 12, Color.WHITE)
 	value_label.name = "CameraMPValueLabel"
@@ -8748,7 +8812,7 @@ func _add_rear_hardware_module() -> void:
 		rear_flash_selected_index = rear_flash_modules.size() - 1
 		next_rear_flash_id += 1
 	else:
-		rear_camera_modules.append({"id": next_rear_camera_id, "position": spawn_position, "size": module_size, "mp": 12})
+		rear_camera_modules.append({"id": next_rear_camera_id, "position": spawn_position, "size": module_size, "mp": ResearchManagerScript.REAR_CAMERA_MP_BASE})
 		rear_camera_selected_index = rear_camera_modules.size() - 1
 		next_rear_camera_id += 1
 	_refresh_rear_hardware_visuals()
@@ -11731,7 +11795,7 @@ func _get_rear_camera_mp_summary() -> String:
 	var megapixel_values: Array[String] = []
 	for camera_index in range(rear_camera_modules.size()):
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
-		megapixel_values.append("%d MP" % int(camera_data.get("mp", 12)))
+		megapixel_values.append("%d MP" % int(camera_data.get("mp", ResearchManagerScript.REAR_CAMERA_MP_BASE)))
 	return "%d cameras — %s" % [rear_camera_modules.size(), " / ".join(megapixel_values)]
 
 func _get_enabled_sensor_names() -> Array[String]:
