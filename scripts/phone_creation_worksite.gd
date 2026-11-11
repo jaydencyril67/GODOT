@@ -83,6 +83,7 @@ var selected_phone_type := "Standard"
 var phone_type_research_level := 0
 var phone_type_level := 0
 var phone_type_value_label: Label
+var phone_type_note_label: Label
 var phone_type_decrease_button: Button
 var phone_type_increase_button: Button
 var type_buttons: Dictionary = {}
@@ -1234,6 +1235,8 @@ func _apply_phone_type_level() -> void:
 func _refresh_phone_type_controls() -> void:
 	if is_instance_valid(phone_type_value_label):
 		phone_type_value_label.text = selected_phone_type.to_upper()
+	if is_instance_valid(phone_type_note_label):
+		phone_type_note_label.text = "Standard uses one rigid display chassis." if selected_phone_type == "Standard" else ("Flip uses a horizontal clamshell hinge and a compact cover display." if selected_phone_type == "Flip" else "Fold uses a book-style centre hinge, a wide inner display and a full-height cover display.")
 	if is_instance_valid(phone_type_decrease_button):
 		phone_type_decrease_button.disabled = phone_type_level <= 0
 	if is_instance_valid(phone_type_increase_button):
@@ -3275,9 +3278,9 @@ func _show_phone_type_controls() -> void:
 	controls.add_child(phone_type_increase_button)
 
 	var note_text := "Standard uses one rigid display chassis." if selected_phone_type == "Standard" else ("Flip uses a horizontal clamshell hinge and a compact cover display." if selected_phone_type == "Flip" else "Fold uses a book-style centre hinge, a wide inner display and a full-height cover display.")
-	var note := _make_label(note_text, 12, Color("#C58A3A"))
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	active_feature_panel.add_child(note)
+	phone_type_note_label = _make_label(note_text, 12, Color("#C58A3A"))
+	phone_type_note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	active_feature_panel.add_child(phone_type_note_label)
 	_refresh_phone_type_controls()
 
 
