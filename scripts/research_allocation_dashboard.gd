@@ -322,40 +322,40 @@ func _build_component_selection_scene() -> void:
 		component_button.focus_mode = Control.FOCUS_NONE
 		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
 		if COMPONENT_VALUES[index] == "Mobile Network":
-			var next_target: Dictionary = ResearchManagerScript.get_mobile_network_research_target(research_component_levels)
-			if next_target.is_empty():
+			var mobile_target: Dictionary = ResearchManagerScript.get_mobile_network_research_target(research_component_levels)
+			if mobile_target.is_empty():
 				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s (%s — %s)" % [
-					str(next_target.get("technology", "")),
-					str(next_target.get("generation", "")),
-					str(next_target.get("generation_name", ""))
+					str(mobile_target.get("technology", "")),
+					str(mobile_target.get("generation", "")),
+					str(mobile_target.get("generation_name", ""))
 				]
 		elif COMPONENT_VALUES[index] == "Wi-Fi":
-			var next_target: Dictionary = ResearchManagerScript.get_wifi_research_target(research_component_levels)
-			if next_target.is_empty():
+			var wifi_target: Dictionary = ResearchManagerScript.get_wifi_research_target(research_component_levels)
+			if wifi_target.is_empty():
 				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s (%s)" % [
-					str(next_target.get("generation", "")),
-					str(next_target.get("technology", ""))
+					str(wifi_target.get("generation", "")),
+					str(wifi_target.get("technology", ""))
 				]
 		elif COMPONENT_VALUES[index] == "Bluetooth":
-			var next_target: Dictionary = ResearchManagerScript.get_bluetooth_research_target(research_component_levels)
-			if next_target.is_empty():
+			var bluetooth_target: Dictionary = ResearchManagerScript.get_bluetooth_research_target(research_component_levels)
+			if bluetooth_target.is_empty():
 				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
 			else:
-				component_button.tooltip_text = "Next technology: %s" % str(next_target.get("technology", ""))
+				component_button.tooltip_text = "Next technology: %s" % str(bluetooth_target.get("technology", ""))
 		elif COMPONENT_VALUES[index] == "Cooling System Design":
-			var next_target: Dictionary = ResearchManagerScript.get_cooling_system_research_target(research_component_levels)
-			if next_target.is_empty():
+			var cooling_target: Dictionary = ResearchManagerScript.get_cooling_system_research_target(research_component_levels)
+			if cooling_target.is_empty():
 				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
 			else:
-				component_button.tooltip_text = "Next technology: %s" % str(next_target.get("technology", ""))
+				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
 		component_button.pressed.connect(_on_component_selected.bind(index))
 		choices.add_child(component_button)
 		component_buttons.append(component_button)
