@@ -22,6 +22,7 @@ const MEMORY_CLOCK_MIN_SPEED := 200
 const MEMORY_CLOCK_RESEARCH_LEVELS_PER_RANGE := 20
 const MEMORY_CLOCK_MAX_RESEARCH_LEVEL := 120
 const MEMORY_CLOCK_SPEED_TARGETS := [1066, 2133, 4266, 6400, 10700, 14400]
+const MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS := [20, 40, 60, 60, 80, 100, 120]
 const PHONE_TYPE_SEQUENCE := ["Standard", "Flip", "Fold"]
 
 const COOLING_SYSTEM_SEQUENCE := [
@@ -255,6 +256,13 @@ static func get_memory_clock_speed_for_level(level: int) -> int:
 	return previous_speed
 
 
+static func get_memory_clock_research_ceiling_for_ram_technology_level(level: int) -> int:
+	# RAM Technology research unlocks the next 20-level Memory Clock range.
+	# LPDDR4X shares LPDDR4's ceiling and therefore adds no extra levels.
+	var technology_level := clampi(level, 0, MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS.size() - 1)
+	return int(MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS[technology_level])
+
+
 static func get_memory_clock_max_level_for_ram_technology(technology: String) -> int:
 	# Hardware capability limits the slider independently of research progress.
 	match technology.strip_edges().to_upper():
@@ -394,8 +402,14 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not COMPONENT_CATALOGUE.has(component):
 		return _failure("Choose an available research component.")
 
-	if component == "Memory Clock" and int(career.get("research_component_levels", {}).get("Memory Clock", 0)) >= MEMORY_CLOCK_MAX_RESEARCH_LEVEL:
-		return _failure("Memory Clock has reached its maximum research level.")
+	if component == "Memory Clock":
+		var memory_clock_level := int(career.get("research_component_levels", {}).get("Memory Clock", 0))
+		var ram_technology_level := int(career.get("research_component_levels", {}).get("RAM Technology", 0))
+		var memory_clock_research_ceiling := get_memory_clock_research_ceiling_for_ram_technology_level(ram_technology_level)
+		if memory_clock_level >= memory_clock_research_ceiling:
+			if memory_clock_research_ceiling >= MEMORY_CLOCK_MAX_RESEARCH_LEVEL:
+				return _failure("Memory Clock has reached its maximum research level.")
+			return _failure("Unlock a newer RAM Technology before researching faster Memory Clock speeds.")
 
 	var requested_staff: Variant = request.get("staff_ids", [])
 	if not (requested_staff is Array) or requested_staff.is_empty():
