@@ -120,6 +120,7 @@ func _process(delta: float) -> void:
 		if is_instance_valid(phone_creation_worksite):
 			phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 			phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
+			phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 		if is_instance_valid(research_allocation_dashboard):
 			research_allocation_dashboard.call("configure", _get_research_dashboard_data())
 	var current_day := floori(game_date_unix / 86400.0)
@@ -2476,6 +2477,8 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		_show_notice("APPROVAL FAILED", str(result.get("error", "The research findings could not be approved.")))
 		return
 	_refresh_research_dashboard()
+	if is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 	_show_notice("RESEARCH APPROVED", "The validated findings have been recorded in the company's technology development history.")
 
 
@@ -2612,6 +2615,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
 	phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
+	phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
 	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
 	phone_creation_worksite.call("set_home_button_research_level", int(career.get("research_component_levels", {}).get("Home Button", 0)))
 	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
