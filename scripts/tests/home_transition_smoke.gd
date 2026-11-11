@@ -34,6 +34,11 @@ func _run_memory_clock_progression_checks() -> bool:
 			_fail("Memory Clock speeds did not increase at every research level.")
 			return false
 		previous_speed = next_speed
+	var expected_research_ceilings: Array[int] = [20, 40, 60, 60, 80, 100, 120]
+	for technology_level in range(expected_research_ceilings.size()):
+		if ResearchManagerScript.get_memory_clock_research_ceiling_for_ram_technology_level(technology_level) != expected_research_ceilings[technology_level]:
+			_fail("RAM Technology level %d did not unlock the correct Memory Clock research ceiling." % technology_level)
+			return false
 	if ResearchManagerScript.get_memory_clock_max_level_for_ram_technology("LPDDR4X") != 60:
 		_fail("LPDDR4X did not share LPDDR4's Memory Clock hardware limit.")
 		return false
@@ -336,6 +341,21 @@ func _run_transition_checks() -> void:
 	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Memory Clock"):
 		_fail("Memory Clock is missing from the R&D component catalogue.")
 		return
+	var memory_clock_levels: Dictionary = game.career.get("research_component_levels", {})
+	var unlocked_ram_technology_level := int(memory_clock_levels.get("RAM Technology", 0))
+	memory_clock_levels["RAM Technology"] = 0
+	memory_clock_levels["Memory Clock"] = 20
+	game.career["research_component_levels"] = memory_clock_levels
+	var locked_memory_clock_commission: Dictionary = game.commission_research_project({
+		"component": "Memory Clock",
+		"staff_ids": ["researcher_smoke_01"]
+	})
+	if bool(locked_memory_clock_commission.get("ok", false)):
+		_fail("Memory Clock research exceeded LPDDR2's 20-level research block before a newer RAM technology was unlocked.")
+		return
+	memory_clock_levels["RAM Technology"] = unlocked_ram_technology_level
+	memory_clock_levels["Memory Clock"] = 0
+	game.career["research_component_levels"] = memory_clock_levels
 	var memory_clock_commission: Dictionary = game.commission_research_project({
 		"component": "Memory Clock",
 		"staff_ids": ["researcher_smoke_01"]
