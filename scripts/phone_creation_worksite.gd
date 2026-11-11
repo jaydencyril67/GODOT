@@ -521,7 +521,14 @@ var memory_clock_value_label: Label
 
 var selected_cooling_system := "Not set"
 
-var selected_ram_technology := "Not set"
+const RAM_TECHNOLOGIES := ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"]
+var selected_ram_technology := "LPDDR3"
+var ram_technology_level := 0
+var ram_technology_research_level := 0
+var ram_technology_value_label: Label
+var ram_technology_level_label: Label
+var ram_technology_decrease_button: Button
+var ram_technology_increase_button: Button
 
 var selected_rom_capacity := "Not set"
 
@@ -1384,6 +1391,8 @@ func _style_ram_selector_buttons(panel: Control) -> void:
 	for child in panel.find_children("*", "Button", true, false):
 		var option := child as Button
 		if not is_instance_valid(option):
+			continue
+		if option.name in ["DecreaseRAMTechnologyButton", "IncreaseRAMTechnologyButton"]:
 			continue
 		var selected := option.text.contains("✓")
 		_style_button(option, selected)
@@ -3188,6 +3197,18 @@ func set_screen_technology_research_level(level: int) -> void:
 	screen_technology_research_level = clampi(level, 0, ScreenTechnologySystem.TECHNOLOGY_NAMES.size() - 1)
 	screen_technology_level = clampi(screen_technology_level, 0, screen_technology_research_level)
 	_refresh_screen_technology_ui()
+
+
+func set_ram_technology_research_level(level: int) -> void:
+	# LPDDR3 is the baseline. Each approved RAM Technology project unlocks one newer generation.
+	ram_technology_research_level = clampi(level, 0, RAM_TECHNOLOGIES.size() - 1)
+	ram_technology_level = clampi(ram_technology_level, 0, ram_technology_research_level)
+	selected_ram_technology = RAM_TECHNOLOGIES[ram_technology_level]
+	if not _get_supported_ram_capacities(selected_ram_technology).has(selected_ram_capacity):
+		selected_ram_capacity = "Not set"
+	_refresh_ram_technology_selection_ui()
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "RAMTechnologySelectionControls":
+		_refresh_ram_capacity_step()
 
 
 func set_charge_port_research_level(level: int) -> void:
@@ -11585,41 +11606,65 @@ func _show_ram_technology_controls() -> void:
 	active_feature_panel.name = "RAMTechnologySelectionControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_theme_constant_override("separation", 9)
+	active_feature_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
 	var heading := _make_label("SELECT RAM TECHNOLOGY", 18, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var current := _make_label("CURRENT: " + selected_ram_technology.to_upper(), 13, Color.WHITE)
-	current.name = "CurrentRAMTechnologyLabel"
-	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(current)
 
-	var options := GridContainer.new()
-	options.name = "RAMTechnologyOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("h_separation", 8)
-	options.add_theme_constant_override("v_separation", 8)
-	active_feature_panel.add_child(options)
-	for technology in ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"]:
-		var option := Button.new()
-		option.name = "RAMTechnologyOption_" + technology
-		option.text = technology + ("   ✓ SELECTED" if selected_ram_technology == technology else "")
-		option.custom_minimum_size.y = 48
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_ram_technology == technology)
-		option.pressed.connect(_on_ram_technology_selected.bind(technology))
-		options.add_child(option)
+	var controls := HBoxContainer.new()
+	controls.name = "RAMTechnologyControlRow"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 14)
+	active_feature_panel.add_child(controls)
 
-func _on_ram_technology_selected(technology: String) -> void:
-	if not ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"].has(technology):
+	ram_technology_decrease_button = Button.new()
+	ram_technology_decrease_button.name = "DecreaseRAMTechnologyButton"
+	ram_technology_decrease_button.text = "−"
+	_style_level_circle_button(ram_technology_decrease_button)
+	ram_technology_decrease_button.pressed.connect(_on_ram_technology_decrease_pressed)
+	controls.add_child(ram_technology_decrease_button)
+
+	ram_technology_value_label = _make_label(selected_ram_technology, 20, Color.WHITE)
+	ram_technology_value_label.name = "RAMTechnologyValueLabel"
+	ram_technology_value_label.custom_minimum_size.x = 150
+	ram_technology_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls.add_child(ram_technology_value_label)
+
+	ram_technology_increase_button = Button.new()
+	ram_technology_increase_button.name = "IncreaseRAMTechnologyButton"
+	ram_technology_increase_button.text = "+"
+	_style_level_circle_button(ram_technology_increase_button)
+	ram_technology_increase_button.pressed.connect(_on_ram_technology_increase_pressed)
+	controls.add_child(ram_technology_increase_button)
+
+	ram_technology_level_label = _make_label("", 13, Color("#D3AA6B"))
+	ram_technology_level_label.name = "RAMTechnologyLevelLabel"
+	ram_technology_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(ram_technology_level_label)
+	_refresh_ram_technology_selection_ui()
+
+
+func _on_ram_technology_decrease_pressed() -> void:
+	if ram_technology_level <= 0:
 		return
-	selected_ram_technology = technology
-	var compatible_capacities := _get_supported_ram_capacities(technology)
-	if not compatible_capacities.has(selected_ram_capacity):
+	ram_technology_level -= 1
+	_apply_ram_technology_level()
+
+
+func _on_ram_technology_increase_pressed() -> void:
+	if ram_technology_level >= ram_technology_research_level:
+		return
+	ram_technology_level += 1
+	_apply_ram_technology_level()
+
+
+func _apply_ram_technology_level() -> void:
+	ram_technology_level = clampi(ram_technology_level, 0, ram_technology_research_level)
+	selected_ram_technology = RAM_TECHNOLOGIES[ram_technology_level]
+	if not _get_supported_ram_capacities(selected_ram_technology).has(selected_ram_capacity):
 		selected_ram_capacity = "Not set"
 	if software_value_labels.has("RAM") and is_instance_valid(software_value_labels["RAM"]):
 		var ram_label: Label = software_value_labels["RAM"]
@@ -11628,8 +11673,10 @@ func _on_ram_technology_selected(technology: String) -> void:
 		var technology_label: Label = software_value_labels["RAM TECHNOLOGY"]
 		technology_label.text = selected_ram_technology
 	_refresh_ram_technology_selection_ui()
-
 	_notify_worksite_ram_selection_changed()
+
+
+
 
 func _notify_worksite_full_selection_changed() -> void:
 	_update_ram_selection_display(
@@ -11657,17 +11704,22 @@ func _notify_worksite_ram_selection_changed() -> void:
 	_refresh_ram_capacity_step()
 
 func _refresh_ram_technology_selection_ui() -> void:
-	if not is_instance_valid(active_feature_panel):
+	ram_technology_research_level = clampi(ram_technology_research_level, 0, RAM_TECHNOLOGIES.size() - 1)
+	ram_technology_level = clampi(ram_technology_level, 0, ram_technology_research_level)
+	selected_ram_technology = RAM_TECHNOLOGIES[ram_technology_level]
+	if not is_instance_valid(active_feature_panel) or active_feature_panel.name != "RAMTechnologySelectionControls":
 		return
-	var current := active_feature_panel.find_child("CurrentRAMTechnologyLabel", true, false) as Label
-	if is_instance_valid(current):
-		current.text = "CURRENT: " + selected_ram_technology.to_upper()
-	for technology in ["LPDDR3", "LPDDR4", "LPDDR4X", "LPDDR5", "LPDDR5X", "LPDDR5T"]:
-		var option := active_feature_panel.find_child("RAMTechnologyOption_" + technology, true, false) as Button
-		if not is_instance_valid(option):
-			continue
-		option.text = technology + ("   ✓ SELECTED" if selected_ram_technology == technology else "")
-		_style_staff_button(option, selected_ram_technology == technology)
+	if is_instance_valid(ram_technology_value_label):
+		ram_technology_value_label.text = selected_ram_technology
+	if is_instance_valid(ram_technology_level_label):
+		ram_technology_level_label.text = "LEVEL %d / %d UNLOCKED" % [
+			ram_technology_level + 1,
+			ram_technology_research_level + 1
+		]
+	if is_instance_valid(ram_technology_decrease_button):
+		ram_technology_decrease_button.disabled = ram_technology_level <= 0
+	if is_instance_valid(ram_technology_increase_button):
+		ram_technology_increase_button.disabled = ram_technology_level >= ram_technology_research_level
 
 func _show_rom_controls() -> void:
 	if not is_instance_valid(right_tools_content):
