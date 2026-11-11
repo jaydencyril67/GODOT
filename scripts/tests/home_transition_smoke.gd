@@ -363,13 +363,6 @@ func _run_transition_checks() -> void:
 		return
 	if not _complete_mobile_network_research_project("NMT", "1G"):
 		return
-	var duplicate_mobile_project: Dictionary = game.commission_research_project({
-		"component": "Mobile Network",
-		"staff_ids": ["researcher_smoke_01"]
-	})
-	if bool(duplicate_mobile_project.get("ok", false)):
-		_fail("A second Mobile Network project was allowed to target the same in-progress technology.")
-		return
 	if not _complete_mobile_network_research_project("TACS", "1G"):
 		return
 	var next_mobile_target: Dictionary = ResearchManagerScript.get_mobile_network_research_target(
@@ -507,6 +500,14 @@ func _complete_mobile_network_research_project(expected_technology: String, expe
 	if str(project.get("research_target", "")) != expected_technology or str(project.get("research_generation", "")) != expected_generation:
 		_fail("Mobile Network research did not automatically target %s in %s." % [expected_technology, expected_generation])
 		return false
+	if expected_technology == "NMT":
+		var duplicate_commission: Dictionary = game.commission_research_project({
+			"component": "Mobile Network",
+			"staff_ids": ["researcher_smoke_01"]
+		})
+		if bool(duplicate_commission.get("ok", false)):
+			_fail("A second Mobile Network project was allowed to target the same in-progress technology.")
+			return false
 	var projects: Array = game.career.get("research_projects", [])
 	for project_index in range(projects.size()):
 		if str(projects[project_index].get("id", "")) == str(project.get("id", "")):
