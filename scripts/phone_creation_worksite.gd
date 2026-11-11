@@ -516,7 +516,10 @@ var hardware_selector_value_labels: Dictionary = {}
 
 var selected_ram_capacity := "Not set"
 
-var selected_refresh_rate := "Not set"
+var selected_refresh_rate := "60 Hz"
+var refresh_rate_research_level := 0
+var refresh_rate_slider: VSlider
+var refresh_rate_value_label: Label
 
 var selected_memory_clock := "Not set"
 
@@ -11618,53 +11621,50 @@ func _show_refresh_rate_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	var current := _make_label("CURRENT: " + (selected_refresh_rate.to_upper() if selected_refresh_rate != "Not set" else "NOT SET"), 14, Color("#E5E0D6"))
-	current.name = "CurrentRefreshRateLabel"
-	current.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(current)
+	refresh_rate_value_label = _make_label("", 14, Color("#E5E0D6"))
+	refresh_rate_value_label.name = "CurrentRefreshRateLabel"
+	refresh_rate_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(refresh_rate_value_label)
 
-	var options := GridContainer.new()
-	options.name = "RefreshRateOptions"
-	options.columns = 2
-	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	options.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	options.add_theme_constant_override("h_separation", 10)
-	options.add_theme_constant_override("v_separation", 8)
-	active_feature_panel.add_child(options)
+	refresh_rate_slider = VSlider.new()
+	refresh_rate_slider.name = "RefreshRateSlider"
+	refresh_rate_slider.min_value = 60
+	refresh_rate_slider.max_value = _get_refresh_rate_slider_max()
+	refresh_rate_slider.step = 1
+	refresh_rate_slider.value = clampf(float(selected_refresh_rate.replace(" Hz", "")) if selected_refresh_rate != "Not set" else 60.0, 60.0, refresh_rate_slider.max_value)
+	refresh_rate_slider.tick_count = 13
+	refresh_rate_slider.custom_minimum_size = Vector2(64, 320)
+	refresh_rate_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	refresh_rate_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	refresh_rate_slider.value_changed.connect(_on_refresh_rate_slider_changed)
+	_style_custom_slider(refresh_rate_slider)
+	active_feature_panel.add_child(refresh_rate_slider)
+	_on_refresh_rate_slider_changed(refresh_rate_slider.value)
 
-	for rate in [60, 90, 120, 144, 165, 240]:
-		var rate_text := "%d Hz" % rate
-		var option := Button.new()
-		option.name = "RefreshRateOption_%dHz" % rate
-		option.text = rate_text + ("   ✓ SELECTED" if selected_refresh_rate == rate_text else "")
-		option.custom_minimum_size.y = 43
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_refresh_rate == rate_text)
-		option.pressed.connect(_on_refresh_rate_selected.bind(rate_text))
-		options.add_child(option)
+func _get_refresh_rate_slider_max() -> float:
+	# Thirty successful research approvals expand the maximum from 60 Hz to 300 Hz.
+	return 60.0 + float(refresh_rate_research_level) * 8.0
 
-func _on_refresh_rate_selected(rate_text: String) -> void:
-	if not ["60 Hz", "90 Hz", "120 Hz", "144 Hz", "165 Hz", "240 Hz"].has(rate_text):
-		return
-	selected_refresh_rate = rate_text
+func _update_refresh_rate_slider_limit() -> void:
+	var maximum_refresh_rate := _get_refresh_rate_slider_max()
+	if is_instance_valid(refresh_rate_slider):
+		refresh_rate_slider.max_value = maximum_refresh_rate
+		refresh_rate_slider.value = clampf(refresh_rate_slider.value, 60.0, maximum_refresh_rate)
+		_on_refresh_rate_slider_changed(refresh_rate_slider.value)
+
+func _on_refresh_rate_slider_changed(value: float) -> void:
+	selected_refresh_rate = "%d Hz" % roundi(value)
+	if is_instance_valid(refresh_rate_value_label):
+		refresh_rate_value_label.text = "CURRENT: " + selected_refresh_rate.to_upper()
 	if software_value_labels.has("REFRESH RATE") and is_instance_valid(software_value_labels["REFRESH RATE"]):
 		var refresh_label: Label = software_value_labels["REFRESH RATE"]
 		refresh_label.text = selected_refresh_rate
-	if is_instance_valid(active_feature_panel):
-		var current := active_feature_panel.find_child("CurrentRefreshRateLabel", true, false) as Label
-		if is_instance_valid(current):
-			current.text = "CURRENT: " + selected_refresh_rate.to_upper()
-		for rate in [60, 90, 120, 144, 165, 240]:
-			var option_button := active_feature_panel.find_child("RefreshRateOption_%dHz" % rate, true, false) as Button
-			if not is_instance_valid(option_button):
-				continue
-			var option_text := "%d Hz" % rate
-			var selected := option_text == selected_refresh_rate
-			option_button.text = option_text + ("   ✓ SELECTED" if selected else "")
-			_style_staff_button(option_button, selected)
-		_style_ram_selector_buttons(active_feature_panel)
 	_notify_worksite_full_selection_changed()
+
+func set_refresh_rate_research_level(level: int) -> void:
+	# 60 Hz is the starting capability; each approval adds 8 Hz to the slider ceiling.
+	refresh_rate_research_level = clampi(level, 0, 30)
+	_update_refresh_rate_slider_limit()
 
 func _show_ram_controls() -> void:
 	if not is_instance_valid(right_tools_content):
