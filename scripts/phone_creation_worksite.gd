@@ -529,7 +529,6 @@ var memory_clock_value_label: Label
 
 var selected_cooling_system := "No Dedicated Cooling"
 var cooling_system_research_level := 0
-var cooling_system_research_label: Label
 var cooling_system_value_label: Label
 var cooling_system_decrease_button: Button
 var cooling_system_increase_button: Button
@@ -11568,11 +11567,6 @@ func _show_cooling_system_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
 
-	cooling_system_research_label = _make_label("", 13, Color("#D3AA6B"))
-	cooling_system_research_label.name = "CoolingSystemResearchLevelLabel"
-	cooling_system_research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(cooling_system_research_label)
-
 	var controls_center := CenterContainer.new()
 	controls_center.name = "CoolingSystemControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -11638,11 +11632,6 @@ func _refresh_cooling_system_selection_ui() -> void:
 		current_index = 0
 		selected_cooling_system = COOLING_SYSTEM_OPTIONS[0]
 	var maximum_index := clampi(cooling_system_research_level, 0, COOLING_SYSTEM_OPTIONS.size() - 1)
-	if is_instance_valid(cooling_system_research_label):
-		cooling_system_research_label.text = "UNLOCKED OPTIONS  %d / %d" % [
-			maximum_index + 1,
-			COOLING_SYSTEM_OPTIONS.size()
-		]
 	if is_instance_valid(cooling_system_value_label):
 		cooling_system_value_label.text = selected_cooling_system
 	if is_instance_valid(cooling_system_decrease_button):
