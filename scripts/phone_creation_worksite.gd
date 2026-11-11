@@ -79,7 +79,12 @@ class GlassButtonReflection extends Control:
 		draw_line(Vector2(12.0, size.y - 2.0), Vector2(size.x - 12.0, size.y - 2.0), Color(0.82, 0.72, 0.55, 0.10), 1.0, true)
 
 
-var selected_phone_type := ""
+var selected_phone_type := "Standard"
+var phone_type_research_level := 0
+var phone_type_level := 0
+var phone_type_value_label: Label
+var phone_type_decrease_button: Button
+var phone_type_increase_button: Button
 var type_buttons: Dictionary = {}
 var next_button: Button
 var wizard_back_button: Button
@@ -1087,6 +1092,7 @@ func _build_interface() -> void:
 		option.toggle_mode = true
 		option.focus_mode = Control.FOCUS_NONE
 		_style_button(option, false)
+		option.disabled = PHONE_TYPES.find(phone_type) > phone_type_research_level
 		option.pressed.connect(_on_phone_type_selected.bind(phone_type))
 		options.add_child(option)
 		type_buttons[phone_type] = option
@@ -1175,14 +1181,72 @@ func _apply_responsive_layout() -> void:
 		selection_region.add_theme_constant_override("margin_bottom", 14)
 
 
+func set_phone_type_research_level(level: int) -> void:
+	phone_type_research_level = clampi(level, 0, PHONE_TYPES.size() - 1)
+	var selected_index := PHONE_TYPES.find(selected_phone_type)
+	if selected_index < 0 or selected_index > phone_type_research_level:
+		phone_type_level = 0
+		selected_phone_type = PHONE_TYPES[0]
+	else:
+		phone_type_level = selected_index
+	_refresh_phone_type_controls()
+	_refresh_phone_type_step_options()
+
+
 func _on_phone_type_selected(phone_type: String) -> void:
+	var requested_index := PHONE_TYPES.find(phone_type)
+	if requested_index < 0 or requested_index > phone_type_research_level:
+		return
+	phone_type_level = requested_index
 	selected_phone_type = phone_type
 	for option_name in type_buttons:
 		var option: Button = type_buttons[option_name]
 		option.button_pressed = option_name == phone_type
+		option.disabled = PHONE_TYPES.find(str(option_name)) > phone_type_research_level
 		_style_button(option, option_name == phone_type)
 	_keep_step_navigation_active()
 	_update_preview_for_phone_type(phone_type)
+	_refresh_phone_type_controls()
+
+
+func _on_phone_type_decrease_pressed() -> void:
+	if phone_type_level <= 0:
+		return
+	phone_type_level -= 1
+	_apply_phone_type_level()
+
+
+func _on_phone_type_increase_pressed() -> void:
+	if phone_type_level >= phone_type_research_level:
+		return
+	phone_type_level += 1
+	_apply_phone_type_level()
+
+
+func _apply_phone_type_level() -> void:
+	phone_type_level = clampi(phone_type_level, 0, phone_type_research_level)
+	selected_phone_type = PHONE_TYPES[phone_type_level]
+	_update_preview_for_phone_type(selected_phone_type)
+	_refresh_phone_type_controls()
+	_refresh_phone_type_step_options()
+
+
+func _refresh_phone_type_controls() -> void:
+	if is_instance_valid(phone_type_value_label):
+		phone_type_value_label.text = selected_phone_type.to_upper()
+	if is_instance_valid(phone_type_decrease_button):
+		phone_type_decrease_button.disabled = phone_type_level <= 0
+	if is_instance_valid(phone_type_increase_button):
+		phone_type_increase_button.disabled = phone_type_level >= phone_type_research_level
+
+
+func _refresh_phone_type_step_options() -> void:
+	for option_name in type_buttons:
+		var option: Button = type_buttons[option_name]
+		var option_index := PHONE_TYPES.find(str(option_name))
+		option.disabled = option_index < 0 or option_index > phone_type_research_level
+		option.button_pressed = str(option_name) == selected_phone_type
+		_style_button(option, option.button_pressed)
 
 
 
@@ -3175,27 +3239,46 @@ func _show_phone_type_controls() -> void:
 	var heading := _make_label("PHONE TYPE", 19, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
-	var description := _make_label("Choose the chassis architecture. Foldables get a separated frame, a precision hinge and independent inner / outer displays.", 12, Color("#E5E0D6"))
+	var description := _make_label("Choose the chassis architecture. Flip and Fold become available as their designs are researched.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(description)
 
-	for phone_type in ["Standard", "Flip", "Fold"]:
-		var option := Button.new()
-		option.name = "PhoneType_" + phone_type
-		option.text = phone_type.to_upper() + ("     ✓ SELECTED" if selected_phone_type == phone_type else "")
-		option.custom_minimum_size = Vector2(0, 50)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		option.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(option, 14)
-		_style_staff_button(option, selected_phone_type == phone_type)
-		option.pressed.connect(_on_phone_type_selected.bind(phone_type))
-		active_feature_panel.add_child(option)
+	var controls_center := CenterContainer.new()
+	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(controls_center)
+	var controls := HBoxContainer.new()
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 14)
+	controls_center.add_child(controls)
+
+	phone_type_decrease_button = Button.new()
+	phone_type_decrease_button.name = "DecreasePhoneTypeButton"
+	phone_type_decrease_button.text = "−"
+	_style_level_selector_button(phone_type_decrease_button)
+	phone_type_decrease_button.pressed.connect(_on_phone_type_decrease_pressed)
+	controls.add_child(phone_type_decrease_button)
+
+	phone_type_value_label = _make_label(selected_phone_type.to_upper(), 19, Color.WHITE)
+	phone_type_value_label.name = "PhoneTypeValueLabel"
+	phone_type_value_label.custom_minimum_size.x = 190
+	phone_type_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phone_type_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phone_type_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(phone_type_value_label)
+
+	phone_type_increase_button = Button.new()
+	phone_type_increase_button.name = "IncreasePhoneTypeButton"
+	phone_type_increase_button.text = "+"
+	_style_level_selector_button(phone_type_increase_button)
+	phone_type_increase_button.pressed.connect(_on_phone_type_increase_pressed)
+	controls.add_child(phone_type_increase_button)
 
 	var note_text := "Standard uses one rigid display chassis." if selected_phone_type == "Standard" else ("Flip uses a horizontal clamshell hinge and a compact cover display." if selected_phone_type == "Flip" else "Fold uses a book-style centre hinge, a wide inner display and a full-height cover display.")
 	var note := _make_label(note_text, 12, Color("#C58A3A"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	active_feature_panel.add_child(note)
+	_refresh_phone_type_controls()
 
 
 
