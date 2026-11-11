@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -330,6 +330,16 @@ func _build_component_selection_scene() -> void:
 				component_button.tooltip_text = "Next technology: %s (%s)" % [
 					str(next_network_target.get("technology", "")),
 					str(next_network_target.get("generation", ""))
+				]
+		elif COMPONENT_VALUES[index] == "Wi-Fi":
+			var next_wifi_target := ResearchManagerScript.get_wifi_research_target(research_component_levels)
+			if next_wifi_target.is_empty():
+				component_button.tooltip_text = "All Wi-Fi technologies have been researched."
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Next technology: %s (%s)" % [
+					str(next_wifi_target.get("generation", "")),
+					str(next_wifi_target.get("technology", ""))
 				]
 		component_button.pressed.connect(_on_component_selected.bind(index))
 		choices.add_child(component_button)
