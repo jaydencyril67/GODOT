@@ -2905,6 +2905,7 @@ func _show_worksite_sensor_controls() -> void:
 	enable_label.custom_minimum_size = Vector2(72, 0)
 	enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	enable_label.clip_text = true
 	phone_sensor_enable_row.add_child(enable_label)
 
 	phone_sensor_enabled_toggle = TextureButton.new()
@@ -2922,7 +2923,8 @@ func _show_worksite_sensor_controls() -> void:
 	navigation.name = "PhoneSensorNavigation"
 	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
 	navigation.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	navigation.add_theme_constant_override("separation", 18)
+	navigation.custom_minimum_size = Vector2(0, 48)
+	navigation.add_theme_constant_override("separation", 10)
 	panel.add_child(navigation)
 
 	phone_sensor_previous_button = Button.new()
@@ -2934,10 +2936,10 @@ func _show_worksite_sensor_controls() -> void:
 
 	phone_sensor_name_label = _label("No Sensors", 19, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
 	phone_sensor_name_label.name = "SelectedPhoneSensor"
-	phone_sensor_name_label.custom_minimum_size = Vector2(190, 64)
-	phone_sensor_name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	phone_sensor_name_label.custom_minimum_size = Vector2(130, 56)
+	phone_sensor_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	phone_sensor_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	phone_sensor_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	phone_sensor_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	navigation.add_child(phone_sensor_name_label)
 
 	phone_sensor_next_button = Button.new()
@@ -3301,7 +3303,9 @@ func _label(value: String, size: int, color: Color, alignment: HorizontalAlignme
 	label.horizontal_alignment = alignment
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Never split a single word into one character per line in narrow containers.
+	# Longer labels still wrap naturally at spaces.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_apply_bold_font(label)
 	return label
 
