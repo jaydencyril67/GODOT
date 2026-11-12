@@ -5,7 +5,7 @@ const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.g
 
 # Research duration is fixed by component. Staff efficiency affects success chance, never duration.
 const BASE_RESEARCH_DURATION_DAYS := 30.0
-const RESEARCH_DURATION_FORMULA_VERSION := 2
+const RESEARCH_DURATION_FORMULA_VERSION := 3
 const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Screen Technology": 45.0,
 	"Screen Width": 60.0,
@@ -34,7 +34,16 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Power Bank": 150.0,
 	"Charging Speed": 65.0,
 	"Wireless Charging": 370.0,
-	"Fingerprint Sensor": 365.0
+	"Fingerprint Sensor": 365.0,
+	"Face Recognition / Face ID": 365.0,
+	"NFC Controller": 365.0,
+	"Accelerometer": 365.0,
+	"Gyroscope": 365.0,
+	"Proximity Sensor": 365.0,
+	"Ambient Light Sensor": 365.0,
+	"Magnetometer / Compass": 365.0,
+	"Barometer": 365.0,
+	"GNSS / GPS Receiver": 365.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
