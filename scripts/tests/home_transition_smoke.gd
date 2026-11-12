@@ -1160,8 +1160,30 @@ func _run_transition_checks() -> void:
 	if captured_approvals.size() != 1 or str(captured_approvals[0].get("project_id", "")) != "RDP-REVIEW-SMOKE":
 		_fail("The findings alert Approve action did not submit the completed project.")
 		return
+	# Match the live game: an approval refreshes dashboard data without replacing
+	# the existing alert instance. A second findings action must still work.
+	review_dashboard.call("configure", {
+		"company_name": "Validation UI Smoke Test",
+		"balance": 1000000.0,
+		"staff_employees": [],
+		"research_projects": [{
+			"id": "RDP-FAILED-SMOKE",
+			"component": "Battery Capacity",
+			"components": ["Battery Capacity"],
+			"research_target": "1,350 mAh",
+			"status": ResearchManagerScript.STATUS_UNSUCCESSFUL,
+			"staff_ids": []
+		}],
+		"research_technologies": {},
+		"research_component_levels": {},
+		"research_history": []
+	})
 	review_dashboard.call("open_validation_review", "RDP-FAILED-SMOKE")
 	await process_frame
+	var retry_summary := findings_alert.find_child("ResearchFindingsSummary", true, false)
+	if not is_instance_valid(retry_summary):
+		_fail("The findings alert reference was lost after a dashboard data refresh.")
+		return
 	var retry_button_found := false
 	for button_value in findings_alert.find_children("*", "Button", true, false):
 		var candidate := button_value as Button
