@@ -56,7 +56,6 @@ var frame_container: MarginContainer
 var top_bar_grid: GridContainer
 
 var active_project_id := ""
-var review_project_id := ""
 var creation_mode := false
 var creation_step := 1
 var ui_scale := 1.0
@@ -74,8 +73,6 @@ func configure(data: Dictionary, pop_alert: Node = null) -> void:
 		capital_value_label.text = _format_currency(company_balance)
 	staff_employees = data.get("staff_employees", []).duplicate(true)
 	research_projects = data.get("research_projects", []).duplicate(true)
-	if not review_project_id.is_empty() and not _is_project_awaiting_validation(review_project_id):
-		review_project_id = ""
 	research_technologies = data.get("research_technologies", {}).duplicate(true)
 	research_component_levels = data.get("research_component_levels", {}).duplicate(true)
 	research_history = data.get("research_history", []).duplicate(true)
@@ -389,7 +386,7 @@ func _request_findings_approval(project_id: String) -> void:
 	var result := {
 		"component": component,
 		"metric": _default_validation_metric(component),
-		"value": str(project.get("research_target", ""))
+		"value": str(project.get("research_target", "")).strip_edges() if not str(project.get("research_target", "")).strip_edges().is_empty() else "Research completed successfully"
 	}
 	project_approve_requested.emit(project_id, [result])
 
