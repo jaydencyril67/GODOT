@@ -411,10 +411,9 @@ func _build_home_generation_controls() -> void:
 		var stage_button := Button.new()
 		stage_button.name = "HomeGeneration_%d" % (i + 1)
 		stage_button.text = str(stages[i][0]) + "\n" + str(stages[i][1])
-		stage_button.custom_minimum_size = Vector2(0, 54)
+		stage_button.custom_minimum_size = Vector2(0, 72)
 		stage_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		stage_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		stage_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		stage_button.focus_mode = Control.FOCUS_NONE
 		stage_button.pressed.connect(_select_home_generation.bind(i + 1))
 		_style_button(stage_button)
