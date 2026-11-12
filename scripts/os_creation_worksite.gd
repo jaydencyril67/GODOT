@@ -261,17 +261,18 @@ func _apply_responsive_layout() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var is_wide := viewport_size.x >= viewport_size.y and viewport_size.x >= 700.0
 	worksite_body.vertical = not is_wide
+	var screen_height: float
 	if is_wide:
 		preview_region.size_flags_stretch_ratio = 1.12
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
-		var screen_height := clampf(viewport_size.y - 160.0, 180.0, 520.0)
+		screen_height = clampf(viewport_size.y - 160.0, 180.0, 520.0)
 		screen_frame.custom_minimum_size = Vector2(screen_height * 0.48, screen_height)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
 		configuration_region.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
-		var screen_height := clampf(viewport_size.y * 0.30, 150.0, 280.0)
+		screen_height = clampf(viewport_size.y * 0.30, 150.0, 280.0)
 		screen_frame.custom_minimum_size = Vector2(screen_height * 0.48, screen_height)
 
 
