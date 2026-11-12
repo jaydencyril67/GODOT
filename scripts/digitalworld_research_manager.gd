@@ -18,7 +18,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Home Button": 120.0,
 	"Front Camera": 500.0,
 	"Front Camera MP": 45.0,
-	"RAM": 120.0
+	"RAM": 120.0,
+	"Internal Storage": 160.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
