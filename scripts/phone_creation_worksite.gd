@@ -386,7 +386,9 @@ var screen_enabled := false
 
 var screen_protector_enabled := false
 
-var screen_protector_finish := "Ultra Clear"
+var screen_protector_research_level := 0
+
+var screen_protector_finish := "Normal Glass"
 
 var screen_protector_thickness := 0.006
 
@@ -2767,6 +2769,7 @@ func _show_worksite_protection_glass_controls() -> void:
 	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	enable_row.add_child(enable_label)
 	var screen_is_enabled := bool(self.get("screen_enabled"))
+	var glass_research_level := int(self.get("screen_protector_research_level"))
 	var protector_toggle := TextureButton.new()
 	protector_toggle.name = "EnableProtectionGlass"
 	protector_toggle.custom_minimum_size = Vector2(40, 40)
@@ -2781,11 +2784,17 @@ func _show_worksite_protection_glass_controls() -> void:
 	protector_toggle.texture_disabled = unchecked_icon
 	protector_toggle.toggle_mode = true
 	protector_toggle.button_pressed = bool(self.get("screen_protector_enabled"))
-	protector_toggle.disabled = not screen_is_enabled
+	protector_toggle.disabled = not screen_is_enabled or glass_research_level < 1
 	protector_toggle.focus_mode = Control.FOCUS_NONE
 	protector_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	protector_toggle.toggled.connect(Callable(self, "_on_screen_protector_toggled"))
 	enable_row.add_child(protector_toggle)
+	if glass_research_level < 1:
+		var research_hint := _label("Normal Glass is locked. Complete Protection Glass research to unlock installation.", 12, Color("#D3AA6B"))
+		research_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+		panel.add_child(research_hint)
+		step_panels[33] = panel
+		return
 	if not screen_is_enabled:
 		var screen_hint := _label("Enable the phone screen first. Protection glass fits the active display surfaces.", 12, Color("#D3AA6B"))
 		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -2798,37 +2807,25 @@ func _show_worksite_protection_glass_controls() -> void:
 		panel.add_child(disabled_note)
 		step_panels[33] = panel
 		return
-	panel.add_child(_label("GLASS FINISH", 14, Color("#C58A3A")))
-	for finish_name in ["Ultra Clear", "Matte", "Anti-Reflective"]:
-		var finish_button := Button.new()
-		finish_button.name = "ProtectorFinish_" + finish_name.replace("-", "").replace(" ", "")
-		finish_button.text = finish_name.to_upper() + ("   ✓" if str(self.get("screen_protector_finish")) == finish_name else "")
-		finish_button.custom_minimum_size = Vector2(0, 44)
-		finish_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		finish_button.focus_mode = Control.FOCUS_NONE
-		var is_selected: bool = str(self.get("screen_protector_finish")) == str(finish_name)
-		_style_button(finish_button, is_selected)
-		finish_button.pressed.connect(Callable(self, "_on_screen_protector_finish_selected").bind(finish_name))
-		panel.add_child(finish_button)
-	panel.add_child(_label("GLASS THICKNESS", 14, Color("#C58A3A")))
-	var thickness_label := _label("", 13, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
-	thickness_label.name = "ProtectionGlassThicknessValue"
-	thickness_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_child(thickness_label)
-	self.set("screen_protector_thickness_label", thickness_label)
-	var thickness_slider := HSlider.new()
-	thickness_slider.name = "ProtectionGlassThicknessSlider"
-	thickness_slider.min_value = 0.003
-	thickness_slider.max_value = 0.009
-	thickness_slider.step = 0.0005
-	thickness_slider.value = float(self.get("screen_protector_thickness"))
-	thickness_slider.custom_minimum_size = Vector2(0, 38)
-	thickness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	thickness_slider.focus_mode = Control.FOCUS_NONE
-	self.call("_style_custom_slider", thickness_slider)
-	thickness_slider.value_changed.connect(Callable(self, "_on_screen_protector_thickness_changed"))
-	panel.add_child(thickness_slider)
-	self.call("_update_screen_protector_thickness_label")
+	panel.add_child(_label("GLASS TYPE", 14, Color("#C58A3A")))
+	for glass_type in ["Normal Glass", "Privacy Glass"]:
+		var type_button := Button.new()
+		type_button.name = "ProtectionGlassType_" + glass_type.replace(" ", "")
+		var unlocked := glass_type == "Normal Glass" or glass_research_level >= 2
+		var is_selected: bool = str(self.get("screen_protector_finish")) == glass_type
+		type_button.text = glass_type.to_upper() + ("   ✓" if is_selected else "") + ("" if unlocked else "   LOCKED")
+		type_button.custom_minimum_size = Vector2(0, 44)
+		type_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		type_button.focus_mode = Control.FOCUS_NONE
+		type_button.disabled = not unlocked
+		_style_button(type_button, is_selected)
+		if unlocked:
+			type_button.pressed.connect(Callable(self, "_on_screen_protector_finish_selected").bind(glass_type))
+		panel.add_child(type_button)
+	if glass_research_level < 2:
+		var privacy_hint := _label("Privacy Glass is locked. Complete its second research project to unlock side-angle privacy.", 12, Color("#D3AA6B"))
+		privacy_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+		panel.add_child(privacy_hint)
 	if bool(self.get("screen_protector_building")):
 		var build_panel := PanelContainer.new()
 		build_panel.name = "ProtectionGlassBuildLoading"
@@ -3710,6 +3707,18 @@ func set_back_raised_design_research_level(level: int) -> void:
 	back_raised_design_research_level = updated_level
 	if wizard_step == 13:
 		_show_back_design_controls()
+
+
+func set_protection_glass_research_level(level: int) -> void:
+	screen_protector_research_level = clampi(level, 0, ResearchManagerScript.PROTECTION_GLASS_RESEARCH_SEQUENCE.size())
+	if screen_protector_research_level < 1:
+		screen_protector_enabled = false
+		screen_protector_finish = "Normal Glass"
+	elif screen_protector_research_level < 2 and screen_protector_finish == "Privacy Glass":
+		screen_protector_finish = "Normal Glass"
+	_refresh_phone_screen()
+	if wizard_step == 33:
+		_show_worksite_protection_glass_controls()
 
 
 func set_phone_case_research_level(level: int) -> void:
@@ -6578,25 +6587,10 @@ func _create_screen_protector_material() -> StandardMaterial3D:
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.albedo_color = Color(0.94, 0.98, 1.0, 0.055)
 	material.metallic = 0.0
-	material.roughness = 0.12
-	material.metallic_specular = 0.22
+	material.roughness = 0.14
+	material.metallic_specular = 0.16
 	material.clearcoat_enabled = false
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	match screen_protector_finish:
-		"Matte":
-			material.albedo_color = Color(0.83, 0.91, 0.97, 0.10)
-			material.roughness = 0.78
-			material.metallic_specular = 0.08
-			material.clearcoat_enabled = false
-		"Anti-Reflective":
-			material.albedo_color = Color(0.90, 0.96, 1.0, 0.045)
-			material.roughness = 0.62
-			material.metallic_specular = 0.035
-			material.metallic = 0.0
-			material.clearcoat_enabled = false
-		_:
-			material.roughness = 0.12
-			material.metallic_specular = 0.22
 	return material
 
 func _build_screen_protector(display: MeshInstance3D, screen_width: float, screen_height: float, screen_radius: float, curved_display: bool, shared_token: int = -1, include_camera_cutouts: bool = true, corner_mask: int = 15, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true) -> void:
@@ -6654,6 +6648,10 @@ func _build_screen_protector_async(display: MeshInstance3D, screen_width: float,
 	_show_worksite_protection_glass_controls()
 
 func _on_screen_protector_toggled(enabled: bool) -> void:
+	if enabled and screen_protector_research_level < 1:
+		screen_protector_enabled = false
+		_show_worksite_protection_glass_controls()
+		return
 	screen_protector_enabled = enabled
 	screen_protector_build_token += 1
 	screen_protector_building = enabled
@@ -6661,7 +6659,9 @@ func _on_screen_protector_toggled(enabled: bool) -> void:
 	_show_worksite_protection_glass_controls()
 
 func _on_screen_protector_finish_selected(finish_name: String) -> void:
-	if not ["Ultra Clear", "Matte", "Anti-Reflective"].has(finish_name):
+	if not ["Normal Glass", "Privacy Glass"].has(finish_name):
+		return
+	if finish_name == "Privacy Glass" and screen_protector_research_level < 2:
 		return
 	screen_protector_finish = finish_name
 	_refresh_phone_screen()
@@ -7984,17 +7984,41 @@ func _on_charger_color_selected(value: String) -> void:
 	_rebuild_charger_preview()
 	_show_worksite_charger_controls("FINISH")
 
-func _create_screen_visual_material() -> StandardMaterial3D:
+func _create_screen_visual_material() -> Material:
 	var profile: Dictionary = ScreenTechnologySystem.get_visual_profile(screen_quality_state)
+	var screen_color: Color = profile["albedo_color"]
+	# Both fitted glass types apply the same restrained, visible screen tint.
+	if screen_protector_enabled:
+		screen_color = screen_color * Color(0.92, 0.92, 0.92, 1.0)
+	if screen_protector_enabled and screen_protector_finish == "Privacy Glass":
+		var privacy_shader := Shader.new()
+		privacy_shader.code = """
+shader_type spatial;
+render_mode cull_disabled;
+uniform vec4 screen_color : source_color = vec4(0.12, 0.15, 0.18, 1.0);
+void fragment() {
+	float view_alignment = abs(dot(normalize(NORMAL), normalize(VIEW)));
+	float privacy_visibility = smoothstep(0.10, 0.42, view_alignment);
+	vec3 filtered_screen = mix(vec3(0.0), screen_color.rgb, privacy_visibility);
+	ALBEDO = filtered_screen;
+	EMISSION = filtered_screen * 0.025;
+	ROUGHNESS = 0.20;
+	SPECULAR = 0.12;
+}
+"""
+		var privacy_material := ShaderMaterial.new()
+		privacy_material.shader = privacy_shader
+		privacy_material.set_shader_parameter("screen_color", screen_color)
+		return privacy_material
 	var material := StandardMaterial3D.new()
-	material.albedo_color = profile["albedo_color"]
+	material.albedo_color = screen_color
 	material.roughness = float(profile["roughness"])
 	material.metallic = float(profile["metallic"])
 	material.specular = float(profile["specular"])
 	material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.emission_enabled = true
-	material.emission = material.albedo_color
+	material.emission = screen_color
 	material.emission_energy_multiplier = 0.025
 	return material
 
