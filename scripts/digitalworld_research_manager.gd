@@ -30,6 +30,11 @@ const BACK_RAISED_DESIGN_MAX_BOXES := 20
 const BATTERY_CAPACITY_BASE_MAH := 1000
 const BATTERY_CAPACITY_STEP_MAH := 350
 const BATTERY_CAPACITY_RESEARCH_UPGRADES := 20
+const CHARGER_BASE_W := 2
+const CHARGER_STEP_W := 3
+const CHARGER_MAX_W := 200
+const CHARGER_WATTAGE_RESEARCH_UPGRADES := 66
+const CHARGER_MAX_RESEARCH_LEVEL := 2 + CHARGER_WATTAGE_RESEARCH_UPGRADES
 const POWER_BANK_BASE_MAH := 5000
 const POWER_BANK_STEP_MAH := 100
 const POWER_BANK_MAX_MAH := 25000
@@ -144,6 +149,7 @@ const COMPONENT_CATALOGUE := [
 	"Phone Case",
 	"Protection Glass",
 	"Wireless Earbuds",
+	"Charger",
 	"Side Button",
 	"Sound Button",
 	"Style Pen (S Pen)",
@@ -282,6 +288,42 @@ static func get_battery_capacity_research_target(component_levels: Dictionary) -
 		"index": target_level,
 		"technology": "%s mAh" % _format_research_integer(target_capacity),
 		"max_capacity_mah": target_capacity
+	}
+
+
+static func get_charger_wattage_max_for_level(level: int) -> int:
+	# Level 0 is locked; Level 1 unlocks the adapter; Level 2 unlocks the cable.
+	# The next 66 approvals raise the selectable output ceiling from 2W to 200W.
+	var safe_level := clampi(level, 0, CHARGER_MAX_RESEARCH_LEVEL)
+	if safe_level <= 0:
+		return 0
+	var wattage_upgrades := clampi(safe_level - 2, 0, CHARGER_WATTAGE_RESEARCH_UPGRADES)
+	return mini(CHARGER_MAX_W, CHARGER_BASE_W + wattage_upgrades * CHARGER_STEP_W)
+
+
+static func get_charger_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_level := clampi(int(component_levels.get("Charger", 0)), 0, CHARGER_MAX_RESEARCH_LEVEL)
+	if completed_level >= CHARGER_MAX_RESEARCH_LEVEL:
+		return {}
+	var target_level := completed_level + 1
+	if completed_level == 0:
+		return {
+			"index": target_level,
+			"technology": "Charger Adapter Unlock",
+			"stage": "adapter"
+		}
+	if completed_level == 1:
+		return {
+			"index": target_level,
+			"technology": "Physical Charging Cable",
+			"stage": "cable"
+		}
+	var next_wattage := get_charger_wattage_max_for_level(target_level)
+	return {
+		"index": target_level,
+		"technology": "%dW" % next_wattage,
+		"max_wattage": next_wattage,
+		"stage": "wattage"
 	}
 
 
@@ -827,6 +869,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_phone_type_research_target(career.get("research_component_levels", {}))
 	elif component == "Battery Capacity":
 		ordered_target = get_battery_capacity_research_target(career.get("research_component_levels", {}))
+	elif component == "Charger":
+		ordered_target = get_charger_research_target(career.get("research_component_levels", {}))
 	elif component == "Power Bank":
 		ordered_target = get_power_bank_research_target(career.get("research_component_levels", {}))
 	elif component == "Charging Speed":
@@ -857,7 +901,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_power_volume_button_length_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component) else component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -901,6 +945,17 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif component == "Wireless Earbuds":
 			project_title = "Research: Wireless Earbuds - Initial Unlock"
 			project_objective = "Develop and validate the wireless-earbuds accessory, unlocking its availability in the phone creation worksite."
+		elif component == "Charger":
+			var charger_stage := str(ordered_target.get("stage", ""))
+			if charger_stage == "adapter":
+				project_title = "Research: Charger - Initial Adapter Unlock"
+				project_objective = "Develop and validate the wall charger adapter, unlocking its availability in the phone creation worksite with a 2W starting output ceiling."
+			elif charger_stage == "cable":
+				project_title = "Research: Charger - Physical Cable Unlock"
+				project_objective = "Develop and validate the physical charging cable as a separate unlock. The cable must remain unavailable until this project is approved."
+			else:
+				project_title = "Research: Charger - %s Output Ceiling" % target_technology
+				project_objective = "Develop and validate the next charger output-power ceiling of %s, increasing the selectable maximum by 3W while allowing whole-watt selections from 2W." % target_technology
 		elif component == "Phone Case":
 			project_title = "Research: Phone Case - " + target_technology
 			project_objective = "Develop and validate %s for the fitted phone-case system. Smooth is the default finish; subsequent projects unlock each additional case design and finally gradient colouring." % target_technology
@@ -1060,6 +1115,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var cooling_system_target_index := -1
 	var phone_type_target_index := -1
 	var battery_capacity_target_index := -1
+	var charger_target_index := -1
 	var power_bank_target_index := -1
 	var charging_speed_target_index := -1
 	var wireless_charging_target_index := -1
@@ -1115,6 +1171,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		var expected_phone_type := get_phone_type_entry(phone_type_target_index)
 		if expected_phone_type.is_empty() or str(project.get("research_target", "")) != str(expected_phone_type.get("technology", "")):
 			return _failure("The Phone Type project target does not match the current chassis architecture progression.")
+	elif component == "Charger":
+		charger_target_index = int(project.get("research_target_index", -1))
+		var expected_charger_target := get_charger_research_target(component_levels)
+		if expected_charger_target.is_empty() or charger_target_index != int(expected_charger_target.get("index", -1)):
+			return _failure("This Charger project is no longer the next valid adapter, cable or wattage unlock.")
+		if str(project.get("research_target", "")) != str(expected_charger_target.get("technology", "")):
+			return _failure("The Charger project target does not match the current unlock and output-power progression.")
 	elif component == "Battery Capacity":
 		battery_capacity_target_index = int(project.get("research_target_index", -1))
 		var expected_battery_target := get_battery_capacity_research_target(component_levels)
@@ -1245,6 +1308,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact phone chassis type assigned to this project.")
 		if result_component == "Battery Capacity" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next battery capacity ceiling assigned to this project.")
+		if result_component == "Charger" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact Charger adapter, cable or output-power target assigned to this project.")
 		if result_component == "Power Bank" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next Power Bank unlock or capacity ceiling assigned to this project.")
 		if result_component == "Charging Speed" and value != str(project.get("research_target", "")):
@@ -1342,6 +1407,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Battery Capacity":
 		# Level 1 is the 1,000 mAh starting state; 20 approved upgrades reach 8,000 mAh at Level 21.
 		component_levels[component] = mini(BATTERY_CAPACITY_RESEARCH_UPGRADES, int(component_levels.get(component, 0)) + 1)
+	elif component == "Charger":
+		# Level 1 unlocks the adapter, Level 2 unlocks the cable, and 66 further approvals reach 200W.
+		component_levels[component] = charger_target_index
 	elif component == "Power Bank":
 		# The first approval unlocks 5,000 mAh; 200 capacity approvals reach 25,000 mAh.
 		component_levels[component] = power_bank_target_index
