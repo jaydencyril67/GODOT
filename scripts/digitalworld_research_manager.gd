@@ -14,6 +14,7 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Phone Thickness": 60.0,
 	"Border Radius": 60.0,
 	"Speakers": 25.0,
+	"Speaker Quality": 340.0,
 	"Charge Port": 90.0,
 	"Home Button": 120.0,
 	"Front Camera": 500.0,
@@ -119,6 +120,22 @@ const MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS := [20, 40, 60, 60, 80, 100, 120]
 const PHONE_TYPE_SEQUENCE := ["Standard", "Flip", "Fold"]
 const PHONE_CASE_RESEARCH_SEQUENCE := ["Custom Case Enablement (Smooth)", "Carbon Weave", "Hex Pattern", "Racing Stripes", "Grip Ridges", "Gradient Finish"]
 const PROTECTION_GLASS_RESEARCH_SEQUENCE := ["Normal Glass", "Privacy Glass"]
+const SPEAKER_QUALITY_SEQUENCE := [
+	"Basic Audio",
+	"Standard Audio",
+	"Enhanced Audio",
+	"Premium Audio",
+	"Hi-Fi Audio",
+	"Professional Audio"
+]
+const SPEAKER_QUALITY_DESCRIPTIONS := {
+	"Basic Audio": "Entry-level sound reproduction",
+	"Standard Audio": "Improved clarity and balance",
+	"Enhanced Audio": "Better frequency response and lower distortion",
+	"Premium Audio": "High-quality drivers and tuning",
+	"Hi-Fi Audio": "High-fidelity sound reproduction",
+	"Professional Audio": "Advanced audio engineering"
+}
 
 
 static func get_component_research_duration_days(component_value: String, research_target_index: int = -1) -> float:
@@ -191,6 +208,7 @@ const COMPONENT_CATALOGUE := [
 	"Phone Thickness",
 	"Border Radius",
 	"Speakers",
+	"Speaker Quality",
 	"Charge Port",
 	"Home Button",
 	"Front Camera",
@@ -264,6 +282,16 @@ const MOBILE_NETWORK_SEQUENCE := [
 	{"generation": "6G", "generation_name": "Next-Generation Wireless", "technology": "AI-Native Networking"},
 	{"generation": "6G", "generation_name": "Next-Generation Wireless", "technology": "Integrated Sensing and Communication"}
 ]
+
+
+static func get_speaker_quality_research_target(component_levels: Dictionary) -> Dictionary:
+	# Basic Audio is the default starting generation; approvals unlock the
+	# five higher generations without changing the number of speaker openings.
+	var current_level := clampi(int(component_levels.get("Speaker Quality", 0)), 0, SPEAKER_QUALITY_SEQUENCE.size() - 1)
+	var target_index := current_level + 1
+	if target_index >= SPEAKER_QUALITY_SEQUENCE.size():
+		return {}
+	return {"index": target_index, "technology": SPEAKER_QUALITY_SEQUENCE[target_index]}
 
 
 static func get_phone_case_research_target(component_levels: Dictionary) -> Dictionary:
@@ -989,7 +1017,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		return _failure(str(estimate.get("error", "The research team could not be calculated.")))
 
 	var ordered_target: Dictionary = {}
-	if component == "Mobile Network":
+	if component == "Speaker Quality":
+		ordered_target = get_speaker_quality_research_target(career.get("research_component_levels", {}))
+	elif component == "Mobile Network":
 		ordered_target = get_mobile_network_research_target(career.get("research_component_levels", {}))
 	elif component == "Wi-Fi":
 		ordered_target = get_wifi_research_target(career.get("research_component_levels", {}))
@@ -1043,7 +1073,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if component in ["Wireless Charging", "Phone Case", "Charger"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1072,7 +1102,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		var target_technology := str(ordered_target.get("technology", ""))
 		var target_generation := str(ordered_target.get("generation", ""))
 		project_title = "Research: %s - %s" % [component, target_technology]
-		if component == "Front Camera MP":
+		if component == "Speaker Quality":
+			project_objective = "Develop and validate %s as the next overall phone speaker-quality generation. Each approved generation improves sound reproduction without changing the number of physical speaker openings." % target_technology
+		elif component == "Front Camera MP":
 			project_objective = "Develop and validate the next front-camera resolution ceiling of %s while preserving player-selected resolutions in 1MP increments." % target_technology
 		elif component == "Rear Camera MP":
 			project_objective = "Develop and validate the next rear-camera resolution ceiling of %s while preserving player-selected resolutions in 1MP increments." % target_technology
@@ -1264,6 +1296,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var bluetooth_target_index := -1
 	var cooling_system_target_index := -1
 	var phone_type_target_index := -1
+	var speaker_quality_target_index := -1
 	var battery_capacity_target_index := -1
 	var charger_target_index := -1
 	var power_bank_target_index := -1
@@ -1313,6 +1346,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		var expected_cooling_target := get_cooling_system_entry(cooling_system_target_index)
 		if expected_cooling_target.is_empty() or str(project.get("research_target", "")) != str(expected_cooling_target.get("technology", "")):
 			return _failure("The Cooling System project target does not match the current heat-removal progression.")
+	elif component == "Speaker Quality":
+		speaker_quality_target_index = int(project.get("research_target_index", -1))
+		var expected_speaker_quality_target := get_speaker_quality_research_target(component_levels)
+		if expected_speaker_quality_target.is_empty() or speaker_quality_target_index != int(expected_speaker_quality_target.get("index", -1)):
+			return _failure("This Speaker Quality project is no longer the next quality generation.")
+		if str(project.get("research_target", "")) != str(expected_speaker_quality_target.get("technology", "")):
+			return _failure("The Speaker Quality project target does not match the current quality-generation progression.")
 	elif component == "Phone Type":
 		phone_type_target_index = int(project.get("research_target_index", -1))
 		var expected_phone_type_index := int(component_levels.get(component, 0)) + 1
@@ -1461,6 +1501,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact Wi-Fi IEEE standard assigned to this project.")
 		if result_component == "Bluetooth" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact Bluetooth version assigned to this project.")
+		if result_component == "Speaker Quality" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact Speaker Quality generation assigned to this project.")
 		if result_component == "Cooling System Design" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact heat-removal option assigned to this project.")
 		if result_component == "Phone Type" and value != str(project.get("research_target", "")):
@@ -1509,6 +1551,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		component_levels[component] = mini(20, int(component_levels.get(component, 0)) + 1)
 	elif component == "Speakers":
 		component_levels[component] = mini(11, int(component_levels.get(component, 0)) + 1)
+	elif component == "Speaker Quality":
+		component_levels[component] = speaker_quality_target_index
 	elif component == POWER_VOLUME_BUTTON_LENGTH_COMPONENT:
 		component_levels[component] = power_volume_button_length_target_index
 	elif component == "Charge Port":

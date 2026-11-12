@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen", "Button Length", "Power Position", "Volume Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)", "Power/Volume Button Length", "Power Button Position", "Volume Button Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen", "Button Length", "Power Position", "Volume Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)", "Power/Volume Button Length", "Power Button Position", "Volume Button Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -434,6 +434,8 @@ func _default_validation_metric(component: String) -> String:
 			return "Maximum selectable display refresh rate"
 		"Speakers":
 			return "Maximum number of supported speakers"
+		"Speaker Quality":
+			return "Overall speaker reproduction quality"
 		_:
 			return "Validated %s result" % component.to_lower()
 
@@ -707,7 +709,7 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
-		elif COMPONENT_VALUES[index] in ["Phone Type", "Refresh Rate", "Speakers", ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, "Phone Case", "Protection Glass", "Power Bank", "Smartwatch", "Wireless Earbuds", "Box Package"]:
+		elif COMPONENT_VALUES[index] in ["Phone Type", "Refresh Rate", "Speakers", "Speaker Quality", ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, "Phone Case", "Protection Glass", "Power Bank", "Smartwatch", "Wireless Earbuds", "Box Package"]:
 			var component_name := str(COMPONENT_VALUES[index])
 			var current_level := int(research_component_levels.get(component_name, 0))
 			var maximum_level := 0
@@ -726,6 +728,14 @@ func _build_component_selection_scene() -> void:
 				"Speakers":
 					maximum_level = 11
 					component_button.tooltip_text = "Next approval unlocks support for %d speakers." % mini(12, current_level + 2)
+				"Speaker Quality":
+					var speaker_quality_target: Dictionary = ResearchManagerScript.get_speaker_quality_research_target(research_component_levels)
+					maximum_level = ResearchManagerScript.SPEAKER_QUALITY_SEQUENCE.size() - 1
+					if speaker_quality_target.is_empty():
+						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — PROFESSIONAL AUDIO"
+						component_button.disabled = true
+					else:
+						component_button.tooltip_text = "Next quality generation: %s" % str(speaker_quality_target.get("technology", ""))
 				ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT:
 					var button_length_target: Dictionary = ResearchManagerScript.get_power_volume_button_length_research_target(research_component_levels)
 					maximum_level = ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL

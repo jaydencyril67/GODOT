@@ -727,6 +727,13 @@ var speaker_count_value_label: Label
 var speaker_count_decrease_button: Button
 var speaker_count_increase_button: Button
 
+var speaker_quality_level := 0
+var speaker_quality_research_level := 0
+var speaker_quality_value_label: Label
+var speaker_quality_description_label: Label
+var speaker_quality_decrease_button: Button
+var speaker_quality_increase_button: Button
+
 var charge_port_type := "DC Barrel Jack"
 
 var researched_charge_port_count := 1
@@ -3907,6 +3914,14 @@ func set_speaker_research_level(level: int) -> void:
 	speaker_count = clampi(speaker_count, 1, researched_speaker_count)
 	_refresh_phone_speakers()
 	_refresh_speaker_count_controls()
+
+
+func set_speaker_quality_research_level(level: int) -> void:
+	# Basic Audio is the default. Research unlocks higher generations, while
+	# players can select any generation already unlocked.
+	speaker_quality_research_level = clampi(level, 0, ResearchManagerScript.SPEAKER_QUALITY_SEQUENCE.size() - 1)
+	speaker_quality_level = clampi(speaker_quality_level, 0, speaker_quality_research_level)
+	_refresh_speaker_quality_controls()
 
 func set_rear_camera_count_research_level(level: int) -> void:
 	# One rear camera is available by default; each approved project unlocks one
@@ -11329,7 +11344,7 @@ func _show_speaker_controls() -> void:
 	var controls_center := CenterContainer.new()
 	controls_center.name = "SpeakerCountControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	controls_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	active_feature_panel.add_child(controls_center)
 
 	var controls := HBoxContainer.new()
@@ -11355,11 +11370,58 @@ func _show_speaker_controls() -> void:
 
 	_refresh_speaker_count_controls()
 
+	var quality_separator := HSeparator.new()
+	quality_separator.name = "SpeakerQualitySeparator"
+	active_feature_panel.add_child(quality_separator)
+
+	var quality_heading := _make_label("SPEAKER QUALITY", 15, Color("#C58A3A"))
+	quality_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(quality_heading)
+
+	speaker_quality_value_label = _make_label("", 15, Color.WHITE)
+	speaker_quality_value_label.name = "SpeakerQualityValueLabel"
+	speaker_quality_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(speaker_quality_value_label)
+
+	var quality_controls_center := CenterContainer.new()
+	quality_controls_center.name = "SpeakerQualityControlsCenter"
+	quality_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quality_controls_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	active_feature_panel.add_child(quality_controls_center)
+
+	var quality_controls := HBoxContainer.new()
+	quality_controls.name = "SpeakerQualityLevelControls"
+	quality_controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	quality_controls.add_theme_constant_override("separation", 18)
+	quality_controls_center.add_child(quality_controls)
+
+	speaker_quality_decrease_button = Button.new()
+	speaker_quality_decrease_button.name = "DecreaseSpeakerQualityButton"
+	speaker_quality_decrease_button.text = "−"
+	_style_level_selector_button(speaker_quality_decrease_button)
+	speaker_quality_decrease_button.pressed.connect(_on_speaker_quality_decrease_pressed)
+	quality_controls.add_child(speaker_quality_decrease_button)
+
+	speaker_quality_increase_button = Button.new()
+	speaker_quality_increase_button.name = "IncreaseSpeakerQualityButton"
+	speaker_quality_increase_button.text = "+"
+	_style_level_selector_button(speaker_quality_increase_button)
+	speaker_quality_increase_button.pressed.connect(_on_speaker_quality_increase_pressed)
+	quality_controls.add_child(speaker_quality_increase_button)
+
+	speaker_quality_description_label = _make_label("", 12, Color("#E5E0D6"))
+	speaker_quality_description_label.name = "SpeakerQualityDescriptionLabel"
+	speaker_quality_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	speaker_quality_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	active_feature_panel.add_child(speaker_quality_description_label)
+
+	_refresh_speaker_quality_controls()
+
 
 func _refresh_speaker_count_controls() -> void:
 	_refresh_hardware_selector_value_labels()
 	if is_instance_valid(speaker_count_value_label):
-		speaker_count_value_label.text = "SPEAKERS  %d" % speaker_count
+		speaker_count_value_label.text = "SPEAKER OPENINGS  %d" % speaker_count
 	if is_instance_valid(speaker_count_decrease_button):
 		speaker_count_decrease_button.disabled = speaker_count <= 1
 	if is_instance_valid(speaker_count_increase_button):
@@ -11380,6 +11442,34 @@ func _on_speaker_count_increase_pressed() -> void:
 	speaker_count += 1
 	_refresh_phone_speakers()
 	_refresh_speaker_count_controls()
+
+
+func _refresh_speaker_quality_controls() -> void:
+	var safe_level := clampi(speaker_quality_level, 0, ResearchManagerScript.SPEAKER_QUALITY_SEQUENCE.size() - 1)
+	speaker_quality_level = safe_level
+	var quality_name: String = ResearchManagerScript.SPEAKER_QUALITY_SEQUENCE[safe_level]
+	if is_instance_valid(speaker_quality_value_label):
+		speaker_quality_value_label.text = quality_name.to_upper()
+	if is_instance_valid(speaker_quality_description_label):
+		speaker_quality_description_label.text = str(ResearchManagerScript.SPEAKER_QUALITY_DESCRIPTIONS.get(quality_name, ""))
+	if is_instance_valid(speaker_quality_decrease_button):
+		speaker_quality_decrease_button.disabled = speaker_quality_level <= 0
+	if is_instance_valid(speaker_quality_increase_button):
+		speaker_quality_increase_button.disabled = speaker_quality_level >= speaker_quality_research_level
+
+
+func _on_speaker_quality_decrease_pressed() -> void:
+	if speaker_quality_level <= 0:
+		return
+	speaker_quality_level -= 1
+	_refresh_speaker_quality_controls()
+
+
+func _on_speaker_quality_increase_pressed() -> void:
+	if speaker_quality_level >= speaker_quality_research_level:
+		return
+	speaker_quality_level += 1
+	_refresh_speaker_quality_controls()
 
 
 func _refresh_phone_speakers() -> void:

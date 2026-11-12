@@ -137,6 +137,98 @@ func _run_charging_speed_progression_checks() -> bool:
 	return true
 
 
+func _run_speaker_quality_progression_checks() -> bool:
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Speaker Quality"):
+		_fail("Speaker Quality is missing from the central R&D component catalogue.")
+		return false
+	if ResearchManagerScript.SPEAKER_QUALITY_SEQUENCE.size() != 6:
+		_fail("Speaker Quality must contain all six generations, including Basic Audio.")
+		return false
+	if ResearchManagerScript.get_component_research_duration_days("Speaker Quality", 1) != 340.0:
+		_fail("Speaker Quality research must take 340 days for each upgrade.")
+		return false
+
+	var test_career: Dictionary = {
+		"staff_employees": [{"id": "speaker_quality_researcher", "department": "Research", "efficiency": 100}],
+		"research_projects": [],
+		"research_component_levels": {"Speakers": 2},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var first_target: Dictionary = ResearchManagerScript.get_speaker_quality_research_target(test_career["research_component_levels"])
+	if int(first_target.get("index", -1)) != 1 or str(first_target.get("technology", "")) != "Standard Audio":
+		_fail("Basic Audio was not the starting generation or Standard Audio was not the first target.")
+		return false
+
+	for target_index in range(1, ResearchManagerScript.SPEAKER_QUALITY_SEQUENCE.size()):
+		var expected_generation: String = ResearchManagerScript.SPEAKER_QUALITY_SEQUENCE[target_index]
+		var commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+			"component": "Speaker Quality",
+			"staff_ids": ["speaker_quality_researcher"]
+		}, float(1000 + target_index * 1000))
+		if not bool(commission.get("ok", false)):
+			_fail("Speaker Quality generation %s could not be commissioned." % expected_generation)
+			return false
+		var project: Dictionary = commission.get("project", {})
+		if int(project.get("research_target_index", -1)) != target_index or str(project.get("research_target", "")) != expected_generation:
+			_fail("The Speaker Quality project did not store the exact next generation.")
+			return false
+		if float(project.get("required_research_days", 0.0)) != 340.0 or float(project.get("estimated_duration_days", 0.0)) != 340.0:
+			_fail("Speaker Quality generation %s did not receive a 340-day duration." % expected_generation)
+			return false
+
+		var duplicate: Dictionary = ResearchManagerScript.commission_project(test_career, {
+			"component": "Speaker Quality",
+			"staff_ids": ["speaker_quality_researcher"]
+		}, float(1000 + target_index * 1000))
+		if bool(duplicate.get("ok", false)):
+			_fail("A duplicate Speaker Quality project was allowed for the same generation.")
+			return false
+
+		var projects: Array = test_career.get("research_projects", [])
+		projects[projects.size() - 1]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+		test_career["research_projects"] = projects
+		var invalid_value := "Premium Audio" if target_index == 1 else "Basic Audio"
+		var invalid_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": "Speaker Quality",
+			"metric": "Overall speaker reproduction quality",
+			"value": invalid_value
+		}], float(2000 + target_index * 1000))
+		if bool(invalid_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Speaker Quality", 0)) != target_index - 1:
+			_fail("Speaker Quality accepted a validation result that did not match its assigned generation.")
+			return false
+
+		var approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": "Speaker Quality",
+			"metric": "Overall speaker reproduction quality",
+			"value": expected_generation
+		}], float(2000 + target_index * 1000))
+		if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Speaker Quality", 0)) != target_index:
+			_fail("Approved Speaker Quality research did not unlock the next generation.")
+			return false
+		if int(test_career.get("research_component_levels", {}).get("Speakers", 0)) != 2:
+			_fail("Speaker Quality approval incorrectly changed the Speaker Openings research level.")
+			return false
+
+	if not ResearchManagerScript.get_speaker_quality_research_target(test_career.get("research_component_levels", {})).is_empty():
+		_fail("Speaker Quality still offered research after Professional Audio was unlocked.")
+		return false
+
+	var worksite = PhoneCreationWorksiteScript.new()
+	worksite.set_speaker_research_level(2)
+	worksite.set("speaker_count", 2)
+	worksite.set_speaker_quality_research_level(2)
+	worksite.set("speaker_quality_level", 2)
+	worksite.set_speaker_quality_research_level(1)
+	var openings_unchanged := int(worksite.get("speaker_count")) == 2 and int(worksite.get("researched_speaker_count")) == 3
+	var quality_selection_clamped := int(worksite.get("speaker_quality_level")) == 1
+	worksite.free()
+	if not openings_unchanged or not quality_selection_clamped:
+		_fail("Speaker Quality selection was not independent from speaker openings or did not clamp to unlocked generations.")
+		return false
+	return true
+
+
 func _run_charger_research_progression_checks() -> bool:
 	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Charger"):
 		_fail("Charger is missing from the central R&D component catalogue.")
@@ -829,6 +921,8 @@ func _run_transition_checks() -> void:
 	if not _run_screen_technology_checks():
 		return
 	if not _run_charging_speed_progression_checks():
+		return
+	if not _run_speaker_quality_progression_checks():
 		return
 	if not _run_charger_research_progression_checks():
 		return
