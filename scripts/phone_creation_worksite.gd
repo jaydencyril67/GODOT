@@ -9173,7 +9173,7 @@ func _on_rear_hardware_pad_pressed(direction: Vector2i) -> void:
 	var next_position := _snap_rear_hardware_position_to_shared_grid(
 		module_position + local_direction * REAR_HARDWARE_GRID_STEP
 	)
-	# Move in small continuous steps across the flat back and raised
+	# Move exactly one shared grid cell across the flat back and raised
 	# Back Design geometry. Only the phone edge and other hardware can block it.
 	if not _rear_module_position_is_free(next_position, module_size, rear_hardware_mode, selected_index):
 		return
