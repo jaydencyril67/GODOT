@@ -2030,6 +2030,29 @@ func _show_worksite_phone_case_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
 
+	if int(self.get("phone_case_research_level")) <= 0:
+		var research_center := CenterContainer.new()
+		research_center.name = "PhoneCaseResearchControlsCenter"
+		research_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		research_center.custom_minimum_size = Vector2(0, 360)
+		panel.add_child(research_center)
+		var research_button := Button.new()
+		research_button.name = "PhoneCaseResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, 13)
+		_style_button(research_button, true)
+		research_button.pressed.connect(func(): research_requested.emit())
+		research_center.add_child(research_button)
+		step_panels[31] = panel
+		var locked_preview := self.get("phone_case_preview") as Node3D
+		if is_instance_valid(locked_preview):
+			locked_preview.visible = false
+		return
+
 	var description := _label("Build a protective shell fitted to this phone's current geometry and hardware.", 13, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
@@ -2756,6 +2779,26 @@ func _show_worksite_protection_glass_controls() -> void:
 	var heading := _label("PROTECTION GLASS", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
+	var glass_research_level := int(self.get("screen_protector_research_level"))
+	if glass_research_level <= 0:
+		var research_center := CenterContainer.new()
+		research_center.name = "ProtectionGlassResearchControlsCenter"
+		research_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		research_center.custom_minimum_size = Vector2(0, 360)
+		panel.add_child(research_center)
+		var research_button := Button.new()
+		research_button.name = "ProtectionGlassResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, 13)
+		_style_button(research_button, true)
+		research_button.pressed.connect(func(): research_requested.emit())
+		research_center.add_child(research_button)
+		step_panels[33] = panel
+		return
 	var description := _label("Install precision-cut tempered glass fitted to the active display, curves and front-camera layout.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
@@ -2769,7 +2812,6 @@ func _show_worksite_protection_glass_controls() -> void:
 	enable_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	enable_row.add_child(enable_label)
 	var screen_is_enabled := bool(self.get("screen_enabled"))
-	var glass_research_level := int(self.get("screen_protector_research_level"))
 	var protector_toggle := TextureButton.new()
 	protector_toggle.name = "EnableProtectionGlass"
 	protector_toggle.custom_minimum_size = Vector2(40, 40)
@@ -3539,6 +3581,8 @@ func set_wireless_charging_research_level(level: int) -> void:
 	selected_wireless_charge_enabled = researched_wireless_charging_level > 0
 	selected_wireless_charging_speed = clampi(selected_wireless_charging_speed, 1, maxi(1, _get_wireless_charging_maximum()))
 	_update_wireless_charge_controls()
+	if researched_wireless_charging_level > 0 and is_instance_valid(active_feature_panel) and active_feature_panel.name == "WirelessChargeControls":
+		_show_wireless_charge_controls()
 
 
 func _get_wireless_charging_maximum() -> int:
@@ -13402,6 +13446,29 @@ func _show_wireless_charge_controls() -> void:
 	var heading := _make_label("WIRELESS CHARGING", 17, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(heading)
+
+	if researched_wireless_charging_level <= 0:
+		wireless_charging_speed_value_label = null
+		wireless_charging_speed_range_label = null
+		wireless_charging_speed_slider = null
+		wireless_charging_speed_maximum_label = null
+		var research_center := CenterContainer.new()
+		research_center.name = "WirelessChargingResearchControlsCenter"
+		research_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		research_center.custom_minimum_size = Vector2(0, 360)
+		active_feature_panel.add_child(research_center)
+		var research_button := Button.new()
+		research_button.name = "WirelessChargingResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, 13)
+		_style_button(research_button, true)
+		research_button.pressed.connect(func(): research_requested.emit())
+		research_center.add_child(research_button)
+		return
 
 	wireless_charging_speed_value_label = _make_label(_get_wireless_charging_summary(), 29, Color.WHITE)
 	wireless_charging_speed_value_label.name = "WirelessChargingSpeedValue"
