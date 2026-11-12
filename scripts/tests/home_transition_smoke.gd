@@ -2,6 +2,7 @@ extends SceneTree
 
 const MainGameScript = preload("res://scripts/digitalworld_game.gd")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
+const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
 const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
 
 var game: Node
@@ -219,6 +220,118 @@ func _run_charger_research_progression_checks() -> bool:
 	if str(wattage_project.get("research_target", "")) != "5W" or int(wattage_project.get("research_target_index", -1)) != 3:
 		_fail("The first Charger Wattage project did not target a 5W maximum.")
 		return false
+	return true
+
+
+func _run_box_package_research_unlock_checks() -> bool:
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Box Package"):
+		_fail("Box Package is missing from the central R&D component catalogue.")
+		return false
+
+	var test_career: Dictionary = {
+		"staff_employees": [{"id": "box_package_researcher", "department": "Research", "efficiency": 100}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Box Package",
+		"staff_ids": ["box_package_researcher"]
+	}, 1000.0)
+	if not bool(commission.get("ok", false)):
+		_fail("Box Package research could not be commissioned through the existing company-funded pipeline.")
+		return false
+	var project: Dictionary = commission.get("project", {})
+	if str(project.get("research_target", "")) != "Box Package" or int(project.get("research_target_index", -1)) != 1:
+		_fail("The Box Package project did not store its one-time unlock target.")
+		return false
+
+	var duplicate_active: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Box Package",
+		"staff_ids": ["box_package_researcher"]
+	}, 1000.0)
+	if bool(duplicate_active.get("ok", false)):
+		_fail("A duplicate active Box Package unlock project was allowed.")
+		return false
+
+	var projects: Array = test_career.get("research_projects", [])
+	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var invalid_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Box Package",
+		"metric": "Box Package availability",
+		"value": "Smartwatch"
+	}], 2000.0)
+	if bool(invalid_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Box Package", 0)) != 0:
+		_fail("Box Package accepted a validation result that did not match its assigned unlock.")
+		return false
+
+	var approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Box Package",
+		"metric": "Box Package availability",
+		"value": "Box Package"
+	}], 2000.0)
+	if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Box Package", 0)) != 1:
+		_fail("Approved Box Package research did not unlock the worksite controls.")
+		return false
+	var technology_history: Dictionary = test_career.get("research_technologies", {})
+	var box_package_history: Array = technology_history.get("Box Package", [])
+	if box_package_history.size() != 1 or str(box_package_history[0].get("value", "")) != "Box Package":
+		_fail("The approved Box Package finding was not saved to company technology history.")
+		return false
+
+	var duplicate_approved: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Box Package",
+		"staff_ids": ["box_package_researcher"]
+	}, 3000.0)
+	if bool(duplicate_approved.get("ok", false)):
+		_fail("A second Box Package unlock project was allowed after approval.")
+		return false
+
+	var legacy_career: Dictionary = {
+		"research_projects": [{
+			"component": "Box Package",
+			"components": ["Box Package"],
+			"research_target_index": 1,
+			"research_target": "Box Package",
+			"status": ResearchManagerScript.STATUS_APPROVED,
+			"required_research_days": 30.0,
+			"completed_research_days": 30.0,
+			"estimated_duration_days": 30.0,
+			"duration_formula_version": ResearchManagerScript.RESEARCH_DURATION_FORMULA_VERSION,
+			"success_formula_version": ResearchManagerScript.RESEARCH_SUCCESS_FORMULA_VERSION,
+			"team_efficiency": 100.0
+		}],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 2
+	}
+	ResearchManagerScript.ensure_state(legacy_career)
+	if int(legacy_career.get("research_component_levels", {}).get("Box Package", 0)) != 1:
+		_fail("A previously approved Box Package project did not restore its unlock on load.")
+		return false
+
+	var box_worksite = PhoneCreationWorksiteScript.new()
+	var box_preview := Node3D.new()
+	box_worksite.set("box_package_preview", box_preview)
+	box_worksite.set("wizard_step", 30)
+	box_worksite.set_box_package_research_level(0)
+	box_worksite.call("_set_box_package_preview_mode", true)
+	if bool(box_worksite.get("box_package_preview_mode")) or box_preview.visible:
+		box_preview.free()
+		box_worksite.free()
+		_fail("The locked Box Package preview became visible before research approval.")
+		return false
+	box_worksite.set_box_package_research_level(1)
+	if not bool(box_worksite.get("box_package_preview_mode")) or not box_preview.visible:
+		box_preview.free()
+		box_worksite.free()
+		_fail("Box Package approval did not refresh the active worksite preview.")
+		return false
+	box_worksite.call("_set_box_package_preview_mode", false)
+	box_preview.free()
+	box_worksite.free()
 	return true
 
 
@@ -718,6 +831,8 @@ func _run_transition_checks() -> void:
 	if not _run_charging_speed_progression_checks():
 		return
 	if not _run_charger_research_progression_checks():
+		return
+	if not _run_box_package_research_unlock_checks():
 		return
 	if not _run_wireless_charging_progression_checks():
 		return
