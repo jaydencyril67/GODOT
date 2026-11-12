@@ -141,7 +141,7 @@ func _process(delta: float) -> void:
 			phone_creation_worksite.call("set_charger_research_level", int(career.get("research_component_levels", {}).get("Charger", 0)))
 			phone_creation_worksite.call("set_box_package_research_level", int(career.get("research_component_levels", {}).get("Box Package", 0)))
 		if is_instance_valid(research_allocation_dashboard):
-			research_allocation_dashboard.call("configure", _get_research_dashboard_data())
+			research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
 	var current_day := floori(game_date_unix / 86400.0)
 	var current_month := _get_game_month_key(game_date_unix)
 	if current_month != previous_month:
@@ -2487,6 +2487,7 @@ func _show_research_allocation_dashboard() -> void:
 	research_allocation_dashboard.connect("project_commission_requested", Callable(self, "_on_rd_project_commission_requested"))
 	research_allocation_dashboard.connect("project_approve_requested", Callable(self, "_on_rd_project_approve_requested"))
 	research_allocation_dashboard.connect("project_reject_requested", Callable(self, "_on_rd_project_reject_requested"))
+	research_allocation_dashboard.connect("project_cancel_requested", Callable(self, "_on_rd_project_cancel_requested"))
 	ui_root.add_child(research_allocation_dashboard)
 	current_screen = "research_allocation"
 
@@ -2582,6 +2583,26 @@ func _on_rd_project_reject_requested(project_id: String, review_note: String) ->
 		return
 	_refresh_research_dashboard()
 	_show_notice("FINDINGS REJECTED", "The project review decision has been recorded.")
+
+
+func _on_rd_project_cancel_requested(project_id: String) -> void:
+	var result := cancel_research_project(project_id)
+	if not bool(result.get("ok", false)):
+		_show_notice("CANCELLATION FAILED", str(result.get("error", "The research project could not be cancelled.")))
+		return
+	_refresh_research_dashboard()
+	_show_notice("RESEARCH CANCELLED", "Project %s has been cancelled. Its assigned researchers are now available for other work." % project_id)
+
+
+func cancel_research_project(project_id: String) -> Dictionary:
+	var previous_career := career.duplicate(true)
+	var result: Dictionary = ResearchManagerScript.cancel_project(career, project_id)
+	if not bool(result.get("ok", false)):
+		return result
+	if not _save_career():
+		career = previous_career
+		return {"ok": false, "error": "The cancellation could not be saved. The research project remains active."}
+	return result
 
 
 func get_research_workforce_summary() -> Dictionary:
