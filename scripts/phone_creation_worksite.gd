@@ -2538,6 +2538,10 @@ func _show_worksite_power_bank_controls() -> void:
 	self.set("active_feature_panel", panel)
 	selection_stack.add_child(panel)
 
+	var heading := _label("POWER BANK", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+
 	if researched_power_bank_level <= 0:
 		var research_center := CenterContainer.new()
 		research_center.name = "PowerBankResearchControlsCenter"
@@ -2558,9 +2562,6 @@ func _show_worksite_power_bank_controls() -> void:
 		step_panels[36] = panel
 		return
 
-	var heading := _label("POWER BANK", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_child(heading)
 	var description := _label("Add a rotatable 3D power bank to the product preview. Set its battery capacity and customize its body colour.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
