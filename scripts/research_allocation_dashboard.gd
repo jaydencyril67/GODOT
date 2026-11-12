@@ -1532,6 +1532,26 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 		target_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		content.add_child(target_label)
 
+	var required_days := maxf(1.0, float(project.get("required_research_days", project.get("estimated_duration_days", 1.0))))
+	var completed_days := clampf(float(project.get("completed_research_days", 0.0)), 0.0, required_days)
+	var progress_bar := ProgressBar.new()
+	progress_bar.name = "ResearchProjectProgressBar"
+	progress_bar.min_value = 0.0
+	progress_bar.max_value = 100.0
+	progress_bar.value = (completed_days / required_days) * 100.0
+	progress_bar.show_percentage = false
+	progress_bar.custom_minimum_size.y = _scaled(9.0)
+	progress_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var progress_background := StyleBoxFlat.new()
+	progress_background.bg_color = Color("#343638")
+	progress_background.set_corner_radius_all(5)
+	var progress_fill := StyleBoxFlat.new()
+	progress_fill.bg_color = ACCENT
+	progress_fill.set_corner_radius_all(5)
+	progress_bar.add_theme_stylebox_override("background", progress_background)
+	progress_bar.add_theme_stylebox_override("fill", progress_fill)
+	content.add_child(progress_bar)
+
 	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
 	if not pause_reason.is_empty():
 		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 12, ORANGE)
@@ -1643,8 +1663,8 @@ func update_live_progress(projects: Array, balance: float, employees: Array) -> 
 	if not is_node_ready() or creation_mode:
 		return
 
-	# Completion percentages are intentionally hidden from project cards.
-	# Refresh only when a project is added, removed, or changes status.
+	# Refresh the visual progress bars as research time advances, without
+	# displaying numerical completion percentages or staff details.
 	if _get_project_status_signature() != rendered_project_signature:
 		_render_scene()
 
@@ -1653,9 +1673,12 @@ func _get_project_status_signature() -> String:
 	var parts: PackedStringArray = []
 	for project_value in research_projects:
 		if project_value is Dictionary:
-			parts.append("%s:%s" % [
+			parts.append("%s:%s:%.3f:%.3f:%s" % [
 				str(project_value.get("id", "")),
-				str(project_value.get("status", ""))
+				str(project_value.get("status", "")),
+				float(project_value.get("completed_research_days", 0.0)),
+				float(project_value.get("required_research_days", project_value.get("estimated_duration_days", 0.0))),
+				str(project_value.get("pause_reason", ""))
 			])
 	return "|".join(parts)
 
