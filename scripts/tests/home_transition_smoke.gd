@@ -959,16 +959,17 @@ func _run_transition_checks() -> void:
 
 	var duration_test_employees: Array = [
 		{"id": "researcher_50", "department": "Research", "efficiency": 50},
+		{"id": "researcher_80", "department": "Research", "efficiency": 80},
 		{"id": "researcher_100", "department": "Research", "efficiency": 100},
 		{"id": "unassigned_researcher", "department": "Research", "efficiency": 100}
 	]
 	var single_staff_estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_50"], duration_test_employees)
-	if not bool(single_staff_estimate.get("ok", false)) or not is_equal_approx(float(single_staff_estimate.get("expected_duration_days", 0.0)), 29.5):
-		_fail("A single 50% assigned researcher did not reduce the 30-day journey by half a day.")
+	if not bool(single_staff_estimate.get("ok", false)) or not is_equal_approx(float(single_staff_estimate.get("expected_duration_days", 0.0)), 29.5) or not is_equal_approx(float(single_staff_estimate.get("success_chance", 0.0)), 50.5):
+		_fail("A single 50% assigned researcher did not contribute only 0.5 percentage points to success.")
 		return
 	var combined_staff_estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_50", "researcher_100"], duration_test_employees)
-	if not bool(combined_staff_estimate.get("ok", false)) or not is_equal_approx(float(combined_staff_estimate.get("expected_duration_days", 0.0)), 28.5):
-		_fail("Combined efficiency from the assigned researchers did not reduce the research duration correctly.")
+	if not bool(combined_staff_estimate.get("ok", false)) or not is_equal_approx(float(combined_staff_estimate.get("expected_duration_days", 0.0)), 28.5) or not is_equal_approx(float(combined_staff_estimate.get("success_chance", 0.0)), 51.5):
+		_fail("Combined assigned efficiency did not add its individual success contributions correctly.")
 		return
 	var ram_estimate: Dictionary = ResearchManagerScript.estimate_research("RAM Technology", ["researcher_100"], duration_test_employees)
 	if not bool(ram_estimate.get("ok", false)):
@@ -976,18 +977,18 @@ func _run_transition_checks() -> void:
 		return
 	var maximum_efficiency_staff: Array = []
 	var maximum_efficiency_ids: Array[String] = []
-	for staff_index in range(30):
+	for staff_index in range(40):
 		var staff_id := "researcher_max_%02d" % staff_index
 		maximum_efficiency_ids.append(staff_id)
 		maximum_efficiency_staff.append({"id": staff_id, "department": "Research", "efficiency": 100})
 	var minimum_duration_estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", maximum_efficiency_ids, maximum_efficiency_staff)
-	if not bool(minimum_duration_estimate.get("ok", false)) or not is_equal_approx(float(minimum_duration_estimate.get("expected_duration_days", 0.0)), 1.0):
-		_fail("Research duration did not respect its one-day minimum.")
+	if not bool(minimum_duration_estimate.get("ok", false)) or not is_equal_approx(float(minimum_duration_estimate.get("expected_duration_days", 0.0)), 1.0) or not is_equal_approx(float(minimum_duration_estimate.get("success_chance", 0.0)), 90.0):
+		_fail("Research duration minimum or 90% maximum success cap was not respected.")
 		return
 
 	var estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_smoke_01"], game.career.get("staff_employees", []))
-	if not bool(estimate.get("ok", false)) or not is_equal_approx(float(estimate.get("expected_duration_days", 0.0)), 29.0) or not is_equal_approx(float(estimate.get("success_chance", 0.0)), 95.0):
-		_fail("A 100% assigned researcher did not produce a 29-day estimate and the expected success chance.")
+	if not bool(estimate.get("ok", false)) or not is_equal_approx(float(estimate.get("expected_duration_days", 0.0)), 29.0) or not is_equal_approx(float(estimate.get("success_chance", 0.0)), 51.0):
+		_fail("A 100% assigned researcher did not produce a 29-day estimate and a 51% success chance.")
 		return
 
 	var commission_result: Dictionary = game.commission_research_project({
