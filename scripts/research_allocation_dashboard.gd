@@ -1380,7 +1380,7 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 		narrow_actions.add_child(project_count)
 		var create_button := _button("CREATE NEW", true, ACCENT)
 		create_button.name = "CreateResearchWhileActiveButton"
-		create_button.custom_minimum_size = Vector2(_scaled(164.0), _scaled(48.0))
+		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(40.0))
 		create_button.pressed.connect(_open_creation_scene)
 		narrow_actions.add_child(create_button)
 	else:
@@ -1394,7 +1394,7 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 		page_heading.add_child(_label("%d ACTIVE  ·  %d TO REVIEW" % [projects.size(), pending_projects.size()], 12, ACCENT))
 		var create_button := _button("CREATE NEW", true, ACCENT)
 		create_button.name = "CreateResearchWhileActiveButton"
-		create_button.custom_minimum_size = Vector2(_scaled(180.0), _scaled(48.0))
+		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(40.0))
 		create_button.pressed.connect(_open_creation_scene)
 		page_heading.add_child(create_button)
 		body_content.add_child(page_heading)
@@ -1411,7 +1411,7 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 	project_list.name = "ResearchProjectsList"
 	project_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	project_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	project_list.add_theme_constant_override("separation", roundi(_scaled(18.0)))
+	project_list.add_theme_constant_override("separation", roundi(_scaled(12.0)))
 	project_scroll.add_child(project_list)
 
 	if not pending_projects.is_empty():
@@ -1444,9 +1444,9 @@ func _build_validation_project_card(project: Dictionary, parent: Control) -> voi
 	parent.add_child(card)
 
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", roundi(_scaled(7.0)))
+	content.add_theme_constant_override("separation", roundi(_scaled(5.0)))
 	card.add_child(content)
-	content.add_child(_label(component.to_upper(), 20, TEXT_MAIN))
+	content.add_child(_label(component.to_upper(), 18, TEXT_MAIN))
 	content.add_child(_label("PROJECT  " + project_id, 11, ACCENT))
 	var target := str(project.get("research_target", "")).strip_edges()
 	if not target.is_empty():
@@ -1459,7 +1459,7 @@ func _build_validation_project_card(project: Dictionary, parent: Control) -> voi
 
 	var review_button := _button("REVIEW FINDINGS  ›", true, ACCENT)
 	review_button.name = "ReviewValidationButton"
-	review_button.custom_minimum_size = Vector2(_scaled(210.0), _scaled(46.0))
+	review_button.custom_minimum_size = Vector2(_scaled(172.0), _scaled(40.0))
 	review_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	review_button.pressed.connect(open_validation_review.bind(project_id))
 	content.add_child(review_button)
@@ -1479,11 +1479,11 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 
 	var progress_panel := _add_panel(main_row, 1.55)
 	progress_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	progress_panel.add_theme_constant_override("separation", roundi(_scaled(10.0)))
+	progress_panel.add_theme_constant_override("separation", roundi(_scaled(7.0)))
 	var component_name := str(project.get("component", project.get("title", "Research project")))
 	if component_name == "Screen Technology":
 		component_name = "Screen Tech"
-	var component_label := _label(component_name.to_upper(), 27, TEXT_MAIN)
+	var component_label := _label(component_name.to_upper(), 21, TEXT_MAIN)
 	component_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	component_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	progress_panel.add_child(component_label)
@@ -1501,13 +1501,14 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 	progress_bar.max_value = 100.0
 	progress_bar.value = progress * 100.0
 	progress_bar.show_percentage = false
-	progress_bar.custom_minimum_size.y = _scaled(22.0)
+	progress_bar.custom_minimum_size = Vector2(_scaled(340.0), _scaled(12.0))
+	progress_bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var progress_track := StyleBoxFlat.new()
 	progress_track.bg_color = Color("#303336")
-	progress_track.set_corner_radius_all(5)
+	progress_track.set_corner_radius_all(4)
 	var progress_fill := StyleBoxFlat.new()
 	progress_fill.bg_color = ACCENT
-	progress_fill.set_corner_radius_all(5)
+	progress_fill.set_corner_radius_all(4)
 	progress_bar.add_theme_stylebox_override("background", progress_track)
 	progress_bar.add_theme_stylebox_override("fill", progress_fill)
 	progress_panel.add_child(progress_bar)
@@ -1525,7 +1526,7 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 
 	var details_panel := _add_panel(main_row, 0.86)
 	details_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	details_panel.add_theme_constant_override("separation", roundi(_scaled(9.0)))
+	details_panel.add_theme_constant_override("separation", roundi(_scaled(6.0)))
 	details_panel.add_child(_label("PROJECT  " + project_id, 13, ACCENT))
 	_add_large_metric(details_panel, "%.0f%%" % float(project.get("success_chance", 0.0)), "SUCCESS", TEXT_MAIN)
 	var detail_divider := ColorRect.new()
@@ -1549,7 +1550,7 @@ func _add_panel(parent: Control, stretch_ratio: float = 1.0) -> VBoxContainer:
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.size_flags_stretch_ratio = stretch_ratio
-	content.add_theme_constant_override("separation", roundi(_scaled(18.0)))
+	content.add_theme_constant_override("separation", roundi(_scaled(10.0)))
 	parent.add_child(content)
 	return content
 
@@ -1570,8 +1571,8 @@ func _add_large_metric(parent: VBoxContainer, value: String, caption: String, co
 	var metric := VBoxContainer.new()
 	metric.add_theme_constant_override("separation", roundi(_scaled(2.0)))
 	parent.add_child(metric)
-	var value_label := _label(value, 26, color)
-	value_label.add_theme_font_size_override("font_size", _scaled_font(26))
+	var value_label := _label(value, 22, color)
+	value_label.add_theme_font_size_override("font_size", _scaled_font(22))
 	metric.add_child(value_label)
 	metric.add_child(_label(caption, 10, TEXT_MUTED))
 
