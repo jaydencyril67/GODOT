@@ -9667,7 +9667,6 @@ func _refresh_power_volume_controls() -> void:
 	var is_power := power_volume_mode == "POWER"
 	var enabled := power_button_enabled if is_power else volume_button_enabled
 	var selected_edge := power_button_edge if is_power else volume_button_edge
-	var selected_position := power_button_y if is_power else volume_button_y
 	var position_level := _get_power_volume_position_research_level()
 
 	for mode in power_volume_mode_buttons:
