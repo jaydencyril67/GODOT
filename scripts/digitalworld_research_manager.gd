@@ -771,6 +771,16 @@ static func ensure_state(career: Dictionary) -> void:
 	var component_levels_value: Variant = career.get("research_component_levels", {})
 	if not (component_levels_value is Dictionary):
 		career["research_component_levels"] = {}
+	var component_levels: Dictionary = career.get("research_component_levels", {})
+	if int(component_levels.get("Box Package", 0)) < 1:
+		for saved_project_value in projects:
+			if not (saved_project_value is Dictionary):
+				continue
+			var saved_box_package_project: Dictionary = saved_project_value
+			if str(saved_box_package_project.get("component", "")) == "Box Package" and str(saved_box_package_project.get("status", "")) == STATUS_APPROVED and int(saved_box_package_project.get("research_target_index", -1)) == 1 and str(saved_box_package_project.get("research_target", "")) == "Box Package":
+				component_levels["Box Package"] = 1
+				break
+	career["research_component_levels"] = component_levels
 	var technologies_value: Variant = career.get("research_technologies", {})
 	if not (technologies_value is Dictionary):
 		career["research_technologies"] = {}
@@ -889,7 +899,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if not (existing_project_value is Dictionary):
 				continue
 			var existing_box_package_project: Dictionary = existing_project_value
-			if str(existing_box_package_project.get("component", "")) == component and str(existing_box_package_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+			if str(existing_box_package_project.get("component", "")) == component and str(existing_box_package_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION, STATUS_APPROVED]:
 				return _failure("Box Package research is already in progress or awaiting validation.")
 
 	if component == "Wireless Earbuds":
@@ -1364,6 +1374,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Wireless Earbuds":
 		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != "Wireless Earbuds":
 			return _failure("This Wireless Earbuds project is no longer a valid, unapproved enablement unlock.")
+	elif component == "Box Package":
+		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != "Box Package":
+			return _failure("This Box Package project is no longer a valid, unapproved enablement unlock.")
 	elif component == "Device Color":
 		device_color_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or device_color_target_index != 1 or str(project.get("research_target", "")) != "Gradient Finish":
@@ -1443,6 +1456,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next raised back-design box capacity assigned to this project.")
 		if result_component in ["Device Color", "Smartwatch", "Wireless Earbuds"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact gradient-finish unlock assigned to this project.")
+		if result_component == "Box Package" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact Box Package unlock assigned to this project.")
 		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1556,6 +1571,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		component_levels[component] = 1
 	elif component == "Wireless Earbuds":
 		# One approved project unlocks the Wireless Earbuds worksite controls.
+		component_levels[component] = 1
+	elif component == "Box Package":
+		# One approved project unlocks all Box Package worksite customization controls.
 		component_levels[component] = 1
 	elif component == "Device Color":
 		# Solid colour is the default; one approved project unlocks gradient finishes.
