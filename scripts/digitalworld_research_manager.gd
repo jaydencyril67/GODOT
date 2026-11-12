@@ -12,7 +12,10 @@ const STATUS_APPROVED := "approved"
 const STATUS_REJECTED := "rejected"
 const STATUS_SUCCESSFUL := "successful"
 const STATUS_UNSUCCESSFUL := "unsuccessful"
-const RESEARCH_SUCCESS_CHANCE := 0.70
+const RESEARCH_BASE_SUCCESS_CHANCE := 50.0
+const RESEARCH_MAX_SUCCESS_CHANCE := 90.0
+const RESEARCH_SUCCESS_POINTS_PER_100_EFFICIENCY := 1.0
+const RESEARCH_SUCCESS_FORMULA_VERSION := 1
 const STATUS_CANCELLED := "cancelled"
 const FRONT_CAMERA_MODEL_COUNT := 8
 const FRONT_CAMERA_MP_BASE := 1
@@ -676,6 +679,13 @@ static func ensure_state(career: Dictionary) -> void:
 		project.erase("work_required_hours")
 		project.erase("work_completed_hours")
 		project.erase("daily_work_hours")
+		# Recalculate saved projects once using only the efficiency already recorded
+		# for the researchers assigned to that specific project.
+		if int(project.get("success_formula_version", 0)) < RESEARCH_SUCCESS_FORMULA_VERSION:
+			project["success_chance"] = _calculate_research_success_chance(
+				float(project.get("team_efficiency", 0.0))
+			)
+			project["success_formula_version"] = RESEARCH_SUCCESS_FORMULA_VERSION
 		projects[index] = project
 	career["research_projects"] = projects
 	var component_levels_value: Variant = career.get("research_component_levels", {})
@@ -719,6 +729,15 @@ static func get_workforce_summary(career: Dictionary) -> Dictionary:
 	}
 
 
+static func _calculate_research_success_chance(team_efficiency: float) -> float:
+	var efficiency_contribution := maxf(0.0, team_efficiency) / 100.0 * RESEARCH_SUCCESS_POINTS_PER_100_EFFICIENCY
+	return clampf(
+		RESEARCH_BASE_SUCCESS_CHANCE + efficiency_contribution,
+		RESEARCH_BASE_SUCCESS_CHANCE,
+		RESEARCH_MAX_SUCCESS_CHANCE
+	)
+
+
 static func estimate_research(component_value: String, requested_staff: Array, employees: Array) -> Dictionary:
 	var component := normalize_component(component_value)
 	if not COMPONENT_CATALOGUE.has(component):
@@ -750,9 +769,9 @@ static func estimate_research(component_value: String, requested_staff: Array, e
 		MIN_RESEARCH_DURATION_DAYS,
 		BASE_RESEARCH_DURATION_DAYS - team_efficiency / 100.0
 	)
-	# Team size increases speed; average staff efficiency determines the success chance.
-	# The chance is capped below 100% so research always retains some uncertainty.
-	var success_chance := clampf(50.0 + average_efficiency * 0.45, 50.0, 95.0)
+	# Each assigned researcher contributes independently: 100 efficiency points
+	# add one percentage point to success. Unassigned company staff do not count.
+	var success_chance := _calculate_research_success_chance(team_efficiency)
 	return {
 		"ok": true,
 		"component": component,
@@ -1041,7 +1060,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		"estimated_duration_days": float(estimate.get("expected_duration_days", BASE_RESEARCH_DURATION_DAYS)),
 		"team_efficiency": float(estimate.get("team_efficiency", 0.0)),
 		"average_efficiency": float(estimate.get("average_efficiency", 0.0)),
-		"success_chance": float(estimate.get("success_chance", 50.0)),
+		"success_chance": float(estimate.get("success_chance", RESEARCH_BASE_SUCCESS_CHANCE)),
+		"success_formula_version": RESEARCH_SUCCESS_FORMULA_VERSION,
 		"staff_ids": valid_staff_ids,
 		"status": STATUS_ACTIVE,
 		"pause_reason": "",
@@ -1097,7 +1117,7 @@ static func advance_projects(career: Dictionary, in_game_seconds: float, game_ti
 		if completed_days >= required_days:
 			project["completed_at_unix"] = game_time_unix
 			var success_roll := randf()
-			var project_success_chance := clampf(float(project.get("success_chance", RESEARCH_SUCCESS_CHANCE * 100.0)) / 100.0, 0.0, 1.0)
+			var project_success_chance := clampf(float(project.get("success_chance", RESEARCH_BASE_SUCCESS_CHANCE)) / 100.0, 0.0, 1.0)
 			var successful := success_roll < project_success_chance
 			project["success_roll"] = success_roll
 			project["success_chance"] = project_success_chance * 100.0
