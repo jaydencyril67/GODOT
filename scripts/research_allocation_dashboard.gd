@@ -1326,7 +1326,11 @@ func _update_research_estimate() -> void:
 	if not is_instance_valid(start_button):
 		return
 	var component := _selected_component()
-	var estimate := ResearchManagerScript.estimate_research(component, assigned_staff_ids, staff_employees)
+	var target_index := -1
+	if component == "Wireless Charging":
+		var wireless_target: Dictionary = ResearchManagerScript.get_wireless_charging_research_target(research_component_levels)
+		target_index = int(wireless_target.get("index", -1))
+	var estimate := ResearchManagerScript.estimate_research(component, assigned_staff_ids, staff_employees, target_index)
 	start_button.disabled = not bool(estimate.get("ok", false))
 
 
