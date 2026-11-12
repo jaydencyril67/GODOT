@@ -175,8 +175,7 @@ func _build_interface() -> void:
 	screen_glass.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	screen_frame.add_child(screen_glass)
 
-	# The display intentionally remains blank. OS identity, status UI and
-	# interactive content will be added during the next planning/implementation stages.
+	_build_home_screen_preview(screen_glass)
 
 	var right_region := MarginContainer.new()
 	configuration_region = right_region
@@ -253,6 +252,160 @@ func _build_interface() -> void:
 
 	_apply_responsive_layout()
 	_keep_step_navigation_active()
+
+
+func _build_home_screen_preview(screen: PanelContainer) -> void:
+	var screen_content := VBoxContainer.new()
+	screen_content.name = "OSHomeScreenContent"
+	screen_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	screen_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	screen_content.add_theme_constant_override("separation", 5)
+	screen.add_child(screen_content)
+
+	var status_row := HBoxContainer.new()
+	status_row.name = "HomeStatusBar"
+	status_row.custom_minimum_size.y = 13
+	screen_content.add_child(status_row)
+	var time_label := _label("9:41", 8, Color("#F4F5F7"))
+	time_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_row.add_child(time_label)
+	var status_icons := _label("▮  Wi-Fi  ▰", 7, Color("#E9EDF2"))
+	status_icons.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	status_row.add_child(status_icons)
+
+	var top_widget := PanelContainer.new()
+	top_widget.name = "HomeScreenFeaturedWidget"
+	top_widget.custom_minimum_size.y = 48
+	var widget_style := StyleBoxFlat.new()
+	widget_style.bg_color = Color(0.10, 0.16, 0.25, 0.88)
+	widget_style.set_corner_radius_all(10)
+	widget_style.content_margin_left = 8
+	widget_style.content_margin_right = 8
+	widget_style.content_margin_top = 5
+	widget_style.content_margin_bottom = 5
+	top_widget.add_theme_stylebox_override("panel", widget_style)
+	screen_content.add_child(top_widget)
+	var widget_content := VBoxContainer.new()
+	widget_content.add_theme_constant_override("separation", 0)
+	top_widget.add_child(widget_content)
+	var greeting := _label("MONDAY, 12 NOVEMBER", 6, Color("#B8C7D9"))
+	widget_content.add_child(greeting)
+	var widget_main := HBoxContainer.new()
+	widget_content.add_child(widget_main)
+	var clock := _label("09:41", 21, Color("#FFFFFF"))
+	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	widget_main.add_child(clock)
+	var weather := _label("☀  27°\nLAGOS", 7, Color("#E8D9B8"))
+	weather.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	weather.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	widget_main.add_child(weather)
+
+	var search := PanelContainer.new()
+	search.name = "HomeSearchBar"
+	search.custom_minimum_size.y = 19
+	var search_style := StyleBoxFlat.new()
+	search_style.bg_color = Color(0.91, 0.94, 0.98, 0.14)
+	search_style.set_corner_radius_all(10)
+	search_style.content_margin_left = 8
+	search_style.content_margin_right = 8
+	search_style.content_margin_top = 2
+	search_style.content_margin_bottom = 2
+	search.add_theme_stylebox_override("panel", search_style)
+	screen_content.add_child(search)
+	var search_label := _label("⌕   Search apps", 7, Color("#D6DEE8"))
+	search.add_child(search_label)
+
+	var app_grid := GridContainer.new()
+	app_grid.name = "HomeAppGrid"
+	app_grid.columns = 4
+	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	app_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	app_grid.add_theme_constant_override("h_separation", 2)
+	app_grid.add_theme_constant_override("v_separation", 3)
+	screen_content.add_child(app_grid)
+	var apps := [
+		["Phone", "☎", "#3C9B82"],
+		["Messages", "✉", "#438DCE"],
+		["Camera", "◉", "#68778D"],
+		["Gallery", "▧", "#C57D57"],
+		["Music", "♫", "#9B6FC0"],
+		["Browser", "◎", "#4D9AA0"],
+		["Calendar", "▦", "#B66D6D"],
+		["Tools", "▤", "#71879A"]
+	]
+	for app in apps:
+		app_grid.add_child(_make_home_app_icon(str(app[0]), str(app[1]), Color(str(app[2]))))
+	app_grid.add_child(_make_home_app_icon("Social", "▣", Color("#527D9B")))
+	app_grid.add_child(_make_home_app_icon("Games", "▦", Color("#9A7954"), true))
+	app_grid.add_child(_make_home_app_icon("Work", "▣", Color("#617F70"), true))
+	app_grid.add_child(_make_home_app_icon("Travel", "◇", Color("#7A719B")))
+
+	var page_row := HBoxContainer.new()
+	page_row.name = "HomePageIndicator"
+	page_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	page_row.custom_minimum_size.y = 7
+	screen_content.add_child(page_row)
+	var page_dots := _label("•  ●  •", 8, Color("#E7EAF0"))
+	page_row.add_child(page_dots)
+
+	var dock := PanelContainer.new()
+	dock.name = "HomeAppDock"
+	dock.custom_minimum_size.y = 35
+	var dock_style := StyleBoxFlat.new()
+	dock_style.bg_color = Color(0.86, 0.91, 0.98, 0.16)
+	dock_style.set_corner_radius_all(12)
+	dock_style.content_margin_left = 5
+	dock_style.content_margin_right = 5
+	dock_style.content_margin_top = 3
+	dock_style.content_margin_bottom = 3
+	dock.add_theme_stylebox_override("panel", dock_style)
+	screen_content.add_child(dock)
+	var dock_row := HBoxContainer.new()
+	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	dock_row.add_theme_constant_override("separation", 8)
+	dock.add_child(dock_row)
+	for item in [["☎", "#3C9B82"], ["✉", "#438DCE"], ["◎", "#4D9AA0"], ["◉", "#68778D"]]:
+		var dock_icon := Label.new()
+		dock_icon.text = str(item[0])
+		dock_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		dock_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		dock_icon.custom_minimum_size = Vector2(22, 24)
+		dock_icon.add_theme_font_size_override("font_size", 13)
+		dock_icon.add_theme_color_override("font_color", Color("#FFFFFF"))
+		var icon_style := StyleBoxFlat.new()
+		icon_style.bg_color = Color(str(item[1]))
+		icon_style.set_corner_radius_all(7)
+		dock_icon.add_theme_stylebox_override("normal", icon_style)
+		dock_row.add_child(dock_icon)
+
+
+func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder: bool = false) -> Control:
+	var item := VBoxContainer.new()
+	item.name = "HomeApp_" + app_name.replace(" ", "")
+	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	item.add_theme_constant_override("separation", 1)
+	var icon_tile := PanelContainer.new()
+	icon_tile.name = "IconTile"
+	icon_tile.custom_minimum_size = Vector2(23, 23)
+	icon_tile.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var tile_style := StyleBoxFlat.new()
+	tile_style.bg_color = tint
+	tile_style.set_corner_radius_all(7)
+	tile_style.content_margin_left = 2
+	tile_style.content_margin_right = 2
+	tile_style.content_margin_top = 1
+	tile_style.content_margin_bottom = 1
+	icon_tile.add_theme_stylebox_override("panel", tile_style)
+	item.add_child(icon_tile)
+	var glyph_label := _label(glyph, 13, Color("#FFFFFF"))
+	glyph_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	glyph_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_tile.add_child(glyph_label)
+	var name_label := _label(app_name, 6, Color("#F0F2F5"))
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.clip_text = true
+	item.add_child(name_label)
+	return item
 
 
 func _apply_responsive_layout() -> void:
