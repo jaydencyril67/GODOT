@@ -2277,6 +2277,8 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 		return
 
 	var normalized_page := page.to_upper()
+	if charger_research_level <= 0:
+		normalized_page = "HOME"
 	if normalized_page == "FINISH":
 		_open_worksite_charger_color_controls()
 		return
@@ -2389,14 +2391,13 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 				var wattage_heading := _label("OUTPUT POWER", 14, Color("#C58A3A"))
 				panel.add_child(wattage_heading)
 
-				var wattage_value := _label("%d W" % int(self.get("charger_wattage")), 32, Color("#ffffff"), HORIZONTAL_ALIGNMENT_CENTER)
+				var available_wattage_maximum := maxi(2, _get_charger_wattage_maximum())
+				charger_wattage = clampi(charger_wattage, 2, available_wattage_maximum)
+				var wattage_value := _label("%d W" % charger_wattage, 32, Color("#ffffff"), HORIZONTAL_ALIGNMENT_CENTER)
 				wattage_value.name = "ChargerOutputWattageValue"
 				wattage_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				panel.add_child(wattage_value)
 				self.set("charger_wattage_label", wattage_value)
-
-				var available_wattage_maximum := maxi(2, _get_charger_wattage_maximum())
-				charger_wattage = clampi(charger_wattage, 2, available_wattage_maximum)
 				var wattage_range := _label("2W — %dW · INDEPENDENT ADAPTER OUTPUT" % available_wattage_maximum, 11, Color("#B8AFA2"), HORIZONTAL_ALIGNMENT_CENTER)
 				wattage_range.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				panel.add_child(wattage_range)
@@ -8254,6 +8255,8 @@ func _on_charger_cable_selected(value: String) -> void:
 	_show_worksite_charger_controls("CABLE")
 
 func _on_charger_color_selected(value: String) -> void:
+	if charger_research_level < 1:
+		return
 	match value:
 		"Pearl White":
 			charger_body_color = Color("#e8edf2")
