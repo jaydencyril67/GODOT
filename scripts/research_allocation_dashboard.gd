@@ -1391,7 +1391,8 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 		narrow_actions.add_child(project_count)
 		var create_button := _button("CREATE NEW", true, ACCENT)
 		create_button.name = "CreateResearchWhileActiveButton"
-		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(40.0))
+		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(64.0))
+		create_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		create_button.pressed.connect(_open_creation_scene)
 		narrow_actions.add_child(create_button)
 	else:
@@ -1408,7 +1409,8 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 		page_heading.add_child(_label("%d ACTIVE  ·  %d TO REVIEW" % [projects.size(), pending_projects.size()], 12, ACCENT))
 		var create_button := _button("CREATE NEW", true, ACCENT)
 		create_button.name = "CreateResearchWhileActiveButton"
-		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(40.0))
+		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(64.0))
+		create_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		create_button.pressed.connect(_open_creation_scene)
 		page_heading.add_child(create_button)
 		body_content.add_child(page_heading)
