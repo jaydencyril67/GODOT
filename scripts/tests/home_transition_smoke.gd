@@ -1187,11 +1187,11 @@ func _run_transition_checks() -> void:
 	game.career["research_projects"] = ram_capacity_projects
 	var ram_capacity_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 29.0,
-		game.game_date_unix + 86400.0 * 29.0
+		86400.0 * 30.0,
+		game.game_date_unix + 86400.0 * 30.0
 	)
 	if not ram_capacity_completed_ids.has(str(ram_capacity_project.get("id", ""))):
-		_fail("The RAM capacity project did not complete after its estimated 29-day duration.")
+		_fail("The RAM capacity project did not complete after its fixed 30-day duration.")
 		return
 	if int(game.career.get("research_component_levels", {}).get("RAM", 0)) != 0:
 		_fail("RAM capacity unlocked before its completed project passed technical validation.")
@@ -1229,11 +1229,11 @@ func _run_transition_checks() -> void:
 	game.career["research_projects"] = storage_projects
 	var storage_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 29.0,
-		game.game_date_unix + 86400.0 * 29.0
+		86400.0 * 30.0,
+		game.game_date_unix + 86400.0 * 30.0
 	)
 	if not storage_completed_ids.has(str(storage_project.get("id", ""))):
-		_fail("The Internal Storage project did not complete after its estimated 29-day duration.")
+		_fail("The Internal Storage project did not complete after its fixed 30-day duration.")
 		return
 	if int(game.career.get("research_component_levels", {}).get("Internal Storage", 0)) != 0:
 		_fail("Internal Storage unlocked before its completed project passed technical validation.")
@@ -1376,11 +1376,11 @@ func _run_transition_checks() -> void:
 	game.career["research_projects"] = cooling_projects
 	var cooling_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 29.0,
-		game.game_date_unix + 86400.0 * 29.0
+		86400.0 * 30.0,
+		game.game_date_unix + 86400.0 * 30.0
 	)
 	if not cooling_completed_ids.has(str(cooling_project.get("id", ""))):
-		_fail("The Cooling System Design project did not complete after its estimated 29-day duration.")
+		_fail("The Cooling System Design project did not complete after its fixed 30-day duration.")
 		return
 	var cooling_validation: Dictionary = game.approve_research_project(str(cooling_project.get("id", "")), [{
 		"component": "Cooling System Design",
@@ -1567,8 +1567,8 @@ func _complete_mobile_network_research_project(expected_technology: String, expe
 	game.career["research_projects"] = projects
 	var completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 29.0,
-		game.game_date_unix + 86400.0 * 29.0
+		86400.0 * 30.0,
+		game.game_date_unix + 86400.0 * 30.0
 	)
 	if not completed_ids.has(str(project.get("id", ""))):
 		_fail("The Mobile Network project for %s did not complete." % expected_technology)
@@ -1635,8 +1635,8 @@ func _complete_wifi_research_project(expected_technology: String, expected_gener
 	game.career["research_projects"] = projects
 	var completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 29.0,
-		game.game_date_unix + 86400.0 * 29.0
+		86400.0 * 30.0,
+		game.game_date_unix + 86400.0 * 30.0
 	)
 	if not completed_ids.has(str(project.get("id", ""))):
 		_fail("The Wi-Fi project for %s did not complete." % expected_technology)
@@ -1702,8 +1702,8 @@ func _complete_bluetooth_research_project(expected_version: String) -> bool:
 	game.career["research_projects"] = projects
 	var completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 29.0,
-		game.game_date_unix + 86400.0 * 29.0
+		86400.0 * 30.0,
+		game.game_date_unix + 86400.0 * 30.0
 	)
 	if not completed_ids.has(str(project.get("id", ""))):
 		_fail("The Bluetooth project for %s did not complete." % expected_version)
