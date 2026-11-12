@@ -248,6 +248,13 @@ func _run_wireless_charging_progression_checks() -> bool:
 			_fail("Wireless Charging Level %d produced the wrong maximum." % level)
 			return false
 
+	if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days("Wireless Charging", 1), 370.0):
+		_fail("The initial Wireless Charging unlock did not use its 370-day duration.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days("Wireless Charging", 2), 45.0):
+		_fail("Wireless Charging speed upgrades did not use their 45-day duration.")
+		return false
+
 	var first_target: Dictionary = ResearchManagerScript.get_wireless_charging_research_target({})
 	if int(first_target.get("index", -1)) != 1 or str(first_target.get("technology", "")) != "1W":
 		_fail("The first Wireless Charging project did not unlock Level 1 at 1W.")
@@ -281,6 +288,9 @@ func _run_wireless_charging_progression_checks() -> bool:
 	var project: Dictionary = commission.get("project", {})
 	if str(project.get("research_target", "")) != "1W" or int(project.get("research_target_index", -1)) != 1:
 		_fail("The initial Wireless Charging project did not store its exact 1W unlock target.")
+		return false
+	if not is_equal_approx(float(project.get("required_research_days", 0.0)), 370.0):
+		_fail("The initial Wireless Charging unlock project did not require 370 days.")
 		return false
 
 	var duplicate_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
@@ -325,6 +335,9 @@ func _run_wireless_charging_progression_checks() -> bool:
 		_fail("The next Wireless Charging speed upgrade could not be commissioned.")
 		return false
 	var next_project: Dictionary = next_commission.get("project", {})
+	if not is_equal_approx(float(next_project.get("required_research_days", 0.0)), 45.0):
+		_fail("The next Wireless Charging speed upgrade did not require 45 days.")
+		return false
 	projects = test_career.get("research_projects", [])
 	for project_index in range(projects.size()):
 		if str(projects[project_index].get("id", "")) == str(next_project.get("id", "")):
