@@ -2539,6 +2539,7 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
 		phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
 		phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
+		phone_creation_worksite.call("set_protection_glass_research_level", int(career.get("research_component_levels", {}).get("Protection Glass", 0)))
 	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
 	var approved_component := str(result.get("project", {}).get("component", ""))
@@ -2646,6 +2647,7 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
 		phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
 		phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
+		phone_creation_worksite.call("set_protection_glass_research_level", int(career.get("research_component_levels", {}).get("Protection Glass", 0)))
 	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
 	return result
@@ -2767,6 +2769,7 @@ func _prepare_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
 	phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
+	phone_creation_worksite.call("set_protection_glass_research_level", int(career.get("research_component_levels", {}).get("Protection Glass", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("research_component_levels", {}).get("Battery Capacity", 0)))
 	phone_creation_worksite.call("set_power_bank_research_level", int(career.get("research_component_levels", {}).get("Power Bank", 0)))
