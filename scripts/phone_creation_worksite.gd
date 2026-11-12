@@ -6333,13 +6333,18 @@ func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: 
 	var row := HBoxContainer.new()
 	row.name = row_name
 	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	row.add_theme_constant_override("separation", 7)
+	row.custom_minimum_size = Vector2(230, 40)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
 	row_center.add_child(row)
 
 	var label := _make_label(label_text, 14, Color.WHITE)
+	label.custom_minimum_size = Vector2(176, 36)
 	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	row.add_child(label)
 
 	var toggle := Button.new()
@@ -6347,7 +6352,7 @@ func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: 
 	toggle.toggle_mode = true
 	toggle.button_pressed = enabled
 	toggle.text = "✓" if enabled else ""
-	toggle.custom_minimum_size = Vector2(34, 34)
+	toggle.custom_minimum_size = Vector2(36, 36)
 	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	toggle.focus_mode = Control.FOCUS_NONE
