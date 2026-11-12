@@ -508,6 +508,8 @@ var power_bank_color_mode := false
 
 var smartwatch_color_mode := false
 
+var smartwatch_research_level := 0
+
 var phone_case_custom_enabled := false
 var phone_case_research_level := 0
 
@@ -2605,6 +2607,26 @@ func _show_worksite_smartwatch_controls() -> void:
 	var heading := _label("SMART WATCH", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_child(heading)
+	if smartwatch_research_level <= 0:
+		var research_center := CenterContainer.new()
+		research_center.name = "SmartwatchResearchControlsCenter"
+		research_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		research_center.custom_minimum_size = Vector2(0, 360)
+		panel.add_child(research_center)
+		var research_button := Button.new()
+		research_button.name = "SmartwatchResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, 13)
+		_style_button(research_button, true)
+		research_button.pressed.connect(func(): research_requested.emit())
+		research_center.add_child(research_button)
+		step_panels[35] = panel
+		return
+
 	var description := _label("Add a rotatable 3D smartwatch accessory to the product preview. Drag the centre preview to inspect the case, display and strap.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(description)
@@ -3769,6 +3791,18 @@ func set_protection_glass_research_level(level: int) -> void:
 		_refresh_phone_screen()
 	if wizard_step == 33:
 		_show_worksite_protection_glass_controls()
+
+
+func set_smartwatch_research_level(level: int) -> void:
+	var updated_level := clampi(level, 0, 1)
+	if updated_level == smartwatch_research_level:
+		return
+	smartwatch_research_level = updated_level
+	if smartwatch_research_level <= 0:
+		smartwatch_enabled = false
+		smartwatch_color_mode = false
+	if wizard_step == 35:
+		_show_worksite_smartwatch_controls()
 
 
 func set_phone_case_research_level(level: int) -> void:
