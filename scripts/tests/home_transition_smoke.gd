@@ -1377,13 +1377,14 @@ func _run_transition_checks() -> void:
 			cooling_projects[project_index]["success_chance"] = 100.0
 			break
 	game.career["research_projects"] = cooling_projects
+	var cooling_duration_days := float(ResearchManagerScript.COMPONENT_RESEARCH_DURATION_DAYS.get("Cooling System Design", 30.0))
 	var cooling_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 30.0,
-		game.game_date_unix + 86400.0 * 30.0
+		86400.0 * cooling_duration_days,
+		game.game_date_unix + 86400.0 * cooling_duration_days
 	)
 	if not cooling_completed_ids.has(str(cooling_project.get("id", ""))):
-		_fail("The Cooling System Design project did not complete after its fixed 30-day duration.")
+		_fail("The Cooling System Design project did not complete after its fixed duration of %s days." % str(cooling_duration_days))
 		return
 	var cooling_validation: Dictionary = game.approve_research_project(str(cooling_project.get("id", "")), [{
 		"component": "Cooling System Design",
