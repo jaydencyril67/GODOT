@@ -20,7 +20,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Front Camera MP": 45.0,
 	"RAM": 120.0,
 	"Internal Storage": 160.0,
-	"RAM Technology": 650.0
+	"RAM Technology": 650.0,
+	"Mobile Network": 365.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
