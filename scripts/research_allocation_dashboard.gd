@@ -1139,6 +1139,7 @@ func _build_staff_selection_scene() -> void:
 	_build_staff_choices()
 
 	_build_staff_page_navigation()
+	_show_staff_page(0)
 
 	var actions: BoxContainer = VBoxContainer.new() if _is_narrow_layout() else HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1233,8 +1234,6 @@ func _build_staff_choices() -> void:
 		staff_button.add_theme_stylebox_override("disabled", normal)
 		staff_button.pressed.connect(_on_staff_toggled.bind(not selected, employee_id))
 		parent.add_child(staff_button)
-	_build_staff_page_navigation()
-	_show_staff_page(0)
 
 
 func _create_staff_page_grid() -> GridContainer:
