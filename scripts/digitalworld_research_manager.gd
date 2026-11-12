@@ -55,7 +55,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Wireless Earbuds": 230.0,
 	"Charger": 200.0,
 	"Side Button": 120.0,
-	"Sound Button": 110.0
+	"Sound Button": 110.0,
+	"Style Pen (S Pen)": 150.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
