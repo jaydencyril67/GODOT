@@ -44,7 +44,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Magnetometer / Compass": 365.0,
 	"Barometer": 365.0,
 	"GNSS / GPS Receiver": 365.0,
-	"Rear Camera MP": 60.0
+	"Rear Camera MP": 60.0,
+	"Rear Camera Count": 360.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
