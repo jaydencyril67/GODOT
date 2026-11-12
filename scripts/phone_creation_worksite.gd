@@ -10154,44 +10154,18 @@ func _show_home_button_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 8)
 	right_tools_content.add_child(active_feature_panel)
 
-	var header_row := HBoxContainer.new()
-	header_row.name = "HomeButtonHeaderRow"
-	header_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	active_feature_panel.add_child(header_row)
-
 	var title := _make_label("HOME BUTTON", 19, Color.WHITE)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header_row.add_child(title)
+	active_feature_panel.add_child(title)
 
-	var enable_row := HBoxContainer.new()
-	enable_row.name = "HomeButtonEnablementRow"
-	enable_row.size_flags_horizontal = Control.SIZE_SHRINK_END
-	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	enable_row.add_theme_constant_override("separation", 9)
-	header_row.add_child(enable_row)
-
-	var enable_toggle := Button.new()
-	enable_toggle.name = "HomeButtonEnablement"
-	enable_toggle.toggle_mode = true
-	enable_toggle.button_pressed = home_button_enabled
-	enable_toggle.text = "✓" if home_button_enabled else ""
-	enable_toggle.custom_minimum_size = Vector2(30, 30)
-	enable_toggle.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(enable_toggle, 17)
-	for state in ["normal", "hover", "pressed", "focus"]:
-		var toggle_style := StyleBoxFlat.new()
-		toggle_style.bg_color = Color("#805821") if state != "hover" else Color("#805A2A")
-		if state == "pressed" or state == "focus":
-			toggle_style.bg_color = Color("#966A2F")
-		toggle_style.border_color = Color("#C58A3A")
-		toggle_style.set_border_width_all(2)
-		toggle_style.set_corner_radius_all(7)
-		enable_toggle.add_theme_stylebox_override(state, toggle_style)
-	enable_toggle.add_theme_color_override("font_color", Color.WHITE)
-	enable_toggle.toggled.connect(_on_home_button_enablement_toggled)
-	enable_row.add_child(enable_toggle)
+	_add_screen_enablement_row(
+		active_feature_panel,
+		"HomeButtonEnablementRow",
+		"HomeButtonEnablement",
+		"Enable Home Button",
+		home_button_enabled,
+		Callable(self, "_on_home_button_enablement_toggled")
+	)
 
 	home_button_value_label = _make_label("", 16, Color("#C58A3A"))
 	home_button_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -10262,7 +10236,7 @@ func _on_home_button_enablement_toggled(enabled: bool) -> void:
 	_refresh_phone_home_button()
 	if home_button_type == "On-screen":
 		_refresh_phone_screen()
-	var toggle := active_feature_panel.get_node_or_null("HomeButtonEnablementRow/HomeButtonEnablement") if is_instance_valid(active_feature_panel) else null
+	var toggle := active_feature_panel.get_node_or_null("HomeButtonEnablementRowCenter/HomeButtonEnablementRow/HomeButtonEnablement") if is_instance_valid(active_feature_panel) else null
 	if is_instance_valid(toggle):
 		toggle.text = "✓" if enabled else ""
 	_refresh_home_button_controls()
