@@ -136,6 +136,7 @@ func _process(delta: float) -> void:
 			phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
 			phone_creation_worksite.call("set_side_button_research_levels", career.get("research_component_levels", {}))
 			phone_creation_worksite.call("set_power_volume_button_research_levels", career.get("research_component_levels", {}))
+			phone_creation_worksite.call("set_smartwatch_research_level", int(career.get("research_component_levels", {}).get("Smartwatch", 0)))
 		if is_instance_valid(research_allocation_dashboard):
 			research_allocation_dashboard.call("configure", _get_research_dashboard_data())
 	var current_day := floori(game_date_unix / 86400.0)
