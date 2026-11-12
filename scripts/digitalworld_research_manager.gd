@@ -22,7 +22,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Internal Storage": 160.0,
 	"RAM Technology": 650.0,
 	"Mobile Network": 365.0,
-	"Wi-Fi": 320.0
+	"Wi-Fi": 320.0,
+	"Bluetooth": 240.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
