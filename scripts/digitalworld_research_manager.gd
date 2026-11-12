@@ -48,7 +48,9 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Rear Camera Count": 360.0,
 	"Rear Flash Count": 200.0,
 	"Back Raised Design": 370.0,
-	"Device Color": 35.0
+	"Device Color": 35.0,
+	"Phone Case": 250.0,
+	"Protection Glass": 120.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
