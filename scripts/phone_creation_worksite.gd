@@ -743,9 +743,9 @@ var power_volume_mode := "POWER"
 var power_volume_button_research_levels: Dictionary = {}
 var power_volume_mode_buttons: Dictionary = {}
 var power_volume_enable_toggle: TextureButton
-var power_volume_edge_buttons: Dictionary = {}
 var power_volume_position_value_label: Label
-var power_volume_position_research_button: Button
+var power_volume_position_previous_button: Button
+var power_volume_position_next_button: Button
 var power_volume_length_slider: HSlider
 var power_volume_length_label: Label
 var power_volume_length_research_button: Button
@@ -9556,70 +9556,43 @@ func _show_power_volume_controls() -> void:
 	power_volume_enable_toggle.toggled.connect(_on_power_volume_enable_toggled)
 	enable_row.add_child(power_volume_enable_toggle)
 
-	var edge_caption := _make_label("BUTTON EDGE", 12, Color("#D3AA6B"))
-	edge_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(edge_caption)
-
-	var edge_row := HBoxContainer.new()
-	edge_row.name = "PowerVolumeEdgeChoices"
-	edge_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	edge_row.add_theme_constant_override("separation", 6)
-	active_feature_panel.add_child(edge_row)
-	power_volume_edge_buttons.clear()
-	for edge in ["left", "top", "right"]:
-		var edge_button := Button.new()
-		edge_button.name = "PowerVolumeEdge" + edge.capitalize()
-		edge_button.text = edge.to_upper()
-		edge_button.custom_minimum_size = Vector2(0, 38)
-		edge_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		edge_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(edge_button, 12)
-		_style_button(edge_button, _get_power_volume_edge() == edge)
-		edge_button.pressed.connect(_on_power_volume_edge_selected.bind(edge))
-		edge_row.add_child(edge_button)
-		power_volume_edge_buttons[edge] = edge_button
-
-	power_volume_position_value_label = _make_label("", 15, Color("#C58A3A"))
-	power_volume_position_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	power_volume_position_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.add_child(power_volume_position_value_label)
+	var position_caption := _make_label("POSITION", 12, Color("#D3AA6B"))
+	position_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(position_caption)
 
 	var position_row := HBoxContainer.new()
-	position_row.name = "PowerVolumePositionControls"
+	position_row.name = "PowerVolumePositionSelector"
 	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	position_row.add_theme_constant_override("separation", 12)
+	position_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	position_row.add_theme_constant_override("separation", 14)
 	active_feature_panel.add_child(position_row)
 
-	var position_down := Button.new()
-	position_down.name = "DecreasePowerVolumePosition"
-	position_down.text = "−"
-	position_down.custom_minimum_size = Vector2(56, 48)
-	position_down.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(position_down, 24)
-	_style_button(position_down, false)
-	position_down.pressed.connect(_on_power_volume_position_step.bind(-1))
-	position_row.add_child(position_down)
+	power_volume_position_previous_button = Button.new()
+	power_volume_position_previous_button.name = "PreviousPowerVolumePosition"
+	power_volume_position_previous_button.text = "<"
+	power_volume_position_previous_button.custom_minimum_size = Vector2(56, 48)
+	power_volume_position_previous_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(power_volume_position_previous_button, 22)
+	_style_button(power_volume_position_previous_button, false)
+	power_volume_position_previous_button.pressed.connect(_on_power_volume_position_cycle.bind(-1))
+	position_row.add_child(power_volume_position_previous_button)
 
-	var position_up := Button.new()
-	position_up.name = "IncreasePowerVolumePosition"
-	position_up.text = "+"
-	position_up.custom_minimum_size = Vector2(56, 48)
-	position_up.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(position_up, 24)
-	_style_button(position_up, false)
-	position_up.pressed.connect(_on_power_volume_position_step.bind(1))
-	position_row.add_child(position_up)
+	power_volume_position_value_label = _make_label("RIGHT", 16, Color("#C58A3A"))
+	power_volume_position_value_label.name = "PowerVolumePositionValue"
+	power_volume_position_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	power_volume_position_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	power_volume_position_value_label.custom_minimum_size = Vector2(112, 48)
+	position_row.add_child(power_volume_position_value_label)
 
-	power_volume_position_research_button = Button.new()
-	power_volume_position_research_button.name = "PowerVolumePositionResearchButton"
-	power_volume_position_research_button.text = "RESEARCH POSITION"
-	power_volume_position_research_button.custom_minimum_size = Vector2(0, 42)
-	power_volume_position_research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	power_volume_position_research_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(power_volume_position_research_button, 12)
-	_style_button(power_volume_position_research_button, true)
-	power_volume_position_research_button.pressed.connect(_request_power_volume_position_research)
-	active_feature_panel.add_child(power_volume_position_research_button)
+	power_volume_position_next_button = Button.new()
+	power_volume_position_next_button.name = "NextPowerVolumePosition"
+	power_volume_position_next_button.text = ">"
+	power_volume_position_next_button.custom_minimum_size = Vector2(56, 48)
+	power_volume_position_next_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(power_volume_position_next_button, 22)
+	_style_button(power_volume_position_next_button, false)
+	power_volume_position_next_button.pressed.connect(_on_power_volume_position_cycle.bind(1))
+	position_row.add_child(power_volume_position_next_button)
 
 	var length_divider := ColorRect.new()
 	length_divider.name = "PowerVolumeLengthDivider"
@@ -9711,22 +9684,15 @@ func _refresh_power_volume_controls() -> void:
 		power_volume_enable_toggle.texture_disabled = _make_side_button_checkbox_icon(false)
 		power_volume_enable_toggle.tooltip_text = "Enable or disable the " + ("power button" if is_power else "volume rocker")
 
-	for edge in ["left", "top", "right"]:
-		var edge_button := power_volume_edge_buttons.get(edge) as Button
-		if not is_instance_valid(edge_button):
-			continue
-		edge_button.disabled = edge != "right" and position_level < 1
-		_style_button(edge_button, selected_edge == edge)
-
 	if is_instance_valid(power_volume_position_value_label):
-		power_volume_position_value_label.text = "POSITION ON %s EDGE  ·  %d%%" % [
-			selected_edge.to_upper(),
-			roundi(selected_position / 1.20 * 100.0)
-		]
-	if is_instance_valid(power_volume_position_research_button):
-		power_volume_position_research_button.visible = position_level < 1
-		power_volume_position_research_button.disabled = position_level >= 1
-		power_volume_position_research_button.tooltip_text = "Unlock left-edge and top-edge placement for this button."
+		power_volume_position_value_label.text = selected_edge.to_upper()
+	var position_unlocked := position_level >= 1
+	if is_instance_valid(power_volume_position_previous_button):
+		power_volume_position_previous_button.disabled = not position_unlocked
+		_style_button(power_volume_position_previous_button, false)
+	if is_instance_valid(power_volume_position_next_button):
+		power_volume_position_next_button.disabled = not position_unlocked
+		_style_button(power_volume_position_next_button, false)
 
 	var length_level := clampi(
 		int(power_volume_button_research_levels.get(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, 0)),
@@ -9762,16 +9728,21 @@ func _on_power_volume_enable_toggled(enabled: bool) -> void:
 	_refresh_power_volume_controls()
 
 
-func _on_power_volume_edge_selected(edge: String) -> void:
-	if edge not in ["left", "top", "right"]:
-		return
-	if edge != "right" and _get_power_volume_position_research_level() < 1:
+func _on_power_volume_position_cycle(direction: int) -> void:
+	if _get_power_volume_position_research_level() < 1:
 		_refresh_power_volume_controls()
 		return
+	var available_positions: Array[String] = ["right", "left", "top"]
+	var current_edge := _get_power_volume_edge()
+	var current_index := available_positions.find(current_edge)
+	if current_index < 0:
+		current_index = 0
+	var next_index := posmod(current_index + direction, available_positions.size())
+	var next_edge := available_positions[next_index]
 	if power_volume_mode == "POWER":
-		power_button_edge = edge
+		power_button_edge = next_edge
 	else:
-		volume_button_edge = edge
+		volume_button_edge = next_edge
 	_normalize_power_volume_positions("power" if power_volume_mode == "POWER" else "volume")
 	_refresh_phone_side_buttons()
 	_refresh_power_volume_controls()
@@ -9785,12 +9756,6 @@ func _on_power_volume_position_step(direction: int) -> void:
 	_normalize_power_volume_positions("power" if power_volume_mode == "POWER" else "volume")
 	_refresh_phone_side_buttons()
 	_refresh_power_volume_controls()
-
-
-func _request_power_volume_position_research() -> void:
-	if _get_power_volume_position_research_level() >= 1:
-		return
-	research_requested.emit()
 
 
 func _request_power_volume_length_research() -> void:
