@@ -191,7 +191,12 @@ func _close_custom_picker() -> void:
 func _clear_custom_content() -> void:
 	_close_custom_picker()
 	if is_instance_valid(_custom_content):
-		_custom_content.queue_free()
+		# Remove findings content synchronously before another prompt can be
+		# opened in the same frame after an approval or retry action.
+		var content_parent := _custom_content.get_parent()
+		if is_instance_valid(content_parent):
+			content_parent.remove_child(_custom_content)
+		_custom_content.free()
 	_custom_content = null
 
 
