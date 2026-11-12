@@ -3795,13 +3795,14 @@ func set_protection_glass_research_level(level: int) -> void:
 
 func set_smartwatch_research_level(level: int) -> void:
 	var updated_level := clampi(level, 0, 1)
-	if updated_level == smartwatch_research_level:
-		return
+	var level_changed := updated_level != smartwatch_research_level
 	smartwatch_research_level = updated_level
 	if smartwatch_research_level <= 0:
 		smartwatch_enabled = false
 		smartwatch_color_mode = false
-	if wizard_step == 35:
+		_rebuild_smartwatch_preview()
+		_set_smartwatch_preview_mode(false)
+	if level_changed and wizard_step == 35:
 		_show_worksite_smartwatch_controls()
 
 
