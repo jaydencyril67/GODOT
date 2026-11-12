@@ -450,15 +450,15 @@ func _animate_landing_menu(root: Control, welcome: Control, command_area: Contro
 	_run_landing_copy_cycle(welcome)
 
 	command_panel.pivot_offset = command_panel.size * 0.5
+	# Make the commands interactive as soon as the cinematic reveal completes.
+	# The panel entrance remains purely visual and must not block Continue.
+	for button in buttons:
+		if is_instance_valid(button):
+			button.disabled = false
+
 	var intro := create_tween().set_parallel(true)
 	intro.tween_property(command_area, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	intro.tween_property(command_panel, "scale", Vector2.ONE, 0.95).set_delay(0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	intro.set_parallel(false)
-	intro.tween_callback(func() -> void:
-		for button in buttons:
-			if is_instance_valid(button):
-				button.disabled = false
-	)
 
 
 func _animate_landing_text_label(label: Label, duration: float, delay: float, character_interval: float) -> void:
