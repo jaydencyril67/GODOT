@@ -1030,7 +1030,7 @@ func _run_transition_checks() -> void:
 		_fail("Opening the R&D centre hid or replaced the underlying Research page.")
 		return
 	var dashboard = game.research_allocation_dashboard
-	if not dashboard.has_signal("project_commission_requested") or not dashboard.has_signal("project_approve_requested") or not dashboard.has_signal("project_reject_requested"):
+	if not dashboard.has_signal("project_commission_requested") or not dashboard.has_signal("project_approve_requested") or not dashboard.has_signal("project_retry_requested"):
 		_fail("R&D dashboard project management signals are missing.")
 		return
 	if not is_instance_valid(dashboard.get_node_or_null("ResearchManagementFrame/ResearchManagementPage/ResearchManagementBody")):
@@ -1079,7 +1079,7 @@ func _run_transition_checks() -> void:
 		"research_history": []
 	})
 	if review_dashboard.find_child("ReviewValidationButton", true, false) == null:
-		_fail("Completed research did not appear in the Ready for Technical Validation section.")
+		_fail("Completed research did not appear in the Completed Research section.")
 		return
 	var validation_grid := review_dashboard.find_child("ResearchValidationGrid", true, false) as GridContainer
 	var active_grid := review_dashboard.find_child("ResearchInDevelopmentGrid", true, false) as GridContainer
