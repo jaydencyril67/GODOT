@@ -65,7 +65,10 @@ var game_date_unix := 0.0
 
 
 func configure(data: Dictionary, pop_alert: Node = null) -> void:
-	existing_pop_alert = pop_alert
+	# A data-only refresh must not discard the alert instance supplied at creation.
+	# Otherwise the first completed action breaks every later findings popup.
+	if pop_alert != null:
+		existing_pop_alert = pop_alert
 	game_date_unix = float(data.get("game_date_unix", game_date_unix))
 	company_name = str(data.get("company_name", "Your Company"))
 	company_balance = maxf(0.0, float(data.get("balance", 0.0)))
