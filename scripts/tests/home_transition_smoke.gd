@@ -1105,50 +1105,80 @@ func _run_transition_checks() -> void:
 		if label_text.contains("%") or label_text.contains("STAFF") or label_text.contains("Hidden Researcher Name") or label_text.contains("SUCCESS") or label_text.contains("PROJECT COMPLETION"):
 			_fail("The active research card still displays a removed progress, success, or staff metric.")
 			return
+	var findings_alert := ConfirmModalScript.new()
+	root.add_child(findings_alert)
+	review_dashboard.call("configure", {
+		"company_name": "Validation UI Smoke Test",
+		"balance": 1000000.0,
+		"staff_employees": [],
+		"research_projects": [{
+			"id": "RDP-REVIEW-SMOKE",
+			"component": "Charging Speed",
+			"components": ["Charging Speed", "Charger"],
+			"research_target": "4W",
+			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
+			"staff_ids": []
+		}, {
+			"id": "RDP-FAILED-SMOKE",
+			"component": "Battery Capacity",
+			"components": ["Battery Capacity"],
+			"research_target": "1,350 mAh",
+			"status": ResearchManagerScript.STATUS_UNSUCCESSFUL,
+			"staff_ids": []
+		}],
+		"research_technologies": {},
+		"research_component_levels": {},
+		"research_history": []
+	}, findings_alert)
 	review_dashboard.call("open_validation_review", "RDP-REVIEW-SMOKE")
 	await process_frame
-	for control_name in ["ValidationReviewScreen", "ValidationMetricInput", "ValidationValueInput", "ValidationNotesInput", "ValidationReviewApproveButton", "ValidationReviewRejectButton"]:
-		if review_dashboard.find_child(control_name, true, false) == null:
-			_fail("The technical validation screen is missing %s." % control_name)
-			return
-	var validation_value_input := review_dashboard.find_child("ValidationValueInput", true, false) as LineEdit
-	if str(review_dashboard.call("_default_validation_metric", "Wireless Charging")) != "Maximum wireless charging speed":
-		_fail("The technical review form did not provide a wireless charging validation metric.")
+	var findings_summary := findings_alert.find_child("ResearchFindingsSummary", true, false)
+	if not is_instance_valid(findings_summary):
+		_fail("View Findings did not open the compact findings alert.")
 		return
-	if str(review_dashboard.call("_default_validation_metric", "Front Camera MP")) != "Maximum front camera resolution":
-		_fail("The technical review form did not provide a Front Camera MP validation metric.")
+	if findings_summary.get_child_count() != 4:
+		_fail("The findings alert contains unexpected input fields or extra content.")
 		return
-	if validation_value_input.text != "4W":
-		_fail("The review form did not prefill the exact assigned Charging Speed target.")
+	if review_dashboard.find_child("ValidationMetricInput", true, false) != null or review_dashboard.find_child("ValidationNotesInput", true, false) != null:
+		_fail("The findings alert still exposes manual validation inputs.")
+		return
+	var approval_button: Button
+	for button_value in findings_alert.find_children("*", "Button", true, false):
+		var candidate := button_value as Button
+		if candidate.text == "APPROVE":
+			approval_button = candidate
+			break
+	if not is_instance_valid(approval_button):
+		_fail("Successful research findings did not provide an Approve button.")
 		return
 	var captured_approvals: Array = []
-	var captured_rejections: Array = []
 	review_dashboard.project_approve_requested.connect(func(project_id: String, results: Array) -> void:
 		captured_approvals.append({"project_id": project_id, "results": results.duplicate(true)})
 	)
-	review_dashboard.project_reject_requested.connect(func(project_id: String, review_note: String) -> void:
-		captured_rejections.append({"project_id": project_id, "review_note": review_note})
+	findings_alert.call("_confirm")
+	if captured_approvals.size() != 1 or str(captured_approvals[0].get("project_id", "")) != "RDP-REVIEW-SMOKE":
+		_fail("The findings alert Approve action did not submit the completed project.")
+		return
+	review_dashboard.call("open_validation_review", "RDP-FAILED-SMOKE")
+	await process_frame
+	var retry_button_found := false
+	for button_value in findings_alert.find_children("*", "Button", true, false):
+		var candidate := button_value as Button
+		if candidate.text == "RETRY":
+			retry_button_found = true
+			break
+	if not retry_button_found:
+		_fail("Failed research findings did not provide a Retry button.")
+		return
+	var captured_retries: Array = []
+	review_dashboard.project_retry_requested.connect(func(project_id: String) -> void:
+		captured_retries.append(project_id)
 	)
-	review_dashboard.call("_on_validation_approve_pressed")
-	if captured_approvals.size() != 1:
-		_fail("The Approve Findings action did not submit the validation result.")
+	findings_alert.call("_confirm")
+	if captured_retries.size() != 1 or str(captured_retries[0]) != "RDP-FAILED-SMOKE":
+		_fail("The findings alert Retry action did not submit the failed project.")
 		return
-	var submitted_results: Array = captured_approvals[0].get("results", [])
-	if str(captured_approvals[0].get("project_id", "")) != "RDP-REVIEW-SMOKE" or submitted_results.size() != 1 or str(submitted_results[0].get("value", "")) != "4W" or str(submitted_results[0].get("component", "")) != "Charging Speed":
-		_fail("The review form submitted the wrong project or research target.")
-		return
-	var validation_notes_input := review_dashboard.find_child("ValidationNotesInput", true, false) as TextEdit
-	validation_notes_input.text = "The test result did not meet the required target."
-	review_dashboard.call("_on_validation_reject_pressed")
-	if captured_rejections.size() != 1 or str(captured_rejections[0].get("review_note", "")) != validation_notes_input.text:
-		_fail("The Reject action did not submit the technical review reason.")
-		return
-	validation_notes_input.text = ""
-	review_dashboard.call("_on_validation_reject_pressed")
-	var review_error := review_dashboard.find_child("ValidationReviewError", true, false) as Label
-	if captured_rejections.size() != 1 or not review_error.text.contains("review reason"):
-		_fail("The review form allowed a project rejection without a reason.")
-		return
+	findings_alert.queue_free()
 	review_dashboard.queue_free()
 
 	dashboard.call("_open_creation_scene")
