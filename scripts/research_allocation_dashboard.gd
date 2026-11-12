@@ -39,6 +39,14 @@ var component_page_next: Button
 var component_page_viewport: Control
 var component_swipe_start := Vector2.ZERO
 var component_swipe_active := false
+var staff_page_grids: Array[GridContainer] = []
+var staff_page_index := 0
+var staff_page_indicator: Label
+var staff_page_previous: Button
+var staff_page_next: Button
+var staff_page_viewport: Control
+var staff_swipe_start := Vector2.ZERO
+var staff_swipe_active := false
 var estimate_label: Label
 var start_button: Button
 var assigned_staff_ids: Array[String] = []
@@ -1063,26 +1071,47 @@ func _finish_component_swipe(end_position: Vector2) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not creation_mode or creation_step != 1 or not is_instance_valid(component_page_viewport):
+	if not creation_mode:
 		return
-	var page_rect := component_page_viewport.get_global_rect()
+	var active_viewport: Control
+	if creation_step == 1 and is_instance_valid(component_page_viewport):
+		active_viewport = component_page_viewport
+	elif creation_step == 2 and is_instance_valid(staff_page_viewport):
+		active_viewport = staff_page_viewport
+	else:
+		return
+	var page_rect := active_viewport.get_global_rect()
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and page_rect.has_point(touch.position):
-			component_swipe_start = touch.position
-			component_swipe_active = true
+			if creation_step == 1:
+				component_swipe_start = touch.position
+				component_swipe_active = true
+			else:
+				staff_swipe_start = touch.position
+				staff_swipe_active = true
 		elif not touch.pressed:
-			_finish_component_swipe(touch.position)
-	elif event is InputEventScreenDrag and component_swipe_active:
-		# The gesture is completed on touch release to avoid changing pages mid-drag.
+			if creation_step == 1:
+				_finish_component_swipe(touch.position)
+			else:
+				_finish_staff_swipe(touch.position)
+	elif event is InputEventScreenDrag:
+		# Complete page changes on touch release to avoid changing pages mid-drag.
 		pass
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var mouse_button := event as InputEventMouseButton
 		if mouse_button.pressed and page_rect.has_point(mouse_button.position):
-			component_swipe_start = mouse_button.position
-			component_swipe_active = true
+			if creation_step == 1:
+				component_swipe_start = mouse_button.position
+				component_swipe_active = true
+			else:
+				staff_swipe_start = mouse_button.position
+				staff_swipe_active = true
 		elif not mouse_button.pressed:
-			_finish_component_swipe(mouse_button.position)
+			if creation_step == 1:
+				_finish_component_swipe(mouse_button.position)
+			else:
+				_finish_staff_swipe(mouse_button.position)
 
 
 func _open_staff_selection_step() -> void:
@@ -1095,23 +1124,21 @@ func _build_staff_selection_scene() -> void:
 	body_content = _new_screen_root()
 	body.add_child(body_content)
 
-	var staff_scroll := ScrollContainer.new()
-	staff_scroll.name = "ResearchStaffScroll"
-	staff_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	staff_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	staff_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	staff_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	body_content.add_child(staff_scroll)
+	var heading := _label("SELECT RESEARCH STAFF", 26, TEXT_MAIN)
+	heading.custom_minimum_size.y = _scaled(58.0)
+	body_content.add_child(heading)
 
-	var staff_grid := GridContainer.new()
-	staff_grid.name = "ResearchStaffGrid"
-	staff_grid.columns = _responsive_grid_columns(190.0, 4)
-	staff_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	staff_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	staff_grid.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
-	staff_grid.add_theme_constant_override("v_separation", roundi(_scaled(12.0)))
-	staff_scroll.add_child(staff_grid)
-	_build_staff_choices(staff_grid)
+	staff_page_grids.clear()
+	staff_page_index = 0
+	staff_page_viewport = VBoxContainer.new()
+	staff_page_viewport.name = "ResearchStaffPages"
+	staff_page_viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	staff_page_viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	staff_page_viewport.add_theme_constant_override("separation", 0)
+	body_content.add_child(staff_page_viewport)
+	_build_staff_choices()
+
+	_build_staff_page_navigation()
 
 	var actions: BoxContainer = VBoxContainer.new() if _is_narrow_layout() else HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1144,14 +1171,32 @@ func _return_to_component_step() -> void:
 	creation_step = 1
 	_render_scene()
 
-func _build_staff_choices(parent: GridContainer) -> void:
+func _build_staff_choices() -> void:
 	var occupied_ids := _active_project_staff_ids()
+	var columns := 5
+	var page_capacity := columns * 4
+	var eligible_count := 0
+	for employee_value in staff_employees:
+		if employee_value is Dictionary and str(employee_value.get("department", "")) == "Research":
+			eligible_count += 1
+	if eligible_count == 0:
+		var empty_grid := _create_staff_page_grid()
+		var empty_label := _label("NO RESEARCH STAFF AVAILABLE", 18, TEXT_MUTED, HORIZONTAL_ALIGNMENT_CENTER)
+		empty_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		empty_label.custom_minimum_size.y = _scaled(68.0)
+		empty_grid.add_child(empty_label)
+		return
+	var staff_index := 0
 	for employee_value in staff_employees:
 		if not (employee_value is Dictionary):
 			continue
 		var employee: Dictionary = employee_value
 		if str(employee.get("department", "")) != "Research":
 			continue
+		if staff_index % page_capacity == 0:
+			_create_staff_page_grid()
+		var parent := staff_page_grids[staff_page_grids.size() - 1]
+		staff_index += 1
 		var employee_id := str(employee.get("id", ""))
 		var employee_name := str(employee.get("full_name", employee.get("name", "Research employee")))
 		var selected := assigned_staff_ids.has(employee_id)
@@ -1188,6 +1233,81 @@ func _build_staff_choices(parent: GridContainer) -> void:
 		staff_button.add_theme_stylebox_override("disabled", normal)
 		staff_button.pressed.connect(_on_staff_toggled.bind(not selected, employee_id))
 		parent.add_child(staff_button)
+	_build_staff_page_navigation()
+	_show_staff_page(0)
+
+
+func _create_staff_page_grid() -> GridContainer:
+	var page_grid := GridContainer.new()
+	page_grid.name = "ResearchStaffPage_%d" % staff_page_grids.size()
+	page_grid.columns = 5
+	page_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	page_grid.add_theme_constant_override("h_separation", roundi(_scaled(10.0)))
+	page_grid.add_theme_constant_override("v_separation", roundi(_scaled(10.0)))
+	page_grid.visible = staff_page_grids.is_empty()
+	staff_page_grids.append(page_grid)
+	staff_page_viewport.add_child(page_grid)
+	return page_grid
+
+
+func _build_staff_page_navigation() -> void:
+	var navigation := HBoxContainer.new()
+	navigation.name = "ResearchStaffPageNavigation"
+	navigation.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation.add_theme_constant_override("separation", roundi(_scaled(14.0)))
+	body_content.add_child(navigation)
+
+	staff_page_previous = _button("‹", false, TEXT_MUTED)
+	staff_page_previous.custom_minimum_size = Vector2(_scaled(42.0), _scaled(34.0))
+	staff_page_previous.pressed.connect(_show_previous_staff_page)
+	navigation.add_child(staff_page_previous)
+
+	staff_page_indicator = _label("", 12, TEXT_MUTED, HORIZONTAL_ALIGNMENT_CENTER)
+	staff_page_indicator.custom_minimum_size.x = _scaled(92.0)
+	navigation.add_child(staff_page_indicator)
+
+	staff_page_next = _button("›", false, TEXT_MUTED)
+	staff_page_next.custom_minimum_size = Vector2(_scaled(42.0), _scaled(34.0))
+	staff_page_next.pressed.connect(_show_next_staff_page)
+	navigation.add_child(staff_page_next)
+
+
+func _show_staff_page(page_index: int) -> void:
+	if staff_page_grids.is_empty():
+		return
+	staff_page_index = clampi(page_index, 0, staff_page_grids.size() - 1)
+	for index in range(staff_page_grids.size()):
+		staff_page_grids[index].visible = index == staff_page_index
+	if is_instance_valid(staff_page_indicator):
+		staff_page_indicator.text = "PAGE %d / %d" % [staff_page_index + 1, staff_page_grids.size()]
+	if is_instance_valid(staff_page_previous):
+		staff_page_previous.disabled = staff_page_index <= 0
+	if is_instance_valid(staff_page_next):
+		staff_page_next.disabled = staff_page_index >= staff_page_grids.size() - 1
+
+
+func _show_previous_staff_page() -> void:
+	_show_staff_page(staff_page_index - 1)
+
+
+func _show_next_staff_page() -> void:
+	_show_staff_page(staff_page_index + 1)
+
+
+func _finish_staff_swipe(end_position: Vector2) -> void:
+	if not staff_swipe_active:
+		return
+	staff_swipe_active = false
+	var delta := end_position - staff_swipe_start
+	if absf(delta.x) < 55.0 or absf(delta.x) <= absf(delta.y) * 1.2:
+		return
+	if delta.x < 0.0:
+		_show_next_staff_page()
+	else:
+		_show_previous_staff_page()
 
 
 func _on_staff_toggled(checked: bool, employee_id: String) -> void:
