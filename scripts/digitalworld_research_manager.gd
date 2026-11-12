@@ -5,7 +5,7 @@ const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.g
 
 # Research duration is fixed by component. Staff efficiency affects success chance, never duration.
 const BASE_RESEARCH_DURATION_DAYS := 30.0
-const RESEARCH_DURATION_FORMULA_VERSION := 1
+const RESEARCH_DURATION_FORMULA_VERSION := 2
 const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Screen Technology": 45.0,
 	"Screen Width": 60.0,
@@ -77,6 +77,7 @@ const CHARGING_SPEED_STEP_W := 3
 const CHARGING_SPEED_RESEARCH_UPGRADES := 66
 const CHARGING_SPEED_MAX_W := 200
 const WIRELESS_CHARGING_MAX_LEVEL := CHARGING_SPEED_RESEARCH_UPGRADES + 1
+const WIRELESS_CHARGING_SPEED_UPGRADE_DURATION_DAYS := 45.0
 const SCREEN_WIDTH_RESEARCH_LEVELS := 12
 const SCREEN_HEIGHT_RESEARCH_LEVELS := 12
 const REFRESH_RATE_RESEARCH_LEVELS := 30
@@ -90,8 +91,10 @@ const PHONE_CASE_RESEARCH_SEQUENCE := ["Custom Case Enablement (Smooth)", "Carbo
 const PROTECTION_GLASS_RESEARCH_SEQUENCE := ["Normal Glass", "Privacy Glass"]
 
 
-static func get_component_research_duration_days(component_value: String) -> float:
+static func get_component_research_duration_days(component_value: String, research_target_index: int = -1) -> float:
 	var component := normalize_component(component_value)
+	if component == "Wireless Charging" and research_target_index > 1:
+		return WIRELESS_CHARGING_SPEED_UPGRADE_DURATION_DAYS
 	return maxf(
 		MIN_RESEARCH_DURATION_DAYS,
 		float(COMPONENT_RESEARCH_DURATION_DAYS.get(component, BASE_RESEARCH_DURATION_DAYS))
@@ -723,7 +726,10 @@ static func ensure_state(career: Dictionary) -> void:
 				0.0,
 				1.0
 			)
-			var component_duration := get_component_research_duration_days(str(project.get("component", "")))
+			var component_duration := get_component_research_duration_days(
+				str(project.get("component", "")),
+				int(project.get("research_target_index", -1))
+			)
 			project["required_research_days"] = component_duration
 			project["completed_research_days"] = component_duration * progress_ratio
 			project["estimated_duration_days"] = component_duration
@@ -790,7 +796,7 @@ static func _calculate_research_success_chance(team_efficiency: float) -> float:
 	)
 
 
-static func estimate_research(component_value: String, requested_staff: Array, employees: Array) -> Dictionary:
+static func estimate_research(component_value: String, requested_staff: Array, employees: Array, research_target_index: int = -1) -> Dictionary:
 	var component := normalize_component(component_value)
 	if not COMPONENT_CATALOGUE.has(component):
 		return _failure("Choose an available research component.")
@@ -817,7 +823,7 @@ static func estimate_research(component_value: String, requested_staff: Array, e
 		return _failure("Assign at least one available Research employee.")
 
 	var average_efficiency := team_efficiency / float(staff_count)
-	var expected_days := get_component_research_duration_days(component)
+	var expected_days := get_component_research_duration_days(component, research_target_index)
 	# Each assigned researcher contributes independently: 100 efficiency points
 	# add one percentage point to success. Unassigned company staff do not count.
 	var success_chance := _calculate_research_success_chance(team_efficiency)
@@ -982,6 +988,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_power_volume_button_length_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component) else component}
+	if component == "Wireless Charging":
+		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
+
 	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
