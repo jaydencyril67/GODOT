@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -369,6 +369,8 @@ func close_validation_review() -> void:
 func _default_validation_metric(component: String) -> String:
 	if ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(component):
 		return "Sensor functionality and integration"
+	if ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(component):
+		return "Physical side-feature functionality and integration"
 	match component:
 		"Charging Speed":
 			return "Maximum wired charging speed"
@@ -699,24 +701,24 @@ func _build_component_selection_scene() -> void:
 					component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 					component_button.disabled = true
 					break
-		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])):
-			var sensor_component := str(COMPONENT_VALUES[index])
-			var sensor_researched := int(research_component_levels.get(sensor_component, 0)) >= 1
-			var sensor_project_in_progress := false
+		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(str(COMPONENT_VALUES[index])):
+			var unlock_component := str(COMPONENT_VALUES[index])
+			var component_researched := int(research_component_levels.get(unlock_component, 0)) >= 1
+			var component_project_in_progress := false
 			for project_value in research_projects:
 				if not (project_value is Dictionary):
 					continue
-				var sensor_project: Dictionary = project_value
-				if str(sensor_project.get("component", "")) == sensor_component and str(sensor_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
-					sensor_project_in_progress = true
+				var unlock_project: Dictionary = project_value
+				if str(unlock_project.get("component", "")) == unlock_component and str(unlock_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+					component_project_in_progress = true
 					break
-			component_button.disabled = sensor_researched or sensor_project_in_progress
-			if sensor_researched:
-				component_button.tooltip_text = "RESEARCH APPROVED — SENSOR UNLOCKED"
-			elif sensor_project_in_progress:
+			component_button.disabled = component_researched or component_project_in_progress
+			if component_researched:
+				component_button.tooltip_text = "RESEARCH APPROVED — FEATURE UNLOCKED"
+			elif component_project_in_progress:
 				component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 			else:
-				component_button.tooltip_text = "Commission a separate company-funded project to unlock this sensor."
+				component_button.tooltip_text = "Commission a separate company-funded project to unlock this feature."
 		elif COMPONENT_VALUES[index] in ["Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both"]:
 			var curved_component: String = str(COMPONENT_VALUES[index])
 			var already_researched := int(research_component_levels.get(curved_component, 0)) >= 1
