@@ -2775,6 +2775,7 @@ func _prepare_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
 	phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
+	phone_creation_worksite.call("set_box_package_research_level", int(career.get("research_component_levels", {}).get("Box Package", 0)))
 	phone_creation_worksite.call("set_protection_glass_research_level", int(career.get("research_component_levels", {}).get("Protection Glass", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("research_component_levels", {}).get("Battery Capacity", 0)))
