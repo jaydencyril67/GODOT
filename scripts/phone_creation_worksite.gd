@@ -2458,10 +2458,30 @@ func _show_worksite_power_bank_controls() -> void:
 	var panel := VBoxContainer.new()
 	panel.name = "WorksitePowerBankControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_theme_constant_override("separation", 8)
 	self.set("active_feature_panel", panel)
 	selection_stack.add_child(panel)
+
+	if researched_power_bank_level <= 0:
+		var research_center := CenterContainer.new()
+		research_center.name = "PowerBankResearchControlsCenter"
+		research_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		research_center.custom_minimum_size = Vector2(0, 360)
+		panel.add_child(research_center)
+		var research_button := Button.new()
+		research_button.name = "PowerBankResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, 13)
+		_style_button(research_button, true)
+		research_button.pressed.connect(func(): research_requested.emit())
+		research_center.add_child(research_button)
+		step_panels[36] = panel
+		return
 
 	var heading := _label("POWER BANK", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
