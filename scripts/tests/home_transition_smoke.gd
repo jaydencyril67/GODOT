@@ -526,6 +526,93 @@ func _run_rear_camera_mp_progression_checks() -> bool:
 	return true
 
 
+func _run_protection_glass_progression_checks() -> bool:
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Protection Glass"):
+		_fail("Protection Glass is missing from the R&D component catalogue.")
+		return false
+	if ResearchManagerScript.PROTECTION_GLASS_RESEARCH_SEQUENCE != ["Normal Glass", "Privacy Glass"]:
+		_fail("Protection Glass must contain only Normal Glass followed by Privacy Glass.")
+		return false
+	var first_target: Dictionary = ResearchManagerScript.get_protection_glass_research_target({})
+	if int(first_target.get("index", -1)) != 1 or str(first_target.get("technology", "")) != "Normal Glass":
+		_fail("The first Protection Glass project did not target Normal Glass.")
+		return false
+	var test_career: Dictionary = {
+		"staff_employees": [{"id": "protection_glass_researcher", "department": "Research", "efficiency": 100}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var first_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Protection Glass",
+		"staff_ids": ["protection_glass_researcher"]
+	}, 1000.0)
+	if not bool(first_commission.get("ok", false)):
+		_fail("Normal Glass could not be commissioned through the central research system.")
+		return false
+	var first_project: Dictionary = first_commission.get("project", {})
+	if str(first_project.get("research_target", "")) != "Normal Glass":
+		_fail("The Normal Glass project did not store its exact research target.")
+		return false
+	var duplicate: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Protection Glass",
+		"staff_ids": ["protection_glass_researcher"]
+	}, 1000.0)
+	if bool(duplicate.get("ok", false)):
+		_fail("A duplicate Normal Glass project was allowed while the first was active.")
+		return false
+	var projects: Array = test_career.get("research_projects", [])
+	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var invalid_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(first_project.get("id", "")), [{
+		"component": "Protection Glass",
+		"metric": "Validated protection glass type",
+		"value": "Privacy Glass"
+	}], 2000.0)
+	if bool(invalid_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Protection Glass", 0)) != 0:
+		_fail("Protection Glass accepted Privacy Glass before Normal Glass was approved.")
+		return false
+	var first_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(first_project.get("id", "")), [{
+		"component": "Protection Glass",
+		"metric": "Validated protection glass type",
+		"value": "Normal Glass"
+	}], 2000.0)
+	if not bool(first_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Protection Glass", 0)) != 1:
+		_fail("Approved Normal Glass research did not unlock the first glass type.")
+		return false
+	var second_target: Dictionary = ResearchManagerScript.get_protection_glass_research_target(test_career.get("research_component_levels", {}))
+	if int(second_target.get("index", -1)) != 2 or str(second_target.get("technology", "")) != "Privacy Glass":
+		_fail("Normal Glass approval did not advance the next target to Privacy Glass.")
+		return false
+	var second_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Protection Glass",
+		"staff_ids": ["protection_glass_researcher"]
+	}, 3000.0)
+	if not bool(second_commission.get("ok", false)):
+		_fail("Privacy Glass could not be commissioned after Normal Glass approval.")
+		return false
+	var second_project: Dictionary = second_commission.get("project", {})
+	projects = test_career.get("research_projects", [])
+	for project_index in range(projects.size()):
+		if str(projects[project_index].get("id", "")) == str(second_project.get("id", "")):
+			projects[project_index]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+			break
+	test_career["research_projects"] = projects
+	var second_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(second_project.get("id", "")), [{
+		"component": "Protection Glass",
+		"metric": "Validated protection glass type",
+		"value": "Privacy Glass"
+	}], 4000.0)
+	if not bool(second_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Protection Glass", 0)) != 2:
+		_fail("Approved Privacy Glass research did not unlock the second glass type.")
+		return false
+	if not ResearchManagerScript.get_protection_glass_research_target(test_career.get("research_component_levels", {})).is_empty():
+		_fail("Protection Glass offered another research type after both glass types were unlocked.")
+		return false
+	return true
+
+
 func _run_transition_checks() -> void:
 	if not _run_screen_technology_checks():
 		return
@@ -534,6 +621,8 @@ func _run_transition_checks() -> void:
 	if not _run_wireless_charging_progression_checks():
 		return
 	if not _run_power_bank_progression_checks():
+		return
+	if not _run_protection_glass_progression_checks():
 		return
 	if not _run_front_camera_mp_progression_checks():
 		return
