@@ -2507,7 +2507,7 @@ func _get_research_dashboard_data() -> Dictionary:
 
 func _refresh_research_dashboard() -> void:
 	if is_instance_valid(research_allocation_dashboard):
-		research_allocation_dashboard.call("configure", _get_research_dashboard_data())
+		research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
 
 
 func _on_rd_project_commission_requested(request: Dictionary) -> void:
@@ -2547,8 +2547,8 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
 		phone_creation_worksite.call("set_box_package_research_level", int(career.get("research_component_levels", {}).get("Box Package", 0)))
 		phone_creation_worksite.call("set_protection_glass_research_level", int(career.get("research_component_levels", {}).get("Protection Glass", 0)))
-	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
-	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
+		phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
+		phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
 	var approved_component := str(result.get("project", {}).get("component", ""))
 	var next_mobile_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Mobile Network" else {}
 	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Wi-Fi" else {}
