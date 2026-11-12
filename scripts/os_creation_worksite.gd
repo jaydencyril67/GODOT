@@ -11,6 +11,7 @@ var navigation_bar: HBoxContainer
 var worksite_body: BoxContainer
 var preview_region: Control
 var selection_panel: PanelContainer
+var configuration_region: Control
 var screen_frame: PanelContainer
 
 class GlassArrowButton extends Button:
@@ -178,6 +179,7 @@ func _build_interface() -> void:
 	# interactive content will be added during the next planning/implementation stages.
 
 	var right_region := MarginContainer.new()
+	configuration_region = right_region
 	right_region.name = "OSConfigurationRegion"
 	right_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -261,13 +263,13 @@ func _apply_responsive_layout() -> void:
 	worksite_body.vertical = not is_wide
 	if is_wide:
 		preview_region.size_flags_stretch_ratio = 1.12
-		selection_panel.size_flags_stretch_ratio = 0.88
+		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
-		var screen_height := clampf(viewport_size.y - 150.0, 190.0, 520.0)
+		var screen_height := clampf(viewport_size.y - 160.0, 180.0, 520.0)
 		screen_frame.custom_minimum_size = Vector2(screen_height * 0.48, screen_height)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
-		selection_panel.size_flags_stretch_ratio = 1.18
+		configuration_region.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
 		var screen_height := clampf(viewport_size.y * 0.30, 150.0, 280.0)
 		screen_frame.custom_minimum_size = Vector2(screen_height * 0.48, screen_height)
