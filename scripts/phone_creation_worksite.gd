@@ -10181,7 +10181,6 @@ func _on_side_feature_toggled(enabled: bool) -> void:
 	if feature == "style_pen":
 		_refresh_phone_speakers()
 	_refresh_side_button_controls()
-	_notify_worksite_full_selection_changed()
 
 
 func _on_side_feature_position_step(direction: int) -> void:
@@ -10197,7 +10196,6 @@ func _on_side_feature_position_step(direction: int) -> void:
 		return
 	_refresh_phone_side_buttons()
 	_refresh_side_button_controls()
-	_notify_worksite_full_selection_changed()
 
 
 func set_side_button_research_levels(levels: Dictionary) -> void:
