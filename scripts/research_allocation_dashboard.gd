@@ -392,6 +392,8 @@ func _default_validation_metric(component: String) -> String:
 			return "Maximum number of raised back-design boxes"
 		"Device Color":
 			return "Gradient device finish"
+		"Phone Case":
+			return "Phone case design or finish"
 		"Battery Capacity":
 			return "Maximum battery capacity"
 		"Screen Technology":
