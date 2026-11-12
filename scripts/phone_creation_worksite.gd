@@ -6325,14 +6325,19 @@ func _refresh_screen_type_controls() -> void:
 			screen_type_increase_button.disabled = _find_available_screen_type_level(1) == screen_type_level
 
 func _add_screen_enablement_row(parent: Control, row_name: String, toggle_name: String, label_text: String, enabled: bool, callback: Callable) -> void:
+	var row_center := CenterContainer.new()
+	row_center.name = row_name + "Center"
+	row_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(row_center)
+
 	var row := HBoxContainer.new()
 	row.name = row_name
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 9)
-	parent.add_child(row)
+	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	row.add_theme_constant_override("separation", 7)
+	row_center.add_child(row)
 
 	var label := _make_label(label_text, 14, Color.WHITE)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	row.add_child(label)
