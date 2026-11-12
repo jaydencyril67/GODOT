@@ -907,7 +907,7 @@ func _build_preview_world() -> void:
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	preview_container.add_child(_get_preview_viewport())
 	if is_instance_valid(preview_camera):
-		preview_camera.look_at_from_position(Vector3(0.0, 0.0, 4.9), Vector3.ZERO, Vector3.UP)
+		preview_camera.look_at_from_position(Vector3(0.0, 0.0, 4.6), Vector3.ZERO, Vector3.UP)
 	worksite_nested_color_view_opened.connect(_on_nested_color_view_opened)
 func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> void:
 	if not is_instance_valid(preview_viewport):
@@ -4414,7 +4414,7 @@ func _get_preview_viewport() -> SubViewport:
 	preview_world.add_child(fill_light)
 
 	preview_camera = Camera3D.new()
-	preview_camera.position = Vector3(0.0, 0.0, 5.2)
+	preview_camera.position = Vector3(0.0, 0.0, 4.6)
 	preview_camera.current = true
 	preview_camera.fov = 38.0
 	preview_world.add_child(preview_camera)
@@ -7364,7 +7364,7 @@ func _set_earbuds_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(wireless_earbuds_preview):
 		wireless_earbuds_preview.visible = enabled and wireless_earbuds_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 3.55 if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, 3.55 if enabled else 4.6)
 		preview_camera.fov = 35.0 if enabled else 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
@@ -7491,7 +7491,7 @@ func _set_power_bank_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(power_bank_preview):
 		power_bank_preview.visible = enabled and power_bank_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 4.15 if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, 4.15 if enabled else 4.6)
 		preview_camera.fov = 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
@@ -8195,7 +8195,7 @@ func _update_charger_preview_framing() -> void:
 		return
 	preview_camera.fov = 42.0 if combined_layout else 38.0
 	var camera_distance := 4.45 if combined_layout else (4.0 if cable_is_compatible and not charger_enabled else 3.65)
-	preview_camera.position = Vector3(0.0, 0.0, camera_distance if charger_preview_mode else 5.2)
+	preview_camera.position = Vector3(0.0, 0.0, camera_distance if charger_preview_mode else 4.6)
 	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 func _set_smartwatch_preview_mode(enabled: bool) -> void:
@@ -8213,7 +8213,7 @@ func _set_smartwatch_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(smartwatch_preview):
 		smartwatch_preview.visible = enabled and smartwatch_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 4.05 if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, 4.05 if enabled else 4.6)
 		preview_camera.fov = 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
@@ -15075,7 +15075,7 @@ func _set_box_package_preview_mode(enabled: bool) -> void:
 	if is_instance_valid(box_package_preview):
 		box_package_preview.visible = preview_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 5.55 if preview_enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, 5.55 if preview_enabled else 4.6)
 		preview_camera.fov = 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
@@ -15416,7 +15416,7 @@ func _zoom_camera(distance_change: float) -> void:
 func _reset_camera_zoom() -> void:
 	if not is_instance_valid(preview_camera):
 		return
-	preview_camera.position = Vector3(0.0, 0.0, 5.2)
+	preview_camera.position = Vector3(0.0, 0.0, 4.6)
 	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 func _on_back_pressed() -> void:
