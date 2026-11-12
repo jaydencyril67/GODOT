@@ -2811,7 +2811,7 @@ func _show_worksite_protection_glass_controls() -> void:
 	for glass_type in ["Normal Glass", "Privacy Glass"]:
 		var type_button := Button.new()
 		type_button.name = "ProtectionGlassType_" + glass_type.replace(" ", "")
-		var unlocked := glass_type == "Normal Glass" or glass_research_level >= 2
+		var unlocked: bool = glass_type == "Normal Glass" or glass_research_level >= 2
 		var is_selected: bool = str(self.get("screen_protector_finish")) == glass_type
 		type_button.text = glass_type.to_upper() + ("   ✓" if is_selected else "") + ("" if unlocked else "   LOCKED")
 		type_button.custom_minimum_size = Vector2(0, 44)
