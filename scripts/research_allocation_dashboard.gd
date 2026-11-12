@@ -3,7 +3,7 @@ extends Control
 signal back_requested
 signal project_commission_requested(request: Dictionary)
 signal project_approve_requested(project_id: String, results: Array)
-signal project_reject_requested(project_id: String, review_note: String)
+signal project_retry_requested(project_id: String)
 signal project_cancel_requested(project_id: String)
 
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
@@ -57,10 +57,6 @@ var top_bar_grid: GridContainer
 
 var active_project_id := ""
 var review_project_id := ""
-var review_metric_input: LineEdit
-var review_value_input: LineEdit
-var review_notes_input: TextEdit
-var review_error_label: Label
 var creation_mode := false
 var creation_step := 1
 var ui_scale := 1.0
@@ -287,10 +283,6 @@ func _render_scene() -> void:
 		return
 	_clear_body()
 	active_project_id = ""
-	review_metric_input = null
-	review_value_input = null
-	review_notes_input = null
-	review_error_label = null
 
 	component_buttons.clear()
 
@@ -301,12 +293,6 @@ func _render_scene() -> void:
 			_build_staff_selection_scene()
 		return
 
-	if not review_project_id.is_empty():
-		var review_project := _find_research_project(review_project_id)
-		if not review_project.is_empty() and str(review_project.get("status", "")) == ResearchManagerScript.STATUS_AWAITING_VALIDATION:
-			_build_validation_review_scene(review_project)
-			return
-		review_project_id = ""
 
 	var active_projects := _get_active_projects()
 	var pending_projects := _get_pending_validation_projects()
@@ -354,7 +340,7 @@ func _get_pending_validation_projects() -> Array[Dictionary]:
 	# Newest completed projects appear first for technical review.
 	for index in range(research_projects.size() - 1, -1, -1):
 		var project_value: Variant = research_projects[index]
-		if project_value is Dictionary and str(project_value.get("status", "")) == ResearchManagerScript.STATUS_AWAITING_VALIDATION:
+		if project_value is Dictionary and str(project_value.get("status", "")) in [ResearchManagerScript.STATUS_AWAITING_VALIDATION, ResearchManagerScript.STATUS_UNSUCCESSFUL]:
 			pending_projects.append(project_value)
 	return pending_projects
 
@@ -366,22 +352,53 @@ func _find_research_project(project_id: String) -> Dictionary:
 	return {}
 
 
-func _is_project_awaiting_validation(project_id: String) -> bool:
-	var project := _find_research_project(project_id)
-	return not project.is_empty() and str(project.get("status", "")) == ResearchManagerScript.STATUS_AWAITING_VALIDATION
-
-
 func open_validation_review(project_id: String) -> void:
-	if not _is_project_awaiting_validation(project_id):
+	var project := _find_research_project(project_id)
+	if project.is_empty():
 		return
-	creation_mode = false
-	review_project_id = project_id
-	_render_scene()
+	var status := str(project.get("status", ""))
+	if status not in [ResearchManagerScript.STATUS_AWAITING_VALIDATION, ResearchManagerScript.STATUS_UNSUCCESSFUL]:
+		return
+	var components: Array = project.get("components", [project.get("component", "Research")])
+	var component_lines := PackedStringArray()
+	for component_value in components:
+		component_lines.append("• " + str(component_value))
+	var successful := status == ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	var details := VBoxContainer.new()
+	details.name = "ResearchFindingsSummary"
+	details.add_theme_constant_override("separation", 12)
+	details.add_child(_label("COMPONENTS INVESTIGATED", 12, TEXT_MUTED))
+	var component_label := _label("\\n".join(component_lines), 17, TEXT_MAIN)
+	component_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details.add_child(component_label)
+	details.add_child(_label("RESEARCH RESULT", 12, TEXT_MUTED))
+	var result_label := _label("SUCCESS" if successful else "FAILED", 24, SUCCESS if successful else ORANGE)
+	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	details.add_child(result_label)
+	if is_instance_valid(existing_pop_alert):
+		var action_text := "APPROVE" if successful else "RETRY"
+		var action := Callable(self, "_request_findings_approval").bind(project_id) if successful else Callable(self, "_request_research_retry").bind(project_id)
+		existing_pop_alert.call("show_custom_prompt", "RESEARCH FINDINGS", "", details, action_text, action)
 
 
-func close_validation_review() -> void:
-	review_project_id = ""
-	_render_scene()
+func _request_findings_approval(project_id: String) -> void:
+	var project := _find_research_project(project_id)
+	if project.is_empty() or str(project.get("status", "")) != ResearchManagerScript.STATUS_AWAITING_VALIDATION:
+		return
+	var component := str(project.get("component", "Research"))
+	var result := {
+		"component": component,
+		"metric": _default_validation_metric(component),
+		"value": str(project.get("research_target", ""))
+	}
+	project_approve_requested.emit(project_id, [result])
+
+
+func _request_research_retry(project_id: String) -> void:
+	var project := _find_research_project(project_id)
+	if project.is_empty() or str(project.get("status", "")) != ResearchManagerScript.STATUS_UNSUCCESSFUL:
+		return
+	project_retry_requested.emit(project_id)
 
 
 func _default_validation_metric(component: String) -> String:
@@ -440,182 +457,6 @@ func _default_validation_metric(component: String) -> String:
 			return "Overall speaker reproduction quality"
 		_:
 			return "Validated %s result" % component.to_lower()
-
-
-func _build_validation_review_scene(project: Dictionary) -> void:
-	body_content = _new_screen_root()
-	body_content.name = "ValidationReviewScreen"
-	body.add_child(body_content)
-
-	var component := str(project.get("component", "Research"))
-	var project_id := str(project.get("id", ""))
-	var heading := _label("TECHNICAL VALIDATION", 25, TEXT_MAIN)
-	heading.custom_minimum_size.y = _scaled(42.0)
-	body_content.add_child(heading)
-	body_content.add_child(_label(component.to_upper() + "  /  PROJECT " + project_id, 13, ACCENT))
-
-	var review_scroll := ScrollContainer.new()
-	review_scroll.name = "ValidationReviewScroll"
-	review_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	review_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	review_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	review_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	body_content.add_child(review_scroll)
-
-	var review_content := VBoxContainer.new()
-	review_content.name = "ValidationReviewContent"
-	review_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	review_content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	review_content.add_theme_constant_override("separation", roundi(_scaled(12.0)))
-	review_scroll.add_child(review_content)
-
-	var objective := str(project.get("objective", "")).strip_edges()
-	if not objective.is_empty():
-		var objective_label := _label(objective, 14, TEXT_MUTED)
-		objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		review_content.add_child(objective_label)
-
-	var target := str(project.get("research_target", "")).strip_edges()
-	if not target.is_empty():
-		var target_panel := VBoxContainer.new()
-		target_panel.name = "ValidationExpectedTarget"
-		target_panel.add_theme_constant_override("separation", 3)
-		review_content.add_child(target_panel)
-		target_panel.add_child(_label("ASSIGNED RESEARCH TARGET", 11, TEXT_MUTED))
-		var target_label := _label(target, 22, ACCENT)
-		target_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		target_panel.add_child(target_label)
-		var target_note := _label("The validated value must match this assigned target exactly.", 12, TEXT_MUTED)
-		target_note.autowrap_mode = TextServer.AUTOWRAP_WORD
-		target_panel.add_child(target_note)
-
-	_add_validation_input(review_content, "MEASURED ATTRIBUTE", "ValidationMetricInput", _default_validation_metric(component), "Example: maximum wired charging speed")
-	_add_validation_input(review_content, "VALIDATED VALUE", "ValidationValueInput", target, "Enter the result confirmed by technical testing")
-
-	var notes_heading := _label("TECHNICAL REVIEW NOTES", 12, TEXT_MUTED)
-	review_content.add_child(notes_heading)
-	review_notes_input = TextEdit.new()
-	review_notes_input.name = "ValidationNotesInput"
-	review_notes_input.custom_minimum_size = Vector2(0, _scaled(92.0))
-	review_notes_input.placeholder_text = "Record test conditions, evidence or the reason for rejection..."
-	review_notes_input.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	review_notes_input.add_theme_font_size_override("font_size", _scaled_font(15))
-	review_notes_input.add_theme_color_override("font_color", TEXT_MAIN)
-	review_notes_input.add_theme_color_override("font_placeholder_color", TEXT_MUTED)
-	var notes_style := StyleBoxFlat.new()
-	notes_style.bg_color = Color("#202326")
-	notes_style.border_color = Color("#514B40")
-	notes_style.set_border_width_all(1)
-	notes_style.set_corner_radius_all(6)
-	notes_style.content_margin_left = roundi(_scaled(12.0))
-	notes_style.content_margin_right = roundi(_scaled(12.0))
-	notes_style.content_margin_top = roundi(_scaled(9.0))
-	notes_style.content_margin_bottom = roundi(_scaled(9.0))
-	review_notes_input.add_theme_stylebox_override("normal", notes_style)
-	review_content.add_child(review_notes_input)
-
-	review_error_label = _label("", 13, ORANGE)
-	review_error_label.name = "ValidationReviewError"
-	review_error_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	review_content.add_child(review_error_label)
-
-	var actions := _new_main_row()
-	actions.name = "ValidationReviewActions"
-	actions.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	actions.add_theme_constant_override("separation", roundi(_scaled(10.0)))
-	body_content.add_child(actions)
-
-	var back_button := _button("‹  BACK", false, TEXT_MUTED)
-	back_button.name = "ValidationReviewBackButton"
-	back_button.custom_minimum_size = Vector2(_scaled(120.0), _scaled(48.0))
-	back_button.pressed.connect(close_validation_review)
-	actions.add_child(back_button)
-
-	var reject_button := _button("REJECT", false, ORANGE)
-	reject_button.name = "ValidationReviewRejectButton"
-	reject_button.custom_minimum_size = Vector2(_scaled(140.0), _scaled(48.0))
-	reject_button.pressed.connect(_on_validation_reject_pressed)
-	actions.add_child(reject_button)
-
-	var approve_button := _button("APPROVE FINDINGS", true, SUCCESS)
-	approve_button.name = "ValidationReviewApproveButton"
-	approve_button.custom_minimum_size = Vector2(_scaled(205.0), _scaled(48.0))
-	approve_button.pressed.connect(_on_validation_approve_pressed)
-	if _is_narrow_layout():
-		back_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		reject_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		approve_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_child(approve_button)
-
-
-func _add_validation_input(parent: Control, caption: String, control_name: String, initial_value: String, placeholder: String) -> void:
-	var field := VBoxContainer.new()
-	field.add_theme_constant_override("separation", 4)
-	parent.add_child(field)
-	field.add_child(_label(caption, 12, TEXT_MUTED))
-	var line_edit := LineEdit.new()
-	line_edit.name = control_name
-	line_edit.custom_minimum_size.y = _scaled(46.0)
-	line_edit.text = initial_value
-	line_edit.placeholder_text = placeholder
-	line_edit.clear_button_enabled = true
-	line_edit.add_theme_font_size_override("font_size", _scaled_font(17))
-	line_edit.add_theme_color_override("font_color", TEXT_MAIN)
-	line_edit.add_theme_color_override("font_placeholder_color", TEXT_MUTED)
-	var input_style := StyleBoxFlat.new()
-	input_style.bg_color = Color("#202326")
-	input_style.border_color = Color("#514B40")
-	input_style.set_border_width_all(1)
-	input_style.set_corner_radius_all(6)
-	input_style.content_margin_left = roundi(_scaled(12.0))
-	input_style.content_margin_right = roundi(_scaled(12.0))
-	input_style.content_margin_top = roundi(_scaled(8.0))
-	input_style.content_margin_bottom = roundi(_scaled(8.0))
-	line_edit.add_theme_stylebox_override("normal", input_style)
-	line_edit.add_theme_stylebox_override("focus", input_style)
-	field.add_child(line_edit)
-	if control_name == "ValidationMetricInput":
-		review_metric_input = line_edit
-	elif control_name == "ValidationValueInput":
-		review_value_input = line_edit
-
-
-func _set_validation_review_error(message: String) -> void:
-	if is_instance_valid(review_error_label):
-		review_error_label.text = message
-
-
-func _on_validation_approve_pressed() -> void:
-	if not _is_project_awaiting_validation(review_project_id):
-		_set_validation_review_error("This project is no longer awaiting validation. Refresh the research list.")
-		return
-	if not is_instance_valid(review_metric_input) or review_metric_input.text.strip_edges().is_empty():
-		_set_validation_review_error("Enter the measured attribute before approving.")
-		return
-	if not is_instance_valid(review_value_input) or review_value_input.text.strip_edges().is_empty():
-		_set_validation_review_error("Enter the validated result before approving.")
-		return
-
-	var project := _find_research_project(review_project_id)
-	var result := {
-		"component": str(project.get("component", "")),
-		"metric": review_metric_input.text.strip_edges(),
-		"value": review_value_input.text.strip_edges(),
-		"unit": "",
-		"notes": review_notes_input.text.strip_edges() if is_instance_valid(review_notes_input) else ""
-	}
-	project_approve_requested.emit(review_project_id, [result])
-
-
-func _on_validation_reject_pressed() -> void:
-	if not _is_project_awaiting_validation(review_project_id):
-		_set_validation_review_error("This project is no longer awaiting validation. Refresh the research list.")
-		return
-	var review_note := review_notes_input.text.strip_edges() if is_instance_valid(review_notes_input) else ""
-	if review_note.is_empty():
-		_set_validation_review_error("Add a review reason before rejecting this project.")
-		return
-	project_reject_requested.emit(review_project_id, review_note)
 
 
 func _open_creation_scene() -> void:
@@ -1436,7 +1277,7 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 	project_scroll.add_child(project_list)
 
 	if not pending_projects.is_empty():
-		project_list.add_child(_label("READY FOR TECHNICAL VALIDATION", 17, ACCENT))
+		project_list.add_child(_label("COMPLETED RESEARCH", 17, ACCENT))
 		var validation_grid := GridContainer.new()
 		validation_grid.name = "ResearchValidationGrid"
 		validation_grid.columns = 3
@@ -1490,7 +1331,8 @@ func _build_validation_project_card(project: Dictionary, parent: Control) -> voi
 		var target_label := _label("TARGET  " + target, 15, TEXT_MAIN)
 		target_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		content.add_child(target_label)
-	var completion_note := _label("R&D completed. Technical findings require validation before the upgrade is unlocked.", 12, TEXT_MUTED)
+	var successful := str(project.get("status", "")) == ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	var completion_note := _label("RESEARCH SUCCESSFUL — awaiting approval." if successful else "RESEARCH FAILED — retry available.", 12, SUCCESS if successful else ORANGE)
 	completion_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content.add_child(completion_note)
 
