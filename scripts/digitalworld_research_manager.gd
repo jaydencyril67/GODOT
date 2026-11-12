@@ -75,7 +75,8 @@ const POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL := 3
 const POWER_VOLUME_BUTTON_LENGTH_MIN_SCALES := [1.35, 1.10, 0.85, 0.55]
 const POWER_VOLUME_BUTTON_POSITION_COMPONENTS := [
 	"Power Button Position",
-	"Volume Button Position"
+	"Volume Button Position",
+	"Smartwatch"
 ]
 const CURVED_SCREEN_RESEARCH_COMPONENTS := [
 	"Curved Screen Horizontal",
@@ -731,6 +732,16 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not COMPONENT_CATALOGUE.has(component):
 		return _failure("Choose an available research component.")
 
+	if component == "Smartwatch":
+		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
+			return _failure("Smartwatch has already been researched.")
+		for existing_project_value in career.get("research_projects", []):
+			if not (existing_project_value is Dictionary):
+				continue
+			var existing_smartwatch_project: Dictionary = existing_project_value
+			if str(existing_smartwatch_project.get("component", "")) == component and str(existing_smartwatch_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+				return _failure("Smartwatch research is already in progress or awaiting validation.")
+
 	if component == "Device Color":
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
 			return _failure("Gradient device colour has already been unlocked.")
@@ -821,6 +832,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_rear_flash_count_research_target(career.get("research_component_levels", {}))
 	elif component == "Back Raised Design":
 		ordered_target = get_back_raised_design_research_target(career.get("research_component_levels", {}))
+	elif component == "Smartwatch":
+		ordered_target = {"index": 1, "technology": "Smartwatch"}
 	elif component == "Device Color":
 		ordered_target = {"index": 1, "technology": "Gradient Finish"} if int(career.get("research_component_levels", {}).get("Device Color", 0)) < 1 else {}
 	elif component == "Phone Case":
@@ -1149,6 +1162,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Back Raised Design project is no longer the next raised-box capacity upgrade.")
 		if str(project.get("research_target", "")) != str(expected_back_raised_design_target.get("technology", "")):
 			return _failure("The Back Raised Design project target does not match the current raised-box capacity progression.")
+	elif component == "Smartwatch":
+		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != "Smartwatch":
+			return _failure("This Smartwatch project is no longer a valid, unapproved enablement unlock.")
 	elif component == "Device Color":
 		device_color_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or device_color_target_index != 1 or str(project.get("research_target", "")) != "Gradient Finish":
@@ -1224,7 +1240,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next rear-hardware addition capacity assigned to this project.")
 		if result_component == "Back Raised Design" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next raised back-design box capacity assigned to this project.")
-		if result_component == "Device Color" and value != str(project.get("research_target", "")):
+		if result_component in ["Device Color", "Smartwatch"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact gradient-finish unlock assigned to this project.")
 		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
@@ -1331,6 +1347,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Back Raised Design":
 		# Level 1 unlocks the first raised box; each approval adds one, up to twenty.
 		component_levels[component] = back_raised_design_target_index
+	elif component == "Smartwatch":
+		# One approved project unlocks the Smartwatch worksite controls.
+		component_levels[component] = 1
 	elif component == "Device Color":
 		# Solid colour is the default; one approved project unlocks gradient finishes.
 		component_levels[component] = device_color_target_index
