@@ -1222,7 +1222,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	return {"ok": true, "project": project.duplicate(true)}
 
 
-static func cancel_project(career: Dictionary, project_id: String) -> Dictionary:
+static func cancel_project(career: Dictionary, project_id: String, game_time_unix: float) -> Dictionary:
 	ensure_state(career)
 	var projects: Array = career.get("research_projects", [])
 	var project_index := _find_project_index(projects, project_id)
@@ -1232,7 +1232,7 @@ static func cancel_project(career: Dictionary, project_id: String) -> Dictionary
 	if str(project.get("status", "")) != STATUS_ACTIVE:
 		return _failure("Only research projects currently in progress can be cancelled.")
 	project["status"] = STATUS_CANCELLED
-	project["cancelled_at_unix"] = Time.get_unix_time_from_system()
+	project["cancelled_at_unix"] = game_time_unix
 	project["pause_reason"] = ""
 	projects[project_index] = project
 	career["research_projects"] = projects
