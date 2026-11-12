@@ -46,7 +46,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"GNSS / GPS Receiver": 365.0,
 	"Rear Camera MP": 60.0,
 	"Rear Camera Count": 360.0,
-	"Rear Flash Count": 200.0
+	"Rear Flash Count": 200.0,
+	"Back Raised Design": 370.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
