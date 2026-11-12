@@ -744,7 +744,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if str(existing_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
 				return _failure("The next %s technology already has a project in progress or awaiting validation." % component)
 
-	if component in ["Screen Width", "Screen Height", "Refresh Rate", "Memory Clock", "Battery Capacity"]:
+	if component in ["Screen Width", "Screen Height", "Refresh Rate", "Memory Clock", "Battery Capacity", "Speakers"]:
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
 				continue
