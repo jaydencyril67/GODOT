@@ -49,6 +49,7 @@ const MEMORY_CLOCK_SPEED_TARGETS := [1066, 2133, 4266, 6400, 10700, 14400]
 const MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS := [20, 40, 60, 60, 80, 100, 120]
 const PHONE_TYPE_SEQUENCE := ["Standard", "Flip", "Fold"]
 const PHONE_CASE_RESEARCH_SEQUENCE := ["Custom Case Enablement (Smooth)", "Carbon Weave", "Hex Pattern", "Racing Stripes", "Grip Ridges", "Gradient Finish"]
+const PROTECTION_GLASS_RESEARCH_SEQUENCE := ["Normal Glass", "Privacy Glass"]
 
 const PHONE_SENSOR_COMPONENTS := [
 	"Fingerprint Sensor",
@@ -140,6 +141,7 @@ const COMPONENT_CATALOGUE := [
 	"Back Raised Design",
 	"Device Color",
 	"Phone Case",
+	"Protection Glass",
 	"Side Button",
 	"Sound Button",
 	"Style Pen (S Pen)",
@@ -180,6 +182,13 @@ static func get_phone_case_research_target(component_levels: Dictionary) -> Dict
 	if next_index < 1 or next_index > PHONE_CASE_RESEARCH_SEQUENCE.size():
 		return {}
 	return {"index": next_index, "technology": PHONE_CASE_RESEARCH_SEQUENCE[next_index - 1]}
+
+
+static func get_protection_glass_research_target(component_levels: Dictionary) -> Dictionary:
+	var next_index := clampi(int(component_levels.get("Protection Glass", 0)), 0, PROTECTION_GLASS_RESEARCH_SEQUENCE.size()) + 1
+	if next_index > PROTECTION_GLASS_RESEARCH_SEQUENCE.size():
+		return {}
+	return {"index": next_index, "technology": PROTECTION_GLASS_RESEARCH_SEQUENCE[next_index - 1]}
 
 
 static func get_mobile_network_step_count() -> int:
@@ -816,11 +825,13 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = {"index": 1, "technology": "Gradient Finish"} if int(career.get("research_component_levels", {}).get("Device Color", 0)) < 1 else {}
 	elif component == "Phone Case":
 		ordered_target = get_phone_case_research_target(career.get("research_component_levels", {}))
+	elif component == "Protection Glass":
+		ordered_target = get_protection_glass_research_target(career.get("research_component_levels", {}))
 	elif component == POWER_VOLUME_BUTTON_LENGTH_COMPONENT:
 		ordered_target = get_power_volume_button_length_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component) else component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -864,6 +875,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif component == "Phone Case":
 			project_title = "Research: Phone Case - " + target_technology
 			project_objective = "Develop and validate %s for the fitted phone-case system. Smooth is the default finish; subsequent projects unlock each additional case design and finally gradient colouring." % target_technology
+		elif component == "Protection Glass":
+			project_title = "Research: Protection Glass - " + target_technology
+			project_objective = "Develop and validate %s as a fitted screen-protection layer. Normal Glass provides subtle screen darkening; Privacy Glass adds a directional viewing filter that turns the display fully black at side angles." % target_technology
 		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
@@ -1027,6 +1041,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var back_raised_design_target_index := -1
 	var device_color_target_index := -1
 	var phone_case_target_index := -1
+	var protection_glass_target_index := -1
 	var phone_sensor_target_index := -1
 	var side_button_target_index := -1
 	var power_volume_button_length_target_index := -1
@@ -1143,6 +1158,11 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		phone_case_target_index = int(project.get("research_target_index", -1))
 		if expected_phone_case_target.is_empty() or phone_case_target_index != int(expected_phone_case_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_phone_case_target.get("technology", "")):
 			return _failure("This Phone Case project is no longer the next valid case unlock.")
+	elif component == "Protection Glass":
+		var expected_protection_glass_target := get_protection_glass_research_target(component_levels)
+		protection_glass_target_index = int(project.get("research_target_index", -1))
+		if expected_protection_glass_target.is_empty() or protection_glass_target_index != int(expected_protection_glass_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_protection_glass_target.get("technology", "")):
+			return _failure("This Protection Glass project is no longer the next valid glass unlock.")
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		phone_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or phone_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
@@ -1206,8 +1226,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next raised back-design box capacity assigned to this project.")
 		if result_component == "Device Color" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact gradient-finish unlock assigned to this project.")
-		if result_component == "Phone Case" and value != str(project.get("research_target", "")):
-			return _failure("Validate the exact Phone Case unlock assigned to this project.")
+		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact sensor component assigned to this project.")
 		if SIDE_BUTTON_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1317,6 +1337,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Phone Case":
 		# Smooth case enablement is the first unlock, followed by four designs and gradient finish.
 		component_levels[component] = phone_case_target_index
+	elif component == "Protection Glass":
+		# Normal Glass is the first unlock; Privacy Glass is the second and final type.
+		component_levels[component] = protection_glass_target_index
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		# Every sensor is an independent, one-time approved research unlock.
 		component_levels[component] = 1
