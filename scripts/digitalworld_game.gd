@@ -2644,9 +2644,9 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		phone_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 		phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
 		phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
+		phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
 	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
-	phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
 	return result
 
 
