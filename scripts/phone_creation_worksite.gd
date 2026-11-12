@@ -3854,7 +3854,7 @@ func set_wireless_earbuds_research_level(level: int) -> void:
 	if wireless_earbuds_research_level <= 0:
 		wireless_earbuds_enabled = false
 		wireless_earbuds_color_mode = false
-		_set_wireless_earbuds_preview_mode(false)
+		_set_earbuds_preview_mode(false)
 		if is_instance_valid(wireless_earbuds_preview):
 			wireless_earbuds_preview.visible = false
 	if level_changed and wizard_step == 34:
