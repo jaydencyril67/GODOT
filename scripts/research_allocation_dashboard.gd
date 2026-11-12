@@ -394,6 +394,8 @@ func _default_validation_metric(component: String) -> String:
 			return "Gradient device finish"
 		"Phone Case":
 			return "Phone case design or finish"
+		"Protection Glass":
+			return "Normal or side-angle privacy screen protection"
 		"Battery Capacity":
 			return "Maximum battery capacity"
 		"Power Bank":
