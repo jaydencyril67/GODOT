@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen", "Button Length", "Power Position", "Volume Position"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)", "Power/Volume Button Length", "Power Button Position", "Volume Button Position"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -371,6 +371,10 @@ func _default_validation_metric(component: String) -> String:
 		return "Sensor functionality and integration"
 	if ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(component):
 		return "Physical side-feature functionality and integration"
+	if component == ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT:
+		return "Minimum power and volume button length"
+	if ResearchManagerScript.POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+		return "Available button edge placements"
 	match component:
 		"Charging Speed":
 			return "Maximum wired charging speed"
@@ -671,7 +675,7 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
-		elif COMPONENT_VALUES[index] in ["Phone Type", "Refresh Rate", "Speakers"]:
+		elif COMPONENT_VALUES[index] in ["Phone Type", "Refresh Rate", "Speakers", ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT]:
 			var component_name := str(COMPONENT_VALUES[index])
 			var current_level := int(research_component_levels.get(component_name, 0))
 			var maximum_level := 0
@@ -690,6 +694,14 @@ func _build_component_selection_scene() -> void:
 				"Speakers":
 					maximum_level = 11
 					component_button.tooltip_text = "Next approval unlocks support for %d speakers." % mini(12, current_level + 2)
+				ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT:
+					var button_length_target: Dictionary = ResearchManagerScript.get_power_volume_button_length_research_target(research_component_levels)
+					maximum_level = ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL
+					if button_length_target.is_empty():
+						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — BUTTON LENGTH 55%"
+						component_button.disabled = true
+					else:
+						component_button.tooltip_text = "Next slider minimum: %s" % str(button_length_target.get("technology", ""))
 			if current_level >= maximum_level:
 				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
@@ -701,7 +713,7 @@ func _build_component_selection_scene() -> void:
 					component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 					component_button.disabled = true
 					break
-		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(str(COMPONENT_VALUES[index])):
+		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(str(COMPONENT_VALUES[index])):
 			var unlock_component := str(COMPONENT_VALUES[index])
 			var component_researched := int(research_component_levels.get(unlock_component, 0)) >= 1
 			var component_project_in_progress := false
