@@ -57,7 +57,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Side Button": 120.0,
 	"Sound Button": 110.0,
 	"Style Pen (S Pen)": 150.0,
-	"Power/Volume Button Length": 25.0
+	"Power/Volume Button Length": 25.0,
+	"Power Button Position": 15.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
@@ -954,7 +955,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			return _failure("Unlock a newer RAM Technology before researching faster Memory Clock speeds.")
 
 	if PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
-		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
+		var position_level_limit := 2 if component == "Power Button Position" else 1
+		if int(career.get("research_component_levels", {}).get(component, 0)) >= position_level_limit:
 			return _failure("%s research has already been approved." % component)
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
@@ -1029,6 +1031,11 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_protection_glass_research_target(career.get("research_component_levels", {}))
 	elif component == POWER_VOLUME_BUTTON_LENGTH_COMPONENT:
 		ordered_target = get_power_volume_button_length_research_target(career.get("research_component_levels", {}))
+	elif component == "Power Button Position":
+		var current_position_level := clampi(int(career.get("research_component_levels", {}).get(component, 0)), 0, 2)
+		if current_position_level < 2:
+			var next_position_index := current_position_level + 1
+			ordered_target = {"index": next_position_index, "technology": "Top position" if next_position_index == 1 else "Left position"}
 	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component) else component}
 	if component in ["Wireless Charging", "Phone Case", "Charger"]:
@@ -1106,8 +1113,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop, test and validate the %s physical side feature for mobile-phone integration." % component
 		elif component == POWER_VOLUME_BUTTON_LENGTH_COMPONENT:
 			project_objective = "Research and validate the next lower minimum length limit for the shared physical power and volume buttons."
+		elif component == "Power Button Position":
+			project_objective = "Research and validate the %s placement option for the power button." % target_technology.to_lower()
 		elif POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
-			project_objective = "Research and validate additional left-edge and top-edge placement options for the %s." % ("power button" if component == "Power Button Position" else "volume rocker")
+			project_objective = "Research and validate additional left-edge and top-edge placement options for the volume rocker."
 		elif component == "Bluetooth":
 			project_title = "Research: %s" % target_technology
 			project_objective = "Develop and validate %s for mobile-device connectivity." % target_technology
@@ -1415,6 +1424,12 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		power_volume_button_length_target_index = int(project.get("research_target_index", -1))
 		if expected_length_target.is_empty() or power_volume_button_length_target_index != int(expected_length_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_length_target.get("technology", "")):
 			return _failure("This Power/Volume Button Length project is no longer the next valid reduction tier.")
+	elif component == "Power Button Position":
+		power_volume_button_position_target_index = int(project.get("research_target_index", -1))
+		var expected_position_level := clampi(int(component_levels.get(component, 0)), 0, 2) + 1
+		var expected_position_name := "Top position" if expected_position_level == 1 else "Left position"
+		if expected_position_level > 2 or power_volume_button_position_target_index != expected_position_level or str(project.get("research_target", "")) != expected_position_name:
+			return _failure("This power-button position project is no longer the next valid placement unlock.")
 	elif POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		power_volume_button_position_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or power_volume_button_position_target_index != 1 or str(project.get("research_target", "")) != "Left and Top positions":
@@ -1478,7 +1493,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		if result_component == POWER_VOLUME_BUTTON_LENGTH_COMPONENT and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next button-length reduction tier assigned to this project.")
 		if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
-			return _failure("Validate the left and top placement unlock for the assigned button.")
+			return _failure("Validate the exact placement option assigned to the button-position project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -1602,7 +1617,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		# Each optional side feature is unlocked by its own approved research project.
 		component_levels[component] = side_button_target_index
 	elif POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
-		# Right-edge placement is the baseline; approval unlocks left and top edges.
+		# Power Button Position unlocks Top first, then Left; other grouped position components retain their combined unlock.
 		component_levels[component] = power_volume_button_position_target_index
 	elif CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
 		# Each curved-screen design is a separate one-time approved research unlock.
