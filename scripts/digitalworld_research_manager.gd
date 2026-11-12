@@ -900,7 +900,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 				continue
 			var existing_box_package_project: Dictionary = existing_project_value
 			if str(existing_box_package_project.get("component", "")) == component and str(existing_box_package_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION, STATUS_APPROVED]:
-				return _failure("Box Package research is already in progress or awaiting validation.")
+				return _failure("Box Package research is already in progress, awaiting validation, or approved.")
 
 	if component == "Wireless Earbuds":
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
