@@ -1333,7 +1333,7 @@ func _build_validation_project_card(project: Dictionary, parent: Control) -> voi
 	completion_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content.add_child(completion_note)
 
-	var review_button := _button("REVIEW FINDINGS  ›", true, ACCENT)
+	var review_button := _button("VIEW FINDINGS  ›", true, ACCENT)
 	review_button.name = "ReviewValidationButton"
 	review_button.custom_minimum_size = Vector2(_scaled(172.0), _scaled(40.0))
 	review_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
