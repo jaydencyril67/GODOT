@@ -14,8 +14,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Cooling System Design", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -400,6 +400,10 @@ func _default_validation_metric(component: String) -> String:
 			return "Cooling system design"
 		"Phone Type":
 			return "Phone chassis type"
+		"Refresh Rate":
+			return "Maximum selectable display refresh rate"
+		"Speakers":
+			return "Maximum number of supported speakers"
 		_:
 			return "Validated %s result" % component.to_lower()
 
@@ -663,6 +667,36 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
+		elif COMPONENT_VALUES[index] in ["Phone Type", "Refresh Rate", "Speakers"]:
+			var component_name := str(COMPONENT_VALUES[index])
+			var current_level := int(research_component_levels.get(component_name, 0))
+			var maximum_level := 0
+			match component_name:
+				"Phone Type":
+					var phone_type_target: Dictionary = ResearchManagerScript.get_phone_type_research_target(research_component_levels)
+					maximum_level = ResearchManagerScript.PHONE_TYPE_SEQUENCE.size() - 1
+					if phone_type_target.is_empty():
+						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
+						component_button.disabled = true
+					else:
+						component_button.tooltip_text = "Next phone design: %s" % str(phone_type_target.get("technology", ""))
+				"Refresh Rate":
+					maximum_level = ResearchManagerScript.REFRESH_RATE_RESEARCH_LEVELS
+					component_button.tooltip_text = "Next approval increases the maximum selectable refresh rate by 8 Hz."
+				"Speakers":
+					maximum_level = 11
+					component_button.tooltip_text = "Next approval unlocks support for %d speakers." % mini(12, current_level + 2)
+			if current_level >= maximum_level:
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
+				component_button.disabled = true
+			for project_value in research_projects:
+				if not (project_value is Dictionary):
+					continue
+				var component_project: Dictionary = project_value
+				if str(component_project.get("component", "")) == component_name and str(component_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+					component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
+					component_button.disabled = true
+					break
 		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])):
 			var sensor_component := str(COMPONENT_VALUES[index])
 			var sensor_researched := int(research_component_levels.get(sensor_component, 0)) >= 1
