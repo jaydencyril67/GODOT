@@ -2020,10 +2020,9 @@ func set_box_package_research_level(level: int) -> void:
 	box_package_research_level = updated_level
 	if box_package_research_level <= 0:
 		box_package_color_mode = false
-		box_package_preview_mode = false
-		if is_instance_valid(box_package_preview):
-			box_package_preview.visible = false
+		_set_box_package_preview_mode(false)
 	if level_changed and wizard_step == 30:
+		_set_box_package_preview_mode(box_package_research_level > 0)
 		_show_worksite_box_package_controls()
 
 
@@ -14962,14 +14961,15 @@ func _reset_box_package_position() -> void:
 	_refresh_box_package_branding()
 
 func _set_box_package_preview_mode(enabled: bool) -> void:
-	var entering := enabled and not box_package_preview_mode
-	box_package_preview_mode = enabled
+	var preview_enabled := enabled and box_package_research_level > 0
+	var entering := preview_enabled and not box_package_preview_mode
+	box_package_preview_mode = preview_enabled
 	if entering and is_instance_valid(box_package_preview):
 		box_package_preview.rotation_degrees = Vector3(-7.0, -16.0, 0.0)
 	if is_instance_valid(phone_body):
-		phone_body.visible = not enabled
+		phone_body.visible = not preview_enabled
 	if is_instance_valid(phone_case_preview):
-		phone_case_preview.visible = not enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
+		phone_case_preview.visible = not preview_enabled and phone_case_custom_enabled and phone_case_built and not phone_case_building and left_tools_page != 1 and not box_package_preview_mode
 	if is_instance_valid(charger_preview):
 		charger_preview.visible = false
 	if is_instance_valid(smartwatch_preview):
@@ -14983,9 +14983,9 @@ func _set_box_package_preview_mode(enabled: bool) -> void:
 	power_bank_preview_mode = false
 	charger_preview_mode = false
 	if is_instance_valid(box_package_preview):
-		box_package_preview.visible = enabled
+		box_package_preview.visible = preview_enabled
 	if is_instance_valid(preview_camera):
-		preview_camera.position = Vector3(0.0, 0.0, 5.55 if enabled else 5.2)
+		preview_camera.position = Vector3(0.0, 0.0, 5.55 if preview_enabled else 5.2)
 		preview_camera.fov = 38.0
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
