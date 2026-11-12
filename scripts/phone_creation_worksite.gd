@@ -500,6 +500,7 @@ var power_bank_color_mode := false
 var smartwatch_color_mode := false
 
 var phone_case_custom_enabled := false
+var phone_case_research_level := 0
 
 var phone_case_building := false
 
@@ -2106,7 +2107,9 @@ func _add_worksite_phone_case_toggle(parent: Control) -> void:
 	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(caption)
 
-	var enabled := bool(self.get("phone_case_custom_enabled"))
+	var research_level := int(self.get("phone_case_research_level"))
+	var enabled := bool(self.get("phone_case_custom_enabled")) and research_level >= 1
+	caption.text = "ENABLE CUSTOM CASE" if research_level >= 1 else "ENABLE CUSTOM CASE  ·  RESEARCH REQUIRED"
 	var toggle := TextureButton.new()
 	toggle.name = "EnableCustomPhoneCaseCheckbox"
 	toggle.custom_minimum_size = Vector2(40, 40)
@@ -2121,6 +2124,7 @@ func _add_worksite_phone_case_toggle(parent: Control) -> void:
 	toggle.texture_disabled = unchecked_icon
 	toggle.toggle_mode = true
 	toggle.button_pressed = enabled
+	toggle.disabled = research_level < 1
 	toggle.focus_mode = Control.FOCUS_NONE
 	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	toggle.toggled.connect(Callable(self, "_on_phone_case_custom_toggled"))
@@ -2173,12 +2177,15 @@ func _show_worksite_phone_case_design_controls() -> void:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(note)
 
-	var design_names := ["Smooth", "Carbon Weave", "Hex Pattern", "Racing Stripes", "Grip Ridges"]
+	var design_names: Array = PHONE_CASE_DESIGN_NAMES
 	var selected_style := int(self.get("phone_case_design_style"))
+	var unlocked_design_level := int(self.get("phone_case_research_level"))
 	for index in range(design_names.size()):
 		var option := Button.new()
 		option.name = "PhoneCaseDesignOption_%02d" % index
-		option.text = design_names[index].to_upper() + ("   ✓ ACTIVE" if index == selected_style else "")
+		var design_unlocked := index == 0 or unlocked_design_level >= index + 1
+		option.text = design_names[index].to_upper() + ("   ✓ ACTIVE" if index == selected_style else ("   ·  RESEARCH REQUIRED" if not design_unlocked else ""))
+		option.disabled = not design_unlocked
 		option.custom_minimum_size = Vector2(0, 48)
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.focus_mode = Control.FOCUS_NONE
@@ -3671,6 +3678,25 @@ func set_back_raised_design_research_level(level: int) -> void:
 		_show_back_design_controls()
 
 
+func set_phone_case_research_level(level: int) -> void:
+	phone_case_research_level = clampi(level, 0, ResearchManagerScript.PHONE_CASE_RESEARCH_SEQUENCE.size())
+	if phone_case_research_level < 1:
+		phone_case_custom_enabled = false
+		phone_case_built = false
+		phone_case_building = false
+		phone_case_build_token += 1
+		if is_instance_valid(phone_case_preview):
+			phone_case_preview.visible = false
+	elif phone_case_design_style > mini(4, phone_case_research_level - 1):
+		phone_case_design_style = mini(4, phone_case_research_level - 1)
+	if phone_case_research_level < ResearchManagerScript.PHONE_CASE_RESEARCH_SEQUENCE.size():
+		phone_case_gradient_enabled = false
+		phone_case_gradient_color_edit_mode = false
+	_refresh_phone_case_material()
+	if wizard_step == 31:
+		_show_worksite_phone_case_controls()
+
+
 func set_device_color_research_level(level: int) -> void:
 	device_color_research_level = clampi(level, 0, 1)
 	if device_color_research_level <= 0 and device_gradient_enabled:
@@ -4350,6 +4376,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		gradient_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
 		gradient_toggle.toggle_mode = true
 		gradient_toggle.button_pressed = (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
+		gradient_toggle.disabled = for_phone_case and phone_case_research_level < 6
 		gradient_toggle.focus_mode = Control.FOCUS_NONE
 		gradient_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 		if return_to_back_design:
@@ -4392,7 +4419,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	)
 	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
 	picker_columns.add_child(normal_picker)
-	if uses_dual_color_pickers and (not is_device_body_color_mode or device_gradient_unlocked):
+	if uses_dual_color_pickers and (not is_device_body_color_mode or device_gradient_unlocked) and (not for_phone_case or phone_case_research_level >= 6):
 		var gradient_picker := _build_device_color_picker_panel(true, color_viewport_size)
 		picker_columns.add_child(gradient_picker)
 		var gradient_picker_enabled := (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
@@ -4873,6 +4900,9 @@ func _on_device_gradient_toggled(enabled: bool) -> void:
 		device_gradient_enabled = false
 		return
 	if phone_case_color_mode:
+		if enabled and phone_case_research_level < ResearchManagerScript.PHONE_CASE_RESEARCH_SEQUENCE.size():
+			phone_case_gradient_enabled = false
+			return
 		phone_case_gradient_enabled = enabled
 		if not enabled:
 			phone_case_gradient_color_edit_mode = false
@@ -14740,11 +14770,17 @@ func _refresh_box_package_branding() -> void:
 		box_package_name_label.position = Vector3(box_package_name_position.x, box_package_name_position.y, 0.253)
 
 func _on_phone_case_design_selected(index: int) -> void:
+	var maximum_design_index := mini(4, phone_case_research_level - 1)
+	if index < 0 or index > maximum_design_index:
+		return
 	phone_case_design_style=clampi(index,0,PHONE_CASE_DESIGN_NAMES.size()-1)
 	_refresh_phone_case_material()
 	_show_worksite_phone_case_design_controls()
 
 func _on_phone_case_custom_toggled(enabled: bool) -> void:
+	if enabled and phone_case_research_level < 1:
+		_show_worksite_phone_case_controls()
+		return
 	phone_case_custom_enabled=enabled
 	phone_case_build_token+=1
 	phone_case_sync_queued=false
