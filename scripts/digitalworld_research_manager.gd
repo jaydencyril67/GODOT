@@ -32,7 +32,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Curved Screen Both": 600.0,
 	"Battery Capacity": 40.0,
 	"Power Bank": 150.0,
-	"Charging Speed": 65.0
+	"Charging Speed": 65.0,
+	"Wireless Charging": 370.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
