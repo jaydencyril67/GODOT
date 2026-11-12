@@ -721,9 +721,9 @@ var charge_port_value_label: Label
 var charge_port_decrease_button: Button
 var charge_port_increase_button: Button
 
-var power_button_enabled := false
+var power_button_enabled := true
 
-var volume_button_enabled := false
+var volume_button_enabled := true
 
 var power_button_y := 0.72
 
@@ -731,7 +731,18 @@ var volume_button_y := 0.34
 
 var power_button_edge := "right"
 
-var volume_button_edge := "left"
+var volume_button_edge := "right"
+
+var power_volume_mode := "POWER"
+var power_volume_button_research_levels: Dictionary = {}
+var power_volume_mode_buttons: Dictionary = {}
+var power_volume_enable_toggle: TextureButton
+var power_volume_edge_buttons: Dictionary = {}
+var power_volume_position_value_label: Label
+var power_volume_position_research_button: Button
+var power_volume_length_slider: HSlider
+var power_volume_length_label: Label
+var power_volume_length_research_button: Button
 
 var camera_side_button_enabled := false
 
@@ -9396,58 +9407,312 @@ func _show_power_volume_controls() -> void:
 	active_feature_panel.add_theme_constant_override("separation", 12)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("POWER & VOLUME", 22, Color.WHITE)
+	var title := _make_label("POWER & VOLUME BUTTONS", 20, Color("#D3AA6B"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
-	# Compact button cards share the left side; one vertical length slider
-	# sits alongside them and continues to control both physical buttons.
-	var controls_row := HBoxContainer.new()
-	controls_row.name = "PowerVolumeControlsRow"
-	controls_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	controls_row.add_theme_constant_override("separation", 10)
-	active_feature_panel.add_child(controls_row)
+	# One shared editor; the switch changes which button's enablement and
+	# placement controls are active, just like the Rear Camera / Flash editor.
+	var mode_switchers := HBoxContainer.new()
+	mode_switchers.name = "PowerVolumeModeSwitchers"
+	mode_switchers.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mode_switchers.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(mode_switchers)
+	power_volume_mode_buttons.clear()
+	for mode in ["POWER", "VOLUME"]:
+		var mode_button := Button.new()
+		mode_button.name = "PowerVolumeMode" + mode.capitalize()
+		mode_button.text = mode
+		mode_button.custom_minimum_size = Vector2(0, 40)
+		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mode_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(mode_button, 13)
+		_style_button(mode_button, power_volume_mode == mode)
+		mode_button.pressed.connect(_set_power_volume_mode.bind(mode))
+		mode_switchers.add_child(mode_button)
+		power_volume_mode_buttons[mode] = mode_button
 
-	var cards_column := VBoxContainer.new()
-	cards_column.name = "ButtonCardsColumn"
-	cards_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cards_column.size_flags_stretch_ratio = 3.2
-	cards_column.add_theme_constant_override("separation", 10)
-	controls_row.add_child(cards_column)
-	_add_side_button_controls("POWER BUTTON", "right", power_button_enabled, power_button_y, power_button_edge, cards_column)
-	_add_side_button_controls("VOLUME ROCKER", "left", volume_button_enabled, volume_button_y, volume_button_edge, cards_column)
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "PowerVolumeEnableRow"
+	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.custom_minimum_size = Vector2(124, 42)
+	enable_row.add_theme_constant_override("separation", 8)
+	active_feature_panel.add_child(enable_row)
 
-	var length_column := VBoxContainer.new()
-	length_column.name = "ButtonLengthColumn"
-	length_column.custom_minimum_size = Vector2(72, 0)
-	length_column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	length_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	length_column.alignment = BoxContainer.ALIGNMENT_CENTER
-	length_column.add_theme_constant_override("separation", 8)
-	controls_row.add_child(length_column)
+	var enable_label := _make_label("ENABLE", 14, Color("#EEE9DF"))
+	enable_label.custom_minimum_size = Vector2(72, 0)
+	enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	enable_label.clip_text = true
+	enable_row.add_child(enable_label)
 
-	var length_title := _make_label("LENGTH", 15, Color("#E5E0D6"))
+	power_volume_enable_toggle = TextureButton.new()
+	power_volume_enable_toggle.name = "PowerVolumeEnableToggle"
+	power_volume_enable_toggle.custom_minimum_size = Vector2(42, 42)
+	power_volume_enable_toggle.ignore_texture_size = true
+	power_volume_enable_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	power_volume_enable_toggle.toggle_mode = true
+	power_volume_enable_toggle.focus_mode = Control.FOCUS_NONE
+	power_volume_enable_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	power_volume_enable_toggle.toggled.connect(_on_power_volume_enable_toggled)
+	enable_row.add_child(power_volume_enable_toggle)
+
+	var edge_caption := _make_label("BUTTON EDGE", 12, Color("#D3AA6B"))
+	edge_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(edge_caption)
+
+	var edge_row := HBoxContainer.new()
+	edge_row.name = "PowerVolumeEdgeChoices"
+	edge_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	edge_row.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(edge_row)
+	power_volume_edge_buttons.clear()
+	for edge in ["left", "top", "right"]:
+		var edge_button := Button.new()
+		edge_button.name = "PowerVolumeEdge" + edge.capitalize()
+		edge_button.text = edge.to_upper()
+		edge_button.custom_minimum_size = Vector2(0, 38)
+		edge_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		edge_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(edge_button, 12)
+		_style_button(edge_button, _get_power_volume_edge() == edge)
+		edge_button.pressed.connect(_on_power_volume_edge_selected.bind(edge))
+		edge_row.add_child(edge_button)
+		power_volume_edge_buttons[edge] = edge_button
+
+	power_volume_position_value_label = _make_label("", 15, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
+	power_volume_position_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(power_volume_position_value_label)
+
+	var position_row := HBoxContainer.new()
+	position_row.name = "PowerVolumePositionControls"
+	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	position_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(position_row)
+
+	var position_down := Button.new()
+	position_down.name = "DecreasePowerVolumePosition"
+	position_down.text = "−"
+	position_down.custom_minimum_size = Vector2(56, 48)
+	position_down.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(position_down, 24)
+	_style_button(position_down, false)
+	position_down.pressed.connect(_on_power_volume_position_step.bind(-1))
+	position_row.add_child(position_down)
+
+	var position_up := Button.new()
+	position_up.name = "IncreasePowerVolumePosition"
+	position_up.text = "+"
+	position_up.custom_minimum_size = Vector2(56, 48)
+	position_up.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(position_up, 24)
+	_style_button(position_up, false)
+	position_up.pressed.connect(_on_power_volume_position_step.bind(1))
+	position_row.add_child(position_up)
+
+	power_volume_position_research_button = Button.new()
+	power_volume_position_research_button.name = "PowerVolumePositionResearchButton"
+	power_volume_position_research_button.text = "RESEARCH POSITION"
+	power_volume_position_research_button.custom_minimum_size = Vector2(0, 42)
+	power_volume_position_research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_volume_position_research_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(power_volume_position_research_button, 12)
+	_style_button(power_volume_position_research_button, true)
+	power_volume_position_research_button.pressed.connect(_request_power_volume_position_research)
+	active_feature_panel.add_child(power_volume_position_research_button)
+
+	var length_divider := ColorRect.new()
+	length_divider.name = "PowerVolumeLengthDivider"
+	length_divider.custom_minimum_size = Vector2(0, 1)
+	length_divider.color = Color(0.78, 0.62, 0.38, 0.30)
+	active_feature_panel.add_child(length_divider)
+
+	var length_title := _make_label("SHARED BUTTON LENGTH", 14, Color("#D3AA6B"))
 	length_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	length_column.add_child(length_title)
+	active_feature_panel.add_child(length_title)
 
-	var length_slider := VSlider.new()
-	length_slider.name = "BothSideButtonLengthSlider"
-	length_slider.min_value = 0.55
-	length_slider.max_value = 1.35
-	length_slider.step = 0.05
-	length_slider.value = side_button_length_scale
-	length_slider.custom_minimum_size = Vector2(64, 300)
-	length_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	length_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	length_slider.value_changed.connect(_on_side_button_length_changed)
-	_style_custom_slider(length_slider)
-	length_column.add_child(length_slider)
+	power_volume_length_label = _make_label("", 15, Color("#C58A3A"))
+	power_volume_length_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(power_volume_length_label)
 
-	side_button_length_label = _make_label("%d%%" % roundi(side_button_length_scale * 100.0), 15, Color("#C58A3A"))
-	side_button_length_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	length_column.add_child(side_button_length_label)
+	power_volume_length_slider = HSlider.new()
+	power_volume_length_slider.name = "SharedPowerVolumeButtonLengthSlider"
+	power_volume_length_slider.min_value = _get_power_volume_button_minimum_length()
+	power_volume_length_slider.max_value = 1.35
+	power_volume_length_slider.step = 0.05
+	power_volume_length_slider.value = side_button_length_scale
+	power_volume_length_slider.custom_minimum_size = Vector2(0, 36)
+	power_volume_length_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_volume_length_slider.focus_mode = Control.FOCUS_NONE
+	power_volume_length_slider.value_changed.connect(_on_side_button_length_changed)
+	_style_custom_slider(power_volume_length_slider)
+	active_feature_panel.add_child(power_volume_length_slider)
+
+	power_volume_length_research_button = Button.new()
+	power_volume_length_research_button.name = "PowerVolumeLengthResearchButton"
+	power_volume_length_research_button.text = "RESEARCH LENGTH REDUCTION"
+	power_volume_length_research_button.custom_minimum_size = Vector2(0, 42)
+	power_volume_length_research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_volume_length_research_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(power_volume_length_research_button, 12)
+	_style_button(power_volume_length_research_button, true)
+	power_volume_length_research_button.pressed.connect(_request_power_volume_length_research)
+	active_feature_panel.add_child(power_volume_length_research_button)
+
+	_refresh_power_volume_controls()
+
+
+func _set_power_volume_mode(mode: String) -> void:
+	if mode not in ["POWER", "VOLUME"]:
+		return
+	power_volume_mode = mode
+	_refresh_power_volume_controls()
+
+
+func _get_power_volume_edge() -> String:
+	return power_button_edge if power_volume_mode == "POWER" else volume_button_edge
+
+
+func _get_power_volume_position_research_component() -> String:
+	return "Power Button Position" if power_volume_mode == "POWER" else "Volume Button Position"
+
+
+func _get_power_volume_position_research_level() -> int:
+	return clampi(int(power_volume_button_research_levels.get(_get_power_volume_position_research_component(), 0)), 0, 1)
+
+
+func _get_power_volume_button_minimum_length() -> float:
+	var level := clampi(
+		int(power_volume_button_research_levels.get(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, 0)),
+		0,
+		ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL
+	)
+	return float(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MIN_SCALES[level])
+
+
+func _refresh_power_volume_controls() -> void:
+	var is_power := power_volume_mode == "POWER"
+	var enabled := power_button_enabled if is_power else volume_button_enabled
+	var selected_edge := power_button_edge if is_power else volume_button_edge
+	var selected_position := power_button_y if is_power else volume_button_y
+	var position_level := _get_power_volume_position_research_level()
+
+	for mode in power_volume_mode_buttons:
+		var mode_button := power_volume_mode_buttons[mode] as Button
+		if is_instance_valid(mode_button):
+			_style_button(mode_button, str(mode) == power_volume_mode)
+
+	if is_instance_valid(power_volume_enable_toggle):
+		power_volume_enable_toggle.set_pressed_no_signal(enabled)
+		var enable_icon := _make_side_button_checkbox_icon(enabled)
+		power_volume_enable_toggle.texture_normal = enable_icon
+		power_volume_enable_toggle.texture_hover = enable_icon
+		power_volume_enable_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+		power_volume_enable_toggle.texture_disabled = _make_side_button_checkbox_icon(false)
+		power_volume_enable_toggle.tooltip_text = "Enable or disable the " + ("power button" if is_power else "volume rocker")
+
+	for edge in ["left", "top", "right"]:
+		var edge_button := power_volume_edge_buttons.get(edge) as Button
+		if not is_instance_valid(edge_button):
+			continue
+		edge_button.disabled = edge != "right" and position_level < 1
+		_style_button(edge_button, selected_edge == edge)
+
+	if is_instance_valid(power_volume_position_value_label):
+		power_volume_position_value_label.text = "POSITION ON %s EDGE  ·  %d%%" % [
+			selected_edge.to_upper(),
+			roundi(selected_position / 1.20 * 100.0)
+		]
+	if is_instance_valid(power_volume_position_research_button):
+		power_volume_position_research_button.visible = position_level < 1
+		power_volume_position_research_button.disabled = position_level >= 1
+		power_volume_position_research_button.tooltip_text = "Unlock left-edge and top-edge placement for this button."
+
+	var length_level := clampi(
+		int(power_volume_button_research_levels.get(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, 0)),
+		0,
+		ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL
+	)
+	if is_instance_valid(power_volume_length_slider):
+		power_volume_length_slider.min_value = _get_power_volume_button_minimum_length()
+		power_volume_length_slider.max_value = 1.35
+		power_volume_length_slider.set_value_no_signal(side_button_length_scale)
+		power_volume_length_slider.editable = length_level > 0
+		power_volume_length_slider.tooltip_text = "Research unlocks three stages of shorter button lengths."
+	if is_instance_valid(power_volume_length_label):
+		power_volume_length_label.text = "CURRENT LENGTH  %d%%  ·  MINIMUM %d%%" % [
+			roundi(side_button_length_scale * 100.0),
+			roundi(_get_power_volume_button_minimum_length() * 100.0)
+		]
+	if is_instance_valid(power_volume_length_research_button):
+		power_volume_length_research_button.visible = length_level < ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL
+		power_volume_length_research_button.disabled = length_level >= ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL
+		power_volume_length_research_button.text = "RESEARCH LENGTH REDUCTION" if length_level == 0 else "RESEARCH NEXT LENGTH LEVEL"
+	if is_instance_valid(side_button_length_label):
+		side_button_length_label.text = "%d%%" % roundi(side_button_length_scale * 100.0)
+
+
+func _on_power_volume_enable_toggled(enabled: bool) -> void:
+	if power_volume_mode == "POWER":
+		power_button_enabled = enabled
+	else:
+		volume_button_enabled = enabled
+	_normalize_power_volume_positions("power" if power_volume_mode == "POWER" else "volume")
+	_refresh_phone_side_buttons()
+	_refresh_power_volume_controls()
+
+
+func _on_power_volume_edge_selected(edge: String) -> void:
+	if edge not in ["left", "top", "right"]:
+		return
+	if edge != "right" and _get_power_volume_position_research_level() < 1:
+		_refresh_power_volume_controls()
+		return
+	if power_volume_mode == "POWER":
+		power_button_edge = edge
+	else:
+		volume_button_edge = edge
+	_normalize_power_volume_positions("power" if power_volume_mode == "POWER" else "volume")
+	_refresh_phone_side_buttons()
+	_refresh_power_volume_controls()
+
+
+func _on_power_volume_position_step(direction: int) -> void:
+	if power_volume_mode == "POWER":
+		power_button_y = clampf(power_button_y + float(direction) * 0.06, -1.20, 1.20)
+	else:
+		volume_button_y = clampf(volume_button_y + float(direction) * 0.06, -1.20, 1.20)
+	_normalize_power_volume_positions("power" if power_volume_mode == "POWER" else "volume")
+	_refresh_phone_side_buttons()
+	_refresh_power_volume_controls()
+
+
+func _request_power_volume_position_research() -> void:
+	if _get_power_volume_position_research_level() >= 1:
+		return
+	research_requested.emit()
+
+
+func _request_power_volume_length_research() -> void:
+	if int(power_volume_button_research_levels.get(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, 0)) >= ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL:
+		return
+	research_requested.emit()
+
+
+func set_power_volume_button_research_levels(levels: Dictionary) -> void:
+	power_volume_button_research_levels = levels.duplicate(true)
+	var minimum_length := _get_power_volume_button_minimum_length()
+	side_button_length_scale = clampf(side_button_length_scale, minimum_length, 1.35)
+	if int(power_volume_button_research_levels.get("Power Button Position", 0)) < 1 and power_button_edge != "right":
+		power_button_edge = "right"
+	if int(power_volume_button_research_levels.get("Volume Button Position", 0)) < 1 and volume_button_edge != "right":
+		volume_button_edge = "right"
+	_normalize_power_volume_positions()
+	_refresh_phone_side_buttons()
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "PowerVolumeControls":
+		_refresh_power_volume_controls()
+
 
 func _show_home_button_controls() -> void:
 	if not is_instance_valid(right_tools_content):
@@ -10227,10 +10492,12 @@ func set_side_button_research_levels(levels: Dictionary) -> void:
 
 
 func _on_side_button_length_changed(value: float) -> void:
-	side_button_length_scale = clampf(value, 0.55, 1.35)
+	var minimum_length := _get_power_volume_button_minimum_length()
+	side_button_length_scale = clampf(value, minimum_length, 1.35)
 	if is_instance_valid(side_button_length_label):
 		side_button_length_label.text = "LENGTH  %d%%" % roundi(side_button_length_scale * 100.0)
 	_refresh_phone_side_buttons()
+	_refresh_power_volume_controls()
 
 func _style_horizontal_feature_slider(meter: HSlider) -> void:
 	_style_custom_slider(meter)
