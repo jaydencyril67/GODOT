@@ -4,6 +4,7 @@ signal back_requested
 signal project_commission_requested(request: Dictionary)
 signal project_approve_requested(project_id: String, results: Array)
 signal project_reject_requested(project_id: String, review_note: String)
+signal project_cancel_requested(project_id: String)
 
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
@@ -64,9 +65,13 @@ var creation_mode := false
 var creation_step := 1
 var ui_scale := 1.0
 var _last_layout_key := ""
+var existing_pop_alert: Node
+var game_date_unix := 0.0
 
 
-func configure(data: Dictionary, _existing_pop_alert: Node = null) -> void:
+func configure(data: Dictionary, pop_alert: Node = null) -> void:
+	existing_pop_alert = pop_alert
+	game_date_unix = float(data.get("game_date_unix", game_date_unix))
 	company_name = str(data.get("company_name", "Your Company"))
 	company_balance = maxf(0.0, float(data.get("balance", 0.0)))
 	if is_instance_valid(capital_value_label):
@@ -1505,6 +1510,9 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 
 	var card := PanelContainer.new()
 	card.name = "ActiveResearchProjectCard"
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	card.gui_input.connect(_on_active_research_project_input.bind(project_id))
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var panel_style := StyleBoxFlat.new()
@@ -1520,6 +1528,7 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 	parent.add_child(card)
 
 	var content := VBoxContainer.new()
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_theme_constant_override("separation", roundi(_scaled(7.0)))
 	card.add_child(content)
 
@@ -1559,6 +1568,65 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 12, ORANGE)
 		pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		content.add_child(pause_label)
+
+
+func _on_active_research_project_input(event: InputEvent, project_id: String) -> void:
+	var clicked := false
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		clicked = true
+	elif event is InputEventScreenTouch and event.pressed:
+		clicked = true
+	if clicked:
+		show_active_research_details(project_id)
+		accept_event()
+
+
+func show_active_research_details(project_id: String) -> void:
+	if not is_instance_valid(existing_pop_alert):
+		push_warning("The existing alert component is unavailable; research details were not opened.")
+		return
+	var project := _find_research_project(project_id)
+	if project.is_empty() or str(project.get("status", "")) != ResearchManagerScript.STATUS_ACTIVE:
+		return
+	var required_days := maxf(1.0, float(project.get("required_research_days", project.get("estimated_duration_days", 1.0))))
+	var completed_days := clampf(float(project.get("completed_research_days", 0.0)), 0.0, required_days)
+	var duration_percent := clampf((completed_days / required_days) * 100.0, 0.0, 100.0)
+	var remaining_days := maxf(0.0, required_days - completed_days)
+	var start_unix := float(project.get("created_at_unix", game_date_unix))
+	var expected_finish_unix := game_date_unix + remaining_days * 86400.0
+	var details := VBoxContainer.new()
+	details.name = "ActiveResearchDetails"
+	details.add_theme_constant_override("separation", 10)
+	for detail in [
+		"RESEARCH DURATION COMPLETED   %.1f%%" % duration_percent,
+		"START DATE   %s" % _format_research_date(start_unix),
+		"EXPECTED FINISH   %s" % _format_research_date(expected_finish_unix)
+	]:
+		var line := _label(detail, 15, TEXT_MAIN, HORIZONTAL_ALIGNMENT_CENTER)
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		details.add_child(line)
+	var project_name := str(project.get("component", "Research"))
+	existing_pop_alert.call(
+		"show_custom_prompt",
+		project_name.to_upper() + " RESEARCH",
+		"Current research schedule and duration progress.",
+		details,
+		"CANCEL RESEARCH",
+		Callable(self, "_request_project_cancellation").bind(project_id)
+	)
+
+
+func _format_research_date(timestamp: float) -> String:
+	var date := Time.get_datetime_dict_from_unix_time(int(timestamp))
+	return "%02d %s %04d" % [
+		int(date.get("day", 1)),
+		["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][clampi(int(date.get("month", 1)) - 1, 0, 11)],
+		int(date.get("year", 1970))
+	]
+
+
+func _request_project_cancellation(project_id: String) -> void:
+	project_cancel_requested.emit(project_id)
 
 
 func _add_panel(parent: Control, stretch_ratio: float = 1.0) -> VBoxContainer:
