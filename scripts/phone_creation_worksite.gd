@@ -320,6 +320,10 @@ const MAX_REAR_CAMERAS := 5
 
 const MAX_REAR_FLASHES := 5
 
+# Camera and flash centres share one phone-local placement lattice.
+const REAR_HARDWARE_GRID_STEP := 0.04
+const REAR_HARDWARE_SPAWN_GRID_INTERVALS := 3
+
 var front_camera_style := "Bezel Camera"
 var front_camera_research_level := 0
 var front_camera_mp_research_level := 0
@@ -343,6 +347,7 @@ var rear_camera_count_research_level := 0
 
 var rear_flash_modules: Array[Dictionary] = []
 var rear_flash_count_research_level := 0
+var rear_hardware_grid_initialized := false
 
 var rear_camera_selected_index := -1
 
@@ -9038,26 +9043,79 @@ func _cycle_rear_hardware_selection(direction: int) -> void:
 	_set_rear_hardware_selected_index(next_index)
 	_refresh_rear_hardware_panel()
 
+func _snap_rear_hardware_position_to_shared_grid(position: Vector2) -> Vector2:
+	var step := REAR_HARDWARE_GRID_STEP
+	return Vector2(
+		roundf(position.x / step) * step,
+		roundf(position.y / step) * step
+	)
+
 func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vector2:
-	# Search the complete usable rear face. Foldable cover-display space is
-	# excluded by _rear_module_position_is_free, so spawning naturally moves
-	# to the other clear portion of the back instead of failing in one corner.
+	# Search the usable rear face on the same 0.04-unit lattice used by
+	# movement. The 0.12-unit search spacing remains three shared grid cells.
 	var extent := module_size * 1.22
 	var body_half := _active_phone_size() * 0.5
 	var min_x := -body_half.x + extent + 0.025
 	var max_x := body_half.x - extent - 0.025
 	var min_y := -body_half.y + extent + 0.025
 	var max_y := body_half.y - extent - 0.025
-	var y := max_y
-	while y >= min_y:
-		var x := min_x
-		while x <= max_x:
-			var candidate := Vector2(x, y)
+	var step := REAR_HARDWARE_GRID_STEP
+	var min_x_index := ceili(min_x / step - 0.00001)
+	var max_x_index := floori(max_x / step + 0.00001)
+	var min_y_index := ceili(min_y / step - 0.00001)
+	var max_y_index := floori(max_y / step + 0.00001)
+	var spawn_stride := REAR_HARDWARE_SPAWN_GRID_INTERVALS
+
+	var y_index := max_y_index
+	while y_index >= min_y_index:
+		var x_index := min_x_index
+		while x_index <= max_x_index:
+			var candidate := Vector2(float(x_index) * step, float(y_index) * step)
 			if _rear_module_position_is_free(candidate, module_size, kind, -1):
 				return candidate
-			x += 0.12
-		y -= 0.12
+			x_index += spawn_stride
+		y_index -= spawn_stride
 	return Vector2(1000.0, 1000.0)
+
+func _normalize_rear_hardware_positions_to_shared_grid() -> void:
+	if rear_hardware_grid_initialized:
+		return
+	if rear_camera_modules.is_empty() and rear_flash_modules.is_empty():
+		return
+
+	# Migrate positions created by the old size-dependent spawn origin. Rebuild
+	# the arrays in order so the normal collision rules still protect every
+	# camera/flash while each legacy coordinate is snapped to the shared grid.
+	var previous_cameras: Array[Dictionary] = rear_camera_modules.duplicate(true)
+	var previous_flashes: Array[Dictionary] = rear_flash_modules.duplicate(true)
+	rear_camera_modules.clear()
+	rear_flash_modules.clear()
+
+	for module in previous_cameras:
+		var old_position: Vector2 = module["position"]
+		var module_size := float(module["size"])
+		var grid_position := _snap_rear_hardware_position_to_shared_grid(old_position)
+		if not _rear_module_position_is_free(grid_position, module_size, "CAMERA", -1):
+			grid_position = _find_rear_hardware_spawn_position("CAMERA", module_size)
+		if grid_position.x < 900.0:
+			module["position"] = grid_position
+		else:
+			module["position"] = old_position
+		rear_camera_modules.append(module)
+
+	for module in previous_flashes:
+		var old_position: Vector2 = module["position"]
+		var module_size := float(module["size"])
+		var grid_position := _snap_rear_hardware_position_to_shared_grid(old_position)
+		if not _rear_module_position_is_free(grid_position, module_size, "FLASH", -1):
+			grid_position = _find_rear_hardware_spawn_position("FLASH", module_size)
+		if grid_position.x < 900.0:
+			module["position"] = grid_position
+		else:
+			module["position"] = old_position
+		rear_flash_modules.append(module)
+
+	rear_hardware_grid_initialized = true
 
 func _rear_module_position_is_free(candidate_position: Vector2, module_size: float, kind: String, ignore_index: int) -> bool:
 	# Cameras and flashes may sit on raised boxes, but never on a Flip/Fold
@@ -9105,7 +9163,16 @@ func _on_rear_hardware_pad_pressed(direction: Vector2i) -> void:
 	if local_direction.length_squared() < 0.000001:
 		return
 	local_direction = local_direction.normalized()
-	var next_position := module_position + local_direction * 0.04
+	# Convert the view-relative arrow to the nearest phone-local grid axis.
+	# This keeps every movement exactly one shared cell in X or Y, including
+	# when the phone preview is rotated.
+	if absf(local_direction.x) >= absf(local_direction.y):
+		local_direction = Vector2(signf(local_direction.x), 0.0)
+	else:
+		local_direction = Vector2(0.0, signf(local_direction.y))
+	var next_position := _snap_rear_hardware_position_to_shared_grid(
+		module_position + local_direction * REAR_HARDWARE_GRID_STEP
+	)
 	# Move in small continuous steps across the flat back and raised
 	# Back Design geometry. Only the phone edge and other hardware can block it.
 	if not _rear_module_position_is_free(next_position, module_size, rear_hardware_mode, selected_index):
@@ -9214,6 +9281,7 @@ func _rear_hardware_support_surface_z(module_position: Vector2, _module_size: fl
 func _refresh_rear_hardware_visuals() -> void:
 	if not is_instance_valid(phone_body):
 		return
+	_normalize_rear_hardware_positions_to_shared_grid()
 	_restore_foldable_accessories_from_group("RearCameraFlashHardware")
 	var previous := phone_body.get_node_or_null("RearCameraFlashHardware")
 	if is_instance_valid(previous):
