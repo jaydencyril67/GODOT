@@ -631,12 +631,11 @@ func _build_component_selection_scene() -> void:
 	component_page_grids.clear()
 	component_page_index = 0
 	component_buttons.clear()
-	var columns := _responsive_grid_columns(180.0, 4)
-	# Keep the complete component catalogue within four swipe pages.
-	# Four rows in landscape gives 16 slots per page (14 components are
-	# needed for the current 54-item catalogue).
-	var rows_per_page := 7 if _is_narrow_layout() else 4
-	var page_capacity := maxi(1, columns * rows_per_page)
+	# Five components per row and four rows per page gives 20 slots,
+	# keeping the 54-component catalogue within exactly three pages.
+	var columns := 5
+	var rows_per_page := 4
+	var page_capacity := columns * rows_per_page
 
 	component_page_viewport = VBoxContainer.new()
 	component_page_viewport.name = "ResearchComponentPages"
