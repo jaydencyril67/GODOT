@@ -1724,7 +1724,9 @@ func _find_employee(employee_id: String) -> Dictionary:
 	return {}
 
 
-func update_live_progress(projects: Array, balance: float, employees: Array) -> void:
+func update_live_progress(projects: Array, balance: float, employees: Array, current_game_date_unix: float = -1.0) -> void:
+	if current_game_date_unix >= 0.0:
+		game_date_unix = current_game_date_unix
 	research_projects = projects.duplicate(true)
 	company_balance = maxf(0.0, balance)
 	if is_instance_valid(capital_value_label):
