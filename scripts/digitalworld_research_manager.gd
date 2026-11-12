@@ -10,7 +10,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Screen Technology": 45.0,
 	"Screen Width": 60.0,
 	"Screen Height": 60.0,
-	"Refresh Rate": 30.0
+	"Refresh Rate": 30.0,
+	"Phone Thickness": 60.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
