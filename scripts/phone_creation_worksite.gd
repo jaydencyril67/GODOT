@@ -3710,13 +3710,19 @@ func set_back_raised_design_research_level(level: int) -> void:
 
 
 func set_protection_glass_research_level(level: int) -> void:
-	screen_protector_research_level = clampi(level, 0, ResearchManagerScript.PROTECTION_GLASS_RESEARCH_SEQUENCE.size())
+	var updated_level := clampi(level, 0, ResearchManagerScript.PROTECTION_GLASS_RESEARCH_SEQUENCE.size())
+	var visual_state_changed := updated_level != screen_protector_research_level
+	screen_protector_research_level = updated_level
 	if screen_protector_research_level < 1:
+		if screen_protector_enabled or screen_protector_finish != "Normal Glass":
+			visual_state_changed = true
 		screen_protector_enabled = false
 		screen_protector_finish = "Normal Glass"
 	elif screen_protector_research_level < 2 and screen_protector_finish == "Privacy Glass":
 		screen_protector_finish = "Normal Glass"
-	_refresh_phone_screen()
+		visual_state_changed = true
+	if visual_state_changed:
+		_refresh_phone_screen()
 	if wizard_step == 33:
 		_show_worksite_protection_glass_controls()
 
