@@ -5,7 +5,7 @@ const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.g
 
 # Research duration is fixed by component. Staff efficiency affects success chance, never duration.
 const BASE_RESEARCH_DURATION_DAYS := 30.0
-const RESEARCH_DURATION_FORMULA_VERSION := 3
+const RESEARCH_DURATION_FORMULA_VERSION := 4
 const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Screen Technology": 45.0,
 	"Screen Width": 60.0,
@@ -93,6 +93,7 @@ const CHARGING_SPEED_RESEARCH_UPGRADES := 66
 const CHARGING_SPEED_MAX_W := 200
 const WIRELESS_CHARGING_MAX_LEVEL := CHARGING_SPEED_RESEARCH_UPGRADES + 1
 const WIRELESS_CHARGING_SPEED_UPGRADE_DURATION_DAYS := 45.0
+const PHONE_CASE_DESIGN_DURATION_DAYS := 50.0
 const SCREEN_WIDTH_RESEARCH_LEVELS := 12
 const SCREEN_HEIGHT_RESEARCH_LEVELS := 12
 const REFRESH_RATE_RESEARCH_LEVELS := 30
@@ -110,6 +111,8 @@ static func get_component_research_duration_days(component_value: String, resear
 	var component := normalize_component(component_value)
 	if component == "Wireless Charging" and research_target_index > 1:
 		return WIRELESS_CHARGING_SPEED_UPGRADE_DURATION_DAYS
+	if component == "Phone Case" and research_target_index > 1:
+		return PHONE_CASE_DESIGN_DURATION_DAYS
 	return maxf(
 		MIN_RESEARCH_DURATION_DAYS,
 		float(COMPONENT_RESEARCH_DURATION_DAYS.get(component, BASE_RESEARCH_DURATION_DAYS))
@@ -1003,7 +1006,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_power_volume_button_length_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component) else component}
-	if component == "Wireless Charging":
+	if component in ["Wireless Charging", "Phone Case"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
 	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
