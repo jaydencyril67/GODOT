@@ -2,6 +2,7 @@ extends SceneTree
 
 const MainGameScript = preload("res://scripts/digitalworld_game.gd")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
+const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
 const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
 
