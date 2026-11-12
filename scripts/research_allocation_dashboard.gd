@@ -1131,7 +1131,7 @@ func _build_staff_selection_scene() -> void:
 	staff_page_grids.clear()
 	staff_page_index = 0
 	staff_page_viewport = VBoxContainer.new()
-	staff_page_viewport.name = "ResearchStaffPages"
+	staff_page_viewport.name = "ResearchStaffScroll"
 	staff_page_viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	staff_page_viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	staff_page_viewport.add_theme_constant_override("separation", 0)
