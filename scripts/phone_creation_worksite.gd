@@ -4961,6 +4961,14 @@ func _show_back_design_controls() -> void:
 		var locked_heading := _make_label("BACK RAISED DESIGN", 16, Color("#E5E0D6"))
 		locked_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(locked_heading)
+		var controls_center := CenterContainer.new()
+		controls_center.name = "BackRaisedDesignResearchControlsCenter"
+		controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		# Match the 360 px control zone used by other hero-based worksite sections.
+		controls_center.custom_minimum_size = Vector2(0, 360)
+		active_feature_panel.add_child(controls_center)
+
 		var research_button := Button.new()
 		research_button.name = "BackRaisedDesignResearchButton"
 		research_button.text = "RESEARCH"
@@ -4968,9 +4976,9 @@ func _show_back_design_controls() -> void:
 		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		research_button.focus_mode = Control.FOCUS_NONE
 		_apply_research_typography(research_button, button_font_size)
-		_style_back_design_button(research_button, true)
+		_style_button(research_button, true)
 		research_button.pressed.connect(_request_back_raised_design_research)
-		active_feature_panel.add_child(research_button)
+		controls_center.add_child(research_button)
 		return
 
 	var heading := _make_label("BACK DESIGN", 16, Color("#E5E0D6"))
