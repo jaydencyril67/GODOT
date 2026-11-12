@@ -1398,7 +1398,10 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 		var page_heading := HBoxContainer.new()
 		page_heading.custom_minimum_size.y = _scaled(58.0)
 		page_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		page_heading.add_child(_label("RESEARCH PROJECTS", 25, TEXT_MAIN))
+		var page_title := _label("RESEARCH PROJECTS", 22, TEXT_MAIN)
+		page_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+		page_title.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		page_heading.add_child(page_title)
 		var heading_spacer := Control.new()
 		heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_heading.add_child(heading_spacer)
