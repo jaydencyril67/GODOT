@@ -1092,8 +1092,13 @@ func _run_transition_checks() -> void:
 	if not is_instance_valid(active_card):
 		_fail("The active research project card was not created.")
 		return
-	if not review_dashboard.find_children("*", "ProgressBar", true, false).is_empty():
-		_fail("A project completion progress bar is still displayed.")
+	var active_progress_bars := review_dashboard.find_children("*", "ProgressBar", true, false)
+	if active_progress_bars.size() != 1:
+		_fail("The active research project must retain its visual progress bar.")
+		return
+	var active_progress_bar := active_progress_bars[0] as ProgressBar
+	if not is_instance_valid(active_progress_bar) or active_progress_bar.show_percentage or not is_equal_approx(active_progress_bar.value, 50.0):
+		_fail("The active research progress bar must show 50% visually without a numeric percentage.")
 		return
 	for card_label in active_card.find_children("*", "Label", true, false):
 		var label_text := str(card_label.get("text"))
