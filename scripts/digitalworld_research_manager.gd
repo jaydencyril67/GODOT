@@ -117,7 +117,8 @@ const COMPONENT_CATALOGUE := [
 	"Rear Camera MP",
 	"Rear Camera Count",
 	"Rear Flash Count",
-	"Back Raised Design"
+	"Back Raised Design",
+	"Device Color"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -649,6 +650,16 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if not COMPONENT_CATALOGUE.has(component):
 		return _failure("Choose an available research component.")
 
+	if component == "Device Color":
+		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
+			return _failure("Gradient device colour has already been unlocked.")
+		for existing_project_value in career.get("research_projects", []):
+			if not (existing_project_value is Dictionary):
+				continue
+			var existing_color_project: Dictionary = existing_project_value
+			if str(existing_color_project.get("component", "")) == component and str(existing_color_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+				return _failure("Device Color research is already in progress or awaiting validation.")
+
 	if CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
 		var completed_level := int(career.get("research_component_levels", {}).get(component, 0))
 		if completed_level >= 1:
@@ -727,9 +738,11 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_rear_flash_count_research_target(career.get("research_component_levels", {}))
 	elif component == "Back Raised Design":
 		ordered_target = get_back_raised_design_research_target(career.get("research_component_levels", {}))
+	elif component == "Device Color":
+		ordered_target = {"index": 1, "technology": "Gradient Finish"} if int(career.get("research_component_levels", {}).get("Device Color", 0)) < 1 else {}
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design"] or PHONE_SENSOR_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color"] or PHONE_SENSOR_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -768,6 +781,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Research and validate support for a rear flash capacity of %s in one phone." % target_technology
 		elif component == "Back Raised Design":
 			project_objective = "Develop and validate support for %s on the back of one phone." % target_technology
+		elif component == "Device Color":
+			project_objective = "Develop and validate a gradient-finish system for the phone body while preserving the standard solid-colour finish as the default option."
 		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
@@ -915,6 +930,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var rear_camera_count_target_index := -1
 	var rear_flash_count_target_index := -1
 	var back_raised_design_target_index := -1
+	var device_color_target_index := -1
 	var phone_sensor_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
@@ -1012,6 +1028,10 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Back Raised Design project is no longer the next raised-box capacity upgrade.")
 		if str(project.get("research_target", "")) != str(expected_back_raised_design_target.get("technology", "")):
 			return _failure("The Back Raised Design project target does not match the current raised-box capacity progression.")
+	elif component == "Device Color":
+		device_color_target_index = int(project.get("research_target_index", -1))
+		if int(component_levels.get(component, 0)) >= 1 or device_color_target_index != 1 or str(project.get("research_target", "")) != "Gradient Finish":
+			return _failure("The Device Color project no longer matches the gradient-finish unlock.")
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		phone_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or phone_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
@@ -1058,6 +1078,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next rear-hardware addition capacity assigned to this project.")
 		if result_component == "Back Raised Design" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next raised back-design box capacity assigned to this project.")
+		if result_component == "Device Color" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact gradient-finish unlock assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact sensor component assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
@@ -1150,6 +1172,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Back Raised Design":
 		# Level 1 unlocks the first raised box; each approval adds one, up to twenty.
 		component_levels[component] = back_raised_design_target_index
+	elif component == "Device Color":
+		# Solid colour is the default; one approved project unlocks gradient finishes.
+		component_levels[component] = device_color_target_index
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		# Every sensor is an independent, one-time approved research unlock.
 		component_levels[component] = 1
