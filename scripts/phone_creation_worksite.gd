@@ -9593,6 +9593,39 @@ func _show_power_volume_controls() -> void:
 	power_volume_position_next_button.pressed.connect(_on_power_volume_position_cycle.bind(1))
 	position_row.add_child(power_volume_position_next_button)
 
+	# Fine-position controls move the selected button along its chosen phone-body edge.
+	var fine_position_caption := _make_label("MOVE ALONG SELECTED EDGE", 12, Color("#D3AA6B"))
+	fine_position_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	active_feature_panel.add_child(fine_position_caption)
+
+	var fine_position_row := HBoxContainer.new()
+	fine_position_row.name = "PowerVolumeFinePositionControls"
+	fine_position_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	fine_position_row.add_theme_constant_override("separation", 12)
+	active_feature_panel.add_child(fine_position_row)
+
+	var position_down := Button.new()
+	position_down.name = "DecreasePowerVolumePosition"
+	position_down.text = "−"
+	position_down.custom_minimum_size = Vector2(56, 48)
+	position_down.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(position_down, 24)
+	_style_button(position_down, false)
+	position_down.tooltip_text = "Move the selected button backward along this edge"
+	position_down.pressed.connect(_on_power_volume_position_step.bind(-1))
+	fine_position_row.add_child(position_down)
+
+	var position_up := Button.new()
+	position_up.name = "IncreasePowerVolumePosition"
+	position_up.text = "+"
+	position_up.custom_minimum_size = Vector2(56, 48)
+	position_up.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(position_up, 24)
+	_style_button(position_up, false)
+	position_up.tooltip_text = "Move the selected button forward along this edge"
+	position_up.pressed.connect(_on_power_volume_position_step.bind(1))
+	fine_position_row.add_child(position_up)
+
 	var length_divider := ColorRect.new()
 	length_divider.name = "PowerVolumeLengthDivider"
 	length_divider.custom_minimum_size = Vector2(0, 1)
