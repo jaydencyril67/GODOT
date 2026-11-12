@@ -8777,11 +8777,16 @@ func _show_front_camera_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
+	var enable_row_center := CenterContainer.new()
+	enable_row_center.name = "FrontCameraEnablementCenter"
+	enable_row_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(enable_row_center)
+
 	var enable_row := HBoxContainer.new()
 	enable_row.name = "FrontCameraEnablementRow"
-	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	enable_row.add_theme_constant_override("separation", 9)
-	active_feature_panel.add_child(enable_row)
+	enable_row_center.add_child(enable_row)
 
 	var enable_toggle := Button.new()
 	enable_toggle.name = "FrontCameraEnablement"
