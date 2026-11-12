@@ -148,6 +148,7 @@ const COMPONENT_CATALOGUE := [
 	"Device Color",
 	"Phone Case",
 	"Protection Glass",
+	"Box Package",
 	"Wireless Earbuds",
 	"Charger",
 	"Side Button",
@@ -785,6 +786,16 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if str(existing_smartwatch_project.get("component", "")) == component and str(existing_smartwatch_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
 				return _failure("Smartwatch research is already in progress or awaiting validation.")
 
+	if component == "Box Package":
+		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
+			return _failure("Box Package has already been researched.")
+		for existing_project_value in career.get("research_projects", []):
+			if not (existing_project_value is Dictionary):
+				continue
+			var existing_box_package_project: Dictionary = existing_project_value
+			if str(existing_box_package_project.get("component", "")) == component and str(existing_box_package_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+				return _failure("Box Package research is already in progress or awaiting validation.")
+
 	if component == "Wireless Earbuds":
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
 			return _failure("Wireless Earbuds have already been researched.")
@@ -891,6 +902,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = {"index": 1, "technology": "Smartwatch"}
 	elif component == "Wireless Earbuds":
 		ordered_target = {"index": 1, "technology": "Wireless Earbuds"}
+	elif component == "Box Package":
+		ordered_target = {"index": 1, "technology": "Box Package"}
 	elif component == "Device Color":
 		ordered_target = {"index": 1, "technology": "Gradient Finish"} if int(career.get("research_component_levels", {}).get("Device Color", 0)) < 1 else {}
 	elif component == "Phone Case":
@@ -901,7 +914,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_power_volume_button_length_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component) else component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -942,6 +955,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate support for %s on the back of one phone." % target_technology
 		elif component == "Device Color":
 			project_objective = "Develop and validate a gradient-finish system for the phone body while preserving the standard solid-colour finish as the default option."
+		elif component == "Box Package":
+			project_title = "Research: Box Package - Initial Unlock"
+			project_objective = "Develop and validate the company-branded phone box package, unlocking all existing box-package customization controls in the phone creation worksite."
 		elif component == "Wireless Earbuds":
 			project_title = "Research: Wireless Earbuds - Initial Unlock"
 			project_objective = "Develop and validate the wireless-earbuds accessory, unlocking its availability in the phone creation worksite."
