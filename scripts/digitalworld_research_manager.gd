@@ -30,7 +30,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Curved Screen Horizontal": 500.0,
 	"Curved Screen Vertical": 510.0,
 	"Curved Screen Both": 600.0,
-	"Battery Capacity": 40.0
+	"Battery Capacity": 40.0,
+	"Power Bank": 150.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
