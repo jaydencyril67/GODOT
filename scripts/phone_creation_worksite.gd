@@ -839,6 +839,8 @@ var back_design_gradient_enabled_without_box := false
 
 var box_package_preview: Node3D
 
+var box_package_research_level := 0
+
 var box_package_preview_mode := false
 
 var box_package_position_target := "LOGO"
@@ -1858,6 +1860,26 @@ func _show_worksite_box_package_controls() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(heading)
 
+	if box_package_research_level <= 0:
+		var research_center := CenterContainer.new()
+		research_center.name = "BoxPackageResearchControlsCenter"
+		research_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		research_center.custom_minimum_size = Vector2(0, 360)
+		panel.add_child(research_center)
+		var research_button := Button.new()
+		research_button.name = "BoxPackageResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, 13)
+		_style_button(research_button, true)
+		research_button.pressed.connect(func(): research_requested.emit())
+		research_center.add_child(research_button)
+		step_panels[30] = panel
+		return
+
 	# Use the same cardless hierarchy as Back Raised Design:
 	# compact mode controls, direct slider rows, then one centred D-pad.
 	var top_controls := HBoxContainer.new()
@@ -1985,6 +2007,19 @@ func _add_worksite_box_package_position_button(parent: GridContainer, caption: S
 	_style_button(button, true)
 	button.pressed.connect(Callable(self, "_move_box_package_branding").bind(direction))
 	parent.add_child(button)
+
+
+func set_box_package_research_level(level: int) -> void:
+	var updated_level := clampi(level, 0, 1)
+	var level_changed := updated_level != box_package_research_level
+	box_package_research_level = updated_level
+	if box_package_research_level <= 0:
+		box_package_color_mode = false
+		box_package_preview_mode = false
+		if is_instance_valid(box_package_preview):
+			box_package_preview.visible = false
+	if level_changed and wizard_step == 30:
+		_show_worksite_box_package_controls()
 
 
 func _on_worksite_box_package_branding_size_changed(value: float, target: String) -> void:
