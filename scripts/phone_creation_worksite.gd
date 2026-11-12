@@ -739,15 +739,23 @@ var camera_side_button_y := -0.48
 
 var sound_button_enabled := false
 
-var sim_tray_enabled := false
+# The SIM tray is the baseline side feature; every other optional side feature
+# stays disabled until its own company-funded research project is approved.
+var sim_tray_enabled := true
 
 var sim_tray_y := -0.58
 
 var style_pen_enabled := false
 
-var camera_side_button_position_label: Label
-
-var sim_tray_position_label: Label
+var side_button_research_levels: Dictionary = {}
+var selected_side_feature_index := 0
+var side_feature_enable_row: HBoxContainer
+var side_feature_enabled_toggle: TextureButton
+var side_feature_name_label: Label
+var side_feature_previous_button: Button
+var side_feature_next_button: Button
+var side_feature_position_controls: VBoxContainer
+var side_feature_position_label: Label
 
 var side_button_length_scale := 1.35
 
@@ -9945,99 +9953,221 @@ func _show_side_button_controls() -> void:
 	active_feature_panel = VBoxContainer.new()
 	active_feature_panel.name = "SideButtonControls"
 	active_feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	active_feature_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	active_feature_panel.add_theme_constant_override("separation", 12)
+	active_feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.custom_minimum_size = Vector2(0, 300)
+	active_feature_panel.add_theme_constant_override("separation", 14)
 	right_tools_content.add_child(active_feature_panel)
 
-	var title := _make_label("SIDE BUTTONS", 21, Color("#D3AA6B"))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var title := _label("SIDE BUTTONS", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(title)
-	# Keep the section focused on the controls; no explanatory subtitle.
 
-	_add_optional_side_feature_row("SIDE BUTTON", "camera", camera_side_button_enabled, true, camera_side_button_y)
-	_add_optional_side_feature_row("SOUND BUTTON", "sound", sound_button_enabled, false, volume_button_y)
-	_add_optional_side_feature_row("SIM TRAY", "sim", sim_tray_enabled, true, sim_tray_y)
-	_add_optional_side_feature_row("STYLE PEN (S PEN)", "style_pen", style_pen_enabled, false, 0.0)
+	# Match Phone Sensors: one ENABLE row followed by a compact, centred
+	# previous / selected feature / next selector.
+	side_feature_enable_row = HBoxContainer.new()
+	side_feature_enable_row.name = "SideFeatureEnableRow"
+	side_feature_enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	side_feature_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	side_feature_enable_row.custom_minimum_size = Vector2(124, 42)
+	side_feature_enable_row.add_theme_constant_override("separation", 8)
+	active_feature_panel.add_child(side_feature_enable_row)
 
-func _add_optional_side_feature_row(caption: String, feature: String, enabled: bool, with_position: bool, position_y: float) -> void:
-	var section := PanelContainer.new()
-	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.075, 0.080, 0.082, 0.92)
-	style.border_color = Color(0.58, 0.46, 0.29, 0.62)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(11)
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	section.add_theme_stylebox_override("panel", style)
-	active_feature_panel.add_child(section)
+	var enable_label := _label("ENABLE", 14, Color("#EEE9DF"))
+	enable_label.custom_minimum_size = Vector2(72, 0)
+	enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	enable_label.clip_text = true
+	side_feature_enable_row.add_child(enable_label)
 
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 6)
-	section.add_child(content)
-	var header := HBoxContainer.new()
-	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_child(header)
-	var label := _make_label(caption, 17, Color.WHITE)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	header.add_child(label)
-	# Reuse the exact custom TextureButton checkbox artwork and sizing used
-	# by the Power and Volume controls for a consistent editor UI.
-	var toggle := TextureButton.new()
-	toggle.name = "Custom" + feature.capitalize() + "ButtonCheckbox"
-	toggle.custom_minimum_size = Vector2(36, 36)
-	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
-	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	toggle.ignore_texture_size = true
-	toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	toggle.texture_normal = _make_side_button_checkbox_icon(false)
-	toggle.texture_hover = _make_side_button_checkbox_icon(false)
-	toggle.texture_pressed = _make_side_button_checkbox_icon(true)
-	toggle.toggle_mode = true
-	toggle.button_pressed = enabled
-	toggle.focus_mode = Control.FOCUS_NONE
-	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	toggle.pressed.connect(_on_optional_side_feature_toggle_pressed.bind(toggle, feature))
-	header.add_child(toggle)
+	side_feature_enabled_toggle = TextureButton.new()
+	side_feature_enabled_toggle.name = "SideFeatureEnabledToggle"
+	side_feature_enabled_toggle.custom_minimum_size = Vector2(42, 42)
+	side_feature_enabled_toggle.ignore_texture_size = true
+	side_feature_enabled_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	side_feature_enabled_toggle.toggle_mode = true
+	side_feature_enabled_toggle.focus_mode = Control.FOCUS_NONE
+	side_feature_enabled_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	side_feature_enabled_toggle.toggled.connect(_on_side_feature_toggled)
+	side_feature_enable_row.add_child(side_feature_enabled_toggle)
 
-	if with_position:
-		var position_caption := _make_label("POSITION ON PHONE SIDE", 12, Color("#D3AA6B"))
-		content.add_child(position_caption)
-		var controls := HBoxContainer.new()
-		controls.alignment = BoxContainer.ALIGNMENT_CENTER
-		controls.add_theme_constant_override("separation", 10)
-		content.add_child(controls)
-		var down := Button.new()
-		down.text = "−"
-		down.custom_minimum_size = Vector2(58, 44)
-		_apply_research_typography(down, 24)
-		_style_screen_type_option(down, 0, false)
-		down.pressed.connect(_on_optional_side_feature_position_step.bind(feature, -1))
-		controls.add_child(down)
-		var value_label := _make_label("%d%%" % roundi(position_y / 1.20 * 100.0), 15, Color("#C58A3A"))
-		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		controls.add_child(value_label)
-		var up := Button.new()
-		up.text = "+"
-		up.custom_minimum_size = Vector2(58, 44)
-		_apply_research_typography(up, 24)
-		_style_screen_type_option(up, 0, false)
-		up.pressed.connect(_on_optional_side_feature_position_step.bind(feature, 1))
-		controls.add_child(up)
-		if feature == "camera":
-			camera_side_button_position_label = value_label
-		else:
-			sim_tray_position_label = value_label
+	var navigation_center := CenterContainer.new()
+	navigation_center.name = "SideFeatureNavigationCenter"
+	navigation_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	active_feature_panel.add_child(navigation_center)
 
-func _on_optional_side_feature_toggle_pressed(toggle: TextureButton, feature: String) -> void:
-	_on_optional_side_feature_toggled(toggle.button_pressed, feature)
+	var navigation := HBoxContainer.new()
+	navigation.name = "SideFeatureNavigation"
+	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation.add_theme_constant_override("separation", 30)
+	navigation_center.add_child(navigation)
 
-func _on_optional_side_feature_toggled(enabled: bool, feature: String) -> void:
+	side_feature_previous_button = Button.new()
+	side_feature_previous_button.name = "PreviousSideFeatureButton"
+	side_feature_previous_button.text = "−"
+	_style_level_selector_button(side_feature_previous_button)
+	side_feature_previous_button.custom_minimum_size = Vector2(56, 48)
+	side_feature_previous_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	side_feature_previous_button.pressed.connect(_on_side_feature_previous_pressed)
+	navigation.add_child(side_feature_previous_button)
+
+	side_feature_name_label = _label("SIM TRAY", 19, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
+	side_feature_name_label.name = "SelectedSideFeature"
+	side_feature_name_label.custom_minimum_size = Vector2(150, 56)
+	side_feature_name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	side_feature_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	side_feature_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	navigation.add_child(side_feature_name_label)
+
+	side_feature_next_button = Button.new()
+	side_feature_next_button.name = "NextSideFeatureButton"
+	side_feature_next_button.text = "+"
+	_style_level_selector_button(side_feature_next_button)
+	side_feature_next_button.custom_minimum_size = Vector2(56, 48)
+	side_feature_next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	side_feature_next_button.pressed.connect(_on_side_feature_next_pressed)
+	navigation.add_child(side_feature_next_button)
+
+	# Camera side button and SIM tray retain their individual vertical placement
+	# controls; the other two features do not need a position adjustment.
+	side_feature_position_controls = VBoxContainer.new()
+	side_feature_position_controls.name = "SideFeaturePositionControls"
+	side_feature_position_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	side_feature_position_controls.add_theme_constant_override("separation", 6)
+	active_feature_panel.add_child(side_feature_position_controls)
+
+	var position_caption := _label("POSITION ON PHONE SIDE", 12, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	position_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	side_feature_position_controls.add_child(position_caption)
+
+	var position_row := HBoxContainer.new()
+	position_row.name = "SideFeaturePositionRow"
+	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	position_row.add_theme_constant_override("separation", 12)
+	side_feature_position_controls.add_child(position_row)
+
+	var position_down := Button.new()
+	position_down.name = "DecreaseSideFeaturePositionButton"
+	position_down.text = "−"
+	position_down.custom_minimum_size = Vector2(56, 48)
+	_apply_research_typography(position_down, 24)
+	_style_power_volume_position_button(position_down)
+	position_down.pressed.connect(_on_side_feature_position_step.bind(-1))
+	position_row.add_child(position_down)
+
+	side_feature_position_label = _label("-48%", 15, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
+	side_feature_position_label.name = "SideFeaturePositionValue"
+	side_feature_position_label.custom_minimum_size.x = 100
+	side_feature_position_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	position_row.add_child(side_feature_position_label)
+
+	var position_up := Button.new()
+	position_up.name = "IncreaseSideFeaturePositionButton"
+	position_up.text = "+"
+	position_up.custom_minimum_size = Vector2(56, 48)
+	_apply_research_typography(position_up, 24)
+	_style_power_volume_position_button(position_up)
+	position_up.pressed.connect(_on_side_feature_position_step.bind(1))
+	position_row.add_child(position_up)
+
+	_refresh_side_button_controls()
+
+
+func _get_available_side_features() -> Array[String]:
+	var features: Array[String] = ["sim"]
+	if int(side_button_research_levels.get("Side Button", 0)) >= 1:
+		features.append("camera")
+	if int(side_button_research_levels.get("Sound Button", 0)) >= 1:
+		features.append("sound")
+	if int(side_button_research_levels.get("Style Pen (S Pen)", 0)) >= 1:
+		features.append("style_pen")
+	return features
+
+
+func _get_side_feature_title(feature: String) -> String:
+	match feature:
+		"camera":
+			return "SIDE BUTTON"
+		"sound":
+			return "SOUND BUTTON"
+		"sim":
+			return "SIM TRAY"
+		"style_pen":
+			return "STYLE PEN (S PEN)"
+	return "SIDE FEATURE"
+
+
+func _is_side_feature_enabled(feature: String) -> bool:
+	match feature:
+		"camera":
+			return camera_side_button_enabled
+		"sound":
+			return sound_button_enabled
+		"sim":
+			return sim_tray_enabled
+		"style_pen":
+			return style_pen_enabled
+	return false
+
+
+func _refresh_side_button_controls() -> void:
+	var features := _get_available_side_features()
+	if features.is_empty():
+		return
+	selected_side_feature_index = clampi(selected_side_feature_index, 0, features.size() - 1)
+	var feature := features[selected_side_feature_index]
+	var enabled := _is_side_feature_enabled(feature)
+
+	if is_instance_valid(side_feature_enable_row):
+		side_feature_enable_row.visible = true
+	if is_instance_valid(side_feature_name_label):
+		side_feature_name_label.text = _get_side_feature_title(feature)
+	if is_instance_valid(side_feature_enabled_toggle):
+		side_feature_enabled_toggle.disabled = false
+		side_feature_enabled_toggle.set_pressed_no_signal(enabled)
+		var checkbox_icon: Texture2D = _make_side_button_checkbox_icon(enabled)
+		side_feature_enabled_toggle.texture_normal = checkbox_icon
+		side_feature_enabled_toggle.texture_hover = checkbox_icon
+		side_feature_enabled_toggle.texture_pressed = _make_side_button_checkbox_icon(true)
+		side_feature_enabled_toggle.texture_disabled = _make_side_button_checkbox_icon(false)
+		side_feature_enabled_toggle.tooltip_text = "Enable or disable " + _get_side_feature_title(feature).to_lower()
+	if is_instance_valid(side_feature_previous_button):
+		side_feature_previous_button.disabled = selected_side_feature_index <= 0
+	if is_instance_valid(side_feature_next_button):
+		side_feature_next_button.disabled = selected_side_feature_index >= features.size() - 1
+	if is_instance_valid(side_feature_position_controls):
+		var has_position := feature in ["camera", "sim"]
+		side_feature_position_controls.visible = has_position
+		if has_position and is_instance_valid(side_feature_position_label):
+			var position_y := camera_side_button_y if feature == "camera" else sim_tray_y
+			side_feature_position_label.text = "%d%%" % roundi(position_y / 1.20 * 100.0)
+
+
+func _on_side_feature_previous_pressed() -> void:
+	selected_side_feature_index = maxi(0, selected_side_feature_index - 1)
+	_refresh_side_button_controls()
+
+
+func _on_side_feature_next_pressed() -> void:
+	var features := _get_available_side_features()
+	selected_side_feature_index = mini(maxi(0, features.size() - 1), selected_side_feature_index + 1)
+	_refresh_side_button_controls()
+
+
+func _on_side_feature_toggled(enabled: bool) -> void:
+	var features := _get_available_side_features()
+	if features.is_empty():
+		return
+	var feature := features[clampi(selected_side_feature_index, 0, features.size() - 1)]
+	if feature == "camera" and int(side_button_research_levels.get("Side Button", 0)) < 1:
+		_refresh_side_button_controls()
+		return
+	if feature == "sound" and int(side_button_research_levels.get("Sound Button", 0)) < 1:
+		_refresh_side_button_controls()
+		return
+	if feature == "style_pen" and int(side_button_research_levels.get("Style Pen (S Pen)", 0)) < 1:
+		_refresh_side_button_controls()
+		return
 	match feature:
 		"camera":
 			camera_side_button_enabled = enabled
@@ -10050,17 +10180,53 @@ func _on_optional_side_feature_toggled(enabled: bool, feature: String) -> void:
 	_refresh_phone_side_buttons()
 	if feature == "style_pen":
 		_refresh_phone_speakers()
+	_refresh_side_button_controls()
+	_notify_worksite_full_selection_changed()
 
-func _on_optional_side_feature_position_step(feature: String, direction: int) -> void:
+
+func _on_side_feature_position_step(direction: int) -> void:
+	var features := _get_available_side_features()
+	if features.is_empty():
+		return
+	var feature := features[clampi(selected_side_feature_index, 0, features.size() - 1)]
 	if feature == "camera":
 		camera_side_button_y = clampf(camera_side_button_y + float(direction) * 0.06, -1.20, 1.20)
-		if is_instance_valid(camera_side_button_position_label):
-			camera_side_button_position_label.text = "%d%%" % roundi(camera_side_button_y / 1.20 * 100.0)
-	else:
+	elif feature == "sim":
 		sim_tray_y = clampf(sim_tray_y + float(direction) * 0.06, -1.20, 1.20)
-		if is_instance_valid(sim_tray_position_label):
-			sim_tray_position_label.text = "%d%%" % roundi(sim_tray_y / 1.20 * 100.0)
+	else:
+		return
 	_refresh_phone_side_buttons()
+	_refresh_side_button_controls()
+	_notify_worksite_full_selection_changed()
+
+
+func set_side_button_research_levels(levels: Dictionary) -> void:
+	var previous_feature := ""
+	var current_features := _get_available_side_features()
+	if not current_features.is_empty() and selected_side_feature_index < current_features.size():
+		previous_feature = current_features[selected_side_feature_index]
+
+	var style_pen_was_enabled := style_pen_enabled
+	side_button_research_levels = levels.duplicate(true)
+	if int(side_button_research_levels.get("Side Button", 0)) < 1:
+		camera_side_button_enabled = false
+	if int(side_button_research_levels.get("Sound Button", 0)) < 1:
+		sound_button_enabled = false
+	if int(side_button_research_levels.get("Style Pen (S Pen)", 0)) < 1:
+		style_pen_enabled = false
+
+	var updated_features := _get_available_side_features()
+	if not previous_feature.is_empty() and updated_features.has(previous_feature):
+		selected_side_feature_index = updated_features.find(previous_feature)
+	else:
+		selected_side_feature_index = clampi(selected_side_feature_index, 0, maxi(0, updated_features.size() - 1))
+
+	_refresh_phone_side_buttons()
+	if style_pen_was_enabled != style_pen_enabled:
+		_refresh_phone_speakers()
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "SideButtonControls":
+		_refresh_side_button_controls()
+
 
 func _on_side_button_length_changed(value: float) -> void:
 	side_button_length_scale = clampf(value, 0.55, 1.35)
