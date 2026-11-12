@@ -59,7 +59,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Style Pen (S Pen)": 150.0,
 	"Power/Volume Button Length": 25.0,
 	"Power Button Position": 15.0,
-	"Volume Button Position": 15.0
+	"Volume Button Position": 15.0,
+	"Smartwatch": 310.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
