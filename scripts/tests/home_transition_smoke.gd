@@ -1050,7 +1050,11 @@ func _run_transition_checks() -> void:
 	review_dashboard.call("configure", {
 		"company_name": "Validation UI Smoke Test",
 		"balance": 1000000.0,
-		"staff_employees": [],
+		"staff_employees": [{
+			"id": "hidden-researcher",
+			"full_name": "Hidden Researcher Name",
+			"department": "Research"
+		}],
 		"research_projects": [{
 			"id": "RDP-REVIEW-SMOKE",
 			"component": "Charging Speed",
@@ -1059,6 +1063,15 @@ func _run_transition_checks() -> void:
 			"research_target_index": 2,
 			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
 			"staff_ids": []
+		}, {
+			"id": "RDP-ACTIVE-SMOKE",
+			"component": "Internal Storage",
+			"research_target": "128 GB",
+			"status": ResearchManagerScript.STATUS_ACTIVE,
+			"completed_research_days": 15.0,
+			"required_research_days": 30.0,
+			"success_chance": 85.0,
+			"staff_ids": ["hidden-researcher"]
 		}],
 		"research_technologies": {},
 		"research_component_levels": {},
@@ -1067,6 +1080,26 @@ func _run_transition_checks() -> void:
 	if review_dashboard.find_child("ReviewValidationButton", true, false) == null:
 		_fail("Completed research did not appear in the Ready for Technical Validation section.")
 		return
+	var validation_grid := review_dashboard.find_child("ResearchValidationGrid", true, false) as GridContainer
+	var active_grid := review_dashboard.find_child("ResearchInDevelopmentGrid", true, false) as GridContainer
+	if not is_instance_valid(validation_grid) or validation_grid.columns != 3:
+		_fail("Technical validation projects are not arranged in three columns.")
+		return
+	if not is_instance_valid(active_grid) or active_grid.columns != 3:
+		_fail("In-development projects are not arranged in three columns.")
+		return
+	var active_card := review_dashboard.find_child("ActiveResearchProjectCard", true, false)
+	if not is_instance_valid(active_card):
+		_fail("The active research project card was not created.")
+		return
+	if not review_dashboard.find_children("*", "ProgressBar", true, false).is_empty():
+		_fail("A project completion progress bar is still displayed.")
+		return
+	for card_label in active_card.find_children("*", "Label", true, false):
+		var label_text := str(card_label.get("text"))
+		if label_text.contains("%") or label_text.contains("STAFF") or label_text.contains("Hidden Researcher Name") or label_text.contains("SUCCESS") or label_text.contains("PROJECT COMPLETION"):
+			_fail("The active research card still displays a removed progress, success, or staff metric.")
+			return
 	review_dashboard.call("open_validation_review", "RDP-REVIEW-SMOKE")
 	await process_frame
 	for control_name in ["ValidationReviewScreen", "ValidationMetricInput", "ValidationValueInput", "ValidationNotesInput", "ValidationReviewApproveButton", "ValidationReviewRejectButton"]:

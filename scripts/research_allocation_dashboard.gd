@@ -50,8 +50,7 @@ var staff_swipe_active := false
 var estimate_label: Label
 var start_button: Button
 var assigned_staff_ids: Array[String] = []
-var active_progress_bars: Dictionary = {}
-var active_progress_labels: Dictionary = {}
+var rendered_project_signature := ""
 var frame_container: MarginContainer
 var top_bar_grid: GridContainer
 
@@ -283,8 +282,6 @@ func _render_scene() -> void:
 		return
 	_clear_body()
 	active_project_id = ""
-	active_progress_bars.clear()
-	active_progress_labels.clear()
 	review_metric_input = null
 	review_value_input = null
 	review_notes_input = null
@@ -1430,13 +1427,29 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 
 	if not pending_projects.is_empty():
 		project_list.add_child(_label("READY FOR TECHNICAL VALIDATION", 17, ACCENT))
+		var validation_grid := GridContainer.new()
+		validation_grid.name = "ResearchValidationGrid"
+		validation_grid.columns = 3
+		validation_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		validation_grid.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
+		validation_grid.add_theme_constant_override("v_separation", roundi(_scaled(12.0)))
+		project_list.add_child(validation_grid)
 		for pending_project in pending_projects:
-			_build_validation_project_card(pending_project, project_list)
+			_build_validation_project_card(pending_project, validation_grid)
 
 	if not projects.is_empty():
 		project_list.add_child(_label("IN DEVELOPMENT", 17, TEXT_MAIN))
+		var active_grid := GridContainer.new()
+		active_grid.name = "ResearchInDevelopmentGrid"
+		active_grid.columns = 3
+		active_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		active_grid.add_theme_constant_override("h_separation", roundi(_scaled(12.0)))
+		active_grid.add_theme_constant_override("v_separation", roundi(_scaled(12.0)))
+		project_list.add_child(active_grid)
 		for project in projects:
-			_build_active_research_project(project, project_list)
+			_build_active_research_project(project, active_grid)
+
+	rendered_project_signature = _get_project_status_signature()
 
 
 func _build_validation_project_card(project: Dictionary, parent: Control) -> void:
@@ -1481,83 +1494,47 @@ func _build_validation_project_card(project: Dictionary, parent: Control) -> voi
 
 func _build_active_research_project(project: Dictionary, parent: Control) -> void:
 	var project_id := str(project.get("id", ""))
-	var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
-	var required_days := maxf(1.0, float(project.get("required_research_days", 30.0)))
-	var progress := clampf(completed_days / required_days, 0.0, 1.0)
-
-
-	var main_row := _new_main_row()
-	main_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	main_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	parent.add_child(main_row)
-
-	var progress_panel := _add_panel(main_row, 1.55)
-	progress_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	progress_panel.add_theme_constant_override("separation", roundi(_scaled(7.0)))
 	var component_name := str(project.get("component", project.get("title", "Research project")))
 	if component_name == "Screen Technology":
 		component_name = "Screen Tech"
-	var component_label := _label(component_name.to_upper(), 21, TEXT_MAIN)
+
+	var card := PanelContainer.new()
+	card.name = "ActiveResearchProjectCard"
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1B1E20")
+	panel_style.border_color = Color("#514936")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(8)
+	panel_style.content_margin_left = roundi(_scaled(14.0))
+	panel_style.content_margin_right = roundi(_scaled(14.0))
+	panel_style.content_margin_top = roundi(_scaled(12.0))
+	panel_style.content_margin_bottom = roundi(_scaled(12.0))
+	card.add_theme_stylebox_override("panel", panel_style)
+	parent.add_child(card)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", roundi(_scaled(7.0)))
+	card.add_child(content)
+
+	var component_label := _label(component_name.to_upper(), 18, TEXT_MAIN)
 	component_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	component_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	progress_panel.add_child(component_label)
+	content.add_child(component_label)
+	content.add_child(_label("PROJECT  " + project_id, 11, ACCENT))
 
-	var progress_row := HBoxContainer.new()
-	progress_panel.add_child(progress_row)
-	var progress_title := _label("PROJECT COMPLETION", 12, TEXT_MUTED)
-	progress_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	progress_row.add_child(progress_title)
-	var progress_label := _label("%d%%" % roundi(progress * 100.0), 20, ACCENT)
-	progress_row.add_child(progress_label)
-
-	var progress_bar := ProgressBar.new()
-	progress_bar.min_value = 0.0
-	progress_bar.max_value = 100.0
-	progress_bar.value = progress * 100.0
-	progress_bar.show_percentage = false
-	progress_bar.custom_minimum_size = Vector2(_scaled(340.0), _scaled(12.0))
-	progress_bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	var progress_track := StyleBoxFlat.new()
-	progress_track.bg_color = Color("#303336")
-	progress_track.set_corner_radius_all(4)
-	var progress_fill := StyleBoxFlat.new()
-	progress_fill.bg_color = ACCENT
-	progress_fill.set_corner_radius_all(4)
-	progress_bar.add_theme_stylebox_override("background", progress_track)
-	progress_bar.add_theme_stylebox_override("fill", progress_fill)
-	progress_panel.add_child(progress_bar)
-
+	var target := str(project.get("research_target", "")).strip_edges()
+	if not target.is_empty():
+		var target_label := _label("TARGET  " + target, 13, TEXT_MUTED)
+		target_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(target_label)
 
 	var pause_reason := str(project.get("pause_reason", "")).strip_edges()
 	if not pause_reason.is_empty():
-		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 13, ORANGE)
+		var pause_label := _label("PROJECT PAUSED  /  " + pause_reason, 12, ORANGE)
 		pause_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		progress_panel.add_child(pause_label)
+		content.add_child(pause_label)
 
-	active_progress_bars[project_id] = progress_bar
-	active_progress_labels[project_id] = progress_label
-
-
-	var details_panel := _add_panel(main_row, 0.86)
-	details_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	details_panel.add_theme_constant_override("separation", roundi(_scaled(6.0)))
-	details_panel.add_child(_label("PROJECT  " + project_id, 13, ACCENT))
-	_add_large_metric(details_panel, "%.0f%%" % float(project.get("success_chance", 0.0)), "SUCCESS", TEXT_MAIN)
-	var detail_divider := ColorRect.new()
-	detail_divider.color = Color("#3B3832")
-	detail_divider.custom_minimum_size.y = 1
-	details_panel.add_child(detail_divider)
-	details_panel.add_child(_label("STAFF", 11, TEXT_MUTED))
-	var assigned_names: Array[String] = []
-	for staff_id_value in project.get("staff_ids", []):
-		var employee := _find_employee(str(staff_id_value))
-		if not employee.is_empty():
-			assigned_names.append(str(employee.get("full_name", employee.get("name", "Researcher"))))
-	if assigned_names.is_empty():
-		details_panel.add_child(_label("No assigned researchers found.", 13, TEXT_MUTED))
-	else:
-		for employee_name in assigned_names:
-			details_panel.add_child(_label("•  " + employee_name, 14, TEXT_MAIN))
 
 func _add_panel(parent: Control, stretch_ratio: float = 1.0) -> VBoxContainer:
 	var content := VBoxContainer.new()
@@ -1663,27 +1640,21 @@ func update_live_progress(projects: Array, balance: float, employees: Array) -> 
 	if not is_node_ready() or creation_mode:
 		return
 
-	var active_projects := _get_active_projects()
-	if active_projects.size() != active_progress_bars.size():
+	# Completion percentages are intentionally hidden from project cards.
+	# Refresh only when a project is added, removed, or changes status.
+	if _get_project_status_signature() != rendered_project_signature:
 		_render_scene()
-		return
-	for project in active_projects:
-		var project_id := str(project.get("id", ""))
-		if not active_progress_bars.has(project_id):
-			_render_scene()
-			return
-		var completed_days := maxf(0.0, float(project.get("completed_research_days", 0.0)))
-		var required_days := maxf(1.0, float(project.get("required_research_days", 30.0)))
-		var progress := clampf(completed_days / required_days, 0.0, 1.0)
 
-		var progress_bar := active_progress_bars.get(project_id) as ProgressBar
-		var progress_label := active_progress_labels.get(project_id) as Label
 
-		if is_instance_valid(progress_bar):
-			progress_bar.value = progress * 100.0
-		if is_instance_valid(progress_label):
-			progress_label.text = "%d%%" % roundi(progress * 100.0)
-
+func _get_project_status_signature() -> String:
+	var parts: PackedStringArray = []
+	for project_value in research_projects:
+		if project_value is Dictionary:
+			parts.append("%s:%s" % [
+				str(project_value.get("id", "")),
+				str(project_value.get("status", ""))
+			])
+	return "|".join(parts)
 
 
 func _clear_body() -> void:
