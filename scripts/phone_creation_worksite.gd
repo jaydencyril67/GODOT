@@ -6582,7 +6582,26 @@ func _create_screen_protector_mesh_async(width: float, height: float, corner_rad
 	surface.generate_normals()
 	return surface.commit()
 
-func _create_screen_protector_material() -> StandardMaterial3D:
+func _create_screen_protector_material() -> Material:
+	if screen_protector_finish == "Privacy Glass":
+		# The privacy coating itself fades out at oblique angles, preventing
+		# the protector surface from adding a reflection over the black display.
+		var privacy_glass_shader := Shader.new()
+		privacy_glass_shader.code = """
+shader_type spatial;
+render_mode cull_disabled, blend_mix;
+void fragment() {
+	float view_alignment = abs(dot(normalize(NORMAL), normalize(VIEW)));
+	float front_visibility = smoothstep(0.10, 0.42, view_alignment);
+	ALBEDO = vec3(0.94, 0.98, 1.0);
+	ALPHA = 0.055 * front_visibility;
+	ROUGHNESS = 1.0;
+	SPECULAR = 0.0;
+}
+"""
+		var privacy_glass_material := ShaderMaterial.new()
+		privacy_glass_material.shader = privacy_glass_shader
+		return privacy_glass_material
 	var material := StandardMaterial3D.new()
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.albedo_color = Color(0.94, 0.98, 1.0, 0.055)
