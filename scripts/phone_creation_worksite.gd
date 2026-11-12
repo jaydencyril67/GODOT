@@ -727,9 +727,9 @@ var charge_port_value_label: Label
 var charge_port_decrease_button: Button
 var charge_port_increase_button: Button
 
-var power_button_enabled := true
+var power_button_enabled := false
 
-var volume_button_enabled := true
+var volume_button_enabled := false
 
 var power_button_y := 0.72
 
@@ -748,7 +748,6 @@ var power_volume_position_previous_button: Button
 var power_volume_position_next_button: Button
 var power_volume_length_slider: HSlider
 var power_volume_length_label: Label
-var power_volume_length_research_button: Button
 
 var camera_side_button_enabled := false
 
@@ -9621,17 +9620,6 @@ func _show_power_volume_controls() -> void:
 	_style_custom_slider(power_volume_length_slider)
 	active_feature_panel.add_child(power_volume_length_slider)
 
-	power_volume_length_research_button = Button.new()
-	power_volume_length_research_button.name = "PowerVolumeLengthResearchButton"
-	power_volume_length_research_button.text = "RESEARCH LENGTH REDUCTION"
-	power_volume_length_research_button.custom_minimum_size = Vector2(0, 42)
-	power_volume_length_research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	power_volume_length_research_button.focus_mode = Control.FOCUS_NONE
-	_apply_research_typography(power_volume_length_research_button, 12)
-	_style_button(power_volume_length_research_button, true)
-	power_volume_length_research_button.pressed.connect(_request_power_volume_length_research)
-	active_feature_panel.add_child(power_volume_length_research_button)
-
 	_refresh_power_volume_controls()
 
 
@@ -9709,10 +9697,6 @@ func _refresh_power_volume_controls() -> void:
 			roundi(side_button_length_scale * 100.0),
 			roundi(_get_power_volume_button_minimum_length() * 100.0)
 		]
-	if is_instance_valid(power_volume_length_research_button):
-		power_volume_length_research_button.visible = length_level < ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL
-		power_volume_length_research_button.disabled = length_level >= ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL
-		power_volume_length_research_button.text = "RESEARCH LENGTH REDUCTION" if length_level == 0 else "RESEARCH NEXT LENGTH LEVEL"
 	if is_instance_valid(side_button_length_label):
 		side_button_length_label.text = "%d%%" % roundi(side_button_length_scale * 100.0)
 
@@ -9755,12 +9739,6 @@ func _on_power_volume_position_step(direction: int) -> void:
 	_normalize_power_volume_positions("power" if power_volume_mode == "POWER" else "volume")
 	_refresh_phone_side_buttons()
 	_refresh_power_volume_controls()
-
-
-func _request_power_volume_length_research() -> void:
-	if int(power_volume_button_research_levels.get(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, 0)) >= ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MAX_LEVEL:
-		return
-	research_requested.emit()
 
 
 func set_power_volume_button_research_levels(levels: Dictionary) -> void:
