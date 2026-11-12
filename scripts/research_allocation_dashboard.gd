@@ -733,7 +733,8 @@ func _build_component_selection_scene() -> void:
 					else:
 						component_button.tooltip_text = "Next slider maximum: %s" % str(power_bank_target.get("technology", ""))
 			if current_level >= maximum_level:
-				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
+				if component_name != "Power Bank":
+					component_button.tooltip_text = "MAXIMUM RESEARCH REACHED"
 				component_button.disabled = true
 			for project_value in research_projects:
 				if not (project_value is Dictionary):
