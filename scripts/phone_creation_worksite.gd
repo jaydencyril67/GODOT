@@ -763,6 +763,8 @@ var right_tools_content: VBoxContainer
 
 var device_body_color := Color("#a5adb6")
 
+var device_color_research_level := 0
+
 var device_gradient_enabled := false
 
 var device_gradient_color := Color("#536dfe")
@@ -3650,6 +3652,17 @@ func set_back_raised_design_research_level(level: int) -> void:
 		_show_back_design_controls()
 
 
+func set_device_color_research_level(level: int) -> void:
+	device_color_research_level = clampi(level, 0, 1)
+	if device_color_research_level <= 0 and device_gradient_enabled:
+		device_gradient_enabled = false
+		if is_instance_valid(phone_body):
+			phone_body.material_override = _create_device_body_material()
+			_refresh_foldable_frame_materials()
+	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "DeviceColorControls":
+		_show_device_color_controls()
+
+
 func set_rear_camera_mp_research_level(level: int) -> void:
 	# The 1MP starting resolution is available immediately; approved R&D expands
 	# every existing rear-camera slider ceiling up to 400MP.
@@ -4205,6 +4218,8 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	power_bank_color_mode = for_power_bank
 	wireless_earbuds_color_mode = for_earbuds
 	box_package_color_mode = for_box_package
+	var is_device_body_color_mode := not return_to_back_design and not for_phone_case and not for_charger and not for_smartwatch and not for_power_bank and not for_earbuds and not for_box_package
+	var device_gradient_unlocked := device_color_research_level >= 1
 	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
 	if not is_instance_valid(panel_host):
 		panel_host = right_tools_content
@@ -4249,6 +4264,12 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		var title := _make_label("DEVICE COLOR", 18, Color("#D3AA6B"))
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_feature_panel.add_child(title)
+		if is_device_body_color_mode and not device_gradient_unlocked:
+			var gradient_research_note := _make_label("SOLID COLOURS AVAILABLE  ·  GRADIENT REQUIRES RESEARCH", 10, Color("#B8AFA2"))
+			gradient_research_note.name = "GradientResearchLockedNote"
+			gradient_research_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			gradient_research_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			active_feature_panel.add_child(gradient_research_note)
 	var back_design_toggle_row: HBoxContainer
 	if return_to_back_design and selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size():
 		back_design_toggle_row = HBoxContainer.new()
@@ -4285,7 +4306,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 		if not use_device_color.button_pressed:
 			back_design_gradient_color_edit_mode = false
 
-	if (not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) or (return_to_back_design and (back_design_boxes.is_empty() or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false))))):
+	if ((not return_to_back_design and not for_charger and not for_smartwatch and not for_power_bank and not for_box_package) and (not is_device_body_color_mode or device_gradient_unlocked)) or (return_to_back_design and (back_design_boxes.is_empty() or (selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() and not bool(back_design_boxes[selected_back_design_box].get("use_device_color", false))))):
 		var gradient_toggle_row := HBoxContainer.new()
 		gradient_toggle_row.name = "EnableDeviceGradientRow"
 		gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -4352,7 +4373,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 	)
 	var normal_picker := _build_device_color_picker_panel(false, color_viewport_size)
 	picker_columns.add_child(normal_picker)
-	if uses_dual_color_pickers:
+	if uses_dual_color_pickers and (not is_device_body_color_mode or device_gradient_unlocked):
 		var gradient_picker := _build_device_color_picker_panel(true, color_viewport_size)
 		picker_columns.add_child(gradient_picker)
 		var gradient_picker_enabled := (bool(back_design_boxes[selected_back_design_box].get("gradient_enabled", false)) if selected_back_design_box >= 0 and selected_back_design_box < back_design_boxes.size() else back_design_gradient_enabled_without_box) if return_to_back_design else (box_package_gradient_enabled if for_box_package else (phone_case_gradient_enabled if for_phone_case else device_gradient_enabled))
@@ -4828,6 +4849,10 @@ func _select_gradient_direction(index: int) -> void:
 		gradient_direction_button.text = "GRADIENT DIRECTION  ·  " + _gradient_direction_name(selected_direction)
 
 func _on_device_gradient_toggled(enabled: bool) -> void:
+	var is_device_body_color_mode := not phone_case_color_mode and not box_package_color_mode and not charger_color_mode and not smartwatch_color_mode and not power_bank_color_mode and not wireless_earbuds_color_mode and not back_design_color_mode
+	if is_device_body_color_mode and device_color_research_level <= 0:
+		device_gradient_enabled = false
+		return
 	if phone_case_color_mode:
 		phone_case_gradient_enabled = enabled
 		if not enabled:
