@@ -13,7 +13,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Refresh Rate": 30.0,
 	"Phone Thickness": 60.0,
 	"Border Radius": 60.0,
-	"Speakers": 25.0
+	"Speakers": 25.0,
+	"Charge Port": 90.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
