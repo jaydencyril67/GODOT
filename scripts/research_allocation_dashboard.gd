@@ -1551,6 +1551,7 @@ func _build_active_research_project(project: Dictionary, parent: Control) -> voi
 	progress_bar.max_value = 100.0
 	progress_bar.value = (completed_days / required_days) * 100.0
 	progress_bar.show_percentage = false
+	progress_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	progress_bar.custom_minimum_size.y = _scaled(9.0)
 	progress_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var progress_background := StyleBoxFlat.new()
