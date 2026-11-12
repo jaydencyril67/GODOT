@@ -14,7 +14,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Phone Thickness": 60.0,
 	"Border Radius": 60.0,
 	"Speakers": 25.0,
-	"Charge Port": 90.0
+	"Charge Port": 90.0,
+	"Home Button": 120.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
