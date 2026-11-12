@@ -660,14 +660,14 @@ func _run_transition_checks() -> void:
 	if not bluetooth_component_option.tooltip_text.contains("Bluetooth 1.1"):
 		_fail("Bluetooth research did not identify Bluetooth 1.1 as its first target.")
 		return
-	var cooling_component_option := dashboard.find_child("ResearchComponentOption_15", true, false) as Button
+	var cooling_component_option := dashboard.find_child("ResearchComponentOption_16", true, false) as Button
 	if not is_instance_valid(cooling_component_option) or not cooling_component_option.text.contains("COOLING SYSTEM"):
 		_fail("Cooling System Design is missing from the R&D component selector.")
 		return
 	if not cooling_component_option.tooltip_text.contains("Graphite Sheet"):
 		_fail("Cooling System Design did not identify Graphite Sheet as its first research target.")
 		return
-	var memory_clock_component_option := dashboard.find_child("ResearchComponentOption_16", true, false) as Button
+	var memory_clock_component_option := dashboard.find_child("ResearchComponentOption_18", true, false) as Button
 	if not is_instance_valid(memory_clock_component_option) or not memory_clock_component_option.text.contains("MEMORY CLOCK"):
 		_fail("Memory Clock is missing from the R&D component selector.")
 		return
