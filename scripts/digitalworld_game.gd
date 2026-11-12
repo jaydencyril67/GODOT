@@ -2,6 +2,7 @@ extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
+const OSCreationWorksiteScene: PackedScene = preload("res://scenes/os_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
@@ -32,6 +33,7 @@ var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
+var os_creation_worksite: Node3D
 var research_dashboard_return_to_worksite := false
 var worksite_research_overlay_layer: CanvasLayer
 var home_navigation_layer: CanvasLayer
@@ -2758,9 +2760,68 @@ func _on_create_category_pressed(category: String) -> void:
 		_show_phone_creation_worksite()
 		return
 	if category.to_upper() == "OPERATING SYSTEM":
-		_show_notice("OPERATING SYSTEM", "Operating System creation is temporarily dormant and will return in a future update.")
+		_show_os_creation_worksite()
 		return
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
+
+
+
+func _prepare_os_creation_worksite() -> void:
+	if is_instance_valid(os_creation_worksite):
+		return
+	os_creation_worksite = OSCreationWorksiteScene.instantiate() as Node3D
+	if not is_instance_valid(os_creation_worksite):
+		push_error("Operating System Worksite scene could not be initialized.")
+		return
+	os_creation_worksite.name = "OS_Creation_Worksite"
+	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
+	add_child(os_creation_worksite)
+	os_creation_worksite.hide()
+	for child in os_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.hide()
+
+
+func _show_os_creation_worksite() -> void:
+	if current_screen == "os_creation_worksite" and is_instance_valid(os_creation_worksite):
+		return
+	if not is_instance_valid(os_creation_worksite):
+		_prepare_os_creation_worksite()
+	if not is_instance_valid(os_creation_worksite):
+		return
+	if is_instance_valid(ui_layer):
+		ui_layer.hide()
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.hide()
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.hide()
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(false)
+	ui_layer = null
+	ui_root = null
+	current_screen = "os_creation_worksite"
+	os_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
+	os_creation_worksite.show()
+	for child in os_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.show()
+
+
+func _return_from_os_creation_worksite() -> void:
+	current_screen = "create"
+	if is_instance_valid(os_creation_worksite):
+		os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+		os_creation_worksite.hide()
+		for child in os_creation_worksite.get_children():
+			if child is CanvasLayer:
+				child.hide()
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.show()
+		ui_layer = create_ui_layer
+		ui_root = create_ui_root
 
 
 func _dispose_phone_creation_worksite() -> void:
