@@ -57,6 +57,12 @@ const PHONE_SENSOR_COMPONENTS := [
 	"Barometer",
 	"GNSS / GPS Receiver"
 ]
+
+const SIDE_BUTTON_COMPONENTS := [
+	"Side Button",
+	"Sound Button",
+	"Style Pen (S Pen)"
+]
 const CURVED_SCREEN_RESEARCH_COMPONENTS := [
 	"Curved Screen Horizontal",
 	"Curved Screen Vertical",
@@ -118,7 +124,10 @@ const COMPONENT_CATALOGUE := [
 	"Rear Camera Count",
 	"Rear Flash Count",
 	"Back Raised Design",
-	"Device Color"
+	"Device Color",
+	"Side Button",
+	"Sound Button",
+	"Style Pen (S Pen)"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -680,14 +689,14 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 				return _failure("Memory Clock has reached its maximum research level.")
 			return _failure("Unlock a newer RAM Technology before researching faster Memory Clock speeds.")
 
-	if PHONE_SENSOR_COMPONENTS.has(component):
+	if PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component):
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
 			return _failure("%s research has already been approved." % component)
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
 				continue
-			var existing_sensor_project: Dictionary = existing_project_value
-			if str(existing_sensor_project.get("component", "")) == component and str(existing_sensor_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
+			var existing_unlock_project: Dictionary = existing_project_value
+			if str(existing_unlock_project.get("component", "")) == component and str(existing_unlock_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION]:
 				return _failure("%s already has a research project in progress or awaiting validation." % component)
 
 	var requested_staff: Variant = request.get("staff_ids", [])
@@ -740,9 +749,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_back_raised_design_research_target(career.get("research_component_levels", {}))
 	elif component == "Device Color":
 		ordered_target = {"index": 1, "technology": "Gradient Finish"} if int(career.get("research_component_levels", {}).get("Device Color", 0)) < 1 else {}
-	elif PHONE_SENSOR_COMPONENTS.has(component):
+	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color"] or PHONE_SENSOR_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color"] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -786,6 +795,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
+		elif SIDE_BUTTON_COMPONENTS.has(component):
+			project_title = "Research: %s" % component
+			project_objective = "Develop, test and validate the %s physical side feature for mobile-phone integration." % component
 		elif component == "Bluetooth":
 			project_title = "Research: %s" % target_technology
 			project_objective = "Develop and validate %s for mobile-device connectivity." % target_technology
@@ -932,6 +944,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var back_raised_design_target_index := -1
 	var device_color_target_index := -1
 	var phone_sensor_target_index := -1
+	var side_button_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -1036,6 +1049,10 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		phone_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or phone_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
 			return _failure("This sensor project is no longer a valid, unapproved sensor research target.")
+	elif SIDE_BUTTON_COMPONENTS.has(component):
+		side_button_target_index = int(project.get("research_target_index", -1))
+		if int(component_levels.get(component, 0)) >= 1 or side_button_target_index != 1 or str(project.get("research_target", "")) != component:
+			return _failure("This side-button feature is no longer a valid, unapproved research target.")
 
 	if results.is_empty():
 		return _failure("Add at least one validated technology result before approving.")
@@ -1082,6 +1099,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact gradient-finish unlock assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact sensor component assigned to this project.")
+		if SIDE_BUTTON_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact side-button feature assigned to this project.")
 		var component_history: Array = technologies.get(result_component, [])
 		component_history.append(result)
 		technologies[result_component] = component_history
@@ -1178,6 +1197,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		# Every sensor is an independent, one-time approved research unlock.
 		component_levels[component] = 1
+	elif SIDE_BUTTON_COMPONENTS.has(component):
+		# Each optional side feature is unlocked by its own approved research project.
+		component_levels[component] = side_button_target_index
 	elif CURVED_SCREEN_RESEARCH_COMPONENTS.has(component):
 		# Each curved-screen design is a separate one-time approved research unlock.
 		component_levels[component] = 1
