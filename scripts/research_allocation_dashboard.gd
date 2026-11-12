@@ -31,6 +31,14 @@ var capital_value_label: Label
 var company_name := "YOUR COMPANY"
 var selected_component_index := 0
 var component_buttons: Array[Button] = []
+var component_page_grids: Array[GridContainer] = []
+var component_page_index := 0
+var component_page_indicator: Label
+var component_page_previous: Button
+var component_page_next: Button
+var component_page_viewport: Control
+var component_swipe_start := Vector2.ZERO
+var component_swipe_active := false
 var estimate_label: Label
 var start_button: Button
 var assigned_staff_ids: Array[String] = []
@@ -620,32 +628,40 @@ func _build_component_selection_scene() -> void:
 	heading.custom_minimum_size.y = _scaled(58.0)
 	body_content.add_child(heading)
 
-	var choices := GridContainer.new()
-	choices.name = "ResearchComponentChoices"
-	var choices_scroll := ScrollContainer.new()
-	choices_scroll.name = "ResearchComponentOptionsScroll"
-	choices_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	choices_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	choices_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	choices_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	body_content.add_child(choices_scroll)
+	component_page_grids.clear()
+	component_page_index = 0
+	component_buttons.clear()
+	var columns := _responsive_grid_columns(180.0, 4)
+	var rows_per_page := 3
+	var page_capacity := maxi(1, columns * rows_per_page)
 
-	choices.columns = _responsive_grid_columns(190.0, 4)
-	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	choices.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	choices.add_theme_constant_override("h_separation", roundi(_scaled(14.0)))
-	choices.add_theme_constant_override("v_separation", roundi(_scaled(14.0)))
-	choices_scroll.add_child(choices)
+	component_page_viewport = VBoxContainer.new()
+	component_page_viewport.name = "ResearchComponentPages"
+	component_page_viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	component_page_viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	component_page_viewport.add_theme_constant_override("separation", 0)
+	body_content.add_child(component_page_viewport)
 
 	for index in range(COMPONENT_LABELS.size()):
+		if index % page_capacity == 0:
+			var page_grid := GridContainer.new()
+			page_grid.name = "ResearchComponentPage_%d" % component_page_grids.size()
+			page_grid.columns = columns
+			page_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			page_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			page_grid.add_theme_constant_override("h_separation", roundi(_scaled(10.0)))
+			page_grid.add_theme_constant_override("v_separation", roundi(_scaled(10.0)))
+			page_grid.visible = component_page_grids.is_empty()
+			component_page_grids.append(page_grid)
+			component_page_viewport.add_child(page_grid)
 		var component_button := Button.new()
 		component_button.name = "ResearchComponentOption" if index == 0 else "ResearchComponentOption_%d" % index
 		component_button.text = COMPONENT_LABELS[index].to_upper()
-		component_button.custom_minimum_size = Vector2(_scaled(190.0), _scaled(68.0))
+		component_button.custom_minimum_size = Vector2(_scaled(180.0), _scaled(58.0))
 		component_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		component_button.focus_mode = Control.FOCUS_NONE
 		component_button.clip_text = true
-		component_button.add_theme_font_size_override("font_size", _scaled_font(20))
+		component_button.add_theme_font_size_override("font_size", _scaled_font(18))
 		if COMPONENT_VALUES[index] == "Mobile Network":
 			var mobile_target: Dictionary = ResearchManagerScript.get_mobile_network_research_target(research_component_levels)
 			if mobile_target.is_empty():
@@ -954,9 +970,11 @@ func _build_component_selection_scene() -> void:
 			else:
 				component_button.tooltip_text = "Research unlocks the next available memory speed."
 		component_button.pressed.connect(_on_component_selected.bind(index))
-		choices.add_child(component_button)
+		component_page_grids[component_page_grids.size() - 1].add_child(component_button)
 		component_buttons.append(component_button)
 	_update_component_button_styles()
+	_build_component_page_navigation()
+	_show_component_page(0)
 
 	var actions: BoxContainer = VBoxContainer.new() if _is_narrow_layout() else HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -981,6 +999,88 @@ func _build_component_selection_scene() -> void:
 		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		actions.add_child(spacer)
 		actions.add_child(next)
+
+
+func _build_component_page_navigation() -> void:
+	var navigation := HBoxContainer.new()
+	navigation.name = "ResearchComponentPageNavigation"
+	navigation.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation.add_theme_constant_override("separation", roundi(_scaled(14.0)))
+	body_content.add_child(navigation)
+
+	component_page_previous = _button("‹", false, TEXT_MUTED)
+	component_page_previous.custom_minimum_size = Vector2(_scaled(42.0), _scaled(34.0))
+	component_page_previous.pressed.connect(_show_previous_component_page)
+	navigation.add_child(component_page_previous)
+
+	component_page_indicator = _label("", 12, TEXT_MUTED, HORIZONTAL_ALIGNMENT_CENTER)
+	component_page_indicator.custom_minimum_size.x = _scaled(92.0)
+	navigation.add_child(component_page_indicator)
+
+	component_page_next = _button("›", false, TEXT_MUTED)
+	component_page_next.custom_minimum_size = Vector2(_scaled(42.0), _scaled(34.0))
+	component_page_next.pressed.connect(_show_next_component_page)
+	navigation.add_child(component_page_next)
+
+
+func _show_component_page(page_index: int) -> void:
+	if component_page_grids.is_empty():
+		return
+	component_page_index = clampi(page_index, 0, component_page_grids.size() - 1)
+	for index in range(component_page_grids.size()):
+		component_page_grids[index].visible = index == component_page_index
+	if is_instance_valid(component_page_indicator):
+		component_page_indicator.text = "PAGE %d / %d" % [component_page_index + 1, component_page_grids.size()]
+	if is_instance_valid(component_page_previous):
+		component_page_previous.disabled = component_page_index <= 0
+	if is_instance_valid(component_page_next):
+		component_page_next.disabled = component_page_index >= component_page_grids.size() - 1
+
+
+func _show_previous_component_page() -> void:
+	_show_component_page(component_page_index - 1)
+
+
+func _show_next_component_page() -> void:
+	_show_component_page(component_page_index + 1)
+
+
+func _finish_component_swipe(end_position: Vector2) -> void:
+	if not component_swipe_active:
+		return
+	component_swipe_active = false
+	var delta := end_position - component_swipe_start
+	if absf(delta.x) < 55.0 or absf(delta.x) <= absf(delta.y) * 1.2:
+		return
+	if delta.x < 0.0:
+		_show_next_component_page()
+	else:
+		_show_previous_component_page()
+
+
+func _input(event: InputEvent) -> void:
+	if not creation_mode or creation_step != 1 or not is_instance_valid(component_page_viewport):
+		return
+	var page_rect := component_page_viewport.get_global_rect()
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed and page_rect.has_point(touch.position):
+			component_swipe_start = touch.position
+			component_swipe_active = true
+		elif not touch.pressed:
+			_finish_component_swipe(touch.position)
+	elif event is InputEventScreenDrag and component_swipe_active:
+		# The gesture is completed on touch release to avoid changing pages mid-drag.
+		pass
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.pressed and page_rect.has_point(mouse_button.position):
+			component_swipe_start = mouse_button.position
+			component_swipe_active = true
+		elif not mouse_button.pressed:
+			_finish_component_swipe(mouse_button.position)
 
 
 func _open_staff_selection_step() -> void:
