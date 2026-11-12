@@ -2834,6 +2834,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
 	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
 	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("research_component_levels", {}).get("Battery Capacity", 0)))
+	phone_creation_worksite.call("set_power_bank_research_level", int(career.get("research_component_levels", {}).get("Power Bank", 0)))
 	phone_creation_worksite.call("set_charging_speed_research_level", int(career.get("research_component_levels", {}).get("Charging Speed", 0)))
 	phone_creation_worksite.call("set_wireless_charging_research_level", int(career.get("research_component_levels", {}).get("Wireless Charging", 0)))
 	phone_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
