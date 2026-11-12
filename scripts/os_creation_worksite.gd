@@ -13,6 +13,9 @@ var preview_region: Control
 var selection_panel: PanelContainer
 var configuration_region: Control
 var screen_frame: PanelContainer
+var home_preview_screen: PanelContainer
+var home_generation := 1
+var home_generation_status: Label
 
 class GlassArrowButton extends Button:
 	var points_right := true
@@ -175,6 +178,7 @@ func _build_interface() -> void:
 	screen_glass.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	screen_frame.add_child(screen_glass)
 
+	home_preview_screen = screen_glass
 	_build_home_screen_preview(screen_glass)
 
 	var right_region := MarginContainer.new()
@@ -200,6 +204,7 @@ func _build_interface() -> void:
 	blank_panel_style.set_corner_radius_all(14)
 	selection_panel.add_theme_stylebox_override("panel", blank_panel_style)
 	right_region.add_child(selection_panel)
+	_build_home_generation_controls()
 
 	var bottom_bar_space := Control.new()
 	bottom_bar_space.name = "OSWorksiteBottomBarSpace"
@@ -255,6 +260,9 @@ func _build_interface() -> void:
 
 
 func _build_home_screen_preview(screen: PanelContainer) -> void:
+	if home_generation < 5:
+		_build_legacy_home_screen_preview(screen, home_generation)
+		return
 	var screen_content := VBoxContainer.new()
 	screen_content.name = "OSHomeScreenContent"
 	screen_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -377,6 +385,161 @@ func _build_home_screen_preview(screen: PanelContainer) -> void:
 		icon_style.set_corner_radius_all(7)
 		dock_icon.add_theme_stylebox_override("normal", icon_style)
 		dock_row.add_child(dock_icon)
+
+
+func _build_home_generation_controls() -> void:
+	var content := VBoxContainer.new()
+	content.name = "HomeGenerationControls"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
+	selection_panel.add_child(content)
+
+	var heading := _label("HOME SCREEN EVOLUTION", 17, Color("#F0E9DD"))
+	content.add_child(heading)
+	var description := _label("Choose a generation to preview how the operating system evolves.", 12, Color("#B8B1A6"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(description)
+
+	var stages := [
+		["01  CLASSIC", "Simple square icons. No widgets, folders or search."],
+		["02  CUSTOM", "A cleaner grid, fixed dock and basic folders."],
+		["03  MODERN", "Rounded icons, a clock widget and richer layouts."],
+		["04  INTELLIGENT", "Adaptive icons, search and flexible widgets."],
+		["05  PREMIUM", "The full featured Home Screen preview already designed."]
+	]
+	for i in range(stages.size()):
+		var stage_button := Button.new()
+		stage_button.name = "HomeGeneration_%d" % (i + 1)
+		stage_button.text = str(stages[i][0]) + "\n" + str(stages[i][1])
+		stage_button.custom_minimum_size = Vector2(0, 54)
+		stage_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stage_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		stage_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		stage_button.focus_mode = Control.FOCUS_NONE
+		stage_button.pressed.connect(_select_home_generation.bind(i + 1))
+		_style_button(stage_button)
+		content.add_child(stage_button)
+
+	home_generation_status = _label("PREVIEWING GENERATION 01", 11, Color("#C58A3A"))
+	content.add_child(home_generation_status)
+	_update_home_generation_controls()
+
+
+func _select_home_generation(generation: int) -> void:
+	home_generation = clampi(generation, 1, 5)
+	if is_instance_valid(home_preview_screen):
+		for child in home_preview_screen.get_children():
+			home_preview_screen.remove_child(child)
+			child.free()
+		_build_home_screen_preview(home_preview_screen)
+	_update_home_generation_controls()
+
+
+func _update_home_generation_controls() -> void:
+	if is_instance_valid(home_generation_status):
+		home_generation_status.text = "PREVIEWING GENERATION %02d" % home_generation
+	var content := selection_panel.get_node_or_null("HomeGenerationControls") as VBoxContainer
+	if not is_instance_valid(content):
+		return
+	for i in range(5):
+		var stage_button := content.get_node_or_null("HomeGeneration_%d" % (i + 1)) as Button
+		if is_instance_valid(stage_button):
+			stage_button.modulate = Color("#E6B96F") if home_generation == i + 1 else Color("#FFFFFF")
+
+
+func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) -> void:
+	var content := VBoxContainer.new()
+	content.name = "OSHomeScreenContent"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 6)
+	screen.add_child(content)
+
+	var status := HBoxContainer.new()
+	status.custom_minimum_size.y = 12
+	content.add_child(status)
+	var time := _label("9:41", 8, Color("#FFFFFF"))
+	time.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status.add_child(time)
+	var indicators := _label("▮  ▰", 7, Color("#D8D8D8"))
+	indicators.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	status.add_child(indicators)
+
+	if generation >= 3:
+		var widget := PanelContainer.new()
+		widget.custom_minimum_size.y = 42 if generation == 3 else 52
+		var widget_style := StyleBoxFlat.new()
+		widget_style.bg_color = Color("#283746") if generation == 3 else Color("#1E2B38")
+		widget_style.set_corner_radius_all(8 if generation == 3 else 12)
+		widget.add_theme_stylebox_override("panel", widget_style)
+		content.add_child(widget)
+		var widget_label := _label("09:41\nMON  ·  12 NOV" if generation == 3 else "GOOD MORNING\n09:41       27°  ·  LAGOS", 10, Color("#FFFFFF"))
+		widget_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		widget_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		widget.add_child(widget_label)
+
+	if generation >= 4:
+		var search := PanelContainer.new()
+		search.custom_minimum_size.y = 19
+		var search_style := StyleBoxFlat.new()
+		search_style.bg_color = Color("#303943")
+		search_style.set_corner_radius_all(10)
+		search.add_theme_stylebox_override("panel", search_style)
+		content.add_child(search)
+		var search_label := _label("⌕   Search apps", 8, Color("#DCE3EA"))
+		search_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		search.add_child(search_label)
+
+	var grid := GridContainer.new()
+	grid.name = "HomeAppGrid"
+	grid.columns = 3 if generation == 1 else 4
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 3)
+	grid.add_theme_constant_override("v_separation", 7)
+	content.add_child(grid)
+
+	var apps := [
+		["Phone", "☎", "#638B72"], ["Messages", "✉", "#597FAD"],
+		["Camera", "◉", "#777D85"], ["Music", "♫", "#9470A7"],
+		["Browser", "◎", "#4F8990"], ["Calendar", "▦", "#A56D6D"],
+		["Gallery", "▧", "#A77D59"], ["Settings", "⚙", "#777D83"],
+		["Files", "▤", "#8B865C"], ["Clock", "◷", "#657C99"],
+		["Maps", "⌖", "#628B83"], ["Notes", "▧", "#9A8A62"]
+	]
+	for app in apps:
+		var tile := VBoxContainer.new()
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tile.add_theme_constant_override("separation", 2)
+		var icon := PanelContainer.new()
+		icon.custom_minimum_size = Vector2(24, 24) if generation == 1 else Vector2(26, 26)
+		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var icon_style := StyleBoxFlat.new()
+		icon_style.bg_color = Color(str(app[2]))
+		icon_style.set_corner_radius_all(0 if generation == 1 else (5 if generation < 4 else 9))
+		icon.add_theme_stylebox_override("panel", icon_style)
+		tile.add_child(icon)
+		var glyph := _label(str(app[1]), 13, Color("#FFFFFF"))
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		icon.add_child(glyph)
+		var app_name := _label(str(app[0]), 6, Color("#EAECEF"))
+		app_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tile.add_child(app_name)
+		grid.add_child(tile)
+
+	if generation >= 2:
+		var dock := PanelContainer.new()
+		dock.custom_minimum_size.y = 30
+		var dock_style := StyleBoxFlat.new()
+		dock_style.bg_color = Color("#34383D")
+		dock_style.set_corner_radius_all(5 if generation == 2 else 11)
+		dock.add_theme_stylebox_override("panel", dock_style)
+		content.add_child(dock)
+		var dock_label := _label("☎       ✉       ◎       ◉", 13, Color("#FFFFFF"))
+		dock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		dock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		dock.add_child(dock_label)
 
 
 func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder: bool = false) -> Control:
