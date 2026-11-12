@@ -2625,6 +2625,14 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		career = previous_career
 		return {"ok": false, "error": "The approval could not be saved. The project remains awaiting validation."}
 	if is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
+		phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
+		phone_creation_worksite.call("set_home_button_research_level", int(career.get("research_component_levels", {}).get("Home Button", 0)))
+		phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
+		phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
+		phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("research_component_levels", {}).get("Battery Capacity", 0)))
+		phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
+		phone_creation_worksite.call("set_border_radius_research_level", int(career.get("research_component_levels", {}).get("Border Radius", 0)))
 		phone_creation_worksite.call("set_refresh_rate_research_level", int(career.get("research_component_levels", {}).get("Refresh Rate", 0)))
 		phone_creation_worksite.call("set_memory_clock_research_level", int(career.get("research_component_levels", {}).get("Memory Clock", 0)))
 		phone_creation_worksite.call("set_cooling_system_research_level", int(career.get("research_component_levels", {}).get("Cooling System Design", 0)))
