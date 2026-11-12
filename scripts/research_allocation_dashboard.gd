@@ -632,7 +632,9 @@ func _build_component_selection_scene() -> void:
 	component_page_index = 0
 	component_buttons.clear()
 	var columns := _responsive_grid_columns(180.0, 4)
-	var rows_per_page := 3
+	# Landscape is the primary game layout: keep the selection to two rows
+	# so the page controls and bottom actions remain comfortably visible.
+	var rows_per_page := 3 if _is_narrow_layout() else 2
 	var page_capacity := maxi(1, columns * rows_per_page)
 
 	component_page_viewport = VBoxContainer.new()
