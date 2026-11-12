@@ -1479,8 +1479,8 @@ func _update_component_button_styles() -> void:
 		normal.set_corner_radius_all(7)
 		normal.content_margin_left = 9
 		normal.content_margin_right = 9
-		normal.content_margin_top = 12
-		normal.content_margin_bottom = 12
+		normal.content_margin_top = 8
+		normal.content_margin_bottom = 8
 		var hover := normal.duplicate() as StyleBoxFlat
 		hover.bg_color = Color("#624A29") if selected else Color("#2B3032")
 		button.add_theme_stylebox_override("normal", normal)
