@@ -30,6 +30,10 @@ const BACK_RAISED_DESIGN_MAX_BOXES := 20
 const BATTERY_CAPACITY_BASE_MAH := 1000
 const BATTERY_CAPACITY_STEP_MAH := 350
 const BATTERY_CAPACITY_RESEARCH_UPGRADES := 20
+const POWER_BANK_BASE_MAH := 5000
+const POWER_BANK_STEP_MAH := 100
+const POWER_BANK_MAX_MAH := 25000
+const POWER_BANK_MAX_RESEARCH_LEVEL := 201
 const CHARGING_SPEED_BASE_W := 1
 const CHARGING_SPEED_STEP_W := 3
 const CHARGING_SPEED_RESEARCH_UPGRADES := 66
@@ -117,6 +121,7 @@ const COMPONENT_CATALOGUE := [
 	"Curved Screen Vertical",
 	"Curved Screen Both",
 	"Battery Capacity",
+	"Power Bank",
 	"Charging Speed",
 	"Wireless Charging",
 	"Fingerprint Sensor",
@@ -262,6 +267,27 @@ static func get_battery_capacity_research_target(component_levels: Dictionary) -
 		return {}
 	var target_level := completed_upgrades + 2
 	var target_capacity := get_battery_capacity_max_for_level(target_level - 1)
+	return {
+		"index": target_level,
+		"technology": "%s mAh" % _format_research_integer(target_capacity),
+		"max_capacity_mah": target_capacity
+	}
+
+
+static func get_power_bank_max_for_level(level: int) -> int:
+	# Level 0 is locked. Level 1 unlocks 5,000 mAh; 200 further approvals add 100 mAh each.
+	var safe_level := clampi(level, 0, POWER_BANK_MAX_RESEARCH_LEVEL)
+	if safe_level <= 0:
+		return 0
+	return mini(POWER_BANK_MAX_MAH, POWER_BANK_BASE_MAH + (safe_level - 1) * POWER_BANK_STEP_MAH)
+
+
+static func get_power_bank_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_level := clampi(int(component_levels.get("Power Bank", 0)), 0, POWER_BANK_MAX_RESEARCH_LEVEL)
+	if completed_level >= POWER_BANK_MAX_RESEARCH_LEVEL:
+		return {}
+	var target_level := completed_level + 1
+	var target_capacity := get_power_bank_max_for_level(target_level)
 	return {
 		"index": target_level,
 		"technology": "%s mAh" % _format_research_integer(target_capacity),
@@ -770,6 +796,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_phone_type_research_target(career.get("research_component_levels", {}))
 	elif component == "Battery Capacity":
 		ordered_target = get_battery_capacity_research_target(career.get("research_component_levels", {}))
+	elif component == "Power Bank":
+		ordered_target = get_power_bank_research_target(career.get("research_component_levels", {}))
 	elif component == "Charging Speed":
 		ordered_target = get_charging_speed_research_target(career.get("research_component_levels", {}))
 	elif component == "Wireless Charging":
@@ -792,7 +820,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_power_volume_button_length_research_target(career.get("research_component_levels", {}))
 	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component) else component}
-	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -859,6 +887,12 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate the %s mobile phone chassis architecture." % target_technology
 		elif component == "Battery Capacity":
 			project_objective = "Develop and validate the next battery capacity ceiling of %s while preserving player-selected capacity in 1 mAh increments." % target_technology
+		elif component == "Power Bank":
+			if int(career.get("research_component_levels", {}).get("Power Bank", 0)) == 0:
+				project_title = "Research: Power Bank - Initial Unlock (5,000 mAh)"
+				project_objective = "Develop and validate the Power Bank accessory, unlocking its availability with an initial capacity ceiling of 5,000 mAh."
+			else:
+				project_objective = "Develop and validate the next Power Bank capacity ceiling of %s while preserving player-selected capacity in 100 mAh increments." % target_technology
 		elif component == "Charging Speed":
 			project_objective = "Develop and validate the next wired charging-speed ceiling of %s while preserving player-selected speeds in 1W increments." % target_technology
 		elif component == "Wireless Charging":
@@ -983,6 +1017,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var cooling_system_target_index := -1
 	var phone_type_target_index := -1
 	var battery_capacity_target_index := -1
+	var power_bank_target_index := -1
 	var charging_speed_target_index := -1
 	var wireless_charging_target_index := -1
 	var front_camera_mp_target_index := -1
@@ -1043,6 +1078,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Battery Capacity project is no longer the next capacity improvement.")
 		if str(project.get("research_target", "")) != str(expected_battery_target.get("technology", "")):
 			return _failure("The Battery Capacity project target does not match the current capacity progression.")
+	elif component == "Power Bank":
+		power_bank_target_index = int(project.get("research_target_index", -1))
+		var expected_power_bank_target := get_power_bank_research_target(component_levels)
+		if expected_power_bank_target.is_empty() or power_bank_target_index != int(expected_power_bank_target.get("index", -1)):
+			return _failure("This Power Bank project is no longer the next capacity unlock.")
+		if str(project.get("research_target", "")) != str(expected_power_bank_target.get("technology", "")):
+			return _failure("The Power Bank project target does not match the current capacity progression.")
 	elif component == "Charging Speed":
 		charging_speed_target_index = int(project.get("research_target_index", -1))
 		var expected_charging_target := get_charging_speed_research_target(component_levels)
@@ -1148,6 +1190,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact phone chassis type assigned to this project.")
 		if result_component == "Battery Capacity" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next battery capacity ceiling assigned to this project.")
+		if result_component == "Power Bank" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next Power Bank unlock or capacity ceiling assigned to this project.")
 		if result_component == "Charging Speed" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next wired charging-speed ceiling assigned to this project.")
 		if result_component == "Wireless Charging" and value != str(project.get("research_target", "")):
@@ -1243,6 +1287,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Battery Capacity":
 		# Level 1 is the 1,000 mAh starting state; 20 approved upgrades reach 8,000 mAh at Level 21.
 		component_levels[component] = mini(BATTERY_CAPACITY_RESEARCH_UPGRADES, int(component_levels.get(component, 0)) + 1)
+	elif component == "Power Bank":
+		# The first approval unlocks 5,000 mAh; 200 capacity approvals reach 25,000 mAh.
+		component_levels[component] = power_bank_target_index
 	elif component == "Charging Speed":
 		# Level 1 starts at 1W; 66 approved upgrades reach 200W at Level 67.
 		component_levels[component] = mini(CHARGING_SPEED_RESEARCH_UPGRADES, int(component_levels.get(component, 0)) + 1)
