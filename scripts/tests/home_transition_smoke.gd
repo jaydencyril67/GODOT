@@ -136,6 +136,92 @@ func _run_charging_speed_progression_checks() -> bool:
 	return true
 
 
+func _run_charger_research_progression_checks() -> bool:
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Charger"):
+		_fail("Charger is missing from the central R&D component catalogue.")
+		return false
+	for level in range(1, ResearchManagerScript.CHARGER_MAX_RESEARCH_LEVEL + 1):
+		var expected_maximum := 2 if level <= 2 else mini(200, 2 + (level - 2) * 3)
+		if ResearchManagerScript.get_charger_wattage_max_for_level(level) != expected_maximum:
+			_fail("Charger research level %d produced the wrong output ceiling." % level)
+			return false
+	if ResearchManagerScript.get_charger_wattage_max_for_level(0) != 0 or ResearchManagerScript.get_charger_wattage_max_for_level(3) != 5 or ResearchManagerScript.get_charger_wattage_max_for_level(68) != 200:
+		_fail("The Charger progression did not move from locked to 2W, then +3W steps, and finally 200W.")
+		return false
+	var initial_target: Dictionary = ResearchManagerScript.get_charger_research_target({})
+	var cable_target: Dictionary = ResearchManagerScript.get_charger_research_target({"Charger": 1})
+	var first_wattage_target: Dictionary = ResearchManagerScript.get_charger_research_target({"Charger": 2})
+	var final_target: Dictionary = ResearchManagerScript.get_charger_research_target({"Charger": 67})
+	if int(initial_target.get("index", -1)) != 1 or str(initial_target.get("technology", "")) != "Charger Adapter Unlock":
+		_fail("The first Charger target was not the adapter unlock.")
+		return false
+	if int(cable_target.get("index", -1)) != 2 or str(cable_target.get("technology", "")) != "Physical Charging Cable":
+		_fail("The cable was not a separate second Charger research unlock.")
+		return false
+	if int(first_wattage_target.get("index", -1)) != 3 or str(first_wattage_target.get("technology", "")) != "5W":
+		_fail("The first Charger Wattage research target was not 5W.")
+		return false
+	if int(final_target.get("index", -1)) != 68 or str(final_target.get("technology", "")) != "200W" or not ResearchManagerScript.get_charger_research_target({"Charger": 68}).is_empty():
+		_fail("The final Charger target did not reach 200W at Level 68.")
+		return false
+
+	var test_career: Dictionary = {
+		"staff_employees": [{"id": "charger_researcher", "department": "Research", "efficiency": 100}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var adapter_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {"component": "Charger", "staff_ids": ["charger_researcher"]}, 1000.0)
+	if not bool(adapter_commission.get("ok", false)):
+		_fail("The Charger adapter unlock could not be commissioned.")
+		return false
+	var adapter_project: Dictionary = adapter_commission.get("project", {})
+	if str(adapter_project.get("research_target", "")) != "Charger Adapter Unlock" or int(adapter_project.get("research_target_index", -1)) != 1:
+		_fail("The Charger adapter project did not store its exact unlock target.")
+		return false
+	var duplicate: Dictionary = ResearchManagerScript.commission_project(test_career, {"component": "Charger", "staff_ids": ["charger_researcher"]}, 1000.0)
+	if bool(duplicate.get("ok", false)):
+		_fail("A duplicate Charger project was allowed for the same target.")
+		return false
+	var projects: Array = test_career.get("research_projects", [])
+	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var invalid: Dictionary = ResearchManagerScript.approve_project(test_career, str(adapter_project.get("id", "")), [{"component": "Charger", "metric": "Adapter availability", "value": "Physical Charging Cable"}], 2000.0)
+	if bool(invalid.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Charger", 0)) != 0:
+		_fail("Charger accepted a validation result that did not match its adapter unlock.")
+		return false
+	var adapter_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(adapter_project.get("id", "")), [{"component": "Charger", "metric": "Adapter availability", "value": "Charger Adapter Unlock"}], 2000.0)
+	if not bool(adapter_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Charger", 0)) != 1:
+		_fail("Approved Charger research did not unlock the adapter.")
+		return false
+
+	var cable_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {"component": "Charger", "staff_ids": ["charger_researcher"]}, 3000.0)
+	if not bool(cable_commission.get("ok", false)):
+		_fail("The separate physical-cable research could not be commissioned.")
+		return false
+	var cable_project: Dictionary = cable_commission.get("project", {})
+	if str(cable_project.get("research_target", "")) != "Physical Charging Cable" or int(cable_project.get("research_target_index", -1)) != 2:
+		_fail("The cable project did not store its separate unlock target.")
+		return false
+	projects = test_career.get("research_projects", [])
+	projects[1]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var cable_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(cable_project.get("id", "")), [{"component": "Charger", "metric": "Physical cable availability", "value": "Physical Charging Cable"}], 4000.0)
+	if not bool(cable_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Charger", 0)) != 2:
+		_fail("Approved cable research did not unlock the physical cable separately.")
+		return false
+	var wattage_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {"component": "Charger", "staff_ids": ["charger_researcher"]}, 5000.0)
+	if not bool(wattage_commission.get("ok", false)):
+		_fail("The first Charger Wattage upgrade could not be commissioned.")
+		return false
+	var wattage_project: Dictionary = wattage_commission.get("project", {})
+	if str(wattage_project.get("research_target", "")) != "5W" or int(wattage_project.get("research_target_index", -1)) != 3:
+		_fail("The first Charger Wattage project did not target a 5W maximum.")
+		return false
+	return true
+
+
 func _run_wireless_charging_progression_checks() -> bool:
 	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Wireless Charging"):
 		_fail("Wireless Charging is missing from the R&D component catalogue.")
@@ -617,6 +703,8 @@ func _run_transition_checks() -> void:
 	if not _run_screen_technology_checks():
 		return
 	if not _run_charging_speed_progression_checks():
+		return
+	if not _run_charger_research_progression_checks():
 		return
 	if not _run_wireless_charging_progression_checks():
 		return
