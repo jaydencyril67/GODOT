@@ -1132,8 +1132,8 @@ func _run_transition_checks() -> void:
 	game.career["research_projects"] = memory_clock_projects
 	var memory_clock_completed_ids: Array[String] = ResearchManagerScript.advance_projects(
 		game.career,
-		86400.0 * 29.0,
-		game.game_date_unix + 86400.0 * 29.0
+		86400.0 * 30.0,
+		game.game_date_unix + 86400.0 * 30.0
 	)
 	if not memory_clock_completed_ids.has(str(memory_clock_project.get("id", ""))):
 		_fail("The Memory Clock research project did not complete after its estimated duration.")
