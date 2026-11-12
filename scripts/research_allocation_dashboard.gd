@@ -1229,9 +1229,6 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 		var narrow_actions := HBoxContainer.new()
 		narrow_actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		narrow_header.add_child(narrow_actions)
-		var project_count := _label("%d ACTIVE  ·  %d TO REVIEW" % [projects.size(), pending_projects.size()], 12, ACCENT)
-		project_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		narrow_actions.add_child(project_count)
 		var create_button := _button("CREATE NEW", true, ACCENT)
 		create_button.name = "CreateResearchWhileActiveButton"
 		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(64.0))
@@ -1249,7 +1246,6 @@ func _build_active_research(projects: Array[Dictionary], pending_projects: Array
 		var heading_spacer := Control.new()
 		heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_heading.add_child(heading_spacer)
-		page_heading.add_child(_label("%d ACTIVE  ·  %d TO REVIEW" % [projects.size(), pending_projects.size()], 12, ACCENT))
 		var create_button := _button("CREATE NEW", true, ACCENT)
 		create_button.name = "CreateResearchWhileActiveButton"
 		create_button.custom_minimum_size = Vector2(_scaled(144.0), _scaled(64.0))
