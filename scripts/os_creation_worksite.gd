@@ -152,7 +152,7 @@ func _build_interface() -> void:
 
 	screen_frame = PanelContainer.new()
 	screen_frame.name = "OSPortraitScreenFrame"
-	screen_frame.custom_minimum_size = Vector2(132, 264)
+	screen_frame.custom_minimum_size = Vector2(156, 312)
 	var frame_style := StyleBoxFlat.new()
 	frame_style.bg_color = Color("#090A0C")
 	frame_style.border_color = Color("#77736D")
@@ -451,7 +451,7 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 	content.name = "OSHomeScreenContent"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 6)
+	content.add_theme_constant_override("separation", 8)
 	screen.add_child(content)
 
 	var status := HBoxContainer.new()
@@ -494,8 +494,8 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 	grid.columns = 3 if generation == 1 else 4
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 3)
-	grid.add_theme_constant_override("v_separation", 7)
+	grid.add_theme_constant_override("h_separation", 5)
+	grid.add_theme_constant_override("v_separation", 10)
 	content.add_child(grid)
 
 	var apps := [
@@ -511,7 +511,7 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tile.add_theme_constant_override("separation", 2)
 		var icon := PanelContainer.new()
-		icon.custom_minimum_size = Vector2(24, 24) if generation == 1 else Vector2(26, 26)
+		icon.custom_minimum_size = Vector2(34, 34) if generation == 1 else Vector2(36, 36)
 		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		var icon_style := StyleBoxFlat.new()
 		icon_style.bg_color = Color(str(app[2]))
@@ -522,23 +522,52 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		icon.add_child(glyph)
-		var app_name := _label(str(app[0]), 6, Color("#EAECEF"))
+		var app_name := _label(str(app[0]), 8, Color("#EAECEF"))
 		app_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		tile.add_child(app_name)
 		grid.add_child(tile)
 
 	if generation >= 2:
 		var dock := PanelContainer.new()
-		dock.custom_minimum_size.y = 30
+		dock.name = "HomeAppDock"
+		dock.custom_minimum_size.y = 38
 		var dock_style := StyleBoxFlat.new()
-		dock_style.bg_color = Color("#34383D")
-		dock_style.set_corner_radius_all(5 if generation == 2 else 11)
+		dock_style.bg_color = Color(0.22, 0.25, 0.29, 0.94)
+		dock_style.border_color = Color(0.75, 0.78, 0.82, 0.12)
+		dock_style.set_border_width_all(1)
+		dock_style.set_corner_radius_all(5 if generation == 2 else 12)
+		dock_style.content_margin_left = 5
+		dock_style.content_margin_right = 5
+		dock_style.content_margin_top = 3
+		dock_style.content_margin_bottom = 3
 		dock.add_theme_stylebox_override("panel", dock_style)
 		content.add_child(dock)
-		var dock_label := _label("☎       ✉       ◎       ◉", 13, Color("#FFFFFF"))
-		dock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		dock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		dock.add_child(dock_label)
+		var dock_row := HBoxContainer.new()
+		dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		dock_row.add_theme_constant_override("separation", 10)
+		dock.add_child(dock_row)
+		for dock_app in [["☎", "#638B72"], ["✉", "#597FAD"], ["◎", "#4F8990"], ["◉", "#777D85"]]:
+			var dock_icon := PanelContainer.new()
+			dock_icon.custom_minimum_size = Vector2(25, 27)
+			var dock_icon_style := StyleBoxFlat.new()
+			dock_icon_style.bg_color = Color(str(dock_app[1]))
+			dock_icon_style.set_corner_radius_all(0 if generation == 2 else 8)
+			dock_icon.add_theme_stylebox_override("panel", dock_icon_style)
+			dock_row.add_child(dock_icon)
+			var dock_glyph := _label(str(dock_app[0]), 14, Color("#FFFFFF"))
+			dock_glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			dock_glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			dock_icon.add_child(dock_glyph)
+
+	var navigation_area := CenterContainer.new()
+	navigation_area.name = "HomeNavigationArea"
+	navigation_area.custom_minimum_size.y = 8
+	content.add_child(navigation_area)
+	var home_indicator := ColorRect.new()
+	home_indicator.name = "HomeGestureIndicator"
+	home_indicator.custom_minimum_size = Vector2(28, 3)
+	home_indicator.color = Color(0.92, 0.93, 0.95, 0.78)
+	navigation_area.add_child(home_indicator)
 
 
 func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder: bool = false) -> Control:
@@ -548,7 +577,7 @@ func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder
 	item.add_theme_constant_override("separation", 1)
 	var icon_tile := PanelContainer.new()
 	icon_tile.name = "IconTile"
-	icon_tile.custom_minimum_size = Vector2(23, 23)
+	icon_tile.custom_minimum_size = Vector2(29, 29)
 	icon_tile.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var tile_style := StyleBoxFlat.new()
 	tile_style.bg_color = tint
@@ -563,7 +592,7 @@ func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder
 	glyph_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	glyph_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	icon_tile.add_child(glyph_label)
-	var name_label := _label(app_name, 6, Color("#F0F2F5"))
+	var name_label := _label(app_name, 7, Color("#F0F2F5"))
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.clip_text = true
 	item.add_child(name_label)
@@ -581,14 +610,14 @@ func _apply_responsive_layout() -> void:
 		preview_region.size_flags_stretch_ratio = 1.12
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
-		screen_height = clampf(viewport_size.y - 160.0, 180.0, 520.0)
-		screen_frame.custom_minimum_size = Vector2(screen_height * 0.48, screen_height)
+		screen_height = clampf(viewport_size.y - 104.0, 250.0, 620.0)
+		screen_frame.custom_minimum_size = Vector2(screen_height * 0.50, screen_height)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
 		configuration_region.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
-		screen_height = clampf(viewport_size.y * 0.30, 150.0, 280.0)
-		screen_frame.custom_minimum_size = Vector2(screen_height * 0.48, screen_height)
+		screen_height = clampf(viewport_size.y * 0.42, 190.0, 340.0)
+		screen_frame.custom_minimum_size = Vector2(screen_height * 0.50, screen_height)
 
 
 func _label(caption: String, font_size: int, color: Color) -> Label:
