@@ -6598,7 +6598,7 @@ shader_type spatial;
 render_mode cull_disabled, blend_mix;
 void fragment() {
 	float view_alignment = max(dot(normalize(NORMAL), normalize(VIEW)), 0.0);
-	float front_visibility = smoothstep(0.10, 0.42, view_alignment);
+	float front_visibility = smoothstep(0.50, 0.75, view_alignment);
 	ALBEDO = vec3(0.94, 0.98, 1.0);
 	ALPHA = 0.055 * front_visibility;
 	ROUGHNESS = 1.0;
@@ -8023,7 +8023,7 @@ render_mode cull_disabled;
 uniform vec4 screen_color : source_color = vec4(0.12, 0.15, 0.18, 1.0);
 void fragment() {
 	float view_alignment = max(dot(normalize(NORMAL), normalize(VIEW)), 0.0);
-	float privacy_visibility = smoothstep(0.10, 0.42, view_alignment);
+	float privacy_visibility = smoothstep(0.50, 0.75, view_alignment);
 	vec3 filtered_screen = mix(vec3(0.0), screen_color.rgb, privacy_visibility);
 	ALBEDO = filtered_screen;
 	EMISSION = filtered_screen * 0.025;
