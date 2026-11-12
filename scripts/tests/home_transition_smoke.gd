@@ -256,6 +256,89 @@ func _run_wireless_charging_progression_checks() -> bool:
 	return true
 
 
+func _run_power_bank_progression_checks() -> bool:
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Power Bank"):
+		_fail("Power Bank is missing from the R&D component catalogue.")
+		return false
+	if ResearchManagerScript.get_power_bank_max_for_level(0) != 0:
+		_fail("Power Bank was available before its first research approval.")
+		return false
+	if ResearchManagerScript.get_power_bank_max_for_level(1) != 5000:
+		_fail("The first Power Bank approval did not unlock 5,000 mAh.")
+		return false
+	if ResearchManagerScript.get_power_bank_max_for_level(2) != 5100:
+		_fail("The second Power Bank level did not add exactly 100 mAh.")
+		return false
+	if ResearchManagerScript.get_power_bank_max_for_level(201) != 25000:
+		_fail("Power Bank Level 201 did not reach the 25,000 mAh ceiling.")
+		return false
+	for level in range(1, ResearchManagerScript.POWER_BANK_MAX_RESEARCH_LEVEL + 1):
+		var expected_maximum := 5000 + (level - 1) * 100
+		if ResearchManagerScript.get_power_bank_max_for_level(level) != expected_maximum:
+			_fail("Power Bank Level %d produced the wrong capacity ceiling." % level)
+			return false
+	var first_target: Dictionary = ResearchManagerScript.get_power_bank_research_target({})
+	if int(first_target.get("index", -1)) != 1 or str(first_target.get("technology", "")) != "5,000 mAh":
+		_fail("The first Power Bank project did not target the 5,000 mAh unlock.")
+		return false
+	var final_target: Dictionary = ResearchManagerScript.get_power_bank_research_target({"Power Bank": 200})
+	if int(final_target.get("index", -1)) != 201 or str(final_target.get("technology", "")) != "25,000 mAh":
+		_fail("The final Power Bank project did not target 25,000 mAh at Level 201.")
+		return false
+	if not ResearchManagerScript.get_power_bank_research_target({"Power Bank": 201}).is_empty():
+		_fail("Power Bank still offered research after reaching 25,000 mAh.")
+		return false
+	var test_career: Dictionary = {
+		"staff_employees": [{"id": "power_bank_researcher", "department": "Research", "efficiency": 100}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Power Bank",
+		"staff_ids": ["power_bank_researcher"]
+	}, 1000.0)
+	if not bool(commission.get("ok", false)):
+		_fail("Power Bank could not be commissioned through the central research pipeline.")
+		return false
+	var project: Dictionary = commission.get("project", {})
+	if str(project.get("research_target", "")) != "5,000 mAh" or int(project.get("research_target_index", -1)) != 1:
+		_fail("The initial Power Bank project did not store its exact 5,000 mAh unlock target.")
+		return false
+	var duplicate_commission: Dictionary = ResearchManagerScript.commission_project(test_career, {
+		"component": "Power Bank",
+		"staff_ids": ["power_bank_researcher"]
+	}, 1000.0)
+	if bool(duplicate_commission.get("ok", false)):
+		_fail("A duplicate Power Bank project was allowed while its initial unlock was active.")
+		return false
+	var projects: Array = test_career.get("research_projects", [])
+	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+	test_career["research_projects"] = projects
+	var invalid_approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Power Bank",
+		"metric": "Maximum selectable power bank capacity",
+		"value": "5,100 mAh"
+	}], 2000.0)
+	if bool(invalid_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Power Bank", 0)) != 0:
+		_fail("Power Bank accepted a result that did not match its assigned 5,000 mAh unlock target.")
+		return false
+	var approval: Dictionary = ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+		"component": "Power Bank",
+		"metric": "Maximum selectable power bank capacity",
+		"value": "5,000 mAh"
+	}], 2000.0)
+	if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get("Power Bank", 0)) != 1:
+		_fail("Approved Power Bank research did not unlock the accessory at 5,000 mAh.")
+		return false
+	var next_target: Dictionary = ResearchManagerScript.get_power_bank_research_target(test_career.get("research_component_levels", {}))
+	if int(next_target.get("index", -1)) != 2 or str(next_target.get("technology", "")) != "5,100 mAh":
+		_fail("Power Bank research did not advance from 5,000 mAh to 5,100 mAh.")
+		return false
+	return true
+
+
 func _run_front_camera_mp_progression_checks() -> bool:
 	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("Front Camera MP"):
 		_fail("Front Camera MP is missing from the R&D component catalogue.")
@@ -449,6 +532,8 @@ func _run_transition_checks() -> void:
 	if not _run_charging_speed_progression_checks():
 		return
 	if not _run_wireless_charging_progression_checks():
+		return
+	if not _run_power_bank_progression_checks():
 		return
 	if not _run_front_camera_mp_progression_checks():
 		return
