@@ -151,7 +151,7 @@ func _process(delta: float) -> void:
 		_save_career()
 		last_saved_game_day = current_day
 		if is_instance_valid(research_allocation_dashboard):
-			research_allocation_dashboard.call("update_live_progress", career.get("research_projects", []), float(career.get("balance", 0.0)), career.get("staff_employees", []))
+			research_allocation_dashboard.call("update_live_progress", career.get("research_projects", []), float(career.get("balance", 0.0)), career.get("staff_employees", []), game_date_unix)
 	_update_home_status_bar()
 
 
@@ -2482,7 +2482,7 @@ func _show_research_allocation_dashboard() -> void:
 		push_error("Could not instantiate the Company Research Allocation Dashboard.")
 		return
 	research_allocation_dashboard.name = "CompanyResearchAllocationDashboard"
-	research_allocation_dashboard.call("configure", _get_research_dashboard_data())
+	research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
 	research_allocation_dashboard.connect("back_requested", Callable(self, "_return_from_research_allocation_dashboard"))
 	research_allocation_dashboard.connect("project_commission_requested", Callable(self, "_on_rd_project_commission_requested"))
 	research_allocation_dashboard.connect("project_approve_requested", Callable(self, "_on_rd_project_approve_requested"))
@@ -2596,7 +2596,7 @@ func _on_rd_project_cancel_requested(project_id: String) -> void:
 
 func cancel_research_project(project_id: String) -> Dictionary:
 	var previous_career := career.duplicate(true)
-	var result: Dictionary = ResearchManagerScript.cancel_project(career, project_id)
+	var result: Dictionary = ResearchManagerScript.cancel_project(career, project_id, game_date_unix)
 	if not bool(result.get("ok", false)):
 		return result
 	if not _save_career():
