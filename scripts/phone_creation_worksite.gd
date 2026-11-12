@@ -9481,7 +9481,8 @@ func _show_power_volume_controls() -> void:
 		edge_row.add_child(edge_button)
 		power_volume_edge_buttons[edge] = edge_button
 
-	power_volume_position_value_label = _make_label("", 15, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
+	power_volume_position_value_label = _make_label("", 15, Color("#C58A3A"))
+	power_volume_position_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	power_volume_position_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	active_feature_panel.add_child(power_volume_position_value_label)
 
