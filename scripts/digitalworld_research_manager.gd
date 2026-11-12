@@ -24,7 +24,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Mobile Network": 365.0,
 	"Wi-Fi": 320.0,
 	"Bluetooth": 240.0,
-	"Cooling System Design": 425.0
+	"Cooling System Design": 425.0,
+	"Phone Type": 1460.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
