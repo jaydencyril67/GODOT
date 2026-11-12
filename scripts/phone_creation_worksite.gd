@@ -484,9 +484,11 @@ var smartwatch_body_color := Color("#303943")
 
 var smartwatch_color_name := "Graphite"
 
+var charger_research_level := 0
+
 var charger_enabled := false
 
-var charger_wattage := 30
+var charger_wattage := 2
 
 var charger_plug_type := "UK"
 
@@ -2296,6 +2298,16 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 	self.set("active_feature_panel", panel)
 	selection_stack.add_child(panel)
 
+	if charger_research_level <= 0:
+		var locked_heading := _label("CHARGER", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+		locked_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.add_child(locked_heading)
+		_add_charger_research_button(panel, "ChargerResearchButton", "RESEARCH", 360.0)
+		step_panels[32] = panel
+		if is_instance_valid(charger_preview):
+			charger_preview.visible = false
+		return
+
 	if normalized_page != "HOME":
 		var header := HBoxContainer.new()
 		header.add_theme_constant_override("separation", 8)
@@ -2337,32 +2349,38 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 			"CABLE":
 				var cable_heading := _label("PHYSICAL CHARGING CABLE", 14, Color("#C58A3A"))
 				panel.add_child(cable_heading)
-				_add_worksite_charger_toggle(
-					panel,
-					"ENABLE PHYSICAL CABLE",
-					"charger_cable_enabled",
-					"_on_charger_cable_enabled_toggled",
+				if charger_research_level < 2:
+					var cable_locked_note := _label("The charger adapter is unlocked. Research the physical cable separately before enabling its checkbox or selecting a cable type.", 12, Color("#B8AFA2"))
+					cable_locked_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+					panel.add_child(cable_locked_note)
+					_add_charger_research_button(panel, "ChargerCableResearchButton", "RESEARCH", 360.0)
+				else:
+					_add_worksite_charger_toggle(
+						panel,
+						"ENABLE PHYSICAL CABLE",
+						"charger_cable_enabled",
+						"_on_charger_cable_enabled_toggled",
 					"EnableChargingCableModel"
-				)
-				var compatible_cable_options: Array = self.call("_charger_cable_options_for_phone")
-				for cable_name_value in compatible_cable_options:
-					var cable_name := str(cable_name_value)
-					var cable_button := Button.new()
-					cable_button.name = "ChargerCable_" + cable_name.replace(" ", "").replace("-", "")
-					cable_button.text = cable_name + ("   ✓ SELECTED" if str(self.get("charger_cable_type")) == cable_name else "")
-					cable_button.custom_minimum_size = Vector2(0, 48)
-					cable_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					cable_button.focus_mode = Control.FOCUS_NONE
-					_style_button(cable_button, str(self.get("charger_cable_type")) == cable_name)
-					cable_button.pressed.connect(Callable(self, "_on_charger_cable_selected").bind(cable_name))
-					panel.add_child(cable_button)
+					)
+					var compatible_cable_options: Array = self.call("_charger_cable_options_for_phone")
+					for cable_name_value in compatible_cable_options:
+						var cable_name := str(cable_name_value)
+						var cable_button := Button.new()
+						cable_button.name = "ChargerCable_" + cable_name.replace(" ", "").replace("-", "")
+						cable_button.text = cable_name + ("   ✓ SELECTED" if str(self.get("charger_cable_type")) == cable_name else "")
+						cable_button.custom_minimum_size = Vector2(0, 48)
+						cable_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+						cable_button.focus_mode = Control.FOCUS_NONE
+						_style_button(cable_button, str(self.get("charger_cable_type")) == cable_name)
+						cable_button.pressed.connect(Callable(self, "_on_charger_cable_selected").bind(cable_name))
+						panel.add_child(cable_button)
 
-				var cable_note_text := "A short U-shaped cable with a phone-side connector that matches the selected charging port."
-				if str(self.get("charge_port_type")) == "None":
-					cable_note_text = "Choose a phone charging port first. Compatible cable connectors will appear automatically."
-				var cable_note := _label(cable_note_text, 12, Color("#B8AFA2"))
-				cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD
-				panel.add_child(cable_note)
+					var cable_note_text := "A short U-shaped cable with a phone-side connector that matches the selected charging port."
+					if str(self.get("charge_port_type")) == "None":
+						cable_note_text = "Choose a phone charging port first. Compatible cable connectors will appear automatically."
+					var cable_note := _label(cable_note_text, 12, Color("#B8AFA2"))
+					cable_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+					panel.add_child(cable_note)
 
 			"POWER":
 				var wattage_heading := _label("OUTPUT POWER", 14, Color("#C58A3A"))
@@ -2374,7 +2392,9 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 				panel.add_child(wattage_value)
 				self.set("charger_wattage_label", wattage_value)
 
-				var wattage_range := _label("2W — 200W · INDEPENDENT ADAPTER OUTPUT", 11, Color("#B8AFA2"), HORIZONTAL_ALIGNMENT_CENTER)
+				var available_wattage_maximum := maxi(2, _get_charger_wattage_maximum())
+				charger_wattage = clampi(charger_wattage, 2, available_wattage_maximum)
+				var wattage_range := _label("2W — %dW · INDEPENDENT ADAPTER OUTPUT" % available_wattage_maximum, 11, Color("#B8AFA2"), HORIZONTAL_ALIGNMENT_CENTER)
 				wattage_range.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				panel.add_child(wattage_range)
 
@@ -2392,9 +2412,9 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 				var wattage_slider := VSlider.new()
 				wattage_slider.name = "ChargerOutputVerticalSlider"
 				wattage_slider.min_value = 2
-				wattage_slider.max_value = 200
+				wattage_slider.max_value = available_wattage_maximum
 				wattage_slider.step = 1
-				wattage_slider.value = int(self.get("charger_wattage"))
+				wattage_slider.value = clampi(int(self.get("charger_wattage")), 2, available_wattage_maximum)
 				wattage_slider.custom_minimum_size = Vector2(52, 245)
 				wattage_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 				wattage_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -2405,9 +2425,23 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 				slider_row.add_child(wattage_slider)
 				self.set("charger_wattage_slider", wattage_slider)
 
-				var maximum := _label("200W", 12, Color("#B8AFA2"))
+				var maximum := _label("%dW" % available_wattage_maximum, 12, Color("#B8AFA2"))
 				maximum.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				slider_row.add_child(maximum)
+
+				if charger_research_level < 2:
+					var cable_requirement := _label("Research the physical charging cable before beginning Charger Wattage upgrades.", 12, Color("#B8AFA2"))
+					cable_requirement.autowrap_mode = TextServer.AUTOWRAP_WORD
+					panel.add_child(cable_requirement)
+				elif available_wattage_maximum < ResearchManagerScript.CHARGER_MAX_W:
+					var next_charger_target: Dictionary = ResearchManagerScript.get_charger_research_target({"Charger": charger_research_level})
+					var next_wattage_note := _label("NEXT OUTPUT CEILING: %s" % str(next_charger_target.get("technology", "")), 12, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
+					next_wattage_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					panel.add_child(next_wattage_note)
+					_add_charger_research_button(panel, "ChargerWattageResearchButton", "RESEARCH", 56.0)
+				else:
+					var maximum_note := _label("MAXIMUM CHARGER OUTPUT POWER UNLOCKED", 12, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
+					panel.add_child(maximum_note)
 
 	else:
 		var heading := _label("CHARGER ADAPTER", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
@@ -2425,13 +2459,16 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 			"_on_charger_enabled_toggled",
 			"EnableChargerPreview"
 		)
-		_add_worksite_charger_toggle(
-			panel,
-			"ENABLE PHYSICAL CABLE",
-			"charger_cable_enabled",
-			"_on_charger_cable_enabled_toggled",
-			"EnableChargingCableModelHome"
-		)
+		if charger_research_level >= 2:
+			_add_worksite_charger_toggle(
+				panel,
+				"ENABLE PHYSICAL CABLE",
+				"charger_cable_enabled",
+				"_on_charger_cable_enabled_toggled",
+				"EnableChargingCableModelHome"
+			)
+		else:
+			_add_charger_research_button(panel, "ChargerCableResearchButton", "RESEARCH", 56.0)
 
 		var plug_option := Button.new()
 		plug_option.name = "OpenChargerPlugSettings"
@@ -2443,15 +2480,16 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 		plug_option.pressed.connect(_show_worksite_charger_controls.bind("PLUG"))
 		panel.add_child(plug_option)
 
-		var cable_option := Button.new()
-		cable_option.name = "OpenChargerCableSettings"
-		cable_option.text = "CABLE TYPE     ›     " + str(self.get("charger_cable_type"))
-		cable_option.custom_minimum_size = Vector2(0, 48)
-		cable_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cable_option.focus_mode = Control.FOCUS_NONE
-		_style_button(cable_option, false)
-		cable_option.pressed.connect(_show_worksite_charger_controls.bind("CABLE"))
-		panel.add_child(cable_option)
+		if charger_research_level >= 2:
+			var cable_option := Button.new()
+			cable_option.name = "OpenChargerCableSettings"
+			cable_option.text = "CABLE TYPE     ›     " + str(self.get("charger_cable_type"))
+			cable_option.custom_minimum_size = Vector2(0, 48)
+			cable_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			cable_option.focus_mode = Control.FOCUS_NONE
+			_style_button(cable_option, false)
+			cable_option.pressed.connect(_show_worksite_charger_controls.bind("CABLE"))
+			panel.add_child(cable_option)
 
 		var power_option := Button.new()
 		power_option.name = "OpenChargerPowerSettings"
@@ -3053,6 +3091,25 @@ func _add_worksite_charger_toggle(
 	row.add_child(toggle)
 
 
+func _add_charger_research_button(parent: Control, button_name: String, button_text: String = "RESEARCH", center_height: float = 360.0) -> void:
+	var research_center := CenterContainer.new()
+	research_center.name = button_name + "Center"
+	research_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	research_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	research_center.custom_minimum_size = Vector2(0, center_height)
+	parent.add_child(research_center)
+	var research_button := Button.new()
+	research_button.name = button_name
+	research_button.text = button_text
+	research_button.custom_minimum_size = Vector2(0, 48)
+	research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	research_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(research_button, 13)
+	_style_button(research_button, true)
+	research_button.pressed.connect(func(): research_requested.emit())
+	research_center.add_child(research_button)
+
+
 func _open_worksite_charger_color_controls() -> void:
 	_show_device_color_controls(false, false, true)
 	var color_panel := active_feature_panel
@@ -3638,6 +3695,27 @@ func set_power_bank_research_level(level: int) -> void:
 
 func _get_power_bank_capacity_maximum() -> int:
 	return ResearchManagerScript.get_power_bank_max_for_level(researched_power_bank_level)
+
+
+func set_charger_research_level(level: int) -> void:
+	var updated_level := clampi(level, 0, ResearchManagerScript.CHARGER_MAX_RESEARCH_LEVEL)
+	var level_changed := updated_level != charger_research_level
+	charger_research_level = updated_level
+	if charger_research_level <= 0:
+		charger_enabled = false
+		charger_cable_enabled = false
+		charger_color_mode = false
+		_set_charger_preview_mode(false)
+	elif charger_research_level < 2:
+		charger_cable_enabled = false
+	charger_wattage = clampi(charger_wattage, 2, maxi(2, _get_charger_wattage_maximum()))
+	_rebuild_charger_preview()
+	if level_changed and wizard_step == 32 and is_instance_valid(selection_stack) and not charger_color_mode:
+		_show_worksite_charger_controls(str(charger_controls_page))
+
+
+func _get_charger_wattage_maximum() -> int:
+	return ResearchManagerScript.get_charger_wattage_max_for_level(charger_research_level)
 
 
 func set_battery_capacity_research_level(level: int) -> void:
@@ -8130,17 +8208,21 @@ func _set_charger_preview_mode(enabled: bool) -> void:
 func _on_charger_wattage_changed(value: float) -> void:
 	# Adapter output is an independent product specification; it must never
 	# change the phone's own wired charging capability.
-	charger_wattage = clampi(roundi(value), 2, 200)
+	if charger_research_level < 1:
+		return
+	charger_wattage = clampi(roundi(value), 2, maxi(2, _get_charger_wattage_maximum()))
 	if is_instance_valid(charger_wattage_label):
 		charger_wattage_label.text = "%d W" % charger_wattage
 	_rebuild_charger_preview()
 
 func _on_charger_enabled_toggled(enabled: bool) -> void:
-	charger_enabled = enabled
+	charger_enabled = enabled and charger_research_level >= 1
 	_rebuild_charger_preview()
 
 func _on_charger_wattage_selected(value: int) -> void:
-	charger_wattage = clampi(value, 2, 200)
+	if charger_research_level < 1:
+		return
+	charger_wattage = clampi(value, 2, maxi(2, _get_charger_wattage_maximum()))
 	_rebuild_charger_preview()
 	_show_worksite_charger_controls("POWER")
 
@@ -8155,13 +8237,13 @@ func _charger_output_connector() -> String:
 	return "USB-A" if charger_cable_type.begins_with("USB-A") else "USB-C"
 
 func _on_charger_cable_enabled_toggled(enabled: bool) -> void:
-	charger_cable_enabled = enabled and not _charger_device_connector().is_empty()
+	charger_cable_enabled = enabled and charger_research_level >= 2 and not _charger_device_connector().is_empty()
 	_rebuild_charger_preview()
 	var return_page := "HOME" if charger_controls_page == "HOME" else "CABLE"
 	_show_worksite_charger_controls(return_page)
 
 func _on_charger_cable_selected(value: String) -> void:
-	if not _charger_cable_options_for_phone().has(value):
+	if charger_research_level < 2 or not _charger_cable_options_for_phone().has(value):
 		return
 	charger_cable_type = value
 	_rebuild_charger_preview()
