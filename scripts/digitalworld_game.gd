@@ -1249,12 +1249,13 @@ func _load_game_pressed() -> void:
 	_show_city()
 
 func _show_city() -> void:
-	# Put the loading UI on screen before billing, saving, or constructing the HQ.
-	# _show_home_scene() keeps this same layer alive while the 3D scene is prepared.
+	# Display the loading screen in a completed render frame before doing any
+	# save processing, market refresh, or headquarters construction.
 	upgrade_level = clampi(upgrade_level, 0, 10)
 	selected_upgrade = maxi(upgrade_level, 1)
 	headquarters_loading_finish_started = false
 	_show_headquarters_loading_screen()
+	await RenderingServer.frame_post_draw
 	_process_pending_monthly_expenses()
 	_show_home_scene()
 
@@ -1858,7 +1859,8 @@ func _toggle_game_clock() -> void:
 func _show_headquarters_loading_screen() -> void:
 	var root := _new_screen()
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
-	root.modulate.a = 0.0
+	# Keep the preparation screen fully visible on its very first rendered frame.
+	root.modulate.a = 1.0
 
 	var viewport_size := get_viewport().get_visible_rect().size
 	var compact := viewport_size.y < 540.0 or viewport_size.x < 920.0
@@ -2021,7 +2023,6 @@ void fragment() {
 	# without distracting from the live preparation status.
 	var entrance := create_tween()
 	entrance.set_parallel(true)
-	entrance.tween_property(root, "modulate:a", 1.0, 0.42).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	entrance.tween_property(content, "modulate:a", 1.0, 0.52).set_delay(0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	entrance.tween_property(content, "scale", Vector2.ONE, 0.5).from(Vector2(0.985, 0.985)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
