@@ -964,11 +964,11 @@ func _run_transition_checks() -> void:
 		{"id": "unassigned_researcher", "department": "Research", "efficiency": 100}
 	]
 	var single_staff_estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_50"], duration_test_employees)
-	if not bool(single_staff_estimate.get("ok", false)) or not is_equal_approx(float(single_staff_estimate.get("expected_duration_days", 0.0)), 29.5) or not is_equal_approx(float(single_staff_estimate.get("success_chance", 0.0)), 50.5):
+	if not bool(single_staff_estimate.get("ok", false)) or not is_equal_approx(float(single_staff_estimate.get("expected_duration_days", 0.0)), 45.0) or not is_equal_approx(float(single_staff_estimate.get("success_chance", 0.0)), 50.5):
 		_fail("A single 50% assigned researcher did not contribute only 0.5 percentage points to success.")
 		return
 	var combined_staff_estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_50", "researcher_100"], duration_test_employees)
-	if not bool(combined_staff_estimate.get("ok", false)) or not is_equal_approx(float(combined_staff_estimate.get("expected_duration_days", 0.0)), 28.5) or not is_equal_approx(float(combined_staff_estimate.get("success_chance", 0.0)), 51.5):
+	if not bool(combined_staff_estimate.get("ok", false)) or not is_equal_approx(float(combined_staff_estimate.get("expected_duration_days", 0.0)), 45.0) or not is_equal_approx(float(combined_staff_estimate.get("success_chance", 0.0)), 51.5):
 		_fail("Combined assigned efficiency did not add its individual success contributions correctly.")
 		return
 	var ram_estimate: Dictionary = ResearchManagerScript.estimate_research("RAM Technology", ["researcher_100"], duration_test_employees)
@@ -982,13 +982,13 @@ func _run_transition_checks() -> void:
 		maximum_efficiency_ids.append(staff_id)
 		maximum_efficiency_staff.append({"id": staff_id, "department": "Research", "efficiency": 100})
 	var minimum_duration_estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", maximum_efficiency_ids, maximum_efficiency_staff)
-	if not bool(minimum_duration_estimate.get("ok", false)) or not is_equal_approx(float(minimum_duration_estimate.get("expected_duration_days", 0.0)), 1.0) or not is_equal_approx(float(minimum_duration_estimate.get("success_chance", 0.0)), 90.0):
+	if not bool(minimum_duration_estimate.get("ok", false)) or not is_equal_approx(float(minimum_duration_estimate.get("expected_duration_days", 0.0)), 45.0) or not is_equal_approx(float(minimum_duration_estimate.get("success_chance", 0.0)), 90.0):
 		_fail("Research duration minimum or 90% maximum success cap was not respected.")
 		return
 
 	var estimate: Dictionary = ResearchManagerScript.estimate_research("Screen Tech", ["researcher_smoke_01"], game.career.get("staff_employees", []))
-	if not bool(estimate.get("ok", false)) or not is_equal_approx(float(estimate.get("expected_duration_days", 0.0)), 29.0) or not is_equal_approx(float(estimate.get("success_chance", 0.0)), 51.0):
-		_fail("A 100% assigned researcher did not produce a 29-day estimate and a 51% success chance.")
+	if not bool(estimate.get("ok", false)) or not is_equal_approx(float(estimate.get("expected_duration_days", 0.0)), 45.0) or not is_equal_approx(float(estimate.get("success_chance", 0.0)), 51.0):
+		_fail("A 100% assigned researcher did not produce a 45-day estimate and a 51% success chance.")
 		return
 
 	var commission_result: Dictionary = game.commission_research_project({
@@ -1006,20 +1006,20 @@ func _run_transition_checks() -> void:
 	var commissioned_projects: Array = game.career.get("research_projects", [])
 	commissioned_projects[0]["success_chance"] = 100.0
 	game.career["research_projects"] = commissioned_projects
-	if not is_equal_approx(float(created_project.get("required_research_days", 0.0)), 29.0):
-		_fail("The commissioned project did not store its 29-day calendar duration.")
+	if not is_equal_approx(float(created_project.get("required_research_days", 0.0)), 45.0):
+		_fail("The commissioned project did not store its 45-day calendar duration.")
 		return
-	var early_completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 28.0, game.game_date_unix + 86400.0 * 28.0)
+	var early_completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 44.0, game.game_date_unix + 86400.0 * 44.0)
 	var stored_projects: Array = game.career.get("research_projects", [])
 	if not early_completed_ids.is_empty() or stored_projects.is_empty() or str(stored_projects[0].get("status", "")) != "active":
 		_fail("Research completed before its 29-day calendar duration elapsed.")
 		return
-	if not is_equal_approx(float(stored_projects[0].get("completed_research_days", 0.0)), 28.0):
-		_fail("Research calendar progress did not advance by 28 in-game days.")
+	if not is_equal_approx(float(stored_projects[0].get("completed_research_days", 0.0)), 44.0):
+		_fail("Research calendar progress did not advance by 44 in-game days.")
 		return
-	var completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0, game.game_date_unix + 86400.0 * 29.0)
+	var completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0, game.game_date_unix + 86400.0 * 45.0)
 	if completed_ids.is_empty():
-		_fail("The assigned research team did not complete after the full 29-day calendar duration.")
+		_fail("The assigned research team did not complete after the full 45-day calendar duration.")
 		return
 	stored_projects = game.career.get("research_projects", [])
 	if stored_projects.is_empty() or str(stored_projects[0].get("status", "")) != "awaiting_validation":
@@ -1061,9 +1061,9 @@ func _run_transition_checks() -> void:
 			ram_projects[project_index]["success_chance"] = 100.0
 			break
 	game.career["research_projects"] = ram_projects
-	var ram_completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 29.0, game.game_date_unix + 86400.0 * 29.0)
+	var ram_completed_ids: Array = ResearchManagerScript.advance_projects(game.career, 86400.0 * 30.0, game.game_date_unix + 86400.0 * 29.0)
 	if not ram_completed_ids.has(str(ram_project.get("id", ""))):
-		_fail("The RAM Technology project did not complete after its estimated 29-day duration.")
+		_fail("The RAM Technology project did not complete after its fixed 30-day duration.")
 		return
 	var ram_validation: Dictionary = game.approve_research_project(str(ram_project.get("id", "")), [{
 		"component": "RAM Technology",
