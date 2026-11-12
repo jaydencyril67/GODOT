@@ -2021,7 +2021,7 @@ func _show_worksite_phone_case_controls() -> void:
 	var panel := VBoxContainer.new()
 	panel.name = "WorksitePhoneCaseControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_theme_constant_override("separation", 8)
 	self.set("active_feature_panel", panel)
 	selection_stack.add_child(panel)
@@ -2772,7 +2772,7 @@ func _show_worksite_protection_glass_controls() -> void:
 	var panel := VBoxContainer.new()
 	panel.name = "WorksiteProtectionGlassControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_theme_constant_override("separation", 8)
 	self.set("active_feature_panel", panel)
 	selection_stack.add_child(panel)
