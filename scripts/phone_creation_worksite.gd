@@ -1156,7 +1156,10 @@ func _build_interface() -> void:
 	type_step_content.name = "PhoneTypeStepContent"
 	type_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selection_stack.add_child(type_step_content)
-	var section_title := _label("PHONE TYPE", 22, Color("#EEE9DF"))
+	var section_title := _make_label("PHONE TYPE", 20, Color("#EEE9DF"))
+	section_title.name = "PhoneTypeHeroTitle"
+	section_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	type_step_content.add_child(section_title)
 	_add_phone_type_selector(type_step_content)
 
