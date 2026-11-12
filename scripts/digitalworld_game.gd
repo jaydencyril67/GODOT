@@ -2765,7 +2765,7 @@ func _prepare_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 	phone_creation_worksite.call("set_phone_type_research_level", int(career.get("research_component_levels", {}).get("Phone Type", 0)))
 	phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
-		phone_creation_worksite.call("set_side_button_research_levels", career.get("research_component_levels", {}))
+	phone_creation_worksite.call("set_side_button_research_levels", career.get("research_component_levels", {}))
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
@@ -2828,7 +2828,7 @@ func _show_phone_creation_worksite() -> void:
 	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
 	phone_creation_worksite.call("set_phone_type_research_level", int(career.get("research_component_levels", {}).get("Phone Type", 0)))
 	phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
-		phone_creation_worksite.call("set_side_button_research_levels", career.get("research_component_levels", {}))
+	phone_creation_worksite.call("set_side_button_research_levels", career.get("research_component_levels", {}))
 	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
