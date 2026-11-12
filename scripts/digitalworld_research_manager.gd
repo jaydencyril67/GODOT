@@ -3,8 +3,12 @@ class_name DigitalWorldResearchManager
 
 const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
 
-# Research follows the in-game calendar. Assigned staff efficiency shortens the base journey.
+# Research duration is fixed by component. Staff efficiency affects success chance, never duration.
 const BASE_RESEARCH_DURATION_DAYS := 30.0
+const RESEARCH_DURATION_FORMULA_VERSION := 1
+const COMPONENT_RESEARCH_DURATION_DAYS := {
+	"Screen Technology": 45.0
+}
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const STATUS_ACTIVE := "active"
 const STATUS_AWAITING_VALIDATION := "awaiting_validation"
@@ -58,6 +62,14 @@ const MEMORY_CLOCK_RAM_TECHNOLOGY_LEVEL_CAPS := [20, 40, 60, 60, 80, 100, 120]
 const PHONE_TYPE_SEQUENCE := ["Standard", "Flip", "Fold"]
 const PHONE_CASE_RESEARCH_SEQUENCE := ["Custom Case Enablement (Smooth)", "Carbon Weave", "Hex Pattern", "Racing Stripes", "Grip Ridges", "Gradient Finish"]
 const PROTECTION_GLASS_RESEARCH_SEQUENCE := ["Normal Glass", "Privacy Glass"]
+
+
+static func get_component_research_duration_days(component_value: String) -> float:
+	var component := normalize_component(component_value)
+	return maxf(
+		MIN_RESEARCH_DURATION_DAYS,
+		float(COMPONENT_RESEARCH_DURATION_DAYS.get(component, BASE_RESEARCH_DURATION_DAYS))
+	)
 
 const PHONE_SENSOR_COMPONENTS := [
 	"Fingerprint Sensor",
@@ -669,13 +681,27 @@ static func ensure_state(career: Dictionary) -> void:
 			continue
 		var project: Dictionary = projects[index]
 		if not project.has("required_research_days"):
-			var team_efficiency := maxf(0.0, float(project.get("team_efficiency", 0.0)))
-			var migrated_duration := maxf(MIN_RESEARCH_DURATION_DAYS, BASE_RESEARCH_DURATION_DAYS - team_efficiency / 100.0)
 			var old_required_hours := maxf(0.001, float(project.get("work_required_hours", 120.0)))
 			var old_completed_hours := clampf(float(project.get("work_completed_hours", 0.0)) / old_required_hours, 0.0, 1.0)
-			project["required_research_days"] = migrated_duration
-			project["completed_research_days"] = migrated_duration * old_completed_hours
-			project["estimated_duration_days"] = migrated_duration
+			var legacy_duration := maxf(MIN_RESEARCH_DURATION_DAYS, BASE_RESEARCH_DURATION_DAYS)
+			project["required_research_days"] = legacy_duration
+			project["completed_research_days"] = legacy_duration * old_completed_hours
+			project["estimated_duration_days"] = legacy_duration
+		if int(project.get("duration_formula_version", 0)) < RESEARCH_DURATION_FORMULA_VERSION:
+			var previous_required_days := maxf(
+				MIN_RESEARCH_DURATION_DAYS,
+				float(project.get("required_research_days", BASE_RESEARCH_DURATION_DAYS))
+			)
+			var progress_ratio := clampf(
+				float(project.get("completed_research_days", 0.0)) / previous_required_days,
+				0.0,
+				1.0
+			)
+			var component_duration := get_component_research_duration_days(str(project.get("component", "")))
+			project["required_research_days"] = component_duration
+			project["completed_research_days"] = component_duration * progress_ratio
+			project["estimated_duration_days"] = component_duration
+			project["duration_formula_version"] = RESEARCH_DURATION_FORMULA_VERSION
 		project.erase("work_required_hours")
 		project.erase("work_completed_hours")
 		project.erase("daily_work_hours")
@@ -765,10 +791,7 @@ static func estimate_research(component_value: String, requested_staff: Array, e
 		return _failure("Assign at least one available Research employee.")
 
 	var average_efficiency := team_efficiency / float(staff_count)
-	var expected_days := maxf(
-		MIN_RESEARCH_DURATION_DAYS,
-		BASE_RESEARCH_DURATION_DAYS - team_efficiency / 100.0
-	)
+	var expected_days := get_component_research_duration_days(component)
 	# Each assigned researcher contributes independently: 100 efficiency points
 	# add one percentage point to success. Unassigned company staff do not count.
 	var success_chance := _calculate_research_success_chance(team_efficiency)
@@ -1058,6 +1081,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		"required_research_days": float(estimate.get("expected_duration_days", BASE_RESEARCH_DURATION_DAYS)),
 		"completed_research_days": 0.0,
 		"estimated_duration_days": float(estimate.get("expected_duration_days", BASE_RESEARCH_DURATION_DAYS)),
+		"duration_formula_version": RESEARCH_DURATION_FORMULA_VERSION,
 		"team_efficiency": float(estimate.get("team_efficiency", 0.0)),
 		"average_efficiency": float(estimate.get("average_efficiency", 0.0)),
 		"success_chance": float(estimate.get("success_chance", RESEARCH_BASE_SUCCESS_CHANCE)),
