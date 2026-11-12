@@ -464,7 +464,9 @@ var power_bank_preview_mode := false
 
 var power_bank_enabled := false
 
-var power_bank_capacity_mah := 10000
+var researched_power_bank_level := 0
+
+var power_bank_capacity_mah := 5000
 
 var power_bank_capacity_value_label: Label
 
@@ -2464,12 +2466,13 @@ func _show_worksite_power_bank_controls() -> void:
 	toggle.texture_disabled = unchecked_icon
 	toggle.toggle_mode = true
 	toggle.button_pressed = bool(self.get("power_bank_enabled"))
+	toggle.disabled = int(self.get("researched_power_bank_level")) <= 0
 	toggle.focus_mode = Control.FOCUS_NONE
 	toggle.mouse_filter = Control.MOUSE_FILTER_STOP
 	toggle.toggled.connect(Callable(self, "_on_power_bank_enabled_toggled"))
 	enable_row.add_child(toggle)
 
-	if bool(self.get("power_bank_enabled")):
+	if bool(self.get("power_bank_enabled")) and int(self.get("researched_power_bank_level")) > 0:
 		var capacity_heading := _label("BATTERY CAPACITY", 14, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
 		panel.add_child(capacity_heading)
 		var capacity_value := _label(str(self.call("_format_power_bank_capacity", int(self.get("power_bank_capacity_mah")))), 27, Color("#f0f7f1"), HORIZONTAL_ALIGNMENT_CENTER)
@@ -2478,11 +2481,12 @@ func _show_worksite_power_bank_controls() -> void:
 
 		var capacity_slider := VSlider.new()
 		capacity_slider.name = "PowerBankCapacitySlider"
-		capacity_slider.min_value = 10000
-		capacity_slider.max_value = 25000
-		capacity_slider.step = 500
+		var available_maximum := _get_power_bank_capacity_maximum()
+		capacity_slider.min_value = ResearchManagerScript.POWER_BANK_BASE_MAH
+		capacity_slider.max_value = available_maximum
+		capacity_slider.step = ResearchManagerScript.POWER_BANK_STEP_MAH
 		capacity_slider.value = int(self.get("power_bank_capacity_mah"))
-		capacity_slider.tick_count = 31
+		capacity_slider.tick_count = maxi(1, int((available_maximum - ResearchManagerScript.POWER_BANK_BASE_MAH) / ResearchManagerScript.POWER_BANK_STEP_MAH) + 1)
 		capacity_slider.custom_minimum_size = Vector2(76, 270)
 		capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		capacity_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -2496,10 +2500,10 @@ func _show_worksite_power_bank_controls() -> void:
 		range_row.name = "PowerBankCapacityRange"
 		range_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		range_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		var minimum := _label("10,000 mAh", 11, Color("#B8AFA2"))
+		var minimum := _label("5,000 mAh", 11, Color("#B8AFA2"))
 		minimum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		range_row.add_child(minimum)
-		var maximum := _label("25,000 mAh", 11, Color("#B8AFA2"))
+		var maximum := _label("%s mAh" % _format_integer_with_commas(available_maximum), 11, Color("#B8AFA2"))
 		maximum.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		maximum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		range_row.add_child(maximum)
@@ -2515,7 +2519,8 @@ func _show_worksite_power_bank_controls() -> void:
 		color_button.pressed.connect(_open_worksite_power_bank_color_controls)
 		panel.add_child(color_button)
 	else:
-		var disabled_note := _label("Enable the power bank to show its rotatable 3D preview and unlock capacity and colour settings.", 12, Color("#B8AFA2"))
+		var disabled_message := "Research the Power Bank to unlock this accessory." if int(self.get("researched_power_bank_level")) <= 0 else "Enable the power bank to show its rotatable 3D preview and unlock capacity and colour settings."
+		var disabled_note := _label(disabled_message, 12, Color("#B8AFA2"))
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
@@ -2525,7 +2530,9 @@ func _show_worksite_power_bank_controls() -> void:
 func _on_worksite_power_bank_capacity_changed(value: float) -> void:
 	if wizard_step != 36:
 		return
-	var capacity := clampi(roundi(value / 500.0) * 500, 10000, 25000)
+	if researched_power_bank_level <= 0:
+		return
+	var capacity := clampi(roundi(value / float(ResearchManagerScript.POWER_BANK_STEP_MAH)) * ResearchManagerScript.POWER_BANK_STEP_MAH, ResearchManagerScript.POWER_BANK_BASE_MAH, _get_power_bank_capacity_maximum())
 	self.set("power_bank_capacity_mah", capacity)
 	self.call("_rebuild_power_bank_preview")
 	self.call("_set_power_bank_preview_mode", true)
@@ -3472,6 +3479,29 @@ func _apply_research_typography(control: Control, font_size: int) -> void:
 	stix_font.variation_embolden = 0.7
 	control.add_theme_font_override("font", stix_font)
 	control.add_theme_font_size_override("font_size", font_size)
+
+func set_power_bank_research_level(level: int) -> void:
+	# Level 0 is locked. The first approval unlocks 5,000 mAh; each later approval adds 100 mAh.
+	researched_power_bank_level = clampi(level, 0, ResearchManagerScript.POWER_BANK_MAX_RESEARCH_LEVEL)
+	if researched_power_bank_level <= 0:
+		power_bank_enabled = false
+		power_bank_capacity_mah = ResearchManagerScript.POWER_BANK_BASE_MAH
+	else:
+		power_bank_capacity_mah = clampi(
+			power_bank_capacity_mah,
+			ResearchManagerScript.POWER_BANK_BASE_MAH,
+			_get_power_bank_capacity_maximum()
+		)
+	if is_instance_valid(power_bank_preview):
+		_rebuild_power_bank_preview()
+	_set_power_bank_preview_mode(power_bank_preview_mode)
+	if wizard_step == 36 and is_instance_valid(selection_stack) and not power_bank_color_mode:
+		_show_worksite_power_bank_controls()
+
+
+func _get_power_bank_capacity_maximum() -> int:
+	return ResearchManagerScript.get_power_bank_max_for_level(researched_power_bank_level)
+
 
 func set_battery_capacity_research_level(level: int) -> void:
 	# Level 1 is the 1,000 mAh baseline; each approved upgrade adds 350 mAh.
@@ -7165,6 +7195,10 @@ func _set_power_bank_preview_mode(enabled: bool) -> void:
 		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 func _on_power_bank_enabled_toggled(enabled: bool) -> void:
+	if enabled and researched_power_bank_level <= 0:
+		power_bank_enabled = false
+		_show_worksite_power_bank_controls()
+		return
 	power_bank_enabled = enabled
 	_rebuild_power_bank_preview()
 	_set_power_bank_preview_mode(true)
@@ -7183,7 +7217,9 @@ func _format_integer_with_commas(value: int) -> String:
 	return formatted
 
 func _on_power_bank_capacity_changed(value: float) -> void:
-	power_bank_capacity_mah = clampi(roundi(value / 500.0) * 500, 10000, 25000)
+	if researched_power_bank_level <= 0:
+		return
+	power_bank_capacity_mah = clampi(roundi(value / float(ResearchManagerScript.POWER_BANK_STEP_MAH)) * ResearchManagerScript.POWER_BANK_STEP_MAH, ResearchManagerScript.POWER_BANK_BASE_MAH, _get_power_bank_capacity_maximum())
 	if is_instance_valid(power_bank_capacity_value_label):
 		power_bank_capacity_value_label.text = _format_power_bank_capacity(power_bank_capacity_mah)
 	_rebuild_power_bank_preview()
