@@ -4360,7 +4360,7 @@ func _show_device_color_controls(return_to_back_design: bool = false, for_phone_
 			back_design_toggle_row.add_child(gradient_toggle_row)
 		else:
 			active_feature_panel.add_child(gradient_toggle_row)
-		var gradient_toggle_label := _make_label("ENABLE GRADIENT", 13, Color("#D3AA6B"))
+		var gradient_toggle_label := _make_label("ENABLE GRADIENT" if not for_phone_case or phone_case_research_level >= 6 else "GRADIENT FINISH  ·  RESEARCH REQUIRED", 13, Color("#D3AA6B"))
 		gradient_toggle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		gradient_toggle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		gradient_toggle_row.add_child(gradient_toggle_label)
