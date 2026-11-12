@@ -639,35 +639,35 @@ func _run_transition_checks() -> void:
 	if not ram_component_option.text.contains("RAM TECH"):
 		_fail("RAM Technology is missing from the R&D component selector.")
 		return
-	var mobile_network_component_option := dashboard.find_child("ResearchComponentOption_9", true, false) as Button
+	var mobile_network_component_option := dashboard.find_child("ResearchComponentOption_10", true, false) as Button
 	if not is_instance_valid(mobile_network_component_option) or not mobile_network_component_option.text.contains("MOBILE NETWORK"):
 		_fail("Mobile Network is missing from the R&D component selector.")
 		return
 	if not mobile_network_component_option.tooltip_text.contains("NMT"):
 		_fail("The Mobile Network research selector did not identify its next technology.")
 		return
-	var wifi_component_option := dashboard.find_child("ResearchComponentOption_10", true, false) as Button
+	var wifi_component_option := dashboard.find_child("ResearchComponentOption_11", true, false) as Button
 	if not is_instance_valid(wifi_component_option) or not wifi_component_option.text.contains("WI-FI"):
 		_fail("Wi-Fi is missing from the R&D component selector.")
 		return
 	if not wifi_component_option.tooltip_text.contains("Wi-Fi 2 (802.11a)"):
 		_fail("The Wi-Fi research selector did not identify Wi-Fi 2 as its first research target.")
 		return
-	var bluetooth_component_option := dashboard.find_child("ResearchComponentOption_11", true, false) as Button
+	var bluetooth_component_option := dashboard.find_child("ResearchComponentOption_12", true, false) as Button
 	if not is_instance_valid(bluetooth_component_option) or not bluetooth_component_option.text.contains("BLUETOOTH"):
 		_fail("Bluetooth is missing from the R&D component selector.")
 		return
 	if not bluetooth_component_option.tooltip_text.contains("Bluetooth 1.1"):
 		_fail("Bluetooth research did not identify Bluetooth 1.1 as its first target.")
 		return
-	var cooling_component_option := dashboard.find_child("ResearchComponentOption_14", true, false) as Button
+	var cooling_component_option := dashboard.find_child("ResearchComponentOption_15", true, false) as Button
 	if not is_instance_valid(cooling_component_option) or not cooling_component_option.text.contains("COOLING SYSTEM"):
 		_fail("Cooling System Design is missing from the R&D component selector.")
 		return
 	if not cooling_component_option.tooltip_text.contains("Graphite Sheet"):
 		_fail("Cooling System Design did not identify Graphite Sheet as its first research target.")
 		return
-	var memory_clock_component_option := dashboard.find_child("ResearchComponentOption_15", true, false) as Button
+	var memory_clock_component_option := dashboard.find_child("ResearchComponentOption_16", true, false) as Button
 	if not is_instance_valid(memory_clock_component_option) or not memory_clock_component_option.text.contains("MEMORY CLOCK"):
 		_fail("Memory Clock is missing from the R&D component selector.")
 		return
