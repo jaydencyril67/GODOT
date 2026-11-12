@@ -2486,7 +2486,7 @@ func _show_research_allocation_dashboard() -> void:
 	research_allocation_dashboard.connect("back_requested", Callable(self, "_return_from_research_allocation_dashboard"))
 	research_allocation_dashboard.connect("project_commission_requested", Callable(self, "_on_rd_project_commission_requested"))
 	research_allocation_dashboard.connect("project_approve_requested", Callable(self, "_on_rd_project_approve_requested"))
-	research_allocation_dashboard.connect("project_reject_requested", Callable(self, "_on_rd_project_reject_requested"))
+	research_allocation_dashboard.connect("project_retry_requested", Callable(self, "_on_rd_project_retry_requested"))
 	research_allocation_dashboard.connect("project_cancel_requested", Callable(self, "_on_rd_project_cancel_requested"))
 	ui_root.add_child(research_allocation_dashboard)
 	current_screen = "research_allocation"
@@ -2576,13 +2576,24 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		_show_notice("RESEARCH APPROVED", "The validated findings have been recorded in the company's technology development history.")
 
 
-func _on_rd_project_reject_requested(project_id: String, review_note: String) -> void:
-	var result := reject_research_project(project_id, review_note)
-	if not bool(result.get("ok", false)):
-		_show_notice("REVIEW FAILED", str(result.get("error", "The research findings could not be rejected.")))
+func _on_rd_project_retry_requested(project_id: String) -> void:
+	var failed_project: Dictionary = {}
+	for project_value in career.get("research_projects", []):
+		if project_value is Dictionary and str(project_value.get("id", "")) == project_id:
+			failed_project = project_value.duplicate(true)
+			break
+	if failed_project.is_empty() or str(failed_project.get("status", "")) != ResearchManagerScript.STATUS_UNSUCCESSFUL:
+		_show_notice("RETRY UNAVAILABLE", "This research project is no longer eligible for a retry.")
+		return
+	var retry_result := commission_research_project({
+		"component": str(failed_project.get("component", "")),
+		"staff_ids": failed_project.get("staff_ids", []).duplicate()
+	})
+	if not bool(retry_result.get("ok", false)):
+		_show_notice("RESEARCH NOT RETRIED", str(retry_result.get("error", "The research could not be restarted.")))
 		return
 	_refresh_research_dashboard()
-	_show_notice("FINDINGS REJECTED", "The project review decision has been recorded.")
+	_show_notice("RESEARCH RETRIED", "A new research project has been commissioned with the previous research team.")
 
 
 func _on_rd_project_cancel_requested(project_id: String) -> void:
