@@ -55,14 +55,37 @@ var status_label: Label
 var _palette: Dictionary = {}
 var _style: Dictionary = {}
 var _building := false
+var _last_layout_size := Vector2.ZERO
+var _resize_rebuild_pending := false
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
+	resized.connect(_on_simulator_resized)
 	if configuration.is_empty():
 		configuration = OSEngine.generate_os()
 	_build_shell()
+	_last_layout_size = size
+
+func _on_simulator_resized() -> void:
+	if not is_inside_tree() or size.x < 48.0 or size.y < 48.0:
+		return
+	if _last_layout_size == Vector2.ZERO:
+		_last_layout_size = size
+		return
+	if size.distance_to(_last_layout_size) < 4.0:
+		return
+	_last_layout_size = size
+	if _resize_rebuild_pending:
+		return
+	_resize_rebuild_pending = true
+	call_deferred("_rebuild_after_resize")
+
+func _rebuild_after_resize() -> void:
+	_resize_rebuild_pending = false
+	if is_inside_tree():
+		_build_shell()
 
 func configure_os(os_configuration: Dictionary, component_id: String = "home_screen") -> void:
 	configuration = OSEngine.normalize_os(os_configuration)
