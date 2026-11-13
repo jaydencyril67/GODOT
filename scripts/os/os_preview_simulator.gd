@@ -166,6 +166,12 @@ func _build_lock_screen(data: Dictionary) -> void:
 	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_container.add_child(bottom)
 	page_container.add_child(_surface_label("◉                                  ▣", 12))
+	var unlock := Button.new()
+	unlock.text = "SWIPE TO UNLOCK"
+	unlock.custom_minimum_size.y = 28
+	_style_action_button(unlock)
+	unlock.pressed.connect(func(): set_component_view("home_screen"))
+	page_container.add_child(unlock)
 
 func _build_icon_gallery(data: Dictionary) -> void:
 	var shape := str(data.get("shape", "rounded"))
