@@ -779,7 +779,8 @@ func _build_android_10_home_screen_preview(screen: PanelContainer) -> void:
 	screen.add_child(content)
 
 	# Android 1.0 / HTC Dream stock status strip.
-	var status_bar := PanelContainer.new()	status_bar.name = "Android10StatusBar"
+	var status_bar := PanelContainer.new()
+	status_bar.name = "Android10StatusBar"
 	status_bar.custom_minimum_size.y = 24
 	var status_style := StyleBoxFlat.new()
 	status_style.bg_color = Color("#25282B")
