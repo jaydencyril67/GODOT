@@ -58,6 +58,7 @@ func _run_os_generator_test() -> void:
 		return
 
 	var legacy_style_config := generated.duplicate(true)
+	legacy_style_config["schema_version"] = 2
 	legacy_style_config["components"]["app_icons"] = {"shape": "squircle", "size": 60}
 	legacy_style_config["components"]["themes_appearance"] = {"palette": ProceduralEngineScript.PALETTES[1].duplicate(true)}
 	var migrated_style := ProceduralEngineScript.normalize_os(legacy_style_config)
