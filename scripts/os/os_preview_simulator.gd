@@ -107,6 +107,245 @@ var _style: Dictionary = {}
 var _building := false
 var _last_layout_size := Vector2.ZERO
 var _resize_rebuild_pending := false
+var _gesture_start := Vector2.ZERO
+var _gesture_start_time := 0
+var _gesture_active := false
+var _gesture_overlay: Control
+var _recent_app_names: Array[String] = []
+var _last_opened_app := ""
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			_begin_gesture(_screen_to_local(touch.position))
+		else:
+			_finish_gesture(_screen_to_local(touch.position))
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var mouse := event as InputEventMouseButton
+		if mouse.pressed:
+			_begin_gesture(_screen_to_local(mouse.position))
+		else:
+			_finish_gesture(_screen_to_local(mouse.position))
+
+
+func _screen_to_local(screen_position: Vector2) -> Vector2:
+	return get_global_transform_with_canvas().affine_inverse() * screen_position
+
+
+func _begin_gesture(position: Vector2) -> void:
+	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
+		return
+	_gesture_start = position
+	_gesture_start_time = Time.get_ticks_msec()
+	_gesture_active = true
+
+
+func _finish_gesture(position: Vector2) -> void:
+	if not _gesture_active:
+		return
+	_gesture_active = false
+	var elapsed_ms := Time.get_ticks_msec() - _gesture_start_time
+	_handle_system_gesture(_gesture_start, position, elapsed_ms)
+
+
+func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) -> void:
+	var delta := finish - start
+	var vertical_threshold := maxf(34.0, size.y * 0.10)
+	var horizontal_threshold := maxf(32.0, size.x * 0.18)
+	var edge_size := clampf(minf(size.x, size.y) * 0.09, 18.0, 34.0)
+
+	if start.y <= edge_size and delta.y >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.2:
+		if start.x >= size.x * 0.56:
+			_show_gesture_overlay("control_center")
+		else:
+			_show_gesture_overlay("notifications")
+		return
+
+	if start.y >= size.y - edge_size and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
+		if elapsed_ms >= 420:
+			_show_gesture_overlay("recent_apps")
+		elif active_component == "home_screen":
+			set_component_view("app_drawer")
+		else:
+			_navigate_home()
+		return
+
+	if absf(delta.x) >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.2:
+		if start.x <= edge_size and delta.x > 0.0:
+			_navigate_back()
+		elif start.x >= size.x - edge_size and delta.x < 0.0:
+			_navigate_back()
+
+
+func _navigate_home() -> void:
+	_close_gesture_overlay()
+	set_component_view("home_screen")
+
+
+func _navigate_back() -> void:
+	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
+		_close_gesture_overlay()
+	elif active_component == "app_drawer":
+		_navigate_home()
+	else:
+		_navigate_home()
+
+
+func _show_gesture_overlay(mode: String) -> void:
+	_close_gesture_overlay()
+	_gesture_overlay = Control.new()
+	_gesture_overlay.name = "OSGestureOverlay_" + mode
+	_gesture_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_gesture_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_gesture_overlay)
+
+	var shade := ColorRect.new()
+	shade.name = "GestureOverlayShade"
+	shade.color = Color(0.0, 0.0, 0.0, 0.58)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	_gesture_overlay.add_child(shade)
+
+	var margins := MarginContainer.new()
+	margins.name = "GestureOverlayMargins"
+	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margins.add_theme_constant_override("margin_left", 8)
+	margins.add_theme_constant_override("margin_right", 8)
+	margins.add_theme_constant_override("margin_top", 8)
+	margins.add_theme_constant_override("margin_bottom", 8)
+	_gesture_overlay.add_child(margins)
+
+	var panel := PanelContainer.new()
+	panel.name = "GestureOverlayPanel"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_style_surface(panel, true)
+	margins.add_child(panel)
+
+	var content := VBoxContainer.new()
+	content.name = "GestureOverlayContent"
+	content.add_theme_constant_override("separation", 8)
+	panel.add_child(content)
+
+	var header := HBoxContainer.new()
+	var title_text := "QUICK SETTINGS" if mode == "control_center" else ("NOTIFICATIONS" if mode == "notifications" else "RECENT APPS")
+	var title := _label(title_text, 12, _text_color())
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	var close_button := Button.new()
+	close_button.name = "CloseGestureOverlayButton"
+	close_button.text = "×"
+	close_button.custom_minimum_size = Vector2(28, 28)
+	_style_action_button(close_button)
+	close_button.pressed.connect(_close_gesture_overlay)
+	header.add_child(close_button)
+	content.add_child(header)
+
+	match mode:
+		"control_center":
+			_build_gesture_control_center(content)
+		"notifications":
+			_build_gesture_notifications(content)
+		"recent_apps":
+			_build_gesture_recent_apps(content)
+
+
+func _build_gesture_control_center(parent: VBoxContainer) -> void:
+	var quick_grid := GridContainer.new()
+	quick_grid.name = "GestureQuickSettingsGrid"
+	quick_grid.columns = 2
+	quick_grid.add_theme_constant_override("h_separation", 6)
+	quick_grid.add_theme_constant_override("v_separation", 6)
+	parent.add_child(quick_grid)
+	for item in ["Wi-Fi", "Bluetooth", "Airplane mode", "Flashlight", "Focus", "Battery saver"]:
+		var toggle := Button.new()
+		toggle.name = "QuickToggle_" + item.replace(" ", "")
+		toggle.text = item
+		toggle.toggle_mode = true
+		toggle.button_pressed = item in ["Wi-Fi", "Bluetooth"]
+		toggle.custom_minimum_size.y = 36
+		_style_action_button(toggle, toggle.button_pressed)
+		toggle.toggled.connect(func(enabled: bool) -> void: _style_action_button(toggle, enabled))
+		quick_grid.add_child(toggle)
+	_add_gesture_slider(parent, "Brightness", 72)
+	_add_gesture_slider(parent, "Volume", 58)
+
+
+func _add_gesture_slider(parent: VBoxContainer, caption: String, initial_value: float) -> void:
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	row.add_child(_label(caption, 8, _muted_color()))
+	var slider := HSlider.new()
+	slider.name = "Gesture" + caption.replace(" ", "") + "Slider"
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.value = initial_value
+	slider.custom_minimum_size.y = 18
+	row.add_child(slider)
+	parent.add_child(row)
+
+
+func _build_gesture_notifications(parent: VBoxContainer) -> void:
+	for item in [
+		{"app": "Messages", "message": "A new message is waiting", "time": "NOW"},
+		{"app": "Calendar", "message": "Your next event is coming up", "time": "10 MIN"},
+		{"app": "System", "message": "Your device is up to date", "time": "EARLIER"}
+	]:
+		var notification := PanelContainer.new()
+		notification.name = "GestureNotification_" + str(item["app"])
+		_style_surface(notification)
+		var body := VBoxContainer.new()
+		body.add_child(_label(str(item["app"]) + "  ·  " + str(item["time"]), 8, _accent_color()))
+		body.add_child(_label(str(item["message"]), 9, _text_color()))
+		notification.add_child(body)
+		parent.add_child(notification)
+
+
+func _build_gesture_recent_apps(parent: VBoxContainer) -> void:
+	if _recent_app_names.is_empty() and not _last_opened_app.is_empty():
+		_recent_app_names.append(_last_opened_app)
+	if _recent_app_names.is_empty():
+		parent.add_child(_label("No recently opened apps", 9, _muted_color()))
+		return
+	for app_name in _recent_app_names:
+		var app := _find_app(app_name)
+		if app.is_empty():
+			continue
+		var card := PanelContainer.new()
+		card.name = "GestureRecentApp_" + app_name.replace(" ", "")
+		_style_surface(card)
+		var row := HBoxContainer.new()
+		row.add_child(_create_app_icon(app, 28, false))
+		var name_label := _label(app_name, 9, _text_color())
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_label)
+		var open_button := Button.new()
+		open_button.text = "OPEN"
+		_style_action_button(open_button)
+		open_button.pressed.connect(func() -> void:
+			_close_gesture_overlay()
+			_on_app_pressed(app_name)
+		)
+		row.add_child(open_button)
+		card.add_child(row)
+		parent.add_child(card)
+	var clear_button := Button.new()
+	clear_button.name = "ClearGestureRecentAppsButton"
+	clear_button.text = "CLEAR ALL"
+	_style_action_button(clear_button)
+	clear_button.pressed.connect(func() -> void:
+		_recent_app_names.clear()
+		_show_gesture_overlay("recent_apps")
+	)
+	parent.add_child(clear_button)
+
+
+func _close_gesture_overlay() -> void:
+	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
+		_gesture_overlay.queue_free()
+	_gesture_overlay = null
+
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -925,6 +1164,12 @@ func _round_shortcut(glyph: String) -> Control:
 	return button
 
 func _on_app_pressed(app_name: String) -> void:
+	_last_opened_app = app_name
+	_recent_app_names.erase(app_name)
+	_recent_app_names.push_front(app_name)
+	while _recent_app_names.size() > 5:
+		_recent_app_names.pop_back()
+	_close_gesture_overlay()
 	app_opened.emit(app_name)
 	if is_instance_valid(status_label):
 		status_label.text = app_name + " preview"
