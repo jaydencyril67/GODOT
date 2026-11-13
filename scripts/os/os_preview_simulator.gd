@@ -77,7 +77,8 @@ func _build_shell() -> void:
 	var clock := _label("9:41", 8, _text_color())
 	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status.add_child(clock)
-	status.add_child(_label("◆  ▮▮  ▰", 7, _text_color()))
+	status_label = _label("◆  ▮▮  ▰", 7, _text_color())
+	status.add_child(status_label)
 	var title := _label(_component_title(active_component), 8, _text_color())
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.custom_minimum_size.y = 13
