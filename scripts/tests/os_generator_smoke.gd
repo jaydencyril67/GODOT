@@ -1,6 +1,6 @@
 extends SceneTree
 
-const Engine = preload("res://scripts/os/procedural_os_engine.gd")
+const ProceduralEngineScript = preload("res://scripts/os/procedural_os_engine.gd")
 const SimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
 const WorksiteScene = preload("res://scenes/os_creation_worksite.tscn")
 
@@ -8,18 +8,18 @@ func _initialize() -> void:
 	call_deferred("_run_os_generator_test")
 
 func _run_os_generator_test() -> void:
-	var generated := Engine.generate_os(1357911, 1)
+	var generated := ProceduralEngineScript.generate_os(1357911, 1)
 	var components: Dictionary = generated.get("components", {})
 	if components.size() != 12:
 		_fail("Generator did not produce all 12 OS components.")
 		return
-	for component in Engine.COMPONENTS:
+	for component in ProceduralEngineScript.COMPONENTS:
 		if not components.has(component["id"]):
 			_fail("Missing generated component: " + str(component["id"]))
 			return
 
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
-	var wallpaper_regenerated := Engine.regenerate_component(generated, "wallpapers", 246802)
+	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
 	if wallpaper_regenerated["components"]["lock_screen"] != lock_screen_before:
 		_fail("Wallpaper regeneration unexpectedly changed the lock screen component.")
 		return
@@ -27,20 +27,20 @@ func _run_os_generator_test() -> void:
 		_fail("Wallpaper regeneration did not keep the home screen wallpaper in sync.")
 		return
 
-	var themed := Engine.regenerate_component(generated, "themes_appearance", 97531)
+	var themed := ProceduralEngineScript.regenerate_component(generated, "themes_appearance", 97531)
 	if themed["style"]["palette"] != themed["components"]["themes_appearance"]["palette"]:
 		_fail("Theme regeneration did not update the shared OS palette.")
 		return
-	var icons := Engine.regenerate_component(generated, "app_icons", 86420)
+	var icons := ProceduralEngineScript.regenerate_component(generated, "app_icons", 86420)
 	if icons["style"]["icon_shape"] != icons["components"]["app_icons"]["shape"]:
 		_fail("Icon regeneration did not update the shared OS icon shape.")
 		return
 
 	var test_save_path := "user://os_generator_smoke_test.json"
-	if not Engine.save_os(wallpaper_regenerated, test_save_path):
+	if not ProceduralEngineScript.save_os(wallpaper_regenerated, test_save_path):
 		_fail("Generated OS configuration could not be saved.")
 		return
-	var loaded := Engine.load_os(test_save_path)
+	var loaded := ProceduralEngineScript.load_os(test_save_path)
 	if loaded.get("seed", -1) != wallpaper_regenerated.get("seed", -2):
 		_fail("Saved OS configuration could not be loaded correctly.")
 		return
@@ -49,7 +49,7 @@ func _run_os_generator_test() -> void:
 	simulator.configure_os(generated, "home_screen")
 	root.add_child(simulator)
 	await process_frame
-	for component in Engine.COMPONENTS:
+	for component in ProceduralEngineScript.COMPONENTS:
 		simulator.set_component_view(str(component["id"]))
 		await process_frame
 		if simulator.find_child("OSComponentContent", true, false) == null:
