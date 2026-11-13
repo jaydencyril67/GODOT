@@ -319,6 +319,7 @@ func _build_home_screen(data: Dictionary) -> void:
 			_build_windows_tiles()
 		"compact_list":
 			_build_home_header("Applications", "A focused, space-efficient home")
+			_build_home_widgets(widget_count)
 			page_container.add_child(_search_field("Find an app"))
 			_build_home_list()
 		"category_sections":
