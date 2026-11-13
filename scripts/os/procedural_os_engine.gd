@@ -108,16 +108,17 @@ static func regenerate_component(config: Dictionary, component_id: String, seed_
 
 static func normalize_os(config: Dictionary) -> Dictionary:
 	var normalized := config.duplicate(true)
+	var is_legacy_schema := int(normalized.get("schema_version", 1)) < SCHEMA_VERSION
 	var generation_number := clampi(int(normalized.get("generation", 2)), 1, 3)
 	var style: Dictionary = normalized.get("style", {}).duplicate(true)
 	var legacy_components: Dictionary = normalized.get("components", {})
 	var legacy_icons: Dictionary = legacy_components.get("app_icons", {})
 	var legacy_theme: Dictionary = legacy_components.get("themes_appearance", {})
-	if not style.has("icon_shape") and legacy_icons.has("shape"):
+	if is_legacy_schema and legacy_icons.has("shape"):
 		style["icon_shape"] = legacy_icons["shape"]
-	if not style.has("icon_size") and legacy_icons.has("size"):
+	if is_legacy_schema and legacy_icons.has("size"):
 		style["icon_size"] = legacy_icons["size"]
-	if not style.has("palette") and legacy_theme.has("palette"):
+	if is_legacy_schema and legacy_theme.has("palette"):
 		style["palette"] = legacy_theme["palette"].duplicate(true)
 	var palette: Dictionary = style.get("palette", PALETTES[0]).duplicate(true)
 	if palette.is_empty():
