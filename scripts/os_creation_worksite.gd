@@ -20,6 +20,9 @@ var home_generation_status: Label
 var home_screen_number_label: Label
 var home_screen_decrease_button: Button
 var home_screen_increase_button: Button
+var home_generation_decrease_button: Button
+var home_generation_increase_button: Button
+var home_generation_heading: Label
 var home_image_paths := [
 	"res://OSHSG1/IMG-20261113-WA0227.jpg",
 	"res://OSHSG1/IMG-20261113-WA1726.jpg",
@@ -31,6 +34,18 @@ var home_image_paths := [
 	"res://OSHSG1/IMG-20261113-WA8214.jpg",
 	"res://OSHSG1/IMG-20261113-WA9815.jpg",
 	"res://OSHSG1/IMG-20261113-WA9894.jpg"
+]
+var home_generation_two_image_paths := [
+	"res://OSHSG2/IMG-20261113-WA0435.jpg",
+	"res://OSHSG2/IMG-20261113-WA0711.jpg",
+	"res://OSHSG2/IMG-20261113-WA2718.jpg",
+	"res://OSHSG2/IMG-20261113-WA3926.jpg",
+	"res://OSHSG2/IMG-20261113-WA4082.jpg",
+	"res://OSHSG2/IMG-20261113-WA5924.jpg",
+	"res://OSHSG2/IMG-20261113-WA6686.jpg",
+	"res://OSHSG2/IMG-20261113-WA7637.jpg",
+	"res://OSHSG2/IMG-20261113-WA7767.jpg",
+	"res://OSHSG2/IMG-20261113-WA9919.jpg"
 ]
 
 class GlassArrowButton extends Button:
@@ -457,11 +472,39 @@ func _build_home_generation_controls() -> void:
 	content.add_theme_constant_override("separation", 12)
 	selection_panel.add_child(content)
 
-	var heading := _label("GENERATION 01", 17, Color("#F0E9DD"))
-	content.add_child(heading)
+	home_generation_heading = _label("GENERATION 01", 17, Color("#F0E9DD"))
+	content.add_child(home_generation_heading)
 	var description := _label("Choose a home-screen design.", 12, Color("#B8B1A6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(description)
+
+	# First selector changes the generation; the second changes its design.
+	var generation_selector := HBoxContainer.new()
+	generation_selector.name = "HomeGenerationSelector"
+	generation_selector.alignment = BoxContainer.ALIGNMENT_CENTER
+	generation_selector.add_theme_constant_override("separation", 18)
+	content.add_child(generation_selector)
+
+	home_generation_decrease_button = Button.new()
+	home_generation_decrease_button.name = "PreviousHomeGenerationButton"
+	home_generation_decrease_button.text = "−"
+	_style_level_selector_button(home_generation_decrease_button)
+	home_generation_decrease_button.pressed.connect(_step_home_generation.bind(-1))
+	generation_selector.add_child(home_generation_decrease_button)
+
+	var generation_number := _label("GEN 01 / 02", 14, Color("#EEE9DF"))
+	generation_number.name = "SelectedHomeGenerationNumber"
+	generation_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	generation_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	generation_number.custom_minimum_size = Vector2(150, 42)
+	generation_selector.add_child(generation_number)
+
+	home_generation_increase_button = Button.new()
+	home_generation_increase_button.name = "NextHomeGenerationButton"
+	home_generation_increase_button.text = "+"
+	_style_level_selector_button(home_generation_increase_button)
+	home_generation_increase_button.pressed.connect(_step_home_generation.bind(1))
+	generation_selector.add_child(home_generation_increase_button)
 
 	var selector := HBoxContainer.new()
 	selector.name = "HomeScreenDesignSelector"
@@ -493,7 +536,6 @@ func _build_home_generation_controls() -> void:
 	home_generation_status = _label("GENERATION 01  •  10 DESIGNS", 11, Color("#C58A3A"))
 	content.add_child(home_generation_status)
 	_update_home_generation_controls()
-
 
 func _style_level_selector_button(button: Button) -> void:
 	# Match the phone creation worksite's graphite glass +/- selector treatment.
@@ -536,12 +578,37 @@ func _style_level_selector_button(button: Button) -> void:
 	button.add_child(reflection)
 
 
+func _step_home_generation(direction: int) -> void:
+	var next_generation := clampi(home_generation + direction, 1, 2)
+	if next_generation == home_generation:
+		return
+	home_generation = next_generation
+	home_image_index = 0
+	home_image_paths = home_generation_two_image_paths if home_generation == 2 else [
+		"res://OSHSG1/IMG-20261113-WA0227.jpg",
+		"res://OSHSG1/IMG-20261113-WA1726.jpg",
+		"res://OSHSG1/IMG-20261113-WA3003.jpg",
+		"res://OSHSG1/IMG-20261113-WA3402.jpg",
+		"res://OSHSG1/IMG-20261113-WA4851.jpg",
+		"res://OSHSG1/IMG-20261113-WA6095.jpg",
+		"res://OSHSG1/IMG-20261113-WA7589.jpg",
+		"res://OSHSG1/IMG-20261113-WA8214.jpg",
+		"res://OSHSG1/IMG-20261113-WA9815.jpg",
+		"res://OSHSG1/IMG-20261113-WA9894.jpg"
+	]
+	_refresh_selected_home_screen()
+
+
 func _step_home_image(direction: int) -> void:
 	_select_home_image(home_image_index + direction)
 
 
 func _select_home_image(image_index: int) -> void:
 	home_image_index = clampi(image_index, 0, home_image_paths.size() - 1)
+	_refresh_selected_home_screen()
+
+
+func _refresh_selected_home_screen() -> void:
 	if is_instance_valid(home_preview_screen):
 		for child in home_preview_screen.get_children():
 			home_preview_screen.remove_child(child)
@@ -551,14 +618,23 @@ func _select_home_image(image_index: int) -> void:
 
 
 func _update_home_generation_controls() -> void:
+	if is_instance_valid(home_generation_heading):
+		home_generation_heading.text = "GENERATION %02d" % home_generation
 	if is_instance_valid(home_generation_status):
-		home_generation_status.text = "GENERATION 01  •  10 DESIGNS"
+		home_generation_status.text = "GENERATION %02d  •  %02d DESIGNS" % [home_generation, home_image_paths.size()]
 	if is_instance_valid(home_screen_number_label):
 		home_screen_number_label.text = "SCREEN %02d / %02d" % [home_image_index + 1, home_image_paths.size()]
 	if is_instance_valid(home_screen_decrease_button):
 		home_screen_decrease_button.disabled = home_image_index <= 0
 	if is_instance_valid(home_screen_increase_button):
 		home_screen_increase_button.disabled = home_image_index >= home_image_paths.size() - 1
+	if is_instance_valid(home_generation_decrease_button):
+		home_generation_decrease_button.disabled = home_generation <= 1
+	if is_instance_valid(home_generation_increase_button):
+		home_generation_increase_button.disabled = home_generation >= 2
+	var generation_number := get_node_or_null("OSCreationWorksiteInterface/OSWorksiteRoot/OSWorksiteMainContent/OSConfigurationRegion/HomeGenerationControls/HomeGenerationSelector/SelectedHomeGenerationNumber") as Label
+	if is_instance_valid(generation_number):
+		generation_number.text = "GEN %02d / 02" % home_generation
 
 
 func _build_selected_home_image(screen: PanelContainer) -> void:
