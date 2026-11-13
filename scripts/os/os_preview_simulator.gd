@@ -324,7 +324,7 @@ func _build_home_screen(data: Dictionary) -> void:
 	apps_grid.add_theme_constant_override("h_separation", 7)
 	apps_grid.add_theme_constant_override("v_separation", 9)
 	page_container.add_child(apps_grid)
-	_populate_app_grid(apps_grid, "", int(configuration.get("components", {}).get("app_icons", {}).get("size", 52)), true)
+	_populate_app_grid(apps_grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
 
 
 func _build_lock_screen(data: Dictionary) -> void:
@@ -473,7 +473,7 @@ func _build_control_center(_data: Dictionary) -> void:
 	_add_slider_row("Volume", 58)
 
 func _build_notifications(data: Dictionary) -> void:
-	_add_section_label("NOTIFICATION APPEARANCE")
+	_add_section_label("NOTIFICATION PANEL")
 	_add_notification_surface("Messages", "A new message is waiting", "NOW")
 	_add_notification_surface("Calendar", "Your next event is coming up", "10 MIN")
 	_add_notification_surface("System", "Your device is up to date", "EARLIER")
@@ -733,7 +733,7 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.text = str(app.get("glyph", "•"))
 	icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
-	_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("components", {}).get("app_icons", {}).get("shape", "rounded")))
+	_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "rounded")))
 	icon.pressed.connect(_on_app_pressed.bind(app_name))
 	holder.add_child(icon)
 	tile.add_child(holder)
@@ -781,7 +781,7 @@ func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show
 
 func _on_app_search_changed(query: String, grid: GridContainer) -> void:
 	if is_instance_valid(grid):
-		_populate_app_grid(grid, query, int(configuration.get("components", {}).get("app_icons", {}).get("size", 46)), true)
+		_populate_app_grid(grid, query, int(configuration.get("style", {}).get("icon_size", 46)), true)
 
 func _find_app(app_name: String) -> Dictionary:
 	for app in OSEngine.APP_DEFINITIONS:
