@@ -77,13 +77,34 @@ func _run_os_generator_test() -> void:
 		_fail("Loaded OS configuration failed validation.")
 		return
 
+	var simulator_host := Control.new()
+	simulator_host.name = "OSSimulatorResponsiveTestHost"
+	simulator_host.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	simulator_host.size = Vector2(145.0, 360.0)
+	root.add_child(simulator_host)
+
 	var simulator := SimulatorScript.new()
+	simulator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	simulator.configure_os(generated, "home_screen")
-	root.add_child(simulator)
+	simulator_host.add_child(simulator)
 	await process_frame
 	if simulator.find_child("OSProceduralWallpaper", true, false) == null:
 		_fail("Simulator did not render its procedural OS wallpaper.")
 		return
+	var compact_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
+	if compact_grid == null or compact_grid.columns != 3:
+		_fail("Compact phone viewport did not reduce the home grid to three aligned columns.")
+		return
+	simulator_host.size = Vector2(190.0, 360.0)
+	await process_frame
+	await process_frame
+	var wide_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
+	if wide_grid == null or wide_grid.columns != 4:
+		_fail("Wider phone viewport did not restore the four-column home grid.")
+		return
+	simulator_host.size = Vector2(145.0, 360.0)
+	await process_frame
+	await process_frame
 	for component in ProceduralEngineScript.COMPONENTS:
 		var component_id := str(component["id"])
 		simulator.set_component_view(component_id)
@@ -98,8 +119,8 @@ func _run_os_generator_test() -> void:
 		if component_id == "app_drawer" and simulator.find_child("AppDrawerSearchField", true, false) == null:
 			_fail("App Drawer search field was not attached to the visible UI tree.")
 			return
-	root.remove_child(simulator)
-	simulator.free()
+	root.remove_child(simulator_host)
+	simulator_host.free()
 	await process_frame
 
 	var worksite := WorksiteScene.instantiate()
