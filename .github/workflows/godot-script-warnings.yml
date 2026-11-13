@@ -94,8 +94,8 @@ jobs:
 
           log_path = Path("gdscript-warning-scan.log")
           lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines() if log_path.exists() else []
-          warning_pattern = re.compile(r"WARNING:\\s*(.*)")
-          location_pattern = re.compile(r"res://([^):]+):(\\d+)")
+          warning_pattern = re.compile(r"WARNING:\s*(.*)")
+          location_pattern = re.compile(r"res://([^):]+):(\d+)")
           warnings = {}
 
           for index, line in enumerate(lines):
