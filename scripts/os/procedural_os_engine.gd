@@ -97,9 +97,15 @@ static func regenerate_component(config: Dictionary, component_id: String, seed_
 			var wallpaper_id: String = WALLPAPER_STYLES[rng.randi_range(0, WALLPAPER_STYLES.size() - 1)]
 			updated["style"]["wallpaper"] = wallpaper_id
 		"themes_appearance":
-			updated["style"]["palette"] = updated["components"]["themes_appearance"]["palette"].duplicate(true)
+			var new_palette: Dictionary = PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
+			updated["components"]["themes_appearance"]["palette"] = new_palette
+			updated["style"]["palette"] = new_palette.duplicate(true)
 		"app_icons":
-			updated["style"]["icon_shape"] = str(updated["components"]["app_icons"]["shape"])
+			var generation_number := int(updated.get("generation", 2))
+			var shape_options := ["soft_square", "rounded"] if generation_number == 1 else ["rounded", "squircle", "soft_square"]
+			var new_shape: String = shape_options[rng.randi_range(0, shape_options.size() - 1)]
+			updated["components"]["app_icons"]["shape"] = new_shape
+			updated["style"]["icon_shape"] = new_shape
 	updated["last_component_seed"] = actual_seed
 	updated["revision"] = int(updated.get("revision", 0)) + 1
 	_sync_shared_settings(updated)
