@@ -7,9 +7,11 @@ const OSEngine = preload("res://scripts/os/procedural_os_engine.gd")
 class OSWallpaperLayer extends Control:
 	var palette: Dictionary = {}
 	var wallpaper_id := "aurora"
+	var treatment := "natural"
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		resized.connect(queue_redraw)
 		queue_redraw()
 
 	func _draw() -> void:
@@ -19,34 +21,82 @@ class OSWallpaperLayer extends Control:
 		var accent := Color(str(palette.get("accent", "#76C8D4")))
 		var surface := Color(str(palette.get("surface_alt", "#263544")))
 		draw_rect(Rect2(Vector2.ZERO, size), background)
-		var scale_factor := maxf(size.x, size.y)
-		var first_center := Vector2(size.x * 0.76, size.y * 0.29)
-		var second_center := Vector2(size.x * 0.12, size.y * 0.79)
-		var radius := scale_factor * 0.74
-		for ring in range(20):
-			var progress := float(ring) / 20.0
-			var alpha := 0.012 + (1.0 - progress) * 0.008
-			var ring_color := Color(accent.r, accent.g, accent.b, alpha)
-			draw_circle(first_center, radius * (1.0 - progress * 0.88), ring_color)
-		for ring in range(16):
-			var progress := float(ring) / 16.0
-			var alpha := 0.009 + (1.0 - progress) * 0.008
-			draw_circle(second_center, radius * 0.65 * (1.0 - progress * 0.88), Color(surface.r, surface.g, surface.b, alpha))
+
+		var rng := RandomNumberGenerator.new()
+		rng.seed = abs(hash(wallpaper_id))
+		for star_index in range(34):
+			var star_position := Vector2(rng.randf_range(0.0, size.x), rng.randf_range(0.0, size.y))
+			var star_radius := rng.randf_range(0.45, 1.15)
+			draw_circle(star_position, star_radius, Color(0.92, 0.96, 1.0, rng.randf_range(0.10, 0.34)))
+
+		var shortest_side := minf(size.x, size.y)
 		match wallpaper_id:
 			"orbital":
-				draw_arc(Vector2(size.x * 0.52, size.y * 0.46), scale_factor * 0.43, -0.8, 3.6, 96, Color(accent.r, accent.g, accent.b, 0.22), maxf(1.0, scale_factor * 0.004), true)
-				draw_arc(Vector2(size.x * 0.52, size.y * 0.46), scale_factor * 0.34, 2.3, 5.9, 96, Color(surface.r, surface.g, surface.b, 0.30), maxf(1.0, scale_factor * 0.006), true)
+				var planet_center := Vector2(size.x * 0.68, size.y * 0.43)
+				var planet_radius := shortest_side * 0.31
+				draw_arc(planet_center, planet_radius * 1.40, -0.45, 2.8, 96, Color(accent.r, accent.g, accent.b, 0.28), maxf(1.2, shortest_side * 0.010), true)
+				draw_circle(planet_center, planet_radius, Color(surface.r * 0.55, surface.g * 0.55, surface.b * 0.55, 0.98))
+				draw_circle(planet_center + Vector2(-planet_radius * 0.24, -planet_radius * 0.26), planet_radius * 0.76, Color(accent.r * 0.56, accent.g * 0.60, accent.b * 0.68, 0.72))
+				draw_circle(planet_center + Vector2(-planet_radius * 0.43, -planet_radius * 0.43), planet_radius * 0.24, Color(1, 1, 1, 0.08))
+				draw_arc(planet_center, planet_radius * 1.40, 2.95, 5.8, 96, Color(surface.r, surface.g, surface.b, 0.74), maxf(1.5, shortest_side * 0.018), true)
+				draw_arc(planet_center, planet_radius * 0.91, -2.7, 0.4, 64, Color(accent.r, accent.g, accent.b, 0.34), maxf(1.0, shortest_side * 0.008), true)
 			"dune":
-				draw_colored_polygon(PackedVector2Array([Vector2(0, size.y * 0.67), Vector2(size.x * 0.34, size.y * 0.53), Vector2(size.x, size.y * 0.72), Vector2(size.x, size.y), Vector2(0, size.y)]), Color(accent.r, accent.g, accent.b, 0.10))
-				draw_colored_polygon(PackedVector2Array([Vector2(0, size.y * 0.82), Vector2(size.x * 0.48, size.y * 0.68), Vector2(size.x, size.y * 0.85), Vector2(size.x, size.y), Vector2(0, size.y)]), Color(surface.r, surface.g, surface.b, 0.22))
+				var far_dune := PackedVector2Array([
+					Vector2(0, size.y * 0.58), Vector2(size.x * 0.18, size.y * 0.47),
+					Vector2(size.x * 0.43, size.y * 0.55), Vector2(size.x * 0.72, size.y * 0.40),
+					Vector2(size.x, size.y * 0.52), Vector2(size.x, size.y), Vector2(0, size.y)
+				])
+				var middle_dune := PackedVector2Array([
+					Vector2(0, size.y * 0.73), Vector2(size.x * 0.22, size.y * 0.62),
+					Vector2(size.x * 0.51, size.y * 0.70), Vector2(size.x * 0.79, size.y * 0.56),
+					Vector2(size.x, size.y * 0.66), Vector2(size.x, size.y), Vector2(0, size.y)
+				])
+				var near_dune := PackedVector2Array([
+					Vector2(0, size.y * 0.86), Vector2(size.x * 0.30, size.y * 0.75),
+					Vector2(size.x * 0.61, size.y * 0.87), Vector2(size.x, size.y * 0.76),
+					Vector2(size.x, size.y), Vector2(0, size.y)
+				])
+				draw_colored_polygon(far_dune, Color(surface.r, surface.g, surface.b, 0.52))
+				draw_colored_polygon(middle_dune, Color(accent.r, accent.g, accent.b, 0.20))
+				draw_colored_polygon(near_dune, Color(surface.r * 1.18, surface.g * 1.10, surface.b * 0.92, 0.86))
+				draw_arc(Vector2(size.x * 0.32, size.y * 0.84), size.x * 0.46, -2.95, -0.35, 72, Color(1, 1, 1, 0.12), maxf(1.0, shortest_side * 0.006), true)
 			"prism":
-				draw_colored_polygon(PackedVector2Array([Vector2(size.x * 0.54, 0), Vector2(size.x, 0), Vector2(size.x, size.y * 0.68), Vector2(size.x * 0.79, size.y * 0.58)]), Color(accent.r, accent.g, accent.b, 0.12))
-				draw_colored_polygon(PackedVector2Array([Vector2(0, size.y * 0.55), Vector2(size.x * 0.24, size.y * 0.38), Vector2(size.x * 0.62, size.y), Vector2(0, size.y)]), Color(surface.r, surface.g, surface.b, 0.18))
+				var facet_one := PackedVector2Array([Vector2(size.x * 0.48, 0), Vector2(size.x, 0), Vector2(size.x, size.y * 0.54), Vector2(size.x * 0.68, size.y * 0.42)])
+				var facet_two := PackedVector2Array([Vector2(0, size.y * 0.22), Vector2(size.x * 0.48, 0), Vector2(size.x * 0.68, size.y * 0.42), Vector2(size.x * 0.28, size.y * 0.68)])
+				var facet_three := PackedVector2Array([Vector2(size.x * 0.28, size.y * 0.68), Vector2(size.x * 0.68, size.y * 0.42), Vector2(size.x, size.y * 0.54), Vector2(size.x, size.y), Vector2(size.x * 0.48, size.y)])
+				draw_colored_polygon(facet_one, Color(accent.r, accent.g, accent.b, 0.19))
+				draw_colored_polygon(facet_two, Color(surface.r, surface.g, surface.b, 0.62))
+				draw_colored_polygon(facet_three, Color(accent.r * 0.72, accent.g * 0.76, accent.b * 0.82, 0.20))
+				draw_polyline(PackedVector2Array([Vector2(size.x * 0.48, 0), Vector2(size.x * 0.68, size.y * 0.42), Vector2(size.x * 0.28, size.y * 0.68), Vector2(size.x * 0.48, size.y)]), Color(1, 1, 1, 0.18), 1.2, true)
 			"midnight_flow":
-				draw_arc(Vector2(size.x * 0.18, size.y * 0.60), scale_factor * 0.58, -1.15, 1.22, 96, Color(accent.r, accent.g, accent.b, 0.17), maxf(2.0, scale_factor * 0.025), true)
-				draw_arc(Vector2(size.x * 0.24, size.y * 0.66), scale_factor * 0.48, -1.08, 1.20, 96, Color(surface.r, surface.g, surface.b, 0.23), maxf(2.0, scale_factor * 0.018), true)
+				for band in range(7):
+					var points := PackedVector2Array()
+					for step in range(41):
+						var progress := float(step) / 40.0
+						var wave := sin(progress * TAU * 1.15 + float(band) * 0.42) * 0.075
+						var drift := cos(progress * PI * 1.3 + float(band) * 0.24) * 0.035
+						var y_position := size.y * (0.28 + float(band) * 0.105 + wave + drift)
+						points.append(Vector2(size.x * progress, y_position))
+					draw_polyline(points, Color(surface.r, surface.g, surface.b, 0.24), maxf(3.0, shortest_side * 0.075), true)
+					draw_polyline(points, Color(accent.r, accent.g, accent.b, 0.12), maxf(1.0, shortest_side * 0.007), true)
 			_:
-				draw_arc(first_center, scale_factor * 0.32, -2.7, 0.65, 96, Color(accent.r, accent.g, accent.b, 0.19), maxf(1.0, scale_factor * 0.005), true)
+				for band in range(6):
+					var points := PackedVector2Array()
+					for step in range(41):
+						var progress := float(step) / 40.0
+						var wave := sin(progress * TAU * 0.85 + float(band) * 0.56) * 0.070
+						var crest := cos(progress * PI * 2.0 + float(band) * 0.30) * 0.025
+						var y_position := size.y * (0.24 + float(band) * 0.105 + wave + crest)
+						points.append(Vector2(size.x * progress, y_position))
+					draw_polyline(points, Color(accent.r, accent.g, accent.b, 0.045), maxf(3.0, shortest_side * 0.105), true)
+					draw_polyline(points, Color(accent.r, accent.g, accent.b, 0.13), maxf(1.0, shortest_side * 0.006), true)
+				draw_circle(Vector2(size.x * 0.82, size.y * 0.24), shortest_side * 0.20, Color(accent.r, accent.g, accent.b, 0.035))
+
+		if treatment == "deep_contrast":
+			draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.12))
+		elif treatment == "soft_glow":
+			draw_circle(Vector2(size.x * 0.74, size.y * 0.30), shortest_side * 0.42, Color(accent.r, accent.g, accent.b, 0.055))
+
 
 var configuration: Dictionary = {}
 var active_component := "home_screen"
@@ -123,6 +173,7 @@ func _build_shell() -> void:
 	wallpaper.name = "OSProceduralWallpaper"
 	wallpaper.palette = _palette.duplicate(true)
 	wallpaper.wallpaper_id = str(_style.get("wallpaper", "aurora"))
+	wallpaper.treatment = str(configuration.get("components", {}).get("wallpapers", {}).get("treatment", "natural"))
 	wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(wallpaper)
 
@@ -139,7 +190,7 @@ func _build_shell() -> void:
 	shell.name = "OSSimulatorLayout"
 	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	shell.add_theme_constant_override("separation", 7)
+	shell.add_theme_constant_override("separation", 6)
 	safe_area.add_child(shell)
 
 	_build_status_bar(shell)
@@ -159,16 +210,44 @@ func _build_shell() -> void:
 	scroll.add_child(page_container)
 	_build_component(active_component)
 
-	var footer := CenterContainer.new()
+	var footer := VBoxContainer.new()
 	footer.name = "OSNavigationFooter"
-	footer.custom_minimum_size.y = 10
-	shell.add_child(footer)
+	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_theme_constant_override("separation", 4)
+	if active_component == "home_screen":
+		_build_home_dock(footer)
+	var indicator_alignment := CenterContainer.new()
+	indicator_alignment.name = "OSNavigationIndicatorArea"
+	indicator_alignment.custom_minimum_size = Vector2(0, 9)
 	var indicator := ColorRect.new()
 	indicator.name = "OSNavigationIndicator"
 	indicator.custom_minimum_size = Vector2(34, 4)
 	indicator.color = _text_color()
-	footer.add_child(indicator)
+	indicator_alignment.add_child(indicator)
+	footer.add_child(indicator_alignment)
+	shell.add_child(footer)
 	_building = false
+
+func _build_home_dock(parent: VBoxContainer) -> void:
+	var dock := PanelContainer.new()
+	dock.name = "HomeAppDock"
+	dock.custom_minimum_size.y = 48
+	dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_surface(dock, true)
+	var dock_row := HBoxContainer.new()
+	dock_row.name = "HomeAppDockIcons"
+	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	dock_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dock_row.add_theme_constant_override("separation", 6)
+	dock.add_child(dock_row)
+	var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
+	var dock_icon_size := _responsive_icon_size(35, dock_apps.size(), 6)
+	for app_name in dock_apps:
+		var app := _find_app(app_name)
+		if not app.is_empty():
+			dock_row.add_child(_create_app_icon(app, dock_icon_size, false))
+	parent.add_child(dock)
+
 
 func _build_status_bar(parent: VBoxContainer) -> void:
 	var row := HBoxContainer.new()
@@ -236,32 +315,17 @@ func _build_home_screen(data: Dictionary) -> void:
 		page_container.add_child(_search_field("Search apps and more"))
 
 	_add_section_label("YOUR APPS")
-	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 6)
+	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 2, 6)
 	var columns := _responsive_columns(preferred_columns)
 	var apps_grid := GridContainer.new()
 	apps_grid.name = "HomeAppGrid"
 	apps_grid.columns = columns
 	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	apps_grid.add_theme_constant_override("h_separation", 6)
-	apps_grid.add_theme_constant_override("v_separation", 10)
+	apps_grid.add_theme_constant_override("h_separation", 7)
+	apps_grid.add_theme_constant_override("v_separation", 9)
 	page_container.add_child(apps_grid)
-	_populate_app_grid(apps_grid, "", int(configuration.get("components", {}).get("app_icons", {}).get("size", 46)), true)
+	_populate_app_grid(apps_grid, "", int(configuration.get("components", {}).get("app_icons", {}).get("size", 52)), true)
 
-	var dock := PanelContainer.new()
-	dock.name = "HomeAppDock"
-	dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_surface(dock, true)
-	var dock_row := HBoxContainer.new()
-	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	dock_row.add_theme_constant_override("separation", 9)
-	dock.add_child(dock_row)
-	var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
-	var dock_icon_size := _responsive_icon_size(34, dock_apps.size(), 9)
-	for app_name in dock_apps:
-		var app := _find_app(app_name)
-		if not app.is_empty():
-			dock_row.add_child(_create_app_icon(app, dock_icon_size, false))
-	page_container.add_child(dock)
 
 func _build_lock_screen(data: Dictionary) -> void:
 	var spacer := Control.new()
@@ -343,15 +407,20 @@ func _build_theme_preview(data: Dictionary) -> void:
 		page_container.add_child(swatch)
 
 func _build_wallpaper_preview(data: Dictionary) -> void:
-	_add_section_label("WALLPAPER")
+	_add_section_label("WALLPAPER COLLECTION")
 	var art := OSWallpaperLayer.new()
 	art.name = "WallpaperStylePreview"
 	art.palette = _palette.duplicate(true)
 	art.wallpaper_id = str(data.get("style", data.get("id", "aurora")))
-	art.custom_minimum_size = Vector2(0, 130)
+	art.treatment = str(data.get("treatment", "natural"))
+	art.custom_minimum_size = Vector2(0, 164)
+	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_container.add_child(art)
-	page_container.add_child(_label(str(art.wallpaper_id).replace("_", " ").capitalize() + " procedural wallpaper", 11, _text_color()))
-	page_container.add_child(_label("One wallpaper identity is shared by the home screen and lock screen.", 8, _muted_color()))
+	var wallpaper_name := _label(art.wallpaper_id.replace("_", " ").capitalize(), 11, _text_color())
+	page_container.add_child(wallpaper_name)
+	var treatment_name := str(data.get("treatment", "natural")).replace("_", " ").capitalize()
+	page_container.add_child(_label("Shared home and lock screen wallpaper  ·  " + treatment_name, 8, _muted_color()))
+
 
 func _build_animation_preview(data: Dictionary) -> void:
 	_add_section_label("MOTION & TRANSITIONS")
@@ -443,54 +512,138 @@ func _build_navigation_preview(data: Dictionary) -> void:
 	page_container.add_child(indicator)
 
 func _build_app_drawer(data: Dictionary) -> void:
-	_add_section_label("ALL APPLICATIONS")
-	var search := _search_field("Find an app")
+	var heading_row := HBoxContainer.new()
+	heading_row.add_theme_constant_override("separation", 6)
+	var heading := _label("ALL APPS", 9, _accent_color())
+	heading_row.add_child(heading)
+	var count_label := _label("%02d INSTALLED" % OSEngine.APP_DEFINITIONS.size(), 7, _muted_color())
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_row.add_child(count_label)
+	page_container.add_child(heading_row)
+
+	var search := _search_field("Search installed apps")
 	search.name = "AppDrawerSearchField"
 	page_container.add_child(search)
+
 	var grid := GridContainer.new()
 	grid.name = "AppDrawerGrid"
-	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 6)
+	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 2, 6)
 	grid.columns = _responsive_columns(preferred_columns)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("h_separation", 7)
 	grid.add_theme_constant_override("v_separation", 10)
 	page_container.add_child(grid)
-	_populate_app_grid(grid, "", int(configuration.get("components", {}).get("app_icons", {}).get("size", 46)), true)
+	_populate_app_grid(grid, "", int(configuration.get("components", {}).get("app_icons", {}).get("size", 52)), true)
 	search.text_changed.connect(_on_app_search_changed.bind(grid))
 
+
 func _build_recent_apps(data: Dictionary) -> void:
-	_add_section_label("RECENT APPLICATIONS")
-	var recent_list := VBoxContainer.new()
-	recent_list.name = "RecentAppsList"
-	recent_list.add_theme_constant_override("separation", 8)
-	for app_name in ["Settings", "Camera", "Messages"]:
-		var card := PanelContainer.new()
-		card.custom_minimum_size.y = 56
-		_style_surface(card, true)
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		card.add_child(row)
+	var heading_row := HBoxContainer.new()
+	heading_row.add_theme_constant_override("separation", 6)
+	var heading := _label("RECENT APPS", 9, _accent_color())
+	heading_row.add_child(heading)
+	var clear := Button.new()
+	clear.name = "ClearRecentAppsButton"
+	clear.text = "CLEAR"
+	clear.custom_minimum_size = Vector2(56, 27)
+	_style_action_button(clear)
+	heading_row.add_child(clear)
+	page_container.add_child(heading_row)
+
+	var recent_scroll := ScrollContainer.new()
+	recent_scroll.name = "RecentAppsViewport"
+	recent_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	recent_scroll.custom_minimum_size.y = 174
+	recent_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	recent_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	page_container.add_child(recent_scroll)
+
+	var recent_row := HBoxContainer.new()
+	recent_row.name = "RecentAppsList"
+	recent_row.add_theme_constant_override("separation", 8)
+	recent_scroll.add_child(recent_row)
+
+	var empty_state := _label("No recent apps", 8, _muted_color())
+	empty_state.name = "NoRecentAppsLabel"
+	empty_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	empty_state.custom_minimum_size = Vector2(100, 42)
+	var recent_names := ["Settings", "Camera", "Messages"]
+	var card_width := clampf(size.x * 0.76, 108.0, 140.0)
+
+	var remove_card := func(card: Control) -> void:
+		if is_instance_valid(card) and card.get_parent() == recent_row:
+			recent_row.remove_child(card)
+			card.queue_free()
+		if recent_row.get_child_count() == 0 and empty_state.get_parent() == null:
+			recent_row.add_child(empty_state)
+
+	for app_name in recent_names:
 		var app := _find_app(app_name)
-		if not app.is_empty():
-			row.add_child(_create_app_icon(app, 30, false))
-		var details := VBoxContainer.new()
-		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		details.add_child(_label(app_name, 9, _text_color()))
-		details.add_child(_label("Recently opened", 7, _muted_color()))
-		row.add_child(details)
-		recent_list.add_child(card)
-	page_container.add_child(recent_list)
-	if bool(data.get("show_clear_all", true)):
-		var clear := Button.new()
-		clear.name = "ClearRecentAppsButton"
-		clear.text = "CLEAR ALL"
-		clear.custom_minimum_size.y = 34
-		_style_action_button(clear)
-		clear.pressed.connect(func():
-			for child in recent_list.get_children():
+		if app.is_empty():
+			continue
+		var card := PanelContainer.new()
+		card.name = "RecentAppCard_" + app_name.replace(" ", "")
+		card.custom_minimum_size = Vector2(card_width, 158)
+		_style_surface(card, true)
+		var content := VBoxContainer.new()
+		content.add_theme_constant_override("separation", 6)
+		card.add_child(content)
+
+		var card_header := HBoxContainer.new()
+		card_header.add_theme_constant_override("separation", 4)
+		card_header.add_child(_create_app_icon(app, 22, false))
+		var app_title := _label(app_name, 8, _text_color())
+		app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card_header.add_child(app_title)
+		var close := Button.new()
+		close.name = "CloseRecentApp_" + app_name.replace(" ", "")
+		close.text = "×"
+		close.custom_minimum_size = Vector2(20, 20)
+		close.add_theme_font_size_override("font_size", 12)
+		_style_action_button(close)
+		card_header.add_child(close)
+		close.pressed.connect(remove_card.bind(card))
+		content.add_child(card_header)
+
+		var preview := PanelContainer.new()
+		preview.name = "RecentAppPreview_" + app_name.replace(" ", "")
+		preview.custom_minimum_size.y = 102
+		_style_surface(preview)
+		var preview_content := VBoxContainer.new()
+		preview_content.add_theme_constant_override("separation", 5)
+		preview.add_child(preview_content)
+		var preview_status := _label("9:41  ·  " + app_name.to_upper(), 6, _muted_color())
+		preview_content.add_child(preview_status)
+		var preview_title := ""
+		match app_name:
+			"Settings":
+				preview_title = "Device settings"
+			"Camera":
+				preview_title = "Camera ready"
+			"Messages":
+				preview_title = "Recent conversations"
+		preview_content.add_child(_label(preview_title, 8, _text_color()))
+		for line_index in range(3):
+			var preview_line := ColorRect.new()
+			preview_line.custom_minimum_size = Vector2(0, 3)
+			preview_line.color = Color(_muted_color().r, _muted_color().g, _muted_color().b, 0.22 + float(line_index) * 0.06)
+			preview_content.add_child(preview_line)
+		content.add_child(preview)
+		content.add_child(_label("Recently opened", 6, _muted_color()))
+		recent_row.add_child(card)
+
+	clear.pressed.connect(func() -> void:
+		for child in recent_row.get_children():
+			if child != empty_state:
+				recent_row.remove_child(child)
 				child.queue_free()
-		)
-		page_container.add_child(clear)
+		if empty_state.get_parent() == null:
+			recent_row.add_child(empty_state)
+	)
+	if recent_row.get_child_count() == 0:
+		recent_row.add_child(empty_state)
+
 
 func _build_system_ui(data: Dictionary) -> void:
 	_add_section_label("SYSTEM INTERFACE")
@@ -570,7 +723,8 @@ func _surface_label(caption: String, font_size: int) -> PanelContainer:
 
 func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Control:
 	var tile := VBoxContainer.new()
-	tile.name = "App_" + str(app.get("name", "Application")).replace(" ", "")
+	var app_name := str(app.get("name", "Application"))
+	tile.name = "App_" + app_name.replace(" ", "")
 	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tile.add_theme_constant_override("separation", 3)
 	var holder := CenterContainer.new()
@@ -578,32 +732,38 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	var icon := Button.new()
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.text = str(app.get("glyph", "•"))
-	icon.add_theme_font_size_override("font_size", maxi(14, int(icon_size * 0.42)))
+	icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
 	_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("components", {}).get("app_icons", {}).get("shape", "rounded")))
-	icon.pressed.connect(_on_app_pressed.bind(str(app.get("name", "Application"))))
+	icon.pressed.connect(_on_app_pressed.bind(app_name))
 	holder.add_child(icon)
 	tile.add_child(holder)
 	if show_label:
-		var caption := _label(str(app.get("name", "Application")), 7, _text_color())
+		var caption := _label(app_name, 7, _text_color())
+		caption.name = "AppLabel_" + app_name.replace(" ", "")
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		caption.autowrap_mode = TextServer.AUTOWRAP_OFF
 		caption.clip_text = true
 		tile.add_child(caption)
 	return tile
 
+
 func _responsive_columns(preferred_columns: int) -> int:
 	var available_width := size.x if size.x > 0.0 else 180.0
-	var inner_width := maxf(available_width - 30.0, 96.0)
-	var fitting_columns := floori((inner_width + 8.0) / 35.0)
-	return clampi(mini(preferred_columns, fitting_columns), 3, 6)
+	var inner_width := maxf(available_width - 26.0, 88.0)
+	var minimum_cell_width := 46.0
+	var gap := 7.0
+	var fitting_columns := floori((inner_width + gap) / (minimum_cell_width + gap))
+	return clampi(mini(preferred_columns, fitting_columns), 2, 6)
 
-func _responsive_icon_size(requested_size: int, columns: int, gap: int = 6) -> int:
+func _responsive_icon_size(requested_size: int, columns: int, gap: int = 7) -> int:
 	var available_width := size.x if size.x > 0.0 else 180.0
-	var inner_width := maxf(available_width - 30.0, 96.0)
+	var inner_width := maxf(available_width - 26.0, 88.0)
 	var cell_width := (inner_width - float(maxi(columns - 1, 0) * gap)) / float(maxi(columns, 1))
-	return clampi(mini(requested_size, floori(cell_width)), 20, requested_size)
+	return clampi(mini(requested_size, floori(cell_width)), 24, requested_size)
+
 
 func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show_labels: bool) -> void:
-	var fitted_icon_size := _responsive_icon_size(icon_size, grid.columns, 6)
+	var fitted_icon_size := _responsive_icon_size(icon_size, grid.columns, 7)
 	for child in grid.get_children():
 		grid.remove_child(child)
 		child.queue_free()
@@ -613,7 +773,11 @@ func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show
 			continue
 		grid.add_child(_create_app_icon(app, fitted_icon_size, show_labels))
 	if grid.get_child_count() == 0:
-		grid.add_child(_label("No matching applications", 8, _muted_color()))
+		var empty_label := _label("No matching applications", 8, _muted_color())
+		empty_label.name = "NoMatchingAppsLabel"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		grid.add_child(empty_label)
+
 
 func _on_app_search_changed(query: String, grid: GridContainer) -> void:
 	if is_instance_valid(grid):
@@ -644,9 +808,13 @@ func _label(caption: String, font_size: int, color: Color) -> Label:
 	var scale_factor := float(_style.get("font_scale", 1.0))
 	label.add_theme_font_size_override("font_size", maxi(7, roundi(float(font_size) * scale_factor)))
 	label.add_theme_color_override("font_color", color)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.clip_text = false
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Never split an unbroken word into one-character vertical lines on narrow previews.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	return label
+
 
 func _style_surface(panel: PanelContainer, prominent: bool = false) -> void:
 	var style := StyleBoxFlat.new()
