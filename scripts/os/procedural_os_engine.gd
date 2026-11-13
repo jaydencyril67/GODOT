@@ -134,7 +134,6 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
-	style["icon_shape"] = ["square", "soft_square", "squircle"][generation_number - 1]
 	style["icon_size"] = clampi(int(style.get("icon_size", 52)), 40, 64)
 	if not ["square", "soft_square", "rounded", "squircle"].has(style["icon_shape"]):
 		style["icon_shape"] = "rounded"
