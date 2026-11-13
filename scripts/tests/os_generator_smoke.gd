@@ -14,9 +14,9 @@ func _run_os_generator_test() -> void:
 		_fail("Generated OS did not use the current configuration schema.")
 		return
 	if components.size() != ProceduralEngineScript.COMPONENTS.size():
-		_fail("Generator did not produce all 12 OS components.")
+		_fail("Generator did not produce all 6 core OS components.")
 		return
-	var generated_icon_size := int(components["app_icons"].get("size", 0))
+	var generated_icon_size := int(generated.get("style", {}).get("icon_size", 0))
 	if generated_icon_size < 48 or generated_icon_size > 56:
 		_fail("Generated app icon size is outside the upgraded 48–56 px range.")
 		return
@@ -57,17 +57,20 @@ func _run_os_generator_test() -> void:
 		_fail("Wallpaper regeneration did not keep the OS wallpaper synchronized.")
 		return
 
-	var themed := ProceduralEngineScript.regenerate_component(generated, "themes_appearance", 97531)
-	if themed["style"]["palette"] != themed["components"]["themes_appearance"]["palette"]:
-		_fail("Theme regeneration did not update the shared OS palette.")
+	var legacy_style_config := generated.duplicate(true)
+	legacy_style_config["components"]["app_icons"] = {"shape": "squircle", "size": 60}
+	legacy_style_config["components"]["themes_appearance"] = {"palette": ProceduralEngineScript.PALETTES[1].duplicate(true)}
+	var migrated_style := ProceduralEngineScript.normalize_os(legacy_style_config)
+	if migrated_style["style"]["icon_shape"] != "squircle" or migrated_style["style"]["icon_size"] != 60:
+		_fail("Legacy icon styling was not migrated into shared OS settings.")
 		return
-	var icons := ProceduralEngineScript.regenerate_component(generated, "app_icons", 86420)
-	if icons["style"]["icon_shape"] != icons["components"]["app_icons"]["shape"]:
-		_fail("Icon regeneration did not update the shared OS icon shape.")
+	if migrated_style["style"]["palette"] != ProceduralEngineScript.PALETTES[1]:
+		_fail("Legacy theme palette was not migrated into shared OS settings.")
 		return
-	if icons["components"]["home_screen"]["columns"] != icons["style"]["grid_columns"]:
-		_fail("Regenerating app icons unexpectedly changed the home screen grid.")
-		return
+	for obsolete_id in ["app_icons", "themes_appearance", "animations_transitions", "navigation_gestures", "recent_apps", "system_ui"]:
+		if migrated_style["components"].has(obsolete_id):
+			_fail("Obsolete standalone component survived migration: " + obsolete_id)
+			return
 
 	var test_save_path := "user://os_generator_smoke_test.json"
 	if not ProceduralEngineScript.save_os(wallpaper_regenerated, test_save_path):
@@ -149,23 +152,6 @@ func _run_os_generator_test() -> void:
 				return
 			search_field.text_changed.emit("")
 			await process_frame
-		if component_id == "recent_apps":
-			var recent_list := simulator.find_child("RecentAppsList", true, false) as HBoxContainer
-			var close_recent := simulator.find_child("CloseRecentApp_Settings", true, false) as Button
-			var clear_recent := simulator.find_child("ClearRecentAppsButton", true, false) as Button
-			if recent_list == null or recent_list.get_child_count() != 3 or close_recent == null or clear_recent == null:
-				_fail("Recent Apps did not render three removable app-preview cards.")
-				return
-			close_recent.pressed.emit()
-			await process_frame
-			if simulator.find_child("RecentAppCard_Settings", true, false) != null:
-				_fail("Recent Apps close control did not remove its selected app card.")
-				return
-			clear_recent.pressed.emit()
-			await process_frame
-			if simulator.find_child("NoRecentAppsLabel", true, false) == null:
-				_fail("Recent Apps Clear control did not show the empty state.")
-				return
 		if component_id == "wallpapers":
 			var wallpaper_preview := simulator.find_child("WallpaperStylePreview", true, false) as Control
 			if wallpaper_preview == null or wallpaper_preview.custom_minimum_size.y < 150.0:
@@ -189,7 +175,7 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	var worksite_configuration: Dictionary = worksite.get("generated_os_configuration")
 	if worksite_configuration.get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
-		_fail("Generate OS action did not produce all 12 components.")
+		_fail("Generate OS action did not produce all 6 core components.")
 		return
 	if worksite_preview.get("configuration").get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generate OS action did not refresh the visible simulator.")
