@@ -23,6 +23,7 @@ var home_screen_increase_button: Button
 var home_generation_decrease_button: Button
 var home_generation_increase_button: Button
 var home_generation_heading: Label
+var home_generation_number_label: Label
 var home_image_paths := [
 	"res://OSHSG1/IMG-20261113-WA0227.jpg",
 	"res://OSHSG1/IMG-20261113-WA1726.jpg",
@@ -492,12 +493,12 @@ func _build_home_generation_controls() -> void:
 	home_generation_decrease_button.pressed.connect(_step_home_generation.bind(-1))
 	generation_selector.add_child(home_generation_decrease_button)
 
-	var generation_number := _label("GEN 01 / 02", 14, Color("#EEE9DF"))
-	generation_number.name = "SelectedHomeGenerationNumber"
-	generation_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	generation_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	generation_number.custom_minimum_size = Vector2(150, 42)
-	generation_selector.add_child(generation_number)
+	home_generation_number_label = _label("GEN 01 / 02", 14, Color("#EEE9DF"))
+	home_generation_number_label.name = "SelectedHomeGenerationNumber"
+	home_generation_number_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_generation_number_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	home_generation_number_label.custom_minimum_size = Vector2(150, 42)
+	generation_selector.add_child(home_generation_number_label)
 
 	home_generation_increase_button = Button.new()
 	home_generation_increase_button.name = "NextHomeGenerationButton"
@@ -632,9 +633,8 @@ func _update_home_generation_controls() -> void:
 		home_generation_decrease_button.disabled = home_generation <= 1
 	if is_instance_valid(home_generation_increase_button):
 		home_generation_increase_button.disabled = home_generation >= 2
-	var generation_number := get_node_or_null("OSCreationWorksiteInterface/OSWorksiteRoot/OSWorksiteMainContent/OSConfigurationRegion/HomeGenerationControls/HomeGenerationSelector/SelectedHomeGenerationNumber") as Label
-	if is_instance_valid(generation_number):
-		generation_number.text = "GEN %02d / 02" % home_generation
+	if is_instance_valid(home_generation_number_label):
+		home_generation_number_label.text = "GEN %02d / 02" % home_generation
 
 
 func _build_selected_home_image(screen: PanelContainer) -> void:
