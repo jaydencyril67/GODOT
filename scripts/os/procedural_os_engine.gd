@@ -25,26 +25,7 @@ const PALETTES := [
 ]
 
 const WALLPAPERS := [
-	"res://OSHSG1/IMG-20261113-WA0227.jpg",
-	"res://OSHSG1/IMG-20261113-WA1726.jpg",
-	"res://OSHSG1/IMG-20261113-WA3003.jpg",
-	"res://OSHSG1/IMG-20261113-WA3402.jpg",
-	"res://OSHSG1/IMG-20261113-WA4851.jpg",
-	"res://OSHSG1/IMG-20261113-WA6095.jpg",
-	"res://OSHSG1/IMG-20261113-WA7589.jpg",
-	"res://OSHSG1/IMG-20261113-WA8214.jpg",
-	"res://OSHSG1/IMG-20261113-WA9815.jpg",
-	"res://OSHSG1/IMG-20261113-WA9894.jpg",
-	"res://OSHSG2/IMG-20261113-WA0435.jpg",
-	"res://OSHSG2/IMG-20261113-WA0711.jpg",
-	"res://OSHSG2/IMG-20261113-WA2718.jpg",
-	"res://OSHSG2/IMG-20261113-WA3926.jpg",
-	"res://OSHSG2/IMG-20261113-WA4082.jpg",
-	"res://OSHSG2/IMG-20261113-WA5924.jpg",
-	"res://OSHSG2/IMG-20261113-WA6686.jpg",
-	"res://OSHSG2/IMG-20261113-WA7637.jpg",
-	"res://OSHSG2/IMG-20261113-WA7767.jpg",
-	"res://OSHSG2/IMG-20261113-WA9919.jpg"
+	"res://assets/textures/os/android_1_0_default_wallpaper.jpg"
 ]
 
 const APP_DEFINITIONS := [
