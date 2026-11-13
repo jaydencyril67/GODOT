@@ -162,7 +162,11 @@ func _run_os_generator_test() -> void:
 	if simulator.find_child("OSGestureOverlay_notifications", true, false) == null:
 		_fail("Top-left swipe did not open the notification panel.")
 		return
-	simulator.call("_close_gesture_overlay")
+	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 90), 100)
+	await process_frame
+	if simulator.find_child("OSGestureOverlay_notifications", true, false) != null:
+		_fail("Swipe-up gesture did not dismiss the notification panel.")
+		return
 	simulator.call("_handle_system_gesture", Vector2(140, 2), Vector2(140, 70), 100)
 	await process_frame
 	if simulator.find_child("GestureQuickSettingsGrid", true, false) == null:
