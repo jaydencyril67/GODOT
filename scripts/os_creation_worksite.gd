@@ -564,16 +564,29 @@ func _generate_complete_os() -> void:
 	if os_generation_busy:
 		return
 	os_generation_busy = true
-	_set_os_generation_status("BUILDING COMPLETE OPERATING SYSTEM...")
-	if is_instance_valid(progress_bar):
-		progress_bar.value = 0.0
-		var tween := create_tween()
-		tween.tween_property(progress_bar, "value", 1.0, 0.75)
-	await get_tree().create_timer(0.75).timeout
+	_set_os_generation_status("GENERATING OPERATING SYSTEM...")
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
+	var components: Dictionary = generated_os_configuration.get("components", {})
+	if components.size() != ProceduralOSEngineScript.COMPONENTS.size():
+		push_error("OS generator returned an incomplete configuration.")
+		_set_os_generation_status("GENERATION FAILED · TRY AGAIN")
+		os_generation_busy = false
+		return
+	if not is_instance_valid(os_preview_simulator):
+		if is_instance_valid(home_preview_screen):
+			_build_home_screen_preview(home_preview_screen)
 	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.visible = true
 		os_preview_simulator.configure_os(generated_os_configuration, selected_os_component_id)
-	_set_os_generation_status("GENERATED · 12 COMPONENTS READY")
+		os_preview_simulator.set_component_view(selected_os_component_id)
+	else:
+		push_error("Generated OS preview simulator is not mounted in the phone screen.")
+		_set_os_generation_status("PREVIEW FAILED · REOPEN OS WORKSITE")
+		os_generation_busy = false
+		return
+	if is_instance_valid(progress_bar):
+		progress_bar.value = 1.0
+	_set_os_generation_status("GENERATED · %s · 12 COMPONENTS READY" % str(generated_os_configuration.get("name", "NEW OS")))
 	os_generation_busy = false
 
 func _regenerate_selected_component() -> void:
