@@ -32,7 +32,6 @@ static func create_building(level: int, company_name: String = "YOUR COMPANY") -
 	var body_width := width * (0.86 if tier >= 8 else 1.0)
 	var body_depth := depth * (0.86 if tier >= 8 else 1.0)
 
-	var concrete := _material(Color("#c9c5b7") if tier < 4 else Color("#aeb8b6"), 0.88, 0.04)
 	var light_concrete := _material(Color("#ded9ca"), 0.82, 0.05)
 	var dark_concrete := _material(Color("#515e5a"), 0.70, 0.22)
 	var metal := _material(Color("#344441"), 0.34, 0.78)
@@ -137,16 +136,16 @@ static func create_building(level: int, company_name: String = "YOUR COMPANY") -
 	plaque.position = Vector3(0, 3.05, depth * 0.5 + 0.34)
 	plaque.material_override = dark_concrete
 	root.add_child(plaque)
-	var sign := Label3D.new()
-	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	sign.text = company_name.to_upper().substr(0, 24) if not company_name.is_empty() else "YOUR COMPANY"
-	sign.font_size = 44
-	sign.pixel_size = 0.008
-	sign.modulate = Color("#f0f3e8")
-	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sign.position = Vector3(0, 3.05, depth * 0.5 + 0.42)
-	sign.rotation.y = PI
-	root.add_child(sign)
+	var company_sign := Label3D.new()
+	company_sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	company_sign.text = company_name.to_upper().substr(0, 24) if not company_name.is_empty() else "YOUR COMPANY"
+	company_sign.font_size = 44
+	company_sign.pixel_size = 0.008
+	company_sign.modulate = Color("#f0f3e8")
+	company_sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	company_sign.position = Vector3(0, 3.05, depth * 0.5 + 0.42)
+	company_sign.rotation.y = PI
+	root.add_child(company_sign)
 	return root
 
 static func _create_starter_building(company_name: String) -> Node3D:
@@ -188,7 +187,7 @@ static func _create_starter_building(company_name: String) -> Node3D:
 	var roof_seam := _material(Color("#293f2e"), 0.76, 0.12)
 	for roof_piece in [roof_left, roof_right]:
 		for seam_index in range(11):
-			var rib := _box(roof_piece, Vector3(0.075, 0.1, 11.8), Vector3(float(seam_index - 5) * 0.62, 0.32, 0), roof_seam, "Raised_Roof_Seam")
+			_box(roof_piece, Vector3(0.075, 0.1, 11.8), Vector3(float(seam_index - 5) * 0.62, 0.32, 0), roof_seam, "Raised_Roof_Seam")
 
 	# Corner piers, plinth, entry step, eaves and rainwater details.
 	for x in [-6.18, 6.18]:
@@ -206,7 +205,7 @@ static func _create_starter_building(company_name: String) -> Node3D:
 		_box(root, Vector3(12.82, 0.035, 0.055), Vector3(0, y, 5.035), dark_metal, "Horizontal_Facade_Joint")
 	for x in [-5.45, -3.2, -1.1, 1.1, 3.2, 5.45]:
 		_box(root, Vector3(0.045, 5.65, 0.05), Vector3(x, 4.05, 5.04), dark_metal, "Vertical_Facade_Reveal")
-	var door_frame := _box(root, Vector3(1.85, 3.5, 0.2), Vector3(0, 2.05, 5.16), trim, "Main_Entrance_Frame")
+	_box(root, Vector3(1.85, 3.5, 0.2), Vector3(0, 2.05, 5.16), trim, "Main_Entrance_Frame")
 	_box(root, Vector3(1.5, 3.2, 0.12), Vector3(0, 2.1, 5.12), _material(Color("#604a35"), 0.86), "Main_Entrance_Door")
 	_box(root, Vector3(1.22, 2.78, 0.045), Vector3(0, 2.13, 5.205), glass, "Main_Entrance_Glazing")
 	for x in [-0.69, 0.69]:
