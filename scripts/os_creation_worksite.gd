@@ -766,9 +766,9 @@ func _apply_responsive_layout() -> void:
 		preview_region.size_flags_stretch_ratio = 1.12
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
-		# Fit within the expanded scene preview area, leaving room for bottom navigation.
-		var available_preview_height := maxf(240.0, preview_region.size.y - 12.0)
-		screen_height = clampf(minf(viewport_size.y - 96.0, available_preview_height), 280.0, 760.0)
+		# The preview body spans from y=4 to 82px above the bottom navigation.
+		# Keep a small safety gap so the phone frame is never clipped vertically.
+		screen_height = clampf(viewport_size.y - 98.0, 280.0, 760.0)
 		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
