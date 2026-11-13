@@ -155,6 +155,41 @@ func _run_os_generator_test() -> void:
 					return
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
+
+	# Exercise the same gesture router used by touch and mouse input.
+	simulator.call("_handle_system_gesture", Vector2(60, 2), Vector2(60, 70), 100)
+	await process_frame
+	if simulator.find_child("OSGestureOverlay_notifications", true, false) == null:
+		_fail("Top-left swipe did not open the notification panel.")
+		return
+	simulator.call("_close_gesture_overlay")
+	simulator.call("_handle_system_gesture", Vector2(140, 2), Vector2(140, 70), 100)
+	await process_frame
+	if simulator.find_child("GestureQuickSettingsGrid", true, false) == null:
+		_fail("Top-right swipe did not open Control Center quick settings.")
+		return
+	simulator.call("_close_gesture_overlay")
+	simulator.call("_handle_system_gesture", Vector2(72, 358), Vector2(72, 280), 120)
+	await process_frame
+	if simulator.get("active_component") != "app_drawer":
+		_fail("Bottom swipe up from Home did not open the App Drawer.")
+		return
+	simulator.call("_handle_system_gesture", Vector2(2, 170), Vector2(70, 170), 100)
+	await process_frame
+	if simulator.get("active_component") != "home_screen":
+		_fail("Edge swipe back did not return from App Drawer to Home.")
+		return
+	simulator.call("_handle_system_gesture", Vector2(72, 358), Vector2(72, 280), 600)
+	await process_frame
+	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
+		_fail("Long bottom swipe did not open Recent Apps.")
+		return
+	simulator.call("_close_gesture_overlay")
+	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
+		_fail("Recent Apps overlay did not close cleanly.")
+		return
+	simulator.set_component_view("home_screen")
+	await process_frame
 	if simulator.find_child("OSProceduralWallpaper", true, false) == null:
 		_fail("Simulator did not render its procedural OS wallpaper.")
 		return
