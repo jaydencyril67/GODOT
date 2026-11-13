@@ -405,7 +405,7 @@ func _style_icon_button(button: Button, tint: Color, shape: String) -> void:
 
 func _app_color(app_name: String) -> Color:
 	var colors := ["#638B72", "#597FAD", "#777D85", "#9470A7", "#4F8990", "#A56D6D", "#A77D59", "#777D83"]
-	var index := abs(app_name.hash()) % colors.size()
+	var index: int = abs(app_name.hash()) % colors.size()
 	return Color(colors[index])
 
 func _text_color() -> Color:
