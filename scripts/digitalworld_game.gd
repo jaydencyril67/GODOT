@@ -2826,16 +2826,6 @@ func _on_generated_os_selected(configuration: Dictionary) -> void:
 		_show_notice("SAVE FAILED", "The operating system could not be saved to the company career.")
 
 
-func _on_generated_os_selected(configuration: Dictionary) -> void:
-	if career.is_empty():
-		return
-	career["selected_operating_system"] = configuration.duplicate(true)
-	if _save_career():
-		_show_notice("OPERATING SYSTEM SELECTED", "Your generated operating system has been saved to the company career.")
-	else:
-		_show_notice("SAVE FAILED", "The operating system could not be saved to the company career.")
-
-
 func _return_from_os_creation_worksite() -> void:
 	current_screen = "create"
 	if is_instance_valid(os_creation_worksite):
