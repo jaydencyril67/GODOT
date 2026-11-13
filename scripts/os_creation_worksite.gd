@@ -771,7 +771,8 @@ func _apply_responsive_layout() -> void:
 		preview_region.size_flags_stretch_ratio = 1.12
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
-		screen_height = clampf(viewport_size.y - 104.0, 250.0, 620.0)
+		# Use nearly the full landscape viewport height for a taller, more realistic phone preview.
+		screen_height = clampf(viewport_size.y - 64.0, 280.0, 760.0)
 		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
