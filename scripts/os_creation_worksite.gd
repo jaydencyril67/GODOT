@@ -370,7 +370,7 @@ func _build_interface() -> void:
 
 	screen_frame = PanelContainer.new()
 	screen_frame.name = "OSPortraitScreenFrame"
-	screen_frame.custom_minimum_size = Vector2(156, 312)
+	screen_frame.custom_minimum_size = Vector2(148.2, 312)
 	var frame_style := StyleBoxFlat.new()
 	frame_style.bg_color = Color("#090A0C")
 	frame_style.border_color = Color("#77736D")
