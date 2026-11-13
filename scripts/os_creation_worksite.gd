@@ -249,40 +249,47 @@ func _build_interface() -> void:
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
 
-	var layout := VBoxContainer.new()
-	layout.name = "OSWorksiteLayout"
-	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	layout.offset_left = 20
-	layout.offset_right = -20
-	layout.offset_top = 12
-	layout.offset_bottom = -12
-	layout.add_theme_constant_override("separation", 10)
-	root.add_child(layout)
+	# Main content fills the scene directly; controls are independent overlays.
+	worksite_body = BoxContainer.new()
+	worksite_body.name = "OSWorksiteMainContent"
+	worksite_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	worksite_body.offset_left = 20.0
+	worksite_body.offset_right = -20.0
+	worksite_body.offset_top = 4.0
+	worksite_body.offset_bottom = -82.0
+	worksite_body.add_theme_constant_override("separation", 0)
+	root.add_child(worksite_body)
 
-	var top_bar := HBoxContainer.new()
-	top_bar.name = "OSWorksiteTopBar"
-	top_bar.custom_minimum_size.y = 48.0
-	top_bar.add_theme_constant_override("separation", 12)
-	layout.add_child(top_bar)
-
+	# Back button is positioned directly on the scene, not inside a top bar.
 	var back_button := Button.new()
 	back_button.name = "OSWorksiteBackButton"
 	back_button.text = "BACK"
-	back_button.custom_minimum_size = Vector2(82, 48)
+	back_button.anchor_left = 0.0
+	back_button.anchor_right = 0.0
+	back_button.anchor_top = 0.0
+	back_button.anchor_bottom = 0.0
+	back_button.offset_left = 20.0
+	back_button.offset_top = 12.0
+	back_button.offset_right = 102.0
+	back_button.offset_bottom = 60.0
 	back_button.focus_mode = Control.FOCUS_NONE
 	_style_button(back_button)
 	back_button.pressed.connect(func(): back_requested.emit())
-	top_bar.add_child(back_button)
+	root.add_child(back_button)
 
-	var top_spacer := Control.new()
-	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_bar.add_child(top_spacer)
-
+	# Progress indicator is independently anchored to the top-center of the scene.
 	var progress := VBoxContainer.new()
 	progress.name = "OSWorksiteProgress"
-	progress.custom_minimum_size = Vector2(150, 38)
+	progress.anchor_left = 0.5
+	progress.anchor_right = 0.5
+	progress.anchor_top = 0.0
+	progress.anchor_bottom = 0.0
+	progress.offset_left = -75.0
+	progress.offset_top = 12.0
+	progress.offset_right = 75.0
+	progress.offset_bottom = 50.0
 	progress.add_theme_constant_override("separation", 4)
-	top_bar.add_child(progress)
+	root.add_child(progress)
 
 	progress_number = _label("STEP 1 / 1", 11, Color("#E5E0D6"))
 	progress_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -305,13 +312,6 @@ func _build_interface() -> void:
 	progress_bar.add_theme_stylebox_override("fill", progress_fill)
 	progress_bar.add_theme_stylebox_override("background", progress_track)
 	progress.add_child(progress_bar)
-
-	worksite_body = BoxContainer.new()
-	worksite_body.name = "OSWorksiteMainContent"
-	worksite_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	worksite_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	worksite_body.add_theme_constant_override("separation", 0)
-	layout.add_child(worksite_body)
 
 	preview_region = Control.new()
 	preview_region.name = "OSScreenPreviewRegion"
@@ -381,11 +381,6 @@ func _build_interface() -> void:
 	selection_panel.add_theme_stylebox_override("panel", blank_panel_style)
 	right_region.add_child(selection_panel)
 	_build_home_generation_controls()
-
-	var bottom_bar_space := Control.new()
-	bottom_bar_space.name = "OSWorksiteBottomBarSpace"
-	bottom_bar_space.custom_minimum_size = Vector2(0, 62.0)
-	layout.add_child(bottom_bar_space)
 
 	navigation_layer = CanvasLayer.new()
 	navigation_layer.name = "OSWorksiteNavigationOverlay"
@@ -771,8 +766,9 @@ func _apply_responsive_layout() -> void:
 		preview_region.size_flags_stretch_ratio = 1.12
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
-		# Use nearly the full landscape viewport height for a taller, more realistic phone preview.
-		screen_height = clampf(viewport_size.y - 64.0, 280.0, 760.0)
+		# Fit within the expanded scene preview area, leaving room for bottom navigation.
+		var available_preview_height := maxf(240.0, preview_region.size.y - 12.0)
+		screen_height = clampf(minf(viewport_size.y - 96.0, available_preview_height), 280.0, 760.0)
 		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
