@@ -16,6 +16,10 @@ func _run_os_generator_test() -> void:
 	if components.size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generator did not produce all 12 OS components.")
 		return
+	var generated_icon_size := int(components["app_icons"].get("size", 0))
+	if generated_icon_size < 48 or generated_icon_size > 56:
+		_fail("Generated app icon size is outside the upgraded 48–56 px range.")
+		return
 	if not ProceduralEngineScript.validate_os(generated).is_empty():
 		_fail("Generated OS failed configuration validation.")
 		return
@@ -92,15 +96,31 @@ func _run_os_generator_test() -> void:
 		_fail("Simulator did not render its procedural OS wallpaper.")
 		return
 	var compact_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
-	if compact_grid == null or compact_grid.columns != 3:
-		_fail("Compact phone viewport did not reduce the home grid to three aligned columns.")
+	if compact_grid == null or compact_grid.columns != 2:
+		_fail("Compact phone viewport did not reduce the home grid to two readable columns.")
+		return
+	var home_dock := simulator.find_child("HomeAppDock", true, false)
+	var home_viewport := simulator.find_child("OSComponentViewport", true, false)
+	if home_dock == null or home_dock.get_parent().name != "OSNavigationFooter":
+		_fail("Home dock is not anchored in the fixed navigation footer.")
+		return
+	if home_viewport == null or home_viewport.is_ancestor_of(home_dock):
+		_fail("Home dock must remain outside the scrolling app content.")
+		return
+	var dock_icons := simulator.find_child("HomeAppDockIcons", true, false) as HBoxContainer
+	if dock_icons == null or dock_icons.get_child_count() != 4:
+		_fail("Home dock did not render all four pinned app icons.")
+		return
+	var horizontal_app_label := simulator.find_child("AppLabel_Messages", true, false) as Label
+	if horizontal_app_label == null or horizontal_app_label.autowrap_mode != TextServer.AUTOWRAP_OFF or absf(horizontal_app_label.rotation) > 0.001:
+		_fail("App labels are not kept horizontal on narrow phone previews.")
 		return
 	simulator_host.size = Vector2(190.0, 360.0)
 	await process_frame
 	await process_frame
 	var wide_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
-	if wide_grid == null or wide_grid.columns != 4:
-		_fail("Wider phone viewport did not restore the four-column home grid.")
+	if wide_grid == null or wide_grid.columns != 3:
+		_fail("Wider phone viewport did not restore the three-column home grid.")
 		return
 	simulator_host.size = Vector2(145.0, 360.0)
 	await process_frame
@@ -116,9 +136,41 @@ func _run_os_generator_test() -> void:
 		if content_node.get_child_count() == 0:
 			_fail("Simulator rendered an empty component: " + component_id)
 			return
-		if component_id == "app_drawer" and simulator.find_child("AppDrawerSearchField", true, false) == null:
-			_fail("App Drawer search field was not attached to the visible UI tree.")
-			return
+		if component_id == "app_drawer":
+			var search_field := simulator.find_child("AppDrawerSearchField", true, false) as LineEdit
+			var drawer_grid := simulator.find_child("AppDrawerGrid", true, false) as GridContainer
+			if search_field == null or drawer_grid == null:
+				_fail("App Drawer search field or icon grid was not attached to the visible UI tree.")
+				return
+			search_field.text_changed.emit("Settings")
+			await process_frame
+			if drawer_grid.get_child_count() != 1:
+				_fail("App Drawer search did not filter the installed applications.")
+				return
+			search_field.text_changed.emit("")
+			await process_frame
+		if component_id == "recent_apps":
+			var recent_list := simulator.find_child("RecentAppsList", true, false) as HBoxContainer
+			var close_recent := simulator.find_child("CloseRecentApp_Settings", true, false) as Button
+			var clear_recent := simulator.find_child("ClearRecentAppsButton", true, false) as Button
+			if recent_list == null or recent_list.get_child_count() != 3 or close_recent == null or clear_recent == null:
+				_fail("Recent Apps did not render three removable app-preview cards.")
+				return
+			close_recent.pressed.emit()
+			await process_frame
+			if simulator.find_child("RecentAppCard_Settings", true, false) != null:
+				_fail("Recent Apps close control did not remove its selected app card.")
+				return
+			clear_recent.pressed.emit()
+			await process_frame
+			if simulator.find_child("NoRecentAppsLabel", true, false) == null:
+				_fail("Recent Apps Clear control did not show the empty state.")
+				return
+		if component_id == "wallpapers":
+			var wallpaper_preview := simulator.find_child("WallpaperStylePreview", true, false) as Control
+			if wallpaper_preview == null or wallpaper_preview.custom_minimum_size.y < 150.0:
+				_fail("Wallpaper preview did not render at the upgraded preview size.")
+				return
 	root.remove_child(simulator_host)
 	simulator_host.free()
 	await process_frame
