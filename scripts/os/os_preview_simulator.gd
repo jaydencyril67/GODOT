@@ -1097,7 +1097,10 @@ func _build_app_drawer(data: Dictionary) -> void:
 		_populate_app_grid(grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
 	if str(data.get("search_position", "top")) == "bottom":
 		page_container.add_child(search)
-	var searchable_grid := page_container.find_child("AppDrawerGrid", true, false) as GridContainer\n\tif searchable_grid != null:\n\t\tsearch.text_changed.connect(_on_app_search_changed.bind(searchable_grid))
+	if layout != "categories":
+		var searchable_grid := page_container.find_child("AppDrawerGrid", true, false) as GridContainer
+		if searchable_grid != null:
+			search.text_changed.connect(_on_app_search_changed.bind(searchable_grid))
 
 func _build_recent_apps(_data: Dictionary) -> void:
 	var heading_row := HBoxContainer.new()
