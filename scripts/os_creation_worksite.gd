@@ -456,6 +456,9 @@ func _update_home_generation_controls() -> void:
 
 
 func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) -> void:
+	if generation == 1:
+		_build_android_10_home_screen_preview(screen)
+		return
 	var content := VBoxContainer.new()
 	content.name = "OSHomeScreenContent"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -595,6 +598,137 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 	navigation_area.add_child(home_indicator)
 
 
+func _build_android_10_home_screen_preview(screen: PanelContainer) -> void:
+	var content := VBoxContainer.new()
+	content.name = "Android10HomeScreen"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 0)
+	screen.add_child(content)
+
+	# Android 1.0's compact, dark system status bar.
+	var status_bar := HBoxContainer.new()
+	status_bar.name = "Android10StatusBar"
+	status_bar.custom_minimum_size.y = 14
+	status_bar.add_theme_constant_override("separation", 3)
+	content.add_child(status_bar)
+	var time := _label("9:41", 8, Color("#F1F1F1"))
+	time.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_bar.add_child(time)
+	var status_icons := _label("▮  ▰  ▴", 7, Color("#E5E5E5"))
+	status_icons.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	status_bar.add_child(status_icons)
+
+	# The original launcher was a simple workspace, not a modern widget dashboard.
+	var wallpaper := ColorRect.new()
+	wallpaper.name = "Android10Wallpaper"
+	wallpaper.color = Color("#344B5B")
+	wallpaper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wallpaper.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(wallpaper)
+
+	var workspace := VBoxContainer.new()
+	workspace.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	workspace.add_theme_constant_override("separation", 5)
+	workspace.add_theme_constant_override("margin_left", 7)
+	workspace.add_theme_constant_override("margin_right", 7)
+	workspace.add_theme_constant_override("margin_top", 8)
+	workspace.add_theme_constant_override("margin_bottom", 5)
+	wallpaper.add_child(workspace)
+
+	var search := PanelContainer.new()
+	search.name = "Android10GoogleSearch"
+	search.custom_minimum_size.y = 22
+	var search_style := StyleBoxFlat.new()
+	search_style.bg_color = Color("#E7E7E7")
+	search_style.border_color = Color("#A8A8A8")
+	search_style.set_border_width_all(1)
+	search_style.set_corner_radius_all(2)
+	search_style.content_margin_left = 6
+	search_style.content_margin_right = 6
+	search_style.content_margin_top = 1
+	search_style.content_margin_bottom = 1
+	search.add_theme_stylebox_override("panel", search_style)
+	workspace.add_child(search)
+	var search_label := _label("Google                         ⌕", 8, Color("#555555"))
+	search.add_child(search_label)
+
+	var clock_widget := PanelContainer.new()
+	clock_widget.name = "Android10ClockWidget"
+	clock_widget.custom_minimum_size.y = 43
+	var clock_style := StyleBoxFlat.new()
+	clock_style.bg_color = Color(0.10, 0.13, 0.16, 0.78)
+	clock_style.border_color = Color(0.75, 0.80, 0.83, 0.22)
+	clock_style.set_border_width_all(1)
+	clock_style.set_corner_radius_all(3)
+	clock_style.content_margin_left = 5
+	clock_style.content_margin_right = 5
+	clock_widget.add_theme_stylebox_override("panel", clock_style)
+	workspace.add_child(clock_widget)
+	var clock_label := _label("09:41\nMON, NOV 12", 11, Color("#F0F0F0"))
+	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	clock_widget.add_child(clock_label)
+
+	var app_grid := GridContainer.new()
+	app_grid.name = "Android10WorkspaceApps"
+	app_grid.columns = 3
+	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	app_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	app_grid.add_theme_constant_override("h_separation", 8)
+	app_grid.add_theme_constant_override("v_separation", 5)
+	workspace.add_child(app_grid)
+	var apps := [
+		["Phone", "☎", "#5E9B68"], ["Contacts", "♟", "#C58B45"], ["Browser", "◎", "#5A91B8"],
+		["Maps", "⌖", "#6C9B7C"], ["Gmail", "✉", "#B75D52"], ["Calendar", "▦", "#E0E0E0"]
+	]
+	for app in apps:
+		var slot := CenterContainer.new()
+		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		app_grid.add_child(slot)
+		var tile := VBoxContainer.new()
+		tile.add_theme_constant_override("separation", 1)
+		slot.add_child(tile)
+		var icon := PanelContainer.new()
+		icon.custom_minimum_size = Vector2(31, 31)
+		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var icon_style := StyleBoxFlat.new()
+		icon_style.bg_color = Color(str(app[2]))
+		icon_style.set_corner_radius_all(3)
+		icon_style.border_color = Color(0.95, 0.95, 0.95, 0.35)
+		icon_style.set_border_width_all(1)
+		icon.add_theme_stylebox_override("panel", icon_style)
+		tile.add_child(icon)
+		var glyph := _label(str(app[1]), 15, Color("#FFFFFF"))
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		icon.add_child(glyph)
+		var name := _label(str(app[0]), 7, Color("#FFFFFF"))
+		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tile.add_child(name)
+
+	var lower_space := Control.new()
+	lower_space.custom_minimum_size.y = 8
+	workspace.add_child(lower_space)
+
+	# The old launcher used a small app-drawer handle instead of a modern icon dock.
+	var drawer_tab := PanelContainer.new()
+	drawer_tab.name = "Android10AppDrawerTab"
+	drawer_tab.custom_minimum_size.y = 19
+	var drawer_style := StyleBoxFlat.new()
+	drawer_style.bg_color = Color("#D7D7D7")
+	drawer_style.border_color = Color("#8D969B")
+	drawer_style.set_border_width_all(1)
+	drawer_style.set_corner_radius_all(3)
+	drawer_tab.add_theme_stylebox_override("panel", drawer_style)
+	workspace.add_child(drawer_tab)
+	var drawer_label := _label("⋮   All apps   ⋮", 8, Color("#42484C"))
+	drawer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	drawer_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	drawer_tab.add_child(drawer_label)
+
+
 func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder: bool = false) -> Control:
 	var item := VBoxContainer.new()
 	item.name = "HomeApp_" + app_name.replace(" ", "")
@@ -636,7 +770,7 @@ func _apply_responsive_layout() -> void:
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		screen_height = clampf(viewport_size.y - 104.0, 250.0, 620.0)
-		screen_frame.custom_minimum_size = Vector2(screen_height * 0.50, screen_height)
+		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
 		configuration_region.size_flags_stretch_ratio = 1.18
