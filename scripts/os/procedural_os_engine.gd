@@ -23,6 +23,8 @@ const PALETTES := [
 
 const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"]
 
+const HOME_LAYOUT_STYLES := ["ios_grid", "android_pixel", "samsung_one_ui", "windows_tiles", "compact_list", "category_sections"]
+
 const APP_DEFINITIONS := [
 	{"name": "Phone", "glyph": "☎", "color": "#4B9B78"},
 	{"name": "Messages", "glyph": "✉", "color": "#4C91C7"},
@@ -153,6 +155,14 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		var component_id := str(component["id"])
 		if not components.has(component_id) or not components[component_id] is Dictionary:
 			components[component_id] = _generate_component(component_id, fallback_rng, style)
+	var home_data: Dictionary = components.get("home_screen", {})
+	var home_layout := str(home_data.get("layout_style", ""))
+	if not HOME_LAYOUT_STYLES.has(home_layout):
+		home_layout = HOME_LAYOUT_STYLES[abs(int(normalized.get("seed", 1))) % HOME_LAYOUT_STYLES.size()]
+	home_data["layout_style"] = home_layout
+	home_data["columns"] = int(style.get("grid_columns", 4))
+	home_data["widget_count"] = int(style.get("widget_count", 0))
+	components["home_screen"] = home_data
 	normalized["components"] = components
 	_sync_shared_settings(normalized)
 	return normalized
@@ -188,6 +198,11 @@ static func _sync_shared_settings(config: Dictionary) -> void:
 	if components.has("home_screen"):
 		components["home_screen"]["widget_count"] = int(style.get("widget_count", 0))
 		components["home_screen"]["show_clock_widget"] = int(style.get("widget_count", 0)) > 0
+		components["home_screen"]["columns"] = int(style.get("grid_columns", 4))
+		var home_layout := str(components["home_screen"].get("layout_style", "ios_grid"))
+		if not HOME_LAYOUT_STYLES.has(home_layout):
+			home_layout = "ios_grid"
+		components["home_screen"]["layout_style"] = home_layout
 	if components.has("wallpapers"):
 		components["wallpapers"]["style"] = wallpaper_id
 		components["wallpapers"]["id"] = wallpaper_id
@@ -202,10 +217,10 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 	match component_id:
 		"home_screen":
 			return {
-				"layout": ["minimal_grid", "balanced_grid", "widget_grid"][clampi(int(style.get("generation", 2)) - 1, 0, 2)],
+				"layout_style": HOME_LAYOUT_STYLES[rng.randi_range(0, HOME_LAYOUT_STYLES.size() - 1)],
 				"columns": int(style.get("grid_columns", 4)),
 				"dock_count": 4,
-				"show_search": rng.randf() > 0.35,
+				"show_search": true,
 				"widget_count": int(style.get("widget_count", 2)),
 				"show_clock_widget": int(style.get("widget_count", 2)) > 0,
 				"wallpaper": style.get("wallpaper", "aurora")
