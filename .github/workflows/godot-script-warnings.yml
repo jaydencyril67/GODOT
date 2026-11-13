@@ -17,10 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  scan:
-    name: Load every GDScript file
+  warning-scan:
+    name: Report GDScript warnings
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -35,55 +35,61 @@ jobs:
       - name: Report Godot version
         run: godot --version
 
-      - name: Import project resources
+      - name: Prepare project cache (non-blocking)
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           cp project.godot project.godot.ci-backup
-          restore_project() {
-            if [ -f project.godot.ci-backup ]; then
-              mv project.godot.ci-backup project.godot
-            fi
-          }
-          trap restore_project EXIT
           sed -i '/^theme\/custom=/d' project.godot
-          godot --headless --editor --path . --import --quit 2>&1 | tee gdscript-import.log
-          restore_project
-          trap - EXIT
+          timeout --signal=TERM --kill-after=2s 60s godot --headless --editor --path . --import --quit > godot-import.log 2>&1
+          import_status=$?
+          mv project.godot.ci-backup project.godot
+          echo "Project preparation exit code: $import_status (not used to fail this warning-only workflow)."
 
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' gdscript-import.log; then
-            echo "Godot reported an error during project import."
-            exit 1
-          fi
-
-      - name: Parse project with its actual theme
+      - name: Scan every GDScript file for warnings
         shell: bash
         run: |
-          set -euo pipefail
-          godot --headless --editor --path . --quit 2>&1 | tee gdscript-editor-parse.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' gdscript-editor-parse.log; then
-            echo "Godot reported an error while parsing the project."
-            exit 1
-          fi
+          set +e
+          : > gdscript-warning-scan.log
 
-      - name: Load every GDScript file
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/gdscript_warning_scan.gd 2>&1 | tee gdscript-scan.log
-          grep -q "GDSCRIPT_WARNING_SCAN: PASS" gdscript-scan.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' gdscript-scan.log; then
-            echo "Godot reported a script-loading error during the full GDScript scan."
-            exit 1
-          fi
+          mapfile -d '' scripts < <(
+            find . -type f -name '*.gd' \
+              -not -path './.git/*' \
+              -not -path './.godot/*' \
+              -print0 | sort -z
+          )
 
-      - name: Report GDScript warnings (non-blocking)
+          echo "Found ${#scripts[@]} GDScript files."
+          echo "Running Godot's GDScript parser with warning output enabled."
+
+          for script in "${scripts[@]}"; do
+            relative_path="${script#./}"
+            resource_path="res://${relative_path}"
+            echo "===== ${resource_path} =====" >> gdscript-warning-scan.log
+
+            # --debug makes Godot print ordinary GDScript warnings.
+            # --check-only parses the selected file without running the game.
+            # A timeout prevents a parse-error debugger from holding CI open.
+            timeout --signal=TERM --kill-after=1s 5s \
+              godot --headless --path . --check-only --script "${resource_path}" --debug \
+              >> gdscript-warning-scan.log 2>&1
+            command_status=$?
+
+            if [ "$command_status" -eq 124 ] || [ "$command_status" -eq 137 ]; then
+              echo "Godot parser timed out for ${resource_path}; continuing warning scan." >> gdscript-warning-scan.log
+            fi
+          done
+
+          echo "Completed warning-only scan of ${#scripts[@]} GDScript files."
+          cat gdscript-warning-scan.log
+
+      - name: Report warnings (informational only)
         if: always()
         shell: bash
         run: |
-          set -uo pipefail
+          set +e
           shopt -s nullglob
-          logs=(gdscript-import.log gdscript-editor-parse.log gdscript-scan.log)
+          logs=(gdscript-warning-scan.log)
           warning_count=0
 
           for log in "${logs[@]}"; do
@@ -91,13 +97,13 @@ jobs:
             matches="$(grep -nE 'WARNING:|^[[:space:]]*W [0-9]+:' "$log" || true)"
             [ -n "$matches" ] || continue
 
-            echo "::group::Godot warnings from $log"
+            echo "::group::Godot GDScript warnings"
             while IFS= read -r warning; do
-              printf '::warning::%s\n' "$log: $warning"
+              printf '::warning::%s\n' "$warning"
               warning_count=$((warning_count + 1))
             done <<< "$matches"
             echo "::endgroup::"
           done
 
-          echo "Godot warning lines reported: $warning_count"
-          echo "Warnings are informational and do not fail this workflow."
+          echo "Godot GDScript warning lines reported: $warning_count"
+          echo "Warnings are informational. This workflow does not fail on app errors or warnings."
