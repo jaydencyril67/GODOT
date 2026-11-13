@@ -35,31 +35,6 @@ var home_generation_decrease_button: Button
 var home_generation_increase_button: Button
 var home_generation_heading: Label
 var home_generation_number_label: Label
-var home_image_paths := [
-	"res://OSHSG1/IMG-20261113-WA0227.jpg",
-	"res://OSHSG1/IMG-20261113-WA1726.jpg",
-	"res://OSHSG1/IMG-20261113-WA3003.jpg",
-	"res://OSHSG1/IMG-20261113-WA3402.jpg",
-	"res://OSHSG1/IMG-20261113-WA4851.jpg",
-	"res://OSHSG1/IMG-20261113-WA6095.jpg",
-	"res://OSHSG1/IMG-20261113-WA7589.jpg",
-	"res://OSHSG1/IMG-20261113-WA8214.jpg",
-	"res://OSHSG1/IMG-20261113-WA9815.jpg",
-	"res://OSHSG1/IMG-20261113-WA9894.jpg"
-]
-var home_generation_two_image_paths := [
-	"res://OSHSG2/IMG-20261113-WA0435.jpg",
-	"res://OSHSG2/IMG-20261113-WA0711.jpg",
-	"res://OSHSG2/IMG-20261113-WA2718.jpg",
-	"res://OSHSG2/IMG-20261113-WA3926.jpg",
-	"res://OSHSG2/IMG-20261113-WA4082.jpg",
-	"res://OSHSG2/IMG-20261113-WA5924.jpg",
-	"res://OSHSG2/IMG-20261113-WA6686.jpg",
-	"res://OSHSG2/IMG-20261113-WA7637.jpg",
-	"res://OSHSG2/IMG-20261113-WA7767.jpg",
-	"res://OSHSG2/IMG-20261113-WA9919.jpg"
-]
-
 class GlassArrowButton extends Button:
 	var points_right := true
 
@@ -297,8 +272,7 @@ func _build_interface() -> void:
 	root.resized.connect(_apply_responsive_layout)
 
 	var backdrop := ColorRect.new()
-	backdrop.name = "OSWorksiteBackdrop"
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.name = "OSWorksiteBackdrop"	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.color = Color("#292B2D")
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
@@ -597,7 +571,6 @@ func _regenerate_selected_component() -> void:
 		os_preview_simulator.update_configuration(generated_os_configuration)
 		os_preview_simulator.set_component_view(selected_os_component_id)
 	_set_os_generation_status("%s REGENERATED" % selected_os_component_id.replace("_", " ").to_upper())
-
 func _select_generated_os() -> void:
 	if generated_os_configuration.is_empty():
 		_set_os_generation_status("GENERATE AN OS BEFORE SELECTING")
@@ -651,98 +624,6 @@ func _style_level_selector_button(button: Button) -> void:
 	reflection.name = "GlassReflection"
 	reflection.accent = Color("#C5BDB2")
 	button.add_child(reflection)
-
-
-func _step_home_generation(direction: int) -> void:
-	var next_generation := clampi(home_generation + direction, 1, 2)
-	if next_generation == home_generation:
-		return
-	home_generation = next_generation
-	home_image_index = 0
-	home_image_paths = home_generation_two_image_paths if home_generation == 2 else [
-		"res://OSHSG1/IMG-20261113-WA0227.jpg",
-		"res://OSHSG1/IMG-20261113-WA1726.jpg",
-		"res://OSHSG1/IMG-20261113-WA3003.jpg",
-		"res://OSHSG1/IMG-20261113-WA3402.jpg",
-		"res://OSHSG1/IMG-20261113-WA4851.jpg",
-		"res://OSHSG1/IMG-20261113-WA6095.jpg",
-		"res://OSHSG1/IMG-20261113-WA7589.jpg",
-		"res://OSHSG1/IMG-20261113-WA8214.jpg",
-		"res://OSHSG1/IMG-20261113-WA9815.jpg",
-		"res://OSHSG1/IMG-20261113-WA9894.jpg"
-	]
-	_refresh_selected_home_screen()
-
-
-func _step_home_image(direction: int) -> void:
-	_select_home_image(home_image_index + direction)
-
-
-func _select_home_image(image_index: int) -> void:
-	home_image_index = clampi(image_index, 0, home_image_paths.size() - 1)
-	_refresh_selected_home_screen()
-
-
-func _refresh_selected_home_screen() -> void:
-	if is_instance_valid(home_preview_screen):
-		for child in home_preview_screen.get_children():
-			home_preview_screen.remove_child(child)
-			child.free()
-		_build_home_screen_preview(home_preview_screen)
-	_update_home_generation_controls()
-
-
-func _update_home_generation_controls() -> void:
-	if is_instance_valid(home_generation_heading):
-		home_generation_heading.text = "GENERATION %02d" % home_generation
-	if is_instance_valid(home_generation_status):
-		home_generation_status.text = "GENERATION %02d  •  %02d DESIGNS" % [home_generation, home_image_paths.size()]
-	if is_instance_valid(home_screen_number_label):
-		home_screen_number_label.text = "SCREEN %02d / %02d" % [home_image_index + 1, home_image_paths.size()]
-	if is_instance_valid(home_screen_decrease_button):
-		home_screen_decrease_button.disabled = home_image_index <= 0
-	if is_instance_valid(home_screen_increase_button):
-		home_screen_increase_button.disabled = home_image_index >= home_image_paths.size() - 1
-	if is_instance_valid(home_generation_decrease_button):
-		home_generation_decrease_button.disabled = home_generation <= 1
-	if is_instance_valid(home_generation_increase_button):
-		home_generation_increase_button.disabled = home_generation >= 2
-	if is_instance_valid(home_generation_number_label):
-		home_generation_number_label.text = "GEN %02d / 02" % home_generation
-
-
-func _build_selected_home_image(screen: PanelContainer) -> void:
-	screen.clip_contents = true
-	var image := TextureRect.new()
-	image.name = "SelectedHomeScreenImage"
-	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	image.texture = load(home_image_paths[home_image_index]) as Texture2D
-	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	# Fill the complete phone display bounds: no crop and no letterboxing.
-	image.stretch_mode = TextureRect.STRETCH_SCALE
-	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Match the rounded inner display corners so square image corners never
-	# paint beyond the visible OS screen shape.
-	var rounded_clip_shader := Shader.new()
-	rounded_clip_shader.code = """
-shader_type canvas_item;
-void fragment() {
-	vec2 p = abs(UV * 2.0 - 1.0);
-	vec2 q = p - vec2(0.88);
-	float outside_distance = length(max(q, vec2(0.0)));
-	float inside_distance = min(max(q.x, q.y), 0.0);
-	float rounded_distance = outside_distance + inside_distance - 0.12;
-	if (rounded_distance > 0.0) {
-		discard;
-	}
-	COLOR = texture(TEXTURE, UV) * COLOR;
-}
-"""
-	var rounded_clip_material := ShaderMaterial.new()
-	rounded_clip_material.shader = rounded_clip_shader
-	image.material = rounded_clip_material
-	screen.clip_contents = true
-	screen.add_child(image)
 
 
 func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) -> void:
@@ -897,8 +778,7 @@ func _build_android_10_home_screen_preview(screen: PanelContainer) -> void:
 	screen.add_child(content)
 
 	# Android 1.0 / HTC Dream stock status strip.
-	var status_bar := PanelContainer.new()
-	status_bar.name = "Android10StatusBar"
+	var status_bar := PanelContainer.new()	status_bar.name = "Android10StatusBar"
 	status_bar.custom_minimum_size.y = 24
 	var status_style := StyleBoxFlat.new()
 	status_style.bg_color = Color("#25282B")
