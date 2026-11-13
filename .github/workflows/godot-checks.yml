@@ -119,7 +119,7 @@ jobs:
 
           for log in "${logs[@]}"; do
             [ -f "$log" ] || continue
-            matches="$(grep -nE 'WARNING:' "$log" || true)"
+            matches="$(grep -nE 'WARNING:|^[[:space:]]*W [0-9]+:' "$log" || true)"
             [ -n "$matches" ] || continue
 
             echo "::group::Godot warnings from $log"
