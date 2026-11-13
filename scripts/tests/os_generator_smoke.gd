@@ -61,8 +61,18 @@ func _run_os_generator_test() -> void:
 	var worksite := WorksiteScene.instantiate()
 	root.add_child(worksite)
 	await process_frame
-	if worksite.find_child("GeneratedOSPreviewSimulator", true, false) == null:
+	var worksite_preview := worksite.find_child("GeneratedOSPreviewSimulator", true, false)
+	if worksite_preview == null:
 		_fail("OS creation worksite did not mount the generated simulator screen.")
+		return
+	worksite.call("_generate_complete_os")
+	await process_frame
+	var worksite_configuration: Dictionary = worksite.get("generated_os_configuration")
+	if worksite_configuration.get("components", {}).size() != 12:
+		_fail("Generate OS action did not produce all 12 components.")
+		return
+	if worksite_preview.get("configuration").get("components", {}).size() != 12:
+		_fail("Generate OS action did not refresh the visible simulator.")
 		return
 	worksite.queue_free()
 	print("OS_GENERATOR_SMOKE_TEST: PASS")
