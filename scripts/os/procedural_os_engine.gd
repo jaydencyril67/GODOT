@@ -1,7 +1,7 @@
 extends RefCounted
 class_name ProceduralOSEngine
 
-const SCHEMA_VERSION := 3
+const SCHEMA_VERSION := 4
 
 const COMPONENTS := [
 	{"id": "home_screen", "title": "Home Screen"},
@@ -46,7 +46,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 	rng.seed = actual_seed
 	var generation_number := clampi(generation, 1, 3)
 	var palette: Dictionary = PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
-	var icon_shapes := ["soft_square", "rounded", "squircle"]
+	var icon_shapes := ["square", "soft_square", "squircle"]
 	var columns: int = [4, 4, 5][generation_number - 1]
 	var wallpaper_id: String = WALLPAPER_STYLES[rng.randi_range(0, WALLPAPER_STYLES.size() - 1)]
 	var config := {
@@ -63,7 +63,8 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 			"icon_shape": icon_shapes[generation_number - 1],
 			"icon_size": [48, 52, 56][generation_number - 1],
 			"grid_columns": columns,
-			"corner_radius": [10, 16, 21][generation_number - 1],
+			"corner_radius": [0, 6, 18][generation_number - 1],
+			"widget_count": [0, 2, 4][generation_number - 1],
 			"spacing": [8, 10, 12][generation_number - 1],
 			"wallpaper": wallpaper_id,
 			"animation_speed": [0.20, 0.24, 0.28][generation_number - 1],
@@ -127,6 +128,10 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_id):
 		wallpaper_id = "aurora"
 	style["generation"] = generation_number
+	style["identity"] = ["Foundation", "Modern", "Flagship"][generation_number - 1]
+	style["icon_shape"] = ["square", "soft_square", "squircle"][generation_number - 1]
+	style["corner_radius"] = [0, 6, 18][generation_number - 1]
+	style["widget_count"] = [0, 2, 4][generation_number - 1]
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
@@ -134,7 +139,8 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	style["icon_size"] = clampi(int(style.get("icon_size", 52)), 40, 64)
 	if not ["square", "soft_square", "rounded", "squircle"].has(style["icon_shape"]):
 		style["icon_shape"] = "rounded"
-	style["corner_radius"] = clampi(int(style.get("corner_radius", 16)), 0, 28)
+	style["corner_radius"] = [0, 6, 18][generation_number - 1]
+	style["widget_count"] = [0, 2, 4][generation_number - 1]
 	style["spacing"] = clampi(int(style.get("spacing", 10)), 4, 20)
 	style["animation_speed"] = clampf(float(style.get("animation_speed", 0.24)), 0.08, 0.6)
 	style["font_scale"] = clampf(float(style.get("font_scale", 1.0)), 0.85, 1.2)
@@ -182,6 +188,9 @@ static func _sync_shared_settings(config: Dictionary) -> void:
 	var style: Dictionary = config.get("style", {})
 	var components: Dictionary = config.get("components", {})
 	var wallpaper_id := str(style.get("wallpaper", "aurora"))
+	if components.has("home_screen"):
+		components["home_screen"]["widget_count"] = int(style.get("widget_count", 0))
+		components["home_screen"]["show_clock_widget"] = int(style.get("widget_count", 0)) > 0
 	if components.has("wallpapers"):
 		components["wallpapers"]["style"] = wallpaper_id
 		components["wallpapers"]["id"] = wallpaper_id
@@ -196,11 +205,12 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 	match component_id:
 		"home_screen":
 			return {
-				"layout": ["balanced_grid", "widget_grid", "minimal_grid"][rng.randi_range(0, 2)],
+				"layout": ["minimal_grid", "balanced_grid", "widget_grid"][clampi(int(style.get("generation", 2)) - 1, 0, 2)],
 				"columns": int(style.get("grid_columns", 4)),
 				"dock_count": 4,
 				"show_search": rng.randf() > 0.35,
-				"show_clock_widget": true,
+				"widget_count": int(style.get("widget_count", 2)),
+				"show_clock_widget": int(style.get("widget_count", 2)) > 0,
 				"wallpaper": style.get("wallpaper", "aurora")
 			}
 		"lock_screen":
