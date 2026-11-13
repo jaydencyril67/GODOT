@@ -512,7 +512,7 @@ func _build_selected_home_image(screen: PanelContainer) -> void:
 	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	image.texture = load(home_image_paths[home_image_index]) as Texture2D
 	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	screen.add_child(image)
 
