@@ -422,6 +422,8 @@ func _build_navigation_preview(data: Dictionary) -> void:
 func _build_app_drawer(data: Dictionary) -> void:
 	_add_section_label("ALL APPLICATIONS")
 	var search := _search_field("Find an app")
+	search.name = "AppDrawerSearchField"
+	page_container.add_child(search)
 	var grid := GridContainer.new()
 	grid.name = "AppDrawerGrid"
 	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 6)
