@@ -34,6 +34,7 @@ func _run_os_generator_test() -> void:
 	var loaded := Engine.load_os(test_save_path)
 	if loaded.get("seed", -1) != wallpaper_regenerated.get("seed", -2):
 		_fail("Saved OS configuration could not be loaded correctly.")
+		return
 
 	var simulator := SimulatorScript.new()
 	simulator.configure_os(generated, "home_screen")
