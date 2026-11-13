@@ -20,11 +20,12 @@ func _run_os_generator_test() -> void:
 
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
-	if wallpaper_regenerated["components"]["lock_screen"] != lock_screen_before:
-		_fail("Wallpaper regeneration unexpectedly changed the lock screen component.")
+	var lock_screen_after: Dictionary = wallpaper_regenerated["components"]["lock_screen"]
+	if lock_screen_after["clock_style"] != lock_screen_before["clock_style"] or lock_screen_after["show_notifications"] != lock_screen_before["show_notifications"]:
+		_fail("Wallpaper regeneration unexpectedly changed lock screen layout settings.")
 		return
-	if wallpaper_regenerated["style"]["wallpaper"] != wallpaper_regenerated["components"]["home_screen"]["wallpaper"]:
-		_fail("Wallpaper regeneration did not keep the home screen wallpaper in sync.")
+	if wallpaper_regenerated["style"]["wallpaper"] != wallpaper_regenerated["components"]["home_screen"]["wallpaper"] or wallpaper_regenerated["style"]["wallpaper"] != lock_screen_after["wallpaper"]:
+		_fail("Wallpaper regeneration did not keep home and lock screen wallpapers synchronized.")
 		return
 
 	var themed := ProceduralEngineScript.regenerate_component(generated, "themes_appearance", 97531)
