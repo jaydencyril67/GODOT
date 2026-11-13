@@ -636,11 +636,16 @@ func _build_android_home(data: Dictionary, widget_count: int) -> void:
 	page_container.add_child(search)
 	var apps_header := HBoxContainer.new()
 	apps_header.add_child(_label("FAVOURITES", 8, _accent_color()))
-	var manage := _label("ALL APPS  ›", 7, _muted_color())
+	var manage := _label("APP DRAWER  ›", 7, _muted_color())
 	manage.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	apps_header.add_child(manage)
 	page_container.add_child(apps_header)
-	_build_home_grid(data)
+	var breathing_space := Control.new()
+	breathing_space.name = "AndroidHomeFlexibleSpace"
+	breathing_space.custom_minimum_size.y = 14
+	breathing_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(breathing_space)
+	_build_android_favourites(data)
 
 func _build_home_header(title_text: String, subtitle_text: String) -> void:
 	var header := VBoxContainer.new()
@@ -670,6 +675,20 @@ func _build_home_grid(data: Dictionary) -> void:
 	apps_grid.add_theme_constant_override("v_separation", 9)
 	page_container.add_child(apps_grid)
 	_populate_app_grid(apps_grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
+
+
+func _build_android_favourites(data: Dictionary) -> void:
+	var columns := _responsive_columns(clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 5))
+	var grid := GridContainer.new()
+	grid.name = "HomeAppGrid"
+	grid.columns = columns
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 10)
+	page_container.add_child(grid)
+	var icon_size := _responsive_icon_size(int(_style.get("icon_size", 52)), columns, 8)
+	for app_index in range(mini(16, OSEngine.APP_DEFINITIONS.size())):
+		grid.add_child(_create_app_icon(OSEngine.APP_DEFINITIONS[app_index], icon_size, true))
 
 
 func _build_windows_tiles() -> void:
