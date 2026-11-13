@@ -2,16 +2,14 @@ extends Node3D
 class_name HQWorld
 
 signal building_selected
-signal upgrade_requested
-signal tool_selected(tool_name: String)
 
 const BuildingFactory = preload("res://scripts/world/hq_building_factory.gd")
 
 var company_name := "YOUR COMPANY"
 var upgrade_level := 1
 
-func configure(name: String, level: int) -> void:
-	company_name = name
+func configure(company_display_name: String, level: int) -> void:
+	company_name = company_display_name
 	upgrade_level = clampi(level, 1, 10)
 
 func _ready() -> void:
@@ -128,13 +126,13 @@ func _on_headquarters_input(_camera: Node, event: InputEvent, _position: Vector3
 	elif event is InputEventScreenTouch and event.pressed:
 		building_selected.emit()
 
-func _box(node_name: String, size: Vector3, position: Vector3, material: Material) -> MeshInstance3D:
+func _box(node_name: String, size: Vector3, local_position: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = node_name
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	mesh_instance.mesh = mesh
-	mesh_instance.position = position
+	mesh_instance.local_position = local_position
 	mesh_instance.material_override = material
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	mesh_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
