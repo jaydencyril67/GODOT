@@ -121,7 +121,7 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 		"wallpapers":
 			return {"path": WALLPAPERS[rng.randi_range(0, WALLPAPERS.size() - 1)], "treatment": ["natural", "dimmed", "gradient_overlay"][rng.randi_range(0, 2)], "blur": rng.randf_range(0.0, 0.18)}
 		"animations_transitions":
-			return {"style": ["fade", "slide", "scale", "spring"][rng.randi_range(0, 3)], "duration": rng.randf_range(0.16, 0.34], "reduced_motion": false}
+			return {"style": ["fade", "slide", "scale", "spring"][rng.randi_range(0, 3)], "duration": rng.randf_range(0.16, 0.34), "reduced_motion": false}
 		"control_center":
 			return {"tile_shape": ["square", "rounded", "pill"][rng.randi_range(0, 2)], "tile_layout": ["compact", "expanded"][rng.randi_range(0, 1)], "brightness_style": ["bar", "slider"][rng.randi_range(0, 1)]}
 		"notifications":
