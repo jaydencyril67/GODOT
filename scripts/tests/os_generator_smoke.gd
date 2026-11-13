@@ -110,6 +110,7 @@ func _run_os_generator_test() -> void:
 	simulator_host.size = Vector2(145.0, 360.0)
 	root.add_child(simulator_host)
 
+	generated["components"]["home_screen"]["layout_style"] = "ios_grid"
 	var simulator := SimulatorScript.new()
 	simulator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	simulator.configure_os(generated, "home_screen")
@@ -127,6 +128,28 @@ func _run_os_generator_test() -> void:
 		if rendered_widget_count != expected_widgets[generation_number - 1]:
 			_fail("Simulator rendered the wrong number of widgets for generation %d." % generation_number)
 			return
+	for layout_style in ProceduralEngineScript.HOME_LAYOUT_STYLES:
+		var layout_config := generated.duplicate(true)
+		layout_config["components"]["home_screen"]["layout_style"] = layout_style
+		simulator.configure_os(layout_config, "home_screen")
+		await process_frame
+		match layout_style:
+			"windows_tiles":
+				if simulator.find_child("WindowsLiveTileGrid", true, false) == null:
+					_fail("Windows tile layout did not render its live-tile grid.")
+					return
+			"compact_list":
+				if simulator.find_child("HomeAppList", true, false) == null:
+					_fail("Compact list layout did not render its app list.")
+					return
+			"category_sections":
+				if simulator.find_child("HomeCategory_COMMUNICATIONGrid", true, false) == null:
+					_fail("Category layout did not render grouped app sections.")
+					return
+			_:
+				if simulator.find_child("HomeAppGrid", true, false) == null:
+					_fail("Grid layout did not render its app grid: " + layout_style)
+					return
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 	if simulator.find_child("OSProceduralWallpaper", true, false) == null:
