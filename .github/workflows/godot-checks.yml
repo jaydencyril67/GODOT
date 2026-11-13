@@ -92,6 +92,31 @@ jobs:
             exit 1
           fi
 
+      - name: Report Godot warnings (non-blocking)
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          logs=(godot-import.log godot-parse.log home-office-smoke.log godot-startup.log)
+          warning_count=0
+
+          for log in "${logs[@]}"; do
+            [ -f "$log" ] || continue
+            matches="$(grep -nE 'WARNING:' "$log" || true)"
+            [ -n "$matches" ] || continue
+
+            echo "::group::Godot warnings from $log"
+            while IFS= read -r warning; do
+              printf '::warning::%s\n' "$log: $warning"
+              warning_count=$((warning_count + 1))
+            done <<< "$matches"
+            echo "::endgroup::"
+          done
+
+          echo "Godot warning lines reported: $warning_count"
+          echo "Warnings are informational and do not fail this workflow."
+
       - name: Smoke-test main scene startup
         shell: bash
         run: |
