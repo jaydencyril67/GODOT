@@ -83,27 +83,46 @@ jobs:
           echo "Completed warning-only scan of ${#scripts[@]} GDScript files."
           cat gdscript-warning-scan.log
 
-      - name: Report warnings (informational only)
+      - name: Report unique warnings (informational only)
         if: always()
         shell: bash
         run: |
           set +e
-          shopt -s nullglob
-          logs=(gdscript-warning-scan.log)
-          warning_count=0
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
 
-          for log in "${logs[@]}"; do
-            [ -f "$log" ] || continue
-            matches="$(grep -nE 'WARNING:|^[[:space:]]*W [0-9]+:' "$log" || true)"
-            [ -n "$matches" ] || continue
+          log_path = Path("gdscript-warning-scan.log")
+          lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines() if log_path.exists() else []
+          warning_pattern = re.compile(r"WARNING:\\s*(.*)")
+          location_pattern = re.compile(r"res://([^):]+):(\\d+)")
+          warnings = {}
 
-            echo "::group::Godot GDScript warnings"
-            while IFS= read -r warning; do
-              printf '::warning::%s\n' "$warning"
-              warning_count=$((warning_count + 1))
-            done <<< "$matches"
-            echo "::endgroup::"
-          done
+          for index, line in enumerate(lines):
+              match = warning_pattern.search(line)
+              if not match:
+                  continue
 
-          echo "Godot GDScript warning lines reported: $warning_count"
-          echo "Warnings are informational. This workflow does not fail on app errors or warnings."
+              message = match.group(1).strip()
+              source_file = ""
+              source_line = ""
+
+              for context in lines[index + 1:index + 4]:
+                  location = location_pattern.search(context)
+                  if location:
+                      source_file = location.group(1)
+                      source_line = location.group(2)
+                      break
+
+              key = (source_file, source_line, message)
+              warnings.setdefault(key, None)
+
+          for (source_file, source_line, message) in warnings:
+              if source_file and source_line:
+                  print(f"::warning file={source_file},line={source_line}::{message}")
+              else:
+                  print(f"::warning::{message}")
+
+          print(f"Unique Godot GDScript warnings reported: {len(warnings)}")
+          print("Warnings are informational. This workflow does not fail on app errors or warnings.")
+          PY
