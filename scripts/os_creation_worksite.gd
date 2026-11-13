@@ -733,7 +733,7 @@ func _android_era_label(caption: String, font_size: int, color: Color) -> Label:
 	label.clip_text = true
 	return label
 
-func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder: bool = false) -> Control:
+func _make_home_app_icon(app_name: String, glyph: String, tint: Color, _is_folder: bool = false) -> Control:
 	var item := VBoxContainer.new()
 	item.name = "HomeApp_" + app_name.replace(" ", "")
 	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
