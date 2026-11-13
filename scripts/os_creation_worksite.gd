@@ -15,7 +15,23 @@ var configuration_region: Control
 var screen_frame: PanelContainer
 var home_preview_screen: PanelContainer
 var home_generation := 1
+var home_image_index := 0
 var home_generation_status: Label
+var home_image_paths := [
+	"res://OSHSG1/Screenshot_20261113-093031_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093042_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093046_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093114_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093140_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093153_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093157_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093201_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093209_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093214_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093217_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093229_ChatGPT.jpg",
+	"res://OSHSG1/Screenshot_20261113-093240_ChatGPT.jpg"
+]
 
 class GlassArrowButton extends Button:
 	var points_right := true
@@ -423,9 +439,8 @@ func _build_interface() -> void:
 
 
 func _build_home_screen_preview(screen: PanelContainer) -> void:
-	if home_generation < 5:
-		_build_legacy_home_screen_preview(screen, home_generation)
-		return
+	_build_selected_home_image(screen)
+	return
 	var screen_content := VBoxContainer.new()
 	screen_content.name = "OSHomeScreenContent"
 	screen_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -563,41 +578,50 @@ func _build_home_generation_controls() -> void:
 	var content := VBoxContainer.new()
 	content.name = "HomeGenerationControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 8)
 	selection_panel.add_child(content)
 
-	var heading := _label("HOME SCREEN EVOLUTION", 17, Color("#F0E9DD"))
+	var heading := _label("GENERATION 01", 17, Color("#F0E9DD"))
 	content.add_child(heading)
-	var description := _label("Choose a generation to preview how the operating system evolves.", 12, Color("#B8B1A6"))
+	var description := _label("Choose one of the 13 home-screen designs.", 12, Color("#B8B1A6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(description)
 
-	var stages := [
-		["01  CLASSIC", "Early Android workspace, Google search, clock and simple shortcuts."],
-		["02  CUSTOM", "A cleaner grid, fixed dock and basic folders."],
-		["03  MODERN", "Rounded icons, a clock widget and richer layouts."],
-		["04  INTELLIGENT", "Adaptive icons, search and flexible widgets."],
-		["05  PREMIUM", "The full featured Home Screen preview already designed."]
-	]
-	for i in range(stages.size()):
-		var stage_button := Button.new()
-		stage_button.name = "HomeGeneration_%d" % (i + 1)
-		stage_button.text = str(stages[i][0]) + "\n" + str(stages[i][1])
-		stage_button.custom_minimum_size = Vector2(0, 72)
-		stage_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		stage_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		stage_button.focus_mode = Control.FOCUS_NONE
-		stage_button.pressed.connect(_select_home_generation.bind(i + 1))
-		_style_button(stage_button)
-		content.add_child(stage_button)
+	var scroll := ScrollContainer.new()
+	scroll.name = "HomeScreenSelectionScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content.add_child(scroll)
 
-	home_generation_status = _label("PREVIEWING GENERATION 01", 11, Color("#C58A3A"))
+	var grid := GridContainer.new()
+	grid.name = "HomeScreenSelectionGrid"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	scroll.add_child(grid)
+
+	for i in range(home_image_paths.size()):
+		var image_button := Button.new()
+		image_button.name = "HomeScreenSelection_%02d" % (i + 1)
+		image_button.text = "SCREEN %02d" % (i + 1)
+		image_button.custom_minimum_size = Vector2(0, 44)
+		image_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		image_button.toggle_mode = true
+		image_button.focus_mode = Control.FOCUS_NONE
+		image_button.pressed.connect(_select_home_image.bind(i))
+		_style_button(image_button)
+		grid.add_child(image_button)
+
+	home_generation_status = _label("GENERATION 01  •  SCREEN 01 / %02d" % home_image_paths.size(), 11, Color("#C58A3A"))
 	content.add_child(home_generation_status)
 	_update_home_generation_controls()
 
 
-func _select_home_generation(generation: int) -> void:
-	home_generation = clampi(generation, 1, 5)
+func _select_home_image(image_index: int) -> void:
+	home_image_index = clampi(image_index, 0, home_image_paths.size() - 1)
 	if is_instance_valid(home_preview_screen):
 		for child in home_preview_screen.get_children():
 			home_preview_screen.remove_child(child)
@@ -608,14 +632,26 @@ func _select_home_generation(generation: int) -> void:
 
 func _update_home_generation_controls() -> void:
 	if is_instance_valid(home_generation_status):
-		home_generation_status.text = "PREVIEWING GENERATION %02d" % home_generation
-	var content := selection_panel.get_node_or_null("HomeGenerationControls") as VBoxContainer
-	if not is_instance_valid(content):
+		home_generation_status.text = "GENERATION 01  •  SCREEN %02d / %02d" % [home_image_index + 1, home_image_paths.size()]
+	var grid := selection_panel.get_node_or_null("HomeGenerationControls/HomeScreenSelectionScroll/HomeScreenSelectionGrid") as GridContainer
+	if not is_instance_valid(grid):
 		return
-	for i in range(5):
-		var stage_button := content.get_node_or_null("HomeGeneration_%d" % (i + 1)) as Button
-		if is_instance_valid(stage_button):
-			stage_button.modulate = Color("#E6B96F") if home_generation == i + 1 else Color("#FFFFFF")
+	for i in range(home_image_paths.size()):
+		var image_button := grid.get_node_or_null("HomeScreenSelection_%02d" % (i + 1)) as Button
+		if is_instance_valid(image_button):
+			image_button.button_pressed = i == home_image_index
+
+
+func _build_selected_home_image(screen: PanelContainer) -> void:
+	screen.clip_contents = true
+	var image := TextureRect.new()
+	image.name = "SelectedHomeScreenImage"
+	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	image.texture = load(home_image_paths[home_image_index]) as Texture2D
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(image)
 
 
 func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) -> void:
