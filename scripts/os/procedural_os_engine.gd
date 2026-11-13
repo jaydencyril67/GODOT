@@ -61,6 +61,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 			"generation": generation_number,
 			"palette": palette,
 			"icon_shape": icon_shapes[generation_number - 1],
+			"icon_size": [48, 52, 56][generation_number - 1],
 			"grid_columns": columns,
 			"corner_radius": [10, 16, 21][generation_number - 1],
 			"spacing": [8, 10, 12][generation_number - 1],
@@ -139,7 +140,9 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	normalized["schema_version"] = SCHEMA_VERSION
 	normalized["generation"] = generation_number
 	normalized["style"] = style
-	var components: Dictionary = {}
+	var components: Dictionary = normalized.get("components", {}).duplicate(true)
+	for obsolete_id in ["app_icons", "themes_appearance", "animations_transitions", "navigation_gestures", "recent_apps", "system_ui"]:
+		components.erase(obsolete_id)
 	var fallback_rng := RandomNumberGenerator.new()
 	fallback_rng.seed = int(normalized.get("seed", 1))
 	for component in COMPONENTS:
