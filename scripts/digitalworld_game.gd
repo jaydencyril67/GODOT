@@ -242,7 +242,6 @@ func _load_career() -> bool:
 		"research_technologies": config.get_value("career", "research_technologies", {}),
 		"research_component_levels": config.get_value("career", "research_component_levels", {}),
 		"selected_operating_system": config.get_value("career", "selected_operating_system", {}),
-		"selected_operating_system": config.get_value("career", "selected_operating_system", {}),
 		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
 	ResearchManagerScript.ensure_state(career)
