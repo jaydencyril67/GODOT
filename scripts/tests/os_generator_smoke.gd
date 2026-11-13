@@ -263,6 +263,9 @@ func _run_os_generator_test() -> void:
 			if search_field == null or drawer_grid == null:
 				_fail("App Drawer search field or icon grid was not attached to the visible UI tree.")
 				return
+			if drawer_grid.get_child_count() != 30:
+				_fail("App Drawer did not render all 30 installed applications.")
+				return
 			search_field.text_changed.emit("Settings")
 			await process_frame
 			if drawer_grid.get_child_count() != 1:
@@ -270,6 +273,14 @@ func _run_os_generator_test() -> void:
 				return
 			search_field.text_changed.emit("")
 			await process_frame
+			drawer_config["components"]["app_drawer"]["scroll_direction"] = "horizontal"
+			simulator.update_configuration(drawer_config)
+			await process_frame
+			var horizontal_viewport := simulator.find_child("AppDrawerViewport", true, false) as ScrollContainer
+			var horizontal_grid := simulator.find_child("AppDrawerGrid", true, false) as GridContainer
+			if horizontal_viewport == null or horizontal_grid == null or horizontal_viewport.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO or horizontal_grid.columns != 30:
+				_fail("Generated horizontal App Drawer scrolling was not applied.")
+				return
 		if component_id == "wallpapers":
 			var wallpaper_preview := simulator.find_child("WallpaperStylePreview", true, false) as Control
 			if wallpaper_preview == null or wallpaper_preview.custom_minimum_size.y < 150.0:
