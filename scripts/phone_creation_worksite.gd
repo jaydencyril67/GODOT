@@ -2619,7 +2619,7 @@ func _show_worksite_power_bank_controls() -> void:
 		capacity_slider.max_value = available_maximum
 		capacity_slider.step = ResearchManagerScript.POWER_BANK_STEP_MAH
 		capacity_slider.value = int(self.get("power_bank_capacity_mah"))
-		capacity_slider.tick_count = maxi(1, int((available_maximum - ResearchManagerScript.POWER_BANK_BASE_MAH) / ResearchManagerScript.POWER_BANK_STEP_MAH) + 1)
+		capacity_slider.tick_count = maxi(1, floori(float(available_maximum - ResearchManagerScript.POWER_BANK_BASE_MAH) / float(ResearchManagerScript.POWER_BANK_STEP_MAH)) + 1)
 		capacity_slider.custom_minimum_size = Vector2(76, 270)
 		capacity_slider.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		capacity_slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -3867,7 +3867,6 @@ func set_ram_capacity_research_level(level: int) -> void:
 
 
 func _refresh_ram_capacity_research_ui() -> void:
-	var unlocked_step := clampi(ram_capacity_research_level, 0, RAM_CAPACITY_RESEARCH_STEPS.size() - 1)
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "RAMSelectionControls":
 		_refresh_ram_capacity_selection_ui(active_feature_panel)
 	_refresh_ram_capacity_step()
@@ -3891,7 +3890,6 @@ func set_internal_storage_research_level(level: int) -> void:
 
 
 func _refresh_internal_storage_research_ui() -> void:
-	var unlocked_step := clampi(internal_storage_research_level, 0, INTERNAL_STORAGE_CAPACITIES.size() - 1)
 	if is_instance_valid(active_feature_panel) and active_feature_panel.name == "InternalStorageSelectionControls":
 		_refresh_internal_storage_selection_ui(active_feature_panel)
 
@@ -5333,16 +5331,16 @@ func _show_back_design_controls() -> void:
 		controls_center.custom_minimum_size = Vector2(0, 360)
 		active_feature_panel.add_child(controls_center)
 
-		var research_button := Button.new()
-		research_button.name = "BackRaisedDesignResearchButton"
-		research_button.text = "RESEARCH"
-		research_button.custom_minimum_size = Vector2(0, 48 if not tight else 44)
-		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		research_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(research_button, button_font_size)
-		_style_button(research_button, true)
-		research_button.pressed.connect(_request_back_raised_design_research)
-		controls_center.add_child(research_button)
+		var locked_research_button := Button.new()
+		locked_research_button.name = "BackRaisedDesignResearchButton"
+		locked_research_button.text = "RESEARCH"
+		locked_research_button.custom_minimum_size = Vector2(0, 48 if not tight else 44)
+		locked_research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		locked_research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(locked_research_button, button_font_size)
+		_style_button(locked_research_button, true)
+		locked_research_button.pressed.connect(_request_back_raised_design_research)
+		controls_center.add_child(locked_research_button)
 		return
 
 	var heading := _make_label("BACK DESIGN", 16, Color("#E5E0D6"))
@@ -9414,11 +9412,11 @@ func _cycle_rear_hardware_selection(direction: int) -> void:
 	_set_rear_hardware_selected_index(next_index)
 	_refresh_rear_hardware_panel()
 
-func _snap_rear_hardware_position_to_shared_grid(position: Vector2) -> Vector2:
+func _snap_rear_hardware_position_to_shared_grid(local_position: Vector2) -> Vector2:
 	var step := REAR_HARDWARE_GRID_STEP
 	return Vector2(
-		roundf(position.x / step) * step,
-		roundf(position.y / step) * step
+		roundf(local_position.x / step) * step,
+		roundf(local_position.y / step) * step
 	)
 
 func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vector2:
@@ -11005,7 +11003,7 @@ func _normalize_power_volume_positions(moving_side: String = "") -> void:
 	if is_instance_valid(volume_button_position_label):
 		volume_button_position_label.text = "%d%%" % roundi(volume_button_y / 1.20 * 100.0)
 
-func _get_resolved_power_volume_positions(single_key_length: float, key_radius: float) -> Dictionary:
+func _get_resolved_power_volume_positions(_single_key_length: float, _key_radius: float) -> Dictionary:
 	# Rendering and case cut-outs use the same stored, ordered positions.
 	return {"power": power_button_y, "volume": volume_button_y}
 
@@ -12225,11 +12223,11 @@ func _get_foldable_outer_display_clearance_rect(clearance: float = 0.045) -> Rec
 	var protected_size := Vector2(panel_width + 0.035, panel_height + 0.035) + Vector2.ONE * clearance * 2.0
 	return Rect2(display_center - protected_size * 0.5, protected_size)
 
-func _overlaps_foldable_outer_display(position: Vector2, half_extents: Vector2) -> bool:
+func _overlaps_foldable_outer_display(local_position: Vector2, half_extents: Vector2) -> bool:
 	var protected_rect := _get_foldable_outer_display_clearance_rect()
 	if protected_rect.size == Vector2.ZERO:
 		return false
-	var feature_rect := Rect2(position - half_extents, half_extents * 2.0)
+	var feature_rect := Rect2(local_position - half_extents, half_extents * 2.0)
 	return protected_rect.intersects(feature_rect, true)
 
 func _relocate_foldable_back_features_from_outer_display() -> bool:
