@@ -95,6 +95,9 @@ func _run_os_generator_test() -> void:
 		if content_node.get_child_count() == 0:
 			_fail("Simulator rendered an empty component: " + component_id)
 			return
+		if component_id == "app_drawer" and simulator.find_child("AppDrawerSearchField", true, false) == null:
+			_fail("App Drawer search field was not attached to the visible UI tree.")
+			return
 	root.remove_child(simulator)
 	simulator.free()
 	await process_frame
