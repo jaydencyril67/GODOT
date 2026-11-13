@@ -410,7 +410,7 @@ func _build_home_generation_controls() -> void:
 	content.add_child(description)
 
 	var stages := [
-		["01  CLASSIC", "Simple square icons. No widgets, folders or search."],
+		["01  CLASSIC", "Early Android workspace, Google search, clock and simple shortcuts."],
 		["02  CUSTOM", "A cleaner grid, fixed dock and basic folders."],
 		["03  MODERN", "Rounded icons, a clock widget and richer layouts."],
 		["04  INTELLIGENT", "Adaptive icons, search and flexible widgets."],
@@ -629,11 +629,11 @@ func _build_android_10_home_screen_preview(screen: PanelContainer) -> void:
 
 	var workspace := VBoxContainer.new()
 	workspace.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	workspace.offset_left = 7
+	workspace.offset_right = -7
+	workspace.offset_top = 8
+	workspace.offset_bottom = -5
 	workspace.add_theme_constant_override("separation", 5)
-	workspace.add_theme_constant_override("margin_left", 7)
-	workspace.add_theme_constant_override("margin_right", 7)
-	workspace.add_theme_constant_override("margin_top", 8)
-	workspace.add_theme_constant_override("margin_bottom", 5)
 	wallpaper.add_child(workspace)
 
 	var search := PanelContainer.new()
