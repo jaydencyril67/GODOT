@@ -8,24 +8,49 @@ func _initialize() -> void:
 	call_deferred("_run_os_generator_test")
 
 func _run_os_generator_test() -> void:
-	var generated := ProceduralEngineScript.generate_os(1357911, 1)
+	var generated := ProceduralEngineScript.generate_os(1357911, 2)
 	var components: Dictionary = generated.get("components", {})
-	if components.size() != 12:
+	if generated.get("schema_version", 0) != ProceduralEngineScript.SCHEMA_VERSION:
+		_fail("Generated OS did not use the current configuration schema.")
+		return
+	if components.size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generator did not produce all 12 OS components.")
+		return
+	if not ProceduralEngineScript.validate_os(generated).is_empty():
+		_fail("Generated OS failed configuration validation.")
 		return
 	for component in ProceduralEngineScript.COMPONENTS:
 		if not components.has(component["id"]):
 			_fail("Missing generated component: " + str(component["id"]))
 			return
 
+	var legacy_config := generated.duplicate(true)
+	legacy_config["schema_version"] = 1
+	legacy_config["style"]["wallpaper"] = "res://legacy/old_wallpaper.png"
+	var migrated := ProceduralEngineScript.normalize_os(legacy_config)
+	if migrated.get("schema_version", 0) != ProceduralEngineScript.SCHEMA_VERSION:
+		_fail("Legacy OS configuration was not migrated to the current schema.")
+		return
+	if not ProceduralEngineScript.WALLPAPER_STYLES.has(str(migrated["style"].get("wallpaper", ""))):
+		_fail("Legacy wallpaper reference was not converted to a procedural wallpaper style.")
+		return
+	if not ProceduralEngineScript.validate_os(migrated).is_empty():
+		_fail("Migrated OS configuration failed validation.")
+		return
+
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
-	var lock_screen_after: Dictionary = wallpaper_regenerated["components"]["lock_screen"]
+	var wallpaper_components: Dictionary = wallpaper_regenerated["components"]
+	var lock_screen_after: Dictionary = wallpaper_components["lock_screen"]
+	var selected_wallpaper := str(wallpaper_regenerated["style"]["wallpaper"])
+	if not ProceduralEngineScript.WALLPAPER_STYLES.has(selected_wallpaper):
+		_fail("Wallpaper regeneration selected an unsupported wallpaper style.")
+		return
 	if lock_screen_after["clock_style"] != lock_screen_before["clock_style"] or lock_screen_after["show_notifications"] != lock_screen_before["show_notifications"]:
 		_fail("Wallpaper regeneration unexpectedly changed lock screen layout settings.")
 		return
-	if wallpaper_regenerated["style"]["wallpaper"] != wallpaper_regenerated["components"]["home_screen"]["wallpaper"] or wallpaper_regenerated["style"]["wallpaper"] != lock_screen_after["wallpaper"]:
-		_fail("Wallpaper regeneration did not keep home and lock screen wallpapers synchronized.")
+	if selected_wallpaper != wallpaper_components["home_screen"]["wallpaper"] or selected_wallpaper != lock_screen_after["wallpaper"] or selected_wallpaper != wallpaper_components["wallpapers"]["style"]:
+		_fail("Wallpaper regeneration did not keep the OS wallpaper synchronized.")
 		return
 
 	var themed := ProceduralEngineScript.regenerate_component(generated, "themes_appearance", 97531)
@@ -36,6 +61,9 @@ func _run_os_generator_test() -> void:
 	if icons["style"]["icon_shape"] != icons["components"]["app_icons"]["shape"]:
 		_fail("Icon regeneration did not update the shared OS icon shape.")
 		return
+	if icons["components"]["home_screen"]["columns"] != icons["style"]["grid_columns"]:
+		_fail("Regenerating app icons unexpectedly changed the home screen grid.")
+		return
 
 	var test_save_path := "user://os_generator_smoke_test.json"
 	if not ProceduralEngineScript.save_os(wallpaper_regenerated, test_save_path):
@@ -45,16 +73,27 @@ func _run_os_generator_test() -> void:
 	if loaded.get("seed", -1) != wallpaper_regenerated.get("seed", -2):
 		_fail("Saved OS configuration could not be loaded correctly.")
 		return
+	if not ProceduralEngineScript.validate_os(loaded).is_empty():
+		_fail("Loaded OS configuration failed validation.")
+		return
 
 	var simulator := SimulatorScript.new()
 	simulator.configure_os(generated, "home_screen")
 	root.add_child(simulator)
 	await process_frame
+	if simulator.find_child("OSProceduralWallpaper", true, false) == null:
+		_fail("Simulator did not render its procedural OS wallpaper.")
+		return
 	for component in ProceduralEngineScript.COMPONENTS:
-		simulator.set_component_view(str(component["id"]))
+		var component_id := str(component["id"])
+		simulator.set_component_view(component_id)
 		await process_frame
-		if simulator.find_child("OSComponentContent", true, false) == null:
-			_fail("Simulator failed to render component: " + str(component["id"]))
+		var content_node := simulator.find_child("OSComponentContent", true, false)
+		if content_node == null:
+			_fail("Simulator failed to render component: " + component_id)
+			return
+		if content_node.get_child_count() == 0:
+			_fail("Simulator rendered an empty component: " + component_id)
 			return
 	simulator.queue_free()
 
@@ -65,13 +104,16 @@ func _run_os_generator_test() -> void:
 	if worksite_preview == null:
 		_fail("OS creation worksite did not mount the generated simulator screen.")
 		return
+	if worksite_preview.find_child("OSProceduralWallpaper", true, false) == null:
+		_fail("OS creation worksite preview did not use the procedural OS wallpaper.")
+		return
 	worksite.call("_generate_complete_os")
 	await process_frame
 	var worksite_configuration: Dictionary = worksite.get("generated_os_configuration")
-	if worksite_configuration.get("components", {}).size() != 12:
+	if worksite_configuration.get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generate OS action did not produce all 12 components.")
 		return
-	if worksite_preview.get("configuration").get("components", {}).size() != 12:
+	if worksite_preview.get("configuration").get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generate OS action did not refresh the visible simulator.")
 		return
 	worksite.queue_free()
