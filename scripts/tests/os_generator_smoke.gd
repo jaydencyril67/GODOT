@@ -96,6 +96,8 @@ func _run_os_generator_test() -> void:
 			_fail("Simulator rendered an empty component: " + component_id)
 			return
 	simulator.queue_free()
+	await process_frame
+	await process_frame
 
 	var worksite := WorksiteScene.instantiate()
 	root.add_child(worksite)
@@ -117,6 +119,8 @@ func _run_os_generator_test() -> void:
 		_fail("Generate OS action did not refresh the visible simulator.")
 		return
 	worksite.queue_free()
+	await process_frame
+	await process_frame
 	print("OS_GENERATOR_SMOKE_TEST: PASS")
 	quit(0)
 
