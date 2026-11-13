@@ -323,30 +323,39 @@ func _build_home_screen_preview(screen: PanelContainer) -> void:
 	var search_label := _label("⌕   Search apps", 7, Color("#D6DEE8"))
 	search.add_child(search_label)
 
-	var app_grid := GridContainer.new()
+	var app_grid := VBoxContainer.new()
 	app_grid.name = "HomeAppGrid"
-	app_grid.columns = 4
 	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	app_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	app_grid.add_theme_constant_override("h_separation", 2)
-	app_grid.add_theme_constant_override("v_separation", 3)
+	app_grid.add_theme_constant_override("separation", 0)
 	screen_content.add_child(app_grid)
 	var apps := [
-		["Phone", "☎", "#3C9B82"],
-		["Messages", "✉", "#438DCE"],
-		["Camera", "◉", "#68778D"],
-		["Gallery", "▧", "#C57D57"],
-		["Music", "♫", "#9B6FC0"],
-		["Browser", "◎", "#4D9AA0"],
-		["Calendar", "▦", "#B66D6D"],
-		["Tools", "▤", "#71879A"]
+		["Phone", "☎", "#3C9B82"], ["Messages", "✉", "#438DCE"],
+		["Camera", "◉", "#68778D"], ["Gallery", "▧", "#C57D57"],
+		["Music", "♫", "#9B6FC0"], ["Browser", "◎", "#4D9AA0"],
+		["Calendar", "▦", "#B66D6D"], ["Tools", "▤", "#71879A"],
+		["Social", "▣", "#527D9B"], ["Games", "▦", "#9A7954"],
+		["Work", "▣", "#617F70"], ["Travel", "◇", "#7A719B"]
 	]
+	var app_items: Array[Control] = []
 	for app in apps:
-		app_grid.add_child(_make_home_app_icon(str(app[0]), str(app[1]), Color(str(app[2]))))
-	app_grid.add_child(_make_home_app_icon("Social", "▣", Color("#527D9B")))
-	app_grid.add_child(_make_home_app_icon("Games", "▦", Color("#9A7954"), true))
-	app_grid.add_child(_make_home_app_icon("Work", "▣", Color("#617F70"), true))
-	app_grid.add_child(_make_home_app_icon("Travel", "◇", Color("#7A719B")))
+		app_items.append(_make_home_app_icon(str(app[0]), str(app[1]), Color(str(app[2])), str(app[0]) in ["Games", "Work"]))
+	for row_index in range(3):
+		var app_row := HBoxContainer.new()
+		app_row.name = "HomeAppRow_%d" % (row_index + 1)
+		app_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		app_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		app_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		app_grid.add_child(app_row)
+		for column_index in range(4):
+			var app_slot := CenterContainer.new()
+			app_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			app_slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			app_row.add_child(app_slot)
+			var app_item := app_items[row_index * 4 + column_index]
+			app_item.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			app_item.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			app_slot.add_child(app_item)
 
 	var page_row := HBoxContainer.new()
 	page_row.name = "HomePageIndicator"
@@ -489,15 +498,12 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 		search_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		search.add_child(search_label)
 
-	var grid := GridContainer.new()
+	var grid := VBoxContainer.new()
 	grid.name = "HomeAppGrid"
-	grid.columns = 3 if generation == 1 else 4
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 5)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.add_theme_constant_override("separation", 0)
 	content.add_child(grid)
-
 	var apps := [
 		["Phone", "☎", "#638B72"], ["Messages", "✉", "#597FAD"],
 		["Camera", "◉", "#777D85"], ["Music", "♫", "#9470A7"],
@@ -506,9 +512,10 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 		["Files", "▤", "#8B865C"], ["Clock", "◷", "#657C99"],
 		["Maps", "⌖", "#628B83"], ["Notes", "▧", "#9A8A62"]
 	]
+	var app_items: Array[Control] = []
 	for app in apps:
 		var tile := VBoxContainer.new()
-		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tile.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		tile.add_theme_constant_override("separation", 2)
 		var icon := PanelContainer.new()
 		icon.custom_minimum_size = Vector2(34, 34) if generation == 1 else Vector2(36, 36)
@@ -525,7 +532,25 @@ func _build_legacy_home_screen_preview(screen: PanelContainer, generation: int) 
 		var app_name := _label(str(app[0]), 8, Color("#EAECEF"))
 		app_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		tile.add_child(app_name)
-		grid.add_child(tile)
+		app_items.append(tile)
+	var columns := 3 if generation == 1 else 4
+	var row_count := int(ceil(float(app_items.size()) / float(columns)))
+	for row_index in range(row_count):
+		var app_row := HBoxContainer.new()
+		app_row.name = "HomeAppRow_%d" % (row_index + 1)
+		app_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		app_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		app_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		grid.add_child(app_row)
+		for column_index in range(columns):
+			var app_index := row_index * columns + column_index
+			if app_index >= app_items.size():
+				break
+			var app_slot := CenterContainer.new()
+			app_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			app_slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			app_row.add_child(app_slot)
+			app_slot.add_child(app_items[app_index])
 
 	if generation >= 2:
 		var dock := PanelContainer.new()
