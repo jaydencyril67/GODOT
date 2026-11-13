@@ -95,6 +95,7 @@ static func generate_os(seed_value: int = -1, generation: int = 1) -> Dictionary
 	for component in COMPONENTS:
 		config["components"][component["id"]] = _generate_component(component["id"], rng, config["style"])
 	config["components"]["wallpapers"]["path"] = config["style"]["wallpaper"]
+	config["style"]["icon_shape"] = config["components"]["app_icons"]["shape"]
 	return config
 
 static func regenerate_component(config: Dictionary, component_id: String, seed_value: int = -1) -> Dictionary:
