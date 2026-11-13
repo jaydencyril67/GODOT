@@ -1040,9 +1040,17 @@ func _keep_step_navigation_active() -> void:
 
 func _on_wizard_back_pressed() -> void:
 	_keep_step_navigation_active()
-	# Step 1 is the first OS wizard page; there is no earlier step yet.
+	if not is_instance_valid(os_component_selector):
+		return
+	var previous_index := maxi(os_component_selector.selected - 1, 0)
+	os_component_selector.select(previous_index)
+	_on_os_component_selected(previous_index)
 
 
 func _on_next_pressed() -> void:
 	_keep_step_navigation_active()
-	# Additional OS wizard steps will be introduced after the structure is approved.
+	if not is_instance_valid(os_component_selector):
+		return
+	var next_index := (os_component_selector.selected + 1) % ProceduralOSEngineScript.COMPONENTS.size()
+	os_component_selector.select(next_index)
+	_on_os_component_selected(next_index)
