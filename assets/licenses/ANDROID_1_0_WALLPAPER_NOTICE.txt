@@ -1,0 +1,12 @@
+Android 1.0 default wallpaper asset
+
+File: assets/textures/os/android_1_0_default_wallpaper.jpg
+Artwork: “Mono Lake Blue”
+Original artist: Romain Guy
+Copyright: Android Open Source Project / Google, 2008
+Source repository: https://android.googlesource.com/platform/frameworks/base/+/donut-release/core/res/res/drawable/default_wallpaper.jpg
+Source branch: donut-release
+License: Apache License, Version 2.0
+License text: assets/licenses/Apache-2.0.txt
+
+The wallpaper file is included unchanged as the Generation 1 Android 1.0 home-screen background. It is presented as historical interface reference material, not as a claim of affiliation with Google or Android.
