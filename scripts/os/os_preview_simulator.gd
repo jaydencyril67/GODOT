@@ -534,7 +534,7 @@ func _build_app_drawer(data: Dictionary) -> void:
 	grid.add_theme_constant_override("h_separation", 7)
 	grid.add_theme_constant_override("v_separation", 10)
 	page_container.add_child(grid)
-	_populate_app_grid(grid, "", int(configuration.get("components", {}).get("app_icons", {}).get("size", 52)), true)
+	_populate_app_grid(grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
 	search.text_changed.connect(_on_app_search_changed.bind(grid))
 
 
