@@ -81,6 +81,7 @@ static func generate_os(seed_value: int = -1, generation: int = 1) -> Dictionary
 		"created_at": int(Time.get_unix_time_from_system()),
 		"style": {
 			"identity": ["Classic", "Modern", "Advanced"][generation_number - 1],
+			"generation": generation_number,
 			"palette": palette,
 			"icon_shape": icon_shape,
 			"grid_columns": columns,
@@ -93,6 +94,7 @@ static func generate_os(seed_value: int = -1, generation: int = 1) -> Dictionary
 	}
 	for component in COMPONENTS:
 		config["components"][component["id"]] = _generate_component(component["id"], rng, config["style"])
+	config["components"]["wallpapers"]["path"] = config["style"]["wallpaper"]
 	return config
 
 static func regenerate_component(config: Dictionary, component_id: String, seed_value: int = -1) -> Dictionary:
@@ -103,6 +105,23 @@ static func regenerate_component(config: Dictionary, component_id: String, seed_
 	var rng := RandomNumberGenerator.new()
 	rng.seed = actual_seed
 	updated["components"][component_id] = _generate_component(component_id, rng, updated.get("style", {}))
+	match component_id:
+		"wallpapers":
+			var wallpaper_path := WALLPAPERS[rng.randi_range(0, WALLPAPERS.size() - 1)]
+			updated["components"]["wallpapers"]["path"] = wallpaper_path
+			updated["style"]["wallpaper"] = wallpaper_path
+			updated["components"]["home_screen"]["wallpaper"] = wallpaper_path
+			updated["components"]["lock_screen"]["wallpaper"] = wallpaper_path
+		"themes_appearance":
+			var new_palette: Dictionary = PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
+			updated["components"]["themes_appearance"]["palette"] = new_palette
+			updated["style"]["palette"] = new_palette
+		"app_icons":
+			var generation_number := int(updated.get("generation", 1))
+			var shape_options := ["square"] if generation_number == 1 else (["soft_square", "rounded"] if generation_number == 2 else ["rounded", "soft_square"])
+			var new_shape: String = shape_options[rng.randi_range(0, shape_options.size() - 1)]
+			updated["components"]["app_icons"]["shape"] = new_shape
+			updated["style"]["icon_shape"] = new_shape
 	updated["last_component_seed"] = actual_seed
 	updated["revision"] = int(updated.get("revision", 0)) + 1
 	return updated
@@ -115,7 +134,9 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 		"lock_screen":
 			return {"clock_style": ["bold", "compact", "stacked"][rng.randi_range(0, 2)], "show_notifications": rng.randf() > 0.25, "shortcut_style": ["circular", "minimal"][rng.randi_range(0, 1)], "wallpaper": style.get("wallpaper", WALLPAPERS[0])}
 		"app_icons":
-			return {"shape": style.get("icon_shape", "rounded"), "size": rng.randi_range(34, 46), "label_visibility": rng.randf() > 0.2, "tint_variation": rng.randi_range(0, 3)}
+			var generation_number := int(style.get("generation", 1))
+			var shape_options := ["square"] if generation_number == 1 else (["soft_square", "rounded"] if generation_number == 2 else ["rounded", "soft_square"])
+			return {"shape": shape_options[rng.randi_range(0, shape_options.size() - 1)], "size": rng.randi_range(34, 46), "label_visibility": rng.randf() > 0.2, "tint_variation": rng.randi_range(0, 3)}
 		"themes_appearance":
 			return {"palette": palette.duplicate(true), "surface_style": ["solid", "translucent", "layered"][rng.randi_range(0, 2)], "contrast": ["balanced", "high"][rng.randi_range(0, 1)]}
 		"wallpapers":
