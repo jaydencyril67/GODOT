@@ -65,6 +65,29 @@ class GlassArrowButton extends Button:
 		draw_line(centre + Vector2(-direction * 5.0, 0), centre + Vector2(direction * 6.0, 0), Color("#F2EDE4"), 2.8, true)
 
 
+class GlassButtonReflection extends Control:
+	var accent := Color("#C58A3A")
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		resized.connect(queue_redraw)
+
+	func _draw() -> void:
+		if size.x <= 4.0 or size.y <= 4.0:
+			return
+		for i in range(48):
+			var x0 := size.x * float(i) / 48.0
+			var x1 := size.x * float(i + 1) / 48.0
+			var mid := (float(i) + 0.5) / 48.0
+			var highlight := exp(-pow((mid - 0.34) / 0.29, 2.0))
+			draw_line(Vector2(x0, 1.2), Vector2(x1, 1.2), Color(0.97, 1.0, 0.98, 0.09 + 0.30 * highlight), 1.2, true)
+		var edge := Color(accent.r, accent.g, accent.b, 0.24)
+		draw_line(Vector2(1.2, 9.0), Vector2(1.2, maxf(9.0, size.y - 9.0)), edge, 1.0, true)
+		draw_line(Vector2(size.x - 1.2, 9.0), Vector2(size.x - 1.2, maxf(9.0, size.y - 9.0)), edge, 1.0, true)
+		draw_line(Vector2(12.0, size.y - 2.0), Vector2(size.x - 12.0, size.y - 2.0), Color(0.82, 0.72, 0.55, 0.10), 1.0, true)
+
+
 class Android10WorkspaceArt extends Control:
 	var ui_font: Font
 
@@ -473,13 +496,44 @@ func _build_home_generation_controls() -> void:
 
 
 func _style_level_selector_button(button: Button) -> void:
-	# Match the compact +/- selector controls used in the phone creation worksite.
-	_style_button(button)
+	# Match the phone creation worksite's graphite glass +/- selector treatment.
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.12, 0.13, 0.14, 0.82)
+		if state == "hover":
+			style.bg_color = Color(0.21, 0.22, 0.23, 0.88)
+		elif state == "pressed":
+			style.bg_color = Color(0.08, 0.09, 0.10, 0.94)
+		elif state == "disabled":
+			style.bg_color = Color(0.10, 0.11, 0.12, 0.58)
+		style.border_color = Color(0.72, 0.72, 0.68, 0.34)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(12)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.48)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 3)
+		style.content_margin_left = 10
+		style.content_margin_right = 10
+		style.content_margin_top = 8
+		style.content_margin_bottom = 8
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#E4DED3"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_color_override("font_disabled_color", Color("#928B80"))
+	button.add_theme_font_size_override("font_size", 18)
+	var bold_font := SystemFont.new()
+	bold_font.font_weight = 700
+	button.add_theme_font_override("font", bold_font)
 	button.custom_minimum_size = Vector2(56, 48)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.focus_mode = Control.FOCUS_NONE
+	var reflection := GlassButtonReflection.new()
+	reflection.name = "GlassReflection"
+	reflection.accent = Color("#C5BDB2")
+	button.add_child(reflection)
 
 
 func _step_home_image(direction: int) -> void:
