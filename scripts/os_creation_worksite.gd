@@ -1,6 +1,17 @@
 extends Node3D
 
 signal back_requested
+signal os_selected(configuration: Dictionary)
+
+const ProceduralOSEngineScript = preload("res://scripts/os/procedural_os_engine.gd")
+const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
+
+var generated_os_configuration: Dictionary = {}
+var selected_os_component_id := "home_screen"
+var os_preview_simulator: Control
+var os_component_selector: OptionButton
+var os_generation_selector: OptionButton
+var os_generation_busy := false
 
 var progress_number: Label
 var progress_bar: ProgressBar
@@ -268,6 +279,7 @@ class Android10WorkspaceArt extends Control:
 
 
 func _ready() -> void:
+	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	_build_interface()
 
 
@@ -464,7 +476,129 @@ func _build_interface() -> void:
 
 
 func _build_home_screen_preview(screen: PanelContainer) -> void:
-	_build_selected_home_image(screen)
+	os_preview_simulator = OSPreviewSimulatorScript.new() as Control
+	os_preview_simulator.name = "GeneratedOSPreviewSimulator"
+	os_preview_simulator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	os_preview_simulator.configure_os(generated_os_configuration, selected_os_component_id)
+	screen.add_child(os_preview_simulator)
+
+func _build_home_generation_controls() -> void:
+	var content := VBoxContainer.new()
+	content.name = "ProceduralOSGeneratorControls"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	content.add_theme_constant_override("separation", 10)
+	selection_panel.add_child(content)
+
+	var heading := _label("OPERATING SYSTEM GENERATOR", 16, Color("#F0E9DD"))
+	content.add_child(heading)
+	var description := _label("Generate a complete OS, then refine any component independently.", 11, Color("#B8B1A6"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(description)
+
+	content.add_child(_label("DESIGN GENERATION", 10, Color("#C58A3A")))
+	os_generation_selector = OptionButton.new()
+	os_generation_selector.name = "OSGenerationSelector"
+	os_generation_selector.add_item("Generation 1 · Classic")
+	os_generation_selector.add_item("Generation 2 · Modern")
+	os_generation_selector.add_item("Generation 3 · Advanced")
+	os_generation_selector.selected = clampi(home_generation - 1, 0, 2)
+	os_generation_selector.custom_minimum_size.y = 40
+	os_generation_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(os_generation_selector)
+	os_generation_selector.item_selected.connect(_on_os_generation_selected)
+	content.add_child(os_generation_selector)
+
+	content.add_child(_label("COMPONENT PREVIEW", 10, Color("#C58A3A")))
+	os_component_selector = OptionButton.new()
+	os_component_selector.name = "OSComponentSelector"
+	os_component_selector.custom_minimum_size.y = 40
+	os_component_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for component in ProceduralOSEngineScript.COMPONENTS:
+		os_component_selector.add_item(str(component["title"]))
+	os_component_selector.select(0)
+	_style_button(os_component_selector)
+	os_component_selector.item_selected.connect(_on_os_component_selected)
+	content.add_child(os_component_selector)
+
+	var generate_button := Button.new()
+	generate_button.name = "GenerateCompleteOSButton"
+	generate_button.text = "GENERATE COMPLETE OS"
+	generate_button.custom_minimum_size.y = 46
+	_style_button(generate_button)
+	generate_button.pressed.connect(_generate_complete_os)
+	content.add_child(generate_button)
+
+	var regenerate_button := Button.new()
+	regenerate_button.name = "RegenerateOSComponentButton"
+	regenerate_button.text = "REGENERATE THIS COMPONENT"
+	regenerate_button.custom_minimum_size.y = 42
+	_style_button(regenerate_button)
+	regenerate_button.pressed.connect(_regenerate_selected_component)
+	content.add_child(regenerate_button)
+
+	var select_button := Button.new()
+	select_button.name = "SelectGeneratedOSButton"
+	select_button.text = "SELECT & USE THIS OS"
+	select_button.custom_minimum_size.y = 46
+	_style_button(select_button)
+	select_button.pressed.connect(_select_generated_os)
+	content.add_child(select_button)
+
+	home_generation_status = _label("READY · 12 COMPONENTS", 10, Color("#C58A3A"))
+	home_generation_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(home_generation_status)
+
+func _on_os_generation_selected(index: int) -> void:
+	home_generation = clampi(index + 1, 1, 3)
+	_set_os_generation_status("GENERATION %02d SELECTED" % home_generation)
+
+func _on_os_component_selected(index: int) -> void:
+	if index < 0 or index >= ProceduralOSEngineScript.COMPONENTS.size():
+		return
+	selected_os_component_id = str(ProceduralOSEngineScript.COMPONENTS[index]["id"])
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.set_component_view(selected_os_component_id)
+
+func _generate_complete_os() -> void:
+	if os_generation_busy:
+		return
+	os_generation_busy = true
+	_set_os_generation_status("BUILDING COMPLETE OPERATING SYSTEM...")
+	if is_instance_valid(progress_bar):
+		progress_bar.value = 0.0
+		var tween := create_tween()
+		tween.tween_property(progress_bar, "value", 1.0, 0.75)
+	await get_tree().create_timer(0.75).timeout
+	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.configure_os(generated_os_configuration, selected_os_component_id)
+	_set_os_generation_status("GENERATED · 12 COMPONENTS READY")
+	os_generation_busy = false
+
+func _regenerate_selected_component() -> void:
+	if generated_os_configuration.is_empty():
+		return
+	generated_os_configuration = ProceduralOSEngineScript.regenerate_component(generated_os_configuration, selected_os_component_id)
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.update_configuration(generated_os_configuration)
+		os_preview_simulator.set_component_view(selected_os_component_id)
+	_set_os_generation_status("%s REGENERATED" % selected_os_component_id.replace("_", " ").to_upper())
+
+func _select_generated_os() -> void:
+	if generated_os_configuration.is_empty():
+		_set_os_generation_status("GENERATE AN OS BEFORE SELECTING")
+		return
+	if not ProceduralOSEngineScript.save_os(generated_os_configuration, "user://digitalworld_selected_os.json"):
+		_set_os_generation_status("COULD NOT SAVE OS CONFIGURATION")
+		return
+	os_selected.emit(generated_os_configuration.duplicate(true))
+	_set_os_generation_status("OS SELECTED AND SAVED")
+
+func _set_os_generation_status(message: String) -> void:
+	if is_instance_valid(home_generation_status):
+		home_generation_status.text = message
+
 func _build_home_generation_controls() -> void:
 	var content := VBoxContainer.new()
 	content.name = "HomeGenerationControls"
