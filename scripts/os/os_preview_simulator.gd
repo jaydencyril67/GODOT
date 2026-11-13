@@ -134,8 +134,6 @@ func _screen_to_local(screen_position: Vector2) -> Vector2:
 
 
 func _begin_gesture(position: Vector2) -> void:
-	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
-		return
 	_gesture_start = position
 	_gesture_start_time = Time.get_ticks_msec()
 	_gesture_active = true
@@ -154,6 +152,11 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 	var vertical_threshold := maxf(34.0, size.y * 0.10)
 	var horizontal_threshold := maxf(32.0, size.x * 0.18)
 	var edge_size := clampf(minf(size.x, size.y) * 0.09, 18.0, 34.0)
+
+	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
+		if delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
+			_close_gesture_overlay()
+		return
 
 	if start.y <= edge_size and delta.y >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.2:
 		if start.x >= size.x * 0.56:
