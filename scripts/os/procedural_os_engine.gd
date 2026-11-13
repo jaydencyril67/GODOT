@@ -208,7 +208,7 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 		"app_icons":
 			return {
 				"shape": str(style.get("icon_shape", "rounded")),
-				"size": rng.randi_range(44, 52),
+				"size": rng.randi_range(48, 56),
 				"label_visibility": true,
 				"tint_variation": rng.randi_range(0, 3)
 			}
