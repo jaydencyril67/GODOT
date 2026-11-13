@@ -317,7 +317,7 @@ func _build_home_screen(data: Dictionary) -> void:
 
 func _build_home_widget(widget_index: int) -> void:
 	var widget_names := ["Clock", "Weather", "Calendar", "Music"]
-	var widget_titles := ["09:41", "WEATHER  ·  YENAGOA", "UP NEXT  ·  CALENDAR", "NOW PLAYING"]
+	var widget_titles := ["09:41", "WEATHER  ·  LOCAL CONDITIONS", "UP NEXT  ·  CALENDAR", "NOW PLAYING"]
 	var widget_details := ["MONDAY  ·  YOUR DAY AT A GLANCE", "28°  ·  PARTLY CLOUDY", "Team meeting  ·  10:30 AM", "No track currently playing"]
 	var widget := PanelContainer.new()
 	widget.name = "HomeWidget_" + widget_names[widget_index]
@@ -829,7 +829,7 @@ func _style_surface(panel: PanelContainer, prominent: bool = false) -> void:
 	style.bg_color = Color(surface_color.r, surface_color.g, surface_color.b, 0.88 if prominent else 0.78)
 	style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.16)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(int(_style.get("corner_radius", 16)))
+	style.set_corner_radius_all(int(_style.get("corner_radius", 0)))
 	style.content_margin_left = 9
 	style.content_margin_right = 9
 	style.content_margin_top = 7
@@ -859,7 +859,7 @@ func _style_action_button(button: Button, active: bool = false) -> void:
 	button.add_theme_font_size_override("font_size", 8)
 	button.focus_mode = Control.FOCUS_NONE
 
-func _style_icon_button(button: Button, tint: Color, shape: String) -> void:
+func _style_icon_button(button: Button, tint: Color, _shape: String) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = tint
 	var radius := int(_style.get("corner_radius", 0))
