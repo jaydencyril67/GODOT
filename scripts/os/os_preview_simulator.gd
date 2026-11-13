@@ -1052,6 +1052,7 @@ func _build_app_drawer(data: Dictionary) -> void:
 	if str(data.get("search_position", "top")) == "top":
 		page_container.add_child(search)
 	var layout := str(data.get("layout", "alphabetical"))
+	var category_grids: Array[GridContainer] = []
 	if layout == "categories":
 		var categories := {
 			"COMMUNICATION": ["Phone", "Messages", "Contacts", "Email", "Meet"],
@@ -1063,7 +1064,9 @@ func _build_app_drawer(data: Dictionary) -> void:
 		for category_name in categories:
 			_add_section_label(category_name)
 			var category_grid := GridContainer.new()
-			category_grid.name = "AppDrawerCategory_" + category_name.replace(" ", "") 
+			category_grid.name = "AppDrawerCategory_" + category_name.replace(" ", "")
+			category_grid.set_meta("app_names", categories[category_name])
+			category_grids.append(category_grid)
 			category_grid.columns = _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
 			category_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			category_grid.add_theme_constant_override("h_separation", 7)
@@ -1073,6 +1076,7 @@ func _build_app_drawer(data: Dictionary) -> void:
 				var app := _find_app(app_name)
 				if not app.is_empty():
 					category_grid.add_child(_create_app_icon(app, _responsive_icon_size(int(_style.get("icon_size", 52)), category_grid.columns), true))
+		search.text_changed.connect(_on_category_app_search_changed.bind(category_grids))
 	else:
 		var horizontal := str(data.get("scroll_direction", "vertical")) == "horizontal"
 		var viewport := ScrollContainer.new()
@@ -1334,6 +1338,24 @@ func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show
 		empty_label.name = "NoMatchingAppsLabel"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		grid.add_child(empty_label)
+
+
+func _on_category_app_search_changed(query: String, category_grids: Array[GridContainer]) -> void:
+	var normalized_query := query.strip_edges().to_lower()
+	for grid in category_grids:
+		if not is_instance_valid(grid):
+			continue
+		for child in grid.get_children():
+			grid.remove_child(child)
+			child.queue_free()
+		var app_names: Array = grid.get_meta("app_names", [])
+		for app_name_variant in app_names:
+			var app_name := str(app_name_variant)
+			if not normalized_query.is_empty() and not app_name.to_lower().contains(normalized_query):
+				continue
+			var app := _find_app(app_name)
+			if not app.is_empty():
+				grid.add_child(_create_app_icon(app, _responsive_icon_size(int(_style.get("icon_size", 52)), grid.columns), true))
 
 
 func _on_app_search_changed(query: String, grid: GridContainer) -> void:
