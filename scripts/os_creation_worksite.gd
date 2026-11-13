@@ -10,13 +10,16 @@ var navigation_layer: CanvasLayer
 var navigation_bar: HBoxContainer
 var worksite_body: BoxContainer
 var preview_region: Control
-var selection_panel: PanelContainer
+var selection_panel: Control
 var configuration_region: Control
 var screen_frame: PanelContainer
 var home_preview_screen: PanelContainer
 var home_generation := 1
 var home_image_index := 0
 var home_generation_status: Label
+var home_screen_number_label: Label
+var home_screen_decrease_button: Button
+var home_screen_increase_button: Button
 var home_image_paths := [
 	"res://OSHSG1/IMG-20261113-WA0227.jpg",
 	"res://OSHSG1/IMG-20261113-WA1726.jpg",
@@ -423,11 +426,6 @@ func _build_interface() -> void:
 
 func _build_home_screen_preview(screen: PanelContainer) -> void:
 	_build_selected_home_image(screen)
-var home_screen_number_label: Label
-var home_screen_decrease_button: Button
-var home_screen_increase_button: Button
-
-
 func _build_home_generation_controls() -> void:
 	var content := VBoxContainer.new()
 	content.name = "HomeGenerationControls"
