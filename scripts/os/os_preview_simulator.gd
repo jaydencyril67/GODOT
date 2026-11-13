@@ -451,7 +451,7 @@ func _build_animation_preview(data: Dictionary) -> void:
 	)
 	page_container.add_child(play)
 
-func _build_control_center(data: Dictionary) -> void:
+func _build_control_center(_data: Dictionary) -> void:
 	_add_section_label("QUICK SETTINGS")
 	var grid := GridContainer.new()
 	grid.name = "QuickSettingsGrid"
@@ -538,7 +538,7 @@ func _build_app_drawer(data: Dictionary) -> void:
 	search.text_changed.connect(_on_app_search_changed.bind(grid))
 
 
-func _build_recent_apps(data: Dictionary) -> void:
+func _build_recent_apps(_data: Dictionary) -> void:
 	var heading_row := HBoxContainer.new()
 	heading_row.add_theme_constant_override("separation", 6)
 	var heading := _label("RECENT APPS", 9, _accent_color())
