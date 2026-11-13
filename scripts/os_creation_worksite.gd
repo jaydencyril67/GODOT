@@ -59,143 +59,157 @@ class Android10WorkspaceArt extends Control:
 	func _draw() -> void:
 		if size.x <= 0.0 or size.y <= 0.0:
 			return
-		draw_set_transform(Vector2.ZERO, 0.0, size / Vector2(320.0, 420.0))
+		draw_set_transform(Vector2.ZERO, 0.0, size / Vector2(320.0, 456.0))
 
-		# A blue, distant shoreline/water wallpaper treatment matching the G1 reference.
-		for y in range(0, 420, 3):
-			var band: Color
-			if y < 126:
-				band = Color("#65B7E7").lerp(Color("#B8E3F2"), float(y) / 126.0)
-			elif y < 158:
-				band = Color("#B8E3F2").lerp(Color("#DCEBF0"), float(y - 126) / 32.0)
-			elif y < 188:
-				band = Color("#B7D6E4").lerp(Color("#3D9CD2"), float(y - 158) / 30.0)
-			else:
-				band = Color("#1687CC").lerp(Color("#064A9F"), float(y - 188) / 232.0)
-			draw_rect(Rect2(0, y, 320, 3), band)
+		# Period-accurate analog clock widget: brushed-metal bezel, pale face,
+		# twelve numerals and the simple hands visible in the 2008 stock capture.
+		var clock_center := Vector2(160, 101)
+		draw_circle(clock_center + Vector2(0, 3), 69, Color(0.02, 0.05, 0.08, 0.34))
+		draw_circle(clock_center, 68, Color("#3B4145"))
+		draw_circle(clock_center, 66, Color("#92999C"))
+		draw_circle(clock_center, 63, Color("#D4D7D6"))
+		draw_circle(clock_center, 60, Color("#687176"))
+		draw_circle(clock_center, 57, Color("#E9E8E1"))
+		draw_circle(clock_center, 54, Color("#F7F5EC"))
+		draw_arc(clock_center, 65, PI * 1.05, PI * 1.95, 72, Color(1, 1, 1, 0.82), 1.8, true)
+		draw_arc(clock_center, 61, -PI * 0.02, PI * 0.95, 72, Color(0.18, 0.22, 0.24, 0.55), 1.0, true)
 
-		# Distant pale shoreline and the soft blue land forms visible behind the icons.
+		for tick in range(60):
+			var angle := -PI * 0.5 + TAU * float(tick) / 60.0
+			var outer := clock_center + Vector2(cos(angle), sin(angle)) * 51.0
+			var inner_radius := 44.0 if tick % 5 == 0 else 48.0
+			var inner := clock_center + Vector2(cos(angle), sin(angle)) * inner_radius
+			draw_line(inner, outer, Color("#5D6264"), 1.35 if tick % 5 == 0 else 0.65, true)
+
+		var numerals := ["12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
+		for i in range(12):
+			var angle := -PI * 0.5 + TAU * float(i) / 12.0
+			var numeral_center := clock_center + Vector2(cos(angle), sin(angle)) * 40.5
+			if is_instance_valid(ui_font):
+				draw_string(ui_font, numeral_center + Vector2(-7.0, 4.0), numerals[i], HORIZONTAL_ALIGNMENT_CENTER, 14.0, 11, Color("#44494B"))
+
+		# The small clock-face signature sits just above the hand pivot.
+		if is_instance_valid(ui_font):
+			draw_string(ui_font, clock_center + Vector2(-17, 21), "MALMO", HORIZONTAL_ALIGNMENT_CENTER, 34.0, 4, Color("#777A77"))
+
+		# The stock capture shows the clock at approximately 7:36.
+		var minute_angle := -PI * 0.5 + TAU * 36.0 / 60.0
+		var hour_angle := -PI * 0.5 + TAU * (7.0 + 36.0 / 60.0) / 12.0
+		var minute_tip := clock_center + Vector2(cos(minute_angle), sin(minute_angle)) * 43.0
+		var hour_tip := clock_center + Vector2(cos(hour_angle), sin(hour_angle)) * 31.0
+		draw_line(clock_center + Vector2(1, 1), minute_tip + Vector2(1, 1), Color(0.05, 0.07, 0.08, 0.26), 4.0, true)
+		draw_line(clock_center + Vector2(1, 1), hour_tip + Vector2(1, 1), Color(0.05, 0.07, 0.08, 0.26), 5.0, true)
+		draw_line(clock_center, minute_tip, Color("#202629"), 2.4, true)
+		draw_line(clock_center, hour_tip, Color("#202629"), 4.0, true)
+		draw_circle(clock_center, 4.0, Color("#30373A"))
+		draw_circle(clock_center, 1.7, Color("#BCC2C2"))
+
+		# Four shortcuts occupy the lower row, with the original black capsule labels.
+		_draw_shortcut(Vector2(40, 342), "Dialer", 0)
+		_draw_shortcut(Vector2(120, 342), "Contacts", 1)
+		_draw_shortcut(Vector2(200, 342), "Browser", 2)
+		_draw_shortcut(Vector2(280, 342), "Maps", 3)
+
+		# Original metallic All Apps handle with side grip grooves and a raised arrow.
+		var drawer := Rect2(110, 413, 100, 43)
+		draw_rect(Rect2(drawer.position + Vector2(0, 2), drawer.size), Color(0.01, 0.02, 0.03, 0.36))
+		draw_rect(drawer, Color("#858B8E"))
+		draw_rect(Rect2(112, 414, 96, 41), Color("#BFC2C1"))
+		draw_line(Vector2(113, 415), Vector2(207, 415), Color("#E6E7E4"), 1.0)
+		draw_line(Vector2(113, 454), Vector2(207, 454), Color("#666D70"), 1.0)
+		for groove in range(3):
+			var gy := 422.0 + float(groove) * 8.0
+			draw_line(Vector2(116, gy), Vector2(127, gy), Color("#737A7E"), 1.4)
+			draw_line(Vector2(193, gy), Vector2(204, gy), Color("#737A7E"), 1.4)
+		draw_circle(Vector2(160, 435), 13.0, Color("#727A7D"))
+		draw_circle(Vector2(160, 434), 11.0, Color("#AEB6B6"))
+		draw_arc(Vector2(160, 434), 10.0, PI * 1.05, PI * 1.95, 32, Color("#E5E8E6"), 1.0, true)
 		draw_colored_polygon(PackedVector2Array([
-			Vector2(0, 145), Vector2(28, 140), Vector2(54, 143), Vector2(84, 136),
-			Vector2(108, 141), Vector2(139, 135), Vector2(166, 142), Vector2(194, 137),
-			Vector2(221, 143), Vector2(248, 137), Vector2(280, 141), Vector2(320, 136),
-			Vector2(320, 170), Vector2(0, 170)
-		]), Color("#D5E7EC"))
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(0, 154), Vector2(48, 150), Vector2(82, 155), Vector2(118, 149),
-			Vector2(151, 155), Vector2(188, 151), Vector2(224, 157), Vector2(260, 151),
-			Vector2(290, 156), Vector2(320, 150), Vector2(320, 178), Vector2(0, 178)
-		]), Color("#8ABDD5"))
-		draw_line(Vector2(0, 179), Vector2(320, 179), Color(0.80, 0.91, 0.96, 0.58), 1.0)
-
-		# Subtle water highlights; the original wallpaper stays blue and low-contrast.
-		for i in range(13):
-			var y := 194.0 + float(i) * 15.0
-			var left := float((i * 37) % 74)
-			var line_width := 42.0 + float((i * 19) % 66)
-			draw_line(Vector2(left, y), Vector2(minf(318.0, left + line_width), y), Color(0.72, 0.89, 0.98, 0.17), 1.0, true)
-			draw_line(Vector2(190.0 + float((i * 23) % 74), y + 5.0), Vector2(270.0 + float((i * 11) % 45), y + 5.0), Color(0.02, 0.30, 0.62, 0.12), 1.0, true)
-
-		# Six original-era shortcuts, with individual illustrated artwork rather than modern icon tiles.
-		_draw_shortcut(Vector2(35, 202), "Messaging", 0)
-		_draw_shortcut(Vector2(285, 202), "Market", 1)
-		_draw_shortcut(Vector2(37, 300), "Dialer", 2)
-		_draw_shortcut(Vector2(119, 300), "Contacts", 3)
-		_draw_shortcut(Vector2(201, 300), "Browser", 4)
-		_draw_shortcut(Vector2(283, 300), "Google Maps", 5)
-
-		# The visible pull-tab for All Apps is the defining bottom control, not a dock.
-		var tab := Rect2(119, 383, 82, 30)
-		draw_rect(Rect2(tab.position + Vector2(0, 2), tab.size), Color(0.02, 0.10, 0.24, 0.34))
-		draw_rect(tab, Color("#8ABBDD"))
-		draw_rect(Rect2(120, 384, 80, 28), Color("#B7D9EE"))
-		draw_line(Vector2(121, 385), Vector2(199, 385), Color("#E0F1FA"), 1.0)
-		draw_line(Vector2(121, 410), Vector2(199, 410), Color("#477CA8"), 1.0)
-		draw_circle(Vector2(160, 398), 10.0, Color("#6FA6CC"))
-		draw_arc(Vector2(160, 398), 9.0, 0.0, TAU, 32, Color("#E4F3FA"), 1.0, true)
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(160, 392), Vector2(154, 400), Vector2(158, 400),
-			Vector2(158, 404), Vector2(162, 404), Vector2(162, 400),
-			Vector2(166, 400)
-		]), Color("#F7FCFF"))
+			Vector2(160, 426), Vector2(152, 435), Vector2(157, 435),
+			Vector2(157, 441), Vector2(163, 441), Vector2(163, 435),
+			Vector2(168, 435)
+		]), Color("#535C60"))
 
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	func _draw_shortcut(center: Vector2, title: String, kind: int) -> void:
-		var icon_rect := Rect2(center - Vector2(17, 18), Vector2(34, 34))
-		draw_rect(Rect2(icon_rect.position + Vector2(1, 2), icon_rect.size), Color(0.02, 0.08, 0.18, 0.34))
-		var base_colors := [
-			Color("#C5E2EF"), Color("#D6E8D8"), Color("#2C78B5"),
-			Color("#D5E1EA"), Color("#B8D9DE"), Color("#F1E5C2")
-		]
-		draw_rect(icon_rect, base_colors[kind])
-		draw_rect(icon_rect, Color(0.92, 0.97, 1.0, 0.80), false, 1.0)
-		draw_line(icon_rect.position + Vector2(1, 1), icon_rect.position + Vector2(32, 1), Color(1, 1, 1, 0.62), 1.0)
-
+		# Each icon uses a softly bevelled, glossy 2008-style illustration.
+		draw_rect(Rect2(center + Vector2(-20, -18), Vector2(40, 39)), Color(0.02, 0.05, 0.08, 0.20))
 		match kind:
 			0:
-				# Messaging: an old-style blue message envelope.
-				draw_rect(Rect2(center + Vector2(-12, -9), Vector2(24, 17)), Color("#4E91BE"))
-				draw_rect(Rect2(center + Vector2(-10, -7), Vector2(20, 13)), Color("#EDF5F8"))
-				draw_line(center + Vector2(-10, -7), center + Vector2(0, 1), Color("#4D8FB9"), 2.0, true)
-				draw_line(center + Vector2(10, -7), center + Vector2(0, 1), Color("#4D8FB9"), 2.0, true)
-				draw_line(center + Vector2(-10, 6), center + Vector2(-1, -1), Color("#77AAC7"), 1.0, true)
-				draw_line(center + Vector2(10, 6), center + Vector2(1, -1), Color("#77AAC7"), 1.0, true)
+				# Dialer: silver keypad body with a blue handset.
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-18, -11), center + Vector2(-8, -17),
+					center + Vector2(13, -11), center + Vector2(18, 9),
+					center + Vector2(7, 16), center + Vector2(-15, 10)
+				]), Color("#C7D3D9"))
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-12, -8), center + Vector2(6, -13),
+					center + Vector2(12, 4), center + Vector2(-6, 11)
+				]), Color("#E8EDF0"))
+				for row in range(3):
+					for col in range(3):
+						draw_circle(center + Vector2(-5 + col * 6, -4 + row * 5), 1.3, Color("#7D929D"))
+				draw_arc(center + Vector2(0, -1), 10, PI * 0.12, PI * 0.82, 18, Color("#197FC0"), 4.3, true)
+				draw_arc(center + Vector2(0, -1), 10, PI * 1.12, PI * 1.82, 18, Color("#197FC0"), 4.3, true)
 			1:
-				# Market: a pale green shopping bag with a small Android-era mascot.
+				# Contacts: layered paper cards and a small profile portrait.
 				draw_colored_polygon(PackedVector2Array([
-					center + Vector2(-11, -7), center + Vector2(11, -7),
-					center + Vector2(9, 11), center + Vector2(-9, 11)
-				]), Color("#6CA77B"))
-				draw_arc(center + Vector2(0, -7), 6.0, PI, TAU, 16, Color("#39784C"), 2.0, true)
-				draw_circle(center, 4.2, Color("#D9F0D9"))
-				draw_circle(center + Vector2(-1.5, -1), 0.8, Color("#48885B"))
-				draw_circle(center + Vector2(1.5, -1), 0.8, Color("#48885B"))
-				draw_line(center + Vector2(-2, 3), center + Vector2(2, 3), Color("#48885B"), 1.0)
+					center + Vector2(-16, -11), center + Vector2(-3, -15),
+					center + Vector2(12, -9), center + Vector2(13, 13),
+					center + Vector2(-15, 10)
+				]), Color("#AEBBC2"))
+				draw_rect(Rect2(center + Vector2(-8, -13), Vector2(24, 26)), Color("#E4E8E9"))
+				draw_rect(Rect2(center + Vector2(-5, -10), Vector2(18, 20)), Color("#F7F7F2"))
+				draw_circle(center + Vector2(3, -4), 5.0, Color("#D5A36D"))
+				draw_arc(center + Vector2(3, 9), 8.0, PI, TAU, 18, Color("#779AB0"), 5.0, true)
+				draw_line(center + Vector2(-4, -10), center + Vector2(-4, 10), Color("#8096A3"), 1.0)
 			2:
-				# Dialer: a light handset on a dark blue square.
+				# Browser: a compact silver browser window with a globe.
 				draw_colored_polygon(PackedVector2Array([
-					center + Vector2(-11, -9), center + Vector2(-7, -12),
-					center + Vector2(-3, -7), center + Vector2(-6, -3),
-					center + Vector2(4, 7), center + Vector2(8, 4),
-					center + Vector2(12, 9), center + Vector2(8, 13),
-					center + Vector2(2, 12), center + Vector2(-8, 2)
-				]), Color("#EDF5FB"))
-				draw_line(center + Vector2(-8, -9), center + Vector2(8, 9), Color("#9CC7DF"), 1.0, true)
+					center + Vector2(-17, -12), center + Vector2(15, -10),
+					center + Vector2(16, 12), center + Vector2(-14, 10)
+				]), Color("#B8C8CD"))
+				draw_rect(Rect2(center + Vector2(-13, -8), Vector2(25, 17)), Color("#E7F0F0"))
+				draw_line(center + Vector2(-12, -5), center + Vector2(11, -5), Color("#6A9CB3"), 1.5)
+				draw_circle(center + Vector2(0, 3), 8.0, Color("#2A9D83"))
+				draw_circle(center + Vector2(0, 3), 6.0, Color("#75C5C1"))
+				draw_arc(center + Vector2(0, 3), 6.0, 0.0, TAU, 20, Color("#E7F5EA"), 1.0, true)
+				draw_line(center + Vector2(-6, 3), center + Vector2(6, 3), Color("#E7F5EA"), 1.0)
 			3:
-				# Contacts: a small two-page address book and a profile silhouette.
-				draw_rect(Rect2(center + Vector2(-12, -12), Vector2(24, 24)), Color("#9BAFBD"))
-				draw_rect(Rect2(center + Vector2(-9, -10), Vector2(18, 20)), Color("#F5F7F8"))
-				draw_rect(Rect2(center + Vector2(-9, -10), Vector2(4, 20)), Color("#557C9B"))
-				draw_circle(center + Vector2(4, -3), 4.0, Color("#82A6BD"))
-				draw_arc(center + Vector2(4, 7), 7.0, PI, TAU, 20, Color("#82A6BD"), 3.0, true)
-			4:
-				# Browser: a glossy blue-green globe.
-				draw_circle(center, 12.0, Color("#347F9C"))
-				draw_circle(center, 10.0, Color("#83C4C0"))
-				draw_arc(center, 9.0, 0.0, TAU, 28, Color("#E1F3E9"), 1.2, true)
-				draw_arc(center, 5.0, 0.0, TAU, 24, Color("#E1F3E9"), 1.0, true)
-				draw_line(center + Vector2(-10, 0), center + Vector2(10, 0), Color("#E1F3E9"), 1.0)
-				draw_line(center + Vector2(-8, -5), center + Vector2(8, -5), Color("#E1F3E9"), 1.0)
-				draw_line(center + Vector2(-8, 5), center + Vector2(8, 5), Color("#E1F3E9"), 1.0)
-			5:
-				# Maps: folded map panels with a location marker.
+				# Maps: folded map with the familiar red location pin.
 				draw_colored_polygon(PackedVector2Array([
-					center + Vector2(-12, -9), center + Vector2(-3, -12),
-					center + Vector2(4, -8), center + Vector2(12, -11),
-					center + Vector2(12, 10), center + Vector2(4, 12),
-					center + Vector2(-3, 8), center + Vector2(-12, 11)
-				]), Color("#F6F1DC"))
-				draw_line(center + Vector2(-3, -11), center + Vector2(-3, 8), Color("#80AF91"), 2.0)
-				draw_line(center + Vector2(4, -8), center + Vector2(4, 11), Color("#83A6C0"), 2.0)
-				draw_circle(center + Vector2(2, -1), 5.0, Color("#D45B4E"))
-				draw_circle(center + Vector2(2, -1), 1.8, Color("#FFF6E8"))
+					center + Vector2(-18, -7), center + Vector2(-5, -13),
+					center + Vector2(5, -9), center + Vector2(18, -14),
+					center + Vector2(16, 12), center + Vector2(5, 16),
+					center + Vector2(-6, 11), center + Vector2(-17, 15)
+				]), Color("#E8E4D2"))
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-16, -5), center + Vector2(-6, -10),
+					center + Vector2(-6, 10), center + Vector2(-16, 13)
+				]), Color("#76A8A0"))
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-4, -8), center + Vector2(4, -5),
+					center + Vector2(4, 13), center + Vector2(-4, 10)
+				]), Color("#9BC6A6"))
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(7, -9), center + Vector2(15, -12),
+					center + Vector2(14, 9), center + Vector2(7, 12)
+				]), Color("#E8CD83"))
+				draw_circle(center + Vector2(5, -8), 7.0, Color("#D74C42"))
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-1, -4), center + Vector2(11, -4),
+					center + Vector2(5, 10)
+				]), Color("#D74C42"))
+				draw_circle(center + Vector2(5, -8), 2.3, Color("#FFF5E8"))
 
-		var label_width := maxf(30.0, float(title.length()) * 5.3 + 8.0)
-		var label_rect := Rect2(Vector2(center.x - label_width * 0.5, center.y + 18.0), Vector2(label_width, 14.0))
-		draw_rect(label_rect, Color(0.02, 0.07, 0.16, 0.72))
+		var label_width := float(title.length()) * 7.0 + 12.0
+		var label_rect := Rect2(Vector2(center.x - label_width * 0.5, center.y + 20.0), Vector2(label_width, 18.0))
+		draw_rect(label_rect, Color("#101B24"))
+		draw_circle(Vector2(label_rect.position.x, label_rect.position.y + 9), 9.0, Color("#101B24"))
+		draw_circle(Vector2(label_rect.end.x, label_rect.position.y + 9), 9.0, Color("#101B24"))
 		if is_instance_valid(ui_font):
-			draw_string(ui_font, Vector2(label_rect.position.x, label_rect.position.y + 10.5), title, HORIZONTAL_ALIGNMENT_CENTER, label_width, 8, Color("#FFFFFF"))
+			draw_string(ui_font, Vector2(label_rect.position.x, label_rect.position.y + 13.5), title, HORIZONTAL_ALIGNMENT_CENTER, label_width, 10, Color("#F7F7F7"))
 
 
 func _ready() -> void:
@@ -755,75 +769,67 @@ func _build_android_10_home_screen_preview(screen: PanelContainer) -> void:
 	content.add_theme_constant_override("separation", 0)
 	screen.add_child(content)
 
-	# Android 1.0's blue notification/status strip from the HTC Dream.
+	# Android 1.0 / HTC Dream stock status strip.
 	var status_bar := PanelContainer.new()
 	status_bar.name = "Android10StatusBar"
-	status_bar.custom_minimum_size.y = 16
+	status_bar.custom_minimum_size.y = 24
 	var status_style := StyleBoxFlat.new()
-	status_style.bg_color = Color("#173B82")
-	status_style.border_color = Color("#4775B8")
+	status_style.bg_color = Color("#25282B")
+	status_style.border_color = Color("#101315")
 	status_style.border_width_bottom = 1
-	status_style.content_margin_left = 4
-	status_style.content_margin_right = 4
+	status_style.content_margin_left = 5
+	status_style.content_margin_right = 5
 	status_style.content_margin_top = 0
 	status_style.content_margin_bottom = 0
 	status_bar.add_theme_stylebox_override("panel", status_style)
 	content.add_child(status_bar)
 
 	var status_row := HBoxContainer.new()
-	status_row.add_theme_constant_override("separation", 3)
+	status_row.add_theme_constant_override("separation", 4)
 	status_bar.add_child(status_row)
-	var notifications := _android_era_label("▣  ▪", 8, Color("#F1F6FF"))
-	status_row.add_child(notifications)
 	var status_spacer := Control.new()
 	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_row.add_child(status_spacer)
-	var connection := _android_era_label("▂▃▅  ▰", 7, Color("#F1F6FF"))
-	status_row.add_child(connection)
-	var time := _android_era_label("11:56 PM", 8, Color("#FFFFFF"))
+	for indicator in ["ᛒ", "3G", "▮▮▮", "▰"]:
+		var status_icon := _android_era_label(indicator, 9, Color("#E6E8E9"))
+		status_row.add_child(status_icon)
+	var time := _android_era_label("7:36 AM", 11, Color("#FFFFFF"))
 	status_row.add_child(time)
 
-	# Original Android used Google's narrow, rectangular search widget here.
-	var search_bar := PanelContainer.new()
-	search_bar.name = "Android10GoogleSearch"
-	search_bar.custom_minimum_size.y = 27
-	var search_style := StyleBoxFlat.new()
-	search_style.bg_color = Color("#D9EDF7")
-	search_style.border_color = Color("#8BAEC3")
-	search_style.set_border_width_all(1)
-	search_style.content_margin_left = 6
-	search_style.content_margin_right = 5
-	search_style.content_margin_top = 1
-	search_style.content_margin_bottom = 1
-	search_bar.add_theme_stylebox_override("panel", search_style)
-	content.add_child(search_bar)
-
-	var search_row := HBoxContainer.new()
-	search_row.add_theme_constant_override("separation", 5)
-	search_bar.add_child(search_row)
-	var google_wordmark := _android_era_label("Google", 12, Color("#4276A8"))
-	google_wordmark.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	google_wordmark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	search_row.add_child(google_wordmark)
-	var search_icon := _android_era_label("⌕", 17, Color("#467EA8"))
-	search_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	search_row.add_child(search_icon)
-	var search_divider := ColorRect.new()
-	search_divider.custom_minimum_size = Vector2(1, 17)
-	search_divider.color = Color("#A5C1D1")
-	search_row.add_child(search_divider)
-	var voice_icon := _android_era_label("♩", 12, Color("#4D86AA"))
-	voice_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	search_row.add_child(voice_icon)
-
-	# The central page is intentionally sparse: two upper shortcuts and four lower shortcuts.
-	var workspace := Android10WorkspaceArt.new()
-	workspace.name = "Android10ClassicWorkspace"
+	# The original 640x480 Mono Lake Blue AOSP wallpaper is center-cropped to the
+	# HTC Dream's 320x480 portrait display, as Android's wallpaper service did.
+	var workspace := Control.new()
+	workspace.name = "Android10StockWorkspace"
 	workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	workspace.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	workspace.clip_contents = true
 	content.add_child(workspace)
 
+	var wallpaper := TextureRect.new()
+	wallpaper.name = "Android10MonoLakeWallpaper"
+	wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wallpaper.texture = load("res://assets/textures/os/android_1_0_default_wallpaper.jpg") as Texture2D
+	wallpaper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	wallpaper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	wallpaper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	workspace.add_child(wallpaper)
+
+	var artwork := Android10WorkspaceArt.new()
+	artwork.name = "Android10StockClockIconsAndDrawer"
+	artwork.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	artwork.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	workspace.add_child(artwork)
+
+
+func _android_era_label(caption: String, font_size: int, color: Color) -> Label:
+	var label := Label.new()
+	label.text = caption
+	label.add_theme_font_override("font", ThemeDB.fallback_font)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.clip_text = true
+	return label
 
 func _android_era_label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
