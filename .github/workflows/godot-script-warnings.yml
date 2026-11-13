@@ -1,0 +1,103 @@
+name: DigitalWorld GDScript Warning Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gdscript-warning-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Load every GDScript file
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Report Godot version
+        run: godot --version
+
+      - name: Import project resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp project.godot project.godot.ci-backup
+          restore_project() {
+            if [ -f project.godot.ci-backup ]; then
+              mv project.godot.ci-backup project.godot
+            fi
+          }
+          trap restore_project EXIT
+          sed -i '/^theme\/custom=/d' project.godot
+          godot --headless --editor --path . --import --quit 2>&1 | tee gdscript-import.log
+          restore_project
+          trap - EXIT
+
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' gdscript-import.log; then
+            echo "Godot reported an error during project import."
+            exit 1
+          fi
+
+      - name: Parse project with its actual theme
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit 2>&1 | tee gdscript-editor-parse.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' gdscript-editor-parse.log; then
+            echo "Godot reported an error while parsing the project."
+            exit 1
+          fi
+
+      - name: Load every GDScript file
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/gdscript_warning_scan.gd 2>&1 | tee gdscript-scan.log
+          grep -q "GDSCRIPT_WARNING_SCAN: PASS" gdscript-scan.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' gdscript-scan.log; then
+            echo "Godot reported a script-loading error during the full GDScript scan."
+            exit 1
+          fi
+
+      - name: Report GDScript warnings (non-blocking)
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          logs=(gdscript-import.log gdscript-editor-parse.log gdscript-scan.log)
+          warning_count=0
+
+          for log in "${logs[@]}"; do
+            [ -f "$log" ] || continue
+            matches="$(grep -nE 'WARNING:|^[[:space:]]*W [0-9]+:' "$log" || true)"
+            [ -n "$matches" ] || continue
+
+            echo "::group::Godot warnings from $log"
+            while IFS= read -r warning; do
+              printf '::warning::%s\n' "$log: $warning"
+              warning_count=$((warning_count + 1))
+            done <<< "$matches"
+            echo "::endgroup::"
+          done
+
+          echo "Godot warning lines reported: $warning_count"
+          echo "Warnings are informational and do not fail this workflow."
