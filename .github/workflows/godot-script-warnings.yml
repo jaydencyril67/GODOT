@@ -70,14 +70,29 @@ jobs:
             # --debug makes Godot print ordinary GDScript warnings.
             # --check-only parses the selected file without running the game.
             # A timeout prevents a parse-error debugger from holding CI open.
+            script_log="$(mktemp)"
             timeout --signal=TERM --kill-after=1s 5s \
               godot --headless --path . --check-only --script "${resource_path}" --debug \
-              >> gdscript-warning-scan.log 2>&1
-            command_status=$?
+              > "$script_log" 2>&1
 
-            if [ "$command_status" -eq 124 ] || [ "$command_status" -eq 137 ]; then
-              echo "Godot parser timed out for ${resource_path}; continuing warning scan." >> gdscript-warning-scan.log
-            fi
+            # Keep only warning diagnostics and their source locations.
+            # Other parser/runtime diagnostics are deliberately not reported here.
+            awk '
+              /WARNING:/ {
+                print
+                if (getline > 0 && $0 ~ /at: .*res:\/\/.*:[0-9]+/) print
+                next
+              }
+              /^[[:space:]]*W [0-9]+:/ {
+                print
+                for (i = 0; i < 2; i++) {
+                  if (getline <= 0) break
+                  if ($0 ~ /<GDScript (Error|Source)>/) print
+                }
+                next
+              }
+            ' "$script_log" >> gdscript-warning-scan.log
+            rm -f "$script_log"
           done
 
           echo "Completed warning-only scan of ${#scripts[@]} GDScript files."
