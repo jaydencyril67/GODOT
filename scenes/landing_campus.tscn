@@ -1,6 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/digitalworld_landing_campus.gd" id="1_campus"]
+[ext_resource type="Script" path="res://scripts/world/digitalworld_landing_backdrop.gd" id="2_backdrop"]
 
 [node name="LandingCampus" type="Node3D"]
 script = ExtResource("1_campus")
+
+[node name="ModernBackdrop" type="Node" parent="."]
+script = ExtResource("2_backdrop")
