@@ -242,6 +242,7 @@ func _load_career() -> bool:
 		"research_technologies": config.get_value("career", "research_technologies", {}),
 		"research_component_levels": config.get_value("career", "research_component_levels", {}),
 		"selected_operating_system": config.get_value("career", "selected_operating_system", {}),
+		"selected_operating_system": config.get_value("career", "selected_operating_system", {}),
 		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
 	ResearchManagerScript.ensure_state(career)
@@ -275,6 +276,7 @@ func _save_career() -> bool:
 	config.set_value("career", "research_projects", career.get("research_projects", []))
 	config.set_value("career", "research_technologies", career.get("research_technologies", {}))
 	config.set_value("career", "research_component_levels", career.get("research_component_levels", {}))
+	config.set_value("career", "selected_operating_system", career.get("selected_operating_system", {}))
 	config.set_value("career", "selected_operating_system", career.get("selected_operating_system", {}))
 	config.set_value("career", "next_research_project_id", int(career.get("next_research_project_id", 1)))
 	var error := config.save(SAVE_PATH)
@@ -2779,6 +2781,7 @@ func _prepare_os_creation_worksite() -> void:
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
 	os_creation_worksite.connect("os_selected", Callable(self, "_on_generated_os_selected"))
+	os_creation_worksite.connect("os_selected", Callable(self, "_on_generated_os_selected"))
 	add_child(os_creation_worksite)
 	os_creation_worksite.hide()
 	for child in os_creation_worksite.get_children():
@@ -2811,6 +2814,16 @@ func _show_os_creation_worksite() -> void:
 	for child in os_creation_worksite.get_children():
 		if child is CanvasLayer:
 			child.show()
+
+
+func _on_generated_os_selected(configuration: Dictionary) -> void:
+	if career.is_empty():
+		return
+	career["selected_operating_system"] = configuration.duplicate(true)
+	if _save_career():
+		_show_notice("OPERATING SYSTEM SELECTED", "Your generated operating system has been saved to the company career.")
+	else:
+		_show_notice("SAVE FAILED", "The operating system could not be saved to the company career.")
 
 
 func _on_generated_os_selected(configuration: Dictionary) -> void:
