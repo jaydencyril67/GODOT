@@ -95,8 +95,8 @@ func _run_os_generator_test() -> void:
 		if content_node.get_child_count() == 0:
 			_fail("Simulator rendered an empty component: " + component_id)
 			return
-	simulator.queue_free()
-	await process_frame
+	root.remove_child(simulator)
+	simulator.free()
 	await process_frame
 
 	var worksite := WorksiteScene.instantiate()
@@ -118,8 +118,8 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("configuration").get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generate OS action did not refresh the visible simulator.")
 		return
-	worksite.queue_free()
-	await process_frame
+	root.remove_child(worksite)
+	worksite.free()
 	await process_frame
 	print("OS_GENERATOR_SMOKE_TEST: PASS")
 	quit(0)
