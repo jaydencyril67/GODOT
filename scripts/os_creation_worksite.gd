@@ -272,7 +272,8 @@ func _build_interface() -> void:
 	root.resized.connect(_apply_responsive_layout)
 
 	var backdrop := ColorRect.new()
-	backdrop.name = "OSWorksiteBackdrop"	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.name = "OSWorksiteBackdrop"
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.color = Color("#292B2D")
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(backdrop)
