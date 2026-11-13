@@ -189,6 +189,7 @@ func _run_os_generator_test() -> void:
 		_fail("Long bottom swipe did not open Recent Apps.")
 		return
 	simulator.call("_close_gesture_overlay")
+	await process_frame
 	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
 		_fail("Recent Apps overlay did not close cleanly.")
 		return
