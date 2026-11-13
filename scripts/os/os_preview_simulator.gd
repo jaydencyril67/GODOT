@@ -295,21 +295,9 @@ func _build_component(component_id: String) -> void:
 			_build_system_ui(component_data)
 
 func _build_home_screen(data: Dictionary) -> void:
-	if bool(data.get("show_clock_widget", true)):
-		var clock_widget := PanelContainer.new()
-		clock_widget.name = "HomeClockWidget"
-		clock_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_style_surface(clock_widget, true)
-		var clock_content := VBoxContainer.new()
-		clock_content.add_theme_constant_override("separation", 1)
-		clock_widget.add_child(clock_content)
-		var clock := _label("09:41", 30, _text_color())
-		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		clock_content.add_child(clock)
-		var date := _label("MONDAY  ·  YOUR DAY AT A GLANCE", 7, _muted_color())
-		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		clock_content.add_child(date)
-		page_container.add_child(clock_widget)
+	var widget_count := clampi(int(_style.get("widget_count", data.get("widget_count", 0))), 0, 4)
+	for widget_index in range(widget_count):
+		_build_home_widget(widget_index)
 
 	if bool(data.get("show_search", true)):
 		page_container.add_child(_search_field("Search apps and more"))
@@ -326,6 +314,25 @@ func _build_home_screen(data: Dictionary) -> void:
 	page_container.add_child(apps_grid)
 	_populate_app_grid(apps_grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
 
+
+func _build_home_widget(widget_index: int) -> void:
+	var widget_names := ["Clock", "Weather", "Calendar", "Music"]
+	var widget_titles := ["09:41", "WEATHER  ·  YENAGOA", "UP NEXT  ·  CALENDAR", "NOW PLAYING"]
+	var widget_details := ["MONDAY  ·  YOUR DAY AT A GLANCE", "28°  ·  PARTLY CLOUDY", "Team meeting  ·  10:30 AM", "No track currently playing"]
+	var widget := PanelContainer.new()
+	widget.name = "HomeWidget_" + widget_names[widget_index]
+	widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_surface(widget, true)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 2)
+	widget.add_child(content)
+	var heading := _label(widget_titles[widget_index], 20 if widget_index == 0 else 9, _text_color())
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if widget_index == 0 else HORIZONTAL_ALIGNMENT_LEFT
+	content.add_child(heading)
+	var detail := _label(widget_details[widget_index], 7, _muted_color())
+	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if widget_index == 0 else HORIZONTAL_ALIGNMENT_LEFT
+	content.add_child(detail)
+	page_container.add_child(widget)
 
 func _build_lock_screen(data: Dictionary) -> void:
 	var spacer := Control.new()
@@ -397,7 +404,7 @@ func _build_theme_preview(data: Dictionary) -> void:
 		color_box.custom_minimum_size = Vector2(34, 26)
 		var swatch_style := StyleBoxFlat.new()
 		swatch_style.bg_color = Color(str(_palette.get(key, "#FFFFFF")))
-		swatch_style.set_corner_radius_all(6)
+		swatch_style.set_corner_radius_all(int(_style.get("corner_radius", 0)))
 		color_box.add_theme_stylebox_override("panel", swatch_style)
 		swatch.add_child(color_box)
 		var swatch_label := _label(key.replace("_", " ").capitalize(), 9, _text_color())
@@ -794,7 +801,7 @@ func _round_shortcut(glyph: String) -> Control:
 	button.text = glyph
 	button.custom_minimum_size = Vector2(42, 42)
 	button.add_theme_font_size_override("font_size", 16)
-	_style_icon_button(button, _surface_color(), "rounded")
+	_style_icon_button(button, _surface_color(), str(_style.get("icon_shape", "square")))
 	return button
 
 func _on_app_pressed(app_name: String) -> void:
@@ -855,7 +862,7 @@ func _style_action_button(button: Button, active: bool = false) -> void:
 func _style_icon_button(button: Button, tint: Color, shape: String) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = tint
-	var radius := 2 if shape == "square" else (7 if shape == "soft_square" else (12 if shape == "rounded" else 16))
+	var radius := int(_style.get("corner_radius", 0))
 	style.set_corner_radius_all(radius)
 	style.border_color = Color(1, 1, 1, 0.20)
 	style.set_border_width_all(1)
