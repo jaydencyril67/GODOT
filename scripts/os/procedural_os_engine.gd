@@ -1,21 +1,15 @@
 extends RefCounted
 class_name ProceduralOSEngine
 
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
 
 const COMPONENTS := [
 	{"id": "home_screen", "title": "Home Screen"},
-	{"id": "lock_screen", "title": "Lock Screen"},
-	{"id": "app_icons", "title": "App Icons"},
-	{"id": "themes_appearance", "title": "Themes & Appearance"},
-	{"id": "wallpapers", "title": "Wallpapers"},
-	{"id": "animations_transitions", "title": "Animations & Transitions"},
-	{"id": "control_center", "title": "Control Center"},
-	{"id": "notifications", "title": "Notification Appearance"},
-	{"id": "navigation_gestures", "title": "Navigation & Gestures"},
 	{"id": "app_drawer", "title": "App Drawer"},
-	{"id": "recent_apps", "title": "Recent Apps"},
-	{"id": "system_ui", "title": "System UI Elements"}
+	{"id": "control_center", "title": "Control Center"},
+	{"id": "notifications", "title": "Notification Panel"},
+	{"id": "lock_screen", "title": "Lock Screen"},
+	{"id": "wallpapers", "title": "Wallpapers"}
 ]
 
 const PALETTES := [
@@ -115,6 +109,15 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	var normalized := config.duplicate(true)
 	var generation_number := clampi(int(normalized.get("generation", 2)), 1, 3)
 	var style: Dictionary = normalized.get("style", {}).duplicate(true)
+	var legacy_components: Dictionary = normalized.get("components", {})
+	var legacy_icons: Dictionary = legacy_components.get("app_icons", {})
+	var legacy_theme: Dictionary = legacy_components.get("themes_appearance", {})
+	if not style.has("icon_shape") and legacy_icons.has("shape"):
+		style["icon_shape"] = legacy_icons["shape"]
+	if not style.has("icon_size") and legacy_icons.has("size"):
+		style["icon_size"] = legacy_icons["size"]
+	if not style.has("palette") and legacy_theme.has("palette"):
+		style["palette"] = legacy_theme["palette"].duplicate(true)
 	var palette: Dictionary = style.get("palette", PALETTES[0]).duplicate(true)
 	if palette.is_empty():
 		palette = PALETTES[0].duplicate(true)
@@ -126,6 +129,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
 	style["icon_shape"] = str(style.get("icon_shape", "rounded"))
+	style["icon_size"] = clampi(int(style.get("icon_size", 52)), 40, 64)
 	if not ["square", "soft_square", "rounded", "squircle"].has(style["icon_shape"]):
 		style["icon_shape"] = "rounded"
 	style["corner_radius"] = clampi(int(style.get("corner_radius", 16)), 0, 28)
@@ -135,7 +139,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	normalized["schema_version"] = SCHEMA_VERSION
 	normalized["generation"] = generation_number
 	normalized["style"] = style
-	var components: Dictionary = normalized.get("components", {}).duplicate(true)
+	var components: Dictionary = {}
 	var fallback_rng := RandomNumberGenerator.new()
 	fallback_rng.seed = int(normalized.get("seed", 1))
 	for component in COMPONENTS:
@@ -181,10 +185,7 @@ static func _sync_shared_settings(config: Dictionary) -> void:
 		components["home_screen"]["wallpaper"] = wallpaper_id
 	if components.has("lock_screen"):
 		components["lock_screen"]["wallpaper"] = wallpaper_id
-	if components.has("themes_appearance"):
-		components["themes_appearance"]["palette"] = style.get("palette", PALETTES[0]).duplicate(true)
-	if components.has("app_icons"):
-		components["app_icons"]["shape"] = str(style.get("icon_shape", "rounded"))
+	
 	config["components"] = components
 
 static func _generate_component(component_id: String, rng: RandomNumberGenerator, style: Dictionary) -> Dictionary:
