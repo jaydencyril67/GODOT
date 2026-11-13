@@ -494,20 +494,40 @@ func _build_home_dock(parent: VBoxContainer) -> void:
 
 
 func _build_status_bar(parent: VBoxContainer) -> void:
+	var data: Dictionary = configuration.get("components", {}).get("system_ui", {})
+	var bar := PanelContainer.new()
+	bar.name = "OSStatusBar"
+	bar.custom_minimum_size.y = 27
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bar_style := StyleBoxFlat.new()
+	bar_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.72)
+	bar_style.set_corner_radius_all(9)
+	bar_style.content_margin_left = 8
+	bar_style.content_margin_right = 8
+	bar_style.content_margin_top = 3
+	bar_style.content_margin_bottom = 3
+	bar.add_theme_stylebox_override("panel", bar_style)
 	var row := HBoxContainer.new()
-	row.name = "OSStatusBar"
-	row.custom_minimum_size.y = 16
-	row.add_theme_constant_override("separation", 5)
-	parent.add_child(row)
-	var clock_alignment := str(configuration.get("components", {}).get("system_ui", {}).get("clock_alignment", "left"))
+	row.add_theme_constant_override("separation", 6)
+	bar.add_child(row)
 	var clock := _label("9:41", 9, _text_color())
+	clock.name = "StatusBarClock"
 	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if clock_alignment == "right":
+	if str(data.get("clock_alignment", "left")) == "right":
 		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(clock)
-	status_label = _label("●  ▮▮▮  " + ("100%" if configuration.get("components", {}).get("system_ui", {}).get("battery_style") == "percentage" else "▰"), 8, _text_color())
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	row.add_child(status_label)
+	var indicators := HBoxContainer.new()
+	indicators.add_theme_constant_override("separation", 4)
+	indicators.add_child(_label("●", 7, _accent_color()))
+	indicators.add_child(_label("▮▮▮", 8, _text_color()))
+	indicators.add_child(_label("Wi-Fi", 6, _muted_color()))
+	var battery_style := str(data.get("battery_style", "percentage"))
+	var battery_text := "100%" if battery_style == "percentage" else ("▰ 100" if battery_style == "pill" else "▰")
+	status_label = _label(battery_text, 8, _text_color())
+	status_label.name = "StatusBarBattery"
+	indicators.add_child(status_label)
+	row.add_child(indicators)
+	parent.add_child(bar)
 
 func _build_component(component_id: String) -> void:
 	var components: Dictionary = configuration.get("components", {})
@@ -541,14 +561,9 @@ func _build_component(component_id: String) -> void:
 func _build_home_screen(data: Dictionary) -> void:
 	var layout_style := str(data.get("layout_style", "ios_grid"))
 	var widget_count := clampi(int(_style.get("widget_count", data.get("widget_count", 0))), 0, 4)
-
 	match layout_style:
 		"android_pixel":
-			_build_home_header("At a glance", "Your day, at a glance")
-			_build_home_widgets(widget_count)
-			page_container.add_child(_search_field("Search apps"))
-			_add_section_label("FAVOURITES")
-			_build_home_grid(data)
+			_build_android_home(data, widget_count)
 		"samsung_one_ui":
 			_build_home_header("Good evening", "Your phone, arranged for easy reach")
 			_build_home_widgets(widget_count)
@@ -575,6 +590,35 @@ func _build_home_screen(data: Dictionary) -> void:
 			_add_section_label("YOUR APPS")
 			_build_home_grid(data)
 
+
+func _build_android_home(data: Dictionary, widget_count: int) -> void:
+	var hero := PanelContainer.new()
+	hero.name = "AndroidAtAGlanceWidget"
+	hero.custom_minimum_size.y = 86
+	_style_surface(hero, true)
+	var hero_content := VBoxContainer.new()
+	hero_content.add_theme_constant_override("separation", 1)
+	hero.add_child(hero_content)
+	hero_content.add_child(_label("MONDAY, NOVEMBER 14", 7, _muted_color()))
+	var clock := _label("09:41", 29, _text_color())
+	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero_content.add_child(clock)
+	var date := _label("28°  ·  Partly cloudy  ·  Yenagoa", 8, _muted_color())
+	date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero_content.add_child(date)
+	page_container.add_child(hero)
+	for widget_index in range(widget_count):
+		_build_home_widget(widget_index)
+	var search := _search_field("Search your phone")
+	search.name = "AndroidHomeSearch"
+	page_container.add_child(search)
+	var apps_header := HBoxContainer.new()
+	apps_header.add_child(_label("FAVOURITES", 8, _accent_color()))
+	var manage := _label("ALL APPS  ›", 7, _muted_color())
+	manage.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	apps_header.add_child(manage)
+	page_container.add_child(apps_header)
+	_build_home_grid(data)
 
 func _build_home_header(title_text: String, subtitle_text: String) -> void:
 	var header := VBoxContainer.new()
@@ -679,21 +723,45 @@ func _build_home_categories(data: Dictionary) -> void:
 
 func _build_home_widget(widget_index: int) -> void:
 	var widget_names := ["Clock", "Weather", "Calendar", "Music"]
-	var widget_titles := ["09:41", "WEATHER  ·  LOCAL CONDITIONS", "UP NEXT  ·  CALENDAR", "NOW PLAYING"]
-	var widget_details := ["MONDAY  ·  YOUR DAY AT A GLANCE", "28°  ·  PARTLY CLOUDY", "Team meeting  ·  10:30 AM", "No track currently playing"]
 	var widget := PanelContainer.new()
 	widget.name = "HomeWidget_" + widget_names[widget_index]
 	widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	widget.custom_minimum_size.y = 66 if widget_index != 0 else 72
 	_style_surface(widget, true)
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 2)
+	content.add_theme_constant_override("separation", 3)
 	widget.add_child(content)
-	var heading := _label(widget_titles[widget_index], 20 if widget_index == 0 else 9, _text_color())
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if widget_index == 0 else HORIZONTAL_ALIGNMENT_LEFT
-	content.add_child(heading)
-	var detail := _label(widget_details[widget_index], 7, _muted_color())
-	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if widget_index == 0 else HORIZONTAL_ALIGNMENT_LEFT
-	content.add_child(detail)
+	match widget_index:
+		0:
+			content.add_child(_label("CLOCK  ·  WORLD TIME", 7, _accent_color()))
+			var time := _label("09:41", 25, _text_color())
+			time.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			content.add_child(time)
+			var day := _label("MON  ·  NOVEMBER 14", 7, _muted_color())
+			day.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			content.add_child(day)
+		1:
+			content.add_child(_label("WEATHER", 7, _accent_color()))
+			var weather_row := HBoxContainer.new()
+			weather_row.add_child(_label("☀", 23, _text_color()))
+			var weather_text := VBoxContainer.new()
+			weather_text.add_child(_label("28°  Partly cloudy", 12, _text_color()))
+			weather_text.add_child(_label("Feels like 31°  ·  H:30° L:24°", 7, _muted_color()))
+			weather_row.add_child(weather_text)
+			content.add_child(weather_row)
+		2:
+			content.add_child(_label("UP NEXT  ·  CALENDAR", 7, _accent_color()))
+			content.add_child(_label("14  MONDAY", 18, _text_color()))
+			content.add_child(_label("Team meeting  ·  10:30 AM", 8, _muted_color()))
+		3:
+			content.add_child(_label("NOW PLAYING", 7, _accent_color()))
+			var music_row := HBoxContainer.new()
+			music_row.add_child(_label("♫", 23, _text_color()))
+			var music_text := VBoxContainer.new()
+			music_text.add_child(_label("Your soundtrack", 10, _text_color()))
+			music_text.add_child(_label("No track currently playing", 7, _muted_color()))
+			music_row.add_child(music_text)
+			content.add_child(music_row)
 	page_container.add_child(widget)
 
 func _build_lock_screen(data: Dictionary) -> void:
@@ -820,8 +888,9 @@ func _build_animation_preview(data: Dictionary) -> void:
 	)
 	page_container.add_child(play)
 
-func _build_control_center(_data: Dictionary) -> void:
+func _build_control_center(data: Dictionary) -> void:
 	_add_section_label("QUICK SETTINGS")
+	var layout := str(data.get("tile_layout", "expanded"))
 	var grid := GridContainer.new()
 	grid.name = "QuickSettingsGrid"
 	grid.columns = 2
@@ -829,17 +898,65 @@ func _build_control_center(_data: Dictionary) -> void:
 	grid.add_theme_constant_override("h_separation", 7)
 	grid.add_theme_constant_override("v_separation", 7)
 	page_container.add_child(grid)
-	for item in ["Wi-Fi", "Bluetooth", "Airplane mode", "Flashlight", "Focus", "Battery saver"]:
-		var toggle := Button.new()
-		toggle.text = item
-		toggle.toggle_mode = true
-		toggle.button_pressed = item in ["Wi-Fi", "Bluetooth"]
-		toggle.custom_minimum_size.y = 42
-		_style_action_button(toggle, toggle.button_pressed)
-		toggle.toggled.connect(func(enabled: bool): _style_action_button(toggle, enabled))
-		grid.add_child(toggle)
-	_add_slider_row("Brightness", 72)
-	_add_slider_row("Volume", 58)
+	var toggles := [
+		["Wi-Fi", "◉", true], ["Bluetooth", "ᛒ", true],
+		["Mobile data", "▥", true], ["Airplane mode", "✈", false],
+		["Flashlight", "☼", false], ["Location", "⌖", true],
+		["Do not disturb", "◐", false], ["Battery saver", "▰", false],
+		["Auto-rotate", "⟳", true], ["Hotspot", "⌁", false],
+		["NFC", "◈", false], ["Nearby Share", "↗", false]
+	]
+	for item in toggles:
+		var tile := Button.new()
+		tile.name = "QuickTile_" + str(item[0]).replace(" ", "")
+		tile.toggle_mode = true
+		tile.button_pressed = bool(item[2])
+		tile.custom_minimum_size.y = 48 if layout == "expanded" else 39
+		tile.text = str(item[1]) + "   " + str(item[0])
+		tile.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_style_action_button(tile, tile.button_pressed)
+		tile.toggled.connect(func(enabled: bool) -> void: _style_action_button(tile, enabled))
+		grid.add_child(tile)
+	var media := PanelContainer.new()
+	media.name = "ControlCenterMediaCard"
+	media.custom_minimum_size.y = 57
+	_style_surface(media, true)
+	var media_row := HBoxContainer.new()
+	media.add_child(media_row)
+	var media_info := VBoxContainer.new()
+	media_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	media_info.add_child(_label("NOW PLAYING", 7, _accent_color()))
+	media_info.add_child(_label("No media playing", 9, _text_color()))
+	media_row.add_child(media_info)
+	media_row.add_child(_label("◀   ▶   ▷", 11, _text_color()))
+	page_container.add_child(media)
+	_add_control_slider("Brightness", 72, "☼")
+	_add_control_slider("Volume", 58, "♫")
+	var footer := HBoxContainer.new()
+	footer.add_child(_label("Connected  ·  Wi-Fi and mobile network", 7, _muted_color()))
+	page_container.add_child(footer)
+
+
+func _add_control_slider(caption: String, initial_value: float, glyph: String) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "ControlSlider_" + caption
+	_style_surface(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+	panel.add_child(row)
+	row.add_child(_label(glyph, 13, _accent_color()))
+	var slider_column := VBoxContainer.new()
+	slider_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_column.add_child(_label(caption, 7, _muted_color()))
+	var slider := HSlider.new()
+	slider.name = caption + "Slider"
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.value = initial_value
+	slider.custom_minimum_size.y = 20
+	slider_column.add_child(slider)
+	row.add_child(slider_column)
+	page_container.add_child(panel)
 
 func _build_notifications(data: Dictionary) -> void:
 	_add_section_label("NOTIFICATION PANEL")
@@ -883,29 +1000,59 @@ func _build_navigation_preview(data: Dictionary) -> void:
 func _build_app_drawer(data: Dictionary) -> void:
 	var heading_row := HBoxContainer.new()
 	heading_row.add_theme_constant_override("separation", 6)
-	var heading := _label("ALL APPS", 9, _accent_color())
-	heading_row.add_child(heading)
+	heading_row.add_child(_label("ALL APPS", 10, _accent_color()))
 	var count_label := _label("%02d INSTALLED" % OSEngine.APP_DEFINITIONS.size(), 7, _muted_color())
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading_row.add_child(count_label)
 	page_container.add_child(heading_row)
-
 	var search := _search_field("Search installed apps")
 	search.name = "AppDrawerSearchField"
-	page_container.add_child(search)
-
-	var grid := GridContainer.new()
-	grid.name = "AppDrawerGrid"
-	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 2, 6)
-	grid.columns = _responsive_columns(preferred_columns)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 7)
-	grid.add_theme_constant_override("v_separation", 10)
-	page_container.add_child(grid)
-	_populate_app_grid(grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
-	search.text_changed.connect(_on_app_search_changed.bind(grid))
-
+	if str(data.get("search_position", "top")) == "top":
+		page_container.add_child(search)
+	var layout := str(data.get("layout", "alphabetical"))
+	if layout == "categories":
+		var categories := {
+			"COMMUNICATION": ["Phone", "Messages", "Contacts", "Email", "Meet"],
+			"MEDIA": ["Camera", "Gallery", "Music", "Video", "Podcasts"],
+			"PRODUCTIVITY": ["Calendar", "Files", "Notes", "Clock", "Calculator", "Tasks"],
+			"GOOGLE & SERVICES": ["Maps", "Browser", "Store", "Weather", "Drive", "Photos"],
+			"SYSTEM": ["Settings", "Security", "Device Care", "Downloads", "Recorder", "Compass", "Wallet", "Assistant"]
+		}
+		for category_name in categories:
+			_add_section_label(category_name)
+			var category_grid := GridContainer.new()
+			category_grid.name = "AppDrawerCategory_" + category_name.replace(" ", "") 
+			category_grid.columns = _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
+			category_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			category_grid.add_theme_constant_override("h_separation", 7)
+			category_grid.add_theme_constant_override("v_separation", 10)
+			page_container.add_child(category_grid)
+			for app_name in categories[category_name]:
+				var app := _find_app(app_name)
+				if not app.is_empty():
+					category_grid.add_child(_create_app_icon(app, _responsive_icon_size(int(_style.get("icon_size", 52)), category_grid.columns), true))
+	else:
+		var horizontal := str(data.get("scroll_direction", "vertical")) == "horizontal"
+		var viewport := ScrollContainer.new()
+		viewport.name = "AppDrawerViewport"
+		viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if horizontal else ScrollContainer.SCROLL_MODE_DISABLED
+		viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED if horizontal else ScrollContainer.SCROLL_MODE_AUTO
+		page_container.add_child(viewport)
+		var grid := GridContainer.new()
+		grid.name = "AppDrawerGrid"
+		grid.columns = 3 if horizontal else _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL if not horizontal else Control.SIZE_SHRINK_BEGIN
+		grid.size_flags_vertical = Control.SIZE_EXPAND_FILL if horizontal else Control.SIZE_SHRINK_BEGIN
+		grid.add_theme_constant_override("h_separation", 8)
+		grid.add_theme_constant_override("v_separation", 12)
+		viewport.add_child(grid)
+		_populate_app_grid(grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
+	if str(data.get("search_position", "top")) == "bottom":
+		page_container.add_child(search)
+	search.text_changed.connect(_on_app_search_changed.bind(page_container.find_child("AppDrawerGrid", true, false)))
 
 func _build_recent_apps(_data: Dictionary) -> void:
 	var heading_row := HBoxContainer.new()
