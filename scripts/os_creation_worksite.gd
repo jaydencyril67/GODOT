@@ -447,7 +447,7 @@ func _build_home_generation_controls() -> void:
 
 	var heading := _label("GENERATION 01", 17, Color("#F0E9DD"))
 	content.add_child(heading)
-	var description := _label("Choose one of the 13 home-screen designs.", 12, Color("#B8B1A6"))
+	var description := _label("Choose one of the 10 home-screen designs.", 12, Color("#B8B1A6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(description)
 
@@ -512,7 +512,8 @@ func _build_selected_home_image(screen: PanelContainer) -> void:
 	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	image.texture = load(home_image_paths[home_image_index]) as Texture2D
 	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# Fill the complete phone display bounds: no crop and no letterboxing.
+	image.stretch_mode = TextureRect.STRETCH_SCALE
 	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	screen.add_child(image)
 
