@@ -1153,8 +1153,8 @@ func _run_transition_checks() -> void:
 		_fail("Successful research findings did not provide an Approve button.")
 		return
 	var captured_approvals: Array = []
-	review_dashboard.project_approve_requested.connect(func(project_id: String, results: Array) -> void:
-		captured_approvals.append({"project_id": project_id, "results": results.duplicate(true)})
+	review_dashboard.project_approve_requested.connect(func(approved_project_id: String, results: Array) -> void:
+		captured_approvals.append({"project_id": approved_project_id, "results": results.duplicate(true)})
 	)
 	findings_alert.call("_confirm")
 	if captured_approvals.size() != 1 or str(captured_approvals[0].get("project_id", "")) != "RDP-REVIEW-SMOKE":
@@ -1194,8 +1194,8 @@ func _run_transition_checks() -> void:
 		_fail("Failed research findings did not provide a Retry button.")
 		return
 	var captured_retries: Array = []
-	review_dashboard.project_retry_requested.connect(func(project_id: String) -> void:
-		captured_retries.append(project_id)
+	review_dashboard.project_retry_requested.connect(func(retried_project_id: String) -> void:
+		captured_retries.append(retried_project_id)
 	)
 	findings_alert.call("_confirm")
 	if captured_retries.size() != 1 or str(captured_retries[0]) != "RDP-FAILED-SMOKE":
