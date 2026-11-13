@@ -37,7 +37,25 @@ const APP_DEFINITIONS := [
 	{"name": "Files", "glyph": "▤", "color": "#A58B5A"},
 	{"name": "Clock", "glyph": "◷", "color": "#6688B7"},
 	{"name": "Maps", "glyph": "⌖", "color": "#4F9D82"},
-	{"name": "Notes", "glyph": "▤", "color": "#B18E56"}
+	{"name": "Notes", "glyph": "▤", "color": "#B18E56"},
+	{"name": "Contacts", "glyph": "♙", "color": "#568FA8"},
+	{"name": "Email", "glyph": "✉", "color": "#B87962"},
+	{"name": "Calculator", "glyph": "＋", "color": "#728C9E"},
+	{"name": "Weather", "glyph": "☀", "color": "#C18C55"},
+	{"name": "Downloads", "glyph": "↓", "color": "#8B7CB5"},
+	{"name": "Recorder", "glyph": "◉", "color": "#B66C76"},
+	{"name": "Video", "glyph": "▶", "color": "#A36F9D"},
+	{"name": "Store", "glyph": "▣", "color": "#5D9B83"},
+	{"name": "Security", "glyph": "◇", "color": "#6488A8"},
+	{"name": "Device Care", "glyph": "✚", "color": "#6E9D82"},
+	{"name": "Drive", "glyph": "△", "color": "#B99A58"},
+	{"name": "Photos", "glyph": "✿", "color": "#B77A9B"},
+	{"name": "Podcasts", "glyph": "◖", "color": "#9277B5"},
+	{"name": "Tasks", "glyph": "☑", "color": "#638D9D"},
+	{"name": "Wallet", "glyph": "▱", "color": "#A88762"},
+	{"name": "Compass", "glyph": "⊕", "color": "#648A9E"},
+	{"name": "Assistant", "glyph": "✧", "color": "#8D83BC"},
+	{"name": "Meet", "glyph": "◉", "color": "#5E9A8B"}
 ]
 
 static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary:
@@ -280,7 +298,8 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 			return {
 				"layout": ["alphabetical", "categories", "frequent_first"][rng.randi_range(0, 2)],
 				"columns": int(style.get("grid_columns", 4)),
-				"search_position": ["top", "bottom"][rng.randi_range(0, 1)]
+				"search_position": ["top", "bottom"][rng.randi_range(0, 1)],
+				"scroll_direction": ["vertical", "horizontal"][rng.randi_range(0, 1)]
 			}
 		"recent_apps":
 			return {
