@@ -53,7 +53,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 	var generation_number := clampi(generation, 1, 3)
 	var palette: Dictionary = PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
 	var icon_shapes := ["soft_square", "rounded", "squircle"]
-	var columns := [4, 4, 5][generation_number - 1]
+	var columns: int = [4, 4, 5][generation_number - 1]
 	var wallpaper_id: String = WALLPAPER_STYLES[rng.randi_range(0, WALLPAPER_STYLES.size() - 1)]
 	var config := {
 		"schema_version": SCHEMA_VERSION,
