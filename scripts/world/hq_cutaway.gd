@@ -38,7 +38,6 @@ func _build_scene() -> void:
 	var floor_middle := _mat(Color("#777f7b"), 0.84)
 	var floor_right := _mat(Color("#918b7f"), 0.86)
 	var wall := _mat(Color("#c4c4bd"), 0.92)
-	var partition := _mat(Color("#aeb8b5"), 0.42, 0.18)
 	var dark := _mat(Color("#202a2b"), 0.58, 0.32)
 	var aluminum := _mat(Color("#87918f"), 0.38, 0.78)
 	var desk := _mat(Color("#55483b"), 0.62)
@@ -181,9 +180,9 @@ func _build_scene() -> void:
 	_label("EXIT", Vector3(0, 3.15, 6.96), Color("#dcf2d4"))
 	_add_static_avatar(Vector3(0, 0.2, 4.7))
 
-func _add_desk(position: Vector3, rotation_y: float, desk: Material, dark: Material, screen: Material, aluminum: Material, rubber: Material, light_desk: Material) -> void:
+func _add_desk(local_position: Vector3, rotation_y: float, desk: Material, dark: Material, screen: Material, aluminum: Material, rubber: Material, light_desk: Material) -> void:
 	var group := Node3D.new()
-	group.position = position
+	group.local_position = local_position
 	group.rotation.y = rotation_y
 	add_child(group)
 	_box("Workstation_Desk_Top", Vector3(1.95, 0.13, 0.92), Vector3(0, 0.91, 0), desk, group)
@@ -200,28 +199,28 @@ func _add_desk(position: Vector3, rotation_y: float, desk: Material, dark: Mater
 	_cylinder("Office_Chair_Column", 0.055, 0.055, 0.38, Vector3(0, 0.26, 0.88), aluminum, group)
 	_box("Office_Chair_Base", Vector3(0.8, 0.06, 0.06), Vector3(0, 0.09, 0.88), dark, group)
 
-func _add_machine(position: Vector3, machine: Material, light: Material, dark: Material, rubber: Material, steel: Material, glass: Material, status: Material, accent: Material) -> void:
-	_box("Industrial_Machine_Cabinet", Vector3(1.42, 1.45, 1.72), position, machine)
-	_box("Machine_Enclosure", Vector3(1.18, 0.88, 1.5), position + Vector3(0, 0.13, 0), light)
-	_box("Machine_Base_Trim", Vector3(1.04, 0.04, 1.36), position + Vector3(0, 0.6, 0), rubber)
-	_box("Machine_Service_Panel", Vector3(0.44, 0.19, 0.08), position + Vector3(0, 0.83, 0.9), dark)
-	_box("Machine_Status_Display", Vector3(0.32, 0.1, 0.035), position + Vector3(0, 0.84, 0.95), status)
-	_box("Machine_Inspection_Frame", Vector3(0.68, 0.48, 0.065), position + Vector3(0, 0.3, 0.9), dark)
-	_box("Machine_Inspection_Glass", Vector3(0.56, 0.34, 0.025), position + Vector3(0, 0.3, 0.95), glass)
+func _add_machine(local_position: Vector3, machine: Material, light: Material, dark: Material, rubber: Material, steel: Material, glass: Material, status: Material, _accent: Material) -> void:
+	_box("Industrial_Machine_Cabinet", Vector3(1.42, 1.45, 1.72), local_position, machine)
+	_box("Machine_Enclosure", Vector3(1.18, 0.88, 1.5), local_position + Vector3(0, 0.13, 0), light)
+	_box("Machine_Base_Trim", Vector3(1.04, 0.04, 1.36), local_position + Vector3(0, 0.6, 0), rubber)
+	_box("Machine_Service_Panel", Vector3(0.44, 0.19, 0.08), local_position + Vector3(0, 0.83, 0.9), dark)
+	_box("Machine_Status_Display", Vector3(0.32, 0.1, 0.035), local_position + Vector3(0, 0.84, 0.95), status)
+	_box("Machine_Inspection_Frame", Vector3(0.68, 0.48, 0.065), local_position + Vector3(0, 0.3, 0.9), dark)
+	_box("Machine_Inspection_Glass", Vector3(0.56, 0.34, 0.025), local_position + Vector3(0, 0.3, 0.95), glass)
 	for index in range(7):
-		_box("Machine_Vent", Vector3(0.58, 0.025, 0.018), position + Vector3(0, -0.2 + float(index) * 0.085, 0.875), dark)
+		_box("Machine_Vent", Vector3(0.58, 0.025, 0.018), local_position + Vector3(0, -0.2 + float(index) * 0.085, 0.875), dark)
 	for side in [-1.0, 1.0]:
-		_cylinder("Machine_Foot", 0.035, 0.035, 0.022, position + Vector3(side * 0.5, -0.7, 0.55), steel)
+		_cylinder("Machine_Foot", 0.035, 0.035, 0.022, local_position + Vector3(side * 0.5, -0.7, 0.55), steel)
 
-func _add_carton(position: Vector3, size: Vector3, body: Material, seam: Material, tape: Material) -> void:
-	_box("Cardboard_Carton", size, position, body)
-	_box("Carton_Top_Seam", Vector3(size.x + 0.012, 0.025, size.z + 0.012), position + Vector3(0, size.y * 0.5 - 0.035, 0), seam)
-	_box("Carton_Tape", Vector3(0.045, size.y * 0.6, 0.026), position + Vector3(0, 0.01, size.z * 0.5 + 0.015), tape)
+func _add_carton(local_position: Vector3, size: Vector3, body: Material, seam: Material, tape: Material) -> void:
+	_box("Cardboard_Carton", size, local_position, body)
+	_box("Carton_Top_Seam", Vector3(size.x + 0.012, 0.025, size.z + 0.012), local_position + Vector3(0, size.y * 0.5 - 0.035, 0), seam)
+	_box("Carton_Tape", Vector3(0.045, size.y * 0.6, 0.026), local_position + Vector3(0, 0.01, size.z * 0.5 + 0.015), tape)
 
-func _add_static_avatar(position: Vector3) -> void:
+func _add_static_avatar(local_position: Vector3) -> void:
 	var avatar := Node3D.new()
 	avatar.name = "Founder_Reference_Avatar"
-	avatar.position = position
+	avatar.local_position = local_position
 	add_child(avatar)
 	var clothes := _mat(Color("#344f49"), 0.88)
 	var pants := _mat(Color("#303b3c"), 0.92)
@@ -236,21 +235,21 @@ func _add_static_avatar(position: Vector3) -> void:
 	_capsule(avatar, 0.07, 0.48, Vector3(-0.32, 1.29, 0), clothes)
 	_capsule(avatar, 0.07, 0.48, Vector3(0.32, 1.29, 0), clothes)
 
-func _box(node_name: String, size: Vector3, position: Vector3, material: Material, parent: Node3D = null) -> MeshInstance3D:
+func _box(node_name: String, size: Vector3, local_position: Vector3, material: Material, parent: Node3D = null) -> MeshInstance3D:
 	var target: Node3D = self if parent == null else parent
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = node_name
 	var box := BoxMesh.new()
 	box.size = size
 	mesh_instance.mesh = box
-	mesh_instance.position = position
+	mesh_instance.local_position = local_position
 	mesh_instance.material_override = material
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	mesh_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	target.add_child(mesh_instance)
 	return mesh_instance
 
-func _cylinder(node_name: String, top_radius: float, bottom_radius: float, height: float, position: Vector3, material: Material, parent: Node3D = null) -> MeshInstance3D:
+func _cylinder(node_name: String, top_radius: float, bottom_radius: float, height: float, local_position: Vector3, material: Material, parent: Node3D = null) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = node_name
 	var cylinder := CylinderMesh.new()
@@ -259,48 +258,48 @@ func _cylinder(node_name: String, top_radius: float, bottom_radius: float, heigh
 	cylinder.height = height
 	cylinder.radial_segments = 16
 	mesh_instance.mesh = cylinder
-	mesh_instance.position = position
+	mesh_instance.local_position = local_position
 	mesh_instance.material_override = material
 	var target: Node3D = self if parent == null else parent
 	target.add_child(mesh_instance)
 	return mesh_instance
 
-func _capsule(parent: Node3D, radius: float, height: float, position: Vector3, material: Material) -> MeshInstance3D:
+func _capsule(parent: Node3D, radius: float, height: float, local_position: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
 	mesh.radius = radius
 	mesh.height = height
 	mesh_instance.mesh = mesh
-	mesh_instance.position = position
+	mesh_instance.local_position = local_position
 	mesh_instance.material_override = material
 	parent.add_child(mesh_instance)
 	return mesh_instance
 
-func _sphere(parent: Node3D, radius: float, position: Vector3, material: Material) -> MeshInstance3D:
+func _sphere(parent: Node3D, radius: float, local_position: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
 	sphere.radius = radius
 	sphere.height = radius * 2.0
 	mesh_instance.mesh = sphere
-	mesh_instance.position = position
+	mesh_instance.local_position = local_position
 	mesh_instance.material_override = material
 	parent.add_child(mesh_instance)
 	return mesh_instance
 
-func _label(text: String, position: Vector3, accent: Color) -> void:
-	var board := _box("Room_Sign", Vector3(4.55, 1.08, 0.08), position - Vector3(0, 0, 0.045), _mat(Color("#273330"), 0.8))
-	var sign := Label3D.new()
-	sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	sign.text = text
-	sign.font_size = 34
-	sign.pixel_size = 0.012
-	sign.modulate = Color("#e9eee4")
-	sign.outline_size = 7
-	sign.outline_modulate = Color("#273330")
-	sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sign.position = position + Vector3(0, 0, 0.01)
-	add_child(sign)
-	_box("Room_Sign_Accent", Vector3(0.08, 1.02, 0.025), position + Vector3(-2.2, 0, 0.02), _mat(accent, 0.6))
+func _label(text: String, local_position: Vector3, accent: Color) -> void:
+	_box("Room_Sign", Vector3(4.55, 1.08, 0.08), local_position - Vector3(0, 0, 0.045), _mat(Color("#273330"), 0.8))
+	var room_sign := Label3D.new()
+	room_sign.font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	room_sign.text = text
+	room_sign.font_size = 34
+	room_sign.pixel_size = 0.012
+	room_sign.modulate = Color("#e9eee4")
+	room_sign.outline_size = 7
+	room_sign.outline_modulate = Color("#273330")
+	room_sign.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	room_sign.local_position = local_position + Vector3(0, 0, 0.01)
+	add_child(room_sign)
+	_box("Room_Sign_Accent", Vector3(0.08, 1.02, 0.025), local_position + Vector3(-2.2, 0, 0.02), _mat(accent, 0.6))
 
 func _mat(color: Color, roughness: float = 0.8, metallic: float = 0.0) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
