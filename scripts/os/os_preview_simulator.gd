@@ -295,14 +295,60 @@ func _build_component(component_id: String) -> void:
 			_build_system_ui(component_data)
 
 func _build_home_screen(data: Dictionary) -> void:
+	var layout_style := str(data.get("layout_style", "ios_grid"))
 	var widget_count := clampi(int(_style.get("widget_count", data.get("widget_count", 0))), 0, 4)
+
+	match layout_style:
+		"android_pixel":
+			_build_home_header("At a glance", "Your day, at a glance")
+			_build_home_widgets(widget_count)
+			page_container.add_child(_search_field("Search apps"))
+			_add_section_label("FAVOURITES")
+			_build_home_grid(data)
+		"samsung_one_ui":
+			_build_home_header("Good evening", "Your phone, arranged for easy reach")
+			_build_home_widgets(widget_count)
+			_add_section_label("APPS")
+			_build_home_grid(data)
+		"windows_tiles":
+			_build_home_header("Start", "Pinned apps and live information")
+			_build_home_widgets(widget_count)
+			_add_section_label("PINNED")
+			_build_windows_tiles()
+		"compact_list":
+			_build_home_header("Applications", "A focused, space-efficient home")
+			page_container.add_child(_search_field("Find an app"))
+			_build_home_list()
+		"category_sections":
+			_build_home_header("Your apps", "Organised by what you do")
+			_build_home_widgets(widget_count)
+			_build_home_categories(data)
+		_:
+			_build_home_widgets(widget_count)
+			if bool(data.get("show_search", true)):
+				page_container.add_child(_search_field("Search apps and more"))
+			_add_section_label("YOUR APPS")
+			_build_home_grid(data)
+
+
+func _build_home_header(title_text: String, subtitle_text: String) -> void:
+	var header := VBoxContainer.new()
+	header.name = "HomeLayoutHeader"
+	header.add_theme_constant_override("separation", 1)
+	var title := _label(title_text, 18, _text_color())
+	title.add_theme_font_size_override("font_size", 18)
+	header.add_child(title)
+	var subtitle := _label(subtitle_text, 7, _muted_color())
+	header.add_child(subtitle)
+	page_container.add_child(header)
+
+
+func _build_home_widgets(widget_count: int) -> void:
 	for widget_index in range(widget_count):
 		_build_home_widget(widget_index)
 
-	if bool(data.get("show_search", true)):
-		page_container.add_child(_search_field("Search apps and more"))
 
-	_add_section_label("YOUR APPS")
+func _build_home_grid(data: Dictionary) -> void:
 	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 2, 6)
 	var columns := _responsive_columns(preferred_columns)
 	var apps_grid := GridContainer.new()
@@ -313,6 +359,77 @@ func _build_home_screen(data: Dictionary) -> void:
 	apps_grid.add_theme_constant_override("v_separation", 9)
 	page_container.add_child(apps_grid)
 	_populate_app_grid(apps_grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
+
+
+func _build_windows_tiles() -> void:
+	var tiles := GridContainer.new()
+	tiles.name = "WindowsLiveTileGrid"
+	tiles.columns = _responsive_columns(3)
+	tiles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tiles.add_theme_constant_override("h_separation", 5)
+	tiles.add_theme_constant_override("v_separation", 5)
+	page_container.add_child(tiles)
+	for app in OSEngine.APP_DEFINITIONS:
+		var tile := Button.new()
+		tile.name = "LiveTile_" + str(app.get("name", "App")).replace(" ", "")
+		tile.custom_minimum_size = Vector2(48, 54)
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tile.text = str(app.get("glyph", "•")) + "\n" + str(app.get("name", "App"))
+		tile.add_theme_font_size_override("font_size", 9)
+		_style_icon_button(tile, Color(str(app.get("color", "#687987"))), "square")
+		tile.pressed.connect(_on_app_pressed.bind(str(app.get("name", "App"))))
+		tiles.add_child(tile)
+
+
+func _build_home_list() -> void:
+	var app_list := VBoxContainer.new()
+	app_list.name = "HomeAppList"
+	app_list.add_theme_constant_override("separation", 4)
+	app_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_container.add_child(app_list)
+	for app in OSEngine.APP_DEFINITIONS:
+		var app_name := str(app.get("name", "App"))
+		var row := HBoxContainer.new()
+		row.name = "HomeListRow_" + app_name.replace(" ", "")
+		row.custom_minimum_size.y = 35
+		row.add_theme_constant_override("separation", 9)
+		var icon := Button.new()
+		icon.custom_minimum_size = Vector2(30, 30)
+		icon.text = str(app.get("glyph", "•"))
+		_style_icon_button(icon, Color(str(app.get("color", "#687987"))), "square")
+		icon.pressed.connect(_on_app_pressed.bind(app_name))
+		row.add_child(icon)
+		var label := _label(app_name, 9, _text_color())
+		row.add_child(label)
+		var open_button := Button.new()
+		open_button.text = "›"
+		open_button.custom_minimum_size = Vector2(24, 28)
+		_style_action_button(open_button)
+		open_button.pressed.connect(_on_app_pressed.bind(app_name))
+		row.add_child(open_button)
+		app_list.add_child(row)
+
+
+func _build_home_categories(data: Dictionary) -> void:
+	var groups := {
+		"COMMUNICATION": ["Phone", "Messages"],
+		"MEDIA": ["Camera", "Gallery", "Music"],
+		"PRODUCTIVITY": ["Calendar", "Files", "Notes", "Clock"],
+		"DISCOVER": ["Browser", "Maps", "Settings"]
+	}
+	for group_name in groups:
+		_add_section_label(group_name)
+		var group_grid := GridContainer.new()
+		group_grid.name = "HomeCategory_" + group_name.replace(" ", "") + "Grid"
+		group_grid.columns = _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
+		group_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		group_grid.add_theme_constant_override("h_separation", 7)
+		group_grid.add_theme_constant_override("v_separation", 8)
+		page_container.add_child(group_grid)
+		for app_name in groups[group_name]:
+			var app := _find_app(app_name)
+			if not app.is_empty():
+				group_grid.add_child(_create_app_icon(app, _responsive_icon_size(int(_style.get("icon_size", 52)), group_grid.columns), true))
 
 
 func _build_home_widget(widget_index: int) -> void:
