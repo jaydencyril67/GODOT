@@ -92,7 +92,7 @@ func _build_shell() -> void:
 	_building = true
 	for child in get_children():
 		remove_child(child)
-		child.queue_free()
+		child.free()
 
 	_style = configuration.get("style", {})
 	_palette = _style.get("palette", {"background":"#0B1017","surface":"#19232E","surface_alt":"#263544","accent":"#76C8D4","text":"#F4F7F8","muted":"#A7B4BD"})
