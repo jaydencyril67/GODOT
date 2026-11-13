@@ -157,7 +157,7 @@ func _run_os_generator_test() -> void:
 	await process_frame
 
 	# Exercise the same gesture router used by touch and mouse input.
-	simulator.call("_handle_system_gesture", Vector2(60, 2), Vector2(60, 70), 100)
+	_simulate_touch_swipe(simulator, Vector2(60, 2), Vector2(60, 70), 100)
 	await process_frame
 	if simulator.find_child("OSGestureOverlay_notifications", true, false) == null:
 		_fail("Top-left swipe did not open the notification panel.")
@@ -284,6 +284,20 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	print("OS_GENERATOR_SMOKE_TEST: PASS")
 	quit(0)
+
+func _simulate_touch_swipe(simulator: Control, start: Vector2, finish: Vector2, duration_ms: int) -> void:
+	var press := InputEventScreenTouch.new()
+	press.index = 0
+	press.position = start
+	press.pressed = true
+	simulator.call("_input", press)
+	simulator.set("_gesture_start_time", Time.get_ticks_msec() - duration_ms)
+	var release := InputEventScreenTouch.new()
+	release.index = 0
+	release.position = finish
+	release.pressed = false
+	simulator.call("_input", release)
+
 
 func _fail(message: String) -> void:
 	push_error("OS_GENERATOR_SMOKE_TEST: " + message)
