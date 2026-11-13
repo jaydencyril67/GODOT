@@ -331,7 +331,7 @@ func _add_app_grid(columns: int, app_count: int, show_labels: bool) -> void:
 		button.text = str(app["glyph"])
 		button.custom_minimum_size = Vector2(24, 25)
 		button.add_theme_font_size_override("font_size", 12)
-		_style_icon_button(button, _app_color(str(app["name"])), str(_style.get("icon_shape", "rounded")))
+		_style_icon_button(button, _app_color(str(app["name"])), str(configuration.get("components", {}).get("app_icons", {}).get("shape", _style.get("icon_shape", "rounded"))))
 		button.pressed.connect(_on_app_pressed.bind(str(app["name"])))
 		tile.add_child(button)
 		if show_labels:
