@@ -28,6 +28,25 @@ func _run_os_generator_test() -> void:
 			_fail("Missing generated component: " + str(component["id"]))
 			return
 
+	var expected_radii := [0, 6, 18]
+	var expected_widgets := [0, 2, 4]
+	for generation_number in range(1, 4):
+		var generation_config := ProceduralEngineScript.generate_os(7000 + generation_number, generation_number)
+		var generation_style: Dictionary = generation_config.get("style", {})
+		if int(generation_style.get("corner_radius", -1)) != expected_radii[generation_number - 1]:
+			_fail("Generation-specific corner radius is incorrect for generation %d." % generation_number)
+			return
+		if int(generation_style.get("widget_count", -1)) != expected_widgets[generation_number - 1]:
+			_fail("Generation-specific widget count is incorrect for generation %d." % generation_number)
+			return
+		var tampered_config := generation_config.duplicate(true)
+		tampered_config["style"]["corner_radius"] = 27
+		tampered_config["style"]["widget_count"] = 99
+		var enforced_config := ProceduralEngineScript.normalize_os(tampered_config)
+		if int(enforced_config["style"]["corner_radius"]) != expected_radii[generation_number - 1] or int(enforced_config["style"]["widget_count"]) != expected_widgets[generation_number - 1]:
+			_fail("Users can override generation-locked visual rules for generation %d." % generation_number)
+			return
+
 	var legacy_config := generated.duplicate(true)
 	legacy_config["schema_version"] = 1
 	legacy_config["style"]["wallpaper"] = "res://legacy/old_wallpaper.png"
