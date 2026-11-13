@@ -839,7 +839,11 @@ func _build_component_selection_scene() -> void:
 	_build_component_page_navigation()
 	_show_component_page(0)
 
-	var actions: BoxContainer = VBoxContainer.new() if _is_narrow_layout() else HBoxContainer.new()
+	var actions: BoxContainer
+	if _is_narrow_layout():
+		actions = VBoxContainer.new()
+	else:
+		actions = HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	actions.add_theme_constant_override("separation", roundi(_scaled(12.0)))
@@ -994,7 +998,11 @@ func _build_staff_selection_scene() -> void:
 	_build_staff_page_navigation()
 	_show_staff_page(0)
 
-	var actions: BoxContainer = VBoxContainer.new() if _is_narrow_layout() else HBoxContainer.new()
+	var actions: BoxContainer
+	if _is_narrow_layout():
+		actions = VBoxContainer.new()
+	else:
+		actions = HBoxContainer.new()
 	actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	actions.add_theme_constant_override("separation", roundi(_scaled(12.0)))
@@ -1615,7 +1623,7 @@ func _label(value: String, font_size: int, color: Color, alignment: int = HORIZO
 	label.text = value
 	label.add_theme_font_size_override("font_size", _scaled_font(font_size))
 	label.add_theme_color_override("font_color", color)
-	label.horizontal_alignment = alignment
+	label.horizontal_alignment = alignment as HorizontalAlignment
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	# Preserve whole words in tight rows. SMART can split short words into
 	# one character per line when a container is temporarily too narrow.
