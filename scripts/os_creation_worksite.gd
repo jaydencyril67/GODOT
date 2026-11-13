@@ -280,13 +280,13 @@ func _build_interface() -> void:
 	# Progress indicator is independently anchored to the top-center of the scene.
 	var progress := VBoxContainer.new()
 	progress.name = "OSWorksiteProgress"
-	progress.anchor_left = 0.5
-	progress.anchor_right = 0.5
+	progress.anchor_left = 1.0
+	progress.anchor_right = 1.0
 	progress.anchor_top = 0.0
 	progress.anchor_bottom = 0.0
-	progress.offset_left = -75.0
+	progress.offset_left = -170.0
 	progress.offset_top = 12.0
-	progress.offset_right = 75.0
+	progress.offset_right = -20.0
 	progress.offset_bottom = 50.0
 	progress.add_theme_constant_override("separation", 4)
 	root.add_child(progress)
