@@ -27,6 +27,15 @@ func _run_os_generator_test() -> void:
 		_fail("Wallpaper regeneration did not keep the home screen wallpaper in sync.")
 		return
 
+	var themed := Engine.regenerate_component(generated, "themes_appearance", 97531)
+	if themed["style"]["palette"] != themed["components"]["themes_appearance"]["palette"]:
+		_fail("Theme regeneration did not update the shared OS palette.")
+		return
+	var icons := Engine.regenerate_component(generated, "app_icons", 86420)
+	if icons["style"]["icon_shape"] != icons["components"]["app_icons"]["shape"]:
+		_fail("Icon regeneration did not update the shared OS icon shape.")
+		return
+
 	var test_save_path := "user://os_generator_smoke_test.json"
 	if not Engine.save_os(wallpaper_regenerated, test_save_path):
 		_fail("Generated OS configuration could not be saved.")
