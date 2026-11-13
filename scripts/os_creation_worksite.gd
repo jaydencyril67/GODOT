@@ -357,7 +357,7 @@ func _build_home_generation_controls() -> void:
 	select_button.pressed.connect(_select_generated_os)
 	content.add_child(select_button)
 
-	home_generation_status = _label("READY · 12 COMPONENTS", 10, Color("#C58A3A"))
+	home_generation_status = _label("READY · 6 CORE COMPONENTS", 10, Color("#C58A3A"))
 	home_generation_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(home_generation_status)
 
@@ -398,7 +398,7 @@ func _generate_complete_os() -> void:
 		return
 	if is_instance_valid(progress_bar):
 		progress_bar.value = 1.0
-	_set_os_generation_status("GENERATED · %s · 12 COMPONENTS READY" % str(generated_os_configuration.get("name", "NEW OS")))
+	_set_os_generation_status("GENERATED · %s · 6 CORE COMPONENTS READY" % str(generated_os_configuration.get("name", "NEW OS")))
 	os_generation_busy = false
 
 func _regenerate_selected_component() -> void:
