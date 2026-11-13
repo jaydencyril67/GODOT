@@ -96,7 +96,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/os_generator_smoke.gd 2>&1 | tee os-generator-smoke.log
+          godot --verbose --headless --path . --script res://scripts/tests/os_generator_smoke.gd 2>&1 | tee os-generator-smoke.log
           grep -q "OS_GENERATOR_SMOKE_TEST: PASS" os-generator-smoke.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_GENERATOR_SMOKE_TEST:.*(FAIL|ERROR)' os-generator-smoke.log; then
             echo "Godot reported an error during the OS generator smoke test."
