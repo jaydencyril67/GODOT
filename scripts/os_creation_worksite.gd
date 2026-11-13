@@ -831,16 +831,6 @@ func _android_era_label(caption: String, font_size: int, color: Color) -> Label:
 	label.clip_text = true
 	return label
 
-func _android_era_label(caption: String, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = caption
-	label.add_theme_font_override("font", ThemeDB.fallback_font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.clip_text = true
-	return label
-
 func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder: bool = false) -> Control:
 	var item := VBoxContainer.new()
 	item.name = "HomeApp_" + app_name.replace(" ", "")
