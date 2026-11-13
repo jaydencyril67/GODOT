@@ -49,6 +49,155 @@ class GlassArrowButton extends Button:
 		draw_line(centre + Vector2(-direction * 5.0, 0), centre + Vector2(direction * 6.0, 0), Color("#F2EDE4"), 2.8, true)
 
 
+class Android10WorkspaceArt extends Control:
+	var ui_font: Font
+
+	func _ready() -> void:
+		ui_font = ThemeDB.fallback_font
+		queue_redraw()
+
+	func _draw() -> void:
+		if size.x <= 0.0 or size.y <= 0.0:
+			return
+		draw_set_transform(Vector2.ZERO, 0.0, size / Vector2(320.0, 420.0))
+
+		# A blue, distant shoreline/water wallpaper treatment matching the G1 reference.
+		for y in range(0, 420, 3):
+			var band: Color
+			if y < 126:
+				band = Color("#65B7E7").lerp(Color("#B8E3F2"), float(y) / 126.0)
+			elif y < 158:
+				band = Color("#B8E3F2").lerp(Color("#DCEBF0"), float(y - 126) / 32.0)
+			elif y < 188:
+				band = Color("#B7D6E4").lerp(Color("#3D9CD2"), float(y - 158) / 30.0)
+			else:
+				band = Color("#1687CC").lerp(Color("#064A9F"), float(y - 188) / 232.0)
+			draw_rect(Rect2(0, y, 320, 3), band)
+
+		# Distant pale shoreline and the soft blue land forms visible behind the icons.
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(0, 145), Vector2(28, 140), Vector2(54, 143), Vector2(84, 136),
+			Vector2(108, 141), Vector2(139, 135), Vector2(166, 142), Vector2(194, 137),
+			Vector2(221, 143), Vector2(248, 137), Vector2(280, 141), Vector2(320, 136),
+			Vector2(320, 170), Vector2(0, 170)
+		]), Color("#D5E7EC"))
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(0, 154), Vector2(48, 150), Vector2(82, 155), Vector2(118, 149),
+			Vector2(151, 155), Vector2(188, 151), Vector2(224, 157), Vector2(260, 151),
+			Vector2(290, 156), Vector2(320, 150), Vector2(320, 178), Vector2(0, 178)
+		]), Color("#8ABDD5"))
+		draw_line(Vector2(0, 179), Vector2(320, 179), Color(0.80, 0.91, 0.96, 0.58), 1.0)
+
+		# Subtle water highlights; the original wallpaper stays blue and low-contrast.
+		for i in range(13):
+			var y := 194.0 + float(i) * 15.0
+			var left := float((i * 37) % 74)
+			var line_width := 42.0 + float((i * 19) % 66)
+			draw_line(Vector2(left, y), Vector2(minf(318.0, left + line_width), y), Color(0.72, 0.89, 0.98, 0.17), 1.0, true)
+			draw_line(Vector2(190.0 + float((i * 23) % 74), y + 5.0), Vector2(270.0 + float((i * 11) % 45), y + 5.0), Color(0.02, 0.30, 0.62, 0.12), 1.0, true)
+
+		# Six original-era shortcuts, with individual illustrated artwork rather than modern icon tiles.
+		_draw_shortcut(Vector2(35, 202), "Messaging", 0)
+		_draw_shortcut(Vector2(285, 202), "Market", 1)
+		_draw_shortcut(Vector2(37, 300), "Dialer", 2)
+		_draw_shortcut(Vector2(119, 300), "Contacts", 3)
+		_draw_shortcut(Vector2(201, 300), "Browser", 4)
+		_draw_shortcut(Vector2(283, 300), "Google Maps", 5)
+
+		# The visible pull-tab for All Apps is the defining bottom control, not a dock.
+		var tab := Rect2(119, 383, 82, 30)
+		draw_rect(Rect2(tab.position + Vector2(0, 2), tab.size), Color(0.02, 0.10, 0.24, 0.34))
+		draw_rect(tab, Color("#8ABBDD"))
+		draw_rect(Rect2(120, 384, 80, 28), Color("#B7D9EE"))
+		draw_line(Vector2(121, 385), Vector2(199, 385), Color("#E0F1FA"), 1.0)
+		draw_line(Vector2(121, 410), Vector2(199, 410), Color("#477CA8"), 1.0)
+		draw_circle(Vector2(160, 398), 10.0, Color("#6FA6CC"))
+		draw_arc(Vector2(160, 398), 9.0, 0.0, TAU, 32, Color("#E4F3FA"), 1.0, true)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(160, 392), Vector2(154, 400), Vector2(158, 400),
+			Vector2(158, 404), Vector2(162, 404), Vector2(162, 400),
+			Vector2(166, 400)
+		]), Color("#F7FCFF"))
+
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	func _draw_shortcut(center: Vector2, title: String, kind: int) -> void:
+		var icon_rect := Rect2(center - Vector2(17, 18), Vector2(34, 34))
+		draw_rect(Rect2(icon_rect.position + Vector2(1, 2), icon_rect.size), Color(0.02, 0.08, 0.18, 0.34))
+		var base_colors := [
+			Color("#C5E2EF"), Color("#D6E8D8"), Color("#2C78B5"),
+			Color("#D5E1EA"), Color("#B8D9DE"), Color("#F1E5C2")
+		]
+		draw_rect(icon_rect, base_colors[kind])
+		draw_rect(icon_rect, Color(0.92, 0.97, 1.0, 0.80), false, 1.0)
+		draw_line(icon_rect.position + Vector2(1, 1), icon_rect.position + Vector2(32, 1), Color(1, 1, 1, 0.62), 1.0)
+
+		match kind:
+			0:
+				# Messaging: an old-style blue message envelope.
+				draw_rect(Rect2(center + Vector2(-12, -9), Vector2(24, 17)), Color("#4E91BE"))
+				draw_rect(Rect2(center + Vector2(-10, -7), Vector2(20, 13)), Color("#EDF5F8"))
+				draw_line(center + Vector2(-10, -7), center + Vector2(0, 1), Color("#4D8FB9"), 2.0, true)
+				draw_line(center + Vector2(10, -7), center + Vector2(0, 1), Color("#4D8FB9"), 2.0, true)
+				draw_line(center + Vector2(-10, 6), center + Vector2(-1, -1), Color("#77AAC7"), 1.0, true)
+				draw_line(center + Vector2(10, 6), center + Vector2(1, -1), Color("#77AAC7"), 1.0, true)
+			1:
+				# Market: a pale green shopping bag with a small Android-era mascot.
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-11, -7), center + Vector2(11, -7),
+					center + Vector2(9, 11), center + Vector2(-9, 11)
+				]), Color("#6CA77B"))
+				draw_arc(center + Vector2(0, -7), 6.0, PI, TAU, 16, Color("#39784C"), 2.0, true)
+				draw_circle(center, 4.2, Color("#D9F0D9"))
+				draw_circle(center + Vector2(-1.5, -1), 0.8, Color("#48885B"))
+				draw_circle(center + Vector2(1.5, -1), 0.8, Color("#48885B"))
+				draw_line(center + Vector2(-2, 3), center + Vector2(2, 3), Color("#48885B"), 1.0)
+			2:
+				# Dialer: a light handset on a dark blue square.
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-11, -9), center + Vector2(-7, -12),
+					center + Vector2(-3, -7), center + Vector2(-6, -3),
+					center + Vector2(4, 7), center + Vector2(8, 4),
+					center + Vector2(12, 9), center + Vector2(8, 13),
+					center + Vector2(2, 12), center + Vector2(-8, 2)
+				]), Color("#EDF5FB"))
+				draw_line(center + Vector2(-8, -9), center + Vector2(8, 9), Color("#9CC7DF"), 1.0, true)
+			3:
+				# Contacts: a small two-page address book and a profile silhouette.
+				draw_rect(Rect2(center + Vector2(-12, -12), Vector2(24, 24)), Color("#9BAFBD"))
+				draw_rect(Rect2(center + Vector2(-9, -10), Vector2(18, 20)), Color("#F5F7F8"))
+				draw_rect(Rect2(center + Vector2(-9, -10), Vector2(4, 20)), Color("#557C9B"))
+				draw_circle(center + Vector2(4, -3), 4.0, Color("#82A6BD"))
+				draw_arc(center + Vector2(4, 7), 7.0, PI, TAU, 20, Color("#82A6BD"), 3.0, true)
+			4:
+				# Browser: a glossy blue-green globe.
+				draw_circle(center, 12.0, Color("#347F9C"))
+				draw_circle(center, 10.0, Color("#83C4C0"))
+				draw_arc(center, 9.0, 0.0, TAU, 28, Color("#E1F3E9"), 1.2, true)
+				draw_arc(center, 5.0, 0.0, TAU, 24, Color("#E1F3E9"), 1.0, true)
+				draw_line(center + Vector2(-10, 0), center + Vector2(10, 0), Color("#E1F3E9"), 1.0)
+				draw_line(center + Vector2(-8, -5), center + Vector2(8, -5), Color("#E1F3E9"), 1.0)
+				draw_line(center + Vector2(-8, 5), center + Vector2(8, 5), Color("#E1F3E9"), 1.0)
+			5:
+				# Maps: folded map panels with a location marker.
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2(-12, -9), center + Vector2(-3, -12),
+					center + Vector2(4, -8), center + Vector2(12, -11),
+					center + Vector2(12, 10), center + Vector2(4, 12),
+					center + Vector2(-3, 8), center + Vector2(-12, 11)
+				]), Color("#F6F1DC"))
+				draw_line(center + Vector2(-3, -11), center + Vector2(-3, 8), Color("#80AF91"), 2.0)
+				draw_line(center + Vector2(4, -8), center + Vector2(4, 11), Color("#83A6C0"), 2.0)
+				draw_circle(center + Vector2(2, -1), 5.0, Color("#D45B4E"))
+				draw_circle(center + Vector2(2, -1), 1.8, Color("#FFF6E8"))
+
+		var label_width := maxf(30.0, float(title.length()) * 5.3 + 8.0)
+		var label_rect := Rect2(Vector2(center.x - label_width * 0.5, center.y + 18.0), Vector2(label_width, 14.0))
+		draw_rect(label_rect, Color(0.02, 0.07, 0.16, 0.72))
+		if is_instance_valid(ui_font):
+			draw_string(ui_font, Vector2(label_rect.position.x, label_rect.position.y + 10.5), title, HORIZONTAL_ALIGNMENT_CENTER, label_width, 8, Color("#FFFFFF"))
+
+
 func _ready() -> void:
 	_build_interface()
 
@@ -606,128 +755,85 @@ func _build_android_10_home_screen_preview(screen: PanelContainer) -> void:
 	content.add_theme_constant_override("separation", 0)
 	screen.add_child(content)
 
-	# Android 1.0's compact, dark system status bar.
-	var status_bar := HBoxContainer.new()
+	# Android 1.0's blue notification/status strip from the HTC Dream.
+	var status_bar := PanelContainer.new()
 	status_bar.name = "Android10StatusBar"
-	status_bar.custom_minimum_size.y = 14
-	status_bar.add_theme_constant_override("separation", 3)
+	status_bar.custom_minimum_size.y = 16
+	var status_style := StyleBoxFlat.new()
+	status_style.bg_color = Color("#173B82")
+	status_style.border_color = Color("#4775B8")
+	status_style.border_width_bottom = 1
+	status_style.content_margin_left = 4
+	status_style.content_margin_right = 4
+	status_style.content_margin_top = 0
+	status_style.content_margin_bottom = 0
+	status_bar.add_theme_stylebox_override("panel", status_style)
 	content.add_child(status_bar)
-	var time := _label("9:41", 8, Color("#F1F1F1"))
-	time.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_bar.add_child(time)
-	var status_icons := _label("▮  ▰  ▴", 7, Color("#E5E5E5"))
-	status_icons.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status_bar.add_child(status_icons)
 
-	# The original launcher was a simple workspace, not a modern widget dashboard.
-	var wallpaper := ColorRect.new()
-	wallpaper.name = "Android10Wallpaper"
-	wallpaper.color = Color("#344B5B")
-	wallpaper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	wallpaper.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(wallpaper)
+	var status_row := HBoxContainer.new()
+	status_row.add_theme_constant_override("separation", 3)
+	status_bar.add_child(status_row)
+	var notifications := _android_era_label("▣  ▪", 8, Color("#F1F6FF"))
+	status_row.add_child(notifications)
+	var status_spacer := Control.new()
+	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_row.add_child(status_spacer)
+	var connection := _android_era_label("▂▃▅  ▰", 7, Color("#F1F6FF"))
+	status_row.add_child(connection)
+	var time := _android_era_label("11:56 PM", 8, Color("#FFFFFF"))
+	status_row.add_child(time)
 
-	var workspace := VBoxContainer.new()
-	workspace.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	workspace.offset_left = 7
-	workspace.offset_right = -7
-	workspace.offset_top = 8
-	workspace.offset_bottom = -5
-	workspace.add_theme_constant_override("separation", 5)
-	wallpaper.add_child(workspace)
-
-	var search := PanelContainer.new()
-	search.name = "Android10GoogleSearch"
-	search.custom_minimum_size.y = 22
+	# Original Android used Google's narrow, rectangular search widget here.
+	var search_bar := PanelContainer.new()
+	search_bar.name = "Android10GoogleSearch"
+	search_bar.custom_minimum_size.y = 27
 	var search_style := StyleBoxFlat.new()
-	search_style.bg_color = Color("#E7E7E7")
-	search_style.border_color = Color("#A8A8A8")
+	search_style.bg_color = Color("#D9EDF7")
+	search_style.border_color = Color("#8BAEC3")
 	search_style.set_border_width_all(1)
-	search_style.set_corner_radius_all(2)
 	search_style.content_margin_left = 6
-	search_style.content_margin_right = 6
+	search_style.content_margin_right = 5
 	search_style.content_margin_top = 1
 	search_style.content_margin_bottom = 1
-	search.add_theme_stylebox_override("panel", search_style)
-	workspace.add_child(search)
-	var search_label := _label("Google                         ⌕", 8, Color("#555555"))
-	search.add_child(search_label)
+	search_bar.add_theme_stylebox_override("panel", search_style)
+	content.add_child(search_bar)
 
-	var clock_widget := PanelContainer.new()
-	clock_widget.name = "Android10ClockWidget"
-	clock_widget.custom_minimum_size.y = 43
-	var clock_style := StyleBoxFlat.new()
-	clock_style.bg_color = Color(0.10, 0.13, 0.16, 0.78)
-	clock_style.border_color = Color(0.75, 0.80, 0.83, 0.22)
-	clock_style.set_border_width_all(1)
-	clock_style.set_corner_radius_all(3)
-	clock_style.content_margin_left = 5
-	clock_style.content_margin_right = 5
-	clock_widget.add_theme_stylebox_override("panel", clock_style)
-	workspace.add_child(clock_widget)
-	var clock_label := _label("09:41\nMON, NOV 12", 11, Color("#F0F0F0"))
-	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock_widget.add_child(clock_label)
+	var search_row := HBoxContainer.new()
+	search_row.add_theme_constant_override("separation", 5)
+	search_bar.add_child(search_row)
+	var google_wordmark := _android_era_label("Google", 12, Color("#4276A8"))
+	google_wordmark.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	google_wordmark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(google_wordmark)
+	var search_icon := _android_era_label("⌕", 17, Color("#467EA8"))
+	search_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(search_icon)
+	var search_divider := ColorRect.new()
+	search_divider.custom_minimum_size = Vector2(1, 17)
+	search_divider.color = Color("#A5C1D1")
+	search_row.add_child(search_divider)
+	var voice_icon := _android_era_label("♩", 12, Color("#4D86AA"))
+	voice_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(voice_icon)
 
-	var app_grid := GridContainer.new()
-	app_grid.name = "Android10WorkspaceApps"
-	app_grid.columns = 3
-	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	app_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	app_grid.add_theme_constant_override("h_separation", 8)
-	app_grid.add_theme_constant_override("v_separation", 5)
-	workspace.add_child(app_grid)
-	var apps := [
-		["Phone", "☎", "#5E9B68"], ["Contacts", "♟", "#C58B45"], ["Browser", "◎", "#5A91B8"],
-		["Maps", "⌖", "#6C9B7C"], ["Gmail", "✉", "#B75D52"], ["Calendar", "▦", "#E0E0E0"]
-	]
-	for app in apps:
-		var slot := CenterContainer.new()
-		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		app_grid.add_child(slot)
-		var tile := VBoxContainer.new()
-		tile.add_theme_constant_override("separation", 1)
-		slot.add_child(tile)
-		var icon := PanelContainer.new()
-		icon.custom_minimum_size = Vector2(31, 31)
-		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		var icon_style := StyleBoxFlat.new()
-		icon_style.bg_color = Color(str(app[2]))
-		icon_style.set_corner_radius_all(3)
-		icon_style.border_color = Color(0.95, 0.95, 0.95, 0.35)
-		icon_style.set_border_width_all(1)
-		icon.add_theme_stylebox_override("panel", icon_style)
-		tile.add_child(icon)
-		var glyph := _label(str(app[1]), 15, Color("#FFFFFF"))
-		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		icon.add_child(glyph)
-		var name := _label(str(app[0]), 7, Color("#FFFFFF"))
-		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		tile.add_child(name)
+	# The central page is intentionally sparse: two upper shortcuts and four lower shortcuts.
+	var workspace := Android10WorkspaceArt.new()
+	workspace.name = "Android10ClassicWorkspace"
+	workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	workspace.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(workspace)
 
-	var lower_space := Control.new()
-	lower_space.custom_minimum_size.y = 8
-	workspace.add_child(lower_space)
 
-	# The old launcher used a small app-drawer handle instead of a modern icon dock.
-	var drawer_tab := PanelContainer.new()
-	drawer_tab.name = "Android10AppDrawerTab"
-	drawer_tab.custom_minimum_size.y = 19
-	var drawer_style := StyleBoxFlat.new()
-	drawer_style.bg_color = Color("#D7D7D7")
-	drawer_style.border_color = Color("#8D969B")
-	drawer_style.set_border_width_all(1)
-	drawer_style.set_corner_radius_all(3)
-	drawer_tab.add_theme_stylebox_override("panel", drawer_style)
-	workspace.add_child(drawer_tab)
-	var drawer_label := _label("⋮   All apps   ⋮", 8, Color("#42484C"))
-	drawer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	drawer_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	drawer_tab.add_child(drawer_label)
-
+func _android_era_label(caption: String, font_size: int, color: Color) -> Label:
+	var label := Label.new()
+	label.text = caption
+	label.add_theme_font_override("font", ThemeDB.fallback_font)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.clip_text = true
+	return label
 
 func _make_home_app_icon(app_name: String, glyph: String, tint: Color, is_folder: bool = false) -> Control:
 	var item := VBoxContainer.new()
