@@ -16,6 +16,9 @@ func _run_os_generator_test() -> void:
 	if components.size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generator did not produce all 6 core OS components.")
 		return
+	if ProceduralEngineScript.APP_DEFINITIONS.size() != 30:
+		_fail("OS app catalog must contain exactly 30 installed apps.")
+		return
 	var generated_icon_size := int(generated.get("style", {}).get("icon_size", 0))
 	if generated_icon_size < 48 or generated_icon_size > 56:
 		_fail("Generated app icon size is outside the upgraded 48–56 px range.")
@@ -239,7 +242,22 @@ func _run_os_generator_test() -> void:
 		if content_node.get_child_count() == 0:
 			_fail("Simulator rendered an empty component: " + component_id)
 			return
+		if component_id == "control_center":
+			var quick_grid := simulator.find_child("QuickSettingsGrid", true, false) as GridContainer
+			if quick_grid == null or quick_grid.get_child_count() < 12:
+				_fail("Control Center did not render its expanded quick-settings tile set.")
+				return
+			if simulator.find_child("ControlCenterMediaCard", true, false) == null or simulator.find_child("ControlSlider_Brightness", true, false) == null:
+				_fail("Control Center is missing its media card or styled brightness control.")
+				return
 		if component_id == "app_drawer":
+			var drawer_data: Dictionary = simulator.get("configuration").get("components", {}).get("app_drawer", {})
+			drawer_data["layout"] = "alphabetical"
+			drawer_data["scroll_direction"] = "vertical"
+			var drawer_config: Dictionary = simulator.get("configuration").duplicate(true)
+			drawer_config["components"]["app_drawer"] = drawer_data
+			simulator.update_configuration(drawer_config)
+			await process_frame
 			var search_field := simulator.find_child("AppDrawerSearchField", true, false) as LineEdit
 			var drawer_grid := simulator.find_child("AppDrawerGrid", true, false) as GridContainer
 			if search_field == null or drawer_grid == null:
