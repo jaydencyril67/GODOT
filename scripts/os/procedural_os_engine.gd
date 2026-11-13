@@ -108,7 +108,7 @@ static func regenerate_component(config: Dictionary, component_id: String, seed_
 	updated["components"][component_id] = _generate_component(component_id, rng, updated.get("style", {}))
 	match component_id:
 		"wallpapers":
-			var wallpaper_path := WALLPAPERS[rng.randi_range(0, WALLPAPERS.size() - 1)]
+			var wallpaper_path: String = WALLPAPERS[rng.randi_range(0, WALLPAPERS.size() - 1)]
 			updated["components"]["wallpapers"]["path"] = wallpaper_path
 			updated["style"]["wallpaper"] = wallpaper_path
 			updated["components"]["home_screen"]["wallpaper"] = wallpaper_path
