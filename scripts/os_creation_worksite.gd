@@ -18,19 +18,16 @@ var home_generation := 1
 var home_image_index := 0
 var home_generation_status: Label
 var home_image_paths := [
-	"res://OSHSG1/Screenshot_20261113-093031_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093042_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093046_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093114_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093140_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093153_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093157_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093201_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093209_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093214_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093217_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093229_ChatGPT.jpg",
-	"res://OSHSG1/Screenshot_20261113-093240_ChatGPT.jpg"
+	"res://OSHSG1/IMG-20261113-WA0227.jpg",
+	"res://OSHSG1/IMG-20261113-WA1726.jpg",
+	"res://OSHSG1/IMG-20261113-WA3003.jpg",
+	"res://OSHSG1/IMG-20261113-WA3402.jpg",
+	"res://OSHSG1/IMG-20261113-WA4851.jpg",
+	"res://OSHSG1/IMG-20261113-WA6095.jpg",
+	"res://OSHSG1/IMG-20261113-WA7589.jpg",
+	"res://OSHSG1/IMG-20261113-WA8214.jpg",
+	"res://OSHSG1/IMG-20261113-WA9815.jpg",
+	"res://OSHSG1/IMG-20261113-WA9894.jpg"
 ]
 
 class GlassArrowButton extends Button:
