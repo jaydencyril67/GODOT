@@ -370,7 +370,7 @@ func _build_interface() -> void:
 
 	screen_frame = PanelContainer.new()
 	screen_frame.name = "OSPortraitScreenFrame"
-	screen_frame.custom_minimum_size = Vector2(148.2, 312)
+	screen_frame.custom_minimum_size = Vector2(148.2, 327.6)
 	var frame_style := StyleBoxFlat.new()
 	frame_style.bg_color = Color("#090A0C")
 	frame_style.border_color = Color("#77736D")
@@ -926,13 +926,13 @@ func _apply_responsive_layout() -> void:
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		# Extend the landscape phone close to the bottom edge; navigation remains an overlay.
 		screen_height = clampf(viewport_size.y - 28.0, 280.0, 760.0)
-		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height * 0.95)
+		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height * 0.95 * 1.05)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
 		configuration_region.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
 		screen_height = clampf(viewport_size.y * 0.42, 190.0, 340.0)
-		screen_frame.custom_minimum_size = Vector2(screen_height * 0.50, screen_height)
+		screen_frame.custom_minimum_size = Vector2(screen_height * 0.50, screen_height * 1.05)
 
 
 func _label(caption: String, font_size: int, color: Color) -> Label:
