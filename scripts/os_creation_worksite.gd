@@ -369,17 +369,8 @@ func _build_interface() -> void:
 	right_region.add_theme_constant_override("margin_bottom", 20)
 	worksite_body.add_child(right_region)
 
-	selection_panel = PanelContainer.new()
-	selection_panel.name = "OSConfigurationPanel"
-	selection_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selection_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var blank_panel_style := StyleBoxFlat.new()
-	blank_panel_style.bg_color = Color(0.035, 0.039, 0.043, 0.20)
-	blank_panel_style.border_color = Color(0.70, 0.62, 0.48, 0.12)
-	blank_panel_style.set_border_width_all(1)
-	blank_panel_style.set_corner_radius_all(14)
-	selection_panel.add_theme_stylebox_override("panel", blank_panel_style)
-	right_region.add_child(selection_panel)
+	# Keep the controls directly on the worksite; no surrounding card or panel.
+	selection_panel = right_region
 	_build_home_generation_controls()
 
 	navigation_layer = CanvasLayer.new()
@@ -432,50 +423,69 @@ func _build_interface() -> void:
 
 func _build_home_screen_preview(screen: PanelContainer) -> void:
 	_build_selected_home_image(screen)
+var home_screen_number_label: Label
+var home_screen_decrease_button: Button
+var home_screen_increase_button: Button
+
+
 func _build_home_generation_controls() -> void:
 	var content := VBoxContainer.new()
 	content.name = "HomeGenerationControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 8)
+	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	content.add_theme_constant_override("separation", 12)
 	selection_panel.add_child(content)
 
 	var heading := _label("GENERATION 01", 17, Color("#F0E9DD"))
 	content.add_child(heading)
-	var description := _label("Choose one of the 10 home-screen designs.", 12, Color("#B8B1A6"))
+	var description := _label("Choose a home-screen design.", 12, Color("#B8B1A6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(description)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "HomeScreenSelectionScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	content.add_child(scroll)
+	var selector := HBoxContainer.new()
+	selector.name = "HomeScreenDesignSelector"
+	selector.alignment = BoxContainer.ALIGNMENT_CENTER
+	selector.add_theme_constant_override("separation", 18)
+	content.add_child(selector)
 
-	var grid := GridContainer.new()
-	grid.name = "HomeScreenSelectionGrid"
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	scroll.add_child(grid)
+	home_screen_decrease_button = Button.new()
+	home_screen_decrease_button.name = "PreviousHomeScreenButton"
+	home_screen_decrease_button.text = "−"
+	_style_level_selector_button(home_screen_decrease_button)
+	home_screen_decrease_button.pressed.connect(_step_home_image.bind(-1))
+	selector.add_child(home_screen_decrease_button)
 
-	for i in range(home_image_paths.size()):
-		var image_button := Button.new()
-		image_button.name = "HomeScreenSelection_%02d" % (i + 1)
-		image_button.text = "SCREEN %02d" % (i + 1)
-		image_button.custom_minimum_size = Vector2(0, 44)
-		image_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		image_button.toggle_mode = true
-		image_button.focus_mode = Control.FOCUS_NONE
-		image_button.pressed.connect(_select_home_image.bind(i))
-		_style_button(image_button)
-		grid.add_child(image_button)
+	home_screen_number_label = _label("SCREEN 01 / %02d" % home_image_paths.size(), 16, Color("#EEE9DF"))
+	home_screen_number_label.name = "SelectedHomeScreenNumber"
+	home_screen_number_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_screen_number_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	home_screen_number_label.custom_minimum_size = Vector2(150, 48)
+	selector.add_child(home_screen_number_label)
 
-	home_generation_status = _label("GENERATION 01  •  SCREEN 01 / %02d" % home_image_paths.size(), 11, Color("#C58A3A"))
+	home_screen_increase_button = Button.new()
+	home_screen_increase_button.name = "NextHomeScreenButton"
+	home_screen_increase_button.text = "+"
+	_style_level_selector_button(home_screen_increase_button)
+	home_screen_increase_button.pressed.connect(_step_home_image.bind(1))
+	selector.add_child(home_screen_increase_button)
+
+	home_generation_status = _label("GENERATION 01  •  10 DESIGNS", 11, Color("#C58A3A"))
 	content.add_child(home_generation_status)
 	_update_home_generation_controls()
+
+
+func _style_level_selector_button(button: Button) -> void:
+	# Match the compact +/- selector controls used in the phone creation worksite.
+	_style_button(button)
+	button.custom_minimum_size = Vector2(56, 48)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.focus_mode = Control.FOCUS_NONE
+
+
+func _step_home_image(direction: int) -> void:
+	_select_home_image(home_image_index + direction)
 
 
 func _select_home_image(image_index: int) -> void:
@@ -490,14 +500,13 @@ func _select_home_image(image_index: int) -> void:
 
 func _update_home_generation_controls() -> void:
 	if is_instance_valid(home_generation_status):
-		home_generation_status.text = "GENERATION 01  •  SCREEN %02d / %02d" % [home_image_index + 1, home_image_paths.size()]
-	var grid := selection_panel.get_node_or_null("HomeGenerationControls/HomeScreenSelectionScroll/HomeScreenSelectionGrid") as GridContainer
-	if not is_instance_valid(grid):
-		return
-	for i in range(home_image_paths.size()):
-		var image_button := grid.get_node_or_null("HomeScreenSelection_%02d" % (i + 1)) as Button
-		if is_instance_valid(image_button):
-			image_button.button_pressed = i == home_image_index
+		home_generation_status.text = "GENERATION 01  •  10 DESIGNS"
+	if is_instance_valid(home_screen_number_label):
+		home_screen_number_label.text = "SCREEN %02d / %02d" % [home_image_index + 1, home_image_paths.size()]
+	if is_instance_valid(home_screen_decrease_button):
+		home_screen_decrease_button.disabled = home_image_index <= 0
+	if is_instance_valid(home_screen_increase_button):
+		home_screen_increase_button.disabled = home_image_index >= home_image_paths.size() - 1
 
 
 func _build_selected_home_image(screen: PanelContainer) -> void:
@@ -510,6 +519,27 @@ func _build_selected_home_image(screen: PanelContainer) -> void:
 	# Fill the complete phone display bounds: no crop and no letterboxing.
 	image.stretch_mode = TextureRect.STRETCH_SCALE
 	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Match the rounded inner display corners so square image corners never
+	# paint beyond the visible OS screen shape.
+	var rounded_clip_shader := Shader.new()
+	rounded_clip_shader.code = """
+shader_type canvas_item;
+void fragment() {
+	vec2 p = abs(UV * 2.0 - 1.0);
+	vec2 q = p - vec2(0.88);
+	float outside_distance = length(max(q, vec2(0.0)));
+	float inside_distance = min(max(q.x, q.y), 0.0);
+	float rounded_distance = outside_distance + inside_distance - 0.12;
+	if (rounded_distance > 0.0) {
+		discard;
+	}
+	COLOR = texture(TEXTURE, UV) * COLOR;
+}
+"""
+	var rounded_clip_material := ShaderMaterial.new()
+	rounded_clip_material.shader = rounded_clip_shader
+	image.material = rounded_clip_material
+	screen.clip_contents = true
 	screen.add_child(image)
 
 
@@ -768,7 +798,7 @@ func _apply_responsive_layout() -> void:
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		# Extend the landscape phone close to the bottom edge; navigation remains an overlay.
 		screen_height = clampf(viewport_size.y - 28.0, 280.0, 760.0)
-		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height)
+		screen_frame.custom_minimum_size = Vector2(screen_height * 0.667, screen_height * 0.95)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
 		configuration_region.size_flags_stretch_ratio = 1.18
