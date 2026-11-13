@@ -138,6 +138,9 @@ func _run_os_generator_test() -> void:
 				if simulator.find_child("WindowsLiveTileGrid", true, false) == null:
 					_fail("Windows tile layout did not render its live-tile grid.")
 					return
+				if simulator.find_child("HomeAppDock", true, false) != null:
+					_fail("Windows tile layout incorrectly rendered the standard app dock.")
+					return
 			"compact_list":
 				if simulator.find_child("HomeAppList", true, false) == null:
 					_fail("Compact list layout did not render its app list.")
