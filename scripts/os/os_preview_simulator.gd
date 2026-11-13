@@ -631,9 +631,9 @@ func _style_action_button(button: Button, active: bool = false) -> void:
 	normal.content_margin_top = 7
 	normal.content_margin_bottom = 7
 	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(hover.bg_color).lightened(0.10)
+	hover.bg_color = hover.bg_color.lightened(0.10)
 	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(pressed.bg_color).darkened(0.10)
+	pressed.bg_color = pressed.bg_color.darkened(0.10)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", pressed)
