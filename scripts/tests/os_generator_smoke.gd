@@ -115,6 +115,20 @@ func _run_os_generator_test() -> void:
 	simulator.configure_os(generated, "home_screen")
 	simulator_host.add_child(simulator)
 	await process_frame
+
+	for generation_number in range(1, 4):
+		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
+		simulator.configure_os(generation_preview, "home_screen")
+		await process_frame
+		var rendered_widget_count := 0
+		for widget_name in ["HomeWidget_Clock", "HomeWidget_Weather", "HomeWidget_Calendar", "HomeWidget_Music"]:
+			if simulator.find_child(widget_name, true, false) != null:
+				rendered_widget_count += 1
+		if rendered_widget_count != expected_widgets[generation_number - 1]:
+			_fail("Simulator rendered the wrong number of widgets for generation %d." % generation_number)
+			return
+	simulator.configure_os(generated, "home_screen")
+	await process_frame
 	if simulator.find_child("OSProceduralWallpaper", true, false) == null:
 		_fail("Simulator did not render its procedural OS wallpaper.")
 		return
