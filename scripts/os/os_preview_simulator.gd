@@ -215,7 +215,9 @@ func _build_shell() -> void:
 	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_theme_constant_override("separation", 4)
 	if active_component == "home_screen":
-		_build_home_dock(footer)
+		var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "ios_grid"))
+		if home_layout != "windows_tiles":
+			_build_home_dock(footer)
 	var indicator_alignment := CenterContainer.new()
 	indicator_alignment.name = "OSNavigationIndicatorArea"
 	indicator_alignment.custom_minimum_size = Vector2(0, 9)
