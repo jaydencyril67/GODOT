@@ -255,25 +255,47 @@ func _show_gesture_overlay(mode: String) -> void:
 
 
 func _build_gesture_control_center(parent: VBoxContainer) -> void:
-	var quick_grid := GridContainer.new()
-	quick_grid.name = "GestureQuickSettingsGrid"
-	quick_grid.columns = 2
-	quick_grid.add_theme_constant_override("h_separation", 6)
-	quick_grid.add_theme_constant_override("v_separation", 6)
-	parent.add_child(quick_grid)
-	for item in ["Wi-Fi", "Bluetooth", "Airplane mode", "Flashlight", "Focus", "Battery saver"]:
-		var toggle := Button.new()
-		toggle.name = "QuickToggle_" + item.replace(" ", "")
-		toggle.text = item
-		toggle.toggle_mode = true
-		toggle.button_pressed = item in ["Wi-Fi", "Bluetooth"]
-		toggle.custom_minimum_size.y = 36
-		_style_action_button(toggle, toggle.button_pressed)
-		toggle.toggled.connect(func(enabled: bool) -> void: _style_action_button(toggle, enabled))
-		quick_grid.add_child(toggle)
+	var subtitle := _label("Manage connections and device controls", 8, _muted_color())
+	parent.add_child(subtitle)
+	var grid := GridContainer.new()
+	grid.name = "GestureQuickSettingsGrid"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	parent.add_child(grid)
+	var items := [
+		["Wi-Fi", "◉", true], ["Bluetooth", "ᛒ", true],
+		["Mobile data", "▥", true], ["Airplane mode", "✈", false],
+		["Flashlight", "☼", false], ["Location", "⌖", true],
+		["Do not disturb", "◐", false], ["Battery saver", "▰", false],
+		["Auto-rotate", "⟳", true], ["Hotspot", "⌁", false],
+		["NFC", "◈", false], ["Nearby Share", "↗", false]
+	]
+	for item in items:
+		var tile := Button.new()
+		tile.name = "GestureQuickTile_" + str(item[0]).replace(" ", "")
+		tile.text = str(item[1]) + "  " + str(item[0])
+		tile.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		tile.toggle_mode = true
+		tile.button_pressed = bool(item[2])
+		tile.custom_minimum_size.y = 40
+		_style_action_button(tile, tile.button_pressed)
+		tile.toggled.connect(func(enabled: bool) -> void: _style_action_button(tile, enabled))
+		grid.add_child(tile)
+	var media := PanelContainer.new()
+	media.name = "GestureMediaCard"
+	_style_surface(media, true)
+	var media_row := HBoxContainer.new()
+	media.add_child(media_row)
+	var media_text := VBoxContainer.new()
+	media_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	media_text.add_child(_label("NOW PLAYING", 7, _accent_color()))
+	media_text.add_child(_label("No media playing", 8, _text_color()))
+	media_row.add_child(media_text)
+	media_row.add_child(_label("◀   ▶   ▷", 10, _text_color()))
+	parent.add_child(media)
 	_add_gesture_slider(parent, "Brightness", 72)
 	_add_gesture_slider(parent, "Volume", 58)
-
 
 func _add_gesture_slider(parent: VBoxContainer, caption: String, initial_value: float) -> void:
 	var row := VBoxContainer.new()
@@ -1043,16 +1065,16 @@ func _build_app_drawer(data: Dictionary) -> void:
 		page_container.add_child(viewport)
 		var grid := GridContainer.new()
 		grid.name = "AppDrawerGrid"
-		grid.columns = 3 if horizontal else _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
-		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL if not horizontal else Control.SIZE_SHRINK_BEGIN
-		grid.size_flags_vertical = Control.SIZE_EXPAND_FILL if horizontal else Control.SIZE_SHRINK_BEGIN
+		grid.columns = OSEngine.APP_DEFINITIONS.size() if horizontal else _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
+		grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if horizontal else Control.SIZE_EXPAND_FILL
+		grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if horizontal else Control.SIZE_EXPAND_FILL
 		grid.add_theme_constant_override("h_separation", 8)
 		grid.add_theme_constant_override("v_separation", 12)
 		viewport.add_child(grid)
 		_populate_app_grid(grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
 	if str(data.get("search_position", "top")) == "bottom":
 		page_container.add_child(search)
-	search.text_changed.connect(_on_app_search_changed.bind(page_container.find_child("AppDrawerGrid", true, false)))
+	var searchable_grid := page_container.find_child("AppDrawerGrid", true, false) as GridContainer\n\tif searchable_grid != null:\n\t\tsearch.text_changed.connect(_on_app_search_changed.bind(searchable_grid))
 
 func _build_recent_apps(_data: Dictionary) -> void:
 	var heading_row := HBoxContainer.new()
