@@ -213,7 +213,8 @@ func _build_home_screen(data: Dictionary) -> void:
 		page_container.add_child(_search_field("Search apps and more"))
 
 	_add_section_label("YOUR APPS")
-	var columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 6)
+	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 6)
+	var columns := _responsive_columns(preferred_columns)
 	var apps_grid := GridContainer.new()
 	apps_grid.name = "HomeAppGrid"
 	apps_grid.columns = columns
@@ -232,10 +233,11 @@ func _build_home_screen(data: Dictionary) -> void:
 	dock_row.add_theme_constant_override("separation", 9)
 	dock.add_child(dock_row)
 	var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
+	var dock_icon_size := _responsive_icon_size(34, dock_apps.size(), 9)
 	for app_name in dock_apps:
 		var app := _find_app(app_name)
 		if not app.is_empty():
-			dock_row.add_child(_create_app_icon(app, 34, false))
+			dock_row.add_child(_create_app_icon(app, dock_icon_size, false))
 	page_container.add_child(dock)
 
 func _build_lock_screen(data: Dictionary) -> void:
@@ -422,7 +424,8 @@ func _build_app_drawer(data: Dictionary) -> void:
 	var search := _search_field("Find an app")
 	var grid := GridContainer.new()
 	grid.name = "AppDrawerGrid"
-	grid.columns = clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 6)
+	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 6)
+	grid.columns = _responsive_columns(preferred_columns)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 10)
@@ -562,7 +565,20 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 		tile.add_child(caption)
 	return tile
 
+func _responsive_columns(preferred_columns: int) -> int:
+	var available_width := size.x if size.x > 0.0 else 180.0
+	var inner_width := maxf(available_width - 30.0, 96.0)
+	var fitting_columns := floori((inner_width + 8.0) / 35.0)
+	return clampi(mini(preferred_columns, fitting_columns), 3, 6)
+
+func _responsive_icon_size(requested_size: int, columns: int, gap: int = 6) -> int:
+	var available_width := size.x if size.x > 0.0 else 180.0
+	var inner_width := maxf(available_width - 30.0, 96.0)
+	var cell_width := (inner_width - float(maxi(columns - 1, 0) * gap)) / float(maxi(columns, 1))
+	return clampi(mini(requested_size, floori(cell_width)), 20, requested_size)
+
 func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show_labels: bool) -> void:
+	var fitted_icon_size := _responsive_icon_size(icon_size, grid.columns, 6)
 	for child in grid.get_children():
 		grid.remove_child(child)
 		child.queue_free()
@@ -570,7 +586,7 @@ func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show
 	for app in OSEngine.APP_DEFINITIONS:
 		if not normalized_query.is_empty() and not str(app.get("name", "")).to_lower().contains(normalized_query):
 			continue
-		grid.add_child(_create_app_icon(app, icon_size, show_labels))
+		grid.add_child(_create_app_icon(app, fitted_icon_size, show_labels))
 	if grid.get_child_count() == 0:
 		grid.add_child(_label("No matching applications", 8, _muted_color()))
 
