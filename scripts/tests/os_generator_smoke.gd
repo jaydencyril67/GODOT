@@ -106,6 +106,8 @@ func _run_os_generator_test() -> void:
 		var template_name := str(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES[template_index])
 		var template_config := generated.duplicate(true)
 		template_config["components"]["lock_screen"]["layout_template"] = template_name
+		template_config["components"]["lock_screen"]["fingerprint_sensor_available"] = true
+		template_config["components"]["lock_screen"]["show_fingerprint"] = true
 		if template_index == 0:
 			template_preview.configure_os(template_config, "lock_screen")
 		else:
@@ -122,9 +124,21 @@ func _run_os_generator_test() -> void:
 			template_preview.call("_build_component", "lock_screen")
 		await process_frame
 		await process_frame
-		var layout_root := template_preview.find_child("LockScreenLayout_" + template_name, true, false)
+		var layout_root := template_preview.find_child("LockScreenLayout_" + template_name, true, false) as VBoxContainer
 		if layout_root == null:
 			_fail("A lock-screen template did not render its own layout root: " + template_name)
+			return
+		var top_space := layout_root.get_node_or_null("LockScreenTopFlexibleSpace") as Control
+		var lower_space := layout_root.get_node_or_null("LockScreenBottomFlexibleSpace") as Control
+		var fingerprint_stage := layout_root.get_node_or_null("LockScreenFingerprintStage") as Control
+		if top_space == null or lower_space == null or top_space.size_flags_vertical != Control.SIZE_EXPAND_FILL or lower_space.size_flags_vertical != Control.SIZE_EXPAND_FILL:
+			_fail("Lock-screen flexible spacing is not configured to distribute content: " + template_name)
+			return
+		if top_space.size.y <= 4.0 or lower_space.size.y <= 4.0:
+			_fail("Lock-screen flexible spaces are not expanding across the phone: " + template_name)
+			return
+		if fingerprint_stage == null:
+			_fail("Enabled fingerprint sensor is missing from the lock-screen layout: " + template_name)
 			return
 		var status_bar := template_preview.find_child("OSStatusBar", true, false) as Control
 		var status_clock := template_preview.find_child("StatusBarClock", true, false) as Label
@@ -143,6 +157,9 @@ func _run_os_generator_test() -> void:
 			return
 		if clock_stage == null or lock_clock == null or not clock_stage.is_ancestor_of(lock_clock):
 			_fail("Lock-screen clock escaped its protected clock stage: " + template_name)
+			return
+		if top_space.position.y >= clock_stage.position.y or fingerprint_stage.position.y <= clock_stage.position.y:
+			_fail("Lock-screen clock and fingerprint are not vertically distributed: " + template_name)
 			return
 		if lock_clock.size.x <= 0.0 or lock_clock.position.x < -1.0 or lock_clock.position.x + lock_clock.size.x > clock_stage.size.x + 1.0:
 			_fail("Lock-screen clock is clipped horizontally: " + template_name)
