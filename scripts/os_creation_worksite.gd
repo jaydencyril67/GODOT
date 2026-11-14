@@ -397,8 +397,14 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 	boot_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	boot_logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	boot_stage_container.add_child(boot_logo)
-	boot_message = _label("", 10, Color("#F3F0E9"))
+	boot_message = _label("", 22, Color("#FFFFFF"))
 	boot_message.name = "BootIdentityText"
+	var boot_identity_font := FontVariation.new()
+	boot_identity_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	boot_identity_font.variation_embolden = 1.5
+	boot_message.add_theme_font_override("font", boot_identity_font)
+	boot_message.add_theme_font_size_override("font_size", 22)
+	boot_message.add_theme_color_override("font_color", Color("#FFFFFF"))
 	boot_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boot_message.autowrap_mode = TextServer.AUTOWRAP_OFF
 	boot_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
