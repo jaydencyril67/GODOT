@@ -183,6 +183,10 @@ func _run_os_generator_test() -> void:
 	simulator_host.remove_child(template_preview)
 	template_preview.free()
 	await process_frame
+	# Keep the gesture-routing simulator at its original compact viewport;
+	# the taller host above is reserved for lock-screen vertical-layout checks.
+	simulator_host.size = Vector2(145.0, 360.0)
+	await process_frame
 
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
