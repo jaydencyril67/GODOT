@@ -300,6 +300,25 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(lock_control_name, true, false) == null:
 			_fail("Lock screen did not render enabled feature: " + lock_control_name)
 			return
+	var camera_shortcut := simulator.find_child("LockScreenShortcut_Camera", true, false) as Button
+	var flashlight_shortcut := simulator.find_child("LockScreenShortcut_Flashlight", true, false) as Button
+	if camera_shortcut == null or flashlight_shortcut == null or camera_shortcut.icon == null or flashlight_shortcut.icon == null:
+		_fail("Lock-screen camera and flashlight shortcuts must use imported texture icons.")
+		return
+	if not camera_shortcut.text.is_empty() or not flashlight_shortcut.text.is_empty():
+		_fail("Lock-screen camera and flashlight shortcuts must be icon-only, without text captions.")
+		return
+	if camera_shortcut.icon.resource_path != "res://assets/os/lockscreen/camera.svg" or flashlight_shortcut.icon.resource_path != "res://assets/os/lockscreen/flashlight.svg":
+		_fail("Lock-screen shortcuts are not using the imported camera and flashlight SVG assets.")
+		return
+	if camera_shortcut.get_index() >= flashlight_shortcut.get_index():
+		_fail("Camera must remain on the left and flashlight on the right of the lock screen.")
+		return
+	var flashlight_icon_before_toggle := flashlight_shortcut.icon
+	flashlight_shortcut.button_pressed = true
+	if flashlight_shortcut.text != "" or flashlight_shortcut.icon != flashlight_icon_before_toggle:
+		_fail("Flashlight toggle changed or removed its imported icon.")
+		return
 	for lock_content_name in ["LockScreenNotificationApp_Messages", "LockScreenNotificationMessage_Messages", "LockScreenAudioTrackTitle", "LockScreenAudioArtist", "StatusBarClock"]:
 		if simulator.find_child(lock_content_name, true, false) == null:
 			_fail("Lock screen rendered an empty content surface; missing: " + lock_content_name)
@@ -698,16 +717,29 @@ func _run_os_generator_test() -> void:
 	if pin_fingerprint == null or pin_fingerprint.get("sensor_texture") == null:
 		_fail("PIN screen did not show the enabled under-display fingerprint shortcut.")
 		return
-	if pin_key_two == null or pin_key_two.size.x < 30.0:
-		_fail("PIN number keys are not sized as visible circular touch targets.")
+	if pin_key_two == null or pin_key_two.size.x < 30.0 or pin_key_two.text != "2":
+		_fail("PIN digit buttons must display their number directly on the touch target.")
 		return
+	for digit_text in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+		var visible_digit := worksite_preview.find_child("PINKey_" + digit_text, true, false) as Button
+		if visible_digit == null or visible_digit.text != digit_text:
+			_fail("PIN keypad digit is missing from its actual Button text: " + digit_text)
+			return
 	var pin_key_style := pin_key_two.get_theme_stylebox("normal") as StyleBoxFlat
 	if pin_key_style == null or pin_key_style.corner_radius_top_left < 15:
 		_fail("PIN number keys are not styled as circular One UI-style buttons.")
 		return
-	var pin_key_center := pin_key_two.get_node_or_null("PINKeyCenter") as CenterContainer
-	if pin_key_center == null or pin_key_center.get_child_count() == 0:
-		_fail("PIN keypad number and telephone-letter labels were not rendered.")
+	var pin_key_font_color := pin_key_two.get_theme_color("font_color")
+	if pin_key_font_color.a < 0.95 or pin_key_font_color.get_luminance() < 0.80:
+		_fail("PIN digits do not have a clearly visible white font color.")
+		return
+	if pin_key_style.bg_color.a <= 0.0 or pin_key_style.bg_color.a > 0.20 or pin_key_style.border_color.a < 0.30:
+		_fail("PIN keypad keys must use one transparent, bright-edged glass treatment.")
+		return
+	var pin_key_three := worksite_preview.find_child("PINKey_3", true, false) as Button
+	var pin_key_three_style := pin_key_three.get_theme_stylebox("normal") as StyleBoxFlat if pin_key_three != null else null
+	if pin_key_three_style == null or pin_key_three_style.bg_color != pin_key_style.bg_color:
+		_fail("All PIN keys must share the same neutral glass color.")
 		return
 	for digit in ["0", "0", "0", "0"]:
 		var wrong_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
@@ -731,6 +763,9 @@ func _run_os_generator_test() -> void:
 		return
 	if fingerprint_sensor.get("sensor_texture") == null:
 		_fail("Imported fingerprint sensor artwork failed to load.")
+		return
+	if fingerprint_sensor.get("sensor_texture").resource_path != "res://assets/os/lockscreen/fingerprint_sensor.svg":
+		_fail("Fingerprint control is not using the refreshed S20-style imported sensor artwork.")
 		return
 	fingerprint_sensor.pressed.emit()
 	if worksite_preview.get("active_component") != "home_screen":
