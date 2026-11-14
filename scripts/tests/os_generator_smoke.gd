@@ -172,6 +172,7 @@ func _run_os_generator_test() -> void:
 			_fail("Two lock-screen templates share the same structural composition: " + template_name)
 			return
 		observed_templates[structure_signature] = true
+		_report_object_counts("template_" + template_name)
 	if observed_templates.size() != 20:
 		_fail("The 20 lock-screen templates did not produce 20 distinct layout roots.")
 		return
@@ -409,6 +410,7 @@ func _run_os_generator_test() -> void:
 		var component_id := str(component["id"])
 		simulator.set_component_view(component_id)
 		await process_frame
+		_report_object_counts("component_" + component_id)
 		var content_node := simulator.find_child("OSComponentContent", true, false)
 		if content_node == null:
 			_fail("Simulator failed to render component: " + component_id)
