@@ -465,8 +465,8 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	await process_frame
 	var wide_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
-	if wide_grid == null or wide_grid.columns != 3:
-		_fail("Wider phone viewport did not restore the three-column home grid.")
+	if wide_grid == null or wide_grid.columns != 4 or wide_grid.get_child_count() != 4:
+		_fail("Layout 1 must keep its approved four-app row at wider phone widths.")
 		return
 	simulator_host.size = Vector2(145.0, 360.0)
 	await process_frame
