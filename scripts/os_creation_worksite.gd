@@ -25,6 +25,7 @@ var preview_region: Control
 var screen_center: CenterContainer
 var selection_panel: Control
 var configuration_region: Control
+var selection_scroll: ScrollContainer
 var screen_frame: PanelContainer
 var home_preview_screen: PanelContainer
 var home_generation := 1
@@ -35,7 +36,6 @@ var boot_overlay: Control
 var boot_stage_container: VBoxContainer
 var boot_logo: TextureRect
 var boot_message: Label
-var boot_order_inputs: Dictionary = {}
 var boot_enabled_inputs: Dictionary = {}
 var boot_busy := false
 var device_powered_on := false
@@ -48,8 +48,8 @@ var boot_identity := {
 var bootloader_settings := {
 	"duration_seconds": 10.0,
 	"items": {
-		"company_logo": {"order": 1, "enabled": true},
-		"phone_details": {"order": 2, "enabled": true}
+		"company_logo": {"enabled": true},
+		"phone_details": {"enabled": true}
 	}
 }
 class GlassArrowButton extends Button:
@@ -250,17 +250,27 @@ func _build_interface() -> void:
 	_build_home_screen_preview(screen_glass)
 	_build_boot_overlay(screen_glass)
 
+	selection_scroll = ScrollContainer.new()
+	selection_scroll.name = "OSConfigurationScroll"
+	selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var selection_scroll_bar := selection_scroll.get_v_scroll_bar()
+	selection_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	selection_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	configuration_region = selection_scroll
+	worksite_body.add_child(selection_scroll)
+
 	var right_region := MarginContainer.new()
-	configuration_region = right_region
 	right_region.name = "OSConfigurationRegion"
 	right_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_region.size_flags_stretch_ratio = 0.88
-	right_region.add_theme_constant_override("margin_left", 22)
-	right_region.add_theme_constant_override("margin_right", 18)
+	right_region.add_theme_constant_override("margin_left", 24)
+	right_region.add_theme_constant_override("margin_right", 24)
 	right_region.add_theme_constant_override("margin_top", 20)
 	right_region.add_theme_constant_override("margin_bottom", 20)
-	worksite_body.add_child(right_region)
+	selection_scroll.add_child(right_region)
 
 	# Keep the controls directly on the worksite; no surrounding card or panel.
 	selection_panel = right_region
@@ -326,8 +336,9 @@ func _build_bootloader_controls_only() -> void:
 	var content := VBoxContainer.new()
 	content.name = "BootLoaderOnlyControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	content.add_theme_constant_override("separation", 12)
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 16)
 	selection_panel.add_child(content)
 	_build_bootloader_controls(content)
 
@@ -406,6 +417,9 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 	boot_message.add_theme_font_size_override("font_size", 22)
 	boot_message.add_theme_color_override("font_color", Color("#FFFFFF"))
 	boot_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boot_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	boot_message.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	boot_message.custom_minimum_size = Vector2(0, 36)
 	boot_message.autowrap_mode = TextServer.AUTOWRAP_OFF
 	boot_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	boot_stage_container.add_child(boot_message)
@@ -414,11 +428,11 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 
 
 func _build_bootloader_controls(parent: VBoxContainer) -> void:
-	parent.add_theme_constant_override("separation", 10)
-	var heading := _label("BOOT LOADER", 19, Color("#D3AA6B"))
+	parent.add_theme_constant_override("separation", 16)
+	var heading := _label("BOOT LOADER", 20, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(heading)
-	var description := _label("Choose the startup identity sequence and what appears during power-on.", 12, Color("#E5E0D6"))
+	var description := _label("Choose which startup details appear when your phone powers on.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(description)
@@ -431,46 +445,21 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		var row := HBoxContainer.new()
 		row.name = "BootSettingRow_" + item_id
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_theme_constant_override("separation", 10)
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 8)
 		parent.add_child(row)
-		var order_box := SpinBox.new()
-		order_box.name = "BootOrder_" + item_id
-		order_box.min_value = 1
-		order_box.max_value = 2
-		order_box.step = 1
-		order_box.value = int(bootloader_settings["items"][item_id]["order"])
-		order_box.custom_minimum_size = Vector2(70, 46)
-		_apply_research_typography(order_box, 18)
-		var order_style := StyleBoxFlat.new()
-		order_style.bg_color = Color(0.12, 0.13, 0.14, 0.82)
-		order_style.border_color = Color(0.72, 0.72, 0.68, 0.45)
-		order_style.set_border_width_all(1)
-		order_style.set_corner_radius_all(12)
-		order_style.content_margin_left = 10
-		order_style.content_margin_right = 10
-		order_style.content_margin_top = 8
-		order_style.content_margin_bottom = 8
-		order_box.add_theme_stylebox_override("normal", order_style)
-		order_box.add_theme_stylebox_override("focus", order_style)
-		_style_boot_control(order_box)
-		order_box.value_changed.connect(_on_boot_order_changed.bind(item_id))
-		row.add_child(order_box)
-		boot_order_inputs[item_id] = order_box
-		var item_label := _label(str(row_data[1]), 16, Color("#E5E0D6"))
+		var item_label := _label(str(row_data[1]), 14, Color("#E5E0D6"))
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		item_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		item_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 		row.add_child(item_label)
 		var enabled := CheckBox.new()
 		enabled.name = "BootEnabled_" + item_id
-		enabled.text = "ON"
-		enabled.custom_minimum_size = Vector2(62, 46)
-		_apply_research_typography(enabled, 13)
+		enabled.text = ""
+		enabled.custom_minimum_size = Vector2(30, 30)
+		enabled.focus_mode = Control.FOCUS_NONE
 		enabled.button_pressed = bool(bootloader_settings["items"][item_id]["enabled"])
-		enabled.add_theme_color_override("font_color", Color("#E4DED3"))
-		_style_boot_control(enabled)
 		enabled.toggled.connect(_on_boot_item_toggled.bind(item_id))
 		row.add_child(enabled)
 		boot_enabled_inputs[item_id] = enabled
@@ -479,20 +468,6 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 	divider.custom_minimum_size.y = 1
 	divider.color = Color("#62513A")
 	parent.add_child(divider)
-
-
-func _on_boot_order_changed(value: float, item_id: String) -> void:
-	var items: Dictionary = bootloader_settings["items"]
-	var old_order := int(items[item_id]["order"])
-	var new_order := clampi(int(round(value)), 1, 2)
-	for other_id in items:
-		if other_id != item_id and int(items[other_id]["order"]) == new_order:
-			items[other_id]["order"] = old_order
-			if boot_order_inputs.has(other_id):
-				(boot_order_inputs[other_id] as SpinBox).set_value_no_signal(old_order)
-			break
-	items[item_id]["order"] = new_order
-	_apply_bootloader_settings_to_configuration()
 
 
 func _on_boot_item_toggled(enabled: bool, item_id: String) -> void:
@@ -554,30 +529,25 @@ func _run_boot_sequence() -> void:
 	boot_overlay.modulate.a = 1.0
 	boot_message.visible = true
 	boot_stage_container.modulate.a = 0.0
-	var ordered_items: Array[Dictionary] = []
+	var ordered_items: Array[String] = []
 	var item_settings: Dictionary = bootloader_settings["items"]
-	for item_id in item_settings:
-		var item: Dictionary = item_settings[item_id]
-		if bool(item.get("enabled", false)):
-			ordered_items.append({"id": str(item_id), "order": int(item.get("order", 99))})
-	ordered_items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["order"]) < int(b["order"]))
+	# Startup order is fixed: company logo always precedes phone details.
+	for item_id in ["company_logo", "phone_details"]:
+		if bool(item_settings.get(item_id, {}).get("enabled", false)):
+			ordered_items.append(item_id)
 	var stage_duration := 10.0 / float(maxi(1, ordered_items.size()))
-	for entry in ordered_items:
-		var item_id := str(entry["id"])
+	for item_id in ordered_items:
+		boot_stage_container.modulate.a = 1.0
 		boot_logo.visible = item_id == "company_logo"
+		boot_message.visible = item_id == "phone_details"
 		if item_id == "company_logo":
 			boot_logo.texture = _get_boot_company_logo_texture()
+			boot_logo.modulate.a = 1.0
 			boot_message.text = ""
 		elif item_id == "phone_details":
 			boot_message.text = str(boot_identity["phone_name"]) + " " + str(boot_identity["phone_model"])
-		boot_stage_container.modulate.a = 0.0
-		var fade_in := create_tween()
-		fade_in.tween_property(boot_stage_container, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		await fade_in.finished
-		await get_tree().create_timer(maxf(0.0, stage_duration - 0.44)).timeout
-		var fade_out := create_tween()
-		fade_out.tween_property(boot_stage_container, "modulate:a", 0.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-		await fade_out.finished
+			boot_message.modulate.a = 1.0
+		await get_tree().create_timer(stage_duration).timeout
 	var elapsed := float(Time.get_ticks_msec() - started_at) / 1000.0
 	if elapsed < 10.0:
 		await get_tree().create_timer(10.0 - elapsed).timeout
@@ -666,7 +636,9 @@ func _apply_responsive_layout() -> void:
 		preview_region.size_flags_stretch_ratio = 1.12
 		screen_center.offset_left = -190.0
 		screen_center.offset_right = 10.0
-		configuration_region.size_flags_stretch_ratio = 0.88
+		selection_scroll.size_flags_stretch_ratio = 0.88
+		selection_scroll.custom_minimum_size = Vector2(280, 0)
+		_set_right_region_margins(24, 24, 20, 20)
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		screen_height = clampf(viewport_size.y - 28.0, 250.0, 760.0)
 	else:
@@ -674,44 +646,23 @@ func _apply_responsive_layout() -> void:
 		preview_region.size_flags_stretch_ratio = 0.82
 		screen_center.offset_left = -104.0
 		screen_center.offset_right = 16.0
-		configuration_region.size_flags_stretch_ratio = 1.18
+		selection_scroll.size_flags_stretch_ratio = 1.18
+		selection_scroll.custom_minimum_size = Vector2(0, maxf(300.0, viewport_size.y * 0.52))
+		_set_right_region_margins(20, 20, 14, 14)
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
 		screen_height = clampf(viewport_size.y * 0.34, 210.0, 420.0)
 	# The preview always represents a portrait handset, regardless of worksite orientation.
 	screen_frame.custom_minimum_size = Vector2(screen_height * 0.49, screen_height)
 
 
-func _apply_research_typography(control: Control, font_size: int) -> void:
-	var stix_font := FontVariation.new()
-	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	stix_font.variation_embolden = 0.7
-	control.add_theme_font_override("font", stix_font)
-	control.add_theme_font_size_override("font_size", font_size)
-
-
-func _style_boot_control(control: Control) -> void:
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.12, 0.13, 0.14, 0.82)
-		if state == "hover":
-			style.bg_color = Color(0.21, 0.22, 0.23, 0.88)
-		elif state == "pressed":
-			style.bg_color = Color(0.08, 0.09, 0.10, 0.94)
-		elif state == "disabled":
-			style.bg_color = Color(0.10, 0.11, 0.12, 0.58)
-		style.border_color = Color(0.72, 0.72, 0.68, 0.34)
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(11)
-		style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
-		style.shadow_size = 7
-		style.shadow_offset = Vector2(0, 2)
-		style.anti_aliasing = true
-		if control is Button:
-			(control as Button).add_theme_stylebox_override(state, style)
-		elif control is SpinBox:
-			(control as SpinBox).add_theme_stylebox_override("normal", style)
-			(control as SpinBox).add_theme_stylebox_override("focus", style)
-	control.add_theme_color_override("font_color", Color.WHITE)
+func _set_right_region_margins(left: int, right: int, top: int, bottom: int) -> void:
+	var region := selection_scroll.get_child(0) as MarginContainer
+	if not is_instance_valid(region):
+		return
+	region.add_theme_constant_override("margin_left", left)
+	region.add_theme_constant_override("margin_right", right)
+	region.add_theme_constant_override("margin_top", top)
+	region.add_theme_constant_override("margin_bottom", bottom)
 
 
 func _label(caption: String, font_size: int, color: Color) -> Label:
