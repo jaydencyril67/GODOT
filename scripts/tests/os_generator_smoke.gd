@@ -977,6 +977,10 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Fingerprint tap did not perform biometric unlock to Home.")
 		return
+	# Restore the lock-screen editor controls before looking for its generator.
+	# The preview's biometric unlock changes only the simulated phone screen.
+	worksite.call("_show_lock_screen_studio_controls")
+	await process_frame
 	var generator_button := worksite.find_child("GenerateLockScreenDesignButton", true, false) as Button
 	if generator_button == null:
 		_fail("Lock-screen design generator button is missing.")
