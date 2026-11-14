@@ -387,15 +387,20 @@ func _run_os_generator_test() -> void:
 		if str(generation_preview.get("components", {}).get("home_screen", {}).get("layout_style", "")) != "android_pixel":
 			_fail("OS generation did not use the approved Android home-screen layout.")
 			return
-		if simulator.find_child("AndroidWeatherWidget", true, false) == null or simulator.find_child("AndroidAssistantWidget", true, false) == null:
-			_fail("Android home screen must show two side-by-side widgets.")
-			return
-		if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("HomeSearchBar", true, false) == null:
-			_fail("Android home screen is missing its four-app row or search field.")
-			return
-		if simulator.find_child("HomeAppDock", true, false) == null:
-			_fail("Android home screen is missing its four-app dock.")
-			return
+		if generation_number == 1:
+			if simulator.find_child("LollipopGoogleSearchBar", true, false) == null or simulator.find_child("LollipopHomeAppGrid", true, false) == null:
+				_fail("Android Generation 1 must render the Lollipop Google search bar and home app grid.")
+				return
+			if simulator.find_child("LollipopAppDrawerButton", true, false) == null or simulator.find_child("LollipopThreeButtonNavigation", true, false) == null:
+				_fail("Android Generation 1 must include its app drawer launcher and classic navigation keys.")
+				return
+		else:
+			if simulator.find_child("AndroidWeatherWidget", true, false) == null or simulator.find_child("AndroidAssistantWidget", true, false) == null:
+				_fail("Later Android generations must retain their side-by-side home widgets.")
+				return
+			if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("HomeSearchBar", true, false) == null or simulator.find_child("HomeAppDock", true, false) == null:
+				_fail("Later Android generations are missing their home grid, search field or dock.")
+				return
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 
