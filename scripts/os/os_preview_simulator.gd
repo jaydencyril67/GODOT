@@ -106,7 +106,7 @@ class LockScreenFingerprintButton extends Button:
 		text = ""
 		focus_mode = Control.FOCUS_NONE
 		mouse_filter = Control.MOUSE_FILTER_STOP
-		custom_minimum_size = Vector2(64, 64)
+		custom_minimum_size = Vector2(52, 52)
 		sensor_texture = load("res://assets/os/lockscreen/fingerprint_sensor.svg") as Texture2D
 		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
 			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
@@ -1575,7 +1575,7 @@ func _on_pin_digit_pressed(digit: String) -> void:
 	if _entered_unlock_pin.length() == 4:
 		if _entered_unlock_pin == PHONE_UNLOCK_PIN:
 			_entered_unlock_pin = ""
-			set_component_view("home_screen")
+			call_deferred("set_component_view", "home_screen")
 		else:
 			_entered_unlock_pin = ""
 			_pin_error_message = "Incorrect PIN. Use 1234 for this preview."
