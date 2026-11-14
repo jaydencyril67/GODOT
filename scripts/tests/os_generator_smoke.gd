@@ -387,6 +387,14 @@ func _run_os_generator_test() -> void:
 	if not boot_overlay.visible:
 		_fail("Power button did not switch the display into its boot sequence.")
 		return
+	var boot_debug_panel := worksite.find_child("BootDebugPanel", true, false) as PanelContainer
+	var boot_debug_label := worksite.find_child("BootDebugText", true, false) as Label
+	if boot_debug_panel == null or boot_debug_label == null or not boot_debug_panel.visible:
+		_fail("Boot diagnostics panel was not visible while the phone was booting.")
+		return
+	if not boot_debug_label.text.contains("RAW SAVED INPUT") or not boot_debug_label.text.contains("RESOLVED IDENTITY"):
+		_fail("Boot diagnostics did not report the incoming and resolved phone identity.")
+		return
 	await create_timer(0.1).timeout
 	var boot_identity_label := worksite.find_child("BootIdentityText", true, false) as Label
 	var boot_model_label := worksite.find_child("BootModelText", true, false) as Label
