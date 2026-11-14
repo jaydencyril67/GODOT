@@ -775,6 +775,14 @@ func _generate_complete_os() -> void:
 	os_generation_busy = true
 	_set_os_generation_status("GENERATING OPERATING SYSTEM...")
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
+	var generated_components: Dictionary = generated_os_configuration.get("components", {})
+	var generated_lock_data: Dictionary = generated_components.get("lock_screen", {})
+	generated_lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
+	if not fingerprint_sensor_available:
+		generated_lock_data["show_fingerprint"] = false
+	generated_components["lock_screen"] = generated_lock_data
+	generated_os_configuration["components"] = generated_components
+	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_apply_bootloader_settings_to_configuration()
 	var components: Dictionary = generated_os_configuration.get("components", {})
 	if components.size() != ProceduralOSEngineScript.COMPONENTS.size():
