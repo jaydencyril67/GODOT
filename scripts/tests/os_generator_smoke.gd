@@ -319,7 +319,7 @@ func _run_os_generator_test() -> void:
 	if worksite.find_child("BootCompletedStatus", true, false) != null:
 		_fail("Boot loader must not create a device-turned-on status label.")
 		return
-	for item_id in ["company_logo", "phone_name", "phone_model"]:
+	for item_id in ["company_logo", "phone_details"]:
 		var row := worksite.find_child("BootSettingRow_" + item_id, true, false) as HBoxContainer
 		if row == null or row.get_child_count() != 3:
 			_fail("Boot loader settings must remain in a single horizontal row: " + item_id)
@@ -328,14 +328,14 @@ func _run_os_generator_test() -> void:
 		if row_label == null or row_label.autowrap_mode != TextServer.AUTOWRAP_OFF or absf(row_label.rotation) > 0.001:
 			_fail("Boot loader setting label is not displayed horizontally: " + item_id)
 			return
-	for item_id in ["company_logo", "phone_name", "phone_model"]:
+	for item_id in ["company_logo", "phone_details"]:
 		if worksite.find_child("BootOrder_" + item_id, true, false) == null or worksite.find_child("BootEnabled_" + item_id, true, false) == null:
 			_fail("Boot loader is missing order or enable controls for " + item_id + ".")
 			return
-	var phone_name_order := worksite.find_child("BootOrder_phone_name", true, false) as SpinBox
-	phone_name_order.value = 1
+	var phone_details_order := worksite.find_child("BootOrder_phone_details", true, false) as SpinBox
+	phone_details_order.value = 1
 	var boot_settings: Dictionary = worksite.get("bootloader_settings")
-	if int(boot_settings["items"]["phone_name"]["order"]) != 1 or int(boot_settings["items"]["company_logo"]["order"]) != 2:
+	if int(boot_settings["items"]["phone_details"]["order"]) != 1 or int(boot_settings["items"]["company_logo"]["order"]) != 2:
 		_fail("Boot order number boxes did not keep the three startup items in a unique sequence.")
 		return
 	for item_id in ["company_logo", "phone_name", "phone_model"]:
@@ -351,11 +351,11 @@ func _run_os_generator_test() -> void:
 		_fail("Boot loader allowed every startup identity item to be disabled.")
 		return
 	var logo_toggle := worksite.find_child("BootEnabled_company_logo", true, false) as CheckBox
-	var model_toggle := worksite.find_child("BootEnabled_phone_model", true, false) as CheckBox
+	var details_toggle := worksite.find_child("BootEnabled_phone_details", true, false) as CheckBox
 	logo_toggle.set_pressed_no_signal(true)
 	worksite.call("_on_boot_item_toggled", true, "company_logo")
-	model_toggle.set_pressed_no_signal(false)
-	worksite.call("_on_boot_item_toggled", false, "phone_model")
+	details_toggle.set_pressed_no_signal(false)
+	worksite.call("_on_boot_item_toggled", false, "phone_details")
 	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone", "DW-01")
 	worksite.call("_generate_complete_os")
 	await process_frame
