@@ -733,8 +733,8 @@ func _run_os_generator_test() -> void:
 	if home_controls == null or home_step_label == null or home_step_label.text != "STEP 3 / 3":
 		_fail("Step 3 Home Screen Studio did not open with the three-step progress indicator.")
 		return
-	if home_selector == null or home_layout_label == null or home_layout_label.text != "ANDROID" or home_minus == null or home_plus == null or not home_minus.disabled or not home_plus.disabled:
-		_fail("Step 3 must use the Phone Creation minus/value/plus selector and expose only approved Android.")
+	if home_selector == null or home_layout_label == null or home_layout_label.text != "LAYOUT 1" or home_minus == null or home_plus == null or not home_minus.disabled or not home_plus.disabled:
+		_fail("Step 3 must use the Phone Creation minus/value/plus selector and expose only approved Layout 1.")
 		return
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering Step 3 did not update the actual phone preview to Android Home.")
