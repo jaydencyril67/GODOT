@@ -345,7 +345,7 @@ func _run_os_generator_test() -> void:
 	details_toggle.set_pressed_no_signal(true)
 	worksite.call("_on_boot_item_toggled", true, "company_logo")
 	worksite.call("_on_boot_item_toggled", true, "phone_details")
-	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone", "DW-01")
+	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone Professional Edition", "DW-01")
 	worksite.call("_generate_complete_os")
 	await process_frame
 	var saved_boot_config: Dictionary = worksite.get("generated_os_configuration").get("bootloader", {})
@@ -364,12 +364,15 @@ func _run_os_generator_test() -> void:
 	var boot_identity_label := worksite.find_child("BootIdentityText", true, false) as Label
 	var boot_model_label := worksite.find_child("BootModelText", true, false) as Label
 	var boot_logo := worksite.find_child("BootCompanyLogo", true, false) as TextureRect
+	if boot_identity_label == null or boot_model_label == null or boot_logo == null:
+		_fail("Boot logo, phone-name label or phone-model label was not created.")
+		return
 	if not boot_logo.visible or boot_identity_label.visible or boot_model_label.visible:
 		_fail("Company logo must be the first visible boot stage before phone details.")
 		return
 	await create_timer(5.0).timeout
 	var boot_stage := worksite.find_child("BootLoaderStage", true, false) as VBoxContainer
-	if boot_identity_label == null or boot_identity_label.text != "DigitalWorld Phone" or not boot_identity_label.visible or boot_logo.visible:
+	if boot_identity_label.text != "DigitalWorld Phone Professional Edition" or not boot_identity_label.visible or boot_logo.visible:
 		_fail("Phone name must visibly replace the company logo in the second boot stage.")
 		return
 	if boot_model_label == null or boot_model_label.text != "DW-01" or not boot_model_label.visible:
@@ -378,8 +381,8 @@ func _run_os_generator_test() -> void:
 	if boot_stage == null or boot_stage.size.x <= 0.0 or boot_identity_label.size.x <= 0.0 or boot_identity_label.size.x > boot_stage.size.x + 1.0:
 		_fail("Boot identity text is not constrained to the available phone-screen width.")
 		return
-	if boot_identity_label.autowrap_mode == TextServer.AUTOWRAP_OFF or boot_identity_label.position.y + boot_identity_label.size.y > boot_model_label.position.y + 0.5:
-		_fail("Phone identity must wrap within the screen and keep its model on a separate visible line.")
+	if boot_identity_label.autowrap_mode == TextServer.AUTOWRAP_OFF or boot_identity_label.get_line_count() < 2 or boot_identity_label.position.y + boot_identity_label.size.y > boot_model_label.position.y + 0.5:
+		_fail("Long phone identity must wrap within the screen and keep its model on a separate visible line.")
 		return
 	var boot_identity_font := boot_identity_label.get_theme_font("font") as FontVariation
 	if boot_identity_label.get_theme_font_size("font_size") != 18 or boot_identity_font == null or not is_equal_approx(boot_identity_font.variation_embolden, 1.5):
