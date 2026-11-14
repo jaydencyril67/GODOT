@@ -67,6 +67,13 @@ func _run_os_generator_test() -> void:
 			_fail("Users can override generation-locked visual rules for generation %d." % generation_number)
 			return
 
+	var missing_icon_shape_config := generated.duplicate(true)
+	missing_icon_shape_config["style"].erase("icon_shape")
+	var normalized_missing_icon_shape := ProceduralEngineScript.normalize_os(missing_icon_shape_config)
+	if str(normalized_missing_icon_shape["style"].get("icon_shape", "")) != "rounded":
+		_fail("OS normalization did not default a missing icon shape.")
+		return
+
 	var legacy_config := generated.duplicate(true)
 	legacy_config["schema_version"] = 1
 	legacy_config["style"]["wallpaper"] = "res://legacy/old_wallpaper.png"
