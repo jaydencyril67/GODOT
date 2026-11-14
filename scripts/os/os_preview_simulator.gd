@@ -10,6 +10,19 @@ const STATUS_CELLULAR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/s
 const STATUS_WIFI_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_wifi.svg")
 const STATUS_BATTERY_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_battery.svg")
 
+class PINLockIndicator extends Control:
+	func _ready() -> void:
+		custom_minimum_size = Vector2(14, 18)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		queue_redraw()
+
+	func _draw() -> void:
+		var center_x := size.x * 0.5
+		draw_arc(Vector2(center_x, 8.0), 4.0, PI, TAU, 20, Color("#F4F6FA"), 1.5, true)
+		draw_rect(Rect2(Vector2(center_x - 5.0, 7.0), Vector2(10.0, 9.0)), Color("#F4F6FA"))
+		draw_circle(Vector2(center_x, 11.0), 1.0, Color("#263244"))
+
+
 class OSWallpaperLayer extends Control:
 	var palette: Dictionary = {}
 	var wallpaper_id := "aurora"
@@ -539,6 +552,14 @@ func _build_shell() -> void:
 	wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(wallpaper)
 
+	if active_component == "pin_input":
+		var pin_screen_tint := ColorRect.new()
+		pin_screen_tint.name = "PINScreenBackdropTint"
+		pin_screen_tint.color = Color(0.015, 0.025, 0.055, 0.22)
+		pin_screen_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pin_screen_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(pin_screen_tint)
+
 	var safe_area := MarginContainer.new()
 	safe_area.name = "OSSimulatorSafeArea"
 	safe_area.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -556,8 +577,13 @@ func _build_shell() -> void:
 		lock_shell.add_theme_constant_override("separation", 3)
 		safe_area.add_child(lock_shell)
 
-		# The system status bar is part of the lock screen, not only Home.
+		# The lock screen keeps its compact system status bar. Samsung-style
+		# PIN entry instead uses a clean lock indicator at the top of the screen.
 		_build_status_bar(lock_shell)
+		if active_component == "pin_input":
+			var pin_status_bar := lock_shell.get_node_or_null("OSStatusBar") as Control
+			if pin_status_bar != null:
+				pin_status_bar.visible = false
 
 		page_container = VBoxContainer.new()
 		page_container.name = "OSComponentContent"
@@ -1001,26 +1027,33 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var configured_clock_size := clampi(int(data.get("clock_size", 46)), 30, 58)
 	if template == "pixel_large_clock" or str(data.get("clock_treatment", "")) == "oversized":
 		configured_clock_size = mini(58, configured_clock_size + 6)
-	if size.x <= 180.0:
-		configured_clock_size = mini(configured_clock_size, 30)
 	if family == "typographic":
 		configured_clock_size = mini(configured_clock_size, 24)
+	var clock_text := _current_lock_time(family)
 	var clock_line_count := 2 if family == "typographic" else 1
-	var clock := _label(_current_lock_time(family), configured_clock_size, _text_color())
+	var clock_font := FontVariation.new()
+	clock_font.base_font = LOCKSCREEN_FONT
+	clock_font.variation_embolden = 1.1 if template in ["coloros_typography", "neo_brutalist"] else 0.55
+	# Fit the actual rendered string to the available phone width. The old fixed
+	# 30 px clamp still allowed wide numerals to be clipped, leaving only the
+	# centre time separator visible on narrow worksite previews.
+	var available_clock_width := maxf(1.0, size.x - 34.0)
+	var measured_clock_width := clock_font.get_string_size(clock_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, configured_clock_size).x
+	if measured_clock_width > available_clock_width and measured_clock_width > 0.0:
+		configured_clock_size = maxi(20, floori(float(configured_clock_size) * available_clock_width / measured_clock_width))
+	var clock := _label(clock_text, configured_clock_size, _text_color())
 	clock.name = "LockScreenClock"
 	clock.horizontal_alignment = alignment
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.autowrap_mode = TextServer.AUTOWRAP_OFF
+	clock.clip_text = false
 	clock.clip_contents = false
-	clock.custom_minimum_size = Vector2(0, configured_clock_size * clock_line_count + 5)
+	clock.custom_minimum_size = Vector2(0, configured_clock_size * clock_line_count + 8)
 	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clock.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	clock_stack.custom_minimum_size.y = configured_clock_size * clock_line_count + 19
+	clock_stack.custom_minimum_size.y = configured_clock_size * clock_line_count + 22
 	clock_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clock_stack.clip_contents = false
-	var clock_font := FontVariation.new()
-	clock_font.base_font = LOCKSCREEN_FONT
-	clock_font.variation_embolden = 1.1 if template in ["coloros_typography", "neo_brutalist"] else 0.55
 	clock.add_theme_font_override("font", clock_font)
 	clock.add_theme_color_override("font_color", Color("#FFFFFF"))
 	clock.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.78))
@@ -1496,89 +1529,209 @@ func _build_pin_input() -> void:
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.alignment = BoxContainer.ALIGNMENT_CENTER
-	layout.add_theme_constant_override("separation", 8)
+	layout.add_theme_constant_override("separation", 3)
 	page_container.add_child(layout)
 
 	var top_space := Control.new()
+	top_space.name = "PINTopFlexibleSpace"
 	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(top_space)
 
-	var title := _label("Enter PIN", 20, _text_color())
+	var lock_indicator_stage := CenterContainer.new()
+	lock_indicator_stage.name = "PINLockIndicatorStage"
+	lock_indicator_stage.custom_minimum_size.y = 18
+	var lock_indicator := PINLockIndicator.new()
+	lock_indicator.name = "PINLockIndicator"
+	lock_indicator_stage.add_child(lock_indicator)
+	layout.add_child(lock_indicator_stage)
+
+	var title := _label("Enter PIN", 17, _text_color())
 	title.name = "PINEntryTitle"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.custom_minimum_size.y = 21
 	layout.add_child(title)
-	var subtitle := _label("Enter your 4-digit phone unlock PIN", 8, _muted_color())
+	var subtitle := _label("Your PIN contains at least 4 digits.", 8, _muted_color())
 	subtitle.name = "PINEntrySubtitle"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.custom_minimum_size.y = 12
 	layout.add_child(subtitle)
 
-	var dots := _label("○  ○  ○  ○", 19, _text_color())
+	var dots := _label("○   ○   ○   ○", 16, _text_color())
 	dots.name = "PINEntryDots"
 	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dots.custom_minimum_size.y = 30
+	dots.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	dots.custom_minimum_size.y = 23
 	layout.add_child(dots)
 
-	var error_label := _label(_pin_error_message, 8, Color("#FF8A8A"))
+	var error_label := _label(_pin_error_message, 8, Color("#FF9AA8"))
 	error_label.name = "PINEntryError"
 	error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	error_label.custom_minimum_size.y = 16
+	error_label.custom_minimum_size.y = 12
 	layout.add_child(error_label)
 
 	var keypad := GridContainer.new()
 	keypad.name = "PINKeypad"
 	keypad.columns = 3
 	keypad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	keypad.add_theme_constant_override("h_separation", 5)
-	keypad.add_theme_constant_override("v_separation", 5)
-	for digit in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+	var keypad_gap := clampf(size.x * 0.045, 5.0, 10.0)
+	keypad.add_theme_constant_override("h_separation", roundi(keypad_gap))
+	keypad.add_theme_constant_override("v_separation", roundi(keypad_gap))
+	var available_keypad_width := maxf(100.0, size.x - 40.0)
+	var key_size := clampf((available_keypad_width - keypad_gap * 2.0) / 3.0, 32.0, 60.0)
+	var pin_keys := [
+		{"id":"1", "number":"1", "letters":"", "tint":Color("#83B5F4")},
+		{"id":"2", "number":"2", "letters":"ABC", "tint":Color("#8CA9F4")},
+		{"id":"3", "number":"3", "letters":"DEF", "tint":Color("#9A9BF0")},
+		{"id":"4", "number":"4", "letters":"GHI", "tint":Color("#A79AEF")},
+		{"id":"5", "number":"5", "letters":"JKL", "tint":Color("#B09AE8")},
+		{"id":"6", "number":"6", "letters":"MNO", "tint":Color("#BC9CDD")},
+		{"id":"7", "number":"7", "letters":"PQRS", "tint":Color("#C79CD6")},
+		{"id":"8", "number":"8", "letters":"TUV", "tint":Color("#D09CCF")},
+		{"id":"9", "number":"9", "letters":"WXYZ", "tint":Color("#D89FCB")},
+		{"id":"Delete", "number":"⌫", "letters":"", "tint":Color("#B9C5D8")},
+		{"id":"0", "number":"0", "letters":"", "tint":Color("#C4A8D6")},
+		{"id":"OK", "number":"OK", "letters":"", "tint":Color("#B8A6DF")}
+	]
+	for key_data in pin_keys:
+		var key_id := str(key_data["id"])
 		var key := Button.new()
-		key.name = "PINKey_" + digit
-		key.text = digit
-		key.custom_minimum_size = Vector2(34, 34)
-		_style_action_button(key)
-		key.add_theme_font_size_override("font_size", 13)
-		key.pressed.connect(_on_pin_digit_pressed.bind(digit))
+		key.name = "PINKey_" + key_id
+		key.text = ""
+		key.custom_minimum_size = Vector2.ONE * key_size
+		key.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		key.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var normal := StyleBoxFlat.new()
+		var tint: Color = key_data["tint"]
+		normal.bg_color = Color(tint.r, tint.g, tint.b, 0.42)
+		normal.border_color = Color(1.0, 1.0, 1.0, 0.28)
+		normal.set_border_width_all(1)
+		normal.set_corner_radius_all(999)
+		normal.shadow_color = Color(0.0, 0.0, 0.0, 0.18)
+		normal.shadow_size = 3
+		normal.content_margin_left = 1
+		normal.content_margin_right = 1
+		normal.content_margin_top = 1
+		normal.content_margin_bottom = 1
+		var hover := normal.duplicate() as StyleBoxFlat
+		hover.bg_color = Color(minf(1.0, tint.r + 0.08), minf(1.0, tint.g + 0.08), minf(1.0, tint.b + 0.08), 0.56)
+		var pressed := normal.duplicate() as StyleBoxFlat
+		pressed.bg_color = Color(tint.r * 0.82, tint.g * 0.82, tint.b * 0.82, 0.62)
+		key.add_theme_stylebox_override("normal", normal)
+		key.add_theme_stylebox_override("hover", hover)
+		key.add_theme_stylebox_override("pressed", pressed)
+		key.add_theme_stylebox_override("focus", normal)
+		key.focus_mode = Control.FOCUS_NONE
+		key.mouse_filter = Control.MOUSE_FILTER_STOP
+
+		var key_center := CenterContainer.new()
+		key_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		key_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var key_labels := VBoxContainer.new()
+		key_labels.alignment = BoxContainer.ALIGNMENT_CENTER
+		key_labels.add_theme_constant_override("separation", 0)
+		key_labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var number_size := 17 if key_size >= 44.0 else 14
+		var number_label := _label(str(key_data["number"]), number_size, Color("#FFFFFF"))
+		number_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		number_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		key_labels.add_child(number_label)
+		var letters := str(key_data["letters"])
+		if not letters.is_empty():
+			var letters_label := _label(letters, 6, Color(1.0, 1.0, 1.0, 0.82))
+			letters_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			letters_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			key_labels.add_child(letters_label)
+		key_center.add_child(key_labels)
+		key.add_child(key_center)
+
+		match key_id:
+			"Delete":
+				key.pressed.connect(_on_pin_delete_pressed)
+			"OK":
+				key.pressed.connect(_on_pin_submit_pressed)
+			_:
+				key.pressed.connect(_on_pin_digit_pressed.bind(key_id))
 		keypad.add_child(key)
-	var empty_key := Control.new()
-	empty_key.custom_minimum_size = Vector2(34, 34)
-	keypad.add_child(empty_key)
-	var zero_key := Button.new()
-	zero_key.name = "PINKey_0"
-	zero_key.text = "0"
-	zero_key.custom_minimum_size = Vector2(34, 34)
-	_style_action_button(zero_key)
-	zero_key.add_theme_font_size_override("font_size", 13)
-	zero_key.pressed.connect(_on_pin_digit_pressed.bind("0"))
-	keypad.add_child(zero_key)
-	var delete_key := Button.new()
-	delete_key.name = "PINKey_Delete"
-	delete_key.text = "⌫"
-	delete_key.custom_minimum_size = Vector2(34, 34)
-	_style_action_button(delete_key)
-	delete_key.pressed.connect(_on_pin_delete_pressed)
-	keypad.add_child(delete_key)
 	layout.add_child(keypad)
+
+	var lock_data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
+	if bool(lock_data.get("show_fingerprint", false)) and bool(lock_data.get("fingerprint_sensor_available", false)):
+		var fingerprint_stage := CenterContainer.new()
+		fingerprint_stage.name = "PINFingerprintStage"
+		fingerprint_stage.custom_minimum_size.y = 36
+		var fingerprint := LockScreenFingerprintButton.new()
+		fingerprint.name = "PINFingerprintSensor"
+		fingerprint.custom_minimum_size = Vector2(34, 34)
+		fingerprint.tooltip_text = "Unlock with fingerprint"
+		fingerprint.pressed.connect(func(): set_component_view("home_screen"))
+		fingerprint_stage.add_child(fingerprint)
+		layout.add_child(fingerprint_stage)
+
+	var emergency_button := Button.new()
+	emergency_button.name = "PINEmergencyCallButton"
+	emergency_button.text = "Emergency call"
+	emergency_button.custom_minimum_size = Vector2(112, 28)
+	emergency_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var emergency_style := StyleBoxFlat.new()
+	emergency_style.bg_color = Color(1.0, 1.0, 1.0, 0.12)
+	emergency_style.border_color = Color(1.0, 1.0, 1.0, 0.22)
+	emergency_style.set_border_width_all(1)
+	emergency_style.set_corner_radius_all(18)
+	emergency_style.content_margin_left = 12
+	emergency_style.content_margin_right = 12
+	emergency_style.content_margin_top = 4
+	emergency_style.content_margin_bottom = 4
+	emergency_button.add_theme_stylebox_override("normal", emergency_style)
+	emergency_button.add_theme_stylebox_override("hover", emergency_style.duplicate())
+	emergency_button.add_theme_stylebox_override("pressed", emergency_style.duplicate())
+	emergency_button.add_theme_color_override("font_color", Color("#F4F6FA"))
+	emergency_button.add_theme_color_override("font_hover_color", Color("#FFFFFF"))
+	emergency_button.add_theme_font_size_override("font_size", 8)
+	emergency_button.focus_mode = Control.FOCUS_NONE
+	emergency_button.pressed.connect(_on_pin_emergency_pressed)
+	layout.add_child(emergency_button)
 
 	var info := PanelContainer.new()
 	info.name = "PINPreviewUnlockInfo"
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_surface(info, true)
-	var info_label := _label("DEMO UNLOCK PIN: 1234", 8, _accent_color())
+	var info_style := StyleBoxFlat.new()
+	info_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	info_style.set_border_width_all(0)
+	info_style.content_margin_left = 0
+	info_style.content_margin_right = 0
+	info_style.content_margin_top = 0
+	info_style.content_margin_bottom = 0
+	info.add_theme_stylebox_override("panel", info_style)
+	var info_label := _label("Preview PIN  ·  1234", 6, Color(1.0, 1.0, 1.0, 0.62))
+	info_label.name = "PINPreviewUnlockInfoLabel"
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.add_child(info_label)
 	layout.add_child(info)
 
-	var back_button := Button.new()
-	back_button.name = "PINBackToLockScreen"
-	back_button.text = "BACK TO LOCK SCREEN"
-	back_button.custom_minimum_size.y = 30
-	_style_lock_button(back_button, "outlined")
-	back_button.pressed.connect(func(): set_component_view("lock_screen"))
-	layout.add_child(back_button)
-
 	var bottom_space := Control.new()
+	bottom_space.name = "PINBottomFlexibleSpace"
 	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(bottom_space)
+
+
+func _on_pin_submit_pressed() -> void:
+	if _entered_unlock_pin.length() != 4:
+		_pin_error_message = "Enter your 4-digit PIN."
+		_refresh_pin_entry_display()
+		return
+	if _entered_unlock_pin == PHONE_UNLOCK_PIN:
+		_entered_unlock_pin = ""
+		call_deferred("set_component_view", "home_screen")
+	else:
+		_entered_unlock_pin = ""
+		_pin_error_message = "Incorrect PIN. Use 1234 for this preview."
+		_refresh_pin_entry_display()
+
+
+func _on_pin_emergency_pressed() -> void:
+	_pin_error_message = "Emergency calling is unavailable in this preview."
+	_refresh_pin_entry_display()
 
 
 func _on_pin_digit_pressed(digit: String) -> void:
@@ -1588,13 +1741,7 @@ func _on_pin_digit_pressed(digit: String) -> void:
 	_pin_error_message = ""
 	_refresh_pin_entry_display()
 	if _entered_unlock_pin.length() == 4:
-		if _entered_unlock_pin == PHONE_UNLOCK_PIN:
-			_entered_unlock_pin = ""
-			call_deferred("set_component_view", "home_screen")
-		else:
-			_entered_unlock_pin = ""
-			_pin_error_message = "Incorrect PIN. Use 1234 for this preview."
-			_refresh_pin_entry_display()
+		_on_pin_submit_pressed()
 
 
 func _on_pin_delete_pressed() -> void:
@@ -1616,6 +1763,7 @@ func _refresh_pin_entry_display() -> void:
 	var error_label := find_child("PINEntryError", true, false) as Label
 	if is_instance_valid(error_label):
 		error_label.text = _pin_error_message
+		error_label.visible = not _pin_error_message.is_empty()
 
 
 func _build_icon_gallery(data: Dictionary) -> void:
