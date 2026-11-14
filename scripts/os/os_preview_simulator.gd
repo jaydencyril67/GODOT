@@ -8,7 +8,7 @@ const LOCKSCREEN_FONT: FontFile = preload("res://assets/fonts/STIXTwoText[wght].
 const FINGERPRINT_SENSOR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/fingerprint_sensor.svg")
 const LOCKSCREEN_CAMERA_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/camera.svg")
 const LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/flashlight.svg")
-const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.90
+const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.81
 const STATUS_CELLULAR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_cellular.svg")
 const STATUS_WIFI_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_wifi.svg")
 const STATUS_BATTERY_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_battery.svg")
@@ -122,7 +122,7 @@ class OSWallpaperLayer extends Control:
 
 class LockScreenFingerprintButton extends Button:
 	var sensor_texture: Texture2D
-	var artwork_scale := 0.90
+	var artwork_scale := 0.81
 
 	func _ready() -> void:
 		text = ""
