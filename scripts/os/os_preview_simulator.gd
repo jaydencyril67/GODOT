@@ -645,24 +645,22 @@ func _build_shell() -> void:
 	_building = false
 
 func _build_home_dock(parent: VBoxContainer) -> void:
-	var dock := PanelContainer.new()
-	dock.name = "HomeAppDock"
-	dock.custom_minimum_size.y = 48
-	dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_surface(dock, true)
+	var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "ios_grid"))
+	var dock_apps := ["Phone", "Messages", "Camera", "Email"] if home_layout == "huawei_pura" else ["Phone", "Messages", "Browser", "Camera"]
 	var dock_row := HBoxContainer.new()
 	dock_row.name = "HomeAppDockIcons"
-	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	dock_row.custom_minimum_size.y = 40
 	dock_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dock_row.add_theme_constant_override("separation", 6)
-	dock.add_child(dock_row)
-	var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
-	var dock_icon_size := _responsive_icon_size(35, dock_apps.size(), 6)
+	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	dock_row.add_theme_constant_override("separation", 8)
+	var dock_icon_size := _responsive_icon_size(32 if home_layout == "huawei_pura" else 35, dock_apps.size(), 6)
 	for app_name in dock_apps:
 		var app := _find_app(app_name)
 		if not app.is_empty():
 			dock_row.add_child(_create_app_icon(app, dock_icon_size, false))
-	parent.add_child(dock)
+	# Huawei-style reference has a transparent dock: icons sit directly on wallpaper.
+	dock_row.name = "HomeAppDock" if home_layout == "huawei_pura" else "HomeAppDockIcons"
+	parent.add_child(dock_row)
 
 
 func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: String) -> TextureRect:
@@ -761,9 +759,11 @@ func _build_component(component_id: String) -> void:
 			_build_system_ui(component_data)
 
 func _build_home_screen(data: Dictionary) -> void:
-	var layout_style := str(data.get("layout_style", "ios_grid"))
+	var layout_style := str(data.get("layout_style", "huawei_pura"))
 	var widget_count := clampi(int(_style.get("widget_count", data.get("widget_count", 0))), 0, 4)
 	match layout_style:
+		"huawei_pura":
+			_build_huawei_pura_home(data)
 		"android_pixel":
 			_build_android_home(data, widget_count)
 		"samsung_one_ui":
@@ -826,6 +826,89 @@ func _build_android_home(data: Dictionary, widget_count: int) -> void:
 	breathing_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_container.add_child(breathing_space)
 	_build_android_favourites(data)
+
+func _build_huawei_pura_home(data: Dictionary) -> void:
+	# Single-screen Huawei-inspired composition: centred clock, compact service row,
+	# eight distinct home apps and a transparent four-icon dock.
+	var hero := VBoxContainer.new()
+	hero.name = "HuaweiHomeClock"
+	hero.alignment = BoxContainer.ALIGNMENT_CENTER
+	hero.add_theme_constant_override("separation", 1)
+	var clock := _label(_current_lock_time(), 27, _text_color())
+	clock.name = "HomeHeroClock"
+	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero.add_child(clock)
+	var date := _label(_current_lock_date("minimal"), 7, _muted_color())
+	date.name = "HomeHeroDate"
+	date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero.add_child(date)
+	page_container.add_child(hero)
+
+	var service_row := HBoxContainer.new()
+	service_row.name = "HomeServiceWidgetRow"
+	service_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	service_row.add_theme_constant_override("separation", 4)
+	var weather_app := _find_app("Weather")
+	if not weather_app.is_empty():
+		var weather_shortcut := _create_app_icon(weather_app, 30, true)
+		weather_shortcut.name = "HomeServiceShortcutWeather"
+		weather_shortcut.custom_minimum_size.x = 35
+		service_row.add_child(weather_shortcut)
+	var calculator_app := _find_app("Calculator")
+	if not calculator_app.is_empty():
+		var calculator_shortcut := _create_app_icon(calculator_app, 30, true)
+		calculator_shortcut.name = "HomeServiceShortcutCalculator"
+		calculator_shortcut.custom_minimum_size.x = 35
+		service_row.add_child(calculator_shortcut)
+
+	var activity_widget := PanelContainer.new()
+	activity_widget.name = "HomeActivityWidget"
+	activity_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	activity_widget.custom_minimum_size = Vector2(0, 57)
+	var activity_style := StyleBoxFlat.new()
+	activity_style.bg_color = Color(str(_palette.get("surface_alt", "#263544")))
+	activity_style.set_corner_radius_all(0)
+	activity_style.set_border_width_all(0)
+	activity_style.content_margin_left = 5
+	activity_style.content_margin_right = 5
+	activity_style.content_margin_top = 4
+	activity_style.content_margin_bottom = 4
+	activity_widget.add_theme_stylebox_override("panel", activity_style)
+	var activity_content := VBoxContainer.new()
+	activity_content.add_theme_constant_override("separation", 1)
+	activity_widget.add_child(activity_content)
+	var activity_heading := _label("DAILY ACTIVITY", 6, _muted_color())
+	activity_content.add_child(activity_heading)
+	var activity_value_row := HBoxContainer.new()
+	activity_value_row.add_theme_constant_override("separation", 3)
+	activity_value_row.add_child(_label("✣", 17, _accent_color()))
+	var activity_value := _label("6,270", 17, _text_color())
+	activity_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	activity_value_row.add_child(activity_value)
+	activity_content.add_child(activity_value_row)
+	activity_content.add_child(_label("STEPS TODAY", 6, _muted_color()))
+	service_row.add_child(activity_widget)
+	page_container.add_child(service_row)
+
+	var apps_grid := GridContainer.new()
+	apps_grid.name = "HomeAppGrid"
+	apps_grid.columns = 4
+	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apps_grid.add_theme_constant_override("h_separation", 5)
+	apps_grid.add_theme_constant_override("v_separation", 5)
+	var home_apps := ["Gallery", "Music", "Video", "Books", "Wallet", "Themes", "Settings", "Browser"]
+	var icon_size := _responsive_icon_size(31, 4, 5)
+	for app_name in home_apps:
+		var app := _find_app(app_name)
+		if not app.is_empty():
+			apps_grid.add_child(_create_app_icon(app, icon_size, true))
+	page_container.add_child(apps_grid)
+
+	var flexible_space := Control.new()
+	flexible_space.name = "HuaweiHomeFlexibleSpace"
+	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(flexible_space)
+
 
 func _build_home_header(title_text: String, subtitle_text: String) -> void:
 	var header := VBoxContainer.new()
