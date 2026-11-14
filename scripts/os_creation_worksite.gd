@@ -94,7 +94,7 @@ class GlassCheckbox extends Button:
 		flat = true
 		text = ""
 		focus_mode = Control.FOCUS_NONE
-		custom_minimum_size = Vector2(30, 30)
+		custom_minimum_size = Vector2(40, 40)
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var empty_style := StyleBoxEmpty.new()
 		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
@@ -394,8 +394,8 @@ func _build_bootloader_controls_only() -> void:
 	content.name = "BootLoaderOnlyControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_theme_constant_override("separation", 16)
+	content.alignment = BoxContainer.ALIGNMENT_BEGIN
+	content.add_theme_constant_override("separation", 14)
 	selection_panel.add_child(content)
 	_build_bootloader_controls(content)
 
@@ -413,17 +413,26 @@ func _show_lock_screen_studio_controls() -> void:
 	content.name = "LockScreenStudioControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 10)
+	content.add_theme_constant_override("separation", 12)
+	content.alignment = BoxContainer.ALIGNMENT_BEGIN
 	selection_panel.add_child(content)
 
-	var heading := _label("LOCK SCREEN", 21, Color("#D3AA6B"))
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var heading := _label("LOCK SCREEN", 22, Color("#D3AA6B"))
+	heading.name = "LockScreenHeroTitle"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description := _label("Choose what appears on the lock screen. Generate changes its visual design without replacing your wallpaper.", 10, Color("#D0CBC2"))
+	var description := _label("Choose what appears on the lock screen. Generate changes its visual design without replacing your wallpaper.", 12, Color("#D0CBC2"))
+	description.name = "LockScreenHeroDescription"
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
 
-	var clock_note := _label("CLOCK  ·  ALWAYS INCLUDED", 9, Color("#D3AA6B"))
+	var hero_gap := Control.new()
+	hero_gap.name = "LockScreenHeroGap"
+	hero_gap.custom_minimum_size = Vector2(0, 28)
+	content.add_child(hero_gap)
+
+	var clock_note := _label("CLOCK  ·  ALWAYS INCLUDED", 11, Color("#D3AA6B"))
 	content.add_child(clock_note)
 	var divider := ColorRect.new()
 	divider.custom_minimum_size.y = 1
@@ -440,14 +449,14 @@ func _show_lock_screen_studio_controls() -> void:
 	var generator := Button.new()
 	generator.name = "GenerateLockScreenDesignButton"
 	generator.text = "GENERATE NEW DESIGN"
-	generator.custom_minimum_size.y = 40
+	generator.custom_minimum_size.y = 48
 	generator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	generator.focus_mode = Control.FOCUS_NONE
 	_style_button(generator)
 	generator.pressed.connect(_regenerate_selected_component)
 	content.add_child(generator)
 
-	var note := _label("Your wallpaper stays exactly the same.", 8, Color("#A6A096"))
+	var note := _label("Your wallpaper stays exactly the same.", 10, Color("#A6A096"))
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(note)
 
@@ -456,16 +465,17 @@ func _add_lock_screen_toggle_row(parent: VBoxContainer, feature_id: String, titl
 	var row := HBoxContainer.new()
 	row.name = "LockScreenSettingRow_" + feature_id
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 8)
+	row.custom_minimum_size = Vector2(0, 54)
+	row.add_theme_constant_override("separation", 12)
 	parent.add_child(row)
 
 	var labels := VBoxContainer.new()
 	labels.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	labels.add_theme_constant_override("separation", 1)
-	var title := _label(title_text, 11, Color("#E5E0D6"))
+	var title := _label(title_text, 14, Color("#E5E0D6"))
 	title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	labels.add_child(title)
-	var detail := _label(detail_text if not unavailable else "No fingerprint sensor detected on this phone", 7, Color("#A6A096"))
+	var detail := _label(detail_text if not unavailable else "No fingerprint sensor detected on this phone", 9, Color("#A6A096"))
 	detail.autowrap_mode = TextServer.AUTOWRAP_WORD
 	labels.add_child(detail)
 	row.add_child(labels)
@@ -626,14 +636,22 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 
 
 func _build_bootloader_controls(parent: VBoxContainer) -> void:
-	parent.add_theme_constant_override("separation", 16)
+	parent.add_theme_constant_override("separation", 14)
 	var heading := _label("BOOT LOADER", 22, Color("#D3AA6B"))
+	heading.name = "BootLoaderHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(heading)
-	var description := _label("Choose which startup details appear when your phone powers on.", 14, Color("#E5E0D6"))
+	var description := _label("Choose which startup details appear when your phone powers on.", 13, Color("#E5E0D6"))
+	description.name = "BootLoaderHeroDescription"
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(description)
+
+	var hero_gap := Control.new()
+	hero_gap.name = "BootLoaderHeroGap"
+	hero_gap.custom_minimum_size = Vector2(0, 52)
+	parent.add_child(hero_gap)
+
 	var rows := [
 		["company_logo", "Company Logo"],
 		["phone_details", "Phone Details"]
@@ -643,10 +661,11 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		var row := HBoxContainer.new()
 		row.name = "BootSettingRow_" + item_id
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.custom_minimum_size = Vector2(0, 58)
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", 8)
+		row.add_theme_constant_override("separation", 12)
 		parent.add_child(row)
-		var item_label := _label(str(row_data[1]), 16, Color("#E5E0D6"))
+		var item_label := _label(str(row_data[1]), 18, Color("#E5E0D6"))
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -853,7 +872,7 @@ func _apply_responsive_layout() -> void:
 		screen_center.offset_right = 10.0
 		selection_scroll.size_flags_stretch_ratio = 0.88
 		selection_scroll.custom_minimum_size = Vector2(280, 0)
-		_set_right_region_margins(24, 24, 20, 20)
+		_set_right_region_margins(22, 18, 20, 20)
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		screen_height = clampf(viewport_size.y - 28.0, 250.0, 760.0)
 	else:
