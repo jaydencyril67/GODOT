@@ -430,8 +430,15 @@ func _run_os_generator_test() -> void:
 	if boot_identity_label.get_theme_font_size("font_size") != 18 or boot_identity_font == null or not is_equal_approx(boot_identity_font.variation_embolden, 1.5):
 		_fail("Phone name must use the bold, screen-fitted boot identity typography.")
 		return
-	if boot_model_label.get_theme_font_size("font_size") != 14:
-		_fail("Phone model must use the smaller secondary boot identity typography.")
+	if boot_model_label.get_theme_font_size("font_size") != 15 or boot_model_label.custom_minimum_size.y < 26.0:
+		_fail("Phone model must use the explicitly sized secondary boot identity typography.")
+		return
+	if boot_identity_label.custom_minimum_size.y < 54.0:
+		_fail("Phone name must reserve enough vertical space for controlled multi-line wrapping.")
+		return
+	var boot_model_font := boot_model_label.get_theme_font("font") as FontVariation
+	if boot_model_font == null or not is_equal_approx(boot_model_font.variation_embolden, 1.0):
+		_fail("Phone model must use the defined medium-weight boot typography.")
 		return
 	await worksite.boot_completed
 	var boot_elapsed := Time.get_ticks_msec() - boot_started_at
