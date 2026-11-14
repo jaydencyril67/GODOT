@@ -695,7 +695,7 @@ func _run_os_generator_test() -> void:
 	if pin_lock_indicator == null or pin_keypad == null or pin_keypad.columns != 3 or pin_keypad.get_child_count() != 12 or emergency_call == null:
 		_fail("PIN screen is missing its Samsung-style lock indicator, 3×4 keypad or emergency-call control.")
 		return
-	if pin_fingerprint == null or not pin_fingerprint.get("sensor_texture"):
+	if pin_fingerprint == null or pin_fingerprint.get("sensor_texture") == null:
 		_fail("PIN screen did not show the enabled under-display fingerprint shortcut.")
 		return
 	if pin_key_two == null or pin_key_two.size.x < 30.0:
@@ -705,7 +705,7 @@ func _run_os_generator_test() -> void:
 	if pin_key_style == null or pin_key_style.corner_radius_top_left < 15:
 		_fail("PIN number keys are not styled as circular One UI-style buttons.")
 		return
-	var pin_key_center := pin_key_two.get_node_or_null("CenterContainer") as CenterContainer
+	var pin_key_center := pin_key_two.get_node_or_null("PINKeyCenter") as CenterContainer
 	if pin_key_center == null or pin_key_center.get_child_count() == 0:
 		_fail("PIN keypad number and telephone-letter labels were not rendered.")
 		return
