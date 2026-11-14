@@ -925,6 +925,10 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var original_container := page_container
 	var bank := VBoxContainer.new()
 	bank.name = "LockScreenComponentBank"
+	# Build reusable lock-screen widgets inside the live scene tree. Creating this
+	# staging container detached leaves its generated Controls and theme resources
+	# outside normal Node ownership during repeated preview rebuilds.
+	original_container.add_child(bank)
 	page_container = bank
 	if bool(data.get("show_notifications", true)):
 		_add_lock_notification("Messages", "A new message is waiting", "NOW", str(data.get("notification_treatment", "glass")), 0)
@@ -1190,6 +1194,16 @@ func _build_lock_screen(data: Dictionary) -> void:
 	if is_instance_valid(unlock_control):
 		root_layout.add_child(unlock_control)
 	page_container = original_container
+
+	# Every widget that is used has now been moved into the rendered layout.
+	# Release the empty staging bank and any template-only containers that this
+	# particular layout did not adopt.
+	if bank.get_parent() == original_container:
+		original_container.remove_child(bank)
+		bank.free()
+	for unused_control in [top_space, notifications, feature_row]:
+		if is_instance_valid(unused_control) and unused_control.get_parent() == null:
+			unused_control.free()
 
 
 func _lock_screen_move(source: Control, node_name: String, destination: Control) -> void:
