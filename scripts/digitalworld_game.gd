@@ -2777,6 +2777,13 @@ func _prepare_os_creation_worksite() -> void:
 		push_error("Operating System Worksite scene could not be initialized.")
 		return
 	os_creation_worksite.name = "OS_Creation_Worksite"
+	os_creation_worksite.call(
+		"set_boot_identity",
+		str(career.get("company_name", "YOUR COMPANY")),
+		int(career.get("logo_id", 1)),
+		str(career.get("phone_name", "DigitalWorld Phone")),
+		str(career.get("phone_model", "DW-01"))
+	)
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
 	var os_selected_callback := Callable(self, "_on_generated_os_selected")
