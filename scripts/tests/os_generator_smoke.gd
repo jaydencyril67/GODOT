@@ -377,8 +377,8 @@ func _run_os_generator_test() -> void:
 	simulator.set_component_view("home_screen")
 	await process_frame
 
-	if ProceduralEngineScript.HOME_LAYOUT_STYLES.size() != 2 or ProceduralEngineScript.HOME_LAYOUT_STYLES[0] != "android_pixel" or ProceduralEngineScript.HOME_LAYOUT_STYLES[1] != "coloros_home":
-		_fail("Only the two individually approved home-screen layouts may be available, in approval order.")
+	if ProceduralEngineScript.HOME_LAYOUT_STYLES.size() != 15 or ProceduralEngineScript.HOME_LAYOUT_STYLES[0] != "android_pixel" or ProceduralEngineScript.HOME_LAYOUT_STYLES[1] != "coloros_home":
+		_fail("The 15 home-screen layouts must preserve the first two approved designs and their order.")
 		return
 	for generation_number in range(1, 4):
 		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
@@ -390,7 +390,7 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child("AndroidWeatherWidget", true, false) == null or simulator.find_child("AndroidAssistantWidget", true, false) == null:
 			_fail("Android home screen must show two side-by-side widgets.")
 			return
-		if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("AndroidHomeSearch", true, false) == null:
+		if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("HomeSearchBar", true, false) == null:
 			_fail("Android home screen is missing its four-app row or search field.")
 			return
 		if simulator.find_child("HomeAppDock", true, false) == null:

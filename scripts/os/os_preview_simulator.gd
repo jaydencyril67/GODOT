@@ -1093,7 +1093,7 @@ func _build_home_clock_block(font_size: int = 30, alignment: int = HORIZONTAL_AL
 		fitted_size = maxi(20, floori(float(fitted_size) * available_width / measured_width))
 	var clock := _label(clock_text, fitted_size, _text_color())
 	clock.name = "HomeHeroClock"
-	clock.horizontal_alignment = alignment
+	clock.horizontal_alignment = alignment as HorizontalAlignment
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clock.custom_minimum_size = Vector2(0, fitted_size + 5)
@@ -1104,7 +1104,7 @@ func _build_home_clock_block(font_size: int = 30, alignment: int = HORIZONTAL_AL
 	hero.add_child(clock)
 	var date := _label(_current_lock_date("minimal"), 8, _muted_color())
 	date.name = "HomeHeroDate"
-	date.horizontal_alignment = alignment
+	date.horizontal_alignment = alignment as HorizontalAlignment
 	date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	date.custom_minimum_size.y = 12
 	date.autowrap_mode = TextServer.AUTOWRAP_OFF
