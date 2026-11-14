@@ -309,6 +309,25 @@ func _run_os_generator_test() -> void:
 	if boot_overlay == null or boot_overlay.visible:
 		_fail("Phone screen should remain off until the separate power button is pressed.")
 		return
+	if worksite.find_child("BootLoaderOnlyControls", true, false) == null:
+		_fail("Step 1 right panel must contain the Boot Loader controls.")
+		return
+	for obsolete_control in ["OSGeneratorControlsViewport", "ProceduralOSGeneratorControls", "OSGenerationSelector", "OSComponentSelector", "GenerateCompleteOSButton", "RegenerateOSComponentButton", "SelectGeneratedOSButton"]:
+		if worksite.find_child(obsolete_control, true, false) != null:
+			_fail("Old OS generator UI is still visible in Step 1: " + obsolete_control)
+			return
+	if worksite.find_child("BootCompletedStatus", true, false) != null:
+		_fail("Boot loader must not create a device-turned-on status label.")
+		return
+	for item_id in ["company_logo", "phone_name", "phone_model"]:
+		var row := worksite.find_child("BootSettingRow_" + item_id, true, false) as HBoxContainer
+		if row == null or row.get_child_count() != 3:
+			_fail("Boot loader settings must remain in a single horizontal row: " + item_id)
+			return
+		var row_label := row.get_child(1) as Label
+		if row_label == null or row_label.autowrap_mode != TextServer.AUTOWRAP_OFF or absf(row_label.rotation) > 0.001:
+			_fail("Boot loader setting label is not displayed horizontally: " + item_id)
+			return
 	for item_id in ["company_logo", "phone_name", "phone_model"]:
 		if worksite.find_child("BootOrder_" + item_id, true, false) == null or worksite.find_child("BootEnabled_" + item_id, true, false) == null:
 			_fail("Boot loader is missing order or enable controls for " + item_id + ".")
@@ -345,6 +364,11 @@ func _run_os_generator_test() -> void:
 	worksite.call("_on_power_button_pressed")
 	if not boot_overlay.visible:
 		_fail("Power button did not switch the display into its boot sequence.")
+		return
+	await process_frame
+	var boot_identity_label := worksite.find_child("BootIdentityText", true, false) as Label
+	if boot_identity_label == null or not boot_identity_label.text.is_empty():
+		_fail("Company logo boot stage must show the logo without the company name.")
 		return
 	await worksite.boot_completed
 	var boot_elapsed := Time.get_ticks_msec() - boot_started_at
