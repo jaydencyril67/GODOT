@@ -26,6 +26,26 @@ class PINLockIndicator extends Control:
 		draw_circle(Vector2(center_x, 11.0), 1.0, Color("#263244"))
 
 
+class LollipopAppDrawerButton extends Button:
+	func _ready() -> void:
+		text = ""
+		focus_mode = Control.FOCUS_NONE
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		custom_minimum_size = Vector2(34, 34)
+		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+		queue_redraw()
+
+	func _draw() -> void:
+		var side := minf(size.x, size.y)
+		var centre := size * 0.5
+		draw_circle(centre, side * 0.45, Color("#FFFFFF"))
+		for row_index in range(3):
+			for column_index in range(2):
+				var point := centre + Vector2((float(column_index) - 0.5) * side * 0.19, (float(row_index) - 1.0) * side * 0.19)
+				draw_circle(point, maxf(1.0, side * 0.035), Color("#737373"))
+
+
 class OSWallpaperLayer extends Control:
 	var palette: Dictionary = {}
 	var wallpaper_id := "aurora"
@@ -731,15 +751,45 @@ func _build_shell() -> void:
 		var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "ios_grid"))
 		if home_layout != "windows_tiles":
 			_build_home_dock(footer)
-	var indicator_alignment := CenterContainer.new()
-	indicator_alignment.name = "OSNavigationIndicatorArea"
-	indicator_alignment.custom_minimum_size = Vector2(0, 9)
-	var indicator := ColorRect.new()
-	indicator.name = "OSNavigationIndicator"
-	indicator.custom_minimum_size = Vector2(34, 4)
-	indicator.color = _text_color()
-	indicator_alignment.add_child(indicator)
-	footer.add_child(indicator_alignment)
+	var is_lollipop_navigation := int(configuration.get("generation", 2)) == 1 and active_component in ["home_screen", "app_drawer"] and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
+	if is_lollipop_navigation:
+		var navigation_keys := HBoxContainer.new()
+		navigation_keys.name = "LollipopThreeButtonNavigation"
+		navigation_keys.custom_minimum_size.y = 22
+		navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
+		navigation_keys.add_theme_constant_override("separation", 25)
+		var navigation_color := Color("#666666") if active_component == "app_drawer" else Color("#FFFFFF")
+		for key_data in [["Back", "◁"], ["Home", "○"], ["Overview", "□"]]:
+			var key := Button.new()
+			key.name = "LollipopNavigation" + str(key_data[0])
+			key.text = str(key_data[1])
+			key.custom_minimum_size = Vector2(24, 20)
+			key.add_theme_font_size_override("font_size", 15)
+			key.add_theme_color_override("font_color", navigation_color)
+			key.add_theme_color_override("font_hover_color", navigation_color)
+			var transparent := StyleBoxEmpty.new()
+			for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+				key.add_theme_stylebox_override(state_name, transparent)
+			key.focus_mode = Control.FOCUS_NONE
+			match str(key_data[0]):
+				"Back":
+					key.pressed.connect(func(): set_component_view("home_screen"))
+				"Home":
+					key.pressed.connect(func(): set_component_view("home_screen"))
+				"Overview":
+					key.pressed.connect(func(): set_component_view("recent_apps"))
+			navigation_keys.add_child(key)
+		footer.add_child(navigation_keys)
+	else:
+		var indicator_alignment := CenterContainer.new()
+		indicator_alignment.name = "OSNavigationIndicatorArea"
+		indicator_alignment.custom_minimum_size = Vector2(0, 9)
+		var indicator := ColorRect.new()
+		indicator.name = "OSNavigationIndicator"
+		indicator.custom_minimum_size = Vector2(34, 4)
+		indicator.color = _text_color()
+		indicator_alignment.add_child(indicator)
+		footer.add_child(indicator_alignment)
 	shell.add_child(footer)
 	if active_component == "home_screen":
 		# Resolve and style app buttons only after their full inherited theme
@@ -765,21 +815,9 @@ func _build_home_dock(parent: VBoxContainer) -> void:
 				drawer_tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				drawer_tile.add_theme_constant_override("separation", 2)
 				var holder := CenterContainer.new()
-				var drawer_button := Button.new()
+				var drawer_button := LollipopAppDrawerButton.new()
 				drawer_button.name = "LollipopAppDrawerButton"
 				drawer_button.custom_minimum_size = Vector2(dock_icon_size, dock_icon_size)
-				drawer_button.text = "●\n● ●"
-				drawer_button.add_theme_font_size_override("font_size", 8)
-				var drawer_style := StyleBoxFlat.new()
-				drawer_style.bg_color = Color("#FFFFFF")
-				drawer_style.set_corner_radius_all(999)
-				drawer_style.set_border_width_all(0)
-				drawer_button.add_theme_stylebox_override("normal", drawer_style)
-				drawer_button.add_theme_stylebox_override("hover", drawer_style)
-				drawer_button.add_theme_stylebox_override("pressed", drawer_style)
-				drawer_button.add_theme_color_override("font_color", Color("#777777"))
-				drawer_button.add_theme_color_override("font_hover_color", Color("#555555"))
-				drawer_button.focus_mode = Control.FOCUS_NONE
 				drawer_button.pressed.connect(func(): set_component_view("app_drawer"))
 				holder.add_child(drawer_button)
 				drawer_tile.add_child(holder)
