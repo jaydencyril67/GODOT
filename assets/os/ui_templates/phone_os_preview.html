@@ -23,6 +23,20 @@ button{color:inherit;font:inherit;border:0;outline:0;background:none;padding:0}
 .screen{position:absolute;inset:0;display:none;overflow:hidden}.screen.active{display:block}.screen.lock-screen.active,.screen.home-screen.active{display:flex}
 .glass{background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .lock-screen{display:flex;flex-direction:column;padding:29px 13px 9px}
+.android .lock-topline,.android .lock-date{text-align:left;margin-left:6px}
+.android .lock-clock{text-align:left;margin-left:5px;font-size:clamp(46px,22vw,78px)}
+.ios .lock-screen{padding:28px 12px 10px}
+.ios .lock-topline{text-transform:none;letter-spacing:.02em;font-weight:600;font-size:10px}
+.ios .lock-date{font-size:12px;font-weight:650;margin-top:8px}
+.ios .lock-clock{font-size:clamp(56px,28vw,96px);font-weight:250;letter-spacing:-.085em}
+.ios .lock-cards{gap:8px;margin-bottom:12px}
+.windows .lock-screen{padding:30px 15px 11px}
+.windows .lock-topline{text-align:left;letter-spacing:.1em;font-size:8px;margin-top:10px}
+.windows .lock-date{text-align:left;font-size:9px;margin:8px 0 0}
+.windows .lock-clock{text-align:left;font-size:clamp(50px,24vw,82px);font-weight:250;letter-spacing:-.075em;margin:12px 0 0}
+.windows .lock-cards{gap:5px}
+.windows .lock-actions{justify-content:flex-start;gap:17px;padding:4px 3px 7px}
+.windows .unlock-action{margin-left:auto;margin-right:auto}
 .lock-topline{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.88);text-align:center}
 .lock-clock{text-align:center;font-size:clamp(48px,25vw,86px);line-height:.94;font-weight:350;letter-spacing:-.075em;margin:6px 0 0;text-shadow:0 2px 16px rgba(0,0,0,.12);font-variant-numeric:tabular-nums}
 .lock-date{font-size:11px;text-align:center;font-weight:550;margin-top:7px;text-shadow:0 1px 8px rgba(0,0,0,.25)}
@@ -231,8 +245,13 @@ button{color:inherit;font:inherit;border:0;outline:0;background:none;padding:0}
     $("home-greeting").textContent = state.os === "windows" ? "Start" : "◉  ▰";
     renderApps();
     updateClock();
-    if (previousOS !== state.os && currentView === "home-screen") show("home-screen");
-    if (state.screen === "lock_screen" && currentView === "home-screen") show("lock-screen");
+    if (state.screen === "lock_screen") {
+      show("lock-screen");
+    } else if (state.screen === "home_screen" && currentView === "lock-screen") {
+      show("home-screen");
+    } else if (previousOS !== state.os && currentView === "home-screen") {
+      show("home-screen");
+    }
   }
   function updateClock() {
     const now = new Date();

@@ -21,7 +21,7 @@ import kotlin.math.roundToInt
  */
 class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
     private var hostActivity: Activity? = null
-    private var overlay: FrameLayout? = null
+    private var overlayContainer: FrameLayout? = null
     private var webView: WebView? = null
     private var loadedHtml: String = ""
     private var latestStateJson: String = "{}"
@@ -31,9 +31,10 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
     override fun getPluginName(): String = "DigitalWorldOSUI"
     override fun shouldBeOnTop(): Boolean = true
 
-    override fun onMainCreate(activity: Activity): View {
-        hostActivity = activity
-        return FrameLayout(activity).apply {
+    override fun onMainCreate(activity: Activity?): View? {
+        val currentActivity = activity ?: return null
+        hostActivity = currentActivity
+        return FrameLayout(currentActivity).apply {
             clipChildren = false
             clipToPadding = false
             setBackgroundColor(Color.TRANSPARENT)
@@ -41,7 +42,7 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
             isClickable = false
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            overlay = this
+            this@DigitalWorldOSUIPlugin.overlayContainer = this
         }
     }
 
@@ -62,7 +63,7 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
                 page.destroy()
             }
             webView = null
-            overlay = null
+            overlayContainer = null
             hostActivity = null
             loadedHtml = ""
             synchronized(eventLock) { pendingEvent = "" }
@@ -80,7 +81,7 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
     ) {
         latestStateJson = stateJson
         runOnUiThread {
-            val container = overlay ?: return@runOnUiThread
+            val container = overlayContainer ?: return@runOnUiThread
             val page = ensureWebView() ?: return@runOnUiThread
             container.visibility = View.VISIBLE
             page.visibility = View.VISIBLE
@@ -99,7 +100,7 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
     @UsedByGodot
     fun showUi() {
         runOnUiThread {
-            overlay?.visibility = View.VISIBLE
+            overlayContainer?.visibility = View.VISIBLE
             webView?.visibility = View.VISIBLE
             applyStateToPage()
         }
@@ -133,7 +134,7 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
 
     private fun ensureWebView(): WebView? {
         val activity = hostActivity ?: return null
-        val container = overlay ?: return null
+        val container = overlayContainer ?: return null
         if (webView != null) return webView
 
         val page = WebView(activity).apply {
