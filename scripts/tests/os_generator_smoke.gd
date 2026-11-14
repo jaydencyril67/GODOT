@@ -750,8 +750,8 @@ func _run_os_generator_test() -> void:
 	if pin_key_font_color.a < 0.95 or pin_key_font_color.get_luminance() < 0.80:
 		_fail("PIN digits do not have a clearly visible white font color.")
 		return
-	if pin_key_style.bg_color.a <= 0.0 or pin_key_style.bg_color.a > 0.20 or pin_key_style.border_color.a < 0.30:
-		_fail("PIN keypad keys must use one transparent, bright-edged glass treatment.")
+	if pin_key_style.bg_color.a <= 0.0 or pin_key_style.bg_color.a > 0.20 or pin_key_style.get_border_width(SIDE_LEFT) != 0 or pin_key_style.get_border_width(SIDE_RIGHT) != 0 or pin_key_style.get_border_width(SIDE_TOP) != 0 or pin_key_style.get_border_width(SIDE_BOTTOM) != 0 or pin_key_style.shadow_size != 0:
+		_fail("PIN keypad keys must use clean transparent glass without connector outlines or shadows.")
 		return
 	var pin_key_three := worksite_preview.find_child("PINKey_3", true, false) as Button
 	var pin_key_three_style := pin_key_three.get_theme_stylebox("normal") as StyleBoxFlat if pin_key_three != null else null
