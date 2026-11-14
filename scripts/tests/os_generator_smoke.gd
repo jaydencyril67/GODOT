@@ -316,7 +316,7 @@ func _run_os_generator_test() -> void:
 	if camera_icon.texture.resource_path != "res://assets/os/lockscreen/camera.svg" or flashlight_icon.texture.resource_path != "res://assets/os/lockscreen/flashlight.svg":
 		_fail("Lock-screen shortcuts are not using the imported camera and flashlight SVG assets.")
 		return
-	if absf(camera_icon.size.x - 23.4) > 0.5 or absf(camera_icon.size.y - 23.4) > 0.5 or absf(flashlight_icon.size.x - 23.4) > 0.5 or absf(flashlight_icon.size.y - 23.4) > 0.5:
+	if absf(camera_icon.size.x - 21.06) > 0.5 or absf(camera_icon.size.y - 21.06) > 0.5 or absf(flashlight_icon.size.x - 21.06) > 0.5 or absf(flashlight_icon.size.y - 21.06) > 0.5:
 		_fail("Camera and flashlight artwork must each be exactly 10% smaller while keeping their 42 px touch targets.")
 		return
 	if camera_shortcut.get_index() >= flashlight_shortcut.get_index():
@@ -784,7 +784,7 @@ func _run_os_generator_test() -> void:
 	if fingerprint_sensor.get("sensor_texture").resource_path != "res://assets/os/lockscreen/fingerprint_sensor.svg":
 		_fail("Fingerprint control is not using the imported ScreenLock S20 fingerprint artwork.")
 		return
-	if not is_equal_approx(float(fingerprint_sensor.get("artwork_scale")), 0.90):
+	if not is_equal_approx(float(fingerprint_sensor.get("artwork_scale")), 0.81):
 		_fail("Fingerprint artwork must be rendered at 90% of its previous size while preserving the touch target.")
 		return
 	fingerprint_sensor.pressed.emit()
