@@ -504,7 +504,9 @@ func set_component_view(component_id: String) -> void:
 		_entered_unlock_pin = ""
 		_pin_error_message = ""
 	if is_inside_tree():
-		_build_shell()
+		# A component switch can be triggered by a Button signal. Rebuilding
+		# synchronously would free that Button while its signal is still emitting.
+		call_deferred("_build_shell")
 
 func update_configuration(os_configuration: Dictionary) -> void:
 	configuration = OSEngine.normalize_os(os_configuration)
