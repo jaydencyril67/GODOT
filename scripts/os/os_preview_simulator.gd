@@ -6,6 +6,8 @@ const OSEngine = preload("res://scripts/os/procedural_os_engine.gd")
 const PHONE_UNLOCK_PIN := "1234"
 const LOCKSCREEN_FONT: FontFile = preload("res://assets/fonts/STIXTwoText[wght].ttf")
 const FINGERPRINT_SENSOR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/fingerprint_sensor.svg")
+const LOCKSCREEN_CAMERA_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/camera.svg")
+const LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/flashlight.svg")
 const STATUS_CELLULAR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_cellular.svg")
 const STATUS_WIFI_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_wifi.svg")
 const STATUS_BATTERY_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_battery.svg")
@@ -136,7 +138,7 @@ class LockScreenFingerprintButton extends Button:
 		var side := minf(size.x, size.y)
 		var rect := Rect2((size - Vector2.ONE * side) * 0.5, Vector2.ONE * side)
 		if is_pressed():
-			draw_circle(size * 0.5, side * 0.48, Color("#D7B47A", 0.18))
+			draw_circle(size * 0.5, side * 0.48, Color("#DCEEFF", 0.18))
 		draw_texture_rect(sensor_texture, rect, false)
 
 
@@ -1098,12 +1100,12 @@ func _build_lock_screen(data: Dictionary) -> void:
 	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shortcuts.add_theme_constant_override("separation", 8)
 	if bool(data.get("show_camera_shortcut", true)):
-		shortcuts.add_child(_make_lock_shortcut("◉", "CAMERA", str(data.get("shortcut_treatment", "floating")), "Camera"))
+		shortcuts.add_child(_make_lock_shortcut(LOCKSCREEN_CAMERA_TEXTURE, str(data.get("shortcut_treatment", "floating")), "Camera"))
 	var shortcut_spacer := Control.new()
 	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shortcuts.add_child(shortcut_spacer)
 	if bool(data.get("show_flashlight_shortcut", true)):
-		shortcuts.add_child(_make_lock_shortcut("ϟ", "FLASH", str(data.get("shortcut_treatment", "floating")), "Flashlight"))
+		shortcuts.add_child(_make_lock_shortcut(LOCKSCREEN_FLASHLIGHT_TEXTURE, str(data.get("shortcut_treatment", "floating")), "Flashlight"))
 
 	var fingerprint: Control
 	if bool(data.get("show_fingerprint", false)) and bool(data.get("fingerprint_sensor_available", false)):
@@ -1456,17 +1458,20 @@ func _add_lock_audio_player(treatment: String) -> void:
 	page_container.add_child(player)
 
 
-func _make_lock_shortcut(glyph: String, caption: String, treatment: String, action_name: String) -> Button:
+func _make_lock_shortcut(icon_texture: Texture2D, treatment: String, action_name: String) -> Button:
 	var button := Button.new()
 	button.name = "LockScreenShortcut_" + action_name
-	button.text = glyph + "\n" + caption
-	button.custom_minimum_size = Vector2(38, 36)
-	button.add_theme_font_size_override("font_size", 8)
+	button.text = ""
+	button.icon = icon_texture
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.expand_icon = true
+	button.custom_minimum_size = Vector2(42, 42)
+	button.self_modulate = Color.WHITE
 	_style_lock_button(button, treatment)
 	if action_name == "Flashlight":
 		button.toggle_mode = true
 		button.toggled.connect(func(enabled: bool):
-			button.text = "ϟ\nON" if enabled else "ϟ\nFLASH"
+			button.self_modulate = Color("#C8E8FF") if enabled else Color.WHITE
 			if is_instance_valid(status_label):
 				status_label.text = "Flashlight " + ("on" if enabled else "off")
 		)
@@ -1579,72 +1584,53 @@ func _build_pin_input() -> void:
 	var available_keypad_width := maxf(100.0, size.x - 40.0)
 	var key_size := clampf((available_keypad_width - keypad_gap * 2.0) / 3.0, 32.0, 60.0)
 	var pin_keys := [
-		{"id":"1", "number":"1", "letters":"", "tint":Color("#83B5F4")},
-		{"id":"2", "number":"2", "letters":"ABC", "tint":Color("#8CA9F4")},
-		{"id":"3", "number":"3", "letters":"DEF", "tint":Color("#9A9BF0")},
-		{"id":"4", "number":"4", "letters":"GHI", "tint":Color("#A79AEF")},
-		{"id":"5", "number":"5", "letters":"JKL", "tint":Color("#B09AE8")},
-		{"id":"6", "number":"6", "letters":"MNO", "tint":Color("#BC9CDD")},
-		{"id":"7", "number":"7", "letters":"PQRS", "tint":Color("#C79CD6")},
-		{"id":"8", "number":"8", "letters":"TUV", "tint":Color("#D09CCF")},
-		{"id":"9", "number":"9", "letters":"WXYZ", "tint":Color("#D89FCB")},
-		{"id":"Delete", "number":"⌫", "letters":"", "tint":Color("#B9C5D8")},
-		{"id":"0", "number":"0", "letters":"", "tint":Color("#C4A8D6")},
-		{"id":"OK", "number":"OK", "letters":"", "tint":Color("#B8A6DF")}
+		{"id":"1", "number":"1"}, {"id":"2", "number":"2"}, {"id":"3", "number":"3"},
+		{"id":"4", "number":"4"}, {"id":"5", "number":"5"}, {"id":"6", "number":"6"},
+		{"id":"7", "number":"7"}, {"id":"8", "number":"8"}, {"id":"9", "number":"9"},
+		{"id":"Delete", "number":"⌫"}, {"id":"0", "number":"0"}, {"id":"OK", "number":"OK"}
 	]
 	for key_data in pin_keys:
 		var key_id := str(key_data["id"])
 		var key := Button.new()
 		key.name = "PINKey_" + key_id
-		key.text = ""
+		# Put the value directly on the Button. The old empty button text relied
+		# on nested labels that could be clipped by the phone preview viewport.
+		key.text = str(key_data["number"])
+		key.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		key.custom_minimum_size = Vector2.ONE * key_size
 		key.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		key.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		key.clip_contents = false
 		var normal := StyleBoxFlat.new()
-		var tint: Color = key_data["tint"]
-		normal.bg_color = Color(tint.r, tint.g, tint.b, 0.42)
-		normal.border_color = Color(1.0, 1.0, 1.0, 0.28)
+		normal.bg_color = Color(0.90, 0.95, 1.0, 0.11)
+		normal.border_color = Color(1.0, 1.0, 1.0, 0.34)
 		normal.set_border_width_all(1)
 		normal.set_corner_radius_all(999)
-		normal.shadow_color = Color(0.0, 0.0, 0.0, 0.18)
-		normal.shadow_size = 3
-		normal.content_margin_left = 1
-		normal.content_margin_right = 1
-		normal.content_margin_top = 1
-		normal.content_margin_bottom = 1
+		normal.shadow_color = Color(0.72, 0.84, 1.0, 0.13)
+		normal.shadow_size = 4
+		normal.shadow_offset = Vector2(0, 2)
+		normal.content_margin_left = 0
+		normal.content_margin_right = 0
+		normal.content_margin_top = 0
+		normal.content_margin_bottom = 0
 		var hover := normal.duplicate() as StyleBoxFlat
-		hover.bg_color = Color(minf(1.0, tint.r + 0.08), minf(1.0, tint.g + 0.08), minf(1.0, tint.b + 0.08), 0.56)
+		hover.bg_color = Color(0.94, 0.97, 1.0, 0.18)
+		hover.border_color = Color(1.0, 1.0, 1.0, 0.48)
 		var pressed := normal.duplicate() as StyleBoxFlat
-		pressed.bg_color = Color(tint.r * 0.82, tint.g * 0.82, tint.b * 0.82, 0.62)
+		pressed.bg_color = Color(0.82, 0.90, 1.0, 0.23)
+		pressed.border_color = Color(1.0, 1.0, 1.0, 0.58)
 		key.add_theme_stylebox_override("normal", normal)
 		key.add_theme_stylebox_override("hover", hover)
 		key.add_theme_stylebox_override("pressed", pressed)
 		key.add_theme_stylebox_override("focus", normal)
+		key.add_theme_color_override("font_color", Color("#F7FAFF"))
+		key.add_theme_color_override("font_hover_color", Color("#FFFFFF"))
+		key.add_theme_color_override("font_pressed_color", Color("#FFFFFF"))
+		key.add_theme_color_override("font_disabled_color", Color("#E5EDF7"))
+		key.add_theme_font_override("font", LOCKSCREEN_FONT)
+		key.add_theme_font_size_override("font_size", 17 if key_size >= 44.0 else 15)
 		key.focus_mode = Control.FOCUS_NONE
 		key.mouse_filter = Control.MOUSE_FILTER_STOP
-
-		var key_center := CenterContainer.new()
-		key_center.name = "PINKeyCenter"
-		key_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		key_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var key_labels := VBoxContainer.new()
-		key_labels.alignment = BoxContainer.ALIGNMENT_CENTER
-		key_labels.add_theme_constant_override("separation", 0)
-		key_labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var number_size := 17 if key_size >= 44.0 else 14
-		var number_label := _label(str(key_data["number"]), number_size, Color("#FFFFFF"))
-		number_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		number_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		key_labels.add_child(number_label)
-		var letters := str(key_data["letters"])
-		if not letters.is_empty():
-			var letters_label := _label(letters, 6, Color(1.0, 1.0, 1.0, 0.82))
-			letters_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			letters_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			key_labels.add_child(letters_label)
-		key_center.add_child(key_labels)
-		key.add_child(key_center)
 
 		match key_id:
 			"Delete":
