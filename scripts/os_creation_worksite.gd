@@ -408,9 +408,13 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 
 
 func _build_bootloader_controls(parent: VBoxContainer) -> void:
-	parent.add_child(_label("BOOT LOADER", 13, Color("#C58A3A")))
-	var description := _label("Choose the startup identity sequence and what appears during power-on.", 9, Color("#B8B1A6"))
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	parent.add_theme_constant_override("separation", 10)
+	var heading := _label("BOOT LOADER", 19, Color("#D3AA6B"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	parent.add_child(heading)
+	var description := _label("Choose the startup identity sequence and what appears during power-on.", 12, Color("#E5E0D6"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(description)
 	var rows := [
 		["company_logo", "Company Logo"],
@@ -421,7 +425,8 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		var item_id := str(row_data[0])
 		var row := HBoxContainer.new()
 		row.name = "BootSettingRow_" + item_id
-		row.add_theme_constant_override("separation", 7)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 10)
 		parent.add_child(row)
 		var order_box := SpinBox.new()
 		order_box.name = "BootOrder_" + item_id
@@ -429,21 +434,28 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		order_box.max_value = 3
 		order_box.step = 1
 		order_box.value = int(bootloader_settings["items"][item_id]["order"])
-		order_box.custom_minimum_size = Vector2(58, 34)
+		order_box.custom_minimum_size = Vector2(70, 46)
+		order_box.add_theme_font_size_override("font_size", 18)
+		var order_font := SystemFont.new()
+		order_font.font_weight = 700
+		order_box.add_theme_font_override("font", order_font)
 		var order_style := StyleBoxFlat.new()
-		order_style.bg_color = Color("#17191B")
-		order_style.border_color = Color("#8D7048")
+		order_style.bg_color = Color(0.12, 0.13, 0.14, 0.82)
+		order_style.border_color = Color(0.72, 0.72, 0.68, 0.45)
 		order_style.set_border_width_all(1)
-		order_style.set_corner_radius_all(7)
+		order_style.set_corner_radius_all(12)
+		order_style.content_margin_left = 10
+		order_style.content_margin_right = 10
+		order_style.content_margin_top = 8
+		order_style.content_margin_bottom = 8
 		order_box.add_theme_stylebox_override("normal", order_style)
 		order_box.add_theme_stylebox_override("focus", order_style)
-		order_box.add_theme_color_override("font_color", Color("#F0E9DD"))
+		order_box.add_theme_color_override("font_color", Color("#FFFFFF"))
 		order_box.value_changed.connect(_on_boot_order_changed.bind(item_id))
 		row.add_child(order_box)
 		boot_order_inputs[item_id] = order_box
-		var item_label := _label(str(row_data[1]), 9, Color("#EEE9DF"))
-		item_label.custom_minimum_size = Vector2(92, 34)
-		item_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		var item_label := _label(str(row_data[1]), 14, Color("#E5E0D6"))
+		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -452,8 +464,13 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		var enabled := CheckBox.new()
 		enabled.name = "BootEnabled_" + item_id
 		enabled.text = "ON"
+		enabled.custom_minimum_size = Vector2(62, 46)
 		enabled.button_pressed = bool(bootloader_settings["items"][item_id]["enabled"])
-		enabled.add_theme_font_size_override("font_size", 8)
+		enabled.add_theme_font_size_override("font_size", 13)
+		var enabled_font := SystemFont.new()
+		enabled_font.font_weight = 700
+		enabled.add_theme_font_override("font", enabled_font)
+		enabled.add_theme_color_override("font_color", Color("#E4DED3"))
 		enabled.toggled.connect(_on_boot_item_toggled.bind(item_id))
 		row.add_child(enabled)
 		boot_enabled_inputs[item_id] = enabled
@@ -669,11 +686,12 @@ func _apply_responsive_layout() -> void:
 func _label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = caption
-	var font := load("res://assets/fonts/STIXTwoText[wght].ttf") as Font
-	if is_instance_valid(font):
-		label.add_theme_font_override("font", font)
+	var font := SystemFont.new()
+	font.font_weight = 700
+	label.add_theme_font_override("font", font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	return label
 
 
