@@ -53,6 +53,36 @@ class OSWallpaperLayer extends Control:
 
 		var shortest_side := minf(size.x, size.y)
 		match wallpaper_id:
+			"lollipop":
+				# Android 5.0's signature blue/teal geometric Nexus wallpaper.
+				draw_rect(Rect2(Vector2.ZERO, size), Color("#234D73"))
+				var facet_a := PackedVector2Array([
+					Vector2(0, size.y * 0.08), Vector2(size.x * 0.54, 0),
+					Vector2(size.x * 0.72, size.y * 0.34), Vector2(size.x * 0.22, size.y * 0.53)
+				])
+				var facet_b := PackedVector2Array([
+					Vector2(size.x * 0.54, 0), Vector2(size.x, 0),
+					Vector2(size.x, size.y * 0.48), Vector2(size.x * 0.72, size.y * 0.34)
+				])
+				var facet_c := PackedVector2Array([
+					Vector2(0, size.y * 0.08), Vector2(size.x * 0.22, size.y * 0.53),
+					Vector2(size.x * 0.10, size.y), Vector2(0, size.y)
+				])
+				var facet_d := PackedVector2Array([
+					Vector2(size.x * 0.22, size.y * 0.53), Vector2(size.x * 0.72, size.y * 0.34),
+					Vector2(size.x, size.y * 0.48), Vector2(size.x, size.y),
+					Vector2(size.x * 0.10, size.y)
+				])
+				draw_colored_polygon(facet_a, Color("#176A8A"))
+				draw_colored_polygon(facet_b, Color("#1687A2"))
+				draw_colored_polygon(facet_c, Color("#1A3D62"))
+				draw_colored_polygon(facet_d, Color("#17607E"))
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(size.x * 0.72, size.y * 0.34), Vector2(size.x, size.y * 0.48),
+					Vector2(size.x * 0.63, size.y), Vector2(size.x * 0.10, size.y),
+					Vector2(size.x * 0.22, size.y * 0.53)
+				]), Color("#267E91"))
+				draw_line(Vector2(size.x * 0.22, size.y * 0.53), Vector2(size.x * 0.72, size.y * 0.34), Color(1, 1, 1, 0.10), 1.0, true)
 			"orbital":
 				var planet_center := Vector2(size.x * 0.68, size.y * 0.43)
 				var planet_radius := shortest_side * 0.31
