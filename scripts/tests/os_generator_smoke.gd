@@ -389,8 +389,12 @@ func _run_os_generator_test() -> void:
 		return
 	var boot_debug_panel := worksite.find_child("BootDebugPanel", true, false) as PanelContainer
 	var boot_debug_label := worksite.find_child("BootDebugText", true, false) as Label
-	if boot_debug_panel == null or boot_debug_label == null or not boot_debug_panel.visible:
-		_fail("Boot diagnostics panel was not visible while the phone was booting.")
+	var boot_debug_copy := worksite.find_child("BootDebugCopyButton", true, false) as Button
+	if boot_debug_panel == null or boot_debug_label == null or boot_debug_copy == null or not boot_debug_panel.visible:
+		_fail("Persistent worksite diagnostics panel or Copy Logs button is missing.")
+		return
+	if boot_overlay.is_ancestor_of(boot_debug_panel) or boot_debug_panel.is_ancestor_of(boot_overlay):
+		_fail("Boot diagnostics must remain outside the simulated phone display.")
 		return
 	if not boot_debug_label.text.contains("RAW SAVED INPUT") or not boot_debug_label.text.contains("RESOLVED IDENTITY"):
 		_fail("Boot diagnostics did not report the incoming and resolved phone identity.")
@@ -436,6 +440,12 @@ func _run_os_generator_test() -> void:
 		return
 	if boot_overlay.visible or not worksite_preview.visible:
 		_fail("Completed boot did not reveal the generated OS home screen.")
+		return
+	if not boot_debug_panel.visible or not boot_debug_label.text.contains("BOOT COMPLETE"):
+		_fail("Boot diagnostics were hidden or stopped retaining logs after boot completed.")
+		return
+	if boot_debug_copy.disabled:
+		_fail("Copy Logs must remain enabled after boot completes.")
 		return
 	worksite.call("_generate_complete_os")
 	await process_frame
