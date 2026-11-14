@@ -956,15 +956,14 @@ func _build_lock_screen(data: Dictionary) -> void:
 		_style_lock_button(sensor, str(data.get("fingerprint_treatment", "ring")))
 		sensor.pressed.connect(func(): set_component_view("home_screen"))
 		fingerprint = sensor
+	var unlock_control: Button
 	if bool(data.get("show_unlock_hint", true)):
-		var unlock := Button.new()
-		unlock.name = "UnlockOSButton"
-		unlock.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
-		unlock.custom_minimum_size.y = 28
-		_style_lock_button(unlock, str(data.get("unlock_treatment", "pill")))
-		unlock.pressed.connect(func(): set_component_view("home_screen"))
-		# Keep the hint available as a named control for every template.
-		root_layout.add_child(unlock)
+		unlock_control = Button.new()
+		unlock_control.name = "UnlockOSButton"
+		unlock_control.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
+		unlock_control.custom_minimum_size.y = 28
+		_style_lock_button(unlock_control, str(data.get("unlock_treatment", "pill")))
+		unlock_control.pressed.connect(func(): set_component_view("home_screen"))
 
 	var top_space := Control.new()
 	top_space.name = "LockScreenTopFlexibleSpace"
@@ -1118,16 +1117,13 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(notifications)
 			root_layout.add_child(lower_space)
 
+	if lower_space.get_parent() == null:
+		root_layout.add_child(lower_space)
 	if is_instance_valid(fingerprint):
 		root_layout.add_child(fingerprint)
 	root_layout.add_child(shortcuts)
-	# The unlock control is moved to the bottom after the template-specific composition.
-	var unlock_control := root_layout.get_node_or_null("UnlockOSButton")
 	if is_instance_valid(unlock_control):
-		root_layout.remove_child(unlock_control)
 		root_layout.add_child(unlock_control)
-	if lower_space.get_parent() == null:
-		root_layout.add_child(lower_space)
 	page_container = original_container
 
 
