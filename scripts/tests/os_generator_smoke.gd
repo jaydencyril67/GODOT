@@ -835,7 +835,7 @@ func _run_os_generator_test() -> void:
 	if home_apps_grid == null or home_apps_grid.columns != 4 or home_apps_grid.get_child_count() != 4:
 		_fail("Android home screen must contain exactly four apps in one four-column row.")
 		return
-	if worksite_preview.find_child("AndroidHomeTopFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeMiddleFlexibleSpace", true, false) == null or worksite_preview.find_child("HomeSearchBarFlexibleSpace", true, false) == null:
+	if worksite_preview.find_child("AndroidHomeTopFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeMiddleFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeSearchFlexibleSpace", true, false) == null:
 		_fail("Layout 1 must distribute its sections across the full home-screen height.")
 		return
 	var weather_style := weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
