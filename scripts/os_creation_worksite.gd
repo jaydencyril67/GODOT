@@ -38,6 +38,7 @@ var boot_status: Label
 var boot_order_inputs: Dictionary = {}
 var boot_enabled_inputs: Dictionary = {}
 var boot_busy := false
+var device_powered_on := false
 var boot_identity := {
 	"company_name": "YOUR COMPANY",
 	"company_logo_id": 1,
@@ -597,6 +598,7 @@ func _run_boot_sequence() -> void:
 		return
 	boot_busy = true
 	var started_at := Time.get_ticks_msec()
+	device_powered_on = false
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.visible = false
 	boot_overlay.visible = true
@@ -649,6 +651,7 @@ func _run_boot_sequence() -> void:
 	boot_message.visible = true
 	boot_status.visible = false
 	boot_busy = false
+	device_powered_on = true
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.visible = true
 		os_preview_simulator.set_component_view("home_screen")
@@ -682,7 +685,7 @@ func _generate_complete_os() -> void:
 		if is_instance_valid(home_preview_screen):
 			_build_home_screen_preview(home_preview_screen)
 	if is_instance_valid(os_preview_simulator):
-		os_preview_simulator.visible = true
+		os_preview_simulator.visible = device_powered_on
 		os_preview_simulator.configure_os(generated_os_configuration, selected_os_component_id)
 		os_preview_simulator.set_component_view(selected_os_component_id)
 	else:
