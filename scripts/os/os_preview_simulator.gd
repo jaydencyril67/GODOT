@@ -1012,21 +1012,43 @@ func _create_lollipop_app_icon(app: Dictionary, icon_size: int, show_label: bool
 	var icon := Button.new()
 	icon.name = "LollipopIconButton"
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
-	icon.text = str(app.get("glyph", "•"))
-	icon.add_theme_font_size_override("font_size", maxi(15, int(icon_size * 0.50)))
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = Color(str(app.get("color", "#607D8B")))
-	icon_style.set_corner_radius_all(5)
-	icon_style.set_border_width_all(0)
-	icon_style.shadow_color = Color(0, 0, 0, 0.20)
-	icon_style.shadow_size = 2
-	icon_style.shadow_offset = Vector2(0, 1)
-	icon.add_theme_stylebox_override("normal", icon_style)
-	icon.add_theme_stylebox_override("hover", icon_style)
-	icon.add_theme_stylebox_override("pressed", icon_style)
-	icon.add_theme_color_override("font_color", Color.WHITE)
-	icon.add_theme_color_override("font_hover_color", Color.WHITE)
 	icon.focus_mode = Control.FOCUS_NONE
+	var icon_files := {
+		"Phone": "phone", "Messages": "messages", "Camera": "camera", "Gallery": "gallery",
+		"Browser": "browser", "Music": "music", "Calendar": "calendar", "Settings": "settings",
+		"Files": "files", "Clock": "clock", "Maps": "maps", "Notes": "notes",
+		"Contacts": "contacts", "Email": "email", "Calculator": "calculator", "Weather": "weather",
+		"Downloads": "downloads", "Recorder": "recorder", "Video": "video", "Store": "store",
+		"Security": "security", "Device Care": "device_care", "Drive": "drive", "Photos": "photos",
+		"Wallet": "wallet", "Assistant": "assistant", "Meet": "meet"
+	}
+	var icon_stem := str(icon_files.get(app_name, ""))
+	var icon_path := "res://assets/os/lollipop/icons/" + icon_stem + ".png" if not icon_stem.is_empty() else ""
+	var icon_texture: Texture2D
+	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
+		icon_texture = load(icon_path) as Texture2D
+	if is_instance_valid(icon_texture):
+		icon.icon = icon_texture
+		icon.icon_max_width = icon_size
+		icon.expand_icon = true
+		icon.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		icon.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		icon.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	else:
+		icon.text = str(app.get("glyph", "•"))
+		icon.add_theme_font_size_override("font_size", maxi(15, int(icon_size * 0.50)))
+		var icon_style := StyleBoxFlat.new()
+		icon_style.bg_color = Color(str(app.get("color", "#607D8B")))
+		icon_style.set_corner_radius_all(5)
+		icon_style.set_border_width_all(0)
+		icon_style.shadow_color = Color(0, 0, 0, 0.20)
+		icon_style.shadow_size = 2
+		icon_style.shadow_offset = Vector2(0, 1)
+		icon.add_theme_stylebox_override("normal", icon_style)
+		icon.add_theme_stylebox_override("hover", icon_style)
+		icon.add_theme_stylebox_override("pressed", icon_style)
+		icon.add_theme_color_override("font_color", Color.WHITE)
+		icon.add_theme_color_override("font_hover_color", Color.WHITE)
 	icon.pressed.connect(_on_app_pressed.bind(app_name))
 	holder.add_child(icon)
 	tile.add_child(holder)
