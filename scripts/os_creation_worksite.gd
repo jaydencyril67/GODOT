@@ -433,7 +433,7 @@ func _build_boot_debug_panel() -> void:
 	boot_debug_panel.name = "BootDebugPanel"
 	boot_debug_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	boot_debug_panel.position = Vector2(5, 5)
-	boot_debug_panel.size = Vector2(190, 112)
+	boot_debug_panel.size = Vector2(190, 145)
 	boot_debug_panel.z_index = 20
 	boot_debug_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var panel_style := StyleBoxFlat.new()
@@ -459,7 +459,7 @@ func _build_boot_debug_panel() -> void:
 
 func _boot_debug_log(message: String) -> void:
 	boot_debug_lines.append("%0.2fs %s" % [float(Time.get_ticks_msec()) / 1000.0, message])
-	while boot_debug_lines.size() > 8:
+	while boot_debug_lines.size() > 12:
 		boot_debug_lines.pop_front()
 	if is_instance_valid(boot_debug_label):
 		boot_debug_label.text = "BOOT DEBUG\n" + "\n".join(PackedStringArray(boot_debug_lines))
