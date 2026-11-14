@@ -616,19 +616,23 @@ func _build_shell() -> void:
 
 	_build_status_bar(shell)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "OSComponentViewport"
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	shell.add_child(scroll)
-
 	page_container = VBoxContainer.new()
 	page_container.name = "OSComponentContent"
 	page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_container.add_theme_constant_override("separation", int(_style.get("spacing", 10)))
-	scroll.add_child(page_container)
+	if active_component == "home_screen":
+		# The home screen is a fixed-height composition, not a scrolling list.
+		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		shell.add_child(page_container)
+	else:
+		var scroll := ScrollContainer.new()
+		scroll.name = "OSComponentViewport"
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		shell.add_child(scroll)
+		scroll.add_child(page_container)
 	_build_component(active_component)
 
 	var footer := VBoxContainer.new()
@@ -675,7 +679,7 @@ func _build_home_dock(parent: VBoxContainer) -> void:
 		dock.name = "HomeAppDock"
 		dock.custom_minimum_size.y = 48
 		dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_style_surface(dock, true)
+		_style_home_surface(dock, 18)
 		dock.add_child(dock_row)
 		parent.add_child(dock)
 
@@ -788,6 +792,11 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	greeting.name = "AndroidHomeWeatherSummary"
 	page_container.add_child(greeting)
 
+	var top_spacing := Control.new()
+	top_spacing.name = "AndroidHomeTopFlexibleSpace"
+	top_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(top_spacing)
+
 	var widgets_row := HBoxContainer.new()
 	widgets_row.name = "AndroidHomeWidgetRow"
 	widgets_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -798,7 +807,7 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	weather_widget.name = "AndroidWeatherWidget"
 	weather_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	weather_widget.custom_minimum_size.y = 72
-	_style_surface(weather_widget, true)
+	_style_home_surface(weather_widget, 15)
 	var weather_content := VBoxContainer.new()
 	weather_content.add_theme_constant_override("separation", 2)
 	weather_widget.add_child(weather_content)
@@ -811,7 +820,7 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	assistant_widget.name = "AndroidAssistantWidget"
 	assistant_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	assistant_widget.custom_minimum_size.y = 72
-	_style_surface(assistant_widget, true)
+	_style_home_surface(assistant_widget, 15)
 	var assistant_content := VBoxContainer.new()
 	assistant_content.add_theme_constant_override("separation", 3)
 	assistant_widget.add_child(assistant_content)
@@ -819,6 +828,11 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	assistant_content.add_child(_label("Ask anything", 11, _text_color()))
 	assistant_content.add_child(_label("Tap to get help", 7, _muted_color()))
 	widgets_row.add_child(assistant_widget)
+
+	var middle_spacing := Control.new()
+	middle_spacing.name = "AndroidHomeMiddleFlexibleSpace"
+	middle_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(middle_spacing)
 
 	var apps_grid := GridContainer.new()
 	apps_grid.name = "HomeAppGrid"
@@ -829,12 +843,46 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	for app_name in ["Photos", "Store", "Email", "Maps"]:
 		var app := _find_app(app_name)
 		if not app.is_empty():
-			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(34, 4, 5), true))
+			var app_tile := _create_app_icon(app, _responsive_icon_size(34, 4, 5), true)
+			var app_button := app_tile.get_node_or_null("CenterContainer/Button") as Button
+			if app_button != null:
+				_style_home_app_icon(app_button)
+			apps_grid.add_child(app_tile)
 	page_container.add_child(apps_grid)
+
+	var search_spacing := Control.new()
+	search_spacing.name = "AndroidHomeSearchFlexibleSpace"
+	search_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(search_spacing)
 
 	var search := _search_field("Search your phone")
 	search.name = "AndroidHomeSearch"
 	page_container.add_child(search)
+
+
+func _style_home_surface(panel: PanelContainer, radius: int) -> void:
+	var style := StyleBoxFlat.new()
+	var surface_color := _surface_color()
+	style.bg_color = Color(surface_color.r, surface_color.g, surface_color.b, 0.90)
+	style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.48)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(radius)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
+	panel.add_theme_stylebox_override("panel", style)
+
+
+func _style_home_app_icon(button: Button) -> void:
+	for state_name in ["normal", "hover", "pressed"]:
+		var style := button.get_theme_stylebox(state_name).duplicate() as StyleBoxFlat
+		if style == null:
+			continue
+		style.set_corner_radius_all(12)
+		style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.42)
+		style.set_border_width_all(1)
+		button.add_theme_stylebox_override(state_name, style)
 
 
 func _build_huawei_pura_home(_data: Dictionary) -> void:
