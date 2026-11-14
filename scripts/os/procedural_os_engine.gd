@@ -23,7 +23,7 @@ const PALETTES := [
 
 const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"]
 
-const HOME_LAYOUT_STYLES := ["android_pixel"]
+const HOME_LAYOUT_STYLES := ["android_pixel", "coloros_home"]
 const LOCK_SCREEN_DESIGN_FAMILIES := ["editorial", "glass", "minimal", "neo_brutalist", "split_grid", "futurist", "soft_layers", "typographic"]
 const LOCK_SCREEN_LAYOUT_TEMPLATES := [
 	"classic_clock", "rhombus_clock", "magazine_cover", "depth_layer", "widget_dashboard",
@@ -255,7 +255,7 @@ static func _sync_shared_settings(config: Dictionary) -> void:
 		components["home_screen"]["columns"] = int(style.get("grid_columns", 4))
 		var home_layout := str(components["home_screen"].get("layout_style", "ios_grid"))
 		if not HOME_LAYOUT_STYLES.has(home_layout):
-			home_layout = "huawei_pura"
+			home_layout = "android_pixel"
 		components["home_screen"]["layout_style"] = home_layout
 	if components.has("wallpapers"):
 		components["wallpapers"]["style"] = wallpaper_id
