@@ -350,6 +350,12 @@ func _run_os_generator_test() -> void:
 	if enabled_boot_items != 1:
 		_fail("Boot loader allowed every startup identity item to be disabled.")
 		return
+	var logo_toggle := worksite.find_child("BootEnabled_company_logo", true, false) as CheckBox
+	var model_toggle := worksite.find_child("BootEnabled_phone_model", true, false) as CheckBox
+	logo_toggle.set_pressed_no_signal(true)
+	worksite.call("_on_boot_item_toggled", true, "company_logo")
+	model_toggle.set_pressed_no_signal(false)
+	worksite.call("_on_boot_item_toggled", false, "phone_model")
 	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone", "DW-01")
 	worksite.call("_generate_complete_os")
 	await process_frame
