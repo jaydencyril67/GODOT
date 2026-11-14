@@ -446,12 +446,12 @@ func _run_os_generator_test() -> void:
 		_fail("Approved Android home-screen app row must retain its four-column arrangement.")
 		return
 	var home_dock := simulator.find_child("HomeAppDock", true, false)
-	var home_viewport := simulator.find_child("OSComponentViewport", true, false)
+	var home_content := simulator.find_child("OSComponentContent", true, false)
 	if home_dock == null or home_dock.get_parent().name != "OSNavigationFooter":
 		_fail("Home dock is not anchored in the fixed navigation footer.")
 		return
-	if home_viewport == null or home_viewport.is_ancestor_of(home_dock):
-		_fail("Home dock must remain outside the scrolling app content.")
+	if simulator.find_child("OSComponentViewport", true, false) != null or (home_content != null and home_content.is_ancestor_of(home_dock)):
+		_fail("Home screen content must remain fixed-height with its dock outside the content area.")
 		return
 	var dock_icons := simulator.find_child("HomeAppDockIcons", true, false) as HBoxContainer
 	if dock_icons == null or dock_icons.get_child_count() != 4:
@@ -840,19 +840,40 @@ func _run_os_generator_test() -> void:
 		return
 	var weather_style := weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
 	var assistant_style := assistant_widget.get_theme_stylebox("panel") as StyleBoxFlat
-	if weather_style == null or assistant_style == null or weather_style.corner_radius_top_left <= 0 or assistant_style.corner_radius_top_left <= 0:
-		_fail("Layout 1 widgets must have visibly rounded bordered surfaces.")
+	if weather_style == null or assistant_style == null or weather_style.corner_radius_top_left != 0 or assistant_style.corner_radius_top_left != 0 or weather_style.border_width_left <= 0 or assistant_style.border_width_left <= 0:
+		_fail("Layout 1 widgets must have square bordered surfaces by default.")
 		return
 	var first_home_app := home_apps_grid.get_child(0) as VBoxContainer
 	var first_home_button := first_home_app.get_node_or_null("CenterContainer/Button") as Button
 	var first_home_button_style := first_home_button.get_theme_stylebox("normal") as StyleBoxFlat if first_home_button != null else null
-	if first_home_button_style == null or first_home_button_style.corner_radius_top_left <= 0 or first_home_button_style.border_width_left <= 0:
-		_fail("Layout 1 app icons must have rounded borders.")
+	if first_home_button_style == null or first_home_button_style.corner_radius_top_left != 0 or first_home_button_style.border_width_left <= 0:
+		_fail("Layout 1 app icons must have square borders by default.")
 		return
 	var home_dock_panel := worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
 	var dock_style := home_dock_panel.get_theme_stylebox("panel") as StyleBoxFlat if home_dock_panel != null else null
-	if dock_style == null or dock_style.corner_radius_top_left <= 0 or dock_style.border_width_left <= 0:
-		_fail("Layout 1 dock must have a rounded bordered background.")
+	if dock_style == null or dock_style.corner_radius_top_left != 0 or dock_style.border_width_left <= 0:
+		_fail("Layout 1 dock must have a square bordered background by default.")
+		return
+	worksite.call("_show_home_screen_studio_controls")
+	await process_frame
+	var corner_slider := worksite.find_child("HomeScreenCornerRadiusSlider", true, false) as HSlider
+	if corner_slider == null or corner_slider.min_value != 0.0 or corner_slider.max_value != 24.0 or corner_slider.value != 0.0:
+		_fail("Home Screen Studio must expose a horizontal corner-radius slider starting at square corners.")
+		return
+	corner_slider.value = 12.0
+	await process_frame
+	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
+	assistant_style = assistant_widget.get_theme_stylebox("panel") as StyleBoxFlat
+	first_home_button_style = first_home_button.get_theme_stylebox("normal") as StyleBoxFlat
+	dock_style = home_dock_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if weather_style.corner_radius_top_left != 12 or assistant_style.corner_radius_top_left != 12 or first_home_button_style.corner_radius_top_left != 12 or dock_style.corner_radius_top_left != 12:
+		_fail("Corner-radius slider did not apply its value to widgets, app icons and dock.")
+		return
+	corner_slider.value = 0.0
+	await process_frame
+	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
+	if weather_style.corner_radius_top_left != 0:
+		_fail("Corner-radius slider did not restore square corners at zero.")
 		return
 	var home_app_names := ["Photos", "Store", "Email", "Maps"]
 	var dock_app_names := ["Phone", "Messages", "Browser", "Camera"]
