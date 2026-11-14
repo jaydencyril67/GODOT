@@ -95,7 +95,7 @@ func _run_os_generator_test() -> void:
 	var simulator_host := Control.new()
 	simulator_host.name = "OSSimulatorResponsiveTestHost"
 	simulator_host.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	simulator_host.size = Vector2(145.0, 360.0)
+	simulator_host.size = Vector2(145.0, 640.0)
 	root.add_child(simulator_host)
 
 	var template_preview := SimulatorScript.new()
@@ -135,17 +135,6 @@ func _run_os_generator_test() -> void:
 			_fail("Lock-screen flexible spacing is not configured to distribute content: " + template_name)
 			return
 		if top_space.size.y <= 4.0 or lower_space.size.y <= 4.0:
-			print("LOCK_LAYOUT_SIZES template=%s simulator=%s safe_area=%s shell=%s page=%s root=%s top=%s lower=%s flags=%d/%d" % [
-				template_name, template_preview.size, template_preview.get_node("OSSimulatorSafeArea").size,
-				template_preview.get_node("OSSimulatorSafeArea/OSLockScreenShell").size,
-				template_preview.get_node("OSSimulatorSafeArea/OSLockScreenShell/OSComponentContent").size,
-				layout_root.size, top_space.size, lower_space.size,
-				top_space.size_flags_vertical, lower_space.size_flags_vertical
-			])
-			for child in layout_root.get_children():
-				print("LOCK_LAYOUT_CHILD name=%s class=%s size=%s flags=%d min=%s" % [
-					child.name, child.get_class(), child.size, child.size_flags_vertical, child.custom_minimum_size
-				])
 			_fail("Lock-screen flexible spaces are not expanding across the phone: " + template_name)
 			return
 		if fingerprint_stage == null:
