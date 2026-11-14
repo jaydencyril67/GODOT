@@ -1622,22 +1622,22 @@ func _build_pin_input() -> void:
 		key.clip_contents = false
 		var normal := StyleBoxFlat.new()
 		normal.bg_color = Color(0.90, 0.95, 1.0, 0.11)
-		normal.border_color = Color(1.0, 1.0, 1.0, 0.34)
-		normal.set_border_width_all(1)
+		# Keep each key visually independent: no outlines or drop shadows
+		# that can join into connector-like lines between adjacent glass keys.
+		normal.border_color = Color(1.0, 1.0, 1.0, 0.0)
+		normal.set_border_width_all(0)
 		normal.set_corner_radius_all(999)
-		normal.shadow_color = Color(0.72, 0.84, 1.0, 0.13)
-		normal.shadow_size = 4
-		normal.shadow_offset = Vector2(0, 2)
+		normal.shadow_color = Color(0.0, 0.0, 0.0, 0.0)
+		normal.shadow_size = 0
+		normal.shadow_offset = Vector2.ZERO
 		normal.content_margin_left = 0
 		normal.content_margin_right = 0
 		normal.content_margin_top = 0
 		normal.content_margin_bottom = 0
 		var hover := normal.duplicate() as StyleBoxFlat
 		hover.bg_color = Color(0.94, 0.97, 1.0, 0.18)
-		hover.border_color = Color(1.0, 1.0, 1.0, 0.48)
 		var pressed := normal.duplicate() as StyleBoxFlat
 		pressed.bg_color = Color(0.82, 0.90, 1.0, 0.23)
-		pressed.border_color = Color(1.0, 1.0, 1.0, 0.58)
 		key.add_theme_stylebox_override("normal", normal)
 		key.add_theme_stylebox_override("hover", hover)
 		key.add_theme_stylebox_override("pressed", pressed)
