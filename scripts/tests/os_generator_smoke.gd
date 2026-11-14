@@ -179,8 +179,17 @@ func _run_os_generator_test() -> void:
 		if lock_clock == null or lock_clock.text.strip_edges().is_empty() or lock_clock.size.y < 20.0:
 			_fail("Lock-screen main clock is missing or has no visible height: " + template_name)
 			return
-		if lock_clock.get_theme_font("font") == null or lock_clock.get_theme_font_size("font_size") < 20:
+		if lock_clock.clip_text:
+			_fail("Lock-screen clock still clips its numerals inside the label: " + template_name)
+			return
+		var lock_clock_font := lock_clock.get_theme_font("font") as Font
+		var lock_clock_size := lock_clock.get_theme_font_size("font_size")
+		if lock_clock_font == null or lock_clock_size < 20:
 			_fail("Lock-screen clock font did not load at a readable size: " + template_name)
+			return
+		var measured_clock_text_width := lock_clock_font.get_string_size(lock_clock.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, lock_clock_size).x
+		if measured_clock_text_width > lock_clock.size.x + 1.0:
+			_fail("Lock-screen clock numerals exceed their rendered label width: " + template_name)
 			return
 		if lock_date == null or lock_date.text.strip_edges().is_empty():
 			_fail("Lock-screen date is missing: " + template_name)
@@ -675,8 +684,30 @@ func _run_os_generator_test() -> void:
 	var pin_info := worksite_preview.find_child("PINPreviewUnlockInfo", true, false) as PanelContainer
 	var pin_info_label := pin_info.get_child(0) as Label if pin_info != null else null
 	var pin_error := worksite_preview.find_child("PINEntryError", true, false) as Label
+	var pin_lock_indicator := worksite_preview.find_child("PINLockIndicator", true, false) as Control
+	var pin_keypad := worksite_preview.find_child("PINKeypad", true, false) as GridContainer
+	var pin_key_two := worksite_preview.find_child("PINKey_2", true, false) as Button
+	var emergency_call := worksite_preview.find_child("PINEmergencyCallButton", true, false) as Button
+	var pin_fingerprint := worksite_preview.find_child("PINFingerprintSensor", true, false) as Button
 	if pin_info == null or pin_info_label == null or pin_error == null or not pin_info_label.text.contains("1234"):
 		_fail("PIN screen did not clearly display the preview unlock PIN 1234.")
+		return
+	if pin_lock_indicator == null or pin_keypad == null or pin_keypad.columns != 3 or pin_keypad.get_child_count() != 12 or emergency_call == null:
+		_fail("PIN screen is missing its Samsung-style lock indicator, 3×4 keypad or emergency-call control.")
+		return
+	if pin_fingerprint == null or not pin_fingerprint.get("sensor_texture"):
+		_fail("PIN screen did not show the enabled under-display fingerprint shortcut.")
+		return
+	if pin_key_two == null or pin_key_two.size.x < 30.0:
+		_fail("PIN number keys are not sized as visible circular touch targets.")
+		return
+	var pin_key_style := pin_key_two.get_theme_stylebox("normal") as StyleBoxFlat
+	if pin_key_style == null or pin_key_style.corner_radius_top_left < 15:
+		_fail("PIN number keys are not styled as circular One UI-style buttons.")
+		return
+	var pin_key_center := pin_key_two.get_node_or_null("CenterContainer") as CenterContainer
+	if pin_key_center == null or pin_key_center.get_child_count() == 0:
+		_fail("PIN keypad number and telephone-letter labels were not rendered.")
 		return
 	for digit in ["0", "0", "0", "0"]:
 		var wrong_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
