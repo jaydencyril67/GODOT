@@ -1087,6 +1087,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 				media_column.add_child(media)
 			root_layout.add_child(feature_row)
 		"live_activity":
+			var live_activity_caption := _label("LIVE ACTIVITY", 7, _accent_color())
+			live_activity_caption.name = "LockScreenLiveActivityCaption"
+			root_layout.add_child(live_activity_caption)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"one_ui_personal":
