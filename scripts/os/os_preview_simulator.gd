@@ -991,7 +991,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 		_add_lock_notification("Messages", "A new message is waiting", "NOW", str(data.get("notification_treatment", "glass")), 0)
 		_add_lock_notification("Calendar", "Your next event is coming up", "IN 10 MIN", str(data.get("notification_treatment", "glass")), 1)
 
-	if bool(data.get("show_audio_player", false)):
+	if bool(data.get("show_audio_player", true)):
 		_add_lock_audio_player(str(data.get("audio_treatment", "album_card")))
 
 	var bottom_space := Control.new()
@@ -1071,16 +1071,17 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	style.content_margin_top = 5
 	style.content_margin_bottom = 5
 	card.add_theme_stylebox_override("panel", style)
-	card.custom_minimum_size.y = 54
+	card.custom_minimum_size.y = 76
 	var row := HBoxContainer.new()
+	row.custom_minimum_size.y = 58
 	row.add_theme_constant_override("separation", 9)
 	var app_icon := PanelContainer.new()
-	app_icon.custom_minimum_size = Vector2(30, 30)
+	app_icon.custom_minimum_size = Vector2(38, 38)
 	var icon_style := StyleBoxFlat.new()
 	icon_style.bg_color = _accent_color().darkened(0.42)
 	icon_style.set_corner_radius_all(9)
 	app_icon.add_theme_stylebox_override("panel", icon_style)
-	var icon_label := _label("✉" if app_name == "Messages" else "▦", 15, _text_color())
+	var icon_label := _label("✉" if app_name == "Messages" else "▦", 19, _text_color())
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	app_icon.add_child(icon_label)
@@ -1089,12 +1090,15 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 3)
 	var header := HBoxContainer.new()
-	var app_label := _label(app_name, 9, _text_color())
+	var app_label := _label(app_name, 11, _text_color())
+	app_label.name = "LockScreenNotificationApp_" + app_name
 	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(app_label)
 	header.add_child(_label(time_label, 7, _muted_color()))
 	body.add_child(header)
-	body.add_child(_label(message, 8 if treatment == "compact" else 9, _text_color()))
+	var message_label := _label(message, 10, _text_color())
+	message_label.name = "LockScreenNotificationMessage_" + app_name
+	body.add_child(message_label)
 	row.add_child(body)
 	card.add_child(row)
 	page_container.add_child(card)
@@ -1133,28 +1137,34 @@ func _add_lock_audio_player(treatment: String) -> void:
 	style.content_margin_bottom = 6
 	player.add_theme_stylebox_override("panel", style)
 
-	player.custom_minimum_size.y = 76
+	player.custom_minimum_size.y = 104
 	var player_content := VBoxContainer.new()
 	player_content.add_theme_constant_override("separation", 6)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	var artwork := PanelContainer.new()
 	artwork.name = "LockScreenAudioArtwork"
-	artwork.custom_minimum_size = Vector2(52, 52)
+	artwork.custom_minimum_size = Vector2(62, 62)
 	var art_style := StyleBoxFlat.new()
 	art_style.bg_color = _accent_color().darkened(0.35)
 	art_style.set_corner_radius_all(7 if treatment == "compact_row" else 12)
 	artwork.add_theme_stylebox_override("panel", art_style)
-	var art_label := _label("♫", 25, _text_color())
+	var art_label := _label("♫", 30, _text_color())
 	art_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	art_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	artwork.add_child(art_label)
 	row.add_child(artwork)
 	var track := VBoxContainer.new()
 	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	track.add_child(_label("NOW PLAYING", 7, _accent_color()))
-	track.add_child(_label("Midnight Drive", 12, _text_color()))
-	track.add_child(_label("DigitalWorld Audio  ·  Album", 8, _muted_color()))
+	var now_playing := _label("NOW PLAYING", 8, _accent_color())
+	now_playing.name = "LockScreenAudioEyebrow"
+	track.add_child(now_playing)
+	var track_title := _label("Midnight Drive", 14, _text_color())
+	track_title.name = "LockScreenAudioTrackTitle"
+	track.add_child(track_title)
+	var artist_name := _label("DigitalWorld Audio", 10, _muted_color())
+	artist_name.name = "LockScreenAudioArtist"
+	track.add_child(artist_name)
 	row.add_child(track)
 	var play := Button.new()
 	play.name = "LockScreenAudioPlayButton"
