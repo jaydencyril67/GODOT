@@ -39,6 +39,7 @@ var boot_message: Label
 var boot_model_message: Label
 var boot_debug_panel: PanelContainer
 var boot_debug_label: Label
+var boot_debug_copy_button: Button
 var boot_debug_lines: Array[String] = []
 var boot_enabled_inputs: Dictionary = {}
 var boot_busy := false
@@ -297,6 +298,7 @@ func _build_interface() -> void:
 	home_preview_screen = screen_glass
 	_build_home_screen_preview(screen_glass)
 	_build_boot_overlay(screen_glass)
+	_build_boot_debug_panel(root)
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "OSConfigurationScroll"
@@ -427,42 +429,71 @@ func _build_power_button() -> void:
 	column.add_child(hint)
 
 
-	# The diagnostic panel is attached above the boot animation and is visible only while booting.
-func _build_boot_debug_panel() -> void:
+func _build_boot_debug_panel(host: Control) -> void:
+	# Developer diagnostics live on the worksite UI, never inside the simulated phone.
 	boot_debug_panel = PanelContainer.new()
 	boot_debug_panel.name = "BootDebugPanel"
 	boot_debug_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	boot_debug_panel.position = Vector2(5, 5)
-	boot_debug_panel.size = Vector2(190, 145)
-	boot_debug_panel.z_index = 20
-	boot_debug_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boot_debug_panel.position = Vector2(12, 72)
+	boot_debug_panel.size = Vector2(360, 210)
+	boot_debug_panel.custom_minimum_size = Vector2(300, 170)
+	boot_debug_panel.z_index = 1100
+	boot_debug_panel.z_as_relative = false
+	boot_debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.015, 0.02, 0.025, 0.94)
+	panel_style.bg_color = Color(0.015, 0.02, 0.025, 0.97)
 	panel_style.border_color = Color("#C58A3A")
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(4)
-	panel_style.content_margin_left = 5
-	panel_style.content_margin_right = 5
-	panel_style.content_margin_top = 4
-	panel_style.content_margin_bottom = 4
+	panel_style.set_corner_radius_all(5)
+	panel_style.content_margin_left = 7
+	panel_style.content_margin_right = 7
+	panel_style.content_margin_top = 6
+	panel_style.content_margin_bottom = 6
 	boot_debug_panel.add_theme_stylebox_override("panel", panel_style)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 5)
+	boot_debug_panel.add_child(content)
+	var header := HBoxContainer.new()
+	content.add_child(header)
+	var heading := Label.new()
+	heading.text = "BOOT DIAGNOSTICS"
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_theme_font_size_override("font_size", 11)
+	heading.add_theme_color_override("font_color", Color("#E8D2AD"))
+	header.add_child(heading)
+	boot_debug_copy_button = Button.new()
+	boot_debug_copy_button.name = "BootDebugCopyButton"
+	boot_debug_copy_button.text = "COPY LOGS"
+	boot_debug_copy_button.focus_mode = Control.FOCUS_NONE
+	boot_debug_copy_button.pressed.connect(_copy_boot_debug_logs)
+	_style_button(boot_debug_copy_button)
+	boot_debug_copy_button.add_theme_font_size_override("font_size", 10)
+	header.add_child(boot_debug_copy_button)
+	var scroll := ScrollContainer.new()
+	scroll.name = "BootDebugLogScroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	content.add_child(scroll)
 	boot_debug_label = Label.new()
 	boot_debug_label.name = "BootDebugText"
-	boot_debug_label.add_theme_font_size_override("font_size", 8)
+	boot_debug_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	boot_debug_label.add_theme_font_size_override("font_size", 9)
 	boot_debug_label.add_theme_color_override("font_color", Color("#E8D2AD"))
 	boot_debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	boot_debug_label.text = "BOOT DEBUG\nWaiting for boot..."
-	boot_debug_panel.add_child(boot_debug_label)
-	boot_overlay.add_child(boot_debug_panel)
-	boot_debug_panel.visible = false
+	boot_debug_label.text = "Waiting for boot..."
+	scroll.add_child(boot_debug_label)
+	host.add_child(boot_debug_panel)
+
+
+func _copy_boot_debug_logs() -> void:
+	DisplayServer.clipboard_set("BOOT DIAGNOSTICS\\n" + "\\n".join(PackedStringArray(boot_debug_lines)))
 
 
 func _boot_debug_log(message: String) -> void:
 	boot_debug_lines.append("%0.2fs %s" % [float(Time.get_ticks_msec()) / 1000.0, message])
-	while boot_debug_lines.size() > 12:
-		boot_debug_lines.pop_front()
 	if is_instance_valid(boot_debug_label):
-		boot_debug_label.text = "BOOT DEBUG\n" + "\n".join(PackedStringArray(boot_debug_lines))
+		boot_debug_label.text = "\\n".join(PackedStringArray(boot_debug_lines))
 
 
 func _build_boot_overlay(screen: PanelContainer) -> void:
@@ -630,9 +661,7 @@ func _run_boot_sequence() -> void:
 	if boot_busy or not is_instance_valid(boot_overlay):
 		return
 	boot_busy = true
-	boot_debug_lines.clear()
 	_boot_debug_log("POWER BUTTON: boot started")
-	boot_debug_panel.visible = true
 	var started_at := Time.get_ticks_msec()
 	device_powered_on = false
 	if is_instance_valid(os_preview_simulator):
@@ -680,7 +709,6 @@ func _run_boot_sequence() -> void:
 		await get_tree().create_timer(10.0 - elapsed).timeout
 	_boot_debug_log("BOOT COMPLETE elapsed=%.2fs" % elapsed)
 	boot_overlay.visible = false
-	boot_debug_panel.visible = false
 	boot_message.visible = true
 	boot_busy = false
 	device_powered_on = true
