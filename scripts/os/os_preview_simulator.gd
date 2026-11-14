@@ -1513,24 +1513,24 @@ func _build_pin_input() -> void:
 	keypad.name = "PINKeypad"
 	keypad.columns = 3
 	keypad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	keypad.add_theme_constant_override("h_separation", 7)
-	keypad.add_theme_constant_override("v_separation", 6)
+	keypad.add_theme_constant_override("h_separation", 5)
+	keypad.add_theme_constant_override("v_separation", 5)
 	for digit in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
 		var key := Button.new()
 		key.name = "PINKey_" + digit
 		key.text = digit
-		key.custom_minimum_size = Vector2(48, 38)
+		key.custom_minimum_size = Vector2(34, 34)
 		_style_action_button(key)
 		key.add_theme_font_size_override("font_size", 13)
 		key.pressed.connect(_on_pin_digit_pressed.bind(digit))
 		keypad.add_child(key)
 	var empty_key := Control.new()
-	empty_key.custom_minimum_size = Vector2(48, 38)
+	empty_key.custom_minimum_size = Vector2(34, 34)
 	keypad.add_child(empty_key)
 	var zero_key := Button.new()
 	zero_key.name = "PINKey_0"
 	zero_key.text = "0"
-	zero_key.custom_minimum_size = Vector2(48, 38)
+	zero_key.custom_minimum_size = Vector2(34, 34)
 	_style_action_button(zero_key)
 	zero_key.add_theme_font_size_override("font_size", 13)
 	zero_key.pressed.connect(_on_pin_digit_pressed.bind("0"))
@@ -1538,7 +1538,7 @@ func _build_pin_input() -> void:
 	var delete_key := Button.new()
 	delete_key.name = "PINKey_Delete"
 	delete_key.text = "⌫"
-	delete_key.custom_minimum_size = Vector2(48, 38)
+	delete_key.custom_minimum_size = Vector2(34, 34)
 	_style_action_button(delete_key)
 	delete_key.pressed.connect(_on_pin_delete_pressed)
 	keypad.add_child(delete_key)
@@ -1548,7 +1548,7 @@ func _build_pin_input() -> void:
 	info.name = "PINPreviewUnlockInfo"
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_surface(info, true)
-	var info_label := _label("PREVIEW UNLOCK PIN  ·  1234", 8, _accent_color())
+	var info_label := _label("DEMO UNLOCK PIN: 1234", 8, _accent_color())
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.add_child(info_label)
 	layout.add_child(info)
