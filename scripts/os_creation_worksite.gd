@@ -37,14 +37,9 @@ var boot_stage_container: VBoxContainer
 var boot_logo: TextureRect
 var boot_message: Label
 var boot_model_message: Label
-var boot_debug_panel: PanelContainer
-var boot_debug_label: Label
-var boot_debug_copy_button: Button
-var boot_debug_lines: Array[String] = []
 var boot_enabled_inputs: Dictionary = {}
 var boot_busy := false
 var device_powered_on := false
-var boot_identity_input_snapshot := {"company_name": "", "phone_name": "", "phone_model": ""}
 var boot_identity := {
 	"company_name": "YOUR COMPANY",
 	"company_logo_id": 1,
@@ -298,7 +293,6 @@ func _build_interface() -> void:
 	home_preview_screen = screen_glass
 	_build_home_screen_preview(screen_glass)
 	_build_boot_overlay(screen_glass)
-	_build_boot_debug_panel(root)
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "OSConfigurationScroll"
@@ -427,73 +421,6 @@ func _build_power_button() -> void:
 	var hint := _label("PRESS TO START", 7, Color("#8F8B84"))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(hint)
-
-
-func _build_boot_debug_panel(host: Control) -> void:
-	# Developer diagnostics live on the worksite UI, never inside the simulated phone.
-	boot_debug_panel = PanelContainer.new()
-	boot_debug_panel.name = "BootDebugPanel"
-	boot_debug_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	boot_debug_panel.position = Vector2(12, 72)
-	boot_debug_panel.size = Vector2(360, 210)
-	boot_debug_panel.custom_minimum_size = Vector2(300, 170)
-	boot_debug_panel.z_index = 1100
-	boot_debug_panel.z_as_relative = false
-	boot_debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.015, 0.02, 0.025, 0.97)
-	panel_style.border_color = Color("#C58A3A")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(5)
-	panel_style.content_margin_left = 7
-	panel_style.content_margin_right = 7
-	panel_style.content_margin_top = 6
-	panel_style.content_margin_bottom = 6
-	boot_debug_panel.add_theme_stylebox_override("panel", panel_style)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 5)
-	boot_debug_panel.add_child(content)
-	var header := HBoxContainer.new()
-	content.add_child(header)
-	var heading := Label.new()
-	heading.text = "BOOT DIAGNOSTICS"
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_theme_font_size_override("font_size", 11)
-	heading.add_theme_color_override("font_color", Color("#E8D2AD"))
-	header.add_child(heading)
-	boot_debug_copy_button = Button.new()
-	boot_debug_copy_button.name = "BootDebugCopyButton"
-	boot_debug_copy_button.text = "COPY LOGS"
-	boot_debug_copy_button.focus_mode = Control.FOCUS_NONE
-	boot_debug_copy_button.pressed.connect(_copy_boot_debug_logs)
-	_style_button(boot_debug_copy_button)
-	boot_debug_copy_button.add_theme_font_size_override("font_size", 10)
-	header.add_child(boot_debug_copy_button)
-	var scroll := ScrollContainer.new()
-	scroll.name = "BootDebugLogScroll"
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	content.add_child(scroll)
-	boot_debug_label = Label.new()
-	boot_debug_label.name = "BootDebugText"
-	boot_debug_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	boot_debug_label.add_theme_font_size_override("font_size", 9)
-	boot_debug_label.add_theme_color_override("font_color", Color("#E8D2AD"))
-	boot_debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	boot_debug_label.text = "Waiting for boot..."
-	scroll.add_child(boot_debug_label)
-	host.add_child(boot_debug_panel)
-
-
-func _copy_boot_debug_logs() -> void:
-	DisplayServer.clipboard_set("BOOT DIAGNOSTICS\n" + "\n".join(PackedStringArray(boot_debug_lines)))
-
-
-func _boot_debug_log(message: String) -> void:
-	boot_debug_lines.append("%0.2fs %s" % [float(Time.get_ticks_msec()) / 1000.0, message])
-	if is_instance_valid(boot_debug_label):
-		boot_debug_label.text = "\n".join(PackedStringArray(boot_debug_lines))
 
 
 func _build_boot_overlay(screen: PanelContainer) -> void:
@@ -632,13 +559,10 @@ func _apply_bootloader_settings_to_configuration() -> void:
 
 
 func set_boot_identity(company_name: String, logo_id: int, phone_name: String = "DigitalWorld Phone", phone_model: String = "DW-01") -> void:
-	boot_identity_input_snapshot = {"company_name": company_name, "phone_name": phone_name, "phone_model": phone_model}
-	_boot_debug_log("RAW INPUT name='%s' model='%s'" % [phone_name, phone_model])
 	boot_identity["company_name"] = company_name.strip_edges() if not company_name.strip_edges().is_empty() else "YOUR COMPANY"
 	boot_identity["company_logo_id"] = clampi(logo_id, 1, 50)
 	boot_identity["phone_name"] = phone_name.strip_edges() if not phone_name.strip_edges().is_empty() else "DigitalWorld Phone"
 	boot_identity["phone_model"] = phone_model.strip_edges() if not phone_model.strip_edges().is_empty() else "DW-01"
-	_boot_debug_log("IDENTITY SET name='%s' model='%s'" % [str(boot_identity["phone_name"]), str(boot_identity["phone_model"])])
 	if is_instance_valid(boot_logo):
 		boot_logo.texture = _get_boot_company_logo_texture()
 	if is_instance_valid(boot_message):
@@ -669,7 +593,6 @@ func _run_boot_sequence() -> void:
 	if boot_busy or not is_instance_valid(boot_overlay):
 		return
 	boot_busy = true
-	_boot_debug_log("POWER BUTTON: boot started")
 	var started_at := Time.get_ticks_msec()
 	device_powered_on = false
 	if is_instance_valid(os_preview_simulator):
@@ -679,9 +602,6 @@ func _run_boot_sequence() -> void:
 	boot_message.visible = false
 	boot_model_message.visible = false
 	boot_stage_container.modulate.a = 1.0
-	_boot_debug_log("RAW SAVED INPUT name='%s' model='%s'" % [str(boot_identity_input_snapshot.get("phone_name", "<missing>")), str(boot_identity_input_snapshot.get("phone_model", "<missing>"))])
-	_boot_debug_log("RESOLVED IDENTITY name='%s' model='%s'" % [str(boot_identity.get("phone_name", "<missing>")), str(boot_identity.get("phone_model", "<missing>"))])
-	_boot_debug_log("LABELS name=%s model=%s" % [str(is_instance_valid(boot_message)), str(is_instance_valid(boot_model_message))])
 	var ordered_items: Array[String] = []
 	var item_settings: Dictionary = bootloader_settings["items"]
 	# Startup order is fixed: company logo always precedes phone details.
@@ -689,11 +609,8 @@ func _run_boot_sequence() -> void:
 		if bool(item_settings.get(item_id, {}).get("enabled", false)):
 			ordered_items.append(item_id)
 	var stage_duration := 10.0 / float(maxi(1, ordered_items.size()))
-	_boot_debug_log("ENABLED stages=%s duration=%.1fs" % [", ".join(PackedStringArray(ordered_items)), stage_duration])
 	if ordered_items.is_empty():
-		_boot_debug_log("WARNING: no enabled boot stages")
 	for item_id in ordered_items:
-		_boot_debug_log("STAGE BEGIN: " + item_id)
 		boot_stage_container.modulate.a = 1.0
 		boot_logo.visible = item_id == "company_logo"
 		boot_message.visible = item_id == "phone_details"
@@ -706,16 +623,12 @@ func _run_boot_sequence() -> void:
 		elif item_id == "phone_details":
 			boot_message.text = str(boot_identity["phone_name"])
 			boot_model_message.text = str(boot_identity["phone_model"])
-			_boot_debug_log("LABEL TEXT name='%s' model='%s'" % [boot_message.text, boot_model_message.text])
-			_boot_debug_log("LABEL VISIBLE name=%s model=%s" % [str(boot_message.visible), str(boot_model_message.visible)])
 			boot_message.modulate.a = 1.0
 			boot_model_message.modulate.a = 1.0
 		await get_tree().create_timer(stage_duration).timeout
-		_boot_debug_log("STAGE END: " + item_id)
 	var elapsed := float(Time.get_ticks_msec() - started_at) / 1000.0
 	if elapsed < 10.0:
 		await get_tree().create_timer(10.0 - elapsed).timeout
-	_boot_debug_log("BOOT COMPLETE elapsed=%.2fs" % elapsed)
 	boot_overlay.visible = false
 	boot_message.visible = true
 	boot_busy = false
