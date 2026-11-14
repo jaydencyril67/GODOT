@@ -561,8 +561,17 @@ func _run_os_generator_test() -> void:
 	if boot_overlay == null or boot_overlay.visible:
 		_fail("Phone screen should remain off until the separate power button is pressed.")
 		return
-	if worksite.find_child("BootLoaderOnlyControls", true, false) == null:
+	var boot_controls := worksite.find_child("BootLoaderOnlyControls", true, false) as VBoxContainer
+	if boot_controls == null:
 		_fail("Step 1 right panel must contain the Boot Loader controls.")
+		return
+	if boot_controls.alignment != BoxContainer.ALIGNMENT_BEGIN:
+		_fail("Step 1 right-panel content must begin beneath its hero heading, not be vertically centred.")
+		return
+	var boot_hero := boot_controls.find_child("BootLoaderHeroTitle", true, false) as Label
+	var boot_gap := boot_controls.find_child("BootLoaderHeroGap", true, false) as Control
+	if boot_hero == null or boot_gap == null or boot_gap.custom_minimum_size.y < 52.0 or boot_hero.get_index() >= boot_gap.get_index():
+		_fail("Step 1 must place its hero heading at the top with a clear vertical gap before the settings.")
 		return
 	var initial_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
 	if initial_step_label == null or initial_step_label.text != "STEP 1 / 2":
@@ -587,6 +596,9 @@ func _run_os_generator_test() -> void:
 			return
 		if toggle == null or toggle is CheckBox or not toggle.text.is_empty():
 			_fail("Boot loader enable control must use the custom checkbox, not Godot's native CheckBox: " + item_id)
+			return
+		if row.custom_minimum_size.y < 58.0 or toggle.custom_minimum_size.x < 40.0 or toggle.custom_minimum_size.y < 40.0 or row_label.get_theme_font_size("font_size") < 18:
+			_fail("Boot loader setting rows and touch targets must use the larger Phone Creation Worksite sizing.")
 			return
 		if worksite.find_child("BootOrder_" + item_id, true, false) != null:
 			_fail("Boot loader must not contain startup order number boxes.")
@@ -695,8 +707,20 @@ func _run_os_generator_test() -> void:
 		return
 	worksite.call("_on_next_pressed")
 	await process_frame
-	if worksite.find_child("LockScreenStudioControls", true, false) == null:
+	var lock_controls := worksite.find_child("LockScreenStudioControls", true, false) as VBoxContainer
+	if lock_controls == null:
 		_fail("Wizard Next did not return to Lock Screen Studio Step 2.")
+		return
+	var lock_hero := lock_controls.find_child("LockScreenHeroTitle", true, false) as Label
+	var lock_gap := lock_controls.find_child("LockScreenHeroGap", true, false) as Control
+	if lock_hero == null or lock_gap == null or lock_gap.custom_minimum_size.y < 28.0 or lock_hero.get_index() >= lock_gap.get_index():
+		_fail("Step 2 must place its hero heading at the top with a clear vertical gap before the settings.")
+		return
+	var notification_row := lock_controls.find_child("LockScreenSettingRow_show_notifications", true, false) as HBoxContainer
+	var notification_toggle := lock_controls.find_child("LockScreenEnabled_show_notifications", true, false) as Button
+	var notification_title := notification_row.get_child(0).get_child(0) as Label if notification_row != null else null
+	if notification_row == null or notification_toggle == null or notification_title == null or notification_row.custom_minimum_size.y < 54.0 or notification_toggle.custom_minimum_size.x < 40.0 or notification_title.get_theme_font_size("font_size") < 14:
+		_fail("Lock Screen Studio settings must use the larger Phone Creation Worksite row, text and touch-target sizing.")
 		return
 
 	worksite.call("set_fingerprint_sensor_available", true)
