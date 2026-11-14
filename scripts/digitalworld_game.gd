@@ -227,6 +227,7 @@ func _load_career() -> bool:
 		"logo_id": int(config.get_value("career", "logo_id", 1)),
 		"phone_name": config.get_value("career", "phone_name", ""),
 		"phone_model": config.get_value("career", "phone_model", ""),
+		"fingerprint_sensor_available": bool(config.get_value("career", "fingerprint_sensor_available", true)),
 		"created_at": str(config.get_value("career", "created_at", "")),
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
@@ -274,6 +275,7 @@ func _save_career() -> bool:
 	config.set_value("career", "logo_id", int(career.get("logo_id", 1)))
 	config.set_value("career", "phone_name", str(career["phone_name"]))
 	config.set_value("career", "phone_model", str(career["phone_model"]))
+	config.set_value("career", "fingerprint_sensor_available", bool(career.get("fingerprint_sensor_available", true)))
 	config.set_value("career", "created_at", str(career.get("created_at", "")))
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
 	config.set_value("career", "upgrade_level", upgrade_level)
@@ -2796,7 +2798,7 @@ func _prepare_os_creation_worksite() -> void:
 			str(career["phone_name"]),
 			str(career["phone_model"])
 		)
-		os_creation_worksite.call("set_fingerprint_sensor_available", bool(career.get("fingerprint_sensor_available", false)))
+		os_creation_worksite.call("set_fingerprint_sensor_available", bool(career.get("fingerprint_sensor_available", true)))
 		return
 	os_creation_worksite = OSCreationWorksiteScene.instantiate() as Node3D
 	if not is_instance_valid(os_creation_worksite):
@@ -2810,7 +2812,7 @@ func _prepare_os_creation_worksite() -> void:
 		str(career["phone_name"]),
 		str(career["phone_model"])
 	)
-	os_creation_worksite.call("set_fingerprint_sensor_available", bool(career.get("fingerprint_sensor_available", false)))
+	os_creation_worksite.call("set_fingerprint_sensor_available", bool(career.get("fingerprint_sensor_available", true)))
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
 	var os_selected_callback := Callable(self, "_on_generated_os_selected")
