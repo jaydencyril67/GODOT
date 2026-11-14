@@ -980,7 +980,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 	panel_style.set_corner_radius_all(18)
 	panel_style.set_border_width_all(1)
 	clock_panel.add_theme_stylebox_override("panel", panel_style)
-	clock_panel.add_child(clock_stack)
 
 	var feature_row := HBoxContainer.new()
 	feature_row.name = "LockScreenMediaAndNotifications"
@@ -991,6 +990,8 @@ func _build_lock_screen(data: Dictionary) -> void:
 	notification_column.add_theme_constant_override("separation", 4)
 	var media_column := VBoxContainer.new()
 	media_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	feature_row.add_child(notification_column)
+	feature_row.add_child(media_column)
 	if template in ["rhombus_clock", "nothing_widget_grid"]:
 		clock_panel.add_child(clock_stack)
 
