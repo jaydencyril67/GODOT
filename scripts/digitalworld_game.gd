@@ -225,6 +225,8 @@ func _load_career() -> bool:
 		"full_name": str(config.get_value("career", "full_name", "")),
 		"company_name": str(config.get_value("career", "company_name", "")),
 		"logo_id": int(config.get_value("career", "logo_id", 1)),
+		"phone_name": str(config.get_value("career", "phone_name", "DigitalWorld Phone")),
+		"phone_model": str(config.get_value("career", "phone_model", "DW-01")),
 		"created_at": str(config.get_value("career", "created_at", "")),
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
@@ -258,6 +260,8 @@ func _save_career() -> bool:
 	config.set_value("career", "full_name", str(career.get("full_name", "")))
 	config.set_value("career", "company_name", str(career.get("company_name", "")))
 	config.set_value("career", "logo_id", int(career.get("logo_id", 1)))
+	config.set_value("career", "phone_name", str(career.get("phone_name", "DigitalWorld Phone")))
+	config.set_value("career", "phone_model", str(career.get("phone_model", "DW-01")))
 	config.set_value("career", "created_at", str(career.get("created_at", "")))
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
 	config.set_value("career", "upgrade_level", upgrade_level)
