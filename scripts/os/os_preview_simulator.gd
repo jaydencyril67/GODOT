@@ -1013,6 +1013,21 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	_add_home_flexible_space("LollipopAppsToDockSpace", 0.75)
 
 
+func _lollipop_display_name(app_name: String) -> String:
+	match app_name:
+		"Email":
+			return "Gmail"
+		"Store":
+			return "Play Store"
+		"Browser":
+			return "Chrome"
+		"Music":
+			return "Play Music"
+		"Meet":
+			return "Hangouts"
+	return app_name
+
+
 func _create_lollipop_app_icon(app: Dictionary, icon_size: int, show_label: bool, label_color: Color) -> Control:
 	var tile := VBoxContainer.new()
 	var app_name := str(app.get("name", "Application"))
@@ -1065,7 +1080,8 @@ func _create_lollipop_app_icon(app: Dictionary, icon_size: int, show_label: bool
 	holder.add_child(icon)
 	tile.add_child(holder)
 	if show_label:
-		var caption := _label(app_name, 7, label_color)
+		var display_name := _lollipop_display_name(app_name)
+		var caption := _label(display_name, 7, label_color)
 		caption.name = "LollipopAppLabel_" + app_name.replace(" ", "")
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		caption.autowrap_mode = TextServer.AUTOWRAP_OFF
