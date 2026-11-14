@@ -649,8 +649,8 @@ func _apply_responsive_layout() -> void:
 	if is_wide:
 		left_power_region.size_flags_stretch_ratio = 0.30
 		preview_region.size_flags_stretch_ratio = 1.12
-		screen_center.offset_left = -38.0
-		screen_center.offset_right = -38.0
+		screen_center.offset_left = -60.0
+		screen_center.offset_right = -60.0
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		screen_height = clampf(viewport_size.y - 28.0, 250.0, 760.0)
