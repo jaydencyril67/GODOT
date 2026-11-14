@@ -734,12 +734,12 @@ func _run_os_generator_test() -> void:
 		_fail("Step 3 Home Screen Studio did not open with the three-step progress indicator.")
 		return
 	if home_selector == null or home_layout_label == null or home_layout_label.text != "LAYOUT 1" or home_minus == null or home_plus == null or not home_minus.disabled or home_plus.disabled:
-		_fail("Step 3 must use the Phone Creation minus/value/plus selector with Layout 1 and approved Layout 2 available.")
+		_fail("Step 3 must use the Phone Creation minus/value/plus selector with Layout 1 and 15 selectable home-screen layouts are available.")
 		return
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering Step 3 did not update the actual phone preview to Android Home.")
 		return
-	if worksite_preview.find_child("AndroidWeatherWidget", true, false) == null or worksite_preview.find_child("AndroidAssistantWidget", true, false) == null or worksite_preview.find_child("HomeAppGrid", true, false) == null or worksite_preview.find_child("AndroidHomeSearch", true, false) == null or worksite_preview.find_child("HomeAppDock", true, false) == null:
+	if worksite_preview.find_child("AndroidWeatherWidget", true, false) == null or worksite_preview.find_child("AndroidAssistantWidget", true, false) == null or worksite_preview.find_child("HomeAppGrid", true, false) == null or worksite_preview.find_child("HomeSearchBar", true, false) == null or worksite_preview.find_child("HomeAppDock", true, false) == null:
 		_fail("Step 3 phone preview is missing approved Android home-screen sections.")
 		return
 	worksite.call("_on_wizard_back_pressed")
@@ -835,7 +835,7 @@ func _run_os_generator_test() -> void:
 	if home_apps_grid == null or home_apps_grid.columns != 4 or home_apps_grid.get_child_count() != 4:
 		_fail("Android home screen must contain exactly four apps in one four-column row.")
 		return
-	if worksite_preview.find_child("AndroidHomeTopFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeMiddleFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeSearchFlexibleSpace", true, false) == null:
+	if worksite_preview.find_child("AndroidHomeTopFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeMiddleFlexibleSpace", true, false) == null or worksite_preview.find_child("HomeSearchBarFlexibleSpace", true, false) == null:
 		_fail("Layout 1 must distribute its sections across the full home-screen height.")
 		return
 	var weather_style := weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
