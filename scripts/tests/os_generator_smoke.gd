@@ -325,12 +325,12 @@ func _run_os_generator_test() -> void:
 			_fail("Boot loader setting must contain only its label and checkbox: " + item_id)
 			return
 		var row_label := row.get_child(0) as Label
-		var toggle := row.get_child(1) as CheckBox
+		var toggle := row.get_child(1) as Button
 		if row_label == null or row_label.autowrap_mode != TextServer.AUTOWRAP_OFF or absf(row_label.rotation) > 0.001:
 			_fail("Boot loader setting label is not displayed horizontally: " + item_id)
 			return
-		if toggle == null or not toggle.text.is_empty():
-			_fail("Boot loader enable control must be a plain checkbox: " + item_id)
+		if toggle == null or toggle is CheckBox or not toggle.text.is_empty():
+			_fail("Boot loader enable control must use the custom checkbox, not Godot's native CheckBox: " + item_id)
 			return
 		if worksite.find_child("BootOrder_" + item_id, true, false) != null:
 			_fail("Boot loader must not contain startup order number boxes.")
@@ -339,8 +339,8 @@ func _run_os_generator_test() -> void:
 	if boot_settings["items"]["company_logo"].has("order") or boot_settings["items"]["phone_details"].has("order"):
 		_fail("Boot loader still stores manual startup order values.")
 		return
-	var logo_toggle := worksite.find_child("BootEnabled_company_logo", true, false) as CheckBox
-	var details_toggle := worksite.find_child("BootEnabled_phone_details", true, false) as CheckBox
+	var logo_toggle := worksite.find_child("BootEnabled_company_logo", true, false) as Button
+	var details_toggle := worksite.find_child("BootEnabled_phone_details", true, false) as Button
 	logo_toggle.set_pressed_no_signal(true)
 	details_toggle.set_pressed_no_signal(true)
 	worksite.call("_on_boot_item_toggled", true, "company_logo")
@@ -360,15 +360,33 @@ func _run_os_generator_test() -> void:
 	if not boot_overlay.visible:
 		_fail("Power button did not switch the display into its boot sequence.")
 		return
-	await create_timer(5.1).timeout
+	await create_timer(0.1).timeout
 	var boot_identity_label := worksite.find_child("BootIdentityText", true, false) as Label
+	var boot_model_label := worksite.find_child("BootModelText", true, false) as Label
 	var boot_logo := worksite.find_child("BootCompanyLogo", true, false) as TextureRect
-	if boot_identity_label == null or boot_identity_label.text != "DigitalWorld Phone DW-01" or not boot_identity_label.visible or boot_logo.visible:
-		_fail("Phone details must visibly replace the company logo in the second boot stage.")
+	if not boot_logo.visible or boot_identity_label.visible or boot_model_label.visible:
+		_fail("Company logo must be the first visible boot stage before phone details.")
+		return
+	await create_timer(5.0).timeout
+	var boot_stage := worksite.find_child("BootLoaderStage", true, false) as VBoxContainer
+	if boot_identity_label == null or boot_identity_label.text != "DigitalWorld Phone" or not boot_identity_label.visible or boot_logo.visible:
+		_fail("Phone name must visibly replace the company logo in the second boot stage.")
+		return
+	if boot_model_label == null or boot_model_label.text != "DW-01" or not boot_model_label.visible:
+		_fail("Phone model must be shown as part of the second boot stage.")
+		return
+	if boot_stage == null or boot_stage.size.x <= 0.0 or boot_identity_label.size.x <= 0.0 or boot_identity_label.size.x > boot_stage.size.x + 1.0:
+		_fail("Boot identity text is not constrained to the available phone-screen width.")
+		return
+	if boot_identity_label.autowrap_mode == TextServer.AUTOWRAP_OFF or boot_identity_label.position.y + boot_identity_label.size.y > boot_model_label.position.y + 0.5:
+		_fail("Phone identity must wrap within the screen and keep its model on a separate visible line.")
 		return
 	var boot_identity_font := boot_identity_label.get_theme_font("font") as FontVariation
-	if boot_identity_label.get_theme_font_size("font_size") != 22 or boot_identity_font == null or not is_equal_approx(boot_identity_font.variation_embolden, 1.5):
-		_fail("Phone name and model must use the larger, bolder boot identity typography.")
+	if boot_identity_label.get_theme_font_size("font_size") != 18 or boot_identity_font == null or not is_equal_approx(boot_identity_font.variation_embolden, 1.5):
+		_fail("Phone name must use the bold, screen-fitted boot identity typography.")
+		return
+	if boot_model_label.get_theme_font_size("font_size") != 14:
+		_fail("Phone model must use the smaller secondary boot identity typography.")
 		return
 	await worksite.boot_completed
 	var boot_elapsed := Time.get_ticks_msec() - boot_started_at
