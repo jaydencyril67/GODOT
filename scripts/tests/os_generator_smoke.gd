@@ -146,7 +146,8 @@ func _run_os_generator_test() -> void:
 			_fail("Two lock-screen templates share the same structural composition: " + template_name)
 			return
 		observed_templates[structure_signature] = true
-		template_preview.queue_free()
+		simulator_host.remove_child(template_preview)
+		template_preview.free()
 		await process_frame
 	if observed_templates.size() != 20:
 		_fail("The 20 lock-screen templates did not produce 20 distinct layout roots.")
@@ -632,6 +633,8 @@ func _run_os_generator_test() -> void:
 		return
 	root.remove_child(worksite)
 	worksite.free()
+	await process_frame
+	await process_frame
 	await process_frame
 	print("OS_GENERATOR_SMOKE_TEST: PASS")
 	quit(0)
