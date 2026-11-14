@@ -744,8 +744,8 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering Step 3 did not update the actual phone preview to Android Home.")
 		return
-	if worksite_preview.find_child("AndroidWeatherWidget", true, false) == null or worksite_preview.find_child("AndroidAssistantWidget", true, false) == null or worksite_preview.find_child("HomeAppGrid", true, false) == null or worksite_preview.find_child("HomeSearchBar", true, false) == null or worksite_preview.find_child("HomeAppDock", true, false) == null:
-		_fail("Step 3 phone preview is missing approved Android home-screen sections.")
+	if worksite_preview.find_child("LollipopGoogleSearchBar", true, false) == null or worksite_preview.find_child("LollipopHomeAppGrid", true, false) == null or worksite_preview.find_child("LollipopAppDrawerButton", true, false) == null or worksite_preview.find_child("LollipopThreeButtonNavigation", true, false) == null:
+		_fail("Step 3 Generation 1 preview is missing its Lollipop home screen, app drawer button or three-button navigation.")
 		return
 	worksite.call("_on_wizard_back_pressed")
 	await process_frame
