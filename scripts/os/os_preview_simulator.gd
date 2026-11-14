@@ -504,9 +504,7 @@ func set_component_view(component_id: String) -> void:
 		_entered_unlock_pin = ""
 		_pin_error_message = ""
 	if is_inside_tree():
-		# A component switch can be triggered by a Button signal. Rebuilding
-		# synchronously would free that Button while its signal is still emitting.
-		call_deferred("_build_shell")
+		_build_shell()
 
 func update_configuration(os_configuration: Dictionary) -> void:
 	configuration = OSEngine.normalize_os(os_configuration)
@@ -527,7 +525,9 @@ func _build_shell() -> void:
 	_building = true
 	for child in get_children():
 		remove_child(child)
-		child.free()
+		# A component switch may originate inside a descendant Button signal.
+		# Detach immediately, but defer destruction until signal emission ends.
+		child.queue_free()
 
 	_style = configuration.get("style", {})
 	_palette = _style.get("palette", {"background":"#0B1017","surface":"#19232E","surface_alt":"#263544","accent":"#76C8D4","text":"#F4F7F8","muted":"#A7B4BD"})
