@@ -81,6 +81,14 @@ func _run_os_generator_test() -> void:
 		_fail("Migrated OS configuration failed validation.")
 		return
 
+	var legacy_media_config := generated.duplicate(true)
+	legacy_media_config["schema_version"] = 5
+	legacy_media_config["components"]["lock_screen"]["show_audio_player"] = false
+	var migrated_media := ProceduralEngineScript.normalize_os(legacy_media_config)
+	if not bool(migrated_media["components"]["lock_screen"].get("show_audio_player", false)):
+		_fail("Legacy lock-screen configuration did not migrate to the visible media player.")
+		return
+
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
 	var wallpaper_components: Dictionary = wallpaper_regenerated["components"]
