@@ -114,6 +114,8 @@ func _run_os_generator_test() -> void:
 			return
 		var status_bar := template_preview.find_child("OSStatusBar", true, false) as Control
 		var status_clock := template_preview.find_child("StatusBarClock", true, false) as Label
+		var status_indicators := template_preview.find_child("StatusBarSystemIndicators", true, false) as Control
+		var clock_stage := template_preview.find_child("LockScreenProtectedClockStage", true, false) as Control
 		var lock_clock := template_preview.find_child("LockScreenClock", true, false) as Label
 		var lock_date := template_preview.find_child("LockScreenDate", true, false) as Label
 		if status_bar == null or not status_bar.visible or status_bar.size.y < 15.0:
@@ -121,6 +123,15 @@ func _run_os_generator_test() -> void:
 			return
 		if status_clock == null or status_clock.text.strip_edges().is_empty() or status_clock.size.x <= 0.0:
 			_fail("Lock-screen status-bar time is missing or invisible: " + template_name)
+			return
+		if status_indicators == null or status_indicators.size.x < 45.0:
+			_fail("Samsung-style cellular, Wi-Fi and battery indicators are missing: " + template_name)
+			return
+		if clock_stage == null or lock_clock == null or not clock_stage.is_ancestor_of(lock_clock):
+			_fail("Lock-screen clock escaped its protected clock stage: " + template_name)
+			return
+		if lock_clock.size.x <= 0.0 or lock_clock.position.x < -1.0 or lock_clock.position.x + lock_clock.size.x > clock_stage.size.x + 1.0:
+			_fail("Lock-screen clock is clipped horizontally: " + template_name)
 			return
 		if lock_clock == null or lock_clock.text.strip_edges().is_empty() or lock_clock.size.y < 20.0:
 			_fail("Lock-screen main clock is missing or has no visible height: " + template_name)
@@ -447,6 +458,10 @@ func _run_os_generator_test() -> void:
 	if worksite.find_child("BootLoaderOnlyControls", true, false) == null:
 		_fail("Step 1 right panel must contain the Boot Loader controls.")
 		return
+	var initial_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+	if initial_step_label == null or initial_step_label.text != "STEP 1 / 2":
+		_fail("Boot Loader must be explicitly identified as Step 1 of 2.")
+		return
 	for obsolete_control in ["OSGeneratorControlsViewport", "ProceduralOSGeneratorControls", "OSGenerationSelector", "OSComponentSelector", "GenerateCompleteOSButton", "RegenerateOSComponentButton", "SelectGeneratedOSButton"]:
 		if worksite.find_child(obsolete_control, true, false) != null:
 			_fail("Old OS generator UI is still visible in Step 1: " + obsolete_control)
@@ -563,6 +578,20 @@ func _run_os_generator_test() -> void:
 	if worksite.find_child("LockScreenStudioControls", true, false) == null:
 		_fail("Lock-screen functionality controls were not shown in the right panel.")
 		return
+	var completed_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+	if completed_step_label == null or completed_step_label.text != "STEP 2 / 2":
+		_fail("Lock Screen Studio must appear as Step 2 after boot completes.")
+		return
+	worksite.call("_on_wizard_back_pressed")
+	await process_frame
+	if worksite.find_child("BootLoaderOnlyControls", true, false) == null or worksite.find_child("LockScreenStudioControls", true, false) != null:
+		_fail("Wizard Back did not return exclusively to Boot Loader Step 1.")
+		return
+	worksite.call("_on_next_pressed")
+	await process_frame
+	if worksite.find_child("LockScreenStudioControls", true, false) == null:
+		_fail("Wizard Next did not return to Lock Screen Studio Step 2.")
+		return
 
 	worksite.call("set_fingerprint_sensor_available", true)
 	worksite.call("_on_lock_screen_feature_toggled", true, "show_audio_player")
@@ -570,6 +599,11 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	if worksite_preview.find_child("LockScreenAudioPlayer", true, false) == null or worksite_preview.find_child("LockScreenFingerprintSensor", true, false) == null:
 		_fail("Enabling audio or available fingerprint hardware did not update the lock-screen preview.")
+		return
+	var fingerprint_sensor := worksite_preview.find_child("LockScreenFingerprintSensor", true, false) as Button
+	var fingerprint_stage := worksite_preview.find_child("LockScreenFingerprintStage", true, false) as CenterContainer
+	if fingerprint_sensor == null or fingerprint_sensor.size != Vector2(52, 52) or fingerprint_stage == null or not fingerprint_stage.is_ancestor_of(fingerprint_sensor):
+		_fail("Under-display fingerprint indicator is missing its centred Samsung-style sensor target.")
 		return
 	var generator_button := worksite.find_child("GenerateLockScreenDesignButton", true, false) as Button
 	if generator_button == null:
