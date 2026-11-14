@@ -9,6 +9,7 @@ const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.
 
 var generated_os_configuration: Dictionary = {}
 var selected_os_component_id := "home_screen"
+var current_wizard_step := 1
 var os_preview_simulator: Control
 var os_component_selector: OptionButton
 var os_generation_selector: OptionButton
@@ -229,7 +230,7 @@ func _build_interface() -> void:
 	progress.add_theme_constant_override("separation", 4)
 	root.add_child(progress)
 
-	progress_number = _label("STEP 1 / 1", 11, Color("#E5E0D6"))
+	progress_number = _label("STEP 1 / 2", 11, Color("#E5E0D6"))
 	progress_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
@@ -238,7 +239,7 @@ func _build_interface() -> void:
 	progress_bar.name = "OSWizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 1
+	progress_bar.max_value = 2
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -763,7 +764,7 @@ func _run_boot_sequence() -> void:
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.visible = true
 		os_preview_simulator.set_component_view("lock_screen")
-	_show_lock_screen_studio_controls()
+	_set_wizard_step(2)
 	boot_completed.emit()
 
 func _on_os_generation_selected(index: int) -> void:
@@ -911,6 +912,28 @@ func _style_button(button: Button) -> void:
 	button.add_theme_font_size_override("font_size", 13)
 
 
+func _set_wizard_step(step: int) -> void:
+	current_wizard_step = clampi(step, 1, 2)
+	if current_wizard_step == 1:
+		_build_bootloader_controls_only()
+	else:
+		if not device_powered_on:
+			current_wizard_step = 1
+			_build_bootloader_controls_only()
+		else:
+			selected_os_component_id = "lock_screen"
+			if is_instance_valid(os_preview_simulator):
+				os_preview_simulator.visible = true
+				os_preview_simulator.set_component_view("lock_screen")
+			_show_lock_screen_studio_controls()
+	if is_instance_valid(progress_number):
+		progress_number.text = "STEP %d / 2" % current_wizard_step
+	if is_instance_valid(progress_bar):
+		progress_bar.max_value = 2
+		progress_bar.value = current_wizard_step
+	_keep_step_navigation_active()
+
+
 func _keep_step_navigation_active() -> void:
 	if is_instance_valid(navigation_layer):
 		navigation_layer.layer = 127
@@ -918,26 +941,20 @@ func _keep_step_navigation_active() -> void:
 		navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
 		navigation_bar.z_index = 1000
 		navigation_bar.z_as_relative = false
-	for button in [wizard_back_button, next_button]:
-		if is_instance_valid(button):
-			button.disabled = false
-			button.mouse_filter = Control.MOUSE_FILTER_STOP
-			button.modulate.a = 1.0
+	if is_instance_valid(wizard_back_button):
+		wizard_back_button.disabled = current_wizard_step <= 1
+		wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		wizard_back_button.modulate.a = 0.42 if wizard_back_button.disabled else 1.0
+	if is_instance_valid(next_button):
+		next_button.disabled = current_wizard_step >= 2 or not device_powered_on
+		next_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		next_button.modulate.a = 0.42 if next_button.disabled else 1.0
 
 
 func _on_wizard_back_pressed() -> void:
-	_keep_step_navigation_active()
-	if not is_instance_valid(os_component_selector):
-		return
-	var previous_index := maxi(os_component_selector.selected - 1, 0)
-	os_component_selector.select(previous_index)
-	_on_os_component_selected(previous_index)
+	_set_wizard_step(1)
 
 
 func _on_next_pressed() -> void:
-	_keep_step_navigation_active()
-	if not is_instance_valid(os_component_selector):
-		return
-	var next_index := (os_component_selector.selected + 1) % ProceduralOSEngineScript.COMPONENTS.size()
-	os_component_selector.select(next_index)
-	_on_os_component_selected(next_index)
+	if current_wizard_step == 1 and device_powered_on:
+		_set_wizard_step(2)
