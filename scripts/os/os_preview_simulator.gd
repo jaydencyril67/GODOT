@@ -992,7 +992,8 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 			style.bg_color = Color(0, 0, 0, 0)
 			style.border_color = Color(1, 1, 1, 0.16)
 			style.set_corner_radius_all(0)
-			style.set_border_width(0, 0, 1, 0)
+			style.set_border_width_all(0)
+			style.border_width_bottom = 1
 		_:
 			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.76)
 			style.border_color = Color(1, 1, 1, 0.12)
@@ -1038,7 +1039,8 @@ func _add_lock_audio_player(treatment: String) -> void:
 			style.bg_color = Color(0, 0, 0, 0)
 			style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.55)
 			style.set_corner_radius_all(0)
-			style.set_border_width(0, 0, 1, 0)
+			style.set_border_width_all(0)
+			style.border_width_bottom = 1
 		_:
 			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.78)
 			style.border_color = Color(1, 1, 1, 0.16)
@@ -1131,7 +1133,8 @@ func _style_lock_button(button: Button, treatment: String) -> void:
 			style.bg_color = Color(0, 0, 0, 0)
 			style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.30)
 			style.set_corner_radius_all(2)
-			style.set_border_width(0, 0, 1, 0)
+			style.set_border_width_all(0)
+			style.border_width_bottom = 1
 		_:
 			style.bg_color = _surface_color()
 			style.border_color = Color(1, 1, 1, 0.16)
