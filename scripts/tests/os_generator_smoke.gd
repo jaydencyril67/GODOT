@@ -98,15 +98,15 @@ func _run_os_generator_test() -> void:
 	simulator_host.size = Vector2(145.0, 360.0)
 	root.add_child(simulator_host)
 
+	var template_preview := SimulatorScript.new()
+	template_preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	simulator_host.add_child(template_preview)
 	var observed_templates := {}
 	for template_index in range(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES.size()):
 		var template_name := str(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES[template_index])
 		var template_config := generated.duplicate(true)
 		template_config["components"]["lock_screen"]["layout_template"] = template_name
-		var template_preview := SimulatorScript.new()
-		template_preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		template_preview.configure_os(template_config, "lock_screen")
-		simulator_host.add_child(template_preview)
 		await process_frame
 		var layout_root := template_preview.find_child("LockScreenLayout_" + template_name, true, false)
 		if layout_root == null:
@@ -146,12 +146,12 @@ func _run_os_generator_test() -> void:
 			_fail("Two lock-screen templates share the same structural composition: " + template_name)
 			return
 		observed_templates[structure_signature] = true
-		simulator_host.remove_child(template_preview)
-		template_preview.free()
-		await process_frame
 	if observed_templates.size() != 20:
 		_fail("The 20 lock-screen templates did not produce 20 distinct layout roots.")
 		return
+	simulator_host.remove_child(template_preview)
+	template_preview.free()
+	await process_frame
 
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
