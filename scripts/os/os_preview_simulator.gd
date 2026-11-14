@@ -542,7 +542,7 @@ func set_home_screen_corner_radius(value: float) -> void:
 	_home_screen_corner_radius = clampi(roundi(value), 0, 24)
 	if active_component != "home_screen":
 		return
-	for panel_name in ["AndroidWeatherWidget", "AndroidAssistantWidget", "HomeAppDock"]:
+	for panel_name in ["AndroidWeatherWidget", "AndroidAssistantWidget", "HomeAppDock", "ColorOSSmartInformationWidget", "ColorOSWorkFolder", "ColorOSMediaFolder"]:
 		var panel := find_child(panel_name, true, false) as PanelContainer
 		if panel == null:
 			continue
@@ -550,19 +550,20 @@ func set_home_screen_corner_radius(value: float) -> void:
 		if panel_style != null:
 			panel_style.set_corner_radius_all(_home_screen_corner_radius)
 			panel.add_theme_stylebox_override("panel", panel_style)
-	var app_grid := find_child("HomeAppGrid", true, false) as GridContainer
-	if app_grid == null:
-		return
-	for app_tile in app_grid.get_children():
-		var app_button := app_tile.get_node_or_null("CenterContainer/Button") as Button
-		if app_button == null:
+	for grid_name in ["HomeAppGrid", "ColorOSWorkFolderGrid", "ColorOSMediaFolderGrid"]:
+		var app_grid := find_child(grid_name, true, false) as GridContainer
+		if app_grid == null:
 			continue
-		for state_name in ["normal", "hover", "pressed"]:
-			var button_style := app_button.get_theme_stylebox(state_name).duplicate() as StyleBoxFlat
-			if button_style == null:
+		for app_tile in app_grid.get_children():
+			var app_button := app_tile.get_node_or_null("CenterContainer/Button") as Button
+			if app_button == null:
 				continue
-			button_style.set_corner_radius_all(_home_screen_corner_radius)
-			app_button.add_theme_stylebox_override(state_name, button_style)
+			for state_name in ["normal", "hover", "pressed"]:
+				var button_style := app_button.get_theme_stylebox(state_name).duplicate() as StyleBoxFlat
+				if button_style == null:
+					continue
+				button_style.set_corner_radius_all(_home_screen_corner_radius)
+				app_button.add_theme_stylebox_override(state_name, button_style)
 
 func _safe_component_id(component_id: String) -> String:
 	if component_id == "pin_input":
@@ -808,8 +809,11 @@ func _build_component(component_id: String) -> void:
 			_build_system_ui(component_data)
 
 func _build_home_screen(data: Dictionary) -> void:
-	# Step 3 currently exposes only the individually approved Android layout.
-	_build_android_home(data, 2)
+	var layout_style := str(data.get("layout_style", "android_pixel"))
+	if layout_style == "coloros_home":
+		_build_coloros_home(data)
+	else:
+		_build_android_home(data, 2)
 
 
 func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
@@ -887,6 +891,101 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	search.name = "AndroidHomeSearch"
 	page_container.add_child(search)
 
+
+
+func _build_coloros_home(_data: Dictionary) -> void:
+	var top_space := Control.new()
+	top_space.name = "ColorOSHomeTopSpace"
+	top_space.custom_minimum_size.y = 7
+	page_container.add_child(top_space)
+
+	var hero := VBoxContainer.new()
+	hero.name = "ColorOSHomeClock"
+	hero.alignment = BoxContainer.ALIGNMENT_CENTER
+	hero.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero.add_theme_constant_override("separation", 2)
+	var clock := _label(_current_lock_time(), 31, _text_color())
+	clock.name = "HomeHeroClock"
+	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero.add_child(clock)
+	var date := _label(_current_lock_date("minimal"), 8, _muted_color())
+	date.name = "HomeHeroDate"
+	date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero.add_child(date)
+	page_container.add_child(hero)
+
+	var information := PanelContainer.new()
+	information.name = "ColorOSSmartInformationWidget"
+	information.custom_minimum_size.y = 66
+	information.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_home_surface(information, 0)
+	var information_row := HBoxContainer.new()
+	information_row.add_theme_constant_override("separation", 8)
+	information.add_child(information_row)
+	var information_text := VBoxContainer.new()
+	information_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	information_text.add_theme_constant_override("separation", 2)
+	information_text.add_child(_label("TODAY'S OVERVIEW", 7, _muted_color()))
+	information_text.add_child(_label("Good evening", 15, _text_color()))
+	information_text.add_child(_label("Your day at a glance", 7, _muted_color()))
+	information_row.add_child(information_text)
+	var calendar_icon := _label("▦", 24, _accent_color())
+	calendar_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	calendar_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	calendar_icon.custom_minimum_size.x = 34
+	information_row.add_child(calendar_icon)
+	page_container.add_child(information)
+
+	var folder_row := HBoxContainer.new()
+	folder_row.name = "ColorOSFolderRow"
+	folder_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	folder_row.add_theme_constant_override("separation", 7)
+	page_container.add_child(folder_row)
+	_build_coloros_app_folder(folder_row, "Work", "ColorOSWorkFolder", ["Email", "Calendar", "Files", "Notes"])
+	_build_coloros_app_folder(folder_row, "Media", "ColorOSMediaFolder", ["Gallery", "Music", "Video", "Photos"])
+
+	var apps_grid := GridContainer.new()
+	apps_grid.name = "HomeAppGrid"
+	apps_grid.columns = 4
+	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apps_grid.add_theme_constant_override("h_separation", 5)
+	apps_grid.add_theme_constant_override("v_separation", 3)
+	for app_name in ["Settings", "Maps", "Store", "Downloads"]:
+		var app := _find_app(app_name)
+		if not app.is_empty():
+			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(30, 4, 5), true))
+	page_container.add_child(apps_grid)
+
+	var flexible_space := Control.new()
+	flexible_space.name = "ColorOSHomeFlexibleSpace"
+	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(flexible_space)
+
+
+func _build_coloros_app_folder(parent: HBoxContainer, title_text: String, folder_name: String, app_names: Array) -> void:
+	var folder := PanelContainer.new()
+	folder.name = folder_name
+	folder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	folder.custom_minimum_size.y = 104
+	_style_home_surface(folder, 0)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 5)
+	folder.add_child(content)
+	content.add_child(_label(title_text, 10, _text_color()))
+	var grid := GridContainer.new()
+	grid.name = folder_name + "Grid"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 3)
+	grid.add_theme_constant_override("v_separation", 3)
+	for app_name in app_names:
+		var app := _find_app(str(app_name))
+		if not app.is_empty():
+			grid.add_child(_create_app_icon(app, _responsive_icon_size(24, 2, 3), false))
+	content.add_child(grid)
+	parent.add_child(folder)
 
 func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 	var style := StyleBoxFlat.new()
