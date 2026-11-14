@@ -875,13 +875,27 @@ func _build_home_widget(widget_index: int) -> void:
 	page_container.add_child(widget)
 
 func _build_lock_screen(data: Dictionary) -> void:
+	var template := str(data.get("layout_template", "classic_clock"))
+	if not OSEngine.LOCK_SCREEN_LAYOUT_TEMPLATES.has(template):
+		template = "classic_clock"
 	var family := str(data.get("design_family", "minimal"))
-	var alignment := HORIZONTAL_ALIGNMENT_LEFT
-	match str(data.get("clock_alignment", "center")):
-		"right":
-			alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		"center":
-			alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var original_container := page_container
+	var bank := VBoxContainer.new()
+	bank.name = "LockScreenComponentBank"
+	page_container = bank
+	if bool(data.get("show_notifications", true)):
+		_add_lock_notification("Messages", "A new message is waiting", "NOW", str(data.get("notification_treatment", "glass")), 0)
+		_add_lock_notification("Calendar", "Your next event is coming up", "IN 10 MIN", str(data.get("notification_treatment", "glass")), 1)
+	if bool(data.get("show_audio_player", true)):
+		_add_lock_audio_player(str(data.get("audio_treatment", "album_card")))
+	page_container = original_container
+
+	var root_layout := VBoxContainer.new()
+	root_layout.name = "LockScreenLayout_" + template
+	root_layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root_layout.add_theme_constant_override("separation", 7)
+	page_container.add_child(root_layout)
 
 	var status_row := HBoxContainer.new()
 	status_row.name = "LockScreenSystemStatus"
@@ -890,148 +904,239 @@ func _build_lock_screen(data: Dictionary) -> void:
 	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_row.add_child(status_spacer)
 	status_row.add_child(_label("●  LTE  ▮▮▮  Wi-Fi  100%", 8, _text_color()))
-	page_container.add_child(status_row)
+	root_layout.add_child(status_row)
 
-	var top_space := Control.new()
-	top_space.name = "LockScreenTopFlexibleSpace"
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	top_space.size_flags_stretch_ratio = 1.0
-	page_container.add_child(top_space)
-
-	if family == "futurist":
-		var system_caption := _label("DIGITALWORLD  /  SYSTEM TIME", 7, _accent_color())
-		system_caption.horizontal_alignment = alignment
-		page_container.add_child(system_caption)
-	elif family == "editorial":
-		var editorial_caption := _label("THE DAILY EDITION", 7, _accent_color())
-		editorial_caption.horizontal_alignment = alignment
-		page_container.add_child(editorial_caption)
-
-	var clock_host: Control
 	var clock_stack := VBoxContainer.new()
 	clock_stack.name = "LockScreenClockStack"
 	clock_stack.add_theme_constant_override("separation", 1)
-	var clock_text := _current_lock_time(family)
-	var clock := _label(clock_text, clampi(int(data.get("clock_size", 46)), 28, 58), _text_color())
+	var alignment := HORIZONTAL_ALIGNMENT_CENTER
+	if template in ["magazine_cover", "huawei_magazine", "coloros_typography", "clean_android"]:
+		alignment = HORIZONTAL_ALIGNMENT_LEFT
+	elif template in ["rhombus_clock", "notification_stack"]:
+		alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var clock := _label(_current_lock_time(family), 48 if template != "pixel_large_clock" else 58, _text_color())
 	clock.name = "LockScreenClock"
 	clock.horizontal_alignment = alignment
-	clock.add_theme_color_override("font_color", _accent_color() if str(data.get("clock_treatment", "plain")) == "outlined" else _text_color())
 	var clock_font := FontVariation.new()
 	clock_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
-	match str(data.get("clock_weight", "regular")):
-		"light":
-			clock_font.variation_embolden = 0.0
-		"bold":
-			clock_font.variation_embolden = 1.5
-		_:
-			clock_font.variation_embolden = 0.65
+	clock_font.variation_embolden = 1.1 if template in ["coloros_typography", "neo_brutalist"] else 0.55
 	clock.add_theme_font_override("font", clock_font)
 	clock_stack.add_child(clock)
-
-	var date_text := _current_lock_date(str(data.get("date_treatment", "uppercase")))
-	var date := _label(date_text, 7, _muted_color())
+	var date := _label(_current_lock_date(str(data.get("date_treatment", "uppercase"))), 8, _muted_color())
 	date.name = "LockScreenDate"
 	date.horizontal_alignment = alignment
 	clock_stack.add_child(date)
 
-	if family == "split_grid":
-		var split_caption := _label("HOUR       MINUTE", 6, _accent_color())
-		split_caption.horizontal_alignment = alignment
-		clock_stack.add_child(split_caption)
-
-	var clock_treatment := str(data.get("clock_treatment", "plain"))
-	if family in ["glass", "neo_brutalist", "soft_layers", "split_grid"] or clock_treatment == "boxed":
-		var clock_panel := PanelContainer.new()
-		clock_panel.name = "LockScreenClockSurface"
-		var panel_style := StyleBoxFlat.new()
-		match family:
-			"glass":
-				panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.42)
-				panel_style.border_color = Color(1, 1, 1, 0.24)
-				panel_style.set_corner_radius_all(18)
-				panel_style.set_border_width_all(1)
-			"neo_brutalist":
-				panel_style.bg_color = _accent_color().darkened(0.28)
-				panel_style.border_color = _text_color()
-				panel_style.set_corner_radius_all(2)
-				panel_style.set_border_width_all(2)
-			"split_grid":
-				panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.70)
-				panel_style.border_color = _accent_color()
-				panel_style.set_corner_radius_all(5)
-				panel_style.set_border_width_all(1)
-			_:
-				panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.30)
-				panel_style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.34)
-				panel_style.set_corner_radius_all(24)
-				panel_style.set_border_width_all(1)
-		panel_style.content_margin_left = 7
-		panel_style.content_margin_right = 7
-		panel_style.content_margin_top = 7
-		panel_style.content_margin_bottom = 7
-		clock_panel.add_theme_stylebox_override("panel", panel_style)
-		clock_panel.add_child(clock_stack)
-		clock_host = clock_panel
-	else:
-		clock_host = clock_stack
-	page_container.add_child(clock_host)
-
-	if family in ["editorial", "futurist", "neo_brutalist"]:
-		var divider := ColorRect.new()
-		divider.name = "LockScreenDesignDivider"
-		divider.custom_minimum_size.y = 2 if family == "neo_brutalist" else 1
-		divider.color = _accent_color()
-		page_container.add_child(divider)
-
-	var content_gap := Control.new()
-	content_gap.custom_minimum_size.y = 10 if family == "minimal" else 6
-	page_container.add_child(content_gap)
-
-	if bool(data.get("show_notifications", true)):
-		_add_lock_notification("Messages", "A new message is waiting", "NOW", str(data.get("notification_treatment", "glass")), 0)
-		_add_lock_notification("Calendar", "Your next event is coming up", "IN 10 MIN", str(data.get("notification_treatment", "glass")), 1)
-
-	if bool(data.get("show_audio_player", true)):
-		_add_lock_audio_player(str(data.get("audio_treatment", "album_card")))
-
-	var bottom_space := Control.new()
-	bottom_space.name = "LockScreenFlexibleSpace"
-	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	bottom_space.size_flags_stretch_ratio = 1.15
-	page_container.add_child(bottom_space)
-
-	var shortcut_row := HBoxContainer.new()
-	shortcut_row.name = "LockScreenQuickShortcuts"
-	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_row.add_theme_constant_override("separation", 4)
+	var notifications := VBoxContainer.new()
+	notifications.name = "LockScreenNotificationZone"
+	notifications.add_theme_constant_override("separation", 5)
+	for notification_name in ["LockScreenNotification_Messages", "LockScreenNotification_Calendar"]:
+		_lock_screen_move(bank, notification_name, notifications)
+	var media := bank.get_node_or_null("LockScreenAudioPlayer") as Control
+	if is_instance_valid(media):
+		bank.remove_child(media)
+	var shortcuts := HBoxContainer.new()
+	shortcuts.name = "LockScreenQuickShortcuts"
+	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcuts.add_theme_constant_override("separation", 8)
 	if bool(data.get("show_camera_shortcut", true)):
-		shortcut_row.add_child(_make_lock_shortcut("◉", "CAMERA", str(data.get("shortcut_treatment", "floating")), "Camera"))
+		shortcuts.add_child(_make_lock_shortcut("◉", "CAMERA", str(data.get("shortcut_treatment", "floating")), "Camera"))
 	var shortcut_spacer := Control.new()
 	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_row.add_child(shortcut_spacer)
+	shortcuts.add_child(shortcut_spacer)
 	if bool(data.get("show_flashlight_shortcut", true)):
-		shortcut_row.add_child(_make_lock_shortcut("ϟ", "FLASH", str(data.get("shortcut_treatment", "floating")), "Flashlight"))
-	if shortcut_row.get_child_count() > 1 or bool(data.get("show_camera_shortcut", false)) or bool(data.get("show_flashlight_shortcut", false)):
-		page_container.add_child(shortcut_row)
+		shortcuts.add_child(_make_lock_shortcut("ϟ", "FLASH", str(data.get("shortcut_treatment", "floating")), "Flashlight"))
 
+	var fingerprint: Control
 	if bool(data.get("show_fingerprint", false)) and bool(data.get("fingerprint_sensor_available", false)):
-		var fingerprint := Button.new()
-		fingerprint.name = "LockScreenFingerprintSensor"
-		fingerprint.text = "◎\nFINGERPRINT"
-		fingerprint.custom_minimum_size = Vector2(0, 42)
-		fingerprint.add_theme_font_size_override("font_size", 8)
-		_style_lock_button(fingerprint, str(data.get("fingerprint_treatment", "ring")))
-		fingerprint.pressed.connect(func(): set_component_view("home_screen"))
-		page_container.add_child(fingerprint)
-
+		var sensor := Button.new()
+		sensor.name = "LockScreenFingerprintSensor"
+		sensor.text = "◎"
+		sensor.custom_minimum_size = Vector2(0, 42)
+		_style_lock_button(sensor, str(data.get("fingerprint_treatment", "ring")))
+		sensor.pressed.connect(func(): set_component_view("home_screen"))
+		fingerprint = sensor
 	if bool(data.get("show_unlock_hint", true)):
 		var unlock := Button.new()
 		unlock.name = "UnlockOSButton"
 		unlock.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
-		unlock.custom_minimum_size.y = 29
+		unlock.custom_minimum_size.y = 28
 		_style_lock_button(unlock, str(data.get("unlock_treatment", "pill")))
 		unlock.pressed.connect(func(): set_component_view("home_screen"))
-		page_container.add_child(unlock)
+		# Keep the hint available as a named control for every template.
+		root_layout.add_child(unlock)
+
+	var top_space := Control.new()
+	top_space.name = "LockScreenTopFlexibleSpace"
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var lower_space := Control.new()
+	lower_space.name = "LockScreenBottomFlexibleSpace"
+	lower_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var clock_panel := PanelContainer.new()
+	clock_panel.name = "LockScreenClockSurface"
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.34)
+	panel_style.border_color = Color(1, 1, 1, 0.18)
+	panel_style.set_corner_radius_all(18)
+	panel_style.set_border_width_all(1)
+	clock_panel.add_theme_stylebox_override("panel", panel_style)
+	clock_panel.add_child(clock_stack)
+
+	var feature_row := HBoxContainer.new()
+	feature_row.name = "LockScreenMediaAndNotifications"
+	feature_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	feature_row.add_theme_constant_override("separation", 5)
+	var notification_column := VBoxContainer.new()
+	notification_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	notification_column.add_theme_constant_override("separation", 4)
+	var media_column := VBoxContainer.new()
+	media_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if notifications.get_child_count() > 0:
+		notification_column.add_child(notifications)
+	if is_instance_valid(media):
+		media_column.add_child(media)
+
+	match template:
+		"classic_clock":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"rhombus_clock":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_panel)
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"magazine_cover":
+			root_layout.add_child(top_space)
+			root_layout.add_child(_label("THE DAILY EDITION  /  DIGITALWORLD", 7, _accent_color()))
+			root_layout.add_child(clock_stack)
+			if is_instance_valid(media): root_layout.add_child(media)
+			root_layout.add_child(notifications)
+		"depth_layer":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(lower_space)
+			if is_instance_valid(media): root_layout.add_child(media)
+			root_layout.add_child(notifications)
+		"widget_dashboard":
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(feature_row)
+			root_layout.add_child(notification_column)
+			root_layout.add_child(media_column)
+		"live_activity":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_stack)
+			if is_instance_valid(media): root_layout.add_child(media)
+			root_layout.add_child(notifications)
+		"one_ui_personal":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"now_bar":
+			root_layout.add_child(clock_stack)
+			var now_bar := HBoxContainer.new()
+			now_bar.name = "LockScreenNowBar"
+			if is_instance_valid(media): now_bar.add_child(media)
+			if notifications.get_child_count() > 0: now_bar.add_child(notifications)
+			root_layout.add_child(now_bar)
+		"notification_stack":
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(lower_space)
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"pixel_at_a_glance":
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(_label("AT A GLANCE  ·  YOUR DAY", 7, _accent_color()))
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"pixel_large_clock":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(lower_space)
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"pixel_ambient":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(lower_space)
+			root_layout.add_child(_label("MON  ·  DIGITALWORLD", 7, _muted_color()))
+		"huawei_magazine":
+			root_layout.add_child(top_space)
+			root_layout.add_child(_label("MONDAY  /  YOUR PERSONAL EDITION", 7, _accent_color()))
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"huawei_dynamic":
+			var dynamic_row := HBoxContainer.new()
+			dynamic_row.add_child(clock_stack)
+			if is_instance_valid(media): dynamic_row.add_child(media)
+			root_layout.add_child(top_space)
+			root_layout.add_child(dynamic_row)
+			root_layout.add_child(notifications)
+		"nothing_widget_grid":
+			var widget_grid := GridContainer.new()
+			widget_grid.name = "LockScreenNothingWidgetGrid"
+			widget_grid.columns = 2
+			widget_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			widget_grid.add_child(clock_panel)
+			widget_grid.add_child(_label("MON  /  DATE", 8, _muted_color()))
+			if notifications.get_child_count() > 0: widget_grid.add_child(notifications)
+			if is_instance_valid(media): widget_grid.add_child(media)
+			root_layout.add_child(top_space)
+			root_layout.add_child(widget_grid)
+		"origin_player":
+			root_layout.add_child(top_space)
+			if is_instance_valid(media): root_layout.add_child(media)
+			root_layout.add_child(clock_stack)
+			root_layout.add_child(notifications)
+		"coloros_typography":
+			root_layout.add_child(top_space)
+			root_layout.add_child(clock_stack)
+			var typography_rule := ColorRect.new()
+			typography_rule.custom_minimum_size.y = 3
+			typography_rule.color = _accent_color()
+			root_layout.add_child(typography_rule)
+			root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+		"coloros_flux":
+			var flux_column := VBoxContainer.new()
+			flux_column.add_child(clock_stack)
+			if is_instance_valid(media): flux_column.add_child(media)
+			root_layout.add_child(top_space)
+			root_layout.add_child(flux_column)
+			root_layout.add_child(notifications)
+		"clean_android":
+			root_layout.add_child(clock_stack)
+			if notifications.get_child_count() > 0: root_layout.add_child(notifications)
+			if is_instance_valid(media): root_layout.add_child(media)
+			root_layout.add_child(lower_space)
+		"focus_lock_screen":
+			root_layout.add_child(_label("FOCUS  /  PERSONAL", 7, _accent_color()))
+			root_layout.add_child(clock_stack)
+			if is_instance_valid(media): root_layout.add_child(media)
+			root_layout.add_child(notifications)
+			root_layout.add_child(lower_space)
+
+	if is_instance_valid(fingerprint):
+		root_layout.add_child(fingerprint)
+	root_layout.add_child(shortcuts)
+	# The unlock control is moved to the bottom after the template-specific composition.
+	var unlock_control := root_layout.get_node_or_null("UnlockOSButton")
+	if is_instance_valid(unlock_control):
+		root_layout.remove_child(unlock_control)
+		root_layout.add_child(unlock_control)
+	root_layout.add_child(lower_space if lower_space.get_parent() == null else Control.new())
+	page_container = original_container
+
+
+func _lock_screen_move(source: Control, node_name: String, destination: Control) -> void:
+	var item := source.get_node_or_null(node_name) as Control
+	if is_instance_valid(item):
+		source.remove_child(item)
+		destination.add_child(item)
 
 
 func _add_lock_notification(app_name: String, message: String, time_label: String, treatment: String, _index: int) -> void:
