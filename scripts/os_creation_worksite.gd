@@ -155,6 +155,14 @@ class GlassButtonReflection extends Control:
 
 func _ready() -> void:
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
+	var initial_components: Dictionary = generated_os_configuration.get("components", {})
+	var initial_lock_data: Dictionary = initial_components.get("lock_screen", {})
+	initial_lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
+	if not fingerprint_sensor_available:
+		initial_lock_data["show_fingerprint"] = false
+	initial_components["lock_screen"] = initial_lock_data
+	generated_os_configuration["components"] = initial_components
+	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_build_interface()
 	_apply_bootloader_settings_to_configuration()
 
