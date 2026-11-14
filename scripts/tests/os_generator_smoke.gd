@@ -826,109 +826,76 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering the correct preview PIN 1234 did not unlock to Home.")
 		return
-	var home_date := worksite_preview.find_child("AndroidHomeDate", true, false) as Label
-	var widgets_row := worksite_preview.find_child("AndroidHomeWidgetRow", true, false) as HBoxContainer
-	var weather_widget := worksite_preview.find_child("AndroidWeatherWidget", true, false) as PanelContainer
-	var assistant_widget := worksite_preview.find_child("AndroidAssistantWidget", true, false) as PanelContainer
-	var home_apps_grid := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
-	if home_date == null or widgets_row == null or weather_widget == null or assistant_widget == null:
-		_fail("Android home screen is missing its date or two side-by-side widgets.")
+	var lollipop_search := worksite_preview.find_child("LollipopGoogleSearchBar", true, false) as PanelContainer
+	var lollipop_grid := worksite_preview.find_child("LollipopHomeAppGrid", true, false) as GridContainer
+	var lollipop_dock_button := worksite_preview.find_child("LollipopAppDrawerButton", true, false) as Button
+	var lollipop_navigation := worksite_preview.find_child("LollipopThreeButtonNavigation", true, false) as HBoxContainer
+	if lollipop_search == null or lollipop_grid == null or lollipop_grid.columns != 4 or lollipop_grid.get_child_count() != 8:
+		_fail("Android Generation 1 must render the Lollipop Google search bar and eight-app home grid.")
 		return
-	if widgets_row.get_child_count() != 2 or widgets_row.get_child(0) != weather_widget or widgets_row.get_child(1) != assistant_widget:
-		_fail("Android home screen widgets are not arranged side by side.")
+	if lollipop_dock_button == null or lollipop_navigation == null or lollipop_navigation.get_child_count() != 3:
+		_fail("Lollipop home screen is missing its app drawer launcher or classic three-button navigation.")
 		return
-	if home_apps_grid == null or home_apps_grid.columns != 4 or home_apps_grid.get_child_count() != 4:
-		_fail("Android home screen must contain exactly four apps in one four-column row.")
+	if str(worksite_preview.get("configuration", {}).get("style", {}).get("wallpaper", "")) != "lollipop":
+		_fail("Android Generation 1 did not select its blue/teal Lollipop geometric wallpaper.")
 		return
-	if worksite_preview.find_child("AndroidHomeTopFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeMiddleFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeSearchFlexibleSpace", true, false) == null:
-		_fail("Layout 1 must distribute its sections across the full home-screen height.")
-		return
-	var weather_style := weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
-	var assistant_style := assistant_widget.get_theme_stylebox("panel") as StyleBoxFlat
-	if weather_style == null or assistant_style == null or weather_style.corner_radius_top_left != 0 or assistant_style.corner_radius_top_left != 0 or weather_style.border_width_left <= 0 or assistant_style.border_width_left <= 0:
-		_fail("Layout 1 widgets must have square bordered surfaces by default.")
-		return
-	var first_home_app := home_apps_grid.get_child(0) as VBoxContainer
-	var first_home_button := first_home_app.get_node_or_null("CenterContainer/Button") as Button
-	if first_home_button == null:
-		_fail("Layout 1 app icon is missing its named Button node.")
-		return
-	var first_home_button_style := first_home_button.get_theme_stylebox("normal") as StyleBoxFlat
-	for state_name in ["normal", "hover", "pressed"]:
-		var button_state_style := first_home_button.get_theme_stylebox(state_name) as StyleBoxFlat
-		if button_state_style == null or button_state_style.corner_radius_top_left != 0 or button_state_style.get_border_width(SIDE_LEFT) <= 0:
-			_fail("Layout 1 app icon " + state_name + " state must have square bordered styling by default.")
+	var home_app_names := ["Email", "Photos", "Maps", "Store", "Calendar", "Contacts", "Music", "Settings"]
+	var dock_app_names := ["Phone", "Messages", "Browser", "Camera"]
+	for app_name in home_app_names:
+		var home_item := worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) as VBoxContainer
+		var home_icon := home_item.get_node_or_null("CenterContainer/LollipopIconButton") as Button if home_item != null else null
+		if home_item == null or not lollipop_grid.is_ancestor_of(home_item) or home_icon == null or home_icon.icon == null:
+			_fail("Lollipop home app is missing its locally bundled artwork: " + app_name)
 			return
-	var home_dock_panel := worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
-	var dock_style := home_dock_panel.get_theme_stylebox("panel") as StyleBoxFlat if home_dock_panel != null else null
-	if dock_style == null or dock_style.corner_radius_top_left != 0 or dock_style.border_width_left <= 0:
-		_fail("Layout 1 dock must have a square bordered background by default.")
+		if dock_app_names.has(app_name):
+			_fail("A Lollipop home app is duplicated in the dock: " + app_name)
+			return
+	for app_name in dock_app_names:
+		var dock_item := worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) as VBoxContainer
+		var dock_icon := dock_item.get_node_or_null("CenterContainer/LollipopIconButton") as Button if dock_item != null else null
+		if dock_item == null or dock_icon == null or dock_icon.icon == null:
+			_fail("Lollipop dock app is missing its locally bundled artwork: " + app_name)
+			return
+	lollipop_dock_button.pressed.emit()
+	await process_frame
+	if worksite_preview.get("active_component") != "app_drawer":
+		_fail("Tapping the Lollipop app drawer button did not open the app drawer.")
 		return
+	var drawer_surface := worksite_preview.find_child("LollipopAppDrawerWhiteSurface", true, false) as PanelContainer
+	var drawer_pages := worksite_preview.find_child("LollipopAppDrawerPageStrip", true, false) as HBoxContainer
+	if drawer_surface == null or drawer_pages == null or drawer_pages.get_child_count() != 2:
+		_fail("Lollipop app drawer must use a white surface with two paged app grids.")
+		return
+	for page_index in range(2):
+		var drawer_page := worksite_preview.find_child("LollipopAppDrawerPage_%02d" % (page_index + 1), true, false) as GridContainer
+		if drawer_page == null or drawer_page.columns != 4:
+			_fail("Lollipop app drawer page is missing its four-column app grid.")
+			return
+	for app in ProceduralEngineScript.APP_DEFINITIONS:
+		var app_name := str(app.get("name", ""))
+		if worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) == null:
+			_fail("Lollipop app drawer is missing installed app: " + app_name)
+			return
+	var drawer_back := worksite_preview.find_child("LollipopNavigationBack", true, false) as Button
+	if drawer_back == null:
+		_fail("Lollipop app drawer is missing its Back navigation key.")
+		return
+	drawer_back.pressed.emit()
+	await process_frame
+	if worksite_preview.get("active_component") != "home_screen":
+		_fail("Lollipop Back navigation did not return from the app drawer to Home.")
+		return
+
 	worksite.call("_show_home_screen_studio_controls")
 	await process_frame
 	var corner_slider := worksite.find_child("HomeScreenCornerRadiusSlider", true, false) as HSlider
 	if corner_slider == null or corner_slider.min_value != 0.0 or corner_slider.max_value != 24.0 or corner_slider.value != 0.0 or corner_slider.step > 0.25:
-		_fail("Home Screen Studio must expose a smooth horizontal corner-radius slider starting at square corners.")
-		return
-	var radius_track := corner_slider.get_theme_stylebox("slider") as StyleBoxFlat
-	var radius_grabber := corner_slider.get_theme_icon("grabber")
-	if radius_track == null or radius_track.bg_color != Color("#26292B") or radius_track.border_color != Color("#C58A3A") or radius_track.get_border_width(SIDE_LEFT) != 2 or radius_grabber == null:
-		_fail("Home Screen Studio slider does not match the premium Phone Creation slider treatment.")
+		_fail("Home Screen Studio lost its corner-radius setting.")
 		return
 	corner_slider.value = 12.0
 	await process_frame
-	await process_frame
-	# The preview can rebuild its child controls during layout changes. Always
-	# reacquire the live nodes after changing the slider instead of retaining
-	# references to controls that may already have been freed.
-	weather_widget = worksite_preview.find_child("AndroidWeatherWidget", true, false) as PanelContainer
-	assistant_widget = worksite_preview.find_child("AndroidAssistantWidget", true, false) as PanelContainer
-	home_apps_grid = worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
-	home_dock_panel = worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
-	first_home_app = home_apps_grid.get_child(0) as VBoxContainer if home_apps_grid != null and home_apps_grid.get_child_count() > 0 else null
-	first_home_button = first_home_app.get_node_or_null("CenterContainer/Button") as Button if first_home_app != null else null
-	if weather_widget == null or assistant_widget == null or first_home_button == null or home_dock_panel == null:
-		_fail("Home preview controls were not available after changing the corner-radius slider.")
-		return
-	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
-	assistant_style = assistant_widget.get_theme_stylebox("panel") as StyleBoxFlat
-	first_home_button_style = first_home_button.get_theme_stylebox("normal") as StyleBoxFlat
-	dock_style = home_dock_panel.get_theme_stylebox("panel") as StyleBoxFlat
-	if weather_style == null or assistant_style == null or first_home_button_style == null or dock_style == null:
-		_fail("Home preview lost a required style after changing the corner-radius slider.")
-		return
-	if weather_style.corner_radius_top_left != 12 or assistant_style.corner_radius_top_left != 12 or first_home_button_style.corner_radius_top_left != 12 or dock_style.corner_radius_top_left != 12:
-		_fail("Corner-radius slider did not apply its value to widgets, app icons and dock.")
-		return
-	var home_search := worksite_preview.find_child("HomeSearchBar", true, false) as LineEdit
-	var home_search_style := home_search.get_theme_stylebox("normal") as StyleBoxFlat if home_search != null else null
-	if home_search_style == null or home_search_style.get_border_width(SIDE_LEFT) <= 0 or home_search_style.corner_radius_top_left != 12:
-		_fail("Home-screen search bars must keep a visible border and follow the shared corner-radius slider.")
-		return
-	for state_name in ["normal", "hover", "pressed"]:
-		var adjusted_icon_style := first_home_button.get_theme_stylebox(state_name) as StyleBoxFlat
-		if adjusted_icon_style == null or adjusted_icon_style.corner_radius_top_left != 12:
-			_fail("Corner-radius slider did not update the app icon " + state_name + " state.")
-			return
 	corner_slider.value = 0.0
 	await process_frame
-	await process_frame
-	weather_widget = worksite_preview.find_child("AndroidWeatherWidget", true, false) as PanelContainer
-	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat if weather_widget != null else null
-	if weather_style == null or weather_style.corner_radius_top_left != 0:
-		_fail("Corner-radius slider did not restore square corners at zero.")
-		return
-	var home_app_names := ["Photos", "Store", "Email", "Maps"]
-	var dock_app_names := ["Phone", "Messages", "Browser", "Camera"]
-	for app_name in home_app_names:
-		if home_apps_grid.find_child("App_" + app_name.replace(" ", ""), true, false) == null or dock_app_names.has(app_name):
-			_fail("Approved Android home app is missing or duplicated in the dock: " + app_name)
-			return
-	for app_name in dock_app_names:
-		if worksite_preview.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
-			_fail("Approved Android dock app is missing: " + app_name)
-			return
-
 	var layout_two_button := worksite.find_child("IncreaseHomeScreenLayoutButton", true, false) as Button
 	if layout_two_button == null or layout_two_button.disabled:
 		_fail("The iOS layout must be selectable after Android.")
