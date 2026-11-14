@@ -159,8 +159,7 @@ func _ready() -> void:
 	var initial_components: Dictionary = generated_os_configuration.get("components", {})
 	var initial_lock_data: Dictionary = initial_components.get("lock_screen", {})
 	initial_lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
-	if not fingerprint_sensor_available:
-		initial_lock_data["show_fingerprint"] = false
+	initial_lock_data["show_fingerprint"] = fingerprint_sensor_available
 	initial_components["lock_screen"] = initial_lock_data
 	generated_os_configuration["components"] = initial_components
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
@@ -787,8 +786,7 @@ func _generate_complete_os() -> void:
 	var generated_components: Dictionary = generated_os_configuration.get("components", {})
 	var generated_lock_data: Dictionary = generated_components.get("lock_screen", {})
 	generated_lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
-	if not fingerprint_sensor_available:
-		generated_lock_data["show_fingerprint"] = false
+	generated_lock_data["show_fingerprint"] = fingerprint_sensor_available
 	generated_components["lock_screen"] = generated_lock_data
 	generated_os_configuration["components"] = generated_components
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
