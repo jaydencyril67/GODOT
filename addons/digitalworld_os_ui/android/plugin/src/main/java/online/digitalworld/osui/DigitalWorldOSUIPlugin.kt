@@ -108,7 +108,7 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun hideUi() {
-        runOnUiThread { overlay?.visibility = View.GONE }
+        runOnUiThread { overlayContainer?.visibility = View.GONE }
     }
 
     @UsedByGodot
@@ -179,7 +179,7 @@ class DigitalWorldOSUIPlugin(godot: Godot) : GodotPlugin(godot) {
         widthRatio: Float,
         heightRatio: Float
     ) {
-        val container = overlay ?: return
+        val container = overlayContainer ?: return
         val page = webView ?: return
         if (container.width <= 0 || container.height <= 0) {
             container.post { applyFrame(leftRatio, topRatio, widthRatio, heightRatio) }
