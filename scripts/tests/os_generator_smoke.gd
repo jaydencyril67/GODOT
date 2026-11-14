@@ -338,15 +338,15 @@ func _run_os_generator_test() -> void:
 	if float(saved_boot_config.get("duration_seconds", 0.0)) != 10.0:
 		_fail("Generated OS did not retain the fixed ten-second boot duration.")
 		return
-	var boot_finished := false
-	worksite.boot_completed.connect(func() -> void: boot_finished = true)
+	if worksite_preview.visible:
+		_fail("Generating an OS incorrectly powered on the display before boot.")
+		return
 	var boot_started_at := Time.get_ticks_msec()
 	worksite.call("_on_power_button_pressed")
 	if not boot_overlay.visible:
 		_fail("Power button did not switch the display into its boot sequence.")
 		return
-	while not boot_finished:
-		await process_frame
+	await worksite.boot_completed
 	var boot_elapsed := Time.get_ticks_msec() - boot_started_at
 	if boot_elapsed < 9900 or boot_elapsed > 10500:
 		_fail("Boot sequence did not complete in ten real-world seconds (%d ms)." % boot_elapsed)
