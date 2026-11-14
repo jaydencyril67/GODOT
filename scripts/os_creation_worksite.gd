@@ -518,7 +518,6 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 	stage_margin.add_theme_constant_override("margin_bottom", 10)
 	stage_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boot_overlay.add_child(stage_margin)
-	_build_boot_debug_panel()
 	boot_stage_container = VBoxContainer.new()
 	boot_stage_container.name = "BootLoaderStage"
 	boot_stage_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
