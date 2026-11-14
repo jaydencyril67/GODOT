@@ -319,6 +319,7 @@ func _build_home_screen_preview(screen: PanelContainer) -> void:
 	os_preview_simulator.name = "GeneratedOSPreviewSimulator"
 	os_preview_simulator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	os_preview_simulator.configure_os(generated_os_configuration, selected_os_component_id)
+	os_preview_simulator.visible = false
 	screen.add_child(os_preview_simulator)
 
 func _build_home_generation_controls() -> void:
