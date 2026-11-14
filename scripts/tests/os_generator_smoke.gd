@@ -457,7 +457,7 @@ func _run_os_generator_test() -> void:
 	if dock_icons == null or dock_icons.get_child_count() != 4:
 		_fail("Home dock did not render all four pinned app icons.")
 		return
-	var horizontal_app_label := simulator.find_child("AppLabel_Messages", true, false) as Label
+	var horizontal_app_label := simulator.find_child("AppLabel_Photos", true, false) as Label
 	if horizontal_app_label == null or horizontal_app_label.autowrap_mode != TextServer.AUTOWRAP_OFF or absf(horizontal_app_label.rotation) > 0.001:
 		_fail("App labels are not kept horizontal on narrow phone previews.")
 		return
