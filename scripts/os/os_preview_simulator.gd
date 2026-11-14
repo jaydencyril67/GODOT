@@ -826,34 +826,10 @@ func _build_component(component_id: String) -> void:
 func _build_home_screen(data: Dictionary) -> void:
 	var layout_style := str(data.get("layout_style", "android_pixel"))
 	match layout_style:
-		"coloros_home":
-			_build_coloros_home(data)
 		"ios_home":
 			_build_apple_ios_home()
-		"samsung_one_ui":
-			_build_samsung_one_ui_home()
-		"huawei_pura":
-			_build_huawei_pura_home(data)
-		"hyperos_home":
-			_build_redmi_hyperos_home()
-		"hios_home":
-			_build_tecno_hios_home()
-		"xos_home":
-			_build_infinix_xos_home()
-		"itel_home":
-			_build_itel_home()
 		"windows_tiles":
 			_build_windows_phone_home()
-		"nothing_os":
-			_build_nothing_os_home()
-		"motorola_hello":
-			_build_motorola_hello_home()
-		"sony_xperia":
-			_build_sony_xperia_home()
-		"asus_zen":
-			_build_asus_zen_home()
-		"vivo_origin":
-			_build_vivo_origin_home()
 		_:
 			_build_android_home(data, 2)
 
@@ -929,106 +905,6 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 
 
 
-func _build_coloros_home(_data: Dictionary) -> void:
-	var top_space := Control.new()
-	top_space.name = "ColorOSHomeTopSpace"
-	top_space.custom_minimum_size.y = 7
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	top_space.size_flags_stretch_ratio = 0.55
-	top_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	page_container.add_child(top_space)
-
-	var hero := VBoxContainer.new()
-	hero.name = "ColorOSHomeClock"
-	hero.alignment = BoxContainer.ALIGNMENT_CENTER
-	hero.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero.add_theme_constant_override("separation", 2)
-	var clock := _label(_current_lock_time(), 31, _text_color())
-	clock.name = "HomeHeroClock"
-	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero.add_child(clock)
-	var date := _label(_current_lock_date("minimal"), 8, _muted_color())
-	date.name = "HomeHeroDate"
-	date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hero.add_child(date)
-	page_container.add_child(hero)
-
-	var information := PanelContainer.new()
-	information.name = "ColorOSSmartInformationWidget"
-	information.custom_minimum_size.y = 66
-	information.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_home_surface(information, 0)
-	var information_row := HBoxContainer.new()
-	information_row.add_theme_constant_override("separation", 8)
-	information.add_child(information_row)
-	var information_text := VBoxContainer.new()
-	information_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	information_text.add_theme_constant_override("separation", 2)
-	information_text.add_child(_label("TODAY'S OVERVIEW", 7, _muted_color()))
-	information_text.add_child(_label("Good evening", 15, _text_color()))
-	information_text.add_child(_label("Your day at a glance", 7, _muted_color()))
-	information_row.add_child(information_text)
-	var calendar_icon := _label("▦", 24, _accent_color())
-	calendar_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	calendar_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	calendar_icon.custom_minimum_size.x = 34
-	information_row.add_child(calendar_icon)
-	page_container.add_child(information)
-	_add_home_flexible_space("ColorOSHomeMiddleFlexibleSpace", 0.75)
-
-	var folder_row := HBoxContainer.new()
-	folder_row.name = "ColorOSFolderRow"
-	folder_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	folder_row.add_theme_constant_override("separation", 7)
-	page_container.add_child(folder_row)
-	_build_coloros_app_folder(folder_row, "Work", "ColorOSWorkFolder", ["Email", "Calendar", "Files", "Notes"])
-	_build_coloros_app_folder(folder_row, "Media", "ColorOSMediaFolder", ["Gallery", "Music", "Video", "Photos"])
-
-	var apps_grid := GridContainer.new()
-	apps_grid.name = "HomeAppGrid"
-	apps_grid.columns = 4
-	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	apps_grid.add_theme_constant_override("h_separation", 5)
-	apps_grid.add_theme_constant_override("v_separation", 3)
-	for app_name in ["Settings", "Maps", "Store", "Downloads"]:
-		var app := _find_app(app_name)
-		if not app.is_empty():
-			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(30, 4, 5), true))
-	page_container.add_child(apps_grid)
-
-	var flexible_space := Control.new()
-	flexible_space.name = "ColorOSHomeFlexibleSpace"
-	flexible_space.custom_minimum_size.y = 2
-	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	flexible_space.size_flags_stretch_ratio = 0.55
-	page_container.add_child(flexible_space)
-
-
-func _build_coloros_app_folder(parent: HBoxContainer, title_text: String, folder_name: String, app_names: Array) -> void:
-	var folder := PanelContainer.new()
-	folder.name = folder_name
-	folder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	folder.custom_minimum_size.y = 104
-	_style_home_surface(folder, 0)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 5)
-	folder.add_child(content)
-	content.add_child(_label(title_text, 10, _text_color()))
-	var grid := GridContainer.new()
-	grid.name = folder_name + "Grid"
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 3)
-	grid.add_theme_constant_override("v_separation", 3)
-	for app_name in app_names:
-		var app := _find_app(str(app_name))
-		if not app.is_empty():
-			grid.add_child(_create_app_icon(app, _responsive_icon_size(24, 2, 3), false))
-	content.add_child(grid)
-	parent.add_child(folder)
-
 func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 	var style := StyleBoxFlat.new()
 	var surface_color := _surface_color()
@@ -1057,19 +933,6 @@ func _style_home_app_icon(button: Button) -> void:
 		style.set_border_width_all(1)
 		button.add_theme_stylebox_override(state_name, style)
 		_register_home_screen_radius_style(style)
-
-
-func _build_huawei_pura_home(_data: Dictionary) -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.8)
-	page_container.add_child(_build_home_clock_block(28))
-	page_container.add_child(_make_home_widget_row("HomeServiceWidgetRow", [
-		_make_home_widget_panel("HomeScreenPrimaryWidget", "DAILY ACTIVITY", "6,270 steps", "1,730 steps to your daily goal", "✣", 62),
-		_make_home_widget_panel("HuaweiWeatherWidget", "WEATHER", "26°  Mostly sunny", "Feels like 29°  ·  H:30° L:24°", "☀", 62)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.7)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Music", "Video", "Calendar", "Wallet", "Files", "Settings", "Store"], 4, 30, true))
-	_add_home_flexible_space("HomeLayoutBottomFlexibleSpace", 0.5)
-
 
 
 func _add_home_flexible_space(node_name: String, stretch_ratio: float = 1.0) -> Control:
@@ -1218,74 +1081,6 @@ func _build_apple_ios_home() -> void:
 	_add_home_search_field("Search iPhone", "HomeSearchBar")
 
 
-func _build_samsung_one_ui_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.75)
-	page_container.add_child(_build_home_clock_block(31))
-	page_container.add_child(_make_home_widget_row("SamsungWidgetRow", [
-		_make_home_widget_panel("HomeScreenPrimaryWidget", "WEATHER", "26°  Partly cloudy", "Port Harcourt  ·  H:30° L:24°", "☁", 62),
-		_make_home_widget_panel("SamsungCalendarWidget", "UP NEXT", "10:30 AM", "Team meeting  ·  Today", "▦", 62)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.8)
-	page_container.add_child(_make_home_app_grid(["Calendar", "Gallery", "Music", "Files", "Settings", "Store", "Maps", "Wallet"], 4, 29, true))
-	_add_home_search_field("Search Galaxy", "HomeSearchBar")
-
-
-func _build_redmi_hyperos_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.8)
-	page_container.add_child(_build_home_clock_block(32))
-	page_container.add_child(_make_home_widget_row("HyperOSWidgetRow", [
-		_make_home_widget_panel("HomeScreenPrimaryWidget", "WEATHER", "26°", "Mostly sunny  ·  Feels like 29°", "☀", 64),
-		_make_home_widget_panel("RedmiDailyWidget", "SCREEN TIME", "2h 14m", "Down 18% from yesterday", "◷", 64)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.9)
-	page_container.add_child(_make_home_app_grid(["Clock", "Calendar", "Gallery", "Video", "Music", "Security", "Store", "Files"], 4, 29, true))
-	_add_home_search_field("Search apps and content", "HomeSearchBar")
-
-
-func _build_tecno_hios_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.7)
-	page_container.add_child(_build_home_clock_block(29))
-	var dashboard := GridContainer.new()
-	dashboard.name = "TecnoHiOSWidgetGrid"
-	dashboard.columns = 2
-	dashboard.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dashboard.add_theme_constant_override("h_separation", 5)
-	dashboard.add_theme_constant_override("v_separation", 5)
-	dashboard.add_child(_make_home_widget_panel("HomeScreenPrimaryWidget", "WEATHER", "26°  Sunny", "Feels like 29°", "☀", 48))
-	dashboard.add_child(_make_home_widget_panel("TecnoCalendarWidget", "CALENDAR", "14 NOV", "No upcoming events", "▦", 48))
-	dashboard.add_child(_make_home_widget_panel("TecnoDeviceCareWidget", "DEVICE CARE", "All clear", "Battery health is good", "✚", 48))
-	dashboard.add_child(_make_home_widget_panel("TecnoMusicWidget", "NOW PLAYING", "Your soundtrack", "Nothing playing", "♫", 48))
-	page_container.add_child(dashboard)
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.8)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Video", "Music", "Calendar", "Files", "Settings", "Store", "Weather"], 4, 27, true))
-	_add_home_search_field("Search HiOS", "HomeSearchBar")
-
-
-func _build_infinix_xos_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.65)
-	_add_home_search_field("Search with Google", "HomeSearchBar")
-	page_container.add_child(_build_home_clock_block(34, HORIZONTAL_ALIGNMENT_LEFT))
-	page_container.add_child(_make_home_widget_row("InfinixXOSWidgetRow", [
-		_make_home_widget_panel("HomeScreenPrimaryWidget", "SMART FOLDER", "4 essentials", "Assistant  ·  Files  ·  Video  ·  Music", "▦", 62),
-		_make_home_widget_panel("InfinixWeatherWidget", "WEATHER", "26°  Cloudy", "Feels like 29°", "☁", 62)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.75)
-	page_container.add_child(_make_home_app_grid(["Assistant", "Files", "Video", "Gallery", "Calendar", "Music", "Weather", "Settings"], 4, 28, true))
-
-
-func _build_itel_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.7)
-	page_container.add_child(_build_home_clock_block(27))
-	page_container.add_child(_make_home_widget_row("ItelWidgetRow", [
-		_make_home_widget_panel("HomeScreenPrimaryWidget", "WEATHER", "26°", "Sunny today", "☀", 57),
-		_make_home_widget_panel("ItelCalendarWidget", "CALENDAR", "14 NOV", "No events today", "▦", 57)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.9)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Music", "Calendar", "Files", "Settings", "Store", "Calculator", "Notes"], 4, 29, true))
-	_add_home_flexible_space("HomeLayoutBottomFlexibleSpace", 0.45)
-	_add_home_search_field("Search your phone", "HomeSearchBar")
-
-
 func _build_windows_phone_home() -> void:
 	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.7)
 	page_container.add_child(_build_home_clock_block(27, HORIZONTAL_ALIGNMENT_LEFT))
@@ -1293,73 +1088,6 @@ func _build_windows_phone_home() -> void:
 	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.5)
 	_build_windows_tiles()
 	_add_home_flexible_space("HomeLayoutBottomFlexibleSpace", 0.35)
-
-
-func _build_nothing_os_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.8)
-	page_container.add_child(_build_home_clock_block(35))
-	page_container.add_child(_make_home_widget_panel("HomeScreenPrimaryWidget", "DOT MATRIX  ·  DEVICE STATUS", "87% battery  ·  5G", "26° outside  ·  3 tasks today", "◉", 62))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.9)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Music", "Calendar", "Files", "Settings", "Store", "Maps", "Recorder"], 4, 29, true))
-	_add_home_flexible_space("HomeLayoutBottomFlexibleSpace", 0.45)
-	_add_home_search_field("Search essentials", "HomeSearchBar")
-
-
-func _build_motorola_hello_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.7)
-	page_container.add_child(_build_home_clock_block(31))
-	page_container.add_child(_make_home_widget_row("MotorolaAtAGlanceRow", [
-		_make_home_widget_panel("HomeScreenPrimaryWidget", "WEATHER", "26°  Mostly sunny", "Port Harcourt  ·  H:30° L:24°", "☀", 61),
-		_make_home_widget_panel("MotorolaAtAGlanceWidget", "AT A GLANCE", "2 reminders", "Next event  ·  10:30 AM", "◷", 61)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.9)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Calendar", "Photos", "Music", "Settings", "Maps", "Files", "Weather"], 4, 28, true))
-	_add_home_search_field("Search apps", "HomeSearchBar")
-
-
-func _build_sony_xperia_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.7)
-	page_container.add_child(_build_home_clock_block(28, HORIZONTAL_ALIGNMENT_LEFT))
-	page_container.add_child(_make_home_widget_panel("HomeScreenPrimaryWidget", "MUSIC  ·  NOW PLAYING", "Your soundtrack", "No track playing  ·  Tap to open Music", "♫", 68))
-	page_container.add_child(_make_home_widget_row("SonyXperiaSecondaryWidgets", [
-		_make_home_widget_panel("SonyCalendarWidget", "TODAY", "14 NOV", "No events scheduled", "▦", 54),
-		_make_home_widget_panel("SonyWeatherWidget", "WEATHER", "26°  Sunny", "Feels like 29°", "☀", 54)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.75)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Music", "Video", "Calendar", "Store", "Maps", "Settings", "Files"], 4, 27, true))
-	_add_home_search_field("Search Xperia", "HomeSearchBar")
-
-
-func _build_asus_zen_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.65)
-	page_container.add_child(_build_home_clock_block(27))
-	var widget_grid := GridContainer.new()
-	widget_grid.name = "AsusZenWidgetGrid"
-	widget_grid.columns = 2
-	widget_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	widget_grid.add_theme_constant_override("h_separation", 5)
-	widget_grid.add_theme_constant_override("v_separation", 5)
-	widget_grid.add_child(_make_home_widget_panel("HomeScreenPrimaryWidget", "WEATHER", "26°  Mostly sunny", "Feels like 29°", "☀", 48))
-	widget_grid.add_child(_make_home_widget_panel("AsusCalendarWidget", "CALENDAR", "14 NOV", "No events today", "▦", 48))
-	widget_grid.add_child(_make_home_widget_panel("AsusQuickToolsWidget", "QUICK TOOLS", "Calculator  ·  Notes", "Your everyday tools", "＋", 48))
-	widget_grid.add_child(_make_home_widget_panel("AsusDeviceWidget", "DEVICE STATUS", "87% battery", "All systems normal", "◇", 48))
-	page_container.add_child(widget_grid)
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.75)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Music", "Files", "Settings", "Calculator", "Store", "Maps", "Calendar"], 4, 26, true))
-	_add_home_search_field("Search ZenUI", "HomeSearchBar")
-
-
-func _build_vivo_origin_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.75)
-	page_container.add_child(_build_home_clock_block(30))
-	page_container.add_child(_make_home_widget_panel("HomeScreenPrimaryWidget", "ORIGIN SMART SPACE", "26°  ·  Air quality good", "3 tasks today  ·  Next event 10:30 AM", "✧", 68))
-	page_container.add_child(_make_home_widget_row("VivoOriginSecondaryRow", [
-		_make_home_widget_panel("VivoCalendarWidget", "CALENDAR", "14 NOV", "A clear day ahead", "▦", 52),
-		_make_home_widget_panel("VivoHealthWidget", "DAILY ACTIVITY", "6,270 steps", "Goal progress 63%", "✣", 52)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.75)
-	page_container.add_child(_make_home_app_grid(["Gallery", "Music", "Calendar", "Files", "Settings", "Store", "Wallet", "Notes"], 4, 27, true))
-	_add_home_search_field("Search OriginOS", "HomeSearchBar")
 
 
 func _style_home_tile_button(button: Button, tint: Color) -> void:
@@ -1379,50 +1107,6 @@ func _style_home_tile_button(button: Button, tint: Color) -> void:
 	button.add_theme_font_size_override("font_size", 8)
 	button.focus_mode = Control.FOCUS_NONE
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-
-func _build_home_header(title_text: String, subtitle_text: String) -> void:
-	var header := VBoxContainer.new()
-	header.name = "HomeLayoutHeader"
-	header.add_theme_constant_override("separation", 1)
-	var title := _label(title_text, 18, _text_color())
-	title.add_theme_font_size_override("font_size", 18)
-	header.add_child(title)
-	var subtitle := _label(subtitle_text, 7, _muted_color())
-	header.add_child(subtitle)
-	page_container.add_child(header)
-
-
-func _build_home_widgets(widget_count: int) -> void:
-	for widget_index in range(widget_count):
-		_build_home_widget(widget_index)
-
-
-func _build_home_grid(data: Dictionary) -> void:
-	var preferred_columns := clampi(int(data.get("columns", _style.get("grid_columns", 4))), 2, 6)
-	var columns := _responsive_columns(preferred_columns)
-	var apps_grid := GridContainer.new()
-	apps_grid.name = "HomeAppGrid"
-	apps_grid.columns = columns
-	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	apps_grid.add_theme_constant_override("h_separation", 7)
-	apps_grid.add_theme_constant_override("v_separation", 9)
-	page_container.add_child(apps_grid)
-	_populate_app_grid(apps_grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
-
-
-func _build_android_favourites(data: Dictionary) -> void:
-	var columns := _responsive_columns(clampi(int(data.get("columns", _style.get("grid_columns", 4))), 3, 5))
-	var grid := GridContainer.new()
-	grid.name = "HomeAppGrid"
-	grid.columns = columns
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 10)
-	page_container.add_child(grid)
-	var icon_size := _responsive_icon_size(int(_style.get("icon_size", 52)), columns, 8)
-	for app_index in range(mini(16, OSEngine.APP_DEFINITIONS.size())):
-		grid.add_child(_create_app_icon(OSEngine.APP_DEFINITIONS[app_index], icon_size, true))
 
 
 func _build_windows_tiles() -> void:
@@ -1452,100 +1136,6 @@ func _build_windows_tiles() -> void:
 		tile.pressed.connect(_on_app_pressed.bind(app_name))
 		tiles.add_child(tile)
 
-
-func _build_home_list() -> void:
-	var app_list := VBoxContainer.new()
-	app_list.name = "HomeAppList"
-	app_list.add_theme_constant_override("separation", 4)
-	app_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_container.add_child(app_list)
-	for app in OSEngine.APP_DEFINITIONS:
-		var app_name := str(app.get("name", "App"))
-		var row := HBoxContainer.new()
-		row.name = "HomeListRow_" + app_name.replace(" ", "")
-		row.custom_minimum_size.y = 35
-		row.add_theme_constant_override("separation", 9)
-		var icon := Button.new()
-		icon.custom_minimum_size = Vector2(30, 30)
-		icon.text = str(app.get("glyph", "•"))
-		_style_icon_button(icon, Color(str(app.get("color", "#687987"))), "square")
-		icon.pressed.connect(_on_app_pressed.bind(app_name))
-		row.add_child(icon)
-		var label := _label(app_name, 9, _text_color())
-		row.add_child(label)
-		var open_button := Button.new()
-		open_button.text = "›"
-		open_button.custom_minimum_size = Vector2(24, 28)
-		_style_action_button(open_button)
-		open_button.pressed.connect(_on_app_pressed.bind(app_name))
-		row.add_child(open_button)
-		app_list.add_child(row)
-
-
-func _build_home_categories(data: Dictionary) -> void:
-	var groups := {
-		"COMMUNICATION": ["Phone", "Messages"],
-		"MEDIA": ["Camera", "Gallery", "Music"],
-		"PRODUCTIVITY": ["Calendar", "Files", "Notes", "Clock"],
-		"DISCOVER": ["Browser", "Maps", "Settings"]
-	}
-	for group_name in groups:
-		_add_section_label(group_name)
-		var group_grid := GridContainer.new()
-		group_grid.name = "HomeCategory_" + group_name.replace(" ", "") + "Grid"
-		group_grid.columns = _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
-		group_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		group_grid.add_theme_constant_override("h_separation", 7)
-		group_grid.add_theme_constant_override("v_separation", 8)
-		page_container.add_child(group_grid)
-		for app_name in groups[group_name]:
-			var app := _find_app(app_name)
-			if not app.is_empty():
-				group_grid.add_child(_create_app_icon(app, _responsive_icon_size(int(_style.get("icon_size", 52)), group_grid.columns), true))
-
-
-func _build_home_widget(widget_index: int) -> void:
-	var widget_names := ["Clock", "Weather", "Calendar", "Music"]
-	var widget := PanelContainer.new()
-	widget.name = "HomeWidget_" + widget_names[widget_index]
-	widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	widget.custom_minimum_size.y = 66 if widget_index != 0 else 72
-	_style_surface(widget, true)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 3)
-	widget.add_child(content)
-	match widget_index:
-		0:
-			content.add_child(_label("CLOCK  ·  WORLD TIME", 7, _accent_color()))
-			var time := _label("09:41", 25, _text_color())
-			time.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			content.add_child(time)
-			var day := _label("MON  ·  NOVEMBER 14", 7, _muted_color())
-			day.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			content.add_child(day)
-		1:
-			content.add_child(_label("WEATHER", 7, _accent_color()))
-			var weather_row := HBoxContainer.new()
-			weather_row.add_child(_label("☀", 23, _text_color()))
-			var weather_text := VBoxContainer.new()
-			weather_text.add_child(_label("28°  Partly cloudy", 12, _text_color()))
-			weather_text.add_child(_label("Feels like 31°  ·  H:30° L:24°", 7, _muted_color()))
-			weather_row.add_child(weather_text)
-			content.add_child(weather_row)
-		2:
-			content.add_child(_label("UP NEXT  ·  CALENDAR", 7, _accent_color()))
-			content.add_child(_label("14  MONDAY", 18, _text_color()))
-			content.add_child(_label("Team meeting  ·  10:30 AM", 8, _muted_color()))
-		3:
-			content.add_child(_label("NOW PLAYING", 7, _accent_color()))
-			var music_row := HBoxContainer.new()
-			music_row.add_child(_label("♫", 23, _text_color()))
-			var music_text := VBoxContainer.new()
-			music_text.add_child(_label("Your soundtrack", 10, _text_color()))
-			music_text.add_child(_label("No track currently playing", 7, _muted_color()))
-			music_row.add_child(music_text)
-			content.add_child(music_row)
-	page_container.add_child(widget)
 
 func _build_lock_screen(data: Dictionary) -> void:
 	var template := str(data.get("layout_template", "classic_clock"))
