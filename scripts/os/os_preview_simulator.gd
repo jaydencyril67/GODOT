@@ -559,7 +559,7 @@ func _register_home_screen_radius_style(style: StyleBoxFlat) -> void:
 func _apply_home_screen_icon_styles() -> void:
 	if active_component != "home_screen":
 		return
-	for grid_name in ["HomeAppGrid", "ColorOSWorkFolderGrid", "ColorOSMediaFolderGrid"]:
+	for grid_name in ["HomeAppGrid"]:
 		var app_grid := find_child(grid_name, true, false) as GridContainer
 		if app_grid == null:
 			continue
@@ -700,32 +700,25 @@ func _build_shell() -> void:
 	_building = false
 
 func _build_home_dock(parent: VBoxContainer) -> void:
-	var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel"))
-	var is_huawei_layout := home_layout == "huawei_pura"
-	var is_transparent_dock := home_layout in ["huawei_pura", "nothing_os"]
-	var dock_apps := ["Phone", "Messages", "Camera", "Email"] if is_huawei_layout else ["Phone", "Messages", "Browser", "Camera"]
+	var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
 	var dock_row := HBoxContainer.new()
 	dock_row.name = "HomeAppDockIcons"
-	dock_row.custom_minimum_size.y = 40 if is_huawei_layout else 48
+	dock_row.custom_minimum_size.y = 48
 	dock_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	dock_row.add_theme_constant_override("separation", 8 if is_huawei_layout else 6)
-	var dock_icon_size := _responsive_icon_size(32 if is_huawei_layout else 35, dock_apps.size(), 6)
+	dock_row.add_theme_constant_override("separation", 6)
+	var dock_icon_size := _responsive_icon_size(35, dock_apps.size(), 6)
 	for app_name in dock_apps:
 		var app := _find_app(app_name)
 		if not app.is_empty():
 			dock_row.add_child(_create_app_icon(app, dock_icon_size, false))
-	if is_transparent_dock:
-		dock_row.name = "HomeAppDock"
-		parent.add_child(dock_row)
-	else:
-		var dock := PanelContainer.new()
-		dock.name = "HomeAppDock"
-		dock.custom_minimum_size.y = 48
-		dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_style_home_surface(dock, 18)
-		dock.add_child(dock_row)
-		parent.add_child(dock)
+	var dock := PanelContainer.new()
+	dock.name = "HomeAppDock"
+	dock.custom_minimum_size.y = 48
+	dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_home_surface(dock, 18)
+	dock.add_child(dock_row)
+	parent.add_child(dock)
 
 
 func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: String) -> TextureRect:
