@@ -955,7 +955,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	root_layout.name = "LockScreenLayout_" + template
 	root_layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_layout.add_theme_constant_override("separation", maxi(3, int(float(_style.get("spacing", 10)) * 0.5)))
+	root_layout.add_theme_constant_override("separation", 3)
 	page_container.add_child(root_layout)
 
 	var clock_stack := VBoxContainer.new()
@@ -968,20 +968,23 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"right":
 			alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	var configured_clock_size := clampi(int(data.get("clock_size", 46)), 30, 58)
-	if size.x <= 180.0:
-		configured_clock_size = mini(configured_clock_size, 36)
 	if template == "pixel_large_clock" or str(data.get("clock_treatment", "")) == "oversized":
 		configured_clock_size = mini(58, configured_clock_size + 6)
+	if size.x <= 180.0:
+		configured_clock_size = mini(configured_clock_size, 30)
+	if family == "typographic":
+		configured_clock_size = mini(configured_clock_size, 24)
+	var clock_line_count := 2 if family == "typographic" else 1
 	var clock := _label(_current_lock_time(family), configured_clock_size, _text_color())
 	clock.name = "LockScreenClock"
 	clock.horizontal_alignment = alignment
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.autowrap_mode = TextServer.AUTOWRAP_OFF
 	clock.clip_contents = false
-	clock.custom_minimum_size = Vector2(0, configured_clock_size + 5)
+	clock.custom_minimum_size = Vector2(0, configured_clock_size * clock_line_count + 5)
 	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clock.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	clock_stack.custom_minimum_size.y = configured_clock_size + 19
+	clock_stack.custom_minimum_size.y = configured_clock_size * clock_line_count + 19
 	clock_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clock_stack.clip_contents = false
 	var clock_font := FontVariation.new()
@@ -999,7 +1002,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var clock_stage := CenterContainer.new()
 	clock_stage.name = "LockScreenProtectedClockStage"
 	clock_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	clock_stage.custom_minimum_size.y = configured_clock_size + 34
+	clock_stage.custom_minimum_size.y = configured_clock_size * clock_line_count + 26
 	clock_stage.clip_contents = false
 	clock_stage.add_child(clock_stack)
 	root_layout.add_child(clock_stage)
@@ -1036,7 +1039,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 		unlock_control = Button.new()
 		unlock_control.name = "UnlockOSButton"
 		unlock_control.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
-		unlock_control.custom_minimum_size.y = 22
+		unlock_control.custom_minimum_size.y = 18
 		_style_lock_button(unlock_control, str(data.get("unlock_treatment", "pill")))
 		unlock_control.pressed.connect(func(): set_component_view("home_screen"))
 
@@ -1189,7 +1192,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 		var fingerprint_stage := CenterContainer.new()
 		fingerprint_stage.name = "LockScreenFingerprintStage"
 		fingerprint_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		fingerprint_stage.custom_minimum_size.y = 56
+		fingerprint_stage.custom_minimum_size.y = 46
 		fingerprint_stage.add_child(fingerprint)
 		root_layout.add_child(fingerprint_stage)
 	root_layout.add_child(shortcuts)
@@ -1242,13 +1245,13 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	style.content_margin_top = 5
 	style.content_margin_bottom = 5
 	card.add_theme_stylebox_override("panel", style)
-	card.custom_minimum_size.y = 44
+	card.custom_minimum_size.y = 38
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.custom_minimum_size.y = 34
+	row.custom_minimum_size.y = 30
 	row.add_theme_constant_override("separation", 7)
 	var app_icon := PanelContainer.new()
-	app_icon.custom_minimum_size = Vector2(30, 30)
+	app_icon.custom_minimum_size = Vector2(26, 26)
 	var icon_style := StyleBoxFlat.new()
 	icon_style.bg_color = _accent_color().darkened(0.42)
 	icon_style.set_corner_radius_all(9)
@@ -1256,12 +1259,12 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	var icon_label := _label("✉" if app_name == "Messages" else "▦", 16, _text_color())
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_label.custom_minimum_size = Vector2(28, 28)
+	icon_label.custom_minimum_size = Vector2(24, 24)
 	app_icon.add_child(icon_label)
 	row.add_child(app_icon)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.custom_minimum_size = Vector2(0, 29)
+	body.custom_minimum_size = Vector2(0, 25)
 	body.add_theme_constant_override("separation", 1)
 	var header := HBoxContainer.new()
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1316,16 +1319,16 @@ func _add_lock_audio_player(treatment: String) -> void:
 	style.content_margin_bottom = 6
 	player.add_theme_stylebox_override("panel", style)
 
-	player.custom_minimum_size.y = 62
+	player.custom_minimum_size.y = 54
 	var player_content := VBoxContainer.new()
-	player_content.custom_minimum_size.y = 62
+	player_content.custom_minimum_size.y = 46
 	player_content.add_theme_constant_override("separation", 3)
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 6)
 	var artwork := PanelContainer.new()
 	artwork.name = "LockScreenAudioArtwork"
-	artwork.custom_minimum_size = Vector2(32, 32)
+	artwork.custom_minimum_size = Vector2(28, 28)
 	var art_style := StyleBoxFlat.new()
 	art_style.bg_color = _accent_color().darkened(0.35)
 	art_style.set_corner_radius_all(7 if treatment == "compact_row" else 12)
@@ -1378,7 +1381,7 @@ func _make_lock_shortcut(glyph: String, caption: String, treatment: String, acti
 	var button := Button.new()
 	button.name = "LockScreenShortcut_" + action_name
 	button.text = glyph + "\n" + caption
-	button.custom_minimum_size = Vector2(44, 42)
+	button.custom_minimum_size = Vector2(38, 36)
 	button.add_theme_font_size_override("font_size", 8)
 	_style_lock_button(button, treatment)
 	if action_name == "Flashlight":
