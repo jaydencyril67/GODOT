@@ -646,21 +646,31 @@ func _build_shell() -> void:
 
 func _build_home_dock(parent: VBoxContainer) -> void:
 	var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "ios_grid"))
-	var dock_apps := ["Phone", "Messages", "Camera", "Email"] if home_layout == "huawei_pura" else ["Phone", "Messages", "Browser", "Camera"]
+	var is_huawei_layout := home_layout == "huawei_pura"
+	var dock_apps := ["Phone", "Messages", "Camera", "Email"] if is_huawei_layout else ["Phone", "Messages", "Browser", "Camera"]
 	var dock_row := HBoxContainer.new()
 	dock_row.name = "HomeAppDockIcons"
-	dock_row.custom_minimum_size.y = 40
+	dock_row.custom_minimum_size.y = 40 if is_huawei_layout else 48
 	dock_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	dock_row.add_theme_constant_override("separation", 8)
-	var dock_icon_size := _responsive_icon_size(32 if home_layout == "huawei_pura" else 35, dock_apps.size(), 6)
+	dock_row.add_theme_constant_override("separation", 8 if is_huawei_layout else 6)
+	var dock_icon_size := _responsive_icon_size(32 if is_huawei_layout else 35, dock_apps.size(), 6)
 	for app_name in dock_apps:
 		var app := _find_app(app_name)
 		if not app.is_empty():
 			dock_row.add_child(_create_app_icon(app, dock_icon_size, false))
-	# Huawei-style reference has a transparent dock: icons sit directly on wallpaper.
-	dock_row.name = "HomeAppDock" if home_layout == "huawei_pura" else "HomeAppDockIcons"
-	parent.add_child(dock_row)
+	if is_huawei_layout:
+		# Huawei-style reference has a transparent dock: icons sit directly on wallpaper.
+		dock_row.name = "HomeAppDock"
+		parent.add_child(dock_row)
+	else:
+		var dock := PanelContainer.new()
+		dock.name = "HomeAppDock"
+		dock.custom_minimum_size.y = 48
+		dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_style_surface(dock, true)
+		dock.add_child(dock_row)
+		parent.add_child(dock)
 
 
 func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: String) -> TextureRect:
@@ -827,7 +837,7 @@ func _build_android_home(data: Dictionary, widget_count: int) -> void:
 	page_container.add_child(breathing_space)
 	_build_android_favourites(data)
 
-func _build_huawei_pura_home(data: Dictionary) -> void:
+func _build_huawei_pura_home(_data: Dictionary) -> void:
 	# Single-screen Huawei-inspired composition: centred clock, compact service row,
 	# eight distinct home apps and a transparent four-icon dock.
 	var hero := VBoxContainer.new()
