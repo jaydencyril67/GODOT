@@ -1056,6 +1056,7 @@ func _create_lollipop_app_icon(app: Dictionary, icon_size: int, show_label: bool
 		icon_texture = load(icon_path) as Texture2D
 	if is_instance_valid(icon_texture):
 		icon.icon = icon_texture
+		icon.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon.expand_icon = true
 		icon.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 		icon.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
