@@ -464,6 +464,7 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		_apply_research_typography(enabled, 13)
 		enabled.button_pressed = bool(bootloader_settings["items"][item_id]["enabled"])
 		enabled.add_theme_color_override("font_color", Color("#E4DED3"))
+		_style_boot_control(enabled)
 		enabled.toggled.connect(_on_boot_item_toggled.bind(item_id))
 		row.add_child(enabled)
 		boot_enabled_inputs[item_id] = enabled
@@ -657,16 +658,16 @@ func _apply_responsive_layout() -> void:
 	if is_wide:
 		left_power_region.size_flags_stretch_ratio = 0.30
 		preview_region.size_flags_stretch_ratio = 1.12
-		screen_center.offset_left = -150.0
-		screen_center.offset_right = 30.0
+		screen_center.offset_left = -190.0
+		screen_center.offset_right = 10.0
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		screen_height = clampf(viewport_size.y - 28.0, 250.0, 760.0)
 	else:
 		left_power_region.size_flags_stretch_ratio = 0.18
 		preview_region.size_flags_stretch_ratio = 0.82
-		screen_center.offset_left = -84.0
-		screen_center.offset_right = 36.0
+		screen_center.offset_left = -104.0
+		screen_center.offset_right = 16.0
 		configuration_region.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
 		screen_height = clampf(viewport_size.y * 0.34, 210.0, 420.0)
