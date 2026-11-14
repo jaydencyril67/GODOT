@@ -718,7 +718,9 @@ func _run_os_generator_test() -> void:
 		return
 	var notification_row := lock_controls.find_child("LockScreenSettingRow_show_notifications", true, false) as HBoxContainer
 	var notification_toggle := lock_controls.find_child("LockScreenEnabled_show_notifications", true, false) as Button
-	var notification_title := notification_row.get_child(0).get_child(0) as Label if notification_row != null else null
+	var notification_title: Label = null
+	if notification_row != null:
+		notification_title = notification_row.get_child(0).get_child(0) as Label
 	if notification_row == null or notification_toggle == null or notification_title == null or notification_row.custom_minimum_size.y < 54.0 or notification_toggle.custom_minimum_size.x < 40.0 or notification_title.get_theme_font_size("font_size") < 14:
 		_fail("Lock Screen Studio settings must use the larger Phone Creation Worksite row, text and touch-target sizing.")
 		return
