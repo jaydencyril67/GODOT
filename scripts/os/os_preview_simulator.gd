@@ -116,11 +116,14 @@ var _last_opened_app := ""
 var _clock_update_elapsed := 0.0
 
 func _process(delta: float) -> void:
-	if active_component != "lock_screen":
-		return
 	_clock_update_elapsed += delta
-	if _clock_update_elapsed >= 1.0:
-		_clock_update_elapsed = 0.0
+	if _clock_update_elapsed < 1.0:
+		return
+	_clock_update_elapsed = 0.0
+	var status_clock := find_child("StatusBarClock", true, false) as Label
+	if is_instance_valid(status_clock):
+		status_clock.text = _current_lock_time()
+	if active_component == "lock_screen":
 		_refresh_lock_screen_clock()
 
 
@@ -153,11 +156,14 @@ func _refresh_lock_screen_clock() -> void:
 	var family := str(configuration.get("components", {}).get("lock_screen", {}).get("design_family", "minimal"))
 	var data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
 	var clock := find_child("LockScreenClock", true, false) as Label
-	if clock != null:
+	if is_instance_valid(clock):
 		clock.text = _current_lock_time(family)
 	var date := find_child("LockScreenDate", true, false) as Label
-	if date != null:
+	if is_instance_valid(date):
 		date.text = _current_lock_date(str(data.get("date_treatment", "uppercase")))
+	var status_clock := find_child("StatusBarClock", true, false) as Label
+	if is_instance_valid(status_clock):
+		status_clock.text = _current_lock_time()
 
 
 func _input(event: InputEvent) -> void:
@@ -501,20 +507,22 @@ func _build_shell() -> void:
 	add_child(safe_area)
 
 	if active_component == "lock_screen":
-		var lock_stage := Control.new()
-		lock_stage.name = "LockScreenFullScreenStage"
-		lock_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lock_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		lock_stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		safe_area.add_child(lock_stage)
+		var lock_shell := VBoxContainer.new()
+		lock_shell.name = "OSLockScreenShell"
+		lock_shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lock_shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		lock_shell.add_theme_constant_override("separation", 3)
+		safe_area.add_child(lock_shell)
+
+		# The system status bar is part of the lock screen, not only Home.
+		_build_status_bar(lock_shell)
 
 		page_container = VBoxContainer.new()
 		page_container.name = "OSComponentContent"
-		page_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		page_container.add_theme_constant_override("separation", 10)
-		lock_stage.add_child(page_container)
+		page_container.add_theme_constant_override("separation", 4)
+		lock_shell.add_child(page_container)
 		_build_component(active_component)
 		_building = false
 		return
@@ -588,27 +596,32 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	var data: Dictionary = configuration.get("components", {}).get("system_ui", {})
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
-	bar.custom_minimum_size.y = 27
+	bar.custom_minimum_size.y = 22
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.72)
-	bar_style.set_corner_radius_all(9)
-	bar_style.content_margin_left = 8
-	bar_style.content_margin_right = 8
-	bar_style.content_margin_top = 3
-	bar_style.content_margin_bottom = 3
+	bar_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.56)
+	bar_style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.10)
+	bar_style.set_border_width_all(1)
+	bar_style.set_corner_radius_all(8)
+	bar_style.content_margin_left = 7
+	bar_style.content_margin_right = 7
+	bar_style.content_margin_top = 2
+	bar_style.content_margin_bottom = 2
 	bar.add_theme_stylebox_override("panel", bar_style)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 5)
 	bar.add_child(row)
-	var clock := _label("9:41", 9, _text_color())
+	var clock := _label(_current_lock_time(), 9, _text_color())
 	clock.name = "StatusBarClock"
+	clock.custom_minimum_size = Vector2(34, 13)
+	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if str(data.get("clock_alignment", "left")) == "right":
 		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(clock)
 	var indicators := HBoxContainer.new()
-	indicators.add_theme_constant_override("separation", 4)
+	indicators.add_theme_constant_override("separation", 3)
 	indicators.add_child(_label("●", 7, _accent_color()))
 	indicators.add_child(_label("▮▮▮", 8, _text_color()))
 	indicators.add_child(_label("Wi-Fi", 6, _muted_color()))
@@ -616,6 +629,7 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	var battery_text := "100%" if battery_style == "percentage" else ("▰ 100" if battery_style == "pill" else "▰")
 	status_label = _label(battery_text, 8, _text_color())
 	status_label.name = "StatusBarBattery"
+	status_label.custom_minimum_size.y = 12
 	indicators.add_child(status_label)
 	row.add_child(indicators)
 	parent.add_child(bar)
@@ -894,29 +908,30 @@ func _build_lock_screen(data: Dictionary) -> void:
 	root_layout.name = "LockScreenLayout_" + template
 	root_layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_layout.add_theme_constant_override("separation", 7)
+	root_layout.add_theme_constant_override("separation", maxi(3, int(float(_style.get("spacing", 10)) * 0.5)))
 	page_container.add_child(root_layout)
-
-	var status_row := HBoxContainer.new()
-	status_row.name = "LockScreenSystemStatus"
-	status_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var status_spacer := Control.new()
-	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_row.add_child(status_spacer)
-	status_row.add_child(_label("●  LTE  ▮▮▮  Wi-Fi  100%", 8, _text_color()))
-	root_layout.add_child(status_row)
 
 	var clock_stack := VBoxContainer.new()
 	clock_stack.name = "LockScreenClockStack"
 	clock_stack.add_theme_constant_override("separation", 1)
 	var alignment := HORIZONTAL_ALIGNMENT_CENTER
-	if template in ["magazine_cover", "huawei_magazine", "coloros_typography", "clean_android"]:
-		alignment = HORIZONTAL_ALIGNMENT_LEFT
-	elif template in ["rhombus_clock", "notification_stack"]:
-		alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	var clock := _label(_current_lock_time(family), 48 if template != "pixel_large_clock" else 58, _text_color())
+	match str(data.get("clock_alignment", "center")):
+		"left":
+			alignment = HORIZONTAL_ALIGNMENT_LEFT
+		"right":
+			alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		var _unused_alignment := 0
+	var configured_clock_size := clampi(int(data.get("clock_size", 46)), 30, 58)
+	if size.x <= 180.0:
+		configured_clock_size = mini(configured_clock_size, 36)
+	if template == "pixel_large_clock" or str(data.get("clock_treatment", "")) == "oversized":
+		configured_clock_size = mini(58, configured_clock_size + 6)
+	var clock := _label(_current_lock_time(family), configured_clock_size, _text_color())
 	clock.name = "LockScreenClock"
 	clock.horizontal_alignment = alignment
+	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	clock.custom_minimum_size = Vector2(0, configured_clock_size + 3)
+	clock_stack.custom_minimum_size.y = configured_clock_size + 18
 	var clock_font := FontVariation.new()
 	clock_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	clock_font.variation_embolden = 1.1 if template in ["coloros_typography", "neo_brutalist"] else 0.55
@@ -925,6 +940,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var date := _label(_current_lock_date(str(data.get("date_treatment", "uppercase"))), 8, _muted_color())
 	date.name = "LockScreenDate"
 	date.horizontal_alignment = alignment
+	date.custom_minimum_size.y = 12
 	clock_stack.add_child(date)
 
 	var notifications := VBoxContainer.new()
@@ -961,13 +977,14 @@ func _build_lock_screen(data: Dictionary) -> void:
 		unlock_control = Button.new()
 		unlock_control.name = "UnlockOSButton"
 		unlock_control.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
-		unlock_control.custom_minimum_size.y = 28
+		unlock_control.custom_minimum_size.y = 22
 		_style_lock_button(unlock_control, str(data.get("unlock_treatment", "pill")))
 		unlock_control.pressed.connect(func(): set_component_view("home_screen"))
 
 	var top_space := Control.new()
 	top_space.name = "LockScreenTopFlexibleSpace"
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_space.custom_minimum_size.y = 4
+	# A top spacer must never consume the clock's visible area on compact previews.
 	var lower_space := Control.new()
 	lower_space.name = "LockScreenBottomFlexibleSpace"
 	lower_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1132,6 +1149,12 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(notifications)
 			root_layout.add_child(lower_space)
 
+	# Some intentionally minimal templates omit widgets from their composition.
+	# Keep enabled notifications and media visible rather than silently dropping them.
+	if notifications.get_child_count() > 0 and notifications.get_parent() == null:
+		root_layout.add_child(notifications)
+	if is_instance_valid(media) and media.get_parent() == null:
+		root_layout.add_child(media)
 	if lower_space.get_parent() == null:
 		root_layout.add_child(lower_space)
 	if is_instance_valid(fingerprint):
@@ -1186,33 +1209,41 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	style.content_margin_top = 5
 	style.content_margin_bottom = 5
 	card.add_theme_stylebox_override("panel", style)
-	card.custom_minimum_size.y = 76
+	card.custom_minimum_size.y = 54
 	var row := HBoxContainer.new()
-	row.custom_minimum_size.y = 58
-	row.add_theme_constant_override("separation", 9)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.custom_minimum_size.y = 42
+	row.add_theme_constant_override("separation", 7)
 	var app_icon := PanelContainer.new()
-	app_icon.custom_minimum_size = Vector2(38, 38)
+	app_icon.custom_minimum_size = Vector2(30, 30)
 	var icon_style := StyleBoxFlat.new()
 	icon_style.bg_color = _accent_color().darkened(0.42)
 	icon_style.set_corner_radius_all(9)
 	app_icon.add_theme_stylebox_override("panel", icon_style)
-	var icon_label := _label("✉" if app_name == "Messages" else "▦", 19, _text_color())
+	var icon_label := _label("✉" if app_name == "Messages" else "▦", 16, _text_color())
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_label.custom_minimum_size = Vector2(28, 28)
 	app_icon.add_child(icon_label)
 	row.add_child(app_icon)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 3)
+	body.custom_minimum_size = Vector2(0, 34)
+	body.add_theme_constant_override("separation", 1)
 	var header := HBoxContainer.new()
-	var app_label := _label(app_name, 11, _text_color())
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var app_label := _label(app_name, 10, _text_color())
 	app_label.name = "LockScreenNotificationApp_" + app_name
+	app_label.custom_minimum_size.y = 12
 	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(app_label)
-	header.add_child(_label(time_label, 7, _muted_color()))
+	var time_label_control := _label(time_label, 7, _muted_color())
+	time_label_control.custom_minimum_size.y = 12
+	header.add_child(time_label_control)
 	body.add_child(header)
-	var message_label := _label(message, 10, _text_color())
+	var message_label := _label(message, 9, _text_color())
 	message_label.name = "LockScreenNotificationMessage_" + app_name
+	message_label.custom_minimum_size.y = 14
 	body.add_child(message_label)
 	row.add_child(body)
 	card.add_child(row)
@@ -1252,39 +1283,47 @@ func _add_lock_audio_player(treatment: String) -> void:
 	style.content_margin_bottom = 6
 	player.add_theme_stylebox_override("panel", style)
 
-	player.custom_minimum_size.y = 104
+	player.custom_minimum_size.y = 76
 	var player_content := VBoxContainer.new()
-	player_content.add_theme_constant_override("separation", 6)
+	player_content.custom_minimum_size.y = 62
+	player_content.add_theme_constant_override("separation", 3)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 6)
 	var artwork := PanelContainer.new()
 	artwork.name = "LockScreenAudioArtwork"
-	artwork.custom_minimum_size = Vector2(62, 62)
+	artwork.custom_minimum_size = Vector2(38, 38)
 	var art_style := StyleBoxFlat.new()
 	art_style.bg_color = _accent_color().darkened(0.35)
 	art_style.set_corner_radius_all(7 if treatment == "compact_row" else 12)
 	artwork.add_theme_stylebox_override("panel", art_style)
-	var art_label := _label("♫", 30, _text_color())
+	var art_label := _label("♫", 21, _text_color())
 	art_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	art_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	art_label.custom_minimum_size = Vector2(34, 34)
 	artwork.add_child(art_label)
 	row.add_child(artwork)
 	var track := VBoxContainer.new()
 	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var now_playing := _label("NOW PLAYING", 8, _accent_color())
+	track.custom_minimum_size.x = 0
+	track.add_theme_constant_override("separation", 0)
+	var now_playing := _label("NOW PLAYING", 7, _accent_color())
 	now_playing.name = "LockScreenAudioEyebrow"
+	now_playing.custom_minimum_size.y = 10
 	track.add_child(now_playing)
-	var track_title := _label("Midnight Drive", 14, _text_color())
+	var track_title := _label("Midnight Drive", 10, _text_color())
 	track_title.name = "LockScreenAudioTrackTitle"
+	track_title.custom_minimum_size.y = 13
 	track.add_child(track_title)
-	var artist_name := _label("DigitalWorld Audio", 10, _muted_color())
+	var artist_name := _label("DigitalWorld Audio", 8, _muted_color())
 	artist_name.name = "LockScreenAudioArtist"
+	artist_name.custom_minimum_size.y = 12
 	track.add_child(artist_name)
 	row.add_child(track)
 	var play := Button.new()
 	play.name = "LockScreenAudioPlayButton"
 	play.text = "Ⅱ"
-	play.custom_minimum_size = Vector2(42, 42)
+	play.custom_minimum_size = Vector2(28, 28)
 	_style_lock_button(play, "minimal")
 	play.pressed.connect(func(): play.text = "▶" if play.text == "Ⅱ" else "Ⅱ")
 	row.add_child(play)
