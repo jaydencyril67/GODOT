@@ -360,7 +360,7 @@ func _run_os_generator_test() -> void:
 	if not boot_overlay.visible:
 		_fail("Power button did not switch the display into its boot sequence.")
 		return
-	await get_tree().create_timer(5.1).timeout
+	await create_timer(5.1).timeout
 	var boot_identity_label := worksite.find_child("BootIdentityText", true, false) as Label
 	var boot_logo := worksite.find_child("BootCompanyLogo", true, false) as TextureRect
 	if boot_identity_label == null or boot_identity_label.text != "DigitalWorld Phone DW-01" or not boot_identity_label.visible or boot_logo.visible:
