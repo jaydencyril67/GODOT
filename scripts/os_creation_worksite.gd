@@ -534,7 +534,7 @@ func _show_home_screen_studio_controls() -> void:
 	home_screen_layout_decrease_button.pressed.connect(_on_home_screen_layout_decrease_pressed)
 	selector.add_child(home_screen_layout_decrease_button)
 
-	home_screen_layout_value_label = _label("ANDROID", 19, Color.WHITE)
+	home_screen_layout_value_label = _label("LAYOUT 1", 19, Color.WHITE)
 	home_screen_layout_value_label.name = "HomeScreenLayoutValueLabel"
 	home_screen_layout_value_label.custom_minimum_size.x = 190
 	home_screen_layout_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -565,7 +565,7 @@ func _on_home_screen_layout_increase_pressed() -> void:
 
 func _refresh_home_screen_layout_selector() -> void:
 	if is_instance_valid(home_screen_layout_value_label):
-		home_screen_layout_value_label.text = "ANDROID"
+		home_screen_layout_value_label.text = "LAYOUT 1"
 	if is_instance_valid(home_screen_layout_decrease_button):
 		home_screen_layout_decrease_button.disabled = true
 	if is_instance_valid(home_screen_layout_increase_button):
