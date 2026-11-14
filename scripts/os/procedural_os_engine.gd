@@ -192,6 +192,10 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	for lock_key in lock_defaults:
 		if not lock_data.has(lock_key):
 			lock_data[lock_key] = lock_defaults[lock_key]
+	# Remove legacy unlock-hint settings so older saved OS data cannot restore
+	# the prompt or its worksite toggle.
+	lock_data.erase("show_unlock_hint")
+	lock_data.erase("unlock_treatment")
 	if not LOCK_SCREEN_DESIGN_FAMILIES.has(str(lock_data.get("design_family", ""))):
 		lock_data["design_family"] = str(lock_defaults.get("design_family", "minimal"))
 	if not LOCK_SCREEN_LAYOUT_TEMPLATES.has(str(lock_data.get("layout_template", ""))):
@@ -300,7 +304,6 @@ static func _generate_lock_screen_component(rng: RandomNumberGenerator, previous
 		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true)),
 		"fingerprint_sensor_available": bool(previous.get("fingerprint_sensor_available", false)),
 		"show_fingerprint": bool(previous.get("show_fingerprint", false)) and bool(previous.get("fingerprint_sensor_available", false)),
-		"show_unlock_hint": bool(previous.get("show_unlock_hint", true)),
 		"design_family": design_family,
 		"layout_template": layout_template,
 		"clock_alignment": ["left", "center", "right"][rng.randi_range(0, 2)],
@@ -312,7 +315,6 @@ static func _generate_lock_screen_component(rng: RandomNumberGenerator, previous
 		"audio_treatment": ["album_card", "glass_bar", "compact_row", "editorial"][rng.randi_range(0, 3)],
 		"shortcut_treatment": ["floating", "outlined", "solid", "minimal"][rng.randi_range(0, 3)],
 		"fingerprint_treatment": ["ring", "glass", "minimal"][rng.randi_range(0, 2)],
-		"unlock_treatment": ["pill", "text_link", "outlined", "minimal"][rng.randi_range(0, 3)],
 		"wallpaper": previous.get("wallpaper", "aurora")
 	}
 

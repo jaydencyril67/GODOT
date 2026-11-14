@@ -1217,14 +1217,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 		sensor.tooltip_text = "Touch to unlock"
 		sensor.pressed.connect(func(): set_component_view("home_screen"))
 		fingerprint = sensor
-	var unlock_control: Button
-	if bool(data.get("show_unlock_hint", true)):
-		unlock_control = Button.new()
-		unlock_control.name = "UnlockOSButton"
-		unlock_control.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
-		unlock_control.custom_minimum_size.y = 18
-		_style_lock_button(unlock_control, str(data.get("unlock_treatment", "pill")))
-		unlock_control.pressed.connect(func(): set_component_view("pin_input"))
 
 	var feature_row := VBoxContainer.new()
 	feature_row.name = "LockScreenMediaAndNotifications"
@@ -1370,8 +1362,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 		fingerprint_stage.add_child(fingerprint)
 		root_layout.add_child(fingerprint_stage)
 	root_layout.add_child(shortcuts)
-	if is_instance_valid(unlock_control):
-		root_layout.add_child(unlock_control)
 	page_container = original_container
 
 	# Every widget that is used has now been moved into the rendered layout.

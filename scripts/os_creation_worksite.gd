@@ -95,6 +95,8 @@ class GlassCheckbox extends Button:
 		text = ""
 		focus_mode = Control.FOCUS_NONE
 		custom_minimum_size = Vector2(40, 40)
+		size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var empty_style := StyleBoxEmpty.new()
 		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
@@ -115,7 +117,9 @@ class GlassCheckbox extends Button:
 	func _draw() -> void:
 		if size.x < 8.0 or size.y < 8.0:
 			return
-		var box_rect := Rect2(Vector2(3.0, 3.0), size - Vector2(6.0, 6.0))
+		var box_side := maxf(8.0, minf(size.x, size.y) - 6.0)
+		var box_position := (size - Vector2.ONE * box_side) * 0.5
+		var box_rect := Rect2(box_position, Vector2.ONE * box_side)
 		var box_style := StyleBoxFlat.new()
 		box_style.bg_color = Color("#654A2A") if button_pressed else (Color("#25282A") if is_hovered() else Color("#151719"))
 		box_style.border_color = Color("#D0A66C") if button_pressed or is_hovered() else Color("#827052")
@@ -444,7 +448,6 @@ func _show_lock_screen_studio_controls() -> void:
 	_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Bottom-left quick button")
 	_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Shortcut", "Bottom-right quick button")
 	_add_lock_screen_toggle_row(content, "show_fingerprint", "Fingerprint Sensor", "Available only when the phone has this sensor", not fingerprint_sensor_available)
-	_add_lock_screen_toggle_row(content, "show_unlock_hint", "Unlock Prompt", "Show or hide the swipe-to-unlock hint")
 
 	var generator := Button.new()
 	generator.name = "GenerateLockScreenDesignButton"

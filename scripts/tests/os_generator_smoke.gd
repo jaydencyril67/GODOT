@@ -296,13 +296,15 @@ func _run_os_generator_test() -> void:
 	lock_preview_data["show_flashlight_shortcut"] = true
 	lock_preview_data["fingerprint_sensor_available"] = true
 	lock_preview_data["show_fingerprint"] = true
-	lock_preview_data["show_unlock_hint"] = true
 	simulator.configure_os(lock_preview_config, "lock_screen")
 	await process_frame
-	for lock_control_name in ["LockScreenClock", "LockScreenDate", "LockScreenNotification_Messages", "LockScreenAudioPlayer", "LockScreenShortcut_Camera", "LockScreenShortcut_Flashlight", "LockScreenFingerprintSensor", "UnlockOSButton"]:
+	for lock_control_name in ["LockScreenClock", "LockScreenDate", "LockScreenNotification_Messages", "LockScreenAudioPlayer", "LockScreenShortcut_Camera", "LockScreenShortcut_Flashlight", "LockScreenFingerprintSensor"]:
 		if simulator.find_child(lock_control_name, true, false) == null:
 			_fail("Lock screen did not render enabled feature: " + lock_control_name)
 			return
+	if simulator.find_child("UnlockOSButton", true, false) != null or ProceduralEngineScript.normalize_os(lock_preview_config)["components"]["lock_screen"].has("show_unlock_hint"):
+		_fail("The lock screen must not render an unlock prompt or retain its legacy enablement setting.")
+		return
 	var camera_shortcut := simulator.find_child("LockScreenShortcut_Camera", true, false) as Button
 	var flashlight_shortcut := simulator.find_child("LockScreenShortcut_Flashlight", true, false) as Button
 	var camera_icon := simulator.find_child("LockScreenShortcutIcon_Camera", true, false) as TextureRect
@@ -605,8 +607,11 @@ func _run_os_generator_test() -> void:
 		if toggle == null or toggle is CheckBox or not toggle.text.is_empty():
 			_fail("Boot loader enable control must use the custom checkbox, not Godot's native CheckBox: " + item_id)
 			return
-		if row.custom_minimum_size.y < 58.0 or toggle.custom_minimum_size.x < 40.0 or toggle.custom_minimum_size.y < 40.0 or row_label.get_theme_font_size("font_size") < 18:
+		if row.custom_minimum_size.y < 58.0 or toggle.custom_minimum_size.x < 40.0 or toggle.custom_minimum_size.y < 40.0 or toggle.size_flags_horizontal != Control.SIZE_SHRINK_CENTER or toggle.size_flags_vertical != Control.SIZE_SHRINK_CENTER or row_label.get_theme_font_size("font_size") < 18:
 			_fail("Boot loader setting rows and touch targets must use the larger Phone Creation Worksite sizing.")
+			return
+		if absf(toggle.size.x - toggle.size.y) > 1.0:
+			_fail("Boot loader checkbox must render as a square, not a vertical rectangle: " + item_id)
 			return
 		if worksite.find_child("BootOrder_" + item_id, true, false) != null:
 			_fail("Boot loader must not contain startup order number boxes.")
@@ -719,6 +724,9 @@ func _run_os_generator_test() -> void:
 	if lock_controls == null:
 		_fail("Wizard Next did not return to Lock Screen Studio Step 2.")
 		return
+	if worksite.find_child("LockScreenSettingRow_show_unlock_hint", true, false) != null or worksite.find_child("LockScreenEnabled_show_unlock_hint", true, false) != null:
+		_fail("Lock Screen Studio must not expose an unlock-prompt checkbox or its enablement text.")
+		return
 	var lock_hero := lock_controls.find_child("LockScreenHeroTitle", true, false) as Label
 	var lock_gap := lock_controls.find_child("LockScreenHeroGap", true, false) as Control
 	if lock_hero == null or lock_gap == null or lock_gap.custom_minimum_size.y < 28.0 or lock_hero.get_index() >= lock_gap.get_index():
@@ -729,8 +737,11 @@ func _run_os_generator_test() -> void:
 	var notification_title: Label = null
 	if notification_row != null:
 		notification_title = notification_row.get_child(0).get_child(0) as Label
-	if notification_row == null or notification_toggle == null or notification_title == null or notification_row.custom_minimum_size.y < 54.0 or notification_toggle.custom_minimum_size.x < 40.0 or notification_title.get_theme_font_size("font_size") < 14:
-		_fail("Lock Screen Studio settings must use the larger Phone Creation Worksite row, text and touch-target sizing.")
+	if notification_row == null or notification_toggle == null or notification_title == null or notification_row.custom_minimum_size.y < 54.0 or notification_toggle.custom_minimum_size.x < 40.0 or notification_toggle.custom_minimum_size.y < 40.0 or notification_toggle.size_flags_horizontal != Control.SIZE_SHRINK_CENTER or notification_toggle.size_flags_vertical != Control.SIZE_SHRINK_CENTER or notification_title.get_theme_font_size("font_size") < 14:
+		_fail("Lock Screen Studio settings must use the larger Phone Creation Worksite row, text and square checkbox touch-target sizing.")
+		return
+	if absf(notification_toggle.size.x - notification_toggle.size.y) > 1.0:
+		_fail("Lock Screen Studio checkbox must render as a square, not a vertical rectangle.")
 		return
 
 	worksite.call("set_fingerprint_sensor_available", true)
