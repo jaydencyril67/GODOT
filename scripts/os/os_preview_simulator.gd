@@ -1119,12 +1119,8 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_large_clock":
-			var large_clock_stage := CenterContainer.new()
-			large_clock_stage.name = "PixelLargeClockStage"
-			large_clock_stage.custom_minimum_size.y = configured_clock_size + 22
-			large_clock_stage.add_child(clock_stack)
 			root_layout.add_child(top_space)
-			root_layout.add_child(large_clock_stage)
+			root_layout.add_child(_label("PIXEL  ·  AT A GLANCE", 7, _accent_color()))
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_ambient":
@@ -1167,7 +1163,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 		"coloros_flux":
 			var flux_column := VBoxContainer.new()
-			flux_column.add_child(clock_stack)
 			if is_instance_valid(media): flux_column.add_child(media)
 			root_layout.add_child(top_space)
 			root_layout.add_child(flux_column)
