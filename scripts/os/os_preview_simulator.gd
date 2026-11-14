@@ -3,6 +3,7 @@ extends Control
 signal app_opened(app_name: String)
 
 const OSEngine = preload("res://scripts/os/procedural_os_engine.gd")
+const PHONE_UNLOCK_PIN := "1234"
 
 class OSWallpaperLayer extends Control:
 	var palette: Dictionary = {}
@@ -136,6 +137,8 @@ var _gesture_active := false
 var _gesture_overlay: Control
 var _recent_app_names: Array[String] = []
 var _last_opened_app := ""
+var _entered_unlock_pin := ""
+var _pin_error_message := ""
 var _clock_update_elapsed := 0.0
 
 func _process(delta: float) -> void:
@@ -241,7 +244,7 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 		return
 
 	if active_component == "lock_screen" and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
-		set_component_view("home_screen")
+		set_component_view("pin_input")
 		return
 
 	if start.y >= size.y - edge_size and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
@@ -249,6 +252,8 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 			_show_gesture_overlay("recent_apps")
 		elif active_component == "home_screen":
 			set_component_view("app_drawer")
+		elif active_component == "pin_input":
+			set_component_view("lock_screen")
 		else:
 			_navigate_home()
 		return
@@ -268,6 +273,8 @@ func _navigate_home() -> void:
 func _navigate_back() -> void:
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		_close_gesture_overlay()
+	elif active_component == "pin_input":
+		set_component_view("lock_screen")
 	elif active_component == "app_drawer":
 		_navigate_home()
 	else:
@@ -488,6 +495,9 @@ func configure_os(os_configuration: Dictionary, component_id: String = "home_scr
 
 func set_component_view(component_id: String) -> void:
 	active_component = _safe_component_id(component_id)
+	if active_component == "pin_input":
+		_entered_unlock_pin = ""
+		_pin_error_message = ""
 	if is_inside_tree():
 		_build_shell()
 
@@ -497,6 +507,8 @@ func update_configuration(os_configuration: Dictionary) -> void:
 		_build_shell()
 
 func _safe_component_id(component_id: String) -> String:
+	if component_id == "pin_input":
+		return component_id
 	for component in OSEngine.COMPONENTS:
 		if str(component["id"]) == component_id:
 			return component_id
@@ -529,9 +541,9 @@ func _build_shell() -> void:
 	safe_area.add_theme_constant_override("margin_bottom", 7)
 	add_child(safe_area)
 
-	if active_component == "lock_screen":
+	if active_component in ["lock_screen", "pin_input"]:
 		var lock_shell := VBoxContainer.new()
-		lock_shell.name = "OSLockScreenShell"
+		lock_shell.name = "OSLockScreenShell" if active_component == "lock_screen" else "OSPinInputShell"
 		lock_shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		lock_shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		lock_shell.add_theme_constant_override("separation", 3)
@@ -683,6 +695,8 @@ func _build_component(component_id: String) -> void:
 			_build_home_screen(component_data)
 		"lock_screen":
 			_build_lock_screen(component_data)
+		"pin_input":
+			_build_pin_input()
 		"app_icons":
 			_build_icon_gallery(component_data)
 		"themes_appearance":
@@ -1057,7 +1071,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 		unlock_control.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
 		unlock_control.custom_minimum_size.y = 18
 		_style_lock_button(unlock_control, str(data.get("unlock_treatment", "pill")))
-		unlock_control.pressed.connect(func(): set_component_view("home_screen"))
+		unlock_control.pressed.connect(func(): set_component_view("pin_input"))
 
 	var feature_row := VBoxContainer.new()
 	feature_row.name = "LockScreenMediaAndNotifications"
@@ -1458,6 +1472,135 @@ func _style_lock_button(button: Button, treatment: String) -> void:
 	button.add_theme_color_override("font_hover_color", _text_color())
 	button.add_theme_font_size_override("font_size", 8)
 	button.focus_mode = Control.FOCUS_NONE
+
+
+
+func _build_pin_input() -> void:
+	var layout := VBoxContainer.new()
+	layout.name = "PINInputScreen"
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 8)
+	page_container.add_child(layout)
+
+	var top_space := Control.new()
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(top_space)
+
+	var title := _label("Enter PIN", 20, _text_color())
+	title.name = "PINEntryTitle"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layout.add_child(title)
+	var subtitle := _label("Enter your 4-digit phone unlock PIN", 8, _muted_color())
+	subtitle.name = "PINEntrySubtitle"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layout.add_child(subtitle)
+
+	var dots := _label("○  ○  ○  ○", 19, _text_color())
+	dots.name = "PINEntryDots"
+	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dots.custom_minimum_size.y = 30
+	layout.add_child(dots)
+
+	var error_label := _label(_pin_error_message, 8, Color("#FF8A8A"))
+	error_label.name = "PINEntryError"
+	error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	error_label.custom_minimum_size.y = 16
+	layout.add_child(error_label)
+
+	var keypad := GridContainer.new()
+	keypad.name = "PINKeypad"
+	keypad.columns = 3
+	keypad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	keypad.add_theme_constant_override("h_separation", 7)
+	keypad.add_theme_constant_override("v_separation", 6)
+	for digit in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+		var key := Button.new()
+		key.name = "PINKey_" + digit
+		key.text = digit
+		key.custom_minimum_size = Vector2(48, 38)
+		_style_action_button(key)
+		key.add_theme_font_size_override("font_size", 13)
+		key.pressed.connect(_on_pin_digit_pressed.bind(digit))
+		keypad.add_child(key)
+	var empty_key := Control.new()
+	empty_key.custom_minimum_size = Vector2(48, 38)
+	keypad.add_child(empty_key)
+	var zero_key := Button.new()
+	zero_key.name = "PINKey_0"
+	zero_key.text = "0"
+	zero_key.custom_minimum_size = Vector2(48, 38)
+	_style_action_button(zero_key)
+	zero_key.add_theme_font_size_override("font_size", 13)
+	zero_key.pressed.connect(_on_pin_digit_pressed.bind("0"))
+	keypad.add_child(zero_key)
+	var delete_key := Button.new()
+	delete_key.name = "PINKey_Delete"
+	delete_key.text = "⌫"
+	delete_key.custom_minimum_size = Vector2(48, 38)
+	_style_action_button(delete_key)
+	delete_key.pressed.connect(_on_pin_delete_pressed)
+	keypad.add_child(delete_key)
+	layout.add_child(keypad)
+
+	var info := PanelContainer.new()
+	info.name = "PINPreviewUnlockInfo"
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_surface(info, true)
+	var info_label := _label("PREVIEW UNLOCK PIN  ·  1234", 8, _accent_color())
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info.add_child(info_label)
+	layout.add_child(info)
+
+	var back_button := Button.new()
+	back_button.name = "PINBackToLockScreen"
+	back_button.text = "BACK TO LOCK SCREEN"
+	back_button.custom_minimum_size.y = 30
+	_style_lock_button(back_button, "outlined")
+	back_button.pressed.connect(func(): set_component_view("lock_screen"))
+	layout.add_child(back_button)
+
+	var bottom_space := Control.new()
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(bottom_space)
+
+
+func _on_pin_digit_pressed(digit: String) -> void:
+	if _entered_unlock_pin.length() >= 4:
+		return
+	_entered_unlock_pin += digit
+	_pin_error_message = ""
+	_refresh_pin_entry_display()
+	if _entered_unlock_pin.length() == 4:
+		if _entered_unlock_pin == PHONE_UNLOCK_PIN:
+			_entered_unlock_pin = ""
+			set_component_view("home_screen")
+		else:
+			_entered_unlock_pin = ""
+			_pin_error_message = "Incorrect PIN. Use 1234 for this preview."
+			_refresh_pin_entry_display()
+
+
+func _on_pin_delete_pressed() -> void:
+	if not _entered_unlock_pin.is_empty():
+		_entered_unlock_pin = _entered_unlock_pin.left(_entered_unlock_pin.length() - 1)
+	_pin_error_message = ""
+	_refresh_pin_entry_display()
+
+
+func _refresh_pin_entry_display() -> void:
+	var dots := find_child("PINEntryDots", true, false) as Label
+	if is_instance_valid(dots):
+		var display := ""
+		for index in range(4):
+			display += "●" if index < _entered_unlock_pin.length() else "○"
+			if index < 3:
+				display += "  "
+		dots.text = display
+	var error_label := find_child("PINEntryError", true, false) as Label
+	if is_instance_valid(error_label):
+		error_label.text = _pin_error_message
 
 
 func _build_icon_gallery(data: Dictionary) -> void:
