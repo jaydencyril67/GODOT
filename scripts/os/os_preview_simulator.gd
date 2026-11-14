@@ -1111,6 +1111,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if notifications.get_child_count() > 0: now_bar.add_child(notifications)
 			root_layout.add_child(now_bar)
 		"notification_stack":
+			var notification_stack_caption := _label("NOTIFICATIONS", 7, _accent_color())
+			notification_stack_caption.name = "LockScreenNotificationStackCaption"
+			root_layout.add_child(notification_stack_caption)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_at_a_glance":
