@@ -1,0 +1,14 @@
+Android Generation 1 icon artwork attribution
+
+The PNG artwork in this directory is sourced from Material Open Source
+(MaterialOS), Android Icon Pack:
+https://github.com/materialos/Android-Icon-Pack
+
+The upstream repository states that its product icon graphics are licensed
+under the Creative Commons Attribution 4.0 International license (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+Attribution: MaterialOS Contributors.
+The artwork is bundled locally for offline use in DigitalWorld. The filenames
+are mapped to DigitalWorld's built-in app catalog. The source artwork itself
+is unchanged.
