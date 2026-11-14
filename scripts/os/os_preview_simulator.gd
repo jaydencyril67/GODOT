@@ -509,7 +509,7 @@ func _build_shell() -> void:
 		safe_area.add_child(lock_stage)
 
 		page_container = VBoxContainer.new()
-		page_container.name = "LockScreenFullScreenContent"
+		page_container.name = "OSComponentContent"
 		page_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
