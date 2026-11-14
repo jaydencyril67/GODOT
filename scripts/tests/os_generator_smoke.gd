@@ -89,6 +89,30 @@ func _run_os_generator_test() -> void:
 		_fail("Legacy lock-screen configuration did not migrate to the visible media player.")
 		return
 
+	if ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES.size() != 20:
+		_fail("Lock-screen system must expose exactly 20 structural layout templates.")
+		return
+	var observed_templates := {}
+	for template_index in range(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES.size()):
+		var template_name := str(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES[template_index])
+		var template_config := generated.duplicate(true)
+		template_config["components"]["lock_screen"]["layout_template"] = template_name
+		var template_preview := SimulatorScript.new()
+		template_preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		template_preview.configure_os(template_config, "lock_screen")
+		simulator_host.add_child(template_preview)
+		await process_frame
+		var layout_root := template_preview.find_child("LockScreenLayout_" + template_name, true, false)
+		if layout_root == null:
+			_fail("A lock-screen template did not render its own layout root: " + template_name)
+			return
+		observed_templates[layout_root.name] = true
+		template_preview.queue_free()
+		await process_frame
+	if observed_templates.size() != 20:
+		_fail("The 20 lock-screen templates did not produce 20 distinct layout roots.")
+		return
+
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
 	var wallpaper_components: Dictionary = wallpaper_regenerated["components"]
