@@ -994,6 +994,16 @@ func _build_lock_screen(data: Dictionary) -> void:
 	clock_stage.custom_minimum_size.y = configured_clock_size * clock_line_count + 26
 	clock_stage.clip_contents = false
 	clock_stage.add_child(clock_stack)
+
+	# Lock-screen content needs deliberate vertical distribution. VBoxContainer
+	# otherwise packs every child at the top of the phone, leaving the lower
+	# half empty. These two flexible regions position the clock in the upper
+	# third and reserve the lower area for the sensor and unlock controls.
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_space.size_flags_stretch_ratio = 0.85
+	lower_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	lower_space.size_flags_stretch_ratio = 1.15
+	root_layout.add_child(top_space)
 	root_layout.add_child(clock_stage)
 
 	var notifications := VBoxContainer.new()
@@ -1055,24 +1065,19 @@ func _build_lock_screen(data: Dictionary) -> void:
 
 	match template:
 		"classic_clock":
-			root_layout.add_child(top_space)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"rhombus_clock":
-			root_layout.add_child(top_space)
 			var rhombus_caption := _label("TODAY  ·  DIGITALWORLD", 7, _accent_color())
 			rhombus_caption.name = "RhombusClockCaption"
 			root_layout.add_child(rhombus_caption)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"magazine_cover":
-			root_layout.add_child(top_space)
 			root_layout.add_child(_label("THE DAILY EDITION  /  DIGITALWORLD", 7, _accent_color()))
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"depth_layer":
-			root_layout.add_child(top_space)
-			root_layout.add_child(lower_space)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"widget_dashboard":
@@ -1082,7 +1087,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 				media_column.add_child(media)
 			root_layout.add_child(feature_row)
 		"live_activity":
-			root_layout.add_child(top_space)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"one_ui_personal":
@@ -1096,7 +1100,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): personal_right.add_child(media)
 			personal_zones.add_child(personal_left)
 			personal_zones.add_child(personal_right)
-			root_layout.add_child(top_space)
 			root_layout.add_child(personal_zones)
 		"now_bar":
 			var now_bar := VBoxContainer.new()
@@ -1105,7 +1108,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if notifications.get_child_count() > 0: now_bar.add_child(notifications)
 			root_layout.add_child(now_bar)
 		"notification_stack":
-			root_layout.add_child(lower_space)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_at_a_glance":
@@ -1113,18 +1115,14 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_large_clock":
-			root_layout.add_child(top_space)
 			var pixel_caption := _label("PIXEL  ·  AT A GLANCE", 7, _accent_color())
 			pixel_caption.name = "PixelLargeClockCaption"
 			root_layout.add_child(pixel_caption)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_ambient":
-			root_layout.add_child(top_space)
-			root_layout.add_child(lower_space)
 			root_layout.add_child(_label("MON  ·  DIGITALWORLD", 7, _muted_color()))
 		"huawei_magazine":
-			root_layout.add_child(top_space)
 			var huawei_caption := _label("MONDAY  /  YOUR PERSONAL EDITION", 7, _accent_color())
 			huawei_caption.name = "HuaweiMagazineCaption"
 			root_layout.add_child(huawei_caption)
@@ -1134,7 +1132,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 			var dynamic_row := VBoxContainer.new()
 			dynamic_row.name = "HuaweiDynamicActivity"
 			if is_instance_valid(media): dynamic_row.add_child(media)
-			root_layout.add_child(top_space)
 			root_layout.add_child(dynamic_row)
 			root_layout.add_child(notifications)
 		"nothing_widget_grid":
@@ -1145,17 +1142,14 @@ func _build_lock_screen(data: Dictionary) -> void:
 			widget_grid.add_child(_label("MON  /  DATE", 8, _muted_color()))
 			if notifications.get_child_count() > 0: widget_grid.add_child(notifications)
 			if is_instance_valid(media): widget_grid.add_child(media)
-			root_layout.add_child(top_space)
 			root_layout.add_child(widget_grid)
 		"origin_player":
-			root_layout.add_child(top_space)
 			var origin_player_activity := VBoxContainer.new()
 			origin_player_activity.name = "OriginPlayerActivity"
 			if is_instance_valid(media): origin_player_activity.add_child(media)
 			root_layout.add_child(origin_player_activity)
 			root_layout.add_child(notifications)
 		"coloros_typography":
-			root_layout.add_child(top_space)
 			var typography_rule := ColorRect.new()
 			typography_rule.custom_minimum_size.y = 3
 			typography_rule.color = _accent_color()
@@ -1165,18 +1159,15 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"coloros_flux":
 			var flux_column := VBoxContainer.new()
 			if is_instance_valid(media): flux_column.add_child(media)
-			root_layout.add_child(top_space)
 			root_layout.add_child(flux_column)
 			root_layout.add_child(notifications)
 		"clean_android":
 			if notifications.get_child_count() > 0: root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
-			root_layout.add_child(lower_space)
 		"focus_lock_screen":
 			root_layout.add_child(_label("FOCUS  /  PERSONAL", 7, _accent_color()))
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
-			root_layout.add_child(lower_space)
 
 	# Some intentionally minimal templates omit widgets from their composition.
 	# Keep enabled notifications and media visible rather than silently dropping them.
