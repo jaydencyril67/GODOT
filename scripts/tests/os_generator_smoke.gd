@@ -302,21 +302,26 @@ func _run_os_generator_test() -> void:
 			return
 	var camera_shortcut := simulator.find_child("LockScreenShortcut_Camera", true, false) as Button
 	var flashlight_shortcut := simulator.find_child("LockScreenShortcut_Flashlight", true, false) as Button
-	if camera_shortcut == null or flashlight_shortcut == null or camera_shortcut.icon == null or flashlight_shortcut.icon == null:
-		_fail("Lock-screen camera and flashlight shortcuts must use imported texture icons.")
+	var camera_icon := simulator.find_child("LockScreenShortcutIcon_Camera", true, false) as TextureRect
+	var flashlight_icon := simulator.find_child("LockScreenShortcutIcon_Flashlight", true, false) as TextureRect
+	if camera_shortcut == null or flashlight_shortcut == null or camera_icon == null or flashlight_icon == null:
+		_fail("Lock-screen camera and flashlight shortcuts must contain imported TextureRect icons.")
+		return
+	if camera_icon.texture == null or flashlight_icon.texture == null or camera_icon.size.x <= 0.0 or flashlight_icon.size.x <= 0.0:
+		_fail("Lock-screen imported shortcut artwork did not receive a visible texture area.")
 		return
 	if not camera_shortcut.text.is_empty() or not flashlight_shortcut.text.is_empty():
 		_fail("Lock-screen camera and flashlight shortcuts must be icon-only, without text captions.")
 		return
-	if camera_shortcut.icon.resource_path != "res://assets/os/lockscreen/camera.svg" or flashlight_shortcut.icon.resource_path != "res://assets/os/lockscreen/flashlight.svg":
+	if camera_icon.texture.resource_path != "res://assets/os/lockscreen/camera.svg" or flashlight_icon.texture.resource_path != "res://assets/os/lockscreen/flashlight.svg":
 		_fail("Lock-screen shortcuts are not using the imported camera and flashlight SVG assets.")
 		return
 	if camera_shortcut.get_index() >= flashlight_shortcut.get_index():
 		_fail("Camera must remain on the left and flashlight on the right of the lock screen.")
 		return
-	var flashlight_icon_before_toggle := flashlight_shortcut.icon
+	var flashlight_texture_before_toggle := flashlight_icon.texture
 	flashlight_shortcut.button_pressed = true
-	if flashlight_shortcut.text != "" or flashlight_shortcut.icon != flashlight_icon_before_toggle:
+	if flashlight_shortcut.text != "" or flashlight_icon.texture != flashlight_texture_before_toggle:
 		_fail("Flashlight toggle changed or removed its imported icon.")
 		return
 	for lock_content_name in ["LockScreenNotificationApp_Messages", "LockScreenNotificationMessage_Messages", "LockScreenAudioTrackTitle", "LockScreenAudioArtist", "StatusBarClock"]:
