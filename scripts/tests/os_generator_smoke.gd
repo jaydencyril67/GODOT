@@ -89,8 +89,8 @@ func _run_os_generator_test() -> void:
 	if not ProceduralEngineScript.WALLPAPER_STYLES.has(selected_wallpaper):
 		_fail("Wallpaper regeneration selected an unsupported wallpaper style.")
 		return
-	if lock_screen_after["clock_style"] != lock_screen_before["clock_style"] or lock_screen_after["show_notifications"] != lock_screen_before["show_notifications"]:
-		_fail("Wallpaper regeneration unexpectedly changed lock screen layout settings.")
+	if lock_screen_after["design_family"] != lock_screen_before["design_family"] or lock_screen_after["clock_treatment"] != lock_screen_before["clock_treatment"] or lock_screen_after["show_notifications"] != lock_screen_before["show_notifications"]:
+		_fail("Wallpaper regeneration unexpectedly changed lock screen design settings.")
 		return
 	if selected_wallpaper != wallpaper_components["home_screen"]["wallpaper"] or selected_wallpaper != lock_screen_after["wallpaper"] or selected_wallpaper != wallpaper_components["wallpapers"]["style"]:
 		_fail("Wallpaper regeneration did not keep the OS wallpaper synchronized.")
