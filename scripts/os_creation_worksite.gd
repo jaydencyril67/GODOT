@@ -609,7 +609,6 @@ func _run_boot_sequence() -> void:
 		if bool(item_settings.get(item_id, {}).get("enabled", false)):
 			ordered_items.append(item_id)
 	var stage_duration := 10.0 / float(maxi(1, ordered_items.size()))
-	if ordered_items.is_empty():
 	for item_id in ordered_items:
 		boot_stage_container.modulate.a = 1.0
 		boot_logo.visible = item_id == "company_logo"
