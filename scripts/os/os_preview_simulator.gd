@@ -1031,10 +1031,19 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"one_ui_personal":
+			var personal_zones := HBoxContainer.new()
+			personal_zones.name = "OneUIPersonalContentZones"
+			var personal_left := VBoxContainer.new()
+			personal_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			personal_left.add_child(notifications)
+			var personal_right := VBoxContainer.new()
+			personal_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if is_instance_valid(media): personal_right.add_child(media)
+			personal_zones.add_child(personal_left)
+			personal_zones.add_child(personal_right)
 			root_layout.add_child(top_space)
 			root_layout.add_child(clock_stack)
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
+			root_layout.add_child(personal_zones)
 		"now_bar":
 			root_layout.add_child(clock_stack)
 			var now_bar := HBoxContainer.new()
@@ -1053,9 +1062,12 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_large_clock":
+			var large_clock_stage := CenterContainer.new()
+			large_clock_stage.name = "PixelLargeClockStage"
+			large_clock_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			large_clock_stage.add_child(clock_stack)
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_stack)
-			root_layout.add_child(lower_space)
+			root_layout.add_child(large_clock_stage)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_ambient":
