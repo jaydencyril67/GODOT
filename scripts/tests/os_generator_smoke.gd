@@ -648,8 +648,9 @@ func _run_os_generator_test() -> void:
 		_fail("Swipe-up on the lock screen did not open PIN entry.")
 		return
 	var pin_info := worksite_preview.find_child("PINPreviewUnlockInfo", true, false) as PanelContainer
+	var pin_info_label := pin_info.get_child(0) as Label if pin_info != null else null
 	var pin_error := worksite_preview.find_child("PINEntryError", true, false) as Label
-	if pin_info == null or pin_error == null or not str(pin_info.get_child(0).text).contains("1234"):
+	if pin_info == null or pin_info_label == null or pin_error == null or not pin_info_label.text.contains("1234"):
 		_fail("PIN screen did not clearly display the preview unlock PIN 1234.")
 		return
 	for digit in ["0", "0", "0", "0"]:
