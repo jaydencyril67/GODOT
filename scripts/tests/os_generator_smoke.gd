@@ -835,6 +835,25 @@ func _run_os_generator_test() -> void:
 	if home_apps_grid == null or home_apps_grid.columns != 4 or home_apps_grid.get_child_count() != 4:
 		_fail("Android home screen must contain exactly four apps in one four-column row.")
 		return
+	if worksite_preview.find_child("AndroidHomeTopFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeMiddleFlexibleSpace", true, false) == null or worksite_preview.find_child("AndroidHomeSearchFlexibleSpace", true, false) == null:
+		_fail("Layout 1 must distribute its sections across the full home-screen height.")
+		return
+	var weather_style := weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
+	var assistant_style := assistant_widget.get_theme_stylebox("panel") as StyleBoxFlat
+	if weather_style == null or assistant_style == null or weather_style.corner_radius_top_left <= 0 or assistant_style.corner_radius_top_left <= 0:
+		_fail("Layout 1 widgets must have visibly rounded bordered surfaces.")
+		return
+	var first_home_app := home_apps_grid.get_child(0) as VBoxContainer
+	var first_home_button := first_home_app.get_node_or_null("CenterContainer/Button") as Button
+	var first_home_button_style := first_home_button.get_theme_stylebox("normal") as StyleBoxFlat if first_home_button != null else null
+	if first_home_button_style == null or first_home_button_style.corner_radius_top_left <= 0 or first_home_button_style.border_width_left <= 0:
+		_fail("Layout 1 app icons must have rounded borders.")
+		return
+	var home_dock_panel := worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
+	var dock_style := home_dock_panel.get_theme_stylebox("panel") as StyleBoxFlat if home_dock_panel != null else null
+	if dock_style == null or dock_style.corner_radius_top_left <= 0 or dock_style.border_width_left <= 0:
+		_fail("Layout 1 dock must have a rounded bordered background.")
+		return
 	var home_app_names := ["Photos", "Store", "Email", "Maps"]
 	var dock_app_names := ["Phone", "Messages", "Browser", "Camera"]
 	for app_name in home_app_names:
