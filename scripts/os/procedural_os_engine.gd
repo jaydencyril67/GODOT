@@ -162,8 +162,10 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
 	style["icon_size"] = clampi(int(style.get("icon_size", 52)), 40, 64)
-	if not ["square", "soft_square", "rounded", "squircle"].has(style["icon_shape"]):
-		style["icon_shape"] = "rounded"
+	var icon_shape := str(style.get("icon_shape", "rounded"))
+	if not ["square", "soft_square", "rounded", "squircle"].has(icon_shape):
+		icon_shape = "rounded"
+	style["icon_shape"] = icon_shape
 	style["corner_radius"] = [0, 6, 18][generation_number - 1]
 	style["widget_count"] = [0, 2, 4][generation_number - 1]
 	style["spacing"] = clampi(int(style.get("spacing", 10)), 4, 20)
