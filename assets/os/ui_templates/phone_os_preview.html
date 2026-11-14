@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>DigitalWorld OS Preview</title>
+<style>
+:root{color-scheme:dark;--ink:#f8f9fc;--muted:rgba(255,255,255,.72);--glass:rgba(255,255,255,.17);--line:rgba(255,255,255,.2);--accent:#a9d0ff;--radius:18px;--android-wallpaper:url("__ANDROID_WALLPAPER_URI__")}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}
+body{font-family:Roboto,"Arial",sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:pan-y}
+button{color:inherit;font:inherit;border:0;outline:0;background:none;padding:0}
+#device{position:relative;width:100%;height:100%;overflow:hidden;border-radius:15px;background:#10141b;isolation:isolate}
+.wallpaper{position:absolute;inset:0;z-index:-2;transition:background .25s ease}
+.wallpaper:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.06) 38%,rgba(0,0,0,.38))}
+.android .wallpaper{background-image:var(--android-wallpaper),radial-gradient(ellipse at 68% 16%,#85b8f1,#426c9f 34%,#192e50 76%);background-size:cover;background-position:center}
+.ios .wallpaper{background:radial-gradient(ellipse at 18% 18%,#ffb1aa 0%,transparent 39%),radial-gradient(ellipse at 90% 24%,#a8d3ff 0%,transparent 36%),radial-gradient(ellipse at 55% 95%,#665ed0,#1c2353 55%,#15192d)}
+.windows .wallpaper{background:linear-gradient(135deg,#081b35,#0a4c83 48%,#087fba)}
+.windows .wallpaper:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,transparent 0 48%,rgba(255,255,255,.08) 48.2% 49%,transparent 49.2%),linear-gradient(45deg,transparent 0 64%,rgba(0,0,0,.13) 64.2% 65%,transparent 65.2%)}
+.status{position:absolute;z-index:30;top:0;left:0;right:0;height:25px;padding:5px 12px 0;display:flex;justify-content:space-between;align-items:flex-start;font-size:9px;font-weight:650;letter-spacing:.1px;text-shadow:0 1px 5px rgba(0,0,0,.25)}
+.status-right{display:flex;align-items:center;gap:5px}.status-glyph{font-size:10px;opacity:.94}
+.screen{position:absolute;inset:0;display:none;overflow:hidden}.screen.active{display:block}
+.glass{background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.lock-screen{display:flex;flex-direction:column;padding:29px 13px 9px}
+.lock-topline{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.88);text-align:center}
+.lock-clock{text-align:center;font-size:clamp(48px,25vw,86px);line-height:.94;font-weight:350;letter-spacing:-.075em;margin:6px 0 0;text-shadow:0 2px 16px rgba(0,0,0,.12);font-variant-numeric:tabular-nums}
+.lock-date{font-size:11px;text-align:center;font-weight:550;margin-top:7px;text-shadow:0 1px 8px rgba(0,0,0,.25)}
+.lock-flex{flex:1;min-height:5px}
+.lock-cards{display:flex;flex-direction:column;gap:7px;margin:7px 0 10px}
+.widget{border-radius:var(--radius);padding:9px 10px;background:rgba(255,255,255,.19);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 5px 18px rgba(0,0,0,.08)}
+.widget-kicker{text-transform:uppercase;letter-spacing:.11em;font-size:7px;font-weight:700;opacity:.76}
+.weather-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.weather-temp{font-size:27px;letter-spacing:-.06em;font-weight:350;line-height:1;margin-top:4px}
+.widget-detail{font-size:8px;opacity:.83;margin-top:3px}.weather-icon{font-size:28px;line-height:1}
+.notification{display:flex;gap:8px;align-items:flex-start;border-radius:var(--radius);padding:9px 10px;background:rgba(16,22,35,.34);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.notification-icon{width:23px;height:23px;border-radius:7px;background:#3e82ca;display:grid;place-items:center;font-size:12px;flex:none}
+.notification-body{min-width:0;flex:1}.notification-head{display:flex;justify-content:space-between;gap:5px;font-size:8px;font-weight:700}
+.notification-time{opacity:.65;font-weight:450}.notification-copy{font-size:8px;opacity:.9;margin-top:3px;line-height:1.3}
+.lock-actions{display:flex;justify-content:space-between;align-items:center;padding:3px 7px 5px}
+.round-action{width:34px;height:34px;border-radius:50%;background:rgba(15,20,29,.38);border:1px solid rgba(255,255,255,.23);display:grid;place-items:center;font-size:16px;backdrop-filter:blur(16px)}
+.unlock-action{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:7px;color:rgba(255,255,255,.88)}
+.unlock-chevron{font-size:18px;line-height:1;animation:nudge 1.7s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.indicator-area{position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:center;z-index:35;pointer-events:none}
+.indicator{width:47px;height:4px;border-radius:6px;background:rgba(255,255,255,.86);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.home-screen{padding:28px 11px 8px;display:flex;flex-direction:column}
+.home-heading{display:flex;justify-content:space-between;align-items:center;min-height:18px;font-size:8px;font-weight:650;text-shadow:0 1px 7px rgba(0,0,0,.25)}
+.home-date{font-size:9px;letter-spacing:.02em}
+.search-pill{border-radius:24px;padding:7px 10px;background:rgba(245,248,255,.88);color:#313944;display:flex;gap:7px;align-items:center;font-size:8px;box-shadow:0 2px 9px rgba(0,0,0,.1)}
+.android .search-pill{margin:5px 0 9px}.search-icon{font-size:12px}
+.android-at-glance{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;margin-bottom:9px;border-radius:var(--radius);background:rgba(12,28,50,.28);border:1px solid rgba(255,255,255,.18)}
+.glance-time{font-size:23px;letter-spacing:-.05em;font-weight:350}.glance-detail{font-size:7px;opacity:.9;margin-top:2px}
+.glance-weather{text-align:right;font-size:8px;line-height:1.45}
+.home-widget-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.home-widget{min-height:49px;border-radius:var(--radius);padding:8px;background:rgba(248,250,255,.88);color:#263448;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.home-widget .widget-kicker{color:#607188}.home-widget-main{font-weight:700;font-size:12px;margin-top:4px}
+.home-widget-copy{font-size:7px;color:#586a7f;margin-top:2px}
+.app-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:5px;row-gap:11px;padding:4px 1px}
+.app-button{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.app-icon{width:clamp(26px,10.7vw,39px);height:clamp(26px,10.7vw,39px);border-radius:13px;display:grid;place-items:center;font-size:17px;font-weight:650;color:white;box-shadow:0 3px 8px rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.22)}
+.app-name{max-width:100%;font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.45)}
+.home-spacer{flex:1;min-height:4px}
+.dock{display:flex;justify-content:space-around;align-items:center;gap:3px;padding:7px 6px;margin:5px 1px 7px;border-radius:var(--radius);background:rgba(235,241,250,.36);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+.dock .app-name{display:none}
+.ios .dock{border-radius:25px;background:rgba(244,247,255,.28);padding:7px 5px}
+.ios .home-date{font-size:11px;font-weight:700}
+.ios .home-widget-row{margin-top:11px}
+.ios .home-widget{min-height:64px;border-radius:17px;background:rgba(244,247,255,.84)}
+.ios .app-grid{row-gap:12px;margin-top:7px}
+.ios .app-icon{width:clamp(28px,11.3vw,42px);height:clamp(28px,11.3vw,42px);border-radius:15px;font-size:18px}
+.ios .search-pill{align-self:center;background:rgba(245,247,253,.3);border:1px solid rgba(255,255,255,.27);color:white;margin:4px 0 0}
+.ios .app-name{font-size:7px}
+.windows .home-screen{padding:30px 12px 9px}
+.windows .home-heading{justify-content:flex-start;font-size:21px;font-weight:300;letter-spacing:-.04em;min-height:28px}
+.windows .home-date{font-size:7px;text-transform:uppercase;letter-spacing:.13em;margin:4px 0 10px;opacity:.85}
+.windows .tile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(35px,1fr);gap:4px;flex:1;min-height:0}
+.tile{padding:7px;display:flex;flex-direction:column;justify-content:space-between;background:#0879bf;min-height:34px;overflow:hidden;position:relative;text-align:left}
+.tile span{font-size:7px;opacity:.88}.tile b{font-size:15px;font-weight:300;line-height:1.03}.tile small{font-size:6px;opacity:.85}
+.tile.wide{grid-column:span 2}.tile.tall{grid-row:span 2}
+.tile.photo{background:linear-gradient(150deg,rgba(0,0,0,.08),rgba(0,0,0,.52)),linear-gradient(135deg,#b4a178,#53697c 54%,#172b45)}
+.tile.calendar{background:#7f2437}.tile.weather{background:#1d8dba}.tile.messages{background:#34834b}
+.tile.people{background:#72529a}.tile.mail{background:#1769aa}.tile.music{background:#c26024}
+.windows .tile-apps{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.windows .tile-apps button{font-size:8px;background:rgba(255,255,255,.16);padding:5px 7px;border-left:2px solid rgba(255,255,255,.8)}
+.windows .home-spacer{flex:0}.windows .dock{background:transparent;border:0;padding:5px 0 4px;justify-content:flex-start}
+.windows .dock .app-icon{width:24px;height:24px;border-radius:0;font-size:13px}
+.windows .dock .app-button{flex-direction:row;gap:5px}.windows .dock .app-name{display:block;font-size:7px}
+.panel-screen{padding:29px 12px 12px;background:rgba(9,16,29,.82);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px)}
+.panel-title{font-size:20px;font-weight:350;letter-spacing:-.04em;margin:9px 0 12px}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.quick-tile{padding:10px;border-radius:15px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.1);font-size:8px;display:flex;justify-content:space-between}
+.quick-tile.active{background:#286fbd}
+.panel-slider{margin-top:10px;padding:11px;border-radius:14px;background:rgba(255,255,255,.14);font-size:8px}
+.panel-slider div{height:5px;border-radius:6px;background:linear-gradient(90deg,#c5dfff 62%,rgba(255,255,255,.22) 62%);margin-top:9px}
+.drawer-screen{padding:29px 11px 10px}
+.drawer-heading{font-size:16px;font-weight:650;margin:8px 0 9px}
+.drawer-search{padding:7px 10px;border-radius:20px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.2);font-size:8px;margin-bottom:10px}
+.drawer-screen .app-grid{overflow:auto;max-height:calc(100% - 60px)}
+.app-screen{padding:29px 12px 12px;background:rgba(245,247,250,.98);color:#172337}
+.app-screen .app-header{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;margin:10px 0 18px}
+.app-screen .app-copy{font-size:9px;color:#526175;line-height:1.45}
+.app-screen .app-sample{margin-top:14px;border-radius:14px;background:#e7edf4;padding:12px;font-size:9px}
+.app-screen .home-indicator{background:#1e2835}
+.footer-note{font-size:7px;text-align:center;opacity:.68;padding:3px 0 1px}
+.android .home-indicator,.ios .home-indicator{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:43px;height:4px;border-radius:6px;background:rgba(255,255,255,.82);z-index:40}
+.ios .home-indicator{width:45px;background:rgba(255,255,255,.9)}
+.windows .home-indicator{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:24px;height:3px;background:rgba(255,255,255,.65);z-index:40}
+.hidden{display:none!important}
+@media(max-height:430px){.lock-clock{font-size:clamp(40px,21vw,65px)}.widget{padding:6px 8px}.home-widget{min-height:42px;padding:6px}.app-grid{row-gap:6px}.app-icon{width:27px;height:27px;border-radius:10px}}
+</style>
+</head>
+<body>
+<div id="device" class="android">
+  <div class="wallpaper"></div>
+  <div class="status"><span id="status-clock">9:41</span><span class="status-right"><span class="status-glyph">◉</span><span class="status-glyph">▰</span><span class="status-glyph">▮</span></span></div>
+  <section id="lock-screen" class="screen lock-screen active">
+    <div class="lock-topline" id="lock-topline">PERSONAL · DIGITALWORLD</div>
+    <div class="lock-date" id="lock-date">Saturday, November 14</div>
+    <div class="lock-clock" id="lock-clock">9:41</div>
+    <div class="lock-flex"></div>
+    <div id="lock-cards" class="lock-cards">
+      <div class="widget"><div class="weather-row"><div><div class="widget-kicker">Weather · Port Harcourt</div><div class="weather-temp">28°</div><div class="widget-detail">Partly cloudy · Feels like 30°</div></div><div class="weather-icon">☁</div></div></div>
+      <div class="notification"><div class="notification-icon">✉</div><div class="notification-body"><div class="notification-head"><span>Messages</span><span class="notification-time">now</span></div><div class="notification-copy">Your DigitalWorld phone is ready to explore.</div></div></div>
+    </div>
+    <div class="lock-actions"><button class="round-action" data-action="flashlight" aria-label="Flashlight">◐</button><button class="unlock-action" data-action="unlock"><span class="unlock-chevron">⌃</span><span>Swipe up to unlock</span></button><button class="round-action" data-action="camera" aria-label="Camera">◉</button></div>
+    <div class="indicator-area"><div class="indicator"></div></div>
+  </section>
+  <section id="home-screen" class="screen home-screen">
+    <div class="home-heading"><span id="home-date" class="home-date">Saturday, November 14</span><span id="home-greeting">◉  ▰</span></div>
+    <div id="android-home-content" class="hidden">
+      <div class="android-at-glance"><div><div id="android-home-time" class="glance-time">9:41</div><div class="glance-detail">SATURDAY · NOV 14</div></div><div class="glance-weather"><b>☁ 28°</b><br>Port Harcourt<br>Partly cloudy</div></div>
+      <button class="search-pill" data-action="spotlight"><span class="search-icon">⌕</span><span>Search your phone</span><span style="margin-left:auto">◉</span></button>
+      <div class="home-widget-row"><div class="home-widget"><div class="widget-kicker">Weather</div><div class="home-widget-main">28° · Cloudy</div><div class="home-widget-copy">Port Harcourt · Today</div></div><div class="home-widget"><div class="widget-kicker">Assistant</div><div class="home-widget-main">Ask anything</div><div class="home-widget-copy">Your day at a glance</div></div></div>
+      <div id="android-app-grid" class="app-grid"></div>
+    </div>
+    <div id="ios-home-content" class="hidden">
+      <div class="home-widget-row"><div class="home-widget"><div class="widget-kicker">Weather · Port Harcourt</div><div class="home-widget-main" style="font-size:20px">☀ 28°</div><div class="home-widget-copy">Mostly sunny · H:30° L:24°</div></div><div class="home-widget"><div class="widget-kicker">Saturday · Calendar</div><div class="home-widget-main" style="font-size:19px">14</div><div class="home-widget-copy">No events scheduled today</div></div></div>
+      <div id="ios-app-grid" class="app-grid"></div><button class="search-pill" data-action="spotlight" style="margin:7px auto 0">⌕ &nbsp; Search</button>
+    </div>
+    <div id="windows-home-content" class="hidden"><div id="windows-tile-grid" class="tile-grid"></div><div class="tile-apps"><button data-action="drawer">All apps&nbsp; ›</button><button data-action="control">Action center</button></div></div>
+    <div class="home-spacer"></div><div id="home-dock" class="dock"></div>
+    <div class="indicator-area"><div class="indicator"></div></div>
+  </section>
+  <section id="drawer-screen" class="screen drawer-screen"><div class="drawer-heading" id="drawer-heading">All apps</div><div class="drawer-search">⌕ &nbsp; Search apps</div><div id="drawer-app-grid" class="app-grid"></div><div class="indicator-area" data-action="home"><div class="indicator"></div></div></section>
+  <section id="panel-screen" class="screen panel-screen">
+    <div class="panel-title" id="panel-title">Quick settings</div><div class="quick-grid"><div class="quick-tile active">◉ &nbsp; Wi-Fi <b>On</b></div><div class="quick-tile active">⌁ &nbsp; Bluetooth <b>On</b></div><div class="quick-tile">◐ &nbsp; Airplane mode</div><div class="quick-tile">☾ &nbsp; Focus</div></div>
+    <div class="panel-slider">Brightness<div></div></div><div class="panel-slider">Volume<div style="background:linear-gradient(90deg,#c5dfff 42%,rgba(255,255,255,.22) 42%)"></div></div>
+    <button class="footer-note" data-action="close-panel">Tap or swipe up to close</button><div class="indicator-area"><div class="indicator"></div></div>
+  </section>
+  <section id="app-screen" class="screen app-screen"><div class="app-header"><button data-action="home">‹ &nbsp; Home</button><span id="opened-app-name">App</span><span>•••</span></div><div class="app-copy">A preview of this phone's system app.</div><div class="app-sample"><b id="opened-app-title">Welcome</b><p id="opened-app-copy">The app interface is ready to be connected to the DigitalWorld application system.</p></div><div class="home-indicator" data-action="home"></div></section>
+</div>
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const screenIds = ["lock-screen","home-screen","drawer-screen","panel-screen","app-screen"];
+  let state = {os:"android",screen:"lock_screen",lock:{},home:{},apps:[],corner_radius:18};
+  let currentView = "lock-screen";
+  let swipeStart = null;
+  let flashlightOn = false;
+  let pageCount = 1;
+
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  }
+  function validColor(value) {
+    return /^#[0-9a-fA-F]{6}$/.test(String(value || "")) ? value : "#6689ae";
+  }
+  function send(action, extra) {
+    try {
+      if (window.DigitalWorldOS && typeof window.DigitalWorldOS.postMessage === "function")
+        window.DigitalWorldOS.postMessage(JSON.stringify(Object.assign({action}, extra || {})));
+    } catch (_) {}
+  }
+  function appIcon(app, dock) {
+    const name = esc(app.name || "App");
+    const glyph = esc(app.glyph || "●");
+    const color = validColor(app.color);
+    return '<button class="app-button" data-app="' + name + '"><span class="app-icon" style="background:' + color + '">' + glyph + '</span><span class="app-name">' + (dock ? "" : name) + '</span></button>';
+  }
+  function renderApps() {
+    const apps = Array.isArray(state.apps) ? state.apps : [];
+    const preferred = ["Photos","Store","Email","Maps","Calendar","Camera","Music","Settings","Files","Clock","Notes","Browser","Weather","Phone","Messages","Wallet"];
+    const ordered = preferred.map(name => apps.find(app => app.name === name)).filter(Boolean);
+    for (const app of apps) if (!ordered.some(item => item.name === app.name)) ordered.push(app);
+    const dockNames = state.os === "windows" ? ["Phone","Messages","Browser"] : ["Phone","Messages","Browser","Camera"];
+    const dockApps = dockNames.map(name => apps.find(app => app.name === name)).filter(Boolean);
+    $("android-app-grid").innerHTML = ordered.slice(0,8).map(app => appIcon(app,false)).join("");
+    $("ios-app-grid").innerHTML = ordered.slice(0,12).map(app => appIcon(app,false)).join("");
+    $("drawer-app-grid").innerHTML = ordered.map(app => appIcon(app,false)).join("");
+    $("home-dock").innerHTML = dockApps.map(app => appIcon(app,true)).join("");
+    const tiles = [
+      {name:"Calendar",title:new Date().getDate(),copy:new Date().toLocaleDateString(undefined,{month:"short"}),kind:"calendar"},
+      {name:"Photos",title:"Memories",copy:"Your moments",kind:"photo"},
+      {name:"Messages",title:"3",copy:"New messages",kind:"messages"},
+      {name:"Weather",title:"28°",copy:"Partly cloudy",kind:"weather"},
+      {name:"People",title:"People",copy:"Stay connected",kind:"people"},
+      {name:"Mail",title:"Inbox",copy:"12 new",kind:"mail"},
+      {name:"Music",title:"♫",copy:"Now playing",kind:"music"}
+    ];
+    $("windows-tile-grid").innerHTML = tiles.map((tile,i) => '<button class="tile ' + tile.kind + (i===1?' tall':i===5?' wide':'') + '" data-app="' + esc(tile.name) + '"><span>' + esc(tile.name) + '</span><b>' + esc(tile.title) + '</b><small>' + esc(tile.copy) + '</small></button>').join("");
+  }
+  function show(view) {
+    currentView = view;
+    for (const id of screenIds) $(id).classList.toggle("active",id === view);
+  }
+  function applyState(next) {
+    if (!next || typeof next !== "object") return;
+    const previousOS = state.os;
+    state = Object.assign({},state,next);
+    if (!["android","ios","windows"].includes(state.os)) state.os = "android";
+    $("device").className = state.os;
+    document.documentElement.style.setProperty("--radius",Math.max(0,Math.min(24,Number(state.corner_radius)||0))+"px");
+    const lock = state.lock || {};
+    $("lock-cards").classList.toggle("hidden",lock.show_notifications === false && lock.show_audio_player === false);
+    const notification = $("lock-cards").querySelector(".notification");
+    if (notification) notification.classList.toggle("hidden",lock.show_notifications === false);
+    const actions = $("lock-screen").querySelector(".lock-actions");
+    if (actions) {
+      actions.querySelector('[data-action="camera"]').classList.toggle("hidden",lock.show_camera_shortcut === false);
+      actions.querySelector('[data-action="flashlight"]').classList.toggle("hidden",lock.show_flashlight_shortcut === false);
+    }
+    $("lock-topline").textContent = state.os === "windows" ? "PERSONAL · DIGITALWORLD" : state.os === "ios" ? "PERSONAL" : "SATURDAY · PERSONAL";
+    $("android-home-content").classList.toggle("hidden",state.os !== "android");
+    $("ios-home-content").classList.toggle("hidden",state.os !== "ios");
+    $("windows-home-content").classList.toggle("hidden",state.os !== "windows");
+    $("drawer-heading").textContent = state.os === "ios" ? "App Library" : state.os === "windows" ? "all apps" : "All apps";
+    $("panel-title").textContent = state.os === "windows" ? "Action center" : state.os === "ios" ? "Control Center" : "Quick settings";
+    $("home-greeting").textContent = state.os === "windows" ? "Start" : "◉  ▰";
+    renderApps();
+    updateClock();
+    if (previousOS !== state.os && currentView === "home-screen") show("home-screen");
+    if (state.screen === "lock_screen" && currentView === "home-screen") show("lock-screen");
+  }
+  function updateClock() {
+    const now = new Date();
+    const time = new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit"}).format(now);
+    const date = new Intl.DateTimeFormat(undefined,{weekday:"long",month:"long",day:"numeric"}).format(now);
+    $("status-clock").textContent = time;
+    $("lock-clock").textContent = time;
+    $("lock-date").textContent = date;
+    $("home-date").textContent = date;
+    $("android-home-time").textContent = time;
+  }
+  function openApp(name) {
+    $("opened-app-name").textContent = name;
+    $("opened-app-title").textContent = name;
+    $("opened-app-copy").textContent = name + " is ready to open in DigitalWorld.";
+    show("app-screen");
+    send("open_app",{name});
+  }
+  function goHome() { show("home-screen"); send("home"); }
+  function onAction(action,target) {
+    if (action === "unlock") { send("unlock_requested"); return; }
+    if (action === "home") { goHome(); return; }
+    if (action === "drawer") { show("drawer-screen"); return; }
+    if (action === "control") { show("panel-screen"); return; }
+    if (action === "notification") { $("panel-title").textContent="Notifications";show("panel-screen");return; }
+    if (action === "close-panel") { goHome();return; }
+    if (action === "spotlight") { show("drawer-screen");return; }
+    if (action === "flashlight") {
+      flashlightOn = !flashlightOn;
+      target.style.background = flashlightOn ? "rgba(255,255,255,.46)" : "rgba(15,20,29,.38)";
+      return;
+    }
+    if (action === "camera") { openApp("Camera");return; }
+  }
+  document.addEventListener("click",event => {
+    const actionTarget = event.target.closest("[data-action]");
+    if (actionTarget) { onAction(actionTarget.dataset.action,actionTarget);return; }
+    const appTarget = event.target.closest("[data-app]");
+    if (appTarget) openApp(appTarget.dataset.app);
+  });
+  document.addEventListener("pointerdown",event => {swipeStart={x:event.clientX,y:event.clientY};},{passive:true});
+  document.addEventListener("pointerup",event => {
+    if (!swipeStart) return;
+    const dx=event.clientX-swipeStart.x,dy=event.clientY-swipeStart.y,startY=swipeStart.y;
+    swipeStart=null;
+    if(Math.abs(dy)<32&&Math.abs(dx)<36)return;
+    if(dy<-45&&currentView==="lock-screen")send("unlock_requested");
+    else if(dy<-45&&currentView==="home-screen")show("drawer-screen");
+    else if(dy>45&&startY<30&&currentView==="home-screen")show("panel-screen");
+    else if(dy>45&&startY<30&&currentView==="lock-screen"){$("panel-title").textContent="Notifications";show("panel-screen");}
+    else if(dy<-45&&["panel-screen","app-screen"].includes(currentView))goHome();
+  },{passive:true});
+  document.addEventListener("contextmenu",event=>event.preventDefault());
+  window.DigitalWorldOSPreview={applyState(raw){try{applyState(typeof raw==="string"?JSON.parse(raw):raw);}catch(_){}}};
+  updateClock();setInterval(updateClock,1000);renderApps();
+})();
+</script>
+</body>
+</html>
