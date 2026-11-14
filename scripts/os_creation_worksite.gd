@@ -11,6 +11,7 @@ var generated_os_configuration: Dictionary = {}
 var selected_os_component_id := "home_screen"
 var current_wizard_step := 1
 var home_screen_layout_level := 0
+var home_screen_corner_radius := 0
 var home_screen_layout_decrease_button: Button
 var home_screen_layout_increase_button: Button
 var home_screen_layout_value_label: Label
@@ -549,6 +550,48 @@ func _show_home_screen_studio_controls() -> void:
 	home_screen_layout_increase_button.pressed.connect(_on_home_screen_layout_increase_pressed)
 	selector.add_child(home_screen_layout_increase_button)
 	_refresh_home_screen_layout_selector()
+
+	var radius_row := HBoxContainer.new()
+	radius_row.name = "HomeScreenCornerRadiusControl"
+	radius_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	radius_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	radius_row.add_theme_constant_override("separation", 8)
+	content.add_child(radius_row)
+
+	var radius_title := _label("CORNER RADIUS", 11, Color("#D0CBC2"))
+	radius_title.custom_minimum_size.x = 92
+	radius_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	radius_row.add_child(radius_title)
+
+	var radius_slider := HSlider.new()
+	radius_slider.name = "HomeScreenCornerRadiusSlider"
+	radius_slider.min_value = 0
+	radius_slider.max_value = 24
+	radius_slider.step = 1
+	radius_slider.value = home_screen_corner_radius
+	radius_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	radius_slider.custom_minimum_size = Vector2(100, 24)
+	radius_slider.focus_mode = Control.FOCUS_NONE
+	radius_slider.value_changed.connect(_on_home_screen_corner_radius_changed)
+	radius_row.add_child(radius_slider)
+
+	var radius_value := _label(str(home_screen_corner_radius), 11, Color("#D3AA6B"))
+	radius_value.name = "HomeScreenCornerRadiusValue"
+	radius_value.custom_minimum_size.x = 20
+	radius_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	radius_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	radius_row.add_child(radius_value)
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.set_home_screen_corner_radius(float(home_screen_corner_radius))
+
+
+func _on_home_screen_corner_radius_changed(value: float) -> void:
+	home_screen_corner_radius = clampi(roundi(value), 0, 24)
+	var value_label := find_child("HomeScreenCornerRadiusValue", true, false) as Label
+	if value_label != null:
+		value_label.text = str(home_screen_corner_radius)
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.set_home_screen_corner_radius(float(home_screen_corner_radius))
 
 
 func _on_home_screen_layout_decrease_pressed() -> void:
