@@ -305,6 +305,7 @@ func _run_os_generator_test() -> void:
 			_fail("PIN keypad is missing digit " + digit + ".")
 			return
 		unlock_key.pressed.emit()
+		await process_frame
 	if simulator.get("active_component") != "home_screen":
 		_fail("Correct PIN 1234 did not unlock the phone after a lock-screen swipe.")
 		return
@@ -665,12 +666,14 @@ func _run_os_generator_test() -> void:
 	for digit in ["0", "0", "0", "0"]:
 		var wrong_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
 		wrong_key.pressed.emit()
+		await process_frame
 	if worksite_preview.get("active_component") != "pin_input" or not pin_error.text.contains("Incorrect PIN"):
 		_fail("Incorrect PIN did not show an error while keeping the phone locked.")
 		return
 	for digit in ["1", "2", "3", "4"]:
 		var correct_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
 		correct_key.pressed.emit()
+		await process_frame
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering the correct preview PIN 1234 did not unlock to Home.")
 		return
