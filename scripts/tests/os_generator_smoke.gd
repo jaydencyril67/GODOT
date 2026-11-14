@@ -823,7 +823,7 @@ func _run_os_generator_test() -> void:
 	if transparent_dock == null or transparent_dock.get_child_count() != 4 or worksite_preview.find_child("HomeAppDockIcons", true, false) != null:
 		_fail("Huawei home screen dock must contain four icons directly on the wallpaper without a dock card.")
 		return
-	var home_app_names := ["Gallery", "Music", "Video", "Calendar", "Wallet", "Themes", "Settings", "Browser"]
+	var home_app_names := ["Gallery", "Music", "Video", "Calendar", "Wallet", "Files", "Settings", "Browser"]
 	var dock_app_names := ["Phone", "Messages", "Camera", "Email"]
 	for app_name in home_app_names:
 		if home_apps_grid.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
