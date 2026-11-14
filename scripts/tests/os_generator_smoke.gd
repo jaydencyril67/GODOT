@@ -106,7 +106,13 @@ func _run_os_generator_test() -> void:
 		if layout_root == null:
 			_fail("A lock-screen template did not render its own layout root: " + template_name)
 			return
-		observed_templates[layout_root.name] = true
+		var structure_signature := ""
+		for layout_child in layout_root.get_children():
+			structure_signature += "%s:%s|" % [layout_child.name, layout_child.get_class()]
+		if observed_templates.has(structure_signature):
+			_fail("Two lock-screen templates share the same structural composition: " + template_name)
+			return
+		observed_templates[structure_signature] = true
 		template_preview.queue_free()
 		await process_frame
 	if observed_templates.size() != 20:
@@ -140,6 +146,9 @@ func _run_os_generator_test() -> void:
 	var lock_design_after: Dictionary = lock_redesigned["components"]["lock_screen"]
 	if str(lock_design_after.get("design_family", "")) == lock_design_before:
 		_fail("Lock-screen generator repeated the previous design family.")
+		return
+	if str(lock_design_after.get("layout_template", "")) == str(lock_candidate_data.get("layout_template", "")):
+		_fail("Lock-screen generator repeated the previous structural template.")
 		return
 	if str(lock_redesigned["style"]["wallpaper"]) != lock_wallpaper_before or str(lock_design_after.get("wallpaper", "")) != lock_wallpaper_before:
 		_fail("Lock-screen generation changed the independently managed wallpaper.")
