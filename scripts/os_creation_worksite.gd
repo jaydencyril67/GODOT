@@ -397,10 +397,11 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 	boot_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	boot_logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	boot_stage_container.add_child(boot_logo)
-	boot_message = _label("", 12, Color("#F3F0E9"))
+	boot_message = _label("", 10, Color("#F3F0E9"))
 	boot_message.name = "BootIdentityText"
 	boot_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	boot_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	boot_message.autowrap_mode = TextServer.AUTOWRAP_OFF
+	boot_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	boot_stage_container.add_child(boot_message)
 	boot_stage_container.modulate.a = 0.0
 	boot_logo.texture = _get_boot_company_logo_texture()
@@ -560,7 +561,7 @@ func _run_boot_sequence() -> void:
 		if item_id == "company_logo":
 			boot_logo.texture = _get_boot_company_logo_texture()
 			boot_message.text = ""
-		elif item_id == "phone_name":
+		elif item_id == "phone_details":
 			boot_message.text = str(boot_identity["phone_name"]) + " " + str(boot_identity["phone_model"])
 		boot_stage_container.modulate.a = 0.0
 		var fade_in := create_tween()
