@@ -798,6 +798,41 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering the correct preview PIN 1234 did not unlock to Home.")
 		return
+	var home_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
+	var home_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
+	var service_row := worksite_preview.find_child("HomeServiceWidgetRow", true, false) as HBoxContainer
+	var activity_widget := worksite_preview.find_child("HomeActivityWidget", true, false) as PanelContainer
+	var home_apps_grid := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
+	var transparent_dock := worksite_preview.find_child("HomeAppDock", true, false) as HBoxContainer
+	if home_clock == null or home_date == null or service_row == null or activity_widget == null:
+		_fail("Huawei-inspired home screen is missing its centred clock, date or mixed service-widget row.")
+		return
+	if service_row.get_child_count() != 3 or service_row.get_child(0).name != "HomeServiceShortcutWeather" or service_row.get_child(1).name != "HomeServiceShortcutCalculator":
+		_fail("Home screen must place Weather and Calculator shortcuts beside the wider activity widget.")
+		return
+	var activity_style := activity_widget.get_theme_stylebox("panel") as StyleBoxFlat
+	if activity_style == null or activity_style.corner_radius_top_left != 0 or activity_style.get_border_width(SIDE_LEFT) != 0:
+		_fail("Home activity widget must use square geometry without taking ownership of widget-border settings.")
+		return
+	if home_apps_grid == null or home_apps_grid.columns != 4 or home_apps_grid.get_child_count() != 8:
+		_fail("Huawei home screen must contain exactly eight apps in a four-column grid.")
+		return
+	if transparent_dock == null or transparent_dock.get_child_count() != 4 or worksite_preview.find_child("HomeAppDockIcons", true, false) != null:
+		_fail("Huawei home screen dock must contain four icons directly on the wallpaper without a dock card.")
+		return
+	var home_app_names := ["Gallery", "Music", "Video", "Books", "Wallet", "Themes", "Settings", "Browser"]
+	var dock_app_names := ["Phone", "Messages", "Camera", "Email"]
+	for app_name in home_app_names:
+		if home_apps_grid.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
+			_fail("Expected home-screen app is missing: " + app_name)
+			return
+		if dock_app_names.has(app_name):
+			_fail("Home-screen apps must not be duplicated in the dock: " + app_name)
+			return
+	for app_name in dock_app_names:
+		if transparent_dock.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
+			_fail("Expected dock app is missing: " + app_name)
+			return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame
 	fingerprint_sensor = worksite_preview.find_child("LockScreenFingerprintSensor", true, false) as Button
