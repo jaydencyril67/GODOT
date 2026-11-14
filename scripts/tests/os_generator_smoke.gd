@@ -8,7 +8,19 @@ const DigitalWorldGameScript = preload("res://scripts/digitalworld_game.gd")
 func _initialize() -> void:
 	call_deferred("_run_os_generator_test")
 
+func _report_object_counts(stage: String) -> void:
+	print(
+		"OS_SMOKE_MEMORY %s objects=%d nodes=%d orphan_nodes=%d resources=%d" % [
+			stage,
+			int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+			int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
+			int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)),
+			int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT))
+		]
+	)
+
 func _run_os_generator_test() -> void:
+	_report_object_counts("start")
 	var identity_owner := DigitalWorldGameScript.new()
 	identity_owner.set("career", {"phone_name": "   ", "phone_model": null})
 	identity_owner.call("_normalize_phone_identity")
@@ -166,6 +178,7 @@ func _run_os_generator_test() -> void:
 	simulator_host.remove_child(template_preview)
 	template_preview.free()
 	await process_frame
+	_report_object_counts("after_lock_templates")
 
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
@@ -450,6 +463,7 @@ func _run_os_generator_test() -> void:
 	root.remove_child(simulator_host)
 	simulator_host.free()
 	await process_frame
+	_report_object_counts("after_simulator")
 
 	var worksite := WorksiteScene.instantiate()
 	root.add_child(worksite)
@@ -650,6 +664,7 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	await process_frame
 	await process_frame
+	_report_object_counts("after_worksite")
 	print("OS_GENERATOR_SMOKE_TEST: PASS")
 	quit(0)
 
