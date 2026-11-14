@@ -991,10 +991,8 @@ func _build_lock_screen(data: Dictionary) -> void:
 	notification_column.add_theme_constant_override("separation", 4)
 	var media_column := VBoxContainer.new()
 	media_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if notifications.get_child_count() > 0:
-		notification_column.add_child(notifications)
-	if is_instance_valid(media):
-		media_column.add_child(media)
+	if template in ["rhombus_clock", "nothing_widget_grid"]:
+		clock_panel.add_child(clock_stack)
 
 	match template:
 		"classic_clock":
@@ -1020,6 +1018,10 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"widget_dashboard":
+			if notifications.get_child_count() > 0:
+				notification_column.add_child(notifications)
+			if is_instance_valid(media):
+				media_column.add_child(media)
 			root_layout.add_child(clock_stack)
 			root_layout.add_child(feature_row)
 		"live_activity":
