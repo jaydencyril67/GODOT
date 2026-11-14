@@ -23,7 +23,7 @@ const PALETTES := [
 
 const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"]
 
-const HOME_LAYOUT_STYLES := ["ios_grid", "android_pixel", "samsung_one_ui", "windows_tiles", "compact_list", "category_sections"]
+const HOME_LAYOUT_STYLES := ["ios_grid", "android_pixel", "samsung_one_ui", "windows_tiles", "compact_list", "category_sections", "huawei_pura"]
 const LOCK_SCREEN_DESIGN_FAMILIES := ["editorial", "glass", "minimal", "neo_brutalist", "split_grid", "futurist", "soft_layers", "typographic"]
 const LOCK_SCREEN_LAYOUT_TEMPLATES := [
 	"classic_clock", "rhombus_clock", "magazine_cover", "depth_layer", "widget_dashboard",
@@ -203,7 +203,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	var home_data: Dictionary = components.get("home_screen", {})
 	var home_layout := str(home_data.get("layout_style", ""))
 	if not HOME_LAYOUT_STYLES.has(home_layout):
-		home_layout = HOME_LAYOUT_STYLES[abs(int(normalized.get("seed", 1))) % HOME_LAYOUT_STYLES.size()]
+		home_layout = "huawei_pura"
 	home_data["layout_style"] = home_layout
 	home_data["columns"] = int(style.get("grid_columns", 4))
 	home_data["widget_count"] = int(style.get("widget_count", 0))
@@ -251,7 +251,7 @@ static func _sync_shared_settings(config: Dictionary) -> void:
 		components["home_screen"]["columns"] = int(style.get("grid_columns", 4))
 		var home_layout := str(components["home_screen"].get("layout_style", "ios_grid"))
 		if not HOME_LAYOUT_STYLES.has(home_layout):
-			home_layout = "ios_grid"
+			home_layout = "huawei_pura"
 		components["home_screen"]["layout_style"] = home_layout
 	if components.has("wallpapers"):
 		components["wallpapers"]["style"] = wallpaper_id
@@ -320,7 +320,7 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 	match component_id:
 		"home_screen":
 			return {
-				"layout_style": HOME_LAYOUT_STYLES[rng.randi_range(0, HOME_LAYOUT_STYLES.size() - 1)],
+				"layout_style": "huawei_pura",
 				"columns": int(style.get("grid_columns", 4)),
 				"dock_count": 4,
 				"show_search": true,
