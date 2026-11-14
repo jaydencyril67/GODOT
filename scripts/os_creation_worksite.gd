@@ -38,6 +38,8 @@ var boot_logo: TextureRect
 var boot_message: Label
 var boot_model_message: Label
 var boot_enabled_inputs: Dictionary = {}
+var lock_screen_enabled_inputs: Dictionary = {}
+var fingerprint_sensor_available := false
 var boot_busy := false
 var device_powered_on := false
 var boot_identity := {
@@ -377,6 +379,9 @@ func _build_home_screen_preview(screen: PanelContainer) -> void:
 	screen.add_child(os_preview_simulator)
 
 func _build_bootloader_controls_only() -> void:
+	for child in selection_panel.get_children():
+		selection_panel.remove_child(child)
+		child.queue_free()
 	var content := VBoxContainer.new()
 	content.name = "BootLoaderOnlyControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -385,6 +390,120 @@ func _build_bootloader_controls_only() -> void:
 	content.add_theme_constant_override("separation", 16)
 	selection_panel.add_child(content)
 	_build_bootloader_controls(content)
+
+
+func _show_lock_screen_studio_controls() -> void:
+	if not is_instance_valid(selection_panel):
+		return
+	selected_os_component_id = "lock_screen"
+	lock_screen_enabled_inputs.clear()
+	for child in selection_panel.get_children():
+		selection_panel.remove_child(child)
+		child.queue_free()
+
+	var content := VBoxContainer.new()
+	content.name = "LockScreenStudioControls"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 10)
+	selection_panel.add_child(content)
+
+	var heading := _label("LOCK SCREEN", 21, Color("#D3AA6B"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	content.add_child(heading)
+	var description := _label("Choose what appears on the lock screen. Generate changes its visual design without replacing your wallpaper.", 10, Color("#D0CBC2"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	content.add_child(description)
+
+	var clock_note := _label("CLOCK  ·  ALWAYS INCLUDED", 9, Color("#D3AA6B"))
+	content.add_child(clock_note)
+	var divider := ColorRect.new()
+	divider.custom_minimum_size.y = 1
+	divider.color = Color("#62513A")
+	content.add_child(divider)
+
+	_add_lock_screen_toggle_row(content, "show_notifications", "Notifications", "Messages and alerts")
+	_add_lock_screen_toggle_row(content, "show_audio_player", "Audio Player", "Playback controls on the lock screen")
+	_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Bottom-left quick button")
+	_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Shortcut", "Bottom-right quick button")
+	_add_lock_screen_toggle_row(content, "show_fingerprint", "Fingerprint Sensor", "Available only when the phone has this sensor", not fingerprint_sensor_available)
+	_add_lock_screen_toggle_row(content, "show_unlock_hint", "Unlock Prompt", "Show or hide the swipe-to-unlock hint")
+
+	var generator := Button.new()
+	generator.name = "GenerateLockScreenDesignButton"
+	generator.text = "GENERATE NEW DESIGN"
+	generator.custom_minimum_size.y = 40
+	generator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	generator.focus_mode = Control.FOCUS_NONE
+	_style_button(generator)
+	generator.pressed.connect(_regenerate_selected_component)
+	content.add_child(generator)
+
+	var note := _label("Your wallpaper stays exactly the same.", 8, Color("#A6A096"))
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(note)
+
+
+func _add_lock_screen_toggle_row(parent: VBoxContainer, feature_id: String, title_text: String, detail_text: String, unavailable: bool = false) -> void:
+	var row := HBoxContainer.new()
+	row.name = "LockScreenSettingRow_" + feature_id
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+
+	var labels := VBoxContainer.new()
+	labels.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	labels.add_theme_constant_override("separation", 1)
+	var title := _label(title_text, 11, Color("#E5E0D6"))
+	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	labels.add_child(title)
+	var detail := _label(detail_text if not unavailable else "No fingerprint sensor detected on this phone", 7, Color("#A6A096"))
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD
+	labels.add_child(detail)
+	row.add_child(labels)
+
+	var lock_data: Dictionary = generated_os_configuration.get("components", {}).get("lock_screen", {})
+	var enabled := GlassCheckbox.new()
+	enabled.name = "LockScreenEnabled_" + feature_id
+	enabled.button_pressed = bool(lock_data.get(feature_id, false))
+	enabled.disabled = unavailable
+	enabled.toggled.connect(_on_lock_screen_feature_toggled.bind(feature_id))
+	row.add_child(enabled)
+	lock_screen_enabled_inputs[feature_id] = enabled
+
+
+func _on_lock_screen_feature_toggled(enabled: bool, feature_id: String) -> void:
+	if feature_id == "show_fingerprint" and not fingerprint_sensor_available:
+		if lock_screen_enabled_inputs.has(feature_id):
+			(lock_screen_enabled_inputs[feature_id] as Button).set_pressed_no_signal(false)
+		return
+	var components: Dictionary = generated_os_configuration.get("components", {})
+	var lock_data: Dictionary = components.get("lock_screen", {})
+	lock_data[feature_id] = enabled
+	lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
+	components["lock_screen"] = lock_data
+	generated_os_configuration["components"] = components
+	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.update_configuration(generated_os_configuration)
+		os_preview_simulator.set_component_view("lock_screen")
+
+
+func set_fingerprint_sensor_available(available: bool) -> void:
+	fingerprint_sensor_available = available
+	var components: Dictionary = generated_os_configuration.get("components", {})
+	var lock_data: Dictionary = components.get("lock_screen", {})
+	lock_data["fingerprint_sensor_available"] = available
+	if not available:
+		lock_data["show_fingerprint"] = false
+	components["lock_screen"] = lock_data
+	generated_os_configuration["components"] = components
+	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
+	if device_powered_on:
+		_show_lock_screen_studio_controls()
+		if is_instance_valid(os_preview_simulator):
+			os_preview_simulator.update_configuration(generated_os_configuration)
+			os_preview_simulator.set_component_view("lock_screen")
 
 
 func _build_power_button() -> void:
@@ -632,9 +751,11 @@ func _run_boot_sequence() -> void:
 	boot_message.visible = true
 	boot_busy = false
 	device_powered_on = true
+	selected_os_component_id = "lock_screen"
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.visible = true
-		os_preview_simulator.set_component_view("home_screen")
+		os_preview_simulator.set_component_view("lock_screen")
+	_show_lock_screen_studio_controls()
 	boot_completed.emit()
 
 func _on_os_generation_selected(index: int) -> void:
@@ -668,6 +789,8 @@ func _generate_complete_os() -> void:
 		os_preview_simulator.visible = device_powered_on
 		os_preview_simulator.configure_os(generated_os_configuration, selected_os_component_id)
 		os_preview_simulator.set_component_view(selected_os_component_id)
+		if device_powered_on and selected_os_component_id == "lock_screen":
+			_show_lock_screen_studio_controls()
 	else:
 		push_error("Generated OS preview simulator is not mounted in the phone screen.")
 		_set_os_generation_status("PREVIEW FAILED · REOPEN OS WORKSITE")
