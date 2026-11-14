@@ -1004,7 +1004,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 		page_container.add_child(unlock)
 
 
-func _add_lock_notification(app_name: String, message: String, time_label: String, treatment: String, index: int) -> void:
+func _add_lock_notification(app_name: String, message: String, time_label: String, treatment: String, _index: int) -> void:
 	var card := PanelContainer.new()
 	card.name = "LockScreenNotification_" + app_name
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
