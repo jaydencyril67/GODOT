@@ -23,7 +23,7 @@ const PALETTES := [
 
 const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"]
 
-const HOME_LAYOUT_STYLES := ["ios_grid", "android_pixel", "samsung_one_ui", "windows_tiles", "compact_list", "category_sections", "huawei_pura"]
+const HOME_LAYOUT_STYLES := ["android_pixel"]
 const LOCK_SCREEN_DESIGN_FAMILIES := ["editorial", "glass", "minimal", "neo_brutalist", "split_grid", "futurist", "soft_layers", "typographic"]
 const LOCK_SCREEN_LAYOUT_TEMPLATES := [
 	"classic_clock", "rhombus_clock", "magazine_cover", "depth_layer", "widget_dashboard",
@@ -207,7 +207,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	var home_data: Dictionary = components.get("home_screen", {})
 	var home_layout := str(home_data.get("layout_style", ""))
 	if not HOME_LAYOUT_STYLES.has(home_layout):
-		home_layout = "huawei_pura"
+		home_layout = "android_pixel"
 	home_data["layout_style"] = home_layout
 	home_data["columns"] = int(style.get("grid_columns", 4))
 	home_data["widget_count"] = int(style.get("widget_count", 0))
@@ -322,7 +322,7 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 	match component_id:
 		"home_screen":
 			return {
-				"layout_style": "huawei_pura",
+				"layout_style": "android_pixel",
 				"columns": int(style.get("grid_columns", 4)),
 				"dock_count": 4,
 				"show_search": true,
