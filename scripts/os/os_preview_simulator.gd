@@ -1462,16 +1462,29 @@ func _make_lock_shortcut(icon_texture: Texture2D, treatment: String, action_name
 	var button := Button.new()
 	button.name = "LockScreenShortcut_" + action_name
 	button.text = ""
-	button.icon = icon_texture
-	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.expand_icon = true
 	button.custom_minimum_size = Vector2(42, 42)
-	button.self_modulate = Color.WHITE
+	button.clip_contents = true
 	_style_lock_button(button, treatment)
+
+	# Keep imported artwork in a plain TextureRect rather than Button.icon.
+	# This avoids theme-dependent icon sizing/tint differences on Android.
+	var icon_view := TextureRect.new()
+	icon_view.name = "LockScreenShortcutIcon_" + action_name
+	icon_view.texture = icon_texture
+	icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	icon_view.offset_left = 8.0
+	icon_view.offset_top = 8.0
+	icon_view.offset_right = -8.0
+	icon_view.offset_bottom = -8.0
+	button.add_child(icon_view)
+
 	if action_name == "Flashlight":
 		button.toggle_mode = true
 		button.toggled.connect(func(enabled: bool):
-			button.self_modulate = Color("#C8E8FF") if enabled else Color.WHITE
+			icon_view.modulate = Color("#C8E8FF") if enabled else Color.WHITE
 			if is_instance_valid(status_label):
 				status_label.text = "Flashlight " + ("on" if enabled else "off")
 		)
