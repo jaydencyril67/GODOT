@@ -920,7 +920,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 			alignment = HORIZONTAL_ALIGNMENT_LEFT
 		"right":
 			alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		var _unused_alignment := 0
 	var configured_clock_size := clampi(int(data.get("clock_size", 46)), 30, 58)
 	if size.x <= 180.0:
 		configured_clock_size = mini(configured_clock_size, 36)
