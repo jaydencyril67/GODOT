@@ -542,17 +542,26 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 	boot_message.add_theme_font_override("font", boot_identity_font)
 	boot_message.add_theme_font_size_override("font_size", 18)
 	boot_message.add_theme_color_override("font_color", Color("#FFFFFF"))
+	boot_message.custom_minimum_size = Vector2(0, 54)
 	boot_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boot_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	boot_message.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	boot_message.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	boot_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	boot_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	boot_stage_container.add_child(boot_message)
-	boot_model_message = _label("", 14, Color("#D8D2C8"))
+	boot_model_message = _label("", 15, Color("#D8D2C8"))
 	boot_model_message.name = "BootModelText"
+	boot_model_message.custom_minimum_size = Vector2(0, 26)
+	var boot_model_font := FontVariation.new()
+	boot_model_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	boot_model_font.variation_embolden = 1.0
+	boot_model_message.add_theme_font_override("font", boot_model_font)
+	boot_model_message.add_theme_font_size_override("font_size", 15)
 	boot_model_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boot_model_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	boot_model_message.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	boot_model_message.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	boot_model_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	boot_model_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	boot_stage_container.add_child(boot_model_message)
