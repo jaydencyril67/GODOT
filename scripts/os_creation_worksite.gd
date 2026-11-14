@@ -450,7 +450,7 @@ func _build_boot_debug_panel() -> void:
 	boot_debug_label.add_theme_font_size_override("font_size", 8)
 	boot_debug_label.add_theme_color_override("font_color", Color("#E8D2AD"))
 	boot_debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	boot_debug_label.text = "BOOT DEBUG\\nWaiting for boot..."
+	boot_debug_label.text = "BOOT DEBUG\nWaiting for boot..."
 	boot_debug_panel.add_child(boot_debug_label)
 	boot_overlay.add_child(boot_debug_panel)
 	boot_debug_panel.visible = false
@@ -461,7 +461,7 @@ func _boot_debug_log(message: String) -> void:
 	while boot_debug_lines.size() > 8:
 		boot_debug_lines.pop_front()
 	if is_instance_valid(boot_debug_label):
-		boot_debug_label.text = "BOOT DEBUG\\n" + "\\n".join(boot_debug_lines)
+		boot_debug_label.text = "BOOT DEBUG\n" + "\n".join(PackedStringArray(boot_debug_lines))
 
 
 func _build_boot_overlay(screen: PanelContainer) -> void:
@@ -648,7 +648,7 @@ func _run_boot_sequence() -> void:
 		if bool(item_settings.get(item_id, {}).get("enabled", false)):
 			ordered_items.append(item_id)
 	var stage_duration := 10.0 / float(maxi(1, ordered_items.size()))
-	_boot_debug_log("ENABLED stages=%s duration=%.1fs" % [", ".join(ordered_items), stage_duration])
+	_boot_debug_log("ENABLED stages=%s duration=%.1fs" % [", ".join(PackedStringArray(ordered_items)), stage_duration])
 	if ordered_items.is_empty():
 		_boot_debug_log("WARNING: no enabled boot stages")
 	for item_id in ordered_items:
