@@ -1,0 +1,1 @@
+-keep class online.digitalworld.osui.DigitalWorldOSUIPlugin { *; }
