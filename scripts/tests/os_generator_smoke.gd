@@ -300,6 +300,60 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.find_child("OSProceduralWallpaper", true, false) == null:
 		_fail("OS creation worksite preview did not use the procedural OS wallpaper.")
 		return
+	var power_button := worksite.find_child("OSPowerButton", true, false) as Button
+	var screen_frame := worksite.find_child("OSPortraitScreenFrame", true, false) as Control
+	var boot_overlay := worksite.find_child("OSBootLoaderOverlay", true, false) as Control
+	if power_button == null or screen_frame == null or power_button.is_ancestor_of(screen_frame) or screen_frame.is_ancestor_of(power_button):
+		_fail("Boot power button must be positioned outside the phone screen, beside it.")
+		return
+	if boot_overlay == null or boot_overlay.visible:
+		_fail("Phone screen should remain off until the separate power button is pressed.")
+		return
+	for item_id in ["company_logo", "phone_name", "phone_model"]:
+		if worksite.find_child("BootOrder_" + item_id, true, false) == null or worksite.find_child("BootEnabled_" + item_id, true, false) == null:
+			_fail("Boot loader is missing order or enable controls for " + item_id + ".")
+			return
+	var phone_name_order := worksite.find_child("BootOrder_phone_name", true, false) as SpinBox
+	phone_name_order.value = 1
+	var boot_settings: Dictionary = worksite.get("bootloader_settings")
+	if int(boot_settings["items"]["phone_name"]["order"]) != 1 or int(boot_settings["items"]["company_logo"]["order"]) != 2:
+		_fail("Boot order number boxes did not keep the three startup items in a unique sequence.")
+		return
+	for item_id in ["company_logo", "phone_name", "phone_model"]:
+		var toggle := worksite.find_child("BootEnabled_" + item_id, true, false) as CheckBox
+		toggle.set_pressed_no_signal(false)
+		worksite.call("_on_boot_item_toggled", false, item_id)
+	boot_settings = worksite.get("bootloader_settings")
+	var enabled_boot_items := 0
+	for item_id in boot_settings["items"]:
+		if bool(boot_settings["items"][item_id]["enabled"]):
+			enabled_boot_items += 1
+	if enabled_boot_items != 1:
+		_fail("Boot loader allowed every startup identity item to be disabled.")
+		return
+	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone", "DW-01")
+	worksite.call("_generate_complete_os")
+	await process_frame
+	var saved_boot_config: Dictionary = worksite.get("generated_os_configuration").get("bootloader", {})
+	if float(saved_boot_config.get("duration_seconds", 0.0)) != 10.0:
+		_fail("Generated OS did not retain the fixed ten-second boot duration.")
+		return
+	var boot_finished := false
+	worksite.boot_completed.connect(func() -> void: boot_finished = true)
+	var boot_started_at := Time.get_ticks_msec()
+	worksite.call("_on_power_button_pressed")
+	if not boot_overlay.visible:
+		_fail("Power button did not switch the display into its boot sequence.")
+		return
+	while not boot_finished:
+		await process_frame
+	var boot_elapsed := Time.get_ticks_msec() - boot_started_at
+	if boot_elapsed < 9900 or boot_elapsed > 10500:
+		_fail("Boot sequence did not complete in ten real-world seconds (%d ms)." % boot_elapsed)
+		return
+	if boot_overlay.visible or not worksite_preview.visible:
+		_fail("Completed boot did not reveal the generated OS home screen.")
+		return
 	worksite.call("_generate_complete_os")
 	await process_frame
 	var worksite_configuration: Dictionary = worksite.get("generated_os_configuration")
