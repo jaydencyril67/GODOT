@@ -225,8 +225,8 @@ func _load_career() -> bool:
 		"full_name": str(config.get_value("career", "full_name", "")),
 		"company_name": str(config.get_value("career", "company_name", "")),
 		"logo_id": int(config.get_value("career", "logo_id", 1)),
-		"phone_name": str(config.get_value("career", "phone_name", "DigitalWorld Phone")),
-		"phone_model": str(config.get_value("career", "phone_model", "DW-01")),
+		"phone_name": config.get_value("career", "phone_name", ""),
+		"phone_model": config.get_value("career", "phone_model", ""),
 		"created_at": str(config.get_value("career", "created_at", "")),
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
@@ -246,6 +246,7 @@ func _load_career() -> bool:
 		"selected_operating_system": config.get_value("career", "selected_operating_system", {}),
 		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
+	_normalize_phone_identity()
 	ResearchManagerScript.ensure_state(career)
 	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
@@ -255,13 +256,24 @@ func _load_career() -> bool:
 		_ensure_staff_data()
 	return not str(career.get("company_name", "")).is_empty()
 
+
+func _normalize_phone_identity() -> void:
+	var phone_name_value: Variant = career.get("phone_name", "")
+	var phone_model_value: Variant = career.get("phone_model", "")
+	var phone_name: String = "" if phone_name_value == null else str(phone_name_value).strip_edges()
+	var phone_model: String = "" if phone_model_value == null else str(phone_model_value).strip_edges()
+	career["phone_name"] = phone_name if not phone_name.is_empty() else "DigitalWorld Phone"
+	career["phone_model"] = phone_model if not phone_model.is_empty() else "DW-01"
+
+
 func _save_career() -> bool:
+	_normalize_phone_identity()
 	var config := ConfigFile.new()
 	config.set_value("career", "full_name", str(career.get("full_name", "")))
 	config.set_value("career", "company_name", str(career.get("company_name", "")))
 	config.set_value("career", "logo_id", int(career.get("logo_id", 1)))
-	config.set_value("career", "phone_name", str(career.get("phone_name", "DigitalWorld Phone")))
-	config.set_value("career", "phone_model", str(career.get("phone_model", "DW-01")))
+	config.set_value("career", "phone_name", str(career["phone_name"]))
+	config.set_value("career", "phone_model", str(career["phone_model"]))
 	config.set_value("career", "created_at", str(career.get("created_at", "")))
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
 	config.set_value("career", "upgrade_level", upgrade_level)
@@ -1225,6 +1237,7 @@ func _create_company() -> void:
 	career["full_name"] = founder
 	career["company_name"] = company
 	career["logo_id"] = selected_logo_id
+	_normalize_phone_identity()
 	if not career.has("balance"):
 		career["balance"] = 10000000.0
 	if not career.has("game_date_unix"):
@@ -2774,7 +2787,15 @@ func _on_create_category_pressed(category: String) -> void:
 
 
 func _prepare_os_creation_worksite() -> void:
+	_normalize_phone_identity()
 	if is_instance_valid(os_creation_worksite):
+		os_creation_worksite.call(
+			"set_boot_identity",
+			str(career.get("company_name", "YOUR COMPANY")),
+			int(career.get("logo_id", 1)),
+			str(career["phone_name"]),
+			str(career["phone_model"])
+		)
 		return
 	os_creation_worksite = OSCreationWorksiteScene.instantiate() as Node3D
 	if not is_instance_valid(os_creation_worksite):
@@ -2785,8 +2806,8 @@ func _prepare_os_creation_worksite() -> void:
 		"set_boot_identity",
 		str(career.get("company_name", "YOUR COMPANY")),
 		int(career.get("logo_id", 1)),
-		str(career.get("phone_name", "DigitalWorld Phone")),
-		str(career.get("phone_model", "DW-01"))
+		str(career["phone_name"]),
+		str(career["phone_model"])
 	)
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
