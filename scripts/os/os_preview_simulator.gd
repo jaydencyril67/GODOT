@@ -98,6 +98,55 @@ class OSWallpaperLayer extends Control:
 			draw_circle(Vector2(size.x * 0.74, size.y * 0.30), shortest_side * 0.42, Color(accent.r, accent.g, accent.b, 0.055))
 
 
+class OSStatusIndicators extends Control:
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = Vector2(54, 14)
+		queue_redraw()
+
+	func _draw() -> void:
+		var ink := Color("#F4F2ED")
+		for i in range(4):
+			var bar_height := 3.0 + float(i) * 2.1
+			draw_rect(Rect2(Vector2(float(i) * 3.4, 12.0 - bar_height), Vector2(2.1, bar_height)), ink)
+		var wifi_center := Vector2(22.0, 10.0)
+		draw_arc(wifi_center, 6.0, PI * 1.18, PI * 1.82, 16, ink, 1.1, true)
+		draw_arc(wifi_center, 3.7, PI * 1.20, PI * 1.80, 12, ink, 1.1, true)
+		draw_circle(wifi_center + Vector2(0, -0.2), 1.0, ink)
+		var battery := Rect2(Vector2(34.0, 3.0), Vector2(15.0, 9.0))
+		draw_rect(battery, ink, false, 1.0)
+		draw_rect(Rect2(Vector2(49.5, 5.7), Vector2(1.8, 3.6)), ink)
+		draw_rect(Rect2(Vector2(35.6, 4.5), Vector2(11.5, 6.0)), ink)
+
+
+class LockScreenFingerprintButton extends Button:
+	func _ready() -> void:
+		text = ""
+		focus_mode = Control.FOCUS_NONE
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		custom_minimum_size = Vector2(52, 52)
+		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
+			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+		queue_redraw()
+
+	func _draw() -> void:
+		var centre := size * 0.5
+		var ink := Color("#F3EDE3")
+		var accent := Color("#D7B47A")
+		var radius := minf(size.x, size.y) * 0.5 - 2.0
+		draw_circle(centre, radius, Color(0.04, 0.05, 0.06, 0.20))
+		draw_arc(centre, radius - 1.0, 0.0, TAU, 48, Color(accent.r, accent.g, accent.b, 0.78), 1.15, true)
+		draw_arc(centre, radius - 4.0, 0.0, TAU, 48, Color(ink.r, ink.g, ink.b, 0.16), 0.8, true)
+		draw_arc(centre + Vector2(0, 2), 12.0, PI * 1.12, PI * 1.88, 28, ink, 1.25, true)
+		draw_arc(centre + Vector2(0, 3), 8.7, PI * 1.08, PI * 1.92, 24, ink, 1.15, true)
+		draw_arc(centre + Vector2(0, 3), 5.4, PI * 1.03, PI * 1.97, 20, ink, 1.1, true)
+		draw_arc(centre + Vector2(0, 5), 2.2, PI * 1.02, PI * 1.98, 16, ink, 1.0, true)
+		draw_line(centre + Vector2(-9, 1), centre + Vector2(-7, 9), ink, 1.0, true)
+		draw_line(centre + Vector2(9, 1), centre + Vector2(7, 9), ink, 1.0, true)
+		if is_pressed():
+			draw_circle(centre, radius - 1.0, Color(accent.r, accent.g, accent.b, 0.12))
+
+
 var configuration: Dictionary = {}
 var active_component := "home_screen"
 var page_container: VBoxContainer
@@ -610,28 +659,27 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	bar.add_theme_stylebox_override("panel", bar_style)
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 5)
+	row.add_theme_constant_override("separation", 4)
 	bar.add_child(row)
-	var clock := _label(_current_lock_time(), 9, _text_color())
+	var clock := _label(_current_lock_time(), 8, _text_color())
 	clock.name = "StatusBarClock"
-	clock.custom_minimum_size = Vector2(34, 13)
+	clock.custom_minimum_size = Vector2(32, 13)
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if str(data.get("clock_alignment", "left")) == "right":
-		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	row.add_child(clock)
-	var indicators := HBoxContainer.new()
-	indicators.add_theme_constant_override("separation", 3)
-	indicators.add_child(_label("●", 7, _accent_color()))
-	indicators.add_child(_label("▮▮▮", 8, _text_color()))
-	indicators.add_child(_label("Wi-Fi", 6, _muted_color()))
-	var battery_style := str(data.get("battery_style", "percentage"))
-	var battery_text := "100%" if battery_style == "percentage" else ("▰ 100" if battery_style == "pill" else "▰")
-	status_label = _label(battery_text, 8, _text_color())
-	status_label.name = "StatusBarBattery"
-	status_label.custom_minimum_size.y = 12
-	indicators.add_child(status_label)
+	var notification_dot := _label("●", 5, _text_color())
+	notification_dot.name = "StatusBarNotificationIndicator"
+	notification_dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(notification_dot)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	var indicators := OSStatusIndicators.new()
+	indicators.name = "StatusBarSystemIndicators"
 	row.add_child(indicators)
+	status_label = _label("", 1, _text_color())
+	status_label.name = "StatusBarBattery"
+	status_label.visible = false
 	parent.add_child(bar)
 
 func _build_component(component_id: String) -> void:
@@ -929,8 +977,14 @@ func _build_lock_screen(data: Dictionary) -> void:
 	clock.name = "LockScreenClock"
 	clock.horizontal_alignment = alignment
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock.custom_minimum_size = Vector2(0, configured_clock_size + 3)
-	clock_stack.custom_minimum_size.y = configured_clock_size + 18
+	clock.autowrap_mode = TextServer.AUTOWRAP_OFF
+	clock.clip_contents = false
+	clock.custom_minimum_size = Vector2(0, configured_clock_size + 5)
+	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	clock_stack.custom_minimum_size.y = configured_clock_size + 19
+	clock_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_stack.clip_contents = false
 	var clock_font := FontVariation.new()
 	clock_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	clock_font.variation_embolden = 1.1 if template in ["coloros_typography", "neo_brutalist"] else 0.55
@@ -940,7 +994,16 @@ func _build_lock_screen(data: Dictionary) -> void:
 	date.name = "LockScreenDate"
 	date.horizontal_alignment = alignment
 	date.custom_minimum_size.y = 12
+	date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	date.autowrap_mode = TextServer.AUTOWRAP_OFF
 	clock_stack.add_child(date)
+	var clock_stage := CenterContainer.new()
+	clock_stage.name = "LockScreenProtectedClockStage"
+	clock_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_stage.custom_minimum_size.y = configured_clock_size + 34
+	clock_stage.clip_contents = false
+	clock_stage.add_child(clock_stack)
+	root_layout.add_child(clock_stage)
 
 	var notifications := VBoxContainer.new()
 	notifications.name = "LockScreenNotificationZone"
@@ -964,11 +1027,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 
 	var fingerprint: Control
 	if bool(data.get("show_fingerprint", false)) and bool(data.get("fingerprint_sensor_available", false)):
-		var sensor := Button.new()
+		var sensor := LockScreenFingerprintButton.new()
 		sensor.name = "LockScreenFingerprintSensor"
-		sensor.text = "◎"
-		sensor.custom_minimum_size = Vector2(0, 42)
-		_style_lock_button(sensor, str(data.get("fingerprint_treatment", "ring")))
+		sensor.tooltip_text = "Touch to unlock"
 		sensor.pressed.connect(func(): set_component_view("home_screen"))
 		fingerprint = sensor
 	var unlock_control: Button
@@ -1008,13 +1069,11 @@ func _build_lock_screen(data: Dictionary) -> void:
 	media_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	feature_row.add_child(notification_column)
 	feature_row.add_child(media_column)
-	if template in ["rhombus_clock", "nothing_widget_grid"]:
-		clock_panel.add_child(clock_stack)
+	# Clock is rendered in a dedicated protected stage above every template.
 
 	match template:
 		"classic_clock":
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"rhombus_clock":
@@ -1025,12 +1084,10 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"magazine_cover":
 			root_layout.add_child(top_space)
 			root_layout.add_child(_label("THE DAILY EDITION  /  DIGITALWORLD", 7, _accent_color()))
-			root_layout.add_child(clock_stack)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"depth_layer":
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(lower_space)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
@@ -1039,11 +1096,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 				notification_column.add_child(notifications)
 			if is_instance_valid(media):
 				media_column.add_child(media)
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(feature_row)
 		"live_activity":
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_stack)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"one_ui_personal":
@@ -1058,22 +1113,18 @@ func _build_lock_screen(data: Dictionary) -> void:
 			personal_zones.add_child(personal_left)
 			personal_zones.add_child(personal_right)
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(personal_zones)
 		"now_bar":
-			root_layout.add_child(clock_stack)
 			var now_bar := VBoxContainer.new()
 			now_bar.name = "LockScreenNowBar"
 			if is_instance_valid(media): now_bar.add_child(media)
 			if notifications.get_child_count() > 0: now_bar.add_child(notifications)
 			root_layout.add_child(now_bar)
 		"notification_stack":
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(lower_space)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_at_a_glance":
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(_label("AT A GLANCE  ·  YOUR DAY", 7, _accent_color()))
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
@@ -1088,18 +1139,16 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_ambient":
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(lower_space)
 			root_layout.add_child(_label("MON  ·  DIGITALWORLD", 7, _muted_color()))
 		"huawei_magazine":
 			root_layout.add_child(top_space)
 			root_layout.add_child(_label("MONDAY  /  YOUR PERSONAL EDITION", 7, _accent_color()))
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"huawei_dynamic":
 			var dynamic_row := VBoxContainer.new()
-			dynamic_row.add_child(clock_stack)
+			dynamic_row.name = "HuaweiDynamicActivity"
 			if is_instance_valid(media): dynamic_row.add_child(media)
 			root_layout.add_child(top_space)
 			root_layout.add_child(dynamic_row)
@@ -1109,7 +1158,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 			widget_grid.name = "LockScreenNothingWidgetGrid"
 			widget_grid.columns = 1 if size.x <= 180.0 else 2
 			widget_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			widget_grid.add_child(clock_panel)
 			widget_grid.add_child(_label("MON  /  DATE", 8, _muted_color()))
 			if notifications.get_child_count() > 0: widget_grid.add_child(notifications)
 			if is_instance_valid(media): widget_grid.add_child(media)
@@ -1118,11 +1166,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"origin_player":
 			root_layout.add_child(top_space)
 			if is_instance_valid(media): root_layout.add_child(media)
-			root_layout.add_child(clock_stack)
 			root_layout.add_child(notifications)
 		"coloros_typography":
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_stack)
 			var typography_rule := ColorRect.new()
 			typography_rule.custom_minimum_size.y = 3
 			typography_rule.color = _accent_color()
@@ -1137,13 +1183,11 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(flux_column)
 			root_layout.add_child(notifications)
 		"clean_android":
-			root_layout.add_child(clock_stack)
 			if notifications.get_child_count() > 0: root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(lower_space)
 		"focus_lock_screen":
 			root_layout.add_child(_label("FOCUS  /  PERSONAL", 7, _accent_color()))
-			root_layout.add_child(clock_stack)
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 			root_layout.add_child(lower_space)
@@ -1157,7 +1201,12 @@ func _build_lock_screen(data: Dictionary) -> void:
 	if lower_space.get_parent() == null:
 		root_layout.add_child(lower_space)
 	if is_instance_valid(fingerprint):
-		root_layout.add_child(fingerprint)
+		var fingerprint_stage := CenterContainer.new()
+		fingerprint_stage.name = "LockScreenFingerprintStage"
+		fingerprint_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fingerprint_stage.custom_minimum_size.y = 56
+		fingerprint_stage.add_child(fingerprint)
+		root_layout.add_child(fingerprint_stage)
 	root_layout.add_child(shortcuts)
 	if is_instance_valid(unlock_control):
 		root_layout.add_child(unlock_control)
@@ -1208,10 +1257,10 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	style.content_margin_top = 5
 	style.content_margin_bottom = 5
 	card.add_theme_stylebox_override("panel", style)
-	card.custom_minimum_size.y = 54
+	card.custom_minimum_size.y = 44
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.custom_minimum_size.y = 42
+	row.custom_minimum_size.y = 34
 	row.add_theme_constant_override("separation", 7)
 	var app_icon := PanelContainer.new()
 	app_icon.custom_minimum_size = Vector2(30, 30)
@@ -1227,7 +1276,7 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	row.add_child(app_icon)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.custom_minimum_size = Vector2(0, 34)
+	body.custom_minimum_size = Vector2(0, 29)
 	body.add_theme_constant_override("separation", 1)
 	var header := HBoxContainer.new()
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1242,7 +1291,7 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	body.add_child(header)
 	var message_label := _label(message, 9, _text_color())
 	message_label.name = "LockScreenNotificationMessage_" + app_name
-	message_label.custom_minimum_size.y = 14
+	message_label.custom_minimum_size.y = 12
 	body.add_child(message_label)
 	row.add_child(body)
 	card.add_child(row)
@@ -1282,7 +1331,7 @@ func _add_lock_audio_player(treatment: String) -> void:
 	style.content_margin_bottom = 6
 	player.add_theme_stylebox_override("panel", style)
 
-	player.custom_minimum_size.y = 76
+	player.custom_minimum_size.y = 62
 	var player_content := VBoxContainer.new()
 	player_content.custom_minimum_size.y = 62
 	player_content.add_theme_constant_override("separation", 3)
@@ -1291,7 +1340,7 @@ func _add_lock_audio_player(treatment: String) -> void:
 	row.add_theme_constant_override("separation", 6)
 	var artwork := PanelContainer.new()
 	artwork.name = "LockScreenAudioArtwork"
-	artwork.custom_minimum_size = Vector2(38, 38)
+	artwork.custom_minimum_size = Vector2(32, 32)
 	var art_style := StyleBoxFlat.new()
 	art_style.bg_color = _accent_color().darkened(0.35)
 	art_style.set_corner_radius_all(7 if treatment == "compact_row" else 12)
