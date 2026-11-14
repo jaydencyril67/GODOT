@@ -33,6 +33,9 @@ func _run_os_generator_test() -> void:
 	if components.size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generator did not produce all 6 core OS components.")
 		return
+	if str(components.get("home_screen", {}).get("layout_style", "")) != "huawei_pura":
+		_fail("New OS generation must select the approved Huawei-inspired home-screen structure.")
+		return
 	if ProceduralEngineScript.APP_DEFINITIONS.size() != 30:
 		_fail("OS app catalog must contain exactly 30 installed apps.")
 		return
