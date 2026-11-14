@@ -321,40 +321,29 @@ func _run_os_generator_test() -> void:
 		return
 	for item_id in ["company_logo", "phone_details"]:
 		var row := worksite.find_child("BootSettingRow_" + item_id, true, false) as HBoxContainer
-		if row == null or row.get_child_count() != 3:
-			_fail("Boot loader settings must remain in a single horizontal row: " + item_id)
+		if row == null or row.get_child_count() != 2:
+			_fail("Boot loader setting must contain only its label and checkbox: " + item_id)
 			return
-		var row_label := row.get_child(1) as Label
+		var row_label := row.get_child(0) as Label
+		var toggle := row.get_child(1) as CheckBox
 		if row_label == null or row_label.autowrap_mode != TextServer.AUTOWRAP_OFF or absf(row_label.rotation) > 0.001:
 			_fail("Boot loader setting label is not displayed horizontally: " + item_id)
 			return
-	for item_id in ["company_logo", "phone_details"]:
-		if worksite.find_child("BootOrder_" + item_id, true, false) == null or worksite.find_child("BootEnabled_" + item_id, true, false) == null:
-			_fail("Boot loader is missing order or enable controls for " + item_id + ".")
+		if toggle == null or not toggle.text.is_empty():
+			_fail("Boot loader enable control must be a plain checkbox: " + item_id)
 			return
-	var phone_details_order := worksite.find_child("BootOrder_phone_details", true, false) as SpinBox
-	phone_details_order.value = 1
+		if worksite.find_child("BootOrder_" + item_id, true, false) != null:
+			_fail("Boot loader must not contain startup order number boxes.")
+			return
 	var boot_settings: Dictionary = worksite.get("bootloader_settings")
-	if int(boot_settings["items"]["phone_details"]["order"]) != 1 or int(boot_settings["items"]["company_logo"]["order"]) != 2:
-		_fail("Boot order number boxes did not keep the two startup screens in a unique sequence.")
-		return
-	for item_id in ["company_logo", "phone_details"]:
-		var toggle := worksite.find_child("BootEnabled_" + item_id, true, false) as CheckBox
-		toggle.set_pressed_no_signal(false)
-		worksite.call("_on_boot_item_toggled", false, item_id)
-	boot_settings = worksite.get("bootloader_settings")
-	var enabled_boot_items := 0
-	for item_id in boot_settings["items"]:
-		if bool(boot_settings["items"][item_id]["enabled"]):
-			enabled_boot_items += 1
-	if enabled_boot_items != 1:
-		_fail("Boot loader allowed every startup identity item to be disabled.")
+	if boot_settings["items"]["company_logo"].has("order") or boot_settings["items"]["phone_details"].has("order"):
+		_fail("Boot loader still stores manual startup order values.")
 		return
 	var logo_toggle := worksite.find_child("BootEnabled_company_logo", true, false) as CheckBox
 	var details_toggle := worksite.find_child("BootEnabled_phone_details", true, false) as CheckBox
-	logo_toggle.set_pressed_no_signal(false)
-	worksite.call("_on_boot_item_toggled", false, "company_logo")
+	logo_toggle.set_pressed_no_signal(true)
 	details_toggle.set_pressed_no_signal(true)
+	worksite.call("_on_boot_item_toggled", true, "company_logo")
 	worksite.call("_on_boot_item_toggled", true, "phone_details")
 	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone", "DW-01")
 	worksite.call("_generate_complete_os")
@@ -371,10 +360,11 @@ func _run_os_generator_test() -> void:
 	if not boot_overlay.visible:
 		_fail("Power button did not switch the display into its boot sequence.")
 		return
-	await process_frame
+	await get_tree().create_timer(5.1).timeout
 	var boot_identity_label := worksite.find_child("BootIdentityText", true, false) as Label
-	if boot_identity_label == null or boot_identity_label.text != "DigitalWorld Phone DW-01":
-		_fail("Phone details boot stage must display the phone name and model together.")
+	var boot_logo := worksite.find_child("BootCompanyLogo", true, false) as TextureRect
+	if boot_identity_label == null or boot_identity_label.text != "DigitalWorld Phone DW-01" or not boot_identity_label.visible or boot_logo.visible:
+		_fail("Phone details must visibly replace the company logo in the second boot stage.")
 		return
 	var boot_identity_font := boot_identity_label.get_theme_font("font") as FontVariation
 	if boot_identity_label.get_theme_font_size("font_size") != 22 or boot_identity_font == null or not is_equal_approx(boot_identity_font.variation_embolden, 1.5):
