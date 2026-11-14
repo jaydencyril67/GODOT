@@ -472,16 +472,24 @@ func _show_lock_screen_studio_controls() -> void:
 func _apply_approved_home_screen_layout() -> void:
 	var components: Dictionary = generated_os_configuration.get("components", {})
 	var home_data: Dictionary = components.get("home_screen", {})
-	home_data["layout_style"] = "android_pixel"
-	home_data["columns"] = 4
-	home_data["widget_count"] = 2
-	home_data["show_search"] = true
+	if home_screen_layout_level == 1:
+		home_data["layout_style"] = "coloros_home"
+		home_data["columns"] = 4
+		home_data["widget_count"] = 1
+		home_data["show_search"] = false
+	else:
+		home_data["layout_style"] = "android_pixel"
+		home_data["columns"] = 4
+		home_data["widget_count"] = 2
+		home_data["show_search"] = true
 	home_data["dock_count"] = 4
 	components["home_screen"] = home_data
 	generated_os_configuration["components"] = components
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.update_configuration(generated_os_configuration)
+		os_preview_simulator.set_home_screen_corner_radius(float(home_screen_corner_radius))
+		os_preview_simulator.set_component_view("home_screen")
 
 
 func _show_home_screen_studio_controls() -> void:
@@ -602,17 +610,19 @@ func _on_home_screen_layout_decrease_pressed() -> void:
 
 
 func _on_home_screen_layout_increase_pressed() -> void:
-	# New layout choices are appended only after their individual visual approval.
-	return
+	if home_screen_layout_level >= 1:
+		return
+	home_screen_layout_level += 1
+	_refresh_home_screen_layout_selector()
 
 
 func _refresh_home_screen_layout_selector() -> void:
 	if is_instance_valid(home_screen_layout_value_label):
-		home_screen_layout_value_label.text = "LAYOUT 1"
+		home_screen_layout_value_label.text = "LAYOUT " + str(home_screen_layout_level + 1)
 	if is_instance_valid(home_screen_layout_decrease_button):
-		home_screen_layout_decrease_button.disabled = true
+		home_screen_layout_decrease_button.disabled = home_screen_layout_level == 0
 	if is_instance_valid(home_screen_layout_increase_button):
-		home_screen_layout_increase_button.disabled = true
+		home_screen_layout_increase_button.disabled = home_screen_layout_level == 1
 	_apply_approved_home_screen_layout()
 
 
