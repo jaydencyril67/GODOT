@@ -641,6 +641,39 @@ func _run_os_generator_test() -> void:
 	if fingerprint_sensor == null or fingerprint_sensor.size != Vector2(52, 52) or fingerprint_stage == null or not fingerprint_stage.is_ancestor_of(fingerprint_sensor):
 		_fail("Under-display fingerprint indicator is missing its centred Samsung-style sensor target.")
 		return
+
+	worksite_preview.call("_handle_system_gesture", Vector2(72, 300), Vector2(72, 220), 120)
+	await process_frame
+	if worksite_preview.get("active_component") != "pin_input":
+		_fail("Swipe-up on the lock screen did not open PIN entry.")
+		return
+	var pin_info := worksite_preview.find_child("PINPreviewUnlockInfo", true, false) as PanelContainer
+	var pin_error := worksite_preview.find_child("PINEntryError", true, false) as Label
+	if pin_info == null or pin_error == null or not str(pin_info.get_child(0).text).contains("1234"):
+		_fail("PIN screen did not clearly display the preview unlock PIN 1234.")
+		return
+	for digit in ["0", "0", "0", "0"]:
+		var wrong_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
+		wrong_key.pressed.emit()
+	if worksite_preview.get("active_component") != "pin_input" or not pin_error.text.contains("Incorrect PIN"):
+		_fail("Incorrect PIN did not show an error while keeping the phone locked.")
+		return
+	for digit in ["1", "2", "3", "4"]:
+		var correct_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
+		correct_key.pressed.emit()
+	if worksite_preview.get("active_component") != "home_screen":
+		_fail("Entering the correct preview PIN 1234 did not unlock to Home.")
+		return
+	worksite_preview.set_component_view("lock_screen")
+	await process_frame
+	fingerprint_sensor = worksite_preview.find_child("LockScreenFingerprintSensor", true, false) as Button
+	if fingerprint_sensor == null:
+		_fail("Fingerprint sensor disappeared after returning to the lock screen.")
+		return
+	fingerprint_sensor.pressed.emit()
+	if worksite_preview.get("active_component") != "home_screen":
+		_fail("Fingerprint tap did not perform biometric unlock to Home.")
+		return
 	var generator_button := worksite.find_child("GenerateLockScreenDesignButton", true, false) as Button
 	if generator_button == null:
 		_fail("Lock-screen design generator button is missing.")
