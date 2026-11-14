@@ -881,7 +881,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var clock_stack := VBoxContainer.new()
 	clock_stack.name = "LockScreenClockStack"
 	clock_stack.add_theme_constant_override("separation", 1)
-		var clock_text := _current_lock_time(family)
+	var clock_text := _current_lock_time(family)
 	var clock := _label(clock_text, clampi(int(data.get("clock_size", 46)), 28, 58), _text_color())
 	clock.name = "LockScreenClock"
 	clock.horizontal_alignment = alignment
@@ -898,7 +898,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	clock.add_theme_font_override("font", clock_font)
 	clock_stack.add_child(clock)
 
-		var date_text := _current_lock_date(str(data.get("date_treatment", "uppercase")))
+	var date_text := _current_lock_date(str(data.get("date_treatment", "uppercase")))
 	var date := _label(date_text, 7, _muted_color())
 	date.name = "LockScreenDate"
 	date.horizontal_alignment = alignment
