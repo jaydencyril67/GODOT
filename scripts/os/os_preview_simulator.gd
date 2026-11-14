@@ -174,6 +174,13 @@ func _process(delta: float) -> void:
 		status_clock.text = _current_lock_time()
 	if active_component == "lock_screen":
 		_refresh_lock_screen_clock()
+	elif active_component == "home_screen":
+		var home_clock := find_child("HomeHeroClock", true, false) as Label
+		if is_instance_valid(home_clock):
+			home_clock.text = _current_lock_time()
+		var home_date := find_child("HomeHeroDate", true, false) as Label
+		if is_instance_valid(home_date):
+			home_date.text = _current_lock_date("minimal")
 
 
 func _current_lock_time(family: String = "") -> String:
