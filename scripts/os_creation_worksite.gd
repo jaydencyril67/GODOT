@@ -487,13 +487,13 @@ func _build_boot_debug_panel(host: Control) -> void:
 
 
 func _copy_boot_debug_logs() -> void:
-	DisplayServer.clipboard_set("BOOT DIAGNOSTICS\\n" + "\\n".join(PackedStringArray(boot_debug_lines)))
+	DisplayServer.clipboard_set("BOOT DIAGNOSTICS\n" + "\n".join(PackedStringArray(boot_debug_lines)))
 
 
 func _boot_debug_log(message: String) -> void:
 	boot_debug_lines.append("%0.2fs %s" % [float(Time.get_ticks_msec()) / 1000.0, message])
 	if is_instance_valid(boot_debug_label):
-		boot_debug_label.text = "\\n".join(PackedStringArray(boot_debug_lines))
+		boot_debug_label.text = "\n".join(PackedStringArray(boot_debug_lines))
 
 
 func _build_boot_overlay(screen: PanelContainer) -> void:
