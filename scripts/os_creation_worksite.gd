@@ -110,6 +110,7 @@ class GlassButtonReflection extends Control:
 func _ready() -> void:
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	_build_interface()
+	_apply_bootloader_settings_to_configuration()
 
 
 func _build_interface() -> void:
@@ -629,7 +630,7 @@ func _run_boot_sequence() -> void:
 	status_fade.tween_property(boot_stage_container, "modulate:a", 1.0, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await status_fade.finished
 	var elapsed_before_hold := float(Time.get_ticks_msec() - started_at) / 1000.0
-	await get_tree().create_timer(maxf(0.0, 10.0 - elapsed_before_hold - 0.24 - 0.62 - 0.24)).timeout
+	await get_tree().create_timer(maxf(0.0, 10.0 - elapsed_before_hold - 0.24)).timeout
 	var status_out := create_tween()
 	status_out.tween_property(boot_stage_container, "modulate:a", 0.0, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await status_out.finished
