@@ -15,6 +15,7 @@ var home_screen_corner_radius := 0
 var home_screen_layout_decrease_button: Button
 var home_screen_layout_increase_button: Button
 var home_screen_layout_value_label: Label
+var home_screen_layout_family_label: Label
 var os_preview_simulator: Control
 var os_component_selector: OptionButton
 var os_generation_selector: OptionButton
@@ -472,16 +473,12 @@ func _show_lock_screen_studio_controls() -> void:
 func _apply_approved_home_screen_layout() -> void:
 	var components: Dictionary = generated_os_configuration.get("components", {})
 	var home_data: Dictionary = components.get("home_screen", {})
-	if home_screen_layout_level == 1:
-		home_data["layout_style"] = "coloros_home"
-		home_data["columns"] = 4
-		home_data["widget_count"] = 1
-		home_data["show_search"] = false
-	else:
-		home_data["layout_style"] = "android_pixel"
-		home_data["columns"] = 4
-		home_data["widget_count"] = 2
-		home_data["show_search"] = true
+	var layout_index := clampi(home_screen_layout_level, 0, ProceduralOSEngineScript.HOME_LAYOUT_STYLES.size() - 1)
+	var selected_style := str(ProceduralOSEngineScript.HOME_LAYOUT_STYLES[layout_index])
+	home_data["layout_style"] = selected_style
+	home_data["columns"] = 4
+	home_data["widget_count"] = 2
+	home_data["show_search"] = not ["coloros_home", "huawei_pura", "windows_tiles"].has(selected_style)
 	home_data["dock_count"] = 4
 	components["home_screen"] = home_data
 	generated_os_configuration["components"] = components
@@ -512,7 +509,7 @@ func _show_home_screen_studio_controls() -> void:
 	heading.name = "HomeScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description := _label("Choose the home-screen layout. More layouts will be added after each design is approved.", 12, Color("#D0CBC2"))
+	var description := _label("Choose from 15 distinct phone home-screen designs.", 12, Color("#D0CBC2"))
 	description.name = "HomeScreenHeroDescription"
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -528,11 +525,16 @@ func _show_home_screen_studio_controls() -> void:
 	selector_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selector_center.custom_minimum_size.y = 360
 	content.add_child(selector_center)
+	var selector_stack := VBoxContainer.new()
+	selector_stack.name = "HomeScreenLayoutSelectorStack"
+	selector_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	selector_stack.add_theme_constant_override("separation", 8)
+	selector_center.add_child(selector_stack)
 	var selector := HBoxContainer.new()
 	selector.name = "HomeScreenLayoutSelector"
 	selector.alignment = BoxContainer.ALIGNMENT_CENTER
 	selector.add_theme_constant_override("separation", 14)
-	selector_center.add_child(selector)
+	selector_stack.add_child(selector)
 
 	home_screen_layout_decrease_button = Button.new()
 	home_screen_layout_decrease_button.name = "DecreaseHomeScreenLayoutButton"
@@ -557,6 +559,10 @@ func _show_home_screen_studio_controls() -> void:
 	_style_button(home_screen_layout_increase_button)
 	home_screen_layout_increase_button.pressed.connect(_on_home_screen_layout_increase_pressed)
 	selector.add_child(home_screen_layout_increase_button)
+	home_screen_layout_family_label = _label("GOOGLE PIXEL", 10, Color("#D3AA6B"))
+	home_screen_layout_family_label.name = "HomeScreenLayoutFamilyLabel"
+	home_screen_layout_family_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selector_stack.add_child(home_screen_layout_family_label)
 	_refresh_home_screen_layout_selector()
 
 	var radius_row := HBoxContainer.new()
@@ -575,12 +581,13 @@ func _show_home_screen_studio_controls() -> void:
 	radius_slider.name = "HomeScreenCornerRadiusSlider"
 	radius_slider.min_value = 0
 	radius_slider.max_value = 24
-	radius_slider.step = 1
+	radius_slider.step = 0.25
 	radius_slider.value = home_screen_corner_radius
 	radius_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	radius_slider.custom_minimum_size = Vector2(100, 24)
+	radius_slider.custom_minimum_size = Vector2(120, 30)
 	radius_slider.focus_mode = Control.FOCUS_NONE
 	radius_slider.value_changed.connect(_on_home_screen_corner_radius_changed)
+	_style_custom_slider(radius_slider)
 	radius_row.add_child(radius_slider)
 
 	var radius_value := _label(str(home_screen_corner_radius), 11, Color("#D3AA6B"))
@@ -592,6 +599,35 @@ func _show_home_screen_studio_controls() -> void:
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.set_home_screen_corner_radius(float(home_screen_corner_radius))
 
+
+func _style_custom_slider(slider: Slider) -> void:
+	# Exact premium slider styling shared with Phone Creation.
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("#26292B")
+	track.border_color = Color("#C58A3A")
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(12)
+	track.content_margin_left = 6
+	track.content_margin_right = 6
+	track.content_margin_top = 6
+	track.content_margin_bottom = 6
+	slider.add_theme_stylebox_override("slider", track)
+	var grabber_gradient := Gradient.new()
+	grabber_gradient.set_color(0, Color("#ffffff"))
+	grabber_gradient.set_color(1, Color("#C58A3A"))
+	var grabber_texture := GradientTexture2D.new()
+	grabber_texture.gradient = grabber_gradient
+	grabber_texture.width = 32
+	grabber_texture.height = 32
+	grabber_texture.fill_from = Vector2(0.0, 0.0)
+	grabber_texture.fill_to = Vector2(1.0, 1.0)
+	slider.add_theme_icon_override("grabber", grabber_texture)
+	slider.add_theme_icon_override("grabber_highlight", grabber_texture)
+	slider.add_theme_stylebox_override("grabber_area", StyleBoxEmpty.new())
+	slider.add_theme_stylebox_override("grabber_area_highlight", StyleBoxEmpty.new())
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+	slider.editable = true
 
 func _on_home_screen_corner_radius_changed(value: float) -> void:
 	home_screen_corner_radius = clampi(roundi(value), 0, 24)
@@ -610,19 +646,23 @@ func _on_home_screen_layout_decrease_pressed() -> void:
 
 
 func _on_home_screen_layout_increase_pressed() -> void:
-	if home_screen_layout_level >= 1:
+	if home_screen_layout_level >= ProceduralOSEngineScript.HOME_LAYOUT_STYLES.size() - 1:
 		return
 	home_screen_layout_level += 1
 	_refresh_home_screen_layout_selector()
 
 
 func _refresh_home_screen_layout_selector() -> void:
+	var last_layout_index := ProceduralOSEngineScript.HOME_LAYOUT_STYLES.size() - 1
+	home_screen_layout_level = clampi(home_screen_layout_level, 0, last_layout_index)
 	if is_instance_valid(home_screen_layout_value_label):
 		home_screen_layout_value_label.text = "LAYOUT " + str(home_screen_layout_level + 1)
+	if is_instance_valid(home_screen_layout_family_label):
+		home_screen_layout_family_label.text = str(ProceduralOSEngineScript.HOME_LAYOUT_FAMILY_LABELS[home_screen_layout_level])
 	if is_instance_valid(home_screen_layout_decrease_button):
 		home_screen_layout_decrease_button.disabled = home_screen_layout_level == 0
 	if is_instance_valid(home_screen_layout_increase_button):
-		home_screen_layout_increase_button.disabled = home_screen_layout_level == 1
+		home_screen_layout_increase_button.disabled = home_screen_layout_level == last_layout_index
 	_apply_approved_home_screen_layout()
 
 

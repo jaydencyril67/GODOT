@@ -862,8 +862,13 @@ func _run_os_generator_test() -> void:
 	worksite.call("_show_home_screen_studio_controls")
 	await process_frame
 	var corner_slider := worksite.find_child("HomeScreenCornerRadiusSlider", true, false) as HSlider
-	if corner_slider == null or corner_slider.min_value != 0.0 or corner_slider.max_value != 24.0 or corner_slider.value != 0.0:
-		_fail("Home Screen Studio must expose a horizontal corner-radius slider starting at square corners.")
+	if corner_slider == null or corner_slider.min_value != 0.0 or corner_slider.max_value != 24.0 or corner_slider.value != 0.0 or corner_slider.step > 0.25:
+		_fail("Home Screen Studio must expose a smooth horizontal corner-radius slider starting at square corners.")
+		return
+	var radius_track := corner_slider.get_theme_stylebox("slider") as StyleBoxFlat
+	var radius_grabber := corner_slider.get_theme_icon("grabber")
+	if radius_track == null or radius_track.bg_color != Color("#26292B") or radius_track.border_color != Color("#C58A3A") or radius_track.get_border_width(SIDE_LEFT) != 2 or radius_grabber == null:
+		_fail("Home Screen Studio slider does not match the premium Phone Creation slider treatment.")
 		return
 	corner_slider.value = 12.0
 	await process_frame
@@ -889,6 +894,11 @@ func _run_os_generator_test() -> void:
 		return
 	if weather_style.corner_radius_top_left != 12 or assistant_style.corner_radius_top_left != 12 or first_home_button_style.corner_radius_top_left != 12 or dock_style.corner_radius_top_left != 12:
 		_fail("Corner-radius slider did not apply its value to widgets, app icons and dock.")
+		return
+	var home_search := worksite_preview.find_child("HomeSearchBar", true, false) as LineEdit
+	var home_search_style := home_search.get_theme_stylebox("normal") as StyleBoxFlat if home_search != null else null
+	if home_search_style == null or home_search_style.get_border_width(SIDE_LEFT) <= 0 or home_search_style.corner_radius_top_left != 12:
+		_fail("Home-screen search bars must keep a visible border and follow the shared corner-radius slider.")
 		return
 	for state_name in ["normal", "hover", "pressed"]:
 		var adjusted_icon_style := first_home_button.get_theme_stylebox(state_name) as StyleBoxFlat
@@ -953,10 +963,62 @@ func _run_os_generator_test() -> void:
 	if layout_one_button == null or layout_one_button.disabled:
 		_fail("Layout 2 must allow returning to Layout 1.")
 		return
-	layout_one_button.pressed.emit()
-	await process_frame
+
+	var expected_layout_styles: Array = [
+	"android_pixel", "coloros_home", "ios_home", "samsung_one_ui", "huawei_pura",
+	"hyperos_home", "hios_home", "xos_home", "itel_home", "windows_tiles",
+	"nothing_os", "motorola_hello", "sony_xperia", "asus_zen", "vivo_origin"
+]
+	var expected_layout_families: Array = [
+	"GOOGLE PIXEL", "OPPO COLOROS", "APPLE iOS", "SAMSUNG ONE UI", "HUAWEI EMUI",
+	"REDMI HYPEROS", "TECNO HIOS", "INFINIX XOS", "ITEL OS", "WINDOWS PHONE",
+	"NOTHING OS", "MOTOROLA HELLO UI", "SONY XPERIA", "ASUS ZENUI", "VIVO ORIGINOS"
+]
+	if expected_layout_styles.size() != 15 or expected_layout_families.size() != 15:
+		_fail("Home Screen Studio must expose exactly 15 selectable layout families.")
+		return
+	for layout_index in range(2, expected_layout_styles.size()):
+		if layout_two_button.disabled:
+			_fail("Home Screen Studio stopped before all 15 layouts became selectable.")
+			return
+		layout_two_button.pressed.emit()
+		await process_frame
+		var active_configuration: Dictionary = worksite_preview.get("configuration")
+		var active_home_data: Dictionary = active_configuration.get("components", {}).get("home_screen", {})
+		var active_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
+		var active_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
+		var active_primary_widget := worksite_preview.find_child("HomeScreenPrimaryWidget", true, false) as Control
+		var active_top_space := worksite_preview.find_child("HomeLayoutTopFlexibleSpace", true, false) as Control
+		var active_family_label := worksite.find_child("HomeScreenLayoutFamilyLabel", true, false) as Label
+		if str(active_home_data.get("layout_style", "")) != str(expected_layout_styles[layout_index]):
+			_fail("Layout selector did not load the expected design at position " + str(layout_index + 1) + ".")
+			return
+		if layout_two_label.text != "LAYOUT " + str(layout_index + 1) or active_family_label == null or active_family_label.text != str(expected_layout_families[layout_index]):
+			_fail("Layout selector did not show the matching layout number and manufacturer family.")
+			return
+		if active_clock == null or active_date == null or active_primary_widget == null:
+			_fail("A home-screen layout is missing its live clock/date or readable primary widget: " + str(expected_layout_styles[layout_index]))
+			return
+		if active_clock.size_flags_horizontal != Control.SIZE_EXPAND_FILL or active_clock.autowrap_mode != TextServer.AUTOWRAP_OFF or active_clock.clip_text:
+			_fail("Home-screen clock sizing must prevent wrapping and clipping: " + str(expected_layout_styles[layout_index]))
+			return
+		if active_top_space == null or active_top_space.size.y <= 0.0:
+			_fail("Home-screen content is not vertically distributed below the status bar: " + str(expected_layout_styles[layout_index]))
+			return
+		var active_search := worksite_preview.find_child("HomeSearchBar", true, false) as LineEdit
+		if active_search != null:
+			var active_search_style := active_search.get_theme_stylebox("normal") as StyleBoxFlat
+			if active_search_style == null or active_search_style.get_border_width(SIDE_LEFT) <= 0:
+				_fail("A visible home-screen search bar is missing its matching border: " + str(expected_layout_styles[layout_index]))
+				return
+	if not layout_two_button.disabled:
+		_fail("The final home-screen layout must disable the next arrow.")
+		return
+	for step_back in range(expected_layout_styles.size() - 1):
+		layout_one_button.pressed.emit()
+		await process_frame
 	if layout_two_label.text != "LAYOUT 1" or worksite_preview.find_child("AndroidWeatherWidget", true, false) == null:
-		_fail("Returning from Layout 2 did not restore Layout 1.")
+		_fail("Returning from the expanded layout catalogue did not restore Layout 1.")
 		return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame
