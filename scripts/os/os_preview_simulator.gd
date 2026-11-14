@@ -661,6 +661,9 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	status_label = _label("", 1, _text_color())
 	status_label.name = "StatusBarBattery"
 	status_label.visible = false
+	# Keep the hidden status target inside the live tree so each shell rebuild
+	# releases it with the rest of the status bar instead of orphaning a Label.
+	bar.add_child(status_label)
 	parent.add_child(bar)
 
 func _build_component(component_id: String) -> void:
