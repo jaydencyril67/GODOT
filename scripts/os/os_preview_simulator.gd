@@ -99,31 +99,26 @@ class OSWallpaperLayer extends Control:
 
 
 class LockScreenFingerprintButton extends Button:
+	var sensor_texture: Texture2D
+
 	func _ready() -> void:
 		text = ""
 		focus_mode = Control.FOCUS_NONE
 		mouse_filter = Control.MOUSE_FILTER_STOP
-		custom_minimum_size = Vector2(52, 52)
+		custom_minimum_size = Vector2(64, 64)
+		sensor_texture = load("res://assets/os/lockscreen/fingerprint_sensor.svg") as Texture2D
 		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
 			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
 		queue_redraw()
 
 	func _draw() -> void:
-		var centre := size * 0.5
-		var ink := Color("#F3EDE3")
-		var accent := Color("#D7B47A")
-		var radius := minf(size.x, size.y) * 0.5 - 2.0
-		draw_circle(centre, radius, Color(0.04, 0.05, 0.06, 0.20))
-		draw_arc(centre, radius - 1.0, 0.0, TAU, 48, Color(accent.r, accent.g, accent.b, 0.78), 1.15, true)
-		draw_arc(centre, radius - 4.0, 0.0, TAU, 48, Color(ink.r, ink.g, ink.b, 0.16), 0.8, true)
-		draw_arc(centre + Vector2(0, 2), 12.0, PI * 1.12, PI * 1.88, 28, ink, 1.25, true)
-		draw_arc(centre + Vector2(0, 3), 8.7, PI * 1.08, PI * 1.92, 24, ink, 1.15, true)
-		draw_arc(centre + Vector2(0, 3), 5.4, PI * 1.03, PI * 1.97, 20, ink, 1.1, true)
-		draw_arc(centre + Vector2(0, 5), 2.2, PI * 1.02, PI * 1.98, 16, ink, 1.0, true)
-		draw_line(centre + Vector2(-9, 1), centre + Vector2(-7, 9), ink, 1.0, true)
-		draw_line(centre + Vector2(9, 1), centre + Vector2(7, 9), ink, 1.0, true)
+		if sensor_texture == null:
+			return
+		var side := minf(size.x, size.y)
+		var rect := Rect2((size - Vector2.ONE * side) * 0.5, Vector2.ONE * side)
 		if is_pressed():
-			draw_circle(centre, radius - 1.0, Color(accent.r, accent.g, accent.b, 0.12))
+			draw_circle(size * 0.5, side * 0.48, Color("#D7B47A", 0.18))
+		draw_texture_rect(sensor_texture, rect, false)
 
 
 var configuration: Dictionary = {}
@@ -620,6 +615,17 @@ func _build_home_dock(parent: VBoxContainer) -> void:
 	parent.add_child(dock)
 
 
+func _status_bar_icon(asset_path: String, icon_size: Vector2, node_name: String) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.name = node_name
+	icon.texture = load(asset_path) as Texture2D
+	icon.custom_minimum_size = icon_size
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
+
+
 func _build_status_bar(parent: VBoxContainer) -> void:
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
@@ -652,11 +658,14 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
-	var indicators := _label("▂▄▆█  )))  ▰", 8, _text_color())
+	var indicators := HBoxContainer.new()
 	indicators.name = "StatusBarSystemIndicators"
-	indicators.custom_minimum_size = Vector2(54, 14)
-	indicators.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	indicators.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	indicators.alignment = BoxContainer.ALIGNMENT_END
+	indicators.add_theme_constant_override("separation", 3)
+	indicators.custom_minimum_size = Vector2(57, 16)
+	indicators.add_child(_status_bar_icon("res://assets/os/lockscreen/status_cellular.svg", Vector2(16, 13), "StatusBarCellularIcon"))
+	indicators.add_child(_status_bar_icon("res://assets/os/lockscreen/status_wifi.svg", Vector2(15, 13), "StatusBarWifiIcon"))
+	indicators.add_child(_status_bar_icon("res://assets/os/lockscreen/status_battery.svg", Vector2(20, 13), "StatusBarBatteryIcon"))
 	row.add_child(indicators)
 	status_label = _label("", 1, _text_color())
 	status_label.name = "StatusBarBattery"
