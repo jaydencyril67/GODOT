@@ -843,20 +843,28 @@ func _run_os_generator_test() -> void:
 	var home_app_names := ["Email", "Photos", "Maps", "Store", "Calendar", "Contacts", "Music", "Settings"]
 	var dock_app_names := ["Phone", "Messages", "Browser", "Camera"]
 	for app_name in home_app_names:
-		var home_item := worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) as VBoxContainer
-		var home_icon := home_item.get_node_or_null("CenterContainer/LollipopIconButton") as Button if home_item != null else null
+		var home_item_found := false
+		for home_child in lollipop_grid.get_children():
+			if home_child.name == "LollipopApp_" + app_name.replace(" ", ""):
+				home_item_found = true
 		var icon_stem: String = str({"Email": "email", "Photos": "photos", "Maps": "maps", "Store": "store", "Calendar": "calendar", "Contacts": "contacts", "Music": "music", "Settings": "settings"}.get(app_name, ""))
-		if home_item == null or not lollipop_grid.is_ancestor_of(home_item) or home_icon == null or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + str(icon_stem) + ".png"):
+		if not home_item_found or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + icon_stem + ".png"):
 			_fail("Lollipop home app is missing its locally bundled artwork: " + app_name)
 			return
 		if dock_app_names.has(app_name):
 			_fail("A Lollipop home app is duplicated in the dock: " + app_name)
 			return
+	var lollipop_dock_row := worksite_preview.find_child("HomeAppDockIcons", true, false) as HBoxContainer
+	if lollipop_dock_row == null or lollipop_dock_row.get_child_count() != 5:
+		_fail("Lollipop dock must contain four pinned apps and the app drawer launcher.")
+		return
 	for app_name in dock_app_names:
-		var dock_item := worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) as VBoxContainer
-		var dock_icon := dock_item.get_node_or_null("CenterContainer/LollipopIconButton") as Button if dock_item != null else null
+		var dock_item_found := false
+		for dock_child in lollipop_dock_row.get_children():
+			if dock_child.name == "LollipopApp_" + app_name.replace(" ", ""):
+				dock_item_found = true
 		var dock_icon_stem: String = str({"Phone": "phone", "Messages": "messages", "Browser": "browser", "Camera": "camera"}.get(app_name, ""))
-		if dock_item == null or dock_icon == null or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + str(dock_icon_stem) + ".png"):
+		if not dock_item_found or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + dock_icon_stem + ".png"):
 			_fail("Lollipop dock app is missing its locally bundled artwork: " + app_name)
 			return
 	lollipop_dock_button.pressed.emit()
