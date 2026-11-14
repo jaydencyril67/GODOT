@@ -33,8 +33,8 @@ func _run_os_generator_test() -> void:
 	if components.size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generator did not produce all 6 core OS components.")
 		return
-	if str(components.get("home_screen", {}).get("layout_style", "")) != "huawei_pura":
-		_fail("New OS generation must select the approved Huawei-inspired home-screen structure.")
+	if str(components.get("home_screen", {}).get("layout_style", "")) != "android_pixel":
+		_fail("New OS generation must select the approved Android home-screen structure.")
 		return
 	if ProceduralEngineScript.APP_DEFINITIONS.size() != 30:
 		_fail("OS app catalog must contain exactly 30 installed apps.")
@@ -377,47 +377,25 @@ func _run_os_generator_test() -> void:
 	simulator.set_component_view("home_screen")
 	await process_frame
 
+	if ProceduralEngineScript.HOME_LAYOUT_STYLES.size() != 1 or ProceduralEngineScript.HOME_LAYOUT_STYLES[0] != "android_pixel":
+		_fail("Only the individually approved Android home-screen layout may be available.")
+		return
 	for generation_number in range(1, 4):
 		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
 		simulator.configure_os(generation_preview, "home_screen")
 		await process_frame
-		var generated_layout := str(generation_preview.get("components", {}).get("home_screen", {}).get("layout_style", ""))
-		# Huawei Pura uses a fixed, reference-based service row rather than the
-		# generic generation-count widget slots. Its dedicated structure is
-		# validated in the Huawei layout assertions below.
-		if generated_layout != "huawei_pura":
-			var rendered_widget_count := 0
-			for widget_name in ["HomeWidget_Clock", "HomeWidget_Weather", "HomeWidget_Calendar", "HomeWidget_Music"]:
-				if simulator.find_child(widget_name, true, false) != null:
-					rendered_widget_count += 1
-			if rendered_widget_count != expected_widgets[generation_number - 1]:
-				_fail("Simulator rendered the wrong number of widgets for generation %d." % generation_number)
-				return
-	for layout_style in ProceduralEngineScript.HOME_LAYOUT_STYLES:
-		var layout_config := generated.duplicate(true)
-		layout_config["components"]["home_screen"]["layout_style"] = layout_style
-		simulator.configure_os(layout_config, "home_screen")
-		await process_frame
-		match layout_style:
-			"windows_tiles":
-				if simulator.find_child("WindowsLiveTileGrid", true, false) == null:
-					_fail("Windows tile layout did not render its live-tile grid.")
-					return
-				if simulator.find_child("HomeAppDock", true, false) != null:
-					_fail("Windows tile layout incorrectly rendered the standard app dock.")
-					return
-			"compact_list":
-				if simulator.find_child("HomeAppList", true, false) == null:
-					_fail("Compact list layout did not render its app list.")
-					return
-			"category_sections":
-				if simulator.find_child("HomeCategory_COMMUNICATIONGrid", true, false) == null:
-					_fail("Category layout did not render grouped app sections.")
-					return
-			_:
-				if simulator.find_child("HomeAppGrid", true, false) == null:
-					_fail("Grid layout did not render its app grid: " + layout_style)
-					return
+		if str(generation_preview.get("components", {}).get("home_screen", {}).get("layout_style", "")) != "android_pixel":
+			_fail("OS generation did not use the approved Android home-screen layout.")
+			return
+		if simulator.find_child("AndroidWeatherWidget", true, false) == null or simulator.find_child("AndroidAssistantWidget", true, false) == null:
+			_fail("Android home screen must show two side-by-side widgets.")
+			return
+		if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("AndroidHomeSearch", true, false) == null:
+			_fail("Android home screen is missing its four-app row or search field.")
+			return
+		if simulator.find_child("HomeAppDock", true, false) == null:
+			_fail("Android home screen is missing its four-app dock.")
+			return
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 
@@ -464,8 +442,8 @@ func _run_os_generator_test() -> void:
 		_fail("Simulator did not render its procedural OS wallpaper.")
 		return
 	var compact_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
-	if compact_grid == null or compact_grid.columns != 2:
-		_fail("Compact phone viewport did not reduce the home grid to two readable columns.")
+	if compact_grid == null or compact_grid.columns != 4:
+		_fail("Approved Android home-screen app row must retain its four-column arrangement.")
 		return
 	var home_dock := simulator.find_child("HomeAppDock", true, false)
 	var home_viewport := simulator.find_child("OSComponentViewport", true, false)
@@ -710,7 +688,7 @@ func _run_os_generator_test() -> void:
 		_fail("Lock-screen functionality controls were not shown in the right panel.")
 		return
 	var completed_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
-	if completed_step_label == null or completed_step_label.text != "STEP 2 / 2":
+	if completed_step_label == null or completed_step_label.text != "STEP 2 / 3":
 		_fail("Lock Screen Studio must appear as Step 2 after boot completes.")
 		return
 	worksite.call("_on_wizard_back_pressed")
@@ -742,6 +720,32 @@ func _run_os_generator_test() -> void:
 		return
 	if absf(notification_toggle.size.x - notification_toggle.size.y) > 1.0:
 		_fail("Lock Screen Studio checkbox must render as a square, not a vertical rectangle.")
+		return
+
+	worksite.call("_on_next_pressed")
+	await process_frame
+	var home_controls := worksite.find_child("HomeScreenStudioControls", true, false) as VBoxContainer
+	var home_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+	var home_selector := worksite.find_child("HomeScreenLayoutSelector", true, false) as HBoxContainer
+	var home_layout_label := worksite.find_child("HomeScreenLayoutValueLabel", true, false) as Label
+	var home_minus := worksite.find_child("DecreaseHomeScreenLayoutButton", true, false) as Button
+	var home_plus := worksite.find_child("IncreaseHomeScreenLayoutButton", true, false) as Button
+	if home_controls == null or home_step_label == null or home_step_label.text != "STEP 3 / 3":
+		_fail("Step 3 Home Screen Studio did not open with the three-step progress indicator.")
+		return
+	if home_selector == null or home_layout_label == null or home_layout_label.text != "ANDROID" or home_minus == null or home_plus == null or not home_minus.disabled or not home_plus.disabled:
+		_fail("Step 3 must use the Phone Creation minus/value/plus selector and expose only approved Android.")
+		return
+	if worksite_preview.get("active_component") != "home_screen":
+		_fail("Entering Step 3 did not update the actual phone preview to Android Home.")
+		return
+	if worksite_preview.find_child("AndroidWeatherWidget", true, false) == null or worksite_preview.find_child("AndroidAssistantWidget", true, false) == null or worksite_preview.find_child("HomeAppGrid", true, false) == null or worksite_preview.find_child("AndroidHomeSearch", true, false) == null or worksite_preview.find_child("HomeAppDock", true, false) == null:
+		_fail("Step 3 phone preview is missing approved Android home-screen sections.")
+		return
+	worksite.call("_on_wizard_back_pressed")
+	await process_frame
+	if worksite.find_child("LockScreenStudioControls", true, false) == null:
+		_fail("Wizard Back from Step 3 did not return to Lock Screen Studio Step 2.")
 		return
 
 	worksite.call("set_fingerprint_sensor_available", true)
@@ -817,40 +821,29 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering the correct preview PIN 1234 did not unlock to Home.")
 		return
-	var home_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
-	var home_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
-	var service_row := worksite_preview.find_child("HomeServiceWidgetRow", true, false) as HBoxContainer
-	var activity_widget := worksite_preview.find_child("HomeActivityWidget", true, false) as PanelContainer
+	var home_date := worksite_preview.find_child("AndroidHomeDate", true, false) as Label
+	var widgets_row := worksite_preview.find_child("AndroidHomeWidgetRow", true, false) as HBoxContainer
+	var weather_widget := worksite_preview.find_child("AndroidWeatherWidget", true, false) as PanelContainer
+	var assistant_widget := worksite_preview.find_child("AndroidAssistantWidget", true, false) as PanelContainer
 	var home_apps_grid := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
-	var transparent_dock := worksite_preview.find_child("HomeAppDock", true, false) as HBoxContainer
-	if home_clock == null or home_date == null or service_row == null or activity_widget == null:
-		_fail("Huawei-inspired home screen is missing its centred clock, date or mixed service-widget row.")
+	if home_date == null or widgets_row == null or weather_widget == null or assistant_widget == null:
+		_fail("Android home screen is missing its date or two side-by-side widgets.")
 		return
-	if service_row.get_child_count() != 3 or service_row.get_child(0).name != "HomeServiceShortcutWeather" or service_row.get_child(1).name != "HomeServiceShortcutCalculator":
-		_fail("Home screen must place Weather and Calculator shortcuts beside the wider activity widget.")
+	if widgets_row.get_child_count() != 2 or widgets_row.get_child(0) != weather_widget or widgets_row.get_child(1) != assistant_widget:
+		_fail("Android home screen widgets are not arranged side by side.")
 		return
-	var activity_style := activity_widget.get_theme_stylebox("panel") as StyleBoxFlat
-	if activity_style == null or activity_style.corner_radius_top_left != 0 or activity_style.get_border_width(SIDE_LEFT) != 0:
-		_fail("Home activity widget must use square geometry without taking ownership of widget-border settings.")
+	if home_apps_grid == null or home_apps_grid.columns != 4 or home_apps_grid.get_child_count() != 4:
+		_fail("Android home screen must contain exactly four apps in one four-column row.")
 		return
-	if home_apps_grid == null or home_apps_grid.columns != 4 or home_apps_grid.get_child_count() != 8:
-		_fail("Huawei home screen must contain exactly eight apps in a four-column grid.")
-		return
-	if transparent_dock == null or transparent_dock.get_child_count() != 4 or worksite_preview.find_child("HomeAppDockIcons", true, false) != null:
-		_fail("Huawei home screen dock must contain four icons directly on the wallpaper without a dock card.")
-		return
-	var home_app_names := ["Gallery", "Music", "Video", "Calendar", "Wallet", "Files", "Settings", "Browser"]
-	var dock_app_names := ["Phone", "Messages", "Camera", "Email"]
+	var home_app_names := ["Photos", "Store", "Email", "Maps"]
+	var dock_app_names := ["Phone", "Messages", "Browser", "Camera"]
 	for app_name in home_app_names:
-		if home_apps_grid.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
-			_fail("Expected home-screen app is missing: " + app_name)
-			return
-		if dock_app_names.has(app_name):
-			_fail("Home-screen apps must not be duplicated in the dock: " + app_name)
+		if home_apps_grid.find_child("App_" + app_name.replace(" ", ""), true, false) == null or dock_app_names.has(app_name):
+			_fail("Approved Android home app is missing or duplicated in the dock: " + app_name)
 			return
 	for app_name in dock_app_names:
-		if transparent_dock.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
-			_fail("Expected dock app is missing: " + app_name)
+		if worksite_preview.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
+			_fail("Approved Android dock app is missing: " + app_name)
 			return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame
