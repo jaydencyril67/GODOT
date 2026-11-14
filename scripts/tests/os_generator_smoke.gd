@@ -845,7 +845,8 @@ func _run_os_generator_test() -> void:
 	for app_name in home_app_names:
 		var home_item := worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) as VBoxContainer
 		var home_icon := home_item.get_node_or_null("CenterContainer/LollipopIconButton") as Button if home_item != null else null
-		if home_item == null or not lollipop_grid.is_ancestor_of(home_item) or home_icon == null or home_icon.icon == null:
+		var icon_stem := {"Email": "email", "Photos": "photos", "Maps": "maps", "Store": "store", "Calendar": "calendar", "Contacts": "contacts", "Music": "music", "Settings": "settings"}.get(app_name, "")
+		if home_item == null or not lollipop_grid.is_ancestor_of(home_item) or home_icon == null or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + str(icon_stem) + ".png"):
 			_fail("Lollipop home app is missing its locally bundled artwork: " + app_name)
 			return
 		if dock_app_names.has(app_name):
@@ -854,7 +855,8 @@ func _run_os_generator_test() -> void:
 	for app_name in dock_app_names:
 		var dock_item := worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) as VBoxContainer
 		var dock_icon := dock_item.get_node_or_null("CenterContainer/LollipopIconButton") as Button if dock_item != null else null
-		if dock_item == null or dock_icon == null or dock_icon.icon == null:
+		var dock_icon_stem := {"Phone": "phone", "Messages": "messages", "Browser": "browser", "Camera": "camera"}.get(app_name, "")
+		if dock_item == null or dock_icon == null or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + str(dock_icon_stem) + ".png"):
 			_fail("Lollipop dock app is missing its locally bundled artwork: " + app_name)
 			return
 	lollipop_dock_button.pressed.emit()
