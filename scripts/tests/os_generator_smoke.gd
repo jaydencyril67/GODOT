@@ -377,8 +377,8 @@ func _run_os_generator_test() -> void:
 	simulator.set_component_view("home_screen")
 	await process_frame
 
-	if ProceduralEngineScript.HOME_LAYOUT_STYLES.size() != 15 or ProceduralEngineScript.HOME_LAYOUT_STYLES[0] != "android_pixel" or ProceduralEngineScript.HOME_LAYOUT_STYLES[1] != "coloros_home":
-		_fail("The 15 home-screen layouts must preserve the first two approved designs and their order.")
+	if ProceduralEngineScript.HOME_LAYOUT_STYLES != ["android_pixel", "ios_home", "windows_tiles"]:
+		_fail("Home Screen Studio must contain only Android, iOS and Windows layouts, in that order.")
 		return
 	for generation_number in range(1, 4):
 		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
@@ -734,7 +734,7 @@ func _run_os_generator_test() -> void:
 		_fail("Step 3 Home Screen Studio did not open with the three-step progress indicator.")
 		return
 	if home_selector == null or home_layout_label == null or home_layout_label.text != "LAYOUT 1" or home_minus == null or home_plus == null or not home_minus.disabled or home_plus.disabled:
-		_fail("Step 3 must use the Phone Creation minus/value/plus selector with Layout 1 and 15 selectable home-screen layouts are available.")
+		_fail("Step 3 must use the Phone Creation selector with Android as Layout 1 and three operating systems available.")
 		return
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering Step 3 did not update the actual phone preview to Android Home.")
@@ -926,65 +926,39 @@ func _run_os_generator_test() -> void:
 
 	var layout_two_button := worksite.find_child("IncreaseHomeScreenLayoutButton", true, false) as Button
 	if layout_two_button == null or layout_two_button.disabled:
-		_fail("Layout 2 must become selectable after its approval.")
+		_fail("The iOS layout must be selectable after Android.")
 		return
 	layout_two_button.pressed.emit()
 	await process_frame
 	var layout_two_label := worksite.find_child("HomeScreenLayoutValueLabel", true, false) as Label
-	var coloros_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
-	var coloros_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
-	var work_folder := worksite_preview.find_child("ColorOSWorkFolder", true, false) as PanelContainer
-	var media_folder := worksite_preview.find_child("ColorOSMediaFolder", true, false) as PanelContainer
-	var smart_widget := worksite_preview.find_child("ColorOSSmartInformationWidget", true, false) as PanelContainer
-	var coloros_dock := worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
-	if layout_two_label == null or layout_two_label.text != "LAYOUT 2" or coloros_clock == null or coloros_date == null:
-		_fail("Layout 2 did not load its live clock and date.")
+	var ios_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
+	var ios_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
+	var ios_widget_row := worksite_preview.find_child("AppleWidgetRow", true, false) as Control
+	var ios_primary_widget := worksite_preview.find_child("HomeScreenPrimaryWidget", true, false) as Control
+	var ios_calendar_widget := worksite_preview.find_child("AppleCalendarWidget", true, false) as Control
+	var ios_app_grid := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
+	if layout_two_label == null or layout_two_label.text != "LAYOUT 2" or ios_clock == null or ios_date == null:
+		_fail("The iOS layout did not load its live clock and date.")
 		return
-	if coloros_clock.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or coloros_date.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or coloros_clock.size_flags_horizontal != Control.SIZE_EXPAND_FILL:
-		_fail("Layout 2 clock and date must be horizontally centred across the screen.")
+	if ios_clock.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or ios_date.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER:
+		_fail("The iOS clock and date must be centred.")
 		return
-	var coloros_top_space := worksite_preview.find_child("ColorOSHomeTopSpace", true, false) as Control
-	var coloros_middle_space := worksite_preview.find_child("ColorOSHomeMiddleFlexibleSpace", true, false) as Control
-	if work_folder == null or media_folder == null or smart_widget == null or coloros_dock == null or coloros_top_space == null or coloros_middle_space == null:
-		_fail("Layout 2 is missing its smart information widget, two large folders, dock or vertical spacing.")
+	if ios_widget_row == null or ios_primary_widget == null or ios_calendar_widget == null or ios_app_grid == null or ios_app_grid.columns != 4:
+		_fail("The iOS layout is missing its widget row or four-column app grid.")
 		return
-	if coloros_top_space.size.y <= 0.0 or coloros_middle_space.size.y <= 0.0:
-		_fail("Layout 2 home-screen sections must be vertically distributed instead of bunching at the top.")
-		return
-	var work_grid := work_folder.find_child("ColorOSWorkFolderGrid", true, false) as GridContainer
-	var media_grid := media_folder.find_child("ColorOSMediaFolderGrid", true, false) as GridContainer
-	if work_grid == null or media_grid == null or work_grid.columns != 2 or media_grid.columns != 2 or work_grid.get_child_count() != 4 or media_grid.get_child_count() != 4:
-		_fail("Layout 2 large folders must each contain four directly accessible apps in a 2×2 grid.")
-		return
-	var coloros_shortcuts := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
-	if coloros_shortcuts == null or coloros_shortcuts.get_child_count() != 4:
-		_fail("Layout 2 must show four separate shortcuts below its folders.")
-		return
-	for shortcut_name in ["Settings", "Maps", "Store", "Downloads"]:
-		if coloros_shortcuts.find_child("App_" + shortcut_name, true, false) == null:
-			_fail("Layout 2 is missing its approved standalone shortcut: " + shortcut_name)
-			return
 	var layout_one_button := worksite.find_child("DecreaseHomeScreenLayoutButton", true, false) as Button
 	if layout_one_button == null or layout_one_button.disabled:
-		_fail("Layout 2 must allow returning to Layout 1.")
+		_fail("The iOS layout must allow returning to Android.")
 		return
 
-	var expected_layout_styles: Array = [
-	"android_pixel", "coloros_home", "ios_home", "samsung_one_ui", "huawei_pura",
-	"hyperos_home", "hios_home", "xos_home", "itel_home", "windows_tiles",
-	"nothing_os", "motorola_hello", "sony_xperia", "asus_zen", "vivo_origin"
-]
-	var expected_layout_families: Array = [
-	"GOOGLE PIXEL", "OPPO COLOROS", "APPLE iOS", "SAMSUNG ONE UI", "HUAWEI EMUI",
-	"REDMI HYPEROS", "TECNO HIOS", "INFINIX XOS", "ITEL OS", "WINDOWS PHONE",
-	"NOTHING OS", "MOTOROLA HELLO UI", "SONY XPERIA", "ASUS ZENUI", "VIVO ORIGINOS"
-]
-	if expected_layout_styles.size() != 15 or expected_layout_families.size() != 15:
-		_fail("Home Screen Studio must expose exactly 15 selectable layout families.")
+	var expected_layout_styles: Array = ["android_pixel", "ios_home", "windows_tiles"]
+	var expected_layout_families: Array = ["ANDROID", "APPLE iOS", "WINDOWS PHONE"]
+	if expected_layout_styles.size() != 3 or expected_layout_families.size() != 3:
+		_fail("Home Screen Studio must expose exactly three operating-system layouts.")
 		return
 	for layout_index in range(2, expected_layout_styles.size()):
 		if layout_two_button.disabled:
-			_fail("Home Screen Studio stopped before all 15 layouts became selectable.")
+			_fail("Home Screen Studio stopped before all three operating systems became selectable.")
 			return
 		layout_two_button.pressed.emit()
 		await process_frame
@@ -1017,13 +991,13 @@ func _run_os_generator_test() -> void:
 				_fail("A visible home-screen search bar is missing its matching border: " + str(expected_layout_styles[layout_index]))
 				return
 	if not layout_two_button.disabled:
-		_fail("The final home-screen layout must disable the next arrow.")
+		_fail("The Windows Phone layout must disable the next arrow.")
 		return
 	for step_back in range(expected_layout_styles.size() - 1):
 		layout_one_button.pressed.emit()
 		await process_frame
 	if layout_two_label.text != "LAYOUT 1" or worksite_preview.find_child("AndroidWeatherWidget", true, false) == null:
-		_fail("Returning from the expanded layout catalogue did not restore Layout 1.")
+		_fail("Returning from the three-system selector did not restore Android Layout 1.")
 		return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame

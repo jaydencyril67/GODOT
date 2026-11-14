@@ -23,16 +23,8 @@ const PALETTES := [
 
 const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"]
 
-const HOME_LAYOUT_STYLES := [
-	"android_pixel", "coloros_home", "ios_home", "samsung_one_ui", "huawei_pura",
-	"hyperos_home", "hios_home", "xos_home", "itel_home", "windows_tiles",
-	"nothing_os", "motorola_hello", "sony_xperia", "asus_zen", "vivo_origin"
-]
-const HOME_LAYOUT_FAMILY_LABELS := [
-	"GOOGLE PIXEL", "OPPO COLOROS", "APPLE iOS", "SAMSUNG ONE UI", "HUAWEI EMUI",
-	"REDMI HYPEROS", "TECNO HIOS", "INFINIX XOS", "ITEL OS", "WINDOWS PHONE",
-	"NOTHING OS", "MOTOROLA HELLO UI", "SONY XPERIA", "ASUS ZENUI", "VIVO ORIGINOS"
-]
+const HOME_LAYOUT_STYLES := ["android_pixel", "ios_home", "windows_tiles"]
+const HOME_LAYOUT_FAMILY_LABELS := ["ANDROID", "APPLE iOS", "WINDOWS PHONE"]
 const LOCK_SCREEN_DESIGN_FAMILIES := ["editorial", "glass", "minimal", "neo_brutalist", "split_grid", "futurist", "soft_layers", "typographic"]
 const LOCK_SCREEN_LAYOUT_TEMPLATES := [
 	"classic_clock", "rhombus_clock", "magazine_cover", "depth_layer", "widget_dashboard",
