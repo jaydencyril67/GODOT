@@ -966,7 +966,76 @@ func _build_home_screen(data: Dictionary) -> void:
 			_build_android_home(data, 2)
 
 
-func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
+func _build_android_home(data: Dictionary, widget_count: int) -> void:
+	if int(configuration.get("generation", 2)) == 1:
+		_build_lollipop_android_home()
+	else:
+		_build_legacy_android_home(data, widget_count)
+
+
+func _build_legacy_android_home(_data: Dictionary, _widget_count: int) -> void:
+	var date_label := _label(_current_lock_date("minimal").to_upper(), 10, _text_color())
+	date_label.name = "AndroidHomeDate"
+	page_container.add_child(date_label)
+	var greeting := _label("26°  ·  Partly cloudy", 8, _muted_color())
+	greeting.name = "AndroidHomeWeatherSummary"
+	page_container.add_child(greeting)
+	var top_spacing := Control.new()
+	top_spacing.name = "AndroidHomeTopFlexibleSpace"
+	top_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(top_spacing)
+	var widgets_row := HBoxContainer.new()
+	widgets_row.name = "AndroidHomeWidgetRow"
+	widgets_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	widgets_row.add_theme_constant_override("separation", 7)
+	page_container.add_child(widgets_row)
+	var weather_widget := PanelContainer.new()
+	weather_widget.name = "AndroidWeatherWidget"
+	weather_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	weather_widget.custom_minimum_size.y = 72
+	_style_home_surface(weather_widget, 15)
+	var weather_content := VBoxContainer.new()
+	weather_content.add_theme_constant_override("separation", 2)
+	weather_widget.add_child(weather_content)
+	weather_content.add_child(_label("WEATHER", 7, _muted_color()))
+	weather_content.add_child(_label("26°", 22, _text_color()))
+	weather_content.add_child(_label("Partly cloudy", 7, _muted_color()))
+	widgets_row.add_child(weather_widget)
+	var assistant_widget := PanelContainer.new()
+	assistant_widget.name = "AndroidAssistantWidget"
+	assistant_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	assistant_widget.custom_minimum_size.y = 72
+	_style_home_surface(assistant_widget, 15)
+	var assistant_content := VBoxContainer.new()
+	assistant_content.add_theme_constant_override("separation", 3)
+	assistant_widget.add_child(assistant_content)
+	assistant_content.add_child(_label("ASSISTANT", 7, _muted_color()))
+	assistant_content.add_child(_label("Ask anything", 11, _text_color()))
+	assistant_content.add_child(_label("Tap to get help", 7, _muted_color()))
+	widgets_row.add_child(assistant_widget)
+	var middle_spacing := Control.new()
+	middle_spacing.name = "AndroidHomeMiddleFlexibleSpace"
+	middle_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(middle_spacing)
+	var apps_grid := GridContainer.new()
+	apps_grid.name = "HomeAppGrid"
+	apps_grid.columns = 4
+	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apps_grid.add_theme_constant_override("h_separation", 5)
+	apps_grid.add_theme_constant_override("v_separation", 5)
+	for app_name in ["Photos", "Store", "Email", "Maps"]:
+		var app := _find_app(app_name)
+		if not app.is_empty():
+			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(34, 4, 5), true))
+	page_container.add_child(apps_grid)
+	var search_spacing := Control.new()
+	search_spacing.name = "AndroidHomeSearchFlexibleSpace"
+	search_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(search_spacing)
+	_add_home_search_field("Search your phone", "HomeSearchBar")
+
+
+func _build_lollipop_android_home() -> void:
 	# Android 5.0 Lollipop / Google Now Launcher: fixed search bar, app grid,
 	# open wallpaper space and a separate five-position launcher dock.
 	var search_panel := PanelContainer.new()
@@ -997,7 +1066,6 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	microphone.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	search_row.add_child(microphone)
 	page_container.add_child(search_panel)
-
 	_add_home_flexible_space("LollipopSearchToAppsSpace", 1.0)
 	var apps_grid := GridContainer.new()
 	apps_grid.name = "LollipopHomeAppGrid"
