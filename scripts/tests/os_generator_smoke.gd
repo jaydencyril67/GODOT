@@ -155,6 +155,11 @@ func _run_os_generator_test() -> void:
 		if status_indicators == null or status_indicators.size.x < 45.0:
 			_fail("Samsung-style cellular, Wi-Fi and battery indicators are missing: " + template_name)
 			return
+		for icon_name in ["StatusBarCellularIcon", "StatusBarWifiIcon", "StatusBarBatteryIcon"]:
+			var status_icon := template_preview.find_child(icon_name, true, false) as TextureRect
+			if status_icon == null or status_icon.texture == null or status_icon.size.x <= 0.0 or status_icon.size.y <= 0.0:
+				_fail("Imported status artwork failed to load or render: " + icon_name)
+				return
 		if clock_stage == null or lock_clock == null or not clock_stage.is_ancestor_of(lock_clock):
 			_fail("Lock-screen clock escaped its protected clock stage: " + template_name)
 			return
@@ -166,6 +171,9 @@ func _run_os_generator_test() -> void:
 			return
 		if lock_clock == null or lock_clock.text.strip_edges().is_empty() or lock_clock.size.y < 20.0:
 			_fail("Lock-screen main clock is missing or has no visible height: " + template_name)
+			return
+		if lock_clock.get_theme_font("font") == null or lock_clock.get_theme_font_size("font_size") < 20:
+			_fail("Lock-screen clock font did not load at a readable size: " + template_name)
 			return
 		if lock_date == null or lock_date.text.strip_edges().is_empty():
 			_fail("Lock-screen date is missing: " + template_name)
@@ -682,6 +690,9 @@ func _run_os_generator_test() -> void:
 	fingerprint_sensor = worksite_preview.find_child("LockScreenFingerprintSensor", true, false) as Button
 	if fingerprint_sensor == null:
 		_fail("Fingerprint sensor disappeared after returning to the lock screen.")
+		return
+	if fingerprint_sensor.get("sensor_texture") == null:
+		_fail("Imported fingerprint sensor artwork failed to load.")
 		return
 	fingerprint_sensor.pressed.emit()
 	if worksite_preview.get("active_component") != "home_screen":
