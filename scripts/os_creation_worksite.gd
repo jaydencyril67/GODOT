@@ -429,10 +429,10 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 
 func _build_bootloader_controls(parent: VBoxContainer) -> void:
 	parent.add_theme_constant_override("separation", 16)
-	var heading := _label("BOOT LOADER", 20, Color("#D3AA6B"))
+	var heading := _label("BOOT LOADER", 22, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(heading)
-	var description := _label("Choose which startup details appear when your phone powers on.", 12, Color("#E5E0D6"))
+	var description := _label("Choose which startup details appear when your phone powers on.", 14, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(description)
@@ -448,7 +448,7 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 8)
 		parent.add_child(row)
-		var item_label := _label(str(row_data[1]), 14, Color("#E5E0D6"))
+		var item_label := _label(str(row_data[1]), 16, Color("#E5E0D6"))
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
