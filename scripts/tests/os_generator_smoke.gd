@@ -848,9 +848,10 @@ func _run_os_generator_test() -> void:
 	if first_home_button == null:
 		_fail("Layout 1 app icon is missing its named Button node.")
 		return
+	var first_home_button_style := first_home_button.get_theme_stylebox("normal") as StyleBoxFlat
 	for state_name in ["normal", "hover", "pressed"]:
-		var first_home_button_style := first_home_button.get_theme_stylebox(state_name) as StyleBoxFlat
-		if first_home_button_style == null or first_home_button_style.corner_radius_top_left != 0 or first_home_button_style.get_border_width(SIDE_LEFT) <= 0:
+		var button_state_style := first_home_button.get_theme_stylebox(state_name) as StyleBoxFlat
+		if button_state_style == null or button_state_style.corner_radius_top_left != 0 or button_state_style.get_border_width(SIDE_LEFT) <= 0:
 			_fail("Layout 1 app icon " + state_name + " state must have square bordered styling by default.")
 			return
 	var home_dock_panel := worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
