@@ -75,22 +75,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle for the DigitalWorld OS WebView plugin
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11.1'
-
-      - name: Build the first-party DigitalWorld OS WebView plugin
-        shell: bash
-        run: |
-          set -euo pipefail
-          gradle -p addons/digitalworld_os_ui/android :plugin:assembleDebug :plugin:assembleRelease
-          mkdir -p addons/digitalworld_os_ui/bin/debug addons/digitalworld_os_ui/bin/release
-          cp addons/digitalworld_os_ui/android/plugin/build/outputs/aar/plugin-debug.aar addons/digitalworld_os_ui/bin/debug/plugin-debug.aar
-          cp addons/digitalworld_os_ui/android/plugin/build/outputs/aar/plugin-release.aar addons/digitalworld_os_ui/bin/release/plugin-release.aar
-          test -s addons/digitalworld_os_ui/bin/debug/plugin-debug.aar
-          test -s addons/digitalworld_os_ui/bin/release/plugin-release.aar
-
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -107,6 +91,23 @@ jobs:
 
       - name: Install pinned Android SDK components
         run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle for the DigitalWorld OS WebView plugin
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Build the first-party DigitalWorld OS WebView plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -p addons/digitalworld_os_ui/android :plugin:assembleDebug :plugin:assembleRelease
+          mkdir -p addons/digitalworld_os_ui/bin/debug addons/digitalworld_os_ui/bin/release
+          cp addons/digitalworld_os_ui/android/plugin/build/outputs/aar/plugin-debug.aar addons/digitalworld_os_ui/bin/debug/plugin-debug.aar
+          cp addons/digitalworld_os_ui/android/plugin/build/outputs/aar/plugin-release.aar addons/digitalworld_os_ui/bin/release/plugin-release.aar
+          test -s addons/digitalworld_os_ui/bin/debug/plugin-debug.aar
+          test -s addons/digitalworld_os_ui/bin/release/plugin-release.aar
+
 
       - name: Install Godot 4.7.2 and matching export templates
         uses: chickensoft-games/setup-godot@v2
