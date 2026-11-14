@@ -947,6 +947,14 @@ func _build_lock_screen(data: Dictionary) -> void:
 	root_layout.add_theme_constant_override("separation", 3)
 	page_container.add_child(root_layout)
 
+	var top_space := Control.new()
+	top_space.name = "LockScreenTopFlexibleSpace"
+	top_space.custom_minimum_size.y = 4
+	# A top spacer must never consume the clock's visible area on compact previews.
+	var lower_space := Control.new()
+	lower_space.name = "LockScreenBottomFlexibleSpace"
+	lower_space.custom_minimum_size.y = 4
+
 	var clock_stack := VBoxContainer.new()
 	clock_stack.name = "LockScreenClockStack"
 	clock_stack.add_theme_constant_override("separation", 1)
@@ -1041,14 +1049,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 		unlock_control.custom_minimum_size.y = 18
 		_style_lock_button(unlock_control, str(data.get("unlock_treatment", "pill")))
 		unlock_control.pressed.connect(func(): set_component_view("home_screen"))
-
-	var top_space := Control.new()
-	top_space.name = "LockScreenTopFlexibleSpace"
-	top_space.custom_minimum_size.y = 4
-	# A top spacer must never consume the clock's visible area on compact previews.
-	var lower_space := Control.new()
-	lower_space.name = "LockScreenBottomFlexibleSpace"
-	lower_space.custom_minimum_size.y = 4
 
 	var feature_row := VBoxContainer.new()
 	feature_row.name = "LockScreenMediaAndNotifications"
