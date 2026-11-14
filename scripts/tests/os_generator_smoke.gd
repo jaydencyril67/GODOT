@@ -336,9 +336,9 @@ func _run_os_generator_test() -> void:
 	phone_details_order.value = 1
 	var boot_settings: Dictionary = worksite.get("bootloader_settings")
 	if int(boot_settings["items"]["phone_details"]["order"]) != 1 or int(boot_settings["items"]["company_logo"]["order"]) != 2:
-		_fail("Boot order number boxes did not keep the three startup items in a unique sequence.")
+		_fail("Boot order number boxes did not keep the two startup screens in a unique sequence.")
 		return
-	for item_id in ["company_logo", "phone_name", "phone_model"]:
+	for item_id in ["company_logo", "phone_details"]:
 		var toggle := worksite.find_child("BootEnabled_" + item_id, true, false) as CheckBox
 		toggle.set_pressed_no_signal(false)
 		worksite.call("_on_boot_item_toggled", false, item_id)
