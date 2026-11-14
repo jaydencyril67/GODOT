@@ -986,7 +986,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	# A top spacer must never consume the clock's visible area on compact previews.
 	var lower_space := Control.new()
 	lower_space.name = "LockScreenBottomFlexibleSpace"
-	lower_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	lower_space.custom_minimum_size.y = 4
 
 	var clock_panel := PanelContainer.new()
 	clock_panel.name = "LockScreenClockSurface"
@@ -1047,7 +1047,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 			root_layout.add_child(notifications)
 		"one_ui_personal":
-			var personal_zones := HBoxContainer.new()
+			var personal_zones := VBoxContainer.new()
 			personal_zones.name = "OneUIPersonalContentZones"
 			var personal_left := VBoxContainer.new()
 			personal_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1062,7 +1062,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(personal_zones)
 		"now_bar":
 			root_layout.add_child(clock_stack)
-			var now_bar := HBoxContainer.new()
+			var now_bar := VBoxContainer.new()
 			now_bar.name = "LockScreenNowBar"
 			if is_instance_valid(media): now_bar.add_child(media)
 			if notifications.get_child_count() > 0: now_bar.add_child(notifications)
@@ -1080,7 +1080,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"pixel_large_clock":
 			var large_clock_stage := CenterContainer.new()
 			large_clock_stage.name = "PixelLargeClockStage"
-			large_clock_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			large_clock_stage.custom_minimum_size.y = configured_clock_size + 22
 			large_clock_stage.add_child(clock_stack)
 			root_layout.add_child(top_space)
 			root_layout.add_child(large_clock_stage)
@@ -1098,7 +1098,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"huawei_dynamic":
-			var dynamic_row := HBoxContainer.new()
+			var dynamic_row := VBoxContainer.new()
 			dynamic_row.add_child(clock_stack)
 			if is_instance_valid(media): dynamic_row.add_child(media)
 			root_layout.add_child(top_space)
@@ -1107,7 +1107,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"nothing_widget_grid":
 			var widget_grid := GridContainer.new()
 			widget_grid.name = "LockScreenNothingWidgetGrid"
-			widget_grid.columns = 2
+			widget_grid.columns = 1 if size.x <= 180.0 else 2
 			widget_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			widget_grid.add_child(clock_panel)
 			widget_grid.add_child(_label("MON  /  DATE", 8, _muted_color()))
