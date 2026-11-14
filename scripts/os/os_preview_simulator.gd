@@ -4,6 +4,11 @@ signal app_opened(app_name: String)
 
 const OSEngine = preload("res://scripts/os/procedural_os_engine.gd")
 const PHONE_UNLOCK_PIN := "1234"
+const LOCKSCREEN_FONT: FontFile = preload("res://assets/fonts/STIXTwoText[wght].ttf")
+const FINGERPRINT_SENSOR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/fingerprint_sensor.svg")
+const STATUS_CELLULAR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_cellular.svg")
+const STATUS_WIFI_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_wifi.svg")
+const STATUS_BATTERY_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_battery.svg")
 
 class OSWallpaperLayer extends Control:
 	var palette: Dictionary = {}
@@ -107,7 +112,7 @@ class LockScreenFingerprintButton extends Button:
 		focus_mode = Control.FOCUS_NONE
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		custom_minimum_size = Vector2(52, 52)
-		sensor_texture = load("res://assets/os/lockscreen/fingerprint_sensor.svg") as Texture2D
+		sensor_texture = FINGERPRINT_SENSOR_TEXTURE
 		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
 			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
 		queue_redraw()
@@ -627,14 +632,18 @@ func _build_home_dock(parent: VBoxContainer) -> void:
 	parent.add_child(dock)
 
 
-func _status_bar_icon(asset_path: String, icon_size: Vector2, node_name: String) -> TextureRect:
+func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: String) -> TextureRect:
 	var icon := TextureRect.new()
 	icon.name = node_name
-	icon.texture = load(asset_path) as Texture2D
+	icon.texture = asset_texture
 	icon.custom_minimum_size = icon_size
-	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	icon.size = icon_size
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.modulate = Color.WHITE
 	return icon
 
 
@@ -675,9 +684,9 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	indicators.alignment = BoxContainer.ALIGNMENT_END
 	indicators.add_theme_constant_override("separation", 3)
 	indicators.custom_minimum_size = Vector2(57, 16)
-	indicators.add_child(_status_bar_icon("res://assets/os/lockscreen/status_cellular.svg", Vector2(16, 13), "StatusBarCellularIcon"))
-	indicators.add_child(_status_bar_icon("res://assets/os/lockscreen/status_wifi.svg", Vector2(15, 13), "StatusBarWifiIcon"))
-	indicators.add_child(_status_bar_icon("res://assets/os/lockscreen/status_battery.svg", Vector2(20, 13), "StatusBarBatteryIcon"))
+	indicators.add_child(_status_bar_icon(STATUS_CELLULAR_TEXTURE, Vector2(16, 13), "StatusBarCellularIcon"))
+	indicators.add_child(_status_bar_icon(STATUS_WIFI_TEXTURE, Vector2(15, 13), "StatusBarWifiIcon"))
+	indicators.add_child(_status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "StatusBarBatteryIcon"))
 	row.add_child(indicators)
 	status_label = _label("", 1, _text_color())
 	status_label.name = "StatusBarBattery"
@@ -1008,9 +1017,13 @@ func _build_lock_screen(data: Dictionary) -> void:
 	clock_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clock_stack.clip_contents = false
 	var clock_font := FontVariation.new()
-	clock_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	clock_font.base_font = LOCKSCREEN_FONT
 	clock_font.variation_embolden = 1.1 if template in ["coloros_typography", "neo_brutalist"] else 0.55
 	clock.add_theme_font_override("font", clock_font)
+	clock.add_theme_color_override("font_color", Color("#FFFFFF"))
+	clock.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.78))
+	clock.add_theme_constant_override("outline_size", 2)
+	clock.modulate = Color.WHITE
 	clock_stack.add_child(clock)
 	var date := _label(_current_lock_date(str(data.get("date_treatment", "uppercase"))), 8, _muted_color())
 	date.name = "LockScreenDate"
