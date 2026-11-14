@@ -21,7 +21,7 @@ const PALETTES := [
 	{"name": "Sandstone", "background": "#211D19", "surface": "#342D25", "surface_alt": "#4A4034", "accent": "#E0B27B", "text": "#FFF8EC", "muted": "#C9BDAA"}
 ]
 
-const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"]
+const WALLPAPER_STYLES := ["lollipop", "aurora", "orbital", "dune", "prism", "midnight_flow"]
 
 const HOME_LAYOUT_STYLES := ["android_pixel", "ios_home", "windows_tiles"]
 const HOME_LAYOUT_FAMILY_LABELS := ["ANDROID", "iPHONE", "WINDOWS PHONE"]
@@ -76,7 +76,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 	var palette: Dictionary = PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
 	var icon_shapes := ["square", "soft_square", "squircle"]
 	var columns: int = [4, 4, 5][generation_number - 1]
-	var wallpaper_id: String = WALLPAPER_STYLES[rng.randi_range(0, WALLPAPER_STYLES.size() - 1)]
+	var wallpaper_id: String = "lollipop" if generation_number == 1 else WALLPAPER_STYLES[rng.randi_range(1, WALLPAPER_STYLES.size() - 1)]
 	var config := {
 		"schema_version": SCHEMA_VERSION,
 		"seed": actual_seed,
