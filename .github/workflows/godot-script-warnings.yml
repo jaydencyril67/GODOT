@@ -98,17 +98,22 @@ jobs:
           echo "Completed warning-only scan of ${#scripts[@]} GDScript files."
           cat gdscript-warning-scan.log
 
-      - name: Report unique warnings (informational only)
+      - name: Fail when GDScript warnings are detected
         if: always()
         shell: bash
         run: |
-          set +e
+          set -euo pipefail
           python3 - <<'PY'
           import re
+          import sys
           from pathlib import Path
 
           log_path = Path("gdscript-warning-scan.log")
-          lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines() if log_path.exists() else []
+          if not log_path.exists():
+              print("::error::GDScript warning scan log was not created.")
+              raise SystemExit(1)
+
+          lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
           warning_pattern = re.compile(r"WARNING:\s*(.*)")
           location_pattern = re.compile(r"res://([^):]+):(\d+)")
           warnings = {}
@@ -129,15 +134,18 @@ jobs:
                       source_line = location.group(2)
                       break
 
-              key = (source_file, source_line, message)
-              warnings.setdefault(key, None)
+              warnings.setdefault((source_file, source_line, message), None)
 
           for (source_file, source_line, message) in warnings:
               if source_file and source_line:
-                  print(f"::warning file={source_file},line={source_line}::{message}")
+                  print(f"::error file={source_file},line={source_line}::GDScript warning: {message}")
               else:
-                  print(f"::warning::{message}")
+                  print(f"::error::GDScript warning: {message}")
 
-          print(f"Unique Godot GDScript warnings reported: {len(warnings)}")
-          print("Warnings are informational. This workflow does not fail on app errors or warnings.")
+          print(f"Unique Godot GDScript warnings detected: {len(warnings)}")
+          if warnings:
+              print("::error::Warning scan failed. Fix every GDScript warning before merging.")
+              raise SystemExit(1)
+
+          print("GDScript warning scan passed: zero warnings detected.")
           PY
