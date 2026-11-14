@@ -835,7 +835,7 @@ func _build_home_dock(parent: VBoxContainer) -> void:
 				drawer_tile.add_child(holder)
 				dock_row.add_child(drawer_tile)
 			else:
-				var app_name := dock_apps[index if index < 2 else index - 1]
+				var app_name: String = str(dock_apps[index if index < 2 else index - 1])
 				var app := _find_app(app_name)
 				if not app.is_empty():
 					dock_row.add_child(_create_lollipop_app_icon(app, dock_icon_size, false, Color("#FFFFFF")))
