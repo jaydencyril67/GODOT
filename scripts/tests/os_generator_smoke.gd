@@ -3,11 +3,28 @@ extends SceneTree
 const ProceduralEngineScript = preload("res://scripts/os/procedural_os_engine.gd")
 const SimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
 const WorksiteScene = preload("res://scenes/os_creation_worksite.tscn")
+const DigitalWorldGameScript = preload("res://scripts/digitalworld_game.gd")
 
 func _initialize() -> void:
 	call_deferred("_run_os_generator_test")
 
 func _run_os_generator_test() -> void:
+	var identity_owner := DigitalWorldGameScript.new()
+	identity_owner.set("career", {"phone_name": "   ", "phone_model": null})
+	identity_owner.call("_normalize_phone_identity")
+	var normalized_identity: Dictionary = identity_owner.get("career")
+	if normalized_identity.get("phone_name", "") != "DigitalWorld Phone" or normalized_identity.get("phone_model", "") != "DW-01":
+		_fail("Career phone identity fallback did not replace blank and null values.")
+		identity_owner.free()
+		return
+	identity_owner.set("career", {})
+	identity_owner.call("_normalize_phone_identity")
+	normalized_identity = identity_owner.get("career")
+	identity_owner.free()
+	if normalized_identity.get("phone_name", "") != "DigitalWorld Phone" or normalized_identity.get("phone_model", "") != "DW-01":
+		_fail("Career phone identity fallback did not handle missing save fields.")
+		return
+
 	var generated := ProceduralEngineScript.generate_os(1357911, 2)
 	var components: Dictionary = generated.get("components", {})
 	if generated.get("schema_version", 0) != ProceduralEngineScript.SCHEMA_VERSION:
@@ -345,6 +362,16 @@ func _run_os_generator_test() -> void:
 	details_toggle.set_pressed_no_signal(true)
 	worksite.call("_on_boot_item_toggled", true, "company_logo")
 	worksite.call("_on_boot_item_toggled", true, "phone_details")
+	worksite.call("set_boot_identity", "KingsHall", 3, "", "")
+	var fallback_boot_identity: Dictionary = worksite.get("boot_identity")
+	if fallback_boot_identity.get("phone_name", "") != "DigitalWorld Phone" or fallback_boot_identity.get("phone_model", "") != "DW-01":
+		_fail("Boot screen did not replace empty phone name and model with their defaults.")
+		return
+	worksite.call("set_boot_identity", "KingsHall", 3, "   ", "  \t  ")
+	fallback_boot_identity = worksite.get("boot_identity")
+	if fallback_boot_identity.get("phone_name", "") != "DigitalWorld Phone" or fallback_boot_identity.get("phone_model", "") != "DW-01":
+		_fail("Boot screen did not replace whitespace-only phone identity with its defaults.")
+		return
 	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone Professional Edition", "DW-01")
 	worksite.call("_generate_complete_os")
 	await process_frame
