@@ -836,7 +836,8 @@ func _run_os_generator_test() -> void:
 	if lollipop_dock_button == null or lollipop_navigation == null or lollipop_navigation.get_child_count() != 3:
 		_fail("Lollipop home screen is missing its app drawer launcher or classic three-button navigation.")
 		return
-	if str(worksite_preview.get("configuration", {}).get("style", {}).get("wallpaper", "")) != "lollipop":
+	var lollipop_configuration: Dictionary = worksite_preview.get("configuration")
+	if str(lollipop_configuration.get("style", {}).get("wallpaper", "")) != "lollipop":
 		_fail("Android Generation 1 did not select its blue/teal Lollipop geometric wallpaper.")
 		return
 	var home_app_names := ["Email", "Photos", "Maps", "Store", "Calendar", "Contacts", "Music", "Settings"]
