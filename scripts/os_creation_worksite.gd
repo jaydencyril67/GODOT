@@ -43,6 +43,7 @@ var boot_debug_lines: Array[String] = []
 var boot_enabled_inputs: Dictionary = {}
 var boot_busy := false
 var device_powered_on := false
+var boot_identity_input_snapshot := {"company_name": "", "phone_name": "", "phone_model": ""}
 var boot_identity := {
 	"company_name": "YOUR COMPANY",
 	"company_logo_id": 1,
@@ -592,6 +593,8 @@ func _apply_bootloader_settings_to_configuration() -> void:
 
 
 func set_boot_identity(company_name: String, logo_id: int, phone_name: String = "DigitalWorld Phone", phone_model: String = "DW-01") -> void:
+	boot_identity_input_snapshot = {"company_name": company_name, "phone_name": phone_name, "phone_model": phone_model}
+	_boot_debug_log("RAW INPUT name='%s' model='%s'" % [phone_name, phone_model])
 	boot_identity["company_name"] = company_name.strip_edges() if not company_name.strip_edges().is_empty() else "YOUR COMPANY"
 	boot_identity["company_logo_id"] = clampi(logo_id, 1, 50)
 	boot_identity["phone_name"] = phone_name.strip_edges() if not phone_name.strip_edges().is_empty() else "DigitalWorld Phone"
@@ -639,7 +642,8 @@ func _run_boot_sequence() -> void:
 	boot_message.visible = false
 	boot_model_message.visible = false
 	boot_stage_container.modulate.a = 1.0
-	_boot_debug_log("IDENTITY name='%s' model='%s'" % [str(boot_identity.get("phone_name", "<missing>")), str(boot_identity.get("phone_model", "<missing>"))])
+	_boot_debug_log("RAW SAVED INPUT name='%s' model='%s'" % [str(boot_identity_input_snapshot.get("phone_name", "<missing>")), str(boot_identity_input_snapshot.get("phone_model", "<missing>"))])
+	_boot_debug_log("RESOLVED IDENTITY name='%s' model='%s'" % [str(boot_identity.get("phone_name", "<missing>")), str(boot_identity.get("phone_model", "<missing>"))])
 	_boot_debug_log("LABELS name=%s model=%s" % [str(is_instance_valid(boot_message)), str(is_instance_valid(boot_model_message))])
 	var ordered_items: Array[String] = []
 	var item_settings: Dictionary = bootloader_settings["items"]
