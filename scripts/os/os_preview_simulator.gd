@@ -98,27 +98,6 @@ class OSWallpaperLayer extends Control:
 			draw_circle(Vector2(size.x * 0.74, size.y * 0.30), shortest_side * 0.42, Color(accent.r, accent.g, accent.b, 0.055))
 
 
-class OSStatusIndicators extends Control:
-	func _ready() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		custom_minimum_size = Vector2(54, 14)
-		queue_redraw()
-
-	func _draw() -> void:
-		var ink := Color("#F4F2ED")
-		for i in range(4):
-			var bar_height := 3.0 + float(i) * 2.1
-			draw_rect(Rect2(Vector2(float(i) * 3.4, 12.0 - bar_height), Vector2(2.1, bar_height)), ink)
-		var wifi_center := Vector2(22.0, 10.0)
-		draw_arc(wifi_center, 6.0, PI * 1.18, PI * 1.82, 16, ink, 1.1, true)
-		draw_arc(wifi_center, 3.7, PI * 1.20, PI * 1.80, 12, ink, 1.1, true)
-		draw_circle(wifi_center + Vector2(0, -0.2), 1.0, ink)
-		var battery := Rect2(Vector2(34.0, 3.0), Vector2(15.0, 9.0))
-		draw_rect(battery, ink, false, 1.0)
-		draw_rect(Rect2(Vector2(49.5, 5.7), Vector2(1.8, 3.6)), ink)
-		draw_rect(Rect2(Vector2(35.6, 4.5), Vector2(11.5, 6.0)), ink)
-
-
 class LockScreenFingerprintButton extends Button:
 	func _ready() -> void:
 		text = ""
@@ -673,8 +652,11 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
-	var indicators := OSStatusIndicators.new()
+	var indicators := _label("▂▄▆█  )))  ▰", 8, _text_color())
 	indicators.name = "StatusBarSystemIndicators"
+	indicators.custom_minimum_size = Vector2(54, 14)
+	indicators.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	indicators.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(indicators)
 	status_label = _label("", 1, _text_color())
 	status_label.name = "StatusBarBattery"
