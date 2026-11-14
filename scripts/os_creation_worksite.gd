@@ -501,7 +501,14 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		order_box.step = 1
 		order_box.value = int(bootloader_settings["items"][item_id]["order"])
 		order_box.custom_minimum_size = Vector2(58, 34)
-		_style_button(order_box)
+		var order_style := StyleBoxFlat.new()
+		order_style.bg_color = Color("#17191B")
+		order_style.border_color = Color("#8D7048")
+		order_style.set_border_width_all(1)
+		order_style.set_corner_radius_all(7)
+		order_box.add_theme_stylebox_override("normal", order_style)
+		order_box.add_theme_stylebox_override("focus", order_style)
+		order_box.add_theme_color_override("font_color", Color("#F0E9DD"))
 		order_box.value_changed.connect(_on_boot_order_changed.bind(item_id))
 		row.add_child(order_box)
 		boot_order_inputs[item_id] = order_box
