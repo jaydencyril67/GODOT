@@ -296,8 +296,17 @@ func _run_os_generator_test() -> void:
 	var lock_gesture_position := Vector2(72, 180)
 	simulator.call("_handle_system_gesture", lock_gesture_position, Vector2(72, 105), 180)
 	await process_frame
+	if simulator.get("active_component") != "pin_input":
+		_fail("Upward swipe did not open PIN entry from the lock screen.")
+		return
+	for digit in ["1", "2", "3", "4"]:
+		var unlock_key := simulator.find_child("PINKey_" + digit, true, false) as Button
+		if unlock_key == null:
+			_fail("PIN keypad is missing digit " + digit + ".")
+			return
+		unlock_key.pressed.emit()
 	if simulator.get("active_component") != "home_screen":
-		_fail("Upward swipe did not unlock the lock screen.")
+		_fail("Correct PIN 1234 did not unlock the phone after a lock-screen swipe.")
 		return
 	simulator.set_component_view("home_screen")
 	await process_frame
