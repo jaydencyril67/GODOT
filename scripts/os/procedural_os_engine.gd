@@ -277,7 +277,7 @@ static func _generate_lock_screen_component(rng: RandomNumberGenerator, previous
 	return {
 		"show_clock": true,
 		"show_notifications": bool(previous.get("show_notifications", true)),
-		"show_audio_player": bool(previous.get("show_audio_player", false)),
+		"show_audio_player": bool(previous.get("show_audio_player", true)),
 		"show_camera_shortcut": bool(previous.get("show_camera_shortcut", true)),
 		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true)),
 		"fingerprint_sensor_available": bool(previous.get("fingerprint_sensor_available", false)),
