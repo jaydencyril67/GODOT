@@ -979,8 +979,8 @@ func _run_os_generator_test() -> void:
 	for step_back in range(expected_layout_styles.size() - 1):
 		layout_one_button.pressed.emit()
 		await process_frame
-	if layout_two_label.text != "LAYOUT 1" or worksite_preview.find_child("AndroidWeatherWidget", true, false) == null:
-		_fail("Returning from the three-system selector did not restore Android Layout 1.")
+	if layout_two_label.text != "LAYOUT 1" or worksite_preview.find_child("LollipopGoogleSearchBar", true, false) == null or worksite_preview.find_child("LollipopHomeAppGrid", true, false) == null:
+		_fail("Returning from the three-system selector did not restore Android Lollipop Generation 1.")
 		return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame
