@@ -1002,10 +1002,16 @@ func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 
 
 func _style_home_app_icon(button: Button) -> void:
+	# Home-screen icon geometry is controlled only by the Home Screen Studio
+	# corner-radius slider, not the general OS icon style.
 	for state_name in ["normal", "hover", "pressed"]:
-		var style := button.get_theme_stylebox(state_name).duplicate() as StyleBoxFlat
-		if style == null:
-			continue
+		var source_style := button.get_theme_stylebox(state_name) as StyleBoxFlat
+		var style := StyleBoxFlat.new()
+		if source_style != null:
+			style.bg_color = source_style.bg_color
+			style.shadow_color = source_style.shadow_color
+			style.shadow_size = source_style.shadow_size
+			style.shadow_offset = source_style.shadow_offset
 		style.set_corner_radius_all(_home_screen_corner_radius)
 		style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.42)
 		style.set_border_width_all(1)
