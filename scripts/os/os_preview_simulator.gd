@@ -906,7 +906,7 @@ func _build_huawei_pura_home(_data: Dictionary) -> void:
 	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	apps_grid.add_theme_constant_override("h_separation", 5)
 	apps_grid.add_theme_constant_override("v_separation", 5)
-	var home_apps := ["Gallery", "Music", "Video", "Books", "Wallet", "Themes", "Settings", "Browser"]
+	var home_apps := ["Gallery", "Music", "Video", "Calendar", "Wallet", "Themes", "Settings", "Browser"]
 	var icon_size := _responsive_icon_size(31, 4, 5)
 	for app_name in home_apps:
 		var app := _find_app(app_name)
