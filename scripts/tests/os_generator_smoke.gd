@@ -352,10 +352,10 @@ func _run_os_generator_test() -> void:
 		return
 	var logo_toggle := worksite.find_child("BootEnabled_company_logo", true, false) as CheckBox
 	var details_toggle := worksite.find_child("BootEnabled_phone_details", true, false) as CheckBox
-	logo_toggle.set_pressed_no_signal(true)
-	worksite.call("_on_boot_item_toggled", true, "company_logo")
-	details_toggle.set_pressed_no_signal(false)
-	worksite.call("_on_boot_item_toggled", false, "phone_details")
+	logo_toggle.set_pressed_no_signal(false)
+	worksite.call("_on_boot_item_toggled", false, "company_logo")
+	details_toggle.set_pressed_no_signal(true)
+	worksite.call("_on_boot_item_toggled", true, "phone_details")
 	worksite.call("set_boot_identity", "KingsHall", 3, "DigitalWorld Phone", "DW-01")
 	worksite.call("_generate_complete_os")
 	await process_frame
@@ -373,8 +373,12 @@ func _run_os_generator_test() -> void:
 		return
 	await process_frame
 	var boot_identity_label := worksite.find_child("BootIdentityText", true, false) as Label
-	if boot_identity_label == null or not boot_identity_label.text.is_empty():
-		_fail("Company logo boot stage must show the logo without the company name.")
+	if boot_identity_label == null or boot_identity_label.text != "DigitalWorld Phone DW-01":
+		_fail("Phone details boot stage must display the phone name and model together.")
+		return
+	var boot_identity_font := boot_identity_label.get_theme_font("font") as FontVariation
+	if boot_identity_label.get_theme_font_size("font_size") != 22 or boot_identity_font == null or not is_equal_approx(boot_identity_font.variation_embolden, 1.5):
+		_fail("Phone name and model must use the larger, bolder boot identity typography.")
 		return
 	await worksite.boot_completed
 	var boot_elapsed := Time.get_ticks_msec() - boot_started_at
