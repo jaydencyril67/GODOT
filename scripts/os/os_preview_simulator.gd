@@ -1168,6 +1168,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(flux_column)
 			root_layout.add_child(notifications)
 		"clean_android":
+			var clean_android_caption := _label("MONDAY  ·  YOUR DAY", 7, _muted_color())
+			clean_android_caption.name = "LockScreenCleanAndroidDate"
+			root_layout.add_child(clean_android_caption)
 			if notifications.get_child_count() > 0: root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"focus_lock_screen":
