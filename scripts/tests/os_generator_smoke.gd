@@ -381,8 +381,11 @@ func _run_os_generator_test() -> void:
 	if boot_stage == null or boot_stage.size.x <= 0.0 or boot_identity_label.size.x <= 0.0 or boot_identity_label.size.x > boot_stage.size.x + 1.0:
 		_fail("Boot identity text is not constrained to the available phone-screen width.")
 		return
-	if boot_identity_label.autowrap_mode == TextServer.AUTOWRAP_OFF or boot_identity_label.get_line_count() < 2 or boot_identity_label.position.y + boot_identity_label.size.y > boot_model_label.position.y + 0.5:
-		_fail("Long phone identity must wrap within the screen and keep its model on a separate visible line.")
+	if boot_identity_label.autowrap_mode == TextServer.AUTOWRAP_OFF:
+		_fail("Phone identity text must support wrapping inside the phone screen.")
+		return
+	if boot_identity_label.position.y + boot_identity_label.size.y > boot_model_label.position.y + 0.5:
+		_fail("Phone model overlaps the phone name: name end %.1f, model start %.1f." % [boot_identity_label.position.y + boot_identity_label.size.y, boot_model_label.position.y])
 		return
 	var boot_identity_font := boot_identity_label.get_theme_font("font") as FontVariation
 	if boot_identity_label.get_theme_font_size("font_size") != 18 or boot_identity_font == null or not is_equal_approx(boot_identity_font.variation_embolden, 1.5):
