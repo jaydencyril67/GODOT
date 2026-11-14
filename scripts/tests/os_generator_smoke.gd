@@ -845,10 +845,14 @@ func _run_os_generator_test() -> void:
 		return
 	var first_home_app := home_apps_grid.get_child(0) as VBoxContainer
 	var first_home_button := first_home_app.get_node_or_null("CenterContainer/Button") as Button
-	var first_home_button_style := first_home_button.get_theme_stylebox("normal") as StyleBoxFlat if first_home_button != null else null
-	if first_home_button_style == null or first_home_button_style.corner_radius_top_left != 0 or first_home_button_style.border_width_left <= 0:
-		_fail("Layout 1 app icons must have square borders by default.")
+	if first_home_button == null:
+		_fail("Layout 1 app icon is missing its named Button node.")
 		return
+	for state_name in ["normal", "hover", "pressed"]:
+		var first_home_button_style := first_home_button.get_theme_stylebox(state_name) as StyleBoxFlat
+		if first_home_button_style == null or first_home_button_style.corner_radius_top_left != 0 or first_home_button_style.get_border_width(SIDE_LEFT) <= 0:
+			_fail("Layout 1 app icon " + state_name + " state must have square bordered styling by default.")
+			return
 	var home_dock_panel := worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
 	var dock_style := home_dock_panel.get_theme_stylebox("panel") as StyleBoxFlat if home_dock_panel != null else null
 	if dock_style == null or dock_style.corner_radius_top_left != 0 or dock_style.border_width_left <= 0:
@@ -869,6 +873,11 @@ func _run_os_generator_test() -> void:
 	if weather_style.corner_radius_top_left != 12 or assistant_style.corner_radius_top_left != 12 or first_home_button_style.corner_radius_top_left != 12 or dock_style.corner_radius_top_left != 12:
 		_fail("Corner-radius slider did not apply its value to widgets, app icons and dock.")
 		return
+	for state_name in ["normal", "hover", "pressed"]:
+		var adjusted_icon_style := first_home_button.get_theme_stylebox(state_name) as StyleBoxFlat
+		if adjusted_icon_style == null or adjusted_icon_style.corner_radius_top_left != 12:
+			_fail("Corner-radius slider did not update the app icon " + state_name + " state.")
+			return
 	corner_slider.value = 0.0
 	await process_frame
 	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat

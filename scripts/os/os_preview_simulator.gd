@@ -550,20 +550,26 @@ func set_home_screen_corner_radius(value: float) -> void:
 		if panel_style != null:
 			panel_style.set_corner_radius_all(_home_screen_corner_radius)
 			panel.add_theme_stylebox_override("panel", panel_style)
+	_apply_home_screen_icon_styles()
+
+func _apply_home_screen_icon_styles() -> void:
+	if active_component != "home_screen":
+		return
 	for grid_name in ["HomeAppGrid", "ColorOSWorkFolderGrid", "ColorOSMediaFolderGrid"]:
 		var app_grid := find_child(grid_name, true, false) as GridContainer
 		if app_grid == null:
 			continue
 		for app_tile in app_grid.get_children():
 			var app_button := app_tile.get_node_or_null("CenterContainer/Button") as Button
-			if app_button == null:
-				continue
-			for state_name in ["normal", "hover", "pressed"]:
-				var button_style := app_button.get_theme_stylebox(state_name).duplicate() as StyleBoxFlat
-				if button_style == null:
-					continue
-				button_style.set_corner_radius_all(_home_screen_corner_radius)
-				app_button.add_theme_stylebox_override(state_name, button_style)
+			if app_button != null:
+				_style_home_app_icon(app_button)
+	var dock := find_child("HomeAppDock", true, false) as Control
+	if dock != null:
+		for button_node in dock.find_children("*", "Button", true, false):
+			var dock_button := button_node as Button
+			if dock_button != null:
+				_style_home_app_icon(dock_button)
+
 
 func _safe_component_id(component_id: String) -> String:
 	if component_id == "pin_input":
@@ -682,6 +688,10 @@ func _build_shell() -> void:
 	indicator_alignment.add_child(indicator)
 	footer.add_child(indicator_alignment)
 	shell.add_child(footer)
+	if active_component == "home_screen":
+		# Resolve and style app buttons only after their full inherited theme
+		# hierarchy and the dock have entered the live scene tree.
+		_apply_home_screen_icon_styles()
 	_building = false
 
 func _build_home_dock(parent: VBoxContainer) -> void:
@@ -875,11 +885,7 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	for app_name in ["Photos", "Store", "Email", "Maps"]:
 		var app := _find_app(app_name)
 		if not app.is_empty():
-			var app_tile := _create_app_icon(app, _responsive_icon_size(34, 4, 5), true)
-			var app_button := app_tile.get_node_or_null("CenterContainer/Button") as Button
-			if app_button != null:
-				_style_home_app_icon(app_button)
-			apps_grid.add_child(app_tile)
+			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(34, 4, 5), true))
 	page_container.add_child(apps_grid)
 
 	var search_spacing := Control.new()
@@ -1002,16 +1008,13 @@ func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 
 
 func _style_home_app_icon(button: Button) -> void:
-	# Home-screen icon geometry is controlled only by the Home Screen Studio
-	# corner-radius slider, not the general OS icon style.
+	# Preserve each app's own tinted icon style, while the Home Screen Studio
+	# slider controls its geometry independently of the general OS icon style.
 	for state_name in ["normal", "hover", "pressed"]:
 		var source_style := button.get_theme_stylebox(state_name) as StyleBoxFlat
 		var style := StyleBoxFlat.new()
 		if source_style != null:
-			style.bg_color = source_style.bg_color
-			style.shadow_color = source_style.shadow_color
-			style.shadow_size = source_style.shadow_size
-			style.shadow_offset = source_style.shadow_offset
+			style = source_style.duplicate() as StyleBoxFlat
 		style.set_corner_radius_all(_home_screen_corner_radius)
 		style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.42)
 		style.set_border_width_all(1)
@@ -2490,8 +2493,10 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tile.add_theme_constant_override("separation", 3)
 	var holder := CenterContainer.new()
+	holder.name = "CenterContainer"
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var icon := Button.new()
+	icon.name = "Button"
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.text = str(app.get("glyph", "•"))
 	icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
