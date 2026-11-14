@@ -377,8 +377,8 @@ func _run_os_generator_test() -> void:
 	simulator.set_component_view("home_screen")
 	await process_frame
 
-	if ProceduralEngineScript.HOME_LAYOUT_STYLES.size() != 1 or ProceduralEngineScript.HOME_LAYOUT_STYLES[0] != "android_pixel":
-		_fail("Only the individually approved Android home-screen layout may be available.")
+	if ProceduralEngineScript.HOME_LAYOUT_STYLES.size() != 2 or ProceduralEngineScript.HOME_LAYOUT_STYLES[0] != "android_pixel" or ProceduralEngineScript.HOME_LAYOUT_STYLES[1] != "coloros_home":
+		_fail("Only the two individually approved home-screen layouts may be available, in approval order.")
 		return
 	for generation_number in range(1, 4):
 		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
