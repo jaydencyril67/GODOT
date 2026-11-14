@@ -2,6 +2,7 @@ extends Node3D
 
 signal back_requested
 signal os_selected(configuration: Dictionary)
+signal boot_completed
 
 const ProceduralOSEngineScript = preload("res://scripts/os/procedural_os_engine.gd")
 const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
@@ -27,6 +28,30 @@ var screen_frame: PanelContainer
 var home_preview_screen: PanelContainer
 var home_generation := 1
 var home_generation_status: Label
+var left_power_region: Control
+var power_button: Button
+var boot_overlay: Control
+var boot_stage_container: VBoxContainer
+var boot_logo: TextureRect
+var boot_message: Label
+var boot_status: Label
+var boot_order_inputs: Dictionary = {}
+var boot_enabled_inputs: Dictionary = {}
+var boot_busy := false
+var boot_identity := {
+	"company_name": "YOUR COMPANY",
+	"company_logo_id": 1,
+	"phone_name": "DigitalWorld Phone",
+	"phone_model": "DW-01"
+}
+var bootloader_settings := {
+	"duration_seconds": 10.0,
+	"items": {
+		"company_logo": {"order": 1, "enabled": true},
+		"phone_name": {"order": 2, "enabled": true},
+		"phone_model": {"order": 3, "enabled": true}
+	}
+}
 class GlassArrowButton extends Button:
 	var points_right := true
 
@@ -171,6 +196,14 @@ func _build_interface() -> void:
 	progress_bar.add_theme_stylebox_override("background", progress_track)
 	progress.add_child(progress_bar)
 
+	left_power_region = CenterContainer.new()
+	left_power_region.name = "OSPowerButtonRegion"
+	left_power_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_power_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left_power_region.size_flags_stretch_ratio = 0.30
+	worksite_body.add_child(left_power_region)
+	_build_power_button()
+
 	preview_region = Control.new()
 	preview_region.name = "OSScreenPreviewRegion"
 	preview_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -214,6 +247,7 @@ func _build_interface() -> void:
 
 	home_preview_screen = screen_glass
 	_build_home_screen_preview(screen_glass)
+	_build_boot_overlay(screen_glass)
 
 	var right_region := MarginContainer.new()
 	configuration_region = right_region
@@ -301,6 +335,7 @@ func _build_home_generation_controls() -> void:
 	content.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	content.add_theme_constant_override("separation", 10)
 	controls_scroll.add_child(content)
+	_build_bootloader_controls(content)
 
 	var heading := _label("OPERATING SYSTEM GENERATOR", 16, Color("#F0E9DD"))
 	content.add_child(heading)
@@ -361,6 +396,255 @@ func _build_home_generation_controls() -> void:
 	home_generation_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(home_generation_status)
 
+
+func _build_power_button() -> void:
+	var column := VBoxContainer.new()
+	column.name = "PowerButtonColumn"
+	column.add_theme_constant_override("separation", 8)
+	left_power_region.add_child(column)
+	var caption := _label("POWER", 9, Color("#C58A3A"))
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(caption)
+	power_button = Button.new()
+	power_button.name = "OSPowerButton"
+	power_button.text = "⏻"
+	power_button.custom_minimum_size = Vector2(66, 66)
+	power_button.focus_mode = Control.FOCUS_NONE
+	power_button.add_theme_font_size_override("font_size", 34)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("#111416")
+	normal.border_color = Color("#9C7847")
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(34)
+	normal.shadow_color = Color(0, 0, 0, 0.45)
+	normal.shadow_size = 8
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color("#2B241A")
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color("#49351D")
+	power_button.add_theme_stylebox_override("normal", normal)
+	power_button.add_theme_stylebox_override("hover", hover)
+	power_button.add_theme_stylebox_override("pressed", pressed)
+	power_button.add_theme_color_override("font_color", Color("#E8D2AD"))
+	power_button.pressed.connect(_on_power_button_pressed)
+	column.add_child(power_button)
+	var hint := _label("PRESS TO START", 7, Color("#8F8B84"))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(hint)
+
+
+func _build_boot_overlay(screen: PanelContainer) -> void:
+	boot_overlay = Control.new()
+	boot_overlay.name = "OSBootLoaderOverlay"
+	boot_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	boot_overlay.visible = false
+	boot_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(boot_overlay)
+	var background := ColorRect.new()
+	background.name = "BootLoaderBlackout"
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = Color("#030405")
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boot_overlay.add_child(background)
+	var centre := CenterContainer.new()
+	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boot_overlay.add_child(centre)
+	boot_stage_container = VBoxContainer.new()
+	boot_stage_container.name = "BootLoaderStage"
+	boot_stage_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	boot_stage_container.add_theme_constant_override("separation", 12)
+	centre.add_child(boot_stage_container)
+	boot_logo = TextureRect.new()
+	boot_logo.name = "BootCompanyLogo"
+	boot_logo.custom_minimum_size = Vector2(64, 64)
+	boot_logo.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	boot_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	boot_logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	boot_stage_container.add_child(boot_logo)
+	boot_message = _label("", 12, Color("#F3F0E9"))
+	boot_message.name = "BootIdentityText"
+	boot_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boot_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	boot_stage_container.add_child(boot_message)
+	boot_status = _label("✓  DEVICE TURNED ON", 10, Color("#B6D7BC"))
+	boot_status.name = "BootCompletedStatus"
+	boot_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boot_status.visible = false
+	boot_stage_container.add_child(boot_status)
+	boot_stage_container.modulate.a = 0.0
+	boot_logo.texture = _get_boot_company_logo_texture()
+
+
+func _build_bootloader_controls(parent: VBoxContainer) -> void:
+	parent.add_child(_label("BOOT LOADER", 13, Color("#C58A3A")))
+	var description := _label("Choose the startup identity sequence and what appears during power-on.", 9, Color("#B8B1A6"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	parent.add_child(description)
+	var rows := [
+		["company_logo", "Company Logo"],
+		["phone_name", "Phone Name"],
+		["phone_model", "Phone Model"]
+	]
+	for row_data in rows:
+		var item_id := str(row_data[0])
+		var row := HBoxContainer.new()
+		row.name = "BootSettingRow_" + item_id
+		row.add_theme_constant_override("separation", 7)
+		parent.add_child(row)
+		var order_box := SpinBox.new()
+		order_box.name = "BootOrder_" + item_id
+		order_box.min_value = 1
+		order_box.max_value = 3
+		order_box.step = 1
+		order_box.value = int(bootloader_settings["items"][item_id]["order"])
+		order_box.custom_minimum_size = Vector2(58, 34)
+		_style_button(order_box)
+		order_box.value_changed.connect(_on_boot_order_changed.bind(item_id))
+		row.add_child(order_box)
+		boot_order_inputs[item_id] = order_box
+		var item_label := _label(str(row_data[1]), 9, Color("#EEE9DF"))
+		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(item_label)
+		var enabled := CheckBox.new()
+		enabled.name = "BootEnabled_" + item_id
+		enabled.text = "ON"
+		enabled.button_pressed = bool(bootloader_settings["items"][item_id]["enabled"])
+		enabled.add_theme_font_size_override("font_size", 8)
+		enabled.toggled.connect(_on_boot_item_toggled.bind(item_id))
+		row.add_child(enabled)
+		boot_enabled_inputs[item_id] = enabled
+	var divider := ColorRect.new()
+	divider.name = "BootLoaderControlsDivider"
+	divider.custom_minimum_size.y = 1
+	divider.color = Color("#62513A")
+	parent.add_child(divider)
+
+
+func _on_boot_order_changed(value: float, item_id: String) -> void:
+	var items: Dictionary = bootloader_settings["items"]
+	var old_order := int(items[item_id]["order"])
+	var new_order := clampi(int(round(value)), 1, 3)
+	for other_id in items:
+		if other_id != item_id and int(items[other_id]["order"]) == new_order:
+			items[other_id]["order"] = old_order
+			if boot_order_inputs.has(other_id):
+				(boot_order_inputs[other_id] as SpinBox).set_value_no_signal(old_order)
+			break
+	items[item_id]["order"] = new_order
+	_apply_bootloader_settings_to_configuration()
+
+
+func _on_boot_item_toggled(enabled: bool, item_id: String) -> void:
+	var items: Dictionary = bootloader_settings["items"]
+	if not enabled:
+		var enabled_count := 0
+		for other_id in items:
+			if other_id != item_id and bool(items[other_id]["enabled"]):
+				enabled_count += 1
+		if enabled_count == 0:
+			(boot_enabled_inputs[item_id] as CheckBox).set_pressed_no_signal(true)
+			return
+	items[item_id]["enabled"] = enabled
+	_apply_bootloader_settings_to_configuration()
+
+
+func _apply_bootloader_settings_to_configuration() -> void:
+	bootloader_settings["duration_seconds"] = 10.0
+	generated_os_configuration["bootloader"] = bootloader_settings.duplicate(true)
+	generated_os_configuration["boot_identity"] = boot_identity.duplicate(true)
+
+
+func set_boot_identity(company_name: String, logo_id: int, phone_name: String = "DigitalWorld Phone", phone_model: String = "DW-01") -> void:
+	boot_identity["company_name"] = company_name.strip_edges() if not company_name.strip_edges().is_empty() else "YOUR COMPANY"
+	boot_identity["company_logo_id"] = clampi(logo_id, 1, 50)
+	boot_identity["phone_name"] = phone_name.strip_edges() if not phone_name.strip_edges().is_empty() else "DigitalWorld Phone"
+	boot_identity["phone_model"] = phone_model.strip_edges() if not phone_model.strip_edges().is_empty() else "DW-01"
+	if is_instance_valid(boot_logo):
+		boot_logo.texture = _get_boot_company_logo_texture()
+	_apply_bootloader_settings_to_configuration()
+
+
+func _get_boot_company_logo_texture() -> Texture2D:
+	var atlas := load("res://assets/company_logos.svg") as Texture2D
+	if not is_instance_valid(atlas):
+		return null
+	var logo_index := clampi(int(boot_identity["company_logo_id"]), 1, 50) - 1
+	var texture := AtlasTexture.new()
+	texture.atlas = atlas
+	texture.region = Rect2(Vector2(float(logo_index % 10) * 100.0, floorf(float(logo_index) / 10.0) * 100.0), Vector2(100.0, 100.0))
+	return texture
+
+
+func _on_power_button_pressed() -> void:
+	if boot_busy:
+		return
+	_run_boot_sequence()
+
+
+func _run_boot_sequence() -> void:
+	if boot_busy or not is_instance_valid(boot_overlay):
+		return
+	boot_busy = true
+	var started_at := Time.get_ticks_msec()
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.visible = false
+	boot_overlay.visible = true
+	boot_overlay.modulate.a = 1.0
+	boot_status.visible = false
+	boot_message.visible = true
+	boot_stage_container.modulate.a = 0.0
+	var ordered_items: Array[Dictionary] = []
+	var item_settings: Dictionary = bootloader_settings["items"]
+	for item_id in item_settings:
+		var item: Dictionary = item_settings[item_id]
+		if bool(item.get("enabled", false)):
+			ordered_items.append({"id": str(item_id), "order": int(item.get("order", 99))})
+	ordered_items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["order"]) < int(b["order"]))
+	var stage_duration := 8.8 / float(maxi(1, ordered_items.size()))
+	for entry in ordered_items:
+		var item_id := str(entry["id"])
+		boot_logo.visible = item_id == "company_logo"
+		if item_id == "company_logo":
+			boot_logo.texture = _get_boot_company_logo_texture()
+			boot_message.text = str(boot_identity["company_name"])
+		elif item_id == "phone_name":
+			boot_message.text = str(boot_identity["phone_name"])
+		else:
+			boot_message.text = str(boot_identity["phone_model"])
+		boot_stage_container.modulate.a = 0.0
+		var fade_in := create_tween()
+		fade_in.tween_property(boot_stage_container, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		await fade_in.finished
+		await get_tree().create_timer(maxf(0.0, stage_duration - 0.44)).timeout
+		var fade_out := create_tween()
+		fade_out.tween_property(boot_stage_container, "modulate:a", 0.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		await fade_out.finished
+	boot_logo.visible = false
+	boot_message.visible = false
+	boot_status.visible = true
+	boot_stage_container.modulate.a = 0.0
+	var status_fade := create_tween()
+	status_fade.tween_property(boot_stage_container, "modulate:a", 1.0, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await status_fade.finished
+	var elapsed_before_hold := float(Time.get_ticks_msec() - started_at) / 1000.0
+	await get_tree().create_timer(maxf(0.0, 10.0 - elapsed_before_hold - 0.24 - 0.62 - 0.24)).timeout
+	var status_out := create_tween()
+	status_out.tween_property(boot_stage_container, "modulate:a", 0.0, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await status_out.finished
+	var elapsed := float(Time.get_ticks_msec() - started_at) / 1000.0
+	if elapsed < 10.0:
+		await get_tree().create_timer(10.0 - elapsed).timeout
+	boot_overlay.visible = false
+	boot_message.visible = true
+	boot_status.visible = false
+	boot_busy = false
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.visible = true
+		os_preview_simulator.set_component_view("home_screen")
+	boot_completed.emit()
+
 func _on_os_generation_selected(index: int) -> void:
 	home_generation = clampi(index + 1, 1, 3)
 	_set_os_generation_status("GENERATION %02d SELECTED" % home_generation)
@@ -378,6 +662,7 @@ func _generate_complete_os() -> void:
 	os_generation_busy = true
 	_set_os_generation_status("GENERATING OPERATING SYSTEM...")
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
+	_apply_bootloader_settings_to_configuration()
 	var components: Dictionary = generated_os_configuration.get("components", {})
 	if components.size() != ProceduralOSEngineScript.COMPONENTS.size():
 		push_error("OS generator returned an incomplete configuration.")
@@ -410,6 +695,7 @@ func _regenerate_selected_component() -> void:
 		os_preview_simulator.set_component_view(selected_os_component_id)
 	_set_os_generation_status("%s REGENERATED" % selected_os_component_id.replace("_", " ").to_upper())
 func _select_generated_os() -> void:
+	_apply_bootloader_settings_to_configuration()
 	if generated_os_configuration.is_empty():
 		_set_os_generation_status("GENERATE AN OS BEFORE SELECTING")
 		return
@@ -431,11 +717,13 @@ func _apply_responsive_layout() -> void:
 	worksite_body.vertical = not is_wide
 	var screen_height: float
 	if is_wide:
+		left_power_region.size_flags_stretch_ratio = 0.30
 		preview_region.size_flags_stretch_ratio = 1.12
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		screen_height = clampf(viewport_size.y - 28.0, 250.0, 760.0)
 	else:
+		left_power_region.size_flags_stretch_ratio = 0.18
 		preview_region.size_flags_stretch_ratio = 0.82
 		configuration_region.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
