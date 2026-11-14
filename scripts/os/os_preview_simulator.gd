@@ -147,6 +147,7 @@ class LockScreenFingerprintButton extends Button:
 
 var configuration: Dictionary = {}
 var active_component := "home_screen"
+var _home_screen_corner_radius := 0
 var page_container: VBoxContainer
 var status_label: Label
 var _palette: Dictionary = {}
@@ -536,6 +537,33 @@ func update_configuration(os_configuration: Dictionary) -> void:
 	if is_inside_tree():
 		_build_shell()
 
+
+func set_home_screen_corner_radius(value: float) -> void:
+	_home_screen_corner_radius = clampi(roundi(value), 0, 24)
+	if active_component != "home_screen":
+		return
+	for panel_name in ["AndroidWeatherWidget", "AndroidAssistantWidget", "HomeAppDock"]:
+		var panel := find_child(panel_name, true, false) as PanelContainer
+		if panel == null:
+			continue
+		var panel_style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		if panel_style != null:
+			panel_style.set_corner_radius_all(_home_screen_corner_radius)
+			panel.add_theme_stylebox_override("panel", panel_style)
+	var app_grid := find_child("HomeAppGrid", true, false) as GridContainer
+	if app_grid == null:
+		return
+	for app_tile in app_grid.get_children():
+		var app_button := app_tile.get_node_or_null("CenterContainer/Button") as Button
+		if app_button == null:
+			continue
+		for state_name in ["normal", "hover", "pressed"]:
+			var button_style := app_button.get_theme_stylebox(state_name).duplicate() as StyleBoxFlat
+			if button_style == null:
+				continue
+			button_style.set_corner_radius_all(_home_screen_corner_radius)
+			app_button.add_theme_stylebox_override(state_name, button_style)
+
 func _safe_component_id(component_id: String) -> String:
 	if component_id == "pin_input":
 		return component_id
@@ -860,13 +888,13 @@ func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
 	page_container.add_child(search)
 
 
-func _style_home_surface(panel: PanelContainer, radius: int) -> void:
+func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 	var style := StyleBoxFlat.new()
 	var surface_color := _surface_color()
 	style.bg_color = Color(surface_color.r, surface_color.g, surface_color.b, 0.90)
 	style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.48)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(radius)
+	style.set_corner_radius_all(_home_screen_corner_radius)
 	style.content_margin_left = 9
 	style.content_margin_right = 9
 	style.content_margin_top = 7
@@ -879,7 +907,7 @@ func _style_home_app_icon(button: Button) -> void:
 		var style := button.get_theme_stylebox(state_name).duplicate() as StyleBoxFlat
 		if style == null:
 			continue
-		style.set_corner_radius_all(12)
+		style.set_corner_radius_all(_home_screen_corner_radius)
 		style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.42)
 		style.set_border_width_all(1)
 		button.add_theme_stylebox_override(state_name, style)
