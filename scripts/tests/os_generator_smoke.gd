@@ -885,6 +885,51 @@ func _run_os_generator_test() -> void:
 		if worksite_preview.find_child("App_" + app_name.replace(" ", ""), true, false) == null:
 			_fail("Approved Android dock app is missing: " + app_name)
 			return
+
+	var layout_two_button := worksite.find_child("IncreaseHomeScreenLayoutButton", true, false) as Button
+	if layout_two_button == null or layout_two_button.disabled:
+		_fail("Layout 2 must become selectable after its approval.")
+		return
+	layout_two_button.pressed.emit()
+	await process_frame
+	var layout_two_label := worksite.find_child("HomeScreenLayoutValueLabel", true, false) as Label
+	var coloros_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
+	var coloros_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
+	var work_folder := worksite_preview.find_child("ColorOSWorkFolder", true, false) as PanelContainer
+	var media_folder := worksite_preview.find_child("ColorOSMediaFolder", true, false) as PanelContainer
+	var smart_widget := worksite_preview.find_child("ColorOSSmartInformationWidget", true, false) as PanelContainer
+	var coloros_dock := worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
+	if layout_two_label == null or layout_two_label.text != "LAYOUT 2" or coloros_clock == null or coloros_date == null:
+		_fail("Layout 2 did not load its live clock and date.")
+		return
+	if coloros_clock.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or coloros_date.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or coloros_clock.size_flags_horizontal != Control.SIZE_EXPAND_FILL:
+		_fail("Layout 2 clock and date must be horizontally centred across the screen.")
+		return
+	if work_folder == null or media_folder == null or smart_widget == null or coloros_dock == null:
+		_fail("Layout 2 is missing its smart information widget, two large folders or dock.")
+		return
+	var work_grid := work_folder.find_child("ColorOSWorkFolderGrid", true, false) as GridContainer
+	var media_grid := media_folder.find_child("ColorOSMediaFolderGrid", true, false) as GridContainer
+	if work_grid == null or media_grid == null or work_grid.columns != 2 or media_grid.columns != 2 or work_grid.get_child_count() != 4 or media_grid.get_child_count() != 4:
+		_fail("Layout 2 large folders must each contain four directly accessible apps in a 2×2 grid.")
+		return
+	var coloros_shortcuts := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
+	if coloros_shortcuts == null or coloros_shortcuts.get_child_count() != 4:
+		_fail("Layout 2 must show four separate shortcuts below its folders.")
+		return
+	for shortcut_name in ["Settings", "Maps", "Store", "Downloads"]:
+		if coloros_shortcuts.find_child("App_" + shortcut_name, true, false) == null:
+			_fail("Layout 2 is missing its approved standalone shortcut: " + shortcut_name)
+			return
+	var layout_one_button := worksite.find_child("DecreaseHomeScreenLayoutButton", true, false) as Button
+	if layout_one_button == null or layout_one_button.disabled:
+		_fail("Layout 2 must allow returning to Layout 1.")
+		return
+	layout_one_button.pressed.emit()
+	await process_frame
+	if layout_two_label.text != "LAYOUT 1" or worksite_preview.find_child("AndroidWeatherWidget", true, false) == null:
+		_fail("Returning from Layout 2 did not restore Layout 1.")
+		return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame
 	fingerprint_sensor = worksite_preview.find_child("LockScreenFingerprintSensor", true, false) as Button
