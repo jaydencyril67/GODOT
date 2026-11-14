@@ -135,6 +135,13 @@ func _run_os_generator_test() -> void:
 			_fail("Lock-screen flexible spacing is not configured to distribute content: " + template_name)
 			return
 		if top_space.size.y <= 4.0 or lower_space.size.y <= 4.0:
+			print("LOCK_LAYOUT_SIZES template=%s simulator=%s safe_area=%s shell=%s page=%s root=%s top=%s lower=%s flags=%d/%d" % [
+				template_name, template_preview.size, template_preview.get_node("OSSimulatorSafeArea").size,
+				template_preview.get_node("OSSimulatorSafeArea/OSLockScreenShell").size,
+				template_preview.get_node("OSSimulatorSafeArea/OSLockScreenShell/OSComponentContent").size,
+				layout_root.size, top_space.size, lower_space.size,
+				top_space.size_flags_vertical, lower_space.size_flags_vertical
+			])
 			_fail("Lock-screen flexible spaces are not expanding across the phone: " + template_name)
 			return
 		if fingerprint_stage == null:
