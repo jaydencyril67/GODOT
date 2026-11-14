@@ -108,6 +108,7 @@ func _run_os_generator_test() -> void:
 		template_config["components"]["lock_screen"]["layout_template"] = template_name
 		template_preview.configure_os(template_config, "lock_screen")
 		await process_frame
+		await process_frame
 		var layout_root := template_preview.find_child("LockScreenLayout_" + template_name, true, false)
 		if layout_root == null:
 			_fail("A lock-screen template did not render its own layout root: " + template_name)
