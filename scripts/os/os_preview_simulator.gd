@@ -113,6 +113,52 @@ var _gesture_active := false
 var _gesture_overlay: Control
 var _recent_app_names: Array[String] = []
 var _last_opened_app := ""
+var _clock_update_elapsed := 0.0
+
+func _process(delta: float) -> void:
+	if active_component != "lock_screen":
+		return
+	_clock_update_elapsed += delta
+	if _clock_update_elapsed >= 1.0:
+		_clock_update_elapsed = 0.0
+		_refresh_lock_screen_clock()
+
+
+func _current_lock_time(family: String = "") -> String:
+	var now := Time.get_datetime_dict_from_system()
+	var hour_minute := "%02d:%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
+	if family == "typographic":
+		return "%02d\n%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
+	return hour_minute
+
+
+func _current_lock_date(treatment: String) -> String:
+	var now := Time.get_datetime_dict_from_system()
+	var weekdays := ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]
+	var months := ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
+	var weekday := str(weekdays[clampi(int(now.get("weekday", 1)), 0, 6)])
+	var month := str(months[clampi(int(now.get("month", 1)) - 1, 0, 11)])
+	var day := int(now.get("day", 1))
+	match treatment:
+		"minimal":
+			return "%s  ·  %02d %s" % [weekday.substr(0, 3), day, month.substr(0, 3)]
+		"editorial":
+			return "%s, %02d %s %04d" % [weekday, day, month, int(now.get("year", 2026))]
+		"inline":
+			return "%s %02d %s  ·  %04d" % [weekday.substr(0, 3), day, month.substr(0, 3), int(now.get("year", 2026))]
+	return "%s  ·  %s %02d" % [weekday, month, day]
+
+
+func _refresh_lock_screen_clock() -> void:
+	var family := str(configuration.get("components", {}).get("lock_screen", {}).get("design_family", "minimal"))
+	var data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
+	var clock := find_child("LockScreenClock", true, false) as Label
+	if clock != null:
+		clock.text = _current_lock_time(family)
+	var date := find_child("LockScreenDate", true, false) as Label
+	if date != null:
+		date.text = _current_lock_date(str(data.get("date_treatment", "uppercase")))
+
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -835,9 +881,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var clock_stack := VBoxContainer.new()
 	clock_stack.name = "LockScreenClockStack"
 	clock_stack.add_theme_constant_override("separation", 1)
-	var clock_text := "09:41"
-	if family == "typographic":
-		clock_text = "09\n41"
+		var clock_text := _current_lock_time(family)
 	var clock := _label(clock_text, clampi(int(data.get("clock_size", 46)), 28, 58), _text_color())
 	clock.name = "LockScreenClock"
 	clock.horizontal_alignment = alignment
@@ -854,14 +898,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	clock.add_theme_font_override("font", clock_font)
 	clock_stack.add_child(clock)
 
-	var date_text := "MONDAY  ·  NOVEMBER 13"
-	match str(data.get("date_treatment", "uppercase")):
-		"minimal":
-			date_text = "MON  ·  13 NOV"
-		"editorial":
-			date_text = "MONDAY, THE THIRTEENTH OF NOVEMBER"
-		"inline":
-			date_text = "MON 13 NOV  ·  2026"
+		var date_text := _current_lock_date(str(data.get("date_treatment", "uppercase")))
 	var date := _label(date_text, 7, _muted_color())
 	date.name = "LockScreenDate"
 	date.horizontal_alignment = alignment
