@@ -24,7 +24,7 @@ const PALETTES := [
 const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"]
 
 const HOME_LAYOUT_STYLES := ["android_pixel", "ios_home", "windows_tiles"]
-const HOME_LAYOUT_FAMILY_LABELS := ["ANDROID", "APPLE iOS", "WINDOWS PHONE"]
+const HOME_LAYOUT_FAMILY_LABELS := ["ANDROID", "iPHONE", "WINDOWS PHONE"]
 const LOCK_SCREEN_DESIGN_FAMILIES := ["editorial", "glass", "minimal", "neo_brutalist", "split_grid", "futurist", "soft_layers", "typographic"]
 const LOCK_SCREEN_LAYOUT_TEMPLATES := [
 	"classic_clock", "rhombus_clock", "magazine_cover", "depth_layer", "widget_dashboard",

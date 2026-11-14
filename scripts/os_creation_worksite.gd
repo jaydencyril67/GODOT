@@ -509,7 +509,7 @@ func _show_home_screen_studio_controls() -> void:
 	heading.name = "HomeScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description := _label("Choose from 15 distinct phone home-screen designs.", 12, Color("#D0CBC2"))
+	var description := _label("Choose from three complete phone operating-system designs.", 12, Color("#D0CBC2"))
 	description.name = "HomeScreenHeroDescription"
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

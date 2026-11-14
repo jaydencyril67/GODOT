@@ -9,6 +9,14 @@ func _initialize() -> void:
 	call_deferred("_run_os_generator_test")
 
 func _run_os_generator_test() -> void:
+	var phone_ui_template := FileAccess.get_file_as_string("res://assets/os/ui_templates/phone_os_preview.html")
+	if phone_ui_template.is_empty():
+		_fail("The local Android/iOS/Windows lock and home UI template is missing.")
+		return
+	for required_ui_token in ["android-home-content", "ios-home-content", "windows-home-content", "lock-screen", "drawer-screen", "panel-screen", "DigitalWorldOSPreview"]:
+		if not phone_ui_template.contains(required_ui_token):
+			_fail("The local OS UI template is missing required interface content: " + required_ui_token)
+			return
 	var identity_owner := DigitalWorldGameScript.new()
 	identity_owner.set("career", {"phone_name": "   ", "phone_model": null})
 	identity_owner.call("_normalize_phone_identity")

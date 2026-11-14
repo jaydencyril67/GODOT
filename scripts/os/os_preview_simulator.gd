@@ -165,8 +165,14 @@ var _last_opened_app := ""
 var _entered_unlock_pin := ""
 var _pin_error_message := ""
 var _clock_update_elapsed := 0.0
+var _native_ui_plugin: Variant = null
+var _native_ui_loaded := false
+var _native_ui_active := false
+var _native_ui_poll_elapsed := 0.0
+var _native_ui_frame_elapsed := 0.0
 
 func _process(delta: float) -> void:
+	_update_native_os_ui(delta)
 	_clock_update_elapsed += delta
 	if _clock_update_elapsed < 1.0:
 		return
@@ -183,6 +189,136 @@ func _process(delta: float) -> void:
 		var home_date := find_child("HomeHeroDate", true, false) as Label
 		if is_instance_valid(home_date):
 			home_date.text = _current_lock_date("minimal")
+
+
+
+func _configure_native_os_ui() -> void:
+	if OS.get_name() != "Android":
+		return
+	if Engine.has_singleton("DigitalWorldOSUI"):
+		_native_ui_plugin = Engine.get_singleton("DigitalWorldOSUI")
+
+
+func _native_os_ui_frame() -> PackedFloat32Array:
+	var viewport_size := get_viewport().get_visible_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return PackedFloat32Array([0.0, 0.0, 1.0, 1.0])
+	var screen_rect := get_global_rect()
+	return PackedFloat32Array([
+		clampf(screen_rect.position.x / viewport_size.x, 0.0, 1.0),
+		clampf(screen_rect.position.y / viewport_size.y, 0.0, 1.0),
+		clampf(screen_rect.size.x / viewport_size.x, 0.0, 1.0),
+		clampf(screen_rect.size.y / viewport_size.y, 0.0, 1.0)
+	])
+
+
+func _native_os_ui_state() -> Dictionary:
+	var components: Dictionary = configuration.get("components", {})
+	var home_data: Dictionary = components.get("home_screen", {})
+	var lock_data: Dictionary = components.get("lock_screen", {})
+	var selected_layout := str(home_data.get("layout_style", "android_pixel"))
+	var os_family := "android"
+	if selected_layout == "ios_home":
+		os_family = "ios"
+	elif selected_layout == "windows_tiles":
+		os_family = "windows"
+	return {
+		"os": os_family,
+		"screen": active_component,
+		"home": home_data.duplicate(true),
+		"lock": lock_data.duplicate(true),
+		"palette": configuration.get("style", {}).get("palette", {}).duplicate(true),
+		"wallpaper": str(configuration.get("style", {}).get("wallpaper", "aurora")),
+		"corner_radius": _home_screen_corner_radius,
+		"apps": OSEngine.APP_DEFINITIONS.duplicate(true)
+	}
+
+
+func _sync_native_os_ui() -> void:
+	if _native_ui_plugin == null:
+		_configure_native_os_ui()
+	if _native_ui_plugin == null:
+		return
+	var should_show := is_visible_in_tree() and active_component in ["lock_screen", "home_screen"]
+	if not should_show:
+		if _native_ui_active:
+			_native_ui_plugin.call("hideUi")
+		_native_ui_active = false
+		return
+
+	var html := ""
+	if not _native_ui_loaded:
+		html = FileAccess.get_file_as_string("res://assets/os/ui_templates/phone_os_preview.html")
+		if html.is_empty():
+			push_warning("DigitalWorld OS WebView template is missing; using the native Godot preview.")
+			return
+		var wallpaper_bytes := FileAccess.get_file_as_bytes("res://assets/textures/os/android_1_0_default_wallpaper.jpg")
+		var wallpaper_uri := ""
+		if not wallpaper_bytes.is_empty():
+			wallpaper_uri = "data:image/jpeg;base64," + Marshalls.raw_to_base64(wallpaper_bytes)
+		html = html.replace("__ANDROID_WALLPAPER_URI__", wallpaper_uri)
+
+	var frame := _native_os_ui_frame()
+	var state_json := JSON.stringify(_native_os_ui_state())
+	if not _native_ui_loaded:
+		_native_ui_plugin.call(
+			"showHtml",
+			html,
+			state_json,
+			frame[0],
+			frame[1],
+			frame[2],
+			frame[3]
+		)
+		_native_ui_loaded = true
+	else:
+		_native_ui_plugin.call("updateFrame", frame[0], frame[1], frame[2], frame[3])
+		_native_ui_plugin.call("updateState", state_json)
+		_native_ui_plugin.call("showUi")
+	_native_ui_active = true
+
+
+func _update_native_os_ui(delta: float) -> void:
+	if _native_ui_plugin == null:
+		return
+	if not is_visible_in_tree():
+		if _native_ui_active:
+			_native_ui_plugin.call("hideUi")
+			_native_ui_active = false
+		return
+	if not _native_ui_active:
+		return
+
+	_native_ui_poll_elapsed += delta
+	if _native_ui_poll_elapsed >= 0.06:
+		_native_ui_poll_elapsed = 0.0
+		var event_json := str(_native_ui_plugin.call("consumeEvent"))
+		if not event_json.is_empty():
+			var parsed: Variant = JSON.parse_string(event_json)
+			if parsed is Dictionary:
+				_handle_native_os_ui_event(parsed)
+
+	_native_ui_frame_elapsed += delta
+	if _native_ui_frame_elapsed >= 0.12:
+		_native_ui_frame_elapsed = 0.0
+		var frame := _native_os_ui_frame()
+		_native_ui_plugin.call("updateFrame", frame[0], frame[1], frame[2], frame[3])
+
+
+func _handle_native_os_ui_event(event: Dictionary) -> void:
+	match str(event.get("action", "")):
+		"unlock_requested":
+			set_component_view("pin_input")
+		"fingerprint_unlock":
+			var lock_data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
+			if bool(lock_data.get("show_fingerprint", false)) and bool(lock_data.get("fingerprint_sensor_available", false)):
+				set_component_view("home_screen")
+		"open_app":
+			_on_app_pressed(str(event.get("name", "App")))
+		"lock":
+			set_component_view("lock_screen")
+		"home":
+			set_component_view("home_screen")
 
 
 func _current_lock_time(family: String = "") -> String:
@@ -495,10 +631,13 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
 	resized.connect(_on_simulator_resized)
+	visibility_changed.connect(_sync_native_os_ui)
+	_configure_native_os_ui()
 	if configuration.is_empty():
 		configuration = OSEngine.generate_os()
 	_build_shell()
 	_last_layout_size = size
+	_sync_native_os_ui()
 
 func _on_simulator_resized() -> void:
 	if not is_inside_tree() or size.x < 48.0 or size.y < 48.0:
@@ -644,6 +783,7 @@ func _build_shell() -> void:
 		lock_shell.add_child(page_container)
 		_build_component(active_component)
 		_building = false
+		call_deferred("_sync_native_os_ui")
 		return
 
 	var shell := VBoxContainer.new()
@@ -697,6 +837,7 @@ func _build_shell() -> void:
 		# hierarchy and the dock have entered the live scene tree.
 		_apply_home_screen_icon_styles()
 	_building = false
+	call_deferred("_sync_native_os_ui")
 
 func _build_home_dock(parent: VBoxContainer) -> void:
 	var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel"))
