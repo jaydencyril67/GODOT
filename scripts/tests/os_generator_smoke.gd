@@ -92,6 +92,12 @@ func _run_os_generator_test() -> void:
 	if ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES.size() != 20:
 		_fail("Lock-screen system must expose exactly 20 structural layout templates.")
 		return
+	var simulator_host := Control.new()
+	simulator_host.name = "OSSimulatorResponsiveTestHost"
+	simulator_host.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	simulator_host.size = Vector2(145.0, 360.0)
+	root.add_child(simulator_host)
+
 	var observed_templates := {}
 	for template_index in range(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES.size()):
 		var template_name := str(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES[template_index])
@@ -105,6 +111,22 @@ func _run_os_generator_test() -> void:
 		var layout_root := template_preview.find_child("LockScreenLayout_" + template_name, true, false)
 		if layout_root == null:
 			_fail("A lock-screen template did not render its own layout root: " + template_name)
+			return
+		var status_bar := template_preview.find_child("OSStatusBar", true, false) as Control
+		var status_clock := template_preview.find_child("StatusBarClock", true, false) as Label
+		var lock_clock := template_preview.find_child("LockScreenClock", true, false) as Label
+		var lock_date := template_preview.find_child("LockScreenDate", true, false) as Label
+		if status_bar == null or not status_bar.visible or status_bar.size.y < 15.0:
+			_fail("Lock-screen status bar is missing or has no visible height: " + template_name)
+			return
+		if status_clock == null or status_clock.text.strip_edges().is_empty() or status_clock.size.x <= 0.0:
+			_fail("Lock-screen status-bar time is missing or invisible: " + template_name)
+			return
+		if lock_clock == null or lock_clock.text.strip_edges().is_empty() or lock_clock.size.y < 20.0:
+			_fail("Lock-screen main clock is missing or has no visible height: " + template_name)
+			return
+		if lock_date == null or lock_date.text.strip_edges().is_empty():
+			_fail("Lock-screen date is missing: " + template_name)
 			return
 		var structure_signature := ""
 		for layout_child in layout_root.get_children():
@@ -185,12 +207,6 @@ func _run_os_generator_test() -> void:
 		_fail("Loaded OS configuration failed validation.")
 		return
 
-	var simulator_host := Control.new()
-	simulator_host.name = "OSSimulatorResponsiveTestHost"
-	simulator_host.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	simulator_host.size = Vector2(145.0, 360.0)
-	root.add_child(simulator_host)
-
 	generated["components"]["home_screen"]["layout_style"] = "ios_grid"
 	var simulator := SimulatorScript.new()
 	simulator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -213,14 +229,22 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(lock_control_name, true, false) == null:
 			_fail("Lock screen did not render enabled feature: " + lock_control_name)
 			return
-	for lock_content_name in ["LockScreenNotificationApp_Messages", "LockScreenNotificationMessage_Messages", "LockScreenAudioTrackTitle", "LockScreenAudioArtist"]:
+	for lock_content_name in ["LockScreenNotificationApp_Messages", "LockScreenNotificationMessage_Messages", "LockScreenAudioTrackTitle", "LockScreenAudioArtist", "StatusBarClock"]:
 		if simulator.find_child(lock_content_name, true, false) == null:
 			_fail("Lock screen rendered an empty content surface; missing: " + lock_content_name)
 			return
 	var rendered_track_title := simulator.find_child("LockScreenAudioTrackTitle", true, false) as Label
 	var rendered_message := simulator.find_child("LockScreenNotificationMessage_Messages", true, false) as Label
+	var rendered_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
+	var rendered_lock_clock := simulator.find_child("LockScreenClock", true, false) as Label
 	if rendered_track_title == null or rendered_track_title.text.strip_edges().is_empty() or rendered_message == null or rendered_message.text.strip_edges().is_empty():
 		_fail("Lock-screen media or notification content is blank.")
+		return
+	if rendered_status_clock == null or rendered_status_clock.text.strip_edges().is_empty() or rendered_lock_clock == null or rendered_lock_clock.text.strip_edges().is_empty():
+		_fail("Lock-screen status time or main lock-screen clock is blank.")
+		return
+	if rendered_track_title.size.x <= 0.0 or rendered_message.size.x <= 0.0:
+		_fail("Lock-screen notification/media text has no visible horizontal space.")
 		return
 	var lock_gesture_position := Vector2(72, 180)
 	simulator.call("_handle_system_gesture", lock_gesture_position, Vector2(72, 105), 180)
