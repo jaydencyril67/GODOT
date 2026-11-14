@@ -379,13 +379,18 @@ func _run_os_generator_test() -> void:
 		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
 		simulator.configure_os(generation_preview, "home_screen")
 		await process_frame
-		var rendered_widget_count := 0
-		for widget_name in ["HomeWidget_Clock", "HomeWidget_Weather", "HomeWidget_Calendar", "HomeWidget_Music"]:
-			if simulator.find_child(widget_name, true, false) != null:
-				rendered_widget_count += 1
-		if rendered_widget_count != expected_widgets[generation_number - 1]:
-			_fail("Simulator rendered the wrong number of widgets for generation %d." % generation_number)
-			return
+		var generated_layout := str(generation_preview.get("components", {}).get("home_screen", {}).get("layout_style", ""))
+		# Huawei Pura uses a fixed, reference-based service row rather than the
+		# generic generation-count widget slots. Its dedicated structure is
+		# validated in the Huawei layout assertions below.
+		if generated_layout != "huawei_pura":
+			var rendered_widget_count := 0
+			for widget_name in ["HomeWidget_Clock", "HomeWidget_Weather", "HomeWidget_Calendar", "HomeWidget_Music"]:
+				if simulator.find_child(widget_name, true, false) != null:
+					rendered_widget_count += 1
+			if rendered_widget_count != expected_widgets[generation_number - 1]:
+				_fail("Simulator rendered the wrong number of widgets for generation %d." % generation_number)
+				return
 	for layout_style in ProceduralEngineScript.HOME_LAYOUT_STYLES:
 		var layout_config := generated.duplicate(true)
 		layout_config["components"]["home_screen"]["layout_style"] = layout_style
