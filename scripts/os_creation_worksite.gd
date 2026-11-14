@@ -36,6 +36,7 @@ var boot_overlay: Control
 var boot_stage_container: VBoxContainer
 var boot_logo: TextureRect
 var boot_message: Label
+var boot_model_message: Label
 var boot_enabled_inputs: Dictionary = {}
 var boot_busy := false
 var device_powered_on := false
@@ -82,6 +83,49 @@ class GlassArrowButton extends Button:
 		draw_line(upper, tip, Color("#F2EDE4"), 2.8, true)
 		draw_line(tip, lower, Color("#F2EDE4"), 2.8, true)
 		draw_line(centre + Vector2(-direction * 5.0, 0), centre + Vector2(direction * 6.0, 0), Color("#F2EDE4"), 2.8, true)
+
+
+class GlassCheckbox extends Button:
+	func _init() -> void:
+		toggle_mode = true
+		flat = true
+		text = ""
+		focus_mode = Control.FOCUS_NONE
+		custom_minimum_size = Vector2(30, 30)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		var empty_style := StyleBoxEmpty.new()
+		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
+			add_theme_stylebox_override(state_name, empty_style)
+		add_theme_color_override("font_color", Color(0, 0, 0, 0))
+
+	func _ready() -> void:
+		toggled.connect(_on_toggled)
+		mouse_entered.connect(queue_redraw)
+		mouse_exited.connect(queue_redraw)
+		button_down.connect(queue_redraw)
+		button_up.connect(queue_redraw)
+		queue_redraw()
+
+	func _on_toggled(_pressed: bool) -> void:
+		queue_redraw()
+
+	func _draw() -> void:
+		if size.x < 8.0 or size.y < 8.0:
+			return
+		var box_rect := Rect2(Vector2(3.0, 3.0), size - Vector2(6.0, 6.0))
+		var box_style := StyleBoxFlat.new()
+		box_style.bg_color = Color("#654A2A") if button_pressed else (Color("#25282A") if is_hovered() else Color("#151719"))
+		box_style.border_color = Color("#D0A66C") if button_pressed or is_hovered() else Color("#827052")
+		box_style.set_border_width_all(1)
+		box_style.set_corner_radius_all(6)
+		draw_style_box(box_style, box_rect)
+		if button_pressed:
+			var mark_color := Color("#FFF5E8")
+			var mark_start := box_rect.position + Vector2(box_rect.size.x * 0.20, box_rect.size.y * 0.52)
+			var mark_corner := box_rect.position + Vector2(box_rect.size.x * 0.43, box_rect.size.y * 0.72)
+			var mark_end := box_rect.position + Vector2(box_rect.size.x * 0.80, box_rect.size.y * 0.28)
+			draw_line(mark_start, mark_corner, mark_color, 2.4, true)
+			draw_line(mark_corner, mark_end, mark_color, 2.4, true)
 
 
 class GlassButtonReflection extends Control:
@@ -392,37 +436,55 @@ func _build_boot_overlay(screen: PanelContainer) -> void:
 	background.color = Color("#030405")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boot_overlay.add_child(background)
-	var centre := CenterContainer.new()
-	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	boot_overlay.add_child(centre)
+	var stage_margin := MarginContainer.new()
+	stage_margin.name = "BootStageMargin"
+	stage_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	stage_margin.add_theme_constant_override("margin_left", 10)
+	stage_margin.add_theme_constant_override("margin_right", 10)
+	stage_margin.add_theme_constant_override("margin_top", 10)
+	stage_margin.add_theme_constant_override("margin_bottom", 10)
+	stage_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boot_overlay.add_child(stage_margin)
 	boot_stage_container = VBoxContainer.new()
 	boot_stage_container.name = "BootLoaderStage"
+	boot_stage_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	boot_stage_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	boot_stage_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	boot_stage_container.add_theme_constant_override("separation", 12)
-	centre.add_child(boot_stage_container)
+	boot_stage_container.add_theme_constant_override("separation", 8)
+	boot_stage_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage_margin.add_child(boot_stage_container)
 	boot_logo = TextureRect.new()
 	boot_logo.name = "BootCompanyLogo"
 	boot_logo.custom_minimum_size = Vector2(64, 64)
 	boot_logo.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	boot_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	boot_logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	boot_logo.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	boot_stage_container.add_child(boot_logo)
-	boot_message = _label("", 22, Color("#FFFFFF"))
+	boot_message = _label("", 18, Color("#FFFFFF"))
 	boot_message.name = "BootIdentityText"
 	var boot_identity_font := FontVariation.new()
 	boot_identity_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
 	boot_identity_font.variation_embolden = 1.5
 	boot_message.add_theme_font_override("font", boot_identity_font)
-	boot_message.add_theme_font_size_override("font_size", 22)
+	boot_message.add_theme_font_size_override("font_size", 18)
 	boot_message.add_theme_color_override("font_color", Color("#FFFFFF"))
 	boot_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boot_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	boot_message.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	boot_message.custom_minimum_size = Vector2(0, 36)
-	boot_message.autowrap_mode = TextServer.AUTOWRAP_OFF
+	boot_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	boot_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	boot_stage_container.add_child(boot_message)
+	boot_model_message = _label("", 14, Color("#D8D2C8"))
+	boot_model_message.name = "BootModelText"
+	boot_model_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boot_model_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	boot_model_message.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	boot_model_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	boot_model_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	boot_stage_container.add_child(boot_model_message)
+	boot_message.visible = false
+	boot_model_message.visible = false
 	boot_stage_container.modulate.a = 0.0
 	boot_logo.texture = _get_boot_company_logo_texture()
 
@@ -454,11 +516,8 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		item_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 		row.add_child(item_label)
-		var enabled := CheckBox.new()
+		var enabled := GlassCheckbox.new()
 		enabled.name = "BootEnabled_" + item_id
-		enabled.text = ""
-		enabled.custom_minimum_size = Vector2(30, 30)
-		enabled.focus_mode = Control.FOCUS_NONE
 		enabled.button_pressed = bool(bootloader_settings["items"][item_id]["enabled"])
 		enabled.toggled.connect(_on_boot_item_toggled.bind(item_id))
 		row.add_child(enabled)
@@ -478,7 +537,7 @@ func _on_boot_item_toggled(enabled: bool, item_id: String) -> void:
 			if other_id != item_id and bool(items[other_id]["enabled"]):
 				enabled_count += 1
 		if enabled_count == 0:
-			(boot_enabled_inputs[item_id] as CheckBox).set_pressed_no_signal(true)
+			(boot_enabled_inputs[item_id] as Button).set_pressed_no_signal(true)
 			return
 	items[item_id]["enabled"] = enabled
 	_apply_bootloader_settings_to_configuration()
@@ -497,6 +556,10 @@ func set_boot_identity(company_name: String, logo_id: int, phone_name: String = 
 	boot_identity["phone_model"] = phone_model.strip_edges() if not phone_model.strip_edges().is_empty() else "DW-01"
 	if is_instance_valid(boot_logo):
 		boot_logo.texture = _get_boot_company_logo_texture()
+	if is_instance_valid(boot_message):
+		boot_message.text = str(boot_identity["phone_name"])
+	if is_instance_valid(boot_model_message):
+		boot_model_message.text = str(boot_identity["phone_model"])
 	_apply_bootloader_settings_to_configuration()
 
 
@@ -527,8 +590,9 @@ func _run_boot_sequence() -> void:
 		os_preview_simulator.visible = false
 	boot_overlay.visible = true
 	boot_overlay.modulate.a = 1.0
-	boot_message.visible = true
-	boot_stage_container.modulate.a = 0.0
+	boot_message.visible = false
+	boot_model_message.visible = false
+	boot_stage_container.modulate.a = 1.0
 	var ordered_items: Array[String] = []
 	var item_settings: Dictionary = bootloader_settings["items"]
 	# Startup order is fixed: company logo always precedes phone details.
@@ -540,13 +604,17 @@ func _run_boot_sequence() -> void:
 		boot_stage_container.modulate.a = 1.0
 		boot_logo.visible = item_id == "company_logo"
 		boot_message.visible = item_id == "phone_details"
+		boot_model_message.visible = item_id == "phone_details"
 		if item_id == "company_logo":
 			boot_logo.texture = _get_boot_company_logo_texture()
 			boot_logo.modulate.a = 1.0
 			boot_message.text = ""
+			boot_model_message.text = ""
 		elif item_id == "phone_details":
-			boot_message.text = str(boot_identity["phone_name"]) + " " + str(boot_identity["phone_model"])
+			boot_message.text = str(boot_identity["phone_name"])
+			boot_model_message.text = str(boot_identity["phone_model"])
 			boot_message.modulate.a = 1.0
+			boot_model_message.modulate.a = 1.0
 		await get_tree().create_timer(stage_duration).timeout
 	var elapsed := float(Time.get_ticks_msec() - started_at) / 1000.0
 	if elapsed < 10.0:
