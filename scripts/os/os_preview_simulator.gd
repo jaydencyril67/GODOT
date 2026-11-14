@@ -500,6 +500,25 @@ func _build_shell() -> void:
 	safe_area.add_theme_constant_override("margin_bottom", 7)
 	add_child(safe_area)
 
+	if active_component == "lock_screen":
+		var lock_stage := Control.new()
+		lock_stage.name = "LockScreenFullScreenStage"
+		lock_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lock_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		lock_stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		safe_area.add_child(lock_stage)
+
+		page_container = VBoxContainer.new()
+		page_container.name = "LockScreenFullScreenContent"
+		page_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		page_container.add_theme_constant_override("separation", 10)
+		lock_stage.add_child(page_container)
+		_build_component(active_component)
+		_building = false
+		return
+
 	var shell := VBoxContainer.new()
 	shell.name = "OSSimulatorLayout"
 	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -864,8 +883,19 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"center":
 			alignment = HORIZONTAL_ALIGNMENT_CENTER
 
+	var status_row := HBoxContainer.new()
+	status_row.name = "LockScreenSystemStatus"
+	status_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var status_spacer := Control.new()
+	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_row.add_child(status_spacer)
+	status_row.add_child(_label("●  LTE  ▮▮▮  Wi-Fi  100%", 8, _text_color()))
+	page_container.add_child(status_row)
+
 	var top_space := Control.new()
-	top_space.custom_minimum_size.y = 5 if family == "minimal" else 9
+	top_space.name = "LockScreenTopFlexibleSpace"
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_space.size_flags_stretch_ratio = 1.0
 	page_container.add_child(top_space)
 
 	if family == "futurist":
@@ -967,7 +997,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var bottom_space := Control.new()
 	bottom_space.name = "LockScreenFlexibleSpace"
 	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	bottom_space.custom_minimum_size.y = 9
+	bottom_space.size_flags_stretch_ratio = 1.15
 	page_container.add_child(bottom_space)
 
 	var shortcut_row := HBoxContainer.new()
@@ -1041,18 +1071,32 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	style.content_margin_top = 5
 	style.content_margin_bottom = 5
 	card.add_theme_stylebox_override("panel", style)
+	card.custom_minimum_size.y = 54
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 9)
+	var app_icon := PanelContainer.new()
+	app_icon.custom_minimum_size = Vector2(30, 30)
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = _accent_color().darkened(0.42)
+	icon_style.set_corner_radius_all(9)
+	app_icon.add_theme_stylebox_override("panel", icon_style)
+	var icon_label := _label("✉" if app_name == "Messages" else "▦", 15, _text_color())
+	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	app_icon.add_child(icon_label)
+	row.add_child(app_icon)
 	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 2)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 3)
 	var header := HBoxContainer.new()
-	var app_label := _label(app_name.to_upper(), 7, _accent_color())
+	var app_label := _label(app_name, 9, _text_color())
 	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(app_label)
-	header.add_child(_label(time_label, 6, _muted_color()))
+	header.add_child(_label(time_label, 7, _muted_color()))
 	body.add_child(header)
 	body.add_child(_label(message, 8 if treatment == "compact" else 9, _text_color()))
-	if treatment == "compact":
-		body.add_child(_label("Swipe to view", 6, _muted_color()))
-	card.add_child(body)
+	row.add_child(body)
+	card.add_child(row)
 	page_container.add_child(card)
 
 
@@ -1089,34 +1133,47 @@ func _add_lock_audio_player(treatment: String) -> void:
 	style.content_margin_bottom = 6
 	player.add_theme_stylebox_override("panel", style)
 
+	player.custom_minimum_size.y = 76
+	var player_content := VBoxContainer.new()
+	player_content.add_theme_constant_override("separation", 6)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	row.add_theme_constant_override("separation", 10)
 	var artwork := PanelContainer.new()
 	artwork.name = "LockScreenAudioArtwork"
-	artwork.custom_minimum_size = Vector2(31, 31)
+	artwork.custom_minimum_size = Vector2(52, 52)
 	var art_style := StyleBoxFlat.new()
 	art_style.bg_color = _accent_color().darkened(0.35)
-	art_style.set_corner_radius_all(5 if treatment == "compact_row" else 9)
+	art_style.set_corner_radius_all(7 if treatment == "compact_row" else 12)
 	artwork.add_theme_stylebox_override("panel", art_style)
-	var art_label := _label("♫", 17, _text_color())
+	var art_label := _label("♫", 25, _text_color())
 	art_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	art_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	artwork.add_child(art_label)
 	row.add_child(artwork)
 	var track := VBoxContainer.new()
 	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	track.add_child(_label("NOW PLAYING", 6, _accent_color()))
-	track.add_child(_label("Midnight Drive", 8, _text_color()))
-	track.add_child(_label("DigitalWorld Audio", 6, _muted_color()))
+	track.add_child(_label("NOW PLAYING", 7, _accent_color()))
+	track.add_child(_label("Midnight Drive", 12, _text_color()))
+	track.add_child(_label("DigitalWorld Audio  ·  Album", 8, _muted_color()))
 	row.add_child(track)
 	var play := Button.new()
 	play.name = "LockScreenAudioPlayButton"
 	play.text = "Ⅱ"
-	play.custom_minimum_size = Vector2(28, 28)
+	play.custom_minimum_size = Vector2(42, 42)
 	_style_lock_button(play, "minimal")
 	play.pressed.connect(func(): play.text = "▶" if play.text == "Ⅱ" else "Ⅱ")
 	row.add_child(play)
-	player.add_child(row)
+	player_content.add_child(row)
+	var progress := HBoxContainer.new()
+	progress.add_child(_label("1:24", 7, _muted_color()))
+	var progress_line := ColorRect.new()
+	progress_line.custom_minimum_size = Vector2(0, 3)
+	progress_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	progress_line.color = _accent_color()
+	progress.add_child(progress_line)
+	progress.add_child(_label("3:48", 7, _muted_color()))
+	player_content.add_child(progress)
+	player.add_child(player_content)
 	page_container.add_child(player)
 
 
