@@ -10,6 +10,10 @@ const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.
 var generated_os_configuration: Dictionary = {}
 var selected_os_component_id := "home_screen"
 var current_wizard_step := 1
+var home_screen_layout_level := 0
+var home_screen_layout_decrease_button: Button
+var home_screen_layout_increase_button: Button
+var home_screen_layout_value_label: Label
 var os_preview_simulator: Control
 var os_component_selector: OptionButton
 var os_generation_selector: OptionButton
@@ -462,6 +466,111 @@ func _show_lock_screen_studio_controls() -> void:
 	var note := _label("Your wallpaper stays exactly the same.", 10, Color("#A6A096"))
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(note)
+
+
+func _apply_approved_home_screen_layout() -> void:
+	var components: Dictionary = generated_os_configuration.get("components", {})
+	var home_data: Dictionary = components.get("home_screen", {})
+	home_data["layout_style"] = "android_pixel"
+	home_data["columns"] = 4
+	home_data["widget_count"] = 2
+	home_data["show_search"] = true
+	home_data["dock_count"] = 4
+	components["home_screen"] = home_data
+	generated_os_configuration["components"] = components
+	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.update_configuration(generated_os_configuration)
+
+
+func _show_home_screen_studio_controls() -> void:
+	if not is_instance_valid(selection_panel):
+		return
+	selected_os_component_id = "home_screen"
+	for child in selection_panel.get_children():
+		selection_panel.remove_child(child)
+		child.queue_free()
+
+	var content := VBoxContainer.new()
+	content.name = "HomeScreenStudioControls"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.alignment = BoxContainer.ALIGNMENT_BEGIN
+	content.add_theme_constant_override("separation", 10)
+	selection_panel.add_child(content)
+
+	var heading := _label("HOME SCREEN", 22, Color("#D3AA6B"))
+	heading.name = "HomeScreenHeroTitle"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(heading)
+	var description := _label("Choose the home-screen layout. More layouts will be added after each design is approved.", 12, Color("#D0CBC2"))
+	description.name = "HomeScreenHeroDescription"
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(description)
+
+	var hero_gap := Control.new()
+	hero_gap.name = "HomeScreenHeroGap"
+	hero_gap.custom_minimum_size = Vector2(0, 52)
+	content.add_child(hero_gap)
+
+	var selector_center := CenterContainer.new()
+	selector_center.name = "HomeScreenLayoutSelectorCenter"
+	selector_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selector_center.custom_minimum_size.y = 360
+	content.add_child(selector_center)
+	var selector := HBoxContainer.new()
+	selector.name = "HomeScreenLayoutSelector"
+	selector.alignment = BoxContainer.ALIGNMENT_CENTER
+	selector.add_theme_constant_override("separation", 14)
+	selector_center.add_child(selector)
+
+	home_screen_layout_decrease_button = Button.new()
+	home_screen_layout_decrease_button.name = "DecreaseHomeScreenLayoutButton"
+	home_screen_layout_decrease_button.text = "−"
+	home_screen_layout_decrease_button.custom_minimum_size = Vector2(56, 48)
+	home_screen_layout_decrease_button.focus_mode = Control.FOCUS_NONE
+	_style_button(home_screen_layout_decrease_button)
+	home_screen_layout_decrease_button.pressed.connect(_on_home_screen_layout_decrease_pressed)
+	selector.add_child(home_screen_layout_decrease_button)
+
+	home_screen_layout_value_label = _label("ANDROID", 19, Color.WHITE)
+	home_screen_layout_value_label.name = "HomeScreenLayoutValueLabel"
+	home_screen_layout_value_label.custom_minimum_size.x = 190
+	home_screen_layout_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selector.add_child(home_screen_layout_value_label)
+
+	home_screen_layout_increase_button = Button.new()
+	home_screen_layout_increase_button.name = "IncreaseHomeScreenLayoutButton"
+	home_screen_layout_increase_button.text = "+"
+	home_screen_layout_increase_button.custom_minimum_size = Vector2(56, 48)
+	home_screen_layout_increase_button.focus_mode = Control.FOCUS_NONE
+	_style_button(home_screen_layout_increase_button)
+	home_screen_layout_increase_button.pressed.connect(_on_home_screen_layout_increase_pressed)
+	selector.add_child(home_screen_layout_increase_button)
+	_refresh_home_screen_layout_selector()
+
+
+func _on_home_screen_layout_decrease_pressed() -> void:
+	if home_screen_layout_level <= 0:
+		return
+	home_screen_layout_level -= 1
+	_refresh_home_screen_layout_selector()
+
+
+func _on_home_screen_layout_increase_pressed() -> void:
+	# New layout choices are appended only after their individual visual approval.
+	return
+
+
+func _refresh_home_screen_layout_selector() -> void:
+	if is_instance_valid(home_screen_layout_value_label):
+		home_screen_layout_value_label.text = "ANDROID"
+	if is_instance_valid(home_screen_layout_decrease_button):
+		home_screen_layout_decrease_button.disabled = true
+	if is_instance_valid(home_screen_layout_increase_button):
+		home_screen_layout_increase_button.disabled = true
+	_apply_approved_home_screen_layout()
 
 
 func _add_lock_screen_toggle_row(parent: VBoxContainer, feature_id: String, title_text: String, detail_text: String, unavailable: bool = false) -> void:
@@ -933,23 +1042,29 @@ func _style_button(button: Button) -> void:
 
 
 func _set_wizard_step(step: int) -> void:
-	current_wizard_step = clampi(step, 1, 2)
+	current_wizard_step = clampi(step, 1, 3)
 	if current_wizard_step == 1:
 		_build_bootloader_controls_only()
+	elif not device_powered_on:
+		current_wizard_step = 1
+		_build_bootloader_controls_only()
+	elif current_wizard_step == 2:
+		selected_os_component_id = "lock_screen"
+		if is_instance_valid(os_preview_simulator):
+			os_preview_simulator.visible = true
+			os_preview_simulator.set_component_view("lock_screen")
+		_show_lock_screen_studio_controls()
 	else:
-		if not device_powered_on:
-			current_wizard_step = 1
-			_build_bootloader_controls_only()
-		else:
-			selected_os_component_id = "lock_screen"
-			if is_instance_valid(os_preview_simulator):
-				os_preview_simulator.visible = true
-				os_preview_simulator.set_component_view("lock_screen")
-			_show_lock_screen_studio_controls()
+		selected_os_component_id = "home_screen"
+		_apply_approved_home_screen_layout()
+		if is_instance_valid(os_preview_simulator):
+			os_preview_simulator.visible = true
+			os_preview_simulator.set_component_view("home_screen")
+		_show_home_screen_studio_controls()
 	if is_instance_valid(progress_number):
-		progress_number.text = "STEP %d / 2" % current_wizard_step
+		progress_number.text = "STEP %d / 3" % current_wizard_step
 	if is_instance_valid(progress_bar):
-		progress_bar.max_value = 2
+		progress_bar.max_value = 3
 		progress_bar.value = current_wizard_step
 	_keep_step_navigation_active()
 
@@ -966,15 +1081,15 @@ func _keep_step_navigation_active() -> void:
 		wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		wizard_back_button.modulate.a = 0.42 if wizard_back_button.disabled else 1.0
 	if is_instance_valid(next_button):
-		next_button.disabled = current_wizard_step >= 2 or not device_powered_on
+		next_button.disabled = current_wizard_step >= 3 or not device_powered_on
 		next_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		next_button.modulate.a = 0.42 if next_button.disabled else 1.0
 
 
 func _on_wizard_back_pressed() -> void:
-	_set_wizard_step(1)
+	_set_wizard_step(current_wizard_step - 1)
 
 
 func _on_next_pressed() -> void:
-	if current_wizard_step == 1 and device_powered_on:
-		_set_wizard_step(2)
+	if current_wizard_step < 3 and device_powered_on:
+		_set_wizard_step(current_wizard_step + 1)
