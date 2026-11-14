@@ -22,6 +22,7 @@ var navigation_layer: CanvasLayer
 var navigation_bar: HBoxContainer
 var worksite_body: BoxContainer
 var preview_region: Control
+var screen_center: CenterContainer
 var selection_panel: Control
 var configuration_region: Control
 var screen_frame: PanelContainer
@@ -212,7 +213,7 @@ func _build_interface() -> void:
 	preview_region.size_flags_stretch_ratio = 1.12
 	worksite_body.add_child(preview_region)
 
-	var screen_center := CenterContainer.new()
+	screen_center = CenterContainer.new()
 	screen_center.name = "OSScreenCenter"
 	screen_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
