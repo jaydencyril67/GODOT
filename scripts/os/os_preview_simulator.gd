@@ -1023,8 +1023,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 		"widget_dashboard":
 			root_layout.add_child(clock_stack)
 			root_layout.add_child(feature_row)
-			root_layout.add_child(notification_column)
-			root_layout.add_child(media_column)
 		"live_activity":
 			root_layout.add_child(top_space)
 			root_layout.add_child(clock_stack)
@@ -1128,7 +1126,8 @@ func _build_lock_screen(data: Dictionary) -> void:
 	if is_instance_valid(unlock_control):
 		root_layout.remove_child(unlock_control)
 		root_layout.add_child(unlock_control)
-	root_layout.add_child(lower_space if lower_space.get_parent() == null else Control.new())
+	if lower_space.get_parent() == null:
+		root_layout.add_child(lower_space)
 	page_container = original_container
 
 
