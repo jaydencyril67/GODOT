@@ -165,6 +165,10 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 			_show_gesture_overlay("notifications")
 		return
 
+	if active_component == "lock_screen" and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
+		set_component_view("home_screen")
+		return
+
 	if start.y >= size.y - edge_size and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
 		if elapsed_ms >= 420:
 			_show_gesture_overlay("recent_apps")
@@ -806,38 +810,341 @@ func _build_home_widget(widget_index: int) -> void:
 	page_container.add_child(widget)
 
 func _build_lock_screen(data: Dictionary) -> void:
-	var spacer := Control.new()
-	spacer.custom_minimum_size.y = 12
-	page_container.add_child(spacer)
-	var clock := _label("09:41", 38 if data.get("clock_style") == "bold" else 31, _text_color())
-	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page_container.add_child(clock)
-	var date := _label("MONDAY  ·  NOVEMBER 13", 8, _muted_color())
-	date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page_container.add_child(date)
-	var breathing_space := Control.new()
-	breathing_space.custom_minimum_size.y = 22
-	page_container.add_child(breathing_space)
+	var family := str(data.get("design_family", "minimal"))
+	var alignment := HORIZONTAL_ALIGNMENT_LEFT
+	match str(data.get("clock_alignment", "center")):
+		"right":
+			alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		"center":
+			alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	var top_space := Control.new()
+	top_space.custom_minimum_size.y = 5 if family == "minimal" else 9
+	page_container.add_child(top_space)
+
+	if family == "futurist":
+		var system_caption := _label("DIGITALWORLD  /  SYSTEM TIME", 7, _accent_color())
+		system_caption.horizontal_alignment = alignment
+		page_container.add_child(system_caption)
+	elif family == "editorial":
+		var editorial_caption := _label("THE DAILY EDITION", 7, _accent_color())
+		editorial_caption.horizontal_alignment = alignment
+		page_container.add_child(editorial_caption)
+
+	var clock_host: Control
+	var clock_stack := VBoxContainer.new()
+	clock_stack.name = "LockScreenClockStack"
+	clock_stack.add_theme_constant_override("separation", 1)
+	var clock_text := "09:41"
+	if family == "typographic":
+		clock_text = "09\n41"
+	var clock := _label(clock_text, clampi(int(data.get("clock_size", 46)), 28, 58), _text_color())
+	clock.name = "LockScreenClock"
+	clock.horizontal_alignment = alignment
+	clock.add_theme_color_override("font_color", _accent_color() if str(data.get("clock_treatment", "plain")) == "outlined" else _text_color())
+	var clock_font := FontVariation.new()
+	clock_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	match str(data.get("clock_weight", "regular")):
+		"light":
+			clock_font.variation_embolden = 0.0
+		"bold":
+			clock_font.variation_embolden = 1.5
+		_:
+			clock_font.variation_embolden = 0.65
+	clock.add_theme_font_override("font", clock_font)
+	clock_stack.add_child(clock)
+
+	var date_text := "MONDAY  ·  NOVEMBER 13"
+	match str(data.get("date_treatment", "uppercase")):
+		"minimal":
+			date_text = "MON  ·  13 NOV"
+		"editorial":
+			date_text = "MONDAY, THE THIRTEENTH OF NOVEMBER"
+		"inline":
+			date_text = "MON 13 NOV  ·  2026"
+	var date := _label(date_text, 7, _muted_color())
+	date.name = "LockScreenDate"
+	date.horizontal_alignment = alignment
+	clock_stack.add_child(date)
+
+	if family == "split_grid":
+		var split_caption := _label("HOUR       MINUTE", 6, _accent_color())
+		split_caption.horizontal_alignment = alignment
+		clock_stack.add_child(split_caption)
+
+	var clock_treatment := str(data.get("clock_treatment", "plain"))
+	if family in ["glass", "neo_brutalist", "soft_layers", "split_grid"] or clock_treatment == "boxed":
+		var clock_panel := PanelContainer.new()
+		clock_panel.name = "LockScreenClockSurface"
+		var panel_style := StyleBoxFlat.new()
+		match family:
+			"glass":
+				panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.42)
+				panel_style.border_color = Color(1, 1, 1, 0.24)
+				panel_style.set_corner_radius_all(18)
+				panel_style.set_border_width_all(1)
+			"neo_brutalist":
+				panel_style.bg_color = _accent_color().darkened(0.28)
+				panel_style.border_color = _text_color()
+				panel_style.set_corner_radius_all(2)
+				panel_style.set_border_width_all(2)
+			"split_grid":
+				panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.70)
+				panel_style.border_color = _accent_color()
+				panel_style.set_corner_radius_all(5)
+				panel_style.set_border_width_all(1)
+			_:
+				panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.30)
+				panel_style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.34)
+				panel_style.set_corner_radius_all(24)
+				panel_style.set_border_width_all(1)
+		panel_style.content_margin_left = 7
+		panel_style.content_margin_right = 7
+		panel_style.content_margin_top = 7
+		panel_style.content_margin_bottom = 7
+		clock_panel.add_theme_stylebox_override("panel", panel_style)
+		clock_panel.add_child(clock_stack)
+		clock_host = clock_panel
+	else:
+		clock_host = clock_stack
+	page_container.add_child(clock_host)
+
+	if family in ["editorial", "futurist", "neo_brutalist"]:
+		var divider := ColorRect.new()
+		divider.name = "LockScreenDesignDivider"
+		divider.custom_minimum_size.y = 2 if family == "neo_brutalist" else 1
+		divider.color = _accent_color()
+		page_container.add_child(divider)
+
+	var content_gap := Control.new()
+	content_gap.custom_minimum_size.y = 10 if family == "minimal" else 6
+	page_container.add_child(content_gap)
+
 	if bool(data.get("show_notifications", true)):
-		_add_notification_surface("Messages", "A new message is waiting", "NOW")
-		_add_notification_surface("Calendar", "Your next event is coming up", "IN 10 MIN")
+		_add_lock_notification("Messages", "A new message is waiting", "NOW", str(data.get("notification_treatment", "glass")), 0)
+		_add_lock_notification("Calendar", "Your next event is coming up", "IN 10 MIN", str(data.get("notification_treatment", "glass")), 1)
+
+	if bool(data.get("show_audio_player", false)):
+		_add_lock_audio_player(str(data.get("audio_treatment", "album_card")))
+
 	var bottom_space := Control.new()
+	bottom_space.name = "LockScreenFlexibleSpace"
 	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	bottom_space.custom_minimum_size.y = 12
+	bottom_space.custom_minimum_size.y = 9
 	page_container.add_child(bottom_space)
+
 	var shortcut_row := HBoxContainer.new()
-	shortcut_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	shortcut_row.add_theme_constant_override("separation", 26)
-	shortcut_row.add_child(_round_shortcut("◉"))
-	shortcut_row.add_child(_round_shortcut("▣"))
-	page_container.add_child(shortcut_row)
-	var unlock := Button.new()
-	unlock.name = "UnlockOSButton"
-	unlock.text = "SWIPE TO UNLOCK"
-	unlock.custom_minimum_size.y = 36
-	_style_action_button(unlock, true)
-	unlock.pressed.connect(func(): set_component_view("home_screen"))
-	page_container.add_child(unlock)
+	shortcut_row.name = "LockScreenQuickShortcuts"
+	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_row.add_theme_constant_override("separation", 4)
+	if bool(data.get("show_camera_shortcut", true)):
+		shortcut_row.add_child(_make_lock_shortcut("◉", "CAMERA", str(data.get("shortcut_treatment", "floating")), "Camera"))
+	var shortcut_spacer := Control.new()
+	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_row.add_child(shortcut_spacer)
+	if bool(data.get("show_flashlight_shortcut", true)):
+		shortcut_row.add_child(_make_lock_shortcut("ϟ", "FLASH", str(data.get("shortcut_treatment", "floating")), "Flashlight"))
+	if shortcut_row.get_child_count() > 1 or bool(data.get("show_camera_shortcut", false)) or bool(data.get("show_flashlight_shortcut", false)):
+		page_container.add_child(shortcut_row)
+
+	if bool(data.get("show_fingerprint", false)) and bool(data.get("fingerprint_sensor_available", false)):
+		var fingerprint := Button.new()
+		fingerprint.name = "LockScreenFingerprintSensor"
+		fingerprint.text = "◎\nFINGERPRINT"
+		fingerprint.custom_minimum_size = Vector2(0, 42)
+		fingerprint.add_theme_font_size_override("font_size", 8)
+		_style_lock_button(fingerprint, str(data.get("fingerprint_treatment", "ring")))
+		fingerprint.pressed.connect(func(): set_component_view("home_screen"))
+		page_container.add_child(fingerprint)
+
+	if bool(data.get("show_unlock_hint", true)):
+		var unlock := Button.new()
+		unlock.name = "UnlockOSButton"
+		unlock.text = "SWIPE UP TO UNLOCK" if str(data.get("unlock_treatment", "pill")) != "text_link" else "SWIPE UP  →"
+		unlock.custom_minimum_size.y = 29
+		_style_lock_button(unlock, str(data.get("unlock_treatment", "pill")))
+		unlock.pressed.connect(func(): set_component_view("home_screen"))
+		page_container.add_child(unlock)
+
+
+func _add_lock_notification(app_name: String, message: String, time_label: String, treatment: String, index: int) -> void:
+	var card := PanelContainer.new()
+	card.name = "LockScreenNotification_" + app_name
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	match treatment:
+		"glass":
+			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.44)
+			style.border_color = Color(1, 1, 1, 0.20)
+			style.set_corner_radius_all(15)
+			style.set_border_width_all(1)
+		"solid":
+			style.bg_color = _surface_color().darkened(0.18)
+			style.border_color = _accent_color()
+			style.set_corner_radius_all(4)
+			style.set_border_width_all(1)
+		"outline":
+			style.bg_color = Color(0, 0, 0, 0.12)
+			style.border_color = _accent_color()
+			style.set_corner_radius_all(12)
+			style.set_border_width_all(1)
+		"minimal":
+			style.bg_color = Color(0, 0, 0, 0)
+			style.border_color = Color(1, 1, 1, 0.16)
+			style.set_corner_radius_all(0)
+			style.set_border_width(0, 0, 1, 0)
+		_:
+			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.76)
+			style.border_color = Color(1, 1, 1, 0.12)
+			style.set_corner_radius_all(7)
+			style.set_border_width_all(1)
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 5
+	style.content_margin_bottom = 5
+	card.add_theme_stylebox_override("panel", style)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 2)
+	var header := HBoxContainer.new()
+	var app_label := _label(app_name.to_upper(), 7, _accent_color())
+	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(app_label)
+	header.add_child(_label(time_label, 6, _muted_color()))
+	body.add_child(header)
+	body.add_child(_label(message, 8 if treatment == "compact" else 9, _text_color()))
+	if treatment == "compact":
+		body.add_child(_label("Swipe to view", 6, _muted_color()))
+	card.add_child(body)
+	page_container.add_child(card)
+
+
+func _add_lock_audio_player(treatment: String) -> void:
+	var player := PanelContainer.new()
+	player.name = "LockScreenAudioPlayer"
+	player.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	match treatment:
+		"glass_bar":
+			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.40)
+			style.border_color = Color(1, 1, 1, 0.24)
+			style.set_corner_radius_all(22)
+			style.set_border_width_all(1)
+		"compact_row":
+			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.84)
+			style.border_color = _accent_color()
+			style.set_corner_radius_all(5)
+			style.set_border_width_all(1)
+		"editorial":
+			style.bg_color = Color(0, 0, 0, 0)
+			style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.55)
+			style.set_corner_radius_all(0)
+			style.set_border_width(0, 0, 1, 0)
+		_:
+			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.78)
+			style.border_color = Color(1, 1, 1, 0.16)
+			style.set_corner_radius_all(13)
+			style.set_border_width_all(1)
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	player.add_theme_stylebox_override("panel", style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var artwork := PanelContainer.new()
+	artwork.name = "LockScreenAudioArtwork"
+	artwork.custom_minimum_size = Vector2(31, 31)
+	var art_style := StyleBoxFlat.new()
+	art_style.bg_color = _accent_color().darkened(0.35)
+	art_style.set_corner_radius_all(5 if treatment == "compact_row" else 9)
+	artwork.add_theme_stylebox_override("panel", art_style)
+	var art_label := _label("♫", 17, _text_color())
+	art_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	art_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	artwork.add_child(art_label)
+	row.add_child(artwork)
+	var track := VBoxContainer.new()
+	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track.add_child(_label("NOW PLAYING", 6, _accent_color()))
+	track.add_child(_label("Midnight Drive", 8, _text_color()))
+	track.add_child(_label("DigitalWorld Audio", 6, _muted_color()))
+	row.add_child(track)
+	var play := Button.new()
+	play.name = "LockScreenAudioPlayButton"
+	play.text = "Ⅱ"
+	play.custom_minimum_size = Vector2(28, 28)
+	_style_lock_button(play, "minimal")
+	play.pressed.connect(func(): play.text = "▶" if play.text == "Ⅱ" else "Ⅱ")
+	row.add_child(play)
+	player.add_child(row)
+	page_container.add_child(player)
+
+
+func _make_lock_shortcut(glyph: String, caption: String, treatment: String, action_name: String) -> Button:
+	var button := Button.new()
+	button.name = "LockScreenShortcut_" + action_name
+	button.text = glyph + "\n" + caption
+	button.custom_minimum_size = Vector2(44, 42)
+	button.add_theme_font_size_override("font_size", 8)
+	_style_lock_button(button, treatment)
+	if action_name == "Flashlight":
+		button.toggle_mode = true
+		button.toggled.connect(func(enabled: bool):
+			button.text = "ϟ\nON" if enabled else "ϟ\nFLASH"
+			if is_instance_valid(status_label):
+				status_label.text = "Flashlight " + ("on" if enabled else "off")
+		)
+	else:
+		button.pressed.connect(func():
+			if is_instance_valid(status_label):
+				status_label.text = "Camera shortcut"
+			app_opened.emit("Camera")
+		)
+	return button
+
+
+func _style_lock_button(button: Button, treatment: String) -> void:
+	var style := StyleBoxFlat.new()
+	match treatment:
+		"floating", "pill":
+			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.78)
+			style.border_color = Color(1, 1, 1, 0.22)
+			style.set_corner_radius_all(24)
+			style.set_border_width_all(1)
+		"outlined", "ring":
+			style.bg_color = Color(0, 0, 0, 0.12)
+			style.border_color = _accent_color()
+			style.set_corner_radius_all(24)
+			style.set_border_width_all(1)
+		"solid":
+			style.bg_color = _accent_color().darkened(0.22)
+			style.border_color = _accent_color()
+			style.set_corner_radius_all(8)
+			style.set_border_width_all(1)
+		"glass":
+			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.38)
+			style.border_color = Color(1, 1, 1, 0.30)
+			style.set_corner_radius_all(18)
+			style.set_border_width_all(1)
+		"minimal", "text_link":
+			style.bg_color = Color(0, 0, 0, 0)
+			style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.30)
+			style.set_corner_radius_all(2)
+			style.set_border_width(0, 0, 1, 0)
+		_:
+			style.bg_color = _surface_color()
+			style.border_color = Color(1, 1, 1, 0.16)
+			style.set_corner_radius_all(10)
+			style.set_border_width_all(1)
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_stylebox_override("hover", style.duplicate())
+	button.add_theme_stylebox_override("pressed", style.duplicate())
+	button.add_theme_color_override("font_color", _text_color())
+	button.add_theme_color_override("font_hover_color", _text_color())
+	button.add_theme_font_size_override("font_size", 8)
+	button.focus_mode = Control.FOCUS_NONE
+
 
 func _build_icon_gallery(data: Dictionary) -> void:
 	_add_section_label("APP ICON SYSTEM")
