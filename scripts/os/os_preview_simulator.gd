@@ -642,7 +642,6 @@ func _build_home_dock(parent: VBoxContainer) -> void:
 
 
 func _build_status_bar(parent: VBoxContainer) -> void:
-	var data: Dictionary = configuration.get("components", {}).get("system_ui", {})
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
 	bar.custom_minimum_size.y = 22
@@ -1049,15 +1048,6 @@ func _build_lock_screen(data: Dictionary) -> void:
 	lower_space.name = "LockScreenBottomFlexibleSpace"
 	lower_space.custom_minimum_size.y = 4
 
-	var clock_panel := PanelContainer.new()
-	clock_panel.name = "LockScreenClockSurface"
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.34)
-	panel_style.border_color = Color(1, 1, 1, 0.18)
-	panel_style.set_corner_radius_all(18)
-	panel_style.set_border_width_all(1)
-	clock_panel.add_theme_stylebox_override("panel", panel_style)
-
 	var feature_row := VBoxContainer.new()
 	feature_row.name = "LockScreenMediaAndNotifications"
 	feature_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1078,7 +1068,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 		"rhombus_clock":
 			root_layout.add_child(top_space)
-			root_layout.add_child(clock_panel)
+			root_layout.add_child(_label("TODAY  ·  DIGITALWORLD", 7, _accent_color()))
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"magazine_cover":
