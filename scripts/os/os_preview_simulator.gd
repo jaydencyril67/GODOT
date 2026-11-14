@@ -8,6 +8,7 @@ const LOCKSCREEN_FONT: FontFile = preload("res://assets/fonts/STIXTwoText[wght].
 const FINGERPRINT_SENSOR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/fingerprint_sensor.svg")
 const LOCKSCREEN_CAMERA_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/camera.svg")
 const LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/flashlight.svg")
+const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.90
 const STATUS_CELLULAR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_cellular.svg")
 const STATUS_WIFI_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_wifi.svg")
 const STATUS_BATTERY_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_battery.svg")
@@ -121,6 +122,7 @@ class OSWallpaperLayer extends Control:
 
 class LockScreenFingerprintButton extends Button:
 	var sensor_texture: Texture2D
+	var artwork_scale := 0.90
 
 	func _ready() -> void:
 		text = ""
@@ -136,7 +138,8 @@ class LockScreenFingerprintButton extends Button:
 		if sensor_texture == null:
 			return
 		var side := minf(size.x, size.y)
-		var rect := Rect2((size - Vector2.ONE * side) * 0.5, Vector2.ONE * side)
+		var artwork_side := side * clampf(artwork_scale, 0.0, 1.0)
+		var rect := Rect2((size - Vector2.ONE * artwork_side) * 0.5, Vector2.ONE * artwork_side)
 		if is_pressed():
 			draw_circle(size * 0.5, side * 0.48, Color("#DCEEFF", 0.18))
 		draw_texture_rect(sensor_texture, rect, false)
@@ -1475,10 +1478,13 @@ func _make_lock_shortcut(icon_texture: Texture2D, treatment: String, action_name
 	icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	icon_view.offset_left = 8.0
-	icon_view.offset_top = 8.0
-	icon_view.offset_right = -8.0
-	icon_view.offset_bottom = -8.0
+	var original_artwork_size := button.custom_minimum_size - Vector2.ONE * 16.0
+	var scaled_artwork_size := original_artwork_size * LOCKSCREEN_SHORTCUT_ICON_SCALE
+	var artwork_inset := (button.custom_minimum_size - scaled_artwork_size) * 0.5
+	icon_view.offset_left = artwork_inset.x
+	icon_view.offset_top = artwork_inset.y
+	icon_view.offset_right = -artwork_inset.x
+	icon_view.offset_bottom = -artwork_inset.y
 	button.add_child(icon_view)
 
 	if action_name == "Flashlight":

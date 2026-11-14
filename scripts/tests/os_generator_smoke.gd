@@ -316,6 +316,9 @@ func _run_os_generator_test() -> void:
 	if camera_icon.texture.resource_path != "res://assets/os/lockscreen/camera.svg" or flashlight_icon.texture.resource_path != "res://assets/os/lockscreen/flashlight.svg":
 		_fail("Lock-screen shortcuts are not using the imported camera and flashlight SVG assets.")
 		return
+	if absf(camera_icon.size.x - 23.4) > 0.5 or absf(camera_icon.size.y - 23.4) > 0.5 or absf(flashlight_icon.size.x - 23.4) > 0.5 or absf(flashlight_icon.size.y - 23.4) > 0.5:
+		_fail("Camera and flashlight artwork must each be exactly 10% smaller while keeping their 42 px touch targets.")
+		return
 	if camera_shortcut.get_index() >= flashlight_shortcut.get_index():
 		_fail("Camera must remain on the left and flashlight on the right of the lock screen.")
 		return
@@ -337,6 +340,15 @@ func _run_os_generator_test() -> void:
 		return
 	if rendered_status_clock == null or rendered_status_clock.text.strip_edges().is_empty() or rendered_lock_clock == null or rendered_lock_clock.text.strip_edges().is_empty():
 		_fail("Lock-screen status time or main lock-screen clock is blank.")
+		return
+	var expected_layout_name := "LockScreenLayout_" + str(lock_preview_data.get("layout_template", "classic_clock"))
+	var visible_lock_layout := simulator.find_child(expected_layout_name, true, false) as Control
+	var procedural_wallpaper := simulator.find_child("OSProceduralWallpaper", true, false) as Control
+	if visible_lock_layout == null or not visible_lock_layout.visible or visible_lock_layout.size.x <= 0.0 or visible_lock_layout.size.y <= 0.0 or procedural_wallpaper == null or not procedural_wallpaper.visible:
+		_fail("Lock screen layout or wallpaper is not visible; the preview could appear as a blank black screen.")
+		return
+	if not rendered_lock_clock.visible or not rendered_message.visible or not rendered_track_title.visible or not camera_icon.visible or not flashlight_icon.visible:
+		_fail("One or more primary lock-screen elements are hidden.")
 		return
 	if rendered_track_title.size.x <= 0.0 or rendered_message.size.x <= 0.0:
 		_fail("Lock-screen notification/media text has no visible horizontal space.")
@@ -770,7 +782,10 @@ func _run_os_generator_test() -> void:
 		_fail("Imported fingerprint sensor artwork failed to load.")
 		return
 	if fingerprint_sensor.get("sensor_texture").resource_path != "res://assets/os/lockscreen/fingerprint_sensor.svg":
-		_fail("Fingerprint control is not using the refreshed S20-style imported sensor artwork.")
+		_fail("Fingerprint control is not using the imported ScreenLock S20 fingerprint artwork.")
+		return
+	if not is_equal_approx(float(fingerprint_sensor.get("artwork_scale")), 0.90):
+		_fail("Fingerprint artwork must be rendered at 90% of its previous size while preserving the touch target.")
 		return
 	fingerprint_sensor.pressed.emit()
 	if worksite_preview.get("active_component") != "home_screen":
