@@ -672,7 +672,25 @@ func _build_shell() -> void:
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		shell.add_child(scroll)
-		scroll.add_child(page_container)
+		if active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1 and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel":
+			var drawer_surface := PanelContainer.new()
+			drawer_surface.name = "LollipopAppDrawerWhiteSurface"
+			drawer_surface.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			drawer_surface.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			var drawer_style := StyleBoxFlat.new()
+			drawer_style.bg_color = Color("#FAFAFA")
+			drawer_style.set_border_width_all(0)
+			drawer_style.set_corner_radius_all(0)
+			drawer_style.content_margin_left = 8
+			drawer_style.content_margin_right = 8
+			drawer_style.content_margin_top = 5
+			drawer_style.content_margin_bottom = 5
+			drawer_surface.add_theme_stylebox_override("panel", drawer_style)
+			scroll.add_child(drawer_surface)
+			page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			drawer_surface.add_child(page_container)
+		else:
+			scroll.add_child(page_container)
 	_build_component(active_component)
 
 	var footer := VBoxContainer.new()
@@ -700,18 +718,59 @@ func _build_shell() -> void:
 	_building = false
 
 func _build_home_dock(parent: VBoxContainer) -> void:
-	var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
+	var is_lollipop := int(configuration.get("generation", 2)) == 1 and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
 	var dock_row := HBoxContainer.new()
 	dock_row.name = "HomeAppDockIcons"
-	dock_row.custom_minimum_size.y = 48
+	dock_row.custom_minimum_size.y = 46
 	dock_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	dock_row.add_theme_constant_override("separation", 6)
-	var dock_icon_size := _responsive_icon_size(35, dock_apps.size(), 6)
-	for app_name in dock_apps:
+	dock_row.add_theme_constant_override("separation", 5)
+	if is_lollipop:
+		var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
+		var dock_icon_size := _responsive_icon_size(31, 5, 5)
+		for index in range(5):
+			if index == 2:
+				var drawer_tile := VBoxContainer.new()
+				drawer_tile.name = "LollipopAppDrawerDockItem"
+				drawer_tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				drawer_tile.add_theme_constant_override("separation", 2)
+				var holder := CenterContainer.new()
+				var drawer_button := Button.new()
+				drawer_button.name = "LollipopAppDrawerButton"
+				drawer_button.custom_minimum_size = Vector2(dock_icon_size, dock_icon_size)
+				drawer_button.text = "●\n● ●"
+				drawer_button.add_theme_font_size_override("font_size", 8)
+				var drawer_style := StyleBoxFlat.new()
+				drawer_style.bg_color = Color("#FFFFFF")
+				drawer_style.set_corner_radius_all(999)
+				drawer_style.set_border_width_all(0)
+				drawer_button.add_theme_stylebox_override("normal", drawer_style)
+				drawer_button.add_theme_stylebox_override("hover", drawer_style)
+				drawer_button.add_theme_stylebox_override("pressed", drawer_style)
+				drawer_button.add_theme_color_override("font_color", Color("#777777"))
+				drawer_button.add_theme_color_override("font_hover_color", Color("#555555"))
+				drawer_button.focus_mode = Control.FOCUS_NONE
+				drawer_button.pressed.connect(func(): set_component_view("app_drawer"))
+				holder.add_child(drawer_button)
+				drawer_tile.add_child(holder)
+				dock_row.add_child(drawer_tile)
+			else:
+				var app_name := dock_apps[index if index < 2 else index - 1]
+				var app := _find_app(app_name)
+				if not app.is_empty():
+					dock_row.add_child(_create_lollipop_app_icon(app, dock_icon_size, false, Color("#FFFFFF")))
+		var dock_spacer := Control.new()
+		dock_spacer.custom_minimum_size.y = 2
+		parent.add_child(dock_row)
+		parent.add_child(dock_spacer)
+		return
+
+	var standard_dock_apps := ["Phone", "Messages", "Browser", "Camera"]
+	var standard_icon_size := _responsive_icon_size(35, standard_dock_apps.size(), 6)
+	for app_name in standard_dock_apps:
 		var app := _find_app(app_name)
 		if not app.is_empty():
-			dock_row.add_child(_create_app_icon(app, dock_icon_size, false))
+			dock_row.add_child(_create_app_icon(app, standard_icon_size, false))
 	var dock := PanelContainer.new()
 	dock.name = "HomeAppDock"
 	dock.custom_minimum_size.y = 48
@@ -828,74 +887,89 @@ func _build_home_screen(data: Dictionary) -> void:
 
 
 func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
-	var date_label := _label(_current_lock_date("minimal").to_upper(), 10, _text_color())
-	date_label.name = "AndroidHomeDate"
-	page_container.add_child(date_label)
-	var greeting := _label("26°  ·  Partly cloudy", 8, _muted_color())
-	greeting.name = "AndroidHomeWeatherSummary"
-	page_container.add_child(greeting)
+	# Android 5.0 Lollipop / Google Now Launcher: fixed search bar, app grid,
+	# open wallpaper space and a separate five-position launcher dock.
+	var search_panel := PanelContainer.new()
+	search_panel.name = "LollipopGoogleSearchBar"
+	search_panel.custom_minimum_size.y = 31
+	search_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var search_style := StyleBoxFlat.new()
+	search_style.bg_color = Color("#FFFFFF")
+	search_style.set_corner_radius_all(2)
+	search_style.set_border_width_all(0)
+	search_style.content_margin_left = 7
+	search_style.content_margin_right = 7
+	search_style.content_margin_top = 2
+	search_style.content_margin_bottom = 2
+	search_panel.add_theme_stylebox_override("panel", search_style)
+	var search_row := HBoxContainer.new()
+	search_row.add_theme_constant_override("separation", 6)
+	search_panel.add_child(search_row)
+	var google_mark := _label("G", 19, Color("#4285F4"))
+	google_mark.custom_minimum_size.x = 20
+	google_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(google_mark)
+	var search_text := _label("Google", 10, Color("#777777"))
+	search_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	search_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(search_text)
+	var microphone := _label("●", 10, Color("#4285F4"))
+	microphone.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(microphone)
+	page_container.add_child(search_panel)
 
-	var top_spacing := Control.new()
-	top_spacing.name = "AndroidHomeTopFlexibleSpace"
-	top_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_container.add_child(top_spacing)
-
-	var widgets_row := HBoxContainer.new()
-	widgets_row.name = "AndroidHomeWidgetRow"
-	widgets_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	widgets_row.add_theme_constant_override("separation", 7)
-	page_container.add_child(widgets_row)
-
-	var weather_widget := PanelContainer.new()
-	weather_widget.name = "AndroidWeatherWidget"
-	weather_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	weather_widget.custom_minimum_size.y = 72
-	_style_home_surface(weather_widget, 15)
-	var weather_content := VBoxContainer.new()
-	weather_content.add_theme_constant_override("separation", 2)
-	weather_widget.add_child(weather_content)
-	weather_content.add_child(_label("WEATHER", 7, _muted_color()))
-	weather_content.add_child(_label("26°", 22, _text_color()))
-	weather_content.add_child(_label("Partly cloudy", 7, _muted_color()))
-	widgets_row.add_child(weather_widget)
-
-	var assistant_widget := PanelContainer.new()
-	assistant_widget.name = "AndroidAssistantWidget"
-	assistant_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	assistant_widget.custom_minimum_size.y = 72
-	_style_home_surface(assistant_widget, 15)
-	var assistant_content := VBoxContainer.new()
-	assistant_content.add_theme_constant_override("separation", 3)
-	assistant_widget.add_child(assistant_content)
-	assistant_content.add_child(_label("ASSISTANT", 7, _muted_color()))
-	assistant_content.add_child(_label("Ask anything", 11, _text_color()))
-	assistant_content.add_child(_label("Tap to get help", 7, _muted_color()))
-	widgets_row.add_child(assistant_widget)
-
-	var middle_spacing := Control.new()
-	middle_spacing.name = "AndroidHomeMiddleFlexibleSpace"
-	middle_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_container.add_child(middle_spacing)
-
+	_add_home_flexible_space("LollipopSearchToAppsSpace", 1.0)
 	var apps_grid := GridContainer.new()
-	apps_grid.name = "HomeAppGrid"
+	apps_grid.name = "LollipopHomeAppGrid"
 	apps_grid.columns = 4
 	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	apps_grid.add_theme_constant_override("h_separation", 5)
-	apps_grid.add_theme_constant_override("v_separation", 5)
-	for app_name in ["Photos", "Store", "Email", "Maps"]:
+	apps_grid.add_theme_constant_override("h_separation", 4)
+	apps_grid.add_theme_constant_override("v_separation", 7)
+	for app_name in ["Email", "Photos", "Maps", "Store", "Calendar", "Contacts", "Music", "Settings"]:
 		var app := _find_app(app_name)
 		if not app.is_empty():
-			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(34, 4, 5), true))
+			apps_grid.add_child(_create_lollipop_app_icon(app, _responsive_icon_size(32, 4, 4), true, Color("#FFFFFF")))
 	page_container.add_child(apps_grid)
+	_add_home_flexible_space("LollipopAppsToDockSpace", 0.75)
 
-	var search_spacing := Control.new()
-	search_spacing.name = "AndroidHomeSearchFlexibleSpace"
-	search_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_container.add_child(search_spacing)
 
-	_add_home_search_field("Search your phone", "HomeSearchBar")
-
+func _create_lollipop_app_icon(app: Dictionary, icon_size: int, show_label: bool, label_color: Color) -> Control:
+	var tile := VBoxContainer.new()
+	var app_name := str(app.get("name", "Application"))
+	tile.name = "LollipopApp_" + app_name.replace(" ", "")
+	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tile.add_theme_constant_override("separation", 2)
+	var holder := CenterContainer.new()
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var icon := Button.new()
+	icon.name = "LollipopIconButton"
+	icon.custom_minimum_size = Vector2(icon_size, icon_size)
+	icon.text = str(app.get("glyph", "•"))
+	icon.add_theme_font_size_override("font_size", maxi(15, int(icon_size * 0.50)))
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = Color(str(app.get("color", "#607D8B")))
+	icon_style.set_corner_radius_all(5)
+	icon_style.set_border_width_all(0)
+	icon_style.shadow_color = Color(0, 0, 0, 0.20)
+	icon_style.shadow_size = 2
+	icon_style.shadow_offset = Vector2(0, 1)
+	icon.add_theme_stylebox_override("normal", icon_style)
+	icon.add_theme_stylebox_override("hover", icon_style)
+	icon.add_theme_stylebox_override("pressed", icon_style)
+	icon.add_theme_color_override("font_color", Color.WHITE)
+	icon.add_theme_color_override("font_hover_color", Color.WHITE)
+	icon.focus_mode = Control.FOCUS_NONE
+	icon.pressed.connect(_on_app_pressed.bind(app_name))
+	holder.add_child(icon)
+	tile.add_child(holder)
+	if show_label:
+		var caption := _label(app_name, 7, label_color)
+		caption.name = "LollipopAppLabel_" + app_name.replace(" ", "")
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		caption.autowrap_mode = TextServer.AUTOWRAP_OFF
+		caption.clip_text = true
+		tile.add_child(caption)
+	return tile
 
 
 func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
@@ -2108,6 +2182,11 @@ func _build_navigation_preview(data: Dictionary) -> void:
 	page_container.add_child(indicator)
 
 func _build_app_drawer(data: Dictionary) -> void:
+	var is_lollipop := int(configuration.get("generation", 2)) == 1 and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
+	if is_lollipop:
+		_build_lollipop_app_drawer()
+		return
+
 	var heading_row := HBoxContainer.new()
 	heading_row.add_theme_constant_override("separation", 6)
 	heading_row.add_child(_label("ALL APPS", 10, _accent_color()))
@@ -2170,6 +2249,55 @@ func _build_app_drawer(data: Dictionary) -> void:
 		var searchable_grid := page_container.find_child("AppDrawerGrid", true, false) as GridContainer
 		if searchable_grid != null:
 			search.text_changed.connect(_on_app_search_changed.bind(searchable_grid))
+
+
+func _build_lollipop_app_drawer() -> void:
+	# Lollipop's launcher uses a bright, paper-white app surface with a
+	# paged four-column icon grid rather than the modern dark category browser.
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 8
+	page_container.add_child(spacer)
+	var viewport := ScrollContainer.new()
+	viewport.name = "LollipopAppDrawerPages"
+	viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	viewport.scroll_deadzone = 8
+	page_container.add_child(viewport)
+	var pages := HBoxContainer.new()
+	pages.name = "LollipopAppDrawerPageStrip"
+	pages.add_theme_constant_override("separation", 0)
+	viewport.add_child(pages)
+	var sorted_apps: Array = OSEngine.APP_DEFINITIONS.duplicate(true)
+	sorted_apps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return str(a.get("name", "")).to_lower() < str(b.get("name", "")).to_lower()
+	)
+	var columns := 4
+	var rows := 5
+	var per_page := columns * rows
+	var page_count := ceili(float(sorted_apps.size()) / float(per_page))
+	var icon_size := _responsive_icon_size(34, columns, 5)
+	for page_index in range(page_count):
+		var page := GridContainer.new()
+		page.name = "LollipopAppDrawerPage_%02d" % (page_index + 1)
+		page.columns = columns
+		page.custom_minimum_size = Vector2(maxf(120.0, size.x - 30.0), 0)
+		page.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		page.add_theme_constant_override("h_separation", 5)
+		page.add_theme_constant_override("v_separation", 8)
+		pages.add_child(page)
+		for app_index in range(page_index * per_page, mini((page_index + 1) * per_page, sorted_apps.size())):
+			page.add_child(_create_lollipop_app_icon(sorted_apps[app_index], icon_size, true, Color("#424242")))
+	var page_dots := CenterContainer.new()
+	page_dots.name = "LollipopAppDrawerPageIndicator"
+	page_dots.custom_minimum_size.y = 16
+	var dots := _label("●  ○", 7, Color("#777777"))
+	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page_dots.add_child(dots)
+	page_container.add_child(page_dots)
+
 
 func _build_recent_apps(_data: Dictionary) -> void:
 	var heading_row := HBoxContainer.new()
