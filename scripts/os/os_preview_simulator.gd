@@ -776,73 +776,66 @@ func _build_component(component_id: String) -> void:
 			_build_system_ui(component_data)
 
 func _build_home_screen(data: Dictionary) -> void:
-	var layout_style := str(data.get("layout_style", "huawei_pura"))
-	var widget_count := clampi(int(_style.get("widget_count", data.get("widget_count", 0))), 0, 4)
-	match layout_style:
-		"huawei_pura":
-			_build_huawei_pura_home(data)
-		"android_pixel":
-			_build_android_home(data, widget_count)
-		"samsung_one_ui":
-			_build_home_header("Good evening", "Your phone, arranged for easy reach")
-			_build_home_widgets(widget_count)
-			_add_section_label("APPS")
-			_build_home_grid(data)
-		"windows_tiles":
-			_build_home_header("Start", "Pinned apps and live information")
-			_build_home_widgets(widget_count)
-			_add_section_label("PINNED")
-			_build_windows_tiles()
-		"compact_list":
-			_build_home_header("Applications", "A focused, space-efficient home")
-			_build_home_widgets(widget_count)
-			page_container.add_child(_search_field("Find an app"))
-			_build_home_list()
-		"category_sections":
-			_build_home_header("Your apps", "Organised by what you do")
-			_build_home_widgets(widget_count)
-			_build_home_categories(data)
-		_:
-			_build_home_widgets(widget_count)
-			if bool(data.get("show_search", true)):
-				page_container.add_child(_search_field("Search apps and more"))
-			_add_section_label("YOUR APPS")
-			_build_home_grid(data)
+	# Step 3 currently exposes only the individually approved Android layout.
+	_build_android_home(data, 2)
 
 
-func _build_android_home(data: Dictionary, widget_count: int) -> void:
-	var hero := PanelContainer.new()
-	hero.name = "AndroidAtAGlanceWidget"
-	hero.custom_minimum_size.y = 86
-	_style_surface(hero, true)
-	var hero_content := VBoxContainer.new()
-	hero_content.add_theme_constant_override("separation", 1)
-	hero.add_child(hero_content)
-	hero_content.add_child(_label("MONDAY, NOVEMBER 14", 7, _muted_color()))
-	var clock := _label("09:41", 29, _text_color())
-	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hero_content.add_child(clock)
-	var date := _label("28°  ·  Partly cloudy  ·  Yenagoa", 8, _muted_color())
-	date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hero_content.add_child(date)
-	page_container.add_child(hero)
-	for widget_index in range(widget_count):
-		_build_home_widget(widget_index)
+func _build_android_home(_data: Dictionary, _widget_count: int) -> void:
+	var date_label := _label(_current_lock_date("minimal").to_upper(), 10, _text_color())
+	date_label.name = "AndroidHomeDate"
+	page_container.add_child(date_label)
+	var greeting := _label("26°  ·  Partly cloudy", 8, _muted_color())
+	greeting.name = "AndroidHomeWeatherSummary"
+	page_container.add_child(greeting)
+
+	var widgets_row := HBoxContainer.new()
+	widgets_row.name = "AndroidHomeWidgetRow"
+	widgets_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	widgets_row.add_theme_constant_override("separation", 7)
+	page_container.add_child(widgets_row)
+
+	var weather_widget := PanelContainer.new()
+	weather_widget.name = "AndroidWeatherWidget"
+	weather_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	weather_widget.custom_minimum_size.y = 72
+	_style_surface(weather_widget, true)
+	var weather_content := VBoxContainer.new()
+	weather_content.add_theme_constant_override("separation", 2)
+	weather_widget.add_child(weather_content)
+	weather_content.add_child(_label("WEATHER", 7, _muted_color()))
+	weather_content.add_child(_label("26°", 22, _text_color()))
+	weather_content.add_child(_label("Partly cloudy", 7, _muted_color()))
+	widgets_row.add_child(weather_widget)
+
+	var assistant_widget := PanelContainer.new()
+	assistant_widget.name = "AndroidAssistantWidget"
+	assistant_widget.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	assistant_widget.custom_minimum_size.y = 72
+	_style_surface(assistant_widget, true)
+	var assistant_content := VBoxContainer.new()
+	assistant_content.add_theme_constant_override("separation", 3)
+	assistant_widget.add_child(assistant_content)
+	assistant_content.add_child(_label("ASSISTANT", 7, _muted_color()))
+	assistant_content.add_child(_label("Ask anything", 11, _text_color()))
+	assistant_content.add_child(_label("Tap to get help", 7, _muted_color()))
+	widgets_row.add_child(assistant_widget)
+
+	var apps_grid := GridContainer.new()
+	apps_grid.name = "HomeAppGrid"
+	apps_grid.columns = 4
+	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apps_grid.add_theme_constant_override("h_separation", 5)
+	apps_grid.add_theme_constant_override("v_separation", 5)
+	for app_name in ["Photos", "Store", "Email", "Maps"]:
+		var app := _find_app(app_name)
+		if not app.is_empty():
+			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(34, 4, 5), true))
+	page_container.add_child(apps_grid)
+
 	var search := _search_field("Search your phone")
 	search.name = "AndroidHomeSearch"
 	page_container.add_child(search)
-	var apps_header := HBoxContainer.new()
-	apps_header.add_child(_label("FAVOURITES", 8, _accent_color()))
-	var manage := _label("APP DRAWER  ›", 7, _muted_color())
-	manage.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	apps_header.add_child(manage)
-	page_container.add_child(apps_header)
-	var breathing_space := Control.new()
-	breathing_space.name = "AndroidHomeFlexibleSpace"
-	breathing_space.custom_minimum_size.y = 14
-	breathing_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_container.add_child(breathing_space)
-	_build_android_favourites(data)
+
 
 func _build_huawei_pura_home(_data: Dictionary) -> void:
 	# Single-screen Huawei-inspired composition: centred clock, compact service row,
