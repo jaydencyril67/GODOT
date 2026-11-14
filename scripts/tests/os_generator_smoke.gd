@@ -180,6 +180,15 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(lock_control_name, true, false) == null:
 			_fail("Lock screen did not render enabled feature: " + lock_control_name)
 			return
+	for lock_content_name in ["LockScreenNotificationApp_Messages", "LockScreenNotificationMessage_Messages", "LockScreenAudioTrackTitle", "LockScreenAudioArtist"]:
+		if simulator.find_child(lock_content_name, true, false) == null:
+			_fail("Lock screen rendered an empty content surface; missing: " + lock_content_name)
+			return
+	var rendered_track_title := simulator.find_child("LockScreenAudioTrackTitle", true, false) as Label
+	var rendered_message := simulator.find_child("LockScreenNotificationMessage_Messages", true, false) as Label
+	if rendered_track_title == null or rendered_track_title.text.strip_edges().is_empty() or rendered_message == null or rendered_message.text.strip_edges().is_empty():
+		_fail("Lock-screen media or notification content is blank.")
+		return
 	var lock_gesture_position := Vector2(72, 180)
 	simulator.call("_handle_system_gesture", lock_gesture_position, Vector2(72, 105), 180)
 	await process_frame
