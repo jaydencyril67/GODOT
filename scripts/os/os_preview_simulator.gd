@@ -1624,6 +1624,7 @@ func _build_pin_input() -> void:
 		key.mouse_filter = Control.MOUSE_FILTER_STOP
 
 		var key_center := CenterContainer.new()
+		key_center.name = "PINKeyCenter"
 		key_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		key_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var key_labels := VBoxContainer.new()
@@ -1666,6 +1667,7 @@ func _build_pin_input() -> void:
 		fingerprint.tooltip_text = "Unlock with fingerprint"
 		fingerprint.pressed.connect(func(): set_component_view("home_screen"))
 		fingerprint_stage.add_child(fingerprint)
+		fingerprint.custom_minimum_size = Vector2(36, 36)
 		layout.add_child(fingerprint_stage)
 
 	var emergency_button := Button.new()
