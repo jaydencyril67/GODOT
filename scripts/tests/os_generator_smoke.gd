@@ -142,6 +142,10 @@ func _run_os_generator_test() -> void:
 				layout_root.size, top_space.size, lower_space.size,
 				top_space.size_flags_vertical, lower_space.size_flags_vertical
 			])
+			for child in layout_root.get_children():
+				print("LOCK_LAYOUT_CHILD name=%s class=%s size=%s flags=%d min=%s" % [
+					child.name, child.get_class(), child.size, child.size_flags_vertical, child.custom_minimum_size
+				])
 			_fail("Lock-screen flexible spaces are not expanding across the phone: " + template_name)
 			return
 		if fingerprint_stage == null:
