@@ -779,7 +779,19 @@ func _build_shell() -> void:
 				"Overview":
 					key.pressed.connect(func(): set_component_view("recent_apps"))
 			navigation_keys.add_child(key)
-		footer.add_child(navigation_keys)
+		if active_component == "app_drawer":
+			var navigation_surface := PanelContainer.new()
+			navigation_surface.name = "LollipopAppDrawerNavigationSurface"
+			navigation_surface.custom_minimum_size.y = 24
+			var navigation_surface_style := StyleBoxFlat.new()
+			navigation_surface_style.bg_color = Color("#FAFAFA")
+			navigation_surface_style.set_border_width_all(0)
+			navigation_surface_style.set_corner_radius_all(0)
+			navigation_surface.add_theme_stylebox_override("panel", navigation_surface_style)
+			navigation_surface.add_child(navigation_keys)
+			footer.add_child(navigation_surface)
+		else:
+			footer.add_child(navigation_keys)
 	else:
 		var indicator_alignment := CenterContainer.new()
 		indicator_alignment.name = "OSNavigationIndicatorArea"
