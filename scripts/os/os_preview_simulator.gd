@@ -932,6 +932,9 @@ func _build_coloros_home(_data: Dictionary) -> void:
 	var top_space := Control.new()
 	top_space.name = "ColorOSHomeTopSpace"
 	top_space.custom_minimum_size.y = 7
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_space.size_flags_stretch_ratio = 0.55
+	top_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page_container.add_child(top_space)
 
 	var hero := VBoxContainer.new()
@@ -972,6 +975,7 @@ func _build_coloros_home(_data: Dictionary) -> void:
 	calendar_icon.custom_minimum_size.x = 34
 	information_row.add_child(calendar_icon)
 	page_container.add_child(information)
+	_add_home_flexible_space("ColorOSHomeMiddleFlexibleSpace", 0.75)
 
 	var folder_row := HBoxContainer.new()
 	folder_row.name = "ColorOSFolderRow"
@@ -995,7 +999,9 @@ func _build_coloros_home(_data: Dictionary) -> void:
 
 	var flexible_space := Control.new()
 	flexible_space.name = "ColorOSHomeFlexibleSpace"
+	flexible_space.custom_minimum_size.y = 2
 	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	flexible_space.size_flags_stretch_ratio = 0.55
 	page_container.add_child(flexible_space)
 
 

@@ -943,8 +943,13 @@ func _run_os_generator_test() -> void:
 	if coloros_clock.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or coloros_date.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or coloros_clock.size_flags_horizontal != Control.SIZE_EXPAND_FILL:
 		_fail("Layout 2 clock and date must be horizontally centred across the screen.")
 		return
-	if work_folder == null or media_folder == null or smart_widget == null or coloros_dock == null:
-		_fail("Layout 2 is missing its smart information widget, two large folders or dock.")
+	var coloros_top_space := worksite_preview.find_child("ColorOSHomeTopSpace", true, false) as Control
+	var coloros_middle_space := worksite_preview.find_child("ColorOSHomeMiddleFlexibleSpace", true, false) as Control
+	if work_folder == null or media_folder == null or smart_widget == null or coloros_dock == null or coloros_top_space == null or coloros_middle_space == null:
+		_fail("Layout 2 is missing its smart information widget, two large folders, dock or vertical spacing.")
+		return
+	if coloros_top_space.size.y <= 0.0 or coloros_middle_space.size.y <= 0.0:
+		_fail("Layout 2 home-screen sections must be vertically distributed instead of bunching at the top.")
 		return
 	var work_grid := work_folder.find_child("ColorOSWorkFolderGrid", true, false) as GridContainer
 	var media_grid := media_folder.find_child("ColorOSMediaFolderGrid", true, false) as GridContainer
