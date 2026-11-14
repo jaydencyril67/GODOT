@@ -1071,7 +1071,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 		"rhombus_clock":
 			root_layout.add_child(top_space)
-			root_layout.add_child(_label("TODAY  ·  DIGITALWORLD", 7, _accent_color()))
+			var rhombus_caption := _label("TODAY  ·  DIGITALWORLD", 7, _accent_color())
+			rhombus_caption.name = "RhombusClockCaption"
+			root_layout.add_child(rhombus_caption)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"magazine_cover":
@@ -1123,7 +1125,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_large_clock":
 			root_layout.add_child(top_space)
-			root_layout.add_child(_label("PIXEL  ·  AT A GLANCE", 7, _accent_color()))
+			var pixel_caption := _label("PIXEL  ·  AT A GLANCE", 7, _accent_color())
+			pixel_caption.name = "PixelLargeClockCaption"
+			root_layout.add_child(pixel_caption)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"pixel_ambient":
@@ -1132,7 +1136,9 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(_label("MON  ·  DIGITALWORLD", 7, _muted_color()))
 		"huawei_magazine":
 			root_layout.add_child(top_space)
-			root_layout.add_child(_label("MONDAY  /  YOUR PERSONAL EDITION", 7, _accent_color()))
+			var huawei_caption := _label("MONDAY  /  YOUR PERSONAL EDITION", 7, _accent_color())
+			huawei_caption.name = "HuaweiMagazineCaption"
+			root_layout.add_child(huawei_caption)
 			root_layout.add_child(notifications)
 			if is_instance_valid(media): root_layout.add_child(media)
 		"huawei_dynamic":
@@ -1154,7 +1160,10 @@ func _build_lock_screen(data: Dictionary) -> void:
 			root_layout.add_child(widget_grid)
 		"origin_player":
 			root_layout.add_child(top_space)
-			if is_instance_valid(media): root_layout.add_child(media)
+			var origin_player_activity := VBoxContainer.new()
+			origin_player_activity.name = "OriginPlayerActivity"
+			if is_instance_valid(media): origin_player_activity.add_child(media)
+			root_layout.add_child(origin_player_activity)
 			root_layout.add_child(notifications)
 		"coloros_typography":
 			root_layout.add_child(top_space)
