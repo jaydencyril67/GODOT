@@ -997,7 +997,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	panel_style.set_border_width_all(1)
 	clock_panel.add_theme_stylebox_override("panel", panel_style)
 
-	var feature_row := HBoxContainer.new()
+	var feature_row := VBoxContainer.new()
 	feature_row.name = "LockScreenMediaAndNotifications"
 	feature_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	feature_row.add_theme_constant_override("separation", 5)
