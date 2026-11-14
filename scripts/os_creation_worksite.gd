@@ -49,8 +49,7 @@ var bootloader_settings := {
 	"duration_seconds": 10.0,
 	"items": {
 		"company_logo": {"order": 1, "enabled": true},
-		"phone_name": {"order": 2, "enabled": true},
-		"phone_model": {"order": 3, "enabled": true}
+		"phone_details": {"order": 2, "enabled": true}
 	}
 }
 class GlassArrowButton extends Button:
@@ -418,8 +417,7 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 	parent.add_child(description)
 	var rows := [
 		["company_logo", "Company Logo"],
-		["phone_name", "Phone Name"],
-		["phone_model", "Phone Model"]
+		["phone_details", "Phone Details"]
 	]
 	for row_data in rows:
 		var item_id := str(row_data[0])
@@ -431,14 +429,11 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		var order_box := SpinBox.new()
 		order_box.name = "BootOrder_" + item_id
 		order_box.min_value = 1
-		order_box.max_value = 3
+		order_box.max_value = 2
 		order_box.step = 1
 		order_box.value = int(bootloader_settings["items"][item_id]["order"])
 		order_box.custom_minimum_size = Vector2(70, 46)
-		order_box.add_theme_font_size_override("font_size", 18)
-		var order_font := SystemFont.new()
-		order_font.font_weight = 700
-		order_box.add_theme_font_override("font", order_font)
+		_apply_research_typography(order_box, 18)
 		var order_style := StyleBoxFlat.new()
 		order_style.bg_color = Color(0.12, 0.13, 0.14, 0.82)
 		order_style.border_color = Color(0.72, 0.72, 0.68, 0.45)
@@ -450,11 +445,11 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		order_style.content_margin_bottom = 8
 		order_box.add_theme_stylebox_override("normal", order_style)
 		order_box.add_theme_stylebox_override("focus", order_style)
-		order_box.add_theme_color_override("font_color", Color("#FFFFFF"))
+		_style_boot_control(order_box)
 		order_box.value_changed.connect(_on_boot_order_changed.bind(item_id))
 		row.add_child(order_box)
 		boot_order_inputs[item_id] = order_box
-		var item_label := _label(str(row_data[1]), 14, Color("#E5E0D6"))
+		var item_label := _label(str(row_data[1]), 16, Color("#E5E0D6"))
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -465,11 +460,8 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 		enabled.name = "BootEnabled_" + item_id
 		enabled.text = "ON"
 		enabled.custom_minimum_size = Vector2(62, 46)
+		_apply_research_typography(enabled, 13)
 		enabled.button_pressed = bool(bootloader_settings["items"][item_id]["enabled"])
-		enabled.add_theme_font_size_override("font_size", 13)
-		var enabled_font := SystemFont.new()
-		enabled_font.font_weight = 700
-		enabled.add_theme_font_override("font", enabled_font)
 		enabled.add_theme_color_override("font_color", Color("#E4DED3"))
 		enabled.toggled.connect(_on_boot_item_toggled.bind(item_id))
 		row.add_child(enabled)
@@ -484,7 +476,7 @@ func _build_bootloader_controls(parent: VBoxContainer) -> void:
 func _on_boot_order_changed(value: float, item_id: String) -> void:
 	var items: Dictionary = bootloader_settings["items"]
 	var old_order := int(items[item_id]["order"])
-	var new_order := clampi(int(round(value)), 1, 3)
+	var new_order := clampi(int(round(value)), 1, 2)
 	for other_id in items:
 		if other_id != item_id and int(items[other_id]["order"]) == new_order:
 			items[other_id]["order"] = old_order
@@ -569,9 +561,7 @@ func _run_boot_sequence() -> void:
 			boot_logo.texture = _get_boot_company_logo_texture()
 			boot_message.text = ""
 		elif item_id == "phone_name":
-			boot_message.text = "Phone Name"
-		else:
-			boot_message.text = "Phone Model"
+			boot_message.text = str(boot_identity["phone_name"]) + " " + str(boot_identity["phone_model"])
 		boot_stage_container.modulate.a = 0.0
 		var fade_in := create_tween()
 		fade_in.tween_property(boot_stage_container, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -666,16 +656,16 @@ func _apply_responsive_layout() -> void:
 	if is_wide:
 		left_power_region.size_flags_stretch_ratio = 0.30
 		preview_region.size_flags_stretch_ratio = 1.12
-		screen_center.offset_left = -60.0
-		screen_center.offset_right = -60.0
+		screen_center.offset_left = -150.0
+		screen_center.offset_right = 30.0
 		configuration_region.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		screen_height = clampf(viewport_size.y - 28.0, 250.0, 760.0)
 	else:
 		left_power_region.size_flags_stretch_ratio = 0.18
 		preview_region.size_flags_stretch_ratio = 0.82
-		screen_center.offset_left = -24.0
-		screen_center.offset_right = -24.0
+		screen_center.offset_left = -84.0
+		screen_center.offset_right = 36.0
 		configuration_region.size_flags_stretch_ratio = 1.18
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
 		screen_height = clampf(viewport_size.y * 0.34, 210.0, 420.0)
@@ -683,11 +673,45 @@ func _apply_responsive_layout() -> void:
 	screen_frame.custom_minimum_size = Vector2(screen_height * 0.49, screen_height)
 
 
+func _apply_research_typography(control: Control, font_size: int) -> void:
+	var stix_font := FontVariation.new()
+	stix_font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	stix_font.variation_embolden = 0.7
+	control.add_theme_font_override("font", stix_font)
+	control.add_theme_font_size_override("font_size", font_size)
+
+
+func _style_boot_control(control: Control) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.12, 0.13, 0.14, 0.82)
+		if state == "hover":
+			style.bg_color = Color(0.21, 0.22, 0.23, 0.88)
+		elif state == "pressed":
+			style.bg_color = Color(0.08, 0.09, 0.10, 0.94)
+		elif state == "disabled":
+			style.bg_color = Color(0.10, 0.11, 0.12, 0.58)
+		style.border_color = Color(0.72, 0.72, 0.68, 0.34)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		if control is Button:
+			(control as Button).add_theme_stylebox_override(state, style)
+		elif control is SpinBox:
+			(control as SpinBox).add_theme_stylebox_override("normal", style)
+			(control as SpinBox).add_theme_stylebox_override("focus", style)
+	control.add_theme_color_override("font_color", Color.WHITE)
+
+
 func _label(caption: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = caption
-	var font := SystemFont.new()
-	font.font_weight = 700
+	var font := FontVariation.new()
+	font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	font.variation_embolden = 0.7
 	label.add_theme_font_override("font", font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
