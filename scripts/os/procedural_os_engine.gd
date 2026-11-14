@@ -1,7 +1,7 @@
 extends RefCounted
 class_name ProceduralOSEngine
 
-const SCHEMA_VERSION := 6
+const SCHEMA_VERSION := 7
 
 const COMPONENTS := [
 	{"id": "home_screen", "title": "Home Screen"},
@@ -25,6 +25,12 @@ const WALLPAPER_STYLES := ["aurora", "orbital", "dune", "prism", "midnight_flow"
 
 const HOME_LAYOUT_STYLES := ["ios_grid", "android_pixel", "samsung_one_ui", "windows_tiles", "compact_list", "category_sections"]
 const LOCK_SCREEN_DESIGN_FAMILIES := ["editorial", "glass", "minimal", "neo_brutalist", "split_grid", "futurist", "soft_layers", "typographic"]
+const LOCK_SCREEN_LAYOUT_TEMPLATES := [
+	"classic_clock", "rhombus_clock", "magazine_cover", "depth_layer", "widget_dashboard",
+	"live_activity", "one_ui_personal", "now_bar", "notification_stack", "pixel_at_a_glance",
+	"pixel_large_clock", "pixel_ambient", "huawei_magazine", "huawei_dynamic", "nothing_widget_grid",
+	"origin_player", "coloros_typography", "coloros_flux", "clean_android", "focus_lock_screen"
+]
 
 const APP_DEFINITIONS := [
 	{"name": "Phone", "glyph": "☎", "color": "#4B9B78"},
@@ -186,6 +192,8 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 			lock_data[lock_key] = lock_defaults[lock_key]
 	if not LOCK_SCREEN_DESIGN_FAMILIES.has(str(lock_data.get("design_family", ""))):
 		lock_data["design_family"] = str(lock_defaults.get("design_family", "minimal"))
+	if not LOCK_SCREEN_LAYOUT_TEMPLATES.has(str(lock_data.get("layout_template", ""))):
+		lock_data["layout_template"] = str(lock_defaults.get("layout_template", "classic_clock"))
 	if not bool(lock_data.get("fingerprint_sensor_available", false)):
 		lock_data["show_fingerprint"] = false
 	components["lock_screen"] = lock_data
@@ -269,15 +277,19 @@ static func regenerate_lock_screen_design(config: Dictionary, seed_value: int = 
 
 
 static func _generate_lock_screen_component(rng: RandomNumberGenerator, previous: Dictionary) -> Dictionary:
-	var previous_family := str(previous.get("design_family", ""))
-	var design_family: String
-	if LOCK_SCREEN_DESIGN_FAMILIES.has(previous_family) and LOCK_SCREEN_DESIGN_FAMILIES.size() > 1:
-		var previous_index := LOCK_SCREEN_DESIGN_FAMILIES.find(previous_family)
-		var offset := rng.randi_range(1, LOCK_SCREEN_DESIGN_FAMILIES.size() - 1)
-		design_family = str(LOCK_SCREEN_DESIGN_FAMILIES[(previous_index + offset) % LOCK_SCREEN_DESIGN_FAMILIES.size()])
+	var previous_template := str(previous.get("layout_template", ""))
+	var layout_template: String
+	if LOCK_SCREEN_LAYOUT_TEMPLATES.has(previous_template) and LOCK_SCREEN_LAYOUT_TEMPLATES.size() > 1:
+		var previous_index := LOCK_SCREEN_LAYOUT_TEMPLATES.find(previous_template)
+		var offset := rng.randi_range(1, LOCK_SCREEN_LAYOUT_TEMPLATES.size() - 1)
+		layout_template = str(LOCK_SCREEN_LAYOUT_TEMPLATES[(previous_index + offset) % LOCK_SCREEN_LAYOUT_TEMPLATES.size()])
 	else:
-		design_family = str(LOCK_SCREEN_DESIGN_FAMILIES[rng.randi_range(0, LOCK_SCREEN_DESIGN_FAMILIES.size() - 1)])
-
+		layout_template = str(LOCK_SCREEN_LAYOUT_TEMPLATES[rng.randi_range(0, LOCK_SCREEN_LAYOUT_TEMPLATES.size() - 1)])
+	var previous_family := str(previous.get("design_family", ""))
+	var design_family := str(LOCK_SCREEN_DESIGN_FAMILIES[rng.randi_range(0, LOCK_SCREEN_DESIGN_FAMILIES.size() - 1)])
+	if LOCK_SCREEN_DESIGN_FAMILIES.has(previous_family) and LOCK_SCREEN_DESIGN_FAMILIES.size() > 1:
+		while design_family == previous_family:
+			design_family = str(LOCK_SCREEN_DESIGN_FAMILIES[rng.randi_range(0, LOCK_SCREEN_DESIGN_FAMILIES.size() - 1)])
 	return {
 		"show_clock": true,
 		"show_notifications": bool(previous.get("show_notifications", true)),
@@ -288,6 +300,7 @@ static func _generate_lock_screen_component(rng: RandomNumberGenerator, previous
 		"show_fingerprint": bool(previous.get("show_fingerprint", false)) and bool(previous.get("fingerprint_sensor_available", false)),
 		"show_unlock_hint": bool(previous.get("show_unlock_hint", true)),
 		"design_family": design_family,
+		"layout_template": layout_template,
 		"clock_alignment": ["left", "center", "right"][rng.randi_range(0, 2)],
 		"clock_size": [34, 40, 46, 52, 58][rng.randi_range(0, 4)],
 		"clock_weight": ["light", "regular", "bold"][rng.randi_range(0, 2)],
@@ -300,7 +313,6 @@ static func _generate_lock_screen_component(rng: RandomNumberGenerator, previous
 		"unlock_treatment": ["pill", "text_link", "outlined", "minimal"][rng.randi_range(0, 3)],
 		"wallpaper": previous.get("wallpaper", "aurora")
 	}
-
 
 static func _generate_component(component_id: String, rng: RandomNumberGenerator, style: Dictionary) -> Dictionary:
 	match component_id:
