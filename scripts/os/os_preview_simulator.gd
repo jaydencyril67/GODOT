@@ -133,18 +133,18 @@ func _screen_to_local(screen_position: Vector2) -> Vector2:
 	return get_global_transform_with_canvas().affine_inverse() * screen_position
 
 
-func _begin_gesture(position: Vector2) -> void:
-	_gesture_start = position
+func _begin_gesture(touch_position: Vector2) -> void:
+	_gesture_start = touch_position
 	_gesture_start_time = Time.get_ticks_msec()
 	_gesture_active = true
 
 
-func _finish_gesture(position: Vector2) -> void:
+func _finish_gesture(touch_position: Vector2) -> void:
 	if not _gesture_active:
 		return
 	_gesture_active = false
 	var elapsed_ms := Time.get_ticks_msec() - _gesture_start_time
-	_handle_system_gesture(_gesture_start, position, elapsed_ms)
+	_handle_system_gesture(_gesture_start, touch_position, elapsed_ms)
 
 
 func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) -> void:
@@ -317,14 +317,14 @@ func _build_gesture_notifications(parent: VBoxContainer) -> void:
 		{"app": "Calendar", "message": "Your next event is coming up", "time": "10 MIN"},
 		{"app": "System", "message": "Your device is up to date", "time": "EARLIER"}
 	]:
-		var notification := PanelContainer.new()
-		notification.name = "GestureNotification_" + str(item["app"])
-		_style_surface(notification)
+		var notification_panel := PanelContainer.new()
+		notification_panel.name = "GestureNotification_" + str(item["app"])
+		_style_surface(notification_panel)
 		var body := VBoxContainer.new()
 		body.add_child(_label(str(item["app"]) + "  ·  " + str(item["time"]), 8, _accent_color()))
 		body.add_child(_label(str(item["message"]), 9, _text_color()))
-		notification.add_child(body)
-		parent.add_child(notification)
+		notification_panel.add_child(body)
+		parent.add_child(notification_panel)
 
 
 func _build_gesture_recent_apps(parent: VBoxContainer) -> void:
