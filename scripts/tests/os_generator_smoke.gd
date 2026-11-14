@@ -106,7 +106,20 @@ func _run_os_generator_test() -> void:
 		var template_name := str(ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES[template_index])
 		var template_config := generated.duplicate(true)
 		template_config["components"]["lock_screen"]["layout_template"] = template_name
-		template_preview.configure_os(template_config, "lock_screen")
+		if template_index == 0:
+			template_preview.configure_os(template_config, "lock_screen")
+		else:
+			var layout_content := template_preview.find_child("OSComponentContent", true, false) as VBoxContainer
+			if layout_content == null:
+				_fail("Reusable lock-screen preview lost its component content container.")
+				return
+			for previous_layout in layout_content.get_children():
+				layout_content.remove_child(previous_layout)
+				previous_layout.free()
+			template_preview.set("configuration", ProceduralEngineScript.normalize_os(template_config))
+			template_preview.set("active_component", "lock_screen")
+			template_preview.set("page_container", layout_content)
+			template_preview.call("_build_component", "lock_screen")
 		await process_frame
 		await process_frame
 		var layout_root := template_preview.find_child("LockScreenLayout_" + template_name, true, false)
