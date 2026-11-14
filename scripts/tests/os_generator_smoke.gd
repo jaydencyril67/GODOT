@@ -867,10 +867,26 @@ func _run_os_generator_test() -> void:
 		return
 	corner_slider.value = 12.0
 	await process_frame
+	await process_frame
+	# The preview can rebuild its child controls during layout changes. Always
+	# reacquire the live nodes after changing the slider instead of retaining
+	# references to controls that may already have been freed.
+	weather_widget = worksite_preview.find_child("AndroidWeatherWidget", true, false) as PanelContainer
+	assistant_widget = worksite_preview.find_child("AndroidAssistantWidget", true, false) as PanelContainer
+	home_apps_grid = worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
+	home_dock_panel = worksite_preview.find_child("HomeAppDock", true, false) as PanelContainer
+	first_home_app = home_apps_grid.get_child(0) as VBoxContainer if home_apps_grid != null and home_apps_grid.get_child_count() > 0 else null
+	first_home_button = first_home_app.get_node_or_null("CenterContainer/Button") as Button if first_home_app != null else null
+	if weather_widget == null or assistant_widget == null or first_home_button == null or home_dock_panel == null:
+		_fail("Home preview controls were not available after changing the corner-radius slider.")
+		return
 	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
 	assistant_style = assistant_widget.get_theme_stylebox("panel") as StyleBoxFlat
 	first_home_button_style = first_home_button.get_theme_stylebox("normal") as StyleBoxFlat
 	dock_style = home_dock_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if weather_style == null or assistant_style == null or first_home_button_style == null or dock_style == null:
+		_fail("Home preview lost a required style after changing the corner-radius slider.")
+		return
 	if weather_style.corner_radius_top_left != 12 or assistant_style.corner_radius_top_left != 12 or first_home_button_style.corner_radius_top_left != 12 or dock_style.corner_radius_top_left != 12:
 		_fail("Corner-radius slider did not apply its value to widgets, app icons and dock.")
 		return
@@ -881,8 +897,10 @@ func _run_os_generator_test() -> void:
 			return
 	corner_slider.value = 0.0
 	await process_frame
-	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat
-	if weather_style.corner_radius_top_left != 0:
+	await process_frame
+	weather_widget = worksite_preview.find_child("AndroidWeatherWidget", true, false) as PanelContainer
+	weather_style = weather_widget.get_theme_stylebox("panel") as StyleBoxFlat if weather_widget != null else null
+	if weather_style == null or weather_style.corner_radius_top_left != 0:
 		_fail("Corner-radius slider did not restore square corners at zero.")
 		return
 	var home_app_names := ["Photos", "Store", "Email", "Maps"]
