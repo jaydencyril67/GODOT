@@ -1,7 +1,7 @@
 extends RefCounted
 class_name ProceduralOSEngine
 
-const SCHEMA_VERSION := 5
+const SCHEMA_VERSION := 6
 
 const COMPONENTS := [
 	{"id": "home_screen", "title": "Home Screen"},
@@ -177,6 +177,10 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 			components[component_id] = _generate_component(component_id, fallback_rng, style)
 	var lock_defaults := _generate_lock_screen_component(fallback_rng, {})
 	var lock_data: Dictionary = components.get("lock_screen", {}).duplicate(true)
+	if is_legacy_schema:
+		# Earlier versions defaulted the lock-screen media player to off.
+		# Enable it once during migration so existing generated phones get the complete lock screen.
+		lock_data["show_audio_player"] = true
 	for lock_key in lock_defaults:
 		if not lock_data.has(lock_key):
 			lock_data[lock_key] = lock_defaults[lock_key]
