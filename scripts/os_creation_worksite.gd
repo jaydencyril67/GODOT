@@ -548,7 +548,6 @@ func _show_lock_screen_studio_controls() -> void:
 		_add_lock_screen_toggle_row(content, "show_notifications", "Lock-screen Notifications", "Notification cards below the clock")
 		_add_lock_screen_toggle_row(content, "show_assistant_shortcut", "Assistant Shortcut", "Microphone shortcut at bottom-left")
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Camera shortcut at bottom-right")
-		_add_lock_screen_toggle_row(content, "show_now_playing", "Now Playing", "Show detected music information when available")
 	elif home_screen_layout_level == 0:
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Button", "Bottom-left shortcut")
 		_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Button", "Bottom-right shortcut")
