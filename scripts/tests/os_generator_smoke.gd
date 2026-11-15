@@ -91,17 +91,21 @@ func _run_os_generator_test() -> void:
 		_fail("Migrated OS configuration failed validation.")
 		return
 
-	var legacy_media_config := generated.duplicate(true)
-	legacy_media_config["schema_version"] = 5
-	legacy_media_config["components"]["lock_screen"]["show_audio_player"] = false
-	var migrated_media := ProceduralEngineScript.normalize_os(legacy_media_config)
-	if not bool(migrated_media["components"]["lock_screen"].get("show_audio_player", false)):
-		_fail("Legacy lock-screen configuration did not migrate to the visible media player.")
-		return
 
-	if ProceduralEngineScript.LOCK_SCREEN_LAYOUT_TEMPLATES.size() != 20:
-		_fail("Lock-screen system must expose exactly 20 structural layout templates.")
+	var legacy_lock_config := generated.duplicate(true)
+	legacy_lock_config["schema_version"] = 5
+	legacy_lock_config["components"]["lock_screen"]["show_audio_player"] = true
+	legacy_lock_config["components"]["lock_screen"]["design_family"] = "glass"
+	legacy_lock_config["components"]["lock_screen"]["show_camera_shortcut"] = false
+	var migrated_lock := ProceduralEngineScript.normalize_os(legacy_lock_config)
+	var migrated_lock_data: Dictionary = migrated_lock["components"]["lock_screen"]
+	if migrated_lock_data.has("design_family") or migrated_lock_data.has("show_audio_player") or bool(migrated_lock_data.get("show_camera_shortcut", true)):
+		_fail("Legacy lock-screen design settings were not cleaned up while preserving shortcut enablement.")
 		return
+	for required_setting in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+		if not migrated_lock_data.has(required_setting):
+			_fail("Lollipop lock-screen setting was not migrated: " + required_setting)
+			return
 	var simulator_host := Control.new()
 	simulator_host.name = "OSSimulatorResponsiveTestHost"
 	simulator_host.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
@@ -215,6 +219,7 @@ func _run_os_generator_test() -> void:
 	simulator_host.size = Vector2(145.0, 360.0)
 	await process_frame
 
+
 	var lock_screen_before: Dictionary = components["lock_screen"].duplicate(true)
 	var wallpaper_regenerated := ProceduralEngineScript.regenerate_component(generated, "wallpapers", 246802)
 	var wallpaper_components: Dictionary = wallpaper_regenerated["components"]
@@ -223,36 +228,13 @@ func _run_os_generator_test() -> void:
 	if not ProceduralEngineScript.WALLPAPER_STYLES.has(selected_wallpaper):
 		_fail("Wallpaper regeneration selected an unsupported wallpaper style.")
 		return
-	if lock_screen_after["design_family"] != lock_screen_before["design_family"] or lock_screen_after["clock_treatment"] != lock_screen_before["clock_treatment"] or lock_screen_after["show_notifications"] != lock_screen_before["show_notifications"]:
-		_fail("Wallpaper regeneration unexpectedly changed lock screen design settings.")
-		return
-	if selected_wallpaper != wallpaper_components["home_screen"]["wallpaper"] or selected_wallpaper != lock_screen_after["wallpaper"] or selected_wallpaper != wallpaper_components["wallpapers"]["style"]:
+	for lock_key in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+		if bool(lock_screen_after.get(lock_key, false)) != bool(lock_screen_before.get(lock_key, false)):
+			_fail("Wallpaper regeneration unexpectedly changed Lollipop lock-screen setting: " + lock_key)
+			return
+	if selected_wallpaper != wallpaper_components["home_screen"]["wallpaper"] or selected_wallpaper != wallpaper_components["lock_screen"].get("wallpaper", selected_wallpaper) or selected_wallpaper != wallpaper_components["wallpapers"]["style"]:
 		_fail("Wallpaper regeneration did not keep the OS wallpaper synchronized.")
 		return
-
-	var lock_candidate := generated.duplicate(true)
-	var lock_candidate_data: Dictionary = lock_candidate["components"]["lock_screen"]
-	lock_candidate_data["show_audio_player"] = true
-	lock_candidate_data["show_camera_shortcut"] = false
-	lock_candidate_data["fingerprint_sensor_available"] = true
-	lock_candidate_data["show_fingerprint"] = true
-	var lock_design_before := str(lock_candidate_data.get("design_family", ""))
-	var lock_wallpaper_before := str(lock_candidate["style"]["wallpaper"])
-	var lock_redesigned := ProceduralEngineScript.regenerate_component(lock_candidate, "lock_screen", 246803)
-	var lock_design_after: Dictionary = lock_redesigned["components"]["lock_screen"]
-	if str(lock_design_after.get("design_family", "")) == lock_design_before:
-		_fail("Lock-screen generator repeated the previous design family.")
-		return
-	if str(lock_design_after.get("layout_template", "")) == str(lock_candidate_data.get("layout_template", "")):
-		_fail("Lock-screen generator repeated the previous structural template.")
-		return
-	if str(lock_redesigned["style"]["wallpaper"]) != lock_wallpaper_before or str(lock_design_after.get("wallpaper", "")) != lock_wallpaper_before:
-		_fail("Lock-screen generation changed the independently managed wallpaper.")
-		return
-	if not bool(lock_design_after.get("show_audio_player", false)) or bool(lock_design_after.get("show_camera_shortcut", true)) or not bool(lock_design_after.get("show_fingerprint", false)):
-		_fail("Lock-screen generation did not preserve the player's selected features.")
-		return
-
 	var legacy_style_config := generated.duplicate(true)
 	legacy_style_config["schema_version"] = 2
 	legacy_style_config["components"]["app_icons"] = {"shape": "squircle", "size": 60}
@@ -288,76 +270,46 @@ func _run_os_generator_test() -> void:
 	simulator_host.add_child(simulator)
 	await process_frame
 
+
 	var lock_preview_config := generated.duplicate(true)
 	var lock_preview_data: Dictionary = lock_preview_config["components"]["lock_screen"]
-	lock_preview_data["show_notifications"] = true
-	lock_preview_data["show_audio_player"] = true
+	lock_preview_data["show_time"] = true
+	lock_preview_data["show_date"] = true
 	lock_preview_data["show_camera_shortcut"] = true
 	lock_preview_data["show_flashlight_shortcut"] = true
-	lock_preview_data["fingerprint_sensor_available"] = true
-	lock_preview_data["show_fingerprint"] = true
 	simulator.configure_os(lock_preview_config, "lock_screen")
 	await process_frame
-	for lock_control_name in ["LockScreenClock", "LockScreenDate", "LockScreenNotification_Messages", "LockScreenAudioPlayer", "LockScreenShortcut_Camera", "LockScreenShortcut_Flashlight", "LockScreenFingerprintSensor"]:
+	for lock_control_name in ["LollipopLockScreen", "LockScreenClock", "LockScreenDate", "LockScreenShortcut_Camera", "LockScreenShortcut_Flashlight"]:
 		if simulator.find_child(lock_control_name, true, false) == null:
-			_fail("Lock screen did not render enabled feature: " + lock_control_name)
+			_fail("Lollipop lock screen is missing expected element: " + lock_control_name)
 			return
-	if simulator.find_child("UnlockOSButton", true, false) != null or ProceduralEngineScript.normalize_os(lock_preview_config)["components"]["lock_screen"].has("show_unlock_hint"):
-		_fail("The lock screen must not render an unlock prompt or retain its legacy enablement setting.")
+	if simulator.find_child("LockScreenAudioPlayer", true, false) != null or simulator.find_child("LockScreenFingerprintSensor", true, false) != null:
+		_fail("Legacy media or fingerprint lock-screen widgets are still being rendered.")
+		return
+	var lollipop_clock := simulator.find_child("LockScreenClock", true, false) as Label
+	var lollipop_date := simulator.find_child("LockScreenDate", true, false) as Label
+	if lollipop_clock == null or lollipop_clock.text.strip_edges().is_empty() or lollipop_date == null or lollipop_date.text.strip_edges().is_empty():
+		_fail("Lollipop lock-screen time or date is blank.")
 		return
 	var camera_shortcut := simulator.find_child("LockScreenShortcut_Camera", true, false) as Button
 	var flashlight_shortcut := simulator.find_child("LockScreenShortcut_Flashlight", true, false) as Button
-	var camera_icon := simulator.find_child("LockScreenShortcutIcon_Camera", true, false) as TextureRect
-	var flashlight_icon := simulator.find_child("LockScreenShortcutIcon_Flashlight", true, false) as TextureRect
-	if camera_shortcut == null or flashlight_shortcut == null or camera_icon == null or flashlight_icon == null:
-		_fail("Lock-screen camera and flashlight shortcuts must contain imported TextureRect icons.")
+	if camera_shortcut == null or flashlight_shortcut == null or camera_shortcut.get_index() >= flashlight_shortcut.get_index():
+		_fail("Lollipop camera and flashlight shortcuts are missing or incorrectly ordered.")
 		return
-	if camera_icon.texture == null or flashlight_icon.texture == null or camera_icon.size.x <= 0.0 or flashlight_icon.size.x <= 0.0:
-		_fail("Lock-screen imported shortcut artwork did not receive a visible texture area.")
-		return
-	if not camera_shortcut.text.is_empty() or not flashlight_shortcut.text.is_empty():
-		_fail("Lock-screen camera and flashlight shortcuts must be icon-only, without text captions.")
-		return
-	if camera_icon.texture.resource_path != "res://assets/os/lockscreen/camera.svg" or flashlight_icon.texture.resource_path != "res://assets/os/lockscreen/flashlight.svg":
-		_fail("Lock-screen shortcuts are not using the imported camera and flashlight SVG assets.")
-		return
-	if absf(camera_icon.size.x - 21.06) > 0.5 or absf(camera_icon.size.y - 21.06) > 0.5 or absf(flashlight_icon.size.x - 21.06) > 0.5 or absf(flashlight_icon.size.y - 21.06) > 0.5:
-		_fail("Camera and flashlight artwork must each be exactly 10% smaller while keeping their 42 px touch targets.")
-		return
-	if camera_shortcut.get_index() >= flashlight_shortcut.get_index():
-		_fail("Camera must remain on the left and flashlight on the right of the lock screen.")
-		return
-	var flashlight_texture_before_toggle := flashlight_icon.texture
-	flashlight_shortcut.button_pressed = true
-	if flashlight_shortcut.text != "" or flashlight_icon.texture != flashlight_texture_before_toggle:
-		_fail("Flashlight toggle changed or removed its imported icon.")
-		return
-	for lock_content_name in ["LockScreenNotificationApp_Messages", "LockScreenNotificationMessage_Messages", "LockScreenAudioTrackTitle", "LockScreenAudioArtist", "StatusBarClock"]:
-		if simulator.find_child(lock_content_name, true, false) == null:
-			_fail("Lock screen rendered an empty content surface; missing: " + lock_content_name)
+	var hidden_lock_config := lock_preview_config.duplicate(true)
+	hidden_lock_config["components"]["lock_screen"]["show_time"] = false
+	hidden_lock_config["components"]["lock_screen"]["show_date"] = false
+	hidden_lock_config["components"]["lock_screen"]["show_camera_shortcut"] = false
+	hidden_lock_config["components"]["lock_screen"]["show_flashlight_shortcut"] = false
+	simulator.configure_os(hidden_lock_config, "lock_screen")
+	await process_frame
+	for hidden_name in ["LockScreenClock", "LockScreenDate", "LockScreenShortcut_Camera", "LockScreenShortcut_Flashlight"]:
+		var hidden_control := simulator.find_child(hidden_name, true, false)
+		if hidden_control != null:
+			_fail("Disabled Lollipop lock-screen element remained visible: " + hidden_name)
 			return
-	var rendered_track_title := simulator.find_child("LockScreenAudioTrackTitle", true, false) as Label
-	var rendered_message := simulator.find_child("LockScreenNotificationMessage_Messages", true, false) as Label
-	var rendered_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
-	var rendered_lock_clock := simulator.find_child("LockScreenClock", true, false) as Label
-	if rendered_track_title == null or rendered_track_title.text.strip_edges().is_empty() or rendered_message == null or rendered_message.text.strip_edges().is_empty():
-		_fail("Lock-screen media or notification content is blank.")
-		return
-	if rendered_status_clock == null or rendered_status_clock.text.strip_edges().is_empty() or rendered_lock_clock == null or rendered_lock_clock.text.strip_edges().is_empty():
-		_fail("Lock-screen status time or main lock-screen clock is blank.")
-		return
-	var expected_layout_name := "LockScreenLayout_" + str(lock_preview_data.get("layout_template", "classic_clock"))
-	var visible_lock_layout := simulator.find_child(expected_layout_name, true, false) as Control
-	var procedural_wallpaper := simulator.find_child("OSProceduralWallpaper", true, false) as Control
-	if visible_lock_layout == null or not visible_lock_layout.visible or visible_lock_layout.size.x <= 0.0 or visible_lock_layout.size.y <= 0.0 or procedural_wallpaper == null or not procedural_wallpaper.visible:
-		_fail("Lock screen layout or wallpaper is not visible; the preview could appear as a blank black screen.")
-		return
-	if not rendered_lock_clock.visible or not rendered_message.visible or not rendered_track_title.visible or not camera_icon.visible or not flashlight_icon.visible:
-		_fail("One or more primary lock-screen elements are hidden.")
-		return
-	if rendered_track_title.size.x <= 0.0 or rendered_message.size.x <= 0.0:
-		_fail("Lock-screen notification/media text has no visible horizontal space.")
-		return
+	simulator.configure_os(lock_preview_config, "lock_screen")
+	await process_frame
 	var lock_gesture_position := Vector2(72, 180)
 	simulator.call("_handle_system_gesture", lock_gesture_position, Vector2(72, 105), 180)
 	await process_frame
@@ -779,19 +731,21 @@ func _run_os_generator_test() -> void:
 		_fail("Wizard Back from Step 3 did not return to Lock Screen Studio Step 2.")
 		return
 
-	worksite.call("set_fingerprint_sensor_available", true)
-	worksite.call("_on_lock_screen_feature_toggled", true, "show_audio_player")
-	worksite.call("_on_lock_screen_feature_toggled", true, "show_fingerprint")
-	await process_frame
-	if worksite_preview.find_child("LockScreenAudioPlayer", true, false) == null or worksite_preview.find_child("LockScreenFingerprintSensor", true, false) == null:
-		_fail("Enabling audio or available fingerprint hardware did not update the lock-screen preview.")
-		return
-	var fingerprint_sensor := worksite_preview.find_child("LockScreenFingerprintSensor", true, false) as Button
-	var fingerprint_stage := worksite_preview.find_child("LockScreenFingerprintStage", true, false) as CenterContainer
-	if fingerprint_sensor == null or fingerprint_sensor.size != Vector2(52, 52) or fingerprint_stage == null or not fingerprint_stage.is_ancestor_of(fingerprint_sensor):
-		_fail("Under-display fingerprint indicator is missing its centred Samsung-style sensor target.")
-		return
 
+	for setting_id in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+		var setting_toggle := worksite.find_child("LockScreenEnabled_" + setting_id, true, false) as Button
+		if setting_toggle == null:
+			_fail("Lock Screen Studio is missing its checkbox: " + setting_id)
+			return
+		setting_toggle.button_pressed = false
+		setting_toggle.toggled.emit(false)
+		await process_frame
+		if bool(worksite.get("generated_os_configuration")["components"]["lock_screen"].get(setting_id, true)):
+			_fail("Lock Screen Studio checkbox did not save its disabled state: " + setting_id)
+			return
+		setting_toggle.button_pressed = true
+		setting_toggle.toggled.emit(true)
+		await process_frame
 	worksite_preview.call("_handle_system_gesture", Vector2(72, 300), Vector2(72, 220), 120)
 	await process_frame
 	if worksite_preview.get("active_component") != "pin_input":
@@ -1048,46 +1002,13 @@ func _run_os_generator_test() -> void:
 		return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame
-	fingerprint_sensor = worksite_preview.find_child("LockScreenFingerprintSensor", true, false) as Button
-	if fingerprint_sensor == null:
-		_fail("Fingerprint sensor disappeared after returning to the lock screen.")
-		return
-	if fingerprint_sensor.get("sensor_texture") == null:
-		_fail("Imported fingerprint sensor artwork failed to load.")
-		return
-	if fingerprint_sensor.get("sensor_texture").resource_path != "res://assets/os/lockscreen/fingerprint_sensor.svg":
-		_fail("Fingerprint control is not using the imported ScreenLock S20 fingerprint artwork.")
-		return
-	if not is_equal_approx(float(fingerprint_sensor.get("artwork_scale")), 0.81):
-		_fail("Fingerprint artwork must be rendered at 90% of its previous size while preserving the touch target.")
-		return
-	fingerprint_sensor.pressed.emit()
-	if worksite_preview.get("active_component") != "home_screen":
-		_fail("Fingerprint tap did not perform biometric unlock to Home.")
-		return
-	# Restore the lock-screen editor controls before looking for its generator.
-	# The preview's biometric unlock changes only the simulated phone screen.
-	worksite.call("_show_lock_screen_studio_controls")
+
+	worksite_preview.set_component_view("lock_screen")
 	await process_frame
-	var generator_button := worksite.find_child("GenerateLockScreenDesignButton", true, false) as Button
-	if generator_button == null:
-		_fail("Lock-screen design generator button is missing.")
-		return
-	var wallpaper_before_generation := str(worksite.get("generated_os_configuration")["style"]["wallpaper"])
-	var family_before_generation := str(worksite.get("generated_os_configuration")["components"]["lock_screen"]["design_family"])
-	generator_button.pressed.emit()
-	await process_frame
-	var worksite_configuration: Dictionary = worksite.get("generated_os_configuration")
-	var generated_lock_data: Dictionary = worksite_configuration["components"]["lock_screen"]
-	if str(generated_lock_data.get("design_family", "")) == family_before_generation:
-		_fail("Generate button did not create a new lock-screen design family.")
-		return
-	if str(worksite_configuration["style"]["wallpaper"]) != wallpaper_before_generation or str(generated_lock_data.get("wallpaper", "")) != wallpaper_before_generation:
-		_fail("Lock-screen generator changed the wallpaper.")
-		return
-	if not bool(generated_lock_data.get("show_audio_player", false)) or not bool(generated_lock_data.get("show_fingerprint", false)):
-		_fail("Lock-screen generator did not preserve enabled functionality.")
-		return
+	for obsolete_lock_control in ["LockScreenFingerprintSensor", "LockScreenAudioPlayer", "GenerateLockScreenDesignButton"]:
+		if worksite.find_child(obsolete_lock_control, true, false) != null or worksite_preview.find_child(obsolete_lock_control, true, false) != null:
+			_fail("Obsolete lock-screen system control remains: " + obsolete_lock_control)
+			return
 	if worksite_configuration.get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("Generate OS action did not produce all 6 core components.")
 		return
