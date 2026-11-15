@@ -2435,7 +2435,7 @@ func _build_pin_input() -> void:
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.alignment = BoxContainer.ALIGNMENT_CENTER
-	layout.add_theme_constant_override("separation", 3)
+	layout.add_theme_constant_override("separation", 10)
 	page_container.add_child(layout)
 
 	_build_pin_input_header(layout)
@@ -2446,35 +2446,35 @@ func _build_pin_input() -> void:
 func _build_pin_input_header(layout: VBoxContainer) -> void:
 	var lock_indicator_stage := CenterContainer.new()
 	lock_indicator_stage.name = "PINLockIndicatorStage"
-	lock_indicator_stage.custom_minimum_size.y = 16
+	lock_indicator_stage.custom_minimum_size.y = 28
 	var lock_indicator := PINLockIndicator.new()
 	lock_indicator.name = "PINLockIndicator"
 	lock_indicator_stage.add_child(lock_indicator)
 	layout.add_child(lock_indicator_stage)
 
-	var title := _label("Enter PIN", 15, _text_color())
+	var title := _label("Enter PIN", 18, _text_color())
 	title.name = "PINEntryTitle"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.custom_minimum_size.y = 19
+	title.custom_minimum_size.y = 26
 	layout.add_child(title)
 
-	var subtitle := _label("Enter your 4-digit screen lock.", 7, _muted_color())
+	var subtitle := _label("Enter your 4-digit screen lock.", 9, _muted_color())
 	subtitle.name = "PINEntrySubtitle"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.custom_minimum_size.y = 10
+	subtitle.custom_minimum_size.y = 16
 	layout.add_child(subtitle)
 
 	var dots := _label("○   ○   ○   ○", 14, _text_color())
 	dots.name = "PINEntryDots"
 	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dots.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	dots.custom_minimum_size.y = 18
+	dots.custom_minimum_size.y = 28
 	layout.add_child(dots)
 
 	var error_label := _label(_pin_error_message, 7, Color("#FF9AA8"))
 	error_label.name = "PINEntryError"
 	error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	error_label.custom_minimum_size.y = 10
+	error_label.custom_minimum_size.y = 18
 	# Keep this slot in the layout even when empty so an error never shifts
 	# the keypad or changes the position of the bottom navigation.
 	layout.add_child(error_label)
@@ -2487,17 +2487,19 @@ func _build_pin_input_keypad(layout: VBoxContainer) -> void:
 	keypad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	keypad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-	var keypad_gap := clampf(size.x * 0.035, 4.0, 6.0)
+	var keypad_gap := clampf(size.x * 0.045, 8.0, 12.0)
 	keypad.add_theme_constant_override("h_separation", roundi(keypad_gap))
 	keypad.add_theme_constant_override("v_separation", roundi(keypad_gap))
 
 	# Fit the circular keys to both the phone width and the available height.
 	# The PIN footer/navigation are reserved separately by the parent shell.
-	var available_keypad_width := maxf(84.0, size.x - 28.0)
-	var available_content_height := maxf(180.0, size.y - 66.0)
+	var available_keypad_width := maxf(120.0, size.x - 40.0)
+	# Reserve generous space for the header and footer, then distribute all
+	# four keypad rows evenly within the remaining phone screen height.
+	var available_content_height := maxf(200.0, size.y - 220.0)
 	var horizontal_key_size := (available_keypad_width - keypad_gap * 2.0) / 3.0
-	var vertical_key_size := (available_content_height - 124.0 - keypad_gap * 3.0) / 4.0
-	var key_size := clampf(minf(horizontal_key_size, vertical_key_size), 24.0, 44.0)
+	var vertical_key_size := (available_content_height - keypad_gap * 3.0) / 4.0
+	var key_size := clampf(minf(horizontal_key_size, vertical_key_size), 34.0, 60.0)
 
 	var pin_keys := [
 		{"id":"1", "number":"1"}, {"id":"2", "number":"2"}, {"id":"3", "number":"3"},
@@ -2576,7 +2578,7 @@ func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	var emergency_button := Button.new()
 	emergency_button.name = "PINEmergencyCallButton"
 	emergency_button.text = "Emergency call"
-	emergency_button.custom_minimum_size = Vector2(112, 24)
+	emergency_button.custom_minimum_size = Vector2(132, 32)
 	emergency_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 	var emergency_style := StyleBoxFlat.new()
@@ -2593,7 +2595,7 @@ func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	emergency_button.add_theme_stylebox_override("pressed", emergency_style.duplicate())
 	emergency_button.add_theme_color_override("font_color", Color("#F4F6FA"))
 	emergency_button.add_theme_color_override("font_hover_color", Color("#FFFFFF"))
-	emergency_button.add_theme_font_size_override("font_size", 7)
+	emergency_button.add_theme_font_size_override("font_size", 9)
 	emergency_button.focus_mode = Control.FOCUS_NONE
 	emergency_button.pressed.connect(_on_pin_emergency_pressed)
 	layout.add_child(emergency_button)
@@ -2610,10 +2612,10 @@ func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	info_style.content_margin_bottom = 0
 	info.add_theme_stylebox_override("panel", info_style)
 
-	var info_label := _label("Preview PIN  ·  1234", 6, Color(1.0, 1.0, 1.0, 0.62))
+	var info_label := _label("Preview PIN  ·  1234", 8, Color(1.0, 1.0, 1.0, 0.62))
 	info_label.name = "PINPreviewUnlockInfoLabel"
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info.custom_minimum_size.y = 8
+	info.custom_minimum_size.y = 16
 	info.add_child(info_label)
 	layout.add_child(info)
 
