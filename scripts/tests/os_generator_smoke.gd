@@ -318,6 +318,18 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("LollipopNotification_Messages", true, false) == null or simulator.find_child("CloseGestureOverlayButton", true, false) != null:
 				_fail("Android 5 notification cards are missing or an unwanted close button was added.")
 				return
+			var notification_app_label := simulator.find_child("LollipopNotificationApp_Messages", true, false) as Label
+			var notification_message_label := simulator.find_child("LollipopNotificationMessage_Messages", true, false) as Label
+			var notification_icon_label := simulator.find_child("LollipopNotificationIcon_Messages", true, false) as Label
+			if notification_app_label == null or notification_app_label.text != "Messages" or notification_app_label.custom_minimum_size.y < 14:
+				_fail("Lollipop notification card must show a properly sized app title.")
+				return
+			if notification_message_label == null or notification_message_label.text.is_empty() or notification_message_label.custom_minimum_size.y < 16:
+				_fail("Lollipop notification card must show its message text.")
+				return
+			if notification_icon_label == null or notification_icon_label.text != "M":
+				_fail("Lollipop notification card must show its app icon glyph.")
+				return
 			simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 240), 110)
 			await process_frame
 			if simulator.find_child("LollipopQuickSettingsHeader", true, false) == null or simulator.find_child("LollipopQuickSettingsGrid", true, false) == null or simulator.find_child("LollipopBrightnessSlider", true, false) == null:
@@ -329,6 +341,15 @@ func _run_os_generator_test() -> void:
 			var wifi_tile := simulator.find_child("LollipopQuickTile_Wi-Fi", true, false) as Button
 			if wifi_tile == null:
 				_fail("Android 5 Quick Settings Wi-Fi tile is missing.")
+				return
+			var wifi_icon_label := simulator.find_child("LollipopQuickTileIcon_Wi-Fi", true, false) as Label
+			var wifi_title_label := simulator.find_child("LollipopQuickTileLabel_Wi-Fi", true, false) as Label
+			var wifi_tile_style := wifi_tile.get_theme_stylebox("normal") as StyleBoxFlat if wifi_tile != null else null
+			if wifi_icon_label == null or wifi_icon_label.text.is_empty() or wifi_title_label == null or wifi_title_label.text != "Wi-Fi":
+				_fail("Lollipop Quick Settings tile must visibly contain its icon and label.")
+				return
+			if wifi_tile.custom_minimum_size.y < 68 or wifi_tile_style == null or wifi_tile_style.bg_color.a < 0.9:
+				_fail("Lollipop Quick Settings tiles must have visible tile surfaces and a reliable height.")
 				return
 			var wifi_before := bool(simulator.get("_quick_setting_states").get("Wi-Fi", false))
 			wifi_tile.button_pressed = not wifi_before
@@ -367,6 +388,23 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
 				_fail("Android Back button did not close the Lollipop Overview panel.")
 				return
+	var lollipop_panel_test_config := ProceduralEngineScript.generate_os(8201, 1)
+	simulator.configure_os(lollipop_panel_test_config, "notifications")
+	await process_frame
+	var notification_preview := simulator.find_child("LollipopNotificationPreview", true, false)
+	var preview_message_label := simulator.find_child("LollipopNotificationMessage_Messages", true, false) as Label
+	if notification_preview == null or preview_message_label == null or preview_message_label.text != "A new message is waiting":
+		_fail("Android 5 Notification Panel preview is missing visible notification content.")
+		return
+	simulator.configure_os(lollipop_panel_test_config, "control_center")
+	await process_frame
+	var control_center_preview := simulator.find_child("LollipopControlCenterPreview", true, false)
+	var preview_wifi_tile := simulator.find_child("LollipopQuickTile_Wi-Fi", true, false) as Button
+	var preview_wifi_label := simulator.find_child("LollipopQuickTileLabel_Wi-Fi", true, false) as Label
+	if control_center_preview == null or preview_wifi_tile == null or preview_wifi_label == null or preview_wifi_label.text != "Wi-Fi":
+		_fail("Android 5 Control Center preview is missing its visible Quick Settings tiles.")
+		return
+
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 
