@@ -942,15 +942,17 @@ func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: S
 
 
 func _build_status_bar(parent: VBoxContainer) -> void:
+	var is_lollipop_drawer := _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1
+	var status_foreground := Color("#424242") if is_lollipop_drawer else _text_color()
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
 	bar.custom_minimum_size.y = 22
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.56)
-	bar_style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.10)
-	bar_style.set_border_width_all(1)
-	bar_style.set_corner_radius_all(8)
+	bar_style.bg_color = Color("#FAFAFA") if is_lollipop_drawer else Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.56)
+	bar_style.border_color = Color(0, 0, 0, 0) if is_lollipop_drawer else Color(_text_color().r, _text_color().g, _text_color().b, 0.10)
+	bar_style.set_border_width_all(0 if is_lollipop_drawer else 1)
+	bar_style.set_corner_radius_all(0 if is_lollipop_drawer else 8)
 	bar_style.content_margin_left = 7
 	bar_style.content_margin_right = 7
 	bar_style.content_margin_top = 2
@@ -960,13 +962,13 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 4)
 	bar.add_child(row)
-	var clock := _label(_current_lock_time(), 8, _text_color())
+	var clock := _label(_current_lock_time(), 8, status_foreground)
 	clock.name = "StatusBarClock"
 	clock.custom_minimum_size = Vector2(32, 13)
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	row.add_child(clock)
-	var notification_dot := _label("●", 5, _text_color())
+	var notification_dot := _label("●", 5, status_foreground)
 	notification_dot.name = "StatusBarNotificationIndicator"
 	notification_dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(notification_dot)
@@ -978,9 +980,16 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	indicators.alignment = BoxContainer.ALIGNMENT_END
 	indicators.add_theme_constant_override("separation", 3)
 	indicators.custom_minimum_size = Vector2(57, 16)
-	indicators.add_child(_status_bar_icon(STATUS_CELLULAR_TEXTURE, Vector2(16, 13), "StatusBarCellularIcon"))
-	indicators.add_child(_status_bar_icon(STATUS_WIFI_TEXTURE, Vector2(15, 13), "StatusBarWifiIcon"))
-	indicators.add_child(_status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "StatusBarBatteryIcon"))
+	var cellular_icon := _status_bar_icon(STATUS_CELLULAR_TEXTURE, Vector2(16, 13), "StatusBarCellularIcon")
+	var wifi_icon := _status_bar_icon(STATUS_WIFI_TEXTURE, Vector2(15, 13), "StatusBarWifiIcon")
+	var battery_icon := _status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "StatusBarBatteryIcon")
+	if is_lollipop_drawer:
+		cellular_icon.modulate = status_foreground
+		wifi_icon.modulate = status_foreground
+		battery_icon.modulate = status_foreground
+	indicators.add_child(cellular_icon)
+	indicators.add_child(wifi_icon)
+	indicators.add_child(battery_icon)
 	row.add_child(indicators)
 	status_label = _label("", 1, _text_color())
 	status_label.name = "StatusBarBattery"
