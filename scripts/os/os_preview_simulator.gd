@@ -251,6 +251,7 @@ var _gesture_start_time := 0
 var _gesture_active := false
 var _gesture_overlay: Control
 var _recent_app_names: Array[String] = []
+var _screen_history: Array[String] = []
 var _last_opened_app := ""
 var _entered_unlock_pin := ""
 var _pin_error_message := ""
@@ -355,15 +356,23 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 	var edge_size := clampf(minf(size.x, size.y) * 0.09, 18.0, 34.0)
 
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
-		if delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
+		if _gesture_overlay.name == "OSGestureOverlay_notifications" and delta.y >= vertical_threshold:
+			_show_gesture_overlay("control_center")
+		elif _gesture_overlay.name == "OSGestureOverlay_recent_apps":
+			if delta.y <= -vertical_threshold:
+				_advance_overview_deck(false)
+			elif delta.y >= vertical_threshold:
+				_advance_overview_deck(true)
+			elif absf(delta.x) >= horizontal_threshold:
+				_dismiss_overview_top_card()
+			else:
+				_close_gesture_overlay()
+		elif delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
 			_close_gesture_overlay()
 		return
 
 	if start.y <= edge_size and delta.y >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.2:
-		if start.x >= size.x * 0.56:
-			_show_gesture_overlay("control_center")
-		else:
-			_show_gesture_overlay("notifications")
+		_show_gesture_overlay("notifications")
 		return
 
 	if active_component == "lock_screen" and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
@@ -396,21 +405,28 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 
 func _navigate_home() -> void:
 	_close_gesture_overlay()
-	set_component_view("home_screen")
+	_screen_history.clear()
+	set_component_view("home_screen", false)
 
 
 func _navigate_back() -> void:
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		_close_gesture_overlay()
-	elif active_component == "pin_input":
-		set_component_view("lock_screen")
-	elif active_component == "app_drawer":
-		_navigate_home()
+		return
+	if active_component == "pin_input":
+		set_component_view("lock_screen", false)
+		return
+	if not _screen_history.is_empty():
+		var previous_screen := str(_screen_history.pop_back())
+		set_component_view(previous_screen, false)
 	else:
 		_navigate_home()
 
 
 func _show_gesture_overlay(mode: String) -> void:
+	if mode == "recent_apps" and _is_android_os():
+		_build_lollipop_overview()
+		return
 	_close_gesture_overlay()
 	_gesture_overlay = Control.new()
 	_gesture_overlay.name = "OSGestureOverlay_" + mode
@@ -543,42 +559,173 @@ func _build_gesture_notifications(parent: VBoxContainer) -> void:
 
 
 func _build_gesture_recent_apps(parent: VBoxContainer) -> void:
-	if _recent_app_names.is_empty() and not _last_opened_app.is_empty():
-		_recent_app_names.append(_last_opened_app)
-	if _recent_app_names.is_empty():
-		parent.add_child(_label("No recently opened apps", 9, _muted_color()))
-		return
 	for app_name in _recent_app_names:
-		var app := _find_app(app_name)
-		if app.is_empty():
-			continue
-		var card := PanelContainer.new()
-		card.name = "GestureRecentApp_" + app_name.replace(" ", "")
-		_style_surface(card)
-		var row := HBoxContainer.new()
-		row.add_child(_create_app_icon(app, 28, false))
-		var name_label := _label(app_name, 9, _text_color())
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(name_label)
 		var open_button := Button.new()
-		open_button.text = "OPEN"
-		_style_action_button(open_button)
+		open_button.name = "GestureRecentApp_" + app_name.replace(" ", "")
+		open_button.text = app_name
 		open_button.pressed.connect(func() -> void:
 			_close_gesture_overlay()
 			_on_app_pressed(app_name)
 		)
-		row.add_child(open_button)
-		card.add_child(row)
-		parent.add_child(card)
-	var clear_button := Button.new()
-	clear_button.name = "ClearGestureRecentAppsButton"
-	clear_button.text = "CLEAR ALL"
-	_style_action_button(clear_button)
-	clear_button.pressed.connect(func() -> void:
+		parent.add_child(open_button)
+
+
+func _build_lollipop_overview() -> void:
+	_close_gesture_overlay()
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_recent_apps"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	_gesture_overlay = overlay
+
+	var background := ColorRect.new()
+	background.name = "LollipopOverviewBackground"
+	background.color = Color("#263746")
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(background)
+
+	var heading := Label.new()
+	heading.name = "LollipopOverviewTitle"
+	heading.text = "Overview"
+	heading.position = Vector2(18, 10)
+	heading.add_theme_font_size_override("font_size", 16)
+	heading.add_theme_color_override("font_color", Color("#FFFFFF"))
+	overlay.add_child(heading)
+
+	var close_all := Button.new()
+	close_all.name = "LollipopOverviewClearAll"
+	close_all.text = "CLEAR ALL"
+	close_all.position = Vector2(maxf(12.0, size.x - 94.0), 8)
+	close_all.custom_minimum_size = Vector2(82, 30)
+	close_all.add_theme_font_size_override("font_size", 9)
+	close_all.add_theme_color_override("font_color", Color("#FFFFFF"))
+	close_all.pressed.connect(func() -> void:
 		_recent_app_names.clear()
-		_show_gesture_overlay("recent_apps")
+		_close_gesture_overlay()
 	)
-	parent.add_child(clear_button)
+	overlay.add_child(close_all)
+
+	if _recent_app_names.is_empty() and not _last_opened_app.is_empty():
+		_recent_app_names.append(_last_opened_app)
+	if _recent_app_names.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "No recent tasks"
+		empty_label.position = Vector2(18, 70)
+		empty_label.add_theme_color_override("font_color", Color("#FFFFFF"))
+		overlay.add_child(empty_label)
+		return
+
+	var card_width := size.x * 0.82
+	var card_height := size.y * 0.70
+	var base_x := (size.x - card_width) * 0.5
+	var base_y := size.y * 0.15
+	for index in range(_recent_app_names.size()):
+		var app_name := _recent_app_names[index]
+		if _find_app(app_name).is_empty():
+			continue
+		var card := Button.new()
+		card.name = "LollipopOverviewTask_" + app_name.replace(" ", "")
+		card.position = Vector2(base_x + float(index) * 3.0, base_y + float(index) * 34.0)
+		card.size = Vector2(card_width, card_height)
+		card.z_index = _recent_app_names.size() - index
+		card.rotation_degrees = float(index) * 0.25
+		card.custom_minimum_size = Vector2(card_width, card_height)
+		card.add_theme_font_size_override("font_size", 13)
+		card.add_theme_color_override("font_color", Color("#263238"))
+		var paper := StyleBoxFlat.new()
+		paper.bg_color = Color("#FAFAFA")
+		paper.set_corner_radius_all(3)
+		paper.shadow_color = Color(0, 0, 0, 0.28)
+		paper.shadow_size = 8
+		paper.shadow_offset = Vector2(0, 3)
+		for state_name in ["normal", "hover", "pressed", "focus"]:
+			card.add_theme_stylebox_override(state_name, paper)
+		card.text = ""
+		card.pressed.connect(func() -> void:
+			_close_gesture_overlay()
+			_on_app_pressed(app_name)
+		)
+		overlay.add_child(card)
+
+		var preview := VBoxContainer.new()
+		preview.position = Vector2(16, 14)
+		preview.size = Vector2(card_width - 32, card_height - 28)
+		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(preview)
+		var app_header := HBoxContainer.new()
+		var app_title := Label.new()
+		app_title.text = app_name
+		app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		app_title.add_theme_font_size_override("font_size", 15)
+		app_title.add_theme_color_override("font_color", Color("#263238"))
+		app_header.add_child(app_title)
+		var close_task := Button.new()
+		close_task.name = "DismissOverviewTask"
+		close_task.text = "×"
+		close_task.custom_minimum_size = Vector2(28, 28)
+		close_task.add_theme_color_override("font_color", Color("#607D8B"))
+		close_task.pressed.connect(func() -> void: _dismiss_overview_task(app_name))
+		app_header.add_child(close_task)
+		preview.add_child(app_header)
+		var divider := ColorRect.new()
+		divider.custom_minimum_size.y = 1
+		divider.color = Color("#E0E0E0")
+		preview.add_child(divider)
+		var app_preview := Label.new()
+		app_preview.text = _lollipop_overview_preview_text(app_name)
+		app_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		app_preview.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		app_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		app_preview.add_theme_font_size_override("font_size", 11)
+		app_preview.add_theme_color_override("font_color", Color("#546E7A"))
+		preview.add_child(app_preview)
+
+		var tween := create_tween()
+		tween.set_parallel(true)
+		card.modulate.a = 0.0
+		card.position.y += 38.0
+		card.scale = Vector2(0.95, 0.95)
+		tween.tween_property(card, "modulate:a", 1.0, 0.22).set_delay(float(index) * 0.035)
+		tween.tween_property(card, "position:y", base_y + float(index) * 34.0, 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT).set_delay(float(index) * 0.035)
+		tween.tween_property(card, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(float(index) * 0.035)
+
+
+func _lollipop_overview_preview_text(app_name: String) -> String:
+	match app_name:
+		"Messages":
+			return "Recent conversations\n\nNo new messages"
+		"Browser":
+			return "Recently viewed page\n\nSearch or enter address"
+		"Settings":
+			return "Wireless & networks\nDevice\nPersonal"
+		"Photos", "Gallery":
+			return "Your recent pictures and albums"
+		"Calendar":
+			return "Today\nUpcoming events"
+		_:
+			return app_name + " application preview"
+
+
+func _advance_overview_deck(move_to_back: bool) -> void:
+	if _recent_app_names.size() < 2:
+		return
+	if move_to_back:
+		_recent_app_names.push_back(_recent_app_names.pop_front())
+	else:
+		_recent_app_names.push_front(_recent_app_names.pop_back())
+	_build_lollipop_overview()
+
+
+func _dismiss_overview_top_card() -> void:
+	if not _recent_app_names.is_empty():
+		_dismiss_overview_task(_recent_app_names[0])
+
+
+func _dismiss_overview_task(app_name: String) -> void:
+	_recent_app_names.erase(app_name)
+	_build_lollipop_overview()
 
 
 func _close_gesture_overlay() -> void:
@@ -622,8 +769,15 @@ func configure_os(os_configuration: Dictionary, component_id: String = "home_scr
 	if is_inside_tree():
 		_build_shell()
 
-func set_component_view(component_id: String) -> void:
-	active_component = _safe_component_id(component_id)
+func set_component_view(component_id: String, remember_previous: bool = true) -> void:
+	var next_component := _safe_component_id(component_id)
+	if remember_previous and next_component != active_component and active_component != "lock_screen":
+		_screen_history.append(active_component)
+		while _screen_history.size() > 12:
+			_screen_history.pop_front()
+	active_component = next_component
+	if active_component == "home_screen":
+		_screen_history.clear()
 	if active_component == "pin_input":
 		_entered_unlock_pin = ""
 		_pin_error_message = ""
@@ -2838,7 +2992,7 @@ func _on_app_pressed(app_name: String) -> void:
 	_last_opened_app = app_name
 	_recent_app_names.erase(app_name)
 	_recent_app_names.push_front(app_name)
-	while _recent_app_names.size() > 5:
+	while _recent_app_names.size() > 8:
 		_recent_app_names.pop_back()
 	_close_gesture_overlay()
 	app_opened.emit(app_name)
