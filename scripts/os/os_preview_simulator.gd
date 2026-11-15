@@ -429,6 +429,11 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		if _gesture_overlay.name == "OSGestureOverlay_notifications" and delta.y >= vertical_threshold:
 			_show_gesture_overlay("control_center")
+		elif _gesture_overlay.name == "OSGestureOverlay_recent_apps" and int(configuration.get("generation", 2)) == 3:
+			if delta.y <= -vertical_threshold:
+				_dismiss_pie_overview_top_card()
+			elif absf(delta.y) < vertical_threshold and absf(delta.x) < horizontal_threshold:
+				_close_gesture_overlay()
 		elif _gesture_overlay.name == "OSGestureOverlay_recent_apps":
 			if delta.y <= -vertical_threshold:
 				_advance_overview_deck(false)
@@ -495,6 +500,17 @@ func _navigate_back() -> void:
 
 
 func _show_gesture_overlay(mode: String) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
+		match mode:
+			"notifications":
+				_build_android_pie_notification_shade()
+				return
+			"control_center":
+				_build_android_pie_quick_settings_shade()
+				return
+			"recent_apps":
+				_build_android_pie_overview()
+				return
 	if mode == "recent_apps" and _is_android_os():
 		_build_lollipop_overview()
 		return
@@ -1585,11 +1601,11 @@ func _is_android_os() -> bool:
 	return layout_style == "android_pixel"
 
 
-func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false, back_only: bool = false) -> void:
+func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false, back_only: bool = false, use_pie_style: bool = false) -> void:
 	parent.add_theme_constant_override("separation", 0)
-	var is_light_surface := active_component == "app_drawer" and use_lollipop_style
+	var is_light_surface := active_component == "app_drawer" and (use_lollipop_style or use_pie_style)
 	var navigation_bar := PanelContainer.new()
-	navigation_bar.name = "AndroidNavigationBar"
+	navigation_bar.name = "PieNavigationBar" if use_pie_style else "AndroidNavigationBar"
 	navigation_bar.custom_minimum_size = Vector2(0, 46)
 	navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
@@ -1605,7 +1621,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
 
 	var navigation_keys := HBoxContainer.new()
-	navigation_keys.name = "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
+	navigation_keys.name = "PieThreeButtonNavigation" if use_pie_style else "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
 	navigation_keys.custom_minimum_size.y = 46
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1621,10 +1637,10 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 			spacer.name = "AndroidNavigationReservedSlot" + str(spacer_index + 1)
 			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			navigation_keys.add_child(spacer)
-	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
+	var navigation_actions := ["Back"] if back_only else ["Back", "Home", "Overview"] if use_pie_style else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
-		key.name = ("LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
+		key.name = ("PieNavigation" if use_pie_style else "LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
 		key.action_name = action
 		key.icon_color = navigation_color
 		key.tooltip_text = action
@@ -1686,10 +1702,10 @@ func _build_shell() -> void:
 	wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(wallpaper)
 
-	if _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1:
+	if _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) in [1, 3]:
 		var full_drawer_background := ColorRect.new()
-		full_drawer_background.name = "LollipopAppDrawerFullScreenBackground"
-		full_drawer_background.color = Color("#FAFAFA")
+		full_drawer_background.name = "PieAppDrawerFullScreenBackground" if int(configuration.get("generation", 2)) == 3 else "LollipopAppDrawerFullScreenBackground"
+		full_drawer_background.color = Color("#F8F9FA") if int(configuration.get("generation", 2)) == 3 else Color("#FAFAFA")
 		full_drawer_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		full_drawer_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(full_drawer_background)
@@ -1738,7 +1754,7 @@ func _build_shell() -> void:
 			var pin_navigation_footer := VBoxContainer.new()
 			pin_navigation_footer.name = "OSNavigationFooter"
 			pin_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_build_android_navigation(pin_navigation_footer, int(configuration.get("generation", 2)) == 1, true)
+			_build_android_navigation(pin_navigation_footer, int(configuration.get("generation", 2)) == 1, true, int(configuration.get("generation", 2)) == 3)
 			lock_shell.add_child(pin_navigation_footer)
 		# Android lock screens intentionally have no three-button navigation.
 		_add_screen_corner_mask()
@@ -1786,7 +1802,7 @@ func _build_shell() -> void:
 		if home_layout != "windows_tiles":
 			_build_home_dock(footer)
 	if _is_android_os():
-		_build_android_navigation(footer, int(configuration.get("generation", 2)) == 1)
+		_build_android_navigation(footer, int(configuration.get("generation", 2)) == 1, false, int(configuration.get("generation", 2)) == 3)
 	else:
 		var indicator_alignment := CenterContainer.new()
 		indicator_alignment.name = "OSNavigationIndicatorArea"
@@ -1873,19 +1889,21 @@ func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: S
 
 func _build_status_bar(parent: VBoxContainer) -> void:
 	var is_lollipop_drawer := _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1
+	var is_pie_drawer := _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 3
 	var is_oreo_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 2
-	var status_foreground := Color("#424242") if is_lollipop_drawer else Color("#FFFFFF") if is_oreo_lock_screen else _text_color()
+	var is_pie_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 3
+	var status_foreground := Color("#5F6368") if is_pie_drawer else Color("#424242") if is_lollipop_drawer else Color("#FFFFFF") if is_oreo_lock_screen or is_pie_lock_screen else _text_color()
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
-	bar.custom_minimum_size.y = 17 if is_oreo_lock_screen else 22
+	bar.custom_minimum_size.y = 17 if is_oreo_lock_screen or is_pie_lock_screen else 22
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	if is_lollipop_drawer:
-		bar_style.bg_color = Color("#FAFAFA")
+	if is_lollipop_drawer or is_pie_drawer:
+		bar_style.bg_color = Color("#F8F9FA") if is_pie_drawer else Color("#FAFAFA")
 		bar_style.border_color = Color(0, 0, 0, 0)
 		bar_style.set_border_width_all(0)
 		bar_style.set_corner_radius_all(0)
-	elif is_oreo_lock_screen:
+	elif is_oreo_lock_screen or is_pie_lock_screen:
 		bar_style.bg_color = Color(0, 0, 0, 0)
 		bar_style.border_color = Color(0, 0, 0, 0)
 		bar_style.set_border_width_all(0)
@@ -1909,12 +1927,12 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	clock.custom_minimum_size = Vector2(32, 13)
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	clock.visible = not is_oreo_lock_screen
+	clock.visible = not (is_oreo_lock_screen or is_pie_lock_screen)
 	row.add_child(clock)
 	var notification_dot := _label("●", 5, status_foreground)
 	notification_dot.name = "StatusBarNotificationIndicator"
 	notification_dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	notification_dot.visible = not is_oreo_lock_screen
+	notification_dot.visible = not (is_oreo_lock_screen or is_pie_lock_screen)
 	row.add_child(notification_dot)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1927,7 +1945,7 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	var cellular_icon := _status_bar_icon(STATUS_CELLULAR_TEXTURE, Vector2(16, 13), "StatusBarCellularIcon")
 	var wifi_icon := _status_bar_icon(STATUS_WIFI_TEXTURE, Vector2(15, 13), "StatusBarWifiIcon")
 	var battery_icon := _status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "StatusBarBatteryIcon")
-	if is_lollipop_drawer:
+	if is_lollipop_drawer or is_pie_drawer:
 		cellular_icon.modulate = status_foreground
 		wifi_icon.modulate = status_foreground
 		battery_icon.modulate = status_foreground
@@ -1984,8 +2002,11 @@ func _build_home_screen(data: Dictionary) -> void:
 
 
 func _build_android_home(data: Dictionary, widget_count: int) -> void:
-	if int(configuration.get("generation", 2)) == 1:
+	var generation_number := int(configuration.get("generation", 2))
+	if generation_number == 1:
 		_build_lollipop_android_home()
+	elif generation_number == 3:
+		_build_android_pie_home()
 	else:
 		_build_legacy_android_home(data, widget_count)
 
@@ -2408,6 +2429,9 @@ func _build_windows_tiles() -> void:
 
 
 func _build_lock_screen(data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 1)) == 3:
+		_build_android_pie_lock_screen(data)
+		return
 	if _is_android_os() and int(configuration.get("generation", 1)) == 2:
 		_build_oreo_lock_screen(data)
 		return
@@ -2928,8 +2952,9 @@ func _style_lock_button(button: Button, treatment: String) -> void:
 
 
 func _build_pin_input() -> void:
+	var is_pie_pin := _is_android_os() and int(configuration.get("generation", 2)) == 3
 	var layout := VBoxContainer.new()
-	layout.name = "PINInputScreen"
+	layout.name = "PiePINInputScreen" if is_pie_pin else "PINInputScreen"
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -3111,8 +3136,9 @@ func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	info_style.content_margin_bottom = 0
 	info.add_theme_stylebox_override("panel", info_style)
 
-	var info_label := _label("Preview PIN  ·  1234", 8, Color(1.0, 1.0, 1.0, 0.62))
-	info_label.name = "PINPreviewUnlockInfoLabel"
+	var is_pie_pin := _is_android_os() and int(configuration.get("generation", 2)) == 3
+	var info_label := _label("Enter device PIN" if is_pie_pin else "Preview PIN  ·  1234", 8, Color(1.0, 1.0, 1.0, 0.62))
+	info_label.name = "PiePINUnlockInfoLabel" if is_pie_pin else "PINPreviewUnlockInfoLabel"
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.custom_minimum_size.y = 16
 	info.add_child(info_label)
@@ -3262,6 +3288,9 @@ func _build_animation_preview(data: Dictionary) -> void:
 	page_container.add_child(play)
 
 func _build_control_center(_data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
+		_build_android_pie_control_center_preview()
+		return
 	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
 		var panel := PanelContainer.new()
 		panel.name = "LollipopControlCenterPreview"
@@ -3353,6 +3382,9 @@ func _add_control_slider(caption: String, initial_value: float, glyph: String) -
 
 
 func _build_notifications(_data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
+		_build_android_pie_notifications_preview()
+		return
 	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
 		var panel := PanelContainer.new()
 		panel.name = "LollipopNotificationPreview"
@@ -3413,7 +3445,12 @@ func _build_navigation_preview(data: Dictionary) -> void:
 	page_container.add_child(indicator)
 
 func _build_app_drawer(data: Dictionary) -> void:
-	var is_lollipop := int(configuration.get("generation", 2)) == 1 and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
+	var is_android_layout := _is_android_os()
+	var generation_number := int(configuration.get("generation", 2))
+	var is_lollipop := generation_number == 1 and is_android_layout
+	if generation_number == 3 and is_android_layout:
+		_build_android_pie_app_drawer()
+		return
 	if is_lollipop:
 		_build_lollipop_app_drawer()
 		return
@@ -3514,6 +3551,9 @@ func _build_lollipop_app_drawer() -> void:
 
 
 func _build_recent_apps(_data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
+		_build_android_pie_recent_apps_preview()
+		return
 	var heading_row := HBoxContainer.new()
 	heading_row.add_theme_constant_override("separation", 6)
 	var heading := _label("RECENT APPS", 9, _accent_color())
