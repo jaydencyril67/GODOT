@@ -1635,10 +1635,17 @@ func _clear_pie_overview_tasks() -> void:
 
 
 func _set_pie_overview_empty_state() -> void:
-	var row := find_child("PieRecentAppsRow", true, false) as HBoxContainer
-	if not is_instance_valid(row) or is_instance_valid(find_child("PieRecentAppsEmptyState", true, false)):
+	# Scope lookups to the active Overview so stale or unrelated preview nodes
+	# cannot prevent the empty state from appearing after the final task is dismissed.
+	var overlay := _gesture_overlay as Control
+	if not is_instance_valid(overlay) or overlay.name != "OSGestureOverlay_recent_apps":
+		overlay = find_child("OSGestureOverlay_recent_apps", true, false) as Control
+	if not is_instance_valid(overlay):
 		return
-	var clear_all := find_child("PieRecentAppsClearAll", true, false) as Control
+	var row := overlay.find_child("PieRecentAppsRow", true, false) as HBoxContainer
+	if not is_instance_valid(row) or is_instance_valid(row.find_child("PieRecentAppsEmptyState", false, false)):
+		return
+	var clear_all := row.find_child("PieRecentAppsClearAll", false, false) as Control
 	if is_instance_valid(clear_all):
 		clear_all.queue_free()
 	var empty_state := CenterContainer.new()
