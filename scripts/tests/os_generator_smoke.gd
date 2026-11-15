@@ -823,6 +823,9 @@ func _run_os_generator_test() -> void:
 	if str(worksite_preview.get("_entered_unlock_pin")) != "":
 		_fail("PIN Delete did not clear the last entered digit.")
 		return
+	if not pin_error.visible or not pin_error.text.is_empty():
+		_fail("The empty PIN error row must stay reserved so the keypad does not shift while typing.")
+		return
 	for digit in ["1", "2", "3", "4"]:
 		var correct_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
 		correct_key.pressed.emit()
