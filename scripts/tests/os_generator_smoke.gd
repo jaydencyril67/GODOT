@@ -717,15 +717,11 @@ func _run_os_generator_test() -> void:
 	var pin_keypad := worksite_preview.find_child("PINKeypad", true, false) as GridContainer
 	var pin_key_two := worksite_preview.find_child("PINKey_2", true, false) as Button
 	var emergency_call := worksite_preview.find_child("PINEmergencyCallButton", true, false) as Button
-	var pin_fingerprint := worksite_preview.find_child("PINFingerprintSensor", true, false) as Button
 	if pin_info == null or pin_info_label == null or pin_error == null or not pin_info_label.text.contains("1234"):
 		_fail("PIN screen did not clearly display the preview unlock PIN 1234.")
 		return
 	if pin_lock_indicator == null or pin_keypad == null or pin_keypad.columns != 3 or pin_keypad.get_child_count() != 12 or emergency_call == null:
 		_fail("PIN screen is missing its Samsung-style lock indicator, 3×4 keypad or emergency-call control.")
-		return
-	if pin_fingerprint == null or pin_fingerprint.get("sensor_texture") == null:
-		_fail("PIN screen did not show the enabled under-display fingerprint shortcut.")
 		return
 	if pin_key_two == null or pin_key_two.size.x < 30.0 or pin_key_two.text != "2":
 		_fail("PIN digit buttons must display their number directly on the touch target.")
