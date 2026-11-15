@@ -1458,6 +1458,219 @@ func _build_gesture_recent_apps(parent: VBoxContainer) -> void:
 		parent.add_child(open_button)
 
 
+func _build_android_pie_overview() -> void:
+	# Android 9 recents uses a horizontal carousel of large app snapshots.
+	# Rebuild the carousel in place after dismissals to avoid flashing the launcher.
+	var replacing_overview := _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps"
+	if replacing_overview:
+		_gesture_overlay.queue_free()
+		_gesture_overlay = null
+		var old_footer := find_child("PieOverviewNavigationFooter", true, false) as Control
+		if is_instance_valid(old_footer):
+			old_footer.queue_free()
+	else:
+		_close_gesture_overlay()
+		_set_lollipop_overview_underlay_visible(false)
+
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_recent_apps"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -54.0
+	overlay.clip_contents = true
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	_gesture_overlay = overlay
+
+	var original_navigation := find_child("PieNavigationBar", true, false) as Control
+	if is_instance_valid(original_navigation):
+		original_navigation.visible = false
+	var navigation_footer := VBoxContainer.new()
+	navigation_footer.name = "PieOverviewNavigationFooter"
+	navigation_footer.anchor_left = 0.0
+	navigation_footer.anchor_right = 1.0
+	navigation_footer.anchor_top = 1.0
+	navigation_footer.anchor_bottom = 1.0
+	navigation_footer.offset_left = 0.0
+	navigation_footer.offset_right = 0.0
+	navigation_footer.offset_top = -46.0
+	navigation_footer.offset_bottom = 0.0
+	navigation_footer.z_as_relative = false
+	navigation_footer.z_index = 100
+	add_child(navigation_footer)
+	_build_android_navigation(navigation_footer, false, false, true)
+
+	var backdrop := ColorRect.new()
+	backdrop.name = "PieOverviewBackdrop"
+	backdrop.color = Color(0.035, 0.055, 0.09, 0.24)
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(backdrop)
+
+	var content := VBoxContainer.new()
+	content.name = "PieOverviewContent"
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.add_theme_constant_override("separation", 7)
+	content.add_theme_constant_override("margin_left", 10)
+	content.add_theme_constant_override("margin_right", 10)
+	content.add_theme_constant_override("margin_top", 12)
+	content.add_theme_constant_override("margin_bottom", 4)
+	overlay.add_child(content)
+
+	var carousel := ScrollContainer.new()
+	carousel.name = "PieRecentAppsCarousel"
+	carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	carousel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	carousel.scroll_deadzone = 8
+	content.add_child(carousel)
+	var row := HBoxContainer.new()
+	row.name = "PieRecentAppsRow"
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 10)
+	carousel.add_child(row)
+
+	if _recent_app_names.is_empty():
+		var empty_state := CenterContainer.new()
+		empty_state.name = "PieRecentAppsEmptyState"
+		empty_state.custom_minimum_size = Vector2(maxf(120.0, size.x - 24.0), size.y * 0.48)
+		empty_state.add_child(_label("No recent apps", 12, Color("#FFFFFF")))
+		row.add_child(empty_state)
+	else:
+		for app_name in _recent_app_names:
+			var app := _find_app(app_name)
+			if app.is_empty():
+				continue
+			var card := Button.new()
+			card.name = "PieRecentAppsCard_" + app_name.replace(" ", "")
+			card.text = ""
+			card.custom_minimum_size = Vector2(clampf(size.x * 0.72, 190.0, 290.0), maxf(210.0, size.y * 0.62))
+			card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			card.focus_mode = Control.FOCUS_NONE
+			card.clip_contents = true
+			var card_style := StyleBoxFlat.new()
+			card_style.bg_color = Color("#FFFFFF")
+			card_style.set_corner_radius_all(15)
+			card_style.set_border_width_all(0)
+			card_style.shadow_color = Color(0, 0, 0, 0.25)
+			card_style.shadow_size = 8
+			card_style.shadow_offset = Vector2(0, 3)
+			for state_name in ["normal", "hover", "pressed", "focus"]:
+				card.add_theme_stylebox_override(state_name, card_style)
+			card.pressed.connect(func() -> void:
+				_close_gesture_overlay()
+				_on_app_pressed(app_name)
+			)
+			row.add_child(card)
+
+			var card_content := VBoxContainer.new()
+			card_content.name = "PieRecentAppsCardContent_" + app_name.replace(" ", "")
+			card_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			card_content.add_theme_constant_override("separation", 0)
+			card_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(card_content)
+
+			var card_header := HBoxContainer.new()
+			card_header.name = "PieRecentAppsCardHeader_" + app_name.replace(" ", "")
+			card_header.custom_minimum_size.y = 39
+			card_header.add_theme_constant_override("separation", 8)
+			var app_icon := _label(str(app.get("glyph", "•")), 18, Color(str(app.get("color", "#4285F4"))))
+			app_icon.custom_minimum_size.x = 24
+			app_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			card_header.add_child(app_icon)
+			var app_title := _label(app_name, 11, Color("#202124"))
+			app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			app_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			card_header.add_child(app_title)
+			card_content.add_child(card_header)
+
+			var preview_background := ColorRect.new()
+			preview_background.name = "PieRecentAppsSnapshot_" + app_name.replace(" ", "")
+			preview_background.color = Color("#FFFFFF")
+			preview_background.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			preview_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card_content.add_child(preview_background)
+			var preview := VBoxContainer.new()
+			preview.position = Vector2(10, 7)
+			preview.size = Vector2(card.custom_minimum_size.x - 20, card.custom_minimum_size.y - 55)
+			preview.add_theme_constant_override("separation", 6)
+			preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			preview_background.add_child(preview)
+			_build_lollipop_overview_preview(preview, app_name)
+
+	var clear_all := Button.new()
+	clear_all.name = "PieRecentAppsClearAll"
+	clear_all.text = "Clear all"
+	clear_all.custom_minimum_size = Vector2(75, 42)
+	clear_all.focus_mode = Control.FOCUS_NONE
+	clear_all.add_theme_color_override("font_color", Color("#FFFFFF"))
+	clear_all.add_theme_font_size_override("font_size", 10)
+	clear_all.pressed.connect(func() -> void:
+		_recent_app_names.clear()
+		_build_android_pie_overview()
+	)
+	row.add_child(clear_all)
+
+	var search := PanelContainer.new()
+	search.name = "PieOverviewSearchBar"
+	search.custom_minimum_size.y = 37
+	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var search_style := StyleBoxFlat.new()
+	search_style.bg_color = Color("#F1F3F4")
+	search_style.set_corner_radius_all(20)
+	search_style.set_border_width_all(0)
+	search_style.content_margin_left = 12
+	search_style.content_margin_right = 12
+	search_style.content_margin_top = 3
+	search_style.content_margin_bottom = 3
+	search.add_theme_stylebox_override("panel", search_style)
+	var search_row := HBoxContainer.new()
+	search_row.add_theme_constant_override("separation", 7)
+	search_row.add_child(_label("G", 18, Color("#4285F4")))
+	var search_text := _label("Search", 9, Color("#5F6368"))
+	search_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	search_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(search_text)
+	search_row.add_child(_label("●", 9, Color("#4285F4")))
+	search.add_child(search_row)
+	content.add_child(search)
+
+
+func _dismiss_pie_overview_top_card() -> void:
+	if not _recent_app_names.is_empty():
+		_dismiss_pie_overview_task(_recent_app_names[0])
+
+
+func _dismiss_pie_overview_task(app_name: String) -> void:
+	_recent_app_names.erase(app_name)
+	_build_android_pie_overview()
+
+
+func _build_android_pie_recent_apps_preview() -> void:
+	var note := _label("ANDROID 9 RECENT APPS", 9, Color("#5F6368"))
+	note.name = "PieRecentAppsPreviewHeading"
+	page_container.add_child(note)
+	var preview := HBoxContainer.new()
+	preview.name = "PieRecentAppsPreviewCards"
+	preview.add_theme_constant_override("separation", 6)
+	for app_name in ["Settings", "Messages", "Camera"]:
+		var card := PanelContainer.new()
+		card.name = "PieRecentAppsPreview_" + app_name
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#FFFFFF")
+		style.set_corner_radius_all(12)
+		style.set_border_width_all(0)
+		card.add_theme_stylebox_override("panel", style)
+		var body := VBoxContainer.new()
+		body.add_child(_label(app_name, 8, Color("#202124")))
+		body.add_child(_label("App snapshot", 7, Color("#5F6368")))
+		card.add_child(body)
+		preview.add_child(card)
+	page_container.add_child(preview)
+	page_container.add_child(_label("Swipe a card up to dismiss it", 8, Color("#5F6368")))
+
+
 func _build_lollipop_overview() -> void:
 	# Rebuild the task deck without running the normal close path. The close
 	# path restores the launcher and navigation bar, which causes a brief
@@ -1786,9 +1999,10 @@ func _set_lollipop_overview_underlay_visible(should_show: bool) -> void:
 	var component_content := find_child("OSComponentContent", true, false) as Control
 	if is_instance_valid(component_content):
 		component_content.visible = should_show
-	var home_dock := find_child("HomeAppDockIcons", true, false) as Control
-	if is_instance_valid(home_dock):
-		home_dock.visible = should_show
+	for dock_name in ["HomeAppDockIcons", "PieHomeDockIcons"]:
+		var home_dock := find_child(dock_name, true, false) as Control
+		if is_instance_valid(home_dock):
+			home_dock.visible = should_show
 
 
 func _lollipop_overview_preview_text(app_name: String) -> String:
@@ -1860,15 +2074,18 @@ func _dismiss_overview_task(app_name: String) -> void:
 
 
 func _close_gesture_overlay() -> void:
-	var was_lollipop_overview := _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps"
+	var was_recent_apps := _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps"
+	var was_pie_overview := was_recent_apps and int(configuration.get("generation", 2)) == 3
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		_gesture_overlay.queue_free()
 	_gesture_overlay = null
-	if was_lollipop_overview:
-		var overview_navigation_footer := find_child("LollipopOverviewNavigationFooter", true, false) as Control
+	if was_recent_apps:
+		var footer_name := "PieOverviewNavigationFooter" if was_pie_overview else "LollipopOverviewNavigationFooter"
+		var overview_navigation_footer := find_child(footer_name, true, false) as Control
 		if is_instance_valid(overview_navigation_footer):
 			overview_navigation_footer.queue_free()
-		var original_navigation_bar := find_child("AndroidNavigationBar", true, false) as Control
+		var nav_name := "PieNavigationBar" if was_pie_overview else "AndroidNavigationBar"
+		var original_navigation_bar := find_child(nav_name, true, false) as Control
 		if is_instance_valid(original_navigation_bar):
 			original_navigation_bar.visible = true
 		_set_lollipop_overview_underlay_visible(true)
