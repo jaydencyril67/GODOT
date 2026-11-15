@@ -1007,8 +1007,20 @@ func _build_gesture_recent_apps(parent: VBoxContainer) -> void:
 
 
 func _build_lollipop_overview() -> void:
-	_close_gesture_overlay()
-	_set_lollipop_overview_underlay_visible(false)
+	# Rebuild the task deck without running the normal close path. The close
+	# path restores the launcher and navigation bar, which causes a brief
+	# teardown/re-entry during repeated card dismissals and can leave only the
+	# navigation controls visible on the next swipe.
+	var replacing_overview := _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps"
+	if replacing_overview:
+		_gesture_overlay.queue_free()
+		_gesture_overlay = null
+		var previous_footer := find_child("LollipopOverviewNavigationFooter", true, false) as Control
+		if is_instance_valid(previous_footer):
+			previous_footer.queue_free()
+	else:
+		_close_gesture_overlay()
+		_set_lollipop_overview_underlay_visible(false)
 
 	var overlay := Control.new()
 	overlay.name = "OSGestureOverlay_recent_apps"
