@@ -1172,7 +1172,7 @@ func _is_android_os() -> bool:
 	return layout_style == "android_pixel"
 
 
-func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false) -> void:
+func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false, back_only: bool = false) -> void:
 	parent.add_theme_constant_override("separation", 0)
 	var is_light_surface := active_component == "app_drawer" and use_lollipop_style
 	var navigation_bar := PanelContainer.new()
@@ -1198,7 +1198,8 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_keys.add_theme_constant_override("separation", 2)
 
 	var navigation_color := Color("#616161") if is_light_surface else Color("#F5F7F8")
-	for action in ["Back", "Home", "Overview"]:
+	var navigation_actions: Array[String] = ["Back"] if back_only else ["Back", "Home", "Overview"]
+	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
 		key.name = ("LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
 		key.action_name = action
@@ -1314,12 +1315,13 @@ func _build_shell() -> void:
 		page_container.add_theme_constant_override("separation", 4)
 		lock_shell.add_child(page_container)
 		_build_component(active_component)
-		if _is_android_os():
-			var lock_navigation_footer := VBoxContainer.new()
-			lock_navigation_footer.name = "OSNavigationFooter"
-			lock_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_build_android_navigation(lock_navigation_footer, int(configuration.get("generation", 2)) == 1)
-			lock_shell.add_child(lock_navigation_footer)
+		if _is_android_os() and active_component == "pin_input":
+			var pin_navigation_footer := VBoxContainer.new()
+			pin_navigation_footer.name = "OSNavigationFooter"
+			pin_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_build_android_navigation(pin_navigation_footer, int(configuration.get("generation", 2)) == 1, true)
+			lock_shell.add_child(pin_navigation_footer)
+		# Android lock screens intentionally have no three-button navigation.
 		_add_screen_corner_mask()
 		_building = false
 		return
