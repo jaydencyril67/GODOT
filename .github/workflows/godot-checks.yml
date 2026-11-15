@@ -49,6 +49,14 @@ jobs:
             echo "A script or scene still references the deleted landing image."
             exit 1
           fi
+          # Parse the OS simulator before the editor-wide asset scan. The editor scan
+          # currently stops at the downstream preload error, hiding the root parser line.
+          godot --headless --path . --check-only --script res://scripts/os/os_preview_simulator.gd 2>&1 | tee os-preview-parse.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' os-preview-parse.log; then
+            echo "Godot reported a direct OS simulator script parse error."
+            exit 1
+          fi
+
           cp project.godot project.godot.ci-backup
           restore_project() {
             if [ -f project.godot.ci-backup ]; then
@@ -71,14 +79,6 @@ jobs:
           fi
           if ! find .godot/imported -maxdepth 1 -type f -name '*.ctex' -print -quit | grep -q .; then
             echo "Godot did not generate imported texture resources."
-            exit 1
-          fi
-
-          # Parse the simulator directly first so Godot reports its actual source line,
-          # rather than only the downstream preload failure in os_creation_worksite.gd.
-          godot --headless --path . --check-only --script res://scripts/os/os_preview_simulator.gd 2>&1 | tee os-preview-parse.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' os-preview-parse.log; then
-            echo "Godot reported a direct OS simulator script parse error."
             exit 1
           fi
 
