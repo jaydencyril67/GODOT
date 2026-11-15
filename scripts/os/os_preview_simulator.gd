@@ -2336,131 +2336,162 @@ func _build_pin_input() -> void:
 	layout.add_theme_constant_override("separation", 3)
 	page_container.add_child(layout)
 
-	var top_space := Control.new()
-	top_space.name = "PINTopFlexibleSpace"
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_child(top_space)
+	_build_pin_input_header(layout)
+	_build_pin_input_keypad(layout)
+	_build_pin_input_footer(layout)
 
+
+func _build_pin_input_header(layout: VBoxContainer) -> void:
 	var lock_indicator_stage := CenterContainer.new()
 	lock_indicator_stage.name = "PINLockIndicatorStage"
-	lock_indicator_stage.custom_minimum_size.y = 18
+	lock_indicator_stage.custom_minimum_size.y = 16
 	var lock_indicator := PINLockIndicator.new()
 	lock_indicator.name = "PINLockIndicator"
 	lock_indicator_stage.add_child(lock_indicator)
 	layout.add_child(lock_indicator_stage)
 
-	var title := _label("Enter PIN", 17, _text_color())
+	var title := _label("Enter PIN", 15, _text_color())
 	title.name = "PINEntryTitle"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.custom_minimum_size.y = 21
+	title.custom_minimum_size.y = 19
 	layout.add_child(title)
-	var subtitle := _label("Your PIN contains at least 4 digits.", 8, _muted_color())
+
+	var subtitle := _label("Enter your 4-digit screen lock.", 7, _muted_color())
 	subtitle.name = "PINEntrySubtitle"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.custom_minimum_size.y = 12
+	subtitle.custom_minimum_size.y = 10
 	layout.add_child(subtitle)
 
-	var dots := _label("○   ○   ○   ○", 16, _text_color())
+	var dots := _label("○   ○   ○   ○", 14, _text_color())
 	dots.name = "PINEntryDots"
 	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dots.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	dots.custom_minimum_size.y = 23
+	dots.custom_minimum_size.y = 18
 	layout.add_child(dots)
 
-	var error_label := _label(_pin_error_message, 8, Color("#FF9AA8"))
+	var error_label := _label(_pin_error_message, 7, Color("#FF9AA8"))
 	error_label.name = "PINEntryError"
 	error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	error_label.custom_minimum_size.y = 12
+	error_label.custom_minimum_size.y = 10
+	# Keep this slot in the layout even when empty so an error never shifts
+	# the keypad or changes the position of the bottom navigation.
 	layout.add_child(error_label)
 
+
+func _build_pin_input_keypad(layout: VBoxContainer) -> void:
 	var keypad := GridContainer.new()
 	keypad.name = "PINKeypad"
 	keypad.columns = 3
 	keypad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var keypad_gap := clampf(size.x * 0.045, 5.0, 10.0)
+	keypad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	var keypad_gap := clampf(size.x * 0.035, 4.0, 6.0)
 	keypad.add_theme_constant_override("h_separation", roundi(keypad_gap))
 	keypad.add_theme_constant_override("v_separation", roundi(keypad_gap))
-	var available_keypad_width := maxf(100.0, size.x - 40.0)
-	var key_size := clampf((available_keypad_width - keypad_gap * 2.0) / 3.0, 32.0, 60.0)
+
+	# Fit the circular keys to both the phone width and the available height.
+	# The PIN footer/navigation are reserved separately by the parent shell.
+	var available_keypad_width := maxf(84.0, size.x - 28.0)
+	var available_content_height := maxf(180.0, size.y - 66.0)
+	var horizontal_key_size := (available_keypad_width - keypad_gap * 2.0) / 3.0
+	var vertical_key_size := (available_content_height - 124.0 - keypad_gap * 3.0) / 4.0
+	var key_size := clampf(minf(horizontal_key_size, vertical_key_size), 24.0, 44.0)
+
 	var pin_keys := [
 		{"id":"1", "number":"1"}, {"id":"2", "number":"2"}, {"id":"3", "number":"3"},
 		{"id":"4", "number":"4"}, {"id":"5", "number":"5"}, {"id":"6", "number":"6"},
 		{"id":"7", "number":"7"}, {"id":"8", "number":"8"}, {"id":"9", "number":"9"},
-		{"id":"Delete", "number":"⌫"}, {"id":"0", "number":"0"}, {"id":"OK", "number":"OK"}
+		{"id":"Spacer", "number":""}, {"id":"0", "number":"0"}, {"id":"Delete", "number":"⌫"}
 	]
+
 	for key_data in pin_keys:
 		var key_id := str(key_data["id"])
-		var key := Button.new()
-		key.name = "PINKey_" + key_id
-		# Put the value directly on the Button. The old empty button text relied
-		# on nested labels that could be clipped by the phone preview viewport.
-		key.text = str(key_data["number"])
-		key.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		key.custom_minimum_size = Vector2.ONE * key_size
-		key.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		key.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		key.clip_contents = false
-		var normal := StyleBoxFlat.new()
-		normal.bg_color = Color(0.90, 0.95, 1.0, 0.11)
-		# Keep each key visually independent: no outlines or drop shadows
-		# that can join into connector-like lines between adjacent glass keys.
-		normal.border_color = Color(1.0, 1.0, 1.0, 0.0)
-		normal.set_border_width_all(0)
-		normal.set_corner_radius_all(999)
-		normal.shadow_color = Color(0.0, 0.0, 0.0, 0.0)
-		normal.shadow_size = 0
-		normal.shadow_offset = Vector2.ZERO
-		normal.content_margin_left = 0
-		normal.content_margin_right = 0
-		normal.content_margin_top = 0
-		normal.content_margin_bottom = 0
-		var hover := normal.duplicate() as StyleBoxFlat
-		hover.bg_color = Color(0.94, 0.97, 1.0, 0.18)
-		var pressed := normal.duplicate() as StyleBoxFlat
-		pressed.bg_color = Color(0.82, 0.90, 1.0, 0.23)
-		key.add_theme_stylebox_override("normal", normal)
-		key.add_theme_stylebox_override("hover", hover)
-		key.add_theme_stylebox_override("pressed", pressed)
-		key.add_theme_stylebox_override("focus", normal)
-		key.add_theme_color_override("font_color", Color("#F7FAFF"))
-		key.add_theme_color_override("font_hover_color", Color("#FFFFFF"))
-		key.add_theme_color_override("font_pressed_color", Color("#FFFFFF"))
-		key.add_theme_color_override("font_disabled_color", Color("#E5EDF7"))
-		key.add_theme_font_override("font", LOCKSCREEN_FONT)
-		key.add_theme_font_size_override("font_size", 17 if key_size >= 44.0 else 15)
-		key.focus_mode = Control.FOCUS_NONE
-		key.mouse_filter = Control.MOUSE_FILTER_STOP
+		if key_id == "Spacer":
+			var spacer := Control.new()
+			spacer.name = "PINKey_Spacer"
+			spacer.custom_minimum_size = Vector2.ONE * key_size
+			spacer.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			keypad.add_child(spacer)
+			continue
 
-		match key_id:
-			"Delete":
-				key.pressed.connect(_on_pin_delete_pressed)
-			"OK":
-				key.pressed.connect(_on_pin_submit_pressed)
-			_:
-				key.pressed.connect(_on_pin_digit_pressed.bind(key_id))
+		var key := _create_pin_key_button(key_id, str(key_data["number"]), key_size)
 		keypad.add_child(key)
+
 	layout.add_child(keypad)
 
+
+func _create_pin_key_button(key_id: String, caption: String, key_size: float) -> Button:
+	var key := Button.new()
+	key.name = "PINKey_" + key_id
+	key.text = caption
+	key.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key.custom_minimum_size = Vector2.ONE * key_size
+	key.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	key.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	key.clip_contents = false
+	key.tooltip_text = "Delete the last digit" if key_id == "Delete" else "Enter digit " + key_id
+
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.90, 0.95, 1.0, 0.11)
+	normal.border_color = Color(1.0, 1.0, 1.0, 0.0)
+	normal.set_border_width_all(0)
+	normal.set_corner_radius_all(999)
+	normal.shadow_color = Color(0.0, 0.0, 0.0, 0.0)
+	normal.shadow_size = 0
+	normal.shadow_offset = Vector2.ZERO
+	normal.content_margin_left = 0
+	normal.content_margin_right = 0
+	normal.content_margin_top = 0
+	normal.content_margin_bottom = 0
+
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.94, 0.97, 1.0, 0.18)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.82, 0.90, 1.0, 0.23)
+	key.add_theme_stylebox_override("normal", normal)
+	key.add_theme_stylebox_override("hover", hover)
+	key.add_theme_stylebox_override("pressed", pressed)
+	key.add_theme_stylebox_override("focus", normal)
+	key.add_theme_color_override("font_color", Color("#F7FAFF"))
+	key.add_theme_color_override("font_hover_color", Color("#FFFFFF"))
+	key.add_theme_color_override("font_pressed_color", Color("#FFFFFF"))
+	key.add_theme_color_override("font_disabled_color", Color("#E5EDF7"))
+	key.add_theme_font_override("font", LOCKSCREEN_FONT)
+	key.add_theme_font_size_override("font_size", 15 if key_size >= 30.0 else 13)
+	key.focus_mode = Control.FOCUS_NONE
+	key.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	if key_id == "Delete":
+		key.pressed.connect(_on_pin_delete_pressed)
+	else:
+		key.pressed.connect(_on_pin_digit_pressed.bind(key_id))
+	return key
+
+
+func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	var emergency_button := Button.new()
 	emergency_button.name = "PINEmergencyCallButton"
 	emergency_button.text = "Emergency call"
-	emergency_button.custom_minimum_size = Vector2(112, 28)
+	emergency_button.custom_minimum_size = Vector2(112, 24)
 	emergency_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
 	var emergency_style := StyleBoxFlat.new()
 	emergency_style.bg_color = Color(1.0, 1.0, 1.0, 0.12)
 	emergency_style.border_color = Color(1.0, 1.0, 1.0, 0.22)
 	emergency_style.set_border_width_all(1)
 	emergency_style.set_corner_radius_all(18)
-	emergency_style.content_margin_left = 12
-	emergency_style.content_margin_right = 12
-	emergency_style.content_margin_top = 4
-	emergency_style.content_margin_bottom = 4
+	emergency_style.content_margin_left = 10
+	emergency_style.content_margin_right = 10
+	emergency_style.content_margin_top = 3
+	emergency_style.content_margin_bottom = 3
 	emergency_button.add_theme_stylebox_override("normal", emergency_style)
 	emergency_button.add_theme_stylebox_override("hover", emergency_style.duplicate())
 	emergency_button.add_theme_stylebox_override("pressed", emergency_style.duplicate())
 	emergency_button.add_theme_color_override("font_color", Color("#F4F6FA"))
 	emergency_button.add_theme_color_override("font_hover_color", Color("#FFFFFF"))
-	emergency_button.add_theme_font_size_override("font_size", 8)
+	emergency_button.add_theme_font_size_override("font_size", 7)
 	emergency_button.focus_mode = Control.FOCUS_NONE
 	emergency_button.pressed.connect(_on_pin_emergency_pressed)
 	layout.add_child(emergency_button)
@@ -2476,16 +2507,13 @@ func _build_pin_input() -> void:
 	info_style.content_margin_top = 0
 	info_style.content_margin_bottom = 0
 	info.add_theme_stylebox_override("panel", info_style)
+
 	var info_label := _label("Preview PIN  ·  1234", 6, Color(1.0, 1.0, 1.0, 0.62))
 	info_label.name = "PINPreviewUnlockInfoLabel"
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info.custom_minimum_size.y = 8
 	info.add_child(info_label)
 	layout.add_child(info)
-
-	var bottom_space := Control.new()
-	bottom_space.name = "PINBottomFlexibleSpace"
-	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_child(bottom_space)
 
 
 func _on_pin_submit_pressed() -> void:
