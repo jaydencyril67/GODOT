@@ -1,0 +1,5 @@
+DigitalWorld Android 9 Pie-style icon atlas
+
+These vector icons were created specifically for the DigitalWorld project and are bundled locally for offline use. They use an original, simplified Android Pie-era adaptive launcher-icon treatment. They are not extracted from Android firmware, Google Pixel applications, or third-party APKs, and are not official Google or Android artwork.
+
+The assets are authored as SVG and may be modified within this project.

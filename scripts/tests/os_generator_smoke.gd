@@ -280,17 +280,26 @@ func _run_os_generator_test() -> void:
 		if generation_navigation == null or generation_navigation.get_child_count() != 3:
 			_fail("Every Android generation must display Recent, Home and Back navigation buttons.")
 			return
-		var expected_navigation_order := ["Back", "Home", "Overview"] if generation_number == 3 else ["Overview", "Home", "Back"]
+		var expected_navigation_order := ["Overview", "Home", "Back"]
 		for navigation_index in range(3):
 			var navigation_button := generation_navigation.get_child(navigation_index) as Button
 			if navigation_button == null or str(navigation_button.get("action_name")) != expected_navigation_order[navigation_index]:
 				_fail("Android navigation buttons must follow the selected Pixel generation's button order.")
 				return
-		if generation_number == 1:
-			var lollipop_navigation_bar := simulator.find_child("AndroidNavigationBar", true, false) as PanelContainer
-			var lollipop_navigation_style := lollipop_navigation_bar.get_theme_stylebox("panel") as StyleBoxFlat if lollipop_navigation_bar != null else null
-			if lollipop_navigation_style == null or lollipop_navigation_style.bg_color.a > 0.01:
-				_fail("Android 5 navigation bar background must be transparent.")
+		var expected_navigation_bar := "PieNavigationBar" if generation_number == 3 else "AndroidNavigationBar"
+		var generation_navigation_bar := simulator.find_child(expected_navigation_bar, true, false) as PanelContainer
+		var generation_navigation_style := generation_navigation_bar.get_theme_stylebox("panel") as StyleBoxFlat if generation_navigation_bar != null else null
+		if generation_navigation_style == null or generation_navigation_style.bg_color.a > 0.01:
+			_fail("Android navigation bar background must be transparent for every generation.")
+			return
+		if generation_number >= 2:
+			var asset_app_name := "Photos" if generation_number == 2 else "Calendar"
+			var asset_family := "oreo" if generation_number == 2 else "pie"
+			var asset_tile := simulator.find_child("App_" + asset_app_name, true, false) as VBoxContainer
+			var asset_button := asset_tile.find_child("Button", true, false) as Button if asset_tile != null else null
+			var atlas_icon := asset_button.icon as AtlasTexture if asset_button != null else null
+			if atlas_icon == null or atlas_icon.atlas == null or atlas_icon.atlas.resource_path != "res://assets/os/" + asset_family + "/icons.svg" or atlas_icon.region.size != Vector2(96.0, 96.0):
+				_fail("Android generation %d did not load its own bundled app icon assets." % generation_number)
 				return
 		simulator.configure_os(generation_preview, "lock_screen")
 		await process_frame

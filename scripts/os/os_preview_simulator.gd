@@ -2219,9 +2219,9 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_bar.custom_minimum_size = Vector2(0, 46)
 	navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	# Android 5 Lollipop draws its navigation glyphs directly over the
-	# screen surface; it does not use a separate opaque navigation strip.
-	bar_style.bg_color = Color(0.0, 0.0, 0.0, 0.0) if use_lollipop_style or (use_pie_style and not is_light_surface) else (Color("#F8F9FA") if use_pie_style else Color("#FAFAFA")) if is_light_surface else Color(0.025, 0.035, 0.045, 0.88)
+	# Every Android generation draws its navigation glyphs directly over
+	# the active screen surface, with no opaque navigation strip.
+	bar_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	bar_style.set_border_width_all(0)
 	bar_style.set_corner_radius_all(0)
 	bar_style.content_margin_left = 0
@@ -2247,13 +2247,13 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 			spacer.name = "AndroidNavigationReservedSlot" + str(spacer_index + 1)
 			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			navigation_keys.add_child(spacer)
-	var navigation_actions := ["Back"] if back_only else ["Back", "Home", "Overview"] if use_pie_style else ["Overview", "Home", "Back"]
+	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
 		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
 		key.action_name = action
 		key.icon_color = navigation_color
-		key.tooltip_text = action
+		key.tooltip_text = "Recent" if action == "Overview" else action
 		key.custom_minimum_size = Vector2(30, 44)
 		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		key.pressed.connect(_queue_android_navigation.bind(action))
@@ -4672,9 +4672,19 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	var icon := Button.new()
 	icon.name = "Button"
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
-	icon.text = str(app.get("glyph", "•"))
-	icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
-	_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "rounded")))
+	icon.focus_mode = Control.FOCUS_NONE
+	var generation_icon := _load_android_generation_icon(app_name)
+	if generation_icon != null:
+		icon.icon = generation_icon
+		icon.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon.expand_icon = true
+		icon.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		icon.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		icon.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+	else:
+		icon.text = str(app.get("glyph", "•"))
+		icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
+		_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "rounded")))
 	icon.pressed.connect(_on_app_pressed.bind(app_name))
 	holder.add_child(icon)
 	tile.add_child(holder)
@@ -4686,6 +4696,36 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 		caption.clip_text = true
 		tile.add_child(caption)
 	return tile
+
+
+func _load_android_generation_icon(app_name: String) -> Texture2D:
+	if not _is_android_os():
+		return null
+	var generation_number := int(configuration.get("generation", 1))
+	var asset_family := "oreo" if generation_number == 2 else "pie" if generation_number == 3 else ""
+	if asset_family.is_empty():
+		return null
+	var icon_index_by_name := {
+		"Phone": 0, "Messages": 1, "Camera": 2, "Gallery": 3, "Browser": 4,
+		"Music": 5, "Calendar": 6, "Settings": 7, "Files": 8, "Clock": 9,
+		"Maps": 10, "Notes": 11, "Contacts": 12, "Email": 13, "Calculator": 14,
+		"Weather": 15, "Downloads": 16, "Recorder": 17, "Video": 18, "Store": 19,
+		"Security": 20, "Device Care": 21, "Drive": 22, "Photos": 23, "Podcasts": 24,
+		"Tasks": 25, "Wallet": 26, "Compass": 27, "Assistant": 28, "Meet": 29
+	}
+	if not icon_index_by_name.has(app_name):
+		return null
+	var atlas_path := "res://assets/os/" + asset_family + "/icons.svg"
+	if not ResourceLoader.exists(atlas_path):
+		return null
+	var atlas_texture := load(atlas_path) as Texture2D
+	if atlas_texture == null:
+		return null
+	var icon_index := int(icon_index_by_name[app_name])
+	var atlas_icon := AtlasTexture.new()
+	atlas_icon.atlas = atlas_texture
+	atlas_icon.region = Rect2(Vector2(float(icon_index % 6) * 96.0, float(floori(float(icon_index) / 6.0)) * 96.0), Vector2(96.0, 96.0))
+	return atlas_icon
 
 
 func _responsive_columns(preferred_columns: int) -> int:
