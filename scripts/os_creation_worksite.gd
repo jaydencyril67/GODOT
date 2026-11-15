@@ -6,6 +6,9 @@ signal boot_completed
 
 const ProceduralOSEngineScript = preload("res://scripts/os/procedural_os_engine.gd")
 const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
+const MAX_SELECTABLE_GENERATION := 2
+const CUSTOMIZATION_COMPONENTS := ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications", "wallpapers"]
+const WIZARD_STEP_COUNT := 2 + CUSTOMIZATION_COMPONENTS.size()
 
 var generated_os_configuration: Dictionary = {}
 var selected_os_component_id := "home_screen"
@@ -35,7 +38,11 @@ var configuration_region: Control
 var selection_scroll: ScrollContainer
 var screen_frame: PanelContainer
 var home_preview_screen: PanelContainer
-var home_generation := 1
+var home_generation := 2
+var generation_decrease_button: Button
+var generation_increase_button: Button
+var generation_value_label: Label
+var generation_description_label: Label
 var home_generation_status: Label
 var left_power_region: Control
 var power_button: Button
@@ -232,7 +239,7 @@ func _build_interface() -> void:
 	progress.add_theme_constant_override("separation", 4)
 	root.add_child(progress)
 
-	progress_number = _label("STEP 1 / 2", 11, Color("#E5E0D6"))
+	progress_number = _label("STEP 1 / %d" % WIZARD_STEP_COUNT, 11, Color("#E5E0D6"))
 	progress_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
@@ -241,7 +248,7 @@ func _build_interface() -> void:
 	progress_bar.name = "OSWizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 2
+	progress_bar.max_value = WIZARD_STEP_COUNT
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -261,6 +268,7 @@ func _build_interface() -> void:
 	left_power_region.size_flags_stretch_ratio = 0.30
 	worksite_body.add_child(left_power_region)
 	_build_power_button()
+	left_power_region.visible = false
 
 	preview_region = Control.new()
 	preview_region.name = "OSScreenPreviewRegion"
@@ -331,7 +339,7 @@ func _build_interface() -> void:
 
 	# Keep the controls directly on the worksite; no surrounding card or panel.
 	selection_panel = right_region
-	_build_bootloader_controls_only()
+	_build_os_selection_controls()
 
 	# Bottom navigation uses the same direct-root approach as the top controls.
 	# Each arrow owns only its own hit rectangle; there is no full-width overlay.
@@ -377,10 +385,122 @@ func _build_home_screen_preview(screen: PanelContainer) -> void:
 	os_preview_simulator.visible = false
 	screen.add_child(os_preview_simulator)
 
-func _build_bootloader_controls_only() -> void:
+func _build_os_selection_controls() -> void:
+	_clear_selection_controls()
+	var content := VBoxContainer.new()
+	content.name = "OSSelectionControls"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.alignment = BoxContainer.ALIGNMENT_BEGIN
+	content.add_theme_constant_override("separation", 12)
+	selection_panel.add_child(content)
+
+	var heading := _label("SELECT LAYOUT & GENERATION", 20, Color("#D3AA6B"))
+	heading.name = "OSSelectionHeroTitle"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(heading)
+	var description := _label("Choose the operating-system family and the generation you want to build.", 12, Color("#D0CBC2"))
+	description.name = "OSSelectionHeroDescription"
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(description)
+
+	var layout_gap := Control.new()
+	layout_gap.custom_minimum_size.y = 24
+	content.add_child(layout_gap)
+
+	home_screen_layout_decrease_button = Button.new()
+	home_screen_layout_decrease_button.name = "DecreaseHomeScreenLayoutButton"
+	home_screen_layout_decrease_button.text = "−"
+	home_screen_layout_decrease_button.custom_minimum_size = Vector2(56, 48)
+	home_screen_layout_decrease_button.focus_mode = Control.FOCUS_NONE
+	_style_button(home_screen_layout_decrease_button)
+	home_screen_layout_decrease_button.pressed.connect(_on_home_screen_layout_decrease_pressed)
+
+	home_screen_layout_value_label = _label("LAYOUT 1", 19, Color.WHITE)
+	home_screen_layout_value_label.name = "HomeScreenLayoutValueLabel"
+	home_screen_layout_value_label.custom_minimum_size.x = 170
+	home_screen_layout_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	home_screen_layout_increase_button = Button.new()
+	home_screen_layout_increase_button.name = "IncreaseHomeScreenLayoutButton"
+	home_screen_layout_increase_button.text = "+"
+	home_screen_layout_increase_button.custom_minimum_size = Vector2(56, 48)
+	home_screen_layout_increase_button.focus_mode = Control.FOCUS_NONE
+	_style_button(home_screen_layout_increase_button)
+	home_screen_layout_increase_button.pressed.connect(_on_home_screen_layout_increase_pressed)
+
+	var layout_selector := HBoxContainer.new()
+	layout_selector.name = "HomeScreenLayoutSelector"
+	layout_selector.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout_selector.add_theme_constant_override("separation", 14)
+	layout_selector.add_child(home_screen_layout_decrease_button)
+	layout_selector.add_child(home_screen_layout_value_label)
+	layout_selector.add_child(home_screen_layout_increase_button)
+	content.add_child(layout_selector)
+
+	home_screen_layout_family_label = _label("ANDROID", 10, Color("#D3AA6B"))
+	home_screen_layout_family_label.name = "HomeScreenLayoutFamilyLabel"
+	home_screen_layout_family_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(home_screen_layout_family_label)
+
+	var generation_gap := Control.new()
+	generation_gap.custom_minimum_size.y = 18
+	content.add_child(generation_gap)
+
+	generation_decrease_button = Button.new()
+	generation_decrease_button.name = "DecreaseOSGenerationButton"
+	generation_decrease_button.text = "−"
+	generation_decrease_button.custom_minimum_size = Vector2(56, 48)
+	generation_decrease_button.focus_mode = Control.FOCUS_NONE
+	_style_button(generation_decrease_button)
+	generation_decrease_button.pressed.connect(_on_generation_decrease_pressed)
+
+	generation_value_label = _label("GENERATION 02", 17, Color.WHITE)
+	generation_value_label.name = "OSGenerationValueLabel"
+	generation_value_label.custom_minimum_size.x = 190
+	generation_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	generation_increase_button = Button.new()
+	generation_increase_button.name = "IncreaseOSGenerationButton"
+	generation_increase_button.text = "+"
+	generation_increase_button.custom_minimum_size = Vector2(56, 48)
+	generation_increase_button.focus_mode = Control.FOCUS_NONE
+	_style_button(generation_increase_button)
+	generation_increase_button.pressed.connect(_on_generation_increase_pressed)
+
+	var generation_selector := HBoxContainer.new()
+	generation_selector.name = "OSGenerationSelector"
+	generation_selector.alignment = BoxContainer.ALIGNMENT_CENTER
+	generation_selector.add_theme_constant_override("separation", 14)
+	generation_selector.add_child(generation_decrease_button)
+	generation_selector.add_child(generation_value_label)
+	generation_selector.add_child(generation_increase_button)
+	content.add_child(generation_selector)
+
+	generation_description_label = _label("ANDROID 8.0 OREO", 11, Color("#D3AA6B"))
+	generation_description_label.name = "OSGenerationDescription"
+	generation_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(generation_description_label)
+
+	var note := _label("Generation 1: Android 5.0 Lollipop    ·    Generation 2: Android 8.0 Oreo", 10, Color("#A6A096"))
+	note.name = "OSSelectionGenerationNote"
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(note)
+	_refresh_home_screen_layout_selector()
+
+
+func _clear_selection_controls() -> void:
+	if not is_instance_valid(selection_panel):
+		return
 	for child in selection_panel.get_children():
 		selection_panel.remove_child(child)
 		child.queue_free()
+
+
+func _build_bootloader_controls_only() -> void:
+	_clear_selection_controls()
 	var content := VBoxContainer.new()
 	content.name = "BootLoaderOnlyControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -396,9 +516,7 @@ func _show_lock_screen_studio_controls() -> void:
 		return
 	selected_os_component_id = "lock_screen"
 	lock_screen_enabled_inputs.clear()
-	for child in selection_panel.get_children():
-		selection_panel.remove_child(child)
-		child.queue_free()
+	_clear_selection_controls()
 
 	var content := VBoxContainer.new()
 	content.name = "LockScreenStudioControls"
@@ -407,11 +525,14 @@ func _show_lock_screen_studio_controls() -> void:
 	content.add_theme_constant_override("separation", 12)
 	selection_panel.add_child(content)
 
-	var heading := _label("ANDROID 5.0 LOCK SCREEN", 20, Color("#D3AA6B"))
+	var is_oreo_android := home_screen_layout_level == 0 and home_generation == 2
+	var heading_text := "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "ANDROID 5.0 LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
+	var heading := _label(heading_text, 20, Color("#D3AA6B"))
 	heading.name = "LockScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description := _label("Classic Lollipop lock screen. Choose which elements are visible.", 12, Color("#D0CBC2"))
+	var description_text := "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Classic Lollipop lock screen. Choose which elements are visible." if home_screen_layout_level == 0 else "Preview the selected layout's lock screen."
+	var description := _label(description_text, 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
@@ -423,10 +544,70 @@ func _show_lock_screen_studio_controls() -> void:
 
 	_add_lock_screen_toggle_row(content, "show_time", "Display Time", "Large clock on the lock screen")
 	_add_lock_screen_toggle_row(content, "show_date", "Display Date", "Date below the clock")
-	_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Button", "Bottom-left shortcut")
-	_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Button", "Bottom-right shortcut")
+	if is_oreo_android:
+		_add_lock_screen_toggle_row(content, "show_notifications", "Lock-screen Notifications", "Notification cards below the clock")
+		_add_lock_screen_toggle_row(content, "show_assistant_shortcut", "Assistant Shortcut", "Microphone shortcut at bottom-left")
+		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Camera shortcut at bottom-right")
+		_add_lock_screen_toggle_row(content, "show_now_playing", "Now Playing", "Show detected music information when available")
+	elif home_screen_layout_level == 0:
+		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Button", "Bottom-left shortcut")
+		_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Button", "Bottom-right shortcut")
+	else:
+		var preview_note := _label("This layout's lock-screen controls will be expanded in its generation-specific design pass.", 11, Color("#A6A096"))
+		preview_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(preview_note)
+
+
+func _show_component_studio_controls(component_id: String) -> void:
+	if not is_instance_valid(selection_panel):
+		return
+	selected_os_component_id = component_id
+	_clear_selection_controls()
+	var content := VBoxContainer.new()
+	content.name = "ComponentStudioControls"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
+	selection_panel.add_child(content)
+	var titles := {
+		"app_drawer": "APP DRAWER",
+		"control_center": "CONTROL CENTER",
+		"notifications": "NOTIFICATION PANEL",
+		"wallpapers": "WALLPAPERS"
+	}
+	var descriptions := {
+		"app_drawer": "Preview the installed-app drawer for the selected operating-system generation.",
+		"control_center": "Preview the quick settings and controls for the selected operating-system generation.",
+		"notifications": "Preview notifications and their presentation for the selected generation.",
+		"wallpapers": "Preview the wallpaper appearance used by the selected operating-system generation."
+	}
+	var heading := _label(str(titles.get(component_id, "OS COMPONENT")), 20, Color("#D3AA6B"))
+	heading.name = "ComponentStudioHeroTitle"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(heading)
+	var description := _label(str(descriptions.get(component_id, "Preview this OS component.")), 12, Color("#D0CBC2"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(description)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 22
+	content.add_child(gap)
+	var hint := _label("The phone preview shows the live component. Component-specific controls can be added here without changing the selected OS.", 11, Color("#A6A096"))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(hint)
+	var refresh_button := Button.new()
+	refresh_button.name = "RegenerateComponentPreviewButton"
+	refresh_button.text = "REFRESH DESIGN"
+	refresh_button.custom_minimum_size.y = 44
+	_style_button(refresh_button)
+	refresh_button.pressed.connect(_regenerate_selected_component)
+	content.add_child(refresh_button)
 
 func _apply_approved_home_screen_layout() -> void:
+	if generated_os_configuration.is_empty():
+		return
+	generated_os_configuration["generation"] = home_generation
 	var components: Dictionary = generated_os_configuration.get("components", {})
 	var home_data: Dictionary = components.get("home_screen", {})
 	var layout_index := clampi(home_screen_layout_level, 0, ProceduralOSEngineScript.HOME_LAYOUT_STYLES.size() - 1)
@@ -442,84 +623,35 @@ func _apply_approved_home_screen_layout() -> void:
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.update_configuration(generated_os_configuration)
 		os_preview_simulator.set_home_screen_corner_radius(float(home_screen_corner_radius))
-		os_preview_simulator.set_component_view("home_screen")
 
 
 func _show_home_screen_studio_controls() -> void:
 	if not is_instance_valid(selection_panel):
 		return
 	selected_os_component_id = "home_screen"
-	for child in selection_panel.get_children():
-		selection_panel.remove_child(child)
-		child.queue_free()
+	_clear_selection_controls()
 
 	var content := VBoxContainer.new()
 	content.name = "HomeScreenStudioControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.alignment = BoxContainer.ALIGNMENT_BEGIN
-	content.add_theme_constant_override("separation", 10)
+	content.add_theme_constant_override("separation", 12)
 	selection_panel.add_child(content)
 
 	var heading := _label("HOME SCREEN", 22, Color("#D3AA6B"))
 	heading.name = "HomeScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description := _label("Choose from three complete phone operating-system designs.", 12, Color("#D0CBC2"))
+	var description := _label("Customize the selected layout's home-screen presentation.", 12, Color("#D0CBC2"))
 	description.name = "HomeScreenHeroDescription"
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
 
 	var hero_gap := Control.new()
-	hero_gap.name = "HomeScreenHeroGap"
-	hero_gap.custom_minimum_size = Vector2(0, 52)
+	hero_gap.custom_minimum_size.y = 32
 	content.add_child(hero_gap)
-
-	var selector_center := CenterContainer.new()
-	selector_center.name = "HomeScreenLayoutSelectorCenter"
-	selector_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selector_center.custom_minimum_size.y = 360
-	content.add_child(selector_center)
-	var selector_stack := VBoxContainer.new()
-	selector_stack.name = "HomeScreenLayoutSelectorStack"
-	selector_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	selector_stack.add_theme_constant_override("separation", 8)
-	selector_center.add_child(selector_stack)
-	var selector := HBoxContainer.new()
-	selector.name = "HomeScreenLayoutSelector"
-	selector.alignment = BoxContainer.ALIGNMENT_CENTER
-	selector.add_theme_constant_override("separation", 14)
-	selector_stack.add_child(selector)
-
-	home_screen_layout_decrease_button = Button.new()
-	home_screen_layout_decrease_button.name = "DecreaseHomeScreenLayoutButton"
-	home_screen_layout_decrease_button.text = "−"
-	home_screen_layout_decrease_button.custom_minimum_size = Vector2(56, 48)
-	home_screen_layout_decrease_button.focus_mode = Control.FOCUS_NONE
-	_style_button(home_screen_layout_decrease_button)
-	home_screen_layout_decrease_button.pressed.connect(_on_home_screen_layout_decrease_pressed)
-	selector.add_child(home_screen_layout_decrease_button)
-
-	home_screen_layout_value_label = _label("LAYOUT 1", 19, Color.WHITE)
-	home_screen_layout_value_label.name = "HomeScreenLayoutValueLabel"
-	home_screen_layout_value_label.custom_minimum_size.x = 190
-	home_screen_layout_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	selector.add_child(home_screen_layout_value_label)
-
-	home_screen_layout_increase_button = Button.new()
-	home_screen_layout_increase_button.name = "IncreaseHomeScreenLayoutButton"
-	home_screen_layout_increase_button.text = "+"
-	home_screen_layout_increase_button.custom_minimum_size = Vector2(56, 48)
-	home_screen_layout_increase_button.focus_mode = Control.FOCUS_NONE
-	_style_button(home_screen_layout_increase_button)
-	home_screen_layout_increase_button.pressed.connect(_on_home_screen_layout_increase_pressed)
-	selector.add_child(home_screen_layout_increase_button)
-	home_screen_layout_family_label = _label("GOOGLE PIXEL", 10, Color("#D3AA6B"))
-	home_screen_layout_family_label.name = "HomeScreenLayoutFamilyLabel"
-	home_screen_layout_family_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	selector_stack.add_child(home_screen_layout_family_label)
-	_refresh_home_screen_layout_selector()
 
 	var radius_row := HBoxContainer.new()
 	radius_row.name = "HomeScreenCornerRadiusControl"
@@ -554,7 +686,6 @@ func _show_home_screen_studio_controls() -> void:
 	radius_row.add_child(radius_value)
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.set_home_screen_corner_radius(float(home_screen_corner_radius))
-
 
 func _style_custom_slider(slider: Slider) -> void:
 	# Exact premium slider styling shared with Phone Creation.
@@ -598,13 +729,21 @@ func _on_home_screen_layout_decrease_pressed() -> void:
 	if home_screen_layout_level <= 0:
 		return
 	home_screen_layout_level -= 1
-	_refresh_home_screen_layout_selector()
+	_apply_layout_selection()
 
 
 func _on_home_screen_layout_increase_pressed() -> void:
 	if home_screen_layout_level >= ProceduralOSEngineScript.HOME_LAYOUT_STYLES.size() - 1:
 		return
 	home_screen_layout_level += 1
+	_apply_layout_selection()
+
+
+func _apply_layout_selection() -> void:
+	device_powered_on = false
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.visible = false
+	_apply_approved_home_screen_layout()
 	_refresh_home_screen_layout_selector()
 
 
@@ -619,6 +758,16 @@ func _refresh_home_screen_layout_selector() -> void:
 		home_screen_layout_decrease_button.disabled = home_screen_layout_level == 0
 	if is_instance_valid(home_screen_layout_increase_button):
 		home_screen_layout_increase_button.disabled = home_screen_layout_level == last_layout_index
+	if is_instance_valid(generation_value_label):
+		generation_value_label.text = "GENERATION %02d" % home_generation
+	if is_instance_valid(generation_description_label):
+		var layout_name := ["ANDROID", "iOS", "WINDOWS PHONE"][home_screen_layout_level]
+		var generation_name := "ANDROID 5.0 LOLLIPOP" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "%s GENERATION %02d" % [layout_name, home_generation]
+		generation_description_label.text = generation_name
+	if is_instance_valid(generation_decrease_button):
+		generation_decrease_button.disabled = home_generation <= 1
+	if is_instance_valid(generation_increase_button):
+		generation_increase_button.disabled = home_generation >= MAX_SELECTABLE_GENERATION
 	_apply_approved_home_screen_layout()
 
 
@@ -921,11 +1070,37 @@ func _run_boot_sequence() -> void:
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.visible = true
 		os_preview_simulator.set_component_view("lock_screen")
-	_set_wizard_step(2)
+	_set_wizard_step(3)
 	boot_completed.emit()
 
 func _on_os_generation_selected(index: int) -> void:
-	home_generation = clampi(index + 1, 1, 3)
+	home_generation = clampi(index + 1, 1, MAX_SELECTABLE_GENERATION)
+	_apply_generation_selection()
+
+
+func _on_generation_decrease_pressed() -> void:
+	if home_generation <= 1:
+		return
+	home_generation -= 1
+	_apply_generation_selection()
+
+
+func _on_generation_increase_pressed() -> void:
+	if home_generation >= MAX_SELECTABLE_GENERATION:
+		return
+	home_generation += 1
+	_apply_generation_selection()
+
+
+func _apply_generation_selection() -> void:
+	device_powered_on = false
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.visible = false
+	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
+	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
+	_apply_bootloader_settings_to_configuration()
+	_apply_approved_home_screen_layout()
+	_refresh_home_screen_layout_selector()
 	_set_os_generation_status("GENERATION %02d SELECTED" % home_generation)
 
 func _on_os_component_selected(index: int) -> void:
@@ -1063,29 +1238,35 @@ func _style_button(button: Button) -> void:
 
 
 func _set_wizard_step(step: int) -> void:
-	current_wizard_step = clampi(step, 1, 3)
+	current_wizard_step = clampi(step, 1, WIZARD_STEP_COUNT)
+	if current_wizard_step >= 3 and not device_powered_on:
+		current_wizard_step = 2
 	if current_wizard_step == 1:
-		_build_bootloader_controls_only()
-	elif not device_powered_on:
-		current_wizard_step = 1
-		_build_bootloader_controls_only()
-	elif current_wizard_step == 2:
-		selected_os_component_id = "lock_screen"
-		if is_instance_valid(os_preview_simulator):
-			os_preview_simulator.visible = true
-			os_preview_simulator.set_component_view("lock_screen")
-		_show_lock_screen_studio_controls()
-	else:
 		selected_os_component_id = "home_screen"
-		_apply_approved_home_screen_layout()
+		if is_instance_valid(os_preview_simulator):
+			os_preview_simulator.visible = false
+		_build_os_selection_controls()
+	elif current_wizard_step == 2:
+		if is_instance_valid(os_preview_simulator):
+			os_preview_simulator.visible = device_powered_on
+		_build_bootloader_controls_only()
+	else:
+		var component_index := current_wizard_step - 3
+		selected_os_component_id = str(CUSTOMIZATION_COMPONENTS[component_index])
 		if is_instance_valid(os_preview_simulator):
 			os_preview_simulator.visible = true
-			os_preview_simulator.set_component_view("home_screen")
-		_show_home_screen_studio_controls()
+			os_preview_simulator.set_component_view(selected_os_component_id)
+		match selected_os_component_id:
+			"lock_screen":
+				_show_lock_screen_studio_controls()
+			"home_screen":
+				_show_home_screen_studio_controls()
+			_:
+				_show_component_studio_controls(selected_os_component_id)
 	if is_instance_valid(progress_number):
-		progress_number.text = "STEP %d / 3" % current_wizard_step
+		progress_number.text = "STEP %d / %d" % [current_wizard_step, WIZARD_STEP_COUNT]
 	if is_instance_valid(progress_bar):
-		progress_bar.max_value = 3
+		progress_bar.max_value = WIZARD_STEP_COUNT
 		progress_bar.value = current_wizard_step
 	_keep_step_navigation_active()
 
@@ -1099,12 +1280,16 @@ func _keep_step_navigation_active() -> void:
 		navigation_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		navigation_bar.z_index = 1000
 		navigation_bar.z_as_relative = false
+	if is_instance_valid(left_power_region):
+		left_power_region.visible = current_wizard_step == 2
 	if is_instance_valid(wizard_back_button):
 		wizard_back_button.disabled = current_wizard_step <= 1
 		wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		wizard_back_button.modulate.a = 0.42 if wizard_back_button.disabled else 1.0
 	if is_instance_valid(next_button):
-		next_button.disabled = current_wizard_step >= 3 or not device_powered_on
+		var boot_step_waiting := current_wizard_step == 2 and not device_powered_on
+		var customization_waiting := current_wizard_step >= 3 and not device_powered_on
+		next_button.disabled = current_wizard_step >= WIZARD_STEP_COUNT or boot_step_waiting or customization_waiting
 		next_button.mouse_filter = Control.MOUSE_FILTER_STOP
 		next_button.modulate.a = 0.42 if next_button.disabled else 1.0
 
@@ -1114,5 +1299,9 @@ func _on_wizard_back_pressed() -> void:
 
 
 func _on_next_pressed() -> void:
-	if current_wizard_step < 3 and device_powered_on:
+	if current_wizard_step == 1:
+		_set_wizard_step(2)
+	elif current_wizard_step == 2 and device_powered_on:
+		_set_wizard_step(3)
+	elif current_wizard_step >= 3 and current_wizard_step < WIZARD_STEP_COUNT and device_powered_on:
 		_set_wizard_step(current_wizard_step + 1)
