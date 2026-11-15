@@ -1019,6 +1019,27 @@ func _build_lollipop_overview() -> void:
 	add_child(overlay)
 	_gesture_overlay = overlay
 
+	# Keep the three-button system navigation above the Overview task layer.
+	# The original footer can be covered by the full-screen task overlay on
+	# some simulator sizes, so temporarily replace it with a top-level footer.
+	var original_navigation_bar := find_child("AndroidNavigationBar", true, false) as Control
+	if is_instance_valid(original_navigation_bar):
+		original_navigation_bar.visible = false
+	var overview_navigation_footer := VBoxContainer.new()
+	overview_navigation_footer.name = "LollipopOverviewNavigationFooter"
+	overview_navigation_footer.anchor_left = 0.0
+	overview_navigation_footer.anchor_right = 1.0
+	overview_navigation_footer.anchor_top = 1.0
+	overview_navigation_footer.anchor_bottom = 1.0
+	overview_navigation_footer.offset_left = 0.0
+	overview_navigation_footer.offset_right = 0.0
+	overview_navigation_footer.offset_top = -46.0
+	overview_navigation_footer.offset_bottom = 0.0
+	overview_navigation_footer.z_as_relative = false
+	overview_navigation_footer.z_index = 100
+	add_child(overview_navigation_footer)
+	_build_android_navigation(overview_navigation_footer, true)
+
 	# Lollipop Overview sits over the launcher wallpaper, not a solid panel.
 	var background := ColorRect.new()
 	background.name = "LollipopOverviewBackground"
@@ -1348,6 +1369,12 @@ func _close_gesture_overlay() -> void:
 		_gesture_overlay.queue_free()
 	_gesture_overlay = null
 	if was_lollipop_overview:
+		var overview_navigation_footer := find_child("LollipopOverviewNavigationFooter", true, false) as Control
+		if is_instance_valid(overview_navigation_footer):
+			overview_navigation_footer.queue_free()
+		var original_navigation_bar := find_child("AndroidNavigationBar", true, false) as Control
+		if is_instance_valid(original_navigation_bar):
+			original_navigation_bar.visible = true
 		_set_lollipop_overview_underlay_visible(true)
 
 
