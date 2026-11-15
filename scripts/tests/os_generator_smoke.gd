@@ -611,7 +611,158 @@ func _run_os_generator_test() -> void:
 	if rounded_mask == null or not is_equal_approx(float(rounded_mask.get("corner_radius")), 22.0):
 		_fail("All four display corners must use the same rounded screen mask.")
 		return
-	simulator.set_component_view("home_screen")
+
+	# Android 9 Pie owns independent screens and interactions; Oreo and Lollipop stay unchanged.
+	var pie_test_config := ProceduralEngineScript.generate_os(8303, 3)
+	simulator.configure_os(pie_test_config, "lock_screen")
+	await process_frame
+	for pie_lock_name in ["PieLockScreen", "PieLockScreenClock", "PieLockScreenDate", "PieLockWeather", "PieLockBatteryInfo", "PieLockNotification_Messages", "PieLockNotification_Calendar", "PieAssistantShortcut", "PieCameraShortcut"]:
+		if simulator.find_child(pie_lock_name, true, false) == null:
+			_fail("Android 9 Pie lock screen is missing: " + pie_lock_name)
+			return
+	var pie_lock_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
+	if pie_lock_status_clock == null or pie_lock_status_clock.visible:
+		_fail("Android 9 Pie lock screen should show only its large lock-screen clock.")
+		return
+
+	# Unlock swipe opens Pie's PIN keypad, then a valid PIN returns to the home screen.
+	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 105), 140)
+	await process_frame
+	if simulator.find_child("PiePINInputScreen", true, false) == null:
+		_fail("Android 9 Pie lock screen swipe did not open its dedicated PIN input screen.")
+		return
+	for pie_digit in ["1", "2", "3", "4"]:
+		var pie_key := simulator.find_child("PINKey_" + pie_digit, true, false) as Button
+		if pie_key == null:
+			_fail("Android 9 Pie PIN keypad is missing digit " + pie_digit + ".")
+			return
+		pie_key.pressed.emit()
+		await process_frame
+	if simulator.get("active_component") != "home_screen":
+		_fail("Android 9 Pie PIN 1234 did not unlock to its Pixel home screen.")
+		return
+
+	# Pie app drawer uses a search field, suggested apps and a vertical all-apps list.
+	simulator.configure_os(pie_test_config, "app_drawer")
+	await process_frame
+	var pie_drawer_search := simulator.find_child("PieAppDrawerSearchField", true, false) as LineEdit
+	var pie_drawer_grid := simulator.find_child("PieAppDrawerGrid", true, false) as GridContainer
+	if pie_drawer_search == null or pie_drawer_grid == null or pie_drawer_grid.columns != 5:
+		_fail("Android 9 Pie app drawer must render its search field and five-column apps grid.")
+		return
+	if simulator.find_child("PieSuggestedAppsRow", true, false) == null or simulator.find_child("PieAppDrawerAllAppsHeading", true, false) == null:
+		_fail("Android 9 Pie app drawer is missing suggested apps or the All apps heading.")
+		return
+	var pie_drawer_initial_count := pie_drawer_grid.get_child_count()
+	pie_drawer_search.text_changed.emit("Calendar")
+	await process_frame
+	if pie_drawer_grid.get_child_count() == 0 or pie_drawer_grid.get_child_count() >= pie_drawer_initial_count:
+		_fail("Android 9 Pie app drawer search did not filter the installed apps.")
+		return
+	pie_drawer_search.text_changed.emit("")
+	await process_frame
+
+	# Dedicated notification and expanded Quick Settings previews.
+	simulator.configure_os(pie_test_config, "notifications")
+	await process_frame
+	if simulator.find_child("PieNotificationPreview", true, false) == null or simulator.find_child("PieNotification_Messages", true, false) == null or simulator.find_child("PieNotificationQuickSettingsGrid", true, false) == null:
+		_fail("Android 9 Pie Notification Panel preview is incomplete.")
+		return
+	simulator.configure_os(pie_test_config, "control_center")
+	await process_frame
+	var pie_control_grid := simulator.find_child("PieExpandedQuickSettingsGrid", true, false) as GridContainer
+	if simulator.find_child("PieControlCenterPreview", true, false) == null or pie_control_grid == null or pie_control_grid.get_child_count() != 9 or simulator.find_child("PieBrightnessSlider", true, false) == null:
+		_fail("Android 9 Pie expanded Quick Settings preview must show nine circular tiles and brightness.")
+		return
+	var pie_preview_wifi := simulator.find_child("PieQuickTile_Wi-Fi", true, false) as Button
+	if pie_preview_wifi == null:
+		_fail("Android 9 Pie Quick Settings is missing its Wi-Fi toggle.")
+		return
+
+	# Exercise the real two-stage pull-down: notification shade first, full Quick Settings second.
+	simulator.configure_os(pie_test_config, "home_screen")
+	await process_frame
+	simulator.call("_handle_system_gesture", Vector2(72, 2), Vector2(72, 75), 120)
+	await process_frame
+	var pie_notification_overlay := simulator.find_child("OSGestureOverlay_notifications", true, false) as Control
+	var pie_notification_grid := simulator.find_child("PieNotificationQuickSettingsGrid", true, false) as GridContainer
+	if pie_notification_overlay == null or pie_notification_grid == null or pie_notification_grid.get_child_count() != 6 or simulator.find_child("PieNotification_Messages", true, false) == null:
+		_fail("Android 9 Pie first pull must show six Quick Settings shortcuts and notification cards.")
+		return
+	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 235), 120)
+	await process_frame
+	var pie_expanded_overlay := simulator.find_child("OSGestureOverlay_control_center", true, false) as Control
+	var pie_expanded_grid := simulator.find_child("PieExpandedQuickSettingsGrid", true, false) as GridContainer
+	if pie_expanded_overlay == null or pie_expanded_grid == null or pie_expanded_grid.get_child_count() != 9 or simulator.find_child("PieBrightnessSlider", true, false) == null:
+		_fail("Second Android 9 Pie pull must expand to all nine Quick Settings tiles and brightness.")
+		return
+	var pie_wifi_toggle := simulator.find_child("PieQuickTile_Wi-Fi", true, false) as Button
+	var pie_wifi_before := bool(simulator.get("_quick_setting_states").get("Wi-Fi", false))
+	if pie_wifi_toggle == null:
+		_fail("Android 9 Pie expanded panel Wi-Fi tile is missing.")
+		return
+	pie_wifi_toggle.button_pressed = not pie_wifi_before
+	pie_wifi_toggle.toggled.emit(not pie_wifi_before)
+	if bool(simulator.get("_quick_setting_states").get("Wi-Fi", pie_wifi_before)) == pie_wifi_before:
+		_fail("Android 9 Pie Quick Settings tile did not retain its toggled state.")
+		return
+	simulator.call("_handle_system_gesture", Vector2(72, 235), Vector2(72, 150), 120)
+	await process_frame
+	if simulator.find_child("OSGestureOverlay_control_center", true, false) != null:
+		_fail("Swipe-up did not collapse Android 9 Pie Quick Settings.")
+		return
+
+	# Pixel Pie Overview is a horizontal task carousel, and swiping up dismisses cards.
+	simulator.call("_on_app_pressed", "Settings")
+	simulator.call("_on_app_pressed", "Messages")
+	var pie_overview_button := simulator.find_child("PieNavigationOverview", true, false) as Button
+	if pie_overview_button == null:
+		_fail("Android 9 Pie is missing its Overview navigation button.")
+		return
+	pie_overview_button.pressed.emit()
+	await process_frame
+	var pie_overview := simulator.find_child("OSGestureOverlay_recent_apps", true, false) as Control
+	var pie_carousel := simulator.find_child("PieRecentAppsCarousel", true, false) as ScrollContainer
+	var pie_messages_card := simulator.find_child("PieRecentAppsCard_Messages", true, false) as Button
+	var pie_settings_card := simulator.find_child("PieRecentAppsCard_Settings", true, false) as Button
+	if pie_overview == null or pie_carousel == null or pie_messages_card == null or pie_settings_card == null:
+		_fail("Android 9 Pie Overview must show horizontally scrollable app snapshot cards.")
+		return
+	if pie_carousel.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO or pie_carousel.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_fail("Android 9 Pie Recent Apps must use a horizontal, not vertical, task carousel.")
+		return
+	if simulator.find_child("PieOverviewNavigationFooter", true, false) == null or simulator.find_child("PieNavigationBack", true, false) == null or simulator.find_child("PieNavigationHome", true, false) == null or simulator.find_child("PieNavigationOverview", true, false) == null:
+		_fail("Android 9 Pie Recent Apps must keep all three navigation buttons visible.")
+		return
+	var pie_original_navigation := simulator.find_child("PieNavigationBar", true, false) as Control
+	var pie_home_content := simulator.find_child("OSComponentContent", true, false) as Control
+	if pie_original_navigation == null or pie_original_navigation.visible or pie_home_content == null or pie_home_content.visible:
+		_fail("Pie Overview must place the navigation footer above cards and hide the launcher underneath.")
+		return
+	simulator.call("_handle_system_gesture", Vector2(72, 250), Vector2(72, 180), 130)
+	await process_frame
+	if simulator.find_child("PieRecentAppsCard_Messages", true, false) != null or simulator.find_child("PieRecentAppsCard_Settings", true, false) == null:
+		_fail("Swiping a Pie recent-app card upward must dismiss only that task.")
+		return
+	simulator.call("_handle_system_gesture", Vector2(72, 250), Vector2(72, 180), 130)
+	await process_frame
+	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("PieRecentAppsEmptyState", true, false) == null:
+		_fail("Dismissing the final Pie recent app must leave the Overview surface, not exit it.")
+		return
+	var pie_back_button := simulator.find_child("PieNavigationBack", true, false) as Button
+	if pie_back_button == null:
+		_fail("Pie Overview lost its Back navigation button after dismissing tasks.")
+		return
+	pie_back_button.pressed.emit()
+	await process_frame
+	pie_original_navigation = simulator.find_child("PieNavigationBar", true, false) as Control
+	pie_home_content = simulator.find_child("OSComponentContent", true, false) as Control
+	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null or pie_original_navigation == null or not pie_original_navigation.visible or pie_home_content == null or not pie_home_content.visible:
+		_fail("Closing Pie Overview must restore the original Pixel home screen and navigation bar.")
+		return
+
+	simulator.configure_os(generated, "home_screen")
+	await process_frame
 	await process_frame
 	if simulator.find_child("OSProceduralWallpaper", true, false) == null:
 		_fail("Simulator did not render its procedural OS wallpaper.")
