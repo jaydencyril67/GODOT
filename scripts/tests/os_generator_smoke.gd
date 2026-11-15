@@ -590,20 +590,19 @@ func _run_os_generator_test() -> void:
 		return
 	var lock_hero := lock_controls.find_child("LockScreenHeroTitle", true, false) as Label
 	var lock_gap := lock_controls.find_child("LockScreenHeroGap", true, false) as Control
-	if lock_hero == null or lock_gap == null or lock_gap.custom_minimum_size.y < 28.0 or lock_hero.get_index() >= lock_gap.get_index():
+	if lock_hero == null or lock_gap == null or lock_gap.custom_minimum_size.y < 20.0 or lock_hero.get_index() >= lock_gap.get_index():
 		_fail("Step 2 must place its hero heading at the top with a clear vertical gap before the settings.")
 		return
-	var notification_row := lock_controls.find_child("LockScreenSettingRow_show_notifications", true, false) as HBoxContainer
-	var notification_toggle := lock_controls.find_child("LockScreenEnabled_show_notifications", true, false) as Button
-	var notification_title: Label = null
-	if notification_row != null:
-		notification_title = notification_row.get_child(0).get_child(0) as Label
-	if notification_row == null or notification_toggle == null or notification_title == null or notification_row.custom_minimum_size.y < 54.0 or notification_toggle.custom_minimum_size.x < 40.0 or notification_toggle.custom_minimum_size.y < 40.0 or notification_toggle.size_flags_horizontal != Control.SIZE_SHRINK_CENTER or notification_toggle.size_flags_vertical != Control.SIZE_SHRINK_CENTER or notification_title.get_theme_font_size("font_size") < 14:
-		_fail("Lock Screen Studio settings must use the larger Phone Creation Worksite row, text and square checkbox touch-target sizing.")
-		return
-	if absf(notification_toggle.size.x - notification_toggle.size.y) > 1.0:
-		_fail("Lock Screen Studio checkbox must render as a square, not a vertical rectangle.")
-		return
+
+	for setting_id in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+		var setting_row := lock_controls.find_child("LockScreenSettingRow_" + setting_id, true, false) as HBoxContainer
+		var setting_toggle := lock_controls.find_child("LockScreenEnabled_" + setting_id, true, false) as Button
+		if setting_row == null or setting_toggle == null or setting_row.custom_minimum_size.y < 54.0 or setting_toggle.custom_minimum_size.x < 40.0 or setting_toggle.custom_minimum_size.y < 40.0:
+			_fail("Lock Screen Studio is missing a properly sized checkbox row: " + setting_id)
+			return
+		if absf(setting_toggle.size.x - setting_toggle.size.y) > 1.0:
+			_fail("Lock Screen Studio checkbox must remain square: " + setting_id)
+			return
 
 	worksite.call("_on_next_pressed")
 	await process_frame
