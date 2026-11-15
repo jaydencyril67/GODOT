@@ -94,7 +94,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 			"icon_size": [48, 52, 56][generation_number - 1],
 			"grid_columns": columns,
 			"corner_radius": [0, 6, 18][generation_number - 1],
-			"widget_count": [0, 2, 4][generation_number - 1],
+			"widget_count": [0, 2, 1][generation_number - 1],
 			"spacing": [8, 10, 12][generation_number - 1],
 			"wallpaper": wallpaper_id,
 			"animation_speed": [0.20, 0.24, 0.28][generation_number - 1],
@@ -190,7 +190,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		icon_shape = "rounded"
 	style["icon_shape"] = icon_shape
 	style["corner_radius"] = [0, 6, 18][generation_number - 1]
-	style["widget_count"] = [0, 2, 4][generation_number - 1]
+	style["widget_count"] = [0, 2, 1][generation_number - 1]
 	style["spacing"] = clampi(int(style.get("spacing", 10)), 4, 20)
 	style["animation_speed"] = clampf(float(style.get("animation_speed", 0.24)), 0.08, 0.6)
 	style["font_scale"] = clampf(float(style.get("font_scale", 1.0)), 0.85, 1.2)
