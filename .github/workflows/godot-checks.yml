@@ -74,6 +74,14 @@ jobs:
             exit 1
           fi
 
+          # Parse the simulator directly first so Godot reports its actual source line,
+          # rather than only the downstream preload failure in os_creation_worksite.gd.
+          godot --headless --path . --check-only --script res://scripts/os/os_preview_simulator.gd 2>&1 | tee os-preview-parse.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' os-preview-parse.log; then
+            echo "Godot reported a direct OS simulator script parse error."
+            exit 1
+          fi
+
           # Reopen with the real project theme enabled and validate its resources.
           godot --headless --editor --path . --quit 2>&1 | tee godot-parse.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' godot-parse.log; then
