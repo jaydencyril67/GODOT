@@ -971,7 +971,7 @@ func _run_os_generator_test() -> void:
 	worksite.call("_on_next_pressed")
 	await process_frame
 	var boot_controls := worksite.find_child("BootLoaderOnlyControls", true, false) as VBoxContainer
-	if boot_controls == null or selection_controls.is_inside_tree():
+	if boot_controls == null or is_instance_valid(selection_controls):
 		_fail("Step 2 must switch from OS selection to Boot Loader controls.")
 		return
 	if boot_controls.alignment != BoxContainer.ALIGNMENT_BEGIN:
