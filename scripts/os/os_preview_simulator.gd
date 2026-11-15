@@ -1172,7 +1172,6 @@ func _build_lollipop_overview() -> void:
 	# Older tasks recede upwards, as they do in Android 5.0 Overview.
 	var visible_count := mini(_recent_app_names.size(), 6)
 	var card_width := maxf(140.0, size.x - 22.0)
-	var card_height := maxf(190.0, size.y * 0.72)
 	var base_x := (size.x - card_width) * 0.5
 	var base_y := 82.0
 	var stack_step := 29.0
