@@ -1,7 +1,7 @@
 extends RefCounted
 class_name ProceduralOSEngine
 
-const SCHEMA_VERSION := 7
+const SCHEMA_VERSION := 8
 
 const COMPONENTS := [
 	{"id": "home_screen", "title": "Home Screen"},
