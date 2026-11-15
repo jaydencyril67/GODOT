@@ -330,6 +330,12 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 		set_component_view("pin_input")
 		return
 
+	# Android uses physical-style Back, Home and Overview buttons. Keep
+	# top-edge notification/quick-settings pulls and lock-screen unlock swipe,
+	# but do not interpret bottom or side swipes as system navigation.
+	if _is_android_os():
+		return
+
 	if start.y >= size.y - edge_size and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
 		if elapsed_ms >= 420:
 			_show_gesture_overlay("recent_apps")
@@ -633,6 +639,57 @@ func _safe_component_id(component_id: String) -> String:
 			return component_id
 	return "home_screen"
 
+
+func _is_android_os() -> bool:
+	var layout_style := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel"))
+	return layout_style == "android_pixel"
+
+
+func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false) -> void:
+	var navigation_keys := HBoxContainer.new()
+	navigation_keys.name = "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
+	navigation_keys.custom_minimum_size.y = 24
+	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation_keys.add_theme_constant_override("separation", 25)
+	var is_light_surface := active_component == "app_drawer" and use_lollipop_style
+	var navigation_color := Color("#666666") if is_light_surface else _text_color()
+	for key_data in [["Back", "◁"], ["Home", "○"], ["Overview", "□"]]:
+		var key := Button.new()
+		key.name = ("LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + str(key_data[0])
+		key.text = str(key_data[1])
+		key.tooltip_text = str(key_data[0])
+		key.custom_minimum_size = Vector2(28, 24)
+		key.add_theme_font_size_override("font_size", 16)
+		key.add_theme_color_override("font_color", navigation_color)
+		key.add_theme_color_override("font_hover_color", navigation_color)
+		var transparent := StyleBoxEmpty.new()
+		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+			key.add_theme_stylebox_override(state_name, transparent)
+		key.focus_mode = Control.FOCUS_NONE
+		match str(key_data[0]):
+			"Back":
+				key.pressed.connect(_navigate_back)
+			"Home":
+				key.pressed.connect(_navigate_home)
+			"Overview":
+				key.pressed.connect(func(): set_component_view("recent_apps"))
+		navigation_keys.add_child(key)
+
+	if is_light_surface:
+		var navigation_surface := PanelContainer.new()
+		navigation_surface.name = "LollipopAppDrawerNavigationSurface"
+		navigation_surface.custom_minimum_size.y = 26
+		var surface_style := StyleBoxFlat.new()
+		surface_style.bg_color = Color("#FAFAFA")
+		surface_style.set_border_width_all(0)
+		surface_style.set_corner_radius_all(0)
+		navigation_surface.add_theme_stylebox_override("panel", surface_style)
+		navigation_surface.add_child(navigation_keys)
+		parent.add_child(navigation_surface)
+	else:
+		parent.add_child(navigation_keys)
+
+
 func _build_shell() -> void:
 	if _building:
 		return
@@ -694,6 +751,12 @@ func _build_shell() -> void:
 		page_container.add_theme_constant_override("separation", 4)
 		lock_shell.add_child(page_container)
 		_build_component(active_component)
+		if _is_android_os():
+			var lock_navigation_footer := VBoxContainer.new()
+			lock_navigation_footer.name = "OSNavigationFooter"
+			lock_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_build_android_navigation(lock_navigation_footer, int(configuration.get("generation", 2)) == 1)
+			lock_shell.add_child(lock_navigation_footer)
 		_building = false
 		return
 
@@ -751,47 +814,8 @@ func _build_shell() -> void:
 		var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "ios_grid"))
 		if home_layout != "windows_tiles":
 			_build_home_dock(footer)
-	var is_lollipop_navigation := int(configuration.get("generation", 2)) == 1 and active_component in ["home_screen", "app_drawer"] and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
-	if is_lollipop_navigation:
-		var navigation_keys := HBoxContainer.new()
-		navigation_keys.name = "LollipopThreeButtonNavigation"
-		navigation_keys.custom_minimum_size.y = 22
-		navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
-		navigation_keys.add_theme_constant_override("separation", 25)
-		var navigation_color := Color("#666666") if active_component == "app_drawer" else Color("#FFFFFF")
-		for key_data in [["Back", "◁"], ["Home", "○"], ["Overview", "□"]]:
-			var key := Button.new()
-			key.name = "LollipopNavigation" + str(key_data[0])
-			key.text = str(key_data[1])
-			key.custom_minimum_size = Vector2(24, 20)
-			key.add_theme_font_size_override("font_size", 15)
-			key.add_theme_color_override("font_color", navigation_color)
-			key.add_theme_color_override("font_hover_color", navigation_color)
-			var transparent := StyleBoxEmpty.new()
-			for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
-				key.add_theme_stylebox_override(state_name, transparent)
-			key.focus_mode = Control.FOCUS_NONE
-			match str(key_data[0]):
-				"Back":
-					key.pressed.connect(func(): set_component_view("home_screen"))
-				"Home":
-					key.pressed.connect(func(): set_component_view("home_screen"))
-				"Overview":
-					key.pressed.connect(func(): set_component_view("recent_apps"))
-			navigation_keys.add_child(key)
-		if active_component == "app_drawer":
-			var navigation_surface := PanelContainer.new()
-			navigation_surface.name = "LollipopAppDrawerNavigationSurface"
-			navigation_surface.custom_minimum_size.y = 24
-			var navigation_surface_style := StyleBoxFlat.new()
-			navigation_surface_style.bg_color = Color("#FAFAFA")
-			navigation_surface_style.set_border_width_all(0)
-			navigation_surface_style.set_corner_radius_all(0)
-			navigation_surface.add_theme_stylebox_override("panel", navigation_surface_style)
-			navigation_surface.add_child(navigation_keys)
-			footer.add_child(navigation_surface)
-		else:
-			footer.add_child(navigation_keys)
+	if _is_android_os():
+		_build_android_navigation(footer, int(configuration.get("generation", 2)) == 1)
 	else:
 		var indicator_alignment := CenterContainer.new()
 		indicator_alignment.name = "OSNavigationIndicatorArea"
