@@ -278,12 +278,15 @@ func _run_os_generator_test() -> void:
 		simulator.set_component_view("pin_input")
 		await process_frame
 		var pin_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
-		if pin_navigation == null or pin_navigation.get_child_count() != 1:
-			_fail("Android PIN entry must display only the Back navigation button.")
+		if pin_navigation == null or pin_navigation.get_child_count() != 3:
+			_fail("Android PIN entry must reserve the same three navigation positions while displaying only Back.")
 			return
-		var pin_back_button := pin_navigation.get_child(0) as Button
+		var pin_back_button := pin_navigation.get_child(2) as Button
 		if pin_back_button == null or str(pin_back_button.get("action_name")) != "Back":
-			_fail("Android PIN entry navigation button must be Back only.")
+			_fail("Android PIN entry Back button must occupy the rightmost three-button navigation position.")
+			return
+		if pin_navigation.get_child(0) is Button or pin_navigation.get_child(1) is Button:
+			_fail("Android PIN entry must keep Home and Overview hidden while reserving their navigation positions.")
 			return
 		simulator.configure_os(generation_preview, "home_screen")
 		await process_frame
