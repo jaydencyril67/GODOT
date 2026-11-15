@@ -510,47 +510,6 @@ func _navigate_back() -> void:
 		_navigate_home()
 
 
-func _dismiss_pie_overview_top_card() -> void:
-	_dismiss_overview_top_card()
-
-
-func _build_android_pie_overview() -> void:
-	# Reuse the task-deck implementation so swipe dismissal and navigation
-	# cleanup remain consistent with the existing overview lifecycle.
-	_build_lollipop_overview()
-
-
-func _build_android_pie_recent_apps_preview() -> void:
-	_add_section_label("ANDROID 9 OVERVIEW")
-	var recent_names := _recent_app_names.duplicate()
-	if recent_names.is_empty():
-		recent_names = ["Settings", "Camera", "Messages"]
-	for app_name in recent_names:
-		var app := _find_app(app_name)
-		if app.is_empty():
-			continue
-		var card := PanelContainer.new()
-		card.name = "PieRecentApp_" + app_name.replace(" ", "")
-		card.custom_minimum_size.y = 68
-		_style_surface(card, true)
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		card.add_child(row)
-		row.add_child(_create_app_icon(app, 28, false))
-		var details := VBoxContainer.new()
-		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		details.add_child(_label(app_name, 9, _text_color()))
-		details.add_child(_label(_lollipop_overview_preview_text(app_name), 7, _muted_color()))
-		row.add_child(details)
-		var close_button := Button.new()
-		close_button.text = "×"
-		close_button.custom_minimum_size = Vector2(28, 28)
-		_style_action_button(close_button)
-		close_button.pressed.connect(_dismiss_overview_task.bind(app_name))
-		row.add_child(close_button)
-		page_container.add_child(card)
-
-
 func _show_gesture_overlay(mode: String) -> void:
 	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
 		match mode:
