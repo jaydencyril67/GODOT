@@ -286,11 +286,21 @@ func _run_os_generator_test() -> void:
 			_fail("Android PIN entry must reserve the same three navigation positions while displaying only Back.")
 			return
 		var pin_back_button := pin_navigation.get_child(2) as Button
-		if pin_back_button == null or str(pin_back_button.get("action_name")) != "Back":
-			_fail("Android PIN entry Back button must occupy the rightmost three-button navigation position.")
+		if pin_back_button == null or pin_back_button.get_index() != 2 or str(pin_back_button.get("action_name")) != "Back":
+			_fail("Android PIN entry Back button must occupy the bottom-right, rightmost three-button navigation position.")
 			return
 		if pin_navigation.get_child(0) is Button or pin_navigation.get_child(1) is Button:
 			_fail("Android PIN entry must keep Home and Overview hidden while reserving their navigation positions.")
+			return
+		var pin_navigation_footer := pin_navigation.get_parent().get_parent() as VBoxContainer
+		var pin_shell := pin_navigation_footer.get_parent() as VBoxContainer if pin_navigation_footer != null else null
+		if pin_navigation_footer == null or pin_shell == null or pin_shell.get_child(pin_shell.get_child_count() - 1) != pin_navigation_footer:
+			_fail("PIN navigation footer must remain attached to the bottom of the PIN screen.")
+			return
+		pin_back_button.pressed.emit()
+		await process_frame
+		if simulator.get("active_component") != "lock_screen":
+			_fail("The bottom-right PIN Back button did not return to the lock screen.")
 			return
 		simulator.configure_os(generation_preview, "home_screen")
 		await process_frame
@@ -763,10 +773,19 @@ func _run_os_generator_test() -> void:
 		_fail("PIN screen did not clearly display the preview unlock PIN 1234.")
 		return
 	if pin_lock_indicator == null or pin_keypad == null or pin_keypad.columns != 3 or pin_keypad.get_child_count() != 12 or emergency_call == null:
-		_fail("PIN screen is missing its Samsung-style lock indicator, 3×4 keypad or emergency-call control.")
+		_fail("PIN screen is missing its lock indicator, responsive 3×4 keypad or emergency-call control.")
 		return
-	if pin_key_two == null or pin_key_two.size.x < 30.0 or pin_key_two.text != "2":
-		_fail("PIN digit buttons must display their number directly on the touch target.")
+	var pin_key_spacer := pin_keypad.get_child(9) as Control
+	var pin_key_zero := pin_keypad.get_child(10) as Button
+	var pin_key_delete := pin_keypad.get_child(11) as Button
+	if pin_key_spacer == null or pin_key_spacer is Button or pin_key_spacer.name != "PINKey_Spacer" or pin_key_zero == null or pin_key_zero.name != "PINKey_0" or pin_key_delete == null or pin_key_delete.name != "PINKey_Delete":
+		_fail("PIN keypad bottom row must place an empty slot, zero and Delete from left to right.")
+		return
+	if worksite_preview.find_child("PINKey_OK", true, false) != null:
+		_fail("PIN keypad must not show a redundant OK key when the fourth digit submits automatically.")
+		return
+	if pin_key_two == null or pin_key_two.size.x < 24.0 or pin_key_two.text != "2":
+		_fail("PIN digit buttons must display their number on a usable circular touch target.")
 		return
 	for digit_text in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
 		var visible_digit := worksite_preview.find_child("PINKey_" + digit_text, true, false) as Button
@@ -795,6 +814,14 @@ func _run_os_generator_test() -> void:
 		await process_frame
 	if worksite_preview.get("active_component") != "pin_input" or not pin_error.text.contains("Incorrect PIN"):
 		_fail("Incorrect PIN did not show an error while keeping the phone locked.")
+		return
+	var delete_test_key := worksite_preview.find_child("PINKey_1", true, false) as Button
+	delete_test_key.pressed.emit()
+	await process_frame
+	pin_key_delete.pressed.emit()
+	await process_frame
+	if str(worksite_preview.get("_entered_unlock_pin")) != "":
+		_fail("PIN Delete did not clear the last entered digit.")
 		return
 	for digit in ["1", "2", "3", "4"]:
 		var correct_key := worksite_preview.find_child("PINKey_" + digit, true, false) as Button
