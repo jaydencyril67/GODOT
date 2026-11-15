@@ -736,9 +736,17 @@ func _run_os_generator_test() -> void:
 		if bool(worksite.get("generated_os_configuration")["components"]["lock_screen"].get(setting_id, true)):
 			_fail("Lock Screen Studio checkbox did not save its disabled state: " + setting_id)
 			return
+		if setting_id == "show_date" and worksite_preview.find_child("LockScreenDate", true, false) != null:
+			_fail("Disabling Display Date must remove the date from the live lock-screen preview.")
+			return
 		setting_toggle.button_pressed = true
 		setting_toggle.toggled.emit(true)
 		await process_frame
+		if setting_id == "show_date":
+			var preview_date := worksite_preview.find_child("LockScreenDate", true, false) as Label
+			if preview_date == null or not preview_date.visible or preview_date.text.strip_edges().is_empty() or preview_date.custom_minimum_size.y < 20.0:
+				_fail("Enabling Display Date must render a visible, non-empty, properly sized date label in the live lock-screen preview.")
+				return
 	worksite_preview.call("_handle_system_gesture", Vector2(72, 300), Vector2(72, 220), 120)
 	await process_frame
 	if worksite_preview.get("active_component") != "pin_input":
