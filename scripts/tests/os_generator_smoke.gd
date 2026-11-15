@@ -260,8 +260,23 @@ func _run_os_generator_test() -> void:
 			return
 		simulator.configure_os(generation_preview, "lock_screen")
 		await process_frame
+		if simulator.find_child(expected_android_nav, true, false) != null:
+			_fail("Android lock screen must hide the three-button navigation bar.")
+			return
+		simulator.set_component_view("pin_input")
+		await process_frame
+		var pin_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
+		if pin_navigation == null or pin_navigation.get_child_count() != 1:
+			_fail("Android PIN entry must display only the Back navigation button.")
+			return
+		var pin_back_button := pin_navigation.get_child(0) as Button
+		if pin_back_button == null or str(pin_back_button.get("action_name")) != "Back":
+			_fail("Android PIN entry navigation button must be Back only.")
+			return
+		simulator.configure_os(generation_preview, "home_screen")
+		await process_frame
 		if simulator.find_child(expected_android_nav, true, false) == null:
-			_fail("Android three-button navigation must remain visible on the lock screen.")
+			_fail("Android navigation bar did not return after leaving the lock/PIN screens.")
 			return
 		if generation_number == 1:
 			simulator.configure_os(generation_preview, "home_screen")
