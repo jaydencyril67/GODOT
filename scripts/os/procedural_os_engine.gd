@@ -189,7 +189,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	# approved four switches; Oreo uses the Pixel 2 Assistant/notification set.
 	var obsolete_lock_keys := [
 		"show_audio_player", "show_fingerprint", "fingerprint_sensor_available",
-		"design_family", "layout_template", "clock_alignment", "clock_size",
+		"show_now_playing", "design_family", "layout_template", "clock_alignment", "clock_size",
 		"clock_weight", "clock_treatment", "date_treatment",
 		"notification_treatment", "audio_treatment", "shortcut_treatment",
 		"fingerprint_treatment", "show_unlock_hint", "unlock_treatment", "wallpaper"
@@ -199,7 +199,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if is_oreo_android:
 		lock_data.erase("show_flashlight_shortcut")
 	else:
-		for oreo_key in ["show_assistant_shortcut", "show_notifications", "show_now_playing"]:
+		for oreo_key in ["show_assistant_shortcut", "show_notifications"]:
 			lock_data.erase(oreo_key)
 	components["lock_screen"] = lock_data
 
@@ -237,7 +237,7 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	var lock_screen: Dictionary = config.get("components", {}).get("lock_screen", {})
 	var home_data: Dictionary = components.get("home_screen", {})
 	var is_oreo_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_now_playing"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
 	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
 			issues.append("Lock-screen setting is missing: " + lock_key)
@@ -282,8 +282,7 @@ static func _generate_lock_screen_component(_rng: RandomNumberGenerator, previou
 		"show_camera_shortcut": bool(previous.get("show_camera_shortcut", true)),
 		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true)),
 		"show_assistant_shortcut": bool(previous.get("show_assistant_shortcut", true)),
-		"show_notifications": bool(previous.get("show_notifications", true)),
-		"show_now_playing": bool(previous.get("show_now_playing", false))
+		"show_notifications": bool(previous.get("show_notifications", true))
 	}
 
 
