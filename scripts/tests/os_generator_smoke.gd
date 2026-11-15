@@ -517,16 +517,16 @@ func _run_os_generator_test() -> void:
 			simulator.update_configuration(drawer_config)
 			await process_frame
 			var search_field := simulator.find_child("AppDrawerSearchField", true, false) as LineEdit
-			var drawer_grid := simulator.find_child("AppDrawerGrid", true, false) as GridContainer
-			if search_field == null or drawer_grid == null:
+			var legacy_drawer_grid := simulator.find_child("AppDrawerGrid", true, false) as GridContainer
+			if search_field == null or legacy_drawer_grid == null:
 				_fail("App Drawer search field or icon grid was not attached to the visible UI tree.")
 				return
-			if drawer_grid.get_child_count() != 30:
+			if legacy_drawer_grid.get_child_count() != 30:
 				_fail("App Drawer did not render all 30 installed applications.")
 				return
 			search_field.text_changed.emit("Settings")
 			await process_frame
-			if drawer_grid.get_child_count() != 1:
+			if legacy_drawer_grid.get_child_count() != 1:
 				_fail("App Drawer search did not filter the installed applications.")
 				return
 			search_field.text_changed.emit("")
