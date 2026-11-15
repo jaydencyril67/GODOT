@@ -1297,13 +1297,13 @@ func _add_lollipop_overview_preview_row(parent: VBoxContainer, primary_text: Str
 	parent.add_child(row)
 
 
-func _set_lollipop_overview_underlay_visible(visible: bool) -> void:
+func _set_lollipop_overview_underlay_visible(should_show: bool) -> void:
 	var component_content := find_child("OSComponentContent", true, false) as Control
 	if is_instance_valid(component_content):
-		component_content.visible = visible
+		component_content.visible = should_show
 	var home_dock := find_child("HomeAppDockIcons", true, false) as Control
 	if is_instance_valid(home_dock):
-		home_dock.visible = visible
+		home_dock.visible = should_show
 
 
 func _lollipop_overview_preview_text(app_name: String) -> String:
