@@ -1471,7 +1471,7 @@ func _build_android_pie_overview() -> void:
 	navigation_footer.z_as_relative = false
 	navigation_footer.z_index = 100
 	add_child(navigation_footer)
-	_build_android_navigation(navigation_footer, false, false, true)
+	_build_android_navigation(navigation_footer, false, false, true, true)
 
 	var backdrop := ColorRect.new()
 	backdrop.name = "PieOverviewBackdrop"
@@ -2176,11 +2176,11 @@ func _is_android_os() -> bool:
 	return layout_style == "android_pixel"
 
 
-func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false, back_only: bool = false, use_pie_style: bool = false) -> void:
+func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false, back_only: bool = false, use_pie_style: bool = false, use_pie_overview: bool = false) -> void:
 	parent.add_theme_constant_override("separation", 0)
 	var is_light_surface := active_component == "app_drawer" and (use_lollipop_style or use_pie_style)
 	var navigation_bar := PanelContainer.new()
-	navigation_bar.name = "PieNavigationBar" if use_pie_style else "AndroidNavigationBar"
+	navigation_bar.name = "PieOverviewNavigationBar" if use_pie_overview else "PieNavigationBar" if use_pie_style else "AndroidNavigationBar"
 	navigation_bar.custom_minimum_size = Vector2(0, 46)
 	navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
@@ -2196,7 +2196,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
 
 	var navigation_keys := HBoxContainer.new()
-	navigation_keys.name = "PieThreeButtonNavigation" if use_pie_style else "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
+	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
 	navigation_keys.custom_minimum_size.y = 46
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -2215,7 +2215,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	var navigation_actions := ["Back"] if back_only else ["Back", "Home", "Overview"] if use_pie_style else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
-		key.name = ("PieNavigation" if use_pie_style else "LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
+		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
 		key.action_name = action
 		key.icon_color = navigation_color
 		key.tooltip_text = action
