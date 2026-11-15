@@ -328,6 +328,24 @@ func _run_os_generator_test() -> void:
 			if oreo_assistant == null or oreo_camera == null or oreo_assistant.get_parent().get_index() >= oreo_camera.get_parent().get_index():
 				_fail("Oreo lock shortcuts must place Assistant left of Camera.")
 				return
+			var oreo_assistant_art := oreo_assistant.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect
+			var oreo_camera_art := oreo_camera.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect
+			var oreo_lock_art := simulator.find_child("ImportedLockStatusArtwork", true, false) as TextureRect
+			var oreo_notification_art := simulator.find_child("OreoLockNotificationIcon_Messages", true, false) as TextureRect
+			var oreo_assistant_atlas := oreo_assistant_art.texture as AtlasTexture if oreo_assistant_art != null else null
+			if oreo_assistant_atlas == null or oreo_assistant_atlas.atlas.resource_path != "res://assets/os/oreo/icons.svg":
+				_fail("Oreo Assistant shortcut must use its imported generation-specific app icon.")
+				return
+			if oreo_camera_art == null or oreo_camera_art.texture == null or oreo_camera_art.texture.resource_path != "res://assets/os/lockscreen/camera.svg":
+				_fail("Oreo Camera shortcut must use the imported camera artwork.")
+				return
+			if oreo_lock_art == null or oreo_lock_art.texture == null or oreo_lock_art.texture.resource_path != "res://assets/os/lockscreen/lock.svg":
+				_fail("Oreo lock indicator must use the imported lock artwork.")
+				return
+			var oreo_notification_atlas := oreo_notification_art.texture as AtlasTexture if oreo_notification_art != null else null
+			if oreo_notification_atlas == null or oreo_notification_atlas.atlas.resource_path != "res://assets/os/oreo/icons.svg":
+				_fail("Oreo notifications must use imported app icon artwork.")
+				return
 			var normalized_oreo_config: Dictionary = simulator.get("configuration")
 			var oreo_lock_data: Dictionary = normalized_oreo_config["components"]["lock_screen"]
 			for required_oreo_setting in ["show_time", "show_date", "show_notifications", "show_assistant_shortcut", "show_camera_shortcut"]:
@@ -353,6 +371,26 @@ func _run_os_generator_test() -> void:
 				return
 			if pie_status_clock == null or pie_status_clock.visible:
 				_fail("Android 9 Pie lock screen must not duplicate its large clock in the status bar.")
+				return
+			var pie_assistant := simulator.find_child("PieAssistantShortcut", true, false) as Button
+			var pie_camera := simulator.find_child("PieCameraShortcut", true, false) as Button
+			var pie_assistant_art := pie_assistant.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect if pie_assistant != null else null
+			var pie_camera_art := pie_camera.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect if pie_camera != null else null
+			var pie_lock_art := simulator.find_child("ImportedLockStatusArtwork", true, false) as TextureRect
+			var pie_notification_art := simulator.find_child("PieLockNotificationIcon_Messages", true, false) as TextureRect
+			var pie_assistant_atlas := pie_assistant_art.texture as AtlasTexture if pie_assistant_art != null else null
+			var pie_notification_atlas := pie_notification_art.texture as AtlasTexture if pie_notification_art != null else null
+			if pie_assistant_atlas == null or pie_assistant_atlas.atlas.resource_path != "res://assets/os/pie/icons.svg":
+				_fail("Pie Assistant shortcut must use its imported generation-specific app icon.")
+				return
+			if pie_camera_art == null or pie_camera_art.texture == null or pie_camera_art.texture.resource_path != "res://assets/os/lockscreen/camera.svg":
+				_fail("Pie Camera shortcut must use the imported camera artwork.")
+				return
+			if pie_lock_art == null or pie_lock_art.texture == null or pie_lock_art.texture.resource_path != "res://assets/os/lockscreen/fingerprint_sensor.svg":
+				_fail("Pie lock indicator must use the imported fingerprint artwork.")
+				return
+			if pie_notification_atlas == null or pie_notification_atlas.atlas.resource_path != "res://assets/os/pie/icons.svg":
+				_fail("Pie notifications must use imported app icon artwork.")
 				return
 			var normalized_pie_config: Dictionary = simulator.get("configuration")
 			var pie_lock_data: Dictionary = normalized_pie_config["components"]["lock_screen"]

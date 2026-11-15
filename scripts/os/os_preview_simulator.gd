@@ -3264,7 +3264,7 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 	root.add_child(hint)
 
 
-func _add_pie_lock_notification(parent: VBoxContainer, app_name: String, title_text: String, message_text: String, icon_text: String, icon_color: Color) -> void:
+func _add_pie_lock_notification(parent: VBoxContainer, app_name: String, title_text: String, message_text: String, _icon_text: String, _icon_color: Color) -> void:
 	var card := PanelContainer.new()
 	card.name = "PieLockNotification_" + app_name.replace(" ", "")
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3426,7 +3426,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 	root.add_child(bottom_space)
 
 
-func _add_oreo_lock_notification(parent: VBoxContainer, app_name: String, message: String, icon_text: String, icon_color: Color) -> void:
+func _add_oreo_lock_notification(parent: VBoxContainer, app_name: String, message: String, _icon_text: String, _icon_color: Color) -> void:
 	var card := PanelContainer.new()
 	card.name = "OreoLockNotification_" + app_name.replace(" ", "")
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
