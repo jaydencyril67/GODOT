@@ -333,54 +333,37 @@ func _build_interface() -> void:
 	selection_panel = right_region
 	_build_bootloader_controls_only()
 
-	navigation_layer = CanvasLayer.new()
-	navigation_layer.name = "OSWorksiteNavigationOverlay"
-	navigation_layer.layer = 127
-	add_child(navigation_layer)
-
-	var navigation_root := Control.new()
-	navigation_root.name = "OSWorksiteNavigationRoot"
-	navigation_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	navigation_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	navigation_layer.add_child(navigation_root)
-
-	navigation_bar = HBoxContainer.new()
-	navigation_bar.name = "OSWorksiteBottomBar"
-	navigation_bar.anchor_left = 0.0
-	navigation_bar.anchor_right = 1.0
-	navigation_bar.anchor_top = 1.0
-	navigation_bar.anchor_bottom = 1.0
-	navigation_bar.offset_left = 20.0
-	navigation_bar.offset_right = -20.0
-	navigation_bar.offset_top = -74.0
-	navigation_bar.offset_bottom = -12.0
-	# This full-width layout container sits on a high CanvasLayer. It must
-	# never consume taps in its empty area, especially over the phone preview.
-	# Its child arrow buttons remain independently interactive.
-	navigation_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	navigation_bar.z_index = 1000
-	navigation_bar.z_as_relative = false
-	navigation_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	navigation_bar.add_theme_constant_override("separation", 18)
-	navigation_root.add_child(navigation_bar)
-
+	# Bottom navigation uses the same direct-root approach as the top controls.
+	# Each arrow owns only its own hit rectangle; there is no full-width overlay.
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "OSWizardBackIconButton"
 	wizard_back_button.points_right = false
+	wizard_back_button.anchor_left = 0.0
+	wizard_back_button.anchor_right = 0.0
+	wizard_back_button.anchor_top = 1.0
+	wizard_back_button.anchor_bottom = 1.0
+	wizard_back_button.offset_left = 20.0
+	wizard_back_button.offset_top = -74.0
+	wizard_back_button.offset_right = 74.0
+	wizard_back_button.offset_bottom = -20.0
 	wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	wizard_back_button.pressed.connect(_on_wizard_back_pressed)
-	navigation_bar.add_child(wizard_back_button)
-
-	var bottom_spacer := Control.new()
-	bottom_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	navigation_bar.add_child(bottom_spacer)
+	root.add_child(wizard_back_button)
 
 	next_button = GlassArrowButton.new()
 	next_button.name = "OSNextStepIconButton"
 	next_button.points_right = true
+	next_button.anchor_left = 1.0
+	next_button.anchor_right = 1.0
+	next_button.anchor_top = 1.0
+	next_button.anchor_bottom = 1.0
+	next_button.offset_left = -74.0
+	next_button.offset_top = -74.0
+	next_button.offset_right = -20.0
+	next_button.offset_bottom = -20.0
 	next_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	next_button.pressed.connect(_on_next_pressed)
-	navigation_bar.add_child(next_button)
+	root.add_child(next_button)
 
 	_apply_responsive_layout()
 	_keep_step_navigation_active()
