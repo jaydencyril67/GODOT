@@ -40,12 +40,6 @@ class OSScreenCornerMask extends Control:
 			return
 		var radius := minf(corner_radius, minf(size.x, size.y) * 0.5)
 		var segments := 8
-		var corners := [
-			[Vector2.ZERO, Vector2(radius, 0.0), -PI * 0.5, -PI],
-			[Vector2(size.x, 0.0), Vector2(size.x - radius, 0.0), -PI * 0.5, 0.0],
-			[Vector2(size.x, size.y), Vector2(size.x - radius, size.y), PI * 0.5, 0.0],
-			[Vector2(0.0, size.y), Vector2(radius, size.y), PI * 0.5, PI]
-		]
 		var centers := [
 			Vector2(radius, radius),
 			Vector2(size.x - radius, radius),
