@@ -566,7 +566,7 @@ func _show_component_studio_controls(component_id: String) -> void:
 	content.name = "ComponentStudioControls"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
+	content.add_theme_constant_override("separation", 10)
 	selection_panel.add_child(content)
 	var titles := {
 		"app_drawer": "APP DRAWER",
@@ -575,33 +575,155 @@ func _show_component_studio_controls(component_id: String) -> void:
 		"wallpapers": "WALLPAPERS"
 	}
 	var descriptions := {
-		"app_drawer": "Preview the installed-app drawer for the selected operating-system generation.",
-		"control_center": "Preview the quick settings and controls for the selected operating-system generation.",
-		"notifications": "Preview notifications and their presentation for the selected generation.",
-		"wallpapers": "Preview the wallpaper appearance used by the selected operating-system generation."
+		"app_drawer": "Choose how installed apps are organised and searched.",
+		"control_center": "Adjust the quick-settings tile layout and brightness control.",
+		"notifications": "Choose how notification cards are displayed.",
+		"wallpapers": "Choose the system wallpaper and its visual treatment."
 	}
 	var heading := _label(str(titles.get(component_id, "OS COMPONENT")), 20, Color("#D3AA6B"))
 	heading.name = "ComponentStudioHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description := _label(str(descriptions.get(component_id, "Preview this OS component.")), 12, Color("#D0CBC2"))
+	var description := _label(str(descriptions.get(component_id, "Customize this OS component.")), 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
-	var gap := Control.new()
-	gap.custom_minimum_size.y = 22
-	content.add_child(gap)
-	var hint := _label("The phone preview shows the live component. Component-specific controls can be added here without changing the selected OS.", 11, Color("#A6A096"))
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(hint)
+
+	var component_data: Dictionary = generated_os_configuration.get("components", {}).get(component_id, {})
+	match component_id:
+		"app_drawer":
+			_add_component_option_row(content, "AppDrawerLayoutSelector", component_id, "layout", "APP ORGANISATION", ["alphabetical", "categories", "frequent_first"], component_data.get("layout", "alphabetical"))
+			_add_component_option_row(content, "AppDrawerSearchPositionSelector", component_id, "search_position", "SEARCH POSITION", ["top", "bottom"], component_data.get("search_position", "top"))
+			_add_component_option_row(content, "AppDrawerScrollDirectionSelector", component_id, "scroll_direction", "SCROLL DIRECTION", ["vertical", "horizontal"], component_data.get("scroll_direction", "vertical"))
+			_add_component_option_row(content, "AppDrawerColumnsSelector", component_id, "columns", "GRID COLUMNS", [3, 4, 5], component_data.get("columns", 4))
+		"control_center":
+			_add_component_option_row(content, "ControlCenterTileShapeSelector", component_id, "tile_shape", "TILE SHAPE", ["rounded", "pill"], component_data.get("tile_shape", "rounded"))
+			_add_component_option_row(content, "ControlCenterTileLayoutSelector", component_id, "tile_layout", "TILE DENSITY", ["compact", "expanded"], component_data.get("tile_layout", "compact"))
+			_add_component_option_row(content, "ControlCenterBrightnessSelector", component_id, "brightness_style", "BRIGHTNESS CONTROL", ["bar", "slider"], component_data.get("brightness_style", "bar"))
+		"notifications":
+			_add_component_option_row(content, "NotificationCardStyleSelector", component_id, "card_style", "CARD STYLE", ["compact", "grouped", "expanded"], component_data.get("card_style", "compact"))
+			_add_component_toggle_row(content, component_id, "show_app_icon", "Show app icons", bool(component_data.get("show_app_icon", true)))
+			_add_component_toggle_row(content, component_id, "translucent", "Translucent cards", bool(component_data.get("translucent", false)))
+			_add_component_slider_row(content, "NotificationCornerRadiusSlider", component_id, "corner_radius", "CORNER RADIUS", float(component_data.get("corner_radius", 16)), 0.0, 24.0, 1.0)
+		"wallpapers":
+			_add_component_option_row(content, "WallpaperStyleSelector", component_id, "style", "WALLPAPER", ProceduralOSEngineScript.WALLPAPER_STYLES, component_data.get("style", "aurora"))
+			_add_component_option_row(content, "WallpaperTreatmentSelector", component_id, "treatment", "TREATMENT", ["natural", "soft_glow", "deep_contrast"], component_data.get("treatment", "natural"))
+
 	var refresh_button := Button.new()
 	refresh_button.name = "RegenerateComponentPreviewButton"
-	refresh_button.text = "REFRESH DESIGN"
-	refresh_button.custom_minimum_size.y = 44
+	refresh_button.text = "REGENERATE " + str(titles.get(component_id, "DESIGN"))
+	refresh_button.custom_minimum_size.y = 42
 	_style_button(refresh_button)
 	refresh_button.pressed.connect(_regenerate_selected_component)
 	content.add_child(refresh_button)
+
+
+func _add_component_option_row(parent: VBoxContainer, control_name: String, component_id: String, setting_id: String, title_text: String, options: Array, current_value: Variant) -> void:
+	var row := HBoxContainer.new()
+	row.name = control_name + "Row"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.custom_minimum_size.y = 42
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+	var title := _label(title_text, 9, Color("#D0CBC2"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(title)
+	var selector := OptionButton.new()
+	selector.name = control_name
+	selector.custom_minimum_size = Vector2(112, 36)
+	selector.size_flags_horizontal = Control.SIZE_SHRINK_END
+	selector.focus_mode = Control.FOCUS_NONE
+	for option_value in options:
+		selector.add_item(str(option_value).replace("_", " ").to_upper())
+	var selected_index := options.find(current_value)
+	selector.select(maxi(0, selected_index))
+	_style_button(selector)
+	selector.item_selected.connect(_on_component_option_selected.bind(component_id, setting_id, options))
+	row.add_child(selector)
+
+
+func _add_component_toggle_row(parent: VBoxContainer, component_id: String, setting_id: String, title_text: String, initial_value: bool) -> void:
+	var row := HBoxContainer.new()
+	row.name = "ComponentToggleRow_" + component_id + "_" + setting_id
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.custom_minimum_size.y = 44
+	row.add_theme_constant_override("separation", 10)
+	parent.add_child(row)
+	var title := _label(title_text, 11, Color("#D0CBC2"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(title)
+	var toggle := GlassCheckbox.new()
+	toggle.name = "ComponentToggle_" + component_id + "_" + setting_id
+	toggle.button_pressed = initial_value
+	toggle.toggled.connect(_on_component_toggle_changed.bind(component_id, setting_id))
+	row.add_child(toggle)
+
+
+func _add_component_slider_row(parent: VBoxContainer, control_name: String, component_id: String, setting_id: String, title_text: String, initial_value: float, minimum: float, maximum: float, step: float) -> void:
+	var row := HBoxContainer.new()
+	row.name = control_name + "Row"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.custom_minimum_size.y = 40
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+	var title := _label(title_text, 9, Color("#D0CBC2"))
+	title.custom_minimum_size.x = 88
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(title)
+	var slider := HSlider.new()
+	slider.name = control_name
+	slider.min_value = minimum
+	slider.max_value = maximum
+	slider.step = step
+	slider.value = initial_value
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_custom_slider(slider)
+	slider.value_changed.connect(_on_component_slider_changed.bind(component_id, setting_id))
+	row.add_child(slider)
+
+
+func _on_component_option_selected(index: int, component_id: String, setting_id: String, options: Array) -> void:
+	if index < 0 or index >= options.size():
+		return
+	var selected_value: Variant = options[index]
+	if component_id == "wallpapers" and setting_id == "style":
+		var shared_style: Dictionary = generated_os_configuration.get("style", {})
+		shared_style["wallpaper"] = str(selected_value)
+		generated_os_configuration["style"] = shared_style
+	else:
+		var components: Dictionary = generated_os_configuration.get("components", {})
+		var component_data: Dictionary = components.get(component_id, {})
+		component_data[setting_id] = selected_value
+		components[component_id] = component_data
+		generated_os_configuration["components"] = components
+	_apply_component_configuration()
+
+
+func _on_component_toggle_changed(enabled: bool, component_id: String, setting_id: String) -> void:
+	var components: Dictionary = generated_os_configuration.get("components", {})
+	var component_data: Dictionary = components.get(component_id, {})
+	component_data[setting_id] = enabled
+	components[component_id] = component_data
+	generated_os_configuration["components"] = components
+	_apply_component_configuration()
+
+
+func _on_component_slider_changed(value: float, component_id: String, setting_id: String) -> void:
+	var components: Dictionary = generated_os_configuration.get("components", {})
+	var component_data: Dictionary = components.get(component_id, {})
+	component_data[setting_id] = int(round(value))
+	components[component_id] = component_data
+	generated_os_configuration["components"] = components
+	_apply_component_configuration()
+
+
+func _apply_component_configuration() -> void:
+	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
+	if is_instance_valid(os_preview_simulator):
+		os_preview_simulator.update_configuration(generated_os_configuration)
+		os_preview_simulator.set_component_view(selected_os_component_id)
 
 func _apply_approved_home_screen_layout() -> void:
 	if generated_os_configuration.is_empty():
@@ -1117,6 +1239,7 @@ func _generate_complete_os() -> void:
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_apply_bootloader_settings_to_configuration()
+	_apply_approved_home_screen_layout()
 	var components: Dictionary = generated_os_configuration.get("components", {})
 	if components.size() != ProceduralOSEngineScript.COMPONENTS.size():
 		push_error("OS generator returned an incomplete configuration.")
