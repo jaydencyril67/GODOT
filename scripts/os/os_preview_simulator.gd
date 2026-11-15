@@ -1430,7 +1430,14 @@ func _dismiss_overview_top_card() -> void:
 
 func _dismiss_overview_task(app_name: String) -> void:
 	_recent_app_names.erase(app_name)
-	_build_lollipop_overview()
+	# A task's close button is a child of the Overview overlay. Rebuilding the
+	# overlay synchronously from that button's pressed signal can free the
+	# active signal source while the scene tree is dispatching the callback.
+	# Defer the rebuild so the current input event completes first.
+	if _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps":
+		call_deferred("_build_lollipop_overview")
+	else:
+		_build_lollipop_overview()
 
 
 func _close_gesture_overlay() -> void:
