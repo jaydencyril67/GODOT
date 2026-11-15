@@ -336,6 +336,9 @@ func _process(delta: float) -> void:
 		var home_date := find_child("HomeHeroDate", true, false) as Label
 		if is_instance_valid(home_date):
 			home_date.text = _current_lock_date("minimal")
+		var pie_date := find_child("PieHomeDate", true, false) as Label
+		if is_instance_valid(pie_date):
+			pie_date.text = _current_lock_date("minimal")
 
 
 
@@ -455,9 +458,17 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 		set_component_view("pin_input")
 		return
 
-	# Android uses physical-style Back, Home and Overview buttons. Keep
-	# top-edge notification/quick-settings pulls and lock-screen unlock swipe,
-	# but do not interpret bottom or side swipes as system navigation.
+	# Android 9 Pixel Launcher still opens its app drawer with a short upward
+	# swipe from the bottom of the home screen; a longer swipe opens Overview.
+	if _is_android_os() and int(configuration.get("generation", 2)) == 3 and active_component == "home_screen":
+		if start.y >= size.y - edge_size and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
+			if elapsed_ms >= 420:
+				_show_gesture_overlay("recent_apps")
+			else:
+				set_component_view("app_drawer")
+			return
+
+	# Earlier Android generations keep the physical-style three-button navigation.
 	if _is_android_os():
 		return
 
@@ -1823,6 +1834,47 @@ func _build_shell() -> void:
 
 func _build_home_dock(parent: VBoxContainer) -> void:
 	var is_lollipop := int(configuration.get("generation", 2)) == 1 and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
+	var is_pie := int(configuration.get("generation", 2)) == 3 and _is_android_os()
+	if is_pie:
+		var pie_dock := HBoxContainer.new()
+		pie_dock.name = "PieHomeDockIcons"
+		pie_dock.custom_minimum_size.y = 47
+		pie_dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pie_dock.alignment = BoxContainer.ALIGNMENT_CENTER
+		pie_dock.add_theme_constant_override("separation", 3)
+		for app_name in ["Phone", "Messages", "Photos", "Browser", "Camera"]:
+			var app := _find_app(app_name)
+			if not app.is_empty():
+				var dock_item := _create_app_icon(app, _responsive_icon_size(36, 5, 3), false)
+				dock_item.name = "PieHomeDockApp_" + app_name.replace(" ", "")
+				pie_dock.add_child(dock_item)
+		parent.add_child(pie_dock)
+		var search := PanelContainer.new()
+		search.name = "PieHomeGoogleSearchBar"
+		search.custom_minimum_size.y = 35
+		search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var search_style := StyleBoxFlat.new()
+		search_style.bg_color = Color("#F1F3F4")
+		search_style.set_corner_radius_all(20)
+		search_style.set_border_width_all(0)
+		search_style.content_margin_left = 12
+		search_style.content_margin_right = 12
+		search_style.content_margin_top = 3
+		search_style.content_margin_bottom = 3
+		search.add_theme_stylebox_override("panel", search_style)
+		var search_row := HBoxContainer.new()
+		search_row.add_theme_constant_override("separation", 7)
+		var google_mark := _label("G", 18, Color("#4285F4"))
+		google_mark.name = "PieHomeGoogleMark"
+		search_row.add_child(google_mark)
+		var search_text := _label("Search", 10, Color("#5F6368"))
+		search_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		search_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		search_row.add_child(search_text)
+		search_row.add_child(_label("●", 10, Color("#4285F4")))
+		search.add_child(search_row)
+		parent.add_child(search)
+		return
 	var dock_row := HBoxContainer.new()
 	dock_row.name = "HomeAppDockIcons"
 	dock_row.custom_minimum_size.y = 46
@@ -2071,6 +2123,42 @@ func _build_legacy_android_home(_data: Dictionary, _widget_count: int) -> void:
 	search_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page_container.add_child(search_spacing)
 	_add_home_search_field("Search your phone", "HomeSearchBar")
+
+
+func _build_android_pie_home() -> void:
+	# Pixel Launcher on Android 9: At a Glance, a restrained app grid and open wallpaper space.
+	var glance := VBoxContainer.new()
+	glance.name = "PieHomeAtAGlance"
+	glance.add_theme_constant_override("separation", 2)
+	var date_line := _label(_current_lock_date("minimal"), 11, Color("#202124"))
+	date_line.name = "PieHomeDate"
+	date_line.add_theme_font_override("font", LOCKSCREEN_FONT)
+	glance.add_child(date_line)
+	var weather_line := _label("26°  ·  Partly cloudy", 9, Color("#5F6368"))
+	weather_line.name = "PieHomeWeather"
+	glance.add_child(weather_line)
+	page_container.add_child(glance)
+
+	var top_space := Control.new()
+	top_space.name = "PieHomeTopFlexibleSpace"
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(top_space)
+
+	var app_grid := GridContainer.new()
+	app_grid.name = "PieHomeAppGrid"
+	app_grid.columns = 5
+	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	app_grid.add_theme_constant_override("h_separation", 4)
+	app_grid.add_theme_constant_override("v_separation", 8)
+	for app_name in ["Calendar", "Photos", "Maps", "Store", "Email", "Camera", "Settings", "Clock", "Files", "Contacts"]:
+		var app := _find_app(app_name)
+		if not app.is_empty():
+			app_grid.add_child(_create_app_icon(app, _responsive_icon_size(38, 5, 4), true))
+	page_container.add_child(app_grid)
+	var bottom_space := Control.new()
+	bottom_space.name = "PieHomeBottomFlexibleSpace"
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_child(bottom_space)
 
 
 func _build_lollipop_android_home() -> void:
