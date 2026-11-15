@@ -25,6 +25,53 @@ class PINLockIndicator extends Control:
 		draw_circle(Vector2(center_x, 11.0), 1.0, Color("#263244"))
 
 
+class OreoLockShortcutButton extends Button:
+	var shortcut_id := "assistant"
+
+	func _ready() -> void:
+		text = ""
+		flat = true
+		focus_mode = Control.FOCUS_NONE
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		custom_minimum_size = Vector2(42, 42)
+		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+		queue_redraw()
+
+	func _draw() -> void:
+		var centre := size * 0.5
+		var icon_color := Color("#FFFFFF")
+		if is_pressed():
+			draw_circle(centre, 15.0, Color(1, 1, 1, 0.12))
+		match shortcut_id:
+			"assistant":
+				draw_rect(Rect2(centre + Vector2(-3.2, -9.0), Vector2(6.4, 13.0)), icon_color, false, 1.8, true)
+				draw_arc(centre + Vector2(0, 0.0), 7.0, 0.0, PI, 32, icon_color, 1.8, true)
+				draw_line(centre + Vector2(0, 7.0), centre + Vector2(0, 10.0), icon_color, 1.8, true)
+				draw_line(centre + Vector2(-5.0, 10.0), centre + Vector2(5.0, 10.0), icon_color, 1.8, true)
+			"camera":
+				draw_rect(Rect2(centre + Vector2(-10.0, -5.0), Vector2(20.0, 14.0)), icon_color, false, 1.8, true)
+				draw_rect(Rect2(centre + Vector2(-4.5, -8.0), Vector2(9.0, 3.0)), icon_color, false, 1.6, true)
+				draw_circle(centre + Vector2(0, 2.0), 4.2, icon_color, false, 1.8, true)
+				draw_circle(centre + Vector2(0, 2.0), 1.4, icon_color)
+
+
+class OreoLockCenterGlyph extends Control:
+	func _ready() -> void:
+		custom_minimum_size = Vector2(32, 38)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		queue_redraw()
+
+	func _draw() -> void:
+		var centre := size * 0.5
+		var icon_color := Color("#FFFFFF")
+		draw_arc(centre + Vector2(0, -3.0), 7.0, PI, TAU, 28, icon_color, 1.8, true)
+		draw_rect(Rect2(centre + Vector2(-8.0, -2.0), Vector2(16.0, 13.0)), icon_color, false, 1.8, true)
+		draw_circle(centre + Vector2(0, 3.0), 1.3, icon_color)
+		draw_line(centre + Vector2(0, 4.0), centre + Vector2(0, 7.0), icon_color, 1.4, true)
+
+
 class AndroidNavigationButton extends Button:
 	var action_name := "Back"
 	var icon_color := Color.WHITE
@@ -294,36 +341,47 @@ func _process(delta: float) -> void:
 
 func _current_lock_time(family: String = "") -> String:
 	var now := Time.get_datetime_dict_from_system()
-	var hour_minute := "%02d:%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
+	var hour := int(now.get("hour", 9))
+	var minute := int(now.get("minute", 41))
+	if family == "pixel":
+		var twelve_hour := hour % 12
+		if twelve_hour == 0:
+			twelve_hour = 12
+		return "%d:%02d" % [twelve_hour, minute]
 	if family == "typographic":
-		return "%02d\n%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
-	return hour_minute
+		return "%02d\n%02d" % [hour, minute]
+	return "%02d:%02d" % [hour, minute]
 
 
 func _current_lock_date(treatment: String) -> String:
 	var now := Time.get_datetime_dict_from_system()
-	var weekdays := ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]
-	var months := ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
-	var weekday := str(weekdays[clampi(int(now.get("weekday", 1)), 0, 6)])
-	var month := str(months[clampi(int(now.get("month", 1)) - 1, 0, 11)])
+	var weekdays := ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+	var months := ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+	var weekday_index := clampi(int(now.get("weekday", 1)), 0, 6)
+	var month_index := clampi(int(now.get("month", 1)) - 1, 0, 11)
+	var weekday := str(weekdays[weekday_index])
+	var month := str(months[month_index])
 	var day := int(now.get("day", 1))
 	match treatment:
+		"pixel":
+			return "%s, %s %d" % [weekday, month, day]
 		"minimal":
-			return "%s  ·  %02d %s" % [weekday.substr(0, 3), day, month.substr(0, 3)]
+			return "%s  ·  %02d %s" % [weekday.to_upper().substr(0, 3), day, month.to_upper().substr(0, 3)]
 		"editorial":
-			return "%s, %02d %s %04d" % [weekday, day, month, int(now.get("year", 2026))]
+			return "%s, %02d %s %04d" % [weekday.to_upper(), day, month.to_upper(), int(now.get("year", 2026))]
 		"inline":
-			return "%s %02d %s  ·  %04d" % [weekday.substr(0, 3), day, month.substr(0, 3), int(now.get("year", 2026))]
-	return "%s  ·  %s %02d" % [weekday, month, day]
+			return "%s %02d %s  ·  %04d" % [weekday.to_upper().substr(0, 3), day, month.to_upper().substr(0, 3), int(now.get("year", 2026))]
+	return "%s  ·  %s %02d" % [weekday.to_upper(), month.to_upper(), day]
 
 
 func _refresh_lock_screen_clock() -> void:
+	var is_oreo_android := _is_android_os() and int(configuration.get("generation", 1)) == 2
 	var clock := find_child("LockScreenClock", true, false) as Label
 	if is_instance_valid(clock):
-		clock.text = _current_lock_time()
+		clock.text = _current_lock_time("pixel" if is_oreo_android else "")
 	var date := find_child("LockScreenDate", true, false) as Label
 	if is_instance_valid(date):
-		date.text = _current_lock_date("uppercase")
+		date.text = _current_lock_date("pixel" if is_oreo_android else "uppercase")
 	var status_clock := find_child("StatusBarClock", true, false) as Label
 	if is_instance_valid(status_clock):
 		status_clock.text = _current_lock_time()
@@ -1783,20 +1841,32 @@ func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: S
 
 func _build_status_bar(parent: VBoxContainer) -> void:
 	var is_lollipop_drawer := _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1
-	var status_foreground := Color("#424242") if is_lollipop_drawer else _text_color()
+	var is_oreo_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 2
+	var status_foreground := Color("#424242") if is_lollipop_drawer else Color("#FFFFFF") if is_oreo_lock_screen else _text_color()
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
-	bar.custom_minimum_size.y = 22
+	bar.custom_minimum_size.y = 17 if is_oreo_lock_screen else 22
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color("#FAFAFA") if is_lollipop_drawer else Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.56)
-	bar_style.border_color = Color(0, 0, 0, 0) if is_lollipop_drawer else Color(_text_color().r, _text_color().g, _text_color().b, 0.10)
-	bar_style.set_border_width_all(0 if is_lollipop_drawer else 1)
-	bar_style.set_corner_radius_all(0 if is_lollipop_drawer else 8)
+	if is_lollipop_drawer:
+		bar_style.bg_color = Color("#FAFAFA")
+		bar_style.border_color = Color(0, 0, 0, 0)
+		bar_style.set_border_width_all(0)
+		bar_style.set_corner_radius_all(0)
+	elif is_oreo_lock_screen:
+		bar_style.bg_color = Color(0, 0, 0, 0)
+		bar_style.border_color = Color(0, 0, 0, 0)
+		bar_style.set_border_width_all(0)
+		bar_style.set_corner_radius_all(0)
+	else:
+		bar_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.56)
+		bar_style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.10)
+		bar_style.set_border_width_all(1)
+		bar_style.set_corner_radius_all(8)
 	bar_style.content_margin_left = 7
 	bar_style.content_margin_right = 7
-	bar_style.content_margin_top = 2
-	bar_style.content_margin_bottom = 2
+	bar_style.content_margin_top = 1 if is_oreo_lock_screen else 2
+	bar_style.content_margin_bottom = 1 if is_oreo_lock_screen else 2
 	bar.add_theme_stylebox_override("panel", bar_style)
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1807,10 +1877,12 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	clock.custom_minimum_size = Vector2(32, 13)
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	clock.visible = not is_oreo_lock_screen
 	row.add_child(clock)
 	var notification_dot := _label("●", 5, status_foreground)
 	notification_dot.name = "StatusBarNotificationIndicator"
 	notification_dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	notification_dot.visible = not is_oreo_lock_screen
 	row.add_child(notification_dot)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1834,8 +1906,6 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	status_label = _label("", 1, _text_color())
 	status_label.name = "StatusBarBattery"
 	status_label.visible = false
-	# Keep the hidden status target inside the live tree so each shell rebuild
-	# releases it with the rest of the status bar instead of orphaning a Label.
 	bar.add_child(status_label)
 	parent.add_child(bar)
 
@@ -2306,8 +2376,183 @@ func _build_windows_tiles() -> void:
 
 
 func _build_lock_screen(data: Dictionary) -> void:
-	# Android 5.0 Lollipop lock screen: one fixed composition, no generated
-	# manufacturer layouts, fingerprint widgets, media cards or design variants.
+	if _is_android_os() and int(configuration.get("generation", 1)) == 2:
+		_build_oreo_lock_screen(data)
+		return
+	_build_lollipop_lock_screen(data)
+
+
+func _build_oreo_lock_screen(data: Dictionary) -> void:
+	var root := VBoxContainer.new()
+	root.name = "OreoLockScreen"
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", 0)
+	page_container.add_child(root)
+
+	var upper_space := Control.new()
+	upper_space.name = "OreoLockScreenTopSpace"
+	upper_space.custom_minimum_size.y = 7
+	root.add_child(upper_space)
+
+	var clock_block := VBoxContainer.new()
+	clock_block.name = "OreoLockScreenClockBlock"
+	clock_block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_block.add_theme_constant_override("separation", 0)
+	root.add_child(clock_block)
+
+	if bool(data.get("show_time", true)):
+		var clock := _label(_current_lock_time("pixel"), 42, Color("#FFFFFF"))
+		clock.name = "LockScreenClock"
+		clock.custom_minimum_size.y = 48
+		clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
+		clock.clip_text = false
+		clock.add_theme_font_override("font", LOCKSCREEN_FONT)
+		clock.add_theme_color_override("font_color", Color("#FFFFFF"))
+		clock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.34))
+		clock.add_theme_constant_override("outline_size", 1)
+		clock_block.add_child(clock)
+
+	if bool(data.get("show_date", true)):
+		var date := _label(_current_lock_date("pixel"), 10, Color("#FFFFFF"))
+		date.name = "LockScreenDate"
+		date.custom_minimum_size.y = 18
+		date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		date.autowrap_mode = TextServer.AUTOWRAP_OFF
+		date.clip_text = false
+		date.add_theme_font_override("font", LOCKSCREEN_FONT)
+		date.add_theme_color_override("font_color", Color("#FFFFFF"))
+		date.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.42))
+		date.add_theme_constant_override("outline_size", 1)
+		clock_block.add_child(date)
+
+	var clock_notification_gap := Control.new()
+	clock_notification_gap.name = "OreoLockScreenClockNotificationGap"
+	clock_notification_gap.custom_minimum_size.y = 11
+	root.add_child(clock_notification_gap)
+
+	if bool(data.get("show_notifications", true)):
+		var notifications := VBoxContainer.new()
+		notifications.name = "OreoLockScreenNotifications"
+		notifications.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		notifications.add_theme_constant_override("separation", 5)
+		root.add_child(notifications)
+		_add_oreo_lock_notification(notifications, "Messages", "New message", "M", Color("#4285F4"))
+		_add_oreo_lock_notification(notifications, "Calendar", "Upcoming event reminder", "31", Color("#4285F4"))
+
+	var flexible_space := Control.new()
+	flexible_space.name = "OreoLockScreenFlexibleSpace"
+	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(flexible_space)
+
+	var shortcut_row := HBoxContainer.new()
+	shortcut_row.name = "OreoLockScreenShortcuts"
+	shortcut_row.custom_minimum_size.y = 42
+	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	shortcut_row.add_theme_constant_override("separation", 0)
+	root.add_child(shortcut_row)
+
+	var assistant_slot := CenterContainer.new()
+	assistant_slot.name = "OreoAssistantShortcutSlot"
+	assistant_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_row.add_child(assistant_slot)
+	if bool(data.get("show_assistant_shortcut", true)):
+		var assistant_button := OreoLockShortcutButton.new()
+		assistant_button.name = "OreoAssistantShortcut"
+		assistant_button.shortcut_id = "assistant"
+		assistant_button.pressed.connect(func(): app_opened.emit("Assistant"))
+		assistant_slot.add_child(assistant_button)
+
+	var lock_slot := CenterContainer.new()
+	lock_slot.name = "OreoLockStatusSlot"
+	lock_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_row.add_child(lock_slot)
+	var lock_glyph := OreoLockCenterGlyph.new()
+	lock_glyph.name = "OreoLockStatusGlyph"
+	lock_slot.add_child(lock_glyph)
+
+	var camera_slot := CenterContainer.new()
+	camera_slot.name = "OreoCameraShortcutSlot"
+	camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_row.add_child(camera_slot)
+	if bool(data.get("show_camera_shortcut", true)):
+		var camera_button := OreoLockShortcutButton.new()
+		camera_button.name = "OreoCameraShortcut"
+		camera_button.shortcut_id = "camera"
+		camera_button.pressed.connect(func(): app_opened.emit("Camera"))
+		camera_slot.add_child(camera_button)
+
+	var unlock_hint := _label("Swipe up to unlock", 8, Color(1, 1, 1, 0.82))
+	unlock_hint.name = "OreoSwipeToUnlockHint"
+	unlock_hint.custom_minimum_size.y = 15
+	unlock_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	unlock_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	unlock_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	root.add_child(unlock_hint)
+
+	var bottom_space := Control.new()
+	bottom_space.name = "OreoLockScreenBottomSpace"
+	bottom_space.custom_minimum_size.y = 2
+	root.add_child(bottom_space)
+
+
+func _add_oreo_lock_notification(parent: VBoxContainer, app_name: String, message: String, icon_text: String, icon_color: Color) -> void:
+	var card := PanelContainer.new()
+	card.name = "OreoLockNotification_" + app_name.replace(" ", "")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 37
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color("#F2F3F5")
+	card_style.set_corner_radius_all(3)
+	card_style.content_margin_left = 6
+	card_style.content_margin_right = 6
+	card_style.content_margin_top = 4
+	card_style.content_margin_bottom = 4
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 6)
+	card.add_child(row)
+
+	var app_icon := PanelContainer.new()
+	app_icon.name = "OreoLockNotificationIcon_" + app_name.replace(" ", "")
+	app_icon.custom_minimum_size = Vector2(23, 23)
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = icon_color
+	icon_style.set_corner_radius_all(12)
+	app_icon.add_theme_stylebox_override("panel", icon_style)
+	var icon_label := _label(icon_text, 8, Color.WHITE)
+	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	app_icon.add_child(icon_label)
+	row.add_child(app_icon)
+
+	var message_column := VBoxContainer.new()
+	message_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	message_column.add_theme_constant_override("separation", 0)
+	var title := _label(app_name, 8, Color("#202124"))
+	title.name = "OreoLockNotificationTitle_" + app_name.replace(" ", "")
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	message_column.add_child(title)
+	var body := _label(message, 8, Color("#3C4043"))
+	body.name = "OreoLockNotificationMessage_" + app_name.replace(" ", "")
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.autowrap_mode = TextServer.AUTOWRAP_OFF
+	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	message_column.add_child(body)
+	row.add_child(message_column)
+	parent.add_child(card)
+
+
+func _build_lollipop_lock_screen(data: Dictionary) -> void:
+	# Android 5.0 Lollipop lock screen: preserve the approved Generation 1 composition.
 	var root := VBoxContainer.new()
 	root.name = "LollipopLockScreen"
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
