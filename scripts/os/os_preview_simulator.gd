@@ -4,13 +4,15 @@ signal app_opened(app_name: String)
 
 const OSEngine = preload("res://scripts/os/procedural_os_engine.gd")
 const PHONE_UNLOCK_PIN := "1234"
-const LOCKSCREEN_FONT: FontFile = preload("res://assets/fonts/STIXTwoText[wght].ttf")
-const LOCKSCREEN_CAMERA_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/camera.svg")
-const LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/flashlight.svg")
+# Load imported assets after the simulator enters the scene tree. Preloading these
+# font/SVG resources during a clean-checkout script scan fails before Godot imports them.
+var LOCKSCREEN_FONT: FontFile
+var LOCKSCREEN_CAMERA_TEXTURE: Texture2D
+var LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D
 const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.81
-const STATUS_CELLULAR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_cellular.svg")
-const STATUS_WIFI_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_wifi.svg")
-const STATUS_BATTERY_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/status_battery.svg")
+var STATUS_CELLULAR_TEXTURE: Texture2D
+var STATUS_WIFI_TEXTURE: Texture2D
+var STATUS_BATTERY_TEXTURE: Texture2D
 
 class PINLockIndicator extends Control:
 	func _ready() -> void:
@@ -2064,6 +2066,12 @@ func _close_gesture_overlay() -> void:
 
 
 func _ready() -> void:
+	LOCKSCREEN_FONT = load("res://assets/fonts/STIXTwoText[wght].ttf") as FontFile
+	LOCKSCREEN_CAMERA_TEXTURE = load("res://assets/os/lockscreen/camera.svg") as Texture2D
+	LOCKSCREEN_FLASHLIGHT_TEXTURE = load("res://assets/os/lockscreen/flashlight.svg") as Texture2D
+	STATUS_CELLULAR_TEXTURE = load("res://assets/os/lockscreen/status_cellular.svg") as Texture2D
+	STATUS_WIFI_TEXTURE = load("res://assets/os/lockscreen/status_wifi.svg") as Texture2D
+	STATUS_BATTERY_TEXTURE = load("res://assets/os/lockscreen/status_battery.svg") as Texture2D
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
