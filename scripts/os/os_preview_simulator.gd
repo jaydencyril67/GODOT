@@ -985,6 +985,10 @@ func _build_shell() -> void:
 		# The lock screen keeps its compact system status bar. Samsung-style
 		# PIN entry instead uses a clean lock indicator at the top of the screen.
 		_build_status_bar(lock_shell)
+		if active_component == "lock_screen":
+			var lock_status_clock := lock_shell.find_child("StatusBarClock", true, false) as Control
+			if lock_status_clock != null:
+				lock_status_clock.visible = false
 		if active_component == "pin_input":
 			var pin_status_bar := lock_shell.get_node_or_null("OSStatusBar") as Control
 			if pin_status_bar != null:
