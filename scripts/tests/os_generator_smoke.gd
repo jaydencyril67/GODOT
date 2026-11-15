@@ -1301,8 +1301,20 @@ func _run_os_generator_test() -> void:
 	var oreo_drawer_viewport := worksite_preview.find_child("AppDrawerViewport", true, false) as ScrollContainer
 	var oreo_drawer_grid := worksite_preview.find_child("AppDrawerGrid", true, false) as GridContainer
 	var oreo_drawer_search := worksite_preview.find_child("AppDrawerSearchField", true, false) as LineEdit
-	if oreo_drawer_viewport == null or oreo_drawer_grid == null or oreo_drawer_search == null or oreo_drawer_grid.get_child_count() != ProceduralEngineScript.APP_DEFINITIONS.size():
+	var oreo_drawer_data: Dictionary = oreo_configuration.get("components", {}).get("app_drawer", {})
+	var rendered_oreo_app_count := 0
+	if str(oreo_drawer_data.get("layout", "alphabetical")) == "categories":
+		var oreo_category_grids := worksite_preview.find_children("AppDrawerCategory_*", "GridContainer", true, false)
+		for category_grid in oreo_category_grids:
+			rendered_oreo_app_count += (category_grid as GridContainer).get_child_count()
+	else:
+		if oreo_drawer_grid != null:
+			rendered_oreo_app_count = oreo_drawer_grid.get_child_count()
+	if oreo_drawer_search == null or rendered_oreo_app_count != ProceduralEngineScript.APP_DEFINITIONS.size():
 		_fail("Android 8 app drawer did not render all installed apps and its search field.")
+		return
+	if str(oreo_drawer_data.get("layout", "alphabetical")) != "categories" and oreo_drawer_viewport == null:
+		_fail("Android 8 scrolling app drawer is missing its viewport.")
 		return
 	var drawer_back := worksite_preview.find_child("AndroidNavigationBack", true, false) as Button
 	if drawer_back == null:
