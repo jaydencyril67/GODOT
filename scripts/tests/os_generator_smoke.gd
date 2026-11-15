@@ -500,6 +500,23 @@ func _run_os_generator_test() -> void:
 	if overview_recent == null or overview_home == null or overview_back == null or not overview_recent.visible or not overview_home.visible or not overview_back.visible:
 		_fail("All three Android navigation buttons must remain visible in Recent Apps.")
 		return
+	# Repeated card dismissals must rebuild only the task deck, not restore
+	# the launcher beneath it or strand the navigation footer.
+	simulator.call("_dismiss_overview_task", "Messages")
+	await process_frame
+	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("LollipopOverviewTask_Settings", true, false) == null:
+		_fail("Dismissing the first recent app must leave the remaining task deck visible.")
+		return
+	simulator.call("_dismiss_overview_task", "Settings")
+	await process_frame
+	overview_content = simulator.find_child("OSComponentContent", true, false) as Control
+	overview_navigation_footer = simulator.find_child("LollipopOverviewNavigationFooter", true, false) as Control
+	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or overview_content == null or overview_content.visible:
+		_fail("Dismissing a second recent app must not remove the Overview screen or reveal the launcher.")
+		return
+	if overview_navigation_footer == null or simulator.find_child("LollipopNavigationOverview", true, false) == null or simulator.find_child("LollipopNavigationHome", true, false) == null or simulator.find_child("LollipopNavigationBack", true, false) == null:
+		_fail("All three navigation buttons must remain available after repeated recent-app dismissals.")
+		return
 	var android_back := overview_back
 	android_back.pressed.emit()
 	await process_frame
