@@ -164,7 +164,7 @@ func _run_os_generator_test() -> void:
 		_fail("Loaded OS configuration failed validation.")
 		return
 
-	generated["components"]["home_screen"]["layout_style"] = "ios_grid"
+	generated["components"]["home_screen"]["layout_style"] = "ios_home"
 	var simulator := SimulatorScript.new()
 	simulator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	simulator.configure_os(generated, "home_screen")
@@ -762,7 +762,7 @@ func _run_os_generator_test() -> void:
 	var boot_hero := boot_controls.find_child("BootLoaderHeroTitle", true, false) as Label
 	var boot_gap := boot_controls.find_child("BootLoaderHeroGap", true, false) as Control
 	if boot_hero == null or boot_gap == null or boot_gap.custom_minimum_size.y < 52.0 or boot_hero.get_index() >= boot_gap.get_index():
-		_fail("Step 3 must place its hero heading at the top with a clear vertical gap before the settings.")
+		_fail("Step 2 must place its hero heading at the top with a clear vertical gap before the settings.")
 		return
 	var boot_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
 	if boot_step_label == null or boot_step_label.text != "STEP 2 / 8" or not left_power_region_is_visible(worksite):
@@ -947,16 +947,16 @@ func _run_os_generator_test() -> void:
 		return
 
 
-	for setting_id in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+	for setting_id in ["show_time", "show_date", "show_notifications", "show_assistant_shortcut", "show_camera_shortcut"]:
 		var setting_toggle := worksite.find_child("LockScreenEnabled_" + setting_id, true, false) as Button
 		if setting_toggle == null:
-			_fail("Lock Screen Studio is missing its checkbox: " + setting_id)
+			_fail("Oreo Lock Screen Studio is missing its checkbox: " + setting_id)
 			return
 		setting_toggle.button_pressed = false
 		setting_toggle.toggled.emit(false)
 		await process_frame
 		if bool(worksite.get("generated_os_configuration")["components"]["lock_screen"].get(setting_id, true)):
-			_fail("Lock Screen Studio checkbox did not save its disabled state: " + setting_id)
+			_fail("Oreo Lock Screen Studio checkbox did not save its disabled state: " + setting_id)
 			return
 		if setting_id == "show_date" and worksite_preview.find_child("LockScreenDate", true, false) != null:
 			_fail("Disabling Display Date must remove the date from the live lock-screen preview.")
