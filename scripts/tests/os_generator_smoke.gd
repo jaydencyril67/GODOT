@@ -302,7 +302,7 @@ func _run_os_generator_test() -> void:
 			if oreo_status_clock == null or oreo_status_clock.visible:
 				_fail("Oreo lock screen must not duplicate the large clock with an extra status-bar time.")
 				return
-			if oreo_assistant == null or oreo_camera == null or oreo_assistant.get_index() >= oreo_camera.get_index():
+			if oreo_assistant == null or oreo_camera == null or oreo_assistant.get_parent().get_index() >= oreo_camera.get_parent().get_index():
 				_fail("Oreo lock shortcuts must place Assistant left of Camera.")
 				return
 			var oreo_lock_data: Dictionary = generation_preview["components"]["lock_screen"]
