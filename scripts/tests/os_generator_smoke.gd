@@ -258,6 +258,12 @@ func _run_os_generator_test() -> void:
 		if generation_navigation == null or generation_navigation.get_child_count() != 3:
 			_fail("Every Android generation must display Back, Home and Overview navigation buttons.")
 			return
+		if generation_number == 1:
+			var lollipop_navigation_bar := simulator.find_child("AndroidNavigationBar", true, false) as PanelContainer
+			var lollipop_navigation_style := lollipop_navigation_bar.get_theme_stylebox("panel") as StyleBoxFlat if lollipop_navigation_bar != null else null
+			if lollipop_navigation_style == null or lollipop_navigation_style.bg_color.a > 0.01:
+				_fail("Android 5 navigation bar background must be transparent.")
+				return
 		simulator.configure_os(generation_preview, "lock_screen")
 		await process_frame
 		if simulator.find_child(expected_android_nav, true, false) != null:
