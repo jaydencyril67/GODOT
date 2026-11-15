@@ -255,7 +255,7 @@ func _run_os_generator_test() -> void:
 				return
 		var expected_android_nav := "LollipopThreeButtonNavigation" if generation_number == 1 else "AndroidThreeButtonNavigation"
 		var generation_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
-				if generation_navigation == null or generation_navigation.get_child_count() != 3:
+		if generation_navigation == null or generation_navigation.get_child_count() != 3:
 			_fail("Every Android generation must display Recent, Home and Back navigation buttons.")
 			return
 		var expected_navigation_order := ["Overview", "Home", "Back"]
