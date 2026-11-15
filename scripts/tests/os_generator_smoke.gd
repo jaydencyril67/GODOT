@@ -305,7 +305,8 @@ func _run_os_generator_test() -> void:
 			if oreo_assistant == null or oreo_camera == null or oreo_assistant.get_parent().get_index() >= oreo_camera.get_parent().get_index():
 				_fail("Oreo lock shortcuts must place Assistant left of Camera.")
 				return
-			var oreo_lock_data: Dictionary = generation_preview["components"]["lock_screen"]
+			var normalized_oreo_config: Dictionary = simulator.get("configuration")
+			var oreo_lock_data: Dictionary = normalized_oreo_config["components"]["lock_screen"]
 			for required_oreo_setting in ["show_time", "show_date", "show_notifications", "show_assistant_shortcut", "show_camera_shortcut"]:
 				if not oreo_lock_data.has(required_oreo_setting):
 					_fail("Android 8 lock configuration is missing: " + required_oreo_setting)
