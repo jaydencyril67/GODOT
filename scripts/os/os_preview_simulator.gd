@@ -702,8 +702,8 @@ func _create_android_pie_shade(mode: String) -> Control:
 	scroll.name = "PieShadeScroll"
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = Control.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = Control.SCROLL_MODE_SHOW_NEVER
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	margins.add_child(scroll)
 	var body := VBoxContainer.new()
 	body.name = "PieShadeContent"
