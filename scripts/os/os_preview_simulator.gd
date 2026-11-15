@@ -1008,123 +1008,302 @@ func _build_gesture_recent_apps(parent: VBoxContainer) -> void:
 
 func _build_lollipop_overview() -> void:
 	_close_gesture_overlay()
+	_set_lollipop_overview_underlay_visible(false)
+
 	var overlay := Control.new()
 	overlay.name = "OSGestureOverlay_recent_apps"
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.offset_bottom = -54.0 # Keep the Android three-button navigation visible.
+	overlay.offset_bottom = -54.0 # Leave the classic three-button navigation visible.
+	overlay.clip_contents = true
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
 	_gesture_overlay = overlay
 
+	# Lollipop Overview sits over the launcher wallpaper, not a solid panel.
 	var background := ColorRect.new()
 	background.name = "LollipopOverviewBackground"
-	background.color = Color("#263746")
+	background.color = Color(0.0, 0.0, 0.0, 0.035)
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(background)
 
-	var heading := Label.new()
-	heading.name = "LollipopOverviewTitle"
-	heading.text = "Overview"
-	heading.position = Vector2(18, 10)
-	heading.add_theme_font_size_override("font_size", 16)
-	heading.add_theme_color_override("font_color", Color("#FFFFFF"))
-	overlay.add_child(heading)
+	var search_bar := PanelContainer.new()
+	search_bar.name = "LollipopOverviewSearchBar"
+	search_bar.position = Vector2(10.0, 29.0)
+	search_bar.size = Vector2(maxf(120.0, size.x - 20.0), 39.0)
+	search_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var search_style := StyleBoxFlat.new()
+	search_style.bg_color = Color("#FFFFFF")
+	search_style.set_corner_radius_all(2)
+	search_style.shadow_color = Color(0.0, 0.0, 0.0, 0.22)
+	search_style.shadow_size = 4
+	search_style.shadow_offset = Vector2(0, 2)
+	search_style.content_margin_left = 13
+	search_style.content_margin_right = 10
+	search_style.content_margin_top = 3
+	search_style.content_margin_bottom = 3
+	search_bar.add_theme_stylebox_override("panel", search_style)
+	overlay.add_child(search_bar)
 
-	var close_all := Button.new()
-	close_all.name = "LollipopOverviewClearAll"
-	close_all.text = "CLEAR ALL"
-	close_all.position = Vector2(maxf(12.0, size.x - 94.0), 8)
-	close_all.custom_minimum_size = Vector2(82, 30)
-	close_all.add_theme_font_size_override("font_size", 9)
-	close_all.add_theme_color_override("font_color", Color("#FFFFFF"))
-	close_all.pressed.connect(func() -> void:
-		_recent_app_names.clear()
-		_close_gesture_overlay()
-	)
-	overlay.add_child(close_all)
+	var search_row := HBoxContainer.new()
+	search_row.add_theme_constant_override("separation", 5)
+	search_bar.add_child(search_row)
+	var google_wordmark := Label.new()
+	google_wordmark.name = "LollipopOverviewGoogleWordmark"
+	google_wordmark.text = "Google"
+	google_wordmark.add_theme_font_size_override("font_size", 17)
+	google_wordmark.add_theme_color_override("font_color", Color("#757575"))
+	google_wordmark.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	google_wordmark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	search_row.add_child(google_wordmark)
+	var voice_mark := Label.new()
+	voice_mark.name = "LollipopOverviewVoiceSearch"
+	voice_mark.text = "●"
+	voice_mark.add_theme_font_size_override("font_size", 11)
+	voice_mark.add_theme_color_override("font_color", Color("#777777"))
+	voice_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	voice_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	voice_mark.custom_minimum_size = Vector2(22, 22)
+	search_row.add_child(voice_mark)
 
 	if _recent_app_names.is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "No recent tasks"
-		empty_label.position = Vector2(18, 70)
+		empty_label.name = "LollipopOverviewEmptyState"
+		empty_label.text = "No recent apps"
+		empty_label.position = Vector2(18.0, 88.0)
+		empty_label.add_theme_font_size_override("font_size", 13)
 		empty_label.add_theme_color_override("font_color", Color("#FFFFFF"))
 		overlay.add_child(empty_label)
+		_apply_lollipop_shade_screen_mask(overlay)
 		return
 
-	var card_width := size.x * 0.82
-	var card_height := size.y * 0.70
+	# The newest task is the foreground card at the bottom of the deck.
+	# Older tasks recede upwards, as they do in Android 5.0 Overview.
+	var visible_count := mini(_recent_app_names.size(), 6)
+	var card_width := maxf(140.0, size.x - 22.0)
+	var card_height := maxf(190.0, size.y * 0.72)
 	var base_x := (size.x - card_width) * 0.5
-	var base_y := size.y * 0.15
-	for index in range(_recent_app_names.size()):
+	var base_y := 82.0
+	var stack_step := 29.0
+	for index in range(visible_count):
 		var app_name := _recent_app_names[index]
 		if _find_app(app_name).is_empty():
 			continue
+		var depth := visible_count - 1 - index
 		var card := Button.new()
 		card.name = "LollipopOverviewTask_" + app_name.replace(" ", "")
-		card.position = Vector2(base_x + float(index) * 3.0, base_y + float(index) * 34.0)
+		card.position = Vector2(base_x, base_y + float(depth) * stack_step)
 		card.size = Vector2(card_width, card_height)
-		card.z_index = _recent_app_names.size() - index
-		card.rotation_degrees = float(index) * 0.25
 		card.custom_minimum_size = Vector2(card_width, card_height)
-		card.add_theme_font_size_override("font_size", 13)
-		card.add_theme_color_override("font_color", Color("#263238"))
-		var paper := StyleBoxFlat.new()
-		paper.bg_color = Color("#FAFAFA")
-		paper.set_corner_radius_all(3)
-		paper.shadow_color = Color(0, 0, 0, 0.28)
-		paper.shadow_size = 8
-		paper.shadow_offset = Vector2(0, 3)
-		for state_name in ["normal", "hover", "pressed", "focus"]:
-			card.add_theme_stylebox_override(state_name, paper)
+		card.z_index = visible_count - index
+		card.clip_contents = true
 		card.text = ""
+		card.focus_mode = Control.FOCUS_NONE
+		card.mouse_filter = Control.MOUSE_FILTER_STOP
+		card.add_theme_stylebox_override("normal", _lollipop_overview_card_style(Color("#FFFFFF")))
+		card.add_theme_stylebox_override("hover", _lollipop_overview_card_style(Color("#FFFFFF")))
+		card.add_theme_stylebox_override("pressed", _lollipop_overview_card_style(Color("#F5F5F5")))
+		card.add_theme_stylebox_override("focus", _lollipop_overview_card_style(Color("#FFFFFF")))
 		card.pressed.connect(func() -> void:
 			_close_gesture_overlay()
 			_on_app_pressed(app_name)
 		)
 		overlay.add_child(card)
 
-		var preview := VBoxContainer.new()
-		preview.position = Vector2(16, 14)
-		preview.size = Vector2(card_width - 32, card_height - 28)
-		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(preview)
-		var app_header := HBoxContainer.new()
+		var preview_background := ColorRect.new()
+		preview_background.name = "LollipopOverviewPreview_" + app_name.replace(" ", "")
+		preview_background.position = Vector2(0.0, 42.0)
+		preview_background.size = Vector2(card_width, card_height - 42.0)
+		preview_background.color = Color("#FAFAFA")
+		preview_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(preview_background)
+
+		var header := ColorRect.new()
+		header.name = "LollipopOverviewCardHeader_" + app_name.replace(" ", "")
+		header.color = _lollipop_overview_app_color(app_name)
+		header.position = Vector2.ZERO
+		header.size = Vector2(card_width, 42.0)
+		header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(header)
+
+		var header_row := HBoxContainer.new()
+		header_row.name = "LollipopOverviewHeaderContent_" + app_name.replace(" ", "")
+		header_row.position = Vector2(10.0, 0.0)
+		header_row.size = Vector2(card_width - 16.0, 42.0)
+		header_row.add_theme_constant_override("separation", 9)
+		header_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(header_row)
+
+		var app := _find_app(app_name)
+		var app_icon := Label.new()
+		app_icon.name = "LollipopOverviewAppIcon_" + app_name.replace(" ", "")
+		app_icon.text = str(app.get("glyph", "•"))
+		app_icon.custom_minimum_size = Vector2(24.0, 30.0)
+		app_icon.add_theme_font_size_override("font_size", 19)
+		app_icon.add_theme_color_override("font_color", Color("#FFFFFF"))
+		app_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		app_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		header_row.add_child(app_icon)
+
 		var app_title := Label.new()
+		app_title.name = "LollipopOverviewAppTitle_" + app_name.replace(" ", "")
 		app_title.text = app_name
 		app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		app_title.add_theme_font_size_override("font_size", 15)
-		app_title.add_theme_color_override("font_color", Color("#263238"))
-		app_header.add_child(app_title)
-		var close_task := Button.new()
-		close_task.name = "DismissOverviewTask"
-		close_task.text = "×"
-		close_task.custom_minimum_size = Vector2(28, 28)
-		close_task.add_theme_color_override("font_color", Color("#607D8B"))
-		close_task.pressed.connect(func() -> void: _dismiss_overview_task(app_name))
-		app_header.add_child(close_task)
-		preview.add_child(app_header)
-		var divider := ColorRect.new()
-		divider.custom_minimum_size.y = 1
-		divider.color = Color("#E0E0E0")
-		preview.add_child(divider)
-		var app_preview := Label.new()
-		app_preview.text = _lollipop_overview_preview_text(app_name)
-		app_preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		app_preview.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		app_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		app_preview.add_theme_font_size_override("font_size", 11)
-		app_preview.add_theme_color_override("font_color", Color("#546E7A"))
-		preview.add_child(app_preview)
+		app_title.add_theme_color_override("font_color", Color("#FFFFFF"))
+		app_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		header_row.add_child(app_title)
 
-		var tween := create_tween()
-		tween.set_parallel(true)
-		card.modulate.a = 0.0
-		card.position.y += 38.0
-		card.scale = Vector2(0.95, 0.95)
-		tween.tween_property(card, "modulate:a", 1.0, 0.22).set_delay(float(index) * 0.035)
-		tween.tween_property(card, "position:y", base_y + float(index) * 34.0, 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT).set_delay(float(index) * 0.035)
-		tween.tween_property(card, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(float(index) * 0.035)
+		var close_task := Button.new()
+		close_task.name = "DismissOverviewTask_" + app_name.replace(" ", "")
+		close_task.text = "×"
+		close_task.custom_minimum_size = Vector2(30.0, 34.0)
+		close_task.add_theme_font_size_override("font_size", 24)
+		close_task.add_theme_color_override("font_color", Color("#FFFFFF"))
+		close_task.focus_mode = Control.FOCUS_NONE
+		for state_name in ["normal", "hover", "pressed", "focus"]:
+			close_task.add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+		close_task.pressed.connect(_dismiss_overview_task.bind(app_name))
+		header_row.add_child(close_task)
+
+		var preview_content := VBoxContainer.new()
+		preview_content.name = "LollipopOverviewPreviewContent_" + app_name.replace(" ", "")
+		preview_content.position = Vector2(13.0, 52.0)
+		preview_content.size = Vector2(card_width - 26.0, card_height - 62.0)
+		preview_content.add_theme_constant_override("separation", 8)
+		preview_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(preview_content)
+		_build_lollipop_overview_preview(preview_content, app_name)
+
+	_apply_lollipop_shade_screen_mask(overlay)
+
+
+func _lollipop_overview_card_style(background_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background_color
+	style.set_corner_radius_all(2)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.30)
+	style.shadow_size = 7
+	style.shadow_offset = Vector2(0.0, 3.0)
+	style.set_border_width_all(0)
+	return style
+
+
+func _lollipop_overview_app_color(app_name: String) -> Color:
+	match app_name:
+		"Camera":
+			return Color("#263238")
+		"Notes":
+			return Color("#F4B400")
+		"Drive", "Sheets":
+			return Color("#0F9D58")
+		"Email":
+			return Color("#D14836")
+		"Maps":
+			return Color("#4285F4")
+		"Messages":
+			return Color("#009688")
+		"Browser":
+			return Color("#4285F4")
+		"Settings":
+			return Color("#607D8B")
+		"Gallery", "Photos":
+			return Color("#AB47BC")
+		"Calendar":
+			return Color("#4285F4")
+		_:
+			var app := _find_app(app_name)
+			return Color(str(app.get("color", "#607D8B")))
+
+
+func _build_lollipop_overview_preview(parent: VBoxContainer, app_name: String) -> void:
+	var status_line := _label("9:41  ·  " + app_name.to_upper(), 8, Color("#78909C"))
+	status_line.autowrap_mode = TextServer.AUTOWRAP_OFF
+	parent.add_child(status_line)
+
+	match app_name:
+		"Camera":
+			var camera_preview := ColorRect.new()
+			camera_preview.name = "OverviewCameraSnapshot"
+			camera_preview.color = Color("#263238")
+			camera_preview.custom_minimum_size.y = 118
+			parent.add_child(camera_preview)
+			var capture_hint := _label("PHOTO  ·  VIDEO", 8, Color("#607D8B"))
+			parent.add_child(capture_hint)
+		"Messages", "Email":
+			_add_lollipop_overview_preview_row(parent, "Alex Morgan", "Are we still meeting today?", Color("#4C91C7"))
+			_add_lollipop_overview_preview_row(parent, "Family", "Thanks, see you soon.", Color("#4B9B78"))
+			_add_lollipop_overview_preview_row(parent, "Work", "The document is ready.", Color("#CE765D"))
+		"Settings":
+			_add_lollipop_overview_preview_row(parent, "Wireless & networks", "Wi-Fi, Bluetooth, data usage", Color("#4C91C7"))
+			_add_lollipop_overview_preview_row(parent, "Device", "Display, sound, storage", Color("#4B9B78"))
+			_add_lollipop_overview_preview_row(parent, "Personal", "Location, security, accounts", Color("#CE765D"))
+		"Browser":
+			var address := PanelContainer.new()
+			address.custom_minimum_size.y = 28
+			var address_style := StyleBoxFlat.new()
+			address_style.bg_color = Color("#ECEFF1")
+			address_style.set_corner_radius_all(2)
+			address.add_theme_stylebox_override("panel", address_style)
+			address.add_child(_label("Search or enter address", 8, Color("#607D8B")))
+			parent.add_child(address)
+			parent.add_child(_label("Recently viewed page", 11, Color("#37474F")))
+			var article_line := ColorRect.new()
+			article_line.color = Color("#CFD8DC")
+			article_line.custom_minimum_size.y = 58
+			parent.add_child(article_line)
+		"Photos", "Gallery":
+			var photo_grid := GridContainer.new()
+			photo_grid.columns = 3
+			photo_grid.add_theme_constant_override("h_separation", 5)
+			photo_grid.add_theme_constant_override("v_separation", 5)
+			for tile_color in [Color("#90A4AE"), Color("#B0BEC5"), Color("#78909C"), Color("#CFD8DC"), Color("#A1887F"), Color("#80CBC4")]:
+				var photo_tile := ColorRect.new()
+				photo_tile.color = tile_color
+				photo_tile.custom_minimum_size = Vector2(54.0, 48.0)
+				photo_grid.add_child(photo_tile)
+			parent.add_child(photo_grid)
+		"Maps":
+			var map_preview := ColorRect.new()
+			map_preview.color = Color("#E8E4D8")
+			map_preview.custom_minimum_size.y = 116
+			parent.add_child(map_preview)
+			parent.add_child(_label("Nearby places", 10, Color("#455A64")))
+		_:
+			parent.add_child(_label(_lollipop_overview_preview_text(app_name), 11, Color("#455A64")))
+			for line_index in range(3):
+				var preview_line := ColorRect.new()
+				preview_line.color = Color("#CFD8DC")
+				preview_line.custom_minimum_size = Vector2(0.0, 4.0)
+				parent.add_child(preview_line)
+
+
+func _add_lollipop_overview_preview_row(parent: VBoxContainer, primary_text: String, secondary_text: String, avatar_color: Color) -> void:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size.y = 38.0
+	row.add_theme_constant_override("separation", 9)
+	var avatar := PanelContainer.new()
+	avatar.custom_minimum_size = Vector2(27.0, 27.0)
+	var avatar_style := StyleBoxFlat.new()
+	avatar_style.bg_color = avatar_color
+	avatar_style.set_corner_radius_all(14)
+	avatar.add_theme_stylebox_override("panel", avatar_style)
+	row.add_child(avatar)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label(primary_text, 9, Color("#37474F")))
+	copy.add_child(_label(secondary_text, 8, Color("#78909C")))
+	row.add_child(copy)
+	parent.add_child(row)
+
+
+func _set_lollipop_overview_underlay_visible(visible: bool) -> void:
+	var component_content := find_child("OSComponentContent", true, false) as Control
+	if is_instance_valid(component_content):
+		component_content.visible = visible
+	var home_dock := find_child("HomeAppDockIcons", true, false) as Control
+	if is_instance_valid(home_dock):
+		home_dock.visible = visible
 
 
 func _lollipop_overview_preview_text(app_name: String) -> String:
@@ -1164,9 +1343,12 @@ func _dismiss_overview_task(app_name: String) -> void:
 
 
 func _close_gesture_overlay() -> void:
+	var was_lollipop_overview := _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps"
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		_gesture_overlay.queue_free()
 	_gesture_overlay = null
+	if was_lollipop_overview:
+		_set_lollipop_overview_underlay_visible(true)
 
 
 func _ready() -> void:
