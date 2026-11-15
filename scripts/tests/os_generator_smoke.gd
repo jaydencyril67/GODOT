@@ -731,8 +731,8 @@ func _run_os_generator_test() -> void:
 	if generation_selector == null or generation_label == null or generation_label.text != "GENERATION 02" or generation_minus == null or generation_plus == null or generation_description == null or generation_description.text != "ANDROID 8.0 OREO":
 		_fail("Step 1 must default Android Layout 1 to Generation 2 (Android 8.0 Oreo).")
 		return
-	if not layout_minus.disabled or layout_plus.disabled or generation_minus.disabled or not generation_plus.disabled:
-		_fail("Layout and generation arrows must enforce the available selector bounds.")
+	if not layout_minus.disabled or layout_plus.disabled or generation_minus.disabled or generation_plus.disabled:
+		_fail("Layout and generation arrows must enforce the available selector bounds at Layout 1 / Generation 2.")
 		return
 	for target_layout in range(1, 3):
 		layout_plus.pressed.emit()
