@@ -39,9 +39,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # The project-wide theme references an imported font. On a clean
-          # checkout, Godot loads project settings before its first import
-          # scan, so temporarily disable that theme while generating imports.
           test -s "assets/fonts/STIXTwoText[wght].ttf"
           test -s "assets/company_logos.svg"
           for asset in assets/textures/*.svg; do test -s "$asset"; done
@@ -58,8 +55,6 @@ jobs:
           trap restore_project EXIT
           sed -i '/^theme\/custom=/d' project.godot
 
-          # Parse the OS simulator before the editor-wide asset scan, with the
-          # unimported project theme disabled so this reports script errors only.
           godot --headless --path . --check-only --script res://scripts/os/os_preview_simulator.gd 2>&1 | tee os-preview-parse.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' os-preview-parse.log; then
             echo "Godot reported a direct OS simulator script parse error."
@@ -83,7 +78,6 @@ jobs:
             exit 1
           fi
 
-          # Reopen with the real project theme enabled and validate its resources.
           godot --headless --editor --path . --quit 2>&1 | tee godot-parse.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' godot-parse.log; then
             echo "Godot reported a script error after imports were generated."
@@ -105,7 +99,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --verbose --path . --script res://scripts/tests/os_generator_smoke.gd 2>&1 | tee os-generator-smoke.log
+          if timeout --signal=TERM --kill-after=10s 120s godot --headless --verbose --path . --script res://scripts/tests/os_generator_smoke.gd 2>&1 | tee os-generator-smoke.log; then
+            :
+          else
+            test_status=$?
+            echo "OS generator smoke test exited with status $test_status."
+            if [ "$test_status" -eq 124 ] || [ "$test_status" -eq 137 ]; then
+              echo "OS generator smoke test exceeded its 120-second limit."
+            fi
+            echo "Last 100 lines of OS smoke-test output:"
+            tail -n 100 os-generator-smoke.log || true
+            exit "$test_status"
+          fi
           grep -q "OS_GENERATOR_SMOKE_TEST: PASS" os-generator-smoke.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_GENERATOR_SMOKE_TEST:.*(FAIL|ERROR)' os-generator-smoke.log; then
             echo "Godot reported an error during the OS generator smoke test."
@@ -152,4 +157,3 @@ jobs:
 
           echo "Godot warning lines reported: $warning_count"
           echo "Warnings are informational and do not fail this workflow."
-
