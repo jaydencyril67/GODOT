@@ -452,14 +452,42 @@ func _run_os_generator_test() -> void:
 		if navigation_button.mouse_filter != Control.MOUSE_FILTER_STOP or navigation_button.custom_minimum_size.x < 30.0 or navigation_button.custom_minimum_size.y < 40.0:
 			_fail("Android navigation buttons must have active mouse input and a reliable touch target.")
 			return
+	simulator.call("_on_app_pressed", "Settings")
 	simulator.call("_on_app_pressed", "Messages")
 	android_overview.pressed.emit()
 	await process_frame
-	if simulator.get("active_component") != "home_screen" or simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
+	var overview_overlay := simulator.find_child("OSGestureOverlay_recent_apps", true, false) as Control
+	var overview_background := simulator.find_child("LollipopOverviewBackground", true, false) as ColorRect
+	var overview_search := simulator.find_child("LollipopOverviewSearchBar", true, false) as PanelContainer
+	var messages_card := simulator.find_child("LollipopOverviewTask_Messages", true, false) as Button
+	var settings_card := simulator.find_child("LollipopOverviewTask_Settings", true, false) as Button
+	if simulator.get("active_component") != "home_screen" or overview_overlay == null:
 		_fail("Android Overview button did not open the Recent Apps overview.")
 		return
-	if simulator.find_child("LollipopOverviewBackground", true, false) == null or simulator.find_child("LollipopOverviewTask_Messages", true, false) == null:
-		_fail("Android Overview must show animated Lollipop-style task cards, not a fixed app list.")
+	if overview_background == null or overview_search == null or messages_card == null or settings_card == null:
+		_fail("Android 5 Overview must show the Google search bar and overlapping app task cards.")
+		return
+	if overview_overlay == null or not overview_overlay.clip_contents or overview_background.color.a > 0.10:
+		_fail("Android 5 Overview must preserve the wallpaper behind a screen-clipped task stack.")
+		return
+	if simulator.find_child("LollipopOverviewTitle", true, false) != null or simulator.find_child("LollipopOverviewClearAll", true, false) != null:
+		_fail("Stock Android 5 Overview must not show a generic heading or a Clear All control.")
+		return
+	if messages_card.position.y <= settings_card.position.y or messages_card.z_index <= settings_card.z_index:
+		_fail("The newest Android 5 task must sit in front of older cards in the bottom of the stack.")
+		return
+	if messages_card.size.x < float(simulator.size.x) * 0.90 or messages_card.size.y < float(simulator.size.y) * 0.60:
+		_fail("Android 5 Overview task cards must be large, near-full-width app snapshots.")
+		return
+	var messages_header := simulator.find_child("LollipopOverviewCardHeader_Messages", true, false) as ColorRect
+	var messages_icon := simulator.find_child("LollipopOverviewAppIcon_Messages", true, false) as Label
+	var messages_close := simulator.find_child("DismissOverviewTask_Messages", true, false) as Button
+	var overview_content := simulator.find_child("OSComponentContent", true, false) as Control
+	if messages_header == null or messages_header.color != Color("#009688") or messages_icon == null or messages_icon.text.is_empty() or messages_close == null:
+		_fail("Android 5 task cards must include the app-coloured title strip, app icon and individual close control.")
+		return
+	if overview_content == null or overview_content.visible:
+		_fail("The launcher app grid must be hidden behind the Android 5 Overview task stack.")
 		return
 	var android_back := simulator.find_child("AndroidNavigationBack", true, false) as Button
 	if android_back == null:
@@ -469,6 +497,10 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
 		_fail("Android Back button did not close the Recent Apps overview.")
+		return
+	overview_content = simulator.find_child("OSComponentContent", true, false) as Control
+	if overview_content == null or not overview_content.visible:
+		_fail("Closing Android 5 Overview must restore the launcher content.")
 		return
 	var rounded_mask := simulator.find_child("OSScreenRoundedCornerMask", true, false) as Control
 	if rounded_mask == null or not is_equal_approx(float(rounded_mask.get("corner_radius")), 22.0):
