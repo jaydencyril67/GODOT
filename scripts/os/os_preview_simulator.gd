@@ -1579,10 +1579,7 @@ func _build_android_pie_overview() -> void:
 	clear_all.focus_mode = Control.FOCUS_NONE
 	clear_all.add_theme_color_override("font_color", Color("#FFFFFF"))
 	clear_all.add_theme_font_size_override("font_size", 10)
-	clear_all.pressed.connect(func() -> void:
-		_recent_app_names.clear()
-		_build_android_pie_overview()
-	)
+	clear_all.pressed.connect(_clear_pie_overview_tasks)
 	row.add_child(clear_all)
 
 	var search := PanelContainer.new()
@@ -1616,8 +1613,39 @@ func _dismiss_pie_overview_top_card() -> void:
 
 
 func _dismiss_pie_overview_task(app_name: String) -> void:
+	if not _recent_app_names.has(app_name):
+		return
 	_recent_app_names.erase(app_name)
-	_build_android_pie_overview()
+	var card := find_child("PieRecentAppsCard_" + app_name.replace(" ", ""), true, false) as Control
+	if is_instance_valid(card):
+		card.queue_free()
+	if _recent_app_names.is_empty():
+		_set_pie_overview_empty_state()
+
+
+func _clear_pie_overview_tasks() -> void:
+	_recent_app_names.clear()
+	var row := find_child("PieRecentAppsRow", true, false) as HBoxContainer
+	if not is_instance_valid(row):
+		return
+	for child in row.get_children():
+		if child.name.begins_with("PieRecentAppsCard_") or child.name == "PieRecentAppsClearAll":
+			child.queue_free()
+	_set_pie_overview_empty_state()
+
+
+func _set_pie_overview_empty_state() -> void:
+	var row := find_child("PieRecentAppsRow", true, false) as HBoxContainer
+	if not is_instance_valid(row) or is_instance_valid(find_child("PieRecentAppsEmptyState", true, false)):
+		return
+	var clear_all := find_child("PieRecentAppsClearAll", true, false) as Control
+	if is_instance_valid(clear_all):
+		clear_all.queue_free()
+	var empty_state := CenterContainer.new()
+	empty_state.name = "PieRecentAppsEmptyState"
+	empty_state.custom_minimum_size = Vector2(maxf(120.0, size.x - 24.0), size.y * 0.48)
+	empty_state.add_child(_label("No recent apps", 12, Color("#FFFFFF")))
+	row.add_child(empty_state)
 
 
 func _build_android_pie_recent_apps_preview() -> void:
