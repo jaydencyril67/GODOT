@@ -1111,7 +1111,9 @@ func _keep_step_navigation_active() -> void:
 	if is_instance_valid(navigation_layer):
 		navigation_layer.layer = 127
 	if is_instance_valid(navigation_bar):
-		navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
+		# Keep the full-width container transparent to input; its child arrows
+		# retain MOUSE_FILTER_STOP and continue to receive their own taps.
+		navigation_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		navigation_bar.z_index = 1000
 		navigation_bar.z_as_relative = false
 	if is_instance_valid(wizard_back_button):
