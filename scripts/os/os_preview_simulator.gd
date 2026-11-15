@@ -560,8 +560,15 @@ func _build_lollipop_notification_content(parent: Control) -> void:
 	header.add_theme_constant_override("separation", 8)
 	var time_stack := VBoxContainer.new()
 	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	time_stack.add_child(_label(_current_lock_time(), 27, Color("#FFFFFF")))
-	time_stack.add_child(_label(_current_lock_date("editorial"), 10, Color("#CFD8DC")))
+	var clock_label := _label(_current_lock_time(), 27, Color("#FFFFFF"))
+	clock_label.custom_minimum_size.y = 34
+	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	clock_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	time_stack.add_child(clock_label)
+	var date_label := _label(_current_lock_date("editorial"), 10, Color("#CFD8DC"))
+	date_label.custom_minimum_size.y = 16
+	date_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	time_stack.add_child(date_label)
 	header.add_child(time_stack)
 
 	var header_status := VBoxContainer.new()
@@ -585,9 +592,10 @@ func _build_lollipop_notification_content(parent: Control) -> void:
 
 func _add_lollipop_notification_card(parent: Control, app_name: String, message: String, time_label: String, icon_color: Color, icon_text: String) -> void:
 	var card := PanelContainer.new()
-	card.name = "LollipopNotification_" + app_name.replace(" ", "")
+	var safe_app_id := app_name.replace(" ", "")
+	card.name = "LollipopNotification_" + safe_app_id
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size.y = 67
+	card.custom_minimum_size = Vector2(0, 76)
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = Color("#FAFAFA")
 	card_style.set_border_width_all(0)
@@ -602,41 +610,63 @@ func _add_lollipop_notification_card(parent: Control, app_name: String, message:
 	card.add_theme_stylebox_override("panel", card_style)
 
 	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.custom_minimum_size = Vector2(0, 54)
 	row.add_theme_constant_override("separation", 10)
 	card.add_child(row)
 
 	var icon_holder := CenterContainer.new()
-	icon_holder.custom_minimum_size = Vector2(34, 34)
+	icon_holder.custom_minimum_size = Vector2(36, 40)
 	var icon_circle := PanelContainer.new()
 	icon_circle.custom_minimum_size = Vector2(30, 30)
 	var icon_style := StyleBoxFlat.new()
 	icon_style.bg_color = icon_color
 	icon_style.set_corner_radius_all(18)
 	icon_circle.add_theme_stylebox_override("panel", icon_style)
-	var icon := _label(icon_text, 11, Color("#FFFFFF"))
+	var icon := _label(icon_text, 12, Color("#FFFFFF"))
+	icon.name = "LollipopNotificationIcon_" + safe_app_id
+	icon.custom_minimum_size = Vector2(30, 30)
+	icon.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	icon.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.autowrap_mode = TextServer.AUTOWRAP_OFF
+	icon.add_theme_font_override("font", LOCKSCREEN_FONT)
 	icon_circle.add_child(icon)
 	icon_holder.add_child(icon_circle)
 	row.add_child(icon_holder)
 
 	var text_stack := VBoxContainer.new()
 	text_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	text_stack.custom_minimum_size = Vector2(100, 40)
 	text_stack.add_theme_constant_override("separation", 1)
 	var title_row := HBoxContainer.new()
+	title_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.custom_minimum_size.y = 16
 	var app_label := _label(app_name, 10, Color("#455A64"))
+	app_label.name = "LollipopNotificationApp_" + safe_app_id
+	app_label.custom_minimum_size.y = 16
 	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	app_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	app_label.clip_text = true
 	title_row.add_child(app_label)
 	var time := _label(time_label, 8, Color("#78909C"))
+	time.name = "LollipopNotificationTime_" + safe_app_id
+	time.custom_minimum_size.y = 16
 	time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	time.autowrap_mode = TextServer.AUTOWRAP_OFF
 	title_row.add_child(time)
 	text_stack.add_child(title_row)
 	var message_label := _label(message, 11, Color("#263238"))
+	message_label.name = "LollipopNotificationMessage_" + safe_app_id
+	message_label.custom_minimum_size.y = 19
+	message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_label.clip_text = false
 	text_stack.add_child(message_label)
 	row.add_child(text_stack)
 	parent.add_child(card)
-
 
 func _build_lollipop_quick_settings_shade() -> void:
 	var overlay := _create_lollipop_shade_overlay("control_center", Color("#263238"))
@@ -661,13 +691,23 @@ func _build_lollipop_quick_settings_content(parent: Control, include_notificatio
 	header_row.add_theme_constant_override("separation", 8)
 	var time_stack := VBoxContainer.new()
 	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	time_stack.add_child(_label(_current_lock_time(), 26, Color("#FFFFFF")))
-	time_stack.add_child(_label(_current_lock_date("editorial"), 10, Color("#CFD8DC")))
+	var clock_label := _label(_current_lock_time(), 26, Color("#FFFFFF"))
+	clock_label.custom_minimum_size.y = 32
+	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	clock_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	time_stack.add_child(clock_label)
+	var date_label := _label(_current_lock_date("editorial"), 10, Color("#CFD8DC"))
+	date_label.custom_minimum_size.y = 16
+	date_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	time_stack.add_child(date_label)
 	header_row.add_child(time_stack)
 
 	var header_actions := VBoxContainer.new()
 	header_actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	header_actions.add_child(_label("100%  ▰", 10, Color("#FFFFFF")))
+	var battery_label := _label("100%  ▰", 10, Color("#FFFFFF"))
+	battery_label.custom_minimum_size.y = 16
+	battery_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	header_actions.add_child(battery_label)
 	var settings_button := Button.new()
 	settings_button.name = "LollipopQuickSettingsOpenSettings"
 	settings_button.text = "⚙"
@@ -704,7 +744,11 @@ func _build_lollipop_quick_settings_content(parent: Control, include_notificatio
 	brightness_panel.add_theme_stylebox_override("panel", brightness_style)
 	var brightness_row := HBoxContainer.new()
 	brightness_row.add_theme_constant_override("separation", 8)
-	brightness_row.add_child(_label("☼", 20, Color("#FFFFFF")))
+	var brightness_low := _label("☼", 20, Color("#FFFFFF"))
+	brightness_low.custom_minimum_size = Vector2(24, 28)
+	brightness_low.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brightness_low.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	brightness_row.add_child(brightness_low)
 	var brightness_slider := HSlider.new()
 	brightness_slider.name = "LollipopBrightnessSlider"
 	brightness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -725,7 +769,11 @@ func _build_lollipop_quick_settings_content(parent: Control, include_notificatio
 	brightness_slider.add_theme_stylebox_override("grabber_area", slider_active)
 	brightness_slider.add_theme_stylebox_override("grabber_area_highlight", slider_active)
 	brightness_row.add_child(brightness_slider)
-	brightness_row.add_child(_label("☀", 15, Color("#FFFFFF")))
+	var brightness_high := _label("☀", 15, Color("#FFFFFF"))
+	brightness_high.custom_minimum_size = Vector2(24, 28)
+	brightness_high.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brightness_high.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	brightness_row.add_child(brightness_high)
 	brightness_panel.add_child(brightness_row)
 	parent.add_child(brightness_panel)
 
@@ -760,47 +808,81 @@ func _build_lollipop_quick_settings_content(parent: Control, include_notificatio
 
 func _add_lollipop_quick_setting_tile(parent: GridContainer, definition: Dictionary) -> void:
 	var setting_id := str(definition.get("id", ""))
+	var safe_setting_id := setting_id.replace(" ", "")
 	var tile := Button.new()
-	tile.name = "LollipopQuickTile_" + setting_id.replace(" ", "")
+	tile.name = "LollipopQuickTile_" + safe_setting_id
 	tile.toggle_mode = true
 	tile.focus_mode = Control.FOCUS_NONE
 	tile.mouse_filter = Control.MOUSE_FILTER_STOP
-	tile.custom_minimum_size = Vector2(0, 66)
+	tile.custom_minimum_size = Vector2(0, 72)
 	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var empty_style := StyleBoxEmpty.new()
-	for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
-		tile.add_theme_stylebox_override(state_name, empty_style)
-	var tile_body := CenterContainer.new()
-	tile_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	tile_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tile_stack := VBoxContainer.new()
-	tile_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	tile_stack.add_theme_constant_override("separation", 2)
+	tile.text = ""
+
 	var enabled := bool(_quick_setting_states.get(setting_id, definition.get("enabled", false)))
-	var icon_label := _label(str(definition.get("glyph", "•")), 23, Color("#FFFFFF") if enabled else Color("#78909C"))
+	var enabled_style := StyleBoxFlat.new()
+	enabled_style.bg_color = Color("#455A64")
+	enabled_style.border_color = Color("#78909C")
+	enabled_style.set_border_width_all(1)
+	enabled_style.set_corner_radius_all(2)
+	enabled_style.content_margin_left = 3
+	enabled_style.content_margin_right = 3
+	enabled_style.content_margin_top = 4
+	enabled_style.content_margin_bottom = 4
+	var disabled_style := StyleBoxFlat.new()
+	disabled_style.bg_color = Color("#37474F")
+	disabled_style.border_color = Color("#546E7A")
+	disabled_style.set_border_width_all(1)
+	disabled_style.set_corner_radius_all(2)
+	disabled_style.content_margin_left = 3
+	disabled_style.content_margin_right = 3
+	disabled_style.content_margin_top = 4
+	disabled_style.content_margin_bottom = 4
+	tile.add_theme_stylebox_override("normal", enabled_style if enabled else disabled_style)
+	tile.add_theme_stylebox_override("hover", enabled_style if enabled else disabled_style)
+	tile.add_theme_stylebox_override("pressed", enabled_style if enabled else disabled_style)
+	tile.add_theme_stylebox_override("focus", enabled_style if enabled else disabled_style)
+
+	var tile_stack := VBoxContainer.new()
+	tile_stack.name = "LollipopQuickTileContent_" + safe_setting_id
+	tile_stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tile_stack.add_theme_constant_override("separation", 1)
+	tile_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	tile_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var icon_label := _label(str(definition.get("glyph", "•")), 22, Color("#FFFFFF") if enabled else Color("#B0BEC5"))
+	icon_label.name = "LollipopQuickTileIcon_" + safe_setting_id
+	icon_label.custom_minimum_size = Vector2(0, 30)
+	icon_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_label.custom_minimum_size.y = 28
-	var title_label := _label(setting_id, 9, Color("#ECEFF1") if enabled else Color("#90A4AE"))
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	icon_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	tile_stack.add_child(icon_label)
+	var title_label := _label(setting_id, 9, Color("#FFFFFF") if enabled else Color("#B0BEC5"))
+	title_label.name = "LollipopQuickTileLabel_" + safe_setting_id
+	title_label.custom_minimum_size = Vector2(0, 18)
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_label.clip_text = false
 	tile_stack.add_child(title_label)
-	tile_body.add_child(tile_stack)
-	tile.add_child(tile_body)
+	tile.add_child(tile_stack)
 	tile.button_pressed = enabled
-	tile.toggled.connect(_on_lollipop_quick_setting_toggled.bind(setting_id, icon_label, title_label))
+	tile.toggled.connect(_on_lollipop_quick_setting_toggled.bind(setting_id, icon_label, title_label, tile, enabled_style, disabled_style))
 	parent.add_child(tile)
 
 
-func _on_lollipop_quick_setting_toggled(enabled: bool, setting_id: String, icon_label: Label, title_label: Label) -> void:
+func _on_lollipop_quick_setting_toggled(enabled: bool, setting_id: String, icon_label: Label, title_label: Label, tile: Button, enabled_style: StyleBoxFlat, disabled_style: StyleBoxFlat) -> void:
 	_quick_setting_states[setting_id] = enabled
+	var selected_style: StyleBoxFlat = enabled_style if enabled else disabled_style
+	if is_instance_valid(tile):
+		tile.add_theme_stylebox_override("normal", selected_style)
+		tile.add_theme_stylebox_override("hover", selected_style)
+		tile.add_theme_stylebox_override("pressed", selected_style)
+		tile.add_theme_stylebox_override("focus", selected_style)
 	if is_instance_valid(icon_label):
-		icon_label.add_theme_color_override("font_color", Color("#FFFFFF") if enabled else Color("#78909C"))
+		icon_label.add_theme_color_override("font_color", Color("#FFFFFF") if enabled else Color("#B0BEC5"))
 	if is_instance_valid(title_label):
-		title_label.add_theme_color_override("font_color", Color("#ECEFF1") if enabled else Color("#90A4AE"))
-
-
+		title_label.add_theme_color_override("font_color", Color("#FFFFFF") if enabled else Color("#B0BEC5"))
 
 func _build_gesture_control_center(parent: VBoxContainer) -> void:
 	var subtitle := _label("Manage connections and device controls", 8, _muted_color())
