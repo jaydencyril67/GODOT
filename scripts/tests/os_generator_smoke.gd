@@ -188,8 +188,12 @@ func _run_os_generator_test() -> void:
 		return
 	var lollipop_clock := simulator.find_child("LockScreenClock", true, false) as Label
 	var lollipop_date := simulator.find_child("LockScreenDate", true, false) as Label
+	var lock_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
 	if lollipop_clock == null or lollipop_clock.text.strip_edges().is_empty() or lollipop_date == null or lollipop_date.text.strip_edges().is_empty():
 		_fail("Lollipop lock-screen time or date is blank.")
+		return
+	if lock_status_clock == null or not lock_status_clock.visible or lock_status_clock.text.strip_edges().is_empty():
+		_fail("Lollipop lock screen must keep the small status-bar time visible above the large lock-screen clock.")
 		return
 	var camera_shortcut := simulator.find_child("LockScreenShortcut_Camera", true, false) as Button
 	var flashlight_shortcut := simulator.find_child("LockScreenShortcut_Flashlight", true, false) as Button
