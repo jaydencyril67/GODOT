@@ -1999,7 +1999,7 @@ func _set_lollipop_overview_underlay_visible(should_show: bool) -> void:
 	var component_content := find_child("OSComponentContent", true, false) as Control
 	if is_instance_valid(component_content):
 		component_content.visible = should_show
-	for dock_name in ["HomeAppDockIcons", "PieHomeDockIcons"]:
+	for dock_name in ["HomeAppDockIcons", "PieHomeDockIcons", "PieHomeGoogleSearchBar"]:
 		var home_dock := find_child(dock_name, true, false) as Control
 		if is_instance_valid(home_dock):
 			home_dock.visible = should_show
@@ -2206,7 +2206,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	var bar_style := StyleBoxFlat.new()
 	# Android 5 Lollipop draws its navigation glyphs directly over the
 	# screen surface; it does not use a separate opaque navigation strip.
-	bar_style.bg_color = Color(0.0, 0.0, 0.0, 0.0) if use_lollipop_style else (Color("#FAFAFA") if is_light_surface else Color(0.025, 0.035, 0.045, 0.88))
+	bar_style.bg_color = Color(0.0, 0.0, 0.0, 0.0) if use_lollipop_style or (use_pie_style and not is_light_surface) else (Color("#F8F9FA") if use_pie_style else Color("#FAFAFA")) if is_light_surface else Color(0.025, 0.035, 0.045, 0.88)
 	bar_style.set_border_width_all(0)
 	bar_style.set_corner_radius_all(0)
 	bar_style.content_margin_left = 0
@@ -4404,11 +4404,11 @@ func _build_android_pie_app_drawer() -> void:
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 9)
 	viewport.add_child(grid)
-	_populate_android_pie_app_grid(grid, "")
+	_populate_android_pie_app_grid("", grid)
 	search.text_changed.connect(_populate_android_pie_app_grid.bind(grid))
 
 
-func _populate_android_pie_app_grid(grid: GridContainer, query: String) -> void:
+func _populate_android_pie_app_grid(query: String, grid: GridContainer) -> void:
 	if not is_instance_valid(grid):
 		return
 	for child in grid.get_children():
