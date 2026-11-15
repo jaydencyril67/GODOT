@@ -301,6 +301,22 @@ func _run_os_generator_test() -> void:
 			if atlas_icon == null or atlas_icon.atlas == null or atlas_icon.atlas.resource_path != "res://assets/os/" + asset_family + "/icons.svg" or atlas_icon.region.size != Vector2(96.0, 96.0):
 				_fail("Android generation %d did not load its own bundled app icon assets." % generation_number)
 				return
+			var expected_app_names := [
+				"Phone", "Messages", "Camera", "Gallery", "Browser", "Music", "Calendar", "Settings",
+				"Files", "Clock", "Maps", "Notes", "Contacts", "Email", "Calculator", "Weather",
+				"Downloads", "Recorder", "Video", "Store", "Security", "Device Care", "Drive", "Photos",
+				"Podcasts", "Tasks", "Wallet", "Compass", "Assistant", "Meet"
+			]
+			var generation_icon_regions := {}
+			for expected_app_name in expected_app_names:
+				var imported_app_icon := simulator.call("_load_android_generation_icon", expected_app_name) as AtlasTexture
+				if imported_app_icon == null or imported_app_icon.atlas == null or imported_app_icon.atlas.resource_path != "res://assets/os/" + asset_family + "/icons.svg":
+					_fail("Android generation %d is missing imported artwork for installed app: %s" % [generation_number, expected_app_name])
+					return
+				generation_icon_regions[str(imported_app_icon.region.position)] = true
+			if generation_icon_regions.size() != expected_app_names.size():
+				_fail("Android generation %d must provide 30 distinct imported app icon regions." % generation_number)
+				return
 		simulator.configure_os(generation_preview, "lock_screen")
 		await process_frame
 		if simulator.find_child(expected_android_nav, true, false) != null:
