@@ -315,7 +315,6 @@ func _current_lock_date(treatment: String) -> String:
 
 
 func _refresh_lock_screen_clock() -> void:
-	var data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
 	var clock := find_child("LockScreenClock", true, false) as Label
 	if is_instance_valid(clock):
 		clock.text = _current_lock_time()
