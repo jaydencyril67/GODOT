@@ -228,8 +228,6 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	if not WALLPAPER_STYLES.has(str(style.get("wallpaper", ""))):
 		issues.append("Wallpaper style is invalid.")
 	var lock_screen: Dictionary = config.get("components", {}).get("lock_screen", {})
-	if bool(lock_screen.get("show_fingerprint", false)) and not bool(lock_screen.get("fingerprint_sensor_available", false)):
-		issues.append("Fingerprint unlock is enabled without fingerprint sensor hardware.")
 	for lock_key in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
 		if not lock_screen.has(lock_key):
 			issues.append("Lollipop lock-screen setting is missing: " + lock_key)
