@@ -489,10 +489,18 @@ func _run_os_generator_test() -> void:
 	if overview_content == null or overview_content.visible:
 		_fail("The launcher app grid must be hidden behind the Android 5 Overview task stack.")
 		return
-	var android_back := simulator.find_child("AndroidNavigationBack", true, false) as Button
-	if android_back == null:
-		_fail("Android Back navigation button is missing from Recent Apps.")
+	var overview_navigation_footer := simulator.find_child("LollipopOverviewNavigationFooter", true, false) as Control
+	var overview_navigation_bar := simulator.find_child("AndroidNavigationBar", true, false) as Control
+	var overview_recent := simulator.find_child("LollipopNavigationOverview", true, false) as Button
+	var overview_home := simulator.find_child("LollipopNavigationHome", true, false) as Button
+	var overview_back := simulator.find_child("LollipopNavigationBack", true, false) as Button
+	if overview_navigation_footer == null or overview_navigation_bar == null or overview_navigation_bar.visible:
+		_fail("Android 5 Overview must display its dedicated navigation footer above the task stack.")
 		return
+	if overview_recent == null or overview_home == null or overview_back == null or not overview_recent.visible or not overview_home.visible or not overview_back.visible:
+		_fail("All three Android navigation buttons must remain visible in Recent Apps.")
+		return
+	var android_back := overview_back
 	android_back.pressed.emit()
 	await process_frame
 	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
