@@ -318,6 +318,14 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("LollipopNotification_Messages", true, false) == null or simulator.find_child("CloseGestureOverlayButton", true, false) != null:
 				_fail("Android 5 notification cards are missing or an unwanted close button was added.")
 				return
+			var notification_overlay := simulator.find_child("OSGestureOverlay_notifications", true, false) as Control
+			var notification_mask := simulator.find_child("LollipopShadeScreenCornerMask", true, false) as Control
+			if notification_overlay == null or not notification_overlay.clip_contents or notification_mask == null:
+				_fail("Lollipop notification shade must be clipped to the rounded phone screen.")
+				return
+			if not bool(notification_mask.get("mask_bottom_corners")) == false or notification_mask.z_index < 100:
+				_fail("Lollipop shade corner mask must preserve the top screen radius without rounding the navigation edge.")
+				return
 			var notification_app_label := simulator.find_child("LollipopNotificationApp_Messages", true, false) as Label
 			var notification_message_label := simulator.find_child("LollipopNotificationMessage_Messages", true, false) as Label
 			var notification_icon_label := simulator.find_child("LollipopNotificationIcon_Messages", true, false) as Label
@@ -334,6 +342,11 @@ func _run_os_generator_test() -> void:
 			await process_frame
 			if simulator.find_child("LollipopQuickSettingsHeader", true, false) == null or simulator.find_child("LollipopQuickSettingsGrid", true, false) == null or simulator.find_child("LollipopBrightnessSlider", true, false) == null:
 				_fail("Expanded Android 5 Quick Settings is missing its header, brightness slider or icon tiles.")
+				return
+			var quick_settings_overlay := simulator.find_child("OSGestureOverlay_control_center", true, false) as Control
+			var quick_settings_mask := simulator.find_child("LollipopShadeScreenCornerMask", true, false) as Control
+			if quick_settings_overlay == null or not quick_settings_overlay.clip_contents or quick_settings_mask == null:
+				_fail("Lollipop Quick Settings must remain inside the rounded phone screen boundary.")
 				return
 			if simulator.find_child("CloseGestureOverlayButton", true, false) != null:
 				_fail("Android 5 Quick Settings must dismiss by system gestures/navigation, not an X button.")
