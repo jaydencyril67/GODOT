@@ -2564,7 +2564,8 @@ func _refresh_pin_entry_display() -> void:
 	var error_label := find_child("PINEntryError", true, false) as Label
 	if is_instance_valid(error_label):
 		error_label.text = _pin_error_message
-		error_label.visible = not _pin_error_message.is_empty()
+		# Keep the reserved row visible while empty to prevent keypad movement.
+		error_label.visible = true
 
 
 func _build_icon_gallery(data: Dictionary) -> void:
