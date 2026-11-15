@@ -165,7 +165,6 @@ class GlassButtonReflection extends Control:
 
 func _ready() -> void:
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
-	var initial_components: Dictionary = generated_os_configuration.get("components", {})
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_build_interface()
 	_apply_bootloader_settings_to_configuration()
