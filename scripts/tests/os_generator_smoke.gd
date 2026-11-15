@@ -856,6 +856,12 @@ func _run_os_generator_test() -> void:
 	if pin_key_two == null or pin_key_two.size.x < 24.0 or pin_key_two.text != "2":
 		_fail("PIN digit buttons must display their number on a usable circular touch target.")
 		return
+	if pin_key_two.custom_minimum_size.x < 34.0 or pin_keypad.get_theme_constant("h_separation") < 8 or pin_keypad.get_theme_constant("v_separation") < 8:
+		_fail("PIN keypad buttons and row/column spacing must be comfortably sized rather than tightly compressed.")
+		return
+	if pin_lock_indicator.custom_minimum_size.y < 20.0 or pin_error.custom_minimum_size.y < 14.0 or emergency_call.custom_minimum_size.y < 28.0:
+		_fail("PIN header, reserved error row and emergency-call footer must have enough vertical breathing room.")
+		return
 	for digit_text in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
 		var visible_digit := worksite_preview.find_child("PINKey_" + digit_text, true, false) as Button
 		if visible_digit == null or visible_digit.text != digit_text:
