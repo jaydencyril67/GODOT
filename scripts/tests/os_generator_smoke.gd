@@ -254,23 +254,37 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("LollipopAppDrawerButton", true, false) == null:
 				_fail("Android Generation 1 must include its app drawer launcher.")
 				return
-		else:
+		elif generation_number == 2:
 			if simulator.find_child("AndroidWeatherWidget", true, false) == null or simulator.find_child("AndroidAssistantWidget", true, false) == null:
-				_fail("Later Android generations must retain their side-by-side home widgets.")
+				_fail("Android 8 Oreo must retain its two side-by-side Pixel widgets.")
 				return
 			if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("HomeSearchBar", true, false) == null or simulator.find_child("HomeAppDock", true, false) == null:
-				_fail("Later Android generations are missing their home grid, search field or dock.")
+				_fail("Android 8 Oreo is missing its home grid, search field or dock.")
 				return
-		var expected_android_nav := "LollipopThreeButtonNavigation" if generation_number == 1 else "AndroidThreeButtonNavigation"
+		else:
+			if simulator.find_child("PieHomeAtAGlance", true, false) == null or simulator.find_child("PieHomeWeather", true, false) == null:
+				_fail("Android 9 Pie must render the Pixel Launcher At a Glance date and weather.")
+				return
+			var pie_home_grid := simulator.find_child("PieHomeAppGrid", true, false) as GridContainer
+			var pie_dock := simulator.find_child("PieHomeDockIcons", true, false) as HBoxContainer
+			if pie_home_grid == null or pie_home_grid.columns != 5 or pie_home_grid.get_child_count() < 8:
+				_fail("Android 9 Pie home screen must render its five-column Pixel app grid.")
+				return
+			if simulator.find_child("PieHomeGoogleSearchBar", true, false) == null or pie_dock == null or pie_dock.get_child_count() != 5:
+				_fail("Android 9 Pie must have the five-icon dock and Google search pill.")
+				return
+			if simulator.find_child("AndroidWeatherWidget", true, false) != null or simulator.find_child("AndroidAssistantWidget", true, false) != null:
+				_fail("Android 9 Pie must not reuse the Oreo side-by-side widgets.")
+		var expected_android_nav := "LollipopThreeButtonNavigation" if generation_number == 1 else "PieThreeButtonNavigation" if generation_number == 3 else "AndroidThreeButtonNavigation"
 		var generation_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
 		if generation_navigation == null or generation_navigation.get_child_count() != 3:
 			_fail("Every Android generation must display Recent, Home and Back navigation buttons.")
 			return
-		var expected_navigation_order := ["Overview", "Home", "Back"]
+		var expected_navigation_order := ["Back", "Home", "Overview"] if generation_number == 3 else ["Overview", "Home", "Back"]
 		for navigation_index in range(3):
 			var navigation_button := generation_navigation.get_child(navigation_index) as Button
 			if navigation_button == null or str(navigation_button.get("action_name")) != expected_navigation_order[navigation_index]:
-				_fail("Android navigation buttons must appear left-to-right as Recent, Home and Back.")
+				_fail("Android navigation buttons must follow the selected Pixel generation's button order.")
 				return
 		if generation_number == 1:
 			var lollipop_navigation_bar := simulator.find_child("AndroidNavigationBar", true, false) as PanelContainer
@@ -314,6 +328,29 @@ func _run_os_generator_test() -> void:
 			if oreo_lock_data.has("show_flashlight_shortcut"):
 				_fail("Android 8 Pixel lock configuration must not inherit the Lollipop flashlight setting.")
 				return
+		elif generation_number == 3:
+			for pie_control_name in ["PieLockScreen", "PieLockScreenClock", "PieLockScreenDate", "PieLockWeather", "PieLockBatteryInfo", "PieLockScreenNotifications", "PieLockNotification_Messages", "PieLockNotification_Calendar", "PieAssistantShortcut", "PieLockStatusSlot", "PieCameraShortcut", "PieSwipeToUnlockHint"]:
+				if simulator.find_child(pie_control_name, true, false) == null:
+					_fail("Android 9 Pie Pixel lock screen is missing: " + pie_control_name)
+					return
+			if simulator.find_child("OreoLockScreen", true, false) != null or simulator.find_child("LockScreenShortcut_Flashlight", true, false) != null:
+				_fail("Android 9 Pie must use its own lock screen and must not reuse Oreo/Lollipop layouts.")
+				return
+			var pie_clock := simulator.find_child("PieLockScreenClock", true, false) as Label
+			var pie_date := simulator.find_child("PieLockScreenDate", true, false) as Label
+			var pie_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
+			if pie_clock == null or not pie_clock.text.contains(":") or pie_date == null or not pie_date.text.contains(","):
+				_fail("Android 9 Pie lock screen must display a 12-hour clock and date.")
+				return
+			if pie_status_clock == null or pie_status_clock.visible:
+				_fail("Android 9 Pie lock screen must not duplicate its large clock in the status bar.")
+				return
+			var normalized_pie_config: Dictionary = simulator.get("configuration")
+			var pie_lock_data: Dictionary = normalized_pie_config["components"]["lock_screen"]
+			for required_pie_setting in ["show_time", "show_date", "show_notifications", "show_assistant_shortcut", "show_camera_shortcut", "show_weather", "show_battery"]:
+				if not pie_lock_data.has(required_pie_setting):
+					_fail("Android 9 Pie lock configuration is missing: " + required_pie_setting)
+					return
 		simulator.set_component_view("pin_input")
 		await process_frame
 		var pin_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
