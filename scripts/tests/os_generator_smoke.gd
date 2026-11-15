@@ -953,14 +953,14 @@ func _run_os_generator_test() -> void:
 	var selected_pie_config: Dictionary = worksite.get("generated_os_configuration")
 	var pie_components: Dictionary = selected_pie_config.get("components", {})
 	var pie_home_data: Dictionary = pie_components.get("home_screen", {})
-	var pie_lock_data: Dictionary = pie_components.get("lock_screen", {})
+	var selected_pie_lock_data: Dictionary = pie_components.get("lock_screen", {})
 	if generation_label.text != "GENERATION 03" or generation_description.text != "ANDROID 9.0 PIE" or int(selected_pie_config.get("generation", 0)) != 3:
 		_fail("Layout 1 must expose Generation 3 as Android 9.0 Pie.")
 		return
 	if int(pie_home_data.get("columns", 0)) != 5 or int(pie_home_data.get("widget_count", 0)) != 1:
 		_fail("Android 9 Pie worksite selection must use its five-column Pixel grid and one At a Glance widget.")
 		return
-	if not bool(pie_lock_data.get("show_weather", false)) or not bool(pie_lock_data.get("show_battery", false)) or pie_lock_data.has("show_flashlight_shortcut"):
+	if not bool(selected_pie_lock_data.get("show_weather", false)) or not bool(selected_pie_lock_data.get("show_battery", false)) or selected_pie_lock_data.has("show_flashlight_shortcut"):
 		_fail("Android 9 Pie lock-screen options must include weather and battery but not the Lollipop flashlight.")
 		return
 	generation_minus.pressed.emit()
