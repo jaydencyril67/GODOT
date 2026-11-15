@@ -14,7 +14,7 @@ const STATUS_BATTERY_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/st
 
 class PINLockIndicator extends Control:
 	func _ready() -> void:
-		custom_minimum_size = Vector2(20, 22)
+		custom_minimum_size = Vector2(28, 24)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		queue_redraw()
 
