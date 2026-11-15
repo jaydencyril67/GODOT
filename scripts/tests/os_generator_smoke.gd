@@ -391,8 +391,8 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("LollipopGoogleSearchBar", true, false) == null or simulator.find_child("LollipopHomeAppGrid", true, false) == null:
 				_fail("Android Generation 1 must render the Lollipop Google search bar and home app grid.")
 				return
-			if simulator.find_child("LollipopAppDrawerButton", true, false) == null or simulator.find_child("LollipopThreeButtonNavigation", true, false) == null:
-				_fail("Android Generation 1 must include its app drawer launcher and classic navigation keys.")
+			if simulator.find_child("LollipopAppDrawerButton", true, false) == null:
+				_fail("Android Generation 1 must include its app drawer launcher.")
 				return
 		else:
 			if simulator.find_child("AndroidWeatherWidget", true, false) == null or simulator.find_child("AndroidAssistantWidget", true, false) == null:
@@ -401,6 +401,16 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("HomeSearchBar", true, false) == null or simulator.find_child("HomeAppDock", true, false) == null:
 				_fail("Later Android generations are missing their home grid, search field or dock.")
 				return
+		var expected_android_nav := "LollipopThreeButtonNavigation" if generation_number == 1 else "AndroidThreeButtonNavigation"
+		var generation_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
+		if generation_navigation == null or generation_navigation.get_child_count() != 3:
+			_fail("Every Android generation must display Back, Home and Overview navigation buttons.")
+			return
+		simulator.configure_os(generation_preview, "lock_screen")
+		await process_frame
+		if simulator.find_child(expected_android_nav, true, false) == null:
+			_fail("Android three-button navigation must remain visible on the lock screen.")
+			return
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 
@@ -423,23 +433,26 @@ func _run_os_generator_test() -> void:
 	simulator.call("_close_gesture_overlay")
 	simulator.call("_handle_system_gesture", Vector2(72, 358), Vector2(72, 280), 120)
 	await process_frame
-	if simulator.get("active_component") != "app_drawer":
-		_fail("Bottom swipe up from Home did not open the App Drawer.")
+	if simulator.get("active_component") != "home_screen":
+		_fail("Android bottom swipe must not replace the three-button navigation system.")
 		return
-	simulator.call("_handle_system_gesture", Vector2(2, 170), Vector2(70, 170), 100)
+	var android_overview := simulator.find_child("AndroidNavigationOverview", true, false) as Button
+	if android_overview == null:
+		_fail("Android Overview navigation button is missing.")
+		return
+	android_overview.pressed.emit()
+	await process_frame
+	if simulator.get("active_component") != "recent_apps":
+		_fail("Android Overview button did not open Recent Apps.")
+		return
+	var android_back := simulator.find_child("AndroidNavigationBack", true, false) as Button
+	if android_back == null:
+		_fail("Android Back navigation button is missing from Recent Apps.")
+		return
+	android_back.pressed.emit()
 	await process_frame
 	if simulator.get("active_component") != "home_screen":
-		_fail("Edge swipe back did not return from App Drawer to Home.")
-		return
-	simulator.call("_handle_system_gesture", Vector2(72, 358), Vector2(72, 280), 600)
-	await process_frame
-	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
-		_fail("Long bottom swipe did not open Recent Apps.")
-		return
-	simulator.call("_close_gesture_overlay")
-	await process_frame
-	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
-		_fail("Recent Apps overlay did not close cleanly.")
+		_fail("Android Back button did not return from Recent Apps to Home.")
 		return
 	simulator.set_component_view("home_screen")
 	await process_frame
