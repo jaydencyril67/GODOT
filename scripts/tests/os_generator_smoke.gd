@@ -732,7 +732,7 @@ func _run_os_generator_test() -> void:
 	if pie_carousel.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO or pie_carousel.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
 		_fail("Android 9 Pie Recent Apps must use a horizontal, not vertical, task carousel.")
 		return
-	if simulator.find_child("PieOverviewNavigationFooter", true, false) == null or simulator.find_child("PieNavigationBack", true, false) == null or simulator.find_child("PieNavigationHome", true, false) == null or simulator.find_child("PieNavigationOverview", true, false) == null:
+	if simulator.find_child("PieOverviewNavigationFooter", true, false) == null or simulator.find_child("PieOverviewNavigationBack", true, false) == null or simulator.find_child("PieOverviewNavigationHome", true, false) == null or simulator.find_child("PieOverviewNavigationOverview", true, false) == null:
 		_fail("Android 9 Pie Recent Apps must keep all three navigation buttons visible.")
 		return
 	var pie_original_navigation := simulator.find_child("PieNavigationBar", true, false) as Control
@@ -750,7 +750,7 @@ func _run_os_generator_test() -> void:
 	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("PieRecentAppsEmptyState", true, false) == null:
 		_fail("Dismissing the final Pie recent app must leave the Overview surface, not exit it.")
 		return
-	var pie_back_button := simulator.find_child("PieNavigationBack", true, false) as Button
+	var pie_back_button := simulator.find_child("PieOverviewNavigationBack", true, false) as Button
 	if pie_back_button == null:
 		_fail("Pie Overview lost its Back navigation button after dismissing tasks.")
 		return
