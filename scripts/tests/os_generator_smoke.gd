@@ -951,11 +951,12 @@ func _run_os_generator_test() -> void:
 		if worksite.find_child(obsolete_lock_control, true, false) != null or worksite_preview.find_child(obsolete_lock_control, true, false) != null:
 			_fail("Obsolete lock-screen system control remains: " + obsolete_lock_control)
 			return
-	if worksite_configuration.get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
-		_fail("Generate OS action did not produce all 6 core components.")
+	var final_worksite_configuration: Dictionary = worksite.get("generated_os_configuration")
+	if final_worksite_configuration.get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
+		_fail("The OS worksite no longer contains all 6 core components after the lock-screen cleanup.")
 		return
 	if worksite_preview.get("configuration").get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
-		_fail("Generate OS action did not refresh the visible simulator.")
+		_fail("The visible simulator did not retain all 6 core components.")
 		return
 	root.remove_child(worksite)
 	worksite.free()
