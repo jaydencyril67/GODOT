@@ -10,7 +10,6 @@ var LOCKSCREEN_FONT: FontFile
 var LOCKSCREEN_CAMERA_TEXTURE: Texture2D
 var LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D
 var LOCKSCREEN_LOCK_TEXTURE: Texture2D
-var LOCKSCREEN_FINGERPRINT_TEXTURE: Texture2D
 const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.81
 var STATUS_CELLULAR_TEXTURE: Texture2D
 var STATUS_WIFI_TEXTURE: Texture2D
@@ -39,20 +38,26 @@ class OreoLockShortcutButton extends Button:
 		focus_mode = Control.FOCUS_NONE
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		custom_minimum_size = Vector2(42, 42)
+		custom_minimum_size = Vector2(44, 44)
+		var shortcut_style := StyleBoxFlat.new()
+		shortcut_style.bg_color = Color(1, 1, 1, 0.10)
+		shortcut_style.set_corner_radius_all(22)
+		shortcut_style.set_border_width_all(1)
+		shortcut_style.border_color = Color(1, 1, 1, 0.14)
 		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
-			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+			add_theme_stylebox_override(state_name, shortcut_style)
 		var icon_view := TextureRect.new()
 		icon_view.name = "ImportedLockShortcutArtwork"
 		icon_view.texture = icon_texture
+		icon_view.custom_minimum_size = Vector2(28, 28)
 		icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		icon_view.offset_left = 10.0
-		icon_view.offset_top = 10.0
-		icon_view.offset_right = -10.0
-		icon_view.offset_bottom = -10.0
+		icon_view.offset_left = 8.0
+		icon_view.offset_top = 8.0
+		icon_view.offset_right = -8.0
+		icon_view.offset_bottom = -8.0
 		add_child(icon_view)
 		queue_redraw()
 
@@ -467,17 +472,19 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 		set_component_view("pin_input")
 		return
 
-	# Android 9 Pixel Launcher still opens its app drawer with a short upward
-	# swipe from the bottom of the home screen; a longer swipe opens Overview.
-	if _is_android_os() and int(configuration.get("generation", 2)) == 3 and active_component == "home_screen":
-		if start.y >= size.y - edge_size and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
-			if elapsed_ms >= 420:
+	# Oreo and Pie both open the app drawer with an upward home-screen swipe.
+	# Pie reserves a long swipe from the bottom edge for the Recent Apps overview.
+	if _is_android_os() and int(configuration.get("generation", 2)) in [2, 3] and active_component == "home_screen":
+		if delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
+			var generation_number := int(configuration.get("generation", 2))
+			var from_bottom_edge := start.y >= size.y - edge_size
+			if generation_number == 3 and from_bottom_edge and elapsed_ms >= 420:
 				_show_gesture_overlay("recent_apps")
 			else:
 				set_component_view("app_drawer")
 			return
 
-	# Earlier Android generations keep the physical-style three-button navigation.
+	# Android Generation 1 keeps the physical-style three-button navigation.
 	if _is_android_os():
 		return
 
@@ -520,6 +527,14 @@ func _navigate_back() -> void:
 
 
 func _show_gesture_overlay(mode: String) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 2:
+		match mode:
+			"notifications":
+				_build_android_oreo_notification_shade()
+				return
+			"control_center":
+				_build_android_oreo_quick_settings_shade()
+				return
 	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
 		match mode:
 			"notifications":
@@ -679,6 +694,365 @@ func _create_android_pie_shade(mode: String) -> Control:
 	body.add_theme_constant_override("separation", 9)
 	scroll.add_child(body)
 	return overlay
+
+
+
+func _create_android_oreo_shade(mode: String) -> Control:
+	_close_gesture_overlay()
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_" + mode
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -46.0
+	overlay.clip_contents = true
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	_gesture_overlay = overlay
+
+	var background := ColorRect.new()
+	background.name = "OreoShadeBackground"
+	background.color = Color("#F1F3F4")
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(background)
+
+	var margins := MarginContainer.new()
+	margins.name = "OreoShadeMargins"
+	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margins.add_theme_constant_override("margin_left", 12)
+	margins.add_theme_constant_override("margin_right", 12)
+	margins.add_theme_constant_override("margin_top", 10)
+	margins.add_theme_constant_override("margin_bottom", 9)
+	overlay.add_child(margins)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "OreoShadeScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	margins.add_child(scroll)
+
+	var body := VBoxContainer.new()
+	body.name = "OreoShadeContent"
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 9)
+	scroll.add_child(body)
+	return overlay
+
+
+func _apply_android_oreo_shade_screen_mask(overlay: Control) -> void:
+	if not is_instance_valid(overlay):
+		return
+	overlay.clip_contents = true
+	var mask := OSScreenCornerMask.new()
+	mask.name = "OreoShadeScreenCornerMask"
+	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mask.corner_radius = 22.0
+	mask.mask_color = Color.BLACK
+	mask.mask_bottom_corners = false
+	mask.z_index = 100
+	overlay.add_child(mask)
+
+
+func _oreo_quick_tile_definitions() -> Array:
+	return [
+		{"id": "Wi-Fi", "glyph": "◉", "enabled": true},
+		{"id": "Bluetooth", "glyph": "ᛒ", "enabled": true},
+		{"id": "Do not disturb", "glyph": "⊖", "enabled": false},
+		{"id": "Airplane mode", "glyph": "✈", "enabled": false},
+		{"id": "Auto-rotate", "glyph": "⟳", "enabled": true},
+		{"id": "Battery saver", "glyph": "▰", "enabled": false},
+		{"id": "Flashlight", "glyph": "☼", "enabled": false},
+		{"id": "Location", "glyph": "⌖", "enabled": true},
+		{"id": "Hotspot", "glyph": "⌁", "enabled": false}
+	]
+
+
+func _oreo_quick_tile_style(enabled: bool) -> StyleBoxFlat:
+	var tile_style := StyleBoxFlat.new()
+	tile_style.bg_color = Color("#4285F4") if enabled else Color("#DADCE0")
+	tile_style.set_corner_radius_all(999)
+	tile_style.set_border_width_all(0)
+	tile_style.content_margin_left = 0
+	tile_style.content_margin_right = 0
+	tile_style.content_margin_top = 0
+	tile_style.content_margin_bottom = 0
+	return tile_style
+
+
+func _add_android_oreo_quick_tile(parent: GridContainer, definition: Dictionary) -> void:
+	var setting_id := str(definition.get("id", ""))
+	var safe_id := setting_id.replace(" ", "")
+	var enabled := bool(_quick_setting_states.get(setting_id, definition.get("enabled", false)))
+	var item := VBoxContainer.new()
+	item.name = "OreoQuickTileItem_" + safe_id
+	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	item.add_theme_constant_override("separation", 3)
+
+	var holder := CenterContainer.new()
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tile := Button.new()
+	tile.name = "OreoQuickTile_" + safe_id
+	tile.toggle_mode = true
+	tile.button_pressed = enabled
+	tile.custom_minimum_size = Vector2(40, 40)
+	tile.focus_mode = Control.FOCUS_NONE
+	for state_name in ["normal", "hover", "pressed", "focus"]:
+		tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
+	tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+	tile.add_theme_font_size_override("font_size", 18)
+	tile.text = str(definition.get("glyph", "•"))
+	tile.tooltip_text = setting_id
+	holder.add_child(tile)
+	item.add_child(holder)
+
+	var label := _label(setting_id, 8, Color("#3C4043"))
+	label.name = "OreoQuickTileLabel_" + safe_id
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size.y = 17
+	item.add_child(label)
+	tile.toggled.connect(_on_oreo_quick_tile_toggled.bind(setting_id, tile, label))
+	parent.add_child(item)
+
+
+func _on_oreo_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button, label: Label) -> void:
+	_quick_setting_states[setting_id] = enabled
+	if is_instance_valid(tile):
+		for state_name in ["normal", "hover", "pressed", "focus"]:
+			tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
+		tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+	if is_instance_valid(label):
+		label.add_theme_color_override("font_color", Color("#3C4043") if enabled else Color("#6B7280"))
+
+
+func _add_oreo_shade_header(parent: Control) -> void:
+	var header := HBoxContainer.new()
+	header.name = "OreoShadeHeader"
+	header.add_theme_constant_override("separation", 8)
+
+	var time_stack := VBoxContainer.new()
+	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	time_stack.add_theme_constant_override("separation", 0)
+	var clock := _label(_current_lock_time("pixel"), 25, Color("#202124"))
+	clock.name = "OreoShadeClock"
+	clock.custom_minimum_size.y = 30
+	clock.add_theme_font_override("font", LOCKSCREEN_FONT)
+	time_stack.add_child(clock)
+	var date := _label(_current_lock_date("minimal"), 9, Color("#5F6368"))
+	date.name = "OreoShadeDate"
+	time_stack.add_child(date)
+	header.add_child(time_stack)
+
+	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	actions.add_theme_constant_override("separation", 5)
+	var battery := _label("100%  ▰", 9, Color("#5F6368"))
+	battery.name = "OreoShadeBattery"
+	battery.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	actions.add_child(battery)
+	var settings := Button.new()
+	settings.name = "OreoShadeSettingsButton"
+	settings.text = "⚙"
+	settings.tooltip_text = "Settings"
+	settings.custom_minimum_size = Vector2(34, 34)
+	settings.focus_mode = Control.FOCUS_NONE
+	settings.add_theme_font_size_override("font_size", 18)
+	var settings_style := StyleBoxFlat.new()
+	settings_style.bg_color = Color("#E1E5E9")
+	settings_style.set_corner_radius_all(17)
+	for state_name in ["normal", "hover", "pressed", "focus"]:
+		settings.add_theme_stylebox_override(state_name, settings_style)
+	settings.add_theme_color_override("font_color", Color("#3C4043"))
+	settings.pressed.connect(func() -> void:
+		_close_gesture_overlay()
+		_on_app_pressed("Settings")
+	)
+	actions.add_child(settings)
+	header.add_child(actions)
+	parent.add_child(header)
+
+
+func _add_oreo_brightness_slider(parent: Control) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "OreoBrightnessPanel"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#FFFFFF")
+	panel_style.set_corner_radius_all(5)
+	panel_style.set_border_width_all(0)
+	panel_style.content_margin_left = 10
+	panel_style.content_margin_right = 10
+	panel_style.content_margin_top = 7
+	panel_style.content_margin_bottom = 7
+	panel.add_theme_stylebox_override("panel", panel_style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_label("☼", 18, Color("#5F6368")))
+	var slider := HSlider.new()
+	slider.name = "OreoBrightnessSlider"
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.value = 72
+	slider.custom_minimum_size.y = 20
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.focus_mode = Control.FOCUS_NONE
+	row.add_child(slider)
+	row.add_child(_label("☀", 13, Color("#5F6368")))
+	panel.add_child(row)
+	parent.add_child(panel)
+
+
+func _add_oreo_notification_card(parent: Control, app_name: String, message_text: String, time_text: String) -> void:
+	var card := PanelContainer.new()
+	card.name = "OreoNotification_" + app_name.replace(" ", "")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color("#FFFFFF")
+	card_style.set_corner_radius_all(4)
+	card_style.set_border_width_all(0)
+	card_style.shadow_color = Color(0, 0, 0, 0.10)
+	card_style.shadow_size = 2
+	card_style.content_margin_left = 10
+	card_style.content_margin_right = 10
+	card_style.content_margin_top = 8
+	card_style.content_margin_bottom = 8
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var icon := TextureRect.new()
+	icon.name = "OreoNotificationIcon_" + app_name.replace(" ", "")
+	icon.texture = _load_lock_screen_app_icon(app_name)
+	icon.custom_minimum_size = Vector2(27, 27)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 2)
+	var title_row := HBoxContainer.new()
+	var title := _label(app_name, 9, Color("#202124"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
+	title_row.add_child(_label(time_text, 7, Color("#6B7280")))
+	copy.add_child(title_row)
+	var message := _label(message_text, 9, Color("#3C4043"))
+	message.name = "OreoNotificationMessage_" + app_name.replace(" ", "")
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	copy.add_child(message)
+	row.add_child(copy)
+	card.add_child(row)
+	parent.add_child(card)
+
+
+func _build_android_oreo_notification_content(parent: Control) -> void:
+	_add_oreo_shade_header(parent)
+	var quick_grid := GridContainer.new()
+	quick_grid.name = "OreoNotificationQuickSettingsGrid"
+	quick_grid.columns = 3
+	quick_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_grid.add_theme_constant_override("h_separation", 4)
+	quick_grid.add_theme_constant_override("v_separation", 3)
+	for definition in _oreo_quick_tile_definitions().slice(0, 6):
+		_add_android_oreo_quick_tile(quick_grid, definition)
+	parent.add_child(quick_grid)
+
+	var heading := HBoxContainer.new()
+	heading.name = "OreoNotificationHeadingRow"
+	var heading_label := _label("Notifications", 11, Color("#3C4043"))
+	heading_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(heading_label)
+	heading.add_child(_label("NOW  ·  EARLIER", 7, Color("#6B7280")))
+	parent.add_child(heading)
+	_add_oreo_notification_card(parent, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW")
+	_add_oreo_notification_card(parent, "Calendar", "Your event starts in 10 minutes", "10 MIN")
+	_add_oreo_notification_card(parent, "Android System", "Device is up to date", "EARLIER")
+
+
+func _build_android_oreo_quick_settings_content(parent: Control) -> void:
+	_add_oreo_shade_header(parent)
+	_add_oreo_brightness_slider(parent)
+	var heading := _label("Quick Settings", 10, Color("#3C4043"))
+	heading.name = "OreoQuickSettingsHeading"
+	parent.add_child(heading)
+
+	var grid := GridContainer.new()
+	grid.name = "OreoExpandedQuickSettingsGrid"
+	grid.columns = 3
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 5)
+	for definition in _oreo_quick_tile_definitions():
+		_add_android_oreo_quick_tile(grid, definition)
+	parent.add_child(grid)
+
+	var footer := HBoxContainer.new()
+	footer.name = "OreoQuickSettingsFooter"
+	footer.alignment = BoxContainer.ALIGNMENT_END
+	footer.add_child(_label("●  ○", 8, Color("#6B7280")))
+	parent.add_child(footer)
+
+
+func _build_android_oreo_notification_shade() -> void:
+	var overlay := _create_android_oreo_shade("notifications")
+	var body := overlay.find_child("OreoShadeContent", true, false) as VBoxContainer
+	if body == null:
+		return
+	_build_android_oreo_notification_content(body)
+	_apply_android_oreo_shade_screen_mask(overlay)
+
+
+func _build_android_oreo_quick_settings_shade() -> void:
+	var overlay := _create_android_oreo_shade("control_center")
+	var body := overlay.find_child("OreoShadeContent", true, false) as VBoxContainer
+	if body == null:
+		return
+	_build_android_oreo_quick_settings_content(body)
+	_apply_android_oreo_shade_screen_mask(overlay)
+
+
+func _build_android_oreo_notifications_preview() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "OreoNotificationPreview"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#F1F3F4")
+	style.set_corner_radius_all(8)
+	style.set_border_width_all(0)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
+	panel.add_theme_stylebox_override("panel", style)
+	page_container.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 7)
+	panel.add_child(body)
+	_build_android_oreo_notification_content(body)
+
+
+func _build_android_oreo_control_center_preview() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "OreoControlCenterPreview"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#F1F3F4")
+	style.set_corner_radius_all(8)
+	style.set_border_width_all(0)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
+	panel.add_theme_stylebox_override("panel", style)
+	page_container.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 7)
+	panel.add_child(body)
+	_build_android_oreo_quick_settings_content(body)
 
 
 func _add_pie_shade_header(parent: Control) -> void:
@@ -2112,7 +2486,6 @@ func _ready() -> void:
 	LOCKSCREEN_CAMERA_TEXTURE = load("res://assets/os/lockscreen/camera.svg") as Texture2D
 	LOCKSCREEN_FLASHLIGHT_TEXTURE = load("res://assets/os/lockscreen/flashlight.svg") as Texture2D
 	LOCKSCREEN_LOCK_TEXTURE = load("res://assets/os/lockscreen/lock.svg") as Texture2D
-	LOCKSCREEN_FINGERPRINT_TEXTURE = load("res://assets/os/lockscreen/fingerprint_sensor.svg") as Texture2D
 	STATUS_CELLULAR_TEXTURE = load("res://assets/os/lockscreen/status_cellular.svg") as Texture2D
 	STATUS_WIFI_TEXTURE = load("res://assets/os/lockscreen/status_wifi.svg") as Texture2D
 	STATUS_BATTERY_TEXTURE = load("res://assets/os/lockscreen/status_battery.svg") as Texture2D
@@ -3146,6 +3519,7 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 	var top_space := Control.new()
 	top_space.name = "PieLockScreenTopSpace"
 	top_space.custom_minimum_size.y = 8
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(top_space)
 
 	var status_row := HBoxContainer.new()
@@ -3203,7 +3577,7 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 		clock_block.add_child(weather)
 
 	var notification_gap := Control.new()
-	notification_gap.custom_minimum_size.y = 12
+	notification_gap.custom_minimum_size.y = 18
 	root.add_child(notification_gap)
 
 	if bool(data.get("show_notifications", true)):
@@ -3222,7 +3596,7 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 
 	var shortcuts := HBoxContainer.new()
 	shortcuts.name = "PieLockScreenShortcuts"
-	shortcuts.custom_minimum_size.y = 44
+	shortcuts.custom_minimum_size.y = 46
 	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shortcuts.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(shortcuts)
@@ -3237,13 +3611,10 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 		assistant.icon_texture = _load_lock_screen_app_icon("Assistant")
 		assistant.pressed.connect(func(): app_opened.emit("Assistant"))
 		assistant_slot.add_child(assistant)
-	var lock_slot := CenterContainer.new()
-	lock_slot.name = "PieLockStatusSlot"
-	lock_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var pie_fingerprint := OreoLockCenterGlyph.new()
-	pie_fingerprint.icon_texture = LOCKSCREEN_FINGERPRINT_TEXTURE
-	lock_slot.add_child(pie_fingerprint)
-	shortcuts.add_child(lock_slot)
+	var center_spacer := CenterContainer.new()
+	center_spacer.name = "PieLockScreenShortcutCenterSpacer"
+	center_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcuts.add_child(center_spacer)
 	var camera_slot := CenterContainer.new()
 	camera_slot.name = "PieCameraShortcutSlot"
 	camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3314,6 +3685,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 	var upper_space := Control.new()
 	upper_space.name = "OreoLockScreenTopSpace"
 	upper_space.custom_minimum_size.y = 7
+	upper_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(upper_space)
 
 	var clock_block := VBoxContainer.new()
@@ -3354,7 +3726,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 
 	var clock_notification_gap := Control.new()
 	clock_notification_gap.name = "OreoLockScreenClockNotificationGap"
-	clock_notification_gap.custom_minimum_size.y = 11
+	clock_notification_gap.custom_minimum_size.y = 18
 	root.add_child(clock_notification_gap)
 
 	if bool(data.get("show_notifications", true)):
@@ -3373,7 +3745,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 
 	var shortcut_row := HBoxContainer.new()
 	shortcut_row.name = "OreoLockScreenShortcuts"
-	shortcut_row.custom_minimum_size.y = 42
+	shortcut_row.custom_minimum_size.y = 46
 	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shortcut_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	shortcut_row.add_theme_constant_override("separation", 0)
@@ -4150,6 +4522,9 @@ func _build_animation_preview(data: Dictionary) -> void:
 	page_container.add_child(play)
 
 func _build_control_center(_data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 2:
+		_build_android_oreo_control_center_preview()
+		return
 	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
 		_build_android_pie_control_center_preview()
 		return
@@ -4244,6 +4619,9 @@ func _add_control_slider(caption: String, initial_value: float, glyph: String) -
 
 
 func _build_notifications(_data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 2:
+		_build_android_oreo_notifications_preview()
+		return
 	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
 		_build_android_pie_notifications_preview()
 		return
