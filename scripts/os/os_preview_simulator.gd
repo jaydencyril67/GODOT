@@ -2449,6 +2449,7 @@ func _build_pin_input_header(layout: VBoxContainer) -> void:
 	lock_indicator_stage.custom_minimum_size.y = 28
 	var lock_indicator := PINLockIndicator.new()
 	lock_indicator.name = "PINLockIndicator"
+	lock_indicator.custom_minimum_size = Vector2(28.0, 24.0)
 	lock_indicator_stage.add_child(lock_indicator)
 	layout.add_child(lock_indicator_stage)
 
