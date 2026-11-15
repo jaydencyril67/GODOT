@@ -2015,9 +2015,17 @@ func _build_lock_screen(data: Dictionary) -> void:
 	if bool(data.get("show_date", true)):
 		var date := _label(_current_lock_date("uppercase"), 15, Color("#FFFFFF"))
 		date.name = "LockScreenDate"
-		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		date.custom_minimum_size = Vector2(0, 24)
 		date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		date.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		date.autowrap_mode = TextServer.AUTOWRAP_OFF
+		date.clip_text = false
+		date.add_theme_font_override("font", LOCKSCREEN_FONT)
 		date.add_theme_color_override("font_color", Color("#FFFFFF"))
+		date.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.72))
+		date.add_theme_constant_override("outline_size", 2)
 		root.add_child(date)
 
 	var middle_space := Control.new()
