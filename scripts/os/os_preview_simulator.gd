@@ -5,7 +5,6 @@ signal app_opened(app_name: String)
 const OSEngine = preload("res://scripts/os/procedural_os_engine.gd")
 const PHONE_UNLOCK_PIN := "1234"
 const LOCKSCREEN_FONT: FontFile = preload("res://assets/fonts/STIXTwoText[wght].ttf")
-const FINGERPRINT_SENSOR_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/fingerprint_sensor.svg")
 const LOCKSCREEN_CAMERA_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/camera.svg")
 const LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D = preload("res://assets/os/lockscreen/flashlight.svg")
 const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.81
@@ -208,31 +207,6 @@ class OSWallpaperLayer extends Control:
 			draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.12))
 		elif treatment == "soft_glow":
 			draw_circle(Vector2(size.x * 0.74, size.y * 0.30), shortest_side * 0.42, Color(accent.r, accent.g, accent.b, 0.055))
-
-
-class LockScreenFingerprintButton extends Button:
-	var sensor_texture: Texture2D
-	var artwork_scale := 0.81
-
-	func _ready() -> void:
-		text = ""
-		focus_mode = Control.FOCUS_NONE
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		custom_minimum_size = Vector2(52, 52)
-		sensor_texture = FINGERPRINT_SENSOR_TEXTURE
-		for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
-			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
-		queue_redraw()
-
-	func _draw() -> void:
-		if sensor_texture == null:
-			return
-		var side := minf(size.x, size.y)
-		var artwork_side := side * clampf(artwork_scale, 0.0, 1.0)
-		var rect := Rect2((size - Vector2.ONE * artwork_side) * 0.5, Vector2.ONE * artwork_side)
-		if is_pressed():
-			draw_circle(size * 0.5, side * 0.48, Color("#DCEEFF", 0.18))
-		draw_texture_rect(sensor_texture, rect, false)
 
 
 var configuration: Dictionary = {}
@@ -1711,26 +1685,23 @@ func _build_lock_screen(data: Dictionary) -> void:
 	shortcuts.alignment = BoxContainer.ALIGNMENT_CENTER
 	shortcuts.add_theme_constant_override("separation", 0)
 	if bool(data.get("show_camera_shortcut", true)):
-		var camera_slot := CenterContainer.new()
-		camera_slot.name = "LollipopLockScreenCameraSlot"
-		camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		camera_slot.add_child(_make_lock_shortcut(LOCKSCREEN_CAMERA_TEXTURE, "floating", "Camera"))
-		shortcuts.add_child(camera_slot)
+		var camera_button := _make_lock_shortcut(LOCKSCREEN_CAMERA_TEXTURE, "floating", "Camera")
+		camera_button.name = "LockScreenShortcut_Camera"
+		shortcuts.add_child(camera_button)
 	else:
 		var empty_camera_slot := Control.new()
 		empty_camera_slot.name = "LollipopLockScreenCameraSlot"
-		empty_camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		shortcuts.add_child(empty_camera_slot)
+	var shortcut_spacer := Control.new()
+	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcuts.add_child(shortcut_spacer)
 	if bool(data.get("show_flashlight_shortcut", true)):
-		var flashlight_slot := CenterContainer.new()
-		flashlight_slot.name = "LollipopLockScreenFlashlightSlot"
-		flashlight_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		flashlight_slot.add_child(_make_lock_shortcut(LOCKSCREEN_FLASHLIGHT_TEXTURE, "floating", "Flashlight"))
-		shortcuts.add_child(flashlight_slot)
+		var flashlight_button := _make_lock_shortcut(LOCKSCREEN_FLASHLIGHT_TEXTURE, "floating", "Flashlight")
+		flashlight_button.name = "LockScreenShortcut_Flashlight"
+		shortcuts.add_child(flashlight_button)
 	else:
 		var empty_flashlight_slot := Control.new()
 		empty_flashlight_slot.name = "LollipopLockScreenFlashlightSlot"
-		empty_flashlight_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		shortcuts.add_child(empty_flashlight_slot)
 	root.add_child(shortcuts)
 
