@@ -292,10 +292,36 @@ func _run_os_generator_test() -> void:
 			if bool(simulator.get("_quick_setting_states").get("Wi-Fi", wifi_before)) == wifi_before:
 				_fail("Quick Settings tile did not retain its toggled state.")
 				return
-			simulator.call("_handle_system_gesture", Vector2(72, 240), Vector2(72, 150), 110)
+			var lollipop_back := simulator.find_child("LollipopNavigationBack", true, false) as Button
+			var lollipop_home := simulator.find_child("LollipopNavigationHome", true, false) as Button
+			var lollipop_overview := simulator.find_child("LollipopNavigationOverview", true, false) as Button
+			if lollipop_back == null or lollipop_home == null or lollipop_overview == null:
+				_fail("The Lollipop navigation row is missing one or more working controls.")
+				return
+			lollipop_back.pressed.emit()
 			await process_frame
 			if simulator.find_child("OSGestureOverlay_control_center", true, false) != null:
-				_fail("Swipe-up did not dismiss the expanded Lollipop Quick Settings shade.")
+				_fail("Android Back button did not dismiss the expanded Lollipop Quick Settings panel.")
+				return
+			_simulate_touch_swipe(simulator, Vector2(60, 2), Vector2(60, 75), 110)
+			await process_frame
+			lollipop_home = simulator.find_child("LollipopNavigationHome", true, false) as Button
+			lollipop_home.pressed.emit()
+			await process_frame
+			if simulator.get("active_component") != "home_screen" or simulator.find_child("OSGestureOverlay_notifications", true, false) != null:
+				_fail("Android Home button did not close the notification shade and jump directly home.")
+				return
+			lollipop_overview = simulator.find_child("LollipopNavigationOverview", true, false) as Button
+			lollipop_overview.pressed.emit()
+			await process_frame
+			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
+				_fail("Android Overview button did not open the Lollipop task overview.")
+				return
+			lollipop_back = simulator.find_child("LollipopNavigationBack", true, false) as Button
+			lollipop_back.pressed.emit()
+			await process_frame
+			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
+				_fail("Android Back button did not close the Lollipop Overview panel.")
 				return
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
