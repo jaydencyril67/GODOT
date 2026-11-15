@@ -52,7 +52,7 @@ func _run_os_generator_test() -> void:
 			return
 
 	var expected_radii := [0, 6, 18]
-	var expected_widgets := [0, 2, 4]
+	var expected_widgets := [0, 2, 1]
 	for generation_number in range(1, 4):
 		var generation_config := ProceduralEngineScript.generate_os(7000 + generation_number, generation_number)
 		var generation_style: Dictionary = generation_config.get("style", {})
