@@ -3778,6 +3778,8 @@ func _build_pin_input() -> void:
 
 
 func _build_pin_input_header(layout: VBoxContainer) -> void:
+	var is_pie_pin := _is_android_os() and int(configuration.get("generation", 2)) == 3
+	var entry_text_color := Color("#FFFFFF") if is_pie_pin else _text_color()
 	var lock_indicator_stage := CenterContainer.new()
 	lock_indicator_stage.name = "PINLockIndicatorStage"
 	lock_indicator_stage.custom_minimum_size.y = 28
@@ -3787,19 +3789,19 @@ func _build_pin_input_header(layout: VBoxContainer) -> void:
 	lock_indicator_stage.add_child(lock_indicator)
 	layout.add_child(lock_indicator_stage)
 
-	var title := _label("Enter PIN", 18, _text_color())
+	var title := _label("Enter PIN", 18, entry_text_color)
 	title.name = "PINEntryTitle"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.custom_minimum_size.y = 26
 	layout.add_child(title)
 
-	var subtitle := _label("Enter your 4-digit screen lock.", 9, _muted_color())
+	var subtitle := _label("Use your PIN to unlock" if is_pie_pin else "Enter your 4-digit screen lock.", 9, Color("#DADCE0") if is_pie_pin else _muted_color())
 	subtitle.name = "PINEntrySubtitle"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.custom_minimum_size.y = 16
 	layout.add_child(subtitle)
 
-	var dots := _label("○   ○   ○   ○", 14, _text_color())
+	var dots := _label("○   ○   ○   ○", 14, entry_text_color)
 	dots.name = "PINEntryDots"
 	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dots.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
