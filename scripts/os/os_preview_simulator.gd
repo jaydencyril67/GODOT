@@ -2438,51 +2438,34 @@ func _build_app_drawer(data: Dictionary) -> void:
 
 
 func _build_lollipop_app_drawer() -> void:
-	# Lollipop's launcher uses a bright, paper-white app surface with a
-	# paged four-column icon grid rather than the modern dark category browser.
+	# Android 5.0's app drawer is one continuous, vertically scrolling grid.
+	# Every installed app fills the next available cell before the list continues.
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 8
 	page_container.add_child(spacer)
 	var viewport := ScrollContainer.new()
-	viewport.name = "LollipopAppDrawerPages"
+	viewport.name = "LollipopAppDrawerViewport"
 	viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	viewport.scroll_deadzone = 8
 	page_container.add_child(viewport)
-	var pages := HBoxContainer.new()
-	pages.name = "LollipopAppDrawerPageStrip"
-	pages.add_theme_constant_override("separation", 0)
-	viewport.add_child(pages)
 	var sorted_apps: Array = OSEngine.APP_DEFINITIONS.duplicate(true)
 	sorted_apps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return str(a.get("name", "")).to_lower() < str(b.get("name", "")).to_lower()
 	)
-	var columns := 4
-	var rows := 5
-	var per_page := columns * rows
-	var page_count := ceili(float(sorted_apps.size()) / float(per_page))
-	var icon_size := _responsive_icon_size(34, columns, 5)
-	for page_index in range(page_count):
-		var page := GridContainer.new()
-		page.name = "LollipopAppDrawerPage_%02d" % (page_index + 1)
-		page.columns = columns
-		page.custom_minimum_size = Vector2(maxf(120.0, size.x - 30.0), 0)
-		page.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		page.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		page.add_theme_constant_override("h_separation", 5)
-		page.add_theme_constant_override("v_separation", 8)
-		pages.add_child(page)
-		for app_index in range(page_index * per_page, mini((page_index + 1) * per_page, sorted_apps.size())):
-			page.add_child(_create_lollipop_app_icon(sorted_apps[app_index], icon_size, true, Color("#424242")))
-	var page_dots := CenterContainer.new()
-	page_dots.name = "LollipopAppDrawerPageIndicator"
-	page_dots.custom_minimum_size.y = 16
-	var dots := _label("●  ○", 7, Color("#777777"))
-	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page_dots.add_child(dots)
-	page_container.add_child(page_dots)
+	var grid := GridContainer.new()
+	grid.name = "LollipopAppDrawerGrid"
+	grid.columns = 4
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	grid.add_theme_constant_override("h_separation", 5)
+	grid.add_theme_constant_override("v_separation", 8)
+	viewport.add_child(grid)
+	var icon_size := _responsive_icon_size(34, 4, 5)
+	for app in sorted_apps:
+		grid.add_child(_create_lollipop_app_icon(app, icon_size, true, Color("#424242")))
 
 
 func _build_recent_apps(_data: Dictionary) -> void:
