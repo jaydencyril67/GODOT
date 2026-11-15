@@ -836,8 +836,21 @@ func _add_pie_notification_card(parent: Control, app_name: String, message_text:
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	copy.add_child(message)
 	row.add_child(copy)
-	card.add_child(row)
 	parent.add_child(card)
+
+
+func _apply_android_pie_shade_screen_mask(overlay: Control) -> void:
+	if not is_instance_valid(overlay):
+		return
+	overlay.clip_contents = true
+	var mask := OSScreenCornerMask.new()
+	mask.name = "PieShadeScreenCornerMask"
+	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mask.corner_radius = 22.0
+	mask.mask_color = Color.BLACK
+	mask.mask_bottom_corners = false
+	mask.z_index = 100
+	overlay.add_child(mask)
 
 
 func _build_android_pie_notification_shade() -> void:
@@ -862,7 +875,7 @@ func _build_android_pie_notification_shade() -> void:
 	_add_pie_notification_card(body, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
 	_add_pie_notification_card(body, "Android System", "Device is up to date", "EARLIER", "A", Color("#5F6368"))
 	body.add_child(_label("Swipe down again for all Quick Settings", 8, Color("#5F6368")))
-	_apply_lollipop_shade_screen_mask(overlay)
+	_apply_android_pie_shade_screen_mask(overlay)
 
 
 func _build_android_pie_quick_settings_shade() -> void:
@@ -897,7 +910,7 @@ func _build_android_pie_quick_settings_shade() -> void:
 	)
 	footer.add_child(settings_button)
 	body.add_child(footer)
-	_apply_lollipop_shade_screen_mask(overlay)
+	_apply_android_pie_shade_screen_mask(overlay)
 
 
 func _build_android_pie_notifications_preview() -> void:
