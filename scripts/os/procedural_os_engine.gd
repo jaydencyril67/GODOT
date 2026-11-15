@@ -25,13 +25,6 @@ const WALLPAPER_STYLES := ["lollipop", "aurora", "orbital", "dune", "prism", "mi
 
 const HOME_LAYOUT_STYLES := ["android_pixel", "ios_home", "windows_tiles"]
 const HOME_LAYOUT_FAMILY_LABELS := ["ANDROID", "iPHONE", "WINDOWS PHONE"]
-const LOCK_SCREEN_DESIGN_FAMILIES := ["editorial", "glass", "minimal", "neo_brutalist", "split_grid", "futurist", "soft_layers", "typographic"]
-const LOCK_SCREEN_LAYOUT_TEMPLATES := [
-	"classic_clock", "rhombus_clock", "magazine_cover", "depth_layer", "widget_dashboard",
-	"live_activity", "one_ui_personal", "now_bar", "notification_stack", "pixel_at_a_glance",
-	"pixel_large_clock", "pixel_ambient", "huawei_magazine", "huawei_dynamic", "nothing_widget_grid",
-	"origin_player", "coloros_typography", "coloros_flux", "clean_android", "focus_lock_screen"
-]
 
 const APP_DEFINITIONS := [
 	{"name": "Phone", "glyph": "☎", "color": "#4B9B78"},
@@ -184,25 +177,23 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		var component_id := str(component["id"])
 		if not components.has(component_id) or not components[component_id] is Dictionary:
 			components[component_id] = _generate_component(component_id, fallback_rng, style)
+
 	var lock_defaults := _generate_lock_screen_component(fallback_rng, {})
 	var lock_data: Dictionary = components.get("lock_screen", {}).duplicate(true)
-	if is_legacy_schema:
-		# Earlier versions defaulted the lock-screen media player to off.
-		# Enable it once during migration so existing generated phones get the complete lock screen.
-		lock_data["show_audio_player"] = true
 	for lock_key in lock_defaults:
 		if not lock_data.has(lock_key):
 			lock_data[lock_key] = lock_defaults[lock_key]
-	# Remove legacy unlock-hint settings so older saved OS data cannot restore
-	# the prompt or its worksite toggle.
-	lock_data.erase("show_unlock_hint")
-	lock_data.erase("unlock_treatment")
-	if not LOCK_SCREEN_DESIGN_FAMILIES.has(str(lock_data.get("design_family", ""))):
-		lock_data["design_family"] = str(lock_defaults.get("design_family", "minimal"))
-	if not LOCK_SCREEN_LAYOUT_TEMPLATES.has(str(lock_data.get("layout_template", ""))):
-		lock_data["layout_template"] = str(lock_defaults.get("layout_template", "classic_clock"))
-	if not bool(lock_data.get("fingerprint_sensor_available", false)):
-		lock_data["show_fingerprint"] = false
+	# Migrate every old custom-design setting away. Only these four controls
+	# remain configurable on the Lollipop lock screen.
+	for obsolete_key in [
+		"show_notifications", "show_audio_player", "show_fingerprint",
+		"fingerprint_sensor_available", "design_family", "layout_template",
+		"clock_alignment", "clock_size", "clock_weight", "clock_treatment",
+		"date_treatment", "notification_treatment", "audio_treatment",
+		"shortcut_treatment", "fingerprint_treatment", "show_unlock_hint",
+		"unlock_treatment", "wallpaper"
+	]:
+		lock_data.erase(obsolete_key)
 	components["lock_screen"] = lock_data
 
 	var home_data: Dictionary = components.get("home_screen", {})
@@ -239,8 +230,9 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	var lock_screen: Dictionary = config.get("components", {}).get("lock_screen", {})
 	if bool(lock_screen.get("show_fingerprint", false)) and not bool(lock_screen.get("fingerprint_sensor_available", false)):
 		issues.append("Fingerprint unlock is enabled without fingerprint sensor hardware.")
-	if not bool(lock_screen.get("show_clock", true)):
-		issues.append("The lock screen must retain its essential clock.")
+	for lock_key in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+		if not lock_screen.has(lock_key):
+			issues.append("Lollipop lock-screen setting is missing: " + lock_key)
 	var columns := int(style.get("grid_columns", 0))
 	if columns < 3 or columns > 6:
 		issues.append("Home screen grid columns are outside the supported range.")
@@ -268,56 +260,21 @@ static func _sync_shared_settings(config: Dictionary) -> void:
 	
 	config["components"] = components
 
-static func regenerate_lock_screen_design(config: Dictionary, seed_value: int = -1) -> Dictionary:
-	var updated := normalize_os(config)
-	var actual_seed := seed_value
-	if actual_seed < 0:
-		actual_seed = int(Time.get_unix_time_from_system()) ^ randi()
-	var rng := RandomNumberGenerator.new()
-	rng.seed = actual_seed
-	var previous: Dictionary = updated.get("components", {}).get("lock_screen", {}).duplicate(true)
-	updated["components"]["lock_screen"] = _generate_lock_screen_component(rng, previous)
-	updated["last_component_seed"] = actual_seed
-	updated["revision"] = int(updated.get("revision", 0)) + 1
-	_sync_shared_settings(updated)
-	return updated
+
+static func regenerate_lock_screen_design(config: Dictionary, _seed_value: int = -1) -> Dictionary:
+	# Kept as a compatibility entry point for older callers; Lollipop has no
+	# procedural lock-screen design generator.
+	return normalize_os(config)
 
 
-static func _generate_lock_screen_component(rng: RandomNumberGenerator, previous: Dictionary) -> Dictionary:
-	var previous_template := str(previous.get("layout_template", ""))
-	var layout_template: String
-	if LOCK_SCREEN_LAYOUT_TEMPLATES.has(previous_template) and LOCK_SCREEN_LAYOUT_TEMPLATES.size() > 1:
-		var previous_index := LOCK_SCREEN_LAYOUT_TEMPLATES.find(previous_template)
-		var offset := rng.randi_range(1, LOCK_SCREEN_LAYOUT_TEMPLATES.size() - 1)
-		layout_template = str(LOCK_SCREEN_LAYOUT_TEMPLATES[(previous_index + offset) % LOCK_SCREEN_LAYOUT_TEMPLATES.size()])
-	else:
-		layout_template = str(LOCK_SCREEN_LAYOUT_TEMPLATES[rng.randi_range(0, LOCK_SCREEN_LAYOUT_TEMPLATES.size() - 1)])
-	var previous_family := str(previous.get("design_family", ""))
-	var design_family := str(LOCK_SCREEN_DESIGN_FAMILIES[rng.randi_range(0, LOCK_SCREEN_DESIGN_FAMILIES.size() - 1)])
-	if LOCK_SCREEN_DESIGN_FAMILIES.has(previous_family) and LOCK_SCREEN_DESIGN_FAMILIES.size() > 1:
-		while design_family == previous_family:
-			design_family = str(LOCK_SCREEN_DESIGN_FAMILIES[rng.randi_range(0, LOCK_SCREEN_DESIGN_FAMILIES.size() - 1)])
+static func _generate_lock_screen_component(_rng: RandomNumberGenerator, previous: Dictionary) -> Dictionary:
 	return {
-		"show_clock": true,
-		"show_notifications": bool(previous.get("show_notifications", true)),
-		"show_audio_player": bool(previous.get("show_audio_player", true)),
+		"show_time": bool(previous.get("show_time", true)),
+		"show_date": bool(previous.get("show_date", true)),
 		"show_camera_shortcut": bool(previous.get("show_camera_shortcut", true)),
-		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true)),
-		"fingerprint_sensor_available": bool(previous.get("fingerprint_sensor_available", false)),
-		"show_fingerprint": bool(previous.get("show_fingerprint", false)) and bool(previous.get("fingerprint_sensor_available", false)),
-		"design_family": design_family,
-		"layout_template": layout_template,
-		"clock_alignment": ["left", "center", "right"][rng.randi_range(0, 2)],
-		"clock_size": [34, 40, 46, 52, 58][rng.randi_range(0, 4)],
-		"clock_weight": ["light", "regular", "bold"][rng.randi_range(0, 2)],
-		"clock_treatment": ["plain", "outlined", "boxed", "split", "oversized"][rng.randi_range(0, 4)],
-		"date_treatment": ["uppercase", "minimal", "editorial", "inline"][rng.randi_range(0, 3)],
-		"notification_treatment": ["glass", "solid", "outline", "minimal", "compact"][rng.randi_range(0, 4)],
-		"audio_treatment": ["album_card", "glass_bar", "compact_row", "editorial"][rng.randi_range(0, 3)],
-		"shortcut_treatment": ["floating", "outlined", "solid", "minimal"][rng.randi_range(0, 3)],
-		"fingerprint_treatment": ["ring", "glass", "minimal"][rng.randi_range(0, 2)],
-		"wallpaper": previous.get("wallpaper", "aurora")
+		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true))
 	}
+
 
 static func _generate_component(component_id: String, rng: RandomNumberGenerator, style: Dictionary) -> Dictionary:
 	match component_id:
