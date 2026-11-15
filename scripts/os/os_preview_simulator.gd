@@ -453,7 +453,7 @@ func _show_gesture_overlay(mode: String) -> void:
 	_gesture_overlay = Control.new()
 	_gesture_overlay.name = "OSGestureOverlay_" + mode
 	_gesture_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_gesture_overlay.offset_bottom = -46.0
+	_gesture_overlay.offset_bottom = -54.0
 	_gesture_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_gesture_overlay)
 
@@ -670,10 +670,11 @@ func _build_lollipop_quick_settings_content(parent: Control, include_notificatio
 	header_actions.add_child(_label("100%  ▰", 10, Color("#FFFFFF")))
 	var settings_button := Button.new()
 	settings_button.name = "LollipopQuickSettingsOpenSettings"
-	settings_button.text = "⚙  Settings"
-	settings_button.custom_minimum_size = Vector2(72, 30)
+	settings_button.text = "⚙"
+	settings_button.tooltip_text = "Settings"
+	settings_button.custom_minimum_size = Vector2(36, 32)
 	settings_button.focus_mode = Control.FOCUS_NONE
-	settings_button.add_theme_font_size_override("font_size", 9)
+	settings_button.add_theme_font_size_override("font_size", 17)
 	var settings_style := StyleBoxFlat.new()
 	settings_style.bg_color = Color(1, 1, 1, 0.08)
 	settings_style.set_corner_radius_all(2)
@@ -908,7 +909,7 @@ func _build_lollipop_overview() -> void:
 	var overlay := Control.new()
 	overlay.name = "OSGestureOverlay_recent_apps"
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.offset_bottom = -42.0 # Keep the Android three-button navigation visible.
+	overlay.offset_bottom = -54.0 # Keep the Android three-button navigation visible.
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
 	_gesture_overlay = overlay
