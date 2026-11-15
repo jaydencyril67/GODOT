@@ -46,10 +46,13 @@ class OSScreenCornerMask extends Control:
 			Vector2(size.x - radius, size.y - radius),
 			Vector2(radius, size.y - radius)
 		]
+		# Each polygon starts at the physical screen corner, then follows
+		# the start of its quarter-circle arc. Keeping this order consistent
+		# prevents the top-left and bottom-right masks from folding inward.
 		var outer_points := [
-			[Vector2.ZERO, Vector2(radius, 0.0)],
+			[Vector2.ZERO, Vector2(0.0, radius)],
 			[Vector2(size.x, 0.0), Vector2(size.x - radius, 0.0)],
-			[Vector2(size.x, size.y), Vector2(size.x - radius, size.y)],
+			[Vector2(size.x, size.y), Vector2(size.x, size.y - radius)],
 			[Vector2(0.0, size.y), Vector2(radius, size.y)]
 		]
 		var angle_ranges := [[-PI, -PI * 0.5], [-PI * 0.5, 0.0], [0.0, PI * 0.5], [PI * 0.5, PI]]
@@ -685,8 +688,9 @@ func _is_android_os() -> bool:
 func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false) -> void:
 	var navigation_keys := HBoxContainer.new()
 	navigation_keys.name = "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
-	navigation_keys.custom_minimum_size.y = 24
+	navigation_keys.custom_minimum_size.y = 42
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation_keys.mouse_filter = Control.MOUSE_FILTER_PASS
 	navigation_keys.add_theme_constant_override("separation", 25)
 	var is_light_surface := active_component == "app_drawer" and use_lollipop_style
 	var navigation_color := Color("#666666") if is_light_surface else _text_color()
@@ -695,21 +699,17 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 		key.name = ("LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + str(key_data[0])
 		key.text = str(key_data[1])
 		key.tooltip_text = str(key_data[0])
-		key.custom_minimum_size = Vector2(28, 24)
-		key.add_theme_font_size_override("font_size", 16)
+		key.custom_minimum_size = Vector2(44, 40)
+		key.mouse_filter = Control.MOUSE_FILTER_STOP
+		key.add_theme_font_size_override("font_size", 19)
 		key.add_theme_color_override("font_color", navigation_color)
 		key.add_theme_color_override("font_hover_color", navigation_color)
+		key.add_theme_color_override("font_pressed_color", navigation_color)
 		var transparent := StyleBoxEmpty.new()
 		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
 			key.add_theme_stylebox_override(state_name, transparent)
 		key.focus_mode = Control.FOCUS_NONE
-		match str(key_data[0]):
-			"Back":
-				key.pressed.connect(_navigate_back)
-			"Home":
-				key.pressed.connect(_navigate_home)
-			"Overview":
-				key.pressed.connect(func(): _show_gesture_overlay("recent_apps"))
+		key.pressed.connect(_on_android_navigation_pressed.bind(str(key_data[0])))
 		navigation_keys.add_child(key)
 
 	if is_light_surface:
@@ -725,6 +725,18 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 		parent.add_child(navigation_surface)
 	else:
 		parent.add_child(navigation_keys)
+
+
+func _on_android_navigation_pressed(action: String) -> void:
+	# Defer screen rebuilds until the Button has finished dispatching its
+	# pressed signal, avoiding destruction of the active touch target.
+	match action:
+		"Back":
+			call_deferred("_navigate_back")
+		"Home":
+			call_deferred("_navigate_home")
+		"Overview":
+			call_deferred("_show_gesture_overlay", "recent_apps")
 
 
 func _add_screen_corner_mask() -> void:
