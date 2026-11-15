@@ -713,6 +713,7 @@ func _run_os_generator_test() -> void:
 		return
 
 	# Pixel Pie Overview is a horizontal task carousel, and swiping up dismisses cards.
+	simulator.set("_recent_app_names", [])
 	simulator.call("_on_app_pressed", "Settings")
 	simulator.call("_on_app_pressed", "Messages")
 	var pie_overview_button := simulator.find_child("PieNavigationOverview", true, false) as Button
