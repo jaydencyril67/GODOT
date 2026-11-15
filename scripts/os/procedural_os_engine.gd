@@ -183,17 +183,24 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	for lock_key in lock_defaults:
 		if not lock_data.has(lock_key):
 			lock_data[lock_key] = lock_defaults[lock_key]
-	# Migrate every old custom-design setting away. Only these four controls
-	# remain configurable on the Lollipop lock screen.
-	for obsolete_key in [
-		"show_notifications", "show_audio_player", "show_fingerprint",
-		"fingerprint_sensor_available", "design_family", "layout_template",
-		"clock_alignment", "clock_size", "clock_weight", "clock_treatment",
-		"date_treatment", "notification_treatment", "audio_treatment",
-		"shortcut_treatment", "fingerprint_treatment", "show_unlock_hint",
-		"unlock_treatment", "wallpaper"
-	]:
+	var configured_home_data: Dictionary = components.get("home_screen", {})
+	var is_oreo_android := generation_number == 2 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	# Keep the two generations historically distinct. Lollipop retains its
+	# approved four switches; Oreo uses the Pixel 2 Assistant/notification set.
+	var obsolete_lock_keys := [
+		"show_audio_player", "show_fingerprint", "fingerprint_sensor_available",
+		"design_family", "layout_template", "clock_alignment", "clock_size",
+		"clock_weight", "clock_treatment", "date_treatment",
+		"notification_treatment", "audio_treatment", "shortcut_treatment",
+		"fingerprint_treatment", "show_unlock_hint", "unlock_treatment", "wallpaper"
+	]
+	for obsolete_key in obsolete_lock_keys:
 		lock_data.erase(obsolete_key)
+	if is_oreo_android:
+		lock_data.erase("show_flashlight_shortcut")
+	else:
+		for oreo_key in ["show_assistant_shortcut", "show_notifications", "show_now_playing"]:
+			lock_data.erase(oreo_key)
 	components["lock_screen"] = lock_data
 
 	var home_data: Dictionary = components.get("home_screen", {})
@@ -228,9 +235,12 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	if not WALLPAPER_STYLES.has(str(style.get("wallpaper", ""))):
 		issues.append("Wallpaper style is invalid.")
 	var lock_screen: Dictionary = config.get("components", {}).get("lock_screen", {})
-	for lock_key in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+	var home_data: Dictionary = components.get("home_screen", {})
+	var is_oreo_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_now_playing"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
-			issues.append("Lollipop lock-screen setting is missing: " + lock_key)
+			issues.append("Lock-screen setting is missing: " + lock_key)
 	var columns := int(style.get("grid_columns", 0))
 	if columns < 3 or columns > 6:
 		issues.append("Home screen grid columns are outside the supported range.")
@@ -270,7 +280,10 @@ static func _generate_lock_screen_component(_rng: RandomNumberGenerator, previou
 		"show_time": bool(previous.get("show_time", true)),
 		"show_date": bool(previous.get("show_date", true)),
 		"show_camera_shortcut": bool(previous.get("show_camera_shortcut", true)),
-		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true))
+		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true)),
+		"show_assistant_shortcut": bool(previous.get("show_assistant_shortcut", true)),
+		"show_notifications": bool(previous.get("show_notifications", true)),
+		"show_now_playing": bool(previous.get("show_now_playing", false))
 	}
 
 
