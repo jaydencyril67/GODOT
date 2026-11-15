@@ -431,12 +431,14 @@ func _show_gesture_overlay(mode: String) -> void:
 	_gesture_overlay = Control.new()
 	_gesture_overlay.name = "OSGestureOverlay_" + mode
 	_gesture_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_gesture_overlay.offset_bottom = -42.0 # System navigation remains tappable above every shade.
 	_gesture_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_gesture_overlay)
 
+	var is_lollipop_shade := _is_android_os() and mode in ["notifications", "control_center"]
 	var shade := ColorRect.new()
 	shade.name = "GestureOverlayShade"
-	shade.color = Color(0.0, 0.0, 0.0, 0.58)
+	shade.color = Color("#ECEFF1") if is_lollipop_shade else Color(0.0, 0.0, 0.0, 0.58)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_gesture_overlay.add_child(shade)
@@ -444,17 +446,23 @@ func _show_gesture_overlay(mode: String) -> void:
 	var margins := MarginContainer.new()
 	margins.name = "GestureOverlayMargins"
 	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margins.add_theme_constant_override("margin_left", 8)
-	margins.add_theme_constant_override("margin_right", 8)
-	margins.add_theme_constant_override("margin_top", 8)
-	margins.add_theme_constant_override("margin_bottom", 8)
+	margins.add_theme_constant_override("margin_left", 0 if is_lollipop_shade else 8)
+	margins.add_theme_constant_override("margin_right", 0 if is_lollipop_shade else 8)
+	margins.add_theme_constant_override("margin_top", 0 if is_lollipop_shade else 8)
+	margins.add_theme_constant_override("margin_bottom", 0 if is_lollipop_shade else 8)
 	_gesture_overlay.add_child(margins)
 
 	var panel := PanelContainer.new()
 	panel.name = "GestureOverlayPanel"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_style_surface(panel, true)
+	if is_lollipop_shade:
+		var shade_style := StyleBoxFlat.new()
+		shade_style.bg_color = Color("#FAFAFA")
+		shade_style.set_border_width_all(0)
+		panel.add_theme_stylebox_override("panel", shade_style)
+	else:
+		_style_surface(panel, true)
 	margins.add_child(panel)
 
 	var content := VBoxContainer.new()
@@ -464,14 +472,17 @@ func _show_gesture_overlay(mode: String) -> void:
 
 	var header := HBoxContainer.new()
 	var title_text := "QUICK SETTINGS" if mode == "control_center" else ("NOTIFICATIONS" if mode == "notifications" else "RECENT APPS")
-	var title := _label(title_text, 12, _text_color())
+	var title := _label(title_text, 12, Color("#263238") if is_lollipop_shade else _text_color())
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var close_button := Button.new()
 	close_button.name = "CloseGestureOverlayButton"
 	close_button.text = "×"
 	close_button.custom_minimum_size = Vector2(28, 28)
-	_style_action_button(close_button)
+	if is_lollipop_shade:
+		close_button.add_theme_color_override("font_color", Color("#455A64"))
+	else:
+		_style_action_button(close_button)
 	close_button.pressed.connect(_close_gesture_overlay)
 	header.add_child(close_button)
 	content.add_child(header)
@@ -510,8 +521,15 @@ func _build_gesture_control_center(parent: VBoxContainer) -> void:
 		tile.toggle_mode = true
 		tile.button_pressed = bool(item[2])
 		tile.custom_minimum_size.y = 40
-		_style_action_button(tile, tile.button_pressed)
-		tile.toggled.connect(func(enabled: bool) -> void: _style_action_button(tile, enabled))
+		var tile_style := StyleBoxFlat.new()
+		tile_style.bg_color = Color("#D8EDF5") if tile.button_pressed else Color("#ECEFF1")
+		tile_style.set_corner_radius_all(3)
+		for state_name in ["normal", "hover", "pressed", "focus"]:
+			tile.add_theme_stylebox_override(state_name, tile_style)
+		tile.add_theme_color_override("font_color", Color("#263238"))
+		tile.toggled.connect(func(enabled: bool) -> void:
+			tile_style.bg_color = Color("#D8EDF5") if enabled else Color("#ECEFF1")
+		)
 		grid.add_child(tile)
 	var media := PanelContainer.new()
 	media.name = "GestureMediaCard"
@@ -543,6 +561,11 @@ func _add_gesture_slider(parent: VBoxContainer, caption: String, initial_value: 
 
 
 func _build_gesture_notifications(parent: VBoxContainer) -> void:
+	var clock := _label(_current_lock_time(), 26, Color("#263238"))
+	parent.add_child(clock)
+	parent.add_child(_label(_current_lock_date("minimal"), 9, Color("#607D8B")))
+	var quick_hint := _label("Swipe down again for Quick Settings", 8, Color("#78909C"))
+	parent.add_child(quick_hint)
 	for item in [
 		{"app": "Messages", "message": "A new message is waiting", "time": "NOW"},
 		{"app": "Calendar", "message": "Your next event is coming up", "time": "10 MIN"},
@@ -550,10 +573,15 @@ func _build_gesture_notifications(parent: VBoxContainer) -> void:
 	]:
 		var notification_panel := PanelContainer.new()
 		notification_panel.name = "GestureNotification_" + str(item["app"])
-		_style_surface(notification_panel)
+		var notification_style := StyleBoxFlat.new()
+		notification_style.bg_color = Color("#FFFFFF")
+		notification_style.set_corner_radius_all(2)
+		notification_style.shadow_color = Color(0, 0, 0, 0.10)
+		notification_style.shadow_size = 2
+		notification_panel.add_theme_stylebox_override("panel", notification_style)
 		var body := VBoxContainer.new()
-		body.add_child(_label(str(item["app"]) + "  ·  " + str(item["time"]), 8, _accent_color()))
-		body.add_child(_label(str(item["message"]), 9, _text_color()))
+		body.add_child(_label(str(item["app"]) + "  ·  " + str(item["time"]), 8, Color("#607D8B")))
+		body.add_child(_label(str(item["message"]), 10, Color("#263238")))
 		notification_panel.add_child(body)
 		parent.add_child(notification_panel)
 
@@ -575,6 +603,7 @@ func _build_lollipop_overview() -> void:
 	var overlay := Control.new()
 	overlay.name = "OSGestureOverlay_recent_apps"
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -42.0 # Keep the Android three-button navigation visible.
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
 	_gesture_overlay = overlay
