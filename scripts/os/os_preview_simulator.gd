@@ -636,8 +636,6 @@ func _build_lollipop_overview() -> void:
 	)
 	overlay.add_child(close_all)
 
-	if _recent_app_names.is_empty() and not _last_opened_app.is_empty():
-		_recent_app_names.append(_last_opened_app)
 	if _recent_app_names.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "No recent tasks"
