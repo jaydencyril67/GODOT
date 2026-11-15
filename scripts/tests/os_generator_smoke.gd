@@ -94,6 +94,7 @@ func _run_os_generator_test() -> void:
 
 	var legacy_lock_config := generated.duplicate(true)
 	legacy_lock_config["schema_version"] = 5
+	legacy_lock_config["generation"] = 1
 	legacy_lock_config["components"]["lock_screen"]["show_audio_player"] = true
 	legacy_lock_config["components"]["lock_screen"]["design_family"] = "glass"
 	legacy_lock_config["components"]["lock_screen"]["show_camera_shortcut"] = false
@@ -104,7 +105,7 @@ func _run_os_generator_test() -> void:
 		return
 	for required_setting in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
 		if not migrated_lock_data.has(required_setting):
-			_fail("Lollipop lock-screen setting was not migrated: " + required_setting)
+			_fail("Generation 1 lock-screen setting was not migrated: " + required_setting)
 			return
 	var simulator_host := Control.new()
 	simulator_host.name = "OSSimulatorResponsiveTestHost"
@@ -128,9 +129,9 @@ func _run_os_generator_test() -> void:
 	if not ProceduralEngineScript.WALLPAPER_STYLES.has(selected_wallpaper):
 		_fail("Wallpaper regeneration selected an unsupported wallpaper style.")
 		return
-	for lock_key in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+	for lock_key in ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"]:
 		if bool(lock_screen_after.get(lock_key, false)) != bool(lock_screen_before.get(lock_key, false)):
-			_fail("Wallpaper regeneration unexpectedly changed Lollipop lock-screen setting: " + lock_key)
+			_fail("Wallpaper regeneration unexpectedly changed Android Oreo lock-screen setting: " + lock_key)
 			return
 	if selected_wallpaper != wallpaper_components["home_screen"]["wallpaper"] or selected_wallpaper != wallpaper_components["lock_screen"].get("wallpaper", selected_wallpaper) or selected_wallpaper != wallpaper_components["wallpapers"]["style"]:
 		_fail("Wallpaper regeneration did not keep the OS wallpaper synchronized.")
@@ -172,6 +173,9 @@ func _run_os_generator_test() -> void:
 
 
 	var lock_preview_config := generated.duplicate(true)
+	lock_preview_config["generation"] = 1
+	lock_preview_config["components"]["home_screen"]["layout_style"] = "android_pixel"
+	lock_preview_config = ProceduralEngineScript.normalize_os(lock_preview_config)
 	var lock_preview_data: Dictionary = lock_preview_config["components"]["lock_screen"]
 	lock_preview_data["show_time"] = true
 	lock_preview_data["show_date"] = true
@@ -279,6 +283,36 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(expected_android_nav, true, false) != null:
 			_fail("Android lock screen must hide the three-button navigation bar.")
 			return
+		if generation_number == 2:
+			for oreo_control_name in ["OreoLockScreen", "OreoLockScreenClockBlock", "LockScreenClock", "LockScreenDate", "OreoLockScreenNotifications", "OreoLockNotification_Messages", "OreoLockNotification_Calendar", "OreoAssistantShortcut", "OreoLockStatusGlyph", "OreoCameraShortcut", "OreoSwipeToUnlockHint"]:
+				if simulator.find_child(oreo_control_name, true, false) == null:
+					_fail("Android 8 Oreo Pixel lock screen is missing: " + oreo_control_name)
+					return
+			if simulator.find_child("LollipopLockScreen", true, false) != null or simulator.find_child("LockScreenShortcut_Flashlight", true, false) != null:
+				_fail("Android 8 lock screen must not reuse Lollipop or add a flashlight shortcut.")
+				return
+			var oreo_clock := simulator.find_child("LockScreenClock", true, false) as Label
+			var oreo_date := simulator.find_child("LockScreenDate", true, false) as Label
+			var oreo_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
+			var oreo_assistant := simulator.find_child("OreoAssistantShortcut", true, false) as Button
+			var oreo_camera := simulator.find_child("OreoCameraShortcut", true, false) as Button
+			if oreo_clock == null or not oreo_clock.text.contains(":") or oreo_date == null or not oreo_date.text.contains(","):
+				_fail("Oreo lock screen must show its 12-hour clock and Pixel-style date.")
+				return
+			if oreo_status_clock == null or oreo_status_clock.visible:
+				_fail("Oreo lock screen must not duplicate the large clock with an extra status-bar time.")
+				return
+			if oreo_assistant == null or oreo_camera == null or oreo_assistant.get_index() >= oreo_camera.get_index():
+				_fail("Oreo lock shortcuts must place Assistant left of Camera.")
+				return
+			var oreo_lock_data: Dictionary = generation_preview["components"]["lock_screen"]
+			for required_oreo_setting in ["show_time", "show_date", "show_notifications", "show_assistant_shortcut", "show_camera_shortcut"]:
+				if not oreo_lock_data.has(required_oreo_setting):
+					_fail("Android 8 lock configuration is missing: " + required_oreo_setting)
+					return
+			if oreo_lock_data.has("show_flashlight_shortcut"):
+				_fail("Android 8 Pixel lock configuration must not inherit the Lollipop flashlight setting.")
+				return
 		simulator.set_component_view("pin_input")
 		await process_frame
 		var pin_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
@@ -662,25 +696,81 @@ func _run_os_generator_test() -> void:
 	if boot_overlay == null or boot_overlay.visible:
 		_fail("Phone screen should remain off until the separate power button is pressed.")
 		return
+	var selection_controls := worksite.find_child("OSSelectionControls", true, false) as VBoxContainer
+	if selection_controls == null or worksite.find_child("BootLoaderOnlyControls", true, false) != null:
+		_fail("Step 1 must begin with Layout and Generation selection, not Boot Loader.")
+		return
+	var initial_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+	if initial_step_label == null or initial_step_label.text != "STEP 1 / 8":
+		_fail("OS selection must be explicitly identified as Step 1 of 8.")
+		return
+	if left_power_region_is_visible(worksite):
+		_fail("The power control must stay hidden until the Boot step.")
+		return
+	var layout_selector := worksite.find_child("HomeScreenLayoutSelector", true, false) as HBoxContainer
+	var layout_label := worksite.find_child("HomeScreenLayoutValueLabel", true, false) as Label
+	var layout_minus := worksite.find_child("DecreaseHomeScreenLayoutButton", true, false) as Button
+	var layout_plus := worksite.find_child("IncreaseHomeScreenLayoutButton", true, false) as Button
+	var generation_selector := worksite.find_child("OSGenerationSelector", true, false) as HBoxContainer
+	var generation_label := worksite.find_child("OSGenerationValueLabel", true, false) as Label
+	var generation_minus := worksite.find_child("DecreaseOSGenerationButton", true, false) as Button
+	var generation_plus := worksite.find_child("IncreaseOSGenerationButton", true, false) as Button
+	var generation_description := worksite.find_child("OSGenerationDescription", true, false) as Label
+	if layout_selector == null or layout_label == null or layout_label.text != "LAYOUT 1" or layout_minus == null or layout_plus == null:
+		_fail("Step 1 must expose the three OS layouts with Android selected as Layout 1.")
+		return
+	if generation_selector == null or generation_label == null or generation_label.text != "GENERATION 02" or generation_minus == null or generation_plus == null or generation_description == null or generation_description.text != "ANDROID 8.0 OREO":
+		_fail("Step 1 must default Android Layout 1 to Generation 2 (Android 8.0 Oreo).")
+		return
+	if not layout_minus.disabled or layout_plus.disabled or generation_minus.disabled or not generation_plus.disabled:
+		_fail("Layout and generation arrows must enforce the available selector bounds.")
+		return
+	for target_layout in range(1, 3):
+		layout_plus.pressed.emit()
+		await process_frame
+		if layout_label.text != "LAYOUT " + str(target_layout + 1):
+			_fail("Step 1 did not advance to layout " + str(target_layout + 1) + ".")
+			return
+	for _return_layout in range(2):
+		layout_minus.pressed.emit()
+		await process_frame
+	if layout_label.text != "LAYOUT 1" or str(worksite.get("generated_os_configuration")["components"]["home_screen"]["layout_style"]) != "android_pixel":
+		_fail("Returning to Layout 1 did not restore Android before boot.")
+		return
+	generation_minus.pressed.emit()
+	await process_frame
+	if generation_label.text != "GENERATION 01" or generation_description.text != "ANDROID 5.0 LOLLIPOP":
+		_fail("Generation selector did not expose Android 5.0 as Generation 1.")
+		return
+	generation_plus.pressed.emit()
+	await process_frame
+	if generation_label.text != "GENERATION 02" or generation_description.text != "ANDROID 8.0 OREO":
+		_fail("Generation selector did not restore Android 8.0 Oreo as Generation 2.")
+		return
+	if int(worksite.get("generated_os_configuration").get("generation", 0)) != 2:
+		_fail("Changing the generation did not regenerate the selected OS configuration.")
+		return
+	worksite.call("_on_next_pressed")
+	await process_frame
 	var boot_controls := worksite.find_child("BootLoaderOnlyControls", true, false) as VBoxContainer
-	if boot_controls == null:
-		_fail("Step 1 right panel must contain the Boot Loader controls.")
+	if boot_controls == null or selection_controls.is_inside_tree():
+		_fail("Step 2 must switch from OS selection to Boot Loader controls.")
 		return
 	if boot_controls.alignment != BoxContainer.ALIGNMENT_BEGIN:
-		_fail("Step 1 right-panel content must begin beneath its hero heading, not be vertically centred.")
+		_fail("Step 2 right-panel content must begin beneath its hero heading, not be vertically centred.")
 		return
 	var boot_hero := boot_controls.find_child("BootLoaderHeroTitle", true, false) as Label
 	var boot_gap := boot_controls.find_child("BootLoaderHeroGap", true, false) as Control
 	if boot_hero == null or boot_gap == null or boot_gap.custom_minimum_size.y < 52.0 or boot_hero.get_index() >= boot_gap.get_index():
-		_fail("Step 1 must place its hero heading at the top with a clear vertical gap before the settings.")
+		_fail("Step 3 must place its hero heading at the top with a clear vertical gap before the settings.")
 		return
-	var initial_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
-	if initial_step_label == null or initial_step_label.text != "STEP 1 / 2":
-		_fail("Boot Loader must be explicitly identified as Step 1 of 2.")
+	var boot_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+	if boot_step_label == null or boot_step_label.text != "STEP 2 / 8" or not left_power_region_is_visible(worksite):
+		_fail("Boot Loader must be Step 2 of 8 and reveal the independent Power control.")
 		return
-	for obsolete_control in ["OSGeneratorControlsViewport", "ProceduralOSGeneratorControls", "OSGenerationSelector", "OSComponentSelector", "GenerateCompleteOSButton", "RegenerateOSComponentButton", "SelectGeneratedOSButton"]:
+	for obsolete_control in ["OSGeneratorControlsViewport", "ProceduralOSGeneratorControls", "OSComponentSelector", "GenerateCompleteOSButton", "RegenerateOSComponentButton", "SelectGeneratedOSButton"]:
 		if worksite.find_child(obsolete_control, true, false) != null:
-			_fail("Old OS generator UI is still visible in Step 1: " + obsolete_control)
+			_fail("Old OS generator UI is still visible in Step 2: " + obsolete_control)
 			return
 	if worksite.find_child("BootCompletedStatus", true, false) != null:
 		_fail("Boot loader must not create a device-turned-on status label.")
@@ -801,19 +891,19 @@ func _run_os_generator_test() -> void:
 		_fail("Lock-screen functionality controls were not shown in the right panel.")
 		return
 	var completed_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
-	if completed_step_label == null or completed_step_label.text != "STEP 2 / 3":
-		_fail("Lock Screen Studio must appear as Step 2 after boot completes.")
+	if completed_step_label == null or completed_step_label.text != "STEP 3 / 8":
+		_fail("Lock Screen Studio must appear as Step 3 after boot completes.")
 		return
 	worksite.call("_on_wizard_back_pressed")
 	await process_frame
 	if worksite.find_child("BootLoaderOnlyControls", true, false) == null or worksite.find_child("LockScreenStudioControls", true, false) != null:
-		_fail("Wizard Back did not return exclusively to Boot Loader Step 1.")
+		_fail("Wizard Back did not return exclusively to Boot Loader Step 2.")
 		return
 	worksite.call("_on_next_pressed")
 	await process_frame
 	var lock_controls := worksite.find_child("LockScreenStudioControls", true, false) as VBoxContainer
 	if lock_controls == null:
-		_fail("Wizard Next did not return to Lock Screen Studio Step 2.")
+		_fail("Wizard Next did not return to Lock Screen Studio Step 3.")
 		return
 	if worksite.find_child("LockScreenSettingRow_show_unlock_hint", true, false) != null or worksite.find_child("LockScreenEnabled_show_unlock_hint", true, false) != null:
 		_fail("Lock Screen Studio must not expose an unlock-prompt checkbox or its enablement text.")
@@ -824,40 +914,36 @@ func _run_os_generator_test() -> void:
 		_fail("Step 2 must place its hero heading at the top with a clear vertical gap before the settings.")
 		return
 
-	for setting_id in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+	for setting_id in ["show_time", "show_date", "show_notifications", "show_assistant_shortcut", "show_camera_shortcut"]:
 		var setting_row := lock_controls.find_child("LockScreenSettingRow_" + setting_id, true, false) as HBoxContainer
 		var setting_toggle := lock_controls.find_child("LockScreenEnabled_" + setting_id, true, false) as Button
 		if setting_row == null or setting_toggle == null or setting_row.custom_minimum_size.y < 54.0 or setting_toggle.custom_minimum_size.x < 40.0 or setting_toggle.custom_minimum_size.y < 40.0:
-			_fail("Lock Screen Studio is missing a properly sized checkbox row: " + setting_id)
+			_fail("Oreo Lock Screen Studio is missing a properly sized checkbox row: " + setting_id)
 			return
 		if absf(setting_toggle.size.x - setting_toggle.size.y) > 1.0:
-			_fail("Lock Screen Studio checkbox must remain square: " + setting_id)
+			_fail("Oreo lock-screen checkbox must remain square: " + setting_id)
 			return
+	if lock_hero.text != "ANDROID 8.0 OREO LOCK SCREEN":
+		_fail("Layout 1 Generation 2 must identify the Pixel 2 Android 8.0 lock screen.")
+		return
 
 	worksite.call("_on_next_pressed")
 	await process_frame
 	var home_controls := worksite.find_child("HomeScreenStudioControls", true, false) as VBoxContainer
 	var home_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
-	var home_selector := worksite.find_child("HomeScreenLayoutSelector", true, false) as HBoxContainer
-	var home_layout_label := worksite.find_child("HomeScreenLayoutValueLabel", true, false) as Label
-	var home_minus := worksite.find_child("DecreaseHomeScreenLayoutButton", true, false) as Button
-	var home_plus := worksite.find_child("IncreaseHomeScreenLayoutButton", true, false) as Button
-	if home_controls == null or home_step_label == null or home_step_label.text != "STEP 3 / 3":
-		_fail("Step 3 Home Screen Studio did not open with the three-step progress indicator.")
+	if home_controls == null or home_step_label == null or home_step_label.text != "STEP 4 / 8":
+		_fail("Step 4 Home Screen Studio did not open with the eight-step progress indicator.")
 		return
-	if home_selector == null or home_layout_label == null or home_layout_label.text != "LAYOUT 1" or home_minus == null or home_plus == null or not home_minus.disabled or home_plus.disabled:
-		_fail("Step 3 must use the Phone Creation selector with Android as Layout 1 and three operating systems available.")
+	if worksite.find_child("HomeScreenLayoutSelector", true, false) != null or worksite.find_child("HomeScreenCornerRadiusSlider", true, false) == null:
+		_fail("Layout selection must stay in Step 1; Home Screen Studio should contain only its own customization controls.")
 		return
-	if worksite_preview.get("active_component") != "home_screen":
-		_fail("Entering Step 3 did not update the actual phone preview to Android Home.")
-		return
-	if worksite_preview.find_child("LollipopGoogleSearchBar", true, false) == null or worksite_preview.find_child("LollipopHomeAppGrid", true, false) == null or worksite_preview.find_child("LollipopAppDrawerButton", true, false) == null or worksite_preview.find_child("LollipopThreeButtonNavigation", true, false) == null:
-		_fail("Step 3 Generation 1 preview is missing its Lollipop home screen, app drawer button or three-button navigation.")
+	if worksite_preview.get("active_component") != "home_screen" or worksite_preview.find_child("HomeAppGrid", true, false) == null or worksite_preview.find_child("HomeSearchBar", true, false) == null:
+		_fail("Entering Step 4 did not show the selected Android 8 home screen.")
 		return
 	worksite.call("_on_wizard_back_pressed")
 	await process_frame
-	if worksite.find_child("LockScreenStudioControls", true, false) == null:
-		_fail("Wizard Back from Step 3 did not return to Lock Screen Studio Step 2.")
+	if worksite.find_child("LockScreenStudioControls", true, false) == null or worksite_preview.get("active_component") != "lock_screen":
+		_fail("Wizard Back from Step 4 did not return to the Android 8 Lock Screen Studio.")
 		return
 
 
@@ -880,7 +966,7 @@ func _run_os_generator_test() -> void:
 		await process_frame
 		if setting_id == "show_date":
 			var preview_date := worksite_preview.find_child("LockScreenDate", true, false) as Label
-			if preview_date == null or not preview_date.visible or preview_date.text.strip_edges().is_empty() or preview_date.custom_minimum_size.y < 20.0:
+			if preview_date == null or not preview_date.visible or preview_date.text.strip_edges().is_empty() or preview_date.custom_minimum_size.y < 16.0:
 				_fail("Enabling Display Date must render a visible, non-empty, properly sized date label in the live lock-screen preview.")
 				return
 	worksite_preview.call("_handle_system_gesture", Vector2(72, 300), Vector2(72, 220), 120)
@@ -965,105 +1051,41 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Entering the correct preview PIN 1234 did not unlock to Home.")
 		return
-	var lollipop_search := worksite_preview.find_child("LollipopGoogleSearchBar", true, false) as PanelContainer
-	var lollipop_grid := worksite_preview.find_child("LollipopHomeAppGrid", true, false) as GridContainer
-	var lollipop_dock_button := worksite_preview.find_child("LollipopAppDrawerButton", true, false) as Button
-	var lollipop_navigation := worksite_preview.find_child("LollipopThreeButtonNavigation", true, false) as HBoxContainer
-	if lollipop_search == null or lollipop_grid == null or lollipop_grid.columns != 4 or lollipop_grid.get_child_count() != 8:
-		_fail("Android Generation 1 must render the Lollipop Google search bar and eight-app home grid.")
+	var oreo_home_grid := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
+	var oreo_home_search := worksite_preview.find_child("HomeSearchBar", true, false) as LineEdit
+	var oreo_home_weather := worksite_preview.find_child("AndroidWeatherWidget", true, false) as Control
+	var oreo_home_assistant := worksite_preview.find_child("AndroidAssistantWidget", true, false) as Control
+	var oreo_navigation := worksite_preview.find_child("AndroidThreeButtonNavigation", true, false) as HBoxContainer
+	if oreo_home_grid == null or oreo_home_grid.columns != 4 or oreo_home_grid.get_child_count() != 4 or oreo_home_search == null:
+		_fail("Android 8 home screen is missing its app grid or search field.")
 		return
-	if lollipop_dock_button == null or lollipop_navigation == null or lollipop_navigation.get_child_count() != 3:
-		_fail("Lollipop home screen is missing its app drawer launcher or classic three-button navigation.")
+	if oreo_home_weather == null or oreo_home_assistant == null or oreo_navigation == null or oreo_navigation.get_child_count() != 3:
+		_fail("Android 8 home screen is missing its widgets or three-button navigation.")
 		return
-	var lollipop_configuration: Dictionary = worksite_preview.get("configuration")
-	if str(lollipop_configuration.get("style", {}).get("wallpaper", "")) != "lollipop":
-		_fail("Android Generation 1 did not select its blue/teal Lollipop geometric wallpaper.")
+	var oreo_configuration: Dictionary = worksite_preview.get("configuration")
+	if int(oreo_configuration.get("generation", 0)) != 2 or str(oreo_configuration.get("components", {}).get("home_screen", {}).get("layout_style", "")) != "android_pixel":
+		_fail("The selected worksite OS did not retain Android Layout 1 Generation 2.")
 		return
-	var home_app_names := ["Email", "Photos", "Maps", "Store", "Calendar", "Contacts", "Music", "Settings"]
-	var dock_app_names := ["Phone", "Messages", "Browser", "Camera"]
-	for app_name in home_app_names:
-		var home_item_found := false
-		for home_child in lollipop_grid.get_children():
-			if home_child.name == "LollipopApp_" + app_name.replace(" ", ""):
-				home_item_found = true
-		var icon_stem: String = str({"Email": "email", "Photos": "photos", "Maps": "maps", "Store": "store", "Calendar": "calendar", "Contacts": "contacts", "Music": "music", "Settings": "settings"}.get(app_name, ""))
-		if not home_item_found or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + icon_stem + ".png"):
-			_fail("Lollipop home app is missing its locally bundled artwork: " + app_name)
-			return
-		if dock_app_names.has(app_name):
-			_fail("A Lollipop home app is duplicated in the dock: " + app_name)
-			return
-	var lollipop_dock_row := worksite_preview.find_child("HomeAppDockIcons", true, false) as HBoxContainer
-	if lollipop_dock_row == null or lollipop_dock_row.get_child_count() != 5:
-		_fail("Lollipop dock must contain four pinned apps and the app drawer launcher.")
+	if str(oreo_configuration.get("style", {}).get("wallpaper", "")) == "lollipop":
+		_fail("Android 8 Generation 2 must not use the Lollipop-only default wallpaper.")
 		return
-	for app_name in dock_app_names:
-		var dock_item_found := false
-		for dock_child in lollipop_dock_row.get_children():
-			if dock_child.name == "LollipopApp_" + app_name.replace(" ", ""):
-				dock_item_found = true
-		var dock_icon_stem: String = str({"Phone": "phone", "Messages": "messages", "Browser": "browser", "Camera": "camera"}.get(app_name, ""))
-		if not dock_item_found or not ResourceLoader.exists("res://assets/os/lollipop/icons/" + dock_icon_stem + ".png"):
-			_fail("Lollipop dock app is missing its locally bundled artwork: " + app_name)
-			return
-	lollipop_dock_button.pressed.emit()
+
+	worksite_preview.set_component_view("app_drawer")
 	await process_frame
-	if worksite_preview.get("active_component") != "app_drawer":
-		_fail("Tapping the Lollipop app drawer button did not open the app drawer.")
+	var oreo_drawer_viewport := worksite_preview.find_child("AppDrawerViewport", true, false) as ScrollContainer
+	var oreo_drawer_grid := worksite_preview.find_child("AppDrawerGrid", true, false) as GridContainer
+	var oreo_drawer_search := worksite_preview.find_child("AppDrawerSearchField", true, false) as LineEdit
+	if oreo_drawer_viewport == null or oreo_drawer_grid == null or oreo_drawer_search == null or oreo_drawer_grid.get_child_count() != ProceduralEngineScript.APP_DEFINITIONS.size():
+		_fail("Android 8 app drawer did not render all installed apps and its search field.")
 		return
-	var drawer_background := worksite_preview.find_child("LollipopAppDrawerFullScreenBackground", true, false) as ColorRect
-	var drawer_viewport := worksite_preview.find_child("LollipopAppDrawerViewport", true, false) as ScrollContainer
-	var drawer_grid := worksite_preview.find_child("LollipopAppDrawerGrid", true, false) as GridContainer
-	if drawer_background == null or drawer_background.color != Color("#FAFAFA") or drawer_viewport == null or drawer_grid == null or drawer_grid.columns != 4:
-		_fail("Lollipop app drawer must use a full-screen white background and one four-column grid.")
+	var drawer_back := worksite_preview.find_child("AndroidNavigationBack", true, false) as Button
+	if drawer_back == null:
+		_fail("Android 8 app drawer is missing its Back navigation key.")
 		return
-	if worksite_preview.find_child("LollipopAppDrawerWhiteSurface", true, false) != null:
-		_fail("Lollipop app drawer must not use the old narrow clipped white panel.")
-		return
-	if worksite_preview.find_child("OSScreenRoundedCornerMask", true, false) == null:
-		_fail("Phone display must clip wallpaper to rounded screen corners.")
-		return
-	if drawer_viewport.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO or drawer_viewport.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
-		_fail("Lollipop app drawer must scroll vertically without horizontal paging.")
-		return
-	if drawer_grid.get_child_count() != ProceduralEngineScript.APP_DEFINITIONS.size():
-		_fail("Lollipop app drawer must place every installed app in the same continuous grid.")
-		return
-	if worksite_preview.find_child("LollipopAppDrawerPageIndicator", true, false) != null or worksite_preview.find_child("LollipopAppDrawerPageStrip", true, false) != null:
-		_fail("Lollipop app drawer must not show horizontal page controls.")
-		return
-	for app in ProceduralEngineScript.APP_DEFINITIONS:
-		var app_name := str(app.get("name", ""))
-		if worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) == null:
-			_fail("Lollipop app drawer is missing installed app: " + app_name)
-			return
-	var drawer_back := worksite_preview.find_child("LollipopNavigationBack", true, false) as Button
-	var drawer_home := worksite_preview.find_child("LollipopNavigationHome", true, false) as Button
-	if drawer_back == null or drawer_home == null:
-		_fail("Lollipop app drawer is missing its Back or Home navigation key.")
-		return
-	drawer_home.pressed.emit()
-	await process_frame
-	if worksite_preview.get("active_component") != "home_screen":
-		_fail("Lollipop Home navigation did not jump directly from the app drawer to Home.")
-		return
-	lollipop_dock_button = worksite_preview.find_child("LollipopAppDrawerButton", true, false) as Button
-	lollipop_dock_button.pressed.emit()
-	await process_frame
-	drawer_back = worksite_preview.find_child("LollipopNavigationBack", true, false) as Button
 	drawer_back.pressed.emit()
 	await process_frame
 	if worksite_preview.get("active_component") != "home_screen":
-		_fail("Lollipop Back navigation did not return from the app drawer to Home.")
-		return
-	lollipop_dock_button = worksite_preview.find_child("LollipopAppDrawerButton", true, false) as Button
-	lollipop_dock_button.pressed.emit()
-	await process_frame
-	drawer_back = worksite_preview.find_child("LollipopNavigationBack", true, false) as Button
-	drawer_back.pressed.emit()
-	await process_frame
-	if worksite_preview.get("active_component") != "home_screen":
-		_fail("Lollipop Back navigation did not return from the app drawer to Home.")
+		_fail("Android Back navigation did not return from the app drawer to Home.")
 		return
 	worksite_preview.set_component_view("app_drawer")
 	await process_frame
@@ -1080,97 +1102,49 @@ func _run_os_generator_test() -> void:
 		_fail("Android Home navigation did not bypass navigation history and return directly Home.")
 		return
 
-	worksite.call("_show_home_screen_studio_controls")
+	worksite.call("_on_next_pressed")
 	await process_frame
-	var corner_slider := worksite.find_child("HomeScreenCornerRadiusSlider", true, false) as HSlider
-	if corner_slider == null or corner_slider.min_value != 0.0 or corner_slider.max_value != 24.0 or corner_slider.value != 0.0 or corner_slider.step > 0.25:
+	var home_studio_controls := worksite.find_child("HomeScreenStudioControls", true, false) as VBoxContainer
+	var home_corner_slider := worksite.find_child("HomeScreenCornerRadiusSlider", true, false) as HSlider
+	var step_four_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+	if home_studio_controls == null or home_corner_slider == null or step_four_label.text != "STEP 4 / 8":
+		_fail("Wizard Next did not enter Home Screen Studio as Step 4.")
+		return
+	if home_corner_slider.min_value != 0.0 or home_corner_slider.max_value != 24.0 or home_corner_slider.value != 0.0 or home_corner_slider.step > 0.25:
 		_fail("Home Screen Studio lost its corner-radius setting.")
 		return
-	corner_slider.value = 12.0
+	home_corner_slider.value = 12.0
 	await process_frame
-	corner_slider.value = 0.0
-	await process_frame
-	var layout_two_button := worksite.find_child("IncreaseHomeScreenLayoutButton", true, false) as Button
-	if layout_two_button == null or layout_two_button.disabled:
-		_fail("The iOS layout must be selectable after Android.")
-		return
-	layout_two_button.pressed.emit()
-	await process_frame
-	var layout_two_label := worksite.find_child("HomeScreenLayoutValueLabel", true, false) as Label
-	var ios_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
-	var ios_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
-	var ios_widget_row := worksite_preview.find_child("AppleWidgetRow", true, false) as Control
-	var ios_primary_widget := worksite_preview.find_child("HomeScreenPrimaryWidget", true, false) as Control
-	var ios_calendar_widget := worksite_preview.find_child("AppleCalendarWidget", true, false) as Control
-	var ios_app_grid := worksite_preview.find_child("HomeAppGrid", true, false) as GridContainer
-	if layout_two_label == null or layout_two_label.text != "LAYOUT 2" or ios_clock == null or ios_date == null:
-		_fail("The iOS layout did not load its live clock and date.")
-		return
-	if ios_clock.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER or ios_date.horizontal_alignment != HORIZONTAL_ALIGNMENT_CENTER:
-		_fail("The iOS clock and date must be centred.")
-		return
-	if ios_widget_row == null or ios_primary_widget == null or ios_calendar_widget == null or ios_app_grid == null or ios_app_grid.columns != 4:
-		_fail("The iOS layout is missing its widget row or four-column app grid.")
-		return
-	var layout_one_button := worksite.find_child("DecreaseHomeScreenLayoutButton", true, false) as Button
-	if layout_one_button == null or layout_one_button.disabled:
-		_fail("The iOS layout must allow returning to Android.")
-		return
-
-	var expected_layout_styles: Array = ["android_pixel", "ios_home", "windows_tiles"]
-	var expected_layout_families: Array = ["ANDROID", "APPLE iOS", "WINDOWS PHONE"]
-	if expected_layout_styles.size() != 3 or expected_layout_families.size() != 3:
-		_fail("Home Screen Studio must expose exactly three operating-system layouts.")
-		return
-	for layout_index in range(2, expected_layout_styles.size()):
-		if layout_two_button.disabled:
-			_fail("Home Screen Studio stopped before all three operating systems became selectable.")
-			return
-		layout_two_button.pressed.emit()
-		await process_frame
-		var active_configuration: Dictionary = worksite_preview.get("configuration")
-		var active_home_data: Dictionary = active_configuration.get("components", {}).get("home_screen", {})
-		var active_clock := worksite_preview.find_child("HomeHeroClock", true, false) as Label
-		var active_date := worksite_preview.find_child("HomeHeroDate", true, false) as Label
-		var active_primary_widget := worksite_preview.find_child("HomeScreenPrimaryWidget", true, false) as Control
-		var active_top_space := worksite_preview.find_child("HomeLayoutTopFlexibleSpace", true, false) as Control
-		var active_family_label := worksite.find_child("HomeScreenLayoutFamilyLabel", true, false) as Label
-		if str(active_home_data.get("layout_style", "")) != str(expected_layout_styles[layout_index]):
-			_fail("Layout selector did not load the expected design at position " + str(layout_index + 1) + ".")
-			return
-		if layout_index > 0 and (worksite_preview.find_child("AndroidThreeButtonNavigation", true, false) != null or worksite_preview.find_child("LollipopThreeButtonNavigation", true, false) != null):
-			_fail("Three-button system navigation must be exclusive to Android, not iOS or Windows.")
-			return
-		if layout_two_label.text != "LAYOUT " + str(layout_index + 1) or active_family_label == null or active_family_label.text != str(expected_layout_families[layout_index]):
-			_fail("Layout selector did not show the matching layout number and manufacturer family.")
-			return
-		if active_clock == null or active_date == null or active_primary_widget == null:
-			_fail("A home-screen layout is missing its live clock/date or readable primary widget: " + str(expected_layout_styles[layout_index]))
-			return
-		if active_clock.size_flags_horizontal != Control.SIZE_EXPAND_FILL or active_clock.autowrap_mode != TextServer.AUTOWRAP_OFF or active_clock.clip_text:
-			_fail("Home-screen clock sizing must prevent wrapping and clipping: " + str(expected_layout_styles[layout_index]))
-			return
-		if active_top_space == null or active_top_space.size.y <= 0.0:
-			_fail("Home-screen content is not vertically distributed below the status bar: " + str(expected_layout_styles[layout_index]))
-			return
-		var active_search := worksite_preview.find_child("HomeSearchBar", true, false) as LineEdit
-		if active_search != null:
-			var active_search_style := active_search.get_theme_stylebox("normal") as StyleBoxFlat
-			if active_search_style == null or active_search_style.get_border_width(SIDE_LEFT) <= 0:
-				_fail("A visible home-screen search bar is missing its matching border: " + str(expected_layout_styles[layout_index]))
-				return
-	if not layout_two_button.disabled:
-		_fail("The Windows Phone layout must disable the next arrow.")
-		return
-	for step_back in range(expected_layout_styles.size() - 1):
-		layout_one_button.pressed.emit()
-		await process_frame
-	if layout_two_label.text != "LAYOUT 1" or worksite_preview.find_child("LollipopGoogleSearchBar", true, false) == null or worksite_preview.find_child("LollipopHomeAppGrid", true, false) == null:
-		_fail("Returning from the three-system selector did not restore Android Lollipop Generation 1.")
-		return
-	worksite_preview.set_component_view("lock_screen")
+	home_corner_slider.value = 0.0
 	await process_frame
 
+	var expected_component_steps := [
+		["app_drawer", "APP DRAWER", "STEP 5 / 8"],
+		["control_center", "CONTROL CENTER", "STEP 6 / 8"],
+		["notifications", "NOTIFICATION PANEL", "STEP 7 / 8"],
+		["wallpapers", "WALLPAPERS", "STEP 8 / 8"]
+	]
+	for expected_step in expected_component_steps:
+		worksite.call("_on_next_pressed")
+		await process_frame
+		var step_text := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+		var component_controls := worksite.find_child("ComponentStudioControls", true, false) as VBoxContainer
+		var component_heading := component_controls.find_child("ComponentStudioHeroTitle", true, false) as Label if component_controls != null else null
+		if step_text == null or step_text.text != str(expected_step[2]) or component_controls == null or component_heading == null or component_heading.text != str(expected_step[1]):
+			_fail("Worksite customization sequence did not show " + str(expected_step[1]) + " at " + str(expected_step[2]) + ".")
+			return
+		if str(worksite_preview.get("active_component")) != str(expected_step[0]):
+			_fail("Phone preview did not switch to " + str(expected_step[0]) + " at its wizard step.")
+			return
+	if not worksite_next_button.disabled:
+		_fail("The final Wallpapers step must disable the wizard Next arrow.")
+		return
+	worksite.call("_on_wizard_back_pressed")
+	await process_frame
+	var final_step_label := worksite.find_child("OSWorksiteProgress", true, false).get_child(0) as Label
+	if final_step_label == null or final_step_label.text != "STEP 7 / 8" or worksite_preview.get("active_component") != "notifications":
+		_fail("Wizard Back from Wallpapers did not return to Notification Panel Step 7.")
+		return
 	worksite_preview.set_component_view("lock_screen")
 	await process_frame
 	for obsolete_lock_control in ["LockScreenFingerprintSensor", "LockScreenAudioPlayer", "GenerateLockScreenDesignButton"]:
@@ -1191,6 +1165,12 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	print("OS_GENERATOR_SMOKE_TEST: PASS")
 	quit(0)
+
+
+
+func left_power_region_is_visible(worksite: Node) -> bool:
+	var power_region := worksite.find_child("OSPowerButtonRegion", true, false) as Control
+	return power_region != null and power_region.visible
 
 func _simulate_touch_swipe(simulator: Control, start: Vector2, finish: Vector2, duration_ms: int) -> void:
 	var press := InputEventScreenTouch.new()
