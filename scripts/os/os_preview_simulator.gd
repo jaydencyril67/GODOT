@@ -2678,6 +2678,29 @@ func _build_control_center(_data: Dictionary) -> void:
 	page_container.add_child(footer)
 
 
+
+func _add_control_slider(caption: String, initial_value: float, glyph: String) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "ControlSlider_" + caption
+	_style_surface(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+	panel.add_child(row)
+	row.add_child(_label(glyph, 13, _accent_color()))
+	var slider_column := VBoxContainer.new()
+	slider_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_column.add_child(_label(caption, 7, _muted_color()))
+	var slider := HSlider.new()
+	slider.name = caption + "Slider"
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.value = initial_value
+	slider.custom_minimum_size.y = 20
+	slider_column.add_child(slider)
+	row.add_child(slider_column)
+	page_container.add_child(panel)
+
+
 func _build_notifications(_data: Dictionary) -> void:
 	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
 		var panel := PanelContainer.new()
