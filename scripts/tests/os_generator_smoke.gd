@@ -442,8 +442,12 @@ func _run_os_generator_test() -> void:
 		return
 	android_overview.pressed.emit()
 	await process_frame
-	if simulator.get("active_component") != "recent_apps":
-		_fail("Android Overview button did not open Recent Apps.")
+	if simulator.get("active_component") != "home_screen" or simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
+		_fail("Android Overview button did not open the Recent Apps overview.")
+		return
+	var close_recent_apps := simulator.find_child("CloseGestureOverlayButton", true, false) as Button
+	if close_recent_apps == null:
+		_fail("Recent Apps overview is missing its close control.")
 		return
 	var android_back := simulator.find_child("AndroidNavigationBack", true, false) as Button
 	if android_back == null:
@@ -451,8 +455,8 @@ func _run_os_generator_test() -> void:
 		return
 	android_back.pressed.emit()
 	await process_frame
-	if simulator.get("active_component") != "home_screen":
-		_fail("Android Back button did not return from Recent Apps to Home.")
+	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
+		_fail("Android Back button did not close the Recent Apps overview.")
 		return
 	simulator.set_component_view("home_screen")
 	await process_frame
@@ -885,11 +889,17 @@ func _run_os_generator_test() -> void:
 	if worksite_preview.get("active_component") != "app_drawer":
 		_fail("Tapping the Lollipop app drawer button did not open the app drawer.")
 		return
-	var drawer_surface := worksite_preview.find_child("LollipopAppDrawerWhiteSurface", true, false) as PanelContainer
+	var drawer_background := worksite_preview.find_child("LollipopAppDrawerFullScreenBackground", true, false) as ColorRect
 	var drawer_viewport := worksite_preview.find_child("LollipopAppDrawerViewport", true, false) as ScrollContainer
 	var drawer_grid := worksite_preview.find_child("LollipopAppDrawerGrid", true, false) as GridContainer
-	if drawer_surface == null or drawer_viewport == null or drawer_grid == null or drawer_grid.columns != 4:
-		_fail("Lollipop app drawer must use one four-column grid inside a vertical scroll viewport.")
+	if drawer_background == null or drawer_background.color != Color("#FAFAFA") or drawer_viewport == null or drawer_grid == null or drawer_grid.columns != 4:
+		_fail("Lollipop app drawer must use a full-screen white background and one four-column grid.")
+		return
+	if worksite_preview.find_child("LollipopAppDrawerWhiteSurface", true, false) != null:
+		_fail("Lollipop app drawer must not use the old narrow clipped white panel.")
+		return
+	if worksite_preview.find_child("OSScreenRoundedCornerMask", true, false) == null:
+		_fail("Phone display must clip wallpaper to rounded screen corners.")
 		return
 	if drawer_viewport.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO or drawer_viewport.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
 		_fail("Lollipop app drawer must scroll vertically without horizontal paging.")
