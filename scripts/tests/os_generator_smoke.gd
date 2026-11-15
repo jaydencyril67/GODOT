@@ -542,8 +542,13 @@ func _run_os_generator_test() -> void:
 	# the launcher beneath it or strand the navigation footer.
 	simulator.call("_dismiss_overview_task", "Messages")
 	await process_frame
-	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("LollipopOverviewTask_Settings", true, false) == null:
-		_fail("Dismissing the first recent app must leave the remaining task deck visible.")
+	var remaining_overview := simulator.find_child("OSGestureOverlay_recent_apps", true, false) as Control
+	var remaining_settings_card := simulator.find_child("LollipopOverviewTask_Settings", true, false) as Button
+	if remaining_overview == null:
+		_fail("Dismissing the first recent app removed the Overview overlay.")
+		return
+	if remaining_settings_card == null:
+		_fail("Dismissing Messages failed to rebuild the remaining Settings task card.")
 		return
 	simulator.call("_dismiss_overview_task", "Settings")
 	await process_frame
