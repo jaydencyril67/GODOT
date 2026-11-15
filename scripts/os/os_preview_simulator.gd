@@ -2111,20 +2111,6 @@ func _build_pin_input() -> void:
 		keypad.add_child(key)
 	layout.add_child(keypad)
 
-	var lock_data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
-	if bool(lock_data.get("show_fingerprint", false)) and bool(lock_data.get("fingerprint_sensor_available", false)):
-		var fingerprint_stage := CenterContainer.new()
-		fingerprint_stage.name = "PINFingerprintStage"
-		fingerprint_stage.custom_minimum_size.y = 36
-		var fingerprint := LockScreenFingerprintButton.new()
-		fingerprint.name = "PINFingerprintSensor"
-		fingerprint.custom_minimum_size = Vector2(34, 34)
-		fingerprint.tooltip_text = "Unlock with fingerprint"
-		fingerprint.pressed.connect(func(): set_component_view("home_screen"))
-		fingerprint_stage.add_child(fingerprint)
-		fingerprint.custom_minimum_size = Vector2(36, 36)
-		layout.add_child(fingerprint_stage)
-
 	var emergency_button := Button.new()
 	emergency_button.name = "PINEmergencyCallButton"
 	emergency_button.text = "Emergency call"
