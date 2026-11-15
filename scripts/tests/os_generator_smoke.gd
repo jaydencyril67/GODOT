@@ -973,6 +973,9 @@ func _run_os_generator_test() -> void:
 		if str(active_home_data.get("layout_style", "")) != str(expected_layout_styles[layout_index]):
 			_fail("Layout selector did not load the expected design at position " + str(layout_index + 1) + ".")
 			return
+		if layout_index > 0 and (worksite_preview.find_child("AndroidThreeButtonNavigation", true, false) != null or worksite_preview.find_child("LollipopThreeButtonNavigation", true, false) != null):
+			_fail("Three-button system navigation must be exclusive to Android, not iOS or Windows.")
+			return
 		if layout_two_label.text != "LAYOUT " + str(layout_index + 1) or active_family_label == null or active_family_label.text != str(expected_layout_families[layout_index]):
 			_fail("Layout selector did not show the matching layout number and manufacturer family.")
 			return
