@@ -303,14 +303,13 @@ func _current_lock_date(treatment: String) -> String:
 
 
 func _refresh_lock_screen_clock() -> void:
-	var family := str(configuration.get("components", {}).get("lock_screen", {}).get("design_family", "minimal"))
 	var data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
 	var clock := find_child("LockScreenClock", true, false) as Label
 	if is_instance_valid(clock):
 		clock.text = _current_lock_time(family)
 	var date := find_child("LockScreenDate", true, false) as Label
 	if is_instance_valid(date):
-		date.text = _current_lock_date(str(data.get("date_treatment", "uppercase")))
+		date.text = _current_lock_date("uppercase")
 	var status_clock := find_child("StatusBarClock", true, false) as Label
 	if is_instance_valid(status_clock):
 		status_clock.text = _current_lock_time()
@@ -1659,294 +1658,82 @@ func _build_windows_tiles() -> void:
 
 
 func _build_lock_screen(data: Dictionary) -> void:
-	var template := str(data.get("layout_template", "classic_clock"))
-	if not OSEngine.LOCK_SCREEN_LAYOUT_TEMPLATES.has(template):
-		template = "classic_clock"
-	var family := str(data.get("design_family", "minimal"))
-	var original_container := page_container
-	var bank := VBoxContainer.new()
-	bank.name = "LockScreenComponentBank"
-	# Build reusable lock-screen widgets inside the live scene tree. Creating this
-	# staging container detached leaves its generated Controls and theme resources
-	# outside normal Node ownership during repeated preview rebuilds.
-	original_container.add_child(bank)
-	page_container = bank
-	if bool(data.get("show_notifications", true)):
-		_add_lock_notification("Messages", "A new message is waiting", "NOW", str(data.get("notification_treatment", "glass")), 0)
-		_add_lock_notification("Calendar", "Your next event is coming up", "IN 10 MIN", str(data.get("notification_treatment", "glass")), 1)
-	if bool(data.get("show_audio_player", true)):
-		_add_lock_audio_player(str(data.get("audio_treatment", "album_card")))
-	page_container = original_container
-
-	var root_layout := VBoxContainer.new()
-	root_layout.name = "LockScreenLayout_" + template
-	root_layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_layout.add_theme_constant_override("separation", 3)
-	page_container.add_child(root_layout)
+	# Android 5.0 Lollipop lock screen: one fixed composition, no generated
+	# manufacturer layouts, fingerprint widgets, media cards or design variants.
+	var root := VBoxContainer.new()
+	root.name = "LollipopLockScreen"
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", 0)
+	page_container.add_child(root)
 
 	var top_space := Control.new()
-	top_space.name = "LockScreenTopFlexibleSpace"
-	top_space.custom_minimum_size.y = 4
-	# A top spacer must never consume the clock's visible area on compact previews.
-	var lower_space := Control.new()
-	lower_space.name = "LockScreenBottomFlexibleSpace"
-	lower_space.custom_minimum_size.y = 4
-
-	var clock_stack := VBoxContainer.new()
-	clock_stack.name = "LockScreenClockStack"
-	clock_stack.add_theme_constant_override("separation", 1)
-	var alignment := HORIZONTAL_ALIGNMENT_CENTER
-	match str(data.get("clock_alignment", "center")):
-		"left":
-			alignment = HORIZONTAL_ALIGNMENT_LEFT
-		"right":
-			alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	var configured_clock_size := clampi(int(data.get("clock_size", 46)), 30, 58)
-	if template == "pixel_large_clock" or str(data.get("clock_treatment", "")) == "oversized":
-		configured_clock_size = mini(58, configured_clock_size + 6)
-	if family == "typographic":
-		configured_clock_size = mini(configured_clock_size, 24)
-	var clock_text := _current_lock_time(family)
-	var clock_line_count := 2 if family == "typographic" else 1
-	var clock_font := FontVariation.new()
-	clock_font.base_font = LOCKSCREEN_FONT
-	clock_font.variation_embolden = 1.1 if template in ["coloros_typography", "neo_brutalist"] else 0.55
-	# Fit the actual rendered string to the available phone width. The old fixed
-	# 30 px clamp still allowed wide numerals to be clipped, leaving only the
-	# centre time separator visible on narrow worksite previews.
-	var available_clock_width := maxf(1.0, size.x - 34.0)
-	var measured_clock_width := clock_font.get_string_size(clock_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, configured_clock_size).x
-	if measured_clock_width > available_clock_width and measured_clock_width > 0.0:
-		configured_clock_size = maxi(20, floori(float(configured_clock_size) * available_clock_width / measured_clock_width))
-	var clock := _label(clock_text, configured_clock_size, _text_color())
-	clock.name = "LockScreenClock"
-	clock.horizontal_alignment = alignment
-	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock.autowrap_mode = TextServer.AUTOWRAP_OFF
-	clock.clip_text = false
-	clock.clip_contents = false
-	clock.custom_minimum_size = Vector2(0, configured_clock_size * clock_line_count + 8)
-	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	clock.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	clock_stack.custom_minimum_size.y = configured_clock_size * clock_line_count + 22
-	clock_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	clock_stack.clip_contents = false
-	clock.add_theme_font_override("font", clock_font)
-	clock.add_theme_color_override("font_color", Color("#FFFFFF"))
-	clock.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.78))
-	clock.add_theme_constant_override("outline_size", 2)
-	clock.modulate = Color.WHITE
-	clock_stack.add_child(clock)
-	var date := _label(_current_lock_date(str(data.get("date_treatment", "uppercase"))), 8, _muted_color())
-	date.name = "LockScreenDate"
-	date.horizontal_alignment = alignment
-	date.custom_minimum_size.y = 12
-	date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	date.autowrap_mode = TextServer.AUTOWRAP_OFF
-	clock_stack.add_child(date)
-	var clock_stage := CenterContainer.new()
-	clock_stage.name = "LockScreenProtectedClockStage"
-	clock_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	clock_stage.custom_minimum_size.y = configured_clock_size * clock_line_count + 26
-	clock_stage.clip_contents = false
-	clock_stage.add_child(clock_stack)
-
-	# Lock-screen content needs deliberate vertical distribution. VBoxContainer
-	# otherwise packs every child at the top of the phone, leaving the lower
-	# half empty. These two flexible regions position the clock in the upper
-	# third and reserve the lower area for the sensor and unlock controls.
+	top_space.name = "LollipopLockScreenTopSpace"
 	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	top_space.size_flags_stretch_ratio = 0.85
-	lower_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	lower_space.size_flags_stretch_ratio = 1.15
-	root_layout.add_child(top_space)
-	root_layout.add_child(clock_stage)
+	top_space.size_flags_stretch_ratio = 1.0
+	root.add_child(top_space)
 
-	var notifications := VBoxContainer.new()
-	notifications.name = "LockScreenNotificationZone"
-	notifications.add_theme_constant_override("separation", 5)
-	for notification_name in ["LockScreenNotification_Messages", "LockScreenNotification_Calendar"]:
-		_lock_screen_move(bank, notification_name, notifications)
-	var media := bank.get_node_or_null("LockScreenAudioPlayer") as Control
-	if is_instance_valid(media):
-		bank.remove_child(media)
+	if bool(data.get("show_time", true)):
+		var clock := _label(_current_lock_time(), 52, Color("#FFFFFF"))
+		clock.name = "LockScreenClock"
+		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
+		clock.clip_text = false
+		clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		clock.add_theme_font_override("font", LOCKSCREEN_FONT)
+		clock.add_theme_color_override("font_color", Color("#FFFFFF"))
+		clock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
+		clock.add_theme_constant_override("outline_size", 1)
+		root.add_child(clock)
+
+	if bool(data.get("show_date", true)):
+		var date := _label(_current_lock_date("uppercase"), 15, Color("#FFFFFF"))
+		date.name = "LockScreenDate"
+		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		date.add_theme_color_override("font_color", Color("#FFFFFF"))
+		root.add_child(date)
+
+	var middle_space := Control.new()
+	middle_space.name = "LollipopLockScreenMiddleSpace"
+	middle_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	middle_space.size_flags_stretch_ratio = 1.4
+	root.add_child(middle_space)
+
 	var shortcuts := HBoxContainer.new()
 	shortcuts.name = "LockScreenQuickShortcuts"
 	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.add_theme_constant_override("separation", 8)
+	shortcuts.alignment = BoxContainer.ALIGNMENT_CENTER
+	shortcuts.add_theme_constant_override("separation", 0)
 	if bool(data.get("show_camera_shortcut", true)):
-		shortcuts.add_child(_make_lock_shortcut(LOCKSCREEN_CAMERA_TEXTURE, str(data.get("shortcut_treatment", "floating")), "Camera"))
-	var shortcut_spacer := Control.new()
-	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.add_child(shortcut_spacer)
+		var camera_slot := CenterContainer.new()
+		camera_slot.name = "LollipopLockScreenCameraSlot"
+		camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		camera_slot.add_child(_make_lock_shortcut(LOCKSCREEN_CAMERA_TEXTURE, "floating", "Camera"))
+		shortcuts.add_child(camera_slot)
+	else:
+		var empty_camera_slot := Control.new()
+		empty_camera_slot.name = "LollipopLockScreenCameraSlot"
+		empty_camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		shortcuts.add_child(empty_camera_slot)
 	if bool(data.get("show_flashlight_shortcut", true)):
-		shortcuts.add_child(_make_lock_shortcut(LOCKSCREEN_FLASHLIGHT_TEXTURE, str(data.get("shortcut_treatment", "floating")), "Flashlight"))
+		var flashlight_slot := CenterContainer.new()
+		flashlight_slot.name = "LollipopLockScreenFlashlightSlot"
+		flashlight_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		flashlight_slot.add_child(_make_lock_shortcut(LOCKSCREEN_FLASHLIGHT_TEXTURE, "floating", "Flashlight"))
+		shortcuts.add_child(flashlight_slot)
+	else:
+		var empty_flashlight_slot := Control.new()
+		empty_flashlight_slot.name = "LollipopLockScreenFlashlightSlot"
+		empty_flashlight_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		shortcuts.add_child(empty_flashlight_slot)
+	root.add_child(shortcuts)
 
-	var fingerprint: Control
-	if bool(data.get("show_fingerprint", false)) and bool(data.get("fingerprint_sensor_available", false)):
-		var sensor := LockScreenFingerprintButton.new()
-		sensor.name = "LockScreenFingerprintSensor"
-		sensor.tooltip_text = "Touch to unlock"
-		sensor.pressed.connect(func(): set_component_view("home_screen"))
-		fingerprint = sensor
-
-	var feature_row := VBoxContainer.new()
-	feature_row.name = "LockScreenMediaAndNotifications"
-	feature_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	feature_row.add_theme_constant_override("separation", 5)
-	var notification_column := VBoxContainer.new()
-	notification_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	notification_column.add_theme_constant_override("separation", 4)
-	var media_column := VBoxContainer.new()
-	media_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	feature_row.add_child(notification_column)
-	feature_row.add_child(media_column)
-	# Clock is rendered in a dedicated protected stage above every template.
-
-	match template:
-		"classic_clock":
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"rhombus_clock":
-			var rhombus_caption := _label("TODAY  ·  DIGITALWORLD", 7, _accent_color())
-			rhombus_caption.name = "RhombusClockCaption"
-			root_layout.add_child(rhombus_caption)
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"magazine_cover":
-			root_layout.add_child(_label("THE DAILY EDITION  /  DIGITALWORLD", 7, _accent_color()))
-			if is_instance_valid(media): root_layout.add_child(media)
-			root_layout.add_child(notifications)
-		"depth_layer":
-			if is_instance_valid(media): root_layout.add_child(media)
-			root_layout.add_child(notifications)
-		"widget_dashboard":
-			if notifications.get_child_count() > 0:
-				notification_column.add_child(notifications)
-			if is_instance_valid(media):
-				media_column.add_child(media)
-			root_layout.add_child(feature_row)
-		"live_activity":
-			var live_activity_caption := _label("LIVE ACTIVITY", 7, _accent_color())
-			live_activity_caption.name = "LockScreenLiveActivityCaption"
-			root_layout.add_child(live_activity_caption)
-			if is_instance_valid(media): root_layout.add_child(media)
-			root_layout.add_child(notifications)
-		"one_ui_personal":
-			var personal_zones := VBoxContainer.new()
-			personal_zones.name = "OneUIPersonalContentZones"
-			var personal_left := VBoxContainer.new()
-			personal_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			personal_left.add_child(notifications)
-			var personal_right := VBoxContainer.new()
-			personal_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			if is_instance_valid(media): personal_right.add_child(media)
-			personal_zones.add_child(personal_left)
-			personal_zones.add_child(personal_right)
-			root_layout.add_child(personal_zones)
-		"now_bar":
-			var now_bar := VBoxContainer.new()
-			now_bar.name = "LockScreenNowBar"
-			if is_instance_valid(media): now_bar.add_child(media)
-			if notifications.get_child_count() > 0: now_bar.add_child(notifications)
-			root_layout.add_child(now_bar)
-		"notification_stack":
-			var notification_stack_caption := _label("NOTIFICATIONS", 7, _accent_color())
-			notification_stack_caption.name = "LockScreenNotificationStackCaption"
-			root_layout.add_child(notification_stack_caption)
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"pixel_at_a_glance":
-			root_layout.add_child(_label("AT A GLANCE  ·  YOUR DAY", 7, _accent_color()))
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"pixel_large_clock":
-			var pixel_caption := _label("PIXEL  ·  AT A GLANCE", 7, _accent_color())
-			pixel_caption.name = "PixelLargeClockCaption"
-			root_layout.add_child(pixel_caption)
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"pixel_ambient":
-			root_layout.add_child(_label("MON  ·  DIGITALWORLD", 7, _muted_color()))
-		"huawei_magazine":
-			var huawei_caption := _label("MONDAY  /  YOUR PERSONAL EDITION", 7, _accent_color())
-			huawei_caption.name = "HuaweiMagazineCaption"
-			root_layout.add_child(huawei_caption)
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"huawei_dynamic":
-			var dynamic_row := VBoxContainer.new()
-			dynamic_row.name = "HuaweiDynamicActivity"
-			if is_instance_valid(media): dynamic_row.add_child(media)
-			root_layout.add_child(dynamic_row)
-			root_layout.add_child(notifications)
-		"nothing_widget_grid":
-			var widget_grid := GridContainer.new()
-			widget_grid.name = "LockScreenNothingWidgetGrid"
-			widget_grid.columns = 1 if size.x <= 180.0 else 2
-			widget_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			widget_grid.add_child(_label("MON  /  DATE", 8, _muted_color()))
-			if notifications.get_child_count() > 0: widget_grid.add_child(notifications)
-			if is_instance_valid(media): widget_grid.add_child(media)
-			root_layout.add_child(widget_grid)
-		"origin_player":
-			var origin_player_activity := VBoxContainer.new()
-			origin_player_activity.name = "OriginPlayerActivity"
-			if is_instance_valid(media): origin_player_activity.add_child(media)
-			root_layout.add_child(origin_player_activity)
-			root_layout.add_child(notifications)
-		"coloros_typography":
-			var typography_rule := ColorRect.new()
-			typography_rule.custom_minimum_size.y = 3
-			typography_rule.color = _accent_color()
-			root_layout.add_child(typography_rule)
-			root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"coloros_flux":
-			var flux_column := VBoxContainer.new()
-			if is_instance_valid(media): flux_column.add_child(media)
-			root_layout.add_child(flux_column)
-			root_layout.add_child(notifications)
-		"clean_android":
-			var clean_android_caption := _label("MONDAY  ·  YOUR DAY", 7, _muted_color())
-			clean_android_caption.name = "LockScreenCleanAndroidDate"
-			root_layout.add_child(clean_android_caption)
-			if notifications.get_child_count() > 0: root_layout.add_child(notifications)
-			if is_instance_valid(media): root_layout.add_child(media)
-		"focus_lock_screen":
-			root_layout.add_child(_label("FOCUS  /  PERSONAL", 7, _accent_color()))
-			if is_instance_valid(media): root_layout.add_child(media)
-			root_layout.add_child(notifications)
-
-	# Some intentionally minimal templates omit widgets from their composition.
-	# Keep enabled notifications and media visible rather than silently dropping them.
-	if notifications.get_child_count() > 0 and notifications.get_parent() == null:
-		root_layout.add_child(notifications)
-	if is_instance_valid(media) and media.get_parent() == null:
-		root_layout.add_child(media)
-	if lower_space.get_parent() == null:
-		root_layout.add_child(lower_space)
-	if is_instance_valid(fingerprint):
-		var fingerprint_stage := CenterContainer.new()
-		fingerprint_stage.name = "LockScreenFingerprintStage"
-		fingerprint_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		fingerprint_stage.custom_minimum_size.y = 46
-		fingerprint_stage.add_child(fingerprint)
-		root_layout.add_child(fingerprint_stage)
-	root_layout.add_child(shortcuts)
-	page_container = original_container
-
-	# Every widget that is used has now been moved into the rendered layout.
-	# Release the empty staging bank and any template-only containers that this
-	# particular layout did not adopt.
-	if bank.get_parent() == original_container:
-		original_container.remove_child(bank)
-		bank.free()
-	for unused_control in [top_space, notifications, feature_row]:
-		if is_instance_valid(unused_control) and unused_control.get_parent() == null:
-			unused_control.free()
-
+	var bottom_space := Control.new()
+	bottom_space.name = "LollipopLockScreenBottomSpace"
+	bottom_space.custom_minimum_size.y = 12
+	root.add_child(bottom_space)
 
 func _lock_screen_move(source: Control, node_name: String, destination: Control) -> void:
 	var item := source.get_node_or_null(node_name) as Control
