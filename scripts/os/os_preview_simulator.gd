@@ -735,6 +735,332 @@ func _create_lollipop_shade_body(overlay: Control) -> VBoxContainer:
 	return body
 
 
+func _create_android_pie_shade(mode: String) -> Control:
+	_close_gesture_overlay()
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_" + mode
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -46.0
+	overlay.clip_contents = true
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	_gesture_overlay = overlay
+	var background := ColorRect.new()
+	background.name = "PieShadeBackground"
+	background.color = Color("#E8ECF3")
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(background)
+	var margins := MarginContainer.new()
+	margins.name = "PieShadeMargins"
+	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margins.add_theme_constant_override("margin_left", 12)
+	margins.add_theme_constant_override("margin_right", 12)
+	margins.add_theme_constant_override("margin_top", 9)
+	margins.add_theme_constant_override("margin_bottom", 8)
+	overlay.add_child(margins)
+	var scroll := ScrollContainer.new()
+	scroll.name = "PieShadeScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = Control.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = Control.SCROLL_MODE_SHOW_NEVER
+	margins.add_child(scroll)
+	var body := VBoxContainer.new()
+	body.name = "PieShadeContent"
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 9)
+	scroll.add_child(body)
+	return overlay
+
+
+func _add_pie_shade_header(parent: Control) -> void:
+	var header := HBoxContainer.new()
+	header.name = "PieShadeHeader"
+	header.add_theme_constant_override("separation", 8)
+	var time_stack := VBoxContainer.new()
+	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var clock := _label(_current_lock_time("pixel"), 25, Color("#202124"))
+	clock.name = "PieShadeClock"
+	clock.custom_minimum_size.y = 30
+	clock.add_theme_font_override("font", LOCKSCREEN_FONT)
+	time_stack.add_child(clock)
+	time_stack.add_child(_label(_current_lock_date("pixel"), 9, Color("#5F6368")))
+	header.add_child(time_stack)
+	var battery := _label("100%  ▰", 9, Color("#5F6368"))
+	battery.name = "PieShadeBattery"
+	battery.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(battery)
+	parent.add_child(header)
+
+
+func _pie_quick_tile_style(enabled: bool) -> StyleBoxFlat:
+	var tile_style := StyleBoxFlat.new()
+	tile_style.bg_color = Color("#4285F4") if enabled else Color("#DADCE0")
+	tile_style.set_corner_radius_all(999)
+	tile_style.set_border_width_all(0)
+	tile_style.content_margin_left = 0
+	tile_style.content_margin_right = 0
+	tile_style.content_margin_top = 0
+	tile_style.content_margin_bottom = 0
+	return tile_style
+
+
+func _add_android_pie_quick_tile(parent: GridContainer, definition: Dictionary) -> void:
+	var setting_id := str(definition.get("id", ""))
+	var safe_id := setting_id.replace(" ", "")
+	var enabled := bool(_quick_setting_states.get(setting_id, definition.get("enabled", false)))
+	var item := VBoxContainer.new()
+	item.name = "PieQuickTileItem_" + safe_id
+	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	item.add_theme_constant_override("separation", 2)
+	var holder := CenterContainer.new()
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tile := Button.new()
+	tile.name = "PieQuickTile_" + safe_id
+	tile.toggle_mode = true
+	tile.button_pressed = enabled
+	tile.custom_minimum_size = Vector2(43, 43)
+	tile.focus_mode = Control.FOCUS_NONE
+	tile.add_theme_stylebox_override("normal", _pie_quick_tile_style(enabled))
+	tile.add_theme_stylebox_override("hover", _pie_quick_tile_style(enabled))
+	tile.add_theme_stylebox_override("pressed", _pie_quick_tile_style(not enabled))
+	tile.add_theme_stylebox_override("focus", _pie_quick_tile_style(enabled))
+	tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+	tile.add_theme_font_size_override("font_size", 19)
+	tile.text = str(definition.get("glyph", "•"))
+	tile.tooltip_text = setting_id
+	holder.add_child(tile)
+	item.add_child(holder)
+	var label := _label(setting_id, 8, Color("#3C4043"))
+	label.name = "PieQuickTileLabel_" + safe_id
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size.y = 17
+	item.add_child(label)
+	tile.toggled.connect(_on_pie_quick_tile_toggled.bind(setting_id, tile, label))
+	parent.add_child(item)
+
+
+func _on_pie_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button, label: Label) -> void:
+	_quick_setting_states[setting_id] = enabled
+	var style := _pie_quick_tile_style(enabled)
+	if is_instance_valid(tile):
+		for state_name in ["normal", "hover", "pressed", "focus"]:
+			tile.add_theme_stylebox_override(state_name, style)
+		tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+	if is_instance_valid(label):
+		label.add_theme_color_override("font_color", Color("#3C4043") if enabled else Color("#5F6368"))
+
+
+func _pie_quick_tile_definitions() -> Array:
+	return [
+		{"id": "Wi-Fi", "glyph": "◉", "enabled": true},
+		{"id": "Bluetooth", "glyph": "ᛒ", "enabled": true},
+		{"id": "Do not disturb", "glyph": "⊖", "enabled": false},
+		{"id": "Airplane mode", "glyph": "✈", "enabled": false},
+		{"id": "Auto-rotate", "glyph": "⟳", "enabled": true},
+		{"id": "Battery saver", "glyph": "▰", "enabled": false},
+		{"id": "Flashlight", "glyph": "☼", "enabled": false},
+		{"id": "Location", "glyph": "⌖", "enabled": true},
+		{"id": "Hotspot", "glyph": "⌁", "enabled": false}
+	]
+
+
+func _add_pie_brightness_slider(parent: Control) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "PieBrightnessPanel"
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#DADCE0")
+	panel_style.set_corner_radius_all(18)
+	panel_style.set_border_width_all(0)
+	panel_style.content_margin_left = 8
+	panel_style.content_margin_right = 8
+	panel_style.content_margin_top = 4
+	panel_style.content_margin_bottom = 4
+	panel.add_theme_stylebox_override("panel", panel_style)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+	row.add_child(_label("☼", 17, Color("#5F6368")))
+	var slider := HSlider.new()
+	slider.name = "PieBrightnessSlider"
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.value = 72
+	slider.custom_minimum_size.y = 20
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.focus_mode = Control.FOCUS_NONE
+	row.add_child(slider)
+	row.add_child(_label("☀", 13, Color("#5F6368")))
+	panel.add_child(row)
+	parent.add_child(panel)
+
+
+func _add_pie_notification_card(parent: Control, app_name: String, message_text: String, time_text: String, icon_text: String, icon_color: Color) -> void:
+	var card := PanelContainer.new()
+	card.name = "PieNotification_" + app_name.replace(" ", "")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color("#F8F9FA")
+	card_style.set_corner_radius_all(14)
+	card_style.set_border_width_all(0)
+	card_style.content_margin_left = 10
+	card_style.content_margin_right = 10
+	card_style.content_margin_top = 8
+	card_style.content_margin_bottom = 8
+	card.add_theme_stylebox_override("panel", card_style)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	card.add_child(row)
+	var icon_panel := PanelContainer.new()
+	icon_panel.custom_minimum_size = Vector2(27, 27)
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = icon_color
+	icon_style.set_corner_radius_all(14)
+	icon_panel.add_theme_stylebox_override("panel", icon_style)
+	var icon := _label(icon_text, 8, Color.WHITE)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_panel.add_child(icon)
+	row.add_child(icon_panel)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 1)
+	var title_row := HBoxContainer.new()
+	var title := _label(app_name, 8, Color("#202124"))
+	title.name = "PieNotificationTitle_" + app_name.replace(" ", "")
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
+	title_row.add_child(_label(time_text, 7, Color("#5F6368")))
+	copy.add_child(title_row)
+	var message := _label(message_text, 9, Color("#3C4043"))
+	message.name = "PieNotificationMessage_" + app_name.replace(" ", "")
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	copy.add_child(message)
+	row.add_child(copy)
+	card.add_child(row)
+	parent.add_child(card)
+
+
+func _build_android_pie_notification_shade() -> void:
+	var overlay := _create_android_pie_shade("notifications")
+	var body := overlay.find_child("PieShadeContent", true, false) as VBoxContainer
+	if body == null:
+		return
+	_add_pie_shade_header(body)
+	var quick_grid := GridContainer.new()
+	quick_grid.name = "PieNotificationQuickSettingsGrid"
+	quick_grid.columns = 3
+	quick_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_grid.add_theme_constant_override("h_separation", 2)
+	quick_grid.add_theme_constant_override("v_separation", 3)
+	for definition in _pie_quick_tile_definitions().slice(0, 6):
+		_add_android_pie_quick_tile(quick_grid, definition)
+	body.add_child(quick_grid)
+	var notification_heading := _label("Notifications", 10, Color("#5F6368"))
+	notification_heading.name = "PieNotificationHeading"
+	body.add_child(notification_heading)
+	_add_pie_notification_card(body, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW", "M", Color("#4285F4"))
+	_add_pie_notification_card(body, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
+	_add_pie_notification_card(body, "Android System", "Device is up to date", "EARLIER", "A", Color("#5F6368"))
+	body.add_child(_label("Swipe down again for all Quick Settings", 8, Color("#5F6368")))
+	_apply_lollipop_shade_screen_mask(overlay)
+
+
+func _build_android_pie_quick_settings_shade() -> void:
+	var overlay := _create_android_pie_shade("control_center")
+	var body := overlay.find_child("PieShadeContent", true, false) as VBoxContainer
+	if body == null:
+		return
+	_add_pie_shade_header(body)
+	_add_pie_brightness_slider(body)
+	var grid := GridContainer.new()
+	grid.name = "PieExpandedQuickSettingsGrid"
+	grid.columns = 3
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 2)
+	grid.add_theme_constant_override("v_separation", 5)
+	for definition in _pie_quick_tile_definitions():
+		_add_android_pie_quick_tile(grid, definition)
+	body.add_child(grid)
+	var page_row := CenterContainer.new()
+	page_row.name = "PieQuickSettingsPageIndicator"
+	page_row.add_child(_label("●  ○", 8, Color("#5F6368")))
+	body.add_child(page_row)
+	var footer := HBoxContainer.new()
+	footer.alignment = BoxContainer.ALIGNMENT_END
+	var settings_button := Button.new()
+	settings_button.name = "PieQuickSettingsSettingsButton"
+	settings_button.text = "⚙  Settings"
+	settings_button.focus_mode = Control.FOCUS_NONE
+	settings_button.pressed.connect(func() -> void:
+		_close_gesture_overlay()
+		_on_app_pressed("Settings")
+	)
+	footer.add_child(settings_button)
+	body.add_child(footer)
+	_apply_lollipop_shade_screen_mask(overlay)
+
+
+func _build_android_pie_notifications_preview() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "PieNotificationPreview"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#E8ECF3")
+	style.set_corner_radius_all(16)
+	style.set_border_width_all(0)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
+	panel.add_theme_stylebox_override("panel", style)
+	page_container.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 7)
+	panel.add_child(body)
+	_add_pie_shade_header(body)
+	var compact_grid := GridContainer.new()
+	compact_grid.name = "PieNotificationQuickSettingsGrid"
+	compact_grid.columns = 3
+	for definition in _pie_quick_tile_definitions().slice(0, 6):
+		_add_android_pie_quick_tile(compact_grid, definition)
+	body.add_child(compact_grid)
+	body.add_child(_label("Notifications", 9, Color("#5F6368")))
+	_add_pie_notification_card(body, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW", "M", Color("#4285F4"))
+	_add_pie_notification_card(body, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
+
+
+func _build_android_pie_control_center_preview() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "PieControlCenterPreview"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#E8ECF3")
+	style.set_corner_radius_all(16)
+	style.set_border_width_all(0)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
+	panel.add_theme_stylebox_override("panel", style)
+	page_container.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 7)
+	panel.add_child(body)
+	_add_pie_shade_header(body)
+	_add_pie_brightness_slider(body)
+	var grid := GridContainer.new()
+	grid.name = "PieExpandedQuickSettingsGrid"
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 2)
+	grid.add_theme_constant_override("v_separation", 4)
+	for definition in _pie_quick_tile_definitions():
+		_add_android_pie_quick_tile(grid, definition)
+	body.add_child(grid)
+	body.add_child(_label("●  ○    ·    Settings", 8, Color("#5F6368")))
+
+
 func _build_lollipop_notification_shade() -> void:
 	var overlay := _create_lollipop_shade_overlay("notifications", Color(0.025, 0.045, 0.060, 0.76))
 	var body := _create_lollipop_shade_body(overlay)
