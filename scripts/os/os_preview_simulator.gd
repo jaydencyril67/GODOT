@@ -9,6 +9,8 @@ const PHONE_UNLOCK_PIN := "1234"
 var LOCKSCREEN_FONT: FontFile
 var LOCKSCREEN_CAMERA_TEXTURE: Texture2D
 var LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D
+var LOCKSCREEN_LOCK_TEXTURE: Texture2D
+var LOCKSCREEN_FINGERPRINT_TEXTURE: Texture2D
 const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.81
 var STATUS_CELLULAR_TEXTURE: Texture2D
 var STATUS_WIFI_TEXTURE: Texture2D
@@ -29,6 +31,7 @@ class PINLockIndicator extends Control:
 
 class OreoLockShortcutButton extends Button:
 	var shortcut_id := "assistant"
+	var icon_texture: Texture2D
 
 	func _ready() -> void:
 		text = ""
@@ -39,39 +42,43 @@ class OreoLockShortcutButton extends Button:
 		custom_minimum_size = Vector2(42, 42)
 		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
 			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+		var icon_view := TextureRect.new()
+		icon_view.name = "ImportedLockShortcutArtwork"
+		icon_view.texture = icon_texture
+		icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		icon_view.offset_left = 10.0
+		icon_view.offset_top = 10.0
+		icon_view.offset_right = -10.0
+		icon_view.offset_bottom = -10.0
+		add_child(icon_view)
 		queue_redraw()
 
 	func _draw() -> void:
-		var centre := size * 0.5
-		var icon_color := Color("#FFFFFF")
 		if is_pressed():
-			draw_circle(centre, 15.0, Color(1, 1, 1, 0.12))
-		match shortcut_id:
-			"assistant":
-				draw_rect(Rect2(centre + Vector2(-3.2, -9.0), Vector2(6.4, 13.0)), icon_color, false, 1.8, true)
-				draw_arc(centre + Vector2(0, 0.0), 7.0, 0.0, PI, 32, icon_color, 1.8, true)
-				draw_line(centre + Vector2(0, 7.0), centre + Vector2(0, 10.0), icon_color, 1.8, true)
-				draw_line(centre + Vector2(-5.0, 10.0), centre + Vector2(5.0, 10.0), icon_color, 1.8, true)
-			"camera":
-				draw_rect(Rect2(centre + Vector2(-10.0, -5.0), Vector2(20.0, 14.0)), icon_color, false, 1.8, true)
-				draw_rect(Rect2(centre + Vector2(-4.5, -8.0), Vector2(9.0, 3.0)), icon_color, false, 1.6, true)
-				draw_circle(centre + Vector2(0, 2.0), 4.2, icon_color, false, 1.8, true)
-				draw_circle(centre + Vector2(0, 2.0), 1.4, icon_color)
+			draw_circle(size * 0.5, 15.0, Color(1, 1, 1, 0.12))
 
 
 class OreoLockCenterGlyph extends Control:
+	var icon_texture: Texture2D
+
 	func _ready() -> void:
 		custom_minimum_size = Vector2(32, 38)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		queue_redraw()
-
-	func _draw() -> void:
-		var centre := size * 0.5
-		var icon_color := Color("#FFFFFF")
-		draw_arc(centre + Vector2(0, -3.0), 7.0, PI, TAU, 28, icon_color, 1.8, true)
-		draw_rect(Rect2(centre + Vector2(-8.0, -2.0), Vector2(16.0, 13.0)), icon_color, false, 1.8, true)
-		draw_circle(centre + Vector2(0, 3.0), 1.3, icon_color)
-		draw_line(centre + Vector2(0, 4.0), centre + Vector2(0, 7.0), icon_color, 1.4, true)
+		var icon_view := TextureRect.new()
+		icon_view.name = "ImportedLockStatusArtwork"
+		icon_view.texture = icon_texture
+		icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		icon_view.offset_left = 5.0
+		icon_view.offset_top = 5.0
+		icon_view.offset_right = -5.0
+		icon_view.offset_bottom = -5.0
+		add_child(icon_view)
 
 
 class AndroidNavigationButton extends Button:
@@ -2104,6 +2111,8 @@ func _ready() -> void:
 	LOCKSCREEN_FONT = load("res://assets/fonts/STIXTwoText[wght].ttf") as FontFile
 	LOCKSCREEN_CAMERA_TEXTURE = load("res://assets/os/lockscreen/camera.svg") as Texture2D
 	LOCKSCREEN_FLASHLIGHT_TEXTURE = load("res://assets/os/lockscreen/flashlight.svg") as Texture2D
+	LOCKSCREEN_LOCK_TEXTURE = load("res://assets/os/lockscreen/lock.svg") as Texture2D
+	LOCKSCREEN_FINGERPRINT_TEXTURE = load("res://assets/os/lockscreen/fingerprint_sensor.svg") as Texture2D
 	STATUS_CELLULAR_TEXTURE = load("res://assets/os/lockscreen/status_cellular.svg") as Texture2D
 	STATUS_WIFI_TEXTURE = load("res://assets/os/lockscreen/status_wifi.svg") as Texture2D
 	STATUS_BATTERY_TEXTURE = load("res://assets/os/lockscreen/status_battery.svg") as Texture2D
@@ -3145,9 +3154,11 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_row.add_child(status_spacer)
 	if bool(data.get("show_battery", true)):
-		var battery := _label("100%  ▰", 9, Color("#FFFFFF"))
-		battery.name = "PieLockBatteryInfo"
-		status_row.add_child(battery)
+		var battery_icon := _status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "PieLockBatteryIcon")
+		status_row.add_child(battery_icon)
+		var battery_percentage := _label("100%", 8, Color("#FFFFFF"))
+		battery_percentage.name = "PieLockBatteryInfo"
+		status_row.add_child(battery_percentage)
 	root.add_child(status_row)
 
 	var clock_block := VBoxContainer.new()
@@ -3223,12 +3234,15 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 		var assistant := OreoLockShortcutButton.new()
 		assistant.name = "PieAssistantShortcut"
 		assistant.shortcut_id = "assistant"
+		assistant.icon_texture = _load_lock_screen_app_icon("Assistant")
 		assistant.pressed.connect(func(): app_opened.emit("Assistant"))
 		assistant_slot.add_child(assistant)
 	var lock_slot := CenterContainer.new()
 	lock_slot.name = "PieLockStatusSlot"
 	lock_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lock_slot.add_child(OreoLockCenterGlyph.new())
+	var pie_fingerprint := OreoLockCenterGlyph.new()
+	pie_fingerprint.icon_texture = LOCKSCREEN_FINGERPRINT_TEXTURE
+	lock_slot.add_child(pie_fingerprint)
 	shortcuts.add_child(lock_slot)
 	var camera_slot := CenterContainer.new()
 	camera_slot.name = "PieCameraShortcutSlot"
@@ -3238,6 +3252,7 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 		var camera := OreoLockShortcutButton.new()
 		camera.name = "PieCameraShortcut"
 		camera.shortcut_id = "camera"
+		camera.icon_texture = LOCKSCREEN_CAMERA_TEXTURE
 		camera.pressed.connect(func(): app_opened.emit("Camera"))
 		camera_slot.add_child(camera)
 
@@ -3266,17 +3281,13 @@ func _add_pie_lock_notification(parent: VBoxContainer, app_name: String, title_t
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	card.add_child(row)
-	var icon := PanelContainer.new()
+	var icon := TextureRect.new()
 	icon.name = "PieLockNotificationIcon_" + app_name.replace(" ", "")
+	icon.texture = _load_lock_screen_app_icon(app_name)
 	icon.custom_minimum_size = Vector2(27, 27)
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = icon_color
-	icon_style.set_corner_radius_all(14)
-	icon.add_theme_stylebox_override("panel", icon_style)
-	var icon_label := _label(icon_text, 8, Color.WHITE)
-	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon.add_child(icon_label)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(icon)
 	var message_column := VBoxContainer.new()
 	message_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3376,6 +3387,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 		var assistant_button := OreoLockShortcutButton.new()
 		assistant_button.name = "OreoAssistantShortcut"
 		assistant_button.shortcut_id = "assistant"
+		assistant_button.icon_texture = _load_lock_screen_app_icon("Assistant")
 		assistant_button.pressed.connect(func(): app_opened.emit("Assistant"))
 		assistant_slot.add_child(assistant_button)
 
@@ -3385,6 +3397,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 	shortcut_row.add_child(lock_slot)
 	var lock_glyph := OreoLockCenterGlyph.new()
 	lock_glyph.name = "OreoLockStatusGlyph"
+	lock_glyph.icon_texture = LOCKSCREEN_LOCK_TEXTURE
 	lock_slot.add_child(lock_glyph)
 
 	var camera_slot := CenterContainer.new()
@@ -3395,6 +3408,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 		var camera_button := OreoLockShortcutButton.new()
 		camera_button.name = "OreoCameraShortcut"
 		camera_button.shortcut_id = "camera"
+		camera_button.icon_texture = LOCKSCREEN_CAMERA_TEXTURE
 		camera_button.pressed.connect(func(): app_opened.emit("Camera"))
 		camera_slot.add_child(camera_button)
 
@@ -3431,17 +3445,13 @@ func _add_oreo_lock_notification(parent: VBoxContainer, app_name: String, messag
 	row.add_theme_constant_override("separation", 6)
 	card.add_child(row)
 
-	var app_icon := PanelContainer.new()
+	var app_icon := TextureRect.new()
 	app_icon.name = "OreoLockNotificationIcon_" + app_name.replace(" ", "")
+	app_icon.texture = _load_lock_screen_app_icon(app_name)
 	app_icon.custom_minimum_size = Vector2(23, 23)
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = icon_color
-	icon_style.set_corner_radius_all(12)
-	app_icon.add_theme_stylebox_override("panel", icon_style)
-	var icon_label := _label(icon_text, 8, Color.WHITE)
-	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	app_icon.add_child(icon_label)
+	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	app_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(app_icon)
 
 	var message_column := VBoxContainer.new()
@@ -3592,17 +3602,13 @@ func _add_lock_notification(app_name: String, message: String, time_label: Strin
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.custom_minimum_size.y = 30
 	row.add_theme_constant_override("separation", 7)
-	var app_icon := PanelContainer.new()
+	var app_icon := TextureRect.new()
+	app_icon.name = "LockScreenNotificationIcon_" + app_name.replace(" ", "")
+	app_icon.texture = _load_lock_screen_app_icon(app_name)
 	app_icon.custom_minimum_size = Vector2(26, 26)
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = _accent_color().darkened(0.42)
-	icon_style.set_corner_radius_all(9)
-	app_icon.add_theme_stylebox_override("panel", icon_style)
-	var icon_label := _label("✉" if app_name == "Messages" else "▦", 16, _text_color())
-	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_label.custom_minimum_size = Vector2(24, 24)
-	app_icon.add_child(icon_label)
+	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	app_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(app_icon)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -4726,6 +4732,29 @@ func _load_android_generation_icon(app_name: String) -> Texture2D:
 	atlas_icon.atlas = atlas_texture
 	atlas_icon.region = Rect2(Vector2(float(icon_index % 6) * 96.0, float(floori(float(icon_index) / 6.0)) * 96.0), Vector2(96.0, 96.0))
 	return atlas_icon
+
+
+func _load_lock_screen_app_icon(app_name: String) -> Texture2D:
+	if not _is_android_os():
+		return null
+	var generation_number := int(configuration.get("generation", 1))
+	if generation_number == 1:
+		var lollipop_icon_names := {
+			"Phone": "phone", "Messages": "messages", "Camera": "camera",
+			"Gallery": "gallery", "Browser": "browser", "Music": "music",
+			"Calendar": "calendar", "Settings": "settings", "Files": "files",
+			"Clock": "clock", "Maps": "maps", "Notes": "notes",
+			"Contacts": "contacts", "Email": "email", "Calculator": "calculator",
+			"Weather": "weather", "Downloads": "downloads", "Recorder": "recorder",
+			"Video": "video", "Store": "store", "Security": "security",
+			"Device Care": "device_care", "Drive": "drive", "Photos": "photos",
+			"Assistant": "assistant", "Wallet": "wallet", "Meet": "meet"
+		}
+		if not lollipop_icon_names.has(app_name):
+			return null
+		var icon_path := "res://assets/os/lollipop/icons/" + str(lollipop_icon_names[app_name]) + ".png"
+		return load(icon_path) as Texture2D if ResourceLoader.exists(icon_path) else null
+	return _load_android_generation_icon(app_name)
 
 
 func _responsive_columns(preferred_columns: int) -> int:

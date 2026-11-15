@@ -17,3 +17,8 @@ distributed under the Apache License, Version 2.0.
 
 This is not an official Samsung firmware asset and is not affiliated with
 Samsung.
+
+
+## Lock-screen lock glyph
+
+`lock.svg` is a Lucide-style lock vector bundled as an SVG asset for the Android Oreo lock-screen indicator. Lucide artwork is distributed under the ISC License; see `LUCIDE_ICONS_LICENSE.txt`.
