@@ -424,51 +424,26 @@ func _show_lock_screen_studio_controls() -> void:
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 12)
-	content.alignment = BoxContainer.ALIGNMENT_BEGIN
 	selection_panel.add_child(content)
 
-	var heading := _label("LOCK SCREEN", 22, Color("#D3AA6B"))
+	var heading := _label("ANDROID 5.0 LOCK SCREEN", 20, Color("#D3AA6B"))
 	heading.name = "LockScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description := _label("Choose what appears on the lock screen. Generate changes its visual design without replacing your wallpaper.", 12, Color("#D0CBC2"))
-	description.name = "LockScreenHeroDescription"
+	var description := _label("Classic Lollipop lock screen. Choose which elements are visible.", 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
 
 	var hero_gap := Control.new()
 	hero_gap.name = "LockScreenHeroGap"
-	hero_gap.custom_minimum_size = Vector2(0, 28)
+	hero_gap.custom_minimum_size = Vector2(0, 22)
 	content.add_child(hero_gap)
 
-	var clock_note := _label("CLOCK  ·  ALWAYS INCLUDED", 11, Color("#D3AA6B"))
-	content.add_child(clock_note)
-	var divider := ColorRect.new()
-	divider.custom_minimum_size.y = 1
-	divider.color = Color("#62513A")
-	content.add_child(divider)
-
-	_add_lock_screen_toggle_row(content, "show_notifications", "Notifications", "Messages and alerts")
-	_add_lock_screen_toggle_row(content, "show_audio_player", "Audio Player", "Playback controls on the lock screen")
-	_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Bottom-left quick button")
-	_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Shortcut", "Bottom-right quick button")
-	_add_lock_screen_toggle_row(content, "show_fingerprint", "Fingerprint Sensor", "Available only when the phone has this sensor", not fingerprint_sensor_available)
-
-	var generator := Button.new()
-	generator.name = "GenerateLockScreenDesignButton"
-	generator.text = "GENERATE NEW DESIGN"
-	generator.custom_minimum_size.y = 48
-	generator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	generator.focus_mode = Control.FOCUS_NONE
-	_style_button(generator)
-	generator.pressed.connect(_regenerate_selected_component)
-	content.add_child(generator)
-
-	var note := _label("Your wallpaper stays exactly the same.", 10, Color("#A6A096"))
-	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content.add_child(note)
-
+	_add_lock_screen_toggle_row(content, "show_time", "Display Time", "Large clock on the lock screen")
+	_add_lock_screen_toggle_row(content, "show_date", "Display Date", "Date below the clock")
+	_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Button", "Bottom-left shortcut")
+	_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Button", "Bottom-right shortcut")
 
 func _apply_approved_home_screen_layout() -> void:
 	var components: Dictionary = generated_os_configuration.get("components", {})
@@ -696,14 +671,9 @@ func _add_lock_screen_toggle_row(parent: VBoxContainer, feature_id: String, titl
 
 
 func _on_lock_screen_feature_toggled(enabled: bool, feature_id: String) -> void:
-	if feature_id == "show_fingerprint" and not fingerprint_sensor_available:
-		if lock_screen_enabled_inputs.has(feature_id):
-			(lock_screen_enabled_inputs[feature_id] as Button).set_pressed_no_signal(false)
-		return
 	var components: Dictionary = generated_os_configuration.get("components", {})
 	var lock_data: Dictionary = components.get("lock_screen", {})
 	lock_data[feature_id] = enabled
-	lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
 	components["lock_screen"] = lock_data
 	generated_os_configuration["components"] = components
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
