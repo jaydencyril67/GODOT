@@ -255,9 +255,15 @@ func _run_os_generator_test() -> void:
 				return
 		var expected_android_nav := "LollipopThreeButtonNavigation" if generation_number == 1 else "AndroidThreeButtonNavigation"
 		var generation_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
-		if generation_navigation == null or generation_navigation.get_child_count() != 3:
-			_fail("Every Android generation must display Back, Home and Overview navigation buttons.")
+				if generation_navigation == null or generation_navigation.get_child_count() != 3:
+			_fail("Every Android generation must display Recent, Home and Back navigation buttons.")
 			return
+		var expected_navigation_order := ["Overview", "Home", "Back"]
+		for navigation_index in range(3):
+			var navigation_button := generation_navigation.get_child(navigation_index) as Button
+			if navigation_button == null or str(navigation_button.get("action_name")) != expected_navigation_order[navigation_index]:
+				_fail("Android navigation buttons must appear left-to-right as Recent, Home and Back.")
+				return
 		if generation_number == 1:
 			var lollipop_navigation_bar := simulator.find_child("AndroidNavigationBar", true, false) as PanelContainer
 			var lollipop_navigation_style := lollipop_navigation_bar.get_theme_stylebox("panel") as StyleBoxFlat if lollipop_navigation_bar != null else null
