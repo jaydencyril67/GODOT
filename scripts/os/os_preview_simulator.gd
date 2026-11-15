@@ -26,6 +26,49 @@ class PINLockIndicator extends Control:
 		draw_circle(Vector2(center_x, 11.0), 1.0, Color("#263244"))
 
 
+class OSScreenCornerMask extends Control:
+	var corner_radius := 22.0
+	var mask_color := Color.BLACK
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		resized.connect(queue_redraw)
+		queue_redraw()
+
+	func _draw() -> void:
+		if size.x <= 0.0 or size.y <= 0.0:
+			return
+		var radius := minf(corner_radius, minf(size.x, size.y) * 0.5)
+		var segments := 8
+		var corners := [
+			[Vector2.ZERO, Vector2(radius, 0.0), -PI * 0.5, -PI],
+			[Vector2(size.x, 0.0), Vector2(size.x - radius, 0.0), -PI * 0.5, 0.0],
+			[Vector2(size.x, size.y), Vector2(size.x - radius, size.y), PI * 0.5, 0.0],
+			[Vector2(0.0, size.y), Vector2(radius, size.y), PI * 0.5, PI]
+		]
+		var centers := [
+			Vector2(radius, radius),
+			Vector2(size.x - radius, radius),
+			Vector2(size.x - radius, size.y - radius),
+			Vector2(radius, size.y - radius)
+		]
+		var outer_points := [
+			[Vector2.ZERO, Vector2(radius, 0.0]],
+			[Vector2(size.x, 0.0), Vector2(size.x - radius, 0.0)],
+			[Vector2(size.x, size.y), Vector2(size.x - radius, size.y)],
+			[Vector2(0.0, size.y), Vector2(radius, size.y)]
+		]
+		var angle_ranges := [[-PI, -PI * 0.5], [-PI * 0.5, 0.0], [0.0, PI * 0.5], [PI * 0.5, PI]]
+		for index in range(4):
+			var polygon := PackedVector2Array()
+			polygon.append(outer_points[index][0])
+			polygon.append(outer_points[index][1])
+			for step in range(segments + 1):
+				var angle := lerpf(angle_ranges[index][0], angle_ranges[index][1], float(step) / float(segments))
+				polygon.append(centers[index] + Vector2(cos(angle), sin(angle)) * radius)
+			draw_colored_polygon(polygon, mask_color)
+
+
 class LollipopAppDrawerButton extends Button:
 	func _ready() -> void:
 		text = ""
@@ -672,7 +715,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 			"Home":
 				key.pressed.connect(_navigate_home)
 			"Overview":
-				key.pressed.connect(func(): set_component_view("recent_apps"))
+				key.pressed.connect(func(): _show_gesture_overlay("recent_apps"))
 		navigation_keys.add_child(key)
 
 	if is_light_surface:
@@ -688,6 +731,15 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 		parent.add_child(navigation_surface)
 	else:
 		parent.add_child(navigation_keys)
+
+
+func _add_screen_corner_mask() -> void:
+	var corner_mask := OSScreenCornerMask.new()
+	corner_mask.name = "OSScreenRoundedCornerMask"
+	corner_mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	corner_mask.corner_radius = 22.0
+	corner_mask.mask_color = Color.BLACK
+	add_child(corner_mask)
 
 
 func _build_shell() -> void:
@@ -710,6 +762,14 @@ func _build_shell() -> void:
 	wallpaper.treatment = str(configuration.get("components", {}).get("wallpapers", {}).get("treatment", "natural"))
 	wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(wallpaper)
+
+	if _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1:
+		var full_drawer_background := ColorRect.new()
+		full_drawer_background.name = "LollipopAppDrawerFullScreenBackground"
+		full_drawer_background.color = Color("#FAFAFA")
+		full_drawer_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		full_drawer_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(full_drawer_background)
 
 	if active_component == "pin_input":
 		var pin_screen_tint := ColorRect.new()
@@ -757,6 +817,7 @@ func _build_shell() -> void:
 			lock_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_build_android_navigation(lock_navigation_footer, int(configuration.get("generation", 2)) == 1)
 			lock_shell.add_child(lock_navigation_footer)
+		_add_screen_corner_mask()
 		_building = false
 		return
 
@@ -785,23 +846,9 @@ func _build_shell() -> void:
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		shell.add_child(scroll)
-		if active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1 and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel":
-			var drawer_surface := PanelContainer.new()
-			drawer_surface.name = "LollipopAppDrawerWhiteSurface"
-			drawer_surface.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			drawer_surface.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			var drawer_style := StyleBoxFlat.new()
-			drawer_style.bg_color = Color("#FAFAFA")
-			drawer_style.set_border_width_all(0)
-			drawer_style.set_corner_radius_all(0)
-			drawer_style.content_margin_left = 8
-			drawer_style.content_margin_right = 8
-			drawer_style.content_margin_top = 5
-			drawer_style.content_margin_bottom = 5
-			drawer_surface.add_theme_stylebox_override("panel", drawer_style)
-			scroll.add_child(drawer_surface)
+		if active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1 and _is_android_os():
 			page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			drawer_surface.add_child(page_container)
+			scroll.add_child(page_container)
 		else:
 			scroll.add_child(page_container)
 	_build_component(active_component)
@@ -831,6 +878,7 @@ func _build_shell() -> void:
 		# Resolve and style app buttons only after their full inherited theme
 		# hierarchy and the dock have entered the live scene tree.
 		_apply_home_screen_icon_styles()
+	_add_screen_corner_mask()
 	_building = false
 
 func _build_home_dock(parent: VBoxContainer) -> void:
