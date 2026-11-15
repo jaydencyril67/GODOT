@@ -562,18 +562,23 @@ func _run_os_generator_test() -> void:
 	if worksite_preview == null:
 		_fail("OS creation worksite did not mount the generated simulator screen.")
 		return
-	var worksite_navigation_root := worksite.find_child("OSWorksiteNavigationRoot", true, false) as Control
-	var worksite_navigation_bar := worksite.find_child("OSWorksiteBottomBar", true, false) as HBoxContainer
+	var worksite_root := worksite.find_child("OSWorksiteRoot", true, false) as Control
 	var worksite_back_button := worksite.find_child("OSWizardBackIconButton", true, false) as Button
 	var worksite_next_button := worksite.find_child("OSNextStepIconButton", true, false) as Button
-	if worksite_navigation_root == null or worksite_navigation_root.mouse_filter != Control.MOUSE_FILTER_IGNORE:
-		_fail("Worksite navigation overlay root must not intercept clicks outside its child controls.")
+	if worksite_root == null or worksite_back_button == null or worksite_next_button == null:
+		_fail("Worksite must create its independent bottom navigation buttons on the main root.")
 		return
-	if worksite_navigation_bar == null or worksite_navigation_bar.mouse_filter != Control.MOUSE_FILTER_IGNORE:
-		_fail("Full-width worksite navigation bar must not block taps on the phone preview.")
+	if worksite_back_button.get_parent() != worksite_root or worksite_next_button.get_parent() != worksite_root:
+		_fail("Worksite bottom arrows must be direct root children, like the independent top controls.")
 		return
-	if worksite_back_button == null or worksite_next_button == null or worksite_back_button.mouse_filter != Control.MOUSE_FILTER_STOP or worksite_next_button.mouse_filter != Control.MOUSE_FILTER_STOP:
+	if worksite.find_child("OSWorksiteNavigationRoot", true, false) != null or worksite.find_child("OSWorksiteBottomBar", true, false) != null:
+		_fail("Worksite must not create a full-width bottom navigation overlay or bar.")
+		return
+	if worksite_back_button.mouse_filter != Control.MOUSE_FILTER_STOP or worksite_next_button.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("Worksite Back and Next arrow buttons must remain individually clickable.")
+		return
+	if worksite_back_button.anchor_top != 1.0 or worksite_next_button.anchor_top != 1.0 or worksite_back_button.anchor_right != 0.0 or worksite_next_button.anchor_left != 1.0:
+		_fail("Worksite bottom arrows must be independently anchored to the bottom-left and bottom-right corners.")
 		return
 	if worksite_preview.find_child("OSProceduralWallpaper", true, false) == null:
 		_fail("OS creation worksite preview did not use the procedural OS wallpaper.")
