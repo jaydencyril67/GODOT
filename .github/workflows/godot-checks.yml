@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: godot-checks-${{ github.ref }}
+  group: godot-checks-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
