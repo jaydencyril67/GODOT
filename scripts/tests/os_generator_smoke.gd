@@ -414,23 +414,22 @@ func _run_os_generator_test() -> void:
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 
-	# Exercise the same gesture router used by touch and mouse input.
+	# Android 5.0 uses one notification shade: a second downward pull expands Quick Settings.
 	_simulate_touch_swipe(simulator, Vector2(60, 2), Vector2(60, 70), 100)
 	await process_frame
 	if simulator.find_child("OSGestureOverlay_notifications", true, false) == null:
-		_fail("Top-left swipe did not open the notification panel.")
+		_fail("Top-edge swipe did not open the Lollipop notification shade.")
 		return
-	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 90), 100)
-	await process_frame
-	if simulator.find_child("OSGestureOverlay_notifications", true, false) != null:
-		_fail("Swipe-up gesture did not dismiss the notification panel.")
-		return
-	simulator.call("_handle_system_gesture", Vector2(140, 2), Vector2(140, 70), 100)
+	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 235), 100)
 	await process_frame
 	if simulator.find_child("GestureQuickSettingsGrid", true, false) == null:
-		_fail("Top-right swipe did not open Control Center quick settings.")
+		_fail("Second downward pull did not expand Lollipop Quick Settings.")
 		return
-	simulator.call("_close_gesture_overlay")
+	simulator.call("_handle_system_gesture", Vector2(72, 235), Vector2(72, 150), 100)
+	await process_frame
+	if simulator.find_child("OSGestureOverlay_control_center", true, false) != null:
+		_fail("Swipe-up gesture did not collapse the expanded Quick Settings shade.")
+		return
 	simulator.call("_handle_system_gesture", Vector2(72, 358), Vector2(72, 280), 120)
 	await process_frame
 	if simulator.get("active_component") != "home_screen":
@@ -446,14 +445,14 @@ func _run_os_generator_test() -> void:
 		if navigation_button.mouse_filter != Control.MOUSE_FILTER_STOP or navigation_button.custom_minimum_size.x < 40.0 or navigation_button.custom_minimum_size.y < 36.0:
 			_fail("Android navigation buttons must have active mouse input and a reliable touch target.")
 			return
+	simulator.call("_on_app_pressed", "Messages")
 	android_overview.pressed.emit()
 	await process_frame
 	if simulator.get("active_component") != "home_screen" or simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
 		_fail("Android Overview button did not open the Recent Apps overview.")
 		return
-	var close_recent_apps := simulator.find_child("CloseGestureOverlayButton", true, false) as Button
-	if close_recent_apps == null:
-		_fail("Recent Apps overview is missing its close control.")
+	if simulator.find_child("LollipopOverviewBackground", true, false) == null or simulator.find_child("LollipopOverviewTask_Messages", true, false) == null:
+		_fail("Android Overview must show animated Lollipop-style task cards, not a fixed app list.")
 		return
 	var android_back := simulator.find_child("AndroidNavigationBack", true, false) as Button
 	if android_back == null:
