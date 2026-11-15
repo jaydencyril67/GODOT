@@ -2526,6 +2526,173 @@ func _build_lock_screen(data: Dictionary) -> void:
 	_build_lollipop_lock_screen(data)
 
 
+func _build_android_pie_lock_screen(data: Dictionary) -> void:
+	# Android 9 Pixel lock screen: large clock, date/weather, rounded notification cards and Pixel shortcuts.
+	var root := VBoxContainer.new()
+	root.name = "PieLockScreen"
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", 0)
+	page_container.add_child(root)
+
+	var top_space := Control.new()
+	top_space.name = "PieLockScreenTopSpace"
+	top_space.custom_minimum_size.y = 8
+	root.add_child(top_space)
+
+	var status_row := HBoxContainer.new()
+	status_row.name = "PieLockScreenStatusRow"
+	var status_spacer := Control.new()
+	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_row.add_child(status_spacer)
+	if bool(data.get("show_battery", true)):
+		var battery := _label("100%  ▰", 9, Color("#FFFFFF"))
+		battery.name = "PieLockBatteryInfo"
+		status_row.add_child(battery)
+	root.add_child(status_row)
+
+	var clock_block := VBoxContainer.new()
+	clock_block.name = "PieLockScreenClockBlock"
+	clock_block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_block.add_theme_constant_override("separation", 0)
+	clock_block.add_theme_constant_override("separation", 1)
+	root.add_child(clock_block)
+
+	if bool(data.get("show_time", true)):
+		var clock := _label(_current_lock_time("pixel"), 43, Color("#FFFFFF"))
+		clock.name = "PieLockScreenClock"
+		clock.custom_minimum_size.y = 50
+		clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
+		clock.add_theme_font_override("font", LOCKSCREEN_FONT)
+		clock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.38))
+		clock.add_theme_constant_override("outline_size", 1)
+		clock_block.add_child(clock)
+
+	if bool(data.get("show_date", true)):
+		var date := _label(_current_lock_date("pixel"), 10, Color("#FFFFFF"))
+		date.name = "PieLockScreenDate"
+		date.custom_minimum_size.y = 18
+		date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		date.autowrap_mode = TextServer.AUTOWRAP_OFF
+		date.add_theme_font_override("font", LOCKSCREEN_FONT)
+		date.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
+		date.add_theme_constant_override("outline_size", 1)
+		clock_block.add_child(date)
+
+	if bool(data.get("show_weather", true)):
+		var weather := _label("Partly cloudy  ·  26°", 9, Color("#FFFFFF"))
+		weather.name = "PieLockWeather"
+		weather.custom_minimum_size.y = 22
+		weather.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		weather.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		clock_block.add_child(weather)
+
+	var notification_gap := Control.new()
+	notification_gap.custom_minimum_size.y = 12
+	root.add_child(notification_gap)
+
+	if bool(data.get("show_notifications", true)):
+		var notifications := VBoxContainer.new()
+		notifications.name = "PieLockScreenNotifications"
+		notifications.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		notifications.add_theme_constant_override("separation", 6)
+		root.add_child(notifications)
+		_add_pie_lock_notification(notifications, "Messages", "Alex Morgan", "Are we still meeting today?", "M", Color("#4285F4"))
+		_add_pie_lock_notification(notifications, "Calendar", "Upcoming event", "Your event starts in 10 minutes", "31", Color("#4285F4"))
+
+	var flexible_space := Control.new()
+	flexible_space.name = "PieLockScreenFlexibleSpace"
+	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(flexible_space)
+
+	var shortcuts := HBoxContainer.new()
+	shortcuts.name = "PieLockScreenShortcuts"
+	shortcuts.custom_minimum_size.y = 44
+	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcuts.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(shortcuts)
+	var assistant_slot := CenterContainer.new()
+	assistant_slot.name = "PieAssistantShortcutSlot"
+	assistant_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcuts.add_child(assistant_slot)
+	if bool(data.get("show_assistant_shortcut", true)):
+		var assistant := OreoLockShortcutButton.new()
+		assistant.name = "PieAssistantShortcut"
+		assistant.shortcut_id = "assistant"
+		assistant.pressed.connect(func(): app_opened.emit("Assistant"))
+		assistant_slot.add_child(assistant)
+	var lock_slot := CenterContainer.new()
+	lock_slot.name = "PieLockStatusSlot"
+	lock_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lock_slot.add_child(OreoLockCenterGlyph.new())
+	shortcuts.add_child(lock_slot)
+	var camera_slot := CenterContainer.new()
+	camera_slot.name = "PieCameraShortcutSlot"
+	camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcuts.add_child(camera_slot)
+	if bool(data.get("show_camera_shortcut", true)):
+		var camera := OreoLockShortcutButton.new()
+		camera.name = "PieCameraShortcut"
+		camera.shortcut_id = "camera"
+		camera.pressed.connect(func(): app_opened.emit("Camera"))
+		camera_slot.add_child(camera)
+
+	var hint := _label("Swipe up to unlock", 8, Color(1, 1, 1, 0.84))
+	hint.name = "PieSwipeToUnlockHint"
+	hint.custom_minimum_size.y = 17
+	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root.add_child(hint)
+
+
+func _add_pie_lock_notification(parent: VBoxContainer, app_name: String, title_text: String, message_text: String, icon_text: String, icon_color: Color) -> void:
+	var card := PanelContainer.new()
+	card.name = "PieLockNotification_" + app_name.replace(" ", "")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 48
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color("#F8F9FA")
+	card_style.set_corner_radius_all(13)
+	card_style.set_border_width_all(0)
+	card_style.content_margin_left = 9
+	card_style.content_margin_right = 9
+	card_style.content_margin_top = 6
+	card_style.content_margin_bottom = 6
+	card.add_theme_stylebox_override("panel", card_style)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	card.add_child(row)
+	var icon := PanelContainer.new()
+	icon.name = "PieLockNotificationIcon_" + app_name.replace(" ", "")
+	icon.custom_minimum_size = Vector2(27, 27)
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = icon_color
+	icon_style.set_corner_radius_all(14)
+	icon.add_theme_stylebox_override("panel", icon_style)
+	var icon_label := _label(icon_text, 8, Color.WHITE)
+	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.add_child(icon_label)
+	row.add_child(icon)
+	var message_column := VBoxContainer.new()
+	message_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	message_column.add_theme_constant_override("separation", 0)
+	var title := _label(title_text, 8, Color("#202124"))
+	title.name = "PieLockNotificationTitle_" + app_name.replace(" ", "")
+	message_column.add_child(title)
+	var message := _label(message_text, 8, Color("#3C4043"))
+	message.name = "PieLockNotificationMessage_" + app_name.replace(" ", "")
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_column.add_child(message)
+	row.add_child(message_column)
+	parent.add_child(card)
+
+
 func _build_oreo_lock_screen(data: Dictionary) -> void:
 	var root := VBoxContainer.new()
 	root.name = "OreoLockScreen"
@@ -3605,6 +3772,74 @@ func _build_app_drawer(data: Dictionary) -> void:
 		var searchable_grid := page_container.find_child("AppDrawerGrid", true, false) as GridContainer
 		if searchable_grid != null:
 			search.text_changed.connect(_on_app_search_changed.bind(searchable_grid))
+
+
+func _build_android_pie_app_drawer() -> void:
+	# Pixel Launcher app drawer: search, suggested row, then an alphabetized all-apps grid.
+	var search := LineEdit.new()
+	search.name = "PieAppDrawerSearchField"
+	search.placeholder_text = "Search your phone"
+	search.custom_minimum_size.y = 36
+	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	search.clear_button_enabled = true
+	_style_home_search_field(search)
+	page_container.add_child(search)
+
+	var suggestions_title := _label("Suggested apps", 9, Color("#5F6368"))
+	suggestions_title.name = "PieSuggestedAppsHeading"
+	page_container.add_child(suggestions_title)
+	var suggestions := GridContainer.new()
+	suggestions.name = "PieSuggestedAppsRow"
+	suggestions.columns = 5
+	suggestions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	suggestions.add_theme_constant_override("h_separation", 4)
+	for app_name in ["Phone", "Messages", "Camera", "Browser", "Photos"]:
+		var app := _find_app(app_name)
+		if not app.is_empty():
+			var item := _create_app_icon(app, _responsive_icon_size(38, 5, 4), true)
+			item.name = "PieSuggestedApp_" + app_name.replace(" ", "")
+			suggestions.add_child(item)
+	page_container.add_child(suggestions)
+
+	var all_apps_heading := _label("All apps", 13, Color("#202124"))
+	all_apps_heading.name = "PieAppDrawerAllAppsHeading"
+	page_container.add_child(all_apps_heading)
+
+	var viewport := ScrollContainer.new()
+	viewport.name = "PieAppDrawerViewport"
+	viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	page_container.add_child(viewport)
+	var grid := GridContainer.new()
+	grid.name = "PieAppDrawerGrid"
+	grid.columns = 5
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 9)
+	viewport.add_child(grid)
+	_populate_android_pie_app_grid(grid, "")
+	search.text_changed.connect(_populate_android_pie_app_grid.bind(grid))
+
+
+func _populate_android_pie_app_grid(grid: GridContainer, query: String) -> void:
+	if not is_instance_valid(grid):
+		return
+	for child in grid.get_children():
+		grid.remove_child(child)
+		child.queue_free()
+	var sorted_apps: Array = OSEngine.APP_DEFINITIONS.duplicate(true)
+	sorted_apps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return str(a.get("name", "")).to_lower() < str(b.get("name", "")).to_lower()
+	)
+	var normalized_query := query.strip_edges().to_lower()
+	for app in sorted_apps:
+		var app_name := str(app.get("name", ""))
+		if not normalized_query.is_empty() and not app_name.to_lower().contains(normalized_query):
+			continue
+		grid.add_child(_create_app_icon(app, _responsive_icon_size(42, 5, 4), true))
 
 
 func _build_lollipop_app_drawer() -> void:
