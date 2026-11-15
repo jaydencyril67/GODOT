@@ -873,15 +873,20 @@ func _run_os_generator_test() -> void:
 		_fail("Tapping the Lollipop app drawer button did not open the app drawer.")
 		return
 	var drawer_surface := worksite_preview.find_child("LollipopAppDrawerWhiteSurface", true, false) as PanelContainer
-	var drawer_pages := worksite_preview.find_child("LollipopAppDrawerPageStrip", true, false) as HBoxContainer
-	if drawer_surface == null or drawer_pages == null or drawer_pages.get_child_count() != 2:
-		_fail("Lollipop app drawer must use a white surface with two paged app grids.")
+	var drawer_viewport := worksite_preview.find_child("LollipopAppDrawerViewport", true, false) as ScrollContainer
+	var drawer_grid := worksite_preview.find_child("LollipopAppDrawerGrid", true, false) as GridContainer
+	if drawer_surface == null or drawer_viewport == null or drawer_grid == null or drawer_grid.columns != 4:
+		_fail("Lollipop app drawer must use one four-column grid inside a vertical scroll viewport.")
 		return
-	for page_index in range(2):
-		var drawer_page := worksite_preview.find_child("LollipopAppDrawerPage_%02d" % (page_index + 1), true, false) as GridContainer
-		if drawer_page == null or drawer_page.columns != 4:
-			_fail("Lollipop app drawer page is missing its four-column app grid.")
-			return
+	if drawer_viewport.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO or drawer_viewport.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_fail("Lollipop app drawer must scroll vertically without horizontal paging.")
+		return
+	if drawer_grid.get_child_count() != ProceduralEngineScript.APP_DEFINITIONS.size():
+		_fail("Lollipop app drawer must place every installed app in the same continuous grid.")
+		return
+	if worksite_preview.find_child("LollipopAppDrawerPageIndicator", true, false) != null or worksite_preview.find_child("LollipopAppDrawerPageStrip", true, false) != null:
+		_fail("Lollipop app drawer must not show horizontal page controls.")
+		return
 	for app in ProceduralEngineScript.APP_DEFINITIONS:
 		var app_name := str(app.get("name", ""))
 		if worksite_preview.find_child("LollipopApp_" + app_name.replace(" ", ""), true, false) == null:
