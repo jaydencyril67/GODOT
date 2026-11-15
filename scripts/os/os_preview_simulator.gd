@@ -61,6 +61,7 @@ class AndroidNavigationButton extends Button:
 class OSScreenCornerMask extends Control:
 	var corner_radius := 22.0
 	var mask_color := Color.BLACK
+	var mask_bottom_corners := true
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -89,6 +90,8 @@ class OSScreenCornerMask extends Control:
 		]
 		var angle_ranges := [[-PI, -PI * 0.5], [-PI * 0.5, 0.0], [0.0, PI * 0.5], [PI * 0.5, PI]]
 		for index in range(4):
+			if not mask_bottom_corners and index >= 2:
+				continue
 			var polygon := PackedVector2Array()
 			polygon.append(outer_points[index][0])
 			polygon.append(outer_points[index][1])
@@ -505,6 +508,7 @@ func _create_lollipop_shade_overlay(mode: String, background_color: Color) -> Co
 	overlay.name = "OSGestureOverlay_" + mode
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.offset_bottom = -46.0
+	overlay.clip_contents = true
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
 	_gesture_overlay = overlay
@@ -552,6 +556,7 @@ func _build_lollipop_notification_shade() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.custom_minimum_size.y = 25
 	body.add_child(hint)
+	_apply_lollipop_shade_screen_mask(overlay)
 
 
 func _build_lollipop_notification_content(parent: Control) -> void:
@@ -672,6 +677,21 @@ func _build_lollipop_quick_settings_shade() -> void:
 	var overlay := _create_lollipop_shade_overlay("control_center", Color("#263238"))
 	var body := _create_lollipop_shade_body(overlay)
 	_build_lollipop_quick_settings_content(body, true)
+	_apply_lollipop_shade_screen_mask(overlay)
+
+
+func _apply_lollipop_shade_screen_mask(overlay: Control) -> void:
+	if not is_instance_valid(overlay):
+		return
+	overlay.clip_contents = true
+	var mask := OSScreenCornerMask.new()
+	mask.name = "LollipopShadeScreenCornerMask"
+	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mask.corner_radius = 22.0
+	mask.mask_color = Color.BLACK
+	mask.mask_bottom_corners = false
+	mask.z_index = 100
+	overlay.add_child(mask)
 
 
 func _build_lollipop_quick_settings_content(parent: Control, include_notifications: bool) -> void:
