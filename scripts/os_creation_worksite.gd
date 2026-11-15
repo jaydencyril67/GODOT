@@ -6,7 +6,7 @@ signal boot_completed
 
 const ProceduralOSEngineScript = preload("res://scripts/os/procedural_os_engine.gd")
 const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
-const MAX_SELECTABLE_GENERATION := 2
+const MAX_SELECTABLE_GENERATION := 3
 const CUSTOMIZATION_COMPONENTS := ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications", "wallpapers"]
 const WIZARD_STEP_COUNT := 8
 
@@ -483,7 +483,7 @@ func _build_os_selection_controls() -> void:
 	generation_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(generation_description_label)
 
-	var note := _label("Generation 1: Android 5.0 Lollipop    ·    Generation 2: Android 8.0 Oreo", 10, Color("#A6A096"))
+	var note := _label("Generation 1: Android 5.0 Lollipop    ·    Generation 2: Android 8.0 Oreo    ·    Generation 3: Android 9.0 Pie", 10, Color("#A6A096"))
 	note.name = "OSSelectionGenerationNote"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -526,12 +526,13 @@ func _show_lock_screen_studio_controls() -> void:
 	selection_panel.add_child(content)
 
 	var is_oreo_android := home_screen_layout_level == 0 and home_generation == 2
-	var heading_text := "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "ANDROID 5.0 LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
+	var is_pie_android := home_screen_layout_level == 0 and home_generation == 3
+	var heading_text := "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "ANDROID 5.0 LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
 	var heading := _label(heading_text, 20, Color("#D3AA6B"))
 	heading.name = "LockScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description_text := "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Classic Lollipop lock screen. Choose which elements are visible." if home_screen_layout_level == 0 else "Preview the selected layout's lock screen."
+	var description_text := "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Classic Lollipop lock screen. Choose which elements are visible." if home_screen_layout_level == 0 else "Preview the selected layout's lock screen."
 	var description := _label(description_text, 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -544,10 +545,13 @@ func _show_lock_screen_studio_controls() -> void:
 
 	_add_lock_screen_toggle_row(content, "show_time", "Display Time", "Large clock on the lock screen")
 	_add_lock_screen_toggle_row(content, "show_date", "Display Date", "Date below the clock")
-	if is_oreo_android:
+	if is_oreo_android or is_pie_android:
 		_add_lock_screen_toggle_row(content, "show_notifications", "Lock-screen Notifications", "Notification cards below the clock")
-		_add_lock_screen_toggle_row(content, "show_assistant_shortcut", "Assistant Shortcut", "Microphone shortcut at bottom-left")
+		_add_lock_screen_toggle_row(content, "show_assistant_shortcut", "Assistant Shortcut", "Assistant shortcut at bottom-left")
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Camera shortcut at bottom-right")
+		if is_pie_android:
+			_add_lock_screen_toggle_row(content, "show_weather", "Ambient Weather", "Weather information on the lock screen")
+			_add_lock_screen_toggle_row(content, "show_battery", "Ambient Battery", "Battery percentage on the lock screen")
 	elif home_screen_layout_level == 0:
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Button", "Bottom-left shortcut")
 		_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Button", "Bottom-right shortcut")
@@ -734,10 +738,11 @@ func _apply_approved_home_screen_layout() -> void:
 	var layout_index := clampi(home_screen_layout_level, 0, ProceduralOSEngineScript.HOME_LAYOUT_STYLES.size() - 1)
 	var selected_style := str(ProceduralOSEngineScript.HOME_LAYOUT_STYLES[layout_index])
 	home_data["layout_style"] = selected_style
-	home_data["columns"] = 4
-	home_data["widget_count"] = 2
+	var generation_style: Dictionary = generated_os_configuration.get("style", {})
+	home_data["columns"] = int(generation_style.get("grid_columns", 4))
+	home_data["widget_count"] = int(generation_style.get("widget_count", 2))
 	home_data["show_search"] = not ["coloros_home", "huawei_pura", "windows_tiles"].has(selected_style)
-	home_data["dock_count"] = 4
+	home_data["dock_count"] = 5 if home_generation == 3 and home_screen_layout_level == 0 else 4
 	components["home_screen"] = home_data
 	generated_os_configuration["components"] = components
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
@@ -883,7 +888,7 @@ func _refresh_home_screen_layout_selector() -> void:
 		generation_value_label.text = "GENERATION %02d" % home_generation
 	if is_instance_valid(generation_description_label):
 		var layout_name: String = str(["ANDROID", "iOS", "WINDOWS PHONE"][home_screen_layout_level])
-		var generation_name := "ANDROID 5.0 LOLLIPOP" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "%s GENERATION %02d" % [layout_name, home_generation]
+		var generation_name := "ANDROID 5.0 LOLLIPOP" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "%s GENERATION %02d" % [layout_name, home_generation]
 		generation_description_label.text = generation_name
 	if is_instance_valid(generation_decrease_button):
 		generation_decrease_button.disabled = home_generation <= 1
