@@ -4724,8 +4724,9 @@ func _load_android_generation_icon(app_name: String) -> Texture2D:
 	if not icon_index_by_name.has(app_name):
 		return null
 	var atlas_path := "res://assets/os/" + asset_family + "/icons.svg"
-	if not ResourceLoader.exists(atlas_path):
-		return null
+	# SVG textures are imported during the clean-checkout editor import step.
+	# ResourceLoader.exists() can report false for an SVG before its imported
+	# resource is registered, even though the source asset is present.
 	var atlas_texture := load(atlas_path) as Texture2D
 	if atlas_texture == null:
 		return null
