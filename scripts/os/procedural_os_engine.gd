@@ -22,6 +22,15 @@ const PALETTES := [
 ]
 
 const WALLPAPER_STYLES := ["lollipop", "aurora", "orbital", "dune", "prism", "midnight_flow"]
+const ANDROID_PIE_PALETTE := {
+	"name": "Pixel Pie",
+	"background": "#15243A",
+	"surface": "#F8F9FA",
+	"surface_alt": "#E8EAED",
+	"accent": "#4285F4",
+	"text": "#202124",
+	"muted": "#5F6368"
+}
 
 const HOME_LAYOUT_STYLES := ["android_pixel", "ios_home", "windows_tiles"]
 const HOME_LAYOUT_FAMILY_LABELS := ["ANDROID", "iPHONE", "WINDOWS PHONE"]
@@ -66,10 +75,10 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 	var rng := RandomNumberGenerator.new()
 	rng.seed = actual_seed
 	var generation_number := clampi(generation, 1, 3)
-	var palette: Dictionary = PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
+	var palette: Dictionary = ANDROID_PIE_PALETTE.duplicate(true) if generation_number == 3 else PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
 	var icon_shapes := ["square", "soft_square", "squircle"]
 	var columns: int = [4, 4, 5][generation_number - 1]
-	var wallpaper_id: String = "lollipop" if generation_number == 1 else WALLPAPER_STYLES[rng.randi_range(1, WALLPAPER_STYLES.size() - 1)]
+	var wallpaper_id: String = "lollipop" if generation_number == 1 else "prism" if generation_number == 3 else WALLPAPER_STYLES[rng.randi_range(1, WALLPAPER_STYLES.size() - 1)]
 	var config := {
 		"schema_version": SCHEMA_VERSION,
 		"seed": actual_seed,
@@ -78,7 +87,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		"created_at": int(Time.get_unix_time_from_system()),
 		"revision": 1,
 		"style": {
-			"identity": ["Classic", "Modern", "Advanced"][generation_number - 1],
+			"identity": ["Classic", "Oreo", "Pie"][generation_number - 1],
 			"generation": generation_number,
 			"palette": palette,
 			"icon_shape": icon_shapes[generation_number - 1],
@@ -96,6 +105,26 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 	for component in COMPONENTS:
 		var component_id := str(component["id"])
 		config["components"][component_id] = _generate_component(component_id, rng, config["style"])
+	if generation_number == 3:
+		config["components"]["app_drawer"] = {
+			"layout": "alphabetical",
+			"columns": 5,
+			"search_position": "top",
+			"scroll_direction": "vertical"
+		}
+		config["components"]["control_center"] = {
+			"tile_shape": "circle",
+			"tile_layout": "expanded",
+			"brightness_style": "slider"
+		}
+		config["components"]["notifications"] = {
+			"card_style": "rounded",
+			"corner_radius": 16,
+			"show_app_icon": true,
+			"translucent": false
+		}
+		config["components"]["lock_screen"]["show_weather"] = true
+		config["components"]["lock_screen"]["show_battery"] = true
 	_sync_shared_settings(config)
 	return config
 
@@ -151,7 +180,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_id):
 		wallpaper_id = "aurora"
 	style["generation"] = generation_number
-	style["identity"] = ["Classic", "Modern", "Advanced"][generation_number - 1]
+	style["identity"] = ["Classic", "Oreo", "Pie"][generation_number - 1]
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
@@ -185,6 +214,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 			lock_data[lock_key] = lock_defaults[lock_key]
 	var configured_home_data: Dictionary = components.get("home_screen", {})
 	var is_oreo_android := generation_number == 2 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var is_pie_android := generation_number == 3 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	# Keep the two generations historically distinct. Lollipop retains its
 	# approved four switches; Oreo uses the Pixel 2 Assistant/notification set.
 	var obsolete_lock_keys := [
@@ -196,11 +226,17 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	]
 	for obsolete_key in obsolete_lock_keys:
 		lock_data.erase(obsolete_key)
-	if is_oreo_android:
+	if is_oreo_android or is_pie_android:
 		lock_data.erase("show_flashlight_shortcut")
 	else:
-		for oreo_key in ["show_assistant_shortcut", "show_notifications"]:
+		for oreo_key in ["show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"]:
 			lock_data.erase(oreo_key)
+	if is_pie_android:
+		lock_data["show_weather"] = bool(lock_data.get("show_weather", true))
+		lock_data["show_battery"] = bool(lock_data.get("show_battery", true))
+	else:
+		lock_data.erase("show_weather")
+		lock_data.erase("show_battery")
 	components["lock_screen"] = lock_data
 
 	var home_data: Dictionary = components.get("home_screen", {})
@@ -210,6 +246,24 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	home_data["layout_style"] = home_layout
 	home_data["columns"] = int(style.get("grid_columns", 4))
 	home_data["widget_count"] = int(style.get("widget_count", 0))
+	if is_pie_android:
+		var drawer_data: Dictionary = components.get("app_drawer", {})
+		drawer_data["layout"] = str(drawer_data.get("layout", "alphabetical"))
+		drawer_data["columns"] = int(drawer_data.get("columns", 5))
+		drawer_data["search_position"] = str(drawer_data.get("search_position", "top"))
+		drawer_data["scroll_direction"] = str(drawer_data.get("scroll_direction", "vertical"))
+		components["app_drawer"] = drawer_data
+		var control_data: Dictionary = components.get("control_center", {})
+		control_data["tile_shape"] = str(control_data.get("tile_shape", "circle"))
+		control_data["tile_layout"] = str(control_data.get("tile_layout", "expanded"))
+		control_data["brightness_style"] = str(control_data.get("brightness_style", "slider"))
+		components["control_center"] = control_data
+		var notification_data: Dictionary = components.get("notifications", {})
+		notification_data["card_style"] = str(notification_data.get("card_style", "rounded"))
+		notification_data["corner_radius"] = int(notification_data.get("corner_radius", 16))
+		notification_data["show_app_icon"] = bool(notification_data.get("show_app_icon", true))
+		notification_data["translucent"] = bool(notification_data.get("translucent", false))
+		components["notifications"] = notification_data
 	components["home_screen"] = home_data
 	normalized["components"] = components
 	_sync_shared_settings(normalized)
@@ -237,7 +291,8 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	var lock_screen: Dictionary = config.get("components", {}).get("lock_screen", {})
 	var home_data: Dictionary = components.get("home_screen", {})
 	var is_oreo_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	var is_pie_android := int(config.get("generation", 1)) == 3 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_pie_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
 	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
 			issues.append("Lock-screen setting is missing: " + lock_key)
