@@ -46,7 +46,6 @@ var boot_message: Label
 var boot_model_message: Label
 var boot_enabled_inputs: Dictionary = {}
 var lock_screen_enabled_inputs: Dictionary = {}
-var fingerprint_sensor_available := false
 var boot_busy := false
 var device_powered_on := false
 var boot_identity := {
@@ -167,11 +166,6 @@ class GlassButtonReflection extends Control:
 func _ready() -> void:
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	var initial_components: Dictionary = generated_os_configuration.get("components", {})
-	var initial_lock_data: Dictionary = initial_components.get("lock_screen", {})
-	initial_lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
-	initial_lock_data["show_fingerprint"] = fingerprint_sensor_available
-	initial_components["lock_screen"] = initial_lock_data
-	generated_os_configuration["components"] = initial_components
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_build_interface()
 	_apply_bootloader_settings_to_configuration()
@@ -682,23 +676,6 @@ func _on_lock_screen_feature_toggled(enabled: bool, feature_id: String) -> void:
 		os_preview_simulator.set_component_view("lock_screen")
 
 
-func set_fingerprint_sensor_available(available: bool) -> void:
-	fingerprint_sensor_available = available
-	var components: Dictionary = generated_os_configuration.get("components", {})
-	var lock_data: Dictionary = components.get("lock_screen", {})
-	lock_data["fingerprint_sensor_available"] = available
-	if not available:
-		lock_data["show_fingerprint"] = false
-	components["lock_screen"] = lock_data
-	generated_os_configuration["components"] = components
-	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
-	if device_powered_on:
-		_show_lock_screen_studio_controls()
-		if is_instance_valid(os_preview_simulator):
-			os_preview_simulator.update_configuration(generated_os_configuration)
-			os_preview_simulator.set_component_view("lock_screen")
-
-
 func _build_power_button() -> void:
 	var column := VBoxContainer.new()
 	column.name = "PowerButtonColumn"
@@ -977,12 +954,6 @@ func _generate_complete_os() -> void:
 	os_generation_busy = true
 	_set_os_generation_status("GENERATING OPERATING SYSTEM...")
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
-	var generated_components: Dictionary = generated_os_configuration.get("components", {})
-	var generated_lock_data: Dictionary = generated_components.get("lock_screen", {})
-	generated_lock_data["fingerprint_sensor_available"] = fingerprint_sensor_available
-	generated_lock_data["show_fingerprint"] = fingerprint_sensor_available
-	generated_components["lock_screen"] = generated_lock_data
-	generated_os_configuration["components"] = generated_components
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_apply_bootloader_settings_to_configuration()
 	var components: Dictionary = generated_os_configuration.get("components", {})
