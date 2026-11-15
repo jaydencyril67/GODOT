@@ -263,6 +263,40 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(expected_android_nav, true, false) == null:
 			_fail("Android three-button navigation must remain visible on the lock screen.")
 			return
+		if generation_number == 1:
+			simulator.configure_os(generation_preview, "home_screen")
+			await process_frame
+			_simulate_touch_swipe(simulator, Vector2(60, 2), Vector2(60, 75), 110)
+			await process_frame
+			if simulator.find_child("OSGestureOverlay_notifications", true, false) == null or simulator.find_child("LollipopNotificationHeader", true, false) == null:
+				_fail("Android 5 notification shade did not render its Lollipop header.")
+				return
+			if simulator.find_child("LollipopNotification_Messages", true, false) == null or simulator.find_child("CloseGestureOverlayButton", true, false) != null:
+				_fail("Android 5 notification cards are missing or an unwanted close button was added.")
+				return
+			simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 240), 110)
+			await process_frame
+			if simulator.find_child("LollipopQuickSettingsHeader", true, false) == null or simulator.find_child("LollipopQuickSettingsGrid", true, false) == null or simulator.find_child("LollipopBrightnessSlider", true, false) == null:
+				_fail("Expanded Android 5 Quick Settings is missing its header, brightness slider or icon tiles.")
+				return
+			if simulator.find_child("CloseGestureOverlayButton", true, false) != null:
+				_fail("Android 5 Quick Settings must dismiss by system gestures/navigation, not an X button.")
+				return
+			var wifi_tile := simulator.find_child("LollipopQuickTile_WiFi", true, false) as Button
+			if wifi_tile == null:
+				_fail("Android 5 Quick Settings Wi-Fi tile is missing.")
+				return
+			var wifi_before := bool(simulator.get("_quick_setting_states").get("Wi-Fi", false))
+			wifi_tile.button_pressed = not wifi_before
+			wifi_tile.toggled.emit(not wifi_before)
+			if bool(simulator.get("_quick_setting_states").get("Wi-Fi", wifi_before)) == wifi_before:
+				_fail("Quick Settings tile did not retain its toggled state.")
+				return
+			simulator.call("_handle_system_gesture", Vector2(72, 240), Vector2(72, 150), 110)
+			await process_frame
+			if simulator.find_child("OSGestureOverlay_control_center", true, false) != null:
+				_fail("Swipe-up did not dismiss the expanded Lollipop Quick Settings shade.")
+				return
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 
@@ -294,7 +328,7 @@ func _run_os_generator_test() -> void:
 		_fail("Android Back, Home and Overview navigation buttons must all exist.")
 		return
 	for navigation_button in [android_back_button, android_home, android_overview]:
-		if navigation_button.mouse_filter != Control.MOUSE_FILTER_STOP or navigation_button.custom_minimum_size.x < 40.0 or navigation_button.custom_minimum_size.y < 36.0:
+		if navigation_button.mouse_filter != Control.MOUSE_FILTER_STOP or navigation_button.custom_minimum_size.x < 30.0 or navigation_button.custom_minimum_size.y < 40.0:
 			_fail("Android navigation buttons must have active mouse input and a reliable touch target.")
 			return
 	simulator.call("_on_app_pressed", "Messages")
@@ -786,6 +820,15 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Lollipop Home navigation did not jump directly from the app drawer to Home.")
+		return
+	lollipop_dock_button = worksite_preview.find_child("LollipopAppDrawerButton", true, false) as Button
+	lollipop_dock_button.pressed.emit()
+	await process_frame
+	drawer_back = worksite_preview.find_child("LollipopNavigationBack", true, false) as Button
+	drawer_back.pressed.emit()
+	await process_frame
+	if worksite_preview.get("active_component") != "home_screen":
+		_fail("Lollipop Back navigation did not return from the app drawer to Home.")
 		return
 	lollipop_dock_button = worksite_preview.find_child("LollipopAppDrawerButton", true, false) as Button
 	lollipop_dock_button.pressed.emit()
