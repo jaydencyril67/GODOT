@@ -4680,17 +4680,19 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.focus_mode = Control.FOCUS_NONE
 	var generation_icon := _load_android_generation_icon(app_name)
-	if generation_icon != null:
+	if generation_icon == null:
+		# Android 8/9 must never silently fall back to hand-made glyph buttons.
+		# A missing imported asset is an asset/catalog error, not another icon style.
+		push_error("Missing imported Android generation icon for installed app: " + app_name)
+		icon.disabled = true
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	else:
 		icon.icon = generation_icon
 		icon.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon.expand_icon = true
 		icon.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 		icon.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
 		icon.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	else:
-		icon.text = str(app.get("glyph", "•"))
-		icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
-		_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "rounded")))
 	icon.pressed.connect(_on_app_pressed.bind(app_name))
 	holder.add_child(icon)
 	tile.add_child(holder)
