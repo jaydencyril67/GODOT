@@ -437,9 +437,15 @@ func _run_os_generator_test() -> void:
 		_fail("Android bottom swipe must not replace the three-button navigation system.")
 		return
 	var android_overview := simulator.find_child("AndroidNavigationOverview", true, false) as Button
-	if android_overview == null:
-		_fail("Android Overview navigation button is missing.")
+	var android_home := simulator.find_child("AndroidNavigationHome", true, false) as Button
+	var android_back_button := simulator.find_child("AndroidNavigationBack", true, false) as Button
+	if android_overview == null or android_home == null or android_back_button == null:
+		_fail("Android Back, Home and Overview navigation buttons must all exist.")
 		return
+	for navigation_button in [android_back_button, android_home, android_overview]:
+		if navigation_button.mouse_filter != Control.MOUSE_FILTER_STOP or navigation_button.custom_minimum_size.x < 40.0 or navigation_button.custom_minimum_size.y < 36.0:
+			_fail("Android navigation buttons must have active mouse input and a reliable touch target.")
+			return
 	android_overview.pressed.emit()
 	await process_frame
 	if simulator.get("active_component") != "home_screen" or simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
@@ -457,6 +463,10 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
 		_fail("Android Back button did not close the Recent Apps overview.")
+		return
+	var rounded_mask := simulator.find_child("OSScreenRoundedCornerMask", true, false) as Control
+	if rounded_mask == null or not is_equal_approx(float(rounded_mask.get("corner_radius")), 22.0):
+		_fail("All four display corners must use the same rounded screen mask.")
 		return
 	simulator.set_component_view("home_screen")
 	await process_frame
