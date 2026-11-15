@@ -25,6 +25,39 @@ class PINLockIndicator extends Control:
 		draw_circle(Vector2(center_x, 11.0), 1.0, Color("#263244"))
 
 
+class AndroidNavigationButton extends Button:
+	var action_name := "Back"
+	var icon_color := Color.WHITE
+
+	func _ready() -> void:
+		text = ""
+		focus_mode = Control.FOCUS_NONE
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		custom_minimum_size = Vector2(30, 44)
+		size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+		queue_redraw()
+
+	func _draw() -> void:
+		var centre := size * 0.5
+		var color := icon_color
+		if is_pressed():
+			draw_circle(centre, 13.0, Color(color.r, color.g, color.b, 0.12))
+		match action_name:
+			"Back":
+				draw_colored_polygon(PackedVector2Array([
+					centre + Vector2(-9, 0),
+					centre + Vector2(4, -9),
+					centre + Vector2(4, 9)
+				]), color)
+			"Home":
+				draw_arc(centre, 8.0, 0.0, TAU, 40, color, 2.0, true)
+			"Overview":
+				draw_rect(Rect2(centre - Vector2(7, 7), Vector2(14, 14)), color, false, 2.0, true)
+
+
 class OSScreenCornerMask extends Control:
 	var corner_radius := 22.0
 	var mask_color := Color.BLACK
@@ -229,6 +262,11 @@ var _screen_history: Array[String] = []
 var _last_opened_app := ""
 var _entered_unlock_pin := ""
 var _pin_error_message := ""
+var _quick_setting_states := {
+	"Wi-Fi": true, "Bluetooth": true, "Airplane mode": false,
+	"Auto-rotate": true, "Flashlight": false, "Location": true,
+	"Cast screen": false, "Hotspot": false, "Battery saver": false
+}
 var _clock_update_elapsed := 0.0
 
 func _process(delta: float) -> void:
@@ -280,7 +318,7 @@ func _refresh_lock_screen_clock() -> void:
 	var data: Dictionary = configuration.get("components", {}).get("lock_screen", {})
 	var clock := find_child("LockScreenClock", true, false) as Label
 	if is_instance_valid(clock):
-		clock.text = _current_lock_time(family)
+		clock.text = _current_lock_time()
 	var date := find_child("LockScreenDate", true, false) as Label
 	if is_instance_valid(date):
 		date.text = _current_lock_date("uppercase")
@@ -397,45 +435,47 @@ func _navigate_back() -> void:
 
 
 func _show_gesture_overlay(mode: String) -> void:
-	if mode == "recent_apps" and _is_android_os():
-		_build_lollipop_overview()
-		return
+	if _is_android_os():
+		match mode:
+			"notifications":
+				_build_lollipop_notification_shade()
+				return
+			"control_center":
+				_build_lollipop_quick_settings_shade()
+				return
+			"recent_apps":
+				_build_lollipop_overview()
+				return
+
 	_close_gesture_overlay()
 	_gesture_overlay = Control.new()
 	_gesture_overlay.name = "OSGestureOverlay_" + mode
 	_gesture_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_gesture_overlay.offset_bottom = -42.0 # System navigation remains tappable above every shade.
+	_gesture_overlay.offset_bottom = -46.0
 	_gesture_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_gesture_overlay)
 
-	var is_lollipop_shade := _is_android_os() and mode in ["notifications", "control_center"]
 	var shade := ColorRect.new()
 	shade.name = "GestureOverlayShade"
-	shade.color = Color("#ECEFF1") if is_lollipop_shade else Color(0.0, 0.0, 0.0, 0.58)
+	shade.color = Color(0.0, 0.0, 0.0, 0.58)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_gesture_overlay.add_child(shade)
 
 	var margins := MarginContainer.new()
 	margins.name = "GestureOverlayMargins"
 	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margins.add_theme_constant_override("margin_left", 0 if is_lollipop_shade else 8)
-	margins.add_theme_constant_override("margin_right", 0 if is_lollipop_shade else 8)
-	margins.add_theme_constant_override("margin_top", 0 if is_lollipop_shade else 8)
-	margins.add_theme_constant_override("margin_bottom", 0 if is_lollipop_shade else 8)
+	margins.add_theme_constant_override("margin_left", 8)
+	margins.add_theme_constant_override("margin_right", 8)
+	margins.add_theme_constant_override("margin_top", 8)
+	margins.add_theme_constant_override("margin_bottom", 8)
 	_gesture_overlay.add_child(margins)
 
 	var panel := PanelContainer.new()
 	panel.name = "GestureOverlayPanel"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if is_lollipop_shade:
-		var shade_style := StyleBoxFlat.new()
-		shade_style.bg_color = Color("#FAFAFA")
-		shade_style.set_border_width_all(0)
-		panel.add_theme_stylebox_override("panel", shade_style)
-	else:
-		_style_surface(panel, true)
+	_style_surface(panel, true)
 	margins.add_child(panel)
 
 	var content := VBoxContainer.new()
@@ -443,22 +483,10 @@ func _show_gesture_overlay(mode: String) -> void:
 	content.add_theme_constant_override("separation", 8)
 	panel.add_child(content)
 
-	var header := HBoxContainer.new()
-	var title_text := "QUICK SETTINGS" if mode == "control_center" else ("NOTIFICATIONS" if mode == "notifications" else "RECENT APPS")
-	var title := _label(title_text, 12, Color("#263238") if is_lollipop_shade else _text_color())
+	var title_text := "RECENT APPS" if mode == "recent_apps" else mode.to_upper().replace("_", " ")
+	var title := _label(title_text, 12, _text_color())
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(title)
-	var close_button := Button.new()
-	close_button.name = "CloseGestureOverlayButton"
-	close_button.text = "×"
-	close_button.custom_minimum_size = Vector2(28, 28)
-	if is_lollipop_shade:
-		close_button.add_theme_color_override("font_color", Color("#455A64"))
-	else:
-		_style_action_button(close_button)
-	close_button.pressed.connect(_close_gesture_overlay)
-	header.add_child(close_button)
-	content.add_child(header)
+	content.add_child(title)
 
 	match mode:
 		"control_center":
@@ -467,6 +495,308 @@ func _show_gesture_overlay(mode: String) -> void:
 			_build_gesture_notifications(content)
 		"recent_apps":
 			_build_gesture_recent_apps(content)
+
+
+func _create_lollipop_shade_overlay(mode: String, background_color: Color) -> Control:
+	_close_gesture_overlay()
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_" + mode
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -46.0
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	_gesture_overlay = overlay
+
+	var background := ColorRect.new()
+	background.name = "LollipopShadeBackground"
+	background.color = background_color
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(background)
+	return overlay
+
+
+func _create_lollipop_shade_body(overlay: Control) -> VBoxContainer:
+	var margins := MarginContainer.new()
+	margins.name = "LollipopShadeMargins"
+	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margins.add_theme_constant_override("margin_left", 12)
+	margins.add_theme_constant_override("margin_right", 12)
+	margins.add_theme_constant_override("margin_top", 10)
+	margins.add_theme_constant_override("margin_bottom", 8)
+	overlay.add_child(margins)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "LollipopShadeScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	margins.add_child(scroll)
+
+	var body := VBoxContainer.new()
+	body.name = "LollipopShadeContent"
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 9)
+	scroll.add_child(body)
+	return body
+
+
+func _build_lollipop_notification_shade() -> void:
+	var overlay := _create_lollipop_shade_overlay("notifications", Color(0.025, 0.045, 0.060, 0.76))
+	var body := _create_lollipop_shade_body(overlay)
+	_build_lollipop_notification_content(body)
+	var hint := _label("Swipe down again for Quick Settings", 9, Color("#CFD8DC"))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.custom_minimum_size.y = 25
+	body.add_child(hint)
+
+
+func _build_lollipop_notification_content(parent: Control) -> void:
+	var header := HBoxContainer.new()
+	header.name = "LollipopNotificationHeader"
+	header.add_theme_constant_override("separation", 8)
+	var time_stack := VBoxContainer.new()
+	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	time_stack.add_child(_label(_current_lock_time(), 27, Color("#FFFFFF")))
+	time_stack.add_child(_label(_current_lock_date("editorial"), 10, Color("#CFD8DC")))
+	header.add_child(time_stack)
+
+	var header_status := VBoxContainer.new()
+	header_status.alignment = BoxContainer.ALIGNMENT_CENTER
+	header_status.add_child(_label("100%  ▰", 10, Color("#FFFFFF")))
+	header_status.add_child(_label("Wi-Fi  ·  LTE", 8, Color("#CFD8DC")))
+	header.add_child(header_status)
+	parent.add_child(header)
+
+	var divider := ColorRect.new()
+	divider.name = "LollipopNotificationHeaderDivider"
+	divider.custom_minimum_size.y = 1
+	divider.color = Color(1, 1, 1, 0.22)
+	parent.add_child(divider)
+
+	parent.add_child(_label("NOTIFICATIONS", 10, Color("#ECEFF1")))
+	_add_lollipop_notification_card(parent, "Messages", "A new message is waiting", "NOW", Color("#4285F4"), "M")
+	_add_lollipop_notification_card(parent, "Calendar", "Your next event is coming up", "10 MIN", Color("#0F9D58"), "31")
+	_add_lollipop_notification_card(parent, "Android System", "Your device is up to date", "EARLIER", Color("#78909C"), "A")
+
+
+func _add_lollipop_notification_card(parent: Control, app_name: String, message: String, time_label: String, icon_color: Color, icon_text: String) -> void:
+	var card := PanelContainer.new()
+	card.name = "LollipopNotification_" + app_name.replace(" ", "")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 67
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color("#FAFAFA")
+	card_style.set_border_width_all(0)
+	card_style.set_corner_radius_all(2)
+	card_style.shadow_color = Color(0, 0, 0, 0.20)
+	card_style.shadow_size = 5
+	card_style.shadow_offset = Vector2(0, 2)
+	card_style.content_margin_left = 10
+	card_style.content_margin_right = 10
+	card_style.content_margin_top = 8
+	card_style.content_margin_bottom = 8
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	card.add_child(row)
+
+	var icon_holder := CenterContainer.new()
+	icon_holder.custom_minimum_size = Vector2(34, 34)
+	var icon_circle := PanelContainer.new()
+	icon_circle.custom_minimum_size = Vector2(30, 30)
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = icon_color
+	icon_style.set_corner_radius_all(18)
+	icon_circle.add_theme_stylebox_override("panel", icon_style)
+	var icon := _label(icon_text, 11, Color("#FFFFFF"))
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_circle.add_child(icon)
+	icon_holder.add_child(icon_circle)
+	row.add_child(icon_holder)
+
+	var text_stack := VBoxContainer.new()
+	text_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_stack.add_theme_constant_override("separation", 1)
+	var title_row := HBoxContainer.new()
+	var app_label := _label(app_name, 10, Color("#455A64"))
+	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(app_label)
+	var time := _label(time_label, 8, Color("#78909C"))
+	time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	title_row.add_child(time)
+	text_stack.add_child(title_row)
+	var message_label := _label(message, 11, Color("#263238"))
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text_stack.add_child(message_label)
+	row.add_child(text_stack)
+	parent.add_child(card)
+
+
+func _build_lollipop_quick_settings_shade() -> void:
+	var overlay := _create_lollipop_shade_overlay("control_center", Color("#263238"))
+	var body := _create_lollipop_shade_body(overlay)
+	_build_lollipop_quick_settings_content(body, true)
+
+
+func _build_lollipop_quick_settings_content(parent: Control, include_notifications: bool) -> void:
+	var header := PanelContainer.new()
+	header.name = "LollipopQuickSettingsHeader"
+	var header_style := StyleBoxFlat.new()
+	header_style.bg_color = Color("#37474F")
+	header_style.set_border_width_all(0)
+	header_style.set_corner_radius_all(2)
+	header_style.content_margin_left = 10
+	header_style.content_margin_right = 8
+	header_style.content_margin_top = 8
+	header_style.content_margin_bottom = 8
+	header.add_theme_stylebox_override("panel", header_style)
+
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 8)
+	var time_stack := VBoxContainer.new()
+	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	time_stack.add_child(_label(_current_lock_time(), 26, Color("#FFFFFF")))
+	time_stack.add_child(_label(_current_lock_date("editorial"), 10, Color("#CFD8DC")))
+	header_row.add_child(time_stack)
+
+	var header_actions := VBoxContainer.new()
+	header_actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	header_actions.add_child(_label("100%  ▰", 10, Color("#FFFFFF")))
+	var settings_button := Button.new()
+	settings_button.name = "LollipopQuickSettingsOpenSettings"
+	settings_button.text = "⚙  Settings"
+	settings_button.custom_minimum_size = Vector2(72, 30)
+	settings_button.focus_mode = Control.FOCUS_NONE
+	settings_button.add_theme_font_size_override("font_size", 9)
+	var settings_style := StyleBoxFlat.new()
+	settings_style.bg_color = Color(1, 1, 1, 0.08)
+	settings_style.set_corner_radius_all(2)
+	settings_button.add_theme_stylebox_override("normal", settings_style)
+	settings_button.add_theme_stylebox_override("hover", settings_style)
+	settings_button.add_theme_stylebox_override("pressed", settings_style)
+	settings_button.add_theme_color_override("font_color", Color("#FFFFFF"))
+	settings_button.pressed.connect(func() -> void:
+		_close_gesture_overlay()
+		_on_app_pressed("Settings")
+	)
+	header_actions.add_child(settings_button)
+	header_row.add_child(header_actions)
+	header.add_child(header_row)
+	parent.add_child(header)
+
+	var brightness_panel := PanelContainer.new()
+	brightness_panel.name = "LollipopBrightnessPanel"
+	var brightness_style := StyleBoxFlat.new()
+	brightness_style.bg_color = Color("#37474F")
+	brightness_style.set_border_width_all(0)
+	brightness_style.set_corner_radius_all(2)
+	brightness_style.content_margin_left = 10
+	brightness_style.content_margin_right = 10
+	brightness_style.content_margin_top = 7
+	brightness_style.content_margin_bottom = 7
+	brightness_panel.add_theme_stylebox_override("panel", brightness_style)
+	var brightness_row := HBoxContainer.new()
+	brightness_row.add_theme_constant_override("separation", 8)
+	brightness_row.add_child(_label("☼", 20, Color("#FFFFFF")))
+	var brightness_slider := HSlider.new()
+	brightness_slider.name = "LollipopBrightnessSlider"
+	brightness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brightness_slider.min_value = 0
+	brightness_slider.max_value = 100
+	brightness_slider.value = 72
+	brightness_slider.custom_minimum_size.y = 24
+	brightness_slider.focus_mode = Control.FOCUS_NONE
+	var slider_track := StyleBoxFlat.new()
+	slider_track.bg_color = Color("#607D8B")
+	slider_track.set_corner_radius_all(4)
+	slider_track.content_margin_top = 3
+	slider_track.content_margin_bottom = 3
+	brightness_slider.add_theme_stylebox_override("slider", slider_track)
+	var slider_active := StyleBoxFlat.new()
+	slider_active.bg_color = Color("#B0BEC5")
+	slider_active.set_corner_radius_all(4)
+	brightness_slider.add_theme_stylebox_override("grabber_area", slider_active)
+	brightness_slider.add_theme_stylebox_override("grabber_area_highlight", slider_active)
+	brightness_row.add_child(brightness_slider)
+	brightness_row.add_child(_label("☀", 15, Color("#FFFFFF")))
+	brightness_panel.add_child(brightness_row)
+	parent.add_child(brightness_panel)
+
+	var grid := GridContainer.new()
+	grid.name = "LollipopQuickSettingsGrid" if _gesture_overlay != null else "QuickSettingsGrid"
+	grid.columns = 3 if size.x >= 250.0 else 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 4)
+	parent.add_child(grid)
+	var tile_definitions := [
+		{"id": "Wi-Fi", "glyph": "◉", "enabled": true},
+		{"id": "Bluetooth", "glyph": "ᛒ", "enabled": true},
+		{"id": "Airplane mode", "glyph": "✈", "enabled": false},
+		{"id": "Auto-rotate", "glyph": "⟳", "enabled": true},
+		{"id": "Flashlight", "glyph": "☼", "enabled": false},
+		{"id": "Location", "glyph": "⌖", "enabled": true},
+		{"id": "Cast screen", "glyph": "▣", "enabled": false},
+		{"id": "Hotspot", "glyph": "⌁", "enabled": false},
+		{"id": "Battery saver", "glyph": "▰", "enabled": false}
+	]
+	for definition in tile_definitions:
+		_add_lollipop_quick_setting_tile(grid, definition)
+
+	if include_notifications:
+		var notification_heading := _label("NOTIFICATIONS", 10, Color("#CFD8DC"))
+		notification_heading.custom_minimum_size.y = 22
+		parent.add_child(notification_heading)
+		_add_lollipop_notification_card(parent, "Messages", "A new message is waiting", "NOW", Color("#4285F4"), "M")
+		_add_lollipop_notification_card(parent, "Calendar", "Your next event is coming up", "10 MIN", Color("#0F9D58"), "31")
+
+
+func _add_lollipop_quick_setting_tile(parent: GridContainer, definition: Dictionary) -> void:
+	var setting_id := str(definition.get("id", ""))
+	var tile := Button.new()
+	tile.name = "LollipopQuickTile_" + setting_id.replace(" ", "")
+	tile.toggle_mode = true
+	tile.focus_mode = Control.FOCUS_NONE
+	tile.mouse_filter = Control.MOUSE_FILTER_STOP
+	tile.custom_minimum_size = Vector2(0, 66)
+	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var empty_style := StyleBoxEmpty.new()
+	for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+		tile.add_theme_stylebox_override(state_name, empty_style)
+	var tile_body := CenterContainer.new()
+	tile_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tile_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tile_stack := VBoxContainer.new()
+	tile_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	tile_stack.add_theme_constant_override("separation", 2)
+	var enabled := bool(_quick_setting_states.get(setting_id, definition.get("enabled", false)))
+	var icon_label := _label(str(definition.get("glyph", "•")), 23, Color("#FFFFFF") if enabled else Color("#78909C"))
+	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_label.custom_minimum_size.y = 28
+	var title_label := _label(setting_id, 9, Color("#ECEFF1") if enabled else Color("#90A4AE"))
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tile_stack.add_child(icon_label)
+	tile_stack.add_child(title_label)
+	tile_body.add_child(tile_stack)
+	tile.add_child(tile_body)
+	tile.button_pressed = enabled
+	tile.toggled.connect(_on_lollipop_quick_setting_toggled.bind(setting_id, icon_label, title_label))
+	parent.add_child(tile)
+
+
+func _on_lollipop_quick_setting_toggled(enabled: bool, setting_id: String, icon_label: Label, title_label: Label) -> void:
+	_quick_setting_states[setting_id] = enabled
+	if is_instance_valid(icon_label):
+		icon_label.add_theme_color_override("font_color", Color("#FFFFFF") if enabled else Color("#78909C"))
+	if is_instance_valid(title_label):
+		title_label.add_theme_color_override("font_color", Color("#ECEFF1") if enabled else Color("#90A4AE"))
+
 
 
 func _build_gesture_control_center(parent: VBoxContainer) -> void:
@@ -840,57 +1170,63 @@ func _is_android_os() -> bool:
 
 
 func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false) -> void:
+	parent.add_theme_constant_override("separation", 0)
+	var is_light_surface := active_component == "app_drawer" and use_lollipop_style
+	var navigation_bar := PanelContainer.new()
+	navigation_bar.name = "AndroidNavigationBar"
+	navigation_bar.custom_minimum_size = Vector2(0, 46)
+	navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bar_style := StyleBoxFlat.new()
+	bar_style.bg_color = Color("#FAFAFA") if is_light_surface else Color(0.025, 0.035, 0.045, 0.88)
+	bar_style.set_border_width_all(0)
+	bar_style.set_corner_radius_all(0)
+	bar_style.content_margin_left = 0
+	bar_style.content_margin_right = 0
+	bar_style.content_margin_top = 0
+	bar_style.content_margin_bottom = 0
+	navigation_bar.add_theme_stylebox_override("panel", bar_style)
+
 	var navigation_keys := HBoxContainer.new()
 	navigation_keys.name = "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
-	navigation_keys.custom_minimum_size.y = 42
+	navigation_keys.custom_minimum_size.y = 46
+	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
 	navigation_keys.mouse_filter = Control.MOUSE_FILTER_PASS
-	navigation_keys.add_theme_constant_override("separation", 25)
-	var is_light_surface := active_component == "app_drawer" and use_lollipop_style
-	var navigation_color := Color("#666666") if is_light_surface else _text_color()
-	for key_data in [["Back", "◁"], ["Home", "○"], ["Overview", "□"]]:
-		var key := Button.new()
-		key.name = ("LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + str(key_data[0])
-		key.text = str(key_data[1])
-		key.tooltip_text = str(key_data[0])
-		key.custom_minimum_size = Vector2(44, 40)
-		key.mouse_filter = Control.MOUSE_FILTER_STOP
-		key.add_theme_font_size_override("font_size", 19)
-		key.add_theme_color_override("font_color", navigation_color)
-		key.add_theme_color_override("font_hover_color", navigation_color)
-		key.add_theme_color_override("font_pressed_color", navigation_color)
-		var transparent := StyleBoxEmpty.new()
-		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
-			key.add_theme_stylebox_override(state_name, transparent)
-		key.focus_mode = Control.FOCUS_NONE
-		key.pressed.connect(_on_android_navigation_pressed.bind(str(key_data[0])))
+	navigation_keys.add_theme_constant_override("separation", 2)
+
+	var navigation_color := Color("#616161") if is_light_surface else Color("#F5F7F8")
+	for action in ["Back", "Home", "Overview"]:
+		var key := AndroidNavigationButton.new()
+		key.name = ("LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
+		key.action_name = action
+		key.icon_color = navigation_color
+		key.tooltip_text = action
+		key.custom_minimum_size = Vector2(30, 44)
+		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		key.pressed.connect(_queue_android_navigation.bind(action))
 		navigation_keys.add_child(key)
 
-	if is_light_surface:
-		var navigation_surface := PanelContainer.new()
-		navigation_surface.name = "LollipopAppDrawerNavigationSurface"
-		navigation_surface.custom_minimum_size.y = 26
-		var surface_style := StyleBoxFlat.new()
-		surface_style.bg_color = Color("#FAFAFA")
-		surface_style.set_border_width_all(0)
-		surface_style.set_corner_radius_all(0)
-		navigation_surface.add_theme_stylebox_override("panel", surface_style)
-		navigation_surface.add_child(navigation_keys)
-		parent.add_child(navigation_surface)
-	else:
-		parent.add_child(navigation_keys)
+	navigation_bar.add_child(navigation_keys)
+	parent.add_child(navigation_bar)
+
+
+func _queue_android_navigation(action: String) -> void:
+	call_deferred("_dispatch_android_navigation", action)
+
+
+func _dispatch_android_navigation(action: String) -> void:
+	match action:
+		"Back":
+			_navigate_back()
+		"Home":
+			_navigate_home()
+		"Overview":
+			_show_gesture_overlay("recent_apps")
 
 
 func _on_android_navigation_pressed(action: String) -> void:
-	# Defer screen rebuilds until the Button has finished dispatching its
-	# pressed signal, avoiding destruction of the active touch target.
-	match action:
-		"Back":
-			call_deferred("_navigate_back")
-		"Home":
-			call_deferred("_navigate_home")
-		"Overview":
-			call_deferred("_show_gesture_overlay", "recent_apps")
+	_queue_android_navigation(action)
+
 
 
 func _add_screen_corner_mask() -> void:
@@ -2274,9 +2610,28 @@ func _build_animation_preview(data: Dictionary) -> void:
 	)
 	page_container.add_child(play)
 
-func _build_control_center(data: Dictionary) -> void:
+func _build_control_center(_data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
+		var panel := PanelContainer.new()
+		panel.name = "LollipopControlCenterPreview"
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var panel_style := StyleBoxFlat.new()
+		panel_style.bg_color = Color("#263238")
+		panel_style.set_border_width_all(0)
+		panel_style.set_corner_radius_all(2)
+		panel_style.content_margin_left = 8
+		panel_style.content_margin_right = 8
+		panel_style.content_margin_top = 8
+		panel_style.content_margin_bottom = 8
+		panel.add_theme_stylebox_override("panel", panel_style)
+		page_container.add_child(panel)
+		var body := VBoxContainer.new()
+		body.add_theme_constant_override("separation", 8)
+		panel.add_child(body)
+		_build_lollipop_quick_settings_content(body, true)
+		return
+
 	_add_section_label("QUICK SETTINGS")
-	var layout := str(data.get("tile_layout", "expanded"))
 	var grid := GridContainer.new()
 	grid.name = "QuickSettingsGrid"
 	grid.columns = 2
@@ -2290,14 +2645,14 @@ func _build_control_center(data: Dictionary) -> void:
 		["Flashlight", "☼", false], ["Location", "⌖", true],
 		["Do not disturb", "◐", false], ["Battery saver", "▰", false],
 		["Auto-rotate", "⟳", true], ["Hotspot", "⌁", false],
-		["NFC", "◈", false], ["Nearby Share", "↗", false]
+		["NFC", "◈", false], ["Cast screen", "▣", false]
 	]
 	for item in toggles:
 		var tile := Button.new()
 		tile.name = "QuickTile_" + str(item[0]).replace(" ", "")
 		tile.toggle_mode = true
 		tile.button_pressed = bool(item[2])
-		tile.custom_minimum_size.y = 48 if layout == "expanded" else 39
+		tile.custom_minimum_size.y = 48
 		tile.text = str(item[1]) + "   " + str(item[0])
 		tile.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_style_action_button(tile, tile.button_pressed)
@@ -2323,33 +2678,33 @@ func _build_control_center(data: Dictionary) -> void:
 	page_container.add_child(footer)
 
 
-func _add_control_slider(caption: String, initial_value: float, glyph: String) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "ControlSlider_" + caption
-	_style_surface(panel)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
-	panel.add_child(row)
-	row.add_child(_label(glyph, 13, _accent_color()))
-	var slider_column := VBoxContainer.new()
-	slider_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider_column.add_child(_label(caption, 7, _muted_color()))
-	var slider := HSlider.new()
-	slider.name = caption + "Slider"
-	slider.min_value = 0
-	slider.max_value = 100
-	slider.value = initial_value
-	slider.custom_minimum_size.y = 20
-	slider_column.add_child(slider)
-	row.add_child(slider_column)
-	page_container.add_child(panel)
+func _build_notifications(_data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
+		var panel := PanelContainer.new()
+		panel.name = "LollipopNotificationPreview"
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var panel_style := StyleBoxFlat.new()
+		panel_style.bg_color = Color("#263238")
+		panel_style.set_border_width_all(0)
+		panel_style.set_corner_radius_all(2)
+		panel_style.content_margin_left = 9
+		panel_style.content_margin_right = 9
+		panel_style.content_margin_top = 9
+		panel_style.content_margin_bottom = 9
+		panel.add_theme_stylebox_override("panel", panel_style)
+		page_container.add_child(panel)
+		var body := VBoxContainer.new()
+		body.add_theme_constant_override("separation", 9)
+		panel.add_child(body)
+		_build_lollipop_notification_content(body)
+		return
 
-func _build_notifications(data: Dictionary) -> void:
 	_add_section_label("NOTIFICATION PANEL")
 	_add_notification_surface("Messages", "A new message is waiting", "NOW")
 	_add_notification_surface("Calendar", "Your next event is coming up", "10 MIN")
 	_add_notification_surface("System", "Your device is up to date", "EARLIER")
-	page_container.add_child(_label("Card style · " + str(data.get("card_style", "grouped")).replace("_", " ").capitalize(), 8, _muted_color()))
+
+
 
 func _build_navigation_preview(data: Dictionary) -> void:
 	_add_section_label("SYSTEM NAVIGATION")
