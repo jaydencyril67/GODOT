@@ -1180,7 +1180,9 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_bar.custom_minimum_size = Vector2(0, 46)
 	navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color("#FAFAFA") if is_light_surface else Color(0.025, 0.035, 0.045, 0.88)
+	# Android 5 Lollipop draws its navigation glyphs directly over the
+	# screen surface; it does not use a separate opaque navigation strip.
+	bar_style.bg_color = Color(0.0, 0.0, 0.0, 0.0) if use_lollipop_style else (Color("#FAFAFA") if is_light_surface else Color(0.025, 0.035, 0.045, 0.88))
 	bar_style.set_border_width_all(0)
 	bar_style.set_corner_radius_all(0)
 	bar_style.content_margin_left = 0
