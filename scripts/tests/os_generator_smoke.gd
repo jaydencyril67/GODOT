@@ -925,13 +925,37 @@ func _run_os_generator_test() -> void:
 			_fail("Lollipop app drawer is missing installed app: " + app_name)
 			return
 	var drawer_back := worksite_preview.find_child("LollipopNavigationBack", true, false) as Button
-	if drawer_back == null:
-		_fail("Lollipop app drawer is missing its Back navigation key.")
+	var drawer_home := worksite_preview.find_child("LollipopNavigationHome", true, false) as Button
+	if drawer_back == null or drawer_home == null:
+		_fail("Lollipop app drawer is missing its Back or Home navigation key.")
 		return
+	drawer_home.pressed.emit()
+	await process_frame
+	if worksite_preview.get("active_component") != "home_screen":
+		_fail("Lollipop Home navigation did not jump directly from the app drawer to Home.")
+		return
+	lollipop_dock_button = worksite_preview.find_child("LollipopAppDrawerButton", true, false) as Button
+	lollipop_dock_button.pressed.emit()
+	await process_frame
+	drawer_back = worksite_preview.find_child("LollipopNavigationBack", true, false) as Button
 	drawer_back.pressed.emit()
 	await process_frame
 	if worksite_preview.get("active_component") != "home_screen":
 		_fail("Lollipop Back navigation did not return from the app drawer to Home.")
+		return
+	worksite_preview.set_component_view("app_drawer")
+	await process_frame
+	worksite_preview.set_component_view("lock_screen")
+	await process_frame
+	worksite_preview.call("_navigate_back")
+	await process_frame
+	if worksite_preview.get("active_component") != "app_drawer":
+		_fail("Android Back navigation did not restore the previous screen from navigation history.")
+		return
+	worksite_preview.call("_navigate_home")
+	await process_frame
+	if worksite_preview.get("active_component") != "home_screen":
+		_fail("Android Home navigation did not bypass navigation history and return directly Home.")
 		return
 
 	worksite.call("_show_home_screen_studio_controls")
