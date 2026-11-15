@@ -87,7 +87,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		"created_at": int(Time.get_unix_time_from_system()),
 		"revision": 1,
 		"style": {
-			"identity": ["Classic", "Oreo", "Pie"][generation_number - 1],
+			"identity": ["Classic", "Modern", "Pie"][generation_number - 1],
 			"generation": generation_number,
 			"palette": palette,
 			"icon_shape": icon_shapes[generation_number - 1],
@@ -180,7 +180,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_id):
 		wallpaper_id = "aurora"
 	style["generation"] = generation_number
-	style["identity"] = ["Classic", "Oreo", "Pie"][generation_number - 1]
+	style["identity"] = ["Classic", "Modern", "Pie"][generation_number - 1]
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
