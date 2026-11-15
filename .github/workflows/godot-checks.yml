@@ -99,18 +99,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if timeout --signal=TERM --kill-after=10s 120s godot --headless --verbose --path . --script res://scripts/tests/os_generator_smoke.gd 2>&1 | tee os-generator-smoke.log; then
-            :
-          else
-            test_status=$?
-            echo "OS generator smoke test exited with status $test_status."
-            if [ "$test_status" -eq 124 ] || [ "$test_status" -eq 137 ]; then
-              echo "OS generator smoke test exceeded its 120-second limit."
-            fi
-            echo "Last 100 lines of OS smoke-test output:"
-            tail -n 100 os-generator-smoke.log || true
-            exit "$test_status"
-          fi
+          godot --headless --verbose --path . --script res://scripts/tests/os_generator_smoke.gd 2>&1 | tee os-generator-smoke.log
           grep -q "OS_GENERATOR_SMOKE_TEST: PASS" os-generator-smoke.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_GENERATOR_SMOKE_TEST:.*(FAIL|ERROR)' os-generator-smoke.log; then
             echo "Godot reported an error during the OS generator smoke test."
