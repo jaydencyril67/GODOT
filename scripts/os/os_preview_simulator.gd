@@ -47,7 +47,7 @@ class OSScreenCornerMask extends Control:
 			Vector2(radius, size.y - radius)
 		]
 		var outer_points := [
-			[Vector2.ZERO, Vector2(radius, 0.0]],
+			[Vector2.ZERO, Vector2(radius, 0.0)],
 			[Vector2(size.x, 0.0), Vector2(size.x - radius, 0.0)],
 			[Vector2(size.x, size.y), Vector2(size.x - radius, size.y)],
 			[Vector2(0.0, size.y), Vector2(radius, size.y)]
