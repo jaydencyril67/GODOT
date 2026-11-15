@@ -282,7 +282,7 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("CloseGestureOverlayButton", true, false) != null:
 				_fail("Android 5 Quick Settings must dismiss by system gestures/navigation, not an X button.")
 				return
-			var wifi_tile := simulator.find_child("LollipopQuickTile_WiFi", true, false) as Button
+			var wifi_tile := simulator.find_child("LollipopQuickTile_Wi-Fi", true, false) as Button
 			if wifi_tile == null:
 				_fail("Android 5 Quick Settings Wi-Fi tile is missing.")
 				return
