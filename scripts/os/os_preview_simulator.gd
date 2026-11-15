@@ -1430,14 +1430,40 @@ func _dismiss_overview_top_card() -> void:
 
 func _dismiss_overview_task(app_name: String) -> void:
 	_recent_app_names.erase(app_name)
-	# A task's close button is a child of the Overview overlay. Rebuilding the
-	# overlay synchronously from that button's pressed signal can free the
-	# active signal source while the scene tree is dispatching the callback.
-	# Defer the rebuild so the current input event completes first.
-	if _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps":
-		call_deferred("_build_lollipop_overview")
-	else:
+	# Keep the active Overview overlay and navigation footer alive. Removing
+	# only the dismissed task avoids destroying the close button's own parent
+	# while its pressed signal is being dispatched.
+	var task_card_name := "LollipopOverviewTask_" + app_name.replace(" ", "")
+	var task_card := find_child(task_card_name, true, false) as Control
+	if is_instance_valid(task_card):
+		task_card.queue_free()
+	var overlay := find_child("OSGestureOverlay_recent_apps", true, false) as Control
+	if not is_instance_valid(overlay):
 		_build_lollipop_overview()
+		return
+	if _recent_app_names.is_empty():
+		var empty_label := Label.new()
+		empty_label.name = "LollipopOverviewEmptyState"
+		empty_label.text = "No recent apps"
+		empty_label.position = Vector2(18.0, 88.0)
+		empty_label.add_theme_font_size_override("font_size", 13)
+		empty_label.add_theme_color_override("font_color", Color("#FFFFFF"))
+		overlay.add_child(empty_label)
+		return
+	var visible_count := mini(_recent_app_names.size(), 6)
+	var card_width := maxf(140.0, size.x - 22.0)
+	var card_height := maxf(190.0, size.y * 0.72)
+	var base_x := (size.x - card_width) * 0.5
+	var base_y := 82.0
+	var stack_step := 29.0
+	for index in range(visible_count):
+		var remaining_name := _recent_app_names[index]
+		var remaining_card := find_child("LollipopOverviewTask_" + remaining_name.replace(" ", ""), true, false) as Control
+		if not is_instance_valid(remaining_card):
+			continue
+		var depth := visible_count - 1 - index
+		remaining_card.position = Vector2(base_x, base_y + float(depth) * stack_step)
+		remaining_card.z_index = visible_count - index
 
 
 func _close_gesture_overlay() -> void:
