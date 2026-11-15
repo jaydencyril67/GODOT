@@ -1200,7 +1200,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_keys.add_theme_constant_override("separation", 2)
 
 	var navigation_color := Color("#616161") if is_light_surface else Color("#F5F7F8")
-	var navigation_actions := ["Back"] if back_only else ["Back", "Home", "Overview"]
+	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
 		key.name = ("LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
