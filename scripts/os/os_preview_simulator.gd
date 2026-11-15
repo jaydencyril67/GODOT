@@ -1200,6 +1200,14 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_keys.add_theme_constant_override("separation", 2)
 
 	var navigation_color := Color("#616161") if is_light_surface else Color("#F5F7F8")
+	if back_only:
+		# Keep Back in the same rightmost third it occupies when all three
+		# Android navigation buttons are present.
+		for spacer_index in range(2):
+			var spacer := Control.new()
+			spacer.name = "AndroidNavigationReservedSlot" + str(spacer_index + 1)
+			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			navigation_keys.add_child(spacer)
 	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
