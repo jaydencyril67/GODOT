@@ -510,6 +510,108 @@ func _navigate_back() -> void:
 		_navigate_home()
 
 
+func _dismiss_pie_overview_top_card() -> void:
+	_dismiss_overview_top_card()
+
+
+func _build_android_pie_notification_shade() -> void:
+	# Android 9 notification shade uses the existing live notification data
+	# and keeps the overlay lifecycle shared with the other Android previews.
+	var overlay := _create_lollipop_shade_overlay("notifications", Color("#E8EAED"))
+	var body := _create_lollipop_shade_body(overlay)
+	_build_lollipop_notification_content(body)
+	var hint := _label("Swipe down again for Quick Settings", 9, Color("#5F6368"))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.custom_minimum_size.y = 25
+	body.add_child(hint)
+	_apply_lollipop_shade_screen_mask(overlay)
+
+
+func _build_android_pie_quick_settings_shade() -> void:
+	# Android 9 expanded shade combines quick settings and notifications.
+	var overlay := _create_lollipop_shade_overlay("control_center", Color("#202124"))
+	var body := _create_lollipop_shade_body(overlay)
+	_build_lollipop_quick_settings_content(body, true)
+	_apply_lollipop_shade_screen_mask(overlay)
+
+
+func _build_android_pie_overview() -> void:
+	# Reuse the task-deck implementation so swipe dismissal and navigation
+	# cleanup remain consistent with the existing overview lifecycle.
+	_build_lollipop_overview()
+
+
+func _build_android_pie_control_center_preview() -> void:
+	_add_section_label("ANDROID 9 QUICK SETTINGS")
+	var panel := PanelContainer.new()
+	panel.name = "PieControlCenterPreview"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#202124")
+	panel_style.set_corner_radius_all(18)
+	panel_style.content_margin_left = 10
+	panel_style.content_margin_right = 10
+	panel_style.content_margin_top = 10
+	panel_style.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", panel_style)
+	page_container.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	panel.add_child(body)
+	_build_lollipop_quick_settings_content(body, false)
+
+
+func _build_android_pie_notifications_preview() -> void:
+	_add_section_label("ANDROID 9 NOTIFICATIONS")
+	var panel := PanelContainer.new()
+	panel.name = "PieNotificationsPreview"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#E8EAED")
+	panel_style.set_corner_radius_all(16)
+	panel_style.content_margin_left = 9
+	panel_style.content_margin_right = 9
+	panel_style.content_margin_top = 9
+	panel_style.content_margin_bottom = 9
+	panel.add_theme_stylebox_override("panel", panel_style)
+	page_container.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	panel.add_child(body)
+	_build_lollipop_notification_content(body)
+
+
+func _build_android_pie_recent_apps_preview() -> void:
+	_add_section_label("ANDROID 9 OVERVIEW")
+	var recent_names := _recent_app_names.duplicate()
+	if recent_names.is_empty():
+		recent_names = ["Settings", "Camera", "Messages"]
+	for app_name in recent_names:
+		var app := _find_app(app_name)
+		if app.is_empty():
+			continue
+		var card := PanelContainer.new()
+		card.name = "PieRecentApp_" + app_name.replace(" ", "")
+		card.custom_minimum_size.y = 68
+		_style_surface(card, true)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		card.add_child(row)
+		row.add_child(_create_app_icon(app, 28, false))
+		var details := VBoxContainer.new()
+		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		details.add_child(_label(app_name, 9, _text_color()))
+		details.add_child(_label(_lollipop_overview_preview_text(app_name), 7, _muted_color()))
+		row.add_child(details)
+		var close_button := Button.new()
+		close_button.text = "×"
+		close_button.custom_minimum_size = Vector2(28, 28)
+		_style_action_button(close_button)
+		close_button.pressed.connect(_dismiss_overview_task.bind(app_name))
+		row.add_child(close_button)
+		page_container.add_child(card)
+
+
 func _show_gesture_overlay(mode: String) -> void:
 	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
 		match mode:
