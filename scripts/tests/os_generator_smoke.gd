@@ -453,19 +453,22 @@ func _run_os_generator_test() -> void:
 		_fail("Android 5 Control Center preview is missing its visible Quick Settings tiles.")
 		return
 
+	# Restore the shared test configuration to Android after the iOS component checks.
+	generated["components"]["home_screen"]["layout_style"] = "android_pixel"
+	generated = ProceduralEngineScript.normalize_os(generated)
 	simulator.configure_os(generated, "home_screen")
 	await process_frame
 
-	# Android 5.0 uses one notification shade: a second downward pull expands Quick Settings.
+	# Android keeps three-button navigation; bottom-edge swipes must not replace it.
 	_simulate_touch_swipe(simulator, Vector2(60, 2), Vector2(60, 70), 100)
 	await process_frame
 	if simulator.find_child("OSGestureOverlay_notifications", true, false) == null:
-		_fail("Top-edge swipe did not open the Lollipop notification shade.")
+		_fail("Top-edge swipe did not open the Android notification shade.")
 		return
 	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 235), 100)
 	await process_frame
 	if simulator.find_child("GestureQuickSettingsGrid", true, false) == null:
-		_fail("Second downward pull did not expand Lollipop Quick Settings.")
+		_fail("Second downward pull did not expand Android Quick Settings.")
 		return
 	simulator.call("_handle_system_gesture", Vector2(72, 235), Vector2(72, 150), 100)
 	await process_frame
