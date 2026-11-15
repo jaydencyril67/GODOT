@@ -435,7 +435,7 @@ func _navigate_back() -> void:
 
 
 func _show_gesture_overlay(mode: String) -> void:
-	if _is_android_os():
+	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
 		match mode:
 			"notifications":
 				_build_lollipop_notification_shade()
