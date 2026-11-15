@@ -8,7 +8,7 @@ const ProceduralOSEngineScript = preload("res://scripts/os/procedural_os_engine.
 const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
 const MAX_SELECTABLE_GENERATION := 2
 const CUSTOMIZATION_COMPONENTS := ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications", "wallpapers"]
-const WIZARD_STEP_COUNT := 2 + CUSTOMIZATION_COMPONENTS.size()
+const WIZARD_STEP_COUNT := 8
 
 var generated_os_configuration: Dictionary = {}
 var selected_os_component_id := "home_screen"
@@ -760,7 +760,7 @@ func _refresh_home_screen_layout_selector() -> void:
 	if is_instance_valid(generation_value_label):
 		generation_value_label.text = "GENERATION %02d" % home_generation
 	if is_instance_valid(generation_description_label):
-		var layout_name := ["ANDROID", "iOS", "WINDOWS PHONE"][home_screen_layout_level]
+		var layout_name: String = str(["ANDROID", "iOS", "WINDOWS PHONE"][home_screen_layout_level])
 		var generation_name := "ANDROID 5.0 LOLLIPOP" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "%s GENERATION %02d" % [layout_name, home_generation]
 		generation_description_label.text = generation_name
 	if is_instance_valid(generation_decrease_button):
