@@ -76,12 +76,13 @@ static func generate_ui(seed_value: int = -1, device_specs: Dictionary = {}) -> 
 
 	var dock := ["Phone", "Messages", "Browser", "Camera"]
 	var home_apps: Array[Dictionary] = []
+	var target_app_count := rng.randi_range(9, 12)
 	for app_value in apps:
 		var app: Dictionary = app_value
 		if dock.has(str(app.get("name", ""))):
 			continue
 		home_apps.append(app.duplicate(true))
-		if home_apps.size() >= rng.randi_range(9, 12):
+		if home_apps.size() >= target_app_count:
 			break
 
 	var style := {
