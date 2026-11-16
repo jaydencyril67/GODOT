@@ -541,15 +541,18 @@ func _show_lock_screen_studio_controls() -> void:
 	var is_gen1_samsung_android := home_screen_layout_level == 0 and home_generation == 1 and selected_ui_family == "samsung_touchwiz"
 	var is_gen1_pixel_android := home_screen_layout_level == 0 and home_generation == 1 and selected_ui_family == "google_stock"
 	var is_gen1_xiaomi_android := home_screen_layout_level == 0 and home_generation == 1 and selected_ui_family == "xiaomi_miui"
-	var is_oreo_android := home_screen_layout_level == 0 and home_generation == 2
+	var is_gen2_samsung_android := home_screen_layout_level == 0 and home_generation == 2 and selected_ui_family == "samsung_experience"
+	var is_gen2_pixel_android := home_screen_layout_level == 0 and home_generation == 2 and selected_ui_family == "google_pixel"
+	var is_gen2_xiaomi_android := home_screen_layout_level == 0 and home_generation == 2 and selected_ui_family == "xiaomi_miui8"
+	var is_gen2_android := is_gen2_samsung_android or is_gen2_pixel_android or is_gen2_xiaomi_android
 	var is_pie_android := home_screen_layout_level == 0 and home_generation == 3
 	var is_samsung_one_ui_android := home_screen_layout_level == 0 and home_generation == 4
-	var heading_text := "SAMSUNG TOUCHWIZ NATURE UX · ANDROID 4.x LOCK SCREEN" if is_gen1_samsung_android else "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH · LOCK SCREEN" if is_gen1_pixel_android else "XIAOMI MIUI · ANDROID 4.0 ERA LOCK SCREEN" if is_gen1_xiaomi_android else "SAMSUNG ONE UI 2.0 · ANDROID 10 LOCK SCREEN" if is_samsung_one_ui_android else "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
+	var heading_text := "SAMSUNG TOUCHWIZ NATURE UX · ANDROID 4.x LOCK SCREEN" if is_gen1_samsung_android else "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH · LOCK SCREEN" if is_gen1_pixel_android else "XIAOMI MIUI · ANDROID 4.0 ERA LOCK SCREEN" if is_gen1_xiaomi_android else "SAMSUNG EXPERIENCE 8.0 · ANDROID 7 NOUGAT LOCK SCREEN" if is_gen2_samsung_android else "GOOGLE PIXEL LAUNCHER · ANDROID 7.1 NOUGAT LOCK SCREEN" if is_gen2_pixel_android else "XIAOMI MIUI 8 · ANDROID 7 NOUGAT LOCK SCREEN" if is_gen2_xiaomi_android else "SAMSUNG ONE UI 2.0 · ANDROID 10 LOCK SCREEN" if is_samsung_one_ui_android else "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
 	var heading := _label(heading_text, 20, Color("#D3AA6B"))
 	heading.name = "LockScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description_text := "Galaxy S III TouchWiz Nature UX lock screen. Swipe right to unlock and tap the Phone or Camera shortcut." if is_gen1_samsung_android else "Stock Android 4.0 Ice Cream Sandwich lock-screen reference displayed edge-to-edge." if is_gen1_pixel_android else "Xiaomi MIUI is a separate Gen 1 family; its reference art is pending upload." if is_gen1_xiaomi_android else "Samsung One UI 2.0 lock screen. Configure adaptive time/date, compact notifications and Phone/Camera shortcuts." if is_samsung_one_ui_android else "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Preview the selected layout's lock screen."
+	var description_text := "Galaxy S III TouchWiz Nature UX lock screen. Swipe right to unlock and tap the Phone or Camera shortcut." if is_gen1_samsung_android else "Stock Android 4.0 Ice Cream Sandwich lock-screen reference displayed edge-to-edge." if is_gen1_pixel_android else "Xiaomi MIUI is a separate Gen 1 family; its reference art is pending upload." if is_gen1_xiaomi_android else "Samsung Experience 8.0 Android 7 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_samsung_android else "Google Pixel Android 7.1 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_pixel_android else "Xiaomi MIUI 8 Android 7 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_xiaomi_android else "Samsung One UI 2.0 lock screen. Configure adaptive time/date, compact notifications and Phone/Camera shortcuts." if is_samsung_one_ui_android else "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Preview the selected layout's lock screen."
 	var description := _label(description_text, 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -566,6 +569,13 @@ func _show_lock_screen_studio_controls() -> void:
 		pixel_note.name = "PixelGen1LockScreenReferenceNote"
 		pixel_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		content.add_child(pixel_note)
+		return
+
+	if is_gen2_android:
+		var gen2_note := _label("The selected Android 7 Nougat family lock-screen image is used as the visual reference. Swipe up or right to unlock; tap the lower shortcuts to launch Phone or Camera.", 11, Color("#A6A096"))
+		gen2_note.name = "AndroidGen2LockScreenInteractionNote"
+		gen2_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(gen2_note)
 		return
 
 	var hero_gap := Control.new()
