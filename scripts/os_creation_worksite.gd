@@ -6,7 +6,7 @@ signal boot_completed
 
 const ProceduralOSEngineScript = preload("res://scripts/os/procedural_os_engine.gd")
 const OSPreviewSimulatorScript = preload("res://scripts/os/os_preview_simulator.gd")
-const MAX_SELECTABLE_GENERATION := 3
+const MAX_SELECTABLE_GENERATION := 4
 const CUSTOMIZATION_COMPONENTS := ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications", "wallpapers"]
 const WIZARD_STEP_COUNT := 8
 
@@ -483,7 +483,7 @@ func _build_os_selection_controls() -> void:
 	generation_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(generation_description_label)
 
-	var note := _label("Generation 1: Android 5.0 Lollipop    ·    Generation 2: Android 8.0 Oreo    ·    Generation 3: Android 9.0 Pie", 10, Color("#A6A096"))
+	var note := _label("Gen 1 · Android 5 Lollipop    Gen 2 · Android 8 Oreo    Gen 3 · Android 9 Pie    Gen 4 · Android 10 One UI 2.0", 10, Color("#A6A096"))
 	note.name = "OSSelectionGenerationNote"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -527,12 +527,13 @@ func _show_lock_screen_studio_controls() -> void:
 
 	var is_oreo_android := home_screen_layout_level == 0 and home_generation == 2
 	var is_pie_android := home_screen_layout_level == 0 and home_generation == 3
-	var heading_text := "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "ANDROID 5.0 LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
+	var is_samsung_one_ui_android := home_screen_layout_level == 0 and home_generation == 4
+	var heading_text := "SAMSUNG ONE UI 2.0 · ANDROID 10 LOCK SCREEN" if is_samsung_one_ui_android else "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "ANDROID 5.0 LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
 	var heading := _label(heading_text, 20, Color("#D3AA6B"))
 	heading.name = "LockScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description_text := "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Classic Lollipop lock screen. Choose which elements are visible." if home_screen_layout_level == 0 else "Preview the selected layout's lock screen."
+	var description_text := "Samsung One UI 2.0 lock screen. Configure adaptive time/date, compact notifications and Phone/Camera shortcuts." if is_samsung_one_ui_android else "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Classic Lollipop lock screen. Choose which elements are visible." if home_screen_layout_level == 0 else "Preview the selected layout's lock screen."
 	var description := _label(description_text, 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -545,7 +546,11 @@ func _show_lock_screen_studio_controls() -> void:
 
 	_add_lock_screen_toggle_row(content, "show_time", "Display Time", "Large clock on the lock screen")
 	_add_lock_screen_toggle_row(content, "show_date", "Display Date", "Date below the clock")
-	if is_oreo_android or is_pie_android:
+	if is_samsung_one_ui_android:
+		_add_lock_screen_toggle_row(content, "show_notifications", "Lock-screen Notifications", "Compact notifications below the date")
+		_add_lock_screen_toggle_row(content, "show_phone_shortcut", "Phone Shortcut", "Green Phone shortcut at bottom-left")
+		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Red Camera shortcut at bottom-right")
+	elif is_oreo_android or is_pie_android:
 		_add_lock_screen_toggle_row(content, "show_notifications", "Lock-screen Notifications", "Notification cards below the clock")
 		_add_lock_screen_toggle_row(content, "show_assistant_shortcut", "Assistant Shortcut", "Assistant shortcut at bottom-left")
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Camera shortcut at bottom-right")
@@ -888,7 +893,7 @@ func _refresh_home_screen_layout_selector() -> void:
 		generation_value_label.text = "GENERATION %02d" % home_generation
 	if is_instance_valid(generation_description_label):
 		var layout_name: String = str(["ANDROID", "iOS", "WINDOWS PHONE"][home_screen_layout_level])
-		var generation_name := "ANDROID 5.0 LOLLIPOP" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "%s GENERATION %02d" % [layout_name, home_generation]
+		var generation_name := "ANDROID 5.0 LOLLIPOP" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
 		generation_description_label.text = generation_name
 	if is_instance_valid(generation_decrease_button):
 		generation_decrease_button.disabled = home_generation <= 1
