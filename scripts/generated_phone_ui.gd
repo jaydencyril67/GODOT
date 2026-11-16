@@ -149,7 +149,13 @@ func _draw_ellipse(centre: Vector2, radii: Vector2, rotation: float, color: Colo
 
 func _draw_status_bar(text_color: Color, muted: Color, system: Dictionary, style: Dictionary) -> void:
 	var now := Time.get_datetime_dict_from_system()
-	var time_text := "%02d:%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
+	var hour := int(now.get("hour", 9))
+	var minute := int(now.get("minute", 41))
+	var time_text := "%02d:%02d" % [hour, minute]
+	if str(system.get("time_format", "24h")) == "12h":
+		var period := "PM" if hour >= 12 else "AM"
+		var twelve_hour := hour % 12
+		time_text = "%d:%02d %s" % [12 if twelve_hour == 0 else twelve_hour, minute, period]
 	_draw_text(time_text, Vector2(size.x * 0.065, size.y * 0.047), 13, text_color)
 	var right := size.x * 0.94
 	_draw_text(str(system.get("network_label", "5G")), Vector2(right - 72.0, size.y * 0.047), 10, text_color, HORIZONTAL_ALIGNMENT_RIGHT, 42.0)
