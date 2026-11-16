@@ -3,6 +3,7 @@ extends SceneTree
 const UIEvolutionEngineScript = preload("res://scripts/ui_evolution_engine.gd")
 const GeneratedPhoneUIScript = preload("res://scripts/generated_phone_ui.gd")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
+const ResearchDashboardScript = preload("res://scripts/research_allocation_dashboard.gd")
 const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
 
 const TEST_SAVE_PATH := "user://ui_evolution_smoke_test.json"
@@ -112,6 +113,13 @@ func _check_research_unlock() -> bool:
 		return false
 	if ResearchManagerScript.get_component_research_duration_days("UI Evolution") != 30.0:
 		_fail("UI Evolution should use the standard 30-day research duration.")
+		return false
+	if not ResearchDashboardScript.COMPONENT_VALUES.has("UI Evolution"):
+		_fail("UI Evolution is missing from the company R&D dashboard's selectable projects.")
+		return false
+	var ui_evolution_component_index := ResearchDashboardScript.COMPONENT_VALUES.find("UI Evolution")
+	if str(ResearchDashboardScript.COMPONENT_LABELS[ui_evolution_component_index]) != "UI Evolution":
+		_fail("The UI Evolution research label does not map to its correct project component.")
 		return false
 
 	var career: Dictionary = {
