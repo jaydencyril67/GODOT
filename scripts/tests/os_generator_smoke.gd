@@ -242,6 +242,30 @@ func _run_os_generator_test() -> void:
 	if ProceduralEngineScript.HOME_LAYOUT_STYLES != ["android_pixel", "ios_home", "windows_tiles"]:
 		_fail("Home Screen Studio must contain only Android, iOS and Windows layouts, in that order.")
 		return
+	var pixel_gen1_config := ProceduralEngineScript.generate_os(8102, 1)
+	pixel_gen1_config["style"]["ui_family"] = "google_stock"
+	pixel_gen1_config = ProceduralEngineScript.normalize_os(pixel_gen1_config)
+	if str(pixel_gen1_config.get("style", {}).get("identity", "")) != "Google Stock Android 4.0 Ice Cream Sandwich":
+		_fail("Gen 1 Pixel UI must identify itself as Google Stock Android 4.0 Ice Cream Sandwich.")
+		return
+	var pixel_gen1_assets := {
+		"lock_screen": "lockscreen.jpg",
+		"home_screen": "homescreen.jpg",
+		"app_drawer": "appsdrawer.jpg",
+		"control_center": "controlcenter.jpg",
+		"notifications": "notification.jpg",
+		"recent_apps": "recentapps.jpg"
+	}
+	for pixel_component in pixel_gen1_assets:
+		simulator.configure_os(pixel_gen1_config, str(pixel_component))
+		await process_frame
+		var pixel_image := simulator.find_child("PixelGen1ScreenImage_" + str(pixel_component), true, false) as TextureRect
+		var expected_pixel_path := "res://assets/os/gen1/pixel/" + str(pixel_gen1_assets[pixel_component])
+		if pixel_image == null or pixel_image.texture == null or pixel_image.texture.resource_path != expected_pixel_path or pixel_image.stretch_mode != TextureRect.STRETCH_SCALE:
+			_fail("Gen 1 Pixel " + str(pixel_component) + " did not load its full-screen uploaded reference image: " + expected_pixel_path)
+			return
+	print("GEN1_PIXEL_ASSETS_TEST: all six reference screens loaded")
+
 	for generation_number in range(1, 4):
 		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
 		simulator.configure_os(generation_preview, "home_screen")
