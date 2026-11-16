@@ -238,7 +238,7 @@ func _simulate_screenshot_tap(simulator, node_name: String, normalized_position:
 		return
 	var rectangle := screenshot.get_global_rect()
 	var canvas_position := rectangle.position + rectangle.size * normalized_position
-	var local_position := simulator.get_global_transform_with_canvas().affine_inverse() * canvas_position
+	var local_position: Vector2 = simulator.get_global_transform_with_canvas().affine_inverse() * canvas_position
 	simulator._handle_gen1_screen_tap(local_position)
 
 func _simulate_overlay_tap(simulator, node_name: String, component_id: String, normalized_position: Vector2) -> void:
