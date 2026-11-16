@@ -178,6 +178,8 @@ class OSScreenCornerMask extends Control:
 	var corner_radius := 22.0
 	var mask_color := Color.BLACK
 	var mask_bottom_corners := true
+	var border_color := Color("#34404B")
+	var border_width := 1.5
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -215,6 +217,17 @@ class OSScreenCornerMask extends Control:
 				var angle := lerpf(angle_ranges[index][0], angle_ranges[index][1], float(step) / float(segments))
 				polygon.append(centers[index] + Vector2(cos(angle), sin(angle)) * radius)
 			draw_colored_polygon(polygon, mask_color)
+		var screen_border := StyleBoxFlat.new()
+		screen_border.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+		screen_border.border_color = border_color
+		screen_border.set_border_width_all(roundi(border_width))
+		screen_border.set_corner_radius_all(roundi(radius))
+		screen_border.content_margin_left = 0
+		screen_border.content_margin_right = 0
+		screen_border.content_margin_top = 0
+		screen_border.content_margin_bottom = 0
+		draw_style_box(screen_border, Rect2(Vector2.ZERO, size))
+
 
 
 class LollipopAppDrawerButton extends Button:
