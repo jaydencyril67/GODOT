@@ -193,7 +193,7 @@ func _process(delta: float) -> void:
 func _current_lock_time() -> String:
 	var now := Time.get_datetime_dict_from_system()
 	return "%02d:%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
-func _current_lock_date(treatment: String = "minimal") -> String:
+func _current_lock_date(_treatment: String = "minimal") -> String:
 	var now := Time.get_datetime_dict_from_system()
 	var weekdays := ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 	var months := ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
