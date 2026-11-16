@@ -255,11 +255,11 @@ func _run_os_generator_test() -> void:
 				_fail("Android Generation 1 must include its app drawer launcher.")
 				return
 		elif generation_number == 2:
-			var oreo_home_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
+			var generation_oreo_home_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
 			if simulator.find_child("AndroidWeatherWidget", true, false) != null or simulator.find_child("AndroidAssistantWidget", true, false) != null or simulator.find_child("AndroidHomeWidgetRow", true, false) != null:
 				_fail("Android 8 Pixel home screen must not contain side-by-side widget cards.")
 				return
-			if simulator.find_child("AndroidHomeAtAGlance", true, false) == null or oreo_home_grid == null or oreo_home_grid.get_child_count() != 8 or simulator.find_child("HomeSearchBar", true, false) == null or simulator.find_child("HomeAppDock", true, false) == null:
+			if simulator.find_child("AndroidHomeAtAGlance", true, false) == null or generation_oreo_home_grid == null or generation_oreo_home_grid.get_child_count() != 8 or simulator.find_child("HomeSearchBar", true, false) == null or simulator.find_child("HomeAppDock", true, false) == null:
 				_fail("Android 8 Pixel home screen must show At a Glance, eight app icons, search and the launcher dock.")
 				return
 		else:
