@@ -13,7 +13,6 @@ var rear_camera_mp_step_visited := false
 var memory_clock_step_visited := false
 var refresh_rate_step_visited := false
 var cooling_system_step_visited := false
-var ui_evolution_research_level := 0
 
 signal back_requested
 signal research_requested
@@ -1844,40 +1843,16 @@ func _show_ui_evolution_controls() -> void:
 		previous_panel.queue_free()
 
 	var panel := VBoxContainer.new()
-	panel.name = "UIEvolutionResearchControls"
+	panel.name = "UIEvolutionControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_theme_constant_override("separation", 10)
 	active_feature_panel = panel
 	selection_stack.add_child(panel)
 
-	var heading := _make_label("UI EVOLUTION", 19, Color("#D3AA6B"))
+	var heading := _make_label("PHONE INTERFACE DESIGN", 19, Color("#D3AA6B"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(heading)
-
-	if ui_evolution_research_level <= 0:
-		var description := _make_label("Develop a new on-device interface generator. It builds original home screens, widgets, app layouts, visual themes and system styling from the phone's specifications.", 12, Color("#E5E0D6"))
-		description.autowrap_mode = TextServer.AUTOWRAP_WORD
-		panel.add_child(description)
-		var status := _make_label("LOCAL PROCEDURAL INTELLIGENCE  ·  NO EXTERNAL AI API", 10, Color("#B8AFA2"))
-		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		panel.add_child(status)
-		var centre := CenterContainer.new()
-		centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		centre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		panel.add_child(centre)
-		var research_button := Button.new()
-		research_button.name = "UIEvolutionResearchButton"
-		research_button.text = "RESEARCH"
-		research_button.custom_minimum_size = Vector2(0, 48)
-		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		research_button.focus_mode = Control.FOCUS_NONE
-		_apply_research_typography(research_button, 13)
-		_style_button(research_button, true)
-		research_button.pressed.connect(func(): research_requested.emit())
-		centre.add_child(research_button)
-		step_panels[30] = panel
-		return
 
 	var intro := _make_label("YOUR PHONE'S INTERFACE", 11, Color("#B8AFA2"))
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1927,23 +1902,7 @@ func _get_ui_device_specs() -> Dictionary:
 	}
 
 
-func set_ui_evolution_research_level(level: int) -> void:
-	ui_evolution_research_level = clampi(level, 0, 1)
-	if ui_evolution_research_level <= 0:
-		return
-	if ui_evolution_configuration.is_empty():
-		ui_evolution_configuration = UIEvolutionEngineScript.load_ui()
-	if ui_evolution_configuration.is_empty():
-		_generate_new_ui_design()
-	else:
-		_apply_generated_ui_to_phone()
-	if wizard_step == 30 and is_instance_valid(selection_stack):
-		_show_ui_evolution_controls()
-
-
 func _generate_new_ui_design() -> void:
-	if ui_evolution_research_level <= 0:
-		return
 	var generated := UIEvolutionEngineScript.generate_ui(-1, _get_ui_device_specs())
 	var issues: PackedStringArray = UIEvolutionEngineScript.validate_ui(generated)
 	if not issues.is_empty():
@@ -3597,6 +3556,10 @@ func _show_cooling_system_step() -> void:
 
 
 func _show_ui_evolution_step() -> void:
+	if ui_evolution_configuration.is_empty():
+		ui_evolution_configuration = UIEvolutionEngineScript.load_ui()
+	if ui_evolution_configuration.is_empty():
+		_generate_new_ui_design()
 	_show_worksite_step(30, "_show_ui_evolution_controls")
 
 
@@ -4330,7 +4293,7 @@ func _get_software_research_features() -> Array:
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
 		"Mobile Network", "Sensors", "Front Camera MP", "Rear Camera MP",
-		"Memory Clock", "Refresh Rate", "Cooling System Design", "UI Evolution"
+		"Memory Clock", "Refresh Rate", "Cooling System Design"
 	]
 
 func _get_extras_research_features() -> Array:
