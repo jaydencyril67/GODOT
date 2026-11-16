@@ -455,7 +455,7 @@ func _run_gen1_smoke_test() -> void:
 		gen3_style["ui_family"] = str(family["id"])
 		gen3_config["style"] = gen3_style
 		gen3_config = ProceduralEngineScript.normalize_os(gen3_config)
-		if int(gen3_config.get("generation", 0)) != 2:
+		if int(gen3_config.get("generation", 0)) != 3:
 			_fail("Gen 3 family configuration did not remain in Generation 3.")
 			return
 		if str(gen3_config.get("style", {}).get("identity", "")) != str(family["identity"]):

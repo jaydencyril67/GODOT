@@ -1363,7 +1363,7 @@ func _apply_generation_selection() -> void:
 	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", ""))
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	var generated_style: Dictionary = generated_os_configuration.get("style", {})
-	if home_generation in [1, 2, 3]
+	if home_generation in [1, 2, 3]:
 		for option in _android_ui_family_options():
 			if str(option["id"]) == selected_ui_family:
 				generated_style["ui_family"] = selected_ui_family
@@ -1395,7 +1395,7 @@ func _generate_complete_os() -> void:
 	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", ""))
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	var generated_style: Dictionary = generated_os_configuration.get("style", {})
-	if home_generation in [1, 2, 3]
+	if home_generation in [1, 2, 3]:
 		for option in _android_ui_family_options():
 			if str(option["id"]) == selected_ui_family:
 				generated_style["ui_family"] = selected_ui_family

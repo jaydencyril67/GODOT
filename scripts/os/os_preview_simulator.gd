@@ -385,7 +385,7 @@ func _gen1_screenshot_prefix() -> String:
 	return "Samsung"
 
 func _gen1_screenshot_position(component_id: String, touch_position: Vector2) -> Vector2:
-	var generation_prefix := "Gen3" if _is_gen3_phone_ui() else "Gen2" if _is_gen2_phone_ui() else "Gen1
+	var generation_prefix := "Gen3" if _is_gen3_phone_ui() else "Gen2" if _is_gen2_phone_ui() else "Gen1"
 	var screenshot_name := _gen1_screenshot_prefix() + generation_prefix + "ScreenImage_" + component_id
 	var screenshot := find_child(screenshot_name, true, false) as TextureRect
 	if screenshot == null or not is_instance_valid(screenshot):

@@ -69,7 +69,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 	var palette: Dictionary = PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
 	var icon_shapes := ["square", "soft_square", "squircle"]
 	var columns: int = [4, 4, 5][design_index]
-	var wallpaper_id: String = "lollipop" if generation_number == 1 else "prism" if generation_number == 3 else WALLPAPER_STYLES[rng.randi_range(1, WALLPAPER_STYLES.size() - 1)]
+	var wallpaper_id: String = "lollipop" if generation_number == 1 else WALLPAPER_STYLES[rng.randi_range(1, WALLPAPER_STYLES.size() - 1)]
 	var config := {
 		"schema_version": SCHEMA_VERSION,
 		"seed": actual_seed,
@@ -283,7 +283,7 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	var is_gen2_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_gen3_android := int(config.get("generation", 1)) == 3 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_samsung_one_ui_android := int(config.get("generation", 1)) == 4 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut"] if is_gen1_pixel_android or is_gen1_xiaomi_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"] if is_gen1_samsung_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_gen3_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen2_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut"] if is_gen1_pixel_android or is_gen1_xiaomi_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"] if is_gen1_samsung_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen3_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen2_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
 	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
 			issues.append("Lock-screen setting is missing: " + lock_key)
