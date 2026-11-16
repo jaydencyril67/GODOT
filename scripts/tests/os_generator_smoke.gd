@@ -344,7 +344,8 @@ func _run_gen1_smoke_test() -> void:
 			_fail("Gen 2 " + str(family["id"]) + " Quick Settings tiles do not update their state.")
 			return
 		var gen2_brightness_before := int(simulator._brightness_level)
-		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen2ScreenImage_control_center", Vector2(0.50, 0.20))
+		var gen2_brightness_test_x := 0.85 if gen2_brightness_before < 85 else 0.25
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen2ScreenImage_control_center", Vector2(gen2_brightness_test_x, 0.20))
 		if int(simulator._brightness_level) == gen2_brightness_before:
 			_fail("Gen 2 " + str(family["id"]) + " brightness control does not change display brightness.")
 			return
