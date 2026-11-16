@@ -495,7 +495,7 @@ func _build_os_selection_controls() -> void:
 	generation_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(generation_description_label)
 
-	var note := _label("Gen 1 · Android 4.x    Gen 2 · Android 7 Nougat    Gen 3 · Android 9 Pie    Gen 4 · Android 10 One UI 2.0", 10, Color("#A6A096"))
+	var note := _label("Gen 1 · Android 4.x    Gen 2 · Android 7 Nougat    Gen 3 · Android 8 Oreo    Gen 4 · Android 10 One UI 2.0", 10, Color("#A6A096"))
 	note.name = "OSSelectionGenerationNote"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -545,14 +545,17 @@ func _show_lock_screen_studio_controls() -> void:
 	var is_gen2_pixel_android := home_screen_layout_level == 0 and home_generation == 2 and selected_ui_family == "google_pixel"
 	var is_gen2_xiaomi_android := home_screen_layout_level == 0 and home_generation == 2 and selected_ui_family == "xiaomi_miui8"
 	var is_gen2_android := is_gen2_samsung_android or is_gen2_pixel_android or is_gen2_xiaomi_android
-	var is_pie_android := home_screen_layout_level == 0 and home_generation == 3
+	var is_gen3_samsung_android := home_screen_layout_level == 0 and home_generation == 3 and selected_ui_family == "samsung_experience9"
+	var is_gen3_pixel_android := home_screen_layout_level == 0 and home_generation == 3 and selected_ui_family == "google_pixel8"
+	var is_gen3_xiaomi_android := home_screen_layout_level == 0 and home_generation == 3 and selected_ui_family == "xiaomi_miui9"
+	var is_gen3_android := is_gen3_samsung_android or is_gen3_pixel_android or is_gen3_xiaomi_android
 	var is_samsung_one_ui_android := home_screen_layout_level == 0 and home_generation == 4
-	var heading_text := "SAMSUNG TOUCHWIZ NATURE UX · ANDROID 4.x LOCK SCREEN" if is_gen1_samsung_android else "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH · LOCK SCREEN" if is_gen1_pixel_android else "XIAOMI MIUI · ANDROID 4.0 ERA LOCK SCREEN" if is_gen1_xiaomi_android else "SAMSUNG EXPERIENCE 8.0 · ANDROID 7 NOUGAT LOCK SCREEN" if is_gen2_samsung_android else "GOOGLE PIXEL LAUNCHER · ANDROID 7.1 NOUGAT LOCK SCREEN" if is_gen2_pixel_android else "XIAOMI MIUI 8 · ANDROID 7 NOUGAT LOCK SCREEN" if is_gen2_xiaomi_android else "SAMSUNG ONE UI 2.0 · ANDROID 10 LOCK SCREEN" if is_samsung_one_ui_android else "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
+	var heading_text := "SAMSUNG TOUCHWIZ NATURE UX · ANDROID 4.x LOCK SCREEN" if is_gen1_samsung_android else "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH · LOCK SCREEN" if is_gen1_pixel_android else "XIAOMI MIUI · ANDROID 4.0 ERA LOCK SCREEN" if is_gen1_xiaomi_android else "SAMSUNG EXPERIENCE 8.0 · ANDROID 7 NOUGAT LOCK SCREEN" if is_gen2_samsung_android else "GOOGLE PIXEL LAUNCHER · ANDROID 7.1 NOUGAT LOCK SCREEN" if is_gen2_pixel_android else "XIAOMI MIUI 8 · ANDROID 7 NOUGAT LOCK SCREEN" if is_gen2_xiaomi_android else "SAMSUNG EXPERIENCE 9.0 · ANDROID 8 OREO LOCK SCREEN" if is_gen3_samsung_android else "GOOGLE PIXEL LAUNCHER · ANDROID 8 OREO LOCK SCREEN" if is_gen3_pixel_android else "XIAOMI MIUI 9.5 · ANDROID 8.1 OREO LOCK SCREEN" if is_gen3_xiaomi_android else "SAMSUNG ONE UI 2.0 · ANDROID 10 LOCK SCREEN" if is_samsung_one_ui_android else "LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
 	var heading := _label(heading_text, 20, Color("#D3AA6B"))
 	heading.name = "LockScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description_text := "Galaxy S III TouchWiz Nature UX lock screen. Swipe right to unlock and tap the Phone or Camera shortcut." if is_gen1_samsung_android else "Stock Android 4.0 Ice Cream Sandwich lock-screen reference displayed edge-to-edge." if is_gen1_pixel_android else "Xiaomi MIUI is a separate Gen 1 family; its reference art is pending upload." if is_gen1_xiaomi_android else "Samsung Experience 8.0 Android 7 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_samsung_android else "Google Pixel Android 7.1 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_pixel_android else "Xiaomi MIUI 8 Android 7 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_xiaomi_android else "Samsung One UI 2.0 lock screen. Configure adaptive time/date, compact notifications and Phone/Camera shortcuts." if is_samsung_one_ui_android else "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Preview the selected layout's lock screen."
+	var description_text := "Galaxy S III TouchWiz Nature UX lock screen. Swipe right to unlock and tap the Phone or Camera shortcut." if is_gen1_samsung_android else "Stock Android 4.0 Ice Cream Sandwich lock-screen reference displayed edge-to-edge." if is_gen1_pixel_android else "Xiaomi MIUI is a separate Gen 1 family; its reference art is pending upload." if is_gen1_xiaomi_android else "Samsung Experience 8.0 Android 7 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_samsung_android else "Google Pixel Android 7.1 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_pixel_android else "Xiaomi MIUI 8 Android 7 lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen2_xiaomi_android else "Samsung Experience 9.0 Android 8 Oreo lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen3_samsung_android else "Google Pixel Launcher Android 8 Oreo lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen3_pixel_android else "Xiaomi MIUI 9.5 Android 8.1 Oreo lock-screen reference. Swipe up or right to unlock; tap a lower shortcut to open its app." if is_gen3_xiaomi_android else "Samsung One UI 2.0 lock screen. Configure adaptive time/date, compact notifications and Phone/Camera shortcuts." if is_samsung_one_ui_android else "Preview the selected layout's lock screen."
 	var description := _label(description_text, 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -571,11 +574,11 @@ func _show_lock_screen_studio_controls() -> void:
 		content.add_child(pixel_note)
 		return
 
-	if is_gen2_android:
-		var gen2_note := _label("The selected Android 7 Nougat family lock-screen image is used as the visual reference. Swipe up or right to unlock; tap the lower shortcuts to launch Phone or Camera.", 11, Color("#A6A096"))
-		gen2_note.name = "AndroidGen2LockScreenInteractionNote"
-		gen2_note.autowrap_mode = TextServer.AUTOWRAP_WORD
-		content.add_child(gen2_note)
+	if is_gen2_android or is_gen3_android:
+		var android_family_note := _label("The selected Android family lock-screen image is used as the visual reference. Swipe up or right to unlock; tap the lower shortcuts to launch Phone or Camera.", 11, Color("#A6A096"))
+		android_family_note.name = "AndroidGen%dLockScreenInteractionNote" % home_generation
+		android_family_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(android_family_note)
 		return
 
 	var hero_gap := Control.new()
@@ -589,13 +592,10 @@ func _show_lock_screen_studio_controls() -> void:
 		_add_lock_screen_toggle_row(content, "show_notifications", "Lock-screen Notifications", "Compact notifications below the date")
 		_add_lock_screen_toggle_row(content, "show_phone_shortcut", "Phone Shortcut", "Green Phone shortcut at bottom-left")
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Red Camera shortcut at bottom-right")
-	elif is_gen2_android or is_pie_android:
+	elif is_gen2_android or is_gen3_android:
 		_add_lock_screen_toggle_row(content, "show_notifications", "Lock-screen Notifications", "Notification cards below the clock")
 		_add_lock_screen_toggle_row(content, "show_assistant_shortcut", "Assistant Shortcut", "Assistant shortcut at bottom-left")
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Shortcut", "Camera shortcut at bottom-right")
-		if is_pie_android:
-			_add_lock_screen_toggle_row(content, "show_weather", "Ambient Weather", "Weather information on the lock screen")
-			_add_lock_screen_toggle_row(content, "show_battery", "Ambient Battery", "Battery percentage on the lock screen")
 	elif home_screen_layout_level == 0:
 		_add_lock_screen_toggle_row(content, "show_camera_shortcut", "Camera Button", "Bottom-left shortcut")
 		_add_lock_screen_toggle_row(content, "show_flashlight_shortcut", "Flashlight Button", "Bottom-right shortcut")
@@ -636,7 +636,7 @@ func _show_component_studio_controls(component_id: String) -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
-	if home_screen_layout_level == 0 and home_generation in [1, 2] and component_id in ["app_drawer", "control_center", "notifications"]:
+	if home_screen_layout_level == 0 and home_generation in [1, 2, 3] and component_id in ["app_drawer", "control_center", "notifications"]:
 		var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
 		var screenshot_note_text := "The TouchWiz app drawer is displayed from the uploaded Galaxy S III screenshot. Tap an app to open it; use Back or Home to return." if component_id == "app_drawer" else "TouchWiz combines Quick Settings and notifications in one pull-down panel. Swipe down from the top edge to open it and swipe up to dismiss it."
 		if home_generation == 1 and selected_ui_family == "google_stock":
@@ -644,8 +644,11 @@ func _show_component_studio_controls(component_id: String) -> void:
 		elif home_generation == 2:
 			var gen2_family_label := "Samsung Experience 8" if selected_ui_family == "samsung_experience" else "Google Pixel Android 7.1" if selected_ui_family == "google_pixel" else "Xiaomi MIUI 8"
 			screenshot_note_text = gen2_family_label + " " + str(titles.get(component_id, "screen")).to_lower() + " is displayed from its imported Android 7 reference image. Use the phone preview to test its touch interactions."
-		var screenshot_family_prefix := "Pixel" if selected_ui_family in ["google_stock", "google_pixel"] else "Xiaomi" if selected_ui_family in ["xiaomi_miui", "xiaomi_miui8"] else "Samsung"
-		var screenshot_generation_prefix := "Gen2" if home_generation == 2 else "Gen1"
+		elif home_generation == 3:
+			var gen3_family_label := "Samsung Experience 9.0" if selected_ui_family == "samsung_experience9" else "Google Pixel Launcher Android 8" if selected_ui_family == "google_pixel8" else "Xiaomi MIUI 9.5 Android 8.1"
+			screenshot_note_text = gen3_family_label + " " + str(titles.get(component_id, "screen")).to_lower() + " is displayed from its imported Android 8 reference image. Use the phone preview to test its touch interactions."
+		var screenshot_family_prefix := "Pixel" if selected_ui_family in ["google_stock", "google_pixel", "google_pixel8"] else "Xiaomi" if selected_ui_family in ["xiaomi_miui", "xiaomi_miui8", "xiaomi_miui9"] else "Samsung"
+		var screenshot_generation_prefix := "Gen3" if home_generation == 3 else "Gen2" if home_generation == 2 else "Gen1"
 		var screenshot_note := _label(screenshot_note_text, 11, Color("#A6A096"))
 		screenshot_note.name = screenshot_family_prefix + screenshot_generation_prefix + component_id.capitalize() + "ScreenshotNote"
 		screenshot_note.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -833,17 +836,20 @@ func _show_home_screen_studio_controls() -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
-	if home_screen_layout_level == 0 and home_generation in [1, 2]:
+	if home_screen_layout_level == 0 and home_generation in [1, 2, 3]:
 		var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
 		var screenshot_note_text := "Samsung TouchWiz Nature UX home screen uses the imported Galaxy S III screenshot. App shortcuts and the Apps launcher remain touch-enabled; the original icon artwork is no longer generated by DWM." if selected_ui_family == "samsung_touchwiz" else "Google Stock Android 4.0 Ice Cream Sandwich home screen uses the imported full-screen reference."
 		var screenshot_prefix := "Samsung"
 		if home_generation == 2:
 			screenshot_prefix = "Samsung Experience 8" if selected_ui_family == "samsung_experience" else "Google Pixel Launcher Android 7.1" if selected_ui_family == "google_pixel" else "Xiaomi MIUI 8"
 			screenshot_note_text = screenshot_prefix + " home screen uses the imported Android 7 reference. Tap app icons or use the family launcher gesture to open apps and the app drawer."
+		elif home_generation == 3:
+			screenshot_prefix = "Samsung Experience 9.0" if selected_ui_family == "samsung_experience9" else "Google Pixel Launcher Android 8" if selected_ui_family == "google_pixel8" else "Xiaomi MIUI 9.5 Android 8.1"
+			screenshot_note_text = screenshot_prefix + " home screen uses the imported Android 8 reference. Tap app icons or use the family launcher gesture to open apps and the app drawer."
 		elif selected_ui_family != "samsung_touchwiz":
 			screenshot_prefix = "Google Pixel Android 4.0"
 		var screenshot_note := _label(screenshot_note_text, 11, Color("#A6A096"))
-		screenshot_note.name = screenshot_prefix.replace(" ", "").replace(".", "") + ("Gen2" if home_generation == 2 else "Gen1") + "HomeScreenReferenceNote"
+		screenshot_note.name = screenshot_prefix.replace(" ", "").replace(".", "") + ("Gen3" if home_generation == 3 else "Gen2" if home_generation == 2 else "Gen1") + "HomeScreenReferenceNote"
 		screenshot_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		content.add_child(screenshot_note)
 		return
@@ -964,10 +970,11 @@ func _refresh_home_screen_layout_selector() -> void:
 		var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
 		var gen1_family_name := "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH" if selected_ui_family == "google_stock" else "XIAOMI MIUI · ANDROID 4.0 ERA" if selected_ui_family == "xiaomi_miui" else "SAMSUNG TOUCHWIZ NATURE UX"
 		var gen2_family_name := "SAMSUNG EXPERIENCE 8.0" if selected_ui_family == "samsung_experience" else "GOOGLE PIXEL LAUNCHER · ANDROID 7.1" if selected_ui_family == "google_pixel" else "XIAOMI MIUI 8"
-		var generation_name := ("ANDROID 4.0 · " + gen1_family_name) if home_screen_layout_level == 0 and home_generation == 1 else ("ANDROID 7 NOUGAT · " + gen2_family_name) if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
+		var gen3_family_name := "SAMSUNG EXPERIENCE 9.0" if selected_ui_family == "samsung_experience9" else "GOOGLE PIXEL LAUNCHER · ANDROID 8.0" if selected_ui_family == "google_pixel8" else "XIAOMI MIUI 9.5 · ANDROID 8.1"
+		var generation_name := ("ANDROID 4.0 · " + gen1_family_name) if home_screen_layout_level == 0 and home_generation == 1 else ("ANDROID 7 NOUGAT · " + gen2_family_name) if home_screen_layout_level == 0 and home_generation == 2 else ("ANDROID 8 OREO · " + gen3_family_name) if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
 		generation_description_label.text = generation_name
 	if is_instance_valid(android_ui_family_selector):
-		var show_android_families := home_screen_layout_level == 0 and home_generation in [1, 2]
+		var show_android_families := home_screen_layout_level == 0 and home_generation in [1, 2, 3]
 		android_ui_family_selector.visible = show_android_families
 		var family_heading := selection_panel.find_child("AndroidUIFamilyHeading", true, false) as Label
 		if family_heading != null:
@@ -1323,6 +1330,12 @@ func _android_ui_family_options() -> Array:
 			{"id":"google_pixel","label":"Google Pixel Launcher · Android 7.1","status":"GOOGLE PIXEL LAUNCHER · ANDROID 7.1"},
 			{"id":"xiaomi_miui8","label":"Xiaomi MIUI 8","status":"XIAOMI MIUI 8"}
 		]
+	if home_generation == 3:
+		return [
+			{"id":"samsung_experience9","label":"Samsung Experience 9.0","status":"SAMSUNG EXPERIENCE 9.0"},
+			{"id":"google_pixel8","label":"Google Pixel Launcher · Android 8 Oreo","status":"GOOGLE PIXEL LAUNCHER · ANDROID 8 OREO"},
+			{"id":"xiaomi_miui9","label":"Xiaomi MIUI 9.5 · Android 8.1","status":"XIAOMI MIUI 9.5 · ANDROID 8.1 OREO"}
+		]
 	return []
 
 func _on_android_ui_family_selected(index: int) -> void:
@@ -1350,19 +1363,19 @@ func _apply_generation_selection() -> void:
 	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", ""))
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	var generated_style: Dictionary = generated_os_configuration.get("style", {})
-	if home_generation in [1, 2]:
+	if home_generation in [1, 2, 3]
 		for option in _android_ui_family_options():
 			if str(option["id"]) == selected_ui_family:
 				generated_style["ui_family"] = selected_ui_family
 				break
 	generated_os_configuration["style"] = generated_style
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
-	if home_generation in [1, 2, 4]:
+	if home_generation in [1, 2, 3, 4]:
 		# Screenshot-backed Android generations enter through their family lock screen.
 		selected_os_component_id = "lock_screen"
 	_apply_bootloader_settings_to_configuration()
 	_apply_approved_home_screen_layout()
-	if home_generation in [1, 2, 4] and is_instance_valid(os_preview_simulator):
+	if home_generation in [1, 2, 3, 4] and is_instance_valid(os_preview_simulator):
 		os_preview_simulator.set_component_view("lock_screen")
 	_refresh_home_screen_layout_selector()
 	_set_os_generation_status("GENERATION %02d SELECTED" % home_generation)
@@ -1382,7 +1395,7 @@ func _generate_complete_os() -> void:
 	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", ""))
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	var generated_style: Dictionary = generated_os_configuration.get("style", {})
-	if home_generation in [1, 2]:
+	if home_generation in [1, 2, 3]
 		for option in _android_ui_family_options():
 			if str(option["id"]) == selected_ui_family:
 				generated_style["ui_family"] = selected_ui_family
