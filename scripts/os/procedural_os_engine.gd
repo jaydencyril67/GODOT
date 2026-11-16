@@ -88,7 +88,8 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		"created_at": int(Time.get_unix_time_from_system()),
 		"revision": 1,
 		"style": {
-			"identity": ["Samsung TouchWiz Nature UX", "Modern", "Pie", "One UI 2.0"][generation_number - 1],
+			"identity": "Samsung TouchWiz Nature UX" if generation_number == 1 else "Android 8.0 Oreo" if generation_number == 2 else "Android 9.0 Pie" if generation_number == 3 else "Samsung One UI 2.0",
+			"ui_family": "samsung_touchwiz" if generation_number in [1, 4] else "google_stock",
 			"generation": generation_number,
 			"palette": palette,
 			"icon_shape": icon_shapes[design_index],
@@ -192,7 +193,11 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_id):
 		wallpaper_id = "aurora"
 	style["generation"] = generation_number
-	style["identity"] = ["Samsung TouchWiz Nature UX", "Modern", "Pie", "One UI 2.0"][generation_number - 1]
+	var ui_family := str(style.get("ui_family", "samsung_touchwiz" if generation_number in [1, 4] else "google_stock"))
+	if not ["samsung_touchwiz", "google_stock"].has(ui_family):
+		ui_family = "samsung_touchwiz" if generation_number in [1, 4] else "google_stock"
+	style["ui_family"] = ui_family
+	style["identity"] = "Google Stock Android 4.0 Ice Cream Sandwich" if generation_number == 1 and ui_family == "google_stock" else "Samsung TouchWiz Nature UX" if generation_number == 1 else "Android 8.0 Oreo" if generation_number == 2 else "Android 9.0 Pie" if generation_number == 3 else "Samsung One UI 2.0"
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
@@ -226,7 +231,9 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		if not lock_data.has(lock_key):
 			lock_data[lock_key] = lock_defaults[lock_key]
 	var configured_home_data: Dictionary = components.get("home_screen", {})
-	var is_gen1_samsung_android := generation_number == 1 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var is_android_layout := str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var is_gen1_samsung_android := generation_number == 1 and is_android_layout and ui_family == "samsung_touchwiz"
+	var is_gen1_pixel_android := generation_number == 1 and is_android_layout and ui_family == "google_stock"
 	var is_oreo_android := generation_number == 2 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_pie_android := generation_number == 3 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_samsung_one_ui_android := generation_number == 4 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
@@ -247,7 +254,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		lock_data["show_phone_shortcut"] = bool(lock_data.get("show_phone_shortcut", true))
 		lock_data["show_camera_shortcut"] = bool(lock_data.get("show_camera_shortcut", true))
 		lock_data["show_notifications"] = false
-	elif is_oreo_android or is_pie_android or is_samsung_one_ui_android:
+	elif is_gen1_pixel_android or is_oreo_android or is_pie_android or is_samsung_one_ui_android:
 		lock_data.erase("show_flashlight_shortcut")
 	else:
 		for oreo_key in ["show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"]:
@@ -317,11 +324,13 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 		issues.append("Wallpaper style is invalid.")
 	var lock_screen: Dictionary = config.get("components", {}).get("lock_screen", {})
 	var home_data: Dictionary = components.get("home_screen", {})
-	var is_gen1_samsung_android := int(config.get("generation", 1)) == 1 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var ui_family := str(style.get("ui_family", "samsung_touchwiz" if int(config.get("generation", 1)) == 1 else "google_stock"))
+	var is_gen1_samsung_android := int(config.get("generation", 1)) == 1 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel" and ui_family == "samsung_touchwiz"
+	var is_gen1_pixel_android := int(config.get("generation", 1)) == 1 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel" and ui_family == "google_stock"
 	var is_oreo_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_pie_android := int(config.get("generation", 1)) == 3 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_samsung_one_ui_android := int(config.get("generation", 1)) == 4 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"] if is_gen1_samsung_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_pie_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut"] if is_gen1_pixel_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"] if is_gen1_samsung_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_pie_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
 	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
 			issues.append("Lock-screen setting is missing: " + lock_key)
