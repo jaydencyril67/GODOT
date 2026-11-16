@@ -49,52 +49,28 @@ func _draw() -> void:
 	_draw_status_bar(text_color, muted, system, style)
 
 	var widgets: Array = home.get("widgets", [])
-	var primary_widget := "clock"
-	if not widgets.is_empty() and widgets[0] is Dictionary:
-		primary_widget = str(widgets[0].get("type", "clock"))
-	var layout := str(style.get("layout_archetype", "clock_focus"))
-	var apps_top := size.y * 0.59
+	var composition: Dictionary = home.get("composition", {})
+	var placements: Array = composition.get("widget_placements", [])
+	var apps_top := size.y * clampf(float(composition.get("apps_top", 0.57)), 0.46, 0.675)
+	var density := str(style.get("composition_density", "balanced"))
+	var widget_scale := 0.94 if density == "airy" else (1.04 if density == "compact" else 1.0)
+	var header_text := str(home.get("header_text", "YOUR SPACE"))
+	_draw_text(header_text, Vector2(margin, size.y * 0.143), 13, text_color, HORIZONTAL_ALIGNMENT_LEFT, size.x - margin * 2.0)
 
-	match layout:
-		"clock_focus":
-			_draw_widget(Rect2(margin, size.y * 0.155, size.x - margin * 2.0, size.y * 0.205), primary_widget, palette, radius, text_color, muted, accent, scale)
-			if widgets.size() > 1:
-				_draw_widget(Rect2(margin, size.y * 0.382, size.x - margin * 2.0, size.y * 0.105), str(widgets[1].get("type", "weather")), palette, radius, text_color, muted, accent, scale * 0.84)
-			apps_top = size.y * (0.57 if widgets.size() <= 1 else 0.61)
-		"dashboard":
-			_draw_text("GOOD DAY", Vector2(margin, size.y * 0.155), 12, muted)
-			_draw_text("Your space", Vector2(margin, size.y * 0.190), 29, text_color)
-			var gap := size.x * 0.035
-			var card_width := (size.x - margin * 2.0 - gap) * 0.5
-			_draw_widget(Rect2(margin, size.y * 0.225, card_width, size.y * 0.175), primary_widget, palette, radius, text_color, muted, accent, scale * 0.86)
-			var second_widget := "weather" if widgets.size() < 2 else str(widgets[1].get("type", "weather"))
-			_draw_widget(Rect2(margin + card_width + gap, size.y * 0.225, card_width, size.y * 0.175), second_widget, palette, radius, text_color, muted, accent, scale * 0.86)
-			apps_top = size.y * 0.47
-		"editorial":
-			_draw_text("YOUR DAY / AT A GLANCE", Vector2(margin, size.y * 0.155), 11, muted)
-			_draw_text("Make room", Vector2(margin, size.y * 0.205), 34, text_color)
-			_draw_text("for what matters.", Vector2(margin, size.y * 0.245), 30, text_color)
-			_draw_widget(Rect2(margin, size.y * 0.275, size.x - margin * 2.0, size.y * 0.17), primary_widget, palette, radius, text_color, muted, accent, scale * 0.90)
-			apps_top = size.y * 0.50
-		"asymmetric":
-			var hero_height := size.y * 0.23
-			_draw_widget(Rect2(margin, size.y * 0.155, size.x * 0.56, hero_height), primary_widget, palette, radius, text_color, muted, accent, scale)
-			var second_widget := "calendar" if widgets.size() < 2 else str(widgets[1].get("type", "calendar"))
-			_draw_widget(Rect2(size.x * 0.66, size.y * 0.155, size.x * 0.275, hero_height), second_widget, palette, radius, text_color, muted, accent, scale * 0.75)
-			if widgets.size() > 2:
-				_draw_widget(Rect2(margin, size.y * 0.405, size.x - margin * 2.0, size.y * 0.095), str(widgets[2].get("type", "focus")), palette, radius, text_color, muted, accent, scale * 0.78)
-			apps_top = size.y * (0.54 if widgets.size() <= 2 else 0.62)
-		"minimal":
-			_draw_text("TODAY", Vector2(margin, size.y * 0.175), 12, muted)
-			_draw_clock(Vector2(margin, size.y * 0.285), 72, text_color)
-			_draw_text("A little progress adds up.", Vector2(margin, size.y * 0.325), 13, muted)
-			_draw_widget(Rect2(margin, size.y * 0.365, size.x - margin * 2.0, size.y * 0.105), primary_widget if primary_widget != "clock" else "weather", palette, radius, text_color, muted, accent, scale * 0.82)
-			apps_top = size.y * 0.51
-		"stacked":
-			_draw_widget(Rect2(margin, size.y * 0.155, size.x - margin * 2.0, size.y * 0.145), primary_widget, palette, radius, text_color, muted, accent, scale * 0.94)
-			var second_widget := "weather" if widgets.size() < 2 else str(widgets[1].get("type", "weather"))
-			_draw_widget(Rect2(margin, size.y * 0.315, size.x - margin * 2.0, size.y * 0.12), second_widget, palette, radius, text_color, muted, accent, scale * 0.84)
-			apps_top = size.y * 0.49
+	for placement_value in placements:
+		if not placement_value is Dictionary:
+			continue
+		var placement: Dictionary = placement_value
+		var rect_values: Array = placement.get("rect", [])
+		if rect_values.size() != 4:
+			continue
+		var widget_rect := Rect2(
+				Vector2(float(rect_values[0]) * size.x, float(rect_values[1]) * size.y),
+				Vector2(float(rect_values[2]) * size.x, float(rect_values[3]) * size.y)
+			)
+		var widget_type := str(placement.get("type", "clock"))
+		var local_scale := clampf(widget_rect.size.y / maxf(1.0, size.y * 0.22), 0.62, 1.12) * widget_scale
+		_draw_widget(widget_rect, widget_type, palette, radius, text_color, muted, accent, local_scale)
 
 	if bool(home.get("show_search", true)):
 		var search_y := apps_top - size.y * 0.046
