@@ -13,4 +13,4 @@ All six Android 4.0 visual components for the Gen 1 Pixel simulator live togethe
 
 Keep all six files directly inside this folder. Do not create a separate folder for each component.
 
-These are visual reference layers; simulator interaction and navigation are handled by Godot.
+These JPGs remain visual references for the Android 4-era interface. The live simulator uses native, interactive recent-app task cards; home-screen icons, app-drawer icons, notification entries, Quick Settings, swipe-to-unlock, Back, Home, and Overview are handled by Godot rather than relying on static screenshot taps alone. The `recentapps.jpg` file is retained as a visual reference and import asset.
