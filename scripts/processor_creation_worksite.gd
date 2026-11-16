@@ -299,14 +299,14 @@ func _build_processor_preview() -> void:
 	rim_light.omni_range = 8.0
 	preview_viewport.add_child(rim_light)
 
-	var floor := MeshInstance3D.new()
-	floor.name = "StudioFloor"
+	var studio_floor := MeshInstance3D.new()
+	studio_floor.name = "StudioFloor"
 	var floor_mesh := PlaneMesh.new()
 	floor_mesh.size = Vector2(40.0, 40.0)
-	floor.mesh = floor_mesh
-	floor.position = Vector3(0.0, -0.68, 0.0)
-	floor.material_override = _material(Color("#111A20"), 0.24, 0.34)
-	preview_viewport.add_child(floor)
+	studio_floor.mesh = floor_mesh
+	studio_floor.position = Vector3(0.0, -0.68, 0.0)
+	studio_floor.material_override = _material(Color("#111A20"), 0.24, 0.34)
+	preview_viewport.add_child(studio_floor)
 
 	processor_root = Node3D.new()
 	processor_root.name = "ProcessorSoCModel"
@@ -335,8 +335,8 @@ func _build_package_body() -> void:
 
 func _build_top_die_and_passives() -> void:
 	var frame_material := _material(Color("#6C604B"), 0.72, 0.28)
-	var die_frame := _add_box(processor_root, Vector3(1.49, 0.025, 1.49), Vector3(0.0, 0.111, 0.0), frame_material, "DieBondFrame")
-	var die_base := _add_box(processor_root, Vector3(1.39, 0.045, 1.39), Vector3(0.0, 0.145, 0.0), _material(Color("#20272C"), 0.38, 0.30), "SiliconDie")
+	_add_box(processor_root, Vector3(1.49, 0.025, 1.49), Vector3(0.0, 0.111, 0.0), frame_material, "DieBondFrame")
+	_add_box(processor_root, Vector3(1.39, 0.045, 1.39), Vector3(0.0, 0.145, 0.0), _material(Color("#20272C"), 0.38, 0.30), "SiliconDie")
 	die_surface = _add_box(processor_root, Vector3(1.32, 0.012, 1.32), Vector3(0.0, 0.173, 0.0), _material(Color("#171D22"), 0.32, 0.24), "SiliconDieSurface")
 
 	var frame_gold := _material(Color("#C69A55"), 0.86, 0.22)
