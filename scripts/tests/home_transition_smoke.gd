@@ -429,7 +429,7 @@ func _run_box_package_research_unlock_checks() -> bool:
 	var box_worksite = PhoneCreationWorksiteScript.new()
 	var box_preview := Node3D.new()
 	box_worksite.set("box_package_preview", box_preview)
-	box_worksite.set("wizard_step", 30)
+	box_worksite.set("wizard_step", 31)
 	box_worksite.set_box_package_research_level(0)
 	box_worksite.call("_set_box_package_preview_mode", true)
 	if not bool(box_worksite.get("box_package_preview_mode")) or not box_preview.visible:
