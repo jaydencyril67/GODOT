@@ -79,7 +79,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		"revision": 1,
 		"style": {
 			"identity": "Samsung TouchWiz Nature UX" if generation_number == 1 else "Samsung Experience 8.0 · Android 7 Nougat" if generation_number == 2 else "Samsung Experience 9.0 · Android 8 Oreo" if generation_number == 3 else "Samsung One UI 2.0",
-			"ui_family": "samsung_touchwiz" if generation_number == 1 else "samsung_experience" if generation_number == 2 else "samsung_experience9" if generation_number == 3 else "samsung_touchwiz",
+			"ui_family": "samsung_touchwiz" if generation_number == 1 else "samsung_experience" if generation_number == 2 else "samsung_experience9" if generation_number == 3 else "samsung_oneui2",
 			"generation": generation_number,
 			"palette": palette,
 			"icon_shape": icon_shapes[design_index],
@@ -163,13 +163,13 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_id):
 		wallpaper_id = "aurora"
 	style["generation"] = generation_number
-	var default_ui_family := "samsung_touchwiz" if generation_number == 1 else "samsung_experience" if generation_number == 2 else "samsung_experience9" if generation_number == 3 else "samsung_touchwiz"
+	var default_ui_family := "samsung_touchwiz" if generation_number == 1 else "samsung_experience" if generation_number == 2 else "samsung_experience9" if generation_number == 3 else "samsung_oneui2"
 	var ui_family := str(style.get("ui_family", default_ui_family))
-	var valid_ui_families := ["samsung_touchwiz", "google_stock", "xiaomi_miui"] if generation_number == 1 else ["samsung_experience", "google_pixel", "xiaomi_miui8"] if generation_number == 2 else ["samsung_experience9", "google_pixel8", "xiaomi_miui9"] if generation_number == 3 else ["samsung_touchwiz"]
+	var valid_ui_families := ["samsung_touchwiz", "google_stock", "xiaomi_miui"] if generation_number == 1 else ["samsung_experience", "google_pixel", "xiaomi_miui8"] if generation_number == 2 else ["samsung_experience9", "google_pixel8", "xiaomi_miui9"] if generation_number == 3 else ["samsung_oneui2", "google_pixel10", "xiaomi_miui11"]
 	if not valid_ui_families.has(ui_family):
 		ui_family = default_ui_family
 	style["ui_family"] = ui_family
-	style["identity"] = "Google Stock Android 4.0 Ice Cream Sandwich" if generation_number == 1 and ui_family == "google_stock" else "Xiaomi MIUI (Android 4.0 era)" if generation_number == 1 and ui_family == "xiaomi_miui" else "Samsung TouchWiz Nature UX" if generation_number == 1 else "Samsung Experience 8.0 · Android 7 Nougat" if generation_number == 2 and ui_family == "samsung_experience" else "Google Pixel Launcher · Android 7.1 Nougat" if generation_number == 2 and ui_family == "google_pixel" else "Xiaomi MIUI 8 · Android 7 Nougat" if generation_number == 2 and ui_family == "xiaomi_miui8" else "Samsung Experience 9.0 · Android 8 Oreo" if generation_number == 3 and ui_family == "samsung_experience9" else "Google Pixel Launcher · Android 8 Oreo" if generation_number == 3 and ui_family == "google_pixel8" else "Xiaomi MIUI 9.5 · Android 8.1 Oreo" if generation_number == 3 and ui_family == "xiaomi_miui9" else "Samsung One UI 2.0"
+	style["identity"] = "Google Stock Android 4.0 Ice Cream Sandwich" if generation_number == 1 and ui_family == "google_stock" else "Xiaomi MIUI (Android 4.0 era)" if generation_number == 1 and ui_family == "xiaomi_miui" else "Samsung TouchWiz Nature UX" if generation_number == 1 else "Samsung Experience 8.0 · Android 7 Nougat" if generation_number == 2 and ui_family == "samsung_experience" else "Google Pixel Launcher · Android 7.1 Nougat" if generation_number == 2 and ui_family == "google_pixel" else "Xiaomi MIUI 8 · Android 7 Nougat" if generation_number == 2 and ui_family == "xiaomi_miui8" else "Samsung Experience 9.0 · Android 8 Oreo" if generation_number == 3 and ui_family == "samsung_experience9" else "Google Pixel Launcher · Android 8 Oreo" if generation_number == 3 and ui_family == "google_pixel8" else "Xiaomi MIUI 9.5 · Android 8.1 Oreo" if generation_number == 3 and ui_family == "xiaomi_miui9" else "Samsung One UI 2.0" if generation_number == 4 and ui_family == "samsung_oneui2" else "Google Pixel Launcher · Android 10" if generation_number == 4 and ui_family == "google_pixel10" else "Xiaomi MIUI 11 · Android 10" if generation_number == 4 and ui_family == "xiaomi_miui11" else "Samsung One UI 2.0"
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
@@ -209,7 +209,8 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	var is_gen1_xiaomi_android := generation_number == 1 and is_android_layout and ui_family == "xiaomi_miui"
 	var is_gen2_android := generation_number == 2 and is_android_layout
 	var is_gen3_android := generation_number == 3 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var is_samsung_one_ui_android := generation_number == 4 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var is_gen4_android := generation_number == 4 and is_android_layout
+	var is_samsung_one_ui_android := is_gen4_android and ui_family == "samsung_oneui2"
 	# Keep historical lock-screen families separate: Gen 1 is Android 4.x,
 	# Gen 2 is Android 7 Nougat, Gen 3 is Android 8 Oreo, and Gen 4 is One UI 2.0.
 	var obsolete_lock_keys := [
@@ -227,7 +228,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		lock_data["show_phone_shortcut"] = bool(lock_data.get("show_phone_shortcut", true))
 		lock_data["show_camera_shortcut"] = bool(lock_data.get("show_camera_shortcut", true))
 		lock_data["show_notifications"] = false
-	elif is_gen1_pixel_android or is_gen1_xiaomi_android or is_gen2_android or is_gen3_android or is_samsung_one_ui_android:
+	elif is_gen1_pixel_android or is_gen1_xiaomi_android or is_gen2_android or is_gen3_android or is_gen4_android:
 		lock_data.erase("show_flashlight_shortcut")
 	else:
 		for gen2_legacy_key in ["show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"]:
@@ -238,6 +239,10 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		lock_data.erase("show_battery")
 		lock_data["show_phone_shortcut"] = bool(lock_data.get("show_phone_shortcut", true))
 		lock_data["show_notifications"] = bool(lock_data.get("show_notifications", false))
+	elif is_gen4_android:
+		lock_data.erase("show_phone_shortcut")
+		lock_data["show_assistant_shortcut"] = bool(lock_data.get("show_assistant_shortcut", true))
+		lock_data["show_notifications"] = bool(lock_data.get("show_notifications", true))
 	else:
 		lock_data.erase("show_weather")
 		lock_data.erase("show_battery")
@@ -282,8 +287,9 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	var is_gen1_xiaomi_android := int(config.get("generation", 1)) == 1 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel" and ui_family == "xiaomi_miui"
 	var is_gen2_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_gen3_android := int(config.get("generation", 1)) == 3 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var is_samsung_one_ui_android := int(config.get("generation", 1)) == 4 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut"] if is_gen1_pixel_android or is_gen1_xiaomi_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"] if is_gen1_samsung_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen3_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen2_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	var is_gen4_android := int(config.get("generation", 1)) == 4 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var is_samsung_one_ui_android := is_gen4_android and ui_family == "samsung_oneui2"
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut"] if is_gen1_pixel_android or is_gen1_xiaomi_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"] if is_gen1_samsung_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen4_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen3_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_gen2_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
 	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
 			issues.append("Lock-screen setting is missing: " + lock_key)
