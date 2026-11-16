@@ -323,10 +323,11 @@ func _draw_app_icon_symbol(app_name: String, centre: Vector2, icon_size: float, 
 			draw_circle(centre + Vector2(0.20, -0.12) * unit, unit * 0.035, Color("#FDE8A7"))
 		"Gallery", "Photos":
 			draw_circle(centre + Vector2(0.0, 0.0) * unit, unit * 0.28, Color("#F7F8FA"))
+			var petal_colors: Array[Color] = [Color("#F06B72"), Color("#F6B94A"), Color("#80C98D"), Color("#55BBDD"), Color("#728BE8"), Color("#B27AD6")]
 			for petal in range(6):
 				var angle := TAU * float(petal) / 6.0
 				var petal_center := centre + Vector2(cos(angle), sin(angle)) * unit * 0.135
-				var petal_color := [Color("#F06B72"), Color("#F6B94A"), Color("#80C98D"), Color("#55BBDD"), Color("#728BE8"), Color("#B27AD6")][petal]
+				var petal_color: Color = petal_colors[petal]
 				draw_circle(petal_center, unit * 0.09, petal_color)
 			draw_circle(centre, unit * 0.055, Color.WHITE)
 		"Browser":
