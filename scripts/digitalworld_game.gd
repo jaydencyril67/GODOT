@@ -2811,6 +2811,7 @@ func _prepare_processor_creation_worksite() -> void:
 	processor_creation_worksite.connect("back_requested", Callable(self, "_return_from_processor_creation_worksite"))
 	processor_creation_worksite.connect("design_saved", Callable(self, "_on_processor_design_saved"))
 	add_child(processor_creation_worksite)
+	processor_creation_worksite.call("configure_design", career.get("processor_design", {}))
 	processor_creation_worksite.hide()
 	for child in processor_creation_worksite.get_children():
 		if child is CanvasLayer:
