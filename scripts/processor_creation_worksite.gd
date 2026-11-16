@@ -249,7 +249,7 @@ func _build_interface() -> void:
 	controls.add_child(research_note)
 
 func _build_processor_preview() -> void:
-		var environment_node := WorldEnvironment.new()
+	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("#0B1117")
@@ -268,6 +268,7 @@ func _build_processor_preview() -> void:
 	camera.far = 100.0
 	preview_viewport.add_child(camera)
 	camera.look_at(Vector3(0.0, 0.015, 0.0), Vector3.UP)
+	camera.make_current()
 	preview_camera = camera
 
 	var key_light := DirectionalLight3D.new()
