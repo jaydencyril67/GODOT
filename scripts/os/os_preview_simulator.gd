@@ -958,7 +958,7 @@ func _apply_home_screen_icon_styles() -> void:
 				_style_home_app_icon(dock_button)
 
 func _safe_component_id(component_id: String) -> String:
-	if component_id == "pin_input":
+	if component_id in ["pin_input", "recent_apps"]:
 		return component_id
 	for component in OSEngine.COMPONENTS:
 		if str(component["id"]) == component_id:
@@ -973,6 +973,9 @@ func _is_gen1_samsung_ui() -> bool:
 
 func _is_gen1_pixel_ui() -> bool:
 	return _is_android_os() and int(configuration.get("generation", 0)) == 1 and str(configuration.get("style", {}).get("ui_family", "samsung_touchwiz")) == "google_stock"
+
+func _is_gen1_xiaomi_ui() -> bool:
+	return _is_android_os() and int(configuration.get("generation", 0)) == 1 and str(configuration.get("style", {}).get("ui_family", "samsung_touchwiz")) == "xiaomi_miui"
 
 func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
 	var target_component := active_component if component_id.is_empty() else component_id
@@ -1225,6 +1228,9 @@ func _build_component(component_id: String) -> void:
 	if _uses_gen1_samsung_screenshot(component_id):
 		_add_gen1_samsung_screenshot(page_container, component_id)
 		return
+	if _is_gen1_xiaomi_ui() and component_id in ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications", "recent_apps"]:
+		_build_gen1_xiaomi_reference_placeholder(component_id)
+		return
 	var components: Dictionary = configuration.get("components", {})
 	var component_data: Dictionary = components.get(component_id, {})
 	match component_id:
@@ -1254,6 +1260,38 @@ func _build_component(component_id: String) -> void:
 			_build_recent_apps(component_data)
 		"system_ui":
 			_build_system_ui(component_data)
+
+func _build_gen1_xiaomi_reference_placeholder(component_id: String) -> void:
+	var family_panel := PanelContainer.new()
+	family_panel.name = "XiaomiGen1ReferencePending_" + component_id
+	family_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	family_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#171717")
+	panel_style.border_color = Color("#FF6900")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(12)
+	panel_style.content_margin_left = 18
+	panel_style.content_margin_right = 18
+	panel_style.content_margin_top = 18
+	panel_style.content_margin_bottom = 18
+	family_panel.add_theme_stylebox_override("panel", panel_style)
+	var content := VBoxContainer.new()
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 12)
+	family_panel.add_child(content)
+	var title := _label("XIAOMI MIUI · ANDROID 4.0 ERA", 14, Color("#FF8A35"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(title)
+	var component_title := _label(component_id.replace("_", " ").to_upper(), 11, Color("#F5F5F5"))
+	component_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(component_title)
+	var note := _label("MIUI Gen 1 is configured as a separate UI family. Its six reference screenshots have not been uploaded yet.", 10, Color("#BDBDBD"))
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(note)
+	page_container.add_child(family_panel)
+
 
 func _build_home_screen(_data: Dictionary) -> void:
 	_add_gen1_samsung_screenshot(page_container, "home_screen")
