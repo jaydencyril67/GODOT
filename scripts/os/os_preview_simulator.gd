@@ -834,7 +834,7 @@ func _show_gesture_overlay(mode: String) -> void:
 				_build_android_pie_overview()
 				return
 	if mode == "recent_apps" and _is_android_os():
-		_build_lollipop_overview()
+		_build_samsung_gen1_overview()
 		return
 	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
 		match mode:
@@ -845,7 +845,7 @@ func _show_gesture_overlay(mode: String) -> void:
 				_build_lollipop_quick_settings_shade()
 				return
 			"recent_apps":
-				_build_lollipop_overview()
+				_build_samsung_gen1_overview()
 				return
 
 	_close_gesture_overlay()
@@ -2205,7 +2205,7 @@ func _build_android_pie_overview() -> void:
 			old_footer.queue_free()
 	else:
 		_close_gesture_overlay()
-		_set_lollipop_overview_underlay_visible(false)
+		_set_samsung_gen1_overview_underlay_visible(false)
 
 	var overlay := Control.new()
 	overlay.name = "OSGestureOverlay_recent_apps"
@@ -2331,7 +2331,7 @@ func _build_android_pie_overview() -> void:
 			preview.add_theme_constant_override("separation", 6)
 			preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			preview_background.add_child(preview)
-			_build_lollipop_overview_preview(preview, app_name)
+			_build_samsung_gen1_overview_preview(preview, app_name)
 
 	var clear_all := Button.new()
 	clear_all.name = "PieRecentAppsClearAll"
@@ -2441,7 +2441,7 @@ func _build_android_pie_recent_apps_preview() -> void:
 	page_container.add_child(_label("Swipe a card up to dismiss it", 8, Color("#5F6368")))
 
 
-func _build_lollipop_overview() -> void:
+func _build_samsung_gen1_overview() -> void:
 	# Rebuild the task deck without running the normal close path. The close
 	# path restores the launcher and navigation bar, which causes a brief
 	# teardown/re-entry during repeated card dismissals and can leave only the
@@ -2450,12 +2450,12 @@ func _build_lollipop_overview() -> void:
 	if replacing_overview:
 		_gesture_overlay.queue_free()
 		_gesture_overlay = null
-		var previous_footer := find_child("LollipopOverviewNavigationFooter", true, false) as Control
+		var previous_footer := find_child("SamsungGen1OverviewNavigationFooter", true, false) as Control
 		if is_instance_valid(previous_footer):
 			previous_footer.queue_free()
 	else:
 		_close_gesture_overlay()
-		_set_lollipop_overview_underlay_visible(false)
+		_set_samsung_gen1_overview_underlay_visible(false)
 
 	var overlay := Control.new()
 	overlay.name = "OSGestureOverlay_recent_apps"
@@ -2473,7 +2473,7 @@ func _build_lollipop_overview() -> void:
 	if is_instance_valid(original_navigation_bar):
 		original_navigation_bar.visible = false
 	var overview_navigation_footer := VBoxContainer.new()
-	overview_navigation_footer.name = "LollipopOverviewNavigationFooter"
+	overview_navigation_footer.name = "SamsungGen1OverviewNavigationFooter"
 	overview_navigation_footer.anchor_left = 0.0
 	overview_navigation_footer.anchor_right = 1.0
 	overview_navigation_footer.anchor_top = 1.0
@@ -2489,14 +2489,14 @@ func _build_lollipop_overview() -> void:
 
 	# Lollipop Overview sits over the launcher wallpaper, not a solid panel.
 	var background := ColorRect.new()
-	background.name = "LollipopOverviewBackground"
+	background.name = "SamsungGen1OverviewBackground"
 	background.color = Color(0.0, 0.0, 0.0, 0.035)
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(background)
 
 	var search_bar := PanelContainer.new()
-	search_bar.name = "LollipopOverviewSearchBar"
+	search_bar.name = "SamsungGen1OverviewSearchBar"
 	search_bar.position = Vector2(10.0, 29.0)
 	search_bar.size = Vector2(maxf(120.0, size.x - 20.0), 39.0)
 	search_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2517,7 +2517,7 @@ func _build_lollipop_overview() -> void:
 	search_row.add_theme_constant_override("separation", 5)
 	search_bar.add_child(search_row)
 	var google_wordmark := Label.new()
-	google_wordmark.name = "LollipopOverviewGoogleWordmark"
+	google_wordmark.name = "SamsungGen1OverviewGoogleWordmark"
 	google_wordmark.text = "Google"
 	google_wordmark.add_theme_font_size_override("font_size", 17)
 	google_wordmark.add_theme_color_override("font_color", Color("#757575"))
@@ -2525,7 +2525,7 @@ func _build_lollipop_overview() -> void:
 	google_wordmark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	search_row.add_child(google_wordmark)
 	var voice_mark := Label.new()
-	voice_mark.name = "LollipopOverviewVoiceSearch"
+	voice_mark.name = "SamsungGen1OverviewVoiceSearch"
 	voice_mark.text = "●"
 	voice_mark.add_theme_font_size_override("font_size", 11)
 	voice_mark.add_theme_color_override("font_color", Color("#777777"))
@@ -2536,7 +2536,7 @@ func _build_lollipop_overview() -> void:
 
 	if _recent_app_names.is_empty():
 		var empty_label := Label.new()
-		empty_label.name = "LollipopOverviewEmptyState"
+		empty_label.name = "SamsungGen1OverviewEmptyState"
 		empty_label.text = "No recent apps"
 		empty_label.position = Vector2(18.0, 88.0)
 		empty_label.add_theme_font_size_override("font_size", 13)
@@ -2559,7 +2559,7 @@ func _build_lollipop_overview() -> void:
 			continue
 		var depth := visible_count - 1 - index
 		var card := Button.new()
-		card.name = "LollipopOverviewTask_" + app_name.replace(" ", "")
+		card.name = "SamsungGen1OverviewTask_" + app_name.replace(" ", "")
 		card.position = Vector2(base_x, base_y + float(depth) * stack_step)
 		card.size = Vector2(card_width, card_height)
 		card.custom_minimum_size = Vector2(card_width, card_height)
@@ -2568,10 +2568,10 @@ func _build_lollipop_overview() -> void:
 		card.text = ""
 		card.focus_mode = Control.FOCUS_NONE
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
-		card.add_theme_stylebox_override("normal", _lollipop_overview_card_style(Color("#FFFFFF")))
-		card.add_theme_stylebox_override("hover", _lollipop_overview_card_style(Color("#FFFFFF")))
-		card.add_theme_stylebox_override("pressed", _lollipop_overview_card_style(Color("#F5F5F5")))
-		card.add_theme_stylebox_override("focus", _lollipop_overview_card_style(Color("#FFFFFF")))
+		card.add_theme_stylebox_override("normal", _samsung_gen1_overview_card_style(Color("#FFFFFF")))
+		card.add_theme_stylebox_override("hover", _samsung_gen1_overview_card_style(Color("#FFFFFF")))
+		card.add_theme_stylebox_override("pressed", _samsung_gen1_overview_card_style(Color("#F5F5F5")))
+		card.add_theme_stylebox_override("focus", _samsung_gen1_overview_card_style(Color("#FFFFFF")))
 		card.pressed.connect(func() -> void:
 			_close_gesture_overlay()
 			_on_app_pressed(app_name)
@@ -2579,7 +2579,7 @@ func _build_lollipop_overview() -> void:
 		overlay.add_child(card)
 
 		var preview_background := ColorRect.new()
-		preview_background.name = "LollipopOverviewPreview_" + app_name.replace(" ", "")
+		preview_background.name = "SamsungGen1OverviewPreview_" + app_name.replace(" ", "")
 		preview_background.position = Vector2(0.0, 42.0)
 		preview_background.size = Vector2(card_width, card_height - 42.0)
 		preview_background.color = Color("#FAFAFA")
@@ -2587,15 +2587,15 @@ func _build_lollipop_overview() -> void:
 		card.add_child(preview_background)
 
 		var header := ColorRect.new()
-		header.name = "LollipopOverviewCardHeader_" + app_name.replace(" ", "")
-		header.color = _lollipop_overview_app_color(app_name)
+		header.name = "SamsungGen1OverviewCardHeader_" + app_name.replace(" ", "")
+		header.color = _samsung_gen1_overview_app_color(app_name)
 		header.position = Vector2.ZERO
 		header.size = Vector2(card_width, 42.0)
 		header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(header)
 
 		var header_row := HBoxContainer.new()
-		header_row.name = "LollipopOverviewHeaderContent_" + app_name.replace(" ", "")
+		header_row.name = "SamsungGen1OverviewHeaderContent_" + app_name.replace(" ", "")
 		header_row.position = Vector2(10.0, 0.0)
 		header_row.size = Vector2(card_width - 16.0, 42.0)
 		header_row.add_theme_constant_override("separation", 9)
@@ -2604,7 +2604,7 @@ func _build_lollipop_overview() -> void:
 
 		var app := _find_app(app_name)
 		var app_icon := Label.new()
-		app_icon.name = "LollipopOverviewAppIcon_" + app_name.replace(" ", "")
+		app_icon.name = "SamsungGen1OverviewAppIcon_" + app_name.replace(" ", "")
 		app_icon.text = str(app.get("glyph", "•"))
 		app_icon.custom_minimum_size = Vector2(24.0, 30.0)
 		app_icon.add_theme_font_size_override("font_size", 19)
@@ -2614,7 +2614,7 @@ func _build_lollipop_overview() -> void:
 		header_row.add_child(app_icon)
 
 		var app_title := Label.new()
-		app_title.name = "LollipopOverviewAppTitle_" + app_name.replace(" ", "")
+		app_title.name = "SamsungGen1OverviewAppTitle_" + app_name.replace(" ", "")
 		app_title.text = app_name
 		app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		app_title.add_theme_font_size_override("font_size", 15)
@@ -2635,18 +2635,18 @@ func _build_lollipop_overview() -> void:
 		header_row.add_child(close_task)
 
 		var preview_content := VBoxContainer.new()
-		preview_content.name = "LollipopOverviewPreviewContent_" + app_name.replace(" ", "")
+		preview_content.name = "SamsungGen1OverviewPreviewContent_" + app_name.replace(" ", "")
 		preview_content.position = Vector2(13.0, 52.0)
 		preview_content.size = Vector2(card_width - 26.0, card_height - 62.0)
 		preview_content.add_theme_constant_override("separation", 8)
 		preview_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(preview_content)
-		_build_lollipop_overview_preview(preview_content, app_name)
+		_build_samsung_gen1_overview_preview(preview_content, app_name)
 
 	_apply_lollipop_shade_screen_mask(overlay)
 
 
-func _lollipop_overview_card_style(background_color: Color) -> StyleBoxFlat:
+func _samsung_gen1_overview_card_style(background_color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = background_color
 	style.set_corner_radius_all(2)
@@ -2657,7 +2657,7 @@ func _lollipop_overview_card_style(background_color: Color) -> StyleBoxFlat:
 	return style
 
 
-func _lollipop_overview_app_color(app_name: String) -> Color:
+func _samsung_gen1_overview_app_color(app_name: String) -> Color:
 	match app_name:
 		"Camera":
 			return Color("#263238")
@@ -2684,7 +2684,7 @@ func _lollipop_overview_app_color(app_name: String) -> Color:
 			return Color(str(app.get("color", "#607D8B")))
 
 
-func _build_lollipop_overview_preview(parent: VBoxContainer, app_name: String) -> void:
+func _build_samsung_gen1_overview_preview(parent: VBoxContainer, app_name: String) -> void:
 	var status_line := _label("9:41  ·  " + app_name.to_upper(), 8, Color("#78909C"))
 	status_line.autowrap_mode = TextServer.AUTOWRAP_OFF
 	parent.add_child(status_line)
@@ -2699,13 +2699,13 @@ func _build_lollipop_overview_preview(parent: VBoxContainer, app_name: String) -
 			var capture_hint := _label("PHOTO  ·  VIDEO", 8, Color("#607D8B"))
 			parent.add_child(capture_hint)
 		"Messages", "Email":
-			_add_lollipop_overview_preview_row(parent, "Alex Morgan", "Are we still meeting today?", Color("#4C91C7"))
-			_add_lollipop_overview_preview_row(parent, "Family", "Thanks, see you soon.", Color("#4B9B78"))
-			_add_lollipop_overview_preview_row(parent, "Work", "The document is ready.", Color("#CE765D"))
+			_add_samsung_gen1_overview_preview_row(parent, "Alex Morgan", "Are we still meeting today?", Color("#4C91C7"))
+			_add_samsung_gen1_overview_preview_row(parent, "Family", "Thanks, see you soon.", Color("#4B9B78"))
+			_add_samsung_gen1_overview_preview_row(parent, "Work", "The document is ready.", Color("#CE765D"))
 		"Settings":
-			_add_lollipop_overview_preview_row(parent, "Wireless & networks", "Wi-Fi, Bluetooth, data usage", Color("#4C91C7"))
-			_add_lollipop_overview_preview_row(parent, "Device", "Display, sound, storage", Color("#4B9B78"))
-			_add_lollipop_overview_preview_row(parent, "Personal", "Location, security, accounts", Color("#CE765D"))
+			_add_samsung_gen1_overview_preview_row(parent, "Wireless & networks", "Wi-Fi, Bluetooth, data usage", Color("#4C91C7"))
+			_add_samsung_gen1_overview_preview_row(parent, "Device", "Display, sound, storage", Color("#4B9B78"))
+			_add_samsung_gen1_overview_preview_row(parent, "Personal", "Location, security, accounts", Color("#CE765D"))
 		"Browser":
 			var address := PanelContainer.new()
 			address.custom_minimum_size.y = 28
@@ -2738,7 +2738,7 @@ func _build_lollipop_overview_preview(parent: VBoxContainer, app_name: String) -
 			parent.add_child(map_preview)
 			parent.add_child(_label("Nearby places", 10, Color("#455A64")))
 		_:
-			parent.add_child(_label(_lollipop_overview_preview_text(app_name), 11, Color("#455A64")))
+			parent.add_child(_label(_samsung_gen1_overview_preview_text(app_name), 11, Color("#455A64")))
 			for line_index in range(3):
 				var preview_line := ColorRect.new()
 				preview_line.color = Color("#CFD8DC")
@@ -2746,7 +2746,7 @@ func _build_lollipop_overview_preview(parent: VBoxContainer, app_name: String) -
 				parent.add_child(preview_line)
 
 
-func _add_lollipop_overview_preview_row(parent: VBoxContainer, primary_text: String, secondary_text: String, avatar_color: Color) -> void:
+func _add_samsung_gen1_overview_preview_row(parent: VBoxContainer, primary_text: String, secondary_text: String, avatar_color: Color) -> void:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.y = 38.0
 	row.add_theme_constant_override("separation", 9)
@@ -2765,7 +2765,7 @@ func _add_lollipop_overview_preview_row(parent: VBoxContainer, primary_text: Str
 	parent.add_child(row)
 
 
-func _set_lollipop_overview_underlay_visible(should_show: bool) -> void:
+func _set_samsung_gen1_overview_underlay_visible(should_show: bool) -> void:
 	var component_content := find_child("OSComponentContent", true, false) as Control
 	if is_instance_valid(component_content):
 		component_content.visible = should_show
@@ -2775,7 +2775,7 @@ func _set_lollipop_overview_underlay_visible(should_show: bool) -> void:
 			home_dock.visible = should_show
 
 
-func _lollipop_overview_preview_text(app_name: String) -> String:
+func _samsung_gen1_overview_preview_text(app_name: String) -> String:
 	match app_name:
 		"Messages":
 			return "Recent conversations\n\nNo new messages"
@@ -2798,7 +2798,7 @@ func _advance_overview_deck(move_to_back: bool) -> void:
 		_recent_app_names.push_back(_recent_app_names.pop_front())
 	else:
 		_recent_app_names.push_front(_recent_app_names.pop_back())
-	_build_lollipop_overview()
+	_build_samsung_gen1_overview()
 
 
 func _dismiss_overview_top_card() -> void:
@@ -2811,17 +2811,17 @@ func _dismiss_overview_task(app_name: String) -> void:
 	# Keep the active Overview overlay and navigation footer alive. Removing
 	# only the dismissed task avoids destroying the close button's own parent
 	# while its pressed signal is being dispatched.
-	var task_card_name := "LollipopOverviewTask_" + app_name.replace(" ", "")
+	var task_card_name := "SamsungGen1OverviewTask_" + app_name.replace(" ", "")
 	var task_card := find_child(task_card_name, true, false) as Control
 	if is_instance_valid(task_card):
 		task_card.queue_free()
 	var overlay := find_child("OSGestureOverlay_recent_apps", true, false) as Control
 	if not is_instance_valid(overlay):
-		_build_lollipop_overview()
+		_build_samsung_gen1_overview()
 		return
 	if _recent_app_names.is_empty():
 		var empty_label := Label.new()
-		empty_label.name = "LollipopOverviewEmptyState"
+		empty_label.name = "SamsungGen1OverviewEmptyState"
 		empty_label.text = "No recent apps"
 		empty_label.position = Vector2(18.0, 88.0)
 		empty_label.add_theme_font_size_override("font_size", 13)
@@ -2835,7 +2835,7 @@ func _dismiss_overview_task(app_name: String) -> void:
 	var stack_step := 29.0
 	for index in range(visible_count):
 		var remaining_name := _recent_app_names[index]
-		var remaining_card := find_child("LollipopOverviewTask_" + remaining_name.replace(" ", ""), true, false) as Control
+		var remaining_card := find_child("SamsungGen1OverviewTask_" + remaining_name.replace(" ", ""), true, false) as Control
 		if not is_instance_valid(remaining_card):
 			continue
 		var depth := visible_count - 1 - index
@@ -2850,7 +2850,7 @@ func _close_gesture_overlay() -> void:
 		_gesture_overlay.queue_free()
 	_gesture_overlay = null
 	if was_recent_apps:
-		var footer_name := "PieOverviewNavigationFooter" if was_pie_overview else "LollipopOverviewNavigationFooter"
+		var footer_name := "PieOverviewNavigationFooter" if was_pie_overview else "SamsungGen1OverviewNavigationFooter"
 		var overview_navigation_footer := find_child(footer_name, true, false) as Control
 		if is_instance_valid(overview_navigation_footer):
 			overview_navigation_footer.queue_free()
@@ -2858,7 +2858,7 @@ func _close_gesture_overlay() -> void:
 		var original_navigation_bar := find_child(nav_name, true, false) as Control
 		if is_instance_valid(original_navigation_bar):
 			original_navigation_bar.visible = true
-		_set_lollipop_overview_underlay_visible(true)
+		_set_samsung_gen1_overview_underlay_visible(true)
 
 
 func _ready() -> void:
@@ -3027,9 +3027,9 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	bar_style.content_margin_bottom = 0
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
 
-	var is_lollipop_overview := parent.name == "LollipopOverviewNavigationFooter"
+	var is_samsung_gen1_overview := parent.name == "SamsungGen1OverviewNavigationFooter"
 	var navigation_keys := HBoxContainer.new()
-	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "LollipopOverviewThreeButtonNavigation" if is_lollipop_overview else "SamsungGen1ThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
+	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "SamsungGen1OverviewThreeButtonNavigation" if is_samsung_gen1_overview else "SamsungGen1ThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
 	navigation_keys.custom_minimum_size.y = 46
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -3048,7 +3048,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
-		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "LollipopNavigation" if is_lollipop_overview else "SamsungGen1Navigation" if use_lollipop_style else "AndroidNavigation") + action
+		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "SamsungGen1Navigation" if is_samsung_gen1_overview else "SamsungGen1Navigation" if use_lollipop_style else "AndroidNavigation") + action
 		key.action_name = action
 		key.icon_color = navigation_color
 		key.tooltip_text = "Recent" if action == "Overview" else action
