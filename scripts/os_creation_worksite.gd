@@ -961,18 +961,27 @@ func _refresh_home_screen_layout_selector() -> void:
 		generation_value_label.text = "GENERATION %02d" % home_generation
 	if is_instance_valid(generation_description_label):
 		var layout_name: String = str(["ANDROID", "iOS", "WINDOWS PHONE"][home_screen_layout_level])
-		var selected_gen1_family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
-		var ui_family_name := "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH" if selected_gen1_family == "google_stock" else "XIAOMI MIUI · ANDROID 4.0 ERA" if selected_gen1_family == "xiaomi_miui" else "SAMSUNG TOUCHWIZ NATURE UX"
-		var generation_name := ("ANDROID 4.0 · " + ui_family_name) if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
+		var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
+		var gen1_family_name := "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH" if selected_ui_family == "google_stock" else "XIAOMI MIUI · ANDROID 4.0 ERA" if selected_ui_family == "xiaomi_miui" else "SAMSUNG TOUCHWIZ NATURE UX"
+		var gen2_family_name := "SAMSUNG EXPERIENCE 8.0" if selected_ui_family == "samsung_experience" else "GOOGLE PIXEL LAUNCHER · ANDROID 7.1" if selected_ui_family == "google_pixel" else "XIAOMI MIUI 8"
+		var generation_name := ("ANDROID 4.0 · " + gen1_family_name) if home_screen_layout_level == 0 and home_generation == 1 else ("ANDROID 7 NOUGAT · " + gen2_family_name) if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
 		generation_description_label.text = generation_name
 	if is_instance_valid(android_ui_family_selector):
-		var show_gen1_families := home_screen_layout_level == 0 and home_generation == 1
-		android_ui_family_selector.visible = show_gen1_families
-		var family_heading := selection_panel.find_child("Gen1AndroidUIFamilyHeading", true, false) as Label
+		var show_android_families := home_screen_layout_level == 0 and home_generation in [1, 2]
+		android_ui_family_selector.visible = show_android_families
+		var family_heading := selection_panel.find_child("AndroidUIFamilyHeading", true, false) as Label
 		if family_heading != null:
-			family_heading.visible = show_gen1_families
-		var family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
-		android_ui_family_selector.select(1 if family == "google_stock" else 2 if family == "xiaomi_miui" else 0)
+			family_heading.visible = show_android_families
+			family_heading.text = "ANDROID UI FAMILY · GENERATION %d" % home_generation
+		android_ui_family_selector.clear()
+		var options := _android_ui_family_options()
+		var selected_index := 0
+		for index in range(options.size()):
+			android_ui_family_selector.add_item(str(options[index]["label"]))
+			if str(options[index]["id"]) == str(generated_os_configuration.get("style", {}).get("ui_family", "")):
+				selected_index = index
+		if not options.is_empty():
+			android_ui_family_selector.select(selected_index)
 	if is_instance_valid(generation_decrease_button):
 		generation_decrease_button.disabled = home_generation <= 1
 	if is_instance_valid(generation_increase_button):
