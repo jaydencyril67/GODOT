@@ -1601,10 +1601,10 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	worksite.call("_show_lock_screen_studio_controls")
 	await process_frame
-	var samsung_generation_description := worksite.find_child("OSGenerationDescription", true, false) as Label
+	var samsung_lock_title := worksite.find_child("LockScreenHeroTitle", true, false) as Label
 	var samsung_lock_controls := worksite.find_child("LockScreenStudioControls", true, false) as VBoxContainer
-	if samsung_generation_description == null or not samsung_generation_description.text.contains("SAMSUNG ONE UI 2.0") or samsung_lock_controls == null:
-		_fail("The OS worksite must expose Generation 4 as Samsung One UI 2.0.")
+	if samsung_lock_title == null or not samsung_lock_title.text.contains("SAMSUNG ONE UI 2.0") or samsung_lock_controls == null:
+		_fail("The OS worksite must expose the Samsung One UI 2.0 lock-screen studio.")
 		return
 	for samsung_setting in ["LockScreenSettingRow_show_notifications", "LockScreenSettingRow_show_phone_shortcut", "LockScreenSettingRow_show_camera_shortcut"]:
 		if worksite.find_child(samsung_setting, true, false) == null:
