@@ -1107,7 +1107,7 @@ func _apply_gen1_brightness_to_screenshots() -> void:
 	var brightness_modulate := Color(brightness_scale, brightness_scale, brightness_scale, 1.0)
 	for node in find_children("*", "TextureRect", true, false):
 		var screenshot := node as TextureRect
-		if screenshot.name.begins_with("SamsungGen1ScreenImage_") or screenshot.name.begins_with("PixelGen1ScreenImage_") or screenshot.name.begins_with("XiaomiGen1ScreenImage_") or screenshot.name.begins_with("SamsungGen2ScreenImage_") or screenshot.name.begins_with("PixelGen2ScreenImage_") or screenshot.name.begins_with("XiaomiGen2ScreenImage_") or screenshot.name.begins_with("SamsungGen3ScreenImage_") or screenshot.name.begins_with("PixelGen3ScreenImage_") or screenshot.name.begins_with("XiaomiGen3ScreenImage_")
+		if screenshot.name.begins_with("SamsungGen1ScreenImage_") or screenshot.name.begins_with("PixelGen1ScreenImage_") or screenshot.name.begins_with("XiaomiGen1ScreenImage_") or screenshot.name.begins_with("SamsungGen2ScreenImage_") or screenshot.name.begins_with("PixelGen2ScreenImage_") or screenshot.name.begins_with("XiaomiGen2ScreenImage_") or screenshot.name.begins_with("SamsungGen3ScreenImage_") or screenshot.name.begins_with("PixelGen3ScreenImage_") or screenshot.name.begins_with("XiaomiGen3ScreenImage_"):
 			screenshot.modulate = brightness_modulate
 func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	_close_gesture_overlay()
