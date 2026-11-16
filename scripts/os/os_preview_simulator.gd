@@ -555,7 +555,7 @@ func _build_gen1_family_gesture_overlay(mode: String) -> void:
 	overlay.z_as_relative = false
 	add_child(overlay)
 	_gesture_overlay = overlay
-	_add_gen1_samsung_screenshot(overlay, screenshot_component)
+	_add_gen1_family_screenshot(overlay, screenshot_component)
 	var corner_mask := OSScreenCornerMask.new()
 	corner_mask.name = "Gen1FamilyShadeScreenCornerMask"
 	corner_mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -856,7 +856,7 @@ func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	_gesture_overlay.z_index = 120
 	_gesture_overlay.z_as_relative = false
 	add_child(_gesture_overlay)
-	_add_gen1_samsung_screenshot(_gesture_overlay, screenshot_component)
+	_add_gen1_family_screenshot(_gesture_overlay, screenshot_component)
 	var corner_mask := OSScreenCornerMask.new()
 	corner_mask.name = "SamsungGen1ShadeScreenCornerMask"
 	corner_mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1391,7 +1391,7 @@ func _is_gen1_xiaomi_ui() -> bool:
 	return _is_android_os() and int(configuration.get("generation", 0)) == 1 and str(configuration.get("style", {}).get("ui_family", "samsung_touchwiz")) == "xiaomi_miui"
 
 
-func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
+func _uses_gen1_reference_screenshot(component_id: String = "") -> bool:
 	var target_component := active_component if component_id.is_empty() else component_id
 	if _is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component):
 		return true
@@ -1403,7 +1403,7 @@ func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
 		var xiaomi_path := "res://assets/os/gen1/miui/" + str(XIAOMI_GEN1_SCREEN_ASSETS[target_component])
 		return ResourceLoader.exists(xiaomi_path)
 	return false
-func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> TextureRect:
+func _add_gen1_family_screenshot(parent: Control, component_id: String) -> TextureRect:
 	var family_folder := "samsung"
 	var family_label := "Samsung"
 	var family_prefix := "Samsung"
@@ -1526,7 +1526,7 @@ func _build_shell() -> void:
 		child.queue_free()
 	_style = configuration.get("style", {})
 	_palette = _style.get("palette", {"background":"#0B1017","surface":"#19232E","surface_alt":"#263544","accent":"#76C8D4","text":"#F4F7F8","muted":"#A7B4BD"})
-	var screenshot_backed_screen := _uses_gen1_samsung_screenshot(active_component)
+	var screenshot_backed_screen := _uses_gen1_reference_screenshot(active_component)
 	if not screenshot_backed_screen:
 		var wallpaper := OSWallpaperLayer.new()
 		wallpaper.name = "OSProceduralWallpaper"
@@ -1675,8 +1675,8 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	parent.add_child(bar)
 
 func _build_component(component_id: String) -> void:
-	if _uses_gen1_samsung_screenshot(component_id):
-		_add_gen1_samsung_screenshot(page_container, component_id)
+	if _uses_gen1_reference_screenshot(component_id):
+		_add_gen1_family_screenshot(page_container, component_id)
 		return
 	if _is_gen1_xiaomi_ui() and component_id in ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications"]:
 		_build_gen1_xiaomi_reference_placeholder(component_id)
@@ -1743,7 +1743,7 @@ func _build_gen1_xiaomi_reference_placeholder(component_id: String) -> void:
 
 
 func _build_home_screen(_data: Dictionary) -> void:
-	_add_gen1_samsung_screenshot(page_container, "home_screen")
+	_add_gen1_family_screenshot(page_container, "home_screen")
 func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 	var style := StyleBoxFlat.new()
 	var surface_color := _surface_color()
@@ -1899,7 +1899,7 @@ func _style_home_search_field(search: LineEdit) -> void:
 		_register_home_screen_radius_style(style)
 
 func _build_lock_screen(_data: Dictionary) -> void:
-	_add_gen1_samsung_screenshot(page_container, "lock_screen")
+	_add_gen1_family_screenshot(page_container, "lock_screen")
 func _build_pin_input() -> void:
 	var layout := VBoxContainer.new()
 	layout.name = "PINInputScreen"
@@ -2211,7 +2211,7 @@ func _build_animation_preview(data: Dictionary) -> void:
 	page_container.add_child(play)
 
 func _build_control_center(_data: Dictionary) -> void:
-	_add_gen1_samsung_screenshot(page_container, "control_center")
+	_add_gen1_family_screenshot(page_container, "control_center")
 func _add_control_slider(caption: String, initial_value: float, glyph: String) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "ControlSlider_" + caption
@@ -2234,7 +2234,7 @@ func _add_control_slider(caption: String, initial_value: float, glyph: String) -
 	page_container.add_child(panel)
 
 func _build_notifications(_data: Dictionary) -> void:
-	_add_gen1_samsung_screenshot(page_container, "notifications")
+	_add_gen1_family_screenshot(page_container, "notifications")
 func _build_navigation_preview(data: Dictionary) -> void:
 	_add_section_label("SYSTEM NAVIGATION")
 	page_container.add_child(_surface_label("Navigation mode  ·  " + str(data.get("mode", "gesture")).replace("_", " ").capitalize(), 10))
@@ -2268,13 +2268,13 @@ func _build_navigation_preview(data: Dictionary) -> void:
 	page_container.add_child(indicator)
 
 func _build_app_drawer(_data: Dictionary) -> void:
-	_add_gen1_samsung_screenshot(page_container, "app_drawer")
+	_add_gen1_family_screenshot(page_container, "app_drawer")
 
 func _build_recent_apps(_data: Dictionary) -> void:
 	if _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui():
 		_build_gen1_family_recent_apps(page_container)
 		return
-	_add_gen1_samsung_screenshot(page_container, "recent_apps")
+	_add_gen1_family_screenshot(page_container, "recent_apps")
 func _build_system_ui(data: Dictionary) -> void:
 	_add_section_label("SYSTEM INTERFACE")
 	var status_sample := PanelContainer.new()
