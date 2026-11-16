@@ -13,7 +13,7 @@ func _initialize() -> void:
 
 
 func _run_smoke_test() -> void:
-	if not _check_generated_designs():
+	if not await _check_generated_designs():
 		quit(1)
 		return
 	if not _check_research_unlock():
