@@ -2,8 +2,6 @@ extends SceneTree
 
 const UIEvolutionEngineScript = preload("res://scripts/ui_evolution_engine.gd")
 const GeneratedPhoneUIScript = preload("res://scripts/generated_phone_ui.gd")
-const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
-const ResearchDashboardScript = preload("res://scripts/research_allocation_dashboard.gd")
 const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
 
 const TEST_SAVE_PATH := "user://ui_evolution_smoke_test.json"
@@ -15,9 +13,6 @@ func _initialize() -> void:
 
 func _run_smoke_test() -> void:
 	if not await _check_generated_designs():
-		quit(1)
-		return
-	if not _check_research_unlock():
 		quit(1)
 		return
 	if not await _check_phone_screen_integration():
@@ -115,90 +110,12 @@ func _check_generated_designs() -> bool:
 	return true
 
 
-func _check_research_unlock() -> bool:
-	if not ResearchManagerScript.COMPONENT_CATALOGUE.has("UI Evolution"):
-		_fail("UI Evolution is missing from the central R&D component catalogue.")
-		return false
-	if ResearchManagerScript.get_component_research_duration_days("UI Evolution") != 30.0:
-		_fail("UI Evolution should use the standard 30-day research duration.")
-		return false
-	if not ResearchDashboardScript.COMPONENT_VALUES.has("UI Evolution"):
-		_fail("UI Evolution is missing from the company R&D dashboard's selectable projects.")
-		return false
-	var ui_evolution_component_index := ResearchDashboardScript.COMPONENT_VALUES.find("UI Evolution")
-	if str(ResearchDashboardScript.COMPONENT_LABELS[ui_evolution_component_index]) != "UI Evolution":
-		_fail("The UI Evolution research label does not map to its correct project component.")
-		return false
-
-	var career: Dictionary = {
-		"staff_employees": [{
-			"id": "ui_evolution_researcher",
-			"department": "Research",
-			"efficiency": 100
-		}],
-		"research_projects": [],
-		"research_component_levels": {},
-		"research_technologies": {},
-		"next_research_project_id": 1
-	}
-	var commission: Dictionary = ResearchManagerScript.commission_project(career, {
-		"component": "UI Evolution",
-		"staff_ids": ["ui_evolution_researcher"]
-	}, 1000.0)
-	if not bool(commission.get("ok", false)):
-		_fail("The UI Evolution research project could not be commissioned.")
-		return false
-	var project: Dictionary = commission.get("project", {})
-	if str(project.get("research_target", "")) != "Procedural UI Generator" or int(project.get("research_target_index", -1)) != 1:
-		_fail("The UI Evolution project did not store its one-time generator unlock target.")
-		return false
-	if float(project.get("required_research_days", 0.0)) != 30.0:
-		_fail("The UI Evolution research duration was not stored correctly.")
-
-	var duplicate: Dictionary = ResearchManagerScript.commission_project(career, {
-		"component": "UI Evolution",
-		"staff_ids": ["ui_evolution_researcher"]
-	}, 1000.0)
-	if bool(duplicate.get("ok", false)):
-		_fail("A duplicate UI Evolution research project was allowed.")
-		return false
-
-	var projects: Array = career.get("research_projects", [])
-	projects[0]["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
-	career["research_projects"] = projects
-	var invalid: Dictionary = ResearchManagerScript.approve_project(career, str(project.get("id", "")), [{
-		"component": "UI Evolution",
-		"metric": "Generator validation",
-		"value": "Fixed manufacturer template"
-	}], 2000.0)
-	if bool(invalid.get("ok", false)) or int(career.get("research_component_levels", {}).get("UI Evolution", 0)) != 0:
-		_fail("UI Evolution accepted a validation result that did not match its assigned generator target.")
-		return false
-
-	var approval: Dictionary = ResearchManagerScript.approve_project(career, str(project.get("id", "")), [{
-		"component": "UI Evolution",
-		"metric": "Generator validation",
-		"value": "Procedural UI Generator"
-	}], 2000.0)
-	if not bool(approval.get("ok", false)) or int(career.get("research_component_levels", {}).get("UI Evolution", 0)) != 1:
-		_fail("Approved UI Evolution research did not unlock the procedural generator.")
-		return false
-	var second_unlock: Dictionary = ResearchManagerScript.commission_project(career, {
-		"component": "UI Evolution",
-		"staff_ids": ["ui_evolution_researcher"]
-	}, 3000.0)
-	if bool(second_unlock.get("ok", false)):
-		_fail("UI Evolution incorrectly allowed a second initial generator unlock.")
-		return false
-	return true
-
-
 func _check_phone_screen_integration() -> bool:
 	var worksite := PhoneCreationWorksiteScript.new()
 	worksite.name = "UIEvolutionPhoneScreenSmokeWorksite"
 	root.add_child(worksite)
 	await process_frame
-	worksite.call("set_ui_evolution_research_level", 1)
+	worksite.call("_show_ui_evolution_step")
 	await process_frame
 	await process_frame
 
@@ -207,7 +124,7 @@ func _check_phone_screen_integration() -> bool:
 	var ui_renderer := worksite.get("phone_ui_renderer") as Control
 	if screen == null or ui_viewport == null or ui_renderer == null:
 		worksite.queue_free()
-		_fail("The first UI Evolution design did not create its phone screen viewport and renderer.")
+		_fail("The standalone UI Evolution feature did not create its phone screen viewport and renderer.")
 		return false
 	if not bool(worksite.get("screen_enabled")) or screen.mesh == null:
 		worksite.queue_free()
