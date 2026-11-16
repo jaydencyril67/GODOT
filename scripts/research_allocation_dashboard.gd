@@ -15,8 +15,8 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen", "Button Length", "Power Position", "Volume Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package Customizations", "Charger"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)", "Power/Volume Button Length", "Power Button Position", "Volume Button Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Camera Size", "Rear Flash Count", "Rear Flash Size", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen", "Button Length", "Power Position", "Volume Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package Customizations", "Charger"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Camera Size", "Rear Flash Count", "Rear Flash Size", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)", "Power/Volume Button Length", "Power Button Position", "Volume Button Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -421,8 +421,12 @@ func _default_validation_metric(component: String) -> String:
 			return "Maximum rear camera resolution"
 		"Rear Camera Count":
 			return "Maximum number of rear cameras"
+		"Rear Camera Size":
+			return "Maximum selectable rear-camera module size"
 		"Rear Flash Count":
 			return "Maximum number of rear flashes"
+		"Rear Flash Size":
+			return "Maximum selectable rear-flash module size"
 		"Back Raised Design":
 			return "Maximum number of raised back-design boxes"
 		"Device Color":
@@ -782,6 +786,22 @@ func _build_component_selection_scene() -> void:
 						continue
 					var rear_flash_count_project: Dictionary = project_value
 					if str(rear_flash_count_project.get("component", "")) == "Rear Flash Count" and str(rear_flash_count_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
+						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
+						component_button.disabled = true
+						break
+		elif COMPONENT_VALUES[index] in ["Rear Camera Size", "Rear Flash Size"]:
+			var size_component := str(COMPONENT_VALUES[index])
+			var size_target: Dictionary = ResearchManagerScript.get_rear_camera_size_research_target(research_component_levels) if size_component == "Rear Camera Size" else ResearchManagerScript.get_rear_flash_size_research_target(research_component_levels)
+			if size_target.is_empty():
+				component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 0.200"
+				component_button.disabled = true
+			else:
+				component_button.tooltip_text = "Next maximum selectable size: %s" % str(size_target.get("technology", ""))
+				for project_value in research_projects:
+					if not (project_value is Dictionary):
+						continue
+					var size_project: Dictionary = project_value
+					if str(size_project.get("component", "")) == size_component and str(size_project.get("status", "")) in [ResearchManagerScript.STATUS_ACTIVE, ResearchManagerScript.STATUS_AWAITING_VALIDATION]:
 						component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 						component_button.disabled = true
 						break
