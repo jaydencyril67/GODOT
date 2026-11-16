@@ -1305,7 +1305,6 @@ func _add_pie_notification_card(parent: Control, app_name: String, message_text:
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	copy.add_child(message)
 	row.add_child(copy)
-	card.add_child(row)
 	parent.add_child(card)
 
 func _apply_android_pie_shade_screen_mask(overlay: Control) -> void:
