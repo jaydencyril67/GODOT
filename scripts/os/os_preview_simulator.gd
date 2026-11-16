@@ -1076,30 +1076,6 @@ func _build_android_oreo_quick_settings_content(parent: Control) -> void:
 	parent.add_child(grid)
 	_add_oreo_shade_footer(parent, true)
 
-func _build_android_oreo_quick_settings_content(parent: Control) -> void:
-	_add_oreo_shade_header(parent)
-	_add_oreo_brightness_slider(parent)
-	var heading := _label("Quick Settings", 10, Color("#3C4043"))
-	heading.name = "OreoQuickSettingsHeading"
-	parent.add_child(heading)
-
-	var grid := GridContainer.new()
-	grid.name = "OreoExpandedQuickSettingsGrid"
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 4)
-	grid.add_theme_constant_override("v_separation", 5)
-	for definition in _oreo_quick_tile_definitions():
-		_add_android_oreo_quick_tile(grid, definition)
-	parent.add_child(grid)
-
-	var footer := HBoxContainer.new()
-	footer.name = "OreoQuickSettingsFooter"
-	footer.alignment = BoxContainer.ALIGNMENT_END
-	footer.add_child(_label("●  ○", 8, Color("#6B7280")))
-	parent.add_child(footer)
-
-
 func _build_android_oreo_notification_shade() -> void:
 	var overlay := _create_android_oreo_shade("notifications")
 	var body := overlay.find_child("OreoShadeContent", true, false) as VBoxContainer
