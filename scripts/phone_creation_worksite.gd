@@ -3560,6 +3560,8 @@ func _show_ui_evolution_step() -> void:
 		ui_evolution_configuration = UIEvolutionEngineScript.load_ui()
 	if ui_evolution_configuration.is_empty():
 		_generate_new_ui_design()
+	else:
+		_apply_generated_ui_to_phone()
 	_show_worksite_step(30, "_show_ui_evolution_controls")
 
 
