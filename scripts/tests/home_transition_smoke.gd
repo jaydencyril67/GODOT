@@ -216,6 +216,14 @@ func _run_speaker_quality_progression_checks() -> bool:
 		return false
 
 	var worksite = PhoneCreationWorksiteScript.new()
+	var phone_preview_viewport := worksite.call("_get_preview_viewport") as SubViewport
+	if phone_preview_viewport == null or phone_preview_viewport.msaa_3d != Viewport.MSAA_DISABLED or phone_preview_viewport.screen_space_aa != Viewport.SCREEN_SPACE_AA_FXAA:
+		if is_instance_valid(phone_preview_viewport):
+			phone_preview_viewport.free()
+		worksite.free()
+		_fail("Phone Creation Worksite preview must use FXAA with MSAA disabled.")
+		return false
+	phone_preview_viewport.free()
 	if bool(worksite.get("sim_tray_enabled")):
 		worksite.free()
 		_fail("The SIM tray must start disabled in the Phone Creation Worksite.")
