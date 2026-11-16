@@ -186,6 +186,9 @@ func _run_os_generator_test() -> void:
 	if samsung_lock_image == null or samsung_lock_image.texture == null or samsung_lock_image.texture.resource_path != "res://assets/os/gen1/samsung/lockscreen.jpg":
 		_fail("Samsung Gen 1 lock screen did not load its uploaded Galaxy S III JPG.")
 		return
+	if samsung_lock_image.stretch_mode != TextureRect.STRETCH_SCALE:
+		_fail("Samsung Gen 1 screenshots must fill the complete phone display area.")
+		return
 	if simulator.find_child("LollipopLockScreen", true, false) != null or simulator.find_child("LockScreenClock", true, false) != null or simulator.find_child("LockScreenShortcut_Flashlight", true, false) != null:
 		_fail("The old generated Lollipop lock-screen controls must not appear in the TouchWiz screenshot view.")
 		return
