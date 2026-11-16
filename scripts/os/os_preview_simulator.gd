@@ -186,6 +186,7 @@ var _quick_setting_states := {
 	"Cast screen": false, "Hotspot": false, "Battery saver": false
 }
 var _clock_update_elapsed := 0.0
+var _brightness_level := 80
 
 func _process(delta: float) -> void:
 	_clock_update_elapsed += delta
@@ -239,8 +240,9 @@ func _begin_gesture(touch_position: Vector2) -> void:
 	_gesture_start_time = Time.get_ticks_msec()
 	_gesture_active = true
 
+
 func _try_finish_drag_gesture(touch_position: Vector2) -> void:
-	if not _gesture_active or not _is_gen1_samsung_ui():
+	if not _is_gen1_phone_ui():
 		return
 	var delta := touch_position - _gesture_start
 	var vertical_threshold := maxf(20.0, size.y * 0.06)
@@ -259,37 +261,427 @@ func _finish_gesture(touch_position: Vector2) -> void:
 	var elapsed_ms := Time.get_ticks_msec() - _gesture_start_time
 	_handle_system_gesture(_gesture_start, touch_position, elapsed_ms)
 
+
 func _handle_system_gesture(start: Vector2, finish: Vector2, _elapsed_ms: int) -> void:
 	var delta := finish - start
 	var vertical_threshold := maxf(24.0, size.y * 0.07)
 	var horizontal_threshold := maxf(26.0, size.x * 0.12)
 	var edge_size := clampf(minf(size.x, size.y) * 0.08, 16.0, 30.0)
+	var tap_threshold := maxf(12.0, minf(size.x, size.y) * 0.035)
+
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		if _gesture_overlay.name == "OSGestureOverlay_notifications":
-			if delta.length() <= maxf(12.0, minf(size.x, size.y) * 0.035):
-				_handle_samsung_gen1_overlay_tap("notifications", start)
+			if delta.length() <= tap_threshold:
+				_handle_gen1_overlay_tap("notifications", start)
+			elif _is_gen1_pixel_ui() and delta.y >= vertical_threshold:
+				_show_gesture_overlay("control_center")
+			elif delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
+				_close_gesture_overlay()
+			return
+		if _gesture_overlay.name == "OSGestureOverlay_control_center":
+			if delta.length() <= tap_threshold:
+				_handle_gen1_overlay_tap("control_center", start)
 			elif delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
 				_close_gesture_overlay()
 			return
 		if _gesture_overlay.name == "OSGestureOverlay_recent_apps":
-			if delta.length() <= maxf(12.0, minf(size.x, size.y) * 0.035):
-				_handle_samsung_gen1_overlay_tap("recent_apps", start)
+			if delta.length() <= tap_threshold:
+				_handle_gen1_overlay_tap("recent_apps", start)
 			else:
 				_close_gesture_overlay()
 			return
 		_close_gesture_overlay()
 		return
+
 	if start.y <= edge_size and delta.y >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.2:
 		_show_gesture_overlay("notifications")
 		return
-	if not _is_gen1_samsung_ui():
+
+	if not _is_gen1_phone_ui():
 		return
+
 	if active_component == "lock_screen" and delta.x >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.10:
-		set_component_view("home_screen")
+		var valid_unlock_start := true
+		if _is_gen1_pixel_ui():
+			valid_unlock_start = start.y >= size.y * 0.30 and start.y <= size.y * 0.78
+		elif _is_gen1_xiaomi_ui():
+			valid_unlock_start = start.y >= size.y * 0.76
+		if valid_unlock_start:
+			set_component_view("home_screen")
 		return
-	var tap_threshold := maxf(12.0, minf(size.x, size.y) * 0.035)
+
+	if active_component == "home_screen" and (_is_gen1_pixel_ui() or _is_gen1_xiaomi_ui()):
+		if delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
+			set_component_view("app_drawer")
+			return
+
 	if delta.length() <= tap_threshold:
-		_handle_samsung_gen1_tap(start)
+		_handle_gen1_screen_tap(start)
+func _is_gen1_phone_ui() -> bool:
+	return _is_gen1_samsung_ui() or _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui()
+
+func _gen1_screenshot_prefix() -> String:
+	if _is_gen1_pixel_ui():
+		return "Pixel"
+	if _is_gen1_xiaomi_ui():
+		return "Xiaomi"
+	return "Samsung"
+
+func _gen1_screenshot_position(component_id: String, touch_position: Vector2) -> Vector2:
+	var screenshot_name := _gen1_screenshot_prefix() + "Gen1ScreenImage_" + component_id
+	var screenshot := find_child(screenshot_name, true, false) as TextureRect
+	if screenshot == null or not is_instance_valid(screenshot):
+		return Vector2(-1.0, -1.0)
+	var screenshot_rect := screenshot.get_global_rect()
+	if screenshot_rect.size.x <= 0.0 or screenshot_rect.size.y <= 0.0:
+		return Vector2(-1.0, -1.0)
+	var canvas_position := get_global_transform_with_canvas() * touch_position
+	if not screenshot_rect.has_point(canvas_position):
+		return Vector2(-1.0, -1.0)
+	return Vector2(
+		(canvas_position.x - screenshot_rect.position.x) / screenshot_rect.size.x,
+		(canvas_position.y - screenshot_rect.position.y) / screenshot_rect.size.y
+	)
+
+func _handle_gen1_screen_tap(touch_position: Vector2) -> void:
+	if _is_gen1_samsung_ui():
+		_handle_samsung_gen1_tap(touch_position)
+	elif _is_gen1_pixel_ui():
+		_handle_pixel_gen1_tap(touch_position)
+	elif _is_gen1_xiaomi_ui():
+		_handle_xiaomi_gen1_tap(touch_position)
+
+func _handle_pixel_gen1_tap(touch_position: Vector2) -> void:
+	var position := _gen1_screenshot_position(active_component, touch_position)
+	if position.x < 0.0 or position.y < 0.0:
+		return
+	var columns := [0.14, 0.38, 0.62, 0.86]
+	match active_component:
+		"lock_screen":
+			if position.y >= 0.94:
+				_show_gen1_panel_feedback("Emergency calling is unavailable in this preview.")
+		"home_screen":
+			if position.y >= 0.90 and position.x >= 0.36 and position.x <= 0.64:
+				set_component_view("app_drawer")
+				return
+			if position.y >= 0.77 and position.y <= 0.90:
+				var dock_column := clampi(roundi((position.x - 0.14) / 0.35), 0, 2)
+				_on_app_pressed(["Phone", "Messages", "Browser"][dock_column])
+				return
+			var home_rows := [
+				["Calendar", "Email", "Camera", "Gallery"],
+				["Maps", "Store", "Messages", "Video"]
+			]
+			var row_centres := [0.50, 0.68]
+			for row_index in range(home_rows.size()):
+				if absf(position.y - row_centres[row_index]) > 0.075:
+					continue
+				for column_index in range(columns.size()):
+					if absf(position.x - float(columns[column_index])) <= 0.10:
+						_on_app_pressed(str(home_rows[row_index][column_index]))
+						return
+			if position.y >= 0.08 and position.y <= 0.20:
+				_on_app_pressed("Browser")
+		"app_drawer":
+			if position.y < 0.20 and position.x >= 0.50:
+				set_component_view("home_screen")
+				return
+			var drawer_rows := [
+				["Phone", "Contacts", "Messages", "Browser"],
+				["Email", "Camera", "Gallery", "Music"],
+				["Calendar", "Maps", "Video", "Store"],
+				["Settings", "Clock", "Calculator", "Email"],
+				["Drive", "Downloads", "Messages", "Assistant"]
+			]
+			var drawer_columns := [0.13, 0.38, 0.62, 0.87]
+			var drawer_centres := [0.31, 0.45, 0.60, 0.76, 0.91]
+			for row_index in range(drawer_rows.size()):
+				if absf(position.y - drawer_centres[row_index]) > 0.065:
+					continue
+				for column_index in range(drawer_columns.size()):
+					if absf(position.x - drawer_columns[column_index]) <= 0.10:
+						_on_app_pressed(str(drawer_rows[row_index][column_index]))
+						return
+		"notifications":
+			if position.y < 0.25 and position.x > 0.72:
+				_show_gen1_panel_feedback("Notifications cleared")
+				return
+			var notification_rows := [
+				{"y":0.34,"app":"Phone"},
+				{"y":0.51,"app":"Email"},
+				{"y":0.68,"app":"Downloads"},
+				{"y":0.84,"app":"Settings"}
+			]
+			for item in notification_rows:
+				if absf(position.y - float(item["y"])) <= 0.08:
+					_on_app_pressed(str(item["app"]))
+					return
+		"control_center":
+			_handle_pixel_quick_settings(position)
+
+func _handle_pixel_quick_settings(position: Vector2) -> void:
+	if position.y >= 0.18 and position.y <= 0.29:
+		_set_gen1_brightness_from_position(position.x)
+		return
+	if position.y >= 0.31 and position.y <= 0.86:
+		var row := clampi(floori((position.y - 0.31) / 0.18), 0, 2)
+		var column := 0 if position.x < 0.5 else 1
+		var tiles := [
+			["Wi-Fi", "Bluetooth"],
+			["Mobile data", "Airplane mode"],
+			["Auto-rotate", "Location"]
+		]
+		_toggle_gen1_quick_setting(str(tiles[row][column]))
+		return
+	if position.y >= 0.90:
+		if position.x >= 0.70:
+			_close_gesture_overlay()
+		else:
+			_toggle_gen1_quick_setting("Sound")
+
+func _handle_xiaomi_gen1_tap(touch_position: Vector2) -> void:
+	var position := _gen1_screenshot_position(active_component, touch_position)
+	if position.x < 0.0 or position.y < 0.0:
+		return
+	var columns := [0.16, 0.40, 0.64, 0.88]
+	match active_component:
+		"lock_screen":
+			if position.y >= 0.92 and position.x <= 0.16:
+				_on_app_pressed("Camera")
+		"home_screen":
+			if position.y >= 0.86:
+				var dock_column := clampi(roundi((position.x - 0.16) / 0.24), 0, 3)
+				_on_app_pressed(["Phone", "Messages", "Browser", "Camera"][dock_column])
+				return
+			var home_rows := [
+				["Calendar", "Clock", "Notes", "Themes"],
+				["Contacts", "Messages", "Browser", "Camera"],
+				["Gallery", "Music", "Downloads", "Settings"],
+				["Security", "Store", "Files", "Phone"]
+			]
+			var row_centres := [0.32, 0.47, 0.62, 0.77]
+			for row_index in range(home_rows.size()):
+				if absf(position.y - float(row_centres[row_index])) > 0.065:
+					continue
+				for column_index in range(columns.size()):
+					if absf(position.x - float(columns[column_index])) <= 0.10:
+						var app_name := str(home_rows[row_index][column_index])
+						_on_app_pressed("Store" if app_name == "Market" else app_name)
+						return
+		"app_drawer":
+			var drawer_rows := [
+				["Phone", "Contacts", "Messages", "Browser"],
+				["Gallery", "Music", "Settings", "Camera"],
+				["Themes", "Security", "Downloads", "Files"],
+				["Notes", "Clock", "Calculator", "Calendar"],
+				["Video", "Weather", "Messages", "Email"]
+			]
+			var drawer_centres := [0.31, 0.46, 0.62, 0.77, 0.92]
+			for row_index in range(drawer_rows.size()):
+				if absf(position.y - drawer_centres[row_index]) > 0.065:
+					continue
+				for column_index in range(columns.size()):
+					if absf(position.x - float(columns[column_index])) <= 0.10:
+						_on_app_pressed(str(drawer_rows[row_index][column_index]))
+						return
+		"notifications":
+			_handle_xiaomi_notification_panel(position)
+
+func _handle_xiaomi_notification_panel(position: Vector2) -> void:
+	if position.y >= 0.12 and position.y <= 0.24:
+		var quick_tiles := ["Wi-Fi", "Location", "Sound", "Auto-rotate"]
+		var tile_index := clampi(floori(position.x * 4.0), 0, 3)
+		_toggle_gen1_quick_setting(quick_tiles[tile_index])
+		return
+	if position.y >= 0.25 and position.y <= 0.34:
+		_set_gen1_brightness_from_position(position.x)
+		return
+	var notification_rows := [
+		{"y":0.44,"app":"Store"},
+		{"y":0.58,"app":"Email"},
+		{"y":0.70,"app":"Messages"},
+		{"y":0.82,"app":"Store"},
+		{"y":0.94,"app":"Messages"}
+	]
+	for item in notification_rows:
+		if absf(position.y - float(item["y"])) <= 0.07:
+			_on_app_pressed(str(item["app"]))
+			return
+
+func _handle_gen1_overlay_tap(component_id: String, touch_position: Vector2) -> void:
+	if _is_gen1_samsung_ui():
+		_handle_samsung_gen1_overlay_tap(component_id, touch_position)
+		return
+	if component_id == "recent_apps":
+		return
+	var position := _gen1_screenshot_position(component_id, touch_position)
+	if position.x < 0.0 or position.y < 0.0:
+		return
+	if _is_gen1_pixel_ui():
+		if component_id == "control_center":
+			_handle_pixel_quick_settings(position)
+		elif component_id == "notifications":
+			_handle_pixel_gen1_panel_tap(position)
+	elif _is_gen1_xiaomi_ui() and component_id == "notifications":
+		_handle_xiaomi_notification_panel(position)
+
+func _handle_pixel_gen1_panel_tap(position: Vector2) -> void:
+	if position.y < 0.25 and position.x > 0.72:
+		_show_gen1_panel_feedback("Notifications cleared")
+		return
+	var notification_rows := [
+		{"y":0.30,"app":"Phone"},
+		{"y":0.46,"app":"Email"},
+		{"y":0.64,"app":"Downloads"},
+		{"y":0.82,"app":"Settings"}
+	]
+	for item in notification_rows:
+		if absf(position.y - float(item["y"])) <= 0.08:
+			_on_app_pressed(str(item["app"]))
+			return
+
+func _build_gen1_family_gesture_overlay(mode: String) -> void:
+	_close_gesture_overlay()
+	var screenshot_component := mode
+	if _is_gen1_xiaomi_ui() and mode == "control_center":
+		screenshot_component = "notifications"
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_" + mode
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -54.0
+	overlay.clip_contents = true
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.z_index = 120
+	overlay.z_as_relative = false
+	add_child(overlay)
+	_gesture_overlay = overlay
+	_add_gen1_samsung_screenshot(overlay, screenshot_component)
+	var corner_mask := OSScreenCornerMask.new()
+	corner_mask.name = "Gen1FamilyShadeScreenCornerMask"
+	corner_mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	corner_mask.corner_radius = 22.0
+	corner_mask.mask_bottom_corners = false
+	corner_mask.mask_color = Color.BLACK
+	corner_mask.z_index = 130
+	corner_mask.z_as_relative = false
+	overlay.add_child(corner_mask)
+
+func _build_gen1_family_overview() -> void:
+	_close_gesture_overlay()
+	_set_samsung_gen1_overview_underlay_visible(false)
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_recent_apps"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -54.0
+	overlay.clip_contents = true
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.z_index = 120
+	overlay.z_as_relative = false
+	add_child(overlay)
+	_gesture_overlay = overlay
+	var background := ColorRect.new()
+	background.name = "Gen1FamilyOverviewBackground"
+	background.color = Color("#101720") if _is_gen1_pixel_ui() else Color("#071A31")
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(background)
+	_build_gen1_family_recent_apps(overlay)
+	var corner_mask := OSScreenCornerMask.new()
+	corner_mask.name = "Gen1FamilyOverviewCornerMask"
+	corner_mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	corner_mask.corner_radius = 22.0
+	corner_mask.mask_bottom_corners = false
+	corner_mask.mask_color = Color.BLACK
+	corner_mask.z_index = 130
+	overlay.add_child(corner_mask)
+
+func _build_gen1_family_recent_apps(parent: Control) -> void:
+	var content := VBoxContainer.new()
+	content.name = "Gen1FamilyRecentApps"
+	content.add_theme_constant_override("separation", 8)
+	if parent is Container:
+		content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	else:
+		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content.offset_left = 12.0
+		content.offset_top = 16.0
+		content.offset_right = -12.0
+		content.offset_bottom = -12.0
+	parent.add_child(content)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 6)
+	var title := _label("Recent apps", 16 if _is_gen1_pixel_ui() else 15, Color("#C8D8F0"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	var clear_button := Button.new()
+	clear_button.name = "Gen1FamilyClearAllRecentApps"
+	clear_button.text = "Clear all"
+	clear_button.focus_mode = Control.FOCUS_NONE
+	clear_button.add_theme_font_size_override("font_size", 9)
+	clear_button.pressed.connect(_clear_gen1_family_recent_apps)
+	header.add_child(clear_button)
+	content.add_child(header)
+
+	if _recent_app_names.is_empty():
+		var empty_label := _label("No recent apps yet. Open an app to see it here.", 10, Color("#AAB8C8"))
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		empty_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		content.add_child(empty_label)
+		return
+
+	for app_name in _recent_app_names:
+		var app := _find_app(app_name)
+		var card := Button.new()
+		card.name = "Gen1FamilyRecentApp_" + app_name.replace(" ", "")
+		card.text = ""
+		card.custom_minimum_size.y = 58.0
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.focus_mode = Control.FOCUS_NONE
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = Color("#202A36") if _is_gen1_pixel_ui() else Color("#142B49")
+		card_style.border_color = Color("#477CB8") if _is_gen1_pixel_ui() else Color("#477DCA")
+		card_style.set_border_width_all(1)
+		card_style.set_corner_radius_all(4)
+		card_style.content_margin_left = 8
+		card_style.content_margin_right = 8
+		card_style.content_margin_top = 4
+		card_style.content_margin_bottom = 4
+		for state_name in ["normal", "hover", "pressed", "focus"]:
+			card.add_theme_stylebox_override(state_name, card_style.duplicate())
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var glyph := _label(str(app.get("glyph", "•")), 22, Color(str(app.get("color", "#7FADE0"))))
+		glyph.custom_minimum_size.x = 30
+		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(glyph)
+		var details := VBoxContainer.new()
+		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		details.alignment = BoxContainer.ALIGNMENT_CENTER
+		details.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		details.add_child(_label(app_name, 11, Color("#F4F7FA")))
+		details.add_child(_label("Tap to return to this app", 8, Color("#9DB0C4")))
+		row.add_child(details)
+		card.add_child(row)
+		card.pressed.connect(_open_gen1_recent_app.bind(app_name))
+		content.add_child(card)
+
+func _clear_gen1_family_recent_apps() -> void:
+	_recent_app_names.clear()
+	if _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps":
+		_build_gen1_family_overview()
+	elif active_component == "recent_apps":
+		_build_shell()
+
+func _open_gen1_recent_app(app_name: String) -> void:
+	_close_gesture_overlay()
+	_on_app_pressed(app_name)
+
+
 func _handle_samsung_gen1_tap(touch_position: Vector2) -> void:
 	var screenshot := find_child("SamsungGen1ScreenImage_" + active_component, true, false) as TextureRect
 	if screenshot == null or not is_instance_valid(screenshot):
@@ -409,16 +801,18 @@ func _handle_samsung_gen1_overlay_tap(component_id: String, touch_position: Vect
 	var tile_name := str(quick_tiles[tile_index])
 	var enabled := not bool(_quick_setting_states.get(tile_name, false))
 	_quick_setting_states[tile_name] = enabled
-	_show_samsung_gen1_quick_setting_feedback(tile_name, enabled)
+	_show_gen1_panel_feedback("%s · %s" % [tile_name, "ON" if enabled else "OFF"])
 
-func _show_samsung_gen1_quick_setting_feedback(tile_name: String, enabled: bool) -> void:
-	if _gesture_overlay == null or not is_instance_valid(_gesture_overlay):
-		return
-	var previous_feedback := _gesture_overlay.get_node_or_null("SamsungGen1QuickSettingFeedback")
+
+func _show_gen1_panel_feedback(message: String) -> void:
+	var feedback_parent: Control = self
+	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
+		feedback_parent = _gesture_overlay
+	var previous_feedback := feedback_parent.get_node_or_null("Gen1QuickSettingFeedback")
 	if previous_feedback != null:
 		previous_feedback.queue_free()
 	var feedback := PanelContainer.new()
-	feedback.name = "SamsungGen1QuickSettingFeedback"
+	feedback.name = "Gen1QuickSettingFeedback"
 	feedback.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	feedback.offset_left = 18.0
 	feedback.offset_top = -54.0
@@ -433,14 +827,22 @@ func _show_samsung_gen1_quick_setting_feedback(tile_name: String, enabled: bool)
 	feedback_style.set_corner_radius_all(8)
 	feedback.add_theme_stylebox_override("panel", feedback_style)
 	var feedback_label := Label.new()
-	feedback_label.text = "%s · %s" % [tile_name, "ON" if enabled else "OFF"]
+	feedback_label.text = message
 	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	feedback_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	feedback_label.add_theme_font_size_override("font_size", 11)
 	feedback_label.add_theme_color_override("font_color", Color.WHITE)
 	feedback.add_child(feedback_label)
-	_gesture_overlay.add_child(feedback)
+	feedback_parent.add_child(feedback)
 
+func _toggle_gen1_quick_setting(tile_name: String) -> void:
+	var enabled := not bool(_quick_setting_states.get(tile_name, false))
+	_quick_setting_states[tile_name] = enabled
+	_show_gen1_panel_feedback("%s · %s" % [tile_name, "ON" if enabled else "OFF"])
+
+func _set_gen1_brightness_from_position(normalized_x: float) -> void:
+	_brightness_level = clampi(roundi(normalized_x * 100.0), 0, 100)
+	_show_gen1_panel_feedback("Brightness · %d%%" % _brightness_level)
 func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	_close_gesture_overlay()
 	var screenshot_component := "recent_apps" if mode == "recent_apps" else "notifications"
@@ -483,11 +885,18 @@ func _navigate_back() -> void:
 	else:
 		_navigate_home()
 
+
 func _show_gesture_overlay(mode: String) -> void:
-	if not _is_gen1_samsung_ui():
+	if not _is_gen1_phone_ui():
 		return
-	if mode in ["notifications", "control_center", "recent_apps"]:
+	if mode not in ["notifications", "control_center", "recent_apps"]:
+		return
+	if _is_gen1_samsung_ui():
 		_build_samsung_gen1_gesture_overlay(mode)
+	elif mode == "recent_apps":
+		_build_gen1_family_overview()
+	else:
+		_build_gen1_family_gesture_overlay(mode)
 func _apply_gen1_screen_corner_mask(overlay: Control) -> void:
 	if not is_instance_valid(overlay):
 		return
@@ -981,17 +1390,19 @@ func _is_gen1_pixel_ui() -> bool:
 func _is_gen1_xiaomi_ui() -> bool:
 	return _is_android_os() and int(configuration.get("generation", 0)) == 1 and str(configuration.get("style", {}).get("ui_family", "samsung_touchwiz")) == "xiaomi_miui"
 
+
 func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
 	var target_component := active_component if component_id.is_empty() else component_id
 	if _is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component):
 		return true
 	if _is_gen1_pixel_ui() and PIXEL_GEN1_SCREEN_ASSETS.has(target_component):
-		return true
+		return target_component != "recent_apps"
 	if _is_gen1_xiaomi_ui() and XIAOMI_GEN1_SCREEN_ASSETS.has(target_component):
+		if target_component == "recent_apps":
+			return false
 		var xiaomi_path := "res://assets/os/gen1/miui/" + str(XIAOMI_GEN1_SCREEN_ASSETS[target_component])
 		return ResourceLoader.exists(xiaomi_path)
 	return false
-
 func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> TextureRect:
 	var family_folder := "samsung"
 	var family_label := "Samsung"
@@ -1031,6 +1442,7 @@ func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> Text
 		screenshot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return screenshot
 
+
 func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -> void:
 	parent.add_theme_constant_override("separation", 0)
 	var navigation_bar := PanelContainer.new()
@@ -1046,26 +1458,30 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 	bar_style.content_margin_top = 0
 	bar_style.content_margin_bottom = 0
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
-	var is_samsung_gen1_overview := parent.name == "SamsungGen1OverviewNavigationFooter"
+
+	var is_samsung_overview := parent.name == "SamsungGen1OverviewNavigationFooter"
+	var family_prefix := "SamsungGen1" if _is_gen1_samsung_ui() else "PixelGen1" if _is_gen1_pixel_ui() else "XiaomiGen1" if _is_gen1_xiaomi_ui() else "Android"
 	var navigation_keys := HBoxContainer.new()
-	navigation_keys.name = "SamsungGen1OverviewThreeButtonNavigation" if is_samsung_gen1_overview else "SamsungGen1ThreeButtonNavigation"
+	navigation_keys.name = family_prefix + ("OverviewThreeButtonNavigation" if is_samsung_overview else "ThreeButtonNavigation")
 	navigation_keys.custom_minimum_size.y = 46
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
 	navigation_keys.mouse_filter = Control.MOUSE_FILTER_PASS
 	navigation_keys.add_theme_constant_override("separation", 2)
+
 	if back_only:
 		for spacer_index in range(2):
 			var spacer := Control.new()
 			spacer.name = "AndroidNavigationReservedSlot" + str(spacer_index + 1)
 			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			navigation_keys.add_child(spacer)
-	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
+
+	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"] if _is_gen1_samsung_ui() else ["Back", "Home", "Overview"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
-		key.name = ("SamsungGen1OverviewNavigation" if is_samsung_gen1_overview else "SamsungGen1Navigation") + action
+		key.name = family_prefix + "Navigation" + action
 		key.action_name = action
-		key.icon_color = Color("#F5F7F8")
+		key.icon_color = Color("#F5F7F8") if _is_gen1_samsung_ui() else Color("#DCE7F5") if _is_gen1_pixel_ui() else Color("#D9E8F8") if _is_gen1_xiaomi_ui() else Color("#F5F7F8")
 		key.tooltip_text = "Recent" if action == "Overview" else action
 		key.custom_minimum_size = Vector2(30, 44)
 		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1076,6 +1492,7 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 func _queue_android_navigation(action: String) -> void:
 	call_deferred("_dispatch_android_navigation", action)
 
+
 func _dispatch_android_navigation(action: String) -> void:
 	match action:
 		"Back":
@@ -1083,8 +1500,10 @@ func _dispatch_android_navigation(action: String) -> void:
 		"Home":
 			_navigate_home()
 		"Overview":
-			_show_gesture_overlay("recent_apps")
-
+			if _is_gen1_phone_ui():
+				_show_gesture_overlay("recent_apps")
+			else:
+				set_component_view("recent_apps")
 func _on_android_navigation_pressed(action: String) -> void:
 	_queue_android_navigation(action)
 
@@ -1095,6 +1514,7 @@ func _add_screen_corner_mask() -> void:
 	corner_mask.corner_radius = 22.0
 	corner_mask.mask_color = Color.BLACK
 	add_child(corner_mask)
+
 
 func _build_shell() -> void:
 	if _building:
@@ -1125,6 +1545,7 @@ func _build_shell() -> void:
 	safe_area.add_theme_constant_override("margin_top", vertical_margin)
 	safe_area.add_theme_constant_override("margin_bottom", vertical_margin)
 	add_child(safe_area)
+
 	if active_component in ["lock_screen", "pin_input"]:
 		var lock_shell := VBoxContainer.new()
 		lock_shell.name = "OSLockScreenShell" if active_component == "lock_screen" else "OSPinInputShell"
@@ -1151,9 +1572,16 @@ func _build_shell() -> void:
 			pin_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_build_android_navigation(pin_navigation_footer, true)
 			lock_shell.add_child(pin_navigation_footer)
+		elif _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui():
+			var lock_navigation_footer := VBoxContainer.new()
+			lock_navigation_footer.name = "OSNavigationFooter"
+			lock_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_build_android_navigation(lock_navigation_footer)
+			lock_shell.add_child(lock_navigation_footer)
 		_add_screen_corner_mask()
 		_building = false
 		return
+
 	var shell := VBoxContainer.new()
 	shell.name = "OSSimulatorLayout"
 	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1245,11 +1673,12 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	status_label.visible = false
 	bar.add_child(status_label)
 	parent.add_child(bar)
+
 func _build_component(component_id: String) -> void:
 	if _uses_gen1_samsung_screenshot(component_id):
 		_add_gen1_samsung_screenshot(page_container, component_id)
 		return
-	if _is_gen1_xiaomi_ui() and component_id in ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications", "recent_apps"]:
+	if _is_gen1_xiaomi_ui() and component_id in ["lock_screen", "home_screen", "app_drawer", "control_center", "notifications"]:
 		_build_gen1_xiaomi_reference_placeholder(component_id)
 		return
 	var components: Dictionary = configuration.get("components", {})
@@ -1281,7 +1710,6 @@ func _build_component(component_id: String) -> void:
 			_build_recent_apps(component_data)
 		"system_ui":
 			_build_system_ui(component_data)
-
 func _build_gen1_xiaomi_reference_placeholder(component_id: String) -> void:
 	var family_panel := PanelContainer.new()
 	family_panel.name = "XiaomiGen1ReferencePending_" + component_id
@@ -1841,7 +2269,11 @@ func _build_navigation_preview(data: Dictionary) -> void:
 
 func _build_app_drawer(_data: Dictionary) -> void:
 	_add_gen1_samsung_screenshot(page_container, "app_drawer")
+
 func _build_recent_apps(_data: Dictionary) -> void:
+	if _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui():
+		_build_gen1_family_recent_apps(page_container)
+		return
 	_add_gen1_samsung_screenshot(page_container, "recent_apps")
 func _build_system_ui(data: Dictionary) -> void:
 	_add_section_label("SYSTEM INTERFACE")
