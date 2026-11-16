@@ -206,21 +206,44 @@ func _check_phone_screen_integration() -> bool:
 		_fail("The generated interface did not enable the physical 3D phone display.")
 		return false
 
-	var screen_material := screen.material_override as ShaderMaterial
-	if screen_material == null:
+	if not _has_generated_screen_texture(screen):
 		worksite.queue_free()
-		_fail("The physical phone display is not using the generated UI screen material.")
+		_fail("The Standard phone display is missing its generated viewport texture or UV mapping.")
 		return false
-	var texture := screen_material.get_shader_parameter("screen_texture") as Texture2D
-	if texture == null:
+
+	# Verify the same live interface maps onto both foldable inner displays.
+	worksite.call("set_phone_type_research_level", 2)
+	worksite.call("_on_phone_type_increase_pressed")
+	await process_frame
+	var flip_screen := worksite.get("phone_screen") as MeshInstance3D
+	if str(worksite.get("selected_phone_type")) != "Flip" or not _has_generated_screen_texture(flip_screen):
 		worksite.queue_free()
-		_fail("The physical phone display shader is missing its generated UI viewport texture.")
+		_fail("The generated interface did not map correctly onto the Flip's inner display.")
 		return false
-	var mesh_arrays: Array = screen.mesh.surface_get_arrays(0)
-	var uv_values: PackedVector2Array = mesh_arrays[Mesh.ARRAY_TEX_UV]
-	if uv_values.is_empty():
+	worksite.call("_on_phone_type_increase_pressed")
+	await process_frame
+	var fold_screen := worksite.get("phone_screen") as MeshInstance3D
+	if str(worksite.get("selected_phone_type")) != "Fold" or not _has_generated_screen_texture(fold_screen):
 		worksite.queue_free()
-		_fail("The physical phone display mesh does not contain UV coordinates for the generated interface.")
+		_fail("The generated interface did not map correctly onto the Fold's inner display.")
+		return false
+
+	# Confirm the new UI research step sits immediately after Cooling System Design.
+	worksite.call("_show_cooling_system_step")
+	worksite.call("_on_next_pressed")
+	if int(worksite.get("wizard_step")) != 30:
+		worksite.queue_free()
+		_fail("UI Evolution is not positioned immediately after Cooling System Design.")
+		return false
+	var progress_label := worksite.get("progress_number") as Label
+	if progress_label == null or progress_label.text != "STEP 31 / 38":
+		worksite.queue_free()
+		_fail("The UI Evolution research step did not update the 38-step progress counter.")
+		return false
+	worksite.call("_on_next_pressed")
+	if int(worksite.get("wizard_step")) != 31:
+		worksite.queue_free()
+		_fail("Box Package did not follow UI Evolution at the next worksite step.")
 		return false
 	var generated_config: Dictionary = worksite.get("ui_evolution_configuration")
 	if generated_config.is_empty() or str(generated_config.get("name", "")).is_empty():
@@ -232,6 +255,20 @@ func _check_phone_screen_integration() -> bool:
 	await process_frame
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(UIEvolutionEngineScript.SAVE_PATH))
 	return true
+
+
+func _has_generated_screen_texture(screen: MeshInstance3D) -> bool:
+	if not is_instance_valid(screen) or screen.mesh == null:
+		return false
+	var material := screen.material_override as ShaderMaterial
+	if material == null:
+		return false
+	var texture := material.get_shader_parameter("screen_texture") as Texture2D
+	if texture == null or screen.mesh.get_surface_count() <= 0:
+		return false
+	var mesh_arrays: Array = screen.mesh.surface_get_arrays(0)
+	var uv_values: PackedVector2Array = mesh_arrays[Mesh.ARRAY_TEX_UV]
+	return not uv_values.is_empty()
 
 
 func _fail(message: String) -> void:
