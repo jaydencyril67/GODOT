@@ -108,6 +108,95 @@ func _check_generated_designs() -> bool:
 	if not renderer_ready:
 		_fail("The phone screen renderer did not receive the validated UI blueprint.")
 		return false
+	if not await _check_generated_ui_pixels():
+		return false
+	return true
+
+
+func _check_generated_ui_pixels() -> bool:
+	var viewport := SubViewport.new()
+	viewport.name = "GeneratedPhoneUIPixelSmokeViewport"
+	viewport.size = Vector2i(480, 960)
+	viewport.transparent_bg = false
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	root.add_child(viewport)
+
+	var renderer := GeneratedPhoneUIScript.new() as Control
+	renderer.name = "GeneratedPhoneUIPixelSmokeRenderer"
+	renderer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	viewport.add_child(renderer)
+	renderer.set_blueprint({
+		"style": {
+			"palette": {
+				"background": "#050814",
+				"surface": "#E82018",
+				"surface_alt": "#9C1515",
+				"accent": "#5577AA",
+				"accent_secondary": "#6688BB",
+				"text": "#FFFFFF",
+				"muted": "#DDE4EE"
+			},
+			"wallpaper_style": "soft_gradient",
+			"composition_density": "balanced",
+			"grid_columns": 4,
+			"icon_shape": "rounded_square",
+			"icon_size": 52,
+			"corner_radius": 20,
+			"spacing": 14,
+			"surface_style": "soft_solid",
+			"typography_scale": 1.0,
+			"status_bar_style": "quiet",
+			"navigation_style": "gesture",
+			"accent_treatment": "subtle"
+		},
+		"home": {
+			"widgets": [{"type": "clock", "emphasis": "hero", "variant": 0}],
+			"composition": {
+				"widget_placements": [{"type": "clock", "rect": [0.10, 0.20, 0.80, 0.20]}],
+				"apps_top": 0.66,
+				"region_bounds": [0.10, 0.20, 0.80, 0.20]
+			},
+			"apps": [
+				{"name": "Test One", "glyph": "1", "color": "#00FF33"},
+				{"name": "Test Two", "glyph": "2", "color": "#00FF33"},
+				{"name": "Test Three", "glyph": "3", "color": "#00FF33"},
+				{"name": "Test Four", "glyph": "4", "color": "#00FF33"},
+				{"name": "Test Five", "glyph": "5", "color": "#00FF33"},
+				{"name": "Test Six", "glyph": "6", "color": "#00FF33"},
+				{"name": "Test Seven", "glyph": "7", "color": "#00FF33"},
+				{"name": "Test Eight", "glyph": "8", "color": "#00FF33"}
+			],
+			"dock": ["Phone", "Messages", "Browser", "Camera"],
+			"show_search": false
+		},
+		"system": {
+			"time_format": "24h",
+			"battery_percent": 88,
+			"network_label": "5G",
+			"show_battery_percent": false
+		}
+	})
+
+	await process_frame
+	await RenderingServer.frame_post_draw
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var rendered_image := viewport.get_texture().get_image()
+	if rendered_image == null or rendered_image.get_width() != 480 or rendered_image.get_height() != 960:
+		viewport.free()
+		_fail("The generated UI renderer did not produce a readable 480x960 screen image.")
+		return false
+
+	# The widget surface and app icon use unique colors which cannot come from
+	# the wallpaper. Their pixels prove those UI layers were actually drawn.
+	var widget_pixel := rendered_image.get_pixel(400, 280)
+	var icon_pixel := rendered_image.get_pixel(61, 620)
+	var widget_visible := widget_pixel.r > 0.45 and widget_pixel.g < 0.30
+	var app_visible := icon_pixel.g > 0.45 and icon_pixel.r < 0.30
+	viewport.free()
+	if not widget_visible or not app_visible:
+		_fail("The generated screen image contains wallpaper but is missing visible widget or app-icon pixels.")
+		return false
 	return true
 
 
@@ -139,7 +228,7 @@ func _check_phone_screen_integration() -> bool:
 
 	# The interface must render into an opaque, higher-density target. Screen
 	# research must affect glass optics without tinting away readable UI pixels.
-	if ui_viewport.size != Vector2i(600, 1200) or ui_viewport.transparent_bg:
+	if ui_viewport.size != Vector2i(480, 960) or ui_viewport.transparent_bg:
 		worksite.queue_free()
 		_fail("The generated UI viewport is not using the expected opaque high-density display target.")
 		return false
@@ -151,7 +240,7 @@ func _check_phone_screen_integration() -> bool:
 		_fail("The generated screen is missing its clarity and glass-response shader.")
 		return false
 	var shader_source := screen_material.shader.code
-	if not shader_source.contains("ALPHA = 1.0;") or not shader_source.contains("screen_reflection_strength"):
+	if shader_source.contains("ALPHA =") or not shader_source.contains("screen_reflection_strength") or not shader_source.contains("ALBEDO = display_rgb"):
 		worksite.queue_free()
 		_fail("The generated screen shader does not preserve opacity or screen-technology optical controls.")
 		return false
