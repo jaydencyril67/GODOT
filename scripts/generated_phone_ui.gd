@@ -240,7 +240,11 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, palette
 	var cell_width := (viewport_size.x - margin * 2.0) / float(columns)
 	var icon_size := clampf(float(style.get("icon_size", 52)) * 0.88, 36.0, 54.0)
 	var icon_radius := float(style.get("corner_radius", 22)) * 0.70
-	var row_height := icon_size + 27.0
+	var row_count := maxi(1, ceili(float(apps.size()) / float(columns)))
+	var dock_top := viewport_size.y - viewport_size.y * 0.083 - 38.0
+	var available_height := maxf(48.0, dock_top - apps_top - 18.0)
+	var row_height := minf(icon_size + 27.0, available_height / float(row_count))
+	icon_size = minf(icon_size, maxf(26.0, row_height - 24.0))
 	for index in range(apps.size()):
 		var app_value: Variant = apps[index]
 		if not app_value is Dictionary:
