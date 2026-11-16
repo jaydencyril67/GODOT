@@ -384,6 +384,7 @@ var _pin_error_message := ""
 var _quick_setting_states := {
 	"Wi-Fi": true, "Bluetooth": true, "Airplane mode": false,
 	"Auto-rotate": true, "Flashlight": false, "Location": true,
+	"Sound": true, "Mute": false,
 	"Cast screen": false, "Hotspot": false, "Battery saver": false
 }
 var _clock_update_elapsed := 0.0
@@ -535,8 +536,8 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 				_close_gesture_overlay()
 			return
 		if _is_gen1_samsung_ui() and _gesture_overlay.name == "OSGestureOverlay_recent_apps":
-			if absf(delta.y) >= vertical_threshold or absf(delta.x) >= horizontal_threshold:
-				_close_gesture_overlay()
+			if delta.length() <= maxf(12.0, minf(size.x, size.y) * 0.035):
+				_handle_samsung_gen1_tap(start)
 			else:
 				_close_gesture_overlay()
 			return
@@ -608,10 +609,30 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 
 
 func _handle_samsung_gen1_tap(touch_position: Vector2) -> void:
-	if size.x <= 0.0 or size.y <= 0.0:
+	var screenshot := find_child("SamsungGen1ScreenImage_" + active_component, true, false) as TextureRect
+	if screenshot == null or not is_instance_valid(screenshot):
 		return
-	var normalized_x := touch_position.x / size.x
-	var normalized_y := touch_position.y / size.y
+	var screenshot_rect := screenshot.get_global_rect()
+	var touch_canvas_position := get_global_transform_with_canvas() * touch_position
+	if screenshot_rect.size.x <= 0.0 or screenshot_rect.size.y <= 0.0 or not screenshot_rect.has_point(touch_canvas_position):
+		return
+	var normalized_x := (touch_canvas_position.x - screenshot_rect.position.x) / screenshot_rect.size.x
+	var normalized_y := (touch_canvas_position.y - screenshot_rect.position.y) / screenshot_rect.size.y
+	if active_component == "recent_apps":
+		var recent_apps := ["Email", "Camera", "Gallery", "Browser"]
+		var recent_card_regions := [
+			Rect2(0.20, 0.10, 0.60, 0.22),
+			Rect2(0.20, 0.32, 0.60, 0.20),
+			Rect2(0.20, 0.53, 0.60, 0.21),
+			Rect2(0.20, 0.75, 0.60, 0.20)
+		]
+		for card_index in range(recent_card_regions.size()):
+			if recent_card_regions[card_index].has_point(Vector2(normalized_x, normalized_y)):
+				_close_gesture_overlay()
+				_on_app_pressed(str(recent_apps[card_index]))
+				return
+		_close_gesture_overlay()
+		return
 	if active_component == "lock_screen":
 		if normalized_y >= 0.90:
 			if normalized_x <= 0.25:
@@ -639,6 +660,13 @@ func _handle_samsung_gen1_tap(touch_position: Vector2) -> void:
 				else:
 					_on_app_pressed(app_name)
 				return
+	elif active_component == "notifications" or active_component == "control_center":
+		var quick_tiles := ["Wi-Fi", "Location", "Sound", "Mute", "Auto-rotate", "Bluetooth", "Bluetooth"]
+		if normalized_y >= 0.08 and normalized_y <= 0.30:
+			var tile_index := clampi(int(floor(normalized_x * float(quick_tiles.size()))), 0, quick_tiles.size() - 1)
+			var tile_name := str(quick_tiles[tile_index])
+			_quick_setting_states[tile_name] = not bool(_quick_setting_states.get(tile_name, false))
+		return
 	elif active_component == "app_drawer":
 		var drawer_rows := [
 			["Email", "Camera", "Gallery", "Music"],
@@ -3022,10 +3050,12 @@ func _build_shell() -> void:
 	var safe_area := MarginContainer.new()
 	safe_area.name = "OSSimulatorSafeArea"
 	safe_area.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	safe_area.add_theme_constant_override("margin_left", 12)
-	safe_area.add_theme_constant_override("margin_right", 12)
-	safe_area.add_theme_constant_override("margin_top", 7)
-	safe_area.add_theme_constant_override("margin_bottom", 7)
+	var screen_margin := 0 if screenshot_backed_screen else 12
+	var vertical_margin := 0 if screenshot_backed_screen else 7
+	safe_area.add_theme_constant_override("margin_left", screen_margin)
+	safe_area.add_theme_constant_override("margin_right", screen_margin)
+	safe_area.add_theme_constant_override("margin_top", vertical_margin)
+	safe_area.add_theme_constant_override("margin_bottom", vertical_margin)
 	add_child(safe_area)
 
 	if active_component in ["lock_screen", "pin_input"]:
@@ -3045,7 +3075,7 @@ func _build_shell() -> void:
 			if pin_status_bar != null:
 				pin_status_bar.visible = false
 
-			page_container = VBoxContainer.new()
+		page_container = VBoxContainer.new()
 		page_container.name = "OSComponentContent"
 		page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
