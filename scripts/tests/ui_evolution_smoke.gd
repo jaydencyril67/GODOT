@@ -71,7 +71,7 @@ func _check_generated_designs() -> bool:
 			str(style.get("icon_shape", "")),
 			str(style.get("grid_columns", "")),
 			widget_signature,
-			str(design.get("name", ""))
+			str(home.get("search_position", ""))
 		]
 		signatures[signature] = true
 		latest_design = design
