@@ -42,13 +42,11 @@ func _draw() -> void:
 			accent = accent.lightened(0.08)
 	var radius := int(style.get("corner_radius", 22))
 	_typography_scale = clampf(float(style.get("typography_scale", 1.0)), 0.85, 1.2)
-	var scale := _typography_scale
 	var margin := size.x * 0.065
 
 	_draw_wallpaper(background, accent, str(style.get("wallpaper_style", "aurora")), secondary)
 	_draw_status_bar(text_color, muted, system, style)
 
-	var widgets: Array = home.get("widgets", [])
 	var composition: Dictionary = home.get("composition", {})
 	var placements: Array = composition.get("widget_placements", [])
 	var apps_top := size.y * clampf(float(composition.get("apps_top", 0.57)), 0.46, 0.675)
