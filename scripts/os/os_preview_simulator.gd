@@ -572,11 +572,11 @@ func _handle_gen2_screen_tap(touch_position: Vector2) -> void:
 		"recent_apps":
 			_handle_gen2_recent_apps_tap(normalized_position)
 
-func _handle_gen2_home_screen_tap(position: Vector2) -> void:
+func _handle_gen2_home_screen_tap(normalized_position: Vector2) -> void:
 	var columns := [0.13, 0.38, 0.62, 0.87]
 	if _is_gen2_samsung_ui():
-		if position.y >= 0.84:
-			var dock_index := clampi(floori(position.x * 4.0), 0, 3)
+		if normalized_position.y >= 0.84:
+			var dock_index := clampi(floori(normalized_position.x * 4.0), 0, 3)
 			var dock_apps := ["Phone", "Messages", "Browser", "APP_DRAWER"]
 			var dock_app := str(dock_apps[dock_index])
 			if dock_app == "APP_DRAWER":
@@ -590,14 +590,14 @@ func _handle_gen2_home_screen_tap(position: Vector2) -> void:
 			["Contacts", "Downloads", "Music", "Video"]
 		]
 		for row_index in range(rows.size()):
-			if absf(position.y - (0.34 + float(row_index) * 0.18)) <= 0.075:
+			if absf(normalized_position.y - (0.34 + float(row_index) * 0.18)) <= 0.075:
 				for column_index in range(columns.size()):
-					if absf(position.x - columns[column_index]) <= 0.10:
+					if absf(normalized_position.x - columns[column_index]) <= 0.10:
 						_on_app_pressed(str(rows[row_index][column_index]))
 						return
 	elif _is_gen2_pixel_ui():
-		if position.y >= 0.82:
-			var dock_index := clampi(floori(position.x * 4.0), 0, 3)
+		if normalized_position.y >= 0.82:
+			var dock_index := clampi(floori(normalized_position.x * 4.0), 0, 3)
 			_on_app_pressed(["Phone", "Messages", "Chrome", "Camera"][dock_index])
 			return
 		var rows := [
@@ -605,14 +605,14 @@ func _handle_gen2_home_screen_tap(position: Vector2) -> void:
 			["YouTube", "Drive", "Play Store", "Settings"]
 		]
 		for row_index in range(rows.size()):
-			if absf(position.y - (0.57 + float(row_index) * 0.16)) <= 0.075:
+			if absf(normalized_position.y - (0.57 + float(row_index) * 0.16)) <= 0.075:
 				for column_index in range(columns.size()):
-					if absf(position.x - columns[column_index]) <= 0.10:
+					if absf(normalized_position.x - columns[column_index]) <= 0.10:
 						_on_app_pressed(str(rows[row_index][column_index]))
 						return
 	elif _is_gen2_xiaomi_ui():
-		if position.y >= 0.84:
-			var dock_index := clampi(floori(position.x * 4.0), 0, 3)
+		if normalized_position.y >= 0.84:
+			var dock_index := clampi(floori(normalized_position.x * 4.0), 0, 3)
 			_on_app_pressed(["Phone", "Messages", "Browser", "Camera"][dock_index])
 			return
 		var rows := [
@@ -621,14 +621,14 @@ func _handle_gen2_home_screen_tap(position: Vector2) -> void:
 			["Contacts", "Downloads", "Browser", "Camera"]
 		]
 		for row_index in range(rows.size()):
-			if absf(position.y - (0.34 + float(row_index) * 0.17)) <= 0.075:
+			if absf(normalized_position.y - (0.34 + float(row_index) * 0.17)) <= 0.075:
 				for column_index in range(columns.size()):
-					if absf(position.x - columns[column_index]) <= 0.10:
+					if absf(normalized_position.x - columns[column_index]) <= 0.10:
 						_on_app_pressed(str(rows[row_index][column_index]))
 						return
 
-func _handle_gen2_app_drawer_tap(position: Vector2) -> void:
-	if position.y < 0.14 and position.x >= 0.78:
+func _handle_gen2_app_drawer_tap(normalized_position: Vector2) -> void:
+	if normalized_position.y < 0.14 and normalized_position.x >= 0.78:
 		set_component_view("home_screen")
 		return
 	var columns := [0.13, 0.38, 0.62, 0.87]
@@ -640,15 +640,15 @@ func _handle_gen2_app_drawer_tap(position: Vector2) -> void:
 		["Files", "Downloads", "Email", "Weather"]
 	]
 	for row_index in range(rows.size()):
-		if absf(position.y - (0.22 + float(row_index) * 0.15)) > 0.065:
+		if absf(normalized_position.y - (0.22 + float(row_index) * 0.15)) > 0.065:
 			continue
 		for column_index in range(columns.size()):
-			if absf(position.x - columns[column_index]) <= 0.10:
+			if absf(normalized_position.x - columns[column_index]) <= 0.10:
 				_on_app_pressed(str(rows[row_index][column_index]))
 				return
 
-func _handle_gen2_notifications_tap(position: Vector2) -> void:
-	if position.y <= 0.20 and position.x >= 0.78:
+func _handle_gen2_notifications_tap(normalized_position: Vector2) -> void:
+	if normalized_position.y <= 0.20 and normalized_position.x >= 0.78:
 		_show_gen1_panel_feedback("Notifications cleared")
 		return
 	var rows := [
@@ -659,17 +659,17 @@ func _handle_gen2_notifications_tap(position: Vector2) -> void:
 		{"y":0.91,"app":"Calendar"}
 	]
 	for item in rows:
-		if absf(position.y - float(item["y"])) <= 0.07:
+		if absf(normalized_position.y - float(item["y"])) <= 0.07:
 			_on_app_pressed(str(item["app"]))
 			return
 
-func _handle_gen2_control_center_tap(position: Vector2) -> void:
-	if position.y >= 0.14 and position.y <= 0.29:
-		_set_gen1_brightness_from_position(position.x)
+func _handle_gen2_control_center_tap(normalized_position: Vector2) -> void:
+	if normalized_position.y >= 0.14 and normalized_position.y <= 0.29:
+		_set_gen1_brightness_from_normalized_position(normalized_position.x)
 		return
-	if position.y >= 0.30 and position.y <= 0.88:
-		var row := clampi(floori((position.y - 0.30) / 0.19), 0, 2)
-		var column := 0 if position.x < 0.5 else 1
+	if normalized_position.y >= 0.30 and normalized_position.y <= 0.88:
+		var row := clampi(floori((normalized_position.y - 0.30) / 0.19), 0, 2)
+		var column := 0 if normalized_position.x < 0.5 else 1
 		var tiles := [
 			["Wi-Fi", "Bluetooth"],
 			["Mobile data", "Airplane mode"],
@@ -677,13 +677,13 @@ func _handle_gen2_control_center_tap(position: Vector2) -> void:
 		]
 		_toggle_gen1_quick_setting(str(tiles[row][column]))
 		return
-	if position.y > 0.90 and position.x > 0.78:
+	if normalized_position.y > 0.90 and normalized_position.x > 0.78:
 		_close_gesture_overlay()
 
-func _handle_gen2_recent_apps_tap(position: Vector2) -> void:
+func _handle_gen2_recent_apps_tap(normalized_position: Vector2) -> void:
 	var app_names := ["Settings", "Browser", "Messages", "Camera"]
-	var row_index := clampi(floori((position.y - 0.12) / 0.22), 0, app_names.size() - 1)
-	if position.x >= 0.10 and position.x <= 0.92 and position.y >= 0.10 and position.y <= 0.92:
+	var row_index := clampi(floori((normalized_position.y - 0.12) / 0.22), 0, app_names.size() - 1)
+	if normalized_position.x >= 0.10 and normalized_position.x <= 0.92 and normalized_position.y >= 0.10 and normalized_position.y <= 0.92:
 		_on_app_pressed(app_names[row_index])
 
 func _handle_gen2_overlay_tap(component_id: String, touch_position: Vector2) -> void:
