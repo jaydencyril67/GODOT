@@ -209,6 +209,28 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(obsolete_home_name, true, false) != null:
 			_fail("Obsolete generated Gen 1 home-screen element remained: " + obsolete_home_name)
 			return
+	var home_screen_rect := samsung_home_image.get_global_rect()
+	var apps_launcher_canvas_position := home_screen_rect.position + home_screen_rect.size * Vector2(0.86, 0.90)
+	var apps_launcher_local_position := simulator.get_global_transform_with_canvas().affine_inverse() * apps_launcher_canvas_position
+	simulator.call("_handle_system_gesture", apps_launcher_local_position, apps_launcher_local_position, 20)
+	await process_frame
+	if simulator.get("active_component") != "app_drawer":
+		_fail("Tapping the TouchWiz Apps launcher did not open the imported app drawer.")
+		return
+	var samsung_drawer_image := simulator.find_child("SamsungGen1ScreenImage_app_drawer", true, false) as TextureRect
+	if samsung_drawer_image == null or samsung_drawer_image.texture == null or samsung_drawer_image.texture.resource_path != "res://assets/os/gen1/samsung/app_drawer.jpg":
+		_fail("Samsung Gen 1 app drawer did not load its uploaded JPG.")
+		return
+	var drawer_screen_rect := samsung_drawer_image.get_global_rect()
+	var first_drawer_app_canvas_position := drawer_screen_rect.position + drawer_screen_rect.size * Vector2(0.14, 0.22)
+	var first_drawer_app_local_position := simulator.get_global_transform_with_canvas().affine_inverse() * first_drawer_app_canvas_position
+	simulator.call("_handle_system_gesture", first_drawer_app_local_position, first_drawer_app_local_position, 20)
+	await process_frame
+	if str(simulator.get("_last_opened_app")) != "Email":
+		_fail("Touching the first TouchWiz app-drawer icon did not open its mapped DWM app.")
+		return
+	simulator.set_component_view("home_screen")
+	await process_frame
 
 	if ProceduralEngineScript.HOME_LAYOUT_STYLES != ["android_pixel", "ios_home", "windows_tiles"]:
 		_fail("Home Screen Studio must contain only Android, iOS and Windows layouts, in that order.")
