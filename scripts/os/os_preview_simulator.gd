@@ -78,6 +78,41 @@ class OreoLockShortcutButton extends Button:
 			draw_circle(size * 0.5, 15.0, Color(1, 1, 1, 0.12))
 
 
+class SamsungOneUILockShortcutButton extends Button:
+	var shortcut_id := "phone"
+
+	func _ready() -> void:
+		text = ""
+		flat = true
+		focus_mode = Control.FOCUS_NONE
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		custom_minimum_size = Vector2(44, 44)
+		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+		queue_redraw()
+
+	func _draw() -> void:
+		var centre := size * 0.5
+		var shortcut_color := Color("#1B9B66") if shortcut_id == "phone" else Color("#E52E59")
+		draw_circle(centre, 10.5, shortcut_color)
+		if shortcut_id == "phone":
+			var handset := PackedVector2Array([
+				centre + Vector2(-5.0, -5.5),
+				centre + Vector2(-6.0, -2.0),
+				centre + Vector2(-3.0, 2.2),
+				centre + Vector2(2.0, 6.0),
+				centre + Vector2(5.5, 4.5)
+			])
+			draw_polyline(handset, Color.WHITE, 2.6, true)
+			draw_circle(handset[0], 1.4, Color.WHITE)
+			draw_circle(handset[handset.size() - 1], 1.4, Color.WHITE)
+		else:
+			draw_rect(Rect2(centre + Vector2(-6.0, -4.0), Vector2(12.0, 9.0)), Color.WHITE, false, 1.8, true)
+			draw_rect(Rect2(centre + Vector2(-3.0, -6.0), Vector2(5.5, 2.0)), Color.WHITE)
+			draw_circle(centre + Vector2(0.0, 0.5), 2.5, Color.WHITE, false, 1.6, true)
+
+
 class OreoLockCenterGlyph extends Control:
 	var icon_texture: Texture2D
 
@@ -372,7 +407,7 @@ func _current_lock_time(family: String = "") -> String:
 	var now := Time.get_datetime_dict_from_system()
 	var hour := int(now.get("hour", 9))
 	var minute := int(now.get("minute", 41))
-	if family == "pixel":
+	if family in ["pixel", "one_ui"]:
 		var twelve_hour := hour % 12
 		if twelve_hour == 0:
 			twelve_hour = 12
@@ -394,6 +429,8 @@ func _current_lock_date(treatment: String) -> String:
 	match treatment:
 		"pixel":
 			return "%s, %s %d" % [weekday, month, day]
+		"one_ui":
+			return "%s, %s %d" % [weekday.substr(0, 3), month, day]
 		"minimal":
 			return "%s  ·  %02d %s" % [weekday.to_upper().substr(0, 3), day, month.to_upper().substr(0, 3)]
 		"editorial":
@@ -405,6 +442,12 @@ func _current_lock_date(treatment: String) -> String:
 
 func _refresh_lock_screen_clock() -> void:
 	var is_oreo_android := _is_android_os() and int(configuration.get("generation", 1)) == 2
+	var samsung_clock := find_child("SamsungOneUILockClock", true, false) as Label
+	if is_instance_valid(samsung_clock):
+		samsung_clock.text = _current_lock_time("one_ui")
+	var samsung_date := find_child("SamsungOneUILockDate", true, false) as Label
+	if is_instance_valid(samsung_date):
+		samsung_date.text = _current_lock_date("one_ui")
 	var clock := find_child("LockScreenClock", true, false) as Label
 	if is_instance_valid(clock):
 		clock.text = _current_lock_time("pixel" if is_oreo_android else "")
@@ -450,7 +493,7 @@ func _try_finish_drag_gesture(touch_position: Vector2) -> void:
 	if not _gesture_active or not _is_android_os():
 		return
 	var generation_number := int(configuration.get("generation", 2))
-	if generation_number not in [2, 3]:
+	if generation_number not in [2, 3, 4]:
 		return
 	var delta := touch_position - _gesture_start
 	var vertical_threshold := maxf(20.0, size.y * 0.06)
@@ -3049,10 +3092,11 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	var is_pie_drawer := _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 3
 	var is_oreo_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 2
 	var is_pie_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 3
-	var status_foreground := Color("#5F6368") if is_pie_drawer else Color("#424242") if is_lollipop_drawer else Color("#FFFFFF") if is_oreo_lock_screen or is_pie_lock_screen else _text_color()
+	var is_samsung_one_ui_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 4
+	var status_foreground := Color("#5F6368") if is_pie_drawer else Color("#424242") if is_lollipop_drawer else _one_ui_lock_screen_text_color() if is_samsung_one_ui_lock_screen else Color("#FFFFFF") if is_oreo_lock_screen or is_pie_lock_screen else _text_color()
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
-	bar.custom_minimum_size.y = 17 if is_oreo_lock_screen or is_pie_lock_screen else 22
+	bar.custom_minimum_size.y = 17 if is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen else 22
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
 	if is_lollipop_drawer or is_pie_drawer:
@@ -3060,7 +3104,7 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 		bar_style.border_color = Color(0, 0, 0, 0)
 		bar_style.set_border_width_all(0)
 		bar_style.set_corner_radius_all(0)
-	elif is_oreo_lock_screen or is_pie_lock_screen:
+	elif is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen:
 		bar_style.bg_color = Color(0, 0, 0, 0)
 		bar_style.border_color = Color(0, 0, 0, 0)
 		bar_style.set_border_width_all(0)
@@ -3084,12 +3128,12 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	clock.custom_minimum_size = Vector2(32, 13)
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	clock.visible = not (is_oreo_lock_screen or is_pie_lock_screen)
+	clock.visible = not (is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen)
 	row.add_child(clock)
 	var notification_dot := _label("●", 5, status_foreground)
 	notification_dot.name = "StatusBarNotificationIndicator"
 	notification_dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	notification_dot.visible = not (is_oreo_lock_screen or is_pie_lock_screen)
+	notification_dot.visible = not (is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen)
 	row.add_child(notification_dot)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3102,7 +3146,7 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	var cellular_icon := _status_bar_icon(STATUS_CELLULAR_TEXTURE, Vector2(16, 13), "StatusBarCellularIcon")
 	var wifi_icon := _status_bar_icon(STATUS_WIFI_TEXTURE, Vector2(15, 13), "StatusBarWifiIcon")
 	var battery_icon := _status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "StatusBarBatteryIcon")
-	if is_lollipop_drawer or is_pie_drawer:
+	if is_lollipop_drawer or is_pie_drawer or is_samsung_one_ui_lock_screen:
 		cellular_icon.modulate = status_foreground
 		wifi_icon.modulate = status_foreground
 		battery_icon.modulate = status_foreground
@@ -3602,6 +3646,9 @@ func _build_windows_tiles() -> void:
 
 
 func _build_lock_screen(data: Dictionary) -> void:
+	if _is_android_os() and int(configuration.get("generation", 1)) == 4:
+		_build_samsung_one_ui_lock_screen(data)
+		return
 	if _is_android_os() and int(configuration.get("generation", 1)) == 3:
 		_build_android_pie_lock_screen(data)
 		return
@@ -3609,6 +3656,175 @@ func _build_lock_screen(data: Dictionary) -> void:
 		_build_oreo_lock_screen(data)
 		return
 	_build_lollipop_lock_screen(data)
+
+
+func _build_samsung_one_ui_lock_screen(data: Dictionary) -> void:
+	# Samsung One UI 2.0 (Android 10): left-aligned clock/date and corner shortcuts.
+	var root := VBoxContainer.new()
+	root.name = "SamsungOneUILockScreen"
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", 0)
+	page_container.add_child(root)
+
+	var top_space := Control.new()
+	top_space.name = "SamsungOneUILockTopSpace"
+	top_space.custom_minimum_size.y = maxf(34.0, size.y * 0.105)
+	top_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(top_space)
+
+	var identity := VBoxContainer.new()
+	identity.name = "SamsungOneUILockIdentity"
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.add_theme_constant_override("separation", 0)
+	root.add_child(identity)
+
+	var foreground := _one_ui_lock_screen_text_color()
+	if bool(data.get("show_time", true)):
+		var clock_size := clampi(roundi(size.x * 0.076), 16, 23)
+		var clock := _label(_current_lock_time("one_ui"), clock_size, foreground)
+		clock.name = "SamsungOneUILockClock"
+		clock.custom_minimum_size.y = clock_size + 2
+		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
+		clock.clip_text = false
+		clock.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		identity.add_child(clock)
+
+	if bool(data.get("show_date", true)):
+		var date_size := clampi(roundi(size.x * 0.054), 11, 16)
+		var date := _label(_current_lock_date("one_ui"), date_size, foreground)
+		date.name = "SamsungOneUILockDate"
+		date.custom_minimum_size.y = date_size + 4
+		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		date.autowrap_mode = TextServer.AUTOWRAP_OFF
+		date.clip_text = false
+		date.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		identity.add_child(date)
+
+	if bool(data.get("show_notifications", false)):
+		var notifications := VBoxContainer.new()
+		notifications.name = "SamsungOneUILockNotifications"
+		notifications.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		notifications.add_theme_constant_override("separation", 4)
+		root.add_child(notifications)
+		_add_samsung_one_ui_lock_notification(notifications, "Messages", "Alex Morgan", "Are we still meeting today?", "M")
+		_add_samsung_one_ui_lock_notification(notifications, "Calendar", "Upcoming event", "Your event starts in 10 minutes", "31")
+
+	var flexible_space := Control.new()
+	flexible_space.name = "SamsungOneUILockFlexibleSpace"
+	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	flexible_space.size_flags_stretch_ratio = 1.0
+	flexible_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(flexible_space)
+
+	var unlock_hint := _label("Swipe to unlock", 9, foreground)
+	unlock_hint.name = "SamsungOneUISwipeToUnlockHint"
+	unlock_hint.custom_minimum_size.y = 16
+	unlock_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	unlock_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	root.add_child(unlock_hint)
+
+	var shortcut_row := HBoxContainer.new()
+	shortcut_row.name = "SamsungOneUILockShortcuts"
+	shortcut_row.custom_minimum_size.y = 44
+	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_row.add_theme_constant_override("separation", 0)
+	root.add_child(shortcut_row)
+
+	if bool(data.get("show_phone_shortcut", true)):
+		var phone := SamsungOneUILockShortcutButton.new()
+		phone.name = "SamsungOneUIPhoneShortcut"
+		phone.shortcut_id = "phone"
+		phone.pressed.connect(func() -> void: app_opened.emit("Phone"))
+		shortcut_row.add_child(phone)
+	else:
+		var phone_space := Control.new()
+		phone_space.name = "SamsungOneUIPhoneShortcutSlot"
+		phone_space.custom_minimum_size.x = 44
+		shortcut_row.add_child(phone_space)
+
+	var shortcut_spacer := Control.new()
+	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shortcut_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shortcut_row.add_child(shortcut_spacer)
+
+	if bool(data.get("show_camera_shortcut", true)):
+		var camera := SamsungOneUILockShortcutButton.new()
+		camera.name = "SamsungOneUICameraShortcut"
+		camera.shortcut_id = "camera"
+		camera.pressed.connect(func() -> void: app_opened.emit("Camera"))
+		shortcut_row.add_child(camera)
+	else:
+		var camera_space := Control.new()
+		camera_space.name = "SamsungOneUICameraShortcutSlot"
+		camera_space.custom_minimum_size.x = 44
+		shortcut_row.add_child(camera_space)
+
+	var bottom_space := Control.new()
+	bottom_space.name = "SamsungOneUILockBottomSpace"
+	bottom_space.custom_minimum_size.y = 2
+	bottom_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bottom_space)
+
+
+func _add_samsung_one_ui_lock_notification(parent: VBoxContainer, app_name: String, title_text: String, message_text: String, icon_text: String) -> void:
+	var foreground := _one_ui_lock_screen_text_color()
+	var card := PanelContainer.new()
+	card.name = "SamsungOneUILockNotification_" + app_name.replace(" ", "")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 46
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(1, 1, 1, 0.78) if foreground.get_luminance() < 0.5 else Color(0, 0, 0, 0.20)
+	card_style.set_corner_radius_all(8)
+	card_style.border_color = Color(foreground.r, foreground.g, foreground.b, 0.12)
+	card_style.set_border_width_all(1)
+	card_style.content_margin_left = 8
+	card_style.content_margin_right = 8
+	card_style.content_margin_top = 5
+	card_style.content_margin_bottom = 5
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+	card.add_child(row)
+
+	var icon_badge := PanelContainer.new()
+	icon_badge.custom_minimum_size = Vector2(23, 23)
+	var icon_style := StyleBoxFlat.new()
+	icon_style.bg_color = Color("#4F8BC9") if app_name == "Messages" else Color("#D56B57")
+	icon_style.set_corner_radius_all(5)
+	icon_badge.add_theme_stylebox_override("panel", icon_style)
+	var icon := _label(icon_text, 8, Color.WHITE)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_badge.add_child(icon)
+	row.add_child(icon_badge)
+
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 0)
+	var title := _label(title_text, 8, foreground)
+	title.name = "SamsungOneUILockNotificationTitle_" + app_name.replace(" ", "")
+	copy.add_child(title)
+	var message := _label(message_text, 8, foreground)
+	message.name = "SamsungOneUILockNotificationMessage_" + app_name.replace(" ", "")
+	message.autowrap_mode = TextServer.AUTOWRAP_OFF
+	message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	copy.add_child(message)
+	row.add_child(copy)
+	parent.add_child(card)
+
+
+func _one_ui_lock_screen_text_color() -> Color:
+	# One UI 2.0 adapts lock-screen text to the wallpaper's upper area.
+	var wallpaper_id := str(_style.get("wallpaper", "aurora"))
+	var upper_wallpaper_color := Color(str(_palette.get("background", "#0B1017")))
+	if wallpaper_id == "lollipop":
+		upper_wallpaper_color = Color("#176A8A")
+	return Color("#34383D") if upper_wallpaper_color.get_luminance() > 0.46 else Color("#FFFFFF")
 
 
 func _build_android_pie_lock_screen(data: Dictionary) -> void:
