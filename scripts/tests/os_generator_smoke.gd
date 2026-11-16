@@ -79,7 +79,7 @@ func _run_gen1_smoke_test() -> void:
 		simulator.configure_os(pixel_config, str(component_id))
 		await process_frame
 		if component_id == "recent_apps":
-			if load(expected_path) as Texture2D == null:
+			if (load(expected_path) as Texture2D) == null:
 				_fail("Google Stock Android 4 recent-apps reference asset failed to import: " + expected_path)
 				return
 			if simulator.find_child("PixelGen1ScreenImage_recent_apps", true, false) != null:
@@ -142,7 +142,6 @@ func _run_gen1_smoke_test() -> void:
 		_fail("Google Stock Android 4 Quick Settings tiles do not update their state.")
 		return
 	_opened_apps.clear()
-	_simulate_screenshot_tap(simulator, "PixelGen1ScreenImage_home_screen", Vector2(0.14, 0.50)) if false else null
 	simulator._dispatch_android_navigation("Overview")
 	await process_frame
 	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("Gen1FamilyRecentApps", true, false) == null:
@@ -169,7 +168,7 @@ func _run_gen1_smoke_test() -> void:
 		simulator.configure_os(xiaomi_config, str(component_id))
 		await process_frame
 		if component_id == "recent_apps":
-			if load(expected_xiaomi_path) as Texture2D == null:
+			if (load(expected_xiaomi_path) as Texture2D) == null:
 				_fail("Xiaomi MIUI recent-apps reference asset failed to import: " + expected_xiaomi_path)
 				return
 			if simulator.find_child("XiaomiGen1ScreenImage_recent_apps", true, false) != null or simulator.find_child("Gen1FamilyRecentApps", true, false) == null:
