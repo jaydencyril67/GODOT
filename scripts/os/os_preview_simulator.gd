@@ -4,6 +4,14 @@ signal app_opened(app_name: String)
 
 const OSEngine = preload("res://scripts/os/procedural_os_engine.gd")
 const PHONE_UNLOCK_PIN := "1234"
+const SAMSUNG_GEN1_SCREEN_ASSETS := {
+	"lock_screen": "lockscreen.jpg",
+	"home_screen": "home_screen.jpg",
+	"app_drawer": "app_drawer.jpg",
+	"control_center": "notification.jpg",
+	"notifications": "notification.jpg",
+	"recent_apps": "recent_apps.jpg"
+}
 # Load imported assets after the simulator enters the scene tree. Preloading these
 # font/SVG resources during a clean-checkout script scan fails before Godot imports them.
 var LOCKSCREEN_FONT: FontFile
@@ -522,6 +530,16 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 	var edge_size := clampf(minf(size.x, size.y) * 0.08, 16.0, 30.0)
 
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
+		if _is_gen1_samsung_ui() and _gesture_overlay.name == "OSGestureOverlay_notifications":
+			if delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
+				_close_gesture_overlay()
+			return
+		if _is_gen1_samsung_ui() and _gesture_overlay.name == "OSGestureOverlay_recent_apps":
+			if absf(delta.y) >= vertical_threshold or absf(delta.x) >= horizontal_threshold:
+				_close_gesture_overlay()
+			else:
+				_close_gesture_overlay()
+			return
 		if _gesture_overlay.name == "OSGestureOverlay_notifications" and delta.y >= vertical_threshold:
 			_show_gesture_overlay("control_center")
 		elif _gesture_overlay.name == "OSGestureOverlay_recent_apps" and int(configuration.get("generation", 2)) == 3:
@@ -544,6 +562,15 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 
 	if start.y <= edge_size and delta.y >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.2:
 		_show_gesture_overlay("notifications")
+		return
+
+	if _is_gen1_samsung_ui():
+		if active_component == "lock_screen" and delta.x >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.10:
+			set_component_view("home_screen")
+			return
+		var tap_threshold := maxf(12.0, minf(size.x, size.y) * 0.035)
+		if delta.length() <= tap_threshold:
+			_handle_samsung_gen1_tap(start)
 		return
 
 	if active_component == "lock_screen" and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
@@ -580,6 +607,82 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 			_navigate_back()
 
 
+func _handle_samsung_gen1_tap(touch_position: Vector2) -> void:
+	if size.x <= 0.0 or size.y <= 0.0:
+		return
+	var normalized_x := touch_position.x / size.x
+	var normalized_y := touch_position.y / size.y
+	if active_component == "lock_screen":
+		if normalized_y >= 0.90:
+			if normalized_x <= 0.25:
+				_on_app_pressed("Phone")
+			elif normalized_x >= 0.75:
+				_on_app_pressed("Camera")
+		return
+	var column_centres := [0.14, 0.38, 0.62, 0.86]
+	if active_component == "home_screen":
+		var home_rows := [
+			["Email", "Camera", "Gallery", "Music"],
+			["Browser", "Maps", "Video", "Store"],
+			["Phone", "Contacts", "Messages", "APP_DRAWER"]
+		]
+		var home_row_centres := [0.52, 0.73, 0.90]
+		for row_index in range(home_rows.size()):
+			if absf(normalized_y - float(home_row_centres[row_index])) > 0.085:
+				continue
+			for column_index in range(column_centres.size()):
+				if absf(normalized_x - float(column_centres[column_index])) > 0.11:
+					continue
+				var app_name := str(home_rows[row_index][column_index])
+				if app_name == "APP_DRAWER":
+					set_component_view("app_drawer")
+				else:
+					_on_app_pressed(app_name)
+				return
+	elif active_component == "app_drawer":
+		var drawer_rows := [
+			["Email", "Camera", "Gallery", "Music"],
+			["Browser", "Maps", "Video", "Store"],
+			["Settings", "Notes", "Messages", "Downloads"],
+			["Clock", "Calendar", "Calculator", "Recorder"],
+			["Contacts", "Messages", "Files", "Calendar"]
+		]
+		var drawer_row_centres := [0.22, 0.37, 0.53, 0.69, 0.85]
+		for row_index in range(drawer_rows.size()):
+			if absf(normalized_y - float(drawer_row_centres[row_index])) > 0.07:
+				continue
+			for column_index in range(column_centres.size()):
+				if absf(normalized_x - float(column_centres[column_index])) > 0.11:
+					continue
+				_on_app_pressed(str(drawer_rows[row_index][column_index]))
+				return
+
+
+func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
+	_close_gesture_overlay()
+	var screenshot_component := "recent_apps" if mode == "recent_apps" else "notifications"
+	var overlay_name := "OSGestureOverlay_recent_apps" if mode == "recent_apps" else "OSGestureOverlay_notifications"
+	_gesture_overlay = Control.new()
+	_gesture_overlay.name = overlay_name
+	_gesture_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_gesture_overlay.offset_bottom = -54.0
+	_gesture_overlay.clip_contents = true
+	_gesture_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_gesture_overlay.z_index = 120
+	_gesture_overlay.z_as_relative = false
+	add_child(_gesture_overlay)
+	_add_gen1_samsung_screenshot(_gesture_overlay, screenshot_component)
+	var corner_mask := OSScreenCornerMask.new()
+	corner_mask.name = "SamsungGen1ShadeScreenCornerMask"
+	corner_mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	corner_mask.corner_radius = 22.0
+	corner_mask.mask_bottom_corners = false
+	corner_mask.mask_color = Color.BLACK
+	corner_mask.z_index = 130
+	corner_mask.z_as_relative = false
+	_gesture_overlay.add_child(corner_mask)
+
+
 func _navigate_home() -> void:
 	_close_gesture_overlay()
 	_screen_history.clear()
@@ -601,6 +704,10 @@ func _navigate_back() -> void:
 
 
 func _show_gesture_overlay(mode: String) -> void:
+	if _is_gen1_samsung_ui():
+		if mode in ["notifications", "control_center", "recent_apps"]:
+			_build_samsung_gen1_gesture_overlay(mode)
+		return
 	if _is_android_os() and int(configuration.get("generation", 2)) == 2:
 		match mode:
 			"notifications":
@@ -2760,6 +2867,39 @@ func _is_android_os() -> bool:
 	return layout_style == "android_pixel"
 
 
+func _is_gen1_samsung_ui() -> bool:
+	return _is_android_os() and int(configuration.get("generation", 0)) == 1
+
+
+func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
+	var target_component := active_component if component_id.is_empty() else component_id
+	return _is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component)
+
+
+func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> TextureRect:
+	var filename := str(SAMSUNG_GEN1_SCREEN_ASSETS.get(component_id, ""))
+	if filename.is_empty():
+		push_error("No Samsung Gen 1 screenshot is registered for component: " + component_id)
+		return null
+	var asset_path := "res://assets/os/gen1/samsung/" + filename
+	if not ResourceLoader.exists(asset_path):
+		push_error("Samsung Gen 1 screenshot asset is missing: " + asset_path)
+		return null
+	var screenshot := TextureRect.new()
+	screenshot.name = "SamsungGen1ScreenImage_" + component_id
+	screenshot.texture = load(asset_path) as Texture2D
+	if screenshot.texture == null:
+		push_error("Samsung Gen 1 screenshot could not be loaded: " + asset_path)
+		return null
+	screenshot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	screenshot.stretch_mode = TextureRect.STRETCH_SCALE
+	screenshot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screenshot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	screenshot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	parent.add_child(screenshot)
+	return screenshot
+
+
 func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false, back_only: bool = false, use_pie_style: bool = false, use_pie_overview: bool = false) -> void:
 	parent.add_theme_constant_override("separation", 0)
 	var is_light_surface := active_component == "app_drawer" and (use_lollipop_style or use_pie_style)
@@ -2780,7 +2920,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
 
 	var navigation_keys := HBoxContainer.new()
-	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "LollipopThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
+	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "SamsungGen1ThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
 	navigation_keys.custom_minimum_size.y = 46
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -2799,7 +2939,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
-		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "LollipopNavigation" if use_lollipop_style else "AndroidNavigation") + action
+		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "SamsungGen1Navigation" if use_lollipop_style else "AndroidNavigation") + action
 		key.action_name = action
 		key.icon_color = navigation_color
 		key.tooltip_text = "Recent" if action == "Overview" else action
@@ -2853,15 +2993,17 @@ func _build_shell() -> void:
 
 	_style = configuration.get("style", {})
 	_palette = _style.get("palette", {"background":"#0B1017","surface":"#19232E","surface_alt":"#263544","accent":"#76C8D4","text":"#F4F7F8","muted":"#A7B4BD"})
-	var wallpaper := OSWallpaperLayer.new()
-	wallpaper.name = "OSProceduralWallpaper"
-	wallpaper.palette = _palette.duplicate(true)
-	wallpaper.wallpaper_id = str(_style.get("wallpaper", "aurora"))
-	wallpaper.treatment = str(configuration.get("components", {}).get("wallpapers", {}).get("treatment", "natural"))
-	wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(wallpaper)
+	var screenshot_backed_screen := _uses_gen1_samsung_screenshot(active_component)
+	if not screenshot_backed_screen:
+		var wallpaper := OSWallpaperLayer.new()
+		wallpaper.name = "OSProceduralWallpaper"
+		wallpaper.palette = _palette.duplicate(true)
+		wallpaper.wallpaper_id = str(_style.get("wallpaper", "aurora"))
+		wallpaper.treatment = str(configuration.get("components", {}).get("wallpapers", {}).get("treatment", "natural"))
+		wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(wallpaper)
 
-	if _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) in [1, 3]:
+	if not screenshot_backed_screen and _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) in [1, 3]:
 		var full_drawer_background := ColorRect.new()
 		full_drawer_background.name = "PieAppDrawerFullScreenBackground" if int(configuration.get("generation", 2)) == 3 else "LollipopAppDrawerFullScreenBackground"
 		full_drawer_background.color = Color("#F8F9FA") if int(configuration.get("generation", 2)) == 3 else Color("#FAFAFA")
@@ -2896,17 +3038,18 @@ func _build_shell() -> void:
 
 		# The lock screen keeps its compact system status bar. Samsung-style
 		# PIN entry instead uses a clean lock indicator at the top of the screen.
-		_build_status_bar(lock_shell)
+		if not screenshot_backed_screen:
+			_build_status_bar(lock_shell)
 		if active_component == "pin_input":
 			var pin_status_bar := lock_shell.get_node_or_null("OSStatusBar") as Control
 			if pin_status_bar != null:
 				pin_status_bar.visible = false
 
-		page_container = VBoxContainer.new()
+			page_container = VBoxContainer.new()
 		page_container.name = "OSComponentContent"
 		page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		page_container.add_theme_constant_override("separation", 4)
+		page_container.add_theme_constant_override("separation", 0 if screenshot_backed_screen else 4)
 		lock_shell.add_child(page_container)
 		_build_component(active_component)
 		if _is_android_os() and active_component == "pin_input":
@@ -2927,15 +3070,17 @@ func _build_shell() -> void:
 	shell.add_theme_constant_override("separation", 6)
 	safe_area.add_child(shell)
 
-	_build_status_bar(shell)
+	if not screenshot_backed_screen:
+		_build_status_bar(shell)
 
 	page_container = VBoxContainer.new()
 	page_container.name = "OSComponentContent"
 	page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_container.add_theme_constant_override("separation", int(_style.get("spacing", 10)))
-	if active_component == "home_screen":
-		# The home screen is a fixed-height composition, not a scrolling list.
+	if active_component == "home_screen" or screenshot_backed_screen:
+		# Screenshot-backed Gen 1 screens occupy the entire content viewport.
 		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		page_container.add_theme_constant_override("separation", 0)
 		shell.add_child(page_container)
 	else:
 		var scroll := ScrollContainer.new()
@@ -2956,7 +3101,7 @@ func _build_shell() -> void:
 	footer.name = "OSNavigationFooter"
 	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_theme_constant_override("separation", 4)
-	if active_component == "home_screen":
+	if active_component == "home_screen" and not screenshot_backed_screen:
 		var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "ios_grid"))
 		if home_layout != "windows_tiles":
 			_build_home_dock(footer)
@@ -3161,6 +3306,9 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	parent.add_child(bar)
 
 func _build_component(component_id: String) -> void:
+	if _uses_gen1_samsung_screenshot(component_id):
+		_add_gen1_samsung_screenshot(page_container, component_id)
+		return
 	var components: Dictionary = configuration.get("components", {})
 	var component_data: Dictionary = components.get(component_id, {})
 	match component_id:
