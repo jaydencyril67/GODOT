@@ -1761,7 +1761,7 @@ func _uses_gen3_reference_screenshot(component_id: String = "") -> bool:
 		return XIAOMI_GEN3_SCREEN_ASSETS.has(target_component)
 	return false
 
-func _add_gen2_family_screenshot(parent: Control, component_id: String) -> TextureRect:
+func _add_gen3_family_screenshot(parent: Control, component_id: String) -> TextureRect:
 	var family_folder := "samsung"
 	var family_label := "Samsung Experience 9.0"
 	var family_prefix := "Samsung"
