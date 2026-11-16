@@ -2998,7 +2998,7 @@ func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> Text
 		push_error("Samsung Gen 1 screenshot could not be loaded: " + asset_path)
 		return null
 	screenshot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	screenshot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	screenshot.stretch_mode = TextureRect.STRETCH_SCALE
 	screenshot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	screenshot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	screenshot.size_flags_vertical = Control.SIZE_EXPAND_FILL
