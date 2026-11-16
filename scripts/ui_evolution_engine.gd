@@ -239,10 +239,11 @@ static func _shuffle_array(values: Array, rng: RandomNumberGenerator) -> void:
 
 static func _network_label(device_specs: Dictionary) -> String:
 	var network := str(device_specs.get("mobile_network", ""))
-	if network.contains("5G"):
-		return "5G"
-	if network.contains("4G") or network.contains("LTE"):
+	for generation in ["6G", "5G", "4G", "3G", "2G", "1G"]:
+		if network.contains(generation):
+			return generation
+	if network.contains("LTE"):
 		return "LTE"
-	if network.contains("3G"):
-		return "3G"
-	return "5G"
+	if network.contains("Wi-Fi"):
+		return "Wi-Fi"
+	return "Offline"
