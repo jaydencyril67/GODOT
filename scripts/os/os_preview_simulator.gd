@@ -1957,7 +1957,7 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 	parent.add_theme_constant_override("separation", 0)
 	var navigation_bar := PanelContainer.new()
 	navigation_bar.name = "AndroidNavigationBar"
-	navigation_bar.custom_minimum_size = Vector2(0, 46)
+	navigation_bar.custom_minimum_size = Vector2(0, 40)
 	navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
 	bar_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
@@ -1974,7 +1974,7 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 	var family_prefix := "Samsung" + generation_prefix if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() or _is_gen3_samsung_ui() or _is_gen4_samsung_ui() else "Pixel" + generation_prefix if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() or _is_gen3_pixel_ui() or _is_gen4_pixel_ui() else "Xiaomi" + generation_prefix if _is_gen1_xiaomi_ui() or _is_gen2_xiaomi_ui() or _is_gen3_xiaomi_ui() or _is_gen4_xiaomi_ui() else "Android"
 	var navigation_keys := HBoxContainer.new()
 	navigation_keys.name = family_prefix + ("OverviewThreeButtonNavigation" if is_samsung_overview else "ThreeButtonNavigation")
-	navigation_keys.custom_minimum_size.y = 46
+	navigation_keys.custom_minimum_size.y = 40
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
 	navigation_keys.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1994,7 +1994,7 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 		key.action_name = action
 		key.icon_color = Color("#F5F7F8") if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() or _is_gen3_samsung_ui() or _is_gen4_samsung_ui() else Color("#DCE7F5") if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() or _is_gen3_pixel_ui() or _is_gen4_pixel_ui() else Color("#D9E8F8") if _is_gen1_xiaomi_ui() or _is_gen2_xiaomi_ui() or _is_gen3_xiaomi_ui() or _is_gen4_xiaomi_ui() else Color("#F5F7F8")
 		key.tooltip_text = "Recent" if action == "Overview" else action
-		key.custom_minimum_size = Vector2(30, 44)
+		key.custom_minimum_size = Vector2(30, 38)
 		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		key.pressed.connect(_queue_android_navigation.bind(action))
 		navigation_keys.add_child(key)
