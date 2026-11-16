@@ -36,6 +36,7 @@ var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
 var processor_creation_worksite: Node3D
+var processor_worksite_open_pending := false
 var research_dashboard_return_to_worksite := false
 var worksite_research_overlay_layer: CanvasLayer
 var home_navigation_layer: CanvasLayer
@@ -2786,6 +2787,9 @@ func _style_create_glass_button(button: Button, primary: bool) -> void:
 	button.add_theme_color_override("font_focus_color", Color("#F2EDE4"))
 
 func _on_create_category_pressed(category: String) -> void:
+	# Ignore stale taps from the previous page after a worksite transition starts.
+	if current_screen != "create":
+		return
 	if category.to_upper() == "PHONE":
 		_show_phone_creation_worksite()
 		return
@@ -2821,23 +2825,49 @@ func _prepare_processor_creation_worksite() -> void:
 func _show_processor_creation_worksite() -> void:
 	if current_screen == "processor_creation_worksite" and is_instance_valid(processor_creation_worksite):
 		return
+	if processor_worksite_open_pending:
+		return
+	# Lock the destination immediately, but wait until the current GUI touch/click
+	# event finishes before replacing the creation page with another interactive UI.
+	processor_worksite_open_pending = true
+	current_screen = "processor_creation_worksite"
+	call_deferred("_activate_processor_creation_worksite")
+
+
+func _activate_processor_creation_worksite() -> void:
+	processor_worksite_open_pending = false
+	if current_screen != "processor_creation_worksite":
+		return
 	if not is_instance_valid(processor_creation_worksite):
 		_prepare_processor_creation_worksite()
 	if not is_instance_valid(processor_creation_worksite):
+		current_screen = "create"
+		if is_instance_valid(create_ui_layer):
+			create_ui_layer.show()
 		return
-	if is_instance_valid(ui_layer):
-		ui_layer.hide()
-	if is_instance_valid(create_ui_layer):
-		create_ui_layer.hide()
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
-	if is_instance_valid(staff_ui_layer):
-		staff_ui_layer.hide()
+
+	# Make this a single-owner screen transition: no previous page or worksite
+	# may remain visible or continue processing behind the Processor Worksite.
+	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
+		if is_instance_valid(layer):
+			layer.hide()
+	if is_instance_valid(phone_creation_worksite):
+		phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+		phone_creation_worksite.hide()
+		for child in phone_creation_worksite.get_children():
+			if child is CanvasLayer:
+				child.hide()
+	if is_instance_valid(os_creation_worksite):
+		os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+		os_creation_worksite.hide()
+		for child in os_creation_worksite.get_children():
+			if child is CanvasLayer:
+				child.hide()
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
 		world_root.set_preview_active(false)
+
 	ui_layer = null
 	ui_root = null
-	current_screen = "processor_creation_worksite"
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
 	processor_creation_worksite.show()
 	for child in processor_creation_worksite.get_children():
@@ -2854,7 +2884,10 @@ func _on_processor_design_saved(design: Dictionary) -> void:
 
 
 func _return_from_processor_creation_worksite() -> void:
+	if current_screen != "processor_creation_worksite":
+		return
 	current_screen = "create"
+	processor_worksite_open_pending = false
 	if is_instance_valid(processor_creation_worksite):
 		processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 		processor_creation_worksite.hide()
