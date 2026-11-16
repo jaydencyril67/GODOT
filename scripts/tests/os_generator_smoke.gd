@@ -51,9 +51,9 @@ func _run_os_generator_test() -> void:
 			_fail("Missing generated component: " + str(component["id"]))
 			return
 
-	var expected_radii := [0, 6, 18]
-	var expected_widgets := [0, 2, 1]
-	for generation_number in range(1, 4):
+	var expected_radii := [0, 6, 18, 18]
+	var expected_widgets := [0, 2, 1, 1]
+	for generation_number in range(1, 5):
 		var generation_config := ProceduralEngineScript.generate_os(7000 + generation_number, generation_number)
 		var generation_style: Dictionary = generation_config.get("style", {})
 		if int(generation_style.get("corner_radius", -1)) != expected_radii[generation_number - 1]:
@@ -1529,6 +1529,89 @@ func _run_os_generator_test() -> void:
 		return
 	if worksite_preview.get("configuration").get("components", {}).size() != ProceduralEngineScript.COMPONENTS.size():
 		_fail("The visible simulator did not retain all 6 core components.")
+		return
+
+	var generation_four_preview := ProceduralEngineScript.generate_os(8104, 4)
+	if generation_four_preview.get("generation") != 4 or generation_four_preview.get("style", {}).get("identity") != "One UI 2.0":
+		_fail("Generation 4 must be identified as Samsung One UI 2.0.")
+		return
+	if not ProceduralEngineScript.validate_os(generation_four_preview).is_empty():
+		_fail("Samsung One UI 2.0 generation failed configuration validation.")
+		return
+	var generation_four_lock: Dictionary = generation_four_preview.get("components", {}).get("lock_screen", {})
+	if bool(generation_four_lock.get("show_notifications", true)) or not bool(generation_four_lock.get("show_phone_shortcut", false)) or not bool(generation_four_lock.get("show_camera_shortcut", false)):
+		_fail("Samsung One UI 2.0 lock-screen defaults must use quiet notifications and Phone/Camera shortcuts.")
+		return
+	simulator.configure_os(generation_four_preview, "lock_screen")
+	await process_frame
+	await process_frame
+	for samsung_lock_control in ["SamsungOneUILockScreen", "SamsungOneUILockIdentity", "SamsungOneUILockClock", "SamsungOneUILockDate", "SamsungOneUISwipeToUnlockHint", "SamsungOneUILockShortcuts", "SamsungOneUIPhoneShortcut", "SamsungOneUICameraShortcut"]:
+		if simulator.find_child(samsung_lock_control, true, false) == null:
+			_fail("Samsung One UI 2.0 lock screen is missing: " + samsung_lock_control)
+			return
+	if simulator.find_child("PieLockScreen", true, false) != null or simulator.find_child("OreoLockScreen", true, false) != null:
+		_fail("Samsung One UI 2.0 lock screen must not reuse the Pixel generation layouts.")
+		return
+	var samsung_clock := simulator.find_child("SamsungOneUILockClock", true, false) as Label
+	var samsung_date := simulator.find_child("SamsungOneUILockDate", true, false) as Label
+	var samsung_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
+	var samsung_status_icons := simulator.find_child("StatusBarSystemIndicators", true, false) as HBoxContainer
+	if samsung_clock == null or not samsung_clock.text.contains(":") or samsung_clock.horizontal_alignment != HORIZONTAL_ALIGNMENT_LEFT or samsung_date == null or not samsung_date.text.contains(",") or not samsung_date.text.contains(" "):
+		_fail("Samsung One UI 2.0 clock and date must be left-aligned and use Samsung's compact date format.")
+		return
+	if samsung_status_clock == null or samsung_status_clock.visible or samsung_status_icons == null or not samsung_status_icons.visible:
+		_fail("Samsung One UI 2.0 must hide the duplicate status clock but retain right-side status icons.")
+		return
+	var samsung_phone := simulator.find_child("SamsungOneUIPhoneShortcut", true, false) as Button
+	var samsung_camera := simulator.find_child("SamsungOneUICameraShortcut", true, false) as Button
+	if samsung_phone == null or samsung_camera == null or samsung_phone.custom_minimum_size != Vector2(44, 44) or samsung_camera.custom_minimum_size != Vector2(44, 44):
+		_fail("Samsung One UI 2.0 must have equal-size Phone and Camera corner shortcut targets.")
+		return
+	var samsung_opened_apps: Array[String] = []
+	simulator.app_opened.connect(func(app_name: String) -> void: samsung_opened_apps.append(app_name))
+	samsung_phone.pressed.emit()
+	samsung_camera.pressed.emit()
+	if samsung_opened_apps != ["Phone", "Camera"]:
+		_fail("Samsung lock-screen Phone and Camera shortcuts did not open the expected apps.")
+		return
+	var bright_wallpaper_config := generation_four_preview.duplicate(true)
+	bright_wallpaper_config["style"]["palette"]["background"] = "#F0F1F2"
+	bright_wallpaper_config["style"]["wallpaper"] = "aurora"
+	simulator.configure_os(bright_wallpaper_config, "lock_screen")
+	await process_frame
+	var bright_samsung_clock := simulator.find_child("SamsungOneUILockClock", true, false) as Label
+	if bright_samsung_clock == null or bright_samsung_clock.get_theme_color("font_color") != Color("#34383D"):
+		_fail("Samsung One UI 2.0 must switch to dark clock text on a bright wallpaper.")
+		return
+	var compact_notifications_config := generation_four_preview.duplicate(true)
+	compact_notifications_config["components"]["lock_screen"]["show_notifications"] = true
+	simulator.configure_os(compact_notifications_config, "lock_screen")
+	await process_frame
+	if simulator.find_child("SamsungOneUILockNotifications", true, false) == null or simulator.find_child("SamsungOneUILockNotification_Messages", true, false) == null:
+		_fail("Samsung One UI 2.0 must render its compact notification previews when enabled.")
+		return
+	_simulate_touch_swipe(simulator, Vector2(76, 230), Vector2(76, 145), 160)
+	await process_frame
+	if simulator.get("active_component") != "pin_input":
+		_fail("Samsung One UI 2.0 upward lock-screen swipe did not open PIN entry.")
+		return
+
+	worksite.set("home_generation", 4)
+	worksite.call("_apply_generation_selection")
+	await process_frame
+	worksite.call("_show_lock_screen_studio_controls")
+	await process_frame
+	var samsung_generation_description := worksite.find_child("OSGenerationDescription", true, false) as Label
+	var samsung_lock_controls := worksite.find_child("LockScreenStudioControls", true, false) as VBoxContainer
+	if samsung_generation_description == null or not samsung_generation_description.text.contains("SAMSUNG ONE UI 2.0") or samsung_lock_controls == null:
+		_fail("The OS worksite must expose Generation 4 as Samsung One UI 2.0.")
+		return
+	for samsung_setting in ["LockScreenSettingRow_show_notifications", "LockScreenSettingRow_show_phone_shortcut", "LockScreenSettingRow_show_camera_shortcut"]:
+		if worksite.find_child(samsung_setting, true, false) == null:
+			_fail("The Samsung One UI 2.0 lock-screen studio is missing: " + samsung_setting)
+			return
+	if worksite.find_child("LockScreenSettingRow_show_assistant_shortcut", true, false) != null:
+		_fail("Samsung One UI 2.0 must not expose the Pixel Assistant shortcut setting.")
 		return
 	root.remove_child(worksite)
 	worksite.free()
