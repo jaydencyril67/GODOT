@@ -174,13 +174,13 @@ func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_
 			_draw_text("A good moment to begin.", rect.position + Vector2(inset, rect.size.y * 0.88), 9, muted)
 		"weather":
 			_draw_text("WEATHER", rect.position + Vector2(inset, rect.size.y * 0.24), 9, muted)
-			_draw_text("28°", rect.position + Vector2(inset, rect.size.y * 0.70), int(rect.size.y * 0.42 * scale), text_color)
+			_draw_text("28°", rect.position + Vector2(inset, rect.size.y * 0.70), int(rect.size.y * 0.42 * widget_text_scale), text_color)
 			_draw_text("Partly cloudy  ·  Feels like 30°", rect.position + Vector2(inset, rect.size.y * 0.88), 9, muted)
 			draw_circle(rect.position + Vector2(rect.size.x * 0.79, rect.size.y * 0.48), rect.size.y * 0.14, Color(accent.r, accent.g, accent.b, 0.88))
 			draw_arc(rect.position + Vector2(rect.size.x * 0.79, rect.size.y * 0.48), rect.size.y * 0.21, 0.0, TAU, 36, Color(1.0, 1.0, 1.0, 0.34), 1.2, true)
 		"calendar":
 			_draw_text("UP NEXT", rect.position + Vector2(inset, rect.size.y * 0.24), 9, muted)
-			_draw_text("18", rect.position + Vector2(inset, rect.size.y * 0.72), int(rect.size.y * 0.48 * scale), text_color)
+			_draw_text("18", rect.position + Vector2(inset, rect.size.y * 0.72), int(rect.size.y * 0.48 * widget_text_scale), text_color)
 			_draw_text("DESIGN REVIEW", rect.position + Vector2(rect.size.x * 0.36, rect.size.y * 0.53), 10, accent)
 			_draw_text("10:30  ·  Today", rect.position + Vector2(rect.size.x * 0.36, rect.size.y * 0.75), 9, muted)
 		"music":
@@ -195,7 +195,7 @@ func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_
 			]), surface_alt)
 		"device", "battery":
 			_draw_text("DEVICE STATUS", rect.position + Vector2(inset, rect.size.y * 0.25), 9, muted)
-			_draw_text("%d%%" % int(blueprint.get("system", {}).get("battery_percent", 88)), rect.position + Vector2(inset, rect.size.y * 0.72), int(rect.size.y * 0.38 * scale), text_color)
+			_draw_text("%d%%" % int(blueprint.get("system", {}).get("battery_percent", 88)), rect.position + Vector2(inset, rect.size.y * 0.72), int(rect.size.y * 0.38 * widget_text_scale), text_color)
 			_draw_text("Battery health  ·  Normal", rect.position + Vector2(rect.size.x * 0.39, rect.size.y * 0.67), 9, muted)
 			_draw_round_rect(Rect2(rect.position + Vector2(rect.size.x * 0.39, rect.size.y * 0.76), Vector2(rect.size.x * 0.48, 5.0)), Color(accent.r, accent.g, accent.b, 0.25), 3.0)
 			_draw_round_rect(Rect2(rect.position + Vector2(rect.size.x * 0.39, rect.size.y * 0.76), Vector2(rect.size.x * 0.48 * 0.88, 5.0)), accent, 3.0)
