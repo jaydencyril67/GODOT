@@ -119,6 +119,11 @@ func _run_gen1_smoke_test() -> void:
 	if simulator.find_child("AndroidNavigationBar", true, false) == null:
 		_fail("Google Stock Android 4 lock screen is missing its system navigation bar.")
 		return
+	simulator._dispatch_android_navigation("Home")
+	simulator._dispatch_android_navigation("Back")
+	if simulator.active_component != "lock_screen":
+		_fail("Google Stock Android 4 navigation buttons must not bypass the locked screen.")
+		return
 	simulator._handle_system_gesture(Vector2(0.30, 180.0), Vector2(0.80, 180.0), 150)
 	if simulator.active_component != "home_screen":
 		_fail("Google Stock Android 4 slide-to-unlock gesture did not enter the home screen.")
@@ -142,6 +147,11 @@ func _run_gen1_smoke_test() -> void:
 	_simulate_screenshot_tap(simulator, "PixelGen1ScreenImage_control_center", Vector2(0.25, 0.38))
 	if bool(simulator._quick_setting_states.get("Wi-Fi", false)) == pixel_wifi_before:
 		_fail("Google Stock Android 4 Quick Settings tiles do not update their state.")
+		return
+	var pixel_brightness_before := int(simulator._brightness_level)
+	_simulate_screenshot_tap(simulator, "PixelGen1ScreenImage_control_center", Vector2(0.50, 0.24))
+	if int(simulator._brightness_level) == pixel_brightness_before:
+		_fail("Google Stock Android 4 brightness slider does not change display brightness.")
 		return
 	_opened_apps.clear()
 	simulator._dispatch_android_navigation("Overview")
@@ -206,11 +216,21 @@ func _run_gen1_smoke_test() -> void:
 	if bool(simulator._quick_setting_states.get("Wi-Fi", false)) == xiaomi_wifi_before:
 		_fail("Xiaomi MIUI V4 notification-panel Quick Settings do not update their state.")
 		return
+	var xiaomi_brightness_before := int(simulator._brightness_level)
+	_simulate_screenshot_tap(simulator, "XiaomiGen1ScreenImage_notifications", Vector2(0.50, 0.29))
+	if int(simulator._brightness_level) == xiaomi_brightness_before:
+		_fail("Xiaomi MIUI V4 brightness slider does not change display brightness.")
+		return
 
 	simulator.configure_os(xiaomi_config, "lock_screen")
 	await process_frame
 	if simulator.find_child("AndroidNavigationBar", true, false) == null:
 		_fail("Xiaomi MIUI V4 lock screen is missing its system navigation bar.")
+		return
+	simulator._dispatch_android_navigation("Home")
+	simulator._dispatch_android_navigation("Back")
+	if simulator.active_component != "lock_screen":
+		_fail("Xiaomi MIUI V4 navigation buttons must not bypass the locked screen.")
 		return
 	simulator._handle_system_gesture(Vector2(0.30, 310.0), Vector2(0.80, 310.0), 150)
 	if simulator.active_component != "home_screen":
