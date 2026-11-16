@@ -41,9 +41,9 @@ func _run_gen1_smoke_test() -> void:
 	for component_id in samsung_assets:
 		simulator.configure_os(samsung_config, str(component_id))
 		await process_frame
-		var image_node := simulator.find_child("SamsungGen1ScreenImage_" + str(component_id), true, false) as TextureRect
+		var samsung_image_node := simulator.find_child("SamsungGen1ScreenImage_" + str(component_id), true, false) as TextureRect
 		var expected_path := "res://assets/os/gen1/samsung/" + str(samsung_assets[component_id])
-		if image_node == null or image_node.texture == null or image_node.texture.resource_path != expected_path:
+		if samsung_image_node == null or samsung_image_node.texture == null or samsung_image_node.texture.resource_path != expected_path:
 			_fail("Gen 1 Samsung " + str(component_id) + " reference image failed to load: " + expected_path)
 			return
 
@@ -64,9 +64,9 @@ func _run_gen1_smoke_test() -> void:
 	for component_id in pixel_assets:
 		simulator.configure_os(pixel_config, str(component_id))
 		await process_frame
-		var image_node := simulator.find_child("PixelGen1ScreenImage_" + str(component_id), true, false) as TextureRect
+		var pixel_image_node := simulator.find_child("PixelGen1ScreenImage_" + str(component_id), true, false) as TextureRect
 		var expected_path := "res://assets/os/gen1/pixel/" + str(pixel_assets[component_id])
-		if image_node == null or image_node.texture == null or image_node.texture.resource_path != expected_path:
+		if pixel_image_node == null or pixel_image_node.texture == null or pixel_image_node.texture.resource_path != expected_path:
 			_fail("Gen 1 Google Stock Android 4 " + str(component_id) + " reference image failed to load: " + expected_path)
 			return
 
