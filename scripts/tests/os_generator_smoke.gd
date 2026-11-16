@@ -892,13 +892,25 @@ func _run_os_generator_test() -> void:
 			_fail("Simulator rendered an empty component: " + component_id)
 			return
 		if component_id == "control_center":
-			var quick_grid := simulator.find_child("QuickSettingsGrid", true, false) as GridContainer
-			if quick_grid == null or quick_grid.get_child_count() < 12:
-				_fail("Control Center did not render its expanded quick-settings tile set.")
-				return
-			if simulator.find_child("ControlCenterMediaCard", true, false) == null or simulator.find_child("ControlSlider_Brightness", true, false) == null:
-				_fail("Control Center is missing its media card or styled brightness control.")
-				return
+			var active_generation := int(simulator.get("configuration").get("generation", 1))
+			if active_generation == 2:
+				var quick_grid := simulator.find_child("OreoExpandedQuickSettingsGrid", true, false) as GridContainer
+				if quick_grid == null or quick_grid.get_child_count() != 9 or simulator.find_child("OreoBrightnessSlider", true, false) == null or simulator.find_child("OreoControlCenterPreview", true, false) == null:
+					_fail("Android 8 Control Center must render its nine Oreo Quick Settings tiles and brightness slider.")
+					return
+			elif active_generation == 3:
+				var quick_grid := simulator.find_child("PieExpandedQuickSettingsGrid", true, false) as GridContainer
+				if quick_grid == null or quick_grid.get_child_count() != 9 or simulator.find_child("PieBrightnessSlider", true, false) == null or simulator.find_child("PieControlCenterPreview", true, false) == null:
+					_fail("Android 9 Control Center must render its nine Pie Quick Settings tiles and brightness slider.")
+					return
+			else:
+				var quick_grid := simulator.find_child("QuickSettingsGrid", true, false) as GridContainer
+				if quick_grid == null or quick_grid.get_child_count() < 12:
+					_fail("Control Center did not render its expanded quick-settings tile set.")
+					return
+				if simulator.find_child("ControlCenterMediaCard", true, false) == null or simulator.find_child("ControlSlider_Brightness", true, false) == null:
+					_fail("Control Center is missing its media card or styled brightness control.")
+					return
 		if component_id == "app_drawer":
 			var drawer_data: Dictionary = simulator.get("configuration").get("components", {}).get("app_drawer", {})
 			drawer_data["layout"] = "alphabetical"
