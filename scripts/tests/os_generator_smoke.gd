@@ -255,11 +255,12 @@ func _run_os_generator_test() -> void:
 				_fail("Android Generation 1 must include its app drawer launcher.")
 				return
 		elif generation_number == 2:
-			if simulator.find_child("AndroidWeatherWidget", true, false) == null or simulator.find_child("AndroidAssistantWidget", true, false) == null:
-				_fail("Android 8 Oreo must retain its two side-by-side Pixel widgets.")
+			var oreo_home_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
+			if simulator.find_child("AndroidWeatherWidget", true, false) != null or simulator.find_child("AndroidAssistantWidget", true, false) != null or simulator.find_child("AndroidHomeWidgetRow", true, false) != null:
+				_fail("Android 8 Pixel home screen must not contain side-by-side widget cards.")
 				return
-			if simulator.find_child("HomeAppGrid", true, false) == null or simulator.find_child("HomeSearchBar", true, false) == null or simulator.find_child("HomeAppDock", true, false) == null:
-				_fail("Android 8 Oreo is missing its home grid, search field or dock.")
+			if simulator.find_child("AndroidHomeAtAGlance", true, false) == null or oreo_home_grid == null or oreo_home_grid.get_child_count() != 8 or simulator.find_child("HomeSearchBar", true, false) == null or simulator.find_child("HomeAppDock", true, false) == null:
+				_fail("Android 8 Pixel home screen must show At a Glance, eight app icons, search and the launcher dock.")
 				return
 		else:
 			if simulator.find_child("PieHomeAtAGlance", true, false) == null or simulator.find_child("PieHomeWeather", true, false) == null:
@@ -335,6 +336,20 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(expected_android_nav, true, false) != null:
 			_fail("Android lock screen must hide the three-button navigation bar.")
 			return
+		if generation_number in [2, 3]:
+			await process_frame
+			var lock_clock_name := "LockScreenClock" if generation_number == 2 else "PieLockScreenClock"
+			var lock_notifications_name := "OreoLockScreenNotifications" if generation_number == 2 else "PieLockScreenNotifications"
+			var clock_position_control := simulator.find_child(lock_clock_name, true, false) as Control
+			var notifications_position_control := simulator.find_child(lock_notifications_name, true, false) as Control
+			if clock_position_control == null or notifications_position_control == null:
+				_fail("Android generation %d lock screen is missing its clock or notification group." % generation_number)
+				return
+			var clock_top_ratio := (clock_position_control.global_position.y - simulator.global_position.y) / maxf(1.0, simulator.size.y)
+			var notifications_top_ratio := (notifications_position_control.global_position.y - simulator.global_position.y) / maxf(1.0, simulator.size.y)
+			if clock_top_ratio < 0.15 or clock_top_ratio > 0.34 or notifications_top_ratio < 0.36 or notifications_top_ratio > 0.62:
+				_fail("Android generation %d lock screen clock and notifications are not vertically balanced." % generation_number)
+				return
 		if generation_number == 2:
 			for oreo_control_name in ["OreoLockScreen", "OreoLockScreenClockBlock", "LockScreenClock", "LockScreenDate", "OreoLockScreenNotifications", "OreoLockNotification_Messages", "OreoLockNotification_Calendar", "OreoAssistantShortcut", "OreoLockStatusGlyph", "OreoCameraShortcut", "OreoSwipeToUnlockHint"]:
 				if simulator.find_child(oreo_control_name, true, false) == null:
@@ -1389,11 +1404,11 @@ func _run_os_generator_test() -> void:
 	var oreo_home_weather := worksite_preview.find_child("AndroidWeatherWidget", true, false) as Control
 	var oreo_home_assistant := worksite_preview.find_child("AndroidAssistantWidget", true, false) as Control
 	var oreo_navigation := worksite_preview.find_child("AndroidThreeButtonNavigation", true, false) as HBoxContainer
-	if oreo_home_grid == null or oreo_home_grid.columns != 4 or oreo_home_grid.get_child_count() != 4 or oreo_home_search == null:
-		_fail("Android 8 home screen is missing its app grid or search field.")
+	if oreo_home_grid == null or oreo_home_grid.columns != 4 or oreo_home_grid.get_child_count() != 8 or oreo_home_search == null:
+		_fail("Android 8 home screen is missing its eight app icons or search field.")
 		return
-	if oreo_home_weather == null or oreo_home_assistant == null or oreo_navigation == null or oreo_navigation.get_child_count() != 3:
-		_fail("Android 8 home screen is missing its widgets or three-button navigation.")
+	if oreo_home_weather != null or oreo_home_assistant != null or worksite_preview.find_child("AndroidHomeWidgetRow", true, false) != null or worksite_preview.find_child("AndroidHomeAtAGlance", true, false) == null or oreo_navigation == null or oreo_navigation.get_child_count() != 3:
+		_fail("Android 8 home screen must show At a Glance and three-button navigation without widget cards.")
 		return
 	var oreo_configuration: Dictionary = worksite_preview.get("configuration")
 	if int(oreo_configuration.get("generation", 0)) != 2 or str(oreo_configuration.get("components", {}).get("home_screen", {}).get("layout_style", "")) != "android_pixel":
