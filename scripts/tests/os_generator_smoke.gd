@@ -124,7 +124,7 @@ func _run_gen1_smoke_test() -> void:
 	if simulator.active_component != "lock_screen":
 		_fail("Google Stock Android 4 navigation buttons must not bypass the locked screen.")
 		return
-	simulator._handle_system_gesture(Vector2(0.30, 180.0), Vector2(0.80, 180.0), 150)
+	simulator._handle_system_gesture(Vector2(simulator.size.x * 0.30, simulator.size.y * 0.50), Vector2(simulator.size.x * 0.80, simulator.size.y * 0.50), 150)
 	if simulator.active_component != "home_screen":
 		_fail("Google Stock Android 4 slide-to-unlock gesture did not enter the home screen.")
 		return
@@ -232,7 +232,7 @@ func _run_gen1_smoke_test() -> void:
 	if simulator.active_component != "lock_screen":
 		_fail("Xiaomi MIUI V4 navigation buttons must not bypass the locked screen.")
 		return
-	simulator._handle_system_gesture(Vector2(0.30, 310.0), Vector2(0.80, 310.0), 150)
+	simulator._handle_system_gesture(Vector2(simulator.size.x * 0.30, simulator.size.y * 0.86), Vector2(simulator.size.x * 0.80, simulator.size.y * 0.86), 150)
 	if simulator.active_component != "home_screen":
 		_fail("Xiaomi MIUI V4 slide-to-unlock gesture did not enter the home screen.")
 		return
