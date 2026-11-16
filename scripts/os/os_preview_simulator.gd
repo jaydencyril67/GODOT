@@ -992,7 +992,7 @@ func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
 	if _is_gen1_pixel_ui() and PIXEL_GEN1_SCREEN_ASSETS.has(target_component):
 		return true
 	if _is_gen1_xiaomi_ui() and XIAOMI_GEN1_SCREEN_ASSETS.has(target_component):
-		var xiaomi_path := "res://assets/os/gen1/xiaomi/" + str(XIAOMI_GEN1_SCREEN_ASSETS[target_component])
+		var xiaomi_path := "res://assets/os/gen1/miui/" + str(XIAOMI_GEN1_SCREEN_ASSETS[target_component])
 		return ResourceLoader.exists(xiaomi_path)
 	return false
 
@@ -1007,7 +1007,7 @@ func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> Text
 		family_prefix = "Pixel"
 		assets = PIXEL_GEN1_SCREEN_ASSETS
 	elif _is_gen1_xiaomi_ui():
-		family_folder = "xiaomi"
+		family_folder = "miui"
 		family_label = "Xiaomi MIUI"
 		family_prefix = "Xiaomi"
 		assets = XIAOMI_GEN1_SCREEN_ASSETS
