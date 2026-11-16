@@ -840,9 +840,19 @@ func _toggle_gen1_quick_setting(tile_name: String) -> void:
 	_quick_setting_states[tile_name] = enabled
 	_show_gen1_panel_feedback("%s · %s" % [tile_name, "ON" if enabled else "OFF"])
 
+
 func _set_gen1_brightness_from_position(normalized_x: float) -> void:
 	_brightness_level = clampi(roundi(normalized_x * 100.0), 0, 100)
+	_apply_gen1_brightness_to_screenshots()
 	_show_gen1_panel_feedback("Brightness · %d%%" % _brightness_level)
+
+func _apply_gen1_brightness_to_screenshots() -> void:
+	var brightness_scale := lerpf(0.12, 1.0, float(_brightness_level) / 100.0)
+	var brightness_modulate := Color(brightness_scale, brightness_scale, brightness_scale, 1.0)
+	for node in find_children("*", "TextureRect", true, false):
+		var screenshot := node as TextureRect
+		if screenshot.name.begins_with("SamsungGen1ScreenImage_") or screenshot.name.begins_with("PixelGen1ScreenImage_") or screenshot.name.begins_with("XiaomiGen1ScreenImage_"):
+			screenshot.modulate = brightness_modulate
 func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	_close_gesture_overlay()
 	var screenshot_component := "recent_apps" if mode == "recent_apps" else "notifications"
@@ -867,7 +877,10 @@ func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	corner_mask.z_as_relative = false
 	_gesture_overlay.add_child(corner_mask)
 
+
 func _navigate_home() -> void:
+	if active_component == "lock_screen":
+		return
 	_close_gesture_overlay()
 	_screen_history.clear()
 	set_component_view("home_screen", false)
@@ -875,6 +888,8 @@ func _navigate_home() -> void:
 func _navigate_back() -> void:
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		_close_gesture_overlay()
+		return
+	if active_component == "lock_screen":
 		return
 	if active_component == "pin_input":
 		set_component_view("lock_screen", false)
@@ -884,8 +899,6 @@ func _navigate_back() -> void:
 		set_component_view(previous_screen, false)
 	else:
 		_navigate_home()
-
-
 func _show_gesture_overlay(mode: String) -> void:
 	if not _is_gen1_phone_ui():
 		return
@@ -1435,12 +1448,20 @@ func _add_gen1_family_screenshot(parent: Control, component_id: String) -> Textu
 	screenshot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	screenshot.stretch_mode = TextureRect.STRETCH_SCALE
 	screenshot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_gen1_screenshot_brightness(screenshot)
 	screenshot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	screenshot.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(screenshot)
 	if not parent is Container:
 		screenshot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return screenshot
+
+
+func _set_gen1_screenshot_brightness(screenshot: TextureRect) -> void:
+	if screenshot == null:
+		return
+	var brightness_scale := lerpf(0.12, 1.0, float(_brightness_level) / 100.0)
+	screenshot.modulate = Color(brightness_scale, brightness_scale, brightness_scale, 1.0)
 
 
 func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -> void:
