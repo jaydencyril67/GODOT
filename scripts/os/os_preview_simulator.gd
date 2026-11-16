@@ -693,12 +693,20 @@ func _handle_samsung_gen1_overlay_tap(component_id: String, touch_position: Vect
 	if screenshot == null or not is_instance_valid(screenshot):
 		return
 	var screenshot_rect := screenshot.get_global_rect()
+	var texture_size := screenshot.texture.get_size()
+	if screenshot_rect.size.x <= 0.0 or screenshot_rect.size.y <= 0.0 or texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return
+	# TextureRect uses KEEP_ASPECT_CENTERED, so taps must be mapped against
+	# the visible image area rather than any letterboxed part of its control.
+	var image_scale := minf(screenshot_rect.size.x / texture_size.x, screenshot_rect.size.y / texture_size.y)
+	var displayed_size := texture_size * image_scale
+	var displayed_rect := Rect2(screenshot_rect.position + (screenshot_rect.size - displayed_size) * 0.5, displayed_size)
 	var touch_canvas_position := get_global_transform_with_canvas() * touch_position
-	if screenshot_rect.size.x <= 0.0 or screenshot_rect.size.y <= 0.0 or not screenshot_rect.has_point(touch_canvas_position):
+	if not displayed_rect.has_point(touch_canvas_position):
 		return
 	var normalized_position := Vector2(
-		(touch_canvas_position.x - screenshot_rect.position.x) / screenshot_rect.size.x,
-		(touch_canvas_position.y - screenshot_rect.position.y) / screenshot_rect.size.y
+		(touch_canvas_position.x - displayed_rect.position.x) / displayed_rect.size.x,
+		(touch_canvas_position.y - displayed_rect.position.y) / displayed_rect.size.y
 	)
 	if component_id == "recent_apps":
 		var recent_apps := ["Email", "Camera", "Gallery", "Browser"]
