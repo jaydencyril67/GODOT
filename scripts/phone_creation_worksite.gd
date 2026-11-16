@@ -9229,8 +9229,8 @@ func _show_rear_camera_controls() -> void:
 
 	rear_hardware_size_slider = HSlider.new()
 	rear_hardware_size_slider.name = "RearHardwareHorizontalSizeSlider"
-	rear_hardware_size_slider.min_value = 0.04 if rear_hardware_mode == "CAMERA" else 0.025
-	rear_hardware_size_slider.max_value = 0.17 if rear_hardware_mode == "CAMERA" else 0.10
+	rear_hardware_size_slider.min_value = 0.05
+	rear_hardware_size_slider.max_value = 0.20
 	rear_hardware_size_slider.step = 0.005
 	rear_hardware_size_slider.custom_minimum_size = Vector2(0, 24)
 	rear_hardware_size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
