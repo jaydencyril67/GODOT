@@ -665,7 +665,7 @@ func _handle_gen2_notifications_tap(normalized_position: Vector2) -> void:
 
 func _handle_gen2_control_center_tap(normalized_position: Vector2) -> void:
 	if normalized_position.y >= 0.14 and normalized_position.y <= 0.29:
-		_set_gen1_brightness_from_normalized_position(normalized_position.x)
+		_set_gen1_brightness_from_position(normalized_position.x)
 		return
 	if normalized_position.y >= 0.30 and normalized_position.y <= 0.88:
 		var row := clampi(floori((normalized_position.y - 0.30) / 0.19), 0, 2)
