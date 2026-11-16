@@ -12,6 +12,14 @@ const SAMSUNG_GEN1_SCREEN_ASSETS := {
 	"notifications": "notification.jpg",
 	"recent_apps": "recent_apps.jpg"
 }
+const PIXEL_GEN1_SCREEN_ASSETS := {
+	"lock_screen": "lockscreen.jpg",
+	"home_screen": "homescreen.jpg",
+	"app_drawer": "appsdrawer.jpg",
+	"control_center": "controlcenter.jpg",
+	"notifications": "notification.jpg",
+	"recent_apps": "recentapps.jpg"
+}
 # Load imported assets after the simulator enters the scene tree. Preloading these
 # font/SVG resources during a clean-checkout script scan fails before Godot imports them.
 var LOCKSCREEN_FONT: FontFile
@@ -913,23 +921,30 @@ func _is_android_os() -> bool:
 	return str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
 
 func _is_gen1_samsung_ui() -> bool:
-	return _is_android_os() and int(configuration.get("generation", 0)) == 1
+	return _is_android_os() and int(configuration.get("generation", 0)) == 1 and str(configuration.get("style", {}).get("ui_family", "samsung_touchwiz")) == "samsung_touchwiz"
+
+func _is_gen1_pixel_ui() -> bool:
+	return _is_android_os() and int(configuration.get("generation", 0)) == 1 and str(configuration.get("style", {}).get("ui_family", "samsung_touchwiz")) == "google_stock"
 
 func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
 	var target_component := active_component if component_id.is_empty() else component_id
-	return _is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component)
+	return (_is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component)) or (_is_gen1_pixel_ui() and PIXEL_GEN1_SCREEN_ASSETS.has(target_component))
 
 func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> TextureRect:
-	var filename := str(SAMSUNG_GEN1_SCREEN_ASSETS.get(component_id, ""))
+	var is_pixel := _is_gen1_pixel_ui()
+	var assets: Dictionary = PIXEL_GEN1_SCREEN_ASSETS if is_pixel else SAMSUNG_GEN1_SCREEN_ASSETS
+	var filename := str(assets.get(component_id, ""))
 	if filename.is_empty():
-		push_error("No Samsung Gen 1 screenshot is registered for component: " + component_id)
+		push_error("No Gen 1 screenshot is registered for component: " + component_id)
 		return null
-	var asset_path := "res://assets/os/gen1/samsung/" + filename
+	var family_folder := "pixel" if is_pixel else "samsung"
+	var family_label := "Pixel" if is_pixel else "Samsung"
+	var asset_path := "res://assets/os/gen1/" + family_folder + "/" + filename
 	if not ResourceLoader.exists(asset_path):
-		push_error("Samsung Gen 1 screenshot asset is missing: " + asset_path)
+		push_error(family_label + " Gen 1 screenshot asset is missing: " + asset_path)
 		return null
 	var screenshot := TextureRect.new()
-	screenshot.name = "SamsungGen1ScreenImage_" + component_id
+	screenshot.name = ("PixelGen1ScreenImage_" if is_pixel else "SamsungGen1ScreenImage_") + component_id
 	screenshot.texture = load(asset_path) as Texture2D
 	if screenshot.texture == null:
 		push_error("Samsung Gen 1 screenshot could not be loaded: " + asset_path)
