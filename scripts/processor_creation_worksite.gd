@@ -31,6 +31,28 @@ func _ready() -> void:
 	_build_processor_preview()
 	_apply_design()
 
+func configure_design(design: Dictionary) -> void:
+	if design.is_empty():
+		return
+	processor_design = design.duplicate(true)
+	if is_instance_valid(name_input):
+		name_input.text = str(processor_design.get("name", "DW Silicon 01"))
+	if is_instance_valid(package_size):
+		_select_option(package_size, str(processor_design.get("package_size", "12 × 12 mm")))
+	if is_instance_valid(package_finish):
+		_select_option(package_finish, str(processor_design.get("package_finish", "Matte graphite")))
+	if is_instance_valid(die_finish):
+		_select_option(die_finish, str(processor_design.get("die_finish", "Dark silicon")))
+	_apply_design()
+	if is_instance_valid(status_label):
+		status_label.text = "SAVED PROCESSOR DESIGN LOADED"
+
+func _select_option(option: OptionButton, value: String) -> void:
+	for index in range(option.item_count):
+		if option.get_item_text(index) == value:
+			option.select(index)
+			return
+
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "ProcessorWorksiteLayer"
