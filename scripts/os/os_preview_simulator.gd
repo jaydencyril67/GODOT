@@ -875,9 +875,6 @@ func _close_gesture_overlay() -> void:
 		_set_samsung_gen1_overview_underlay_visible(true)
 func _ready() -> void:
 	LOCKSCREEN_FONT = load("res://assets/fonts/STIXTwoText[wght].ttf") as FontFile
-	STATUS_CELLULAR_TEXTURE = load("res://assets/os/lockscreen/status_cellular.svg") as Texture2D
-	STATUS_WIFI_TEXTURE = load("res://assets/os/lockscreen/status_wifi.svg") as Texture2D
-	STATUS_BATTERY_TEXTURE = load("res://assets/os/lockscreen/status_battery.svg") as Texture2D
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
