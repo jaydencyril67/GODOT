@@ -1531,6 +1531,7 @@ func _run_os_generator_test() -> void:
 		_fail("The visible simulator did not retain all 6 core components.")
 		return
 
+	print("GEN4_LOCK_TEST: generator start")
 	var generation_four_preview := ProceduralEngineScript.generate_os(8104, 4)
 	if generation_four_preview.get("generation") != 4 or generation_four_preview.get("style", {}).get("identity") != "One UI 2.0":
 		_fail("Generation 4 must be identified as Samsung One UI 2.0.")
@@ -1543,8 +1544,10 @@ func _run_os_generator_test() -> void:
 		_fail("Samsung One UI 2.0 lock-screen defaults must use quiet notifications and Phone/Camera shortcuts.")
 		return
 	simulator.configure_os(generation_four_preview, "lock_screen")
+	print("GEN4_LOCK_TEST: simulator configured")
 	await process_frame
 	await process_frame
+	print("GEN4_LOCK_TEST: initial lock screen ready")
 	for samsung_lock_control in ["SamsungOneUILockScreen", "SamsungOneUILockIdentity", "SamsungOneUILockClock", "SamsungOneUILockDate", "SamsungOneUISwipeToUnlockHint", "SamsungOneUILockShortcuts", "SamsungOneUIPhoneShortcut", "SamsungOneUICameraShortcut"]:
 		if simulator.find_child(samsung_lock_control, true, false) == null:
 			_fail("Samsung One UI 2.0 lock screen is missing: " + samsung_lock_control)
@@ -1567,6 +1570,7 @@ func _run_os_generator_test() -> void:
 	if samsung_phone == null or samsung_camera == null or samsung_phone.custom_minimum_size != Vector2(44, 44) or samsung_camera.custom_minimum_size != Vector2(44, 44):
 		_fail("Samsung One UI 2.0 must have equal-size Phone and Camera corner shortcut targets.")
 		return
+	print("GEN4_LOCK_TEST: shortcut controls ready")
 	var samsung_opened_apps: Array[String] = []
 	simulator.app_opened.connect(func(app_name: String) -> void: samsung_opened_apps.append(app_name))
 	samsung_phone.pressed.emit()
@@ -1574,6 +1578,7 @@ func _run_os_generator_test() -> void:
 	if samsung_opened_apps != ["Phone", "Camera"]:
 		_fail("Samsung lock-screen Phone and Camera shortcuts did not open the expected apps.")
 		return
+	print("GEN4_LOCK_TEST: shortcut actions passed")
 	var bright_wallpaper_config := generation_four_preview.duplicate(true)
 	bright_wallpaper_config["style"]["palette"]["background"] = "#F0F1F2"
 	bright_wallpaper_config["style"]["wallpaper"] = "aurora"
@@ -1583,6 +1588,7 @@ func _run_os_generator_test() -> void:
 	if bright_samsung_clock == null or bright_samsung_clock.get_theme_color("font_color") != Color("#34383D"):
 		_fail("Samsung One UI 2.0 must switch to dark clock text on a bright wallpaper.")
 		return
+	print("GEN4_LOCK_TEST: adaptive text passed")
 	var compact_notifications_config := generation_four_preview.duplicate(true)
 	compact_notifications_config["components"]["lock_screen"]["show_notifications"] = true
 	simulator.configure_os(compact_notifications_config, "lock_screen")
@@ -1590,20 +1596,24 @@ func _run_os_generator_test() -> void:
 	if simulator.find_child("SamsungOneUILockNotifications", true, false) == null or simulator.find_child("SamsungOneUILockNotification_Messages", true, false) == null:
 		_fail("Samsung One UI 2.0 must render its compact notification previews when enabled.")
 		return
+	print("GEN4_LOCK_TEST: notification cards passed")
 	_simulate_touch_swipe(simulator, Vector2(76, 230), Vector2(76, 145), 160)
 	await process_frame
 	if simulator.get("active_component") != "pin_input":
 		_fail("Samsung One UI 2.0 upward lock-screen swipe did not open PIN entry.")
 		return
 
+	print("GEN4_LOCK_TEST: swipe unlock passed")
 	worksite.set("home_generation", 4)
 	worksite.call("_apply_generation_selection")
+	print("GEN4_LOCK_TEST: worksite generation selected")
 	await process_frame
 	if worksite_preview.get("active_component") != "lock_screen":
 		_fail("Generation 4 must preview its implemented Samsung lock screen instead of an unfinished system page.")
 		return
 	worksite.call("_show_lock_screen_studio_controls")
 	await process_frame
+	print("GEN4_LOCK_TEST: lock studio displayed")
 	var samsung_lock_title := worksite.find_child("LockScreenHeroTitle", true, false) as Label
 	var samsung_lock_controls := worksite.find_child("LockScreenStudioControls", true, false) as VBoxContainer
 	if samsung_lock_title == null or not samsung_lock_title.text.contains("SAMSUNG ONE UI 2.0") or samsung_lock_controls == null:
@@ -1616,6 +1626,7 @@ func _run_os_generator_test() -> void:
 	if worksite.find_child("LockScreenSettingRow_show_assistant_shortcut", true, false) != null:
 		_fail("Samsung One UI 2.0 must not expose the Pixel Assistant shortcut setting.")
 		return
+	print("GEN4_LOCK_TEST: all checks passed")
 	root.remove_child(worksite)
 	worksite.free()
 	await process_frame
