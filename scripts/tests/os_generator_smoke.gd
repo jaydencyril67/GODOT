@@ -103,7 +103,7 @@ func _run_os_generator_test() -> void:
 	if migrated_lock_data.has("design_family") or migrated_lock_data.has("show_audio_player") or bool(migrated_lock_data.get("show_camera_shortcut", true)):
 		_fail("Legacy lock-screen design settings were not cleaned up while preserving shortcut enablement.")
 		return
-	for required_setting in ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]:
+	for required_setting in ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"]:
 		if not migrated_lock_data.has(required_setting):
 			_fail("Generation 1 lock-screen setting was not migrated: " + required_setting)
 			return
@@ -172,70 +172,43 @@ func _run_os_generator_test() -> void:
 	await process_frame
 
 
-	var lock_preview_config := generated.duplicate(true)
-	lock_preview_config["generation"] = 1
-	lock_preview_config["components"]["home_screen"]["layout_style"] = "android_pixel"
-	lock_preview_config = ProceduralEngineScript.normalize_os(lock_preview_config)
+	var lock_preview_config := ProceduralEngineScript.generate_os(8101, 1)
 	var lock_preview_data: Dictionary = lock_preview_config["components"]["lock_screen"]
-	lock_preview_data["show_time"] = true
-	lock_preview_data["show_date"] = true
-	lock_preview_data["show_camera_shortcut"] = true
-	lock_preview_data["show_flashlight_shortcut"] = true
+	if str(lock_preview_config.get("style", {}).get("identity", "")) != "Samsung TouchWiz Nature UX":
+		_fail("Generation 1 must identify its Samsung TouchWiz Nature UX family.")
+		return
+	if lock_preview_data.has("show_flashlight_shortcut") or lock_preview_data.has("show_assistant_shortcut") or not bool(lock_preview_data.get("show_phone_shortcut", false)):
+		_fail("TouchWiz lock-screen configuration must use Phone and Camera shortcuts, not modern or flashlight controls.")
+		return
 	simulator.configure_os(lock_preview_config, "lock_screen")
 	await process_frame
-	for lock_control_name in ["LollipopLockScreen", "LockScreenClock", "LockScreenDate", "LockScreenShortcut_Camera", "LockScreenShortcut_Flashlight"]:
-		if simulator.find_child(lock_control_name, true, false) == null:
-			_fail("Lollipop lock screen is missing expected element: " + lock_control_name)
-			return
-	if simulator.find_child("LockScreenAudioPlayer", true, false) != null or simulator.find_child("LockScreenFingerprintSensor", true, false) != null:
-		_fail("Legacy media or fingerprint lock-screen widgets are still being rendered.")
+	var samsung_lock_image := simulator.find_child("SamsungGen1ScreenImage_lock_screen", true, false) as TextureRect
+	if samsung_lock_image == null or samsung_lock_image.texture == null or samsung_lock_image.texture.resource_path != "res://assets/os/gen1/samsung/lockscreen.jpg":
+		_fail("Samsung Gen 1 lock screen did not load its uploaded Galaxy S III JPG.")
 		return
-	var lollipop_clock := simulator.find_child("LockScreenClock", true, false) as Label
-	var lollipop_date := simulator.find_child("LockScreenDate", true, false) as Label
-	var lock_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
-	if lollipop_clock == null or lollipop_clock.text.strip_edges().is_empty() or lollipop_date == null or lollipop_date.text.strip_edges().is_empty():
-		_fail("Lollipop lock-screen time or date is blank.")
+	if simulator.find_child("LollipopLockScreen", true, false) != null or simulator.find_child("LockScreenClock", true, false) != null or simulator.find_child("LockScreenShortcut_Flashlight", true, false) != null:
+		_fail("The old generated Lollipop lock-screen controls must not appear in the TouchWiz screenshot view.")
 		return
-	if lock_status_clock == null or not lock_status_clock.visible or lock_status_clock.text.strip_edges().is_empty():
-		_fail("Lollipop lock screen must keep the small status-bar time visible above the large lock-screen clock.")
-		return
-	var camera_shortcut := simulator.find_child("LockScreenShortcut_Camera", true, false) as Button
-	var flashlight_shortcut := simulator.find_child("LockScreenShortcut_Flashlight", true, false) as Button
-	if camera_shortcut == null or flashlight_shortcut == null or camera_shortcut.get_index() >= flashlight_shortcut.get_index():
-		_fail("Lollipop camera and flashlight shortcuts are missing or incorrectly ordered.")
-		return
-	var hidden_lock_config := lock_preview_config.duplicate(true)
-	hidden_lock_config["components"]["lock_screen"]["show_time"] = false
-	hidden_lock_config["components"]["lock_screen"]["show_date"] = false
-	hidden_lock_config["components"]["lock_screen"]["show_camera_shortcut"] = false
-	hidden_lock_config["components"]["lock_screen"]["show_flashlight_shortcut"] = false
-	simulator.configure_os(hidden_lock_config, "lock_screen")
+	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 105), 180)
 	await process_frame
-	for hidden_name in ["LockScreenClock", "LockScreenDate", "LockScreenShortcut_Camera", "LockScreenShortcut_Flashlight"]:
-		var hidden_control := simulator.find_child(hidden_name, true, false)
-		if hidden_control != null:
-			_fail("Disabled Lollipop lock-screen element remained visible: " + hidden_name)
-			return
-	simulator.configure_os(lock_preview_config, "lock_screen")
-	await process_frame
-	var lock_gesture_position := Vector2(72, 180)
-	simulator.call("_handle_system_gesture", lock_gesture_position, Vector2(72, 105), 180)
-	await process_frame
-	if simulator.get("active_component") != "pin_input":
-		_fail("Upward swipe did not open PIN entry from the lock screen.")
+	if simulator.get("active_component") != "lock_screen":
+		_fail("An upward swipe must not replace the TouchWiz swipe-to-unlock interaction with a PIN screen.")
 		return
-	for digit in ["1", "2", "3", "4"]:
-		var unlock_key := simulator.find_child("PINKey_" + digit, true, false) as Button
-		if unlock_key == null:
-			_fail("PIN keypad is missing digit " + digit + ".")
-			return
-		unlock_key.pressed.emit()
-		await process_frame
+	simulator.call("_handle_system_gesture", Vector2(40, 180), Vector2(95, 180), 180)
+	await process_frame
 	if simulator.get("active_component") != "home_screen":
-		_fail("Correct PIN 1234 did not unlock the phone after a lock-screen swipe.")
+		_fail("A rightward swipe did not unlock the Samsung TouchWiz screen directly to Home.")
 		return
 	simulator.set_component_view("home_screen")
 	await process_frame
+	var samsung_home_image := simulator.find_child("SamsungGen1ScreenImage_home_screen", true, false) as TextureRect
+	if samsung_home_image == null or samsung_home_image.texture == null or samsung_home_image.texture.resource_path != "res://assets/os/gen1/samsung/home_screen.jpg":
+		_fail("Samsung Gen 1 home screen did not load its uploaded JPG.")
+		return
+	for obsolete_home_name in ["LollipopGoogleSearchBar", "LollipopHomeAppGrid", "HomeAppGrid", "HomeAppDock", "LollipopAppDrawerButton"]:
+		if simulator.find_child(obsolete_home_name, true, false) != null:
+			_fail("Obsolete generated Gen 1 home-screen element remained: " + obsolete_home_name)
+			return
 
 	if ProceduralEngineScript.HOME_LAYOUT_STYLES != ["android_pixel", "ios_home", "windows_tiles"]:
 		_fail("Home Screen Studio must contain only Android, iOS and Windows layouts, in that order.")
@@ -248,12 +221,14 @@ func _run_os_generator_test() -> void:
 			_fail("OS generation did not use the approved Android home-screen layout.")
 			return
 		if generation_number == 1:
-			if simulator.find_child("LollipopGoogleSearchBar", true, false) == null or simulator.find_child("LollipopHomeAppGrid", true, false) == null:
-				_fail("Android Generation 1 must render the Lollipop Google search bar and home app grid.")
+			var gen1_home_image := simulator.find_child("SamsungGen1ScreenImage_home_screen", true, false) as TextureRect
+			if gen1_home_image == null or gen1_home_image.texture == null:
+				_fail("Android Generation 1 must display the imported Samsung TouchWiz home-screen artwork.")
 				return
-			if simulator.find_child("LollipopAppDrawerButton", true, false) == null:
-				_fail("Android Generation 1 must include its app drawer launcher.")
-				return
+			for obsolete_home_name in ["LollipopGoogleSearchBar", "LollipopHomeAppGrid", "LollipopAppDrawerButton", "HomeAppGrid", "HomeAppDock"]:
+				if simulator.find_child(obsolete_home_name, true, false) != null:
+					_fail("Old Gen 1 app-icon UI is still being built: " + obsolete_home_name)
+					return
 		elif generation_number == 2:
 			var generation_oreo_home_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
 			if simulator.find_child("AndroidWeatherWidget", true, false) != null or simulator.find_child("AndroidAssistantWidget", true, false) != null or simulator.find_child("AndroidHomeWidgetRow", true, false) != null:
@@ -276,7 +251,7 @@ func _run_os_generator_test() -> void:
 				return
 			if simulator.find_child("AndroidWeatherWidget", true, false) != null or simulator.find_child("AndroidAssistantWidget", true, false) != null:
 				_fail("Android 9 Pie must not reuse the Oreo side-by-side widgets.")
-		var expected_android_nav := "LollipopThreeButtonNavigation" if generation_number == 1 else "PieThreeButtonNavigation" if generation_number == 3 else "AndroidThreeButtonNavigation"
+		var expected_android_nav := "SamsungGen1ThreeButtonNavigation" if generation_number == 1 else "PieThreeButtonNavigation" if generation_number == 3 else "AndroidThreeButtonNavigation"
 		var generation_navigation := simulator.find_child(expected_android_nav, true, false) as HBoxContainer
 		if generation_navigation == null or generation_navigation.get_child_count() != 3:
 			_fail("Every Android generation must display Recent, Home and Back navigation buttons.")
@@ -493,110 +468,62 @@ func _run_os_generator_test() -> void:
 			await process_frame
 			_simulate_touch_swipe(simulator, Vector2(60, 2), Vector2(60, 75), 110)
 			await process_frame
-			if simulator.find_child("OSGestureOverlay_notifications", true, false) == null or simulator.find_child("LollipopNotificationHeader", true, false) == null:
-				_fail("Android 5 notification shade did not render its Lollipop header.")
+			var gen1_notification_overlay := simulator.find_child("OSGestureOverlay_notifications", true, false) as Control
+			var gen1_notification_image := simulator.find_child("SamsungGen1ScreenImage_notifications", true, false) as TextureRect
+			var gen1_notification_mask := simulator.find_child("SamsungGen1ShadeScreenCornerMask", true, false) as Control
+			if gen1_notification_overlay == null or gen1_notification_image == null or gen1_notification_image.texture == null or gen1_notification_image.texture.resource_path != "res://assets/os/gen1/samsung/notification.jpg":
+				_fail("Samsung Gen 1 pull-down did not show the combined TouchWiz notification and Quick Settings screenshot.")
 				return
-			if simulator.find_child("LollipopNotification_Messages", true, false) == null or simulator.find_child("CloseGestureOverlayButton", true, false) != null:
-				_fail("Android 5 notification cards are missing or an unwanted close button was added.")
-				return
-			var notification_overlay := simulator.find_child("OSGestureOverlay_notifications", true, false) as Control
-			var notification_mask := simulator.find_child("LollipopShadeScreenCornerMask", true, false) as Control
-			if notification_overlay == null or not notification_overlay.clip_contents or notification_mask == null:
-				_fail("Lollipop notification shade must be clipped to the rounded phone screen.")
-				return
-			if not bool(notification_mask.get("mask_bottom_corners")) == false or notification_mask.z_index < 100:
-				_fail("Lollipop shade corner mask must preserve the top screen radius without rounding the navigation edge.")
-				return
-			var notification_app_label := simulator.find_child("LollipopNotificationApp_Messages", true, false) as Label
-			var notification_message_label := simulator.find_child("LollipopNotificationMessage_Messages", true, false) as Label
-			var notification_icon_label := simulator.find_child("LollipopNotificationIcon_Messages", true, false) as Label
-			if notification_app_label == null or notification_app_label.text != "Messages" or notification_app_label.custom_minimum_size.y < 14:
-				_fail("Lollipop notification card must show a properly sized app title.")
-				return
-			if notification_message_label == null or notification_message_label.text.is_empty() or notification_message_label.custom_minimum_size.y < 16:
-				_fail("Lollipop notification card must show its message text.")
-				return
-			if notification_icon_label == null or notification_icon_label.text != "M":
-				_fail("Lollipop notification card must show its app icon glyph.")
+			if not gen1_notification_overlay.clip_contents or gen1_notification_mask == null or bool(gen1_notification_mask.get("mask_bottom_corners")):
+				_fail("Samsung TouchWiz notification overlay must be clipped to the phone screen with its navigation edge preserved.")
 				return
 			simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 240), 110)
 			await process_frame
-			if simulator.find_child("LollipopQuickSettingsHeader", true, false) == null or simulator.find_child("LollipopQuickSettingsGrid", true, false) == null or simulator.find_child("LollipopBrightnessSlider", true, false) == null:
-				_fail("Expanded Android 5 Quick Settings is missing its header, brightness slider or icon tiles.")
+			if simulator.find_child("OSGestureOverlay_notifications", true, false) == null or simulator.find_child("OSGestureOverlay_control_center", true, false) != null:
+				_fail("Samsung TouchWiz must keep Quick Settings and notifications on the same panel rather than opening a second shade.")
 				return
-			var quick_settings_overlay := simulator.find_child("OSGestureOverlay_control_center", true, false) as Control
-			var quick_settings_mask := simulator.find_child("LollipopShadeScreenCornerMask", true, false) as Control
-			if quick_settings_overlay == null or not quick_settings_overlay.clip_contents or quick_settings_mask == null:
-				_fail("Lollipop Quick Settings must remain inside the rounded phone screen boundary.")
-				return
-			if simulator.find_child("CloseGestureOverlayButton", true, false) != null:
-				_fail("Android 5 Quick Settings must dismiss by system gestures/navigation, not an X button.")
-				return
-			var wifi_tile := simulator.find_child("LollipopQuickTile_Wi-Fi", true, false) as Button
-			if wifi_tile == null:
-				_fail("Android 5 Quick Settings Wi-Fi tile is missing.")
-				return
-			var wifi_icon_label := simulator.find_child("LollipopQuickTileIcon_Wi-Fi", true, false) as Label
-			var wifi_title_label := simulator.find_child("LollipopQuickTileLabel_Wi-Fi", true, false) as Label
-			var wifi_tile_style := wifi_tile.get_theme_stylebox("normal") as StyleBoxFlat if wifi_tile != null else null
-			if wifi_icon_label == null or wifi_icon_label.text.is_empty() or wifi_title_label == null or wifi_title_label.text != "Wi-Fi":
-				_fail("Lollipop Quick Settings tile must visibly contain its icon and label.")
-				return
-			if wifi_tile.custom_minimum_size.y < 68 or wifi_tile_style == null or wifi_tile_style.bg_color.a < 0.9:
-				_fail("Lollipop Quick Settings tiles must have visible tile surfaces and a reliable height.")
-				return
-			var wifi_before := bool(simulator.get("_quick_setting_states").get("Wi-Fi", false))
-			wifi_tile.button_pressed = not wifi_before
-			wifi_tile.toggled.emit(not wifi_before)
-			if bool(simulator.get("_quick_setting_states").get("Wi-Fi", wifi_before)) == wifi_before:
-				_fail("Quick Settings tile did not retain its toggled state.")
-				return
-			var lollipop_back := simulator.find_child("LollipopNavigationBack", true, false) as Button
-			var lollipop_home := simulator.find_child("LollipopNavigationHome", true, false) as Button
-			var lollipop_overview := simulator.find_child("LollipopNavigationOverview", true, false) as Button
-			if lollipop_back == null or lollipop_home == null or lollipop_overview == null:
-				_fail("The Lollipop navigation row is missing one or more working controls.")
-				return
-			lollipop_back.pressed.emit()
+			simulator.call("_handle_system_gesture", Vector2(72, 240), Vector2(72, 160), 110)
 			await process_frame
-			if simulator.find_child("OSGestureOverlay_control_center", true, false) != null:
-				_fail("Android Back button did not dismiss the expanded Lollipop Quick Settings panel.")
+			if simulator.find_child("OSGestureOverlay_notifications", true, false) != null:
+				_fail("Swipe-up did not dismiss the combined Samsung TouchWiz notification panel.")
 				return
-			_simulate_touch_swipe(simulator, Vector2(60, 2), Vector2(60, 75), 110)
-			await process_frame
-			lollipop_home = simulator.find_child("LollipopNavigationHome", true, false) as Button
-			lollipop_home.pressed.emit()
-			await process_frame
-			if simulator.get("active_component") != "home_screen" or simulator.find_child("OSGestureOverlay_notifications", true, false) != null:
-				_fail("Android Home button did not close the notification shade and jump directly home.")
+			var gen1_back := simulator.find_child("SamsungGen1NavigationBack", true, false) as Button
+			var gen1_home := simulator.find_child("SamsungGen1NavigationHome", true, false) as Button
+			var gen1_overview := simulator.find_child("SamsungGen1NavigationOverview", true, false) as Button
+			if gen1_back == null or gen1_home == null or gen1_overview == null:
+				_fail("Samsung Gen 1 is missing one or more of its preserved Back, Home and Overview buttons.")
 				return
-			lollipop_overview = simulator.find_child("LollipopNavigationOverview", true, false) as Button
-			lollipop_overview.pressed.emit()
+			gen1_overview.pressed.emit()
 			await process_frame
-			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null:
-				_fail("Android Overview button did not open the Lollipop task overview.")
+			var gen1_recent_image := simulator.find_child("SamsungGen1ScreenImage_recent_apps", true, false) as TextureRect
+			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or gen1_recent_image == null or gen1_recent_image.texture == null or gen1_recent_image.texture.resource_path != "res://assets/os/gen1/samsung/recent_apps.jpg":
+				_fail("Samsung Gen 1 Overview button did not open the uploaded Recent Apps artwork.")
 				return
-			lollipop_back = simulator.find_child("LollipopNavigationBack", true, false) as Button
-			lollipop_back.pressed.emit()
+			gen1_back.pressed.emit()
 			await process_frame
 			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
-				_fail("Android Back button did not close the Lollipop Overview panel.")
+				_fail("Samsung Gen 1 Back button did not dismiss the Recent Apps screen.")
 				return
-	var lollipop_panel_test_config := ProceduralEngineScript.generate_os(8201, 1)
-	simulator.configure_os(lollipop_panel_test_config, "notifications")
+			simulator.call("_handle_system_gesture", Vector2(60, 2), Vector2(60, 75), 110)
+			await process_frame
+			gen1_home = simulator.find_child("SamsungGen1NavigationHome", true, false) as Button
+			gen1_home.pressed.emit()
+			await process_frame
+			if simulator.get("active_component") != "home_screen" or simulator.find_child("OSGestureOverlay_notifications", true, false) != null:
+				_fail("Samsung Gen 1 Home button did not close the TouchWiz panel and return to Home.")
+				return
+	var gen1_panel_test_config := ProceduralEngineScript.generate_os(8201, 1)
+	simulator.configure_os(gen1_panel_test_config, "notifications")
 	await process_frame
-	var notification_preview := simulator.find_child("LollipopNotificationPreview", true, false)
-	var preview_message_label := simulator.find_child("LollipopNotificationMessage_Messages", true, false) as Label
-	if notification_preview == null or preview_message_label == null or preview_message_label.text != "A new message is waiting":
-		_fail("Android 5 Notification Panel preview is missing visible notification content.")
+	var notification_preview := simulator.find_child("SamsungGen1ScreenImage_notifications", true, false) as TextureRect
+	if notification_preview == null or notification_preview.texture == null:
+		_fail("Samsung Gen 1 Notification Panel component did not load its screenshot.")
 		return
-	simulator.configure_os(lollipop_panel_test_config, "control_center")
+	simulator.configure_os(gen1_panel_test_config, "control_center")
 	await process_frame
-	var control_center_preview := simulator.find_child("LollipopControlCenterPreview", true, false)
-	var preview_wifi_tile := simulator.find_child("LollipopQuickTile_Wi-Fi", true, false) as Button
-	var preview_wifi_label := simulator.find_child("LollipopQuickTileLabel_Wi-Fi", true, false) as Label
-	if control_center_preview == null or preview_wifi_tile == null or preview_wifi_label == null or preview_wifi_label.text != "Wi-Fi":
-		_fail("Android 5 Control Center preview is missing its visible Quick Settings tiles.")
+	var control_center_preview := simulator.find_child("SamsungGen1ScreenImage_control_center", true, false) as TextureRect
+	if control_center_preview == null or control_center_preview.texture == null or control_center_preview.texture.resource_path != notification_preview.texture.resource_path:
+		_fail("Samsung Gen 1 Control Center and Notifications must use the same combined TouchWiz panel artwork.")
 		return
 
 	# Restore the shared test configuration to Android after the iOS component checks.
@@ -1071,8 +998,8 @@ func _run_os_generator_test() -> void:
 		return
 	generation_minus.pressed.emit()
 	await process_frame
-	if generation_label.text != "GENERATION 01" or generation_description.text != "ANDROID 5.0 LOLLIPOP":
-		_fail("Generation selector did not expose Android 5.0 as Generation 1.")
+	if generation_label.text != "GENERATION 01" or generation_description.text != "ANDROID 4.x · SAMSUNG TOUCHWIZ NATURE UX":
+		_fail("Generation selector did not expose Samsung TouchWiz Nature UX on Android 4.x as Generation 1.")
 		return
 	generation_plus.pressed.emit()
 	await process_frame
