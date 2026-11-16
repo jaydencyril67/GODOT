@@ -61,7 +61,7 @@ func _draw() -> void:
 			_draw_widget(Rect2(margin + card_width + gap, size.y * 0.225, card_width, size.y * 0.175), second_widget, palette, radius, text_color, muted, accent, scale * 0.86)
 			apps_top = size.y * 0.47
 		"editorial":
-			_draw_text("MONDAY / YOUR DAY", Vector2(margin, size.y * 0.155), 11, muted)
+			_draw_text("YOUR DAY / AT A GLANCE", Vector2(margin, size.y * 0.155), 11, muted)
 			_draw_text("Make room", Vector2(margin, size.y * 0.205), 34, text_color)
 			_draw_text("for what matters.", Vector2(margin, size.y * 0.245), 30, text_color)
 			_draw_widget(Rect2(margin, size.y * 0.275, size.x - margin * 2.0, size.y * 0.17), primary_widget, palette, radius, text_color, muted, accent, scale * 0.90)
@@ -298,7 +298,7 @@ func _palette_color(palette: Dictionary, key: String, fallback: String) -> Color
 	return Color(str(palette.get(key, fallback)))
 
 
-func _draw_text(caption: String, position: Vector2, font_size: int, color: Color, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, width: float = -1.0) -> void:
+func _draw_text(caption: String, position: Vector2, font_size: int, color: Color, alignment: int = HORIZONTAL_ALIGNMENT_LEFT, width: float = -1.0) -> void:
 	var font := _font if _font != null else get_theme_default_font()
 	if font == null:
 		return
