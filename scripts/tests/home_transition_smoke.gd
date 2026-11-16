@@ -1021,6 +1021,49 @@ func _run_transition_checks() -> void:
 	if headquarters.building_root != original_building:
 		_fail("Opening Create replaced the headquarters building.")
 		return
+
+	# Processor navigation must be a single, deferred, exclusive screen handoff.
+	var create_page_layer = game.create_ui_layer
+	game._on_create_category_pressed("PROCESSOR")
+	game._on_create_category_pressed("PROCESSOR")
+	if game.current_screen != "processor_creation_worksite" or not bool(game.get("processor_worksite_open_pending")):
+		_fail("Processor navigation did not lock the destination before deferring the screen swap.")
+		return
+	if is_instance_valid(game.processor_creation_worksite):
+		_fail("Processor Worksite was instantiated before the current GUI input event completed.")
+		return
+	await process_frame
+	var processor_worksite = game.processor_creation_worksite
+	if not is_instance_valid(processor_worksite) or not processor_worksite.visible:
+		_fail("Processor Worksite did not become visible after the deferred transition.")
+		return
+	if not is_instance_valid(create_page_layer) or create_page_layer.visible:
+		_fail("The previous Create page remained visible behind the Processor Worksite.")
+		return
+	for _stable_frame in range(8):
+		await process_frame
+		if game.current_screen != "processor_creation_worksite" or not processor_worksite.visible or create_page_layer.visible:
+			_fail("Processor Worksite visibility changed unexpectedly after its transition completed.")
+			return
+	if bool(game.get("processor_worksite_open_pending")):
+		_fail("Processor transition lock remained active after the worksite opened.")
+		return
+	game._return_from_processor_creation_worksite()
+	if game.current_screen != "create" or processor_worksite.visible or not create_page_layer.visible:
+		_fail("Returning from Processor did not restore only the Create page.")
+		return
+	game._on_create_category_pressed("PROCESSOR")
+	await process_frame
+	if game.processor_creation_worksite != processor_worksite or not processor_worksite.visible or create_page_layer.visible:
+		_fail("Reopening Processor created a duplicate worksite or exposed the previous page.")
+		return
+	for _stable_frame in range(4):
+		await process_frame
+		if game.current_screen != "processor_creation_worksite" or not processor_worksite.visible or create_page_layer.visible:
+			_fail("Reopened Processor Worksite did not remain the exclusive active screen.")
+			return
+	game._return_from_processor_creation_worksite()
+
 	game._return_to_home()
 	if game.current_screen != "home" or game.world_root != headquarters or not headquarters.visible:
 		_fail("Returning from Create did not restore the original Home scene.")
