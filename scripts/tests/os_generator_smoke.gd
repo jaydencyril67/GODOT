@@ -76,11 +76,22 @@ func _run_gen1_smoke_test() -> void:
 	if int(xiaomi_config.get("generation", 0)) != 1 or str(xiaomi_config.get("style", {}).get("identity", "")) != "Xiaomi MIUI (Android 4.0 era)":
 		_fail("Xiaomi MIUI must remain an independent Gen 1 UI family.")
 		return
-	simulator.configure_os(xiaomi_config, "home_screen")
-	await process_frame
-	if simulator.find_child("XiaomiGen1ReferencePending_home_screen", true, false) == null:
-		_fail("Gen 1 Xiaomi MIUI family configuration was not loaded.")
-		return
+	var xiaomi_assets := {
+		"lock_screen": "lockscreen.jpg",
+		"home_screen": "homescreen.jpg",
+		"app_drawer": "appdrawer.jpg",
+		"control_center": "notification.jpg",
+		"notifications": "notification.jpg",
+		"recent_apps": "recentapps.jpg"
+	}
+	for component_id in xiaomi_assets:
+		simulator.configure_os(xiaomi_config, str(component_id))
+		await process_frame
+		var xiaomi_image_node := simulator.find_child("XiaomiGen1ScreenImage_" + str(component_id), true, false) as TextureRect
+		var expected_xiaomi_path := "res://assets/os/gen1/miui/" + str(xiaomi_assets[component_id])
+		if xiaomi_image_node == null or xiaomi_image_node.texture == null or xiaomi_image_node.texture.resource_path != expected_xiaomi_path:
+			_fail("Gen 1 Xiaomi MIUI V4 " + str(component_id) + " reference image failed to load: " + expected_xiaomi_path)
+			return
 
 	root.remove_child(simulator_host)
 	simulator_host.free()
