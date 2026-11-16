@@ -757,13 +757,17 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	var pie_drawer_search := simulator.find_child("PieAppDrawerSearchField", true, false) as LineEdit
 	var pie_drawer_grid := simulator.find_child("PieAppDrawerGrid", true, false) as GridContainer
-	if pie_drawer_search == null or pie_drawer_grid == null or pie_drawer_grid.columns != 5:
-		_fail("Android 9 Pie app drawer must render its search field and five-column apps grid.")
+	var expected_pie_columns := int(simulator.call("_responsive_columns", 5))
+	if pie_drawer_search == null or pie_drawer_grid == null or pie_drawer_grid.columns != expected_pie_columns:
+		_fail("Android 9 Pie app drawer must render its search field and a responsive apps grid.")
 		return
 	if simulator.find_child("PieSuggestedAppsRow", true, false) == null or simulator.find_child("PieAppDrawerAllAppsHeading", true, false) == null:
 		_fail("Android 9 Pie app drawer is missing suggested apps or the All apps heading.")
 		return
 	var pie_drawer_initial_count := pie_drawer_grid.get_child_count()
+	if pie_drawer_initial_count != ProceduralEngineScript.APP_DEFINITIONS.size() or pie_drawer_grid.get_parent().name != "OSComponentContent" or simulator.find_child("PieAppDrawerViewport", true, false) != null:
+		_fail("Android 9 Pie app drawer must place all installed apps in the main component scroll area.")
+		return
 	pie_drawer_search.text_changed.emit("Calendar")
 	await process_frame
 	if pie_drawer_grid.get_child_count() == 0 or pie_drawer_grid.get_child_count() >= pie_drawer_initial_count:
@@ -778,12 +782,20 @@ func _run_os_generator_test() -> void:
 	if simulator.find_child("PieNotificationPreview", true, false) == null or simulator.find_child("PieNotification_Messages", true, false) == null or simulator.find_child("PieNotificationQuickSettingsGrid", true, false) == null:
 		_fail("Android 9 Pie Notification Panel preview is incomplete.")
 		return
+	var pie_notification_surface := simulator.find_child("PieNotificationCardsSurface", true, false) as PanelContainer
+	var pie_notification_surface_style := pie_notification_surface.get_theme_stylebox("panel") as StyleBoxFlat if pie_notification_surface != null else null
+	if pie_notification_surface_style == null or pie_notification_surface_style.bg_color.a < 0.99:
+		_fail("Android 9 Pie notification cards must sit on a clearly visible opaque surface.")
 	simulator.configure_os(pie_test_config, "control_center")
 	await process_frame
 	var pie_control_grid := simulator.find_child("PieExpandedQuickSettingsGrid", true, false) as GridContainer
 	if simulator.find_child("PieControlCenterPreview", true, false) == null or pie_control_grid == null or pie_control_grid.get_child_count() != 9 or simulator.find_child("PieBrightnessSlider", true, false) == null:
 		_fail("Android 9 Pie expanded Quick Settings preview must show nine circular tiles and brightness.")
 		return
+	var pie_quick_surface := simulator.find_child("PieExpandedQuickSettingsSurface", true, false) as PanelContainer
+	var pie_quick_surface_style := pie_quick_surface.get_theme_stylebox("panel") as StyleBoxFlat if pie_quick_surface != null else null
+	if pie_quick_surface_style == null or pie_quick_surface_style.bg_color.a < 0.99:
+		_fail("Android 9 Pie Quick Settings must have a clearly visible opaque surface.")
 	var pie_preview_wifi := simulator.find_child("PieQuickTile_Wi-Fi", true, false) as Button
 	if pie_preview_wifi == null:
 		_fail("Android 9 Pie Quick Settings is missing its Wi-Fi toggle.")
