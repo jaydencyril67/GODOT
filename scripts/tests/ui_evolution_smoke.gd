@@ -3,6 +3,7 @@ extends SceneTree
 const UIEvolutionEngineScript = preload("res://scripts/ui_evolution_engine.gd")
 const GeneratedPhoneUIScript = preload("res://scripts/generated_phone_ui.gd")
 const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
+const ScreenTechnologySystemScript = preload("res://scripts/screen_technology_system.gd")
 
 const TEST_SAVE_PATH := "user://ui_evolution_smoke_test.json"
 
@@ -134,6 +135,31 @@ func _check_phone_screen_integration() -> bool:
 	if not _has_generated_screen_texture(screen):
 		worksite.queue_free()
 		_fail("The Standard phone display is missing its generated viewport texture or UV mapping.")
+		return false
+
+	# The interface must render into an opaque, higher-density target. Screen
+	# research must affect glass optics without tinting away readable UI pixels.
+	if ui_viewport.size != Vector2i(600, 1200) or ui_viewport.transparent_bg:
+		worksite.queue_free()
+		_fail("The generated UI viewport is not using the expected opaque high-density display target.")
+		return false
+	var screen_material := screen.material_override as ShaderMaterial
+	var screen_quality: Dictionary = worksite.get("screen_quality_state")
+	var screen_profile: Dictionary = ScreenTechnologySystemScript.get_visual_profile(screen_quality)
+	if screen_material == null or screen_material.shader == null:
+		worksite.queue_free()
+		_fail("The generated screen is missing its clarity and glass-response shader.")
+		return false
+	var shader_source := screen_material.shader.code
+	if not shader_source.contains("ALPHA = 1.0;") or not shader_source.contains("screen_reflection_strength"):
+		worksite.queue_free()
+		_fail("The generated screen shader does not preserve opacity or screen-technology optical controls.")
+		return false
+	var expected_reflection := float(screen_profile.get("specular", 0.55))
+	var actual_reflection := float(screen_material.get_shader_parameter("screen_reflection_strength"))
+	if not is_equal_approx(actual_reflection, expected_reflection):
+		worksite.queue_free()
+		_fail("Screen reflection reduction is not connected to the generated display glass.")
 		return false
 
 	# Verify the same live interface maps onto both foldable inner displays.
