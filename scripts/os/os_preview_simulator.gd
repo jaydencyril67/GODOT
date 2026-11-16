@@ -3027,8 +3027,9 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	bar_style.content_margin_bottom = 0
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
 
+	var is_lollipop_overview := parent.name == "LollipopOverviewNavigationFooter"
 	var navigation_keys := HBoxContainer.new()
-	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "SamsungGen1ThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
+	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "LollipopOverviewThreeButtonNavigation" if is_lollipop_overview else "SamsungGen1ThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
 	navigation_keys.custom_minimum_size.y = 46
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -3047,7 +3048,7 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
-		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "SamsungGen1Navigation" if use_lollipop_style else "AndroidNavigation") + action
+		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "LollipopNavigation" if is_lollipop_overview else "SamsungGen1Navigation" if use_lollipop_style else "AndroidNavigation") + action
 		key.action_name = action
 		key.icon_color = navigation_color
 		key.tooltip_text = "Recent" if action == "Overview" else action
