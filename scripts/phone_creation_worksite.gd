@@ -2,6 +2,8 @@ extends Node3D
 
 const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
+const UIEvolutionEngineScript = preload("res://scripts/ui_evolution_engine.gd")
+const GeneratedPhoneUIScript = preload("res://scripts/generated_phone_ui.gd")
 
 var charging_speed_step_visited := false
 var wireless_charge_step_visited := false
@@ -11,6 +13,7 @@ var rear_camera_mp_step_visited := false
 var memory_clock_step_visited := false
 var refresh_rate_step_visited := false
 var cooling_system_step_visited := false
+var ui_evolution_research_level := 0
 
 signal back_requested
 signal research_requested
@@ -441,6 +444,10 @@ var screen_enable_checkbox: CheckBox
 var preview_camera: Camera3D
 
 var preview_container: SubViewportContainer
+var phone_ui_viewport: SubViewport
+var phone_ui_renderer: Control
+var ui_evolution_configuration: Dictionary = {}
+var ui_evolution_design_name_label: Label
 
 var phone_case_preview: Node3D
 
@@ -886,6 +893,7 @@ func _ready() -> void:
 	current_screen_technology = ScreenTechnologySystem.get_technology_name(0)
 	_build_preview_world()
 	_build_interface()
+	ui_evolution_configuration = UIEvolutionEngineScript.load_ui()
 
 func set_company_branding(company_name: String, logo_id: int) -> void:
 	box_company_name = company_name.strip_edges()
@@ -1014,14 +1022,14 @@ func _build_interface() -> void:
 	progress.offset_bottom = 50.0
 	progress.add_theme_constant_override("separation", 4)
 	root.add_child(progress)
-	progress_number = _label("STEP 1 / 37", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 38", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
 	progress_bar = ProgressBar.new()
 	progress_bar.name = "WizardProgressBar"
 	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
-	progress_bar.max_value = 37
+	progress_bar.max_value = 38
 	progress_bar.value = 1
 	progress_bar.show_percentage = false
 	var progress_fill := StyleBoxFlat.new()
@@ -1350,18 +1358,20 @@ func _on_next_pressed() -> void:
 	elif wizard_step == 28:
 		_show_cooling_system_step()
 	elif wizard_step == 29:
-		_show_box_package_step()
+		_show_ui_evolution_step()
 	elif wizard_step == 30:
-		_show_phone_case_step()
+		_show_box_package_step()
 	elif wizard_step == 31:
-		_show_charger_step()
+		_show_phone_case_step()
 	elif wizard_step == 32:
-		_show_protection_glass_step()
+		_show_charger_step()
 	elif wizard_step == 33:
-		_show_wireless_earbuds_step()
+		_show_protection_glass_step()
 	elif wizard_step == 34:
-		_show_smartwatch_step()
+		_show_wireless_earbuds_step()
 	elif wizard_step == 35:
+		_show_smartwatch_step()
+	elif wizard_step == 36:
 		_show_power_bank_step()
 
 
@@ -1377,17 +1387,17 @@ func _cache_current_step_panel() -> void:
 			if self.has_method("_close_worksite_back_design_color_view"):
 				self.call("_close_worksite_back_design_color_view")
 			self.call("_show_back_design_controls")
-	elif wizard_step == 30 and bool(self.get("box_package_color_mode")):
+	elif wizard_step == 31 and bool(self.get("box_package_color_mode")):
 		_show_worksite_box_package_controls()
-	elif wizard_step == 31 and bool(self.get("phone_case_color_mode")):
+	elif wizard_step == 32 and bool(self.get("phone_case_color_mode")):
 		_show_worksite_phone_case_controls()
-	elif wizard_step == 32 and bool(self.get("charger_color_mode")):
+	elif wizard_step == 33 and bool(self.get("charger_color_mode")):
 		_show_worksite_charger_controls("HOME")
-	elif wizard_step == 34 and bool(self.get("wireless_earbuds_color_mode")):
+	elif wizard_step == 35 and bool(self.get("wireless_earbuds_color_mode")):
 		_show_worksite_earbuds_controls()
-	elif wizard_step == 35 and bool(self.get("smartwatch_color_mode")):
+	elif wizard_step == 36 and bool(self.get("smartwatch_color_mode")):
 		_show_worksite_smartwatch_controls()
-	elif wizard_step == 36 and bool(self.get("power_bank_color_mode")):
+	elif wizard_step == 37 and bool(self.get("power_bank_color_mode")):
 		_show_worksite_power_bank_controls()
 
 	var current_panel := self.get("active_feature_panel") as Control
@@ -1412,26 +1422,26 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if step < 15 or step > 29:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
-	if previous_step == 30 and step != 30:
+	if previous_step == 31 and step != 30:
 		self.call("_set_box_package_preview_mode", false)
-	if previous_step == 32 and step != 32:
+	if previous_step == 33 and step != 32:
 		self.call("_set_charger_preview_mode", false)
-	if previous_step == 34 and step != 34:
+	if previous_step == 35 and step != 34:
 		self.call("_set_earbuds_preview_mode", false)
-	if previous_step == 35 and step != 35:
+	if previous_step == 36 and step != 35:
 		self.call("_set_smartwatch_preview_mode", false)
-	if previous_step == 36 and step != 36:
+	if previous_step == 37 and step != 36:
 		self.call("_set_power_bank_preview_mode", false)
 	wizard_step = step
-	if step == 30:
+	if step == 31:
 		self.call("_set_box_package_preview_mode", true)
-	if step == 32:
+	if step == 33:
 		self.call("_set_charger_preview_mode", true)
-	if step == 34:
-		self.call("_set_earbuds_preview_mode", true)
 	if step == 35:
-		self.call("_set_smartwatch_preview_mode", true)
+		self.call("_set_earbuds_preview_mode", true)
 	if step == 36:
+		self.call("_set_smartwatch_preview_mode", true)
+	if step == 37:
 		self.call("_set_power_bank_preview_mode", true)
 	if step >= 22:
 		charging_speed_step_visited = true
@@ -1709,8 +1719,8 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 	specification_readout_entry_count += 1
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 37)
-	progress_number.text = "STEP %d / 37" % progress_value
+	var progress_value := clampi(step + 1, 1, 38)
+	progress_number.text = "STEP %d / 38" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -1823,6 +1833,186 @@ func _show_sensors_step() -> void:
 
 
 
+func _show_ui_evolution_controls() -> void:
+	if not is_instance_valid(selection_stack):
+		return
+	var previous_panel := active_feature_panel
+	if is_instance_valid(previous_panel):
+		var previous_parent := previous_panel.get_parent()
+		if is_instance_valid(previous_parent):
+			previous_parent.remove_child(previous_panel)
+		previous_panel.queue_free()
+
+	var panel := VBoxContainer.new()
+	panel.name = "UIEvolutionResearchControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_theme_constant_override("separation", 10)
+	active_feature_panel = panel
+	selection_stack.add_child(panel)
+
+	var heading := _make_label("UI EVOLUTION", 19, Color("#D3AA6B"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(heading)
+
+	if ui_evolution_research_level <= 0:
+		var description := _make_label("Develop a new on-device interface generator. It builds original home screens, widgets, app layouts, visual themes and system styling from the phone's specifications.", 12, Color("#E5E0D6"))
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD
+		panel.add_child(description)
+		var status := _make_label("LOCAL PROCEDURAL INTELLIGENCE  ·  NO EXTERNAL AI API", 10, Color("#B8AFA2"))
+		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		panel.add_child(status)
+		var centre := CenterContainer.new()
+		centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		centre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.add_child(centre)
+		var research_button := Button.new()
+		research_button.name = "UIEvolutionResearchButton"
+		research_button.text = "RESEARCH"
+		research_button.custom_minimum_size = Vector2(0, 48)
+		research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		research_button.focus_mode = Control.FOCUS_NONE
+		_apply_research_typography(research_button, 13)
+		_style_button(research_button, true)
+		research_button.pressed.connect(func(): research_requested.emit())
+		centre.add_child(research_button)
+		step_panels[30] = panel
+		return
+
+	var intro := _make_label("YOUR PHONE'S INTERFACE", 11, Color("#B8AFA2"))
+	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(intro)
+	ui_evolution_design_name_label = _make_label("GENERATING DESIGN…", 18, Color("#EEE9DF"))
+	ui_evolution_design_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ui_evolution_design_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	panel.add_child(ui_evolution_design_name_label)
+	var detail := _make_label("A fresh design is composed from layout geometry, widget combinations, icon systems, colour relationships and your device capabilities.", 12, Color("#E5E0D6"))
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD
+	panel.add_child(detail)
+	var generate_button := Button.new()
+	generate_button.name = "GenerateNewPhoneInterfaceButton"
+	generate_button.text = "GENERATE NEW INTERFACE"
+	generate_button.custom_minimum_size = Vector2(0, 48)
+	generate_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	generate_button.focus_mode = Control.FOCUS_NONE
+	_apply_research_typography(generate_button, 12)
+	_style_button(generate_button, true)
+	generate_button.pressed.connect(_generate_new_ui_design)
+	panel.add_child(generate_button)
+	var hint := _make_label("Each generation is saved and applied to the live 3D phone display.", 10, Color("#B8AFA2"))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+	panel.add_child(hint)
+	step_panels[30] = panel
+	_refresh_ui_evolution_panel()
+
+
+func _refresh_ui_evolution_panel() -> void:
+	if not is_instance_valid(ui_evolution_design_name_label):
+		return
+	var design_name := str(ui_evolution_configuration.get("name", "No design generated"))
+	ui_evolution_design_name_label.text = design_name.to_upper()
+
+
+func _get_ui_device_specs() -> Dictionary:
+	return {
+		"phone_type": selected_phone_type,
+		"display_technology": current_screen_technology,
+		"ram": selected_ram_capacity,
+		"refresh_rate": selected_refresh_rate,
+		"battery": selected_battery_capacity,
+		"mobile_network": selected_mobile_network,
+		"wifi": selected_wifi_standard,
+		"bluetooth": selected_bluetooth_version,
+		"screen_shape": screen_shape_mode
+	}
+
+
+func set_ui_evolution_research_level(level: int) -> void:
+	ui_evolution_research_level = clampi(level, 0, 1)
+	if ui_evolution_research_level <= 0:
+		return
+	if ui_evolution_configuration.is_empty():
+		ui_evolution_configuration = UIEvolutionEngineScript.load_ui()
+	if ui_evolution_configuration.is_empty():
+		_generate_new_ui_design()
+	else:
+		_apply_generated_ui_to_phone()
+	if wizard_step == 30 and is_instance_valid(selection_stack):
+		_show_ui_evolution_controls()
+
+
+func _generate_new_ui_design() -> void:
+	if ui_evolution_research_level <= 0:
+		return
+	var generated := UIEvolutionEngineScript.generate_ui(-1, _get_ui_device_specs())
+	var issues: PackedStringArray = UIEvolutionEngineScript.validate_ui(generated)
+	if not issues.is_empty():
+		push_error("UI Evolution generated an invalid design: " + "; ".join(issues))
+		return
+	ui_evolution_configuration = generated
+	if not UIEvolutionEngineScript.save_ui(ui_evolution_configuration):
+		push_error("UI Evolution could not save the generated phone interface.")
+	_apply_generated_ui_to_phone()
+	_refresh_ui_evolution_panel()
+
+
+func _ensure_phone_ui_viewport() -> bool:
+	if is_instance_valid(phone_ui_viewport) and is_instance_valid(phone_ui_renderer):
+		return true
+	if not is_instance_valid(preview_container) or preview_container.get_child_count() == 0:
+		return false
+	var host_viewport := preview_container.get_child(0) as SubViewport
+	if not is_instance_valid(host_viewport):
+		return false
+	phone_ui_viewport = SubViewport.new()
+	phone_ui_viewport.name = "GeneratedPhoneScreenViewport"
+	phone_ui_viewport.size = Vector2i(480, 960)
+	phone_ui_viewport.transparent_bg = false
+	phone_ui_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	phone_ui_viewport.disable_3d = true
+	host_viewport.add_child(phone_ui_viewport)
+	phone_ui_renderer = GeneratedPhoneUIScript.new() as Control
+	phone_ui_renderer.name = "GeneratedPhoneScreenRenderer"
+	phone_ui_renderer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	phone_ui_renderer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phone_ui_viewport.add_child(phone_ui_renderer)
+	return true
+
+
+func _apply_generated_ui_to_phone() -> void:
+	if ui_evolution_configuration.is_empty() or not _ensure_phone_ui_viewport():
+		return
+	phone_ui_renderer.call("set_blueprint", ui_evolution_configuration)
+	phone_ui_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	await get_tree().process_frame
+	if not is_instance_valid(phone_ui_viewport):
+		return
+	phone_ui_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	screen_enabled = true
+	_refresh_phone_screen()
+
+
+func _create_generated_ui_screen_material() -> ShaderMaterial:
+	if not is_instance_valid(phone_ui_viewport):
+		return null
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled;
+uniform sampler2D screen_texture : source_color, filter_linear;
+void fragment() {
+	vec4 interface_pixel = texture(screen_texture, UV);
+	ALBEDO = interface_pixel.rgb;
+	EMISSION = interface_pixel.rgb * 0.12;
+	ROUGHNESS = 0.24;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("screen_texture", phone_ui_viewport.get_texture())
+	return material
+
+
 func _show_worksite_box_package_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
@@ -1865,7 +2055,7 @@ func _show_worksite_box_package_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[30] = panel
+		step_panels[31] = panel
 		return
 
 	# Use the same cardless hierarchy as Back Raised Design:
@@ -1977,7 +2167,7 @@ func _show_worksite_box_package_controls() -> void:
 	_add_back_design_pad_spacer(position_pad)
 	_add_editor_direction_pad_button(position_pad, "↓", Vector2i(0, -1), tight, Callable(self, "_move_box_package_branding"))
 	_add_back_design_pad_spacer(position_pad)
-	step_panels[30] = panel
+	step_panels[31] = panel
 
 func _add_worksite_box_package_position_spacer(parent: GridContainer) -> void:
 	var spacer := Control.new()
@@ -2003,7 +2193,7 @@ func set_box_package_research_level(level: int) -> void:
 	box_package_research_level = updated_level
 	if box_package_research_level <= 0:
 		box_package_color_mode = false
-	if level_changed and wizard_step == 30:
+	if level_changed and wizard_step == 31:
 		# The package preview is always available; research only unlocks its
 		# branding and appearance customization controls.
 		_set_box_package_preview_mode(true)
@@ -2027,8 +2217,8 @@ func _open_worksite_box_package_color_controls() -> void:
 func _show_worksite_phone_case_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 31:
-		var stale_case_panel := step_panels.get(31) as Control
+	if wizard_step != 32:
+		var stale_case_panel := step_panels.get(32) as Control
 		if is_instance_valid(stale_case_panel):
 			var stale_parent := stale_case_panel.get_parent()
 			if is_instance_valid(stale_parent):
@@ -2074,7 +2264,7 @@ func _show_worksite_phone_case_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[31] = panel
+		step_panels[32] = panel
 		var locked_preview := self.get("phone_case_preview") as Node3D
 		if is_instance_valid(locked_preview):
 			locked_preview.visible = false
@@ -2192,7 +2382,7 @@ func _add_worksite_phone_case_toggle(parent: Control) -> void:
 func _show_worksite_phone_case_design_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 31:
+	if wizard_step != 32:
 		return
 	if not bool(self.get("phone_case_custom_enabled")) or not bool(self.get("phone_case_built")):
 		_show_worksite_phone_case_controls()
@@ -2291,7 +2481,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 		locked_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		panel.add_child(locked_heading)
 		_add_charger_research_button(panel, "ChargerResearchButton", "RESEARCH", 360.0)
-		step_panels[32] = panel
+		step_panels[33] = panel
 		if is_instance_valid(charger_preview):
 			charger_preview.visible = false
 		return
@@ -2498,7 +2688,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 		color_option.pressed.connect(_open_worksite_charger_color_controls)
 		panel.add_child(color_option)
 
-	step_panels[32] = panel
+	step_panels[33] = panel
 
 
 
@@ -2507,7 +2697,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 func _show_worksite_power_bank_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 36:
+	if wizard_step != 37:
 		return
 
 	var previous_panel := self.get("active_feature_panel") as Control
@@ -2546,7 +2736,7 @@ func _show_worksite_power_bank_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[36] = panel
+		step_panels[37] = panel
 		return
 
 	var description := _label("Add a rotatable 3D power bank to the product preview. Set its battery capacity and customize its body colour.", 12, Color("#E5E0D6"))
@@ -2634,11 +2824,11 @@ func _show_worksite_power_bank_controls() -> void:
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
-	step_panels[36] = panel
+	step_panels[37] = panel
 
 
 func _on_worksite_power_bank_capacity_changed(value: float) -> void:
-	if wizard_step != 36:
+	if wizard_step != 37:
 		return
 	if researched_power_bank_level <= 0:
 		return
@@ -2653,7 +2843,7 @@ func _on_worksite_power_bank_capacity_changed(value: float) -> void:
 
 
 func _open_worksite_power_bank_color_controls() -> void:
-	if wizard_step != 36:
+	if wizard_step != 37:
 		return
 	self.call("_show_device_color_controls", false, false, false, false, true)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2669,7 +2859,7 @@ func _open_worksite_power_bank_color_controls() -> void:
 func _show_worksite_smartwatch_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 35:
+	if wizard_step != 36:
 		return
 
 	var previous_panel := self.get("active_feature_panel") as Control
@@ -2707,7 +2897,7 @@ func _show_worksite_smartwatch_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[35] = panel
+		step_panels[36] = panel
 		return
 
 	var description := _label("Add a rotatable 3D smartwatch accessory to the product preview. Drag the centre preview to inspect the case, display and strap.", 12, Color("#E5E0D6"))
@@ -2759,11 +2949,11 @@ func _show_worksite_smartwatch_controls() -> void:
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
-	step_panels[35] = panel
+	step_panels[36] = panel
 
 
 func _open_worksite_smartwatch_color_controls() -> void:
-	if wizard_step != 35:
+	if wizard_step != 36:
 		return
 	self.call("_show_device_color_controls", false, false, false, true, false)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2779,7 +2969,7 @@ func _open_worksite_smartwatch_color_controls() -> void:
 func _show_worksite_earbuds_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 34:
+	if wizard_step != 35:
 		return
 	var previous_panel := self.get("active_feature_panel") as Control
 	if is_instance_valid(previous_panel):
@@ -2816,7 +3006,7 @@ func _show_worksite_earbuds_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[34] = panel
+		step_panels[35] = panel
 		return
 	var description := _label("Add a rotatable 3D wireless-earbuds charging case. The lid stays closed and both earbuds remain stored inside.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -2865,11 +3055,11 @@ func _show_worksite_earbuds_controls() -> void:
 		var disabled_note := _label("Enable the case to show its rotatable 3D preview and unlock its custom colour.", 12, Color("#B8AFA2"))
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
-	step_panels[34] = panel
+	step_panels[35] = panel
 
 
 func _open_worksite_earbuds_color_controls() -> void:
-	if wizard_step != 34:
+	if wizard_step != 35:
 		return
 	self.call("_show_device_color_controls", false, false, false, false, false, true)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2885,7 +3075,7 @@ func _open_worksite_earbuds_color_controls() -> void:
 func _show_worksite_protection_glass_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 33:
+	if wizard_step != 34:
 		return
 	var previous_panel := self.get("active_feature_panel") as Control
 	if is_instance_valid(previous_panel):
@@ -2921,7 +3111,7 @@ func _show_worksite_protection_glass_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[33] = panel
+		step_panels[34] = panel
 		return
 	var description := _label("Install precision-cut tempered glass fitted to the active display, curves and front-camera layout.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -2959,19 +3149,19 @@ func _show_worksite_protection_glass_controls() -> void:
 		var research_hint := _label("Normal Glass is locked. Complete Protection Glass research to unlock installation.", 12, Color("#D3AA6B"))
 		research_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(research_hint)
-		step_panels[33] = panel
+		step_panels[34] = panel
 		return
 	if not screen_is_enabled:
 		var screen_hint := _label("Enable the phone screen first. Protection glass fits the active display surfaces.", 12, Color("#D3AA6B"))
 		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(screen_hint)
-		step_panels[33] = panel
+		step_panels[34] = panel
 		return
 	if not bool(self.get("screen_protector_enabled")):
 		var disabled_note := _label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#B8AFA2"))
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
-		step_panels[33] = panel
+		step_panels[34] = panel
 		return
 	panel.add_child(_label("GLASS TYPE", 14, Color("#C58A3A")))
 	for glass_type in ["Normal Glass", "Privacy Glass"]:
@@ -3036,7 +3226,7 @@ void fragment(){
 	var cutout_note := _label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
 	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(cutout_note)
-	step_panels[33] = panel
+	step_panels[34] = panel
 
 
 func _add_worksite_charger_toggle(
@@ -3405,32 +3595,36 @@ func _show_cooling_system_step() -> void:
 	_show_worksite_step(29, "_show_cooling_system_controls")
 
 
+func _show_ui_evolution_step() -> void:
+	_show_worksite_step(30, "_show_ui_evolution_controls")
+
+
 func _show_box_package_step() -> void:
-	_show_worksite_step(30, "_show_worksite_box_package_controls")
+	_show_worksite_step(31, "_show_worksite_box_package_controls")
 
 
 func _show_phone_case_step() -> void:
-	_show_worksite_step(31, "_show_worksite_phone_case_controls")
+	_show_worksite_step(32, "_show_worksite_phone_case_controls")
 
 
 func _show_charger_step() -> void:
-	_show_worksite_step(32, "_show_worksite_charger_controls")
+	_show_worksite_step(33, "_show_worksite_charger_controls")
 
 
 func _show_smartwatch_step() -> void:
-	_show_worksite_step(35, "_show_worksite_smartwatch_controls")
+	_show_worksite_step(36, "_show_worksite_smartwatch_controls")
 
 
 func _show_power_bank_step() -> void:
-	_show_worksite_step(36, "_show_worksite_power_bank_controls")
+	_show_worksite_step(37, "_show_worksite_power_bank_controls")
 
 
 func _show_wireless_earbuds_step() -> void:
-	_show_worksite_step(34, "_show_worksite_earbuds_controls")
+	_show_worksite_step(35, "_show_worksite_earbuds_controls")
 
 
 func _show_protection_glass_step() -> void:
-	_show_worksite_step(33, "_show_worksite_protection_glass_controls")
+	_show_worksite_step(34, "_show_worksite_protection_glass_controls")
 
 
 func _keep_step_navigation_active() -> void:
@@ -3670,7 +3864,7 @@ func set_power_bank_research_level(level: int) -> void:
 	if is_instance_valid(power_bank_preview):
 		_rebuild_power_bank_preview()
 	_set_power_bank_preview_mode(power_bank_preview_mode)
-	if wizard_step == 36 and is_instance_valid(selection_stack) and not power_bank_color_mode:
+	if wizard_step == 37 and is_instance_valid(selection_stack) and not power_bank_color_mode:
 		_show_worksite_power_bank_controls()
 
 
@@ -3691,7 +3885,7 @@ func set_charger_research_level(level: int) -> void:
 		charger_cable_enabled = false
 	charger_wattage = clampi(charger_wattage, 2, maxi(2, _get_charger_wattage_maximum()))
 	_rebuild_charger_preview()
-	if level_changed and wizard_step == 32 and is_instance_valid(selection_stack) and not charger_color_mode:
+	if level_changed and wizard_step == 33 and is_instance_valid(selection_stack) and not charger_color_mode:
 		_show_worksite_charger_controls(str(charger_controls_page))
 
 
@@ -3963,7 +4157,7 @@ func set_protection_glass_research_level(level: int) -> void:
 		visual_state_changed = true
 	if visual_state_changed:
 		_refresh_phone_screen()
-	if wizard_step == 33:
+	if wizard_step == 34:
 		_show_worksite_protection_glass_controls()
 
 
@@ -3976,7 +4170,7 @@ func set_smartwatch_research_level(level: int) -> void:
 		smartwatch_color_mode = false
 		_rebuild_smartwatch_preview()
 		_set_smartwatch_preview_mode(false)
-	if level_changed and wizard_step == 35:
+	if level_changed and wizard_step == 36:
 		_show_worksite_smartwatch_controls()
 
 
@@ -3990,7 +4184,7 @@ func set_wireless_earbuds_research_level(level: int) -> void:
 		_set_earbuds_preview_mode(false)
 		if is_instance_valid(wireless_earbuds_preview):
 			wireless_earbuds_preview.visible = false
-	if level_changed and wizard_step == 34:
+	if level_changed and wizard_step == 35:
 		_show_worksite_earbuds_controls()
 
 
@@ -4009,7 +4203,7 @@ func set_phone_case_research_level(level: int) -> void:
 		phone_case_gradient_enabled = false
 		phone_case_gradient_color_edit_mode = false
 	_refresh_phone_case_material()
-	if wizard_step == 31:
+	if wizard_step == 32:
 		_show_worksite_phone_case_controls()
 
 
@@ -4135,7 +4329,7 @@ func _get_software_research_features() -> Array:
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
 		"Mobile Network", "Sensors", "Front Camera MP", "Rear Camera MP",
-		"Memory Clock", "Refresh Rate", "Cooling System Design"
+		"Memory Clock", "Refresh Rate", "Cooling System Design", "UI Evolution"
 	]
 
 func _get_extras_research_features() -> Array:
@@ -6541,7 +6735,7 @@ func _style_screen_type_option(option: Button, _rank: int, selected: bool) -> vo
 	reflection.queue_redraw()
 
 
-func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float, corner_mask: int = 15) -> Mesh:
+func _create_rounded_panel_mesh(width: float, height: float, depth: float, corner_radius: float, corner_mask: int = 15, generate_uv: bool = false, uv_region: Rect2 = Rect2(0, 0, 1, 1)) -> Mesh:
 	# A true rounded-rectangle extrusion keeps the glass and button outlines
 	# smooth. Foldable halves pass a corner mask so only the four corners on
 	# the complete device perimeter are rounded; hinge-side corners stay square.
@@ -6587,7 +6781,10 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		var a: Vector2 = outline[indices[index]]
 		var b: Vector2 = outline[indices[index + 1]]
 		var c: Vector2 = outline[indices[index + 2]]
-		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, front_z), Vector3(b.x, b.y, front_z), Vector3(c.x, c.y, front_z), Vector3.BACK)
+		if generate_uv:
+			_add_phone_mesh_triangle_with_uv(surface, Vector3(a.x, a.y, front_z), Vector3(b.x, b.y, front_z), Vector3(c.x, c.y, front_z), Vector3.BACK, width, height, uv_region)
+		else:
+			_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, front_z), Vector3(b.x, b.y, front_z), Vector3(c.x, c.y, front_z), Vector3.BACK)
 		_add_phone_mesh_triangle(surface, Vector3(a.x, a.y, back_z), Vector3(c.x, c.y, back_z), Vector3(b.x, b.y, back_z), Vector3.FORWARD)
 	for index in range(outline.size()):
 		var next_index := (index + 1) % outline.size()
@@ -6615,7 +6812,7 @@ func _create_rounded_panel_mesh(width: float, height: float, depth: float, corne
 		_add_phone_mesh_triangle_with_normals(surface, front_a, back_b, front_b, normal_a, normal_b, normal_b)
 	return surface.commit()
 
-func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true, corner_mask: int = 15) -> ArrayMesh:
+func _create_curved_screen_mesh(width: float, height: float, corner_radius: float, curve_sides: bool, curve_vertical: bool, curve_left: bool = true, curve_right: bool = true, curve_top: bool = true, curve_bottom: bool = true, corner_mask: int = 15, generate_uv: bool = false, uv_region: Rect2 = Rect2(0, 0, 1, 1)) -> ArrayMesh:
 	# Keep the curved glass on the same rounded-rectangle footprint as the
 	# handset. The edge bend changes depth only; it must not square off corners.
 	var surface := SurfaceTool.new()
@@ -6670,11 +6867,23 @@ func _create_curved_screen_mesh(width: float, height: float, corner_radius: floa
 			var top_right := top_left + 1
 			var bottom_left := top_left + X_SEGMENTS + 1
 			var bottom_right := bottom_left + 1
+			if generate_uv:
+				surface.set_uv(uv_region.position + Vector2(float(x_index) / float(X_SEGMENTS), float(y_index) / float(Y_SEGMENTS)) * uv_region.size)
 			surface.add_vertex(points[top_left])
+			if generate_uv:
+				surface.set_uv(uv_region.position + Vector2(float(x_index) / float(X_SEGMENTS), float(y_index + 1) / float(Y_SEGMENTS)) * uv_region.size)
 			surface.add_vertex(points[bottom_left])
+			if generate_uv:
+				surface.set_uv(uv_region.position + Vector2(float(x_index + 1) / float(X_SEGMENTS), float(y_index) / float(Y_SEGMENTS)) * uv_region.size)
 			surface.add_vertex(points[top_right])
+			if generate_uv:
+				surface.set_uv(uv_region.position + Vector2(float(x_index + 1) / float(X_SEGMENTS), float(y_index) / float(Y_SEGMENTS)) * uv_region.size)
 			surface.add_vertex(points[top_right])
+			if generate_uv:
+				surface.set_uv(uv_region.position + Vector2(float(x_index) / float(X_SEGMENTS), float(y_index + 1) / float(Y_SEGMENTS)) * uv_region.size)
 			surface.add_vertex(points[bottom_left])
+			if generate_uv:
+				surface.set_uv(uv_region.position + Vector2(float(x_index + 1) / float(X_SEGMENTS), float(y_index + 1) / float(Y_SEGMENTS)) * uv_region.size)
 			surface.add_vertex(points[bottom_right])
 	# Merge identical grid vertices before normal generation so adjacent
 	# triangles share averaged normals instead of producing a faceted glass panel.
@@ -8377,12 +8586,14 @@ func _refresh_phone_screen() -> void:
 	# The display inherits the phone's exact outer corner radius so curved
 	# glass and frame stay visually aligned as Border Radius is upgraded.
 	var screen_radius := _phone_corner_radius()
+	var generated_ui_active := not ui_evolution_configuration.is_empty() and _ensure_phone_ui_viewport()
+	var full_ui_region := Rect2(0, 0, 1, 1)
 	if screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled):
-		display.mesh = _create_curved_screen_mesh(screen_width, screen_height, screen_radius, side_curve_enabled, vertical_curve_enabled)
+		display.mesh = _create_curved_screen_mesh(screen_width, screen_height, screen_radius, side_curve_enabled, vertical_curve_enabled, true, true, true, true, 15, generated_ui_active, full_ui_region)
 	else:
-		display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius)
+		display.mesh = _create_rounded_panel_mesh(screen_width, screen_height, 0.006, screen_radius, 15, generated_ui_active, full_ui_region)
 
-	var display_material := _create_screen_visual_material()
+	var display_material: Material = _create_generated_ui_screen_material() if generated_ui_active else _create_screen_visual_material()
 	display.material_override = display_material
 	var current_depth := _phone_depth_for_thickness_level()
 	var curved_display := screen_shape_mode == "Curve screen" and (side_curve_enabled or vertical_curve_enabled)
@@ -8516,8 +8727,9 @@ func _build_phone_outer_display(shared_protector_token: int = -1) -> void:
 
 	var glass := MeshInstance3D.new()
 	glass.name = "OuterDisplayGlass"
-	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius, outer_corner_mask)
-	var glass_material := _create_screen_visual_material()
+	var generated_ui_active := not ui_evolution_configuration.is_empty() and _ensure_phone_ui_viewport()
+	glass.mesh = _create_rounded_panel_mesh(panel_width, panel_height, 0.004, radius, outer_corner_mask, generated_ui_active, Rect2(0, 0, 1, 1))
+	var glass_material: Material = _create_generated_ui_screen_material() if generated_ui_active else _create_screen_visual_material()
 	glass.material_override = glass_material
 	glass.rotation.y = PI
 	glass.position = Vector3(center_x, center_y, -current_depth * 0.5 - 0.008)
@@ -8593,7 +8805,20 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var glass_z := current_depth * 0.5 + (0.0315 if foldable_curve_active else 0.0035)
 	var fixed_corner_mask := _foldable_half_corner_mask(false)
 	var moving_corner_mask := _foldable_half_corner_mask(true)
-	var display_material := _create_screen_visual_material()
+	var generated_ui_active := not ui_evolution_configuration.is_empty() and _ensure_phone_ui_viewport()
+	var fixed_uv_region := Rect2(0, 0, 1, 1)
+	var moving_uv_region := Rect2(0, 0, 1, 1)
+	var bridge_uv_region := Rect2(0, 0, 1, 1)
+	if generated_ui_active:
+		if selected_phone_type == "Fold":
+			fixed_uv_region = Rect2(0, 0, 0.5, 1)
+			moving_uv_region = Rect2(0.5, 0, 0.5, 1)
+			bridge_uv_region = Rect2(0.499, 0, 0.002, 1)
+		else:
+			fixed_uv_region = Rect2(0, 0.5, 1, 0.5)
+			moving_uv_region = Rect2(0, 0, 1, 0.5)
+			bridge_uv_region = Rect2(0, 0.499, 1, 0.002)
+	var display_material: Material = _create_generated_ui_screen_material() if generated_ui_active else _create_screen_visual_material()
 
 	var display_root := Node3D.new()
 	display_root.name = "PhoneDisplayPanel"
@@ -8607,9 +8832,9 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var fixed_curve_top := selected_phone_type == "Flip"
 	var fixed_curve_bottom := selected_phone_type == "Flip"
 	if foldable_curve_active:
-		fixed_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, fixed_curve_left, fixed_curve_right, fixed_curve_top, fixed_curve_bottom, fixed_corner_mask)
+		fixed_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, fixed_curve_left, fixed_curve_right, fixed_curve_top, fixed_curve_bottom, fixed_corner_mask, generated_ui_active, fixed_uv_region)
 	else:
-		fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, fixed_corner_mask)
+		fixed_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, fixed_corner_mask, generated_ui_active, fixed_uv_region)
 	fixed_display.material_override = display_material
 	fixed_display.position = fixed_offset + Vector3(0.0, 0.0, glass_z)
 	fixed_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -8621,9 +8846,9 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var moving_curve_top := selected_phone_type == "Flip"
 	var moving_curve_bottom := selected_phone_type == "Flip"
 	if foldable_curve_active:
-		moving_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, moving_curve_left, moving_curve_right, moving_curve_top, moving_curve_bottom, moving_corner_mask)
+		moving_display.mesh = _create_curved_screen_mesh(segment_width, segment_height, screen_radius, side_curve_enabled, vertical_curve_enabled, moving_curve_left, moving_curve_right, moving_curve_top, moving_curve_bottom, moving_corner_mask, generated_ui_active, moving_uv_region)
 	else:
-		moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, moving_corner_mask)
+		moving_display.mesh = _create_rounded_panel_mesh(segment_width, segment_height, 0.006, screen_radius, moving_corner_mask, generated_ui_active, moving_uv_region)
 	moving_display.material_override = display_material
 	moving_display.position = moving_offset + Vector3(0.0, 0.0, glass_z)
 	moving_display.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -8636,9 +8861,9 @@ func _build_foldable_inner_screens(shared_protector_token: int = -1) -> void:
 	var inner_bridge := MeshInstance3D.new()
 	inner_bridge.name = "ContinuousInnerDisplayBridge"
 	if selected_phone_type == "Fold":
-		inner_bridge.mesh = _create_rounded_panel_mesh(INNER_HINGE_SCREEN_GAP, segment_height, 0.006, 0.001, 0)
+		inner_bridge.mesh = _create_rounded_panel_mesh(INNER_HINGE_SCREEN_GAP, segment_height, 0.006, 0.001, 0, generated_ui_active, bridge_uv_region)
 	else:
-		inner_bridge.mesh = _create_rounded_panel_mesh(segment_width, INNER_HINGE_SCREEN_GAP, 0.006, 0.001, 0)
+		inner_bridge.mesh = _create_rounded_panel_mesh(segment_width, INNER_HINGE_SCREEN_GAP, 0.006, 0.001, 0, generated_ui_active, bridge_uv_region)
 	inner_bridge.material_override = display_material
 	inner_bridge.position = Vector3(0.0, 0.0, glass_z)
 	inner_bridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -12774,6 +12999,21 @@ func _add_phone_mesh_triangle_with_normals(surface: SurfaceTool, a: Vector3, b: 
 	surface.add_vertex(b)
 	surface.set_normal(normal_c.normalized())
 	surface.add_vertex(c)
+
+func _add_phone_mesh_triangle_with_uv(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward_normal: Vector3, width: float, height: float, uv_region: Rect2) -> void:
+	var normal := outward_normal.normalized()
+	var vertex_b := b
+	var vertex_c := c
+	if (vertex_b - a).cross(vertex_c - a).dot(normal) > 0.0:
+		var swap := vertex_b
+		vertex_b = vertex_c
+		vertex_c = swap
+	for point in [a, vertex_b, vertex_c]:
+		var uv := Vector2(point.x / maxf(width, 0.001) + 0.5, 0.5 - point.y / maxf(height, 0.001))
+		surface.set_normal(normal)
+		surface.set_uv(uv_region.position + uv * uv_region.size)
+		surface.add_vertex(point)
+
 
 func _add_phone_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward_normal: Vector3) -> void:
 	var normal := outward_normal.normalized()
