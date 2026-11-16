@@ -2889,9 +2889,26 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	icon.name = "Button"
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.focus_mode = Control.FOCUS_NONE
-	icon.text = str(app.get("glyph", "•"))
-	icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
-	_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "square")))
+	var icon_path := str(app.get("icon_path", ""))
+	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
+		icon.text = ""
+		var icon_texture := TextureRect.new()
+		icon_texture.name = "AppIconTexture"
+		icon_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		icon_texture.offset_left = 3.0
+		icon_texture.offset_top = 3.0
+		icon_texture.offset_right = -3.0
+		icon_texture.offset_bottom = -3.0
+		icon_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_texture.texture = load(icon_path) as Texture2D
+		icon_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.add_child(icon_texture)
+		_style_icon_button(icon, Color("#252B34"), str(configuration.get("style", {}).get("icon_shape", "square")))
+	else:
+		icon.text = str(app.get("glyph", "•"))
+		icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
+		_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "square")))
 	icon.pressed.connect(_on_app_pressed.bind(app_name))
 	holder.add_child(icon)
 	tile.add_child(holder)
@@ -2917,13 +2934,40 @@ func _responsive_icon_size(requested_size: int, columns: int, gap: int = 7) -> i
 	var cell_width := (inner_width - float(maxi(columns - 1, 0) * gap)) / float(maxi(columns, 1))
 	return clampi(mini(requested_size, floori(cell_width)), 24, requested_size)
 
+
+func _all_app_definitions() -> Array:
+	var definitions: Array = OSEngine.APP_DEFINITIONS.duplicate(true)
+	var manifest_path := "res://assets/app_icons/appstract/manifest.json"
+	if not FileAccess.file_exists(manifest_path):
+		return definitions
+	var manifest_file := FileAccess.open(manifest_path, FileAccess.READ)
+	if manifest_file == null:
+		return definitions
+	var parsed: Variant = JSON.parse_string(manifest_file.get_as_text())
+	manifest_file.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return definitions
+	var app_entries: Variant = parsed.get("apps", [])
+	if typeof(app_entries) != TYPE_ARRAY:
+		return definitions
+	for entry_variant in app_entries:
+		if typeof(entry_variant) != TYPE_DICTIONARY:
+			continue
+		var entry: Dictionary = entry_variant
+		var app_name := str(entry.get("name", "")).strip_edges()
+		var icon_path := str(entry.get("path", "")).strip_edges()
+		if app_name.is_empty() or icon_path.is_empty():
+			continue
+		definitions.append({"name": app_name, "glyph": app_name.left(1), "color": "#687987", "icon_path": icon_path, "category": str(entry.get("category", ""))})
+	return definitions
+
 func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show_labels: bool) -> void:
 	var fitted_icon_size := _responsive_icon_size(icon_size, grid.columns, 7)
 	for child in grid.get_children():
 		grid.remove_child(child)
 		child.queue_free()
 	var normalized_query := query.strip_edges().to_lower()
-	for app in OSEngine.APP_DEFINITIONS:
+	for app in _all_app_definitions():
 		if not normalized_query.is_empty() and not str(app.get("name", "")).to_lower().contains(normalized_query):
 			continue
 		grid.add_child(_create_app_icon(app, fitted_icon_size, show_labels))
@@ -2955,7 +2999,7 @@ func _on_app_search_changed(query: String, grid: GridContainer) -> void:
 		_populate_app_grid(grid, query, int(configuration.get("style", {}).get("icon_size", 46)), true)
 
 func _find_app(app_name: String) -> Dictionary:
-	for app in OSEngine.APP_DEFINITIONS:
+	for app in _all_app_definitions():
 		if str(app.get("name", "")) == app_name:
 			return app
 	return {}
