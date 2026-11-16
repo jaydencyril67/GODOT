@@ -700,7 +700,7 @@ func _create_android_pie_shade(mode: String) -> Control:
 	_gesture_overlay = overlay
 	var background := ColorRect.new()
 	background.name = "PieShadeBackground"
-	background.color = Color("#E8ECF3")
+	background.color = Color("#DCE3ED")
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(background)
@@ -741,7 +741,7 @@ func _create_android_oreo_shade(mode: String) -> Control:
 
 	var background := ColorRect.new()
 	background.name = "OreoShadeBackground"
-	background.color = Color("#F1F3F4")
+	background.color = Color("#E6EAF0")
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(background)
@@ -801,9 +801,10 @@ func _oreo_quick_tile_definitions() -> Array:
 
 func _oreo_quick_tile_style(enabled: bool) -> StyleBoxFlat:
 	var tile_style := StyleBoxFlat.new()
-	tile_style.bg_color = Color("#D8E7F8") if enabled else Color("#E4E7EB")
-	tile_style.set_corner_radius_all(9)
-	tile_style.set_border_width_all(0)
+	tile_style.bg_color = Color("#CFE0F5") if enabled else Color("#D6DDE6")
+	tile_style.border_color = Color("#8EADD4") if enabled else Color("#AEB9C8")
+	tile_style.set_border_width_all(1)
+	tile_style.set_corner_radius_all(999)
 	tile_style.content_margin_left = 0
 	tile_style.content_margin_right = 0
 	tile_style.content_margin_top = 0
@@ -818,42 +819,39 @@ func _add_android_oreo_quick_tile(parent: GridContainer, definition: Dictionary)
 	item.name = "OreoQuickTileItem_" + safe_id
 	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	item.add_theme_constant_override("separation", 3)
-
 	var holder := CenterContainer.new()
 	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var tile := Button.new()
 	tile.name = "OreoQuickTile_" + safe_id
 	tile.toggle_mode = true
 	tile.button_pressed = enabled
-	tile.custom_minimum_size = Vector2(40, 40)
+	tile.custom_minimum_size = Vector2(44, 44)
 	tile.focus_mode = Control.FOCUS_NONE
 	for state_name in ["normal", "hover", "pressed", "focus"]:
 		tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
-	tile.add_theme_color_override("font_color", Color("#1A73E8") if enabled else Color("#5F6368"))
-	tile.add_theme_font_size_override("font_size", 18)
+	tile.add_theme_color_override("font_color", Color("#1558B0") if enabled else Color("#364152"))
+	tile.add_theme_font_size_override("font_size", 19)
 	tile.text = str(definition.get("glyph", "•"))
 	tile.tooltip_text = setting_id
 	holder.add_child(tile)
 	item.add_child(holder)
-
-	var label := _label(setting_id, 8, Color("#3C4043"))
+	var label := _label(setting_id, 9, Color("#202B3A"))
 	label.name = "OreoQuickTileLabel_" + safe_id
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.y = 17
+	label.custom_minimum_size.y = 18
 	item.add_child(label)
 	tile.toggled.connect(_on_oreo_quick_tile_toggled.bind(setting_id, tile, label))
 	parent.add_child(item)
-
 
 func _on_oreo_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button, label: Label) -> void:
 	_quick_setting_states[setting_id] = enabled
 	if is_instance_valid(tile):
 		for state_name in ["normal", "hover", "pressed", "focus"]:
 			tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
-		tile.add_theme_color_override("font_color", Color("#1A73E8") if enabled else Color("#5F6368"))
+		tile.add_theme_color_override("font_color", Color("#1558B0") if enabled else Color("#364152"))
 	if is_instance_valid(label):
-		label.add_theme_color_override("font_color", Color("#3C4043") if enabled else Color("#6B7280"))
+		label.add_theme_color_override("font_color", Color("#202B3A") if enabled else Color("#364152"))
 
 func _make_android_shade_action_button(button_name: String, button_text: String, action_tooltip: String) -> Button:
 	var button := Button.new()
@@ -863,23 +861,23 @@ func _make_android_shade_action_button(button_name: String, button_text: String,
 	button.flat = true
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.custom_minimum_size = Vector2(34, 30)
+	button.custom_minimum_size = Vector2(38, 32)
 	button.add_theme_font_size_override("font_size", 11)
-	button.add_theme_color_override("font_color", Color("#3C4043"))
+	button.add_theme_color_override("font_color", Color("#263445"))
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("#E1E5E9")
-	normal.set_corner_radius_all(8)
-	normal.set_border_width_all(0)
+	normal.bg_color = Color("#CED8E5")
+	normal.border_color = Color("#AAB7C7")
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(9)
 	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color("#D5DCE4")
+	hover.bg_color = Color("#C1CEDD")
 	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color("#C8D4E1")
+	pressed.bg_color = Color("#B3C2D4")
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", pressed)
 	button.add_theme_stylebox_override("focus", normal)
 	return button
-
 
 func _add_oreo_shade_header(parent: Control) -> void:
 	var header := HBoxContainer.new()
@@ -957,30 +955,29 @@ func _add_oreo_brightness_slider(parent: Control) -> void:
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color("#FFFFFF")
-	panel_style.set_corner_radius_all(5)
-	panel_style.set_border_width_all(0)
+	panel_style.border_color = Color("#C7D0DC")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(10)
 	panel_style.content_margin_left = 10
 	panel_style.content_margin_right = 10
-	panel_style.content_margin_top = 7
-	panel_style.content_margin_bottom = 7
+	panel_style.content_margin_top = 6
+	panel_style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", panel_style)
-
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
-	row.add_child(_label("☼", 18, Color("#5F6368")))
+	row.add_child(_label("☼", 18, Color("#364152")))
 	var slider := HSlider.new()
 	slider.name = "OreoBrightnessSlider"
 	slider.min_value = 0
 	slider.max_value = 100
 	slider.value = 72
-	slider.custom_minimum_size.y = 20
+	slider.custom_minimum_size.y = 22
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.focus_mode = Control.FOCUS_NONE
 	row.add_child(slider)
-	row.add_child(_label("☀", 13, Color("#5F6368")))
+	row.add_child(_label("☀", 14, Color("#364152")))
 	panel.add_child(row)
 	parent.add_child(panel)
-
 
 func _add_oreo_notification_card(parent: Control, app_name: String, message_text: String, time_text: String) -> void:
 	var card := PanelContainer.new()
@@ -988,44 +985,42 @@ func _add_oreo_notification_card(parent: Control, app_name: String, message_text
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = Color("#FFFFFF")
-	card_style.set_corner_radius_all(4)
-	card_style.set_border_width_all(0)
-	card_style.shadow_color = Color(0, 0, 0, 0.10)
+	card_style.border_color = Color("#CBD3DE")
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(5)
+	card_style.shadow_color = Color(0, 0, 0, 0.16)
 	card_style.shadow_size = 2
 	card_style.content_margin_left = 10
 	card_style.content_margin_right = 10
 	card_style.content_margin_top = 8
 	card_style.content_margin_bottom = 8
 	card.add_theme_stylebox_override("panel", card_style)
-
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	var icon := TextureRect.new()
 	icon.name = "OreoNotificationIcon_" + app_name.replace(" ", "")
 	icon.texture = _load_lock_screen_app_icon(app_name)
-	icon.custom_minimum_size = Vector2(27, 27)
+	icon.custom_minimum_size = Vector2(28, 28)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(icon)
-
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_theme_constant_override("separation", 2)
 	var title_row := HBoxContainer.new()
-	var title := _label(app_name, 9, Color("#202124"))
+	var title := _label(app_name, 10, Color("#18212D"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title)
-	title_row.add_child(_label(time_text, 7, Color("#6B7280")))
+	title_row.add_child(_label(time_text, 8, Color("#4B5868")))
 	copy.add_child(title_row)
-	var message := _label(message_text, 9, Color("#3C4043"))
+	var message := _label(message_text, 9, Color("#303B49"))
 	message.name = "OreoNotificationMessage_" + app_name.replace(" ", "")
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	copy.add_child(message)
 	row.add_child(copy)
 	card.add_child(row)
 	parent.add_child(card)
-
 
 func _build_android_oreo_notification_content(parent: Control) -> void:
 	_add_oreo_shade_header(parent)
@@ -1157,15 +1152,15 @@ func _add_pie_shade_header(parent: Control) -> void:
 
 func _pie_quick_tile_style(enabled: bool) -> StyleBoxFlat:
 	var tile_style := StyleBoxFlat.new()
-	tile_style.bg_color = Color("#4285F4") if enabled else Color("#DADCE0")
+	tile_style.bg_color = Color("#1A73E8") if enabled else Color("#CBD3DE")
+	tile_style.border_color = Color("#0E5FCB") if enabled else Color("#AAB5C4")
+	tile_style.set_border_width_all(1)
 	tile_style.set_corner_radius_all(999)
-	tile_style.set_border_width_all(0)
 	tile_style.content_margin_left = 0
 	tile_style.content_margin_right = 0
 	tile_style.content_margin_top = 0
 	tile_style.content_margin_bottom = 0
 	return tile_style
-
 
 func _add_android_pie_quick_tile(parent: GridContainer, definition: Dictionary) -> void:
 	var setting_id := str(definition.get("id", ""))
@@ -1181,27 +1176,26 @@ func _add_android_pie_quick_tile(parent: GridContainer, definition: Dictionary) 
 	tile.name = "PieQuickTile_" + safe_id
 	tile.toggle_mode = true
 	tile.button_pressed = enabled
-	tile.custom_minimum_size = Vector2(43, 43)
+	tile.custom_minimum_size = Vector2(47, 47)
 	tile.focus_mode = Control.FOCUS_NONE
 	tile.add_theme_stylebox_override("normal", _pie_quick_tile_style(enabled))
 	tile.add_theme_stylebox_override("hover", _pie_quick_tile_style(enabled))
 	tile.add_theme_stylebox_override("pressed", _pie_quick_tile_style(not enabled))
 	tile.add_theme_stylebox_override("focus", _pie_quick_tile_style(enabled))
-	tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+	tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#364152"))
 	tile.add_theme_font_size_override("font_size", 19)
 	tile.text = str(definition.get("glyph", "•"))
 	tile.tooltip_text = setting_id
 	holder.add_child(tile)
 	item.add_child(holder)
-	var label := _label(setting_id, 8, Color("#3C4043"))
+	var label := _label(setting_id, 9, Color("#202B3A"))
 	label.name = "PieQuickTileLabel_" + safe_id
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.y = 17
+	label.custom_minimum_size.y = 18
 	item.add_child(label)
 	tile.toggled.connect(_on_pie_quick_tile_toggled.bind(setting_id, tile, label))
 	parent.add_child(item)
-
 
 func _on_pie_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button, label: Label) -> void:
 	_quick_setting_states[setting_id] = enabled
@@ -1209,10 +1203,9 @@ func _on_pie_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button,
 	if is_instance_valid(tile):
 		for state_name in ["normal", "hover", "pressed", "focus"]:
 			tile.add_theme_stylebox_override(state_name, style)
-		tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+		tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#364152"))
 	if is_instance_valid(label):
-		label.add_theme_color_override("font_color", Color("#3C4043") if enabled else Color("#5F6368"))
-
+		label.add_theme_color_override("font_color", Color("#202B3A") if enabled else Color("#364152"))
 
 func _pie_quick_tile_definitions() -> Array:
 	return [
@@ -1231,76 +1224,79 @@ func _pie_quick_tile_definitions() -> Array:
 func _add_pie_brightness_slider(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "PieBrightnessPanel"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#DADCE0")
-	panel_style.set_corner_radius_all(18)
-	panel_style.set_border_width_all(0)
-	panel_style.content_margin_left = 8
-	panel_style.content_margin_right = 8
-	panel_style.content_margin_top = 4
-	panel_style.content_margin_bottom = 4
+	panel_style.bg_color = Color("#FFFFFF")
+	panel_style.border_color = Color("#C7D0DC")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(15)
+	panel_style.content_margin_left = 10
+	panel_style.content_margin_right = 10
+	panel_style.content_margin_top = 6
+	panel_style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", panel_style)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
-	row.add_child(_label("☼", 17, Color("#5F6368")))
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_label("☼", 18, Color("#364152")))
 	var slider := HSlider.new()
 	slider.name = "PieBrightnessSlider"
 	slider.min_value = 0
 	slider.max_value = 100
 	slider.value = 72
-	slider.custom_minimum_size.y = 20
+	slider.custom_minimum_size.y = 22
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.focus_mode = Control.FOCUS_NONE
 	row.add_child(slider)
-	row.add_child(_label("☀", 13, Color("#5F6368")))
+	row.add_child(_label("☀", 14, Color("#364152")))
 	panel.add_child(row)
 	parent.add_child(panel)
-
 
 func _add_pie_notification_card(parent: Control, app_name: String, message_text: String, time_text: String, icon_text: String, icon_color: Color) -> void:
 	var card := PanelContainer.new()
 	card.name = "PieNotification_" + app_name.replace(" ", "")
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 54
 	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color("#F8F9FA")
-	card_style.set_corner_radius_all(14)
-	card_style.set_border_width_all(0)
+	card_style.bg_color = Color("#FFFFFF")
+	card_style.border_color = Color("#CBD4E1")
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(15)
 	card_style.content_margin_left = 10
 	card_style.content_margin_right = 10
 	card_style.content_margin_top = 8
 	card_style.content_margin_bottom = 8
 	card.add_theme_stylebox_override("panel", card_style)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 9)
 	card.add_child(row)
 	var icon_panel := PanelContainer.new()
-	icon_panel.custom_minimum_size = Vector2(27, 27)
+	icon_panel.custom_minimum_size = Vector2(30, 30)
 	var icon_style := StyleBoxFlat.new()
 	icon_style.bg_color = icon_color
-	icon_style.set_corner_radius_all(14)
+	icon_style.set_corner_radius_all(15)
 	icon_panel.add_theme_stylebox_override("panel", icon_style)
-	var icon := _label(icon_text, 8, Color.WHITE)
+	var icon := _label(icon_text, 9, Color.WHITE)
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	icon_panel.add_child(icon)
 	row.add_child(icon_panel)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 1)
+	copy.add_theme_constant_override("separation", 2)
 	var title_row := HBoxContainer.new()
-	var title := _label(app_name, 8, Color("#202124"))
+	var title := _label(app_name, 9, Color("#202124"))
 	title.name = "PieNotificationTitle_" + app_name.replace(" ", "")
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title)
-	title_row.add_child(_label(time_text, 7, Color("#5F6368")))
+	title_row.add_child(_label(time_text, 8, Color("#5F6B7A")))
 	copy.add_child(title_row)
-	var message := _label(message_text, 9, Color("#3C4043"))
+	var message := _label(message_text, 9, Color("#344054"))
 	message.name = "PieNotificationMessage_" + app_name.replace(" ", "")
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	copy.add_child(message)
 	row.add_child(copy)
+	card.add_child(row)
 	parent.add_child(card)
-
 
 func _apply_android_pie_shade_screen_mask(overlay: Control) -> void:
 	if not is_instance_valid(overlay):
