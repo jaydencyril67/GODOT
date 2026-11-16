@@ -27,6 +27,30 @@ const XIAOMI_GEN1_SCREEN_ASSETS := {
 	"notifications": "notification.jpg",
 	"recent_apps": "recentapps.jpg"
 }
+const SAMSUNG_GEN2_SCREEN_ASSETS := {
+	"lock_screen": "lock.jpg",
+	"home_screen": "home.jpg",
+	"app_drawer": "appdrawer.jpg",
+	"control_center": "controlcenter.jpg",
+	"notifications": "notifications.jpg",
+	"recent_apps": "recent.jpg"
+}
+const PIXEL_GEN2_SCREEN_ASSETS := {
+	"lock_screen": "lock.jpg",
+	"home_screen": "home.jpg",
+	"app_drawer": "appdrawer.jpg",
+	"control_center": "controlcenter.jpg",
+	"notifications": "notification.jpg",
+	"recent_apps": "recent.jpg"
+}
+const XIAOMI_GEN2_SCREEN_ASSETS := {
+	"lock_screen": "lock.jpg",
+	"home_screen": "home.jpg",
+	"app_drawer": "appdrawer.jpg",
+	"control_center": "controlcenter.jpg",
+	"notifications": "notification.jpg",
+	"recent_apps": "recent.jpg"
+}
 # Load imported assets after the simulator enters the scene tree. Preloading these
 # font/SVG resources during a clean-checkout script scan fails before Godot imports them.
 var LOCKSCREEN_FONT: FontFile
@@ -242,7 +266,7 @@ func _begin_gesture(touch_position: Vector2) -> void:
 
 
 func _try_finish_drag_gesture(touch_position: Vector2) -> void:
-	if not _is_gen1_phone_ui():
+	if not _is_gen1_phone_ui() and not _is_gen2_phone_ui():
 		return
 	var delta := touch_position - _gesture_start
 	var vertical_threshold := maxf(20.0, size.y * 0.06)
@@ -273,7 +297,7 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, _elapsed_ms: int) -
 		if _gesture_overlay.name == "OSGestureOverlay_notifications":
 			if delta.length() <= tap_threshold:
 				_handle_gen1_overlay_tap("notifications", start)
-			elif _is_gen1_pixel_ui() and delta.y >= vertical_threshold:
+			elif (_is_gen1_pixel_ui() or _is_gen2_phone_ui()) and delta.y >= vertical_threshold:
 				_show_gesture_overlay("control_center")
 			elif delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
 				_close_gesture_overlay()
@@ -295,6 +319,20 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, _elapsed_ms: int) -
 
 	if start.y <= edge_size and delta.y >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.2:
 		_show_gesture_overlay("notifications")
+		return
+
+	if _is_gen2_phone_ui():
+		if active_component == "lock_screen":
+			var unlock_up := delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.10
+			var unlock_right := delta.x >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.10
+			if unlock_up or unlock_right:
+				set_component_view("home_screen")
+				return
+		if active_component == "home_screen" and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
+			set_component_view("app_drawer")
+			return
+		if delta.length() <= tap_threshold:
+			_handle_gen1_screen_tap(start)
 		return
 
 	if not _is_gen1_phone_ui():
@@ -320,6 +358,9 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, _elapsed_ms: int) -
 func _is_gen1_phone_ui() -> bool:
 	return _is_gen1_samsung_ui() or _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui()
 
+func _is_gen2_phone_ui() -> bool:
+	return _is_gen2_samsung_ui() or _is_gen2_pixel_ui() or _is_gen2_xiaomi_ui()
+
 func _gen1_screenshot_prefix() -> String:
 	if _is_gen1_pixel_ui():
 		return "Pixel"
@@ -328,7 +369,8 @@ func _gen1_screenshot_prefix() -> String:
 	return "Samsung"
 
 func _gen1_screenshot_position(component_id: String, touch_position: Vector2) -> Vector2:
-	var screenshot_name := _gen1_screenshot_prefix() + "Gen1ScreenImage_" + component_id
+	var generation_prefix := "Gen2" if _is_gen2_phone_ui() else "Gen1"
+	var screenshot_name := _gen1_screenshot_prefix() + generation_prefix + "ScreenImage_" + component_id
 	var screenshot := find_child(screenshot_name, true, false) as TextureRect
 	if screenshot == null or not is_instance_valid(screenshot):
 		return Vector2(-1.0, -1.0)
@@ -344,6 +386,9 @@ func _gen1_screenshot_position(component_id: String, touch_position: Vector2) ->
 	)
 
 func _handle_gen1_screen_tap(touch_position: Vector2) -> void:
+	if _is_gen2_phone_ui():
+		_handle_gen2_screen_tap(touch_position)
+		return
 	if _is_gen1_samsung_ui():
 		_handle_samsung_gen1_tap(touch_position)
 	elif _is_gen1_pixel_ui():
@@ -509,6 +554,9 @@ func _handle_xiaomi_notification_panel(normalized_position: Vector2) -> void:
 			return
 
 func _handle_gen1_overlay_tap(component_id: String, touch_position: Vector2) -> void:
+	if _is_gen2_phone_ui():
+		_handle_gen2_overlay_tap(component_id, touch_position)
+		return
 	if _is_gen1_samsung_ui():
 		_handle_samsung_gen1_overlay_tap(component_id, touch_position)
 		return
@@ -539,6 +587,30 @@ func _handle_pixel_gen1_panel_tap(normalized_position: Vector2) -> void:
 		if absf(normalized_position.y - float(item["y"])) <= 0.08:
 			_on_app_pressed(str(item["app"]))
 			return
+
+func _build_gen2_family_gesture_overlay(mode: String) -> void:
+	_close_gesture_overlay()
+	var overlay := Control.new()
+	overlay.name = "OSGestureOverlay_" + mode
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.offset_bottom = -54.0
+	overlay.clip_contents = true
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.z_index = 120
+	overlay.z_as_relative = false
+	add_child(overlay)
+	_gesture_overlay = overlay
+	_add_gen2_family_screenshot(overlay, mode)
+	var corner_mask := OSScreenCornerMask.new()
+	corner_mask.name = "Gen2FamilyShadeScreenCornerMask"
+	corner_mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	corner_mask.corner_radius = 22.0
+	corner_mask.mask_bottom_corners = false
+	corner_mask.mask_color = Color.BLACK
+	corner_mask.z_index = 130
+	corner_mask.z_as_relative = false
+	overlay.add_child(corner_mask)
+
 
 func _build_gen1_family_gesture_overlay(mode: String) -> void:
 	_close_gesture_overlay()
@@ -851,7 +923,7 @@ func _apply_gen1_brightness_to_screenshots() -> void:
 	var brightness_modulate := Color(brightness_scale, brightness_scale, brightness_scale, 1.0)
 	for node in find_children("*", "TextureRect", true, false):
 		var screenshot := node as TextureRect
-		if screenshot.name.begins_with("SamsungGen1ScreenImage_") or screenshot.name.begins_with("PixelGen1ScreenImage_") or screenshot.name.begins_with("XiaomiGen1ScreenImage_"):
+		if screenshot.name.begins_with("SamsungGen1ScreenImage_") or screenshot.name.begins_with("PixelGen1ScreenImage_") or screenshot.name.begins_with("XiaomiGen1ScreenImage_") or screenshot.name.begins_with("SamsungGen2ScreenImage_") or screenshot.name.begins_with("PixelGen2ScreenImage_") or screenshot.name.begins_with("XiaomiGen2ScreenImage_"):
 			screenshot.modulate = brightness_modulate
 func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	_close_gesture_overlay()
@@ -900,11 +972,16 @@ func _navigate_back() -> void:
 	else:
 		_navigate_home()
 func _show_gesture_overlay(mode: String) -> void:
-	if not _is_gen1_phone_ui():
+	if not _is_gen1_phone_ui() and not _is_gen2_phone_ui():
 		return
 	if mode not in ["notifications", "control_center", "recent_apps"]:
 		return
-	if _is_gen1_samsung_ui():
+	if _is_gen2_phone_ui():
+		if mode == "recent_apps":
+			_build_gen1_family_overview()
+		else:
+			_build_gen2_family_gesture_overlay(mode)
+	elif _is_gen1_samsung_ui():
 		_build_samsung_gen1_gesture_overlay(mode)
 	elif mode == "recent_apps":
 		_build_gen1_family_overview()
@@ -1403,6 +1480,15 @@ func _is_gen1_pixel_ui() -> bool:
 func _is_gen1_xiaomi_ui() -> bool:
 	return _is_android_os() and int(configuration.get("generation", 0)) == 1 and str(configuration.get("style", {}).get("ui_family", "samsung_touchwiz")) == "xiaomi_miui"
 
+func _is_gen2_samsung_ui() -> bool:
+	return _is_android_os() and int(configuration.get("generation", 0)) == 2 and str(configuration.get("style", {}).get("ui_family", "samsung_experience")) == "samsung_experience"
+
+func _is_gen2_pixel_ui() -> bool:
+	return _is_android_os() and int(configuration.get("generation", 0)) == 2 and str(configuration.get("style", {}).get("ui_family", "samsung_experience")) == "google_pixel"
+
+func _is_gen2_xiaomi_ui() -> bool:
+	return _is_android_os() and int(configuration.get("generation", 0)) == 2 and str(configuration.get("style", {}).get("ui_family", "samsung_experience")) == "xiaomi_miui8"
+
 
 func _uses_gen1_reference_screenshot(component_id: String = "") -> bool:
 	var target_component := active_component if component_id.is_empty() else component_id
@@ -1416,6 +1502,57 @@ func _uses_gen1_reference_screenshot(component_id: String = "") -> bool:
 		var xiaomi_path := "res://assets/os/gen1/miui/" + str(XIAOMI_GEN1_SCREEN_ASSETS[target_component])
 		return ResourceLoader.exists(xiaomi_path)
 	return false
+
+func _uses_gen2_reference_screenshot(component_id: String = "") -> bool:
+	var target_component := active_component if component_id.is_empty() else component_id
+	if _is_gen2_samsung_ui():
+		return SAMSUNG_GEN2_SCREEN_ASSETS.has(target_component)
+	if _is_gen2_pixel_ui():
+		return PIXEL_GEN2_SCREEN_ASSETS.has(target_component)
+	if _is_gen2_xiaomi_ui():
+		return XIAOMI_GEN2_SCREEN_ASSETS.has(target_component)
+	return false
+
+func _add_gen2_family_screenshot(parent: Control, component_id: String) -> TextureRect:
+	var family_folder := "samsung"
+	var family_label := "Samsung Experience 8"
+	var family_prefix := "Samsung"
+	var assets: Dictionary = SAMSUNG_GEN2_SCREEN_ASSETS
+	if _is_gen2_pixel_ui():
+		family_folder = "pixel"
+		family_label = "Google Pixel Android 7"
+		family_prefix = "Pixel"
+		assets = PIXEL_GEN2_SCREEN_ASSETS
+	elif _is_gen2_xiaomi_ui():
+		family_folder = "miui"
+		family_label = "Xiaomi MIUI 8"
+		family_prefix = "Xiaomi"
+		assets = XIAOMI_GEN2_SCREEN_ASSETS
+	var filename := str(assets.get(component_id, ""))
+	if filename.is_empty():
+		push_error("No Gen 2 screenshot is registered for component: " + component_id)
+		return null
+	var asset_path := "res://assets/os/gen2/" + family_folder + "/" + filename
+	if not ResourceLoader.exists(asset_path):
+		push_error(family_label + " Gen 2 screenshot asset is missing: " + asset_path)
+		return null
+	var screenshot := TextureRect.new()
+	screenshot.name = family_prefix + "Gen2ScreenImage_" + component_id
+	screenshot.texture = load(asset_path) as Texture2D
+	if screenshot.texture == null:
+		push_error(family_label + " Gen 2 screenshot could not be loaded: " + asset_path)
+		return null
+	screenshot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	screenshot.stretch_mode = TextureRect.STRETCH_SCALE
+	screenshot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_gen1_screenshot_brightness(screenshot)
+	screenshot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	screenshot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	parent.add_child(screenshot)
+	if not parent is Container:
+		screenshot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return screenshot
+
 func _add_gen1_family_screenshot(parent: Control, component_id: String) -> TextureRect:
 	var family_folder := "samsung"
 	var family_label := "Samsung"
@@ -1480,8 +1617,9 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 	bar_style.content_margin_bottom = 0
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
 
-	var is_samsung_overview := parent.name == "SamsungGen1OverviewNavigationFooter"
-	var family_prefix := "SamsungGen1" if _is_gen1_samsung_ui() else "PixelGen1" if _is_gen1_pixel_ui() else "XiaomiGen1" if _is_gen1_xiaomi_ui() else "Android"
+	var is_samsung_overview := parent.name in ["SamsungGen1OverviewNavigationFooter", "SamsungGen2OverviewNavigationFooter"]
+	var generation_prefix := "Gen2" if _is_gen2_phone_ui() else "Gen1"
+	var family_prefix := "Samsung" + generation_prefix if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() else "Pixel" + generation_prefix if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() else "Xiaomi" + generation_prefix if _is_gen1_xiaomi_ui() or _is_gen2_xiaomi_ui() else "Android"
 	var navigation_keys := HBoxContainer.new()
 	navigation_keys.name = family_prefix + ("OverviewThreeButtonNavigation" if is_samsung_overview else "ThreeButtonNavigation")
 	navigation_keys.custom_minimum_size.y = 46
@@ -1497,12 +1635,12 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			navigation_keys.add_child(spacer)
 
-	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"] if _is_gen1_samsung_ui() else ["Back", "Home", "Overview"]
+	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"] if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() else ["Back", "Home", "Overview"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
 		key.name = family_prefix + "Navigation" + action
 		key.action_name = action
-		key.icon_color = Color("#F5F7F8") if _is_gen1_samsung_ui() else Color("#DCE7F5") if _is_gen1_pixel_ui() else Color("#D9E8F8") if _is_gen1_xiaomi_ui() else Color("#F5F7F8")
+		key.icon_color = Color("#F5F7F8") if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() else Color("#DCE7F5") if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() else Color("#D9E8F8") if _is_gen1_xiaomi_ui() or _is_gen2_xiaomi_ui() else Color("#F5F7F8")
 		key.tooltip_text = "Recent" if action == "Overview" else action
 		key.custom_minimum_size = Vector2(30, 44)
 		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1521,7 +1659,7 @@ func _dispatch_android_navigation(action: String) -> void:
 		"Home":
 			_navigate_home()
 		"Overview":
-			if _is_gen1_phone_ui():
+			if _is_gen1_phone_ui() or _is_gen2_phone_ui():
 				_show_gesture_overlay("recent_apps")
 			else:
 				set_component_view("recent_apps")
@@ -1547,7 +1685,7 @@ func _build_shell() -> void:
 		child.queue_free()
 	_style = configuration.get("style", {})
 	_palette = _style.get("palette", {"background":"#0B1017","surface":"#19232E","surface_alt":"#263544","accent":"#76C8D4","text":"#F4F7F8","muted":"#A7B4BD"})
-	var screenshot_backed_screen := _uses_gen1_reference_screenshot(active_component)
+	var screenshot_backed_screen := _uses_gen1_reference_screenshot(active_component) or _uses_gen2_reference_screenshot(active_component)
 	if not screenshot_backed_screen:
 		var wallpaper := OSWallpaperLayer.new()
 		wallpaper.name = "OSProceduralWallpaper"
@@ -1593,7 +1731,7 @@ func _build_shell() -> void:
 			pin_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_build_android_navigation(pin_navigation_footer, true)
 			lock_shell.add_child(pin_navigation_footer)
-		elif _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui():
+		elif _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui() or _is_gen2_pixel_ui() or _is_gen2_xiaomi_ui():
 			var lock_navigation_footer := VBoxContainer.new()
 			lock_navigation_footer.name = "OSNavigationFooter"
 			lock_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1696,6 +1834,9 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	parent.add_child(bar)
 
 func _build_component(component_id: String) -> void:
+	if _uses_gen2_reference_screenshot(component_id):
+		_add_gen2_family_screenshot(page_container, component_id)
+		return
 	if _uses_gen1_reference_screenshot(component_id):
 		_add_gen1_family_screenshot(page_container, component_id)
 		return
