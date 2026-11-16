@@ -265,7 +265,7 @@ static func _create_widget_layout(widgets: Array, rng: RandomNumberGenerator) ->
 	var region := Rect2(0.055, top, rng.randf_range(0.86, 0.90), density)
 	var placements: Array[Dictionary] = []
 	_split_widget_layout(region, widgets, 0, widgets.size(), placements, rng)
-	var apps_top := clampf(region.end.y + rng.randf_range(0.045, 0.085), 0.46, 0.675)
+	var apps_top := clampf(region.end.y + rng.randf_range(0.10, 0.14), 0.50, 0.72)
 	return {
 		"widget_placements": placements,
 		"apps_top": apps_top,
