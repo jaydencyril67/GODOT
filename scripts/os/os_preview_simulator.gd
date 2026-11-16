@@ -488,6 +488,7 @@ func _handle_xiaomi_gen1_tap(touch_position: Vector2) -> void:
 			_handle_xiaomi_notification_panel(normalized_position)
 
 func _handle_xiaomi_notification_panel(normalized_position: Vector2) -> void:
+	print("MIUI_PANEL_TAP_POSITION: ", normalized_position)
 	if normalized_position.y >= 0.12 and normalized_position.y <= 0.24:
 		var quick_tiles := ["Wi-Fi", "Location", "Sound", "Auto-rotate"]
 		var tile_index := clampi(floori(normalized_position.x * 4.0), 0, 3)
