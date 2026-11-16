@@ -1543,36 +1543,36 @@ func _run_os_generator_test() -> void:
 	if bool(generation_four_lock.get("show_notifications", true)) or not bool(generation_four_lock.get("show_phone_shortcut", false)) or not bool(generation_four_lock.get("show_camera_shortcut", false)):
 		_fail("Samsung One UI 2.0 lock-screen defaults must use quiet notifications and Phone/Camera shortcuts.")
 		return
-	simulator.configure_os(generation_four_preview, "lock_screen")
-	print("GEN4_LOCK_TEST: simulator configured")
+	worksite_preview.configure_os(generation_four_preview, "lock_screen")
+	print("GEN4_LOCK_TEST: worksite_preview configured")
 	await process_frame
 	await process_frame
 	print("GEN4_LOCK_TEST: initial lock screen ready")
 	for samsung_lock_control in ["SamsungOneUILockScreen", "SamsungOneUILockIdentity", "SamsungOneUILockClock", "SamsungOneUILockDate", "SamsungOneUISwipeToUnlockHint", "SamsungOneUILockShortcuts", "SamsungOneUIPhoneShortcut", "SamsungOneUICameraShortcut"]:
-		if simulator.find_child(samsung_lock_control, true, false) == null:
+		if worksite_preview.find_child(samsung_lock_control, true, false) == null:
 			_fail("Samsung One UI 2.0 lock screen is missing: " + samsung_lock_control)
 			return
-	if simulator.find_child("PieLockScreen", true, false) != null or simulator.find_child("OreoLockScreen", true, false) != null:
+	if worksite_preview.find_child("PieLockScreen", true, false) != null or worksite_preview.find_child("OreoLockScreen", true, false) != null:
 		_fail("Samsung One UI 2.0 lock screen must not reuse the Pixel generation layouts.")
 		return
-	var samsung_clock := simulator.find_child("SamsungOneUILockClock", true, false) as Label
-	var samsung_date := simulator.find_child("SamsungOneUILockDate", true, false) as Label
-	var samsung_status_clock := simulator.find_child("StatusBarClock", true, false) as Label
-	var samsung_status_icons := simulator.find_child("StatusBarSystemIndicators", true, false) as HBoxContainer
+	var samsung_clock := worksite_preview.find_child("SamsungOneUILockClock", true, false) as Label
+	var samsung_date := worksite_preview.find_child("SamsungOneUILockDate", true, false) as Label
+	var samsung_status_clock := worksite_preview.find_child("StatusBarClock", true, false) as Label
+	var samsung_status_icons := worksite_preview.find_child("StatusBarSystemIndicators", true, false) as HBoxContainer
 	if samsung_clock == null or not samsung_clock.text.contains(":") or samsung_clock.horizontal_alignment != HORIZONTAL_ALIGNMENT_LEFT or samsung_date == null or not samsung_date.text.contains(",") or not samsung_date.text.contains(" "):
 		_fail("Samsung One UI 2.0 clock and date must be left-aligned and use Samsung's compact date format.")
 		return
 	if samsung_status_clock == null or samsung_status_clock.visible or samsung_status_icons == null or not samsung_status_icons.visible:
 		_fail("Samsung One UI 2.0 must hide the duplicate status clock but retain right-side status icons.")
 		return
-	var samsung_phone := simulator.find_child("SamsungOneUIPhoneShortcut", true, false) as Button
-	var samsung_camera := simulator.find_child("SamsungOneUICameraShortcut", true, false) as Button
+	var samsung_phone := worksite_preview.find_child("SamsungOneUIPhoneShortcut", true, false) as Button
+	var samsung_camera := worksite_preview.find_child("SamsungOneUICameraShortcut", true, false) as Button
 	if samsung_phone == null or samsung_camera == null or samsung_phone.custom_minimum_size != Vector2(44, 44) or samsung_camera.custom_minimum_size != Vector2(44, 44):
 		_fail("Samsung One UI 2.0 must have equal-size Phone and Camera corner shortcut targets.")
 		return
 	print("GEN4_LOCK_TEST: shortcut controls ready")
 	var samsung_opened_apps: Array[String] = []
-	simulator.app_opened.connect(func(app_name: String) -> void: samsung_opened_apps.append(app_name))
+	worksite_preview.app_opened.connect(func(app_name: String) -> void: samsung_opened_apps.append(app_name))
 	samsung_phone.pressed.emit()
 	samsung_camera.pressed.emit()
 	if samsung_opened_apps != ["Phone", "Camera"]:
@@ -1582,24 +1582,24 @@ func _run_os_generator_test() -> void:
 	var bright_wallpaper_config := generation_four_preview.duplicate(true)
 	bright_wallpaper_config["style"]["palette"]["background"] = "#F0F1F2"
 	bright_wallpaper_config["style"]["wallpaper"] = "aurora"
-	simulator.configure_os(bright_wallpaper_config, "lock_screen")
+	worksite_preview.configure_os(bright_wallpaper_config, "lock_screen")
 	await process_frame
-	var bright_samsung_clock := simulator.find_child("SamsungOneUILockClock", true, false) as Label
+	var bright_samsung_clock := worksite_preview.find_child("SamsungOneUILockClock", true, false) as Label
 	if bright_samsung_clock == null or bright_samsung_clock.get_theme_color("font_color") != Color("#34383D"):
 		_fail("Samsung One UI 2.0 must switch to dark clock text on a bright wallpaper.")
 		return
 	print("GEN4_LOCK_TEST: adaptive text passed")
 	var compact_notifications_config := generation_four_preview.duplicate(true)
 	compact_notifications_config["components"]["lock_screen"]["show_notifications"] = true
-	simulator.configure_os(compact_notifications_config, "lock_screen")
+	worksite_preview.configure_os(compact_notifications_config, "lock_screen")
 	await process_frame
-	if simulator.find_child("SamsungOneUILockNotifications", true, false) == null or simulator.find_child("SamsungOneUILockNotification_Messages", true, false) == null:
+	if worksite_preview.find_child("SamsungOneUILockNotifications", true, false) == null or worksite_preview.find_child("SamsungOneUILockNotification_Messages", true, false) == null:
 		_fail("Samsung One UI 2.0 must render its compact notification previews when enabled.")
 		return
 	print("GEN4_LOCK_TEST: notification cards passed")
-	_simulate_touch_swipe(simulator, Vector2(76, 230), Vector2(76, 145), 160)
+	_simulate_touch_swipe(worksite_preview, Vector2(76, 230), Vector2(76, 145), 160)
 	await process_frame
-	if simulator.get("active_component") != "pin_input":
+	if worksite_preview.get("active_component") != "pin_input":
 		_fail("Samsung One UI 2.0 upward lock-screen swipe did not open PIN entry.")
 		return
 
@@ -1641,18 +1641,18 @@ func left_power_region_is_visible(worksite: Node) -> bool:
 	var power_region := worksite.find_child("OSPowerButtonRegion", true, false) as Control
 	return power_region != null and power_region.visible
 
-func _simulate_touch_swipe(simulator: Control, start: Vector2, finish: Vector2, duration_ms: int) -> void:
+func _simulate_touch_swipe(worksite_preview: Control, start: Vector2, finish: Vector2, duration_ms: int) -> void:
 	var press := InputEventScreenTouch.new()
 	press.index = 0
 	press.position = start
 	press.pressed = true
-	simulator.call("_input", press)
-	simulator.set("_gesture_start_time", Time.get_ticks_msec() - duration_ms)
+	worksite_preview.call("_input", press)
+	worksite_preview.set("_gesture_start_time", Time.get_ticks_msec() - duration_ms)
 	var release := InputEventScreenTouch.new()
 	release.index = 0
 	release.position = finish
 	release.pressed = false
-	simulator.call("_input", release)
+	worksite_preview.call("_input", release)
 
 
 func _fail(message: String) -> void:
