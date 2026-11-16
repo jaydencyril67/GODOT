@@ -38,7 +38,8 @@ class OreoLockShortcutButton extends Button:
 		focus_mode = Control.FOCUS_NONE
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		custom_minimum_size = Vector2(44, 44)
+		custom_minimum_size = Vector2(48, 48)
+		tooltip_text = "Assistant" if shortcut_id == "assistant" else "Camera"
 		var shortcut_style := StyleBoxFlat.new()
 		shortcut_style.bg_color = Color(1, 1, 1, 0.10)
 		shortcut_style.set_corner_radius_all(22)
@@ -49,16 +50,27 @@ class OreoLockShortcutButton extends Button:
 		var icon_view := TextureRect.new()
 		icon_view.name = "ImportedLockShortcutArtwork"
 		icon_view.texture = icon_texture
-		icon_view.custom_minimum_size = Vector2(28, 28)
+		icon_view.custom_minimum_size = Vector2(30, 30)
 		icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		icon_view.offset_left = 8.0
-		icon_view.offset_top = 8.0
-		icon_view.offset_right = -8.0
-		icon_view.offset_bottom = -8.0
+		icon_view.offset_left = 9.0
+		icon_view.offset_top = 9.0
+		icon_view.offset_right = -9.0
+		icon_view.offset_bottom = -9.0
 		add_child(icon_view)
+		if icon_texture == null:
+			var fallback_glyph := Label.new()
+			fallback_glyph.name = "ImportedLockShortcutFallback"
+			fallback_glyph.text = "✧" if shortcut_id == "assistant" else "●"
+			fallback_glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			fallback_glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			fallback_glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			fallback_glyph.add_theme_font_size_override("font_size", 23)
+			fallback_glyph.add_theme_color_override("font_color", Color("#FFFFFF"))
+			fallback_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(fallback_glyph)
 		queue_redraw()
 
 	func _draw() -> void:
@@ -411,13 +423,18 @@ func _input(event: InputEvent) -> void:
 			_begin_gesture(_screen_to_local(touch.position))
 		else:
 			_finish_gesture(_screen_to_local(touch.position))
+	elif event is InputEventScreenDrag and _gesture_active:
+		_try_finish_drag_gesture(_screen_to_local((event as InputEventScreenDrag).position))
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var mouse := event as InputEventMouseButton
 		if mouse.pressed:
 			_begin_gesture(_screen_to_local(mouse.position))
 		else:
 			_finish_gesture(_screen_to_local(mouse.position))
-
+	elif event is InputEventMouseMotion and _gesture_active:
+		var motion := event as InputEventMouseMotion
+		if (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			_try_finish_drag_gesture(_screen_to_local(motion.position))
 
 func _screen_to_local(screen_position: Vector2) -> Vector2:
 	return get_global_transform_with_canvas().affine_inverse() * screen_position
@@ -427,6 +444,24 @@ func _begin_gesture(touch_position: Vector2) -> void:
 	_gesture_start = touch_position
 	_gesture_start_time = Time.get_ticks_msec()
 	_gesture_active = true
+
+
+func _try_finish_drag_gesture(touch_position: Vector2) -> void:
+	if not _gesture_active or not _is_android_os():
+		return
+	var generation_number := int(configuration.get("generation", 2))
+	if generation_number not in [2, 3]:
+		return
+	var delta := touch_position - _gesture_start
+	var vertical_threshold := maxf(20.0, size.y * 0.06)
+	var horizontal_threshold := maxf(24.0, size.x * 0.10)
+	var vertical_swipe := absf(delta.y) >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.10
+	var horizontal_swipe := absf(delta.x) >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.20
+	if not vertical_swipe and not horizontal_swipe:
+		return
+	var elapsed_ms := Time.get_ticks_msec() - _gesture_start_time
+	_gesture_active = false
+	call_deferred("_handle_system_gesture", _gesture_start, touch_position, elapsed_ms)
 
 
 func _finish_gesture(touch_position: Vector2) -> void:
@@ -439,9 +474,9 @@ func _finish_gesture(touch_position: Vector2) -> void:
 
 func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) -> void:
 	var delta := finish - start
-	var vertical_threshold := maxf(34.0, size.y * 0.10)
-	var horizontal_threshold := maxf(32.0, size.x * 0.18)
-	var edge_size := clampf(minf(size.x, size.y) * 0.09, 18.0, 34.0)
+	var vertical_threshold := maxf(24.0, size.y * 0.07)
+	var horizontal_threshold := maxf(26.0, size.x * 0.12)
+	var edge_size := clampf(minf(size.x, size.y) * 0.08, 16.0, 30.0)
 
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		if _gesture_overlay.name == "OSGestureOverlay_notifications" and delta.y >= vertical_threshold:
@@ -472,16 +507,11 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 		set_component_view("pin_input")
 		return
 
-	# Oreo and Pie both open the app drawer with an upward home-screen swipe.
-	# Pie reserves a long swipe from the bottom edge for the Recent Apps overview.
+	# Oreo and Pie open the app drawer on an upward home-screen swipe.
+	# Recent Apps remains available through the Overview navigation control.
 	if _is_android_os() and int(configuration.get("generation", 2)) in [2, 3] and active_component == "home_screen":
-		if delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
-			var generation_number := int(configuration.get("generation", 2))
-			var from_bottom_edge := start.y >= size.y - edge_size
-			if generation_number == 3 and from_bottom_edge and elapsed_ms >= 420:
-				_show_gesture_overlay("recent_apps")
-			else:
-				set_component_view("app_drawer")
+		if delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.10:
+			set_component_view("app_drawer")
 			return
 
 	# Android Generation 1 keeps the physical-style three-button navigation.
@@ -3518,8 +3548,9 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 
 	var top_space := Control.new()
 	top_space.name = "PieLockScreenTopSpace"
-	top_space.custom_minimum_size.y = 8
+	top_space.custom_minimum_size.y = maxf(20.0, size.y * 0.05)
 	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_space.size_flags_stretch_ratio = 1.2
 	root.add_child(top_space)
 
 	var status_row := HBoxContainer.new()
@@ -3577,7 +3608,8 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 		clock_block.add_child(weather)
 
 	var notification_gap := Control.new()
-	notification_gap.custom_minimum_size.y = 18
+	notification_gap.name = "PieLockScreenClockNotificationGap"
+	notification_gap.custom_minimum_size.y = maxf(14.0, size.y * 0.035)
 	root.add_child(notification_gap)
 
 	if bool(data.get("show_notifications", true)):
@@ -3596,7 +3628,7 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 
 	var shortcuts := HBoxContainer.new()
 	shortcuts.name = "PieLockScreenShortcuts"
-	shortcuts.custom_minimum_size.y = 46
+	shortcuts.custom_minimum_size.y = 52
 	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shortcuts.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(shortcuts)
@@ -3611,8 +3643,11 @@ func _build_android_pie_lock_screen(data: Dictionary) -> void:
 		assistant.icon_texture = _load_lock_screen_app_icon("Assistant")
 		assistant.pressed.connect(func(): app_opened.emit("Assistant"))
 		assistant_slot.add_child(assistant)
+	# Android 9 Pie has no on-screen fingerprint reader. Keep this centre
+	# position empty; only the Assistant and Camera shortcuts remain.
 	var center_spacer := CenterContainer.new()
 	center_spacer.name = "PieLockScreenShortcutCenterSpacer"
+	center_spacer.custom_minimum_size = Vector2(48, 48)
 	center_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shortcuts.add_child(center_spacer)
 	var camera_slot := CenterContainer.new()
@@ -3684,8 +3719,9 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 
 	var upper_space := Control.new()
 	upper_space.name = "OreoLockScreenTopSpace"
-	upper_space.custom_minimum_size.y = 7
+	upper_space.custom_minimum_size.y = maxf(18.0, size.y * 0.045)
 	upper_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	upper_space.size_flags_stretch_ratio = 1.2
 	root.add_child(upper_space)
 
 	var clock_block := VBoxContainer.new()
@@ -3726,7 +3762,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 
 	var clock_notification_gap := Control.new()
 	clock_notification_gap.name = "OreoLockScreenClockNotificationGap"
-	clock_notification_gap.custom_minimum_size.y = 18
+	clock_notification_gap.custom_minimum_size.y = maxf(14.0, size.y * 0.035)
 	root.add_child(clock_notification_gap)
 
 	if bool(data.get("show_notifications", true)):
@@ -3745,7 +3781,7 @@ func _build_oreo_lock_screen(data: Dictionary) -> void:
 
 	var shortcut_row := HBoxContainer.new()
 	shortcut_row.name = "OreoLockScreenShortcuts"
-	shortcut_row.custom_minimum_size.y = 46
+	shortcut_row.custom_minimum_size.y = 52
 	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shortcut_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	shortcut_row.add_theme_constant_override("separation", 0)
