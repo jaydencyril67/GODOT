@@ -914,8 +914,8 @@ func _run_os_generator_test() -> void:
 	await process_frame
 	await process_frame
 	var wide_grid := simulator.find_child("HomeAppGrid", true, false) as GridContainer
-	if wide_grid == null or wide_grid.columns != 4 or wide_grid.get_child_count() != 4:
-		_fail("Layout 1 must keep its approved four-app row at wider phone widths.")
+	if wide_grid == null or wide_grid.columns != 4 or wide_grid.get_child_count() != 8:
+		_fail("Android 8 home screen must retain all eight launcher apps in its four-column grid at wider phone widths.")
 		return
 	simulator_host.size = Vector2(145.0, 360.0)
 	await process_frame
