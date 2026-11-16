@@ -510,7 +510,8 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 	# Oreo and Pie open the app drawer on an upward home-screen swipe.
 	# Recent Apps remains available through the Overview navigation control.
 	if _is_android_os() and int(configuration.get("generation", 2)) in [2, 3] and active_component == "home_screen":
-		if delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.10:
+		var started_in_navigation_area := start.y >= size.y - 50.0
+		if not started_in_navigation_area and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.10:
 			set_component_view("app_drawer")
 			return
 
