@@ -74,10 +74,11 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		actual_seed = int(Time.get_unix_time_from_system()) ^ randi()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = actual_seed
-	var generation_number := clampi(generation, 1, 3)
+	var generation_number := clampi(generation, 1, 4)
+	var design_index := mini(generation_number - 1, 2)
 	var palette: Dictionary = ANDROID_PIE_PALETTE.duplicate(true) if generation_number == 3 else PALETTES[rng.randi_range(0, PALETTES.size() - 1)].duplicate(true)
 	var icon_shapes := ["square", "soft_square", "squircle"]
-	var columns: int = [4, 4, 5][generation_number - 1]
+	var columns: int = [4, 4, 5][design_index]
 	var wallpaper_id: String = "lollipop" if generation_number == 1 else "prism" if generation_number == 3 else WALLPAPER_STYLES[rng.randi_range(1, WALLPAPER_STYLES.size() - 1)]
 	var config := {
 		"schema_version": SCHEMA_VERSION,
@@ -87,18 +88,18 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		"created_at": int(Time.get_unix_time_from_system()),
 		"revision": 1,
 		"style": {
-			"identity": ["Classic", "Modern", "Pie"][generation_number - 1],
+			"identity": ["Classic", "Modern", "Pie", "One UI 2.0"][generation_number - 1],
 			"generation": generation_number,
 			"palette": palette,
-			"icon_shape": icon_shapes[generation_number - 1],
-			"icon_size": [48, 52, 56][generation_number - 1],
+			"icon_shape": icon_shapes[design_index],
+			"icon_size": [48, 52, 56][design_index],
 			"grid_columns": columns,
-			"corner_radius": [0, 6, 18][generation_number - 1],
-			"widget_count": [0, 2, 1][generation_number - 1],
-			"spacing": [8, 10, 12][generation_number - 1],
+			"corner_radius": [0, 6, 18][design_index],
+			"widget_count": [0, 2, 1][design_index],
+			"spacing": [8, 10, 12][design_index],
 			"wallpaper": wallpaper_id,
-			"animation_speed": [0.20, 0.24, 0.28][generation_number - 1],
-			"font_scale": [0.96, 1.0, 1.04][generation_number - 1]
+			"animation_speed": [0.20, 0.24, 0.28][design_index],
+			"font_scale": [0.96, 1.0, 1.04][design_index]
 		},
 		"components": {}
 	}
@@ -125,6 +126,9 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		}
 		config["components"]["lock_screen"]["show_weather"] = true
 		config["components"]["lock_screen"]["show_battery"] = true
+	elif generation_number == 4:
+		config["components"]["lock_screen"]["show_phone_shortcut"] = true
+		config["components"]["lock_screen"]["show_notifications"] = false
 	_sync_shared_settings(config)
 	return config
 
@@ -162,7 +166,7 @@ static func regenerate_component(config: Dictionary, component_id: String, seed_
 static func normalize_os(config: Dictionary) -> Dictionary:
 	var normalized := config.duplicate(true)
 	var is_legacy_schema := int(normalized.get("schema_version", 1)) < SCHEMA_VERSION
-	var generation_number := clampi(int(normalized.get("generation", 2)), 1, 3)
+	var generation_number := clampi(int(normalized.get("generation", 2)), 1, 4)
 	var style: Dictionary = normalized.get("style", {}).duplicate(true)
 	var legacy_components: Dictionary = normalized.get("components", {})
 	var legacy_icons: Dictionary = legacy_components.get("app_icons", {})
@@ -180,7 +184,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_id):
 		wallpaper_id = "aurora"
 	style["generation"] = generation_number
-	style["identity"] = ["Classic", "Modern", "Pie"][generation_number - 1]
+	style["identity"] = ["Classic", "Modern", "Pie", "One UI 2.0"][generation_number - 1]
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
@@ -189,8 +193,9 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not ["square", "soft_square", "rounded", "squircle"].has(icon_shape):
 		icon_shape = "rounded"
 	style["icon_shape"] = icon_shape
-	style["corner_radius"] = [0, 6, 18][generation_number - 1]
-	style["widget_count"] = [0, 2, 1][generation_number - 1]
+	var design_index := mini(generation_number - 1, 2)
+	style["corner_radius"] = [0, 6, 18][design_index]
+	style["widget_count"] = [0, 2, 1][design_index]
 	style["spacing"] = clampi(int(style.get("spacing", 10)), 4, 20)
 	style["animation_speed"] = clampf(float(style.get("animation_speed", 0.24)), 0.08, 0.6)
 	style["font_scale"] = clampf(float(style.get("font_scale", 1.0)), 0.85, 1.2)
@@ -215,6 +220,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	var configured_home_data: Dictionary = components.get("home_screen", {})
 	var is_oreo_android := generation_number == 2 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_pie_android := generation_number == 3 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var is_samsung_one_ui_android := generation_number == 4 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	# Keep the two generations historically distinct. Lollipop retains its
 	# approved four switches; Oreo uses the Pixel 2 Assistant/notification set.
 	var obsolete_lock_keys := [
@@ -226,12 +232,18 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	]
 	for obsolete_key in obsolete_lock_keys:
 		lock_data.erase(obsolete_key)
-	if is_oreo_android or is_pie_android:
+	if is_oreo_android or is_pie_android or is_samsung_one_ui_android:
 		lock_data.erase("show_flashlight_shortcut")
 	else:
 		for oreo_key in ["show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"]:
 			lock_data.erase(oreo_key)
-	if is_pie_android:
+	if is_samsung_one_ui_android:
+		lock_data.erase("show_assistant_shortcut")
+		lock_data.erase("show_weather")
+		lock_data.erase("show_battery")
+		lock_data["show_phone_shortcut"] = bool(lock_data.get("show_phone_shortcut", true))
+		lock_data["show_notifications"] = bool(lock_data.get("show_notifications", false))
+	elif is_pie_android:
 		lock_data["show_weather"] = bool(lock_data.get("show_weather", true))
 		lock_data["show_battery"] = bool(lock_data.get("show_battery", true))
 	else:
@@ -292,7 +304,8 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 	var home_data: Dictionary = components.get("home_screen", {})
 	var is_oreo_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_pie_android := int(config.get("generation", 1)) == 3 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_pie_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	var is_samsung_one_ui_android := int(config.get("generation", 1)) == 4 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_pie_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
 	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
 			issues.append("Lock-screen setting is missing: " + lock_key)
