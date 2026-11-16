@@ -855,11 +855,11 @@ func _on_oreo_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button
 	if is_instance_valid(label):
 		label.add_theme_color_override("font_color", Color("#3C4043") if enabled else Color("#6B7280"))
 
-func _make_android_shade_action_button(button_name: String, button_text: String, tooltip_text: String) -> Button:
+func _make_android_shade_action_button(button_name: String, button_text: String, action_tooltip: String) -> Button:
 	var button := Button.new()
 	button.name = button_name
 	button.text = button_text
-	button.tooltip_text = tooltip_text
+	button.tooltip_text = action_tooltip
 	button.flat = true
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -941,9 +941,9 @@ func _add_oreo_shade_footer(parent: Control, is_expanded: bool) -> void:
 func _clear_notification_group(notification_group: Control, empty_label_name: String, empty_text: String, empty_color: Color) -> void:
 	if not is_instance_valid(notification_group):
 		return
-	for notification in notification_group.get_children():
-		notification_group.remove_child(notification)
-		notification.queue_free()
+	for notification_child in notification_group.get_children():
+		notification_group.remove_child(notification_child)
+		notification_child.queue_free()
 	var empty_state := _label(empty_text, 9, empty_color)
 	empty_state.name = empty_label_name
 	empty_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
