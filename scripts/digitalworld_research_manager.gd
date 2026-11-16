@@ -936,13 +936,13 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 
 	if component == "Box Package":
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
-			return _failure("Box Package has already been researched.")
+			return _failure("Box Package customizations have already been researched.")
 		for existing_project_value in career.get("research_projects", []):
 			if not (existing_project_value is Dictionary):
 				continue
 			var existing_box_package_project: Dictionary = existing_project_value
 			if str(existing_box_package_project.get("component", "")) == component and str(existing_box_package_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION, STATUS_APPROVED]:
-				return _failure("Box Package research is already in progress, awaiting validation, or approved.")
+				return _failure("Box Package customization research is already in progress, awaiting validation, or approved.")
 
 	if component == "Wireless Earbuds":
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
@@ -1117,8 +1117,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif component == "Device Color":
 			project_objective = "Develop and validate a gradient-finish system for the phone body while preserving the standard solid-colour finish as the default option."
 		elif component == "Box Package":
-			project_title = "Research: Box Package - Initial Unlock"
-			project_objective = "Develop and validate the company-branded phone box package, unlocking all existing box-package customization controls in the phone creation worksite."
+			project_title = "Research: Box Package Customizations"
+			project_objective = "Develop and validate the company-branded package customization system, unlocking logo and name sizing, positioning, and package colour controls. The standard Box Package remains available without research."
 		elif component == "Wireless Earbuds":
 			project_title = "Research: Wireless Earbuds - Initial Unlock"
 			project_objective = "Develop and validate the wireless-earbuds accessory, unlocking its availability in the phone creation worksite."
@@ -1456,7 +1456,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Wireless Earbuds project is no longer a valid, unapproved enablement unlock.")
 	elif component == "Box Package":
 		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != "Box Package":
-			return _failure("This Box Package project is no longer a valid, unapproved enablement unlock.")
+			return _failure("This Box Package Customizations project is no longer a valid, unapproved customization unlock.")
 	elif component == "Device Color":
 		device_color_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or device_color_target_index != 1 or str(project.get("research_target", "")) != "Gradient Finish":
@@ -1545,7 +1545,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		if result_component in ["Device Color", "Smartwatch", "Wireless Earbuds"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact gradient-finish unlock assigned to this project.")
 		if result_component == "Box Package" and value != str(project.get("research_target", "")):
-			return _failure("Validate the exact Box Package unlock assigned to this project.")
+			return _failure("Validate the exact Box Package customization unlock assigned to this project.")
 		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1663,7 +1663,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		# One approved project unlocks the Wireless Earbuds worksite controls.
 		component_levels[component] = 1
 	elif component == "Box Package":
-		# One approved project unlocks all Box Package worksite customization controls.
+		# One approved project unlocks Box Package customization controls only; the standard package is always available.
 		component_levels[component] = 1
 	elif component == "Device Color":
 		# Solid colour is the default; one approved project unlocks gradient finishes.
