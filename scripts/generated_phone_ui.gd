@@ -4,6 +4,7 @@ class_name GeneratedPhoneUI
 var blueprint: Dictionary = {}
 var _font: Font
 var _typography_scale := 1.0
+var _clock_refresh_elapsed := 0.0
 
 const DOT_MATRIX_DIGITS := {
 	"0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
@@ -25,8 +26,12 @@ func _ready() -> void:
 	queue_redraw()
 
 
-func _process(_delta: float) -> void:
-	if not blueprint.is_empty():
+func _process(delta: float) -> void:
+	if blueprint.is_empty():
+		return
+	_clock_refresh_elapsed += delta
+	if _clock_refresh_elapsed >= 1.0:
+		_clock_refresh_elapsed = 0.0
 		queue_redraw()
 
 
