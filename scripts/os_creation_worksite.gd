@@ -1283,7 +1283,7 @@ func _on_generation_increase_pressed() -> void:
 
 
 func _on_gen1_ui_family_selected(index: int) -> void:
-	if home_screen_layout_level != 0 or home_generation != 1 or index < 0 or index > 1:
+	if home_screen_layout_level != 0 or home_generation != 1 or index < 0 or index > 2:
 		return
 	var style: Dictionary = generated_os_configuration.get("style", {}).duplicate(true)
 	style["ui_family"] = ["samsung_touchwiz", "google_stock", "xiaomi_miui"][index]
