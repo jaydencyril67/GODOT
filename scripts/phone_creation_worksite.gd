@@ -1989,6 +1989,7 @@ func _apply_generated_ui_to_phone() -> void:
 		return
 	phone_ui_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	screen_enabled = true
+	_refresh_screen_technology_ui()
 	_refresh_phone_screen()
 
 
