@@ -193,7 +193,7 @@ func _process(delta: float) -> void:
 func _current_lock_time() -> String:
 	var now := Time.get_datetime_dict_from_system()
 	return "%02d:%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
-func _current_lock_date() -> String:
+func _current_lock_date(treatment: String = "minimal") -> String:
 	var now := Time.get_datetime_dict_from_system()
 	var weekdays := ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 	var months := ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -697,6 +697,26 @@ func _build_samsung_gen1_overview() -> void:
 		_build_samsung_gen1_overview_preview(preview_content, app_name)
 
 	_apply_gen1_screen_corner_mask(overlay)
+
+func _dismiss_overview_task(app_name: String) -> void:
+	_recent_app_names.erase(app_name)
+	var task_card_name := "SamsungGen1OverviewTask_" + app_name.replace(" ", "")
+	var task_card := find_child(task_card_name, true, false) as Control
+	if is_instance_valid(task_card):
+		task_card.queue_free()
+	var overlay := find_child("OSGestureOverlay_recent_apps", true, false) as Control
+	if not is_instance_valid(overlay):
+		_build_samsung_gen1_overview()
+		return
+	if _recent_app_names.is_empty():
+		var empty_label := Label.new()
+		empty_label.name = "SamsungGen1OverviewEmptyState"
+		empty_label.text = "No recent apps"
+		empty_label.position = Vector2(18.0, 88.0)
+		empty_label.add_theme_font_size_override("font_size", 13)
+		empty_label.add_theme_color_override("font_color", Color("#FFFFFF"))
+		overlay.add_child(empty_label)
+
 
 func _samsung_gen1_overview_card_style(background_color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
