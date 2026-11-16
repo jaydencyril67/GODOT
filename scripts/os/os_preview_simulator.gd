@@ -15,10 +15,6 @@ const SAMSUNG_GEN1_SCREEN_ASSETS := {
 # Load imported assets after the simulator enters the scene tree. Preloading these
 # font/SVG resources during a clean-checkout script scan fails before Godot imports them.
 var LOCKSCREEN_FONT: FontFile
-var LOCKSCREEN_CAMERA_TEXTURE: Texture2D
-var LOCKSCREEN_FLASHLIGHT_TEXTURE: Texture2D
-var LOCKSCREEN_LOCK_TEXTURE: Texture2D
-const LOCKSCREEN_SHORTCUT_ICON_SCALE := 0.81
 var STATUS_CELLULAR_TEXTURE: Texture2D
 var STATUS_WIFI_TEXTURE: Texture2D
 var STATUS_BATTERY_TEXTURE: Texture2D
@@ -34,112 +30,6 @@ class PINLockIndicator extends Control:
 		draw_arc(Vector2(center_x, 8.0), 4.0, PI, TAU, 20, Color("#F4F6FA"), 1.5, true)
 		draw_rect(Rect2(Vector2(center_x - 5.0, 7.0), Vector2(10.0, 9.0)), Color("#F4F6FA"))
 		draw_circle(Vector2(center_x, 11.0), 1.0, Color("#263244"))
-
-
-class OreoLockShortcutButton extends Button:
-	var shortcut_id := "assistant"
-	var icon_texture: Texture2D
-
-	func _ready() -> void:
-		text = ""
-		flat = true
-		focus_mode = Control.FOCUS_NONE
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		custom_minimum_size = Vector2(48, 48)
-		tooltip_text = "Assistant" if shortcut_id == "assistant" else "Camera"
-		var shortcut_style := StyleBoxFlat.new()
-		shortcut_style.bg_color = Color(1, 1, 1, 0.10)
-		shortcut_style.set_corner_radius_all(22)
-		shortcut_style.set_border_width_all(1)
-		shortcut_style.border_color = Color(1, 1, 1, 0.14)
-		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
-			add_theme_stylebox_override(state_name, shortcut_style)
-		var icon_view := TextureRect.new()
-		icon_view.name = "ImportedLockShortcutArtwork"
-		icon_view.texture = icon_texture
-		icon_view.custom_minimum_size = Vector2(30, 30)
-		icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		icon_view.offset_left = 9.0
-		icon_view.offset_top = 9.0
-		icon_view.offset_right = -9.0
-		icon_view.offset_bottom = -9.0
-		add_child(icon_view)
-		if icon_texture == null:
-			var fallback_glyph := Label.new()
-			fallback_glyph.name = "ImportedLockShortcutFallback"
-			fallback_glyph.text = "✧" if shortcut_id == "assistant" else "●"
-			fallback_glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			fallback_glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			fallback_glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			fallback_glyph.add_theme_font_size_override("font_size", 23)
-			fallback_glyph.add_theme_color_override("font_color", Color("#FFFFFF"))
-			fallback_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			add_child(fallback_glyph)
-		queue_redraw()
-
-	func _draw() -> void:
-		if is_pressed():
-			draw_circle(size * 0.5, 15.0, Color(1, 1, 1, 0.12))
-
-
-class SamsungOneUILockShortcutButton extends Button:
-	var shortcut_id := "phone"
-
-	func _ready() -> void:
-		text = ""
-		flat = true
-		focus_mode = Control.FOCUS_NONE
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		custom_minimum_size = Vector2(44, 44)
-		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
-			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
-		queue_redraw()
-
-	func _draw() -> void:
-		var centre := size * 0.5
-		var shortcut_color := Color("#1B9B66") if shortcut_id == "phone" else Color("#E52E59")
-		draw_circle(centre, 10.5, shortcut_color)
-		if shortcut_id == "phone":
-			var handset := PackedVector2Array([
-				centre + Vector2(-5.0, -5.5),
-				centre + Vector2(-6.0, -2.0),
-				centre + Vector2(-3.0, 2.2),
-				centre + Vector2(2.0, 6.0),
-				centre + Vector2(5.5, 4.5)
-			])
-			draw_polyline(handset, Color.WHITE, 2.6, true)
-			draw_circle(handset[0], 1.4, Color.WHITE)
-			draw_circle(handset[handset.size() - 1], 1.4, Color.WHITE)
-		else:
-			draw_rect(Rect2(centre + Vector2(-6.0, -4.0), Vector2(12.0, 9.0)), Color.WHITE, false, 1.8, true)
-			draw_rect(Rect2(centre + Vector2(-3.0, -6.0), Vector2(5.5, 2.0)), Color.WHITE)
-			draw_circle(centre + Vector2(0.0, 0.5), 2.5, Color.WHITE, false, 1.6, true)
-
-
-class OreoLockCenterGlyph extends Control:
-	var icon_texture: Texture2D
-
-	func _ready() -> void:
-		custom_minimum_size = Vector2(32, 38)
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var icon_view := TextureRect.new()
-		icon_view.name = "ImportedLockStatusArtwork"
-		icon_view.texture = icon_texture
-		icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		icon_view.offset_left = 5.0
-		icon_view.offset_top = 5.0
-		icon_view.offset_right = -5.0
-		icon_view.offset_bottom = -5.0
-		add_child(icon_view)
-
 
 class AndroidNavigationButton extends Button:
 	var action_name := "Back"
@@ -172,7 +62,6 @@ class AndroidNavigationButton extends Button:
 				draw_arc(centre, 8.0, 0.0, TAU, 40, color, 2.0, true)
 			"Overview":
 				draw_rect(Rect2(centre - Vector2(7, 7), Vector2(14, 14)), color, false, 2.0, true)
-
 
 class OSScreenCornerMask extends Control:
 	var corner_radius := 22.0
@@ -228,31 +117,9 @@ class OSScreenCornerMask extends Control:
 		screen_border.content_margin_bottom = 0
 		draw_style_box(screen_border, Rect2(Vector2.ZERO, size))
 
-
-
-class LollipopAppDrawerButton extends Button:
-	func _ready() -> void:
-		text = ""
-		focus_mode = Control.FOCUS_NONE
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		custom_minimum_size = Vector2(34, 34)
-		for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
-			add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
-		queue_redraw()
-
-	func _draw() -> void:
-		var side := minf(size.x, size.y)
-		var centre := size * 0.5
-		draw_circle(centre, side * 0.45, Color("#FFFFFF"))
-		for row_index in range(3):
-			for column_index in range(2):
-				var point := centre + Vector2((float(column_index) - 0.5) * side * 0.19, (float(row_index) - 1.0) * side * 0.19)
-				draw_circle(point, maxf(1.0, side * 0.035), Color("#737373"))
-
-
 class OSWallpaperLayer extends Control:
 	var palette: Dictionary = {}
-	var wallpaper_id := "aurora"
+	var wallpaper_id := "touchwiz_nature"
 	var treatment := "natural"
 
 	func _ready() -> void:
@@ -267,141 +134,16 @@ class OSWallpaperLayer extends Control:
 		var accent := Color(str(palette.get("accent", "#76C8D4")))
 		var surface := Color(str(palette.get("surface_alt", "#263544")))
 		draw_rect(Rect2(Vector2.ZERO, size), background)
-
-		var rng := RandomNumberGenerator.new()
-		rng.seed = abs(hash(wallpaper_id))
-		for star_index in range(34):
-			var star_position := Vector2(rng.randf_range(0.0, size.x), rng.randf_range(0.0, size.y))
-			var star_radius := rng.randf_range(0.45, 1.15)
-			draw_circle(star_position, star_radius, Color(0.92, 0.96, 1.0, rng.randf_range(0.10, 0.34)))
-
-		var shortest_side := minf(size.x, size.y)
-		match wallpaper_id:
-			"lollipop":
-				# Android 5.0's signature blue/teal geometric Nexus wallpaper.
-				draw_rect(Rect2(Vector2.ZERO, size), Color("#234D73"))
-				var facet_a := PackedVector2Array([
-					Vector2(0, size.y * 0.08), Vector2(size.x * 0.54, 0),
-					Vector2(size.x * 0.72, size.y * 0.34), Vector2(size.x * 0.22, size.y * 0.53)
-				])
-				var facet_b := PackedVector2Array([
-					Vector2(size.x * 0.54, 0), Vector2(size.x, 0),
-					Vector2(size.x, size.y * 0.48), Vector2(size.x * 0.72, size.y * 0.34)
-				])
-				var facet_c := PackedVector2Array([
-					Vector2(0, size.y * 0.08), Vector2(size.x * 0.22, size.y * 0.53),
-					Vector2(size.x * 0.10, size.y), Vector2(0, size.y)
-				])
-				var facet_d := PackedVector2Array([
-					Vector2(size.x * 0.22, size.y * 0.53), Vector2(size.x * 0.72, size.y * 0.34),
-					Vector2(size.x, size.y * 0.48), Vector2(size.x, size.y),
-					Vector2(size.x * 0.10, size.y)
-				])
-				draw_colored_polygon(facet_a, Color("#176A8A"))
-				draw_colored_polygon(facet_b, Color("#1687A2"))
-				draw_colored_polygon(facet_c, Color("#1A3D62"))
-				draw_colored_polygon(facet_d, Color("#17607E"))
-				draw_colored_polygon(PackedVector2Array([
-					Vector2(size.x * 0.72, size.y * 0.34), Vector2(size.x, size.y * 0.48),
-					Vector2(size.x * 0.63, size.y), Vector2(size.x * 0.10, size.y),
-					Vector2(size.x * 0.22, size.y * 0.53)
-				]), Color("#267E91"))
-				draw_line(Vector2(size.x * 0.22, size.y * 0.53), Vector2(size.x * 0.72, size.y * 0.34), Color(1, 1, 1, 0.10), 1.0, true)
-			"orbital":
-				var planet_center := Vector2(size.x * 0.68, size.y * 0.43)
-				var planet_radius := shortest_side * 0.31
-				draw_arc(planet_center, planet_radius * 1.40, -0.45, 2.8, 96, Color(accent.r, accent.g, accent.b, 0.28), maxf(1.2, shortest_side * 0.010), true)
-				draw_circle(planet_center, planet_radius, Color(surface.r * 0.55, surface.g * 0.55, surface.b * 0.55, 0.98))
-				draw_circle(planet_center + Vector2(-planet_radius * 0.24, -planet_radius * 0.26), planet_radius * 0.76, Color(accent.r * 0.56, accent.g * 0.60, accent.b * 0.68, 0.72))
-				draw_circle(planet_center + Vector2(-planet_radius * 0.43, -planet_radius * 0.43), planet_radius * 0.24, Color(1, 1, 1, 0.08))
-				draw_arc(planet_center, planet_radius * 1.40, 2.95, 5.8, 96, Color(surface.r, surface.g, surface.b, 0.74), maxf(1.5, shortest_side * 0.018), true)
-				draw_arc(planet_center, planet_radius * 0.91, -2.7, 0.4, 64, Color(accent.r, accent.g, accent.b, 0.34), maxf(1.0, shortest_side * 0.008), true)
-			"dune":
-				var far_dune := PackedVector2Array([
-					Vector2(0, size.y * 0.58), Vector2(size.x * 0.18, size.y * 0.47),
-					Vector2(size.x * 0.43, size.y * 0.55), Vector2(size.x * 0.72, size.y * 0.40),
-					Vector2(size.x, size.y * 0.52), Vector2(size.x, size.y), Vector2(0, size.y)
-				])
-				var middle_dune := PackedVector2Array([
-					Vector2(0, size.y * 0.73), Vector2(size.x * 0.22, size.y * 0.62),
-					Vector2(size.x * 0.51, size.y * 0.70), Vector2(size.x * 0.79, size.y * 0.56),
-					Vector2(size.x, size.y * 0.66), Vector2(size.x, size.y), Vector2(0, size.y)
-				])
-				var near_dune := PackedVector2Array([
-					Vector2(0, size.y * 0.86), Vector2(size.x * 0.30, size.y * 0.75),
-					Vector2(size.x * 0.61, size.y * 0.87), Vector2(size.x, size.y * 0.76),
-					Vector2(size.x, size.y), Vector2(0, size.y)
-				])
-				draw_colored_polygon(far_dune, Color(surface.r, surface.g, surface.b, 0.52))
-				draw_colored_polygon(middle_dune, Color(accent.r, accent.g, accent.b, 0.20))
-				draw_colored_polygon(near_dune, Color(surface.r * 1.18, surface.g * 1.10, surface.b * 0.92, 0.86))
-				draw_arc(Vector2(size.x * 0.32, size.y * 0.84), size.x * 0.46, -2.95, -0.35, 72, Color(1, 1, 1, 0.12), maxf(1.0, shortest_side * 0.006), true)
-			"prism":
-				var facet_one := PackedVector2Array([Vector2(size.x * 0.48, 0), Vector2(size.x, 0), Vector2(size.x, size.y * 0.54), Vector2(size.x * 0.68, size.y * 0.42)])
-				var facet_two := PackedVector2Array([Vector2(0, size.y * 0.22), Vector2(size.x * 0.48, 0), Vector2(size.x * 0.68, size.y * 0.42), Vector2(size.x * 0.28, size.y * 0.68)])
-				var facet_three := PackedVector2Array([Vector2(size.x * 0.28, size.y * 0.68), Vector2(size.x * 0.68, size.y * 0.42), Vector2(size.x, size.y * 0.54), Vector2(size.x, size.y), Vector2(size.x * 0.48, size.y)])
-				draw_colored_polygon(facet_one, Color(accent.r, accent.g, accent.b, 0.19))
-				draw_colored_polygon(facet_two, Color(surface.r, surface.g, surface.b, 0.62))
-				draw_colored_polygon(facet_three, Color(accent.r * 0.72, accent.g * 0.76, accent.b * 0.82, 0.20))
-				draw_polyline(PackedVector2Array([Vector2(size.x * 0.48, 0), Vector2(size.x * 0.68, size.y * 0.42), Vector2(size.x * 0.28, size.y * 0.68), Vector2(size.x * 0.48, size.y)]), Color(1, 1, 1, 0.18), 1.2, true)
-			"midnight_flow":
-				for band in range(7):
-					var points := PackedVector2Array()
-					for step in range(41):
-						var progress := float(step) / 40.0
-						var wave := sin(progress * TAU * 1.15 + float(band) * 0.42) * 0.075
-						var drift := cos(progress * PI * 1.3 + float(band) * 0.24) * 0.035
-						var y_position := size.y * (0.28 + float(band) * 0.105 + wave + drift)
-						points.append(Vector2(size.x * progress, y_position))
-					draw_polyline(points, Color(surface.r, surface.g, surface.b, 0.24), maxf(3.0, shortest_side * 0.075), true)
-					draw_polyline(points, Color(accent.r, accent.g, accent.b, 0.12), maxf(1.0, shortest_side * 0.007), true)
-			_:
-				for band in range(6):
-					var points := PackedVector2Array()
-					for step in range(41):
-						var progress := float(step) / 40.0
-						var wave := sin(progress * TAU * 0.85 + float(band) * 0.56) * 0.070
-						var crest := cos(progress * PI * 2.0 + float(band) * 0.30) * 0.025
-						var y_position := size.y * (0.24 + float(band) * 0.105 + wave + crest)
-						points.append(Vector2(size.x * progress, y_position))
-					draw_polyline(points, Color(accent.r, accent.g, accent.b, 0.045), maxf(3.0, shortest_side * 0.105), true)
-					draw_polyline(points, Color(accent.r, accent.g, accent.b, 0.13), maxf(1.0, shortest_side * 0.006), true)
-				draw_circle(Vector2(size.x * 0.82, size.y * 0.24), shortest_side * 0.20, Color(accent.r, accent.g, accent.b, 0.035))
-
+		var focal := Vector2(size.x * 0.72, size.y * 0.32)
+		var radius := minf(size.x, size.y) * 0.42
+		draw_circle(focal, radius, Color(accent.r, accent.g, accent.b, 0.14))
+		draw_arc(focal, radius * 0.74, -1.15, 2.2, 96, Color(1, 1, 1, 0.15), maxf(1.0, radius * 0.018), true)
+		draw_arc(Vector2(size.x * 0.22, size.y * 0.82), radius * 1.1, -2.7, -0.25, 96, Color(surface.r, surface.g, surface.b, 0.30), maxf(2.0, radius * 0.055), true)
+		draw_arc(Vector2(size.x * 0.82, size.y * 0.92), radius * 0.86, -2.8, -0.35, 96, Color(accent.r, accent.g, accent.b, 0.20), maxf(1.0, radius * 0.025), true)
 		if treatment == "deep_contrast":
 			draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.12))
 		elif treatment == "soft_glow":
-			draw_circle(Vector2(size.x * 0.74, size.y * 0.30), shortest_side * 0.42, Color(accent.r, accent.g, accent.b, 0.055))
-
-
-var configuration: Dictionary = {}
-var active_component := "home_screen"
-var _home_screen_corner_radius := 0
-var _home_screen_radius_styleboxes: Array[StyleBoxFlat] = []
-var page_container: VBoxContainer
-var status_label: Label
-var _palette: Dictionary = {}
-var _style: Dictionary = {}
-var _building := false
-var _last_layout_size := Vector2.ZERO
-var _resize_rebuild_pending := false
-var _gesture_start := Vector2.ZERO
-var _gesture_start_time := 0
-var _gesture_active := false
-var _gesture_overlay: Control
-var _recent_app_names: Array[String] = []
-var _screen_history: Array[String] = []
-var _last_opened_app := ""
-var _entered_unlock_pin := ""
-var _pin_error_message := ""
-var _quick_setting_states := {
-	"Wi-Fi": true, "Bluetooth": true, "Airplane mode": false,
-	"Auto-rotate": true, "Flashlight": false, "Location": true,
-	"Sound": true, "Mute": false,
-	"Cast screen": false, "Hotspot": false, "Battery saver": false
-}
-var _clock_update_elapsed := 0.0
-
+			draw_circle(focal, radius, Color(accent.r, accent.g, accent.b, 0.055))
 func _process(delta: float) -> void:
 	_clock_update_elapsed += delta
 	if _clock_update_elapsed < 1.0:
@@ -412,75 +154,20 @@ func _process(delta: float) -> void:
 		status_clock.text = _current_lock_time()
 	if active_component == "lock_screen":
 		_refresh_lock_screen_clock()
-	elif active_component == "home_screen":
-		var home_clock := find_child("HomeHeroClock", true, false) as Label
-		if is_instance_valid(home_clock):
-			home_clock.text = _current_lock_time()
-		var home_date := find_child("HomeHeroDate", true, false) as Label
-		if is_instance_valid(home_date):
-			home_date.text = _current_lock_date("minimal")
-		var pie_date := find_child("PieHomeDate", true, false) as Label
-		if is_instance_valid(pie_date):
-			pie_date.text = _current_lock_date("minimal")
-
-
-
-func _current_lock_time(family: String = "") -> String:
+func _current_lock_time() -> String:
 	var now := Time.get_datetime_dict_from_system()
-	var hour := int(now.get("hour", 9))
-	var minute := int(now.get("minute", 41))
-	if family in ["pixel", "one_ui"]:
-		var twelve_hour := hour % 12
-		if twelve_hour == 0:
-			twelve_hour = 12
-		return "%d:%02d" % [twelve_hour, minute]
-	if family == "typographic":
-		return "%02d\n%02d" % [hour, minute]
-	return "%02d:%02d" % [hour, minute]
-
-
-func _current_lock_date(treatment: String) -> String:
+	return "%02d:%02d" % [int(now.get("hour", 9)), int(now.get("minute", 41))]
+func _current_lock_date() -> String:
 	var now := Time.get_datetime_dict_from_system()
 	var weekdays := ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 	var months := ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 	var weekday_index := clampi(int(now.get("weekday", 1)), 0, 6)
 	var month_index := clampi(int(now.get("month", 1)) - 1, 0, 11)
-	var weekday := str(weekdays[weekday_index])
-	var month := str(months[month_index])
-	var day := int(now.get("day", 1))
-	match treatment:
-		"pixel":
-			return "%s, %s %d" % [weekday, month, day]
-		"one_ui":
-			return "%s, %s %d" % [weekday.substr(0, 3), month, day]
-		"minimal":
-			return "%s  ·  %02d %s" % [weekday.to_upper().substr(0, 3), day, month.to_upper().substr(0, 3)]
-		"editorial":
-			return "%s, %02d %s %04d" % [weekday.to_upper(), day, month.to_upper(), int(now.get("year", 2026))]
-		"inline":
-			return "%s %02d %s  ·  %04d" % [weekday.to_upper().substr(0, 3), day, month.to_upper().substr(0, 3), int(now.get("year", 2026))]
-	return "%s  ·  %s %02d" % [weekday.to_upper(), month.to_upper(), day]
-
-
+	return "%s  ·  %02d %s" % [str(weekdays[weekday_index]).to_upper().substr(0, 3), int(now.get("day", 1)), str(months[month_index]).to_upper().substr(0, 3)]
 func _refresh_lock_screen_clock() -> void:
-	var is_oreo_android := _is_android_os() and int(configuration.get("generation", 1)) == 2
-	var samsung_clock := find_child("SamsungOneUILockClock", true, false) as Label
-	if is_instance_valid(samsung_clock):
-		samsung_clock.text = _current_lock_time("one_ui")
-	var samsung_date := find_child("SamsungOneUILockDate", true, false) as Label
-	if is_instance_valid(samsung_date):
-		samsung_date.text = _current_lock_date("one_ui")
-	var clock := find_child("LockScreenClock", true, false) as Label
-	if is_instance_valid(clock):
-		clock.text = _current_lock_time("pixel" if is_oreo_android else "")
-	var date := find_child("LockScreenDate", true, false) as Label
-	if is_instance_valid(date):
-		date.text = _current_lock_date("pixel" if is_oreo_android else "uppercase")
 	var status_clock := find_child("StatusBarClock", true, false) as Label
 	if is_instance_valid(status_clock):
 		status_clock.text = _current_lock_time()
-
-
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
@@ -504,18 +191,13 @@ func _input(event: InputEvent) -> void:
 func _screen_to_local(screen_position: Vector2) -> Vector2:
 	return get_global_transform_with_canvas().affine_inverse() * screen_position
 
-
 func _begin_gesture(touch_position: Vector2) -> void:
 	_gesture_start = touch_position
 	_gesture_start_time = Time.get_ticks_msec()
 	_gesture_active = true
 
-
 func _try_finish_drag_gesture(touch_position: Vector2) -> void:
-	if not _gesture_active or not _is_android_os():
-		return
-	var generation_number := int(configuration.get("generation", 2))
-	if generation_number not in [2, 3, 4]:
+	if not _gesture_active or not _is_gen1_samsung_ui():
 		return
 	var delta := touch_position - _gesture_start
 	var vertical_threshold := maxf(20.0, size.y * 0.06)
@@ -527,8 +209,6 @@ func _try_finish_drag_gesture(touch_position: Vector2) -> void:
 	var elapsed_ms := Time.get_ticks_msec() - _gesture_start_time
 	_gesture_active = false
 	call_deferred("_handle_system_gesture", _gesture_start, touch_position, elapsed_ms)
-
-
 func _finish_gesture(touch_position: Vector2) -> void:
 	if not _gesture_active:
 		return
@@ -536,93 +216,37 @@ func _finish_gesture(touch_position: Vector2) -> void:
 	var elapsed_ms := Time.get_ticks_msec() - _gesture_start_time
 	_handle_system_gesture(_gesture_start, touch_position, elapsed_ms)
 
-
-func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) -> void:
+func _handle_system_gesture(start: Vector2, finish: Vector2, _elapsed_ms: int) -> void:
 	var delta := finish - start
 	var vertical_threshold := maxf(24.0, size.y * 0.07)
 	var horizontal_threshold := maxf(26.0, size.x * 0.12)
 	var edge_size := clampf(minf(size.x, size.y) * 0.08, 16.0, 30.0)
-
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
-		if _is_gen1_samsung_ui() and _gesture_overlay.name == "OSGestureOverlay_notifications":
+		if _gesture_overlay.name == "OSGestureOverlay_notifications":
 			if delta.length() <= maxf(12.0, minf(size.x, size.y) * 0.035):
 				_handle_samsung_gen1_overlay_tap("notifications", start)
 			elif delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
 				_close_gesture_overlay()
 			return
-		if _is_gen1_samsung_ui() and _gesture_overlay.name == "OSGestureOverlay_recent_apps":
+		if _gesture_overlay.name == "OSGestureOverlay_recent_apps":
 			if delta.length() <= maxf(12.0, minf(size.x, size.y) * 0.035):
 				_handle_samsung_gen1_overlay_tap("recent_apps", start)
 			else:
 				_close_gesture_overlay()
 			return
-		if _gesture_overlay.name == "OSGestureOverlay_notifications" and delta.y >= vertical_threshold:
-			_show_gesture_overlay("control_center")
-		elif _gesture_overlay.name == "OSGestureOverlay_recent_apps" and int(configuration.get("generation", 2)) == 3:
-			if delta.y <= -vertical_threshold:
-				_dismiss_pie_overview_top_card()
-			elif absf(delta.y) < vertical_threshold and absf(delta.x) < horizontal_threshold:
-				_close_gesture_overlay()
-		elif _gesture_overlay.name == "OSGestureOverlay_recent_apps":
-			if delta.y <= -vertical_threshold:
-				_advance_overview_deck(false)
-			elif delta.y >= vertical_threshold:
-				_advance_overview_deck(true)
-			elif absf(delta.x) >= horizontal_threshold:
-				_dismiss_overview_top_card()
-			else:
-				_close_gesture_overlay()
-		elif delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
-			_close_gesture_overlay()
+		_close_gesture_overlay()
 		return
-
 	if start.y <= edge_size and delta.y >= vertical_threshold and absf(delta.y) > absf(delta.x) * 1.2:
 		_show_gesture_overlay("notifications")
 		return
-
-	if _is_gen1_samsung_ui():
-		if active_component == "lock_screen" and delta.x >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.10:
-			set_component_view("home_screen")
-			return
-		var tap_threshold := maxf(12.0, minf(size.x, size.y) * 0.035)
-		if delta.length() <= tap_threshold:
-			_handle_samsung_gen1_tap(start)
+	if not _is_gen1_samsung_ui():
 		return
-
-	if active_component == "lock_screen" and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
-		set_component_view("pin_input")
+	if active_component == "lock_screen" and delta.x >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.10:
+		set_component_view("home_screen")
 		return
-
-	# Oreo and Pie open the app drawer on an upward home-screen swipe.
-	# Recent Apps remains available through the Overview navigation control.
-	if _is_android_os() and int(configuration.get("generation", 2)) in [2, 3] and active_component == "home_screen":
-		var started_in_navigation_area := start.y >= size.y - 50.0
-		if not started_in_navigation_area and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.10:
-			set_component_view("app_drawer")
-			return
-
-	# Android Generation 1 keeps the physical-style three-button navigation.
-	if _is_android_os():
-		return
-
-	if start.y >= size.y - edge_size and delta.y <= -vertical_threshold and absf(delta.y) > absf(delta.x) * 1.15:
-		if elapsed_ms >= 420:
-			_show_gesture_overlay("recent_apps")
-		elif active_component == "home_screen":
-			set_component_view("app_drawer")
-		elif active_component == "pin_input":
-			set_component_view("lock_screen")
-		else:
-			_navigate_home()
-		return
-
-	if absf(delta.x) >= horizontal_threshold and absf(delta.x) > absf(delta.y) * 1.2:
-		if start.x <= edge_size and delta.x > 0.0:
-			_navigate_back()
-		elif start.x >= size.x - edge_size and delta.x < 0.0:
-			_navigate_back()
-
-
+	var tap_threshold := maxf(12.0, minf(size.x, size.y) * 0.035)
+	if delta.length() <= tap_threshold:
+		_handle_samsung_gen1_tap(start)
 func _handle_samsung_gen1_tap(touch_position: Vector2) -> void:
 	var screenshot := find_child("SamsungGen1ScreenImage_" + active_component, true, false) as TextureRect
 	if screenshot == null or not is_instance_valid(screenshot):
@@ -700,7 +324,6 @@ func _handle_samsung_gen1_tap(touch_position: Vector2) -> void:
 				_on_app_pressed(str(drawer_rows[row_index][column_index]))
 				return
 
-
 func _handle_samsung_gen1_overlay_tap(component_id: String, touch_position: Vector2) -> void:
 	var screenshot := find_child("SamsungGen1ScreenImage_" + component_id, true, false) as TextureRect
 	if screenshot == null or not is_instance_valid(screenshot):
@@ -745,7 +368,6 @@ func _handle_samsung_gen1_overlay_tap(component_id: String, touch_position: Vect
 	_quick_setting_states[tile_name] = enabled
 	_show_samsung_gen1_quick_setting_feedback(tile_name, enabled)
 
-
 func _show_samsung_gen1_quick_setting_feedback(tile_name: String, enabled: bool) -> void:
 	if _gesture_overlay == null or not is_instance_valid(_gesture_overlay):
 		return
@@ -776,7 +398,6 @@ func _show_samsung_gen1_quick_setting_feedback(tile_name: String, enabled: bool)
 	feedback.add_child(feedback_label)
 	_gesture_overlay.add_child(feedback)
 
-
 func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	_close_gesture_overlay()
 	var screenshot_component := "recent_apps" if mode == "recent_apps" else "notifications"
@@ -801,12 +422,10 @@ func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
 	corner_mask.z_as_relative = false
 	_gesture_overlay.add_child(corner_mask)
 
-
 func _navigate_home() -> void:
 	_close_gesture_overlay()
 	_screen_history.clear()
 	set_component_view("home_screen", false)
-
 
 func _navigate_back() -> void:
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
@@ -821,1641 +440,23 @@ func _navigate_back() -> void:
 	else:
 		_navigate_home()
 
-
 func _show_gesture_overlay(mode: String) -> void:
-	if _is_gen1_samsung_ui():
-		if mode in ["notifications", "control_center", "recent_apps"]:
-			_build_samsung_gen1_gesture_overlay(mode)
+	if not _is_gen1_samsung_ui():
 		return
-	if _is_android_os() and int(configuration.get("generation", 2)) == 2:
-		match mode:
-			"notifications":
-				_build_android_oreo_notification_shade()
-				return
-			"control_center":
-				_build_android_oreo_quick_settings_shade()
-				return
-	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
-		match mode:
-			"notifications":
-				_build_android_pie_notification_shade()
-				return
-			"control_center":
-				_build_android_pie_quick_settings_shade()
-				return
-			"recent_apps":
-				_build_android_pie_overview()
-				return
-	if mode == "recent_apps" and _is_android_os():
-		_build_samsung_gen1_overview()
-		return
-	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
-		match mode:
-			"notifications":
-				_build_lollipop_notification_shade()
-				return
-			"control_center":
-				_build_lollipop_quick_settings_shade()
-				return
-			"recent_apps":
-				_build_samsung_gen1_overview()
-				return
-
-	_close_gesture_overlay()
-	_gesture_overlay = Control.new()
-	_gesture_overlay.name = "OSGestureOverlay_" + mode
-	_gesture_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_gesture_overlay.offset_bottom = -54.0
-	_gesture_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_gesture_overlay)
-
-	var shade := ColorRect.new()
-	shade.name = "GestureOverlayShade"
-	shade.color = Color(0.0, 0.0, 0.0, 0.58)
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_gesture_overlay.add_child(shade)
-
-	var margins := MarginContainer.new()
-	margins.name = "GestureOverlayMargins"
-	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margins.add_theme_constant_override("margin_left", 8)
-	margins.add_theme_constant_override("margin_right", 8)
-	margins.add_theme_constant_override("margin_top", 8)
-	margins.add_theme_constant_override("margin_bottom", 8)
-	_gesture_overlay.add_child(margins)
-
-	var panel := PanelContainer.new()
-	panel.name = "GestureOverlayPanel"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_style_surface(panel, true)
-	margins.add_child(panel)
-
-	var content := VBoxContainer.new()
-	content.name = "GestureOverlayContent"
-	content.add_theme_constant_override("separation", 8)
-	panel.add_child(content)
-
-	var title_text := "RECENT APPS" if mode == "recent_apps" else mode.to_upper().replace("_", " ")
-	var title := _label(title_text, 12, _text_color())
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_child(title)
-
-	match mode:
-		"control_center":
-			_build_gesture_control_center(content)
-		"notifications":
-			_build_gesture_notifications(content)
-		"recent_apps":
-			_build_gesture_recent_apps(content)
-
-
-func _create_lollipop_shade_overlay(mode: String, background_color: Color) -> Control:
-	_close_gesture_overlay()
-	var overlay := Control.new()
-	overlay.name = "OSGestureOverlay_" + mode
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.offset_bottom = -46.0
-	overlay.clip_contents = true
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
-	_gesture_overlay = overlay
-
-	var background := ColorRect.new()
-	background.name = "LollipopShadeBackground"
-	background.color = background_color
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(background)
-	return overlay
-
-
-func _create_lollipop_shade_body(overlay: Control) -> VBoxContainer:
-	var margins := MarginContainer.new()
-	margins.name = "LollipopShadeMargins"
-	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margins.add_theme_constant_override("margin_left", 12)
-	margins.add_theme_constant_override("margin_right", 12)
-	margins.add_theme_constant_override("margin_top", 10)
-	margins.add_theme_constant_override("margin_bottom", 8)
-	overlay.add_child(margins)
-
-	var scroll := ScrollContainer.new()
-	scroll.name = "LollipopShadeScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	margins.add_child(scroll)
-
-	var body := VBoxContainer.new()
-	body.name = "LollipopShadeContent"
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 9)
-	scroll.add_child(body)
-	return body
-
-
-func _create_android_pie_shade(mode: String) -> Control:
-	_close_gesture_overlay()
-	var overlay := Control.new()
-	overlay.name = "OSGestureOverlay_" + mode
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.offset_bottom = -46.0
-	overlay.clip_contents = true
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
-	_gesture_overlay = overlay
-	var background := ColorRect.new()
-	background.name = "PieShadeBackground"
-	background.color = Color("#DCE3ED")
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(background)
-	var margins := MarginContainer.new()
-	margins.name = "PieShadeMargins"
-	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margins.add_theme_constant_override("margin_left", 12)
-	margins.add_theme_constant_override("margin_right", 12)
-	margins.add_theme_constant_override("margin_top", 9)
-	margins.add_theme_constant_override("margin_bottom", 8)
-	overlay.add_child(margins)
-	var scroll := ScrollContainer.new()
-	scroll.name = "PieShadeScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	margins.add_child(scroll)
-	var body := VBoxContainer.new()
-	body.name = "PieShadeContent"
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 9)
-	scroll.add_child(body)
-	return overlay
-
-
-
-func _create_android_oreo_shade(mode: String) -> Control:
-	_close_gesture_overlay()
-	var overlay := Control.new()
-	overlay.name = "OSGestureOverlay_" + mode
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.offset_bottom = -46.0
-	overlay.clip_contents = true
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
-	_gesture_overlay = overlay
-
-	var background := ColorRect.new()
-	background.name = "OreoShadeBackground"
-	background.color = Color("#E6EAF0")
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(background)
-
-	var margins := MarginContainer.new()
-	margins.name = "OreoShadeMargins"
-	margins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margins.add_theme_constant_override("margin_left", 12)
-	margins.add_theme_constant_override("margin_right", 12)
-	margins.add_theme_constant_override("margin_top", 10)
-	margins.add_theme_constant_override("margin_bottom", 9)
-	overlay.add_child(margins)
-
-	var scroll := ScrollContainer.new()
-	scroll.name = "OreoShadeScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	margins.add_child(scroll)
-
-	var body := VBoxContainer.new()
-	body.name = "OreoShadeContent"
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 9)
-	scroll.add_child(body)
-	return overlay
-
-
-func _apply_android_oreo_shade_screen_mask(overlay: Control) -> void:
+	if mode in ["notifications", "control_center", "recent_apps"]:
+		_build_samsung_gen1_gesture_overlay(mode)
+func _apply_gen1_screen_corner_mask(overlay: Control) -> void:
 	if not is_instance_valid(overlay):
 		return
 	overlay.clip_contents = true
 	var mask := OSScreenCornerMask.new()
-	mask.name = "OreoShadeScreenCornerMask"
+	mask.name = "SamsungGen1ScreenCornerMask"
 	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mask.corner_radius = 22.0
 	mask.mask_color = Color.BLACK
 	mask.mask_bottom_corners = false
 	mask.z_index = 100
 	overlay.add_child(mask)
-
-
-func _oreo_quick_tile_definitions() -> Array:
-	return [
-		{"id": "Wi-Fi", "glyph": "◉", "enabled": true},
-		{"id": "Bluetooth", "glyph": "ᛒ", "enabled": true},
-		{"id": "Do not disturb", "glyph": "⊖", "enabled": false},
-		{"id": "Airplane mode", "glyph": "✈", "enabled": false},
-		{"id": "Auto-rotate", "glyph": "⟳", "enabled": true},
-		{"id": "Battery saver", "glyph": "▰", "enabled": false},
-		{"id": "Flashlight", "glyph": "☼", "enabled": false},
-		{"id": "Location", "glyph": "⌖", "enabled": true},
-		{"id": "Hotspot", "glyph": "⌁", "enabled": false}
-	]
-
-
-func _oreo_quick_tile_style(enabled: bool) -> StyleBoxFlat:
-	var tile_style := StyleBoxFlat.new()
-	tile_style.bg_color = Color("#CFE0F5") if enabled else Color("#D6DDE6")
-	tile_style.border_color = Color("#8EADD4") if enabled else Color("#AEB9C8")
-	tile_style.set_border_width_all(1)
-	tile_style.set_corner_radius_all(999)
-	tile_style.content_margin_left = 0
-	tile_style.content_margin_right = 0
-	tile_style.content_margin_top = 0
-	tile_style.content_margin_bottom = 0
-	return tile_style
-
-func _add_android_oreo_quick_tile(parent: GridContainer, definition: Dictionary) -> void:
-	var setting_id := str(definition.get("id", ""))
-	var safe_id := setting_id.replace(" ", "")
-	var enabled := bool(_quick_setting_states.get(setting_id, definition.get("enabled", false)))
-	var item := VBoxContainer.new()
-	item.name = "OreoQuickTileItem_" + safe_id
-	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	item.add_theme_constant_override("separation", 3)
-	var holder := CenterContainer.new()
-	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var tile := Button.new()
-	tile.name = "OreoQuickTile_" + safe_id
-	tile.toggle_mode = true
-	tile.button_pressed = enabled
-	tile.custom_minimum_size = Vector2(44, 44)
-	tile.focus_mode = Control.FOCUS_NONE
-	for state_name in ["normal", "hover", "pressed", "focus"]:
-		tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
-	tile.add_theme_color_override("font_color", Color("#1558B0") if enabled else Color("#364152"))
-	tile.add_theme_font_size_override("font_size", 19)
-	tile.text = str(definition.get("glyph", "•"))
-	tile.tooltip_text = setting_id
-	holder.add_child(tile)
-	item.add_child(holder)
-	var label := _label(setting_id, 9, Color("#202B3A"))
-	label.name = "OreoQuickTileLabel_" + safe_id
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.y = 18
-	item.add_child(label)
-	tile.toggled.connect(_on_oreo_quick_tile_toggled.bind(setting_id, tile, label))
-	parent.add_child(item)
-
-func _on_oreo_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button, label: Label) -> void:
-	_quick_setting_states[setting_id] = enabled
-	if is_instance_valid(tile):
-		for state_name in ["normal", "hover", "pressed", "focus"]:
-			tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
-		tile.add_theme_color_override("font_color", Color("#1558B0") if enabled else Color("#364152"))
-	if is_instance_valid(label):
-		label.add_theme_color_override("font_color", Color("#202B3A") if enabled else Color("#364152"))
-
-func _make_android_shade_action_button(button_name: String, button_text: String, action_tooltip: String) -> Button:
-	var button := Button.new()
-	button.name = button_name
-	button.text = button_text
-	button.tooltip_text = action_tooltip
-	button.flat = true
-	button.focus_mode = Control.FOCUS_NONE
-	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.custom_minimum_size = Vector2(38, 32)
-	button.add_theme_font_size_override("font_size", 11)
-	button.add_theme_color_override("font_color", Color("#263445"))
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("#CED8E5")
-	normal.border_color = Color("#AAB7C7")
-	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(9)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color("#C1CEDD")
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color("#B3C2D4")
-	button.add_theme_stylebox_override("normal", normal)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", pressed)
-	button.add_theme_stylebox_override("focus", normal)
-	return button
-
-func _add_oreo_shade_header(parent: Control) -> void:
-	var header := HBoxContainer.new()
-	header.name = "OreoShadeHeader"
-	header.custom_minimum_size.y = 42
-	header.add_theme_constant_override("separation", 8)
-	var time_stack := VBoxContainer.new()
-	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	time_stack.add_theme_constant_override("separation", 0)
-	var clock := _label(_current_lock_time("pixel"), 26, Color("#202124"))
-	clock.name = "OreoShadeClock"
-	clock.custom_minimum_size.y = 30
-	clock.add_theme_font_override("font", LOCKSCREEN_FONT)
-	time_stack.add_child(clock)
-	header.add_child(time_stack)
-	var status := VBoxContainer.new()
-	status.alignment = BoxContainer.ALIGNMENT_CENTER
-	status.add_theme_constant_override("separation", 2)
-	var network := _label("Wi-Fi  ·  LTE", 8, Color("#5F6368"))
-	network.name = "OreoShadeNetworkStatus"
-	network.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.add_child(network)
-	var battery := _label("100%  ▰", 9, Color("#5F6368"))
-	battery.name = "OreoShadeBattery"
-	battery.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.add_child(battery)
-	header.add_child(status)
-	parent.add_child(header)
-
-
-func _add_oreo_shade_footer(parent: Control, is_expanded: bool) -> void:
-	var footer := HBoxContainer.new()
-	footer.name = "OreoQuickSettingsFooter" if is_expanded else "OreoNotificationQuickSettingsFooter"
-	footer.custom_minimum_size.y = 32
-	footer.add_theme_constant_override("separation", 6)
-	var date := _label(_current_lock_date("inline"), 8, Color("#5F6368"))
-	date.name = "OreoShadeFooterDate"
-	date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	footer.add_child(date)
-	if is_expanded:
-		var page := _label("●  ○", 8, Color("#6B7280"))
-		page.name = "OreoQuickSettingsPageIndicator"
-		page.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		footer.add_child(page)
-	else:
-		var expand := _make_android_shade_action_button("OreoShadeExpandButton", "⌄", "Expand Quick Settings")
-		expand.pressed.connect(func() -> void: _show_gesture_overlay("control_center"))
-		footer.add_child(expand)
-	var settings := _make_android_shade_action_button("OreoShadeSettingsButton", "⚙", "Open Settings")
-	settings.pressed.connect(func() -> void:
-		_close_gesture_overlay()
-		_on_app_pressed("Settings")
-	)
-	footer.add_child(settings)
-	parent.add_child(footer)
-
-
-func _clear_notification_group(notification_group: Control, empty_label_name: String, empty_text: String, empty_color: Color) -> void:
-	if not is_instance_valid(notification_group):
-		return
-	for notification_child in notification_group.get_children():
-		notification_group.remove_child(notification_child)
-		notification_child.queue_free()
-	var empty_state := _label(empty_text, 9, empty_color)
-	empty_state.name = empty_label_name
-	empty_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	empty_state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	empty_state.custom_minimum_size.y = 36
-	notification_group.add_child(empty_state)
-
-func _add_oreo_brightness_slider(parent: Control) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "OreoBrightnessPanel"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#FFFFFF")
-	panel_style.border_color = Color("#C7D0DC")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(10)
-	panel_style.content_margin_left = 10
-	panel_style.content_margin_right = 10
-	panel_style.content_margin_top = 6
-	panel_style.content_margin_bottom = 6
-	panel.add_theme_stylebox_override("panel", panel_style)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	row.add_child(_label("☼", 18, Color("#364152")))
-	var slider := HSlider.new()
-	slider.name = "OreoBrightnessSlider"
-	slider.min_value = 0
-	slider.max_value = 100
-	slider.value = 72
-	slider.custom_minimum_size.y = 22
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.focus_mode = Control.FOCUS_NONE
-	row.add_child(slider)
-	row.add_child(_label("☀", 14, Color("#364152")))
-	panel.add_child(row)
-	parent.add_child(panel)
-
-func _add_oreo_notification_card(parent: Control, app_name: String, message_text: String, time_text: String) -> void:
-	var card := PanelContainer.new()
-	card.name = "OreoNotification_" + app_name.replace(" ", "")
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color("#FFFFFF")
-	card_style.border_color = Color("#CBD3DE")
-	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(5)
-	card_style.shadow_color = Color(0, 0, 0, 0.16)
-	card_style.shadow_size = 2
-	card_style.content_margin_left = 10
-	card_style.content_margin_right = 10
-	card_style.content_margin_top = 8
-	card_style.content_margin_bottom = 8
-	card.add_theme_stylebox_override("panel", card_style)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	var icon := TextureRect.new()
-	icon.name = "OreoNotificationIcon_" + app_name.replace(" ", "")
-	icon.texture = _load_lock_screen_app_icon(app_name)
-	icon.custom_minimum_size = Vector2(28, 28)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(icon)
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 2)
-	var title_row := HBoxContainer.new()
-	var title := _label(app_name, 10, Color("#18212D"))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.add_child(title)
-	title_row.add_child(_label(time_text, 8, Color("#4B5868")))
-	copy.add_child(title_row)
-	var message := _label(message_text, 9, Color("#303B49"))
-	message.name = "OreoNotificationMessage_" + app_name.replace(" ", "")
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	copy.add_child(message)
-	row.add_child(copy)
-	card.add_child(row)
-	parent.add_child(card)
-
-func _build_android_oreo_notification_content(parent: Control) -> void:
-	_add_oreo_shade_header(parent)
-	var quick_grid := GridContainer.new()
-	quick_grid.name = "OreoNotificationQuickSettingsGrid"
-	quick_grid.columns = 3
-	quick_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	quick_grid.add_theme_constant_override("h_separation", 5)
-	quick_grid.add_theme_constant_override("v_separation", 4)
-	for definition in _oreo_quick_tile_definitions().slice(0, 6):
-		_add_android_oreo_quick_tile(quick_grid, definition)
-	parent.add_child(quick_grid)
-	_add_oreo_shade_footer(parent, false)
-
-	var heading := HBoxContainer.new()
-	heading.name = "OreoNotificationHeadingRow"
-	var heading_label := _label("Notifications", 11, Color("#3C4043"))
-	heading_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_child(heading_label)
-	heading.add_child(_label("NOW  ·  EARLIER", 7, Color("#6B7280")))
-	var clear_button := _make_android_shade_action_button("OreoNotificationClearAllButton", "Clear all", "Clear notifications")
-	heading.add_child(clear_button)
-	parent.add_child(heading)
-
-	var notification_list := VBoxContainer.new()
-	notification_list.name = "OreoShadeNotificationList"
-	notification_list.add_theme_constant_override("separation", 6)
-	parent.add_child(notification_list)
-	_add_oreo_notification_card(notification_list, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW")
-	_add_oreo_notification_card(notification_list, "Calendar", "Your event starts in 10 minutes", "10 MIN")
-	_add_oreo_notification_card(notification_list, "Android System", "Device is up to date", "EARLIER")
-	clear_button.pressed.connect(_clear_notification_group.bind(notification_list, "OreoNoNotifications", "No notifications", Color("#5F6368")))
-
-
-func _build_android_oreo_quick_settings_content(parent: Control) -> void:
-	_add_oreo_shade_header(parent)
-	_add_oreo_brightness_slider(parent)
-	var heading := _label("Quick Settings", 10, Color("#3C4043"))
-	heading.name = "OreoQuickSettingsHeading"
-	parent.add_child(heading)
-	var grid := GridContainer.new()
-	grid.name = "OreoExpandedQuickSettingsGrid"
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 5)
-	grid.add_theme_constant_override("v_separation", 6)
-	for definition in _oreo_quick_tile_definitions():
-		_add_android_oreo_quick_tile(grid, definition)
-	parent.add_child(grid)
-	_add_oreo_shade_footer(parent, true)
-
-func _build_android_oreo_notification_shade() -> void:
-	var overlay := _create_android_oreo_shade("notifications")
-	var body := overlay.find_child("OreoShadeContent", true, false) as VBoxContainer
-	if body == null:
-		return
-	_build_android_oreo_notification_content(body)
-	_apply_android_oreo_shade_screen_mask(overlay)
-
-
-func _build_android_oreo_quick_settings_shade() -> void:
-	var overlay := _create_android_oreo_shade("control_center")
-	var body := overlay.find_child("OreoShadeContent", true, false) as VBoxContainer
-	if body == null:
-		return
-	_build_android_oreo_quick_settings_content(body)
-	_apply_android_oreo_shade_screen_mask(overlay)
-
-
-func _build_android_oreo_notifications_preview() -> void:
-	var panel := PanelContainer.new()
-	panel.name = "OreoNotificationPreview"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#F1F3F4")
-	style.set_corner_radius_all(8)
-	style.set_border_width_all(0)
-	style.content_margin_left = 9
-	style.content_margin_right = 9
-	style.content_margin_top = 9
-	style.content_margin_bottom = 9
-	panel.add_theme_stylebox_override("panel", style)
-	page_container.add_child(panel)
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 7)
-	panel.add_child(body)
-	_build_android_oreo_notification_content(body)
-
-
-func _build_android_oreo_control_center_preview() -> void:
-	var panel := PanelContainer.new()
-	panel.name = "OreoControlCenterPreview"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#F1F3F4")
-	style.set_corner_radius_all(8)
-	style.set_border_width_all(0)
-	style.content_margin_left = 9
-	style.content_margin_right = 9
-	style.content_margin_top = 9
-	style.content_margin_bottom = 9
-	panel.add_theme_stylebox_override("panel", style)
-	page_container.add_child(panel)
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 7)
-	panel.add_child(body)
-	_build_android_oreo_quick_settings_content(body)
-
-
-func _add_pie_shade_header(parent: Control) -> void:
-	var header := HBoxContainer.new()
-	header.name = "PieShadeHeader"
-	header.custom_minimum_size.y = 42
-	header.add_theme_constant_override("separation", 8)
-	var time_stack := VBoxContainer.new()
-	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var clock := _label(_current_lock_time("pixel"), 26, Color("#202124"))
-	clock.name = "PieShadeClock"
-	clock.custom_minimum_size.y = 30
-	clock.add_theme_font_override("font", LOCKSCREEN_FONT)
-	time_stack.add_child(clock)
-	var date := _label(_current_lock_date("pixel"), 9, Color("#344054"))
-	date.name = "PieShadeDate"
-	time_stack.add_child(date)
-	header.add_child(time_stack)
-	var status := VBoxContainer.new()
-	status.alignment = BoxContainer.ALIGNMENT_CENTER
-	status.add_theme_constant_override("separation", 2)
-	var network := _label("Wi-Fi  ·  LTE", 8, Color("#344054"))
-	network.name = "PieShadeNetworkStatus"
-	network.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.add_child(network)
-	var battery := _label("100%  ▰", 9, Color("#263445"))
-	battery.name = "PieShadeBattery"
-	battery.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.add_child(battery)
-	header.add_child(status)
-	parent.add_child(header)
-
-func _pie_quick_tile_style(enabled: bool) -> StyleBoxFlat:
-	var tile_style := StyleBoxFlat.new()
-	tile_style.bg_color = Color("#1A73E8") if enabled else Color("#CBD3DE")
-	tile_style.border_color = Color("#0E5FCB") if enabled else Color("#AAB5C4")
-	tile_style.set_border_width_all(1)
-	tile_style.set_corner_radius_all(999)
-	tile_style.content_margin_left = 0
-	tile_style.content_margin_right = 0
-	tile_style.content_margin_top = 0
-	tile_style.content_margin_bottom = 0
-	return tile_style
-
-func _add_android_pie_quick_tile(parent: GridContainer, definition: Dictionary) -> void:
-	var setting_id := str(definition.get("id", ""))
-	var safe_id := setting_id.replace(" ", "")
-	var enabled := bool(_quick_setting_states.get(setting_id, definition.get("enabled", false)))
-	var item := VBoxContainer.new()
-	item.name = "PieQuickTileItem_" + safe_id
-	item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	item.add_theme_constant_override("separation", 2)
-	var holder := CenterContainer.new()
-	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var tile := Button.new()
-	tile.name = "PieQuickTile_" + safe_id
-	tile.toggle_mode = true
-	tile.button_pressed = enabled
-	tile.custom_minimum_size = Vector2(47, 47)
-	tile.focus_mode = Control.FOCUS_NONE
-	tile.add_theme_stylebox_override("normal", _pie_quick_tile_style(enabled))
-	tile.add_theme_stylebox_override("hover", _pie_quick_tile_style(enabled))
-	tile.add_theme_stylebox_override("pressed", _pie_quick_tile_style(not enabled))
-	tile.add_theme_stylebox_override("focus", _pie_quick_tile_style(enabled))
-	tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#364152"))
-	tile.add_theme_font_size_override("font_size", 19)
-	tile.text = str(definition.get("glyph", "•"))
-	tile.tooltip_text = setting_id
-	holder.add_child(tile)
-	item.add_child(holder)
-	var label := _label(setting_id, 9, Color("#202B3A"))
-	label.name = "PieQuickTileLabel_" + safe_id
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.y = 18
-	item.add_child(label)
-	tile.toggled.connect(_on_pie_quick_tile_toggled.bind(setting_id, tile, label))
-	parent.add_child(item)
-
-func _on_pie_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button, label: Label) -> void:
-	_quick_setting_states[setting_id] = enabled
-	var style := _pie_quick_tile_style(enabled)
-	if is_instance_valid(tile):
-		for state_name in ["normal", "hover", "pressed", "focus"]:
-			tile.add_theme_stylebox_override(state_name, style)
-		tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#364152"))
-	if is_instance_valid(label):
-		label.add_theme_color_override("font_color", Color("#202B3A") if enabled else Color("#364152"))
-
-func _pie_quick_tile_definitions() -> Array:
-	return [
-		{"id": "Wi-Fi", "glyph": "◉", "enabled": true},
-		{"id": "Bluetooth", "glyph": "ᛒ", "enabled": true},
-		{"id": "Do not disturb", "glyph": "⊖", "enabled": false},
-		{"id": "Airplane mode", "glyph": "✈", "enabled": false},
-		{"id": "Auto-rotate", "glyph": "⟳", "enabled": true},
-		{"id": "Battery saver", "glyph": "▰", "enabled": false},
-		{"id": "Flashlight", "glyph": "☼", "enabled": false},
-		{"id": "Location", "glyph": "⌖", "enabled": true},
-		{"id": "Hotspot", "glyph": "⌁", "enabled": false}
-	]
-
-
-func _add_pie_brightness_slider(parent: Control) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "PieBrightnessPanel"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#FFFFFF")
-	panel_style.border_color = Color("#C7D0DC")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(15)
-	panel_style.content_margin_left = 10
-	panel_style.content_margin_right = 10
-	panel_style.content_margin_top = 6
-	panel_style.content_margin_bottom = 6
-	panel.add_theme_stylebox_override("panel", panel_style)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	row.add_child(_label("☼", 18, Color("#364152")))
-	var slider := HSlider.new()
-	slider.name = "PieBrightnessSlider"
-	slider.min_value = 0
-	slider.max_value = 100
-	slider.value = 72
-	slider.custom_minimum_size.y = 22
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.focus_mode = Control.FOCUS_NONE
-	row.add_child(slider)
-	row.add_child(_label("☀", 14, Color("#364152")))
-	panel.add_child(row)
-	parent.add_child(panel)
-
-func _add_pie_notification_card(parent: Control, app_name: String, message_text: String, time_text: String, icon_text: String, icon_color: Color) -> void:
-	var card := PanelContainer.new()
-	card.name = "PieNotification_" + app_name.replace(" ", "")
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size.y = 54
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color("#FFFFFF")
-	card_style.border_color = Color("#CBD4E1")
-	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(15)
-	card_style.content_margin_left = 10
-	card_style.content_margin_right = 10
-	card_style.content_margin_top = 8
-	card_style.content_margin_bottom = 8
-	card.add_theme_stylebox_override("panel", card_style)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 9)
-	card.add_child(row)
-	var icon_panel := PanelContainer.new()
-	icon_panel.custom_minimum_size = Vector2(30, 30)
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = icon_color
-	icon_style.set_corner_radius_all(15)
-	icon_panel.add_theme_stylebox_override("panel", icon_style)
-	var icon := _label(icon_text, 9, Color.WHITE)
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_panel.add_child(icon)
-	row.add_child(icon_panel)
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 2)
-	var title_row := HBoxContainer.new()
-	var title := _label(app_name, 9, Color("#202124"))
-	title.name = "PieNotificationTitle_" + app_name.replace(" ", "")
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.add_child(title)
-	title_row.add_child(_label(time_text, 8, Color("#5F6B7A")))
-	copy.add_child(title_row)
-	var message := _label(message_text, 9, Color("#344054"))
-	message.name = "PieNotificationMessage_" + app_name.replace(" ", "")
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	copy.add_child(message)
-	row.add_child(copy)
-	parent.add_child(card)
-
-func _apply_android_pie_shade_screen_mask(overlay: Control) -> void:
-	if not is_instance_valid(overlay):
-		return
-	overlay.clip_contents = true
-	var mask := OSScreenCornerMask.new()
-	mask.name = "PieShadeScreenCornerMask"
-	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mask.corner_radius = 22.0
-	mask.mask_color = Color.BLACK
-	mask.mask_bottom_corners = false
-	mask.z_index = 100
-	overlay.add_child(mask)
-
-
-func _make_android_shade_surface(surface_name: String, corner_radius: int = 15) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.name = surface_name
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#FFFFFF")
-	style.border_color = Color("#C9D2DE")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(corner_radius)
-	style.content_margin_left = 9
-	style.content_margin_right = 9
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	panel.add_theme_stylebox_override("panel", style)
-	return panel
-
-
-func _build_android_pie_notification_content(parent: Control) -> void:
-	_add_pie_shade_header(parent)
-	var quick_surface := _make_android_shade_surface("PieNotificationQuickSettingsSurface", 15)
-	var quick_grid := GridContainer.new()
-	quick_grid.name = "PieNotificationQuickSettingsGrid"
-	quick_grid.columns = 3
-	quick_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	quick_grid.add_theme_constant_override("h_separation", 3)
-	quick_grid.add_theme_constant_override("v_separation", 4)
-	for definition in _pie_quick_tile_definitions().slice(0, 6):
-		_add_android_pie_quick_tile(quick_grid, definition)
-	quick_surface.add_child(quick_grid)
-	parent.add_child(quick_surface)
-
-	var heading := HBoxContainer.new()
-	heading.name = "PieNotificationHeadingRow"
-	var notification_heading := _label("Notifications", 11, Color("#202124"))
-	notification_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_child(notification_heading)
-	var manage_button := _make_android_shade_action_button("PieNotificationManageButton", "Manage", "Notification settings")
-	manage_button.pressed.connect(func() -> void:
-		_close_gesture_overlay()
-		_on_app_pressed("Settings")
-	)
-	heading.add_child(manage_button)
-	parent.add_child(heading)
-
-	var notification_surface := _make_android_shade_surface("PieNotificationCardsSurface", 15)
-	var notification_list := VBoxContainer.new()
-	notification_list.name = "PieShadeNotificationList"
-	notification_list.add_theme_constant_override("separation", 6)
-	notification_surface.add_child(notification_list)
-	_add_pie_notification_card(notification_list, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW", "M", Color("#4285F4"))
-	_add_pie_notification_card(notification_list, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
-	_add_pie_notification_card(notification_list, "Android System", "Device is up to date", "EARLIER", "A", Color("#5F6368"))
-	parent.add_child(notification_surface)
-
-	var footer := HBoxContainer.new()
-	footer.name = "PieNotificationFooter"
-	footer.add_theme_constant_override("separation", 6)
-	var footer_hint := _label("Swipe down for all Quick Settings", 8, Color("#344054"))
-	footer_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer.add_child(footer_hint)
-	var clear_button := _make_android_shade_action_button("PieNotificationClearAllButton", "Clear all", "Clear notifications")
-	clear_button.pressed.connect(_clear_notification_group.bind(notification_list, "PieNoNotifications", "No notifications", Color("#344054")))
-	footer.add_child(clear_button)
-	var expand_button := _make_android_shade_action_button("PieNotificationExpandButton", "⌄", "Expand Quick Settings")
-	expand_button.pressed.connect(func() -> void: _show_gesture_overlay("control_center"))
-	footer.add_child(expand_button)
-	parent.add_child(footer)
-
-func _build_android_pie_notification_shade() -> void:
-	var overlay := _create_android_pie_shade("notifications")
-	var body := overlay.find_child("PieShadeContent", true, false) as VBoxContainer
-	if body == null:
-		return
-	_build_android_pie_notification_content(body)
-	_apply_android_pie_shade_screen_mask(overlay)
-
-func _build_android_pie_quick_settings_content(parent: Control) -> void:
-	_add_pie_shade_header(parent)
-	_add_pie_brightness_slider(parent)
-	var heading := _label("Quick Settings", 11, Color("#202124"))
-	heading.name = "PieQuickSettingsHeading"
-	parent.add_child(heading)
-	var quick_surface := _make_android_shade_surface("PieExpandedQuickSettingsSurface", 15)
-	var grid := GridContainer.new()
-	grid.name = "PieExpandedQuickSettingsGrid"
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 3)
-	grid.add_theme_constant_override("v_separation", 5)
-	for definition in _pie_quick_tile_definitions():
-		_add_android_pie_quick_tile(grid, definition)
-	quick_surface.add_child(grid)
-	parent.add_child(quick_surface)
-	var footer := HBoxContainer.new()
-	footer.name = "PieQuickSettingsFooter"
-	footer.custom_minimum_size.y = 34
-	footer.add_theme_constant_override("separation", 6)
-	var page_indicator := _label("●  ○", 8, Color("#475467"))
-	page_indicator.name = "PieQuickSettingsPageIndicator"
-	page_indicator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_indicator.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	footer.add_child(page_indicator)
-	var settings_button := _make_android_shade_action_button("PieQuickSettingsSettingsButton", "⚙  Settings", "Open Settings")
-	settings_button.pressed.connect(func() -> void:
-		_close_gesture_overlay()
-		_on_app_pressed("Settings")
-	)
-	footer.add_child(settings_button)
-	parent.add_child(footer)
-
-func _build_android_pie_quick_settings_shade() -> void:
-	var overlay := _create_android_pie_shade("control_center")
-	var body := overlay.find_child("PieShadeContent", true, false) as VBoxContainer
-	if body == null:
-		return
-	_build_android_pie_quick_settings_content(body)
-	_apply_android_pie_shade_screen_mask(overlay)
-
-func _build_android_pie_notifications_preview() -> void:
-	var panel := PanelContainer.new()
-	panel.name = "PieNotificationPreview"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#DCE3ED")
-	style.border_color = Color("#C9D2DE")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(15)
-	style.content_margin_left = 9
-	style.content_margin_right = 9
-	style.content_margin_top = 9
-	style.content_margin_bottom = 9
-	panel.add_theme_stylebox_override("panel", style)
-	page_container.add_child(panel)
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 7)
-	panel.add_child(body)
-	_build_android_pie_notification_content(body)
-
-func _build_android_pie_control_center_preview() -> void:
-	var panel := PanelContainer.new()
-	panel.name = "PieControlCenterPreview"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#DCE3ED")
-	style.border_color = Color("#C9D2DE")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(15)
-	style.content_margin_left = 9
-	style.content_margin_right = 9
-	style.content_margin_top = 9
-	style.content_margin_bottom = 9
-	panel.add_theme_stylebox_override("panel", style)
-	page_container.add_child(panel)
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 7)
-	panel.add_child(body)
-	_build_android_pie_quick_settings_content(body)
-
-func _build_lollipop_notification_shade() -> void:
-	var overlay := _create_lollipop_shade_overlay("notifications", Color(0.025, 0.045, 0.060, 0.76))
-	var body := _create_lollipop_shade_body(overlay)
-	_build_lollipop_notification_content(body)
-	var hint := _label("Swipe down again for Quick Settings", 9, Color("#CFD8DC"))
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.custom_minimum_size.y = 25
-	body.add_child(hint)
-	_apply_lollipop_shade_screen_mask(overlay)
-
-
-func _build_lollipop_notification_content(parent: Control) -> void:
-	var header := HBoxContainer.new()
-	header.name = "LollipopNotificationHeader"
-	header.add_theme_constant_override("separation", 8)
-	var time_stack := VBoxContainer.new()
-	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var clock_label := _label(_current_lock_time(), 27, Color("#FFFFFF"))
-	clock_label.custom_minimum_size.y = 34
-	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	time_stack.add_child(clock_label)
-	var date_label := _label(_current_lock_date("editorial"), 10, Color("#CFD8DC"))
-	date_label.custom_minimum_size.y = 16
-	date_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	time_stack.add_child(date_label)
-	header.add_child(time_stack)
-
-	var header_status := VBoxContainer.new()
-	header_status.alignment = BoxContainer.ALIGNMENT_CENTER
-	header_status.add_child(_label("100%  ▰", 10, Color("#FFFFFF")))
-	header_status.add_child(_label("Wi-Fi  ·  LTE", 8, Color("#CFD8DC")))
-	header.add_child(header_status)
-	parent.add_child(header)
-
-	var divider := ColorRect.new()
-	divider.name = "LollipopNotificationHeaderDivider"
-	divider.custom_minimum_size.y = 1
-	divider.color = Color(1, 1, 1, 0.22)
-	parent.add_child(divider)
-
-	parent.add_child(_label("NOTIFICATIONS", 10, Color("#ECEFF1")))
-	_add_lollipop_notification_card(parent, "Messages", "A new message is waiting", "NOW", Color("#4285F4"), "M")
-	_add_lollipop_notification_card(parent, "Calendar", "Your next event is coming up", "10 MIN", Color("#0F9D58"), "31")
-	_add_lollipop_notification_card(parent, "Android System", "Your device is up to date", "EARLIER", Color("#78909C"), "A")
-
-
-func _add_lollipop_notification_card(parent: Control, app_name: String, message: String, time_label: String, icon_color: Color, icon_text: String) -> void:
-	var card := PanelContainer.new()
-	var safe_app_id := app_name.replace(" ", "")
-	card.name = "LollipopNotification_" + safe_app_id
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size = Vector2(0, 76)
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color("#FAFAFA")
-	card_style.set_border_width_all(0)
-	card_style.set_corner_radius_all(2)
-	card_style.shadow_color = Color(0, 0, 0, 0.20)
-	card_style.shadow_size = 5
-	card_style.shadow_offset = Vector2(0, 2)
-	card_style.content_margin_left = 10
-	card_style.content_margin_right = 10
-	card_style.content_margin_top = 8
-	card_style.content_margin_bottom = 8
-	card.add_theme_stylebox_override("panel", card_style)
-
-	var row := HBoxContainer.new()
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.custom_minimum_size = Vector2(0, 54)
-	row.add_theme_constant_override("separation", 10)
-	card.add_child(row)
-
-	var icon_holder := CenterContainer.new()
-	icon_holder.custom_minimum_size = Vector2(36, 40)
-	var icon_circle := PanelContainer.new()
-	icon_circle.custom_minimum_size = Vector2(30, 30)
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = icon_color
-	icon_style.set_corner_radius_all(18)
-	icon_circle.add_theme_stylebox_override("panel", icon_style)
-	var icon := _label(icon_text, 12, Color("#FFFFFF"))
-	icon.name = "LollipopNotificationIcon_" + safe_app_id
-	icon.custom_minimum_size = Vector2(30, 30)
-	icon.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	icon.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon.autowrap_mode = TextServer.AUTOWRAP_OFF
-	icon.add_theme_font_override("font", LOCKSCREEN_FONT)
-	icon_circle.add_child(icon)
-	icon_holder.add_child(icon_circle)
-	row.add_child(icon_holder)
-
-	var text_stack := VBoxContainer.new()
-	text_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	text_stack.custom_minimum_size = Vector2(100, 40)
-	text_stack.add_theme_constant_override("separation", 1)
-	var title_row := HBoxContainer.new()
-	title_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.custom_minimum_size.y = 16
-	var app_label := _label(app_name, 10, Color("#455A64"))
-	app_label.name = "LollipopNotificationApp_" + safe_app_id
-	app_label.custom_minimum_size.y = 16
-	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	app_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	app_label.clip_text = true
-	title_row.add_child(app_label)
-	var time := _label(time_label, 8, Color("#78909C"))
-	time.name = "LollipopNotificationTime_" + safe_app_id
-	time.custom_minimum_size.y = 16
-	time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	time.autowrap_mode = TextServer.AUTOWRAP_OFF
-	title_row.add_child(time)
-	text_stack.add_child(title_row)
-	var message_label := _label(message, 11, Color("#263238"))
-	message_label.name = "LollipopNotificationMessage_" + safe_app_id
-	message_label.custom_minimum_size.y = 19
-	message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.clip_text = false
-	text_stack.add_child(message_label)
-	row.add_child(text_stack)
-	parent.add_child(card)
-
-func _build_lollipop_quick_settings_shade() -> void:
-	var overlay := _create_lollipop_shade_overlay("control_center", Color("#263238"))
-	var body := _create_lollipop_shade_body(overlay)
-	_build_lollipop_quick_settings_content(body, true)
-	_apply_lollipop_shade_screen_mask(overlay)
-
-
-func _apply_lollipop_shade_screen_mask(overlay: Control) -> void:
-	if not is_instance_valid(overlay):
-		return
-	overlay.clip_contents = true
-	var mask := OSScreenCornerMask.new()
-	mask.name = "LollipopShadeScreenCornerMask"
-	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mask.corner_radius = 22.0
-	mask.mask_color = Color.BLACK
-	mask.mask_bottom_corners = false
-	mask.z_index = 100
-	overlay.add_child(mask)
-
-
-func _build_lollipop_quick_settings_content(parent: Control, include_notifications: bool) -> void:
-	var header := PanelContainer.new()
-	header.name = "LollipopQuickSettingsHeader"
-	var header_style := StyleBoxFlat.new()
-	header_style.bg_color = Color("#37474F")
-	header_style.set_border_width_all(0)
-	header_style.set_corner_radius_all(2)
-	header_style.content_margin_left = 10
-	header_style.content_margin_right = 8
-	header_style.content_margin_top = 8
-	header_style.content_margin_bottom = 8
-	header.add_theme_stylebox_override("panel", header_style)
-
-	var header_row := HBoxContainer.new()
-	header_row.add_theme_constant_override("separation", 8)
-	var time_stack := VBoxContainer.new()
-	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var clock_label := _label(_current_lock_time(), 26, Color("#FFFFFF"))
-	clock_label.custom_minimum_size.y = 32
-	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	time_stack.add_child(clock_label)
-	var date_label := _label(_current_lock_date("editorial"), 10, Color("#CFD8DC"))
-	date_label.custom_minimum_size.y = 16
-	date_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	time_stack.add_child(date_label)
-	header_row.add_child(time_stack)
-
-	var header_actions := VBoxContainer.new()
-	header_actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	var battery_label := _label("100%  ▰", 10, Color("#FFFFFF"))
-	battery_label.custom_minimum_size.y = 16
-	battery_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	header_actions.add_child(battery_label)
-	var settings_button := Button.new()
-	settings_button.name = "LollipopQuickSettingsOpenSettings"
-	settings_button.text = "⚙"
-	settings_button.tooltip_text = "Settings"
-	settings_button.custom_minimum_size = Vector2(36, 32)
-	settings_button.focus_mode = Control.FOCUS_NONE
-	settings_button.add_theme_font_size_override("font_size", 17)
-	var settings_style := StyleBoxFlat.new()
-	settings_style.bg_color = Color(1, 1, 1, 0.08)
-	settings_style.set_corner_radius_all(2)
-	settings_button.add_theme_stylebox_override("normal", settings_style)
-	settings_button.add_theme_stylebox_override("hover", settings_style)
-	settings_button.add_theme_stylebox_override("pressed", settings_style)
-	settings_button.add_theme_color_override("font_color", Color("#FFFFFF"))
-	settings_button.pressed.connect(func() -> void:
-		_close_gesture_overlay()
-		_on_app_pressed("Settings")
-	)
-	header_actions.add_child(settings_button)
-	header_row.add_child(header_actions)
-	header.add_child(header_row)
-	parent.add_child(header)
-
-	var brightness_panel := PanelContainer.new()
-	brightness_panel.name = "LollipopBrightnessPanel"
-	var brightness_style := StyleBoxFlat.new()
-	brightness_style.bg_color = Color("#37474F")
-	brightness_style.set_border_width_all(0)
-	brightness_style.set_corner_radius_all(2)
-	brightness_style.content_margin_left = 10
-	brightness_style.content_margin_right = 10
-	brightness_style.content_margin_top = 7
-	brightness_style.content_margin_bottom = 7
-	brightness_panel.add_theme_stylebox_override("panel", brightness_style)
-	var brightness_row := HBoxContainer.new()
-	brightness_row.add_theme_constant_override("separation", 8)
-	var brightness_low := _label("☼", 20, Color("#FFFFFF"))
-	brightness_low.custom_minimum_size = Vector2(24, 28)
-	brightness_low.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	brightness_low.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	brightness_row.add_child(brightness_low)
-	var brightness_slider := HSlider.new()
-	brightness_slider.name = "LollipopBrightnessSlider"
-	brightness_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	brightness_slider.min_value = 0
-	brightness_slider.max_value = 100
-	brightness_slider.value = 72
-	brightness_slider.custom_minimum_size.y = 24
-	brightness_slider.focus_mode = Control.FOCUS_NONE
-	var slider_track := StyleBoxFlat.new()
-	slider_track.bg_color = Color("#607D8B")
-	slider_track.set_corner_radius_all(4)
-	slider_track.content_margin_top = 3
-	slider_track.content_margin_bottom = 3
-	brightness_slider.add_theme_stylebox_override("slider", slider_track)
-	var slider_active := StyleBoxFlat.new()
-	slider_active.bg_color = Color("#B0BEC5")
-	slider_active.set_corner_radius_all(4)
-	brightness_slider.add_theme_stylebox_override("grabber_area", slider_active)
-	brightness_slider.add_theme_stylebox_override("grabber_area_highlight", slider_active)
-	brightness_row.add_child(brightness_slider)
-	var brightness_high := _label("☀", 15, Color("#FFFFFF"))
-	brightness_high.custom_minimum_size = Vector2(24, 28)
-	brightness_high.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	brightness_high.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	brightness_row.add_child(brightness_high)
-	brightness_panel.add_child(brightness_row)
-	parent.add_child(brightness_panel)
-
-	var grid := GridContainer.new()
-	grid.name = "LollipopQuickSettingsGrid" if _gesture_overlay != null else "QuickSettingsGrid"
-	grid.columns = 3 if size.x >= 250.0 else 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 4)
-	grid.add_theme_constant_override("v_separation", 4)
-	parent.add_child(grid)
-	var tile_definitions := [
-		{"id": "Wi-Fi", "glyph": "◉", "enabled": true},
-		{"id": "Bluetooth", "glyph": "ᛒ", "enabled": true},
-		{"id": "Airplane mode", "glyph": "✈", "enabled": false},
-		{"id": "Auto-rotate", "glyph": "⟳", "enabled": true},
-		{"id": "Flashlight", "glyph": "☼", "enabled": false},
-		{"id": "Location", "glyph": "⌖", "enabled": true},
-		{"id": "Cast screen", "glyph": "▣", "enabled": false},
-		{"id": "Hotspot", "glyph": "⌁", "enabled": false},
-		{"id": "Battery saver", "glyph": "▰", "enabled": false}
-	]
-	for definition in tile_definitions:
-		_add_lollipop_quick_setting_tile(grid, definition)
-
-	if include_notifications:
-		var notification_heading := _label("NOTIFICATIONS", 10, Color("#CFD8DC"))
-		notification_heading.custom_minimum_size.y = 22
-		parent.add_child(notification_heading)
-		_add_lollipop_notification_card(parent, "Messages", "A new message is waiting", "NOW", Color("#4285F4"), "M")
-		_add_lollipop_notification_card(parent, "Calendar", "Your next event is coming up", "10 MIN", Color("#0F9D58"), "31")
-
-
-func _add_lollipop_quick_setting_tile(parent: GridContainer, definition: Dictionary) -> void:
-	var setting_id := str(definition.get("id", ""))
-	var safe_setting_id := setting_id.replace(" ", "")
-	var tile := Button.new()
-	tile.name = "LollipopQuickTile_" + safe_setting_id
-	tile.toggle_mode = true
-	tile.focus_mode = Control.FOCUS_NONE
-	tile.mouse_filter = Control.MOUSE_FILTER_STOP
-	tile.custom_minimum_size = Vector2(0, 72)
-	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tile.text = ""
-
-	var enabled := bool(_quick_setting_states.get(setting_id, definition.get("enabled", false)))
-	var enabled_style := StyleBoxFlat.new()
-	enabled_style.bg_color = Color("#455A64")
-	enabled_style.border_color = Color("#78909C")
-	enabled_style.set_border_width_all(1)
-	enabled_style.set_corner_radius_all(2)
-	enabled_style.content_margin_left = 3
-	enabled_style.content_margin_right = 3
-	enabled_style.content_margin_top = 4
-	enabled_style.content_margin_bottom = 4
-	var disabled_style := StyleBoxFlat.new()
-	disabled_style.bg_color = Color("#37474F")
-	disabled_style.border_color = Color("#546E7A")
-	disabled_style.set_border_width_all(1)
-	disabled_style.set_corner_radius_all(2)
-	disabled_style.content_margin_left = 3
-	disabled_style.content_margin_right = 3
-	disabled_style.content_margin_top = 4
-	disabled_style.content_margin_bottom = 4
-	tile.add_theme_stylebox_override("normal", enabled_style if enabled else disabled_style)
-	tile.add_theme_stylebox_override("hover", enabled_style if enabled else disabled_style)
-	tile.add_theme_stylebox_override("pressed", enabled_style if enabled else disabled_style)
-	tile.add_theme_stylebox_override("focus", enabled_style if enabled else disabled_style)
-
-	var tile_stack := VBoxContainer.new()
-	tile_stack.name = "LollipopQuickTileContent_" + safe_setting_id
-	tile_stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	tile_stack.add_theme_constant_override("separation", 1)
-	tile_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	tile_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var icon_label := _label(str(definition.get("glyph", "•")), 22, Color("#FFFFFF") if enabled else Color("#B0BEC5"))
-	icon_label.name = "LollipopQuickTileIcon_" + safe_setting_id
-	icon_label.custom_minimum_size = Vector2(0, 30)
-	icon_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	tile_stack.add_child(icon_label)
-	var title_label := _label(setting_id, 9, Color("#FFFFFF") if enabled else Color("#B0BEC5"))
-	title_label.name = "LollipopQuickTileLabel_" + safe_setting_id
-	title_label.custom_minimum_size = Vector2(0, 18)
-	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title_label.clip_text = false
-	tile_stack.add_child(title_label)
-	tile.add_child(tile_stack)
-	tile.button_pressed = enabled
-	tile.toggled.connect(_on_lollipop_quick_setting_toggled.bind(setting_id, icon_label, title_label, tile, enabled_style, disabled_style))
-	parent.add_child(tile)
-
-
-func _on_lollipop_quick_setting_toggled(enabled: bool, setting_id: String, icon_label: Label, title_label: Label, tile: Button, enabled_style: StyleBoxFlat, disabled_style: StyleBoxFlat) -> void:
-	_quick_setting_states[setting_id] = enabled
-	var selected_style: StyleBoxFlat = enabled_style if enabled else disabled_style
-	if is_instance_valid(tile):
-		tile.add_theme_stylebox_override("normal", selected_style)
-		tile.add_theme_stylebox_override("hover", selected_style)
-		tile.add_theme_stylebox_override("pressed", selected_style)
-		tile.add_theme_stylebox_override("focus", selected_style)
-	if is_instance_valid(icon_label):
-		icon_label.add_theme_color_override("font_color", Color("#FFFFFF") if enabled else Color("#B0BEC5"))
-	if is_instance_valid(title_label):
-		title_label.add_theme_color_override("font_color", Color("#FFFFFF") if enabled else Color("#B0BEC5"))
-
-func _build_gesture_control_center(parent: VBoxContainer) -> void:
-	var subtitle := _label("Manage connections and device controls", 8, _muted_color())
-	parent.add_child(subtitle)
-	var grid := GridContainer.new()
-	grid.name = "GestureQuickSettingsGrid"
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 6)
-	parent.add_child(grid)
-	var items := [
-		["Wi-Fi", "◉", true], ["Bluetooth", "ᛒ", true],
-		["Mobile data", "▥", true], ["Airplane mode", "✈", false],
-		["Flashlight", "☼", false], ["Location", "⌖", true],
-		["Do not disturb", "◐", false], ["Battery saver", "▰", false],
-		["Auto-rotate", "⟳", true], ["Hotspot", "⌁", false],
-		["NFC", "◈", false], ["Nearby Share", "↗", false]
-	]
-	for item in items:
-		var tile := Button.new()
-		tile.name = "GestureQuickTile_" + str(item[0]).replace(" ", "")
-		tile.text = str(item[1]) + "  " + str(item[0])
-		tile.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		tile.toggle_mode = true
-		tile.button_pressed = bool(item[2])
-		tile.custom_minimum_size.y = 40
-		var tile_style := StyleBoxFlat.new()
-		tile_style.bg_color = Color("#D8EDF5") if tile.button_pressed else Color("#ECEFF1")
-		tile_style.set_corner_radius_all(3)
-		for state_name in ["normal", "hover", "pressed", "focus"]:
-			tile.add_theme_stylebox_override(state_name, tile_style)
-		tile.add_theme_color_override("font_color", Color("#263238"))
-		tile.toggled.connect(func(enabled: bool) -> void:
-			tile_style.bg_color = Color("#D8EDF5") if enabled else Color("#ECEFF1")
-		)
-		grid.add_child(tile)
-	var media := PanelContainer.new()
-	media.name = "GestureMediaCard"
-	_style_surface(media, true)
-	var media_row := HBoxContainer.new()
-	media.add_child(media_row)
-	var media_text := VBoxContainer.new()
-	media_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	media_text.add_child(_label("NOW PLAYING", 7, _accent_color()))
-	media_text.add_child(_label("No media playing", 8, _text_color()))
-	media_row.add_child(media_text)
-	media_row.add_child(_label("◀   ▶   ▷", 10, _text_color()))
-	parent.add_child(media)
-	_add_gesture_slider(parent, "Brightness", 72)
-	_add_gesture_slider(parent, "Volume", 58)
-
-func _add_gesture_slider(parent: VBoxContainer, caption: String, initial_value: float) -> void:
-	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
-	row.add_child(_label(caption, 8, _muted_color()))
-	var slider := HSlider.new()
-	slider.name = "Gesture" + caption.replace(" ", "") + "Slider"
-	slider.min_value = 0
-	slider.max_value = 100
-	slider.value = initial_value
-	slider.custom_minimum_size.y = 18
-	row.add_child(slider)
-	parent.add_child(row)
-
-
-func _build_gesture_notifications(parent: VBoxContainer) -> void:
-	var clock := _label(_current_lock_time(), 26, Color("#263238"))
-	parent.add_child(clock)
-	parent.add_child(_label(_current_lock_date("minimal"), 9, Color("#607D8B")))
-	var quick_hint := _label("Swipe down again for Quick Settings", 8, Color("#78909C"))
-	parent.add_child(quick_hint)
-	for item in [
-		{"app": "Messages", "message": "A new message is waiting", "time": "NOW"},
-		{"app": "Calendar", "message": "Your next event is coming up", "time": "10 MIN"},
-		{"app": "System", "message": "Your device is up to date", "time": "EARLIER"}
-	]:
-		var notification_panel := PanelContainer.new()
-		notification_panel.name = "GestureNotification_" + str(item["app"])
-		var notification_style := StyleBoxFlat.new()
-		notification_style.bg_color = Color("#FFFFFF")
-		notification_style.set_corner_radius_all(2)
-		notification_style.shadow_color = Color(0, 0, 0, 0.10)
-		notification_style.shadow_size = 2
-		notification_panel.add_theme_stylebox_override("panel", notification_style)
-		var body := VBoxContainer.new()
-		body.add_child(_label(str(item["app"]) + "  ·  " + str(item["time"]), 8, Color("#607D8B")))
-		body.add_child(_label(str(item["message"]), 10, Color("#263238")))
-		notification_panel.add_child(body)
-		parent.add_child(notification_panel)
-
-
-func _build_gesture_recent_apps(parent: VBoxContainer) -> void:
-	for app_name in _recent_app_names:
-		var open_button := Button.new()
-		open_button.name = "GestureRecentApp_" + app_name.replace(" ", "")
-		open_button.text = app_name
-		open_button.pressed.connect(func() -> void:
-			_close_gesture_overlay()
-			_on_app_pressed(app_name)
-		)
-		parent.add_child(open_button)
-
-
-func _build_android_pie_overview() -> void:
-	# Android 9 recents uses a horizontal carousel of large app snapshots.
-	# Rebuild the carousel in place after dismissals to avoid flashing the launcher.
-	var replacing_overview := _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps"
-	if replacing_overview:
-		_gesture_overlay.queue_free()
-		_gesture_overlay = null
-		var old_footer := find_child("PieOverviewNavigationFooter", true, false) as Control
-		if is_instance_valid(old_footer):
-			old_footer.queue_free()
-	else:
-		_close_gesture_overlay()
-		_set_samsung_gen1_overview_underlay_visible(false)
-
-	var overlay := Control.new()
-	overlay.name = "OSGestureOverlay_recent_apps"
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.offset_bottom = -54.0
-	overlay.clip_contents = true
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(overlay)
-	_gesture_overlay = overlay
-
-	var original_navigation := find_child("PieNavigationBar", true, false) as Control
-	if is_instance_valid(original_navigation):
-		original_navigation.visible = false
-	var navigation_footer := VBoxContainer.new()
-	navigation_footer.name = "PieOverviewNavigationFooter"
-	navigation_footer.anchor_left = 0.0
-	navigation_footer.anchor_right = 1.0
-	navigation_footer.anchor_top = 1.0
-	navigation_footer.anchor_bottom = 1.0
-	navigation_footer.offset_left = 0.0
-	navigation_footer.offset_right = 0.0
-	navigation_footer.offset_top = -46.0
-	navigation_footer.offset_bottom = 0.0
-	navigation_footer.z_as_relative = false
-	navigation_footer.z_index = 100
-	add_child(navigation_footer)
-	_build_android_navigation(navigation_footer, false, false, true, true)
-
-	var backdrop := ColorRect.new()
-	backdrop.name = "PieOverviewBackdrop"
-	backdrop.color = Color(0.035, 0.055, 0.09, 0.24)
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(backdrop)
-
-	var content := VBoxContainer.new()
-	content.name = "PieOverviewContent"
-	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.add_theme_constant_override("separation", 7)
-	content.add_theme_constant_override("margin_left", 10)
-	content.add_theme_constant_override("margin_right", 10)
-	content.add_theme_constant_override("margin_top", 12)
-	content.add_theme_constant_override("margin_bottom", 4)
-	overlay.add_child(content)
-
-	var carousel := ScrollContainer.new()
-	carousel.name = "PieRecentAppsCarousel"
-	carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	carousel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	carousel.scroll_deadzone = 8
-	content.add_child(carousel)
-	var row := HBoxContainer.new()
-	row.name = "PieRecentAppsRow"
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 10)
-	carousel.add_child(row)
-
-	if _recent_app_names.is_empty():
-		var empty_state := CenterContainer.new()
-		empty_state.name = "PieRecentAppsEmptyState"
-		empty_state.custom_minimum_size = Vector2(maxf(120.0, size.x - 24.0), size.y * 0.48)
-		empty_state.add_child(_label("No recent apps", 12, Color("#FFFFFF")))
-		row.add_child(empty_state)
-	else:
-		for app_name in _recent_app_names:
-			var app := _find_app(app_name)
-			if app.is_empty():
-				continue
-			var card := Button.new()
-			card.name = "PieRecentAppsCard_" + app_name.replace(" ", "")
-			card.text = ""
-			card.custom_minimum_size = Vector2(clampf(size.x * 0.72, 190.0, 290.0), maxf(210.0, size.y * 0.62))
-			card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			card.focus_mode = Control.FOCUS_NONE
-			card.clip_contents = true
-			var card_style := StyleBoxFlat.new()
-			card_style.bg_color = Color("#FFFFFF")
-			card_style.set_corner_radius_all(15)
-			card_style.set_border_width_all(0)
-			card_style.shadow_color = Color(0, 0, 0, 0.25)
-			card_style.shadow_size = 8
-			card_style.shadow_offset = Vector2(0, 3)
-			for state_name in ["normal", "hover", "pressed", "focus"]:
-				card.add_theme_stylebox_override(state_name, card_style)
-			card.pressed.connect(func() -> void:
-				_close_gesture_overlay()
-				_on_app_pressed(app_name)
-			)
-			row.add_child(card)
-
-			var card_content := VBoxContainer.new()
-			card_content.name = "PieRecentAppsCardContent_" + app_name.replace(" ", "")
-			card_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			card_content.add_theme_constant_override("separation", 0)
-			card_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(card_content)
-
-			var card_header := HBoxContainer.new()
-			card_header.name = "PieRecentAppsCardHeader_" + app_name.replace(" ", "")
-			card_header.custom_minimum_size.y = 39
-			card_header.add_theme_constant_override("separation", 8)
-			var app_icon := _label(str(app.get("glyph", "•")), 18, Color(str(app.get("color", "#4285F4"))))
-			app_icon.custom_minimum_size.x = 24
-			app_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			card_header.add_child(app_icon)
-			var app_title := _label(app_name, 11, Color("#202124"))
-			app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			app_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			card_header.add_child(app_title)
-			card_content.add_child(card_header)
-
-			var preview_background := ColorRect.new()
-			preview_background.name = "PieRecentAppsSnapshot_" + app_name.replace(" ", "")
-			preview_background.color = Color("#FFFFFF")
-			preview_background.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			preview_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card_content.add_child(preview_background)
-			var preview := VBoxContainer.new()
-			preview.position = Vector2(10, 7)
-			preview.size = Vector2(card.custom_minimum_size.x - 20, card.custom_minimum_size.y - 55)
-			preview.add_theme_constant_override("separation", 6)
-			preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			preview_background.add_child(preview)
-			_build_samsung_gen1_overview_preview(preview, app_name)
-
-	var clear_all := Button.new()
-	clear_all.name = "PieRecentAppsClearAll"
-	clear_all.text = "Clear all"
-	clear_all.custom_minimum_size = Vector2(75, 42)
-	clear_all.focus_mode = Control.FOCUS_NONE
-	clear_all.add_theme_color_override("font_color", Color("#FFFFFF"))
-	clear_all.add_theme_font_size_override("font_size", 10)
-	clear_all.pressed.connect(_clear_pie_overview_tasks)
-	row.add_child(clear_all)
-
-	var search := PanelContainer.new()
-	search.name = "PieOverviewSearchBar"
-	search.custom_minimum_size.y = 37
-	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var search_style := StyleBoxFlat.new()
-	search_style.bg_color = Color("#F1F3F4")
-	search_style.set_corner_radius_all(20)
-	search_style.set_border_width_all(0)
-	search_style.content_margin_left = 12
-	search_style.content_margin_right = 12
-	search_style.content_margin_top = 3
-	search_style.content_margin_bottom = 3
-	search.add_theme_stylebox_override("panel", search_style)
-	var search_row := HBoxContainer.new()
-	search_row.add_theme_constant_override("separation", 7)
-	search_row.add_child(_label("G", 18, Color("#4285F4")))
-	var search_text := _label("Search", 9, Color("#5F6368"))
-	search_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	search_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	search_row.add_child(search_text)
-	search_row.add_child(_label("●", 9, Color("#4285F4")))
-	search.add_child(search_row)
-	content.add_child(search)
-
-
-func _dismiss_pie_overview_top_card() -> void:
-	if not _recent_app_names.is_empty():
-		_dismiss_pie_overview_task(_recent_app_names[0])
-
-
-func _dismiss_pie_overview_task(app_name: String) -> void:
-	if not _recent_app_names.has(app_name):
-		return
-	_recent_app_names.erase(app_name)
-	var card := find_child("PieRecentAppsCard_" + app_name.replace(" ", ""), true, false) as Control
-	if is_instance_valid(card):
-		card.queue_free()
-	if _recent_app_names.is_empty():
-		# Rebuild the active Pie Overview with its dedicated empty-state surface.
-		# This keeps the overlay and navigation footer alive after the final card
-		# is dismissed instead of allowing the gesture handler to fall back home.
-		_build_android_pie_overview()
-
-
-func _clear_pie_overview_tasks() -> void:
-	_recent_app_names.clear()
-	var row := find_child("PieRecentAppsRow", true, false) as HBoxContainer
-	if not is_instance_valid(row):
-		return
-	for child in row.get_children():
-		if child.name.begins_with("PieRecentAppsCard_") or child.name == "PieRecentAppsClearAll":
-			child.queue_free()
-	_set_pie_overview_empty_state()
-
-
-func _set_pie_overview_empty_state() -> void:
-	# Scope lookups to the active Overview so stale or unrelated preview nodes
-	# cannot prevent the empty state from appearing after the final task is dismissed.
-	var overlay := _gesture_overlay as Control
-	if not is_instance_valid(overlay) or overlay.name != "OSGestureOverlay_recent_apps":
-		overlay = find_child("OSGestureOverlay_recent_apps", true, false) as Control
-	if not is_instance_valid(overlay):
-		return
-	var row := overlay.find_child("PieRecentAppsRow", true, false) as HBoxContainer
-	if not is_instance_valid(row) or is_instance_valid(row.find_child("PieRecentAppsEmptyState", false, false)):
-		return
-	var clear_all := row.find_child("PieRecentAppsClearAll", false, false) as Control
-	if is_instance_valid(clear_all):
-		clear_all.queue_free()
-	var empty_state := CenterContainer.new()
-	empty_state.name = "PieRecentAppsEmptyState"
-	empty_state.custom_minimum_size = Vector2(maxf(120.0, size.x - 24.0), size.y * 0.48)
-	empty_state.add_child(_label("No recent apps", 12, Color("#FFFFFF")))
-	row.add_child(empty_state)
-
-
-func _build_android_pie_recent_apps_preview() -> void:
-	var note := _label("ANDROID 9 RECENT APPS", 9, Color("#5F6368"))
-	note.name = "PieRecentAppsPreviewHeading"
-	page_container.add_child(note)
-	var preview := HBoxContainer.new()
-	preview.name = "PieRecentAppsPreviewCards"
-	preview.add_theme_constant_override("separation", 6)
-	for app_name in ["Settings", "Messages", "Camera"]:
-		var card := PanelContainer.new()
-		card.name = "PieRecentAppsPreview_" + app_name
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#FFFFFF")
-		style.set_corner_radius_all(12)
-		style.set_border_width_all(0)
-		card.add_theme_stylebox_override("panel", style)
-		var body := VBoxContainer.new()
-		body.add_child(_label(app_name, 8, Color("#202124")))
-		body.add_child(_label("App snapshot", 7, Color("#5F6368")))
-		card.add_child(body)
-		preview.add_child(card)
-	page_container.add_child(preview)
-	page_container.add_child(_label("Swipe a card up to dismiss it", 8, Color("#5F6368")))
-
 
 func _build_samsung_gen1_overview() -> void:
 	# Rebuild the task deck without running the normal close path. The close
@@ -2501,9 +502,9 @@ func _build_samsung_gen1_overview() -> void:
 	overview_navigation_footer.z_as_relative = false
 	overview_navigation_footer.z_index = 100
 	add_child(overview_navigation_footer)
-	_build_android_navigation(overview_navigation_footer, true)
+	_build_android_navigation(overview_navigation_footer)
 
-	# Lollipop Overview sits over the launcher wallpaper, not a solid panel.
+	# Samsung Gen 1 Overview sits over the launcher wallpaper, not a solid panel.
 	var background := ColorRect.new()
 	background.name = "SamsungGen1OverviewBackground"
 	background.color = Color(0.0, 0.0, 0.0, 0.035)
@@ -2558,7 +559,7 @@ func _build_samsung_gen1_overview() -> void:
 		empty_label.add_theme_font_size_override("font_size", 13)
 		empty_label.add_theme_color_override("font_color", Color("#FFFFFF"))
 		overlay.add_child(empty_label)
-		_apply_lollipop_shade_screen_mask(overlay)
+		_apply_gen1_screen_corner_mask(overlay)
 		return
 
 	# The newest task is the foreground card at the bottom of the deck.
@@ -2659,8 +660,7 @@ func _build_samsung_gen1_overview() -> void:
 		card.add_child(preview_content)
 		_build_samsung_gen1_overview_preview(preview_content, app_name)
 
-	_apply_lollipop_shade_screen_mask(overlay)
-
+	_apply_gen1_screen_corner_mask(overlay)
 
 func _samsung_gen1_overview_card_style(background_color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -2671,7 +671,6 @@ func _samsung_gen1_overview_card_style(background_color: Color) -> StyleBoxFlat:
 	style.shadow_offset = Vector2(0.0, 3.0)
 	style.set_border_width_all(0)
 	return style
-
 
 func _samsung_gen1_overview_app_color(app_name: String) -> Color:
 	match app_name:
@@ -2698,7 +697,6 @@ func _samsung_gen1_overview_app_color(app_name: String) -> Color:
 		_:
 			var app := _find_app(app_name)
 			return Color(str(app.get("color", "#607D8B")))
-
 
 func _build_samsung_gen1_overview_preview(parent: VBoxContainer, app_name: String) -> void:
 	var status_line := _label("9:41  ·  " + app_name.to_upper(), 8, Color("#78909C"))
@@ -2761,7 +759,6 @@ func _build_samsung_gen1_overview_preview(parent: VBoxContainer, app_name: Strin
 				preview_line.custom_minimum_size = Vector2(0.0, 4.0)
 				parent.add_child(preview_line)
 
-
 func _add_samsung_gen1_overview_preview_row(parent: VBoxContainer, primary_text: String, secondary_text: String, avatar_color: Color) -> void:
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.y = 38.0
@@ -2780,17 +777,10 @@ func _add_samsung_gen1_overview_preview_row(parent: VBoxContainer, primary_text:
 	row.add_child(copy)
 	parent.add_child(row)
 
-
 func _set_samsung_gen1_overview_underlay_visible(should_show: bool) -> void:
 	var component_content := find_child("OSComponentContent", true, false) as Control
 	if is_instance_valid(component_content):
 		component_content.visible = should_show
-	for dock_name in ["HomeAppDockIcons", "PieHomeDockIcons", "PieHomeGoogleSearchBar"]:
-		var home_dock := find_child(dock_name, true, false) as Control
-		if is_instance_valid(home_dock):
-			home_dock.visible = should_show
-
-
 func _samsung_gen1_overview_preview_text(app_name: String) -> String:
 	match app_name:
 		"Messages":
@@ -2806,82 +796,21 @@ func _samsung_gen1_overview_preview_text(app_name: String) -> String:
 		_:
 			return app_name + " application preview"
 
-
-func _advance_overview_deck(move_to_back: bool) -> void:
-	if _recent_app_names.size() < 2:
-		return
-	if move_to_back:
-		_recent_app_names.push_back(_recent_app_names.pop_front())
-	else:
-		_recent_app_names.push_front(_recent_app_names.pop_back())
-	_build_samsung_gen1_overview()
-
-
-func _dismiss_overview_top_card() -> void:
-	if not _recent_app_names.is_empty():
-		_dismiss_overview_task(_recent_app_names[0])
-
-
-func _dismiss_overview_task(app_name: String) -> void:
-	_recent_app_names.erase(app_name)
-	# Keep the active Overview overlay and navigation footer alive. Removing
-	# only the dismissed task avoids destroying the close button's own parent
-	# while its pressed signal is being dispatched.
-	var task_card_name := "SamsungGen1OverviewTask_" + app_name.replace(" ", "")
-	var task_card := find_child(task_card_name, true, false) as Control
-	if is_instance_valid(task_card):
-		task_card.queue_free()
-	var overlay := find_child("OSGestureOverlay_recent_apps", true, false) as Control
-	if not is_instance_valid(overlay):
-		_build_samsung_gen1_overview()
-		return
-	if _recent_app_names.is_empty():
-		var empty_label := Label.new()
-		empty_label.name = "SamsungGen1OverviewEmptyState"
-		empty_label.text = "No recent apps"
-		empty_label.position = Vector2(18.0, 88.0)
-		empty_label.add_theme_font_size_override("font_size", 13)
-		empty_label.add_theme_color_override("font_color", Color("#FFFFFF"))
-		overlay.add_child(empty_label)
-		return
-	var visible_count := mini(_recent_app_names.size(), 6)
-	var card_width := maxf(140.0, size.x - 22.0)
-	var base_x := (size.x - card_width) * 0.5
-	var base_y := 82.0
-	var stack_step := 29.0
-	for index in range(visible_count):
-		var remaining_name := _recent_app_names[index]
-		var remaining_card := find_child("SamsungGen1OverviewTask_" + remaining_name.replace(" ", ""), true, false) as Control
-		if not is_instance_valid(remaining_card):
-			continue
-		var depth := visible_count - 1 - index
-		remaining_card.position = Vector2(base_x, base_y + float(depth) * stack_step)
-		remaining_card.z_index = visible_count - index
-
-
 func _close_gesture_overlay() -> void:
 	var was_recent_apps := _gesture_overlay != null and is_instance_valid(_gesture_overlay) and _gesture_overlay.name == "OSGestureOverlay_recent_apps"
-	var was_pie_overview := was_recent_apps and int(configuration.get("generation", 2)) == 3
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		_gesture_overlay.queue_free()
-	_gesture_overlay = null
+		_gesture_overlay = null
 	if was_recent_apps:
-		var footer_name := "PieOverviewNavigationFooter" if was_pie_overview else "SamsungGen1OverviewNavigationFooter"
-		var overview_navigation_footer := find_child(footer_name, true, false) as Control
+		var overview_navigation_footer := find_child("SamsungGen1OverviewNavigationFooter", true, false) as Control
 		if is_instance_valid(overview_navigation_footer):
 			overview_navigation_footer.queue_free()
-		var nav_name := "PieNavigationBar" if was_pie_overview else "AndroidNavigationBar"
-		var original_navigation_bar := find_child(nav_name, true, false) as Control
+		var original_navigation_bar := find_child("AndroidNavigationBar", true, false) as Control
 		if is_instance_valid(original_navigation_bar):
 			original_navigation_bar.visible = true
 		_set_samsung_gen1_overview_underlay_visible(true)
-
-
 func _ready() -> void:
 	LOCKSCREEN_FONT = load("res://assets/fonts/STIXTwoText[wght].ttf") as FontFile
-	LOCKSCREEN_CAMERA_TEXTURE = load("res://assets/os/lockscreen/camera.svg") as Texture2D
-	LOCKSCREEN_FLASHLIGHT_TEXTURE = load("res://assets/os/lockscreen/flashlight.svg") as Texture2D
-	LOCKSCREEN_LOCK_TEXTURE = load("res://assets/os/lockscreen/lock.svg") as Texture2D
 	STATUS_CELLULAR_TEXTURE = load("res://assets/os/lockscreen/status_cellular.svg") as Texture2D
 	STATUS_WIFI_TEXTURE = load("res://assets/os/lockscreen/status_wifi.svg") as Texture2D
 	STATUS_BATTERY_TEXTURE = load("res://assets/os/lockscreen/status_battery.svg") as Texture2D
@@ -2939,7 +868,6 @@ func update_configuration(os_configuration: Dictionary) -> void:
 	if is_inside_tree():
 		_build_shell()
 
-
 func set_home_screen_corner_radius(value: float) -> void:
 	var next_radius := clampi(roundi(value), 0, 24)
 	if next_radius == _home_screen_corner_radius:
@@ -2950,7 +878,6 @@ func set_home_screen_corner_radius(value: float) -> void:
 	for style in _home_screen_radius_styleboxes:
 		if is_instance_valid(style):
 			style.set_corner_radius_all(_home_screen_corner_radius)
-
 
 func _register_home_screen_radius_style(style: StyleBoxFlat) -> void:
 	if style != null and not _home_screen_radius_styleboxes.has(style):
@@ -2974,7 +901,6 @@ func _apply_home_screen_icon_styles() -> void:
 			if dock_button != null:
 				_style_home_app_icon(dock_button)
 
-
 func _safe_component_id(component_id: String) -> String:
 	if component_id == "pin_input":
 		return component_id
@@ -2983,20 +909,15 @@ func _safe_component_id(component_id: String) -> String:
 			return component_id
 	return "home_screen"
 
-
 func _is_android_os() -> bool:
-	var layout_style := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel"))
-	return layout_style == "android_pixel"
-
+	return str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
 
 func _is_gen1_samsung_ui() -> bool:
 	return _is_android_os() and int(configuration.get("generation", 0)) == 1
 
-
 func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
 	var target_component := active_component if component_id.is_empty() else component_id
 	return _is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component)
-
 
 func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> TextureRect:
 	var filename := str(SAMSUNG_GEN1_SCREEN_ASSETS.get(component_id, ""))
@@ -3023,17 +944,13 @@ func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> Text
 		screenshot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return screenshot
 
-
-func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool = false, back_only: bool = false, use_pie_style: bool = false, use_pie_overview: bool = false) -> void:
+func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -> void:
 	parent.add_theme_constant_override("separation", 0)
-	var is_light_surface := active_component == "app_drawer" and (use_lollipop_style or use_pie_style)
 	var navigation_bar := PanelContainer.new()
-	navigation_bar.name = "PieOverviewNavigationBar" if use_pie_overview else "PieNavigationBar" if use_pie_style else "AndroidNavigationBar"
+	navigation_bar.name = "AndroidNavigationBar"
 	navigation_bar.custom_minimum_size = Vector2(0, 46)
 	navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	# Every Android generation draws its navigation glyphs directly over
-	# the active screen surface, with no opaque navigation strip.
 	bar_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	bar_style.set_border_width_all(0)
 	bar_style.set_corner_radius_all(0)
@@ -3042,20 +959,15 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	bar_style.content_margin_top = 0
 	bar_style.content_margin_bottom = 0
 	navigation_bar.add_theme_stylebox_override("panel", bar_style)
-
 	var is_samsung_gen1_overview := parent.name == "SamsungGen1OverviewNavigationFooter"
 	var navigation_keys := HBoxContainer.new()
-	navigation_keys.name = "PieOverviewThreeButtonNavigation" if use_pie_overview else "PieThreeButtonNavigation" if use_pie_style else "SamsungGen1OverviewThreeButtonNavigation" if is_samsung_gen1_overview else "SamsungGen1ThreeButtonNavigation" if use_lollipop_style else "AndroidThreeButtonNavigation"
+	navigation_keys.name = "SamsungGen1OverviewThreeButtonNavigation" if is_samsung_gen1_overview else "SamsungGen1ThreeButtonNavigation"
 	navigation_keys.custom_minimum_size.y = 46
 	navigation_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	navigation_keys.alignment = BoxContainer.ALIGNMENT_CENTER
 	navigation_keys.mouse_filter = Control.MOUSE_FILTER_PASS
 	navigation_keys.add_theme_constant_override("separation", 2)
-
-	var navigation_color := Color("#616161") if is_light_surface else Color("#F5F7F8")
 	if back_only:
-		# Keep Back in the same rightmost third it occupies when all three
-		# Android navigation buttons are present.
 		for spacer_index in range(2):
 			var spacer := Control.new()
 			spacer.name = "AndroidNavigationReservedSlot" + str(spacer_index + 1)
@@ -3064,22 +976,18 @@ func _build_android_navigation(parent: VBoxContainer, use_lollipop_style: bool =
 	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
-		key.name = ("PieOverviewNavigation" if use_pie_overview else "PieNavigation" if use_pie_style else "SamsungGen1Navigation" if is_samsung_gen1_overview else "SamsungGen1Navigation" if use_lollipop_style else "AndroidNavigation") + action
+		key.name = ("SamsungGen1OverviewNavigation" if is_samsung_gen1_overview else "SamsungGen1Navigation") + action
 		key.action_name = action
-		key.icon_color = navigation_color
+		key.icon_color = Color("#F5F7F8")
 		key.tooltip_text = "Recent" if action == "Overview" else action
 		key.custom_minimum_size = Vector2(30, 44)
 		key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		key.pressed.connect(_queue_android_navigation.bind(action))
 		navigation_keys.add_child(key)
-
 	navigation_bar.add_child(navigation_keys)
 	parent.add_child(navigation_bar)
-
-
 func _queue_android_navigation(action: String) -> void:
 	call_deferred("_dispatch_android_navigation", action)
-
 
 func _dispatch_android_navigation(action: String) -> void:
 	match action:
@@ -3090,11 +998,8 @@ func _dispatch_android_navigation(action: String) -> void:
 		"Overview":
 			_show_gesture_overlay("recent_apps")
 
-
 func _on_android_navigation_pressed(action: String) -> void:
 	_queue_android_navigation(action)
-
-
 
 func _add_screen_corner_mask() -> void:
 	var corner_mask := OSScreenCornerMask.new()
@@ -3104,7 +1009,6 @@ func _add_screen_corner_mask() -> void:
 	corner_mask.mask_color = Color.BLACK
 	add_child(corner_mask)
 
-
 func _build_shell() -> void:
 	if _building:
 		return
@@ -3112,10 +1016,7 @@ func _build_shell() -> void:
 	_home_screen_radius_styleboxes.clear()
 	for child in get_children():
 		remove_child(child)
-		# A component switch may originate inside a descendant Button signal.
-		# Detach immediately, but defer destruction until signal emission ends.
 		child.queue_free()
-
 	_style = configuration.get("style", {})
 	_palette = _style.get("palette", {"background":"#0B1017","surface":"#19232E","surface_alt":"#263544","accent":"#76C8D4","text":"#F4F7F8","muted":"#A7B4BD"})
 	var screenshot_backed_screen := _uses_gen1_samsung_screenshot(active_component)
@@ -3123,27 +1024,10 @@ func _build_shell() -> void:
 		var wallpaper := OSWallpaperLayer.new()
 		wallpaper.name = "OSProceduralWallpaper"
 		wallpaper.palette = _palette.duplicate(true)
-		wallpaper.wallpaper_id = str(_style.get("wallpaper", "aurora"))
+		wallpaper.wallpaper_id = str(_style.get("wallpaper", "touchwiz_nature"))
 		wallpaper.treatment = str(configuration.get("components", {}).get("wallpapers", {}).get("treatment", "natural"))
 		wallpaper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(wallpaper)
-
-	if not screenshot_backed_screen and _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) in [1, 3]:
-		var full_drawer_background := ColorRect.new()
-		full_drawer_background.name = "PieAppDrawerFullScreenBackground" if int(configuration.get("generation", 2)) == 3 else "LollipopAppDrawerFullScreenBackground"
-		full_drawer_background.color = Color("#F8F9FA") if int(configuration.get("generation", 2)) == 3 else Color("#FAFAFA")
-		full_drawer_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		full_drawer_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(full_drawer_background)
-
-	if active_component == "pin_input":
-		var pin_screen_tint := ColorRect.new()
-		pin_screen_tint.name = "PINScreenBackdropTint"
-		pin_screen_tint.color = Color(0.015, 0.025, 0.055, 0.22)
-		pin_screen_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		pin_screen_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(pin_screen_tint)
-
 	var safe_area := MarginContainer.new()
 	safe_area.name = "OSSimulatorSafeArea"
 	safe_area.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -3154,7 +1038,6 @@ func _build_shell() -> void:
 	safe_area.add_theme_constant_override("margin_top", vertical_margin)
 	safe_area.add_theme_constant_override("margin_bottom", vertical_margin)
 	add_child(safe_area)
-
 	if active_component in ["lock_screen", "pin_input"]:
 		var lock_shell := VBoxContainer.new()
 		lock_shell.name = "OSLockScreenShell" if active_component == "lock_screen" else "OSPinInputShell"
@@ -3162,51 +1045,42 @@ func _build_shell() -> void:
 		lock_shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		lock_shell.add_theme_constant_override("separation", 3)
 		safe_area.add_child(lock_shell)
-
-		# The lock screen keeps its compact system status bar. Samsung-style
-		# PIN entry instead uses a clean lock indicator at the top of the screen.
 		if not screenshot_backed_screen:
 			_build_status_bar(lock_shell)
 		if active_component == "pin_input":
 			var pin_status_bar := lock_shell.get_node_or_null("OSStatusBar") as Control
 			if pin_status_bar != null:
 				pin_status_bar.visible = false
-
 		page_container = VBoxContainer.new()
 		page_container.name = "OSComponentContent"
 		page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		page_container.add_theme_constant_override("separation", 0 if screenshot_backed_screen else 4)
+		page_container.add_theme_constant_override("separation", 0)
 		lock_shell.add_child(page_container)
 		_build_component(active_component)
-		if _is_android_os() and active_component == "pin_input":
+		if active_component == "pin_input":
 			var pin_navigation_footer := VBoxContainer.new()
 			pin_navigation_footer.name = "OSNavigationFooter"
 			pin_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_build_android_navigation(pin_navigation_footer, int(configuration.get("generation", 2)) == 1, true, int(configuration.get("generation", 2)) == 3)
+			_build_android_navigation(pin_navigation_footer, true)
 			lock_shell.add_child(pin_navigation_footer)
-		# Android lock screens intentionally have no three-button navigation.
 		_add_screen_corner_mask()
 		_building = false
 		return
-
 	var shell := VBoxContainer.new()
 	shell.name = "OSSimulatorLayout"
 	shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	shell.add_theme_constant_override("separation", 6)
 	safe_area.add_child(shell)
-
 	if not screenshot_backed_screen:
 		_build_status_bar(shell)
-
 	page_container = VBoxContainer.new()
 	page_container.name = "OSComponentContent"
 	page_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page_container.add_theme_constant_override("separation", int(_style.get("spacing", 10)))
-	if active_component == "home_screen" or screenshot_backed_screen:
-		# Screenshot-backed Gen 1 screens occupy the entire content viewport.
-		page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_container.add_theme_constant_override("separation", int(_style.get("spacing", 8)))
+	if screenshot_backed_screen:
 		page_container.add_theme_constant_override("separation", 0)
 		shell.add_child(page_container)
 	else:
@@ -3217,133 +1091,18 @@ func _build_shell() -> void:
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		shell.add_child(scroll)
-		if active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1 and _is_android_os():
-			page_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-			scroll.add_child(page_container)
-		else:
-			scroll.add_child(page_container)
+		scroll.add_child(page_container)
 	_build_component(active_component)
-
 	var footer := VBoxContainer.new()
 	footer.name = "OSNavigationFooter"
 	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_theme_constant_override("separation", 4)
-	if active_component == "home_screen" and not screenshot_backed_screen:
-		var home_layout := str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "ios_grid"))
-		if home_layout != "windows_tiles":
-			_build_home_dock(footer)
-	if _is_android_os():
-		_build_android_navigation(footer, int(configuration.get("generation", 2)) == 1, false, int(configuration.get("generation", 2)) == 3)
-	else:
-		var indicator_alignment := CenterContainer.new()
-		indicator_alignment.name = "OSNavigationIndicatorArea"
-		indicator_alignment.custom_minimum_size = Vector2(0, 9)
-		var indicator := ColorRect.new()
-		indicator.name = "OSNavigationIndicator"
-		indicator.custom_minimum_size = Vector2(34, 4)
-		indicator.color = _text_color()
-		indicator_alignment.add_child(indicator)
-		footer.add_child(indicator_alignment)
+	_build_android_navigation(footer)
 	shell.add_child(footer)
 	if active_component == "home_screen":
-		# Resolve and style app buttons only after their full inherited theme
-		# hierarchy and the dock have entered the live scene tree.
 		_apply_home_screen_icon_styles()
 	_add_screen_corner_mask()
 	_building = false
-
-func _build_home_dock(parent: VBoxContainer) -> void:
-	var is_lollipop := int(configuration.get("generation", 2)) == 1 and str(configuration.get("components", {}).get("home_screen", {}).get("layout_style", "android_pixel")) == "android_pixel"
-	var is_pie := int(configuration.get("generation", 2)) == 3 and _is_android_os()
-	if is_pie:
-		var pie_dock := HBoxContainer.new()
-		pie_dock.name = "PieHomeDockIcons"
-		pie_dock.custom_minimum_size.y = 47
-		pie_dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		pie_dock.alignment = BoxContainer.ALIGNMENT_CENTER
-		pie_dock.add_theme_constant_override("separation", 3)
-		for app_name in ["Phone", "Messages", "Photos", "Browser", "Camera"]:
-			var app := _find_app(app_name)
-			if not app.is_empty():
-				var dock_item := _create_app_icon(app, _responsive_icon_size(36, 5, 3), false)
-				dock_item.name = "PieHomeDockApp_" + app_name.replace(" ", "")
-				pie_dock.add_child(dock_item)
-		parent.add_child(pie_dock)
-		var search := PanelContainer.new()
-		search.name = "PieHomeGoogleSearchBar"
-		search.custom_minimum_size.y = 35
-		search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var search_style := StyleBoxFlat.new()
-		search_style.bg_color = Color("#F1F3F4")
-		search_style.set_corner_radius_all(20)
-		search_style.set_border_width_all(0)
-		search_style.content_margin_left = 12
-		search_style.content_margin_right = 12
-		search_style.content_margin_top = 3
-		search_style.content_margin_bottom = 3
-		search.add_theme_stylebox_override("panel", search_style)
-		var search_row := HBoxContainer.new()
-		search_row.add_theme_constant_override("separation", 7)
-		var google_mark := _label("G", 18, Color("#4285F4"))
-		google_mark.name = "PieHomeGoogleMark"
-		search_row.add_child(google_mark)
-		var search_text := _label("Search", 10, Color("#5F6368"))
-		search_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		search_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		search_row.add_child(search_text)
-		search_row.add_child(_label("●", 10, Color("#4285F4")))
-		search.add_child(search_row)
-		parent.add_child(search)
-		return
-	var dock_row := HBoxContainer.new()
-	dock_row.name = "HomeAppDockIcons"
-	dock_row.custom_minimum_size.y = 46
-	dock_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	dock_row.add_theme_constant_override("separation", 5)
-	if is_lollipop:
-		var dock_apps := ["Phone", "Messages", "Browser", "Camera"]
-		var dock_icon_size := _responsive_icon_size(31, 5, 5)
-		for index in range(5):
-			if index == 2:
-				var drawer_tile := VBoxContainer.new()
-				drawer_tile.name = "LollipopAppDrawerDockItem"
-				drawer_tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				drawer_tile.add_theme_constant_override("separation", 2)
-				var holder := CenterContainer.new()
-				var drawer_button := LollipopAppDrawerButton.new()
-				drawer_button.name = "LollipopAppDrawerButton"
-				drawer_button.custom_minimum_size = Vector2(dock_icon_size, dock_icon_size)
-				drawer_button.pressed.connect(func(): set_component_view("app_drawer"))
-				holder.add_child(drawer_button)
-				drawer_tile.add_child(holder)
-				dock_row.add_child(drawer_tile)
-			else:
-				var app_name: String = str(dock_apps[index if index < 2 else index - 1])
-				var app := _find_app(app_name)
-				if not app.is_empty():
-					dock_row.add_child(_create_lollipop_app_icon(app, dock_icon_size, false, Color("#FFFFFF")))
-		var dock_spacer := Control.new()
-		dock_spacer.custom_minimum_size.y = 2
-		parent.add_child(dock_row)
-		parent.add_child(dock_spacer)
-		return
-
-	var standard_dock_apps := ["Phone", "Messages", "Browser", "Camera"]
-	var standard_icon_size := _responsive_icon_size(35, standard_dock_apps.size(), 6)
-	for app_name in standard_dock_apps:
-		var app := _find_app(app_name)
-		if not app.is_empty():
-			dock_row.add_child(_create_app_icon(app, standard_icon_size, false))
-	var dock := PanelContainer.new()
-	dock.name = "HomeAppDock"
-	dock.custom_minimum_size.y = 48
-	dock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_home_surface(dock, 18)
-	dock.add_child(dock_row)
-	parent.add_child(dock)
-
-
 func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: String) -> TextureRect:
 	var icon := TextureRect.new()
 	icon.name = node_name
@@ -3358,55 +1117,30 @@ func _status_bar_icon(asset_texture: Texture2D, icon_size: Vector2, node_name: S
 	icon.modulate = Color.WHITE
 	return icon
 
-
 func _build_status_bar(parent: VBoxContainer) -> void:
-	var is_lollipop_drawer := _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 1
-	var is_pie_drawer := _is_android_os() and active_component == "app_drawer" and int(configuration.get("generation", 2)) == 3
-	var is_oreo_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 2
-	var is_pie_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 3
-	var is_samsung_one_ui_lock_screen := _is_android_os() and active_component == "lock_screen" and int(configuration.get("generation", 1)) == 4
-	var status_foreground := Color("#5F6368") if is_pie_drawer else Color("#424242") if is_lollipop_drawer else _one_ui_lock_screen_text_color() if is_samsung_one_ui_lock_screen else Color("#FFFFFF") if is_oreo_lock_screen or is_pie_lock_screen else _text_color()
 	var bar := PanelContainer.new()
 	bar.name = "OSStatusBar"
-	bar.custom_minimum_size.y = 17 if is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen else 22
+	bar.custom_minimum_size.y = 22
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bar_style := StyleBoxFlat.new()
-	if is_lollipop_drawer or is_pie_drawer:
-		bar_style.bg_color = Color("#F8F9FA") if is_pie_drawer else Color("#FAFAFA")
-		bar_style.border_color = Color(0, 0, 0, 0)
-		bar_style.set_border_width_all(0)
-		bar_style.set_corner_radius_all(0)
-	elif is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen:
-		bar_style.bg_color = Color(0, 0, 0, 0)
-		bar_style.border_color = Color(0, 0, 0, 0)
-		bar_style.set_border_width_all(0)
-		bar_style.set_corner_radius_all(0)
-	else:
-		bar_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.56)
-		bar_style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.10)
-		bar_style.set_border_width_all(1)
-		bar_style.set_corner_radius_all(8)
+	bar_style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.56)
+	bar_style.border_color = Color(_text_color().r, _text_color().g, _text_color().b, 0.10)
+	bar_style.set_border_width_all(1)
+	bar_style.set_corner_radius_all(8)
 	bar_style.content_margin_left = 7
 	bar_style.content_margin_right = 7
-	bar_style.content_margin_top = 1 if is_oreo_lock_screen else 2
-	bar_style.content_margin_bottom = 1 if is_oreo_lock_screen else 2
+	bar_style.content_margin_top = 2
+	bar_style.content_margin_bottom = 2
 	bar.add_theme_stylebox_override("panel", bar_style)
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 4)
 	bar.add_child(row)
-	var clock := _label(_current_lock_time(), 8, status_foreground)
+	var clock := _label(_current_lock_time(), 8, _text_color())
 	clock.name = "StatusBarClock"
 	clock.custom_minimum_size = Vector2(32, 13)
 	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	clock.visible = not (is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen)
 	row.add_child(clock)
-	var notification_dot := _label("●", 5, status_foreground)
-	notification_dot.name = "StatusBarNotificationIndicator"
-	notification_dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	notification_dot.visible = not (is_oreo_lock_screen or is_pie_lock_screen or is_samsung_one_ui_lock_screen)
-	row.add_child(notification_dot)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
@@ -3415,23 +1149,15 @@ func _build_status_bar(parent: VBoxContainer) -> void:
 	indicators.alignment = BoxContainer.ALIGNMENT_END
 	indicators.add_theme_constant_override("separation", 3)
 	indicators.custom_minimum_size = Vector2(57, 16)
-	var cellular_icon := _status_bar_icon(STATUS_CELLULAR_TEXTURE, Vector2(16, 13), "StatusBarCellularIcon")
-	var wifi_icon := _status_bar_icon(STATUS_WIFI_TEXTURE, Vector2(15, 13), "StatusBarWifiIcon")
-	var battery_icon := _status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "StatusBarBatteryIcon")
-	if is_lollipop_drawer or is_pie_drawer or is_samsung_one_ui_lock_screen:
-		cellular_icon.modulate = status_foreground
-		wifi_icon.modulate = status_foreground
-		battery_icon.modulate = status_foreground
-	indicators.add_child(cellular_icon)
-	indicators.add_child(wifi_icon)
-	indicators.add_child(battery_icon)
+	indicators.add_child(_status_bar_icon(STATUS_CELLULAR_TEXTURE, Vector2(16, 13), "StatusBarCellularIcon"))
+	indicators.add_child(_status_bar_icon(STATUS_WIFI_TEXTURE, Vector2(15, 13), "StatusBarWifiIcon"))
+	indicators.add_child(_status_bar_icon(STATUS_BATTERY_TEXTURE, Vector2(20, 13), "StatusBarBatteryIcon"))
 	row.add_child(indicators)
 	status_label = _label("", 1, _text_color())
 	status_label.name = "StatusBarBattery"
 	status_label.visible = false
 	bar.add_child(status_label)
 	parent.add_child(bar)
-
 func _build_component(component_id: String) -> void:
 	if _uses_gen1_samsung_screenshot(component_id):
 		_add_gen1_samsung_screenshot(page_container, component_id)
@@ -3466,228 +1192,8 @@ func _build_component(component_id: String) -> void:
 		"system_ui":
 			_build_system_ui(component_data)
 
-func _build_home_screen(data: Dictionary) -> void:
-	var layout_style := str(data.get("layout_style", "android_pixel"))
-	match layout_style:
-		"ios_home":
-			_build_apple_ios_home()
-		"windows_tiles":
-			_build_windows_phone_home()
-		_:
-			_build_android_home(data, 2)
-
-
-func _build_android_home(data: Dictionary, widget_count: int) -> void:
-	var generation_number := int(configuration.get("generation", 2))
-	if generation_number == 1:
-		_build_lollipop_android_home()
-	elif generation_number == 3:
-		_build_android_pie_home()
-	else:
-		_build_legacy_android_home(data, widget_count)
-
-
-func _build_legacy_android_home(_data: Dictionary, _widget_count: int) -> void:
-	var glance := HBoxContainer.new()
-	glance.name = "AndroidHomeAtAGlance"
-	glance.custom_minimum_size.y = 38
-	glance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var date_stack := VBoxContainer.new()
-	date_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	date_stack.add_theme_constant_override("separation", 1)
-	var date_label := _label(_current_lock_date("minimal").to_upper(), 10, _text_color())
-	date_label.name = "AndroidHomeDate"
-	date_stack.add_child(date_label)
-	var weather_label := _label("26°  ·  Partly cloudy", 8, _muted_color())
-	weather_label.name = "AndroidHomeWeatherSummary"
-	date_stack.add_child(weather_label)
-	glance.add_child(date_stack)
-	page_container.add_child(glance)
-
-	var open_wallpaper_space := Control.new()
-	open_wallpaper_space.name = "AndroidHomeOpenWallpaperSpace"
-	open_wallpaper_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	open_wallpaper_space.size_flags_stretch_ratio = 0.9
-	page_container.add_child(open_wallpaper_space)
-
-	var apps_grid := GridContainer.new()
-	apps_grid.name = "HomeAppGrid"
-	apps_grid.columns = 4
-	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	apps_grid.add_theme_constant_override("h_separation", 5)
-	apps_grid.add_theme_constant_override("v_separation", 8)
-	for app_name in ["Calendar", "Photos", "Maps", "Store", "Email", "Files", "Settings", "Contacts"]:
-		var app := _find_app(app_name)
-		if not app.is_empty():
-			apps_grid.add_child(_create_app_icon(app, _responsive_icon_size(35, 4, 5), true))
-	page_container.add_child(apps_grid)
-
-	var search_spacing := Control.new()
-	search_spacing.name = "AndroidHomeSearchFlexibleSpace"
-	search_spacing.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	search_spacing.size_flags_stretch_ratio = 0.45
-	page_container.add_child(search_spacing)
-	_add_home_search_field("Google Search", "HomeSearchBar")
-
-func _build_android_pie_home() -> void:
-	# Pixel Launcher on Android 9: At a Glance, a restrained app grid and open wallpaper space.
-	var glance := VBoxContainer.new()
-	glance.name = "PieHomeAtAGlance"
-	glance.add_theme_constant_override("separation", 2)
-	var date_line := _label(_current_lock_date("minimal"), 11, Color("#202124"))
-	date_line.name = "PieHomeDate"
-	date_line.add_theme_font_override("font", LOCKSCREEN_FONT)
-	glance.add_child(date_line)
-	var weather_line := _label("26°  ·  Partly cloudy", 9, Color("#5F6368"))
-	weather_line.name = "PieHomeWeather"
-	glance.add_child(weather_line)
-	page_container.add_child(glance)
-
-	var top_space := Control.new()
-	top_space.name = "PieHomeTopFlexibleSpace"
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_container.add_child(top_space)
-
-	var app_grid := GridContainer.new()
-	app_grid.name = "PieHomeAppGrid"
-	app_grid.columns = 5
-	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	app_grid.add_theme_constant_override("h_separation", 4)
-	app_grid.add_theme_constant_override("v_separation", 8)
-	for app_name in ["Calendar", "Photos", "Maps", "Store", "Email", "Camera", "Settings", "Clock", "Files", "Contacts"]:
-		var app := _find_app(app_name)
-		if not app.is_empty():
-			app_grid.add_child(_create_app_icon(app, _responsive_icon_size(38, 5, 4), true))
-	page_container.add_child(app_grid)
-	var bottom_space := Control.new()
-	bottom_space.name = "PieHomeBottomFlexibleSpace"
-	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page_container.add_child(bottom_space)
-
-
-func _build_lollipop_android_home() -> void:
-	# Android 5.0 Lollipop / Google Now Launcher: fixed search bar, app grid,
-	# open wallpaper space and a separate five-position launcher dock.
-	var search_panel := PanelContainer.new()
-	search_panel.name = "LollipopGoogleSearchBar"
-	search_panel.custom_minimum_size.y = 31
-	search_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var search_style := StyleBoxFlat.new()
-	search_style.bg_color = Color("#FFFFFF")
-	search_style.set_corner_radius_all(2)
-	search_style.set_border_width_all(0)
-	search_style.content_margin_left = 7
-	search_style.content_margin_right = 7
-	search_style.content_margin_top = 2
-	search_style.content_margin_bottom = 2
-	search_panel.add_theme_stylebox_override("panel", search_style)
-	var search_row := HBoxContainer.new()
-	search_row.add_theme_constant_override("separation", 6)
-	search_panel.add_child(search_row)
-	var google_mark := _label("G", 19, Color("#4285F4"))
-	google_mark.custom_minimum_size.x = 20
-	google_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	search_row.add_child(google_mark)
-	var search_text := _label("Google", 10, Color("#777777"))
-	search_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	search_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	search_row.add_child(search_text)
-	var microphone := _label("●", 10, Color("#4285F4"))
-	microphone.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	search_row.add_child(microphone)
-	page_container.add_child(search_panel)
-	_add_home_flexible_space("LollipopSearchToAppsSpace", 1.0)
-	var apps_grid := GridContainer.new()
-	apps_grid.name = "LollipopHomeAppGrid"
-	apps_grid.columns = 4
-	apps_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	apps_grid.add_theme_constant_override("h_separation", 4)
-	apps_grid.add_theme_constant_override("v_separation", 7)
-	for app_name in ["Email", "Photos", "Maps", "Store", "Calendar", "Contacts", "Music", "Settings"]:
-		var app := _find_app(app_name)
-		if not app.is_empty():
-			apps_grid.add_child(_create_lollipop_app_icon(app, _responsive_icon_size(32, 4, 4), true, Color("#FFFFFF")))
-	page_container.add_child(apps_grid)
-	_add_home_flexible_space("LollipopAppsToDockSpace", 0.75)
-
-
-func _lollipop_display_name(app_name: String) -> String:
-	match app_name:
-		"Email":
-			return "Gmail"
-		"Store":
-			return "Play Store"
-		"Browser":
-			return "Chrome"
-		"Music":
-			return "Play Music"
-		"Meet":
-			return "Hangouts"
-	return app_name
-
-
-func _create_lollipop_app_icon(app: Dictionary, icon_size: int, show_label: bool, label_color: Color) -> Control:
-	var tile := VBoxContainer.new()
-	var app_name := str(app.get("name", "Application"))
-	tile.name = "LollipopApp_" + app_name.replace(" ", "")
-	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tile.add_theme_constant_override("separation", 2)
-	var holder := CenterContainer.new()
-	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var icon := Button.new()
-	icon.name = "LollipopIconButton"
-	icon.custom_minimum_size = Vector2(icon_size, icon_size)
-	icon.focus_mode = Control.FOCUS_NONE
-	var icon_files := {
-		"Phone": "phone", "Messages": "messages", "Camera": "camera", "Gallery": "gallery",
-		"Browser": "browser", "Music": "music", "Calendar": "calendar", "Settings": "settings",
-		"Files": "files", "Clock": "clock", "Maps": "maps", "Notes": "notes",
-		"Contacts": "contacts", "Email": "email", "Calculator": "calculator", "Weather": "weather",
-		"Downloads": "downloads", "Recorder": "recorder", "Video": "video", "Store": "store",
-		"Security": "security", "Device Care": "device_care", "Drive": "drive", "Photos": "photos",
-		"Wallet": "wallet", "Assistant": "assistant", "Meet": "meet"
-	}
-	var icon_stem := str(icon_files.get(app_name, ""))
-	var icon_path := "res://assets/os/lollipop/icons/" + icon_stem + ".png" if not icon_stem.is_empty() else ""
-	var icon_texture: Texture2D
-	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
-		icon_texture = load(icon_path) as Texture2D
-	if is_instance_valid(icon_texture):
-		icon.icon = icon_texture
-		icon.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon.expand_icon = true
-		icon.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		icon.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		icon.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	else:
-		icon.text = str(app.get("glyph", "•"))
-		icon.add_theme_font_size_override("font_size", maxi(15, int(icon_size * 0.50)))
-		var icon_style := StyleBoxFlat.new()
-		icon_style.bg_color = Color(str(app.get("color", "#607D8B")))
-		icon_style.set_corner_radius_all(5)
-		icon_style.set_border_width_all(0)
-		icon_style.shadow_color = Color(0, 0, 0, 0.20)
-		icon_style.shadow_size = 2
-		icon_style.shadow_offset = Vector2(0, 1)
-		icon.add_theme_stylebox_override("normal", icon_style)
-		icon.add_theme_stylebox_override("hover", icon_style)
-		icon.add_theme_stylebox_override("pressed", icon_style)
-		icon.add_theme_color_override("font_color", Color.WHITE)
-		icon.add_theme_color_override("font_hover_color", Color.WHITE)
-	icon.pressed.connect(_on_app_pressed.bind(app_name))
-	holder.add_child(icon)
-	tile.add_child(holder)
-	if show_label:
-		var display_name := _lollipop_display_name(app_name)
-		var caption := _label(display_name, 7, label_color)
-		caption.name = "LollipopAppLabel_" + app_name.replace(" ", "")
-		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		caption.autowrap_mode = TextServer.AUTOWRAP_OFF
-		caption.clip_text = true
-		tile.add_child(caption)
-	return tile
-
-
+func _build_home_screen(_data: Dictionary) -> void:
+	_add_gen1_samsung_screenshot(page_container, "home_screen")
 func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 	var style := StyleBoxFlat.new()
 	var surface_color := _surface_color()
@@ -3701,7 +1207,6 @@ func _style_home_surface(panel: PanelContainer, _radius: int) -> void:
 	style.content_margin_bottom = 7
 	panel.add_theme_stylebox_override("panel", style)
 	_register_home_screen_radius_style(style)
-
 
 func _style_home_app_icon(button: Button) -> void:
 	# Preserve each app's own tinted icon style, while the Home Screen Studio
@@ -3717,7 +1222,6 @@ func _style_home_app_icon(button: Button) -> void:
 		button.add_theme_stylebox_override(state_name, style)
 		_register_home_screen_radius_style(style)
 
-
 func _add_home_flexible_space(node_name: String, stretch_ratio: float = 1.0) -> Control:
 	var spacer := Control.new()
 	spacer.name = node_name
@@ -3727,7 +1231,6 @@ func _add_home_flexible_space(node_name: String, stretch_ratio: float = 1.0) -> 
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page_container.add_child(spacer)
 	return spacer
-
 
 func _build_home_clock_block(font_size: int = 30, alignment: int = HORIZONTAL_ALIGNMENT_CENTER) -> VBoxContainer:
 	var hero := VBoxContainer.new()
@@ -3765,7 +1268,6 @@ func _build_home_clock_block(font_size: int = 30, alignment: int = HORIZONTAL_AL
 	hero.add_child(date)
 	return hero
 
-
 func _make_home_widget_panel(panel_name: String, heading_text: String, value_text: String, detail_text: String, glyph: String = "", minimum_height: float = 60.0) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.name = panel_name
@@ -3799,7 +1301,6 @@ func _make_home_widget_panel(panel_name: String, heading_text: String, value_tex
 	panel.add_child(row)
 	return panel
 
-
 func _make_home_app_grid(app_names: Array, columns: int = 4, icon_size: int = 30, show_labels: bool = true, grid_name: String = "HomeAppGrid") -> GridContainer:
 	var grid := GridContainer.new()
 	grid.name = grid_name
@@ -3814,7 +1315,6 @@ func _make_home_app_grid(app_names: Array, columns: int = 4, icon_size: int = 30
 			grid.add_child(_create_app_icon(app, fitted_size, show_labels))
 	return grid
 
-
 func _make_home_widget_row(row_name: String, widgets: Array, gap: int = 6) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.name = row_name
@@ -3826,14 +1326,12 @@ func _make_home_widget_row(row_name: String, widgets: Array, gap: int = 6) -> HB
 			row.add_child(widget)
 	return row
 
-
 func _add_home_search_field(placeholder_text: String, field_name: String = "HomeSearchBar") -> LineEdit:
 	var search := _search_field(placeholder_text)
 	search.name = field_name
 	_style_home_search_field(search)
 	page_container.add_child(search)
 	return search
-
 
 func _style_home_search_field(search: LineEdit) -> void:
 	for state_name in ["normal", "focus", "read_only"]:
@@ -3850,959 +1348,20 @@ func _style_home_search_field(search: LineEdit) -> void:
 		search.add_theme_stylebox_override(state_name, style)
 		_register_home_screen_radius_style(style)
 
-
-func _build_apple_ios_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.8)
-	page_container.add_child(_build_home_clock_block(27))
-	page_container.add_child(_make_home_widget_row("AppleWidgetRow", [
-		_make_home_widget_panel("HomeScreenPrimaryWidget", "WEATHER", "26°  Mostly sunny", "Feels like 29°  ·  H:30° L:24°", "☀", 60),
-		_make_home_widget_panel("AppleCalendarWidget", "FRIDAY  ·  CALENDAR", "14", "No events scheduled today", "▦", 60)
-	]))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 1.0)
-	page_container.add_child(_make_home_app_grid(["Photos", "Calendar", "Clock", "Email", "Notes", "Tasks", "Store", "Maps"], 4, 29, true))
-	_add_home_flexible_space("HomeLayoutBottomFlexibleSpace", 0.55)
-	_add_home_search_field("Search iPhone", "HomeSearchBar")
-
-
-func _build_windows_phone_home() -> void:
-	_add_home_flexible_space("HomeLayoutTopFlexibleSpace", 0.7)
-	page_container.add_child(_build_home_clock_block(27, HORIZONTAL_ALIGNMENT_LEFT))
-	page_container.add_child(_make_home_widget_panel("HomeScreenPrimaryWidget", "LIVE UPDATES", "26°  ·  14 NOV", "Weather, calendar and activity at a glance", "▦", 52))
-	_add_home_flexible_space("HomeLayoutMiddleFlexibleSpace", 0.5)
-	_build_windows_tiles()
-	_add_home_flexible_space("HomeLayoutBottomFlexibleSpace", 0.35)
-
-
-func _style_home_tile_button(button: Button, tint: Color) -> void:
-	for state_name in ["normal", "hover", "pressed"]:
-		var style := StyleBoxFlat.new()
-		style.bg_color = tint.darkened(0.16)
-		style.border_color = Color(1, 1, 1, 0.28)
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(_home_screen_corner_radius)
-		style.content_margin_left = 3
-		style.content_margin_right = 3
-		style.content_margin_top = 3
-		style.content_margin_bottom = 3
-		button.add_theme_stylebox_override(state_name, style)
-		_register_home_screen_radius_style(style)
-	button.add_theme_color_override("font_color", Color.WHITE)
-	button.add_theme_font_size_override("font_size", 8)
-	button.focus_mode = Control.FOCUS_NONE
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-
-func _build_windows_tiles() -> void:
-	var tiles := GridContainer.new()
-	tiles.name = "WindowsLiveTileGrid"
-	tiles.columns = _responsive_columns(3)
-	tiles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tiles.add_theme_constant_override("h_separation", 5)
-	tiles.add_theme_constant_override("v_separation", 5)
-	page_container.add_child(tiles)
-	var tile_names := ["Phone", "Messages", "Email", "Calendar", "Photos", "Store", "Maps", "Music", "Settings"]
-	for app_name in tile_names:
-		var app := _find_app(app_name)
-		if app.is_empty():
-			continue
-		var tile := Button.new()
-		tile.name = "LiveTile_" + app_name.replace(" ", "")
-		tile.custom_minimum_size = Vector2(48, 54)
-		tile.text = str(app.get("glyph", "•")) + "\n" + app_name
-		if app_name == "Calendar":
-			tile.text = "14\nCALENDAR"
-		elif app_name == "Photos":
-			tile.text = "▧\nPHOTOS"
-		elif app_name == "Music":
-			tile.text = "♫\nMUSIC"
-		_style_home_tile_button(tile, Color(str(app.get("color", "#687987"))))
-		tile.pressed.connect(_on_app_pressed.bind(app_name))
-		tiles.add_child(tile)
-
-
-func _build_lock_screen(data: Dictionary) -> void:
-	if _is_android_os() and int(configuration.get("generation", 1)) == 4:
-		_build_samsung_one_ui_lock_screen(data)
-		return
-	if _is_android_os() and int(configuration.get("generation", 1)) == 3:
-		_build_android_pie_lock_screen(data)
-		return
-	if _is_android_os() and int(configuration.get("generation", 1)) == 2:
-		_build_oreo_lock_screen(data)
-		return
-	_build_lollipop_lock_screen(data)
-
-
-func _build_samsung_one_ui_lock_screen(data: Dictionary) -> void:
-	# Samsung One UI 2.0 (Android 10): left-aligned clock/date and corner shortcuts.
-	var root := VBoxContainer.new()
-	root.name = "SamsungOneUILockScreen"
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 0)
-	page_container.add_child(root)
-
-	var top_space := Control.new()
-	top_space.name = "SamsungOneUILockTopSpace"
-	top_space.custom_minimum_size.y = maxf(34.0, size.y * 0.105)
-	top_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(top_space)
-
-	var identity := VBoxContainer.new()
-	identity.name = "SamsungOneUILockIdentity"
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.add_theme_constant_override("separation", 0)
-	root.add_child(identity)
-
-	var foreground := _one_ui_lock_screen_text_color()
-	if bool(data.get("show_time", true)):
-		var clock_size := clampi(roundi(size.x * 0.076), 16, 23)
-		var clock := _label(_current_lock_time("one_ui"), clock_size, foreground)
-		clock.name = "SamsungOneUILockClock"
-		clock.custom_minimum_size.y = clock_size + 2
-		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
-		clock.clip_text = false
-		clock.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-		identity.add_child(clock)
-
-	if bool(data.get("show_date", true)):
-		var date_size := clampi(roundi(size.x * 0.054), 11, 16)
-		var date := _label(_current_lock_date("one_ui"), date_size, foreground)
-		date.name = "SamsungOneUILockDate"
-		date.custom_minimum_size.y = date_size + 4
-		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		date.autowrap_mode = TextServer.AUTOWRAP_OFF
-		date.clip_text = false
-		date.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-		identity.add_child(date)
-
-	if bool(data.get("show_notifications", false)):
-		var notifications := VBoxContainer.new()
-		notifications.name = "SamsungOneUILockNotifications"
-		notifications.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		notifications.add_theme_constant_override("separation", 4)
-		root.add_child(notifications)
-		_add_samsung_one_ui_lock_notification(notifications, "Messages", "Alex Morgan", "Are we still meeting today?", "M")
-		_add_samsung_one_ui_lock_notification(notifications, "Calendar", "Upcoming event", "Your event starts in 10 minutes", "31")
-
-	var flexible_space := Control.new()
-	flexible_space.name = "SamsungOneUILockFlexibleSpace"
-	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	flexible_space.size_flags_stretch_ratio = 1.0
-	flexible_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(flexible_space)
-
-	var unlock_hint := _label("Swipe to unlock", 9, foreground)
-	unlock_hint.name = "SamsungOneUISwipeToUnlockHint"
-	unlock_hint.custom_minimum_size.y = 16
-	unlock_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	unlock_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	root.add_child(unlock_hint)
-
-	var shortcut_row := HBoxContainer.new()
-	shortcut_row.name = "SamsungOneUILockShortcuts"
-	shortcut_row.custom_minimum_size.y = 44
-	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_row.add_theme_constant_override("separation", 0)
-	root.add_child(shortcut_row)
-
-	if bool(data.get("show_phone_shortcut", true)):
-		var phone := SamsungOneUILockShortcutButton.new()
-		phone.name = "SamsungOneUIPhoneShortcut"
-		phone.shortcut_id = "phone"
-		phone.pressed.connect(func() -> void: app_opened.emit("Phone"))
-		shortcut_row.add_child(phone)
-	else:
-		var phone_space := Control.new()
-		phone_space.name = "SamsungOneUIPhoneShortcutSlot"
-		phone_space.custom_minimum_size.x = 44
-		shortcut_row.add_child(phone_space)
-
-	var shortcut_spacer := Control.new()
-	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	shortcut_row.add_child(shortcut_spacer)
-
-	if bool(data.get("show_camera_shortcut", true)):
-		var camera := SamsungOneUILockShortcutButton.new()
-		camera.name = "SamsungOneUICameraShortcut"
-		camera.shortcut_id = "camera"
-		camera.pressed.connect(func() -> void: app_opened.emit("Camera"))
-		shortcut_row.add_child(camera)
-	else:
-		var camera_space := Control.new()
-		camera_space.name = "SamsungOneUICameraShortcutSlot"
-		camera_space.custom_minimum_size.x = 44
-		shortcut_row.add_child(camera_space)
-
-	var bottom_space := Control.new()
-	bottom_space.name = "SamsungOneUILockBottomSpace"
-	bottom_space.custom_minimum_size.y = 2
-	bottom_space.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(bottom_space)
-
-
-func _add_samsung_one_ui_lock_notification(parent: VBoxContainer, app_name: String, title_text: String, message_text: String, icon_text: String) -> void:
-	var foreground := _one_ui_lock_screen_text_color()
-	var card := PanelContainer.new()
-	card.name = "SamsungOneUILockNotification_" + app_name.replace(" ", "")
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size.y = 46
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color(1, 1, 1, 0.78) if foreground.get_luminance() < 0.5 else Color(0, 0, 0, 0.20)
-	card_style.set_corner_radius_all(8)
-	card_style.border_color = Color(foreground.r, foreground.g, foreground.b, 0.12)
-	card_style.set_border_width_all(1)
-	card_style.content_margin_left = 8
-	card_style.content_margin_right = 8
-	card_style.content_margin_top = 5
-	card_style.content_margin_bottom = 5
-	card.add_theme_stylebox_override("panel", card_style)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
-	card.add_child(row)
-
-	var icon_badge := PanelContainer.new()
-	icon_badge.custom_minimum_size = Vector2(23, 23)
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = Color("#4F8BC9") if app_name == "Messages" else Color("#D56B57")
-	icon_style.set_corner_radius_all(5)
-	icon_badge.add_theme_stylebox_override("panel", icon_style)
-	var icon := _label(icon_text, 8, Color.WHITE)
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_badge.add_child(icon)
-	row.add_child(icon_badge)
-
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_theme_constant_override("separation", 0)
-	var title := _label(title_text, 8, foreground)
-	title.name = "SamsungOneUILockNotificationTitle_" + app_name.replace(" ", "")
-	copy.add_child(title)
-	var message := _label(message_text, 8, foreground)
-	message.name = "SamsungOneUILockNotificationMessage_" + app_name.replace(" ", "")
-	message.autowrap_mode = TextServer.AUTOWRAP_OFF
-	message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	copy.add_child(message)
-	row.add_child(copy)
-	parent.add_child(card)
-
-
-func _one_ui_lock_screen_text_color() -> Color:
-	# One UI 2.0 adapts lock-screen text to the wallpaper's upper area.
-	var wallpaper_id := str(_style.get("wallpaper", "aurora"))
-	var upper_wallpaper_color := Color(str(_palette.get("background", "#0B1017")))
-	if wallpaper_id == "lollipop":
-		upper_wallpaper_color = Color("#176A8A")
-	return Color("#34383D") if upper_wallpaper_color.get_luminance() > 0.46 else Color("#FFFFFF")
-
-
-func _build_android_pie_lock_screen(data: Dictionary) -> void:
-	# Pixel Android 9: carrier/status line, centered time and date, inset rounded alerts.
-	var root := VBoxContainer.new()
-	root.name = "PieLockScreen"
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 0)
-	page_container.add_child(root)
-
-	var status_row := HBoxContainer.new()
-	status_row.name = "PieLockScreenStatusRow"
-	status_row.custom_minimum_size.y = 15
-	status_row.add_theme_constant_override("separation", 5)
-	var carrier := _label("No SIM card  ·  Emergency calls only", 7, Color(1, 1, 1, 0.88))
-	carrier.name = "PieLockCarrierInfo"
-	carrier.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	carrier.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_row.add_child(carrier)
-	if bool(data.get("show_battery", true)):
-		var battery_percentage := _label("100%", 8, Color("#FFFFFF"))
-		battery_percentage.name = "PieLockBatteryInfo"
-		battery_percentage.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		battery_percentage.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		status_row.add_child(battery_percentage)
-	root.add_child(status_row)
-
-	var top_space := Control.new()
-	top_space.name = "PieLockScreenTopSpace"
-	top_space.custom_minimum_size.y = maxf(36.0, size.y * 0.10)
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	top_space.size_flags_stretch_ratio = 0.85
-	root.add_child(top_space)
-
-	var clock_block := VBoxContainer.new()
-	clock_block.name = "PieLockScreenClockBlock"
-	clock_block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	clock_block.add_theme_constant_override("separation", 0)
-	root.add_child(clock_block)
-	if bool(data.get("show_time", true)):
-		var clock := _label(_current_lock_time("pixel"), 43, Color("#FFFFFF"))
-		clock.name = "PieLockScreenClock"
-		clock.custom_minimum_size.y = 48
-		clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
-		clock.add_theme_font_override("font", LOCKSCREEN_FONT)
-		clock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.38))
-		clock.add_theme_constant_override("outline_size", 1)
-		clock_block.add_child(clock)
-	if bool(data.get("show_date", true)):
-		var date := _label(_current_lock_date("pixel"), 10, Color("#FFFFFF"))
-		date.name = "PieLockScreenDate"
-		date.custom_minimum_size.y = 17
-		date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		date.autowrap_mode = TextServer.AUTOWRAP_OFF
-		date.add_theme_font_override("font", LOCKSCREEN_FONT)
-		date.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
-		date.add_theme_constant_override("outline_size", 1)
-		clock_block.add_child(date)
-	if bool(data.get("show_weather", true)):
-		var weather := _label("Partly cloudy  ·  26°", 9, Color("#FFFFFF"))
-		weather.name = "PieLockWeather"
-		weather.custom_minimum_size.y = 18
-		weather.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		weather.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		clock_block.add_child(weather)
-
-	var notification_gap := Control.new()
-	notification_gap.name = "PieLockScreenClockNotificationGap"
-	notification_gap.custom_minimum_size.y = maxf(8.0, size.y * 0.022)
-	root.add_child(notification_gap)
-	if bool(data.get("show_notifications", true)):
-		var notification_inset := MarginContainer.new()
-		notification_inset.name = "PieLockNotificationInset"
-		notification_inset.add_theme_constant_override("margin_left", 6)
-		notification_inset.add_theme_constant_override("margin_right", 6)
-		root.add_child(notification_inset)
-		var notifications := VBoxContainer.new()
-		notifications.name = "PieLockScreenNotifications"
-		notifications.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		notifications.add_theme_constant_override("separation", 7)
-		notification_inset.add_child(notifications)
-		_add_pie_lock_notification(notifications, "Messages", "Alex Morgan", "Are we still meeting today?", "M", Color("#4285F4"))
-		_add_pie_lock_notification(notifications, "Calendar", "Upcoming event", "Your event starts in 10 minutes", "31", Color("#4285F4"))
-
-	var flexible_space := Control.new()
-	flexible_space.name = "PieLockScreenFlexibleSpace"
-	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	flexible_space.size_flags_stretch_ratio = 1.15
-	root.add_child(flexible_space)
-
-	var shortcuts := HBoxContainer.new()
-	shortcuts.name = "PieLockScreenShortcuts"
-	shortcuts.custom_minimum_size.y = 52
-	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(shortcuts)
-	var assistant_slot := CenterContainer.new()
-	assistant_slot.name = "PieAssistantShortcutSlot"
-	assistant_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.add_child(assistant_slot)
-	if bool(data.get("show_assistant_shortcut", true)):
-		var assistant := OreoLockShortcutButton.new()
-		assistant.name = "PieAssistantShortcut"
-		assistant.shortcut_id = "assistant"
-		assistant.icon_texture = _load_lock_screen_app_icon("Assistant")
-		assistant.pressed.connect(func(): app_opened.emit("Assistant"))
-		assistant_slot.add_child(assistant)
-	# Android 9 Pie uses no display fingerprint reader or central lock glyph.
-	var center_spacer := CenterContainer.new()
-	center_spacer.name = "PieLockScreenShortcutCenterSpacer"
-	center_spacer.custom_minimum_size = Vector2(48, 48)
-	center_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.add_child(center_spacer)
-	var camera_slot := CenterContainer.new()
-	camera_slot.name = "PieCameraShortcutSlot"
-	camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.add_child(camera_slot)
-	if bool(data.get("show_camera_shortcut", true)):
-		var camera := OreoLockShortcutButton.new()
-		camera.name = "PieCameraShortcut"
-		camera.shortcut_id = "camera"
-		camera.icon_texture = LOCKSCREEN_CAMERA_TEXTURE
-		camera.pressed.connect(func(): app_opened.emit("Camera"))
-		camera_slot.add_child(camera)
-
-	var hint := _label("Swipe up to unlock", 8, Color(1, 1, 1, 0.88))
-	hint.name = "PieSwipeToUnlockHint"
-	hint.custom_minimum_size.y = 17
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(hint)
-
-func _add_pie_lock_notification(parent: VBoxContainer, app_name: String, title_text: String, message_text: String, _icon_text: String, _icon_color: Color) -> void:
-	var card := PanelContainer.new()
-	card.name = "PieLockNotification_" + app_name.replace(" ", "")
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size.y = 50
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color("#FFFFFF")
-	card_style.set_corner_radius_all(17)
-	card_style.border_color = Color("#D5DDE8")
-	card_style.set_border_width_all(1)
-	card_style.content_margin_left = 10
-	card_style.content_margin_right = 10
-	card_style.content_margin_top = 7
-	card_style.content_margin_bottom = 7
-	card.add_theme_stylebox_override("panel", card_style)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 9)
-	card.add_child(row)
-	var icon := TextureRect.new()
-	icon.name = "PieLockNotificationIcon_" + app_name.replace(" ", "")
-	icon.texture = _load_lock_screen_app_icon(app_name)
-	icon.custom_minimum_size = Vector2(30, 30)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(icon)
-	var message_column := VBoxContainer.new()
-	message_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	message_column.add_theme_constant_override("separation", 1)
-	var title := _label(title_text, 9, Color("#202124"))
-	title.name = "PieLockNotificationTitle_" + app_name.replace(" ", "")
-	message_column.add_child(title)
-	var message := _label(message_text, 9, Color("#344054"))
-	message.name = "PieLockNotificationMessage_" + app_name.replace(" ", "")
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_column.add_child(message)
-	row.add_child(message_column)
-	parent.add_child(card)
-
-func _build_oreo_lock_screen(data: Dictionary) -> void:
-	var root := VBoxContainer.new()
-	root.name = "OreoLockScreen"
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 0)
-	page_container.add_child(root)
-
-	var upper_space := Control.new()
-	upper_space.name = "OreoLockScreenTopSpace"
-	upper_space.custom_minimum_size.y = maxf(38.0, size.y * 0.10)
-	upper_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	upper_space.size_flags_stretch_ratio = 1.2
-	root.add_child(upper_space)
-
-	var clock_block := VBoxContainer.new()
-	clock_block.name = "OreoLockScreenClockBlock"
-	clock_block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	clock_block.add_theme_constant_override("separation", 0)
-	root.add_child(clock_block)
-
-	if bool(data.get("show_time", true)):
-		var clock := _label(_current_lock_time("pixel"), 42, Color("#FFFFFF"))
-		clock.name = "LockScreenClock"
-		clock.custom_minimum_size.y = 48
-		clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
-		clock.clip_text = false
-		clock.add_theme_font_override("font", LOCKSCREEN_FONT)
-		clock.add_theme_color_override("font_color", Color("#FFFFFF"))
-		clock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.34))
-		clock.add_theme_constant_override("outline_size", 1)
-		clock_block.add_child(clock)
-
-	if bool(data.get("show_date", true)):
-		var date := _label(_current_lock_date("pixel"), 10, Color("#FFFFFF"))
-		date.name = "LockScreenDate"
-		date.custom_minimum_size.y = 18
-		date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		date.autowrap_mode = TextServer.AUTOWRAP_OFF
-		date.clip_text = false
-		date.add_theme_font_override("font", LOCKSCREEN_FONT)
-		date.add_theme_color_override("font_color", Color("#FFFFFF"))
-		date.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.42))
-		date.add_theme_constant_override("outline_size", 1)
-		clock_block.add_child(date)
-
-	var clock_notification_gap := Control.new()
-	clock_notification_gap.name = "OreoLockScreenClockNotificationGap"
-	clock_notification_gap.custom_minimum_size.y = maxf(10.0, size.y * 0.025)
-	root.add_child(clock_notification_gap)
-
-	if bool(data.get("show_notifications", true)):
-		var notifications := VBoxContainer.new()
-		notifications.name = "OreoLockScreenNotifications"
-		notifications.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		notifications.add_theme_constant_override("separation", 5)
-		root.add_child(notifications)
-		_add_oreo_lock_notification(notifications, "Messages", "New message", "M", Color("#4285F4"))
-		_add_oreo_lock_notification(notifications, "Calendar", "Upcoming event reminder", "31", Color("#4285F4"))
-
-	var flexible_space := Control.new()
-	flexible_space.name = "OreoLockScreenFlexibleSpace"
-	flexible_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(flexible_space)
-
-	var shortcut_row := HBoxContainer.new()
-	shortcut_row.name = "OreoLockScreenShortcuts"
-	shortcut_row.custom_minimum_size.y = 52
-	shortcut_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	shortcut_row.add_theme_constant_override("separation", 0)
-	root.add_child(shortcut_row)
-
-	var assistant_slot := CenterContainer.new()
-	assistant_slot.name = "OreoAssistantShortcutSlot"
-	assistant_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_row.add_child(assistant_slot)
-	if bool(data.get("show_assistant_shortcut", true)):
-		var assistant_button := OreoLockShortcutButton.new()
-		assistant_button.name = "OreoAssistantShortcut"
-		assistant_button.shortcut_id = "assistant"
-		assistant_button.icon_texture = _load_lock_screen_app_icon("Assistant")
-		assistant_button.pressed.connect(func(): app_opened.emit("Assistant"))
-		assistant_slot.add_child(assistant_button)
-
-	var lock_slot := CenterContainer.new()
-	lock_slot.name = "OreoLockStatusSlot"
-	lock_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_row.add_child(lock_slot)
-	var lock_glyph := OreoLockCenterGlyph.new()
-	lock_glyph.name = "OreoLockStatusGlyph"
-	lock_glyph.icon_texture = LOCKSCREEN_LOCK_TEXTURE
-	lock_slot.add_child(lock_glyph)
-
-	var camera_slot := CenterContainer.new()
-	camera_slot.name = "OreoCameraShortcutSlot"
-	camera_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcut_row.add_child(camera_slot)
-	if bool(data.get("show_camera_shortcut", true)):
-		var camera_button := OreoLockShortcutButton.new()
-		camera_button.name = "OreoCameraShortcut"
-		camera_button.shortcut_id = "camera"
-		camera_button.icon_texture = LOCKSCREEN_CAMERA_TEXTURE
-		camera_button.pressed.connect(func(): app_opened.emit("Camera"))
-		camera_slot.add_child(camera_button)
-
-	var unlock_hint := _label("Swipe up to unlock", 8, Color(1, 1, 1, 0.82))
-	unlock_hint.name = "OreoSwipeToUnlockHint"
-	unlock_hint.custom_minimum_size.y = 15
-	unlock_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	unlock_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	unlock_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	root.add_child(unlock_hint)
-
-	var bottom_space := Control.new()
-	bottom_space.name = "OreoLockScreenBottomSpace"
-	bottom_space.custom_minimum_size.y = 2
-	root.add_child(bottom_space)
-
-
-func _add_oreo_lock_notification(parent: VBoxContainer, app_name: String, message: String, _icon_text: String, _icon_color: Color) -> void:
-	var card := PanelContainer.new()
-	card.name = "OreoLockNotification_" + app_name.replace(" ", "")
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size.y = 48
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color("#FFFFFF")
-	card_style.set_corner_radius_all(4)
-	card_style.border_color = Color("#CBD3DE")
-	card_style.set_border_width_all(1)
-	card_style.content_margin_left = 8
-	card_style.content_margin_right = 8
-	card_style.content_margin_top = 6
-	card_style.content_margin_bottom = 6
-	card.add_theme_stylebox_override("panel", card_style)
-	var row := HBoxContainer.new()
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 8)
-	card.add_child(row)
-	var app_icon := TextureRect.new()
-	app_icon.name = "OreoLockNotificationIcon_" + app_name.replace(" ", "")
-	app_icon.texture = _load_lock_screen_app_icon(app_name)
-	app_icon.custom_minimum_size = Vector2(25, 25)
-	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	app_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(app_icon)
-	var message_column := VBoxContainer.new()
-	message_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	message_column.add_theme_constant_override("separation", 1)
-	var title := _label(app_name, 9, Color("#202124"))
-	title.name = "OreoLockNotificationTitle_" + app_name.replace(" ", "")
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	message_column.add_child(title)
-	var body := _label(message, 9, Color("#303B49"))
-	body.name = "OreoLockNotificationMessage_" + app_name.replace(" ", "")
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.autowrap_mode = TextServer.AUTOWRAP_OFF
-	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	message_column.add_child(body)
-	row.add_child(message_column)
-	parent.add_child(card)
-
-func _build_lollipop_lock_screen(data: Dictionary) -> void:
-	# Android 5.0 Lollipop lock screen: preserve the approved Generation 1 composition.
-	var root := VBoxContainer.new()
-	root.name = "LollipopLockScreen"
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 0)
-	page_container.add_child(root)
-
-	var top_space := Control.new()
-	top_space.name = "LollipopLockScreenTopSpace"
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	top_space.size_flags_stretch_ratio = 1.0
-	root.add_child(top_space)
-
-	if bool(data.get("show_time", true)):
-		var clock := _label(_current_lock_time(), 52, Color("#FFFFFF"))
-		clock.name = "LockScreenClock"
-		clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		clock.autowrap_mode = TextServer.AUTOWRAP_OFF
-		clock.clip_text = false
-		clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		clock.add_theme_font_override("font", LOCKSCREEN_FONT)
-		clock.add_theme_color_override("font_color", Color("#FFFFFF"))
-		clock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
-		clock.add_theme_constant_override("outline_size", 1)
-		root.add_child(clock)
-
-	if bool(data.get("show_date", true)):
-		var date := _label(_current_lock_date("uppercase"), 15, Color("#FFFFFF"))
-		date.name = "LockScreenDate"
-		date.custom_minimum_size = Vector2(0, 24)
-		date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		date.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		date.autowrap_mode = TextServer.AUTOWRAP_OFF
-		date.clip_text = false
-		date.add_theme_font_override("font", LOCKSCREEN_FONT)
-		date.add_theme_color_override("font_color", Color("#FFFFFF"))
-		date.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.72))
-		date.add_theme_constant_override("outline_size", 2)
-		root.add_child(date)
-
-	var middle_space := Control.new()
-	middle_space.name = "LollipopLockScreenMiddleSpace"
-	middle_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	middle_space.size_flags_stretch_ratio = 1.4
-	root.add_child(middle_space)
-
-	var shortcuts := HBoxContainer.new()
-	shortcuts.name = "LockScreenQuickShortcuts"
-	shortcuts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.alignment = BoxContainer.ALIGNMENT_CENTER
-	shortcuts.add_theme_constant_override("separation", 0)
-	if bool(data.get("show_camera_shortcut", true)):
-		var camera_button := _make_lock_shortcut(LOCKSCREEN_CAMERA_TEXTURE, "floating", "Camera")
-		camera_button.name = "LockScreenShortcut_Camera"
-		shortcuts.add_child(camera_button)
-	else:
-		var empty_camera_slot := Control.new()
-		empty_camera_slot.name = "LollipopLockScreenCameraSlot"
-		shortcuts.add_child(empty_camera_slot)
-	var shortcut_spacer := Control.new()
-	shortcut_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shortcuts.add_child(shortcut_spacer)
-	if bool(data.get("show_flashlight_shortcut", true)):
-		var flashlight_button := _make_lock_shortcut(LOCKSCREEN_FLASHLIGHT_TEXTURE, "floating", "Flashlight")
-		flashlight_button.name = "LockScreenShortcut_Flashlight"
-		shortcuts.add_child(flashlight_button)
-	else:
-		var empty_flashlight_slot := Control.new()
-		empty_flashlight_slot.name = "LollipopLockScreenFlashlightSlot"
-		shortcuts.add_child(empty_flashlight_slot)
-	root.add_child(shortcuts)
-
-	var bottom_space := Control.new()
-	bottom_space.name = "LollipopLockScreenBottomSpace"
-	bottom_space.custom_minimum_size.y = 12
-	root.add_child(bottom_space)
-
-func _lock_screen_move(source: Control, node_name: String, destination: Control) -> void:
-	var item := source.get_node_or_null(node_name) as Control
-	if is_instance_valid(item):
-		source.remove_child(item)
-		destination.add_child(item)
-
-
-func _add_lock_notification(app_name: String, message: String, time_label: String, treatment: String, _index: int) -> void:
-	var card := PanelContainer.new()
-	card.name = "LockScreenNotification_" + app_name
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	match treatment:
-		"glass":
-			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.44)
-			style.border_color = Color(1, 1, 1, 0.20)
-			style.set_corner_radius_all(15)
-			style.set_border_width_all(1)
-		"solid":
-			style.bg_color = _surface_color().darkened(0.18)
-			style.border_color = _accent_color()
-			style.set_corner_radius_all(4)
-			style.set_border_width_all(1)
-		"outline":
-			style.bg_color = Color(0, 0, 0, 0.12)
-			style.border_color = _accent_color()
-			style.set_corner_radius_all(12)
-			style.set_border_width_all(1)
-		"minimal":
-			style.bg_color = Color(0, 0, 0, 0)
-			style.border_color = Color(1, 1, 1, 0.16)
-			style.set_corner_radius_all(0)
-			style.set_border_width_all(0)
-			style.border_width_bottom = 1
-		_:
-			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.76)
-			style.border_color = Color(1, 1, 1, 0.12)
-			style.set_corner_radius_all(7)
-			style.set_border_width_all(1)
-	style.content_margin_left = 7
-	style.content_margin_right = 7
-	style.content_margin_top = 5
-	style.content_margin_bottom = 5
-	card.add_theme_stylebox_override("panel", style)
-	card.custom_minimum_size.y = 38
-	var row := HBoxContainer.new()
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.custom_minimum_size.y = 30
-	row.add_theme_constant_override("separation", 7)
-	var app_icon := TextureRect.new()
-	app_icon.name = "LockScreenNotificationIcon_" + app_name.replace(" ", "")
-	app_icon.texture = _load_lock_screen_app_icon(app_name)
-	app_icon.custom_minimum_size = Vector2(26, 26)
-	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	app_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(app_icon)
-	var body := VBoxContainer.new()
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.custom_minimum_size = Vector2(0, 25)
-	body.add_theme_constant_override("separation", 1)
-	var header := HBoxContainer.new()
-	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var app_label := _label(app_name, 10, _text_color())
-	app_label.name = "LockScreenNotificationApp_" + app_name
-	app_label.custom_minimum_size.y = 12
-	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(app_label)
-	var time_label_control := _label(time_label, 7, _muted_color())
-	time_label_control.custom_minimum_size.y = 12
-	header.add_child(time_label_control)
-	body.add_child(header)
-	var message_label := _label(message, 9, _text_color())
-	message_label.name = "LockScreenNotificationMessage_" + app_name
-	message_label.custom_minimum_size.y = 12
-	body.add_child(message_label)
-	row.add_child(body)
-	card.add_child(row)
-	page_container.add_child(card)
-
-
-func _add_lock_audio_player(treatment: String) -> void:
-	var player := PanelContainer.new()
-	player.name = "LockScreenAudioPlayer"
-	player.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style := StyleBoxFlat.new()
-	match treatment:
-		"glass_bar":
-			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.40)
-			style.border_color = Color(1, 1, 1, 0.24)
-			style.set_corner_radius_all(22)
-			style.set_border_width_all(1)
-		"compact_row":
-			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.84)
-			style.border_color = _accent_color()
-			style.set_corner_radius_all(5)
-			style.set_border_width_all(1)
-		"editorial":
-			style.bg_color = Color(0, 0, 0, 0)
-			style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.55)
-			style.set_corner_radius_all(0)
-			style.set_border_width_all(0)
-			style.border_width_bottom = 1
-		_:
-			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.78)
-			style.border_color = Color(1, 1, 1, 0.16)
-			style.set_corner_radius_all(13)
-			style.set_border_width_all(1)
-	style.content_margin_left = 7
-	style.content_margin_right = 7
-	style.content_margin_top = 6
-	style.content_margin_bottom = 6
-	player.add_theme_stylebox_override("panel", style)
-
-	player.custom_minimum_size.y = 54
-	var player_content := VBoxContainer.new()
-	player_content.custom_minimum_size.y = 46
-	player_content.add_theme_constant_override("separation", 3)
-	var row := HBoxContainer.new()
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 6)
-	var artwork := PanelContainer.new()
-	artwork.name = "LockScreenAudioArtwork"
-	artwork.custom_minimum_size = Vector2(28, 28)
-	var art_style := StyleBoxFlat.new()
-	art_style.bg_color = _accent_color().darkened(0.35)
-	art_style.set_corner_radius_all(7 if treatment == "compact_row" else 12)
-	artwork.add_theme_stylebox_override("panel", art_style)
-	var art_label := _label("♫", 21, _text_color())
-	art_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	art_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	art_label.custom_minimum_size = Vector2(34, 34)
-	artwork.add_child(art_label)
-	row.add_child(artwork)
-	var track := VBoxContainer.new()
-	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	track.custom_minimum_size.x = 0
-	track.add_theme_constant_override("separation", 0)
-	var now_playing := _label("NOW PLAYING", 7, _accent_color())
-	now_playing.name = "LockScreenAudioEyebrow"
-	now_playing.custom_minimum_size.y = 10
-	track.add_child(now_playing)
-	var track_title := _label("Midnight Drive", 10, _text_color())
-	track_title.name = "LockScreenAudioTrackTitle"
-	track_title.custom_minimum_size.y = 13
-	track.add_child(track_title)
-	var artist_name := _label("DigitalWorld Audio", 8, _muted_color())
-	artist_name.name = "LockScreenAudioArtist"
-	artist_name.custom_minimum_size.y = 12
-	track.add_child(artist_name)
-	row.add_child(track)
-	var play := Button.new()
-	play.name = "LockScreenAudioPlayButton"
-	play.text = "Ⅱ"
-	play.custom_minimum_size = Vector2(28, 28)
-	_style_lock_button(play, "minimal")
-	play.pressed.connect(func(): play.text = "▶" if play.text == "Ⅱ" else "Ⅱ")
-	row.add_child(play)
-	player_content.add_child(row)
-	var progress := HBoxContainer.new()
-	progress.add_child(_label("1:24", 7, _muted_color()))
-	var progress_line := ColorRect.new()
-	progress_line.custom_minimum_size = Vector2(0, 3)
-	progress_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	progress_line.color = _accent_color()
-	progress.add_child(progress_line)
-	progress.add_child(_label("3:48", 7, _muted_color()))
-	player_content.add_child(progress)
-	player.add_child(player_content)
-	page_container.add_child(player)
-
-
-func _make_lock_shortcut(icon_texture: Texture2D, treatment: String, action_name: String) -> Button:
-	var button := Button.new()
-	button.name = "LockScreenShortcut_" + action_name
-	button.text = ""
-	button.custom_minimum_size = Vector2(42, 42)
-	button.clip_contents = true
-	_style_lock_button(button, treatment)
-
-	# Keep imported artwork in a plain TextureRect rather than Button.icon.
-	# This avoids theme-dependent icon sizing/tint differences on Android.
-	var icon_view := TextureRect.new()
-	icon_view.name = "LockScreenShortcutIcon_" + action_name
-	icon_view.texture = icon_texture
-	icon_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var original_artwork_size := button.custom_minimum_size - Vector2.ONE * 16.0
-	var scaled_artwork_size := original_artwork_size * LOCKSCREEN_SHORTCUT_ICON_SCALE
-	var artwork_inset := (button.custom_minimum_size - scaled_artwork_size) * 0.5
-	icon_view.offset_left = artwork_inset.x
-	icon_view.offset_top = artwork_inset.y
-	icon_view.offset_right = -artwork_inset.x
-	icon_view.offset_bottom = -artwork_inset.y
-	button.add_child(icon_view)
-
-	if action_name == "Flashlight":
-		button.toggle_mode = true
-		button.toggled.connect(func(enabled: bool):
-			icon_view.modulate = Color("#C8E8FF") if enabled else Color.WHITE
-			if is_instance_valid(status_label):
-				status_label.text = "Flashlight " + ("on" if enabled else "off")
-		)
-	else:
-		button.pressed.connect(func():
-			if is_instance_valid(status_label):
-				status_label.text = "Camera shortcut"
-			app_opened.emit("Camera")
-		)
-	return button
-
-
-func _style_lock_button(button: Button, treatment: String) -> void:
-	var style := StyleBoxFlat.new()
-	match treatment:
-		"floating", "pill":
-			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.78)
-			style.border_color = Color(1, 1, 1, 0.22)
-			style.set_corner_radius_all(24)
-			style.set_border_width_all(1)
-		"outlined", "ring":
-			style.bg_color = Color(0, 0, 0, 0.12)
-			style.border_color = _accent_color()
-			style.set_corner_radius_all(24)
-			style.set_border_width_all(1)
-		"solid":
-			style.bg_color = _accent_color().darkened(0.22)
-			style.border_color = _accent_color()
-			style.set_corner_radius_all(8)
-			style.set_border_width_all(1)
-		"glass":
-			style.bg_color = Color(_surface_color().r, _surface_color().g, _surface_color().b, 0.38)
-			style.border_color = Color(1, 1, 1, 0.30)
-			style.set_corner_radius_all(18)
-			style.set_border_width_all(1)
-		"minimal", "text_link":
-			style.bg_color = Color(0, 0, 0, 0)
-			style.border_color = Color(_accent_color().r, _accent_color().g, _accent_color().b, 0.30)
-			style.set_corner_radius_all(2)
-			style.set_border_width_all(0)
-			style.border_width_bottom = 1
-		_:
-			style.bg_color = _surface_color()
-			style.border_color = Color(1, 1, 1, 0.16)
-			style.set_corner_radius_all(10)
-			style.set_border_width_all(1)
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_stylebox_override("hover", style.duplicate())
-	button.add_theme_stylebox_override("pressed", style.duplicate())
-	button.add_theme_color_override("font_color", _text_color())
-	button.add_theme_color_override("font_hover_color", _text_color())
-	button.add_theme_font_size_override("font_size", 8)
-	button.focus_mode = Control.FOCUS_NONE
-
-
-
+func _build_lock_screen(_data: Dictionary) -> void:
+	_add_gen1_samsung_screenshot(page_container, "lock_screen")
 func _build_pin_input() -> void:
-	var is_pie_pin := _is_android_os() and int(configuration.get("generation", 2)) == 3
 	var layout := VBoxContainer.new()
-	layout.name = "PiePINInputScreen" if is_pie_pin else "PINInputScreen"
+	layout.name = "PINInputScreen"
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.alignment = BoxContainer.ALIGNMENT_CENTER
 	layout.add_theme_constant_override("separation", 10)
 	page_container.add_child(layout)
-
 	_build_pin_input_header(layout)
 	_build_pin_input_keypad(layout)
 	_build_pin_input_footer(layout)
-
-
 func _build_pin_input_header(layout: VBoxContainer) -> void:
-	var is_pie_pin := _is_android_os() and int(configuration.get("generation", 2)) == 3
-	var entry_text_color := Color("#FFFFFF") if is_pie_pin else _text_color()
 	var lock_indicator_stage := CenterContainer.new()
 	lock_indicator_stage.name = "PINLockIndicatorStage"
 	lock_indicator_stage.custom_minimum_size.y = 28
@@ -4811,35 +1370,27 @@ func _build_pin_input_header(layout: VBoxContainer) -> void:
 	lock_indicator.custom_minimum_size = Vector2(28.0, 24.0)
 	lock_indicator_stage.add_child(lock_indicator)
 	layout.add_child(lock_indicator_stage)
-
-	var title := _label("Enter PIN", 18, entry_text_color)
+	var title := _label("Enter PIN", 18, _text_color())
 	title.name = "PINEntryTitle"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.custom_minimum_size.y = 26
 	layout.add_child(title)
-
-	var subtitle := _label("Use your PIN to unlock" if is_pie_pin else "Enter your 4-digit screen lock.", 9, Color("#DADCE0") if is_pie_pin else _muted_color())
+	var subtitle := _label("Enter your 4-digit screen lock.", 9, _muted_color())
 	subtitle.name = "PINEntrySubtitle"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.custom_minimum_size.y = 16
 	layout.add_child(subtitle)
-
-	var dots := _label("○   ○   ○   ○", 14, entry_text_color)
+	var dots := _label("○   ○   ○   ○", 14, _text_color())
 	dots.name = "PINEntryDots"
 	dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dots.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	dots.custom_minimum_size.y = 28
 	layout.add_child(dots)
-
 	var error_label := _label(_pin_error_message, 7, Color("#FF9AA8"))
 	error_label.name = "PINEntryError"
 	error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	error_label.custom_minimum_size.y = 18
-	# Keep this slot in the layout even when empty so an error never shifts
-	# the keypad or changes the position of the bottom navigation.
 	layout.add_child(error_label)
-
-
 func _build_pin_input_keypad(layout: VBoxContainer) -> void:
 	var keypad := GridContainer.new()
 	keypad.name = "PINKeypad"
@@ -4884,7 +1435,6 @@ func _build_pin_input_keypad(layout: VBoxContainer) -> void:
 		keypad.add_child(key)
 
 	layout.add_child(keypad)
-
 
 func _create_pin_key_button(key_id: String, caption: String, key_size: float) -> Button:
 	var key := Button.new()
@@ -4933,14 +1483,12 @@ func _create_pin_key_button(key_id: String, caption: String, key_size: float) ->
 		key.pressed.connect(_on_pin_digit_pressed.bind(key_id))
 	return key
 
-
 func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	var emergency_button := Button.new()
 	emergency_button.name = "PINEmergencyCallButton"
 	emergency_button.text = "Emergency call"
 	emergency_button.custom_minimum_size = Vector2(132, 32)
 	emergency_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-
 	var emergency_style := StyleBoxFlat.new()
 	emergency_style.bg_color = Color(1.0, 1.0, 1.0, 0.12)
 	emergency_style.border_color = Color(1.0, 1.0, 1.0, 0.22)
@@ -4959,7 +1507,6 @@ func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	emergency_button.focus_mode = Control.FOCUS_NONE
 	emergency_button.pressed.connect(_on_pin_emergency_pressed)
 	layout.add_child(emergency_button)
-
 	var info := PanelContainer.new()
 	info.name = "PINPreviewUnlockInfo"
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -4971,16 +1518,12 @@ func _build_pin_input_footer(layout: VBoxContainer) -> void:
 	info_style.content_margin_top = 0
 	info_style.content_margin_bottom = 0
 	info.add_theme_stylebox_override("panel", info_style)
-
-	var is_pie_pin := _is_android_os() and int(configuration.get("generation", 2)) == 3
-	var info_label := _label("Enter device PIN" if is_pie_pin else "Preview PIN  ·  1234", 8, Color(1.0, 1.0, 1.0, 0.62))
-	info_label.name = "PiePINUnlockInfoLabel" if is_pie_pin else "PINPreviewUnlockInfoLabel"
+	var info_label := _label("Preview PIN  ·  1234", 8, Color(1.0, 1.0, 1.0, 0.62))
+	info_label.name = "PINPreviewUnlockInfoLabel"
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.custom_minimum_size.y = 16
 	info.add_child(info_label)
 	layout.add_child(info)
-
-
 func _on_pin_submit_pressed() -> void:
 	if _entered_unlock_pin.length() != 4:
 		_pin_error_message = "Enter your 4-digit PIN."
@@ -4994,11 +1537,9 @@ func _on_pin_submit_pressed() -> void:
 		_pin_error_message = "Incorrect PIN. Use 1234 for this preview."
 		_refresh_pin_entry_display()
 
-
 func _on_pin_emergency_pressed() -> void:
 	_pin_error_message = "Emergency calling is unavailable in this preview."
 	_refresh_pin_entry_display()
-
 
 func _on_pin_digit_pressed(digit: String) -> void:
 	if _entered_unlock_pin.length() >= 4:
@@ -5009,13 +1550,11 @@ func _on_pin_digit_pressed(digit: String) -> void:
 	if _entered_unlock_pin.length() == 4:
 		_on_pin_submit_pressed()
 
-
 func _on_pin_delete_pressed() -> void:
 	if not _entered_unlock_pin.is_empty():
 		_entered_unlock_pin = _entered_unlock_pin.left(_entered_unlock_pin.length() - 1)
 	_pin_error_message = ""
 	_refresh_pin_entry_display()
-
 
 func _refresh_pin_entry_display() -> void:
 	var dots := find_child("PINEntryDots", true, false) as Label
@@ -5031,7 +1570,6 @@ func _refresh_pin_entry_display() -> void:
 		error_label.text = _pin_error_message
 		# Keep the reserved row visible while empty to prevent keypad movement.
 		error_label.visible = true
-
 
 func _build_icon_gallery(data: Dictionary) -> void:
 	_add_section_label("APP ICON SYSTEM")
@@ -5083,7 +1621,7 @@ func _build_wallpaper_preview(data: Dictionary) -> void:
 	var art := OSWallpaperLayer.new()
 	art.name = "WallpaperStylePreview"
 	art.palette = _palette.duplicate(true)
-	art.wallpaper_id = str(data.get("style", data.get("id", "aurora")))
+	art.wallpaper_id = str(data.get("style", data.get("id", "touchwiz_nature")))
 	art.treatment = str(data.get("treatment", "natural"))
 	art.custom_minimum_size = Vector2(0, 164)
 	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -5092,7 +1630,6 @@ func _build_wallpaper_preview(data: Dictionary) -> void:
 	page_container.add_child(wallpaper_name)
 	var treatment_name := str(data.get("treatment", "natural")).replace("_", " ").capitalize()
 	page_container.add_child(_label("Shared home and lock screen wallpaper  ·  " + treatment_name, 8, _muted_color()))
-
 
 func _build_animation_preview(data: Dictionary) -> void:
 	_add_section_label("MOTION & TRANSITIONS")
@@ -5124,80 +1661,7 @@ func _build_animation_preview(data: Dictionary) -> void:
 	page_container.add_child(play)
 
 func _build_control_center(_data: Dictionary) -> void:
-	if _is_android_os() and int(configuration.get("generation", 2)) == 2:
-		_build_android_oreo_control_center_preview()
-		return
-	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
-		_build_android_pie_control_center_preview()
-		return
-	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
-		var panel := PanelContainer.new()
-		panel.name = "LollipopControlCenterPreview"
-		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var panel_style := StyleBoxFlat.new()
-		panel_style.bg_color = Color("#263238")
-		panel_style.set_border_width_all(0)
-		panel_style.set_corner_radius_all(2)
-		panel_style.content_margin_left = 8
-		panel_style.content_margin_right = 8
-		panel_style.content_margin_top = 8
-		panel_style.content_margin_bottom = 8
-		panel.add_theme_stylebox_override("panel", panel_style)
-		page_container.add_child(panel)
-		var body := VBoxContainer.new()
-		body.add_theme_constant_override("separation", 8)
-		panel.add_child(body)
-		_build_lollipop_quick_settings_content(body, true)
-		return
-
-	_add_section_label("QUICK SETTINGS")
-	var grid := GridContainer.new()
-	grid.name = "QuickSettingsGrid"
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 7)
-	grid.add_theme_constant_override("v_separation", 7)
-	page_container.add_child(grid)
-	var toggles := [
-		["Wi-Fi", "◉", true], ["Bluetooth", "ᛒ", true],
-		["Mobile data", "▥", true], ["Airplane mode", "✈", false],
-		["Flashlight", "☼", false], ["Location", "⌖", true],
-		["Do not disturb", "◐", false], ["Battery saver", "▰", false],
-		["Auto-rotate", "⟳", true], ["Hotspot", "⌁", false],
-		["NFC", "◈", false], ["Cast screen", "▣", false]
-	]
-	for item in toggles:
-		var tile := Button.new()
-		tile.name = "QuickTile_" + str(item[0]).replace(" ", "")
-		tile.toggle_mode = true
-		tile.button_pressed = bool(item[2])
-		tile.custom_minimum_size.y = 48
-		tile.text = str(item[1]) + "   " + str(item[0])
-		tile.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		_style_action_button(tile, tile.button_pressed)
-		tile.toggled.connect(func(enabled: bool) -> void: _style_action_button(tile, enabled))
-		grid.add_child(tile)
-	var media := PanelContainer.new()
-	media.name = "ControlCenterMediaCard"
-	media.custom_minimum_size.y = 57
-	_style_surface(media, true)
-	var media_row := HBoxContainer.new()
-	media.add_child(media_row)
-	var media_info := VBoxContainer.new()
-	media_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	media_info.add_child(_label("NOW PLAYING", 7, _accent_color()))
-	media_info.add_child(_label("No media playing", 9, _text_color()))
-	media_row.add_child(media_info)
-	media_row.add_child(_label("◀   ▶   ▷", 11, _text_color()))
-	page_container.add_child(media)
-	_add_control_slider("Brightness", 72, "☼")
-	_add_control_slider("Volume", 58, "♫")
-	var footer := HBoxContainer.new()
-	footer.add_child(_label("Connected  ·  Wi-Fi and mobile network", 7, _muted_color()))
-	page_container.add_child(footer)
-
-
-
+	_add_gen1_samsung_screenshot(page_container, "control_center")
 func _add_control_slider(caption: String, initial_value: float, glyph: String) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "ControlSlider_" + caption
@@ -5219,41 +1683,8 @@ func _add_control_slider(caption: String, initial_value: float, glyph: String) -
 	row.add_child(slider_column)
 	page_container.add_child(panel)
 
-
 func _build_notifications(_data: Dictionary) -> void:
-	if _is_android_os() and int(configuration.get("generation", 2)) == 2:
-		_build_android_oreo_notifications_preview()
-		return
-	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
-		_build_android_pie_notifications_preview()
-		return
-	if _is_android_os() and int(configuration.get("generation", 2)) == 1:
-		var panel := PanelContainer.new()
-		panel.name = "LollipopNotificationPreview"
-		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var panel_style := StyleBoxFlat.new()
-		panel_style.bg_color = Color("#263238")
-		panel_style.set_border_width_all(0)
-		panel_style.set_corner_radius_all(2)
-		panel_style.content_margin_left = 9
-		panel_style.content_margin_right = 9
-		panel_style.content_margin_top = 9
-		panel_style.content_margin_bottom = 9
-		panel.add_theme_stylebox_override("panel", panel_style)
-		page_container.add_child(panel)
-		var body := VBoxContainer.new()
-		body.add_theme_constant_override("separation", 9)
-		panel.add_child(body)
-		_build_lollipop_notification_content(body)
-		return
-
-	_add_section_label("NOTIFICATION PANEL")
-	_add_notification_surface("Messages", "A new message is waiting", "NOW")
-	_add_notification_surface("Calendar", "Your next event is coming up", "10 MIN")
-	_add_notification_surface("System", "Your device is up to date", "EARLIER")
-
-
-
+	_add_gen1_samsung_screenshot(page_container, "notifications")
 func _build_navigation_preview(data: Dictionary) -> void:
 	_add_section_label("SYSTEM NAVIGATION")
 	page_container.add_child(_surface_label("Navigation mode  ·  " + str(data.get("mode", "gesture")).replace("_", " ").capitalize(), 10))
@@ -5286,290 +1717,10 @@ func _build_navigation_preview(data: Dictionary) -> void:
 	indicator.add_child(line)
 	page_container.add_child(indicator)
 
-func _build_app_drawer(data: Dictionary) -> void:
-	var is_android_layout := _is_android_os()
-	var generation_number := int(configuration.get("generation", 2))
-	var is_lollipop := generation_number == 1 and is_android_layout
-	if generation_number == 3 and is_android_layout:
-		_build_android_pie_app_drawer()
-		return
-	if is_lollipop:
-		_build_lollipop_app_drawer()
-		return
-
-	var heading_row := HBoxContainer.new()
-	heading_row.add_theme_constant_override("separation", 6)
-	heading_row.add_child(_label("ALL APPS", 10, _accent_color()))
-	var count_label := _label("%02d INSTALLED" % OSEngine.APP_DEFINITIONS.size(), 7, _muted_color())
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading_row.add_child(count_label)
-	page_container.add_child(heading_row)
-	var search := _search_field("Search installed apps")
-	search.name = "AppDrawerSearchField"
-	if str(data.get("search_position", "top")) == "top":
-		page_container.add_child(search)
-	var layout := str(data.get("layout", "alphabetical"))
-	var category_grids: Array[GridContainer] = []
-	if layout == "categories":
-		var categories := {
-			"COMMUNICATION": ["Phone", "Messages", "Contacts", "Email", "Meet"],
-			"MEDIA": ["Camera", "Gallery", "Music", "Video", "Podcasts"],
-			"PRODUCTIVITY": ["Calendar", "Files", "Notes", "Clock", "Calculator", "Tasks"],
-			"GOOGLE & SERVICES": ["Maps", "Browser", "Store", "Weather", "Drive", "Photos"],
-			"SYSTEM": ["Settings", "Security", "Device Care", "Downloads", "Recorder", "Compass", "Wallet", "Assistant"]
-		}
-		for category_name in categories:
-			_add_section_label(category_name)
-			var category_grid := GridContainer.new()
-			category_grid.name = "AppDrawerCategory_" + category_name.replace(" ", "")
-			category_grid.set_meta("app_names", categories[category_name])
-			category_grids.append(category_grid)
-			category_grid.columns = _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
-			category_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			category_grid.add_theme_constant_override("h_separation", 7)
-			category_grid.add_theme_constant_override("v_separation", 10)
-			page_container.add_child(category_grid)
-			for app_name in categories[category_name]:
-				var app := _find_app(app_name)
-				if not app.is_empty():
-					category_grid.add_child(_create_app_icon(app, _responsive_icon_size(int(_style.get("icon_size", 52)), category_grid.columns), true))
-		search.text_changed.connect(_on_category_app_search_changed.bind(category_grids))
-	else:
-		var horizontal := str(data.get("scroll_direction", "vertical")) == "horizontal"
-		var viewport := ScrollContainer.new()
-		viewport.name = "AppDrawerViewport"
-		viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if horizontal else ScrollContainer.SCROLL_MODE_DISABLED
-		viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED if horizontal else ScrollContainer.SCROLL_MODE_AUTO
-		page_container.add_child(viewport)
-		var grid := GridContainer.new()
-		grid.name = "AppDrawerGrid"
-		grid.columns = OSEngine.APP_DEFINITIONS.size() if horizontal else _responsive_columns(int(data.get("columns", _style.get("grid_columns", 4))))
-		grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if horizontal else Control.SIZE_EXPAND_FILL
-		grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if horizontal else Control.SIZE_EXPAND_FILL
-		grid.add_theme_constant_override("h_separation", 8)
-		grid.add_theme_constant_override("v_separation", 12)
-		viewport.add_child(grid)
-		_populate_app_grid(grid, "", int(configuration.get("style", {}).get("icon_size", 52)), true)
-	if str(data.get("search_position", "top")) == "bottom":
-		page_container.add_child(search)
-	if layout != "categories":
-		var searchable_grid := page_container.find_child("AppDrawerGrid", true, false) as GridContainer
-		if searchable_grid != null:
-			search.text_changed.connect(_on_app_search_changed.bind(searchable_grid))
-
-
-func _build_android_pie_app_drawer() -> void:
-	# Pixel Launcher app drawer: search, suggested apps and a complete alphabetical app list.
-	var search := LineEdit.new()
-	search.name = "PieAppDrawerSearchField"
-	search.placeholder_text = "Search your phone"
-	search.custom_minimum_size.y = 36
-	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	search.clear_button_enabled = true
-	_style_home_search_field(search)
-	page_container.add_child(search)
-
-	var suggestions_title := _label("Suggested apps", 9, Color("#5F6368"))
-	suggestions_title.name = "PieSuggestedAppsHeading"
-	page_container.add_child(suggestions_title)
-	var suggestions := GridContainer.new()
-	suggestions.name = "PieSuggestedAppsRow"
-	suggestions.columns = _responsive_columns(5)
-	suggestions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	suggestions.add_theme_constant_override("h_separation", 4)
-	suggestions.add_theme_constant_override("v_separation", 7)
-	for app_name in ["Phone", "Messages", "Camera", "Browser", "Photos"]:
-		var app := _find_app(app_name)
-		if not app.is_empty():
-			var item := _create_app_icon(app, _responsive_icon_size(38, suggestions.columns, 4), true)
-			item.name = "PieSuggestedApp_" + app_name.replace(" ", "")
-			suggestions.add_child(item)
-	page_container.add_child(suggestions)
-
-	var all_apps_heading := HBoxContainer.new()
-	all_apps_heading.name = "PieAppDrawerAllAppsHeader"
-	var all_apps_label := _label("All apps", 13, Color("#202124"))
-	all_apps_label.name = "PieAppDrawerAllAppsHeading"
-	all_apps_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	all_apps_heading.add_child(all_apps_label)
-	var all_apps_count := _label("%d APPS" % OSEngine.APP_DEFINITIONS.size(), 8, Color("#5F6368"))
-	all_apps_count.name = "PieAppDrawerAppCount"
-	all_apps_heading.add_child(all_apps_count)
-	page_container.add_child(all_apps_heading)
-
-	var grid := GridContainer.new()
-	grid.name = "PieAppDrawerGrid"
-	grid.columns = _responsive_columns(5)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	grid.add_theme_constant_override("h_separation", 5)
-	grid.add_theme_constant_override("v_separation", 10)
-	page_container.add_child(grid)
-	_populate_android_pie_app_grid("", grid)
-	search.text_changed.connect(_populate_android_pie_app_grid.bind(grid))
-
-func _populate_android_pie_app_grid(query: String, grid: GridContainer) -> void:
-	if not is_instance_valid(grid):
-		return
-	for child in grid.get_children():
-		grid.remove_child(child)
-		child.queue_free()
-	var sorted_apps: Array = OSEngine.APP_DEFINITIONS.duplicate(true)
-	sorted_apps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return str(a.get("name", "")).to_lower() < str(b.get("name", "")).to_lower()
-	)
-	var normalized_query := query.strip_edges().to_lower()
-	var icon_size := _responsive_icon_size(42, maxi(2, grid.columns), 5)
-	for app in sorted_apps:
-		var app_name := str(app.get("name", ""))
-		if not normalized_query.is_empty() and not app_name.to_lower().contains(normalized_query):
-			continue
-		grid.add_child(_create_app_icon(app, icon_size, true))
-
-func _build_lollipop_app_drawer() -> void:
-	# Android 5.0's app drawer is one continuous, vertically scrolling grid.
-	# Every installed app fills the next available cell before the list continues.
-	var spacer := Control.new()
-	spacer.custom_minimum_size.y = 8
-	page_container.add_child(spacer)
-	var viewport := ScrollContainer.new()
-	viewport.name = "LollipopAppDrawerViewport"
-	viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	viewport.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	viewport.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	viewport.scroll_deadzone = 8
-	page_container.add_child(viewport)
-	var sorted_apps: Array = OSEngine.APP_DEFINITIONS.duplicate(true)
-	sorted_apps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return str(a.get("name", "")).to_lower() < str(b.get("name", "")).to_lower()
-	)
-	var grid := GridContainer.new()
-	grid.name = "LollipopAppDrawerGrid"
-	grid.columns = 4
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	grid.add_theme_constant_override("h_separation", 5)
-	grid.add_theme_constant_override("v_separation", 8)
-	viewport.add_child(grid)
-	var icon_size := _responsive_icon_size(34, 4, 5)
-	for app in sorted_apps:
-		grid.add_child(_create_lollipop_app_icon(app, icon_size, true, Color("#424242")))
-
-
+func _build_app_drawer(_data: Dictionary) -> void:
+	_add_gen1_samsung_screenshot(page_container, "app_drawer")
 func _build_recent_apps(_data: Dictionary) -> void:
-	if _is_android_os() and int(configuration.get("generation", 2)) == 3:
-		_build_android_pie_recent_apps_preview()
-		return
-	var heading_row := HBoxContainer.new()
-	heading_row.add_theme_constant_override("separation", 6)
-	var heading := _label("RECENT APPS", 9, _accent_color())
-	heading_row.add_child(heading)
-	var clear := Button.new()
-	clear.name = "ClearRecentAppsButton"
-	clear.text = "CLEAR"
-	clear.custom_minimum_size = Vector2(56, 27)
-	_style_action_button(clear)
-	heading_row.add_child(clear)
-	page_container.add_child(heading_row)
-
-	var recent_scroll := ScrollContainer.new()
-	recent_scroll.name = "RecentAppsViewport"
-	recent_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	recent_scroll.custom_minimum_size.y = 174
-	recent_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	recent_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	page_container.add_child(recent_scroll)
-
-	var recent_row := HBoxContainer.new()
-	recent_row.name = "RecentAppsList"
-	recent_row.add_theme_constant_override("separation", 8)
-	recent_scroll.add_child(recent_row)
-
-	var empty_state := _label("No recent apps", 8, _muted_color())
-	empty_state.name = "NoRecentAppsLabel"
-	empty_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	empty_state.custom_minimum_size = Vector2(100, 42)
-	var recent_names := ["Settings", "Camera", "Messages"]
-	var card_width := clampf(size.x * 0.76, 108.0, 140.0)
-
-	var remove_card := func(card: Control) -> void:
-		if is_instance_valid(card) and card.get_parent() == recent_row:
-			recent_row.remove_child(card)
-			card.queue_free()
-		if recent_row.get_child_count() == 0 and empty_state.get_parent() == null:
-			recent_row.add_child(empty_state)
-
-	for app_name in recent_names:
-		var app := _find_app(app_name)
-		if app.is_empty():
-			continue
-		var card := PanelContainer.new()
-		card.name = "RecentAppCard_" + app_name.replace(" ", "")
-		card.custom_minimum_size = Vector2(card_width, 158)
-		_style_surface(card, true)
-		var content := VBoxContainer.new()
-		content.add_theme_constant_override("separation", 6)
-		card.add_child(content)
-
-		var card_header := HBoxContainer.new()
-		card_header.add_theme_constant_override("separation", 4)
-		card_header.add_child(_create_app_icon(app, 22, false))
-		var app_title := _label(app_name, 8, _text_color())
-		app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card_header.add_child(app_title)
-		var close := Button.new()
-		close.name = "CloseRecentApp_" + app_name.replace(" ", "")
-		close.text = "×"
-		close.custom_minimum_size = Vector2(20, 20)
-		close.add_theme_font_size_override("font_size", 12)
-		_style_action_button(close)
-		card_header.add_child(close)
-		close.pressed.connect(remove_card.bind(card))
-		content.add_child(card_header)
-
-		var preview := PanelContainer.new()
-		preview.name = "RecentAppPreview_" + app_name.replace(" ", "")
-		preview.custom_minimum_size.y = 102
-		_style_surface(preview)
-		var preview_content := VBoxContainer.new()
-		preview_content.add_theme_constant_override("separation", 5)
-		preview.add_child(preview_content)
-		var preview_status := _label("9:41  ·  " + app_name.to_upper(), 6, _muted_color())
-		preview_content.add_child(preview_status)
-		var preview_title := ""
-		match app_name:
-			"Settings":
-				preview_title = "Device settings"
-			"Camera":
-				preview_title = "Camera ready"
-			"Messages":
-				preview_title = "Recent conversations"
-		preview_content.add_child(_label(preview_title, 8, _text_color()))
-		for line_index in range(3):
-			var preview_line := ColorRect.new()
-			preview_line.custom_minimum_size = Vector2(0, 3)
-			preview_line.color = Color(_muted_color().r, _muted_color().g, _muted_color().b, 0.22 + float(line_index) * 0.06)
-			preview_content.add_child(preview_line)
-		content.add_child(preview)
-		content.add_child(_label("Recently opened", 6, _muted_color()))
-		recent_row.add_child(card)
-
-	clear.pressed.connect(func() -> void:
-		for child in recent_row.get_children():
-			if child != empty_state:
-				recent_row.remove_child(child)
-				child.queue_free()
-		if empty_state.get_parent() == null:
-			recent_row.add_child(empty_state)
-	)
-	if recent_row.get_child_count() == 0:
-		recent_row.add_child(empty_state)
-
-
+	_add_gen1_samsung_screenshot(page_container, "recent_apps")
 func _build_system_ui(data: Dictionary) -> void:
 	_add_section_label("SYSTEM INTERFACE")
 	var status_sample := PanelContainer.new()
@@ -5659,29 +1810,9 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	icon.name = "Button"
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.focus_mode = Control.FOCUS_NONE
-	var generation_number := int(configuration.get("generation", 1))
-	var strict_imported_android_icons := _is_android_os() and generation_number >= 2
-	var generation_icon: Texture2D
-	if _is_android_os():
-		generation_icon = _load_lock_screen_app_icon(app_name) if generation_number == 1 else _load_android_generation_icon(app_name)
-	if generation_icon != null:
-		icon.icon = generation_icon
-		icon.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon.expand_icon = true
-		icon.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		icon.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		icon.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-	elif strict_imported_android_icons:
-		# Android 8/9 must never silently fall back to hand-made glyph buttons.
-		# A missing imported asset is an asset/catalog error, not another icon style.
-		push_error("Missing imported Android generation %d app icon for installed app: %s. Bundle real source artwork; never synthesize replacements." % [generation_number, app_name])
-		icon.disabled = true
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	else:
-		# Preserve the existing non-Android and legacy Lollipop icon treatment.
-		icon.text = str(app.get("glyph", "•"))
-		icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
-		_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "rounded")))
+	icon.text = str(app.get("glyph", "•"))
+	icon.add_theme_font_size_override("font_size", maxi(16, int(icon_size * 0.50)))
+	_style_icon_button(icon, Color(str(app.get("color", "#687987"))), str(configuration.get("style", {}).get("icon_shape", "square")))
 	icon.pressed.connect(_on_app_pressed.bind(app_name))
 	holder.add_child(icon)
 	tile.add_child(holder)
@@ -5693,60 +1824,6 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 		caption.clip_text = true
 		tile.add_child(caption)
 	return tile
-
-
-func _load_android_generation_icon(app_name: String) -> Texture2D:
-	if not _is_android_os():
-		return null
-	var generation_number := int(configuration.get("generation", 1))
-	if generation_number < 2:
-		return null
-	# Every Android generation consumes real, bundled app artwork. Future
-	# generations need their own image folder before their icons can be shown.
-	var asset_family := "oreo" if generation_number == 2 else "pie" if generation_number == 3 else "generation_%d" % generation_number
-	var icon_file_by_name := {
-		"Phone": "phone.png", "Messages": "messages.png", "Camera": "camera.png",
-		"Gallery": "gallery.png", "Browser": "browser.png", "Music": "music.png",
-		"Calendar": "calendar.png", "Settings": "settings.png", "Files": "files.png",
-		"Clock": "clock.png", "Maps": "maps.png", "Notes": "notes.png",
-		"Contacts": "contacts.png", "Email": "email.png", "Calculator": "calculator.png",
-		"Weather": "weather.png", "Downloads": "downloads.png", "Recorder": "recorder.png",
-		"Video": "video.png", "Store": "store.png", "Security": "security.png",
-		"Device Care": "device_care.png", "Drive": "drive.png", "Photos": "photos.png",
-		"Podcasts": "podcasts.png", "Tasks": "tasks.png", "Wallet": "wallet.png",
-		"Compass": "compass.png", "Assistant": "assistant.png", "Meet": "meet.png"
-	}
-	if not icon_file_by_name.has(app_name):
-		return null
-	var icon_path := "res://assets/os/%s/icons/%s" % [asset_family, str(icon_file_by_name[app_name])]
-	if not ResourceLoader.exists(icon_path):
-		return null
-	return load(icon_path) as Texture2D
-
-
-func _load_lock_screen_app_icon(app_name: String) -> Texture2D:
-	if not _is_android_os():
-		return null
-	var generation_number := int(configuration.get("generation", 1))
-	if generation_number == 1:
-		var lollipop_icon_names := {
-			"Phone": "phone", "Messages": "messages", "Camera": "camera",
-			"Gallery": "gallery", "Browser": "browser", "Music": "music",
-			"Calendar": "calendar", "Settings": "settings", "Files": "files",
-			"Clock": "clock", "Maps": "maps", "Notes": "notes",
-			"Contacts": "contacts", "Email": "email", "Calculator": "calculator",
-			"Weather": "weather", "Downloads": "downloads", "Recorder": "recorder",
-			"Video": "video", "Store": "store", "Security": "security",
-			"Device Care": "device_care", "Drive": "drive", "Photos": "photos",
-			"Assistant": "assistant", "Wallet": "wallet", "Meet": "meet"
-		}
-		if not lollipop_icon_names.has(app_name):
-			return null
-		var icon_path := "res://assets/os/lollipop/icons/" + str(lollipop_icon_names[app_name]) + ".png"
-		return load(icon_path) as Texture2D if ResourceLoader.exists(icon_path) else null
-	return _load_android_generation_icon(app_name)
-
-
 func _responsive_columns(preferred_columns: int) -> int:
 	var available_width := size.x if size.x > 0.0 else 180.0
 	var inner_width := maxf(available_width - 26.0, 88.0)
@@ -5760,7 +1837,6 @@ func _responsive_icon_size(requested_size: int, columns: int, gap: int = 7) -> i
 	var inner_width := maxf(available_width - 26.0, 88.0)
 	var cell_width := (inner_width - float(maxi(columns - 1, 0) * gap)) / float(maxi(columns, 1))
 	return clampi(mini(requested_size, floori(cell_width)), 24, requested_size)
-
 
 func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show_labels: bool) -> void:
 	var fitted_icon_size := _responsive_icon_size(icon_size, grid.columns, 7)
@@ -5778,7 +1854,6 @@ func _populate_app_grid(grid: GridContainer, query: String, icon_size: int, show
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		grid.add_child(empty_label)
 
-
 func _on_category_app_search_changed(query: String, category_grids: Array[GridContainer]) -> void:
 	var normalized_query := query.strip_edges().to_lower()
 	for grid in category_grids:
@@ -5795,7 +1870,6 @@ func _on_category_app_search_changed(query: String, category_grids: Array[GridCo
 			var app := _find_app(app_name)
 			if not app.is_empty():
 				grid.add_child(_create_app_icon(app, _responsive_icon_size(int(_style.get("icon_size", 52)), grid.columns), true))
-
 
 func _on_app_search_changed(query: String, grid: GridContainer) -> void:
 	if is_instance_valid(grid):
@@ -5838,7 +1912,6 @@ func _label(caption: String, font_size: int, color: Color) -> Label:
 	label.clip_text = true
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	return label
-
 
 func _style_surface(panel: PanelContainer, prominent: bool = false) -> void:
 	var style := StyleBoxFlat.new()
