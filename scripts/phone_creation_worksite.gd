@@ -4314,6 +4314,7 @@ func _get_preview_viewport() -> SubViewport:
 	# Render the 3D buffer slightly above panel resolution, then downsample for
 	# cleaner edges without re-enabling the MSAA mode that caused mobile flicker.
 	viewport.msaa_3d = Viewport.MSAA_DISABLED
+	viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	viewport.scaling_3d_scale = 1.25
 	viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
