@@ -273,7 +273,7 @@ static func _create_widget_layout(widgets: Array, rng: RandomNumberGenerator) ->
 	}
 
 
-static func _split_widget_layout(rect: Rect2, widgets: Array, start_index: int, count: int, placements: Array[Dictionary], rng: RandomNumberGenerator) -> void:
+static func _split_widget_layout(rect: Rect2, widgets: Array, start_index: int, count: int, placements: Array[Dictionary], rng: RandomNumberGenerator, previous_axis: int = -1) -> void:
 	if count <= 1:
 		var widget: Dictionary = widgets[start_index]
 		placements.append({
@@ -283,7 +283,8 @@ static func _split_widget_layout(rect: Rect2, widgets: Array, start_index: int, 
 		})
 		return
 
-	var divide_width := rng.randf() > 0.48
+	var divide_width := (rng.randf() > 0.48) if previous_axis < 0 else previous_axis == 1
+	var current_axis := 0 if divide_width else 1
 	var first_count := rng.randi_range(1, count - 1)
 	var ratio := rng.randf_range(0.36, 0.64)
 	var gap := rng.randf_range(0.012, 0.022)
@@ -299,8 +300,8 @@ static func _split_widget_layout(rect: Rect2, widgets: Array, start_index: int, 
 		first_rect.size.y = first_height
 		second_rect.position.y = rect.position.y + first_height + gap
 		second_rect.size.y = rect.size.y - first_height - gap
-	_split_widget_layout(first_rect, widgets, start_index, first_count, placements, rng)
-	_split_widget_layout(second_rect, widgets, start_index + first_count, count - first_count, placements, rng)
+	_split_widget_layout(first_rect, widgets, start_index, first_count, placements, rng, current_axis)
+	_split_widget_layout(second_rect, widgets, start_index + first_count, count - first_count, placements, rng, current_axis)
 
 
 static func _shuffle_array(values: Array, rng: RandomNumberGenerator) -> void:
