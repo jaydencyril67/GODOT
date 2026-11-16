@@ -1229,8 +1229,14 @@ func _apply_generation_selection() -> void:
 		os_preview_simulator.visible = false
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
+	if home_generation == 4:
+		# Gen 4 is deliberately being introduced one component at a time.
+		# Keep its preview on the implemented Samsung One UI 2.0 lock screen.
+		selected_os_component_id = "lock_screen"
 	_apply_bootloader_settings_to_configuration()
 	_apply_approved_home_screen_layout()
+	if home_generation == 4 and is_instance_valid(os_preview_simulator):
+		os_preview_simulator.set_component_view("lock_screen")
 	_refresh_home_screen_layout_selector()
 	_set_os_generation_status("GENERATION %02d SELECTED" % home_generation)
 
