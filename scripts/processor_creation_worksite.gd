@@ -151,7 +151,6 @@ func _build_interface() -> void:
 	preview_viewport.size = Vector2i(1000, 760)
 	preview_viewport.own_world_3d = true
 	preview_viewport.msaa_3d = Viewport.MSAA_4X
-	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	preview_holder.add_child(preview_viewport)
 
@@ -250,10 +249,7 @@ func _build_interface() -> void:
 	controls.add_child(research_note)
 
 func _build_processor_preview() -> void:
-	var world := World3D.new()
-	preview_viewport.world_3d = world
-
-	var environment_node := WorldEnvironment.new()
+		var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("#0B1117")
@@ -267,11 +263,11 @@ func _build_processor_preview() -> void:
 	var camera := Camera3D.new()
 	camera.name = "ProcessorStudioCamera"
 	camera.position = Vector3(0.0, 2.45, 6.0)
-	camera.look_at(Vector3(0.0, 0.015, 0.0), Vector3.UP)
 	camera.fov = 36.0
 	camera.near = 0.05
 	camera.far = 100.0
 	preview_viewport.add_child(camera)
+	camera.look_at(Vector3(0.0, 0.015, 0.0), Vector3.UP)
 	preview_camera = camera
 
 	var key_light := DirectionalLight3D.new()
@@ -365,7 +361,7 @@ func _add_smd_component(at: Vector3, body_material: StandardMaterial3D, terminal
 
 func _add_top_marking(value: String, font_size_value: int, at: Vector3, color: Color, pixel_size_value: float) -> void:
 	var marking := Label3D.new()
-	marking.name = "LaserEtchedMarking"
+	marking.name = "LaserEtchedMarking_Logo" if value == "DW" else ("LaserEtchedMarking_Product" if value == "SILICON 01" else "LaserEtchedMarking_Revision")
 	marking.text = value
 	marking.font_size = font_size_value
 	marking.pixel_size = pixel_size_value
