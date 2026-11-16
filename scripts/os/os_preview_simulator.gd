@@ -23,8 +23,8 @@ const PIXEL_GEN1_SCREEN_ASSETS := {
 const XIAOMI_GEN1_SCREEN_ASSETS := {
 	"lock_screen": "lockscreen.jpg",
 	"home_screen": "homescreen.jpg",
-	"app_drawer": "appsdrawer.jpg",
-	"control_center": "controlcenter.jpg",
+	"app_drawer": "appdrawer.jpg",
+	"control_center": "notification.jpg",
 	"notifications": "notification.jpg",
 	"recent_apps": "recentapps.jpg"
 }
