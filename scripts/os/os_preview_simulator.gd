@@ -2394,7 +2394,10 @@ func _dismiss_pie_overview_task(app_name: String) -> void:
 	if is_instance_valid(card):
 		card.queue_free()
 	if _recent_app_names.is_empty():
-		_set_pie_overview_empty_state()
+		# Rebuild the active Pie Overview with its dedicated empty-state surface.
+		# This keeps the overlay and navigation footer alive after the final card
+		# is dismissed instead of allowing the gesture handler to fall back home.
+		_build_android_pie_overview()
 
 
 func _clear_pie_overview_tasks() -> void:
