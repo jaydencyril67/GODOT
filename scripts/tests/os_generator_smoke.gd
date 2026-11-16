@@ -297,9 +297,9 @@ func _run_os_generator_test() -> void:
 			var asset_family := "oreo" if generation_number == 2 else "pie"
 			var asset_tile := simulator.find_child("App_" + asset_app_name, true, false) as VBoxContainer
 			var asset_button := asset_tile.find_child("Button", true, false) as Button if asset_tile != null else null
-			var atlas_icon := asset_button.icon as AtlasTexture if asset_button != null else null
-			if atlas_icon == null or atlas_icon.atlas == null or atlas_icon.atlas.resource_path != "res://assets/os/" + asset_family + "/icons.svg" or atlas_icon.region.size != Vector2(96.0, 96.0):
-				_fail("Android generation %d did not load its own bundled app icon assets." % generation_number)
+			var app_icon := asset_button.icon as Texture2D if asset_button != null else null
+			if app_icon == null or app_icon is AtlasTexture or app_icon.resource_path != "res://assets/os/" + asset_family + "/icons/" + asset_app_name.to_snake_case() + ".png":
+				_fail("Android generation %d must display its imported per-app PNG, not a generated atlas." % generation_number)
 				return
 			var expected_app_names := [
 				"Phone", "Messages", "Camera", "Gallery", "Browser", "Music", "Calendar", "Settings",
@@ -307,15 +307,28 @@ func _run_os_generator_test() -> void:
 				"Downloads", "Recorder", "Video", "Store", "Security", "Device Care", "Drive", "Photos",
 				"Podcasts", "Tasks", "Wallet", "Compass", "Assistant", "Meet"
 			]
-			var generation_icon_regions := {}
+			var expected_icon_files := {
+				"Phone": "phone.png", "Messages": "messages.png", "Camera": "camera.png",
+				"Gallery": "gallery.png", "Browser": "browser.png", "Music": "music.png",
+				"Calendar": "calendar.png", "Settings": "settings.png", "Files": "files.png",
+				"Clock": "clock.png", "Maps": "maps.png", "Notes": "notes.png",
+				"Contacts": "contacts.png", "Email": "email.png", "Calculator": "calculator.png",
+				"Weather": "weather.png", "Downloads": "downloads.png", "Recorder": "recorder.png",
+				"Video": "video.png", "Store": "store.png", "Security": "security.png",
+				"Device Care": "device_care.png", "Drive": "drive.png", "Photos": "photos.png",
+				"Podcasts": "podcasts.png", "Tasks": "tasks.png", "Wallet": "wallet.png",
+				"Compass": "compass.png", "Assistant": "assistant.png", "Meet": "meet.png"
+			}
+			var generation_icon_paths := {}
 			for expected_app_name in expected_app_names:
-				var imported_app_icon := simulator.call("_load_android_generation_icon", expected_app_name) as AtlasTexture
-				if imported_app_icon == null or imported_app_icon.atlas == null or imported_app_icon.atlas.resource_path != "res://assets/os/" + asset_family + "/icons.svg":
-					_fail("Android generation %d is missing imported artwork for installed app: %s" % [generation_number, expected_app_name])
+				var imported_app_icon := simulator.call("_load_android_generation_icon", expected_app_name) as Texture2D
+				var expected_path := "res://assets/os/" + asset_family + "/icons/" + str(expected_icon_files[expected_app_name])
+				if imported_app_icon == null or imported_app_icon is AtlasTexture or imported_app_icon.resource_path != expected_path:
+					_fail("Android generation %d is missing its source PNG for installed app: %s" % [generation_number, expected_app_name])
 					return
-				generation_icon_regions[str(imported_app_icon.region.position)] = true
-			if generation_icon_regions.size() != expected_app_names.size():
-				_fail("Android generation %d must provide 30 distinct imported app icon regions." % generation_number)
+				generation_icon_paths[expected_path] = true
+			if generation_icon_paths.size() != expected_app_names.size():
+				_fail("Android generation %d must provide a real per-app PNG for every installed app." % generation_number)
 				return
 		simulator.configure_os(generation_preview, "lock_screen")
 		await process_frame
@@ -348,8 +361,8 @@ func _run_os_generator_test() -> void:
 			var oreo_camera_art := oreo_camera.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect
 			var oreo_lock_art := simulator.find_child("ImportedLockStatusArtwork", true, false) as TextureRect
 			var oreo_notification_art := simulator.find_child("OreoLockNotificationIcon_Messages", true, false) as TextureRect
-			var oreo_assistant_atlas := oreo_assistant_art.texture as AtlasTexture if oreo_assistant_art != null else null
-			if oreo_assistant_atlas == null or oreo_assistant_atlas.atlas.resource_path != "res://assets/os/oreo/icons.svg":
+			var oreo_assistant_icon := oreo_assistant_art.texture as Texture2D if oreo_assistant_art != null else null
+			if oreo_assistant_icon == null or oreo_assistant_icon is AtlasTexture or not oreo_assistant_icon.resource_path.begins_with("res://assets/os/oreo/icons/"):
 				_fail("Oreo Assistant shortcut must use its imported generation-specific app icon.")
 				return
 			if oreo_camera_art == null or oreo_camera_art.texture == null or oreo_camera_art.texture.resource_path != "res://assets/os/lockscreen/camera.svg":
@@ -358,8 +371,8 @@ func _run_os_generator_test() -> void:
 			if oreo_lock_art == null or oreo_lock_art.texture == null or oreo_lock_art.texture.resource_path != "res://assets/os/lockscreen/lock.svg":
 				_fail("Oreo lock indicator must use the imported lock artwork.")
 				return
-			var oreo_notification_atlas := oreo_notification_art.texture as AtlasTexture if oreo_notification_art != null else null
-			if oreo_notification_atlas == null or oreo_notification_atlas.atlas.resource_path != "res://assets/os/oreo/icons.svg":
+			var oreo_notification_icon := oreo_notification_art.texture as Texture2D if oreo_notification_art != null else null
+			if oreo_notification_icon == null or oreo_notification_icon is AtlasTexture or not oreo_notification_icon.resource_path.begins_with("res://assets/os/oreo/icons/"):
 				_fail("Oreo notifications must use imported app icon artwork.")
 				return
 			var normalized_oreo_config: Dictionary = simulator.get("configuration")
@@ -393,9 +406,9 @@ func _run_os_generator_test() -> void:
 			var pie_assistant_art := pie_assistant.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect if pie_assistant != null else null
 			var pie_camera_art := pie_camera.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect if pie_camera != null else null
 			var pie_notification_art := simulator.find_child("PieLockNotificationIcon_Messages", true, false) as TextureRect
-			var pie_assistant_atlas := pie_assistant_art.texture as AtlasTexture if pie_assistant_art != null else null
-			var pie_notification_atlas := pie_notification_art.texture as AtlasTexture if pie_notification_art != null else null
-			if pie_assistant_atlas == null or pie_assistant_atlas.atlas.resource_path != "res://assets/os/pie/icons.svg":
+			var pie_assistant_icon := pie_assistant_art.texture as Texture2D if pie_assistant_art != null else null
+			var pie_notification_icon := pie_notification_art.texture as Texture2D if pie_notification_art != null else null
+			if pie_assistant_icon == null or pie_assistant_icon is AtlasTexture or not pie_assistant_icon.resource_path.begins_with("res://assets/os/pie/icons/"):
 				_fail("Pie Assistant shortcut must use its imported generation-specific app icon.")
 				return
 			if pie_camera_art == null or pie_camera_art.texture == null or pie_camera_art.texture.resource_path != "res://assets/os/lockscreen/camera.svg":
@@ -406,7 +419,7 @@ func _run_os_generator_test() -> void:
 				return
 			if simulator.find_child("ImportedLockStatusArtwork", true, false) != null:
 				_fail("Android 9 Pie must not display a fingerprint sensor or central lock glyph.")
-			if pie_notification_atlas == null or pie_notification_atlas.atlas.resource_path != "res://assets/os/pie/icons.svg":
+			if pie_notification_icon == null or pie_notification_icon is AtlasTexture or not pie_notification_icon.resource_path.begins_with("res://assets/os/pie/icons/"):
 				_fail("Pie notifications must use imported app icon artwork.")
 				return
 			var normalized_pie_config: Dictionary = simulator.get("configuration")

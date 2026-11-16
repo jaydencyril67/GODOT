@@ -5160,7 +5160,7 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.focus_mode = Control.FOCUS_NONE
 	var generation_number := int(configuration.get("generation", 1))
-	var strict_imported_android_icons := _is_android_os() and generation_number in [2, 3]
+	var strict_imported_android_icons := _is_android_os() and generation_number >= 2
 	var generation_icon: Texture2D
 	if _is_android_os():
 		generation_icon = _load_lock_screen_app_icon(app_name) if generation_number == 1 else _load_android_generation_icon(app_name)
@@ -5174,7 +5174,7 @@ func _create_app_icon(app: Dictionary, icon_size: int, show_label: bool) -> Cont
 	elif strict_imported_android_icons:
 		# Android 8/9 must never silently fall back to hand-made glyph buttons.
 		# A missing imported asset is an asset/catalog error, not another icon style.
-		push_error("Missing imported Android generation icon for installed app: " + app_name)
+		push_error("Missing imported Android generation %d app icon for installed app: %s. Bundle real source artwork; never synthesize replacements." % [generation_number, app_name])
 		icon.disabled = true
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	else:
@@ -5199,31 +5199,29 @@ func _load_android_generation_icon(app_name: String) -> Texture2D:
 	if not _is_android_os():
 		return null
 	var generation_number := int(configuration.get("generation", 1))
-	var asset_family := "oreo" if generation_number == 2 else "pie" if generation_number == 3 else ""
-	if asset_family.is_empty():
+	if generation_number < 2:
 		return null
-	var icon_index_by_name := {
-		"Phone": 0, "Messages": 1, "Camera": 2, "Gallery": 3, "Browser": 4,
-		"Music": 5, "Calendar": 6, "Settings": 7, "Files": 8, "Clock": 9,
-		"Maps": 10, "Notes": 11, "Contacts": 12, "Email": 13, "Calculator": 14,
-		"Weather": 15, "Downloads": 16, "Recorder": 17, "Video": 18, "Store": 19,
-		"Security": 20, "Device Care": 21, "Drive": 22, "Photos": 23, "Podcasts": 24,
-		"Tasks": 25, "Wallet": 26, "Compass": 27, "Assistant": 28, "Meet": 29
+	# Every Android generation consumes real, bundled app artwork. Future
+	# generations need their own image folder before their icons can be shown.
+	var asset_family := "oreo" if generation_number == 2 else "pie" if generation_number == 3 else "generation_%d" % generation_number
+	var icon_file_by_name := {
+		"Phone": "phone.png", "Messages": "messages.png", "Camera": "camera.png",
+		"Gallery": "gallery.png", "Browser": "browser.png", "Music": "music.png",
+		"Calendar": "calendar.png", "Settings": "settings.png", "Files": "files.png",
+		"Clock": "clock.png", "Maps": "maps.png", "Notes": "notes.png",
+		"Contacts": "contacts.png", "Email": "email.png", "Calculator": "calculator.png",
+		"Weather": "weather.png", "Downloads": "downloads.png", "Recorder": "recorder.png",
+		"Video": "video.png", "Store": "store.png", "Security": "security.png",
+		"Device Care": "device_care.png", "Drive": "drive.png", "Photos": "photos.png",
+		"Podcasts": "podcasts.png", "Tasks": "tasks.png", "Wallet": "wallet.png",
+		"Compass": "compass.png", "Assistant": "assistant.png", "Meet": "meet.png"
 	}
-	if not icon_index_by_name.has(app_name):
+	if not icon_file_by_name.has(app_name):
 		return null
-	var atlas_path := "res://assets/os/" + asset_family + "/icons.svg"
-	# SVG textures are imported during the clean-checkout editor import step.
-	# ResourceLoader.exists() can report false for an SVG before its imported
-	# resource is registered, even though the source asset is present.
-	var atlas_texture := load(atlas_path) as Texture2D
-	if atlas_texture == null:
+	var icon_path := "res://assets/os/%s/icons/%s" % [asset_family, str(icon_file_by_name[app_name])]
+	if not ResourceLoader.exists(icon_path):
 		return null
-	var icon_index := int(icon_index_by_name[app_name])
-	var atlas_icon := AtlasTexture.new()
-	atlas_icon.atlas = atlas_texture
-	atlas_icon.region = Rect2(Vector2(float(icon_index % 6) * 96.0, float(floori(float(icon_index) / 6.0)) * 96.0), Vector2(96.0, 96.0))
-	return atlas_icon
+	return load(icon_path) as Texture2D
 
 
 func _load_lock_screen_app_icon(app_name: String) -> Texture2D:
