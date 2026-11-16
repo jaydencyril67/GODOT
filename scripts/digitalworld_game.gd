@@ -3,6 +3,7 @@ extends Node3D
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const OSCreationWorksiteScene: PackedScene = preload("res://scenes/os_creation_worksite.tscn")
+const ProcessorCreationWorksiteScene: PackedScene = preload("res://scenes/processor_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
@@ -34,6 +35,7 @@ var landing_world: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
+var processor_creation_worksite: Node3D
 var research_dashboard_return_to_worksite := false
 var worksite_research_overlay_layer: CanvasLayer
 var home_navigation_layer: CanvasLayer
@@ -245,6 +247,7 @@ func _load_career() -> bool:
 		"research_technologies": config.get_value("career", "research_technologies", {}),
 		"research_component_levels": config.get_value("career", "research_component_levels", {}),
 		"selected_operating_system": config.get_value("career", "selected_operating_system", {}),
+		"processor_design": config.get_value("career", "processor_design", {}),
 		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
 	_normalize_phone_identity()
@@ -294,6 +297,7 @@ func _save_career() -> bool:
 	config.set_value("career", "research_technologies", career.get("research_technologies", {}))
 	config.set_value("career", "research_component_levels", career.get("research_component_levels", {}))
 	config.set_value("career", "selected_operating_system", career.get("selected_operating_system", {}))
+	config.set_value("career", "processor_design", career.get("processor_design", {}))
 	config.set_value("career", "selected_operating_system", career.get("selected_operating_system", {}))
 	config.set_value("career", "next_research_project_id", int(career.get("next_research_project_id", 1)))
 	var error := config.save(SAVE_PATH)
@@ -2785,11 +2789,81 @@ func _on_create_category_pressed(category: String) -> void:
 	if category.to_upper() == "PHONE":
 		_show_phone_creation_worksite()
 		return
+	if category.to_upper() == "PROCESSOR":
+		_show_processor_creation_worksite()
+		return
 	if category.to_upper() == "OPERATING SYSTEM":
 		_show_os_creation_worksite()
 		return
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
+
+
+func _prepare_processor_creation_worksite() -> void:
+	if is_instance_valid(processor_creation_worksite):
+		return
+	processor_creation_worksite = ProcessorCreationWorksiteScene.instantiate() as Node3D
+	if not is_instance_valid(processor_creation_worksite):
+		push_error("Processor Creation Worksite scene could not be initialized.")
+		return
+	processor_creation_worksite.name = "Processor_Creation_Worksite"
+	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	processor_creation_worksite.connect("back_requested", Callable(self, "_return_from_processor_creation_worksite"))
+	processor_creation_worksite.connect("design_saved", Callable(self, "_on_processor_design_saved"))
+	add_child(processor_creation_worksite)
+	processor_creation_worksite.hide()
+	for child in processor_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.hide()
+
+
+func _show_processor_creation_worksite() -> void:
+	if current_screen == "processor_creation_worksite" and is_instance_valid(processor_creation_worksite):
+		return
+	if not is_instance_valid(processor_creation_worksite):
+		_prepare_processor_creation_worksite()
+	if not is_instance_valid(processor_creation_worksite):
+		return
+	if is_instance_valid(ui_layer):
+		ui_layer.hide()
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.hide()
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.hide()
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(false)
+	ui_layer = null
+	ui_root = null
+	current_screen = "processor_creation_worksite"
+	processor_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
+	processor_creation_worksite.show()
+	for child in processor_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.show()
+
+
+func _on_processor_design_saved(design: Dictionary) -> void:
+	var previous_design: Dictionary = career.get("processor_design", {}).duplicate(true)
+	career["processor_design"] = design.duplicate(true)
+	if not _save_career():
+		career["processor_design"] = previous_design
+		_show_notice("SAVE FAILED", "The processor design could not be saved to the company career.")
+
+
+func _return_from_processor_creation_worksite() -> void:
+	current_screen = "create"
+	if is_instance_valid(processor_creation_worksite):
+		processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+		processor_creation_worksite.hide()
+		for child in processor_creation_worksite.get_children():
+			if child is CanvasLayer:
+				child.hide()
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.show()
+		ui_layer = create_ui_layer
+		ui_root = create_ui_root
 
 
 func _prepare_os_creation_worksite() -> void:
