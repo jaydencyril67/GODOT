@@ -24,7 +24,6 @@ const XIAOMI_GEN1_SCREEN_ASSETS := {
 	"lock_screen": "lockscreen.jpg",
 	"home_screen": "homescreen.jpg",
 	"app_drawer": "appdrawer.jpg",
-	"control_center": "notification.jpg",
 	"notifications": "notification.jpg",
 	"recent_apps": "recentapps.jpg"
 }
@@ -1308,7 +1307,7 @@ func _build_gen1_xiaomi_reference_placeholder(component_id: String) -> void:
 	var component_title := _label(component_id.replace("_", " ").to_upper(), 11, Color("#F5F5F5"))
 	component_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(component_title)
-	var note := _label("MIUI Gen 1 is configured as a separate UI family. Its six reference screenshots have not been uploaded yet.", 10, Color("#BDBDBD"))
+	var note := _label("The MIUI Gen 1 reference screenshot for this component has not been uploaded yet.", 10, Color("#BDBDBD"))
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(note)
