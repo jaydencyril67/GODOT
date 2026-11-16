@@ -5,6 +5,7 @@ const WorksiteScene = preload("res://scenes/processor_creation_worksite.tscn")
 func _initialize() -> void:
 	call_deferred("_run_processor_worksite_test")
 
+
 func _run_processor_worksite_test() -> void:
 	var worksite := WorksiteScene.instantiate() as Node3D
 	if worksite == null:
@@ -13,25 +14,57 @@ func _run_processor_worksite_test() -> void:
 	root.add_child(worksite)
 	await process_frame
 	await process_frame
+	worksite.call("_apply_responsive_layout")
 
+	var worksite_root := worksite.find_child("WorksiteRoot", true, false) as Control
+	var worksite_body := worksite.find_child("WorksiteMainContent", true, false) as BoxContainer
 	var preview_region := worksite.find_child("ProcessorPreviewRegion", true, false) as Control
 	var preview_column := worksite.find_child("ProcessorPreviewColumn", true, false) as VBoxContainer
 	var preview_container := worksite.find_child("ProcessorPreviewViewport", true, false) as SubViewportContainer
 	var viewport := worksite.find_child("Processor3DSubViewport", true, false) as SubViewport
 	var model := worksite.find_child("ProcessorSoCModel", true, false) as Node3D
-	var controls_region := worksite.find_child("ProcessorSelectionScroll", true, false) as ScrollContainer
-	if preview_region == null or preview_column == null or preview_container == null or viewport == null or model == null or controls_region == null:
-		_fail("Processor worksite is missing its left 3D preview or right-side design controls.")
+	var selection_scroll := worksite.find_child("ProcessorSelectionScroll", true, false) as ScrollContainer
+	var selection_controls := worksite.find_child("ProcessorSelectionControls", true, false) as VBoxContainer
+	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
+	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
+	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
+	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or model == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
+		_fail("Processor worksite is missing part of the shared Phone/OS full-screen worksite structure.")
 		worksite.free()
 		return
-	if not preview_container.visible or preview_container.custom_minimum_size.y <= 0.0 or (preview_container.size_flags_vertical & Control.SIZE_EXPAND_FILL) == 0:
-		_fail("Processor preview does not reserve an expanding visible area inside the worksite.")
+	if worksite.find_child("Processor3DPreviewPanel", true, false) != null or worksite.find_child("ProcessorDesignControlsPanel", true, false) != null:
+		_fail("Processor worksite still contains the old independent preview/configuration cards.")
 		worksite.free()
 		return
-	if preview_column.anchor_bottom != 1.0 or preview_column.anchor_right != 1.0:
-		_fail("Processor preview column is not anchored to fill its responsive preview region.")
+	if not preview_container.visible or preview_container.custom_minimum_size.y < 240.0 or (preview_container.size_flags_vertical & Control.SIZE_EXPAND_FILL) == 0:
+		_fail("Processor preview does not reserve an expanding visible area above the bottom screen edge.")
 		worksite.free()
 		return
+	if preview_column.size_flags_vertical != Control.SIZE_EXPAND_FILL or (preview_region.size_flags_vertical & Control.SIZE_EXPAND_FILL) == 0:
+		_fail("Processor preview region is not configured to fill the shared worksite body.")
+		worksite.free()
+		return
+	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Processor worksite does not initialize its four-step progress navigation.")
+		worksite.free()
+		return
+	if not back_step_button.disabled or next_step_button.disabled:
+		_fail("Processor worksite step arrows have incorrect initial enabled states.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	worksite.call("_on_next_pressed")
+	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3:
+		_fail("Processor Next navigation did not advance the wizard and progress indicator.")
+		worksite.free()
+		return
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2:
+		_fail("Processor Back navigation did not return to the previous design step.")
+		worksite.free()
+		return
+	worksite.call("_set_wizard_step", 1)
 
 	var camera := viewport.get_camera_3d()
 	if camera == null or camera.position.y < 1.5 or camera.position.z < 4.0:
@@ -72,6 +105,10 @@ func _run_processor_worksite_test() -> void:
 		_fail("Save Processor Design did not emit the configured processor design.")
 		worksite.free()
 		return
+	if str(emitted_design[0].get("package_size", "")) != "14 × 14 mm" or str(emitted_design[0].get("package_finish", "")) != "Deep green substrate" or str(emitted_design[0].get("die_finish", "")) != "Polished silicon":
+		_fail("Save Processor Design did not preserve all configured package and die values.")
+		worksite.free()
+		return
 
 	var starting_rotation := model.rotation.x
 	worksite.call("_flip_chip")
@@ -88,6 +125,7 @@ func _run_processor_worksite_test() -> void:
 	worksite.free()
 	print("PROCESSOR_WORKSITE_SMOKE_TEST: PASS")
 	quit(0)
+
 
 func _fail(message: String) -> void:
 	push_error(message)
