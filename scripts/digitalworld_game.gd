@@ -2711,7 +2711,7 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 		phone_creation_worksite.call("set_refresh_rate_research_level", int(career.get("research_component_levels", {}).get("Refresh Rate", 0)))
 		phone_creation_worksite.call("set_memory_clock_research_level", int(career.get("research_component_levels", {}).get("Memory Clock", 0)))
 		phone_creation_worksite.call("set_cooling_system_research_level", int(career.get("research_component_levels", {}).get("Cooling System Design", 0)))
-	phone_creation_worksite.call("set_ui_evolution_research_level", int(career.get("research_component_levels", {}).get("UI Evolution", 0)))
+		phone_creation_worksite.call("set_ui_evolution_research_level", int(career.get("research_component_levels", {}).get("UI Evolution", 0)))
 		phone_creation_worksite.call("set_phone_type_research_level", int(career.get("research_component_levels", {}).get("Phone Type", 0)))
 		phone_creation_worksite.call("set_charging_speed_research_level", int(career.get("research_component_levels", {}).get("Charging Speed", 0)))
 		phone_creation_worksite.call("set_wireless_charging_research_level", int(career.get("research_component_levels", {}).get("Wireless Charging", 0)))
