@@ -178,9 +178,8 @@ func _check_generated_ui_pixels() -> bool:
 	})
 
 	await process_frame
-	await RenderingServer.frame_post_draw
 	await process_frame
-	await RenderingServer.frame_post_draw
+	await process_frame
 	var rendered_image := viewport.get_texture().get_image()
 	if rendered_image == null or rendered_image.get_width() != 480 or rendered_image.get_height() != 960:
 		viewport.free()
