@@ -620,10 +620,10 @@ func _run_os_generator_test() -> void:
 	android_overview.pressed.emit()
 	await process_frame
 	var overview_overlay := simulator.find_child("OSGestureOverlay_recent_apps", true, false) as Control
-	var overview_background := simulator.find_child("LollipopOverviewBackground", true, false) as ColorRect
-	var overview_search := simulator.find_child("LollipopOverviewSearchBar", true, false) as PanelContainer
-	var messages_card := simulator.find_child("LollipopOverviewTask_Messages", true, false) as Button
-	var settings_card := simulator.find_child("LollipopOverviewTask_Settings", true, false) as Button
+	var overview_background := simulator.find_child("SamsungGen1OverviewBackground", true, false) as ColorRect
+	var overview_search := simulator.find_child("SamsungGen1OverviewSearchBar", true, false) as PanelContainer
+	var messages_card := simulator.find_child("SamsungGen1OverviewTask_Messages", true, false) as Button
+	var settings_card := simulator.find_child("SamsungGen1OverviewTask_Settings", true, false) as Button
 	if simulator.get("active_component") != "home_screen" or overview_overlay == null:
 		_fail("Android Overview button did not open the Recent Apps overview.")
 		return
@@ -633,7 +633,7 @@ func _run_os_generator_test() -> void:
 	if overview_overlay == null or not overview_overlay.clip_contents or overview_background.color.a > 0.10:
 		_fail("Android 5 Overview must preserve the wallpaper behind a screen-clipped task stack.")
 		return
-	if simulator.find_child("LollipopOverviewTitle", true, false) != null or simulator.find_child("LollipopOverviewClearAll", true, false) != null:
+	if simulator.find_child("SamsungGen1OverviewTitle", true, false) != null or simulator.find_child("SamsungGen1OverviewClearAll", true, false) != null:
 		_fail("Stock Android 5 Overview must not show a generic heading or a Clear All control.")
 		return
 	if messages_card.position.y <= settings_card.position.y or messages_card.z_index <= settings_card.z_index:
@@ -642,8 +642,8 @@ func _run_os_generator_test() -> void:
 	if messages_card.size.x < float(simulator.size.x) * 0.90 or messages_card.size.y < float(simulator.size.y) * 0.60:
 		_fail("Android 5 Overview task cards must be large, near-full-width app snapshots.")
 		return
-	var messages_header := simulator.find_child("LollipopOverviewCardHeader_Messages", true, false) as ColorRect
-	var messages_icon := simulator.find_child("LollipopOverviewAppIcon_Messages", true, false) as Label
+	var messages_header := simulator.find_child("SamsungGen1OverviewCardHeader_Messages", true, false) as ColorRect
+	var messages_icon := simulator.find_child("SamsungGen1OverviewAppIcon_Messages", true, false) as Label
 	var messages_close := simulator.find_child("DismissOverviewTask_Messages", true, false) as Button
 	var overview_content := simulator.find_child("OSComponentContent", true, false) as Control
 	if messages_header == null or messages_header.color != Color("#009688") or messages_icon == null or messages_icon.text.is_empty() or messages_close == null:
@@ -652,11 +652,11 @@ func _run_os_generator_test() -> void:
 	if overview_content == null or overview_content.visible:
 		_fail("The launcher app grid must be hidden behind the Android 5 Overview task stack.")
 		return
-	var overview_navigation_footer := simulator.find_child("LollipopOverviewNavigationFooter", true, false) as Control
+	var overview_navigation_footer := simulator.find_child("SamsungGen1OverviewNavigationFooter", true, false) as Control
 	var overview_navigation_bar := simulator.find_child("AndroidNavigationBar", true, false) as Control
-	var overview_recent := simulator.find_child("LollipopNavigationOverview", true, false) as Button
-	var overview_home := simulator.find_child("LollipopNavigationHome", true, false) as Button
-	var overview_back := simulator.find_child("LollipopNavigationBack", true, false) as Button
+	var overview_recent := simulator.find_child("SamsungGen1NavigationOverview", true, false) as Button
+	var overview_home := simulator.find_child("SamsungGen1NavigationHome", true, false) as Button
+	var overview_back := simulator.find_child("SamsungGen1NavigationBack", true, false) as Button
 	if overview_navigation_footer == null or overview_navigation_bar == null or overview_navigation_bar.visible:
 		_fail("Android 5 Overview must display its dedicated navigation footer above the task stack.")
 		return
@@ -668,7 +668,7 @@ func _run_os_generator_test() -> void:
 	simulator.call("_dismiss_overview_task", "Messages")
 	await process_frame
 	var remaining_overview := simulator.find_child("OSGestureOverlay_recent_apps", true, false) as Control
-	var remaining_settings_card := simulator.find_child("LollipopOverviewTask_Settings", true, false) as Button
+	var remaining_settings_card := simulator.find_child("SamsungGen1OverviewTask_Settings", true, false) as Button
 	if remaining_overview == null:
 		_fail("Dismissing the first recent app removed the Overview overlay.")
 		return
@@ -678,11 +678,11 @@ func _run_os_generator_test() -> void:
 	simulator.call("_dismiss_overview_task", "Settings")
 	await process_frame
 	overview_content = simulator.find_child("OSComponentContent", true, false) as Control
-	overview_navigation_footer = simulator.find_child("LollipopOverviewNavigationFooter", true, false) as Control
+	overview_navigation_footer = simulator.find_child("SamsungGen1OverviewNavigationFooter", true, false) as Control
 	if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or overview_content == null or overview_content.visible:
 		_fail("Dismissing a second recent app must not remove the Overview screen or reveal the launcher.")
 		return
-	if overview_navigation_footer == null or simulator.find_child("LollipopNavigationOverview", true, false) == null or simulator.find_child("LollipopNavigationHome", true, false) == null or simulator.find_child("LollipopNavigationBack", true, false) == null:
+	if overview_navigation_footer == null or simulator.find_child("SamsungGen1NavigationOverview", true, false) == null or simulator.find_child("SamsungGen1NavigationHome", true, false) == null or simulator.find_child("SamsungGen1NavigationBack", true, false) == null:
 		_fail("All three navigation buttons must remain available after repeated recent-app dismissals.")
 		return
 	var android_back := overview_back
