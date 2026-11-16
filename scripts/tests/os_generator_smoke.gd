@@ -228,7 +228,7 @@ func _run_gen1_smoke_test() -> void:
 	print("GEN1_OS_GENERATOR_SMOKE_TEST: PASS")
 	quit(0)
 
-func _simulate_screenshot_tap(simulator: Control, node_name: String, normalized_position: Vector2) -> void:
+func _simulate_screenshot_tap(simulator, node_name: String, normalized_position: Vector2) -> void:
 	var screenshot := simulator.find_child(node_name, true, false) as TextureRect
 	if screenshot == null:
 		_fail("Cannot simulate tap; screenshot node is missing: " + node_name)
@@ -238,7 +238,7 @@ func _simulate_screenshot_tap(simulator: Control, node_name: String, normalized_
 	var local_position := simulator.get_global_transform_with_canvas().affine_inverse() * canvas_position
 	simulator._handle_gen1_screen_tap(local_position)
 
-func _simulate_overlay_tap(simulator: Control, node_name: String, component_id: String, normalized_position: Vector2) -> void:
+func _simulate_overlay_tap(simulator, node_name: String, component_id: String, normalized_position: Vector2) -> void:
 	var screenshot := simulator.find_child(node_name, true, false) as TextureRect
 	if screenshot == null:
 		_fail("Cannot simulate overlay tap; screenshot node is missing: " + node_name)
