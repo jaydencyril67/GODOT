@@ -216,6 +216,10 @@ func _run_speaker_quality_progression_checks() -> bool:
 		return false
 
 	var worksite = PhoneCreationWorksiteScript.new()
+	if bool(worksite.get("sim_tray_enabled")):
+		worksite.free()
+		_fail("The SIM tray must start disabled in the Phone Creation Worksite.")
+		return false
 	worksite.set_speaker_research_level(2)
 	worksite.set("speaker_count", 2)
 	worksite.set_speaker_quality_research_level(2)
@@ -223,9 +227,18 @@ func _run_speaker_quality_progression_checks() -> bool:
 	worksite.set_speaker_quality_research_level(1)
 	var openings_unchanged := int(worksite.get("speaker_count")) == 2 and int(worksite.get("researched_speaker_count")) == 3
 	var quality_selection_clamped := int(worksite.get("speaker_quality_level")) == 1
+	var speaker_right_panel := VBoxContainer.new()
+	worksite.set("right_tools_content", speaker_right_panel)
+	worksite.call("_show_speaker_controls")
+	var speaker_content_center := speaker_right_panel.find_child("SpeakerContentCenter", true, false) as CenterContainer
+	var speaker_content_centered := is_instance_valid(speaker_content_center) and speaker_content_center.size_flags_vertical == Control.SIZE_EXPAND_FILL and speaker_content_center.custom_minimum_size.y >= 360.0
+	speaker_right_panel.free()
 	worksite.free()
 	if not openings_unchanged or not quality_selection_clamped:
 		_fail("Speaker Quality selection was not independent from speaker openings or did not clamp to unlocked generations.")
+		return false
+	if not speaker_content_centered:
+		_fail("Speaker controls must use the same full-height vertical centering zone as the other worksite sections.")
 		return false
 	return true
 
@@ -411,16 +424,22 @@ func _run_box_package_research_unlock_checks() -> bool:
 	box_worksite.set("wizard_step", 30)
 	box_worksite.set_box_package_research_level(0)
 	box_worksite.call("_set_box_package_preview_mode", true)
-	if bool(box_worksite.get("box_package_preview_mode")) or box_preview.visible:
+	if not bool(box_worksite.get("box_package_preview_mode")) or not box_preview.visible:
 		box_preview.free()
 		box_worksite.free()
-		_fail("The locked Box Package preview became visible before research approval.")
+		_fail("The standard Box Package preview must be available before customization research.")
 		return false
 	box_worksite.set_box_package_research_level(1)
 	if not bool(box_worksite.get("box_package_preview_mode")) or not box_preview.visible:
 		box_preview.free()
 		box_worksite.free()
-		_fail("Box Package approval did not refresh the active worksite preview.")
+		_fail("Box Package customization approval should preserve the active package preview.")
+		return false
+	box_worksite.set_box_package_research_level(0)
+	if not bool(box_worksite.get("box_package_preview_mode")) or not box_preview.visible:
+		box_preview.free()
+		box_worksite.free()
+		_fail("Removing customization research must not hide the standard Box Package preview.")
 		return false
 	box_worksite.call("_set_box_package_preview_mode", false)
 	box_preview.free()
