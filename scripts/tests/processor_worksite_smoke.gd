@@ -32,6 +32,16 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor worksite is missing part of the shared Phone/OS full-screen worksite structure.")
 		worksite.free()
 		return
+	var backdrop := worksite.find_child("WorksiteBackdrop", true, false) as ColorRect
+	if worksite_root.mouse_filter != Control.MOUSE_FILTER_STOP or backdrop == null or backdrop.mouse_filter != Control.MOUSE_FILTER_STOP:
+		_fail("Processor worksite does not block touch input from reaching the previous Creation page.")
+		worksite.free()
+		return
+	if viewport.size != Vector2i(640, 480) or viewport.msaa_3d != Viewport.MSAA_2X or viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
+		_fail("Processor preview is not using the low-end-device rendering budget.")
+		worksite.free()
+		return
+
 	if worksite.find_child("Processor3DPreviewPanel", true, false) != null or worksite.find_child("ProcessorDesignControlsPanel", true, false) != null:
 		_fail("Processor worksite still contains the old independent preview/configuration cards.")
 		worksite.free()
