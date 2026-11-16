@@ -16,7 +16,6 @@ const PALETTES := [
 ]
 
 const WALLPAPER_STYLES := ["aurora", "orbital", "contour", "ribbon", "prism", "soft_gradient"]
-const LAYOUT_ARCHETYPES := ["clock_focus", "dashboard", "editorial", "asymmetric", "minimal", "stacked"]
 const WIDGET_TYPES := ["clock", "weather", "calendar", "music", "device", "focus", "battery"]
 
 const APP_LIBRARY := [
@@ -60,12 +59,9 @@ static func generate_ui(seed_value: int = -1, device_specs: Dictionary = {}) -> 
 	var apps: Array = APP_LIBRARY.duplicate(true)
 	_shuffle_array(apps, rng)
 
-	var layout_style: String = LAYOUT_ARCHETYPES[rng.randi_range(0, LAYOUT_ARCHETYPES.size() - 1)]
 	var widget_pool: Array = WIDGET_TYPES.duplicate()
 	_shuffle_array(widget_pool, rng)
 	var widget_count := rng.randi_range(1, 3)
-	if layout_style == "minimal":
-		widget_count = 1
 	var widgets: Array[Dictionary] = []
 	for index in range(widget_count):
 		widgets.append({
@@ -74,6 +70,7 @@ static func generate_ui(seed_value: int = -1, device_specs: Dictionary = {}) -> 
 			"variant": rng.randi_range(0, 2)
 		})
 
+	var widget_layout := _create_widget_layout(widgets, rng)
 	var dock := ["Phone", "Messages", "Browser", "Camera"]
 	var home_apps: Array[Dictionary] = []
 	var target_app_count := rng.randi_range(9, 12)
@@ -88,7 +85,7 @@ static func generate_ui(seed_value: int = -1, device_specs: Dictionary = {}) -> 
 	var style := {
 		"palette": palette,
 		"wallpaper_style": WALLPAPER_STYLES[rng.randi_range(0, WALLPAPER_STYLES.size() - 1)],
-		"layout_archetype": layout_style,
+		"composition_density": ["airy", "balanced", "compact"][rng.randi_range(0, 2)],
 		"grid_columns": [3, 4, 4, 5][rng.randi_range(0, 3)],
 		"icon_shape": ["squircle", "rounded_square", "circle", "soft_square"][rng.randi_range(0, 3)],
 		"icon_size": rng.randi_range(46, 58),
@@ -110,6 +107,8 @@ static func generate_ui(seed_value: int = -1, device_specs: Dictionary = {}) -> 
 		"style": style,
 		"home": {
 			"widgets": widgets,
+			"composition": widget_layout,
+			"header_text": ["YOUR SPACE", "A GOOD DAY TO BEGIN", "TODAY", "AT A GLANCE", "WELCOME BACK"][rng.randi_range(0, 4)],
 			"apps": home_apps,
 			"dock": dock,
 			"show_search": rng.randf() > 0.32,
@@ -136,10 +135,10 @@ static func normalize_ui(config: Dictionary) -> Dictionary:
 			palette[key] = PALETTES[0][key]
 	style["palette"] = palette
 
-	var layout_style := str(style.get("layout_archetype", "clock_focus"))
-	if not LAYOUT_ARCHETYPES.has(layout_style):
-		layout_style = "clock_focus"
-	style["layout_archetype"] = layout_style
+	var composition_density := str(style.get("composition_density", "balanced"))
+	if not ["airy", "balanced", "compact"].has(composition_density):
+		composition_density = "balanced"
+	style["composition_density"] = composition_density
 	var wallpaper_style := str(style.get("wallpaper_style", "aurora"))
 	if not WALLPAPER_STYLES.has(wallpaper_style):
 		wallpaper_style = "aurora"
@@ -156,6 +155,13 @@ static func normalize_ui(config: Dictionary) -> Dictionary:
 	if widgets.is_empty():
 		widgets = [{"type": "clock", "emphasis": "hero", "variant": 0}]
 	home["widgets"] = widgets
+	var composition: Dictionary = home.get("composition", {}).duplicate(true)
+	var placements: Array = composition.get("widget_placements", [])
+	if placements.size() != widgets.size():
+		var layout_rng := RandomNumberGenerator.new()
+		layout_rng.seed = maxi(1, int(normalized.get("seed", 1)))
+		composition = _create_widget_layout(widgets, layout_rng)
+	home["composition"] = composition
 	var apps: Array = home.get("apps", [])
 	if apps.size() < 6:
 		apps = APP_LIBRARY.slice(4, 16)
@@ -194,8 +200,30 @@ static func validate_ui(config: Dictionary) -> PackedStringArray:
 		issues.append("The home screen needs at least six app icons.")
 	if dock.size() != 4:
 		issues.append("The dock must contain exactly four applications.")
-	if not LAYOUT_ARCHETYPES.has(str(style.get("layout_archetype", ""))):
-		issues.append("The home-screen composition is not recognized.")
+	var composition: Dictionary = home.get("composition", {})
+	var placements: Array = composition.get("widget_placements", [])
+	if placements.size() != widgets.size():
+		issues.append("The generated composition does not place every widget.")
+	for index in range(placements.size()):
+		var placement_value: Variant = placements[index]
+		if not placement_value is Dictionary:
+			issues.append("The generated widget placement is not a structured region.")
+			continue
+		var placement: Dictionary = placement_value
+		var rect_values: Array = placement.get("rect", [])
+		if rect_values.size() != 4:
+			issues.append("A generated widget region has invalid geometry.")
+			continue
+		var rect := Rect2(float(rect_values[0]), float(rect_values[1]), float(rect_values[2]), float(rect_values[3]))
+		if rect.position.x < 0.0 or rect.position.y < 0.0 or rect.size.x <= 0.0 or rect.size.y <= 0.0 or rect.end.x > 1.0 or rect.end.y > 0.78:
+			issues.append("A generated widget region exceeds the phone's safe screen area.")
+		for previous_index in range(index):
+			var previous: Dictionary = placements[previous_index]
+			var previous_rect_values: Array = previous.get("rect", [])
+			if previous_rect_values.size() == 4:
+				var previous_rect := Rect2(float(previous_rect_values[0]), float(previous_rect_values[1]), float(previous_rect_values[2]), float(previous_rect_values[3]))
+				if rect.intersects(previous_rect):
+					issues.append("Generated widget regions overlap.")
 	if not WALLPAPER_STYLES.has(str(style.get("wallpaper_style", ""))):
 		issues.append("The wallpaper composition is not recognized.")
 	return issues
@@ -227,6 +255,52 @@ static func load_ui(path: String = SAVE_PATH) -> Dictionary:
 	if not validate_ui(normalized).is_empty():
 		return {}
 	return normalized
+
+
+static func _create_widget_layout(widgets: Array, rng: RandomNumberGenerator) -> Dictionary:
+	var density := rng.randf_range(0.215, 0.285) if widgets.size() <= 2 else rng.randf_range(0.285, 0.36)
+	if widgets.size() == 1:
+		density = rng.randf_range(0.145, 0.205)
+	var top := rng.randf_range(0.168, 0.198)
+	var region := Rect2(0.055, top, rng.randf_range(0.86, 0.90), density)
+	var placements: Array[Dictionary] = []
+	_split_widget_layout(region, widgets, 0, widgets.size(), placements, rng)
+	var apps_top := clampf(region.end.y + rng.randf_range(0.045, 0.085), 0.46, 0.675)
+	return {
+		"widget_placements": placements,
+		"apps_top": apps_top,
+		"region_bounds": [region.position.x, region.position.y, region.size.x, region.size.y]
+	}
+
+
+static func _split_widget_layout(rect: Rect2, widgets: Array, start_index: int, count: int, placements: Array[Dictionary], rng: RandomNumberGenerator) -> void:
+	if count <= 1:
+		var widget: Dictionary = widgets[start_index]
+		placements.append({
+			"type": str(widget.get("type", "clock")),
+			"variant": int(widget.get("variant", 0)),
+			"rect": [rect.position.x, rect.position.y, rect.size.x, rect.size.y]
+		})
+		return
+
+	var divide_width := rng.randf() > 0.48
+	var first_count := rng.randi_range(1, count - 1)
+	var ratio := rng.randf_range(0.36, 0.64)
+	var gap := rng.randf_range(0.012, 0.022)
+	var first_rect := rect
+	var second_rect := rect
+	if divide_width:
+		var first_width := (rect.size.x - gap) * ratio
+		first_rect.size.x = first_width
+		second_rect.position.x = rect.position.x + first_width + gap
+		second_rect.size.x = rect.size.x - first_width - gap
+	else:
+		var first_height := (rect.size.y - gap) * ratio
+		first_rect.size.y = first_height
+		second_rect.position.y = rect.position.y + first_height + gap
+		second_rect.size.y = rect.size.y - first_height - gap
+	_split_widget_layout(first_rect, widgets, start_index, first_count, placements, rng)
+	_split_widget_layout(second_rect, widgets, start_index + first_count, count - first_count, placements, rng)
 
 
 static func _shuffle_array(values: Array, rng: RandomNumberGenerator) -> void:
