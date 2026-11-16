@@ -532,12 +532,14 @@ func _handle_system_gesture(start: Vector2, finish: Vector2, elapsed_ms: int) ->
 
 	if _gesture_overlay != null and is_instance_valid(_gesture_overlay):
 		if _is_gen1_samsung_ui() and _gesture_overlay.name == "OSGestureOverlay_notifications":
-			if delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
+			if delta.length() <= maxf(12.0, minf(size.x, size.y) * 0.035):
+				_handle_samsung_gen1_overlay_tap("notifications", start)
+			elif delta.y <= -vertical_threshold or absf(delta.x) >= horizontal_threshold:
 				_close_gesture_overlay()
 			return
 		if _is_gen1_samsung_ui() and _gesture_overlay.name == "OSGestureOverlay_recent_apps":
 			if delta.length() <= maxf(12.0, minf(size.x, size.y) * 0.035):
-				_handle_samsung_gen1_tap(start)
+				_handle_samsung_gen1_overlay_tap("recent_apps", start)
 			else:
 				_close_gesture_overlay()
 			return
@@ -684,6 +686,74 @@ func _handle_samsung_gen1_tap(touch_position: Vector2) -> void:
 					continue
 				_on_app_pressed(str(drawer_rows[row_index][column_index]))
 				return
+
+
+func _handle_samsung_gen1_overlay_tap(component_id: String, touch_position: Vector2) -> void:
+	var screenshot := find_child("SamsungGen1ScreenImage_" + component_id, true, false) as TextureRect
+	if screenshot == null or not is_instance_valid(screenshot):
+		return
+	var screenshot_rect := screenshot.get_global_rect()
+	var touch_canvas_position := get_global_transform_with_canvas() * touch_position
+	if screenshot_rect.size.x <= 0.0 or screenshot_rect.size.y <= 0.0 or not screenshot_rect.has_point(touch_canvas_position):
+		return
+	var normalized_position := Vector2(
+		(touch_canvas_position.x - screenshot_rect.position.x) / screenshot_rect.size.x,
+		(touch_canvas_position.y - screenshot_rect.position.y) / screenshot_rect.size.y
+	)
+	if component_id == "recent_apps":
+		var recent_apps := ["Email", "Camera", "Gallery", "Browser"]
+		var recent_card_regions := [
+			Rect2(0.20, 0.10, 0.60, 0.22),
+			Rect2(0.20, 0.32, 0.60, 0.20),
+			Rect2(0.20, 0.53, 0.60, 0.21),
+			Rect2(0.20, 0.75, 0.60, 0.20)
+		]
+		for card_index in range(recent_card_regions.size()):
+			if recent_card_regions[card_index].has_point(normalized_position):
+				_close_gesture_overlay()
+				_on_app_pressed(str(recent_apps[card_index]))
+				return
+		_close_gesture_overlay()
+		return
+	if normalized_position.y < 0.08 or normalized_position.y > 0.30:
+		return
+	var quick_tiles := ["Wi-Fi", "Location", "Sound", "Mute", "Auto-rotate", "Bluetooth", "Bluetooth"]
+	var tile_index := clampi(int(floor(normalized_position.x * float(quick_tiles.size()))), 0, quick_tiles.size() - 1)
+	var tile_name := str(quick_tiles[tile_index])
+	var enabled := not bool(_quick_setting_states.get(tile_name, false))
+	_quick_setting_states[tile_name] = enabled
+	_show_samsung_gen1_quick_setting_feedback(tile_name, enabled)
+
+
+func _show_samsung_gen1_quick_setting_feedback(tile_name: String, enabled: bool) -> void:
+	if _gesture_overlay == null or not is_instance_valid(_gesture_overlay):
+		return
+	var previous_feedback := _gesture_overlay.get_node_or_null("SamsungGen1QuickSettingFeedback")
+	if previous_feedback != null:
+		previous_feedback.queue_free()
+	var feedback := PanelContainer.new()
+	feedback.name = "SamsungGen1QuickSettingFeedback"
+	feedback.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	feedback.offset_left = 18.0
+	feedback.offset_top = -54.0
+	feedback.offset_right = -18.0
+	feedback.offset_bottom = -8.0
+	feedback.z_index = 140
+	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var feedback_style := StyleBoxFlat.new()
+	feedback_style.bg_color = Color(0.06, 0.07, 0.08, 0.94)
+	feedback_style.border_color = Color(0.45, 0.50, 0.56, 0.62)
+	feedback_style.set_border_width_all(1)
+	feedback_style.set_corner_radius_all(8)
+	feedback.add_theme_stylebox_override("panel", feedback_style)
+	var feedback_label := Label.new()
+	feedback_label.text = "%s · %s" % [tile_name, "ON" if enabled else "OFF"]
+	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	feedback_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	feedback_label.add_theme_font_size_override("font_size", 11)
+	feedback_label.add_theme_color_override("font_color", Color.WHITE)
+	feedback.add_child(feedback_label)
+	_gesture_overlay.add_child(feedback)
 
 
 func _build_samsung_gen1_gesture_overlay(mode: String) -> void:
