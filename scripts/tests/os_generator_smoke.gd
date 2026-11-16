@@ -217,7 +217,7 @@ func _run_gen1_smoke_test() -> void:
 		_fail("Xiaomi MIUI V4 notification-panel Quick Settings do not update their state.")
 		return
 	var xiaomi_brightness_before := int(simulator._brightness_level)
-	_simulate_screenshot_tap(simulator, "XiaomiGen1ScreenImage_notifications", Vector2(0.50, 0.29))
+	_simulate_screenshot_tap(simulator, "XiaomiGen1ScreenImage_notifications", Vector2(0.75, 0.29))
 	if int(simulator._brightness_level) == xiaomi_brightness_before:
 		_fail("Xiaomi MIUI V4 brightness slider does not change display brightness.")
 		return
