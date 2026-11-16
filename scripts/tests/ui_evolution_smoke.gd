@@ -62,16 +62,24 @@ func _check_generated_designs() -> bool:
 			return false
 
 		var style: Dictionary = design.get("style", {})
+		var composition: Dictionary = home.get("composition", {})
 		var widget_signature := ""
 		for widget_value in widgets:
 			widget_signature += str(widget_value.get("type", "")) + ","
+		var placement_signature := ""
+		for placement_value in composition.get("widget_placements", []):
+			var placement: Dictionary = placement_value
+			var rect_values: Array = placement.get("rect", [])
+			for rect_value in rect_values:
+				placement_signature += "%.2f," % float(rect_value)
+			placement_signature += ";"
 		var signature := "%s|%s|%s|%s|%s|%s|%s" % [
-			str(style.get("layout_archetype", "")),
 			str(style.get("palette", {}).get("name", "")),
 			str(style.get("wallpaper_style", "")),
 			str(style.get("icon_shape", "")),
 			str(style.get("grid_columns", "")),
 			widget_signature,
+			placement_signature,
 			str(home.get("search_position", ""))
 		]
 		signatures[signature] = true
