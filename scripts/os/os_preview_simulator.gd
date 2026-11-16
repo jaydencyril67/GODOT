@@ -152,6 +152,34 @@ class OSWallpaperLayer extends Control:
 			draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.12))
 		elif treatment == "soft_glow":
 			draw_circle(focal, radius, Color(accent.r, accent.g, accent.b, 0.055))
+var configuration: Dictionary = {}
+var active_component := "home_screen"
+var _home_screen_corner_radius := 0
+var _home_screen_radius_styleboxes: Array[StyleBoxFlat] = []
+var page_container: VBoxContainer
+var status_label: Label
+var _palette: Dictionary = {}
+var _style: Dictionary = {}
+var _building := false
+var _last_layout_size := Vector2.ZERO
+var _resize_rebuild_pending := false
+var _gesture_start := Vector2.ZERO
+var _gesture_start_time := 0
+var _gesture_active := false
+var _gesture_overlay: Control
+var _recent_app_names: Array[String] = []
+var _screen_history: Array[String] = []
+var _last_opened_app := ""
+var _entered_unlock_pin := ""
+var _pin_error_message := ""
+var _quick_setting_states := {
+	"Wi-Fi": true, "Bluetooth": true, "Airplane mode": false,
+	"Auto-rotate": true, "Flashlight": false, "Location": true,
+	"Sound": true, "Mute": false,
+	"Cast screen": false, "Hotspot": false, "Battery saver": false
+}
+var _clock_update_elapsed := 0.0
+
 func _process(delta: float) -> void:
 	_clock_update_elapsed += delta
 	if _clock_update_elapsed < 1.0:
