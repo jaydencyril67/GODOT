@@ -2011,7 +2011,12 @@ func _dispatch_android_navigation(action: String) -> void:
 		"Home":
 			_navigate_home()
 		"Overview":
-			if _is_gen1_phone_ui() or _is_gen2_phone_ui() or _is_gen3_phone_ui() or _is_gen4_phone_ui():
+			# Gen 2–4 use their uploaded manufacturer-specific Recents reference
+			# screens, just like the other screenshot-backed OS components.
+			# Gen 1 retains its original live Overview implementation.
+			if _is_gen2_phone_ui() or _is_gen3_phone_ui() or _is_gen4_phone_ui():
+				set_component_view("recent_apps")
+			elif _is_gen1_phone_ui():
 				_show_gesture_overlay("recent_apps")
 			else:
 				set_component_view("recent_apps")
