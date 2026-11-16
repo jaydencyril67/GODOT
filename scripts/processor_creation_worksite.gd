@@ -109,7 +109,7 @@ func _build_interface() -> void:
 	var root := Control.new()
 	root.name = "WorksiteRoot"
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	layer.add_child(root)
 	root.resized.connect(_apply_responsive_layout)
 
@@ -117,7 +117,7 @@ func _build_interface() -> void:
 	backdrop.name = "WorksiteBackdrop"
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.color = Color("#292B2D")
-	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(backdrop)
 
 	worksite_body = BoxContainer.new()
@@ -208,11 +208,11 @@ func _build_interface() -> void:
 
 	preview_viewport = SubViewport.new()
 	preview_viewport.name = "Processor3DSubViewport"
-	preview_viewport.size = Vector2i(1000, 760)
+	preview_viewport.size = Vector2i(640, 480)
 	preview_viewport.own_world_3d = true
 	preview_viewport.transparent_bg = true
-	preview_viewport.msaa_3d = Viewport.MSAA_4X
-	preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	preview_viewport.msaa_3d = Viewport.MSAA_2X
+	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	preview_holder.add_child(preview_viewport)
 
 	var view_actions := HBoxContainer.new()
@@ -490,7 +490,7 @@ func _build_processor_preview() -> void:
 	key_light.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
 	key_light.light_color = Color("#FFF1D8")
 	key_light.light_energy = 2.2
-	key_light.shadow_enabled = true
+	key_light.shadow_enabled = false
 	key_light.directional_shadow_max_distance = 18.0
 	preview_viewport.add_child(key_light)
 
