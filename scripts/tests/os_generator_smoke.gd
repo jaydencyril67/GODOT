@@ -585,8 +585,9 @@ func _run_os_generator_test() -> void:
 		return
 	simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 235), 100)
 	await process_frame
-	if simulator.find_child("GestureQuickSettingsGrid", true, false) == null:
-		_fail("Second downward pull did not expand Android Quick Settings.")
+	var android_expanded_grid := simulator.find_child("OreoExpandedQuickSettingsGrid", true, false) as GridContainer
+	if android_expanded_grid == null or android_expanded_grid.get_child_count() != 9 or simulator.find_child("OreoBrightnessSlider", true, false) == null:
+		_fail("Second downward pull did not expand the full Android 8 Quick Settings panel.")
 		return
 	simulator.call("_handle_system_gesture", Vector2(72, 235), Vector2(72, 150), 100)
 	await process_frame
