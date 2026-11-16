@@ -342,9 +342,11 @@ const FRONT_CAMERA_STYLES := ["Bezel Camera", "Waterdrop Notch", "Punch-Hole", "
 
 var rear_camera_modules: Array[Dictionary] = []
 var rear_camera_count_research_level := 0
+var rear_camera_size_research_level := 0
 
 var rear_flash_modules: Array[Dictionary] = []
 var rear_flash_count_research_level := 0
+var rear_flash_size_research_level := 0
 var rear_hardware_grid_initialized := false
 
 var rear_camera_selected_index := -1
@@ -3902,6 +3904,39 @@ func set_rear_flash_count_research_level(level: int) -> void:
 	# additional flash, up to five independently of camera capacity.
 	rear_flash_count_research_level = clampi(level, 0, ResearchManagerScript.REAR_HARDWARE_COUNT_RESEARCH_UPGRADES)
 	if is_instance_valid(rear_hardware_add_button) and rear_hardware_mode == "FLASH":
+		_refresh_rear_hardware_panel()
+
+
+func _clamp_rear_hardware_module_sizes(modules: Array[Dictionary], maximum_size: float) -> void:
+	for index in range(modules.size()):
+		var module: Dictionary = modules[index]
+		module["size"] = clampf(
+			float(module.get("size", ResearchManagerScript.REAR_HARDWARE_SIZE_BASE)),
+			ResearchManagerScript.REAR_HARDWARE_SIZE_BASE,
+			maximum_size
+		)
+		modules[index] = module
+
+
+func set_rear_camera_size_research_level(level: int) -> void:
+	rear_camera_size_research_level = clampi(level, 0, ResearchManagerScript.REAR_HARDWARE_SIZE_RESEARCH_UPGRADES)
+	_clamp_rear_hardware_module_sizes(
+		rear_camera_modules,
+		ResearchManagerScript.get_rear_camera_size_max_for_level(rear_camera_size_research_level)
+	)
+	_refresh_rear_hardware_visuals()
+	if is_instance_valid(rear_hardware_selection_button) and rear_hardware_mode == "CAMERA":
+		_refresh_rear_hardware_panel()
+
+
+func set_rear_flash_size_research_level(level: int) -> void:
+	rear_flash_size_research_level = clampi(level, 0, ResearchManagerScript.REAR_HARDWARE_SIZE_RESEARCH_UPGRADES)
+	_clamp_rear_hardware_module_sizes(
+		rear_flash_modules,
+		ResearchManagerScript.get_rear_flash_size_max_for_level(rear_flash_size_research_level)
+	)
+	_refresh_rear_hardware_visuals()
+	if is_instance_valid(rear_hardware_selection_button) and rear_hardware_mode == "FLASH":
 		_refresh_rear_hardware_panel()
 
 
@@ -9322,7 +9357,13 @@ func _set_rear_hardware_selected_index(index: int) -> void:
 		rear_camera_selected_index = index
 
 func _get_rear_hardware_default_size() -> float:
-	return 0.060 if rear_hardware_mode == "FLASH" else 0.105
+	return ResearchManagerScript.REAR_HARDWARE_SIZE_BASE
+
+
+func _get_rear_hardware_size_maximum() -> float:
+	if rear_hardware_mode == "FLASH":
+		return ResearchManagerScript.get_rear_flash_size_max_for_level(rear_flash_size_research_level)
+	return ResearchManagerScript.get_rear_camera_size_max_for_level(rear_camera_size_research_level)
 
 
 func _get_rear_hardware_addition_limit() -> int:
@@ -9529,7 +9570,7 @@ func _on_rear_hardware_size_changed(value: float) -> void:
 		return
 	var module: Dictionary = modules[selected_index]
 	var module_position: Vector2 = module["position"]
-	var next_size := clampf(value, 0.025, 0.17)
+	var next_size := clampf(value, ResearchManagerScript.REAR_HARDWARE_SIZE_BASE, _get_rear_hardware_size_maximum())
 	if not _rear_module_position_is_free(module_position, next_size, rear_hardware_mode, selected_index):
 		_refresh_rear_hardware_panel()
 		return
@@ -9555,6 +9596,8 @@ func _refresh_rear_hardware_panel() -> void:
 	var modules := _get_rear_hardware_modules()
 	var selected_index := _get_rear_hardware_selected_index()
 	var kind_name := "FLASH" if rear_hardware_mode == "FLASH" else "CAMERA"
+	rear_hardware_size_slider.min_value = ResearchManagerScript.REAR_HARDWARE_SIZE_BASE
+	rear_hardware_size_slider.max_value = _get_rear_hardware_size_maximum()
 	var has_selection := selected_index >= 0 and selected_index < modules.size()
 	if has_selection:
 		var selected: Dictionary = modules[selected_index]
