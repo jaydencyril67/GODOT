@@ -158,17 +158,17 @@ func _check_phone_screen_integration() -> bool:
 	worksite.call("_on_next_pressed")
 	if int(worksite.get("wizard_step")) != 30:
 		worksite.queue_free()
-		_fail("UI Evolution is not positioned immediately after Cooling System Design.")
+		_fail("The phone-interface design step is not positioned after Cooling System Design.")
 		return false
 	var progress_label := worksite.get("progress_number") as Label
 	if progress_label == null or progress_label.text != "STEP 31 / 38":
 		worksite.queue_free()
-		_fail("The UI Evolution research step did not update the 38-step progress counter.")
+		_fail("The phone-interface design step did not update the 38-step progress counter.")
 		return false
 	worksite.call("_on_next_pressed")
 	if int(worksite.get("wizard_step")) != 31:
 		worksite.queue_free()
-		_fail("Box Package did not follow UI Evolution at the next worksite step.")
+		_fail("Box Package did not follow the phone-interface design step.")
 		return false
 	var generated_config: Dictionary = worksite.get("ui_evolution_configuration")
 	if generated_config.is_empty() or str(generated_config.get("name", "")).is_empty():
