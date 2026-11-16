@@ -1133,22 +1133,32 @@ func _build_android_oreo_control_center_preview() -> void:
 func _add_pie_shade_header(parent: Control) -> void:
 	var header := HBoxContainer.new()
 	header.name = "PieShadeHeader"
+	header.custom_minimum_size.y = 42
 	header.add_theme_constant_override("separation", 8)
 	var time_stack := VBoxContainer.new()
 	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var clock := _label(_current_lock_time("pixel"), 25, Color("#202124"))
+	var clock := _label(_current_lock_time("pixel"), 26, Color("#202124"))
 	clock.name = "PieShadeClock"
 	clock.custom_minimum_size.y = 30
 	clock.add_theme_font_override("font", LOCKSCREEN_FONT)
 	time_stack.add_child(clock)
-	time_stack.add_child(_label(_current_lock_date("pixel"), 9, Color("#5F6368")))
+	var date := _label(_current_lock_date("pixel"), 9, Color("#344054"))
+	date.name = "PieShadeDate"
+	time_stack.add_child(date)
 	header.add_child(time_stack)
-	var battery := _label("100%  ▰", 9, Color("#5F6368"))
+	var status := VBoxContainer.new()
+	status.alignment = BoxContainer.ALIGNMENT_CENTER
+	status.add_theme_constant_override("separation", 2)
+	var network := _label("Wi-Fi  ·  LTE", 8, Color("#344054"))
+	network.name = "PieShadeNetworkStatus"
+	network.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	status.add_child(network)
+	var battery := _label("100%  ▰", 9, Color("#263445"))
 	battery.name = "PieShadeBattery"
-	battery.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	header.add_child(battery)
+	battery.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	status.add_child(battery)
+	header.add_child(status)
 	parent.add_child(header)
-
 
 func _pie_quick_tile_style(enabled: bool) -> StyleBoxFlat:
 	var tile_style := StyleBoxFlat.new()
@@ -1312,8 +1322,26 @@ func _apply_android_pie_shade_screen_mask(overlay: Control) -> void:
 	overlay.add_child(mask)
 
 
+func _make_android_shade_surface(surface_name: String, corner_radius: int = 15) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = surface_name
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#FFFFFF")
+	style.border_color = Color("#C9D2DE")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(corner_radius)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+	return panel
+
+
 func _build_android_pie_notification_content(parent: Control) -> void:
 	_add_pie_shade_header(parent)
+	var quick_surface := _make_android_shade_surface("PieNotificationQuickSettingsSurface", 15)
 	var quick_grid := GridContainer.new()
 	quick_grid.name = "PieNotificationQuickSettingsGrid"
 	quick_grid.columns = 3
@@ -1322,11 +1350,12 @@ func _build_android_pie_notification_content(parent: Control) -> void:
 	quick_grid.add_theme_constant_override("v_separation", 4)
 	for definition in _pie_quick_tile_definitions().slice(0, 6):
 		_add_android_pie_quick_tile(quick_grid, definition)
-	parent.add_child(quick_grid)
+	quick_surface.add_child(quick_grid)
+	parent.add_child(quick_surface)
 
 	var heading := HBoxContainer.new()
 	heading.name = "PieNotificationHeadingRow"
-	var notification_heading := _label("Notifications", 11, Color("#3C4043"))
+	var notification_heading := _label("Notifications", 11, Color("#202124"))
 	notification_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(notification_heading)
 	var manage_button := _make_android_shade_action_button("PieNotificationManageButton", "Manage", "Notification settings")
@@ -1337,28 +1366,29 @@ func _build_android_pie_notification_content(parent: Control) -> void:
 	heading.add_child(manage_button)
 	parent.add_child(heading)
 
+	var notification_surface := _make_android_shade_surface("PieNotificationCardsSurface", 15)
 	var notification_list := VBoxContainer.new()
 	notification_list.name = "PieShadeNotificationList"
 	notification_list.add_theme_constant_override("separation", 6)
-	parent.add_child(notification_list)
+	notification_surface.add_child(notification_list)
 	_add_pie_notification_card(notification_list, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW", "M", Color("#4285F4"))
 	_add_pie_notification_card(notification_list, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
 	_add_pie_notification_card(notification_list, "Android System", "Device is up to date", "EARLIER", "A", Color("#5F6368"))
+	parent.add_child(notification_surface)
 
 	var footer := HBoxContainer.new()
 	footer.name = "PieNotificationFooter"
 	footer.add_theme_constant_override("separation", 6)
-	var footer_hint := _label("Swipe down for all Quick Settings", 8, Color("#5F6368"))
+	var footer_hint := _label("Swipe down for all Quick Settings", 8, Color("#344054"))
 	footer_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(footer_hint)
 	var clear_button := _make_android_shade_action_button("PieNotificationClearAllButton", "Clear all", "Clear notifications")
-	clear_button.pressed.connect(_clear_notification_group.bind(notification_list, "PieNoNotifications", "No notifications", Color("#5F6368")))
+	clear_button.pressed.connect(_clear_notification_group.bind(notification_list, "PieNoNotifications", "No notifications", Color("#344054")))
 	footer.add_child(clear_button)
 	var expand_button := _make_android_shade_action_button("PieNotificationExpandButton", "⌄", "Expand Quick Settings")
 	expand_button.pressed.connect(func() -> void: _show_gesture_overlay("control_center"))
 	footer.add_child(expand_button)
 	parent.add_child(footer)
-
 
 func _build_android_pie_notification_shade() -> void:
 	var overlay := _create_android_pie_shade("notifications")
@@ -1371,9 +1401,10 @@ func _build_android_pie_notification_shade() -> void:
 func _build_android_pie_quick_settings_content(parent: Control) -> void:
 	_add_pie_shade_header(parent)
 	_add_pie_brightness_slider(parent)
-	var heading := _label("Quick Settings", 11, Color("#3C4043"))
+	var heading := _label("Quick Settings", 11, Color("#202124"))
 	heading.name = "PieQuickSettingsHeading"
 	parent.add_child(heading)
+	var quick_surface := _make_android_shade_surface("PieExpandedQuickSettingsSurface", 15)
 	var grid := GridContainer.new()
 	grid.name = "PieExpandedQuickSettingsGrid"
 	grid.columns = 3
@@ -1382,12 +1413,13 @@ func _build_android_pie_quick_settings_content(parent: Control) -> void:
 	grid.add_theme_constant_override("v_separation", 5)
 	for definition in _pie_quick_tile_definitions():
 		_add_android_pie_quick_tile(grid, definition)
-	parent.add_child(grid)
+	quick_surface.add_child(grid)
+	parent.add_child(quick_surface)
 	var footer := HBoxContainer.new()
 	footer.name = "PieQuickSettingsFooter"
 	footer.custom_minimum_size.y = 34
 	footer.add_theme_constant_override("separation", 6)
-	var page_indicator := _label("●  ○", 8, Color("#5F6368"))
+	var page_indicator := _label("●  ○", 8, Color("#475467"))
 	page_indicator.name = "PieQuickSettingsPageIndicator"
 	page_indicator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page_indicator.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1399,7 +1431,6 @@ func _build_android_pie_quick_settings_content(parent: Control) -> void:
 	)
 	footer.add_child(settings_button)
 	parent.add_child(footer)
-
 
 func _build_android_pie_quick_settings_shade() -> void:
 	var overlay := _create_android_pie_shade("control_center")
@@ -1414,9 +1445,10 @@ func _build_android_pie_notifications_preview() -> void:
 	panel.name = "PieNotificationPreview"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#E8ECF3")
-	style.set_corner_radius_all(16)
-	style.set_border_width_all(0)
+	style.bg_color = Color("#DCE3ED")
+	style.border_color = Color("#C9D2DE")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(15)
 	style.content_margin_left = 9
 	style.content_margin_right = 9
 	style.content_margin_top = 9
@@ -1433,9 +1465,10 @@ func _build_android_pie_control_center_preview() -> void:
 	panel.name = "PieControlCenterPreview"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#E8ECF3")
-	style.set_corner_radius_all(16)
-	style.set_border_width_all(0)
+	style.bg_color = Color("#DCE3ED")
+	style.border_color = Color("#C9D2DE")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(15)
 	style.content_margin_left = 9
 	style.content_margin_right = 9
 	style.content_margin_top = 9
