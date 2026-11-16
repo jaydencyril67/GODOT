@@ -233,7 +233,7 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, palette
 	var row_count := maxi(1, ceili(float(apps.size()) / float(columns)))
 	var dock_top := viewport_size.y - viewport_size.y * 0.083 - 38.0
 	var available_height := maxf(48.0, dock_top - apps_top - 18.0)
-	var label_gap := clampf(float(style.get("spacing", 14)) * 1.35, 13.0, 27.0)
+	var label_gap := clampf(float(style.get("spacing", 14)) * 1.25, 13.0, 22.0)
 	var row_height := minf(icon_size + label_gap, available_height / float(row_count))
 	icon_size = minf(icon_size, maxf(26.0, row_height - label_gap))
 	for index in range(apps.size()):
@@ -252,7 +252,7 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, palette
 		var glyph := str(app.get("glyph", "A"))
 		_draw_text(glyph, centre + Vector2(-icon_size * 0.34, icon_size * 0.13), 17 if glyph.length() <= 1 else 11, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, icon_size * 0.68)
 		var label := str(app.get("name", "App"))
-		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + label_gap - 10.0), 8, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
+		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + label_gap - 8.0), 8, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
 
 
 func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, text_color: Color, muted: Color, viewport_size: Vector2, radius: int) -> void:
