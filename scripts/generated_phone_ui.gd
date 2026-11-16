@@ -169,9 +169,7 @@ func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_
 	var inset := rect.size.x * 0.075
 	match widget_type:
 		"clock":
-			_draw_text("LOCAL TIME", rect.position + Vector2(inset, rect.size.y * 0.27), 9, muted)
-			_draw_clock(rect.position + Vector2(inset, rect.size.y * 0.70), int(rect.size.y * 0.40 * widget_text_scale), text_color)
-			_draw_text("A good moment to begin.", rect.position + Vector2(inset, rect.size.y * 0.88), 9, muted)
+			_draw_dot_matrix_clock(rect, muted, text_color, accent, widget_text_scale)
 		"weather":
 			_draw_text("WEATHER", rect.position + Vector2(inset, rect.size.y * 0.24), 9, muted)
 			_draw_text("28°", rect.position + Vector2(inset, rect.size.y * 0.70), int(rect.size.y * 0.42 * widget_text_scale), text_color)
@@ -205,6 +203,53 @@ func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_
 			_draw_text("Next session  ·  25 minutes", rect.position + Vector2(inset, rect.size.y * 0.82), 9, muted)
 		_:
 			_draw_clock(rect.position + Vector2(inset, rect.size.y * 0.72), int(rect.size.y * 0.42), text_color)
+
+
+const DOT_MATRIX_DIGITS := {
+	"0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+	"1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+	"2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+	"3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+	"4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+	"5": ["11111", "10000", "10000", "11110", "00001", "00001", "11110"],
+	"6": ["01110", "10000", "10000", "11110", "10001", "10001", "01110"],
+	"7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+	"8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+	"9": ["01110", "10001", "10001", "01111", "00001", "00001", "01110"],
+	":": ["00000", "00100", "00100", "00000", "00100", "00100", "00000"]
+}
+
+
+func _draw_dot_matrix_clock(rect: Rect2, muted: Color, text_color: Color, accent: Color, scale_factor: float) -> void:
+	var now := Time.get_datetime_dict_from_system()
+	var hour := int(now.get("hour", 9))
+	var minute := int(now.get("minute", 41))
+	var time_text := "%02d:%02d" % [hour, minute]
+	var pitch := minf(rect.size.x / 39.0, rect.size.y * 0.105) * clampf(scale_factor, 0.72, 1.12)
+	pitch = maxf(2.0, pitch)
+	var dot_radius := pitch * 0.31
+	var glyph_gap := pitch * 1.25
+	var glyph_width := pitch * 5.0
+	var total_width := glyph_width * float(time_text.length()) + glyph_gap * float(time_text.length() - 1)
+	var start_x := rect.position.x + (rect.size.x - total_width) * 0.5
+	var start_y := rect.position.y + rect.size.y * 0.39
+	_draw_text("LOCAL TIME", rect.position + Vector2(rect.size.x * 0.075, rect.size.y * 0.25), 8, muted)
+	for glyph_index in range(time_text.length()):
+		var glyph := time_text.substr(glyph_index, 1)
+		var pattern: Array = DOT_MATRIX_DIGITS.get(glyph, DOT_MATRIX_DIGITS["0"])
+		var glyph_x := start_x + float(glyph_index) * (glyph_width + glyph_gap)
+		for row_index in range(pattern.size()):
+			var row_pattern := str(pattern[row_index])
+			for column_index in range(row_pattern.length()):
+				var dot_position := Vector2(
+					glyph_x + float(column_index) * pitch + pitch * 0.5,
+					start_y + float(row_index) * pitch
+				)
+				var lit := row_pattern.substr(column_index, 1) == "1"
+				var dot_color := accent if lit and glyph_index == 3 else (text_color if lit else Color(muted.r, muted.g, muted.b, 0.16))
+				draw_circle(dot_position, dot_radius, dot_color)
+	var date_text := Time.get_date_string_from_system().to_upper()
+	_draw_text(date_text, rect.position + Vector2(rect.size.x * 0.075, rect.size.y * 0.89), 8, muted)
 
 
 func _draw_clock(text_position: Vector2, font_size: int, color: Color) -> void:
