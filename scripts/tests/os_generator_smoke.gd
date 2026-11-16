@@ -567,10 +567,13 @@ func _run_os_generator_test() -> void:
 	if notification_preview == null or notification_preview.texture == null:
 		_fail("Samsung Gen 1 Notification Panel component did not load its screenshot.")
 		return
+	# configure_os rebuilds the preview tree and frees notification_preview.
+	# Preserve the resource path before rebuilding instead of retaining a freed node.
+	var notification_texture_path := notification_preview.texture.resource_path
 	simulator.configure_os(gen1_panel_test_config, "control_center")
 	await process_frame
 	var control_center_preview := simulator.find_child("SamsungGen1ScreenImage_control_center", true, false) as TextureRect
-	if control_center_preview == null or control_center_preview.texture == null or control_center_preview.texture.resource_path != notification_preview.texture.resource_path:
+	if control_center_preview == null or control_center_preview.texture == null or control_center_preview.texture.resource_path != notification_texture_path:
 		_fail("Samsung Gen 1 Control Center and Notifications must use the same combined TouchWiz panel artwork.")
 		return
 
