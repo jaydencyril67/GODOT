@@ -1599,6 +1599,9 @@ func _run_os_generator_test() -> void:
 	worksite.set("home_generation", 4)
 	worksite.call("_apply_generation_selection")
 	await process_frame
+	if worksite_preview.get("active_component") != "lock_screen":
+		_fail("Generation 4 must preview its implemented Samsung lock screen instead of an unfinished system page.")
+		return
 	worksite.call("_show_lock_screen_studio_controls")
 	await process_frame
 	var samsung_lock_title := worksite.find_child("LockScreenHeroTitle", true, false) as Label
