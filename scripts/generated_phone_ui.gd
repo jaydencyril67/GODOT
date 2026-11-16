@@ -4,7 +4,6 @@ class_name GeneratedPhoneUI
 var blueprint: Dictionary = {}
 var _font: Font
 var _typography_scale := 1.0
-var _pixel_scale := 1.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -24,7 +23,6 @@ func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color("#101820"))
 		return
 
-	_pixel_scale = clampf(size.x / 480.0, 1.0, 1.5)
 	var style: Dictionary = blueprint.get("style", {})
 	var palette: Dictionary = style.get("palette", {})
 	var home: Dictionary = blueprint.get("home", {})
@@ -42,8 +40,8 @@ func _draw() -> void:
 			accent = secondary
 		"vivid":
 			accent = accent.lightened(0.08)
-	var radius := int(round(float(style.get("corner_radius", 22)) * _pixel_scale))
-	_typography_scale = clampf(float(style.get("typography_scale", 1.0)), 0.85, 1.2) * _pixel_scale
+	var radius := int(style.get("corner_radius", 22))
+	_typography_scale = clampf(float(style.get("typography_scale", 1.0)), 0.85, 1.2)
 	var margin := size.x * 0.065
 
 	_draw_wallpaper(background, accent, str(style.get("wallpaper_style", "aurora")), secondary)
@@ -81,7 +79,6 @@ func _draw() -> void:
 		_draw_search_bar(Rect2(margin, search_y, size.x - margin * 2.0, size.y * 0.052), surface, muted, radius)
 
 	_draw_apps(home.get("apps", []), apps_top, style, palette, text_color, muted, size)
-	_draw_page_indicator(size)
 	_draw_dock(home.get("dock", []), style, palette, text_color, muted, size, radius)
 	_draw_navigation(style, muted, text_color)
 
@@ -164,12 +161,9 @@ func _draw_status_bar(text_color: Color, _muted: Color, system: Dictionary, styl
 func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_radius: int, text_color: Color, muted: Color, accent: Color, widget_text_scale: float) -> void:
 	var surface := _palette_color(palette, "surface", "#203344")
 	var surface_alt := _palette_color(palette, "surface_alt", "#30495B")
-	var fill := Color(surface.r, surface.g, surface.b, 0.92)
-	var surface_style := str(blueprint.get("style", {}).get("surface_style", "glass"))
-	if surface_style == "glass":
+	var fill := Color(surface.r, surface.g, surface.b, 0.94)
+	if str(blueprint.get("style", {}).get("surface_style", "glass")) == "glass":
 		fill.a = 0.88
-	elif surface_style == "layered":
-		fill.a = 0.96
 	_draw_round_rect(rect, fill, float(corner_radius))
 	_draw_round_rect_outline(rect, Color(1.0, 1.0, 1.0, 0.13), float(corner_radius), 1.0)
 	var inset := rect.size.x * 0.075
@@ -234,13 +228,14 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, _palett
 	var columns := clampi(int(style.get("grid_columns", 4)), 3, 5)
 	var margin := viewport_size.x * 0.045
 	var cell_width := (viewport_size.x - margin * 2.0) / float(columns)
-	var icon_size := clampf(float(style.get("icon_size", 52)) * 0.88 * _pixel_scale, 40.0 * _pixel_scale, 58.0 * _pixel_scale)
+	var icon_size := clampf(float(style.get("icon_size", 52)) * 0.88, 36.0, 54.0)
+	var icon_radius := float(style.get("corner_radius", 22)) * 0.70
 	var row_count := maxi(1, ceili(float(apps.size()) / float(columns)))
-	var dock_top := viewport_size.y - viewport_size.y * 0.083 - 38.0 * _pixel_scale
-	var available_height := maxf(48.0 * _pixel_scale, dock_top - apps_top - 18.0 * _pixel_scale)
-	var label_gap := clampf(float(style.get("spacing", 14)) * 1.28 * _pixel_scale, 15.0 * _pixel_scale, 25.0 * _pixel_scale)
+	var dock_top := viewport_size.y - viewport_size.y * 0.083 - 38.0
+	var available_height := maxf(48.0, dock_top - apps_top - 18.0)
+	var label_gap := clampf(float(style.get("spacing", 14)) * 1.25, 13.0, 22.0)
 	var row_height := minf(icon_size + label_gap, available_height / float(row_count))
-	icon_size = minf(icon_size, maxf(28.0 * _pixel_scale, row_height - label_gap))
+	icon_size = minf(icon_size, maxf(26.0, row_height - label_gap))
 	for index in range(apps.size()):
 		var app_value: Variant = apps[index]
 		if not app_value is Dictionary:
@@ -249,244 +244,54 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, _palett
 		var column := index % columns
 		var row := floori(float(index) / float(columns))
 		var centre := Vector2(margin + cell_width * (float(column) + 0.5), apps_top + float(row) * row_height)
+		var app_color := Color(str(app.get("color", "#6688B7")))
 		var icon_rect := Rect2(centre - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size)
-		_draw_app_icon(icon_rect, app, style)
+		# Keep the familiar generated icon geometry, but give each icon a physical
+		# lift, a soft upper reflection and a crisp edge instead of flat fill.
+		if str(style.get("icon_shape", "squircle")) == "circle":
+			draw_circle(centre + Vector2(0.0, 2.0), icon_size * 0.5, Color(0.0, 0.0, 0.0, 0.22))
+			draw_circle(centre, icon_size * 0.5, app_color)
+			draw_arc(centre, icon_size * 0.455, PI * 1.08, PI * 1.92, 36, Color(1.0, 1.0, 1.0, 0.22), 1.2, true)
+		else:
+			_draw_round_rect(Rect2(icon_rect.position + Vector2(0.0, 2.0), icon_rect.size), Color(0.0, 0.0, 0.0, 0.22), icon_radius)
+			_draw_round_rect(icon_rect, app_color, icon_radius)
+			_draw_round_rect(Rect2(icon_rect.position + Vector2(2.0, 2.0), Vector2(icon_size - 4.0, icon_size * 0.34)), Color(1.0, 1.0, 1.0, 0.10), icon_radius * 0.58)
+			_draw_round_rect_outline(icon_rect, Color(1.0, 1.0, 1.0, 0.18), icon_radius, 0.8)
+		var glyph := str(app.get("glyph", "A"))
+		_draw_text(glyph, centre + Vector2(-icon_size * 0.34, icon_size * 0.13), 17 if glyph.length() <= 1 else 11, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, icon_size * 0.68)
 		var label := str(app.get("name", "App"))
-		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + label_gap - 5.0 * _pixel_scale), 9, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
-
-
-func _draw_app_icon(icon_rect: Rect2, app: Dictionary, style: Dictionary) -> void:
-	var app_name := str(app.get("name", "App"))
-	var base := Color(str(app.get("color", "#6688B7")))
-	var icon_size := minf(icon_rect.size.x, icon_rect.size.y)
-	var centre := icon_rect.get_center()
-	var radius := float(style.get("corner_radius", 22)) * 0.68 * _pixel_scale
-	var circle_shape := str(style.get("icon_shape", "squircle")) == "circle"
-
-	var shadow_rect := icon_rect
-	shadow_rect.position.y += 2.0 * _pixel_scale
-	if circle_shape:
-		draw_circle(centre + Vector2(0.0, 2.0 * _pixel_scale), icon_size * 0.5, Color(0.0, 0.0, 0.0, 0.22))
-		draw_circle(centre, icon_size * 0.5, base)
-	else:
-		_draw_round_rect(shadow_rect, Color(0.0, 0.0, 0.0, 0.22), radius)
-		_draw_round_rect(icon_rect, base, radius)
-
-	# A restrained upper sheen and hairline rim make the icons feel like finished adaptive icons.
-	if circle_shape:
-		draw_arc(centre, icon_size * 0.455, PI * 1.08, PI * 1.92, 36, Color(1.0, 1.0, 1.0, 0.22), 1.2 * _pixel_scale, true)
-	else:
-		var sheen_rect := Rect2(icon_rect.position + Vector2(2.0, 2.0) * _pixel_scale, Vector2(icon_size - 4.0 * _pixel_scale, icon_size * 0.34))
-		_draw_round_rect(sheen_rect, Color(1.0, 1.0, 1.0, 0.10), radius * 0.58)
-		_draw_round_rect_outline(icon_rect, Color(1.0, 1.0, 1.0, 0.18), radius, 0.8 * _pixel_scale)
-
-	_draw_app_icon_symbol(app_name, centre, icon_size, base)
-
-
-func _draw_app_icon_symbol(app_name: String, centre: Vector2, icon_size: float, base: Color) -> void:
-	var unit := icon_size
-	var white := Color("#FFFFFF")
-	var soft_white := Color(1.0, 1.0, 1.0, 0.88)
-	var stroke := maxf(1.4 * _pixel_scale, unit * 0.035)
-	match app_name:
-		"Phone":
-			var handset := PackedVector2Array([
-				centre + Vector2(-0.28, -0.23) * unit,
-				centre + Vector2(-0.18, -0.30) * unit,
-				centre + Vector2(-0.08, -0.18) * unit,
-				centre + Vector2(-0.15, -0.08) * unit,
-				centre + Vector2(0.02, 0.11) * unit,
-				centre + Vector2(0.12, 0.04) * unit,
-				centre + Vector2(0.27, 0.16) * unit,
-				centre + Vector2(0.20, 0.28) * unit,
-				centre + Vector2(0.07, 0.29) * unit,
-				centre + Vector2(-0.13, 0.14) * unit,
-				centre + Vector2(-0.29, -0.04) * unit
-			])
-			draw_colored_polygon(handset, white)
-		"Messages":
-			var bubble := Rect2(centre + Vector2(-0.28, -0.20) * unit, Vector2(0.56, 0.40) * unit)
-			_draw_round_rect(bubble, white, unit * 0.12)
-			draw_colored_polygon(PackedVector2Array([
-				centre + Vector2(-0.15, 0.17) * unit,
-				centre + Vector2(-0.27, 0.31) * unit,
-				centre + Vector2(0.02, 0.18) * unit
-			]), white)
-			draw_line(centre + Vector2(-0.15, -0.04) * unit, centre + Vector2(0.16, -0.04) * unit, base.darkened(0.18), stroke, true)
-			draw_line(centre + Vector2(-0.15, 0.08) * unit, centre + Vector2(0.08, 0.08) * unit, base.darkened(0.18), stroke, true)
-		"Camera":
-			var camera_rect := Rect2(centre + Vector2(-0.30, -0.20) * unit, Vector2(0.60, 0.42) * unit)
-			_draw_round_rect_outline(camera_rect, white, unit * 0.09, stroke * 1.25)
-			draw_circle(centre + Vector2(0.0, 0.01) * unit, unit * 0.15, Color(0.12, 0.17, 0.23, 0.95))
-			draw_circle(centre + Vector2(0.0, 0.01) * unit, unit * 0.095, Color("#80C8E8"))
-			draw_circle(centre + Vector2(-0.035, -0.025) * unit, unit * 0.035, white)
-			draw_circle(centre + Vector2(0.20, -0.12) * unit, unit * 0.035, Color("#FDE8A7"))
-		"Gallery", "Photos":
-			draw_circle(centre + Vector2(0.0, 0.0) * unit, unit * 0.28, Color("#F7F8FA"))
-			var petal_colors: Array[Color] = [Color("#F06B72"), Color("#F6B94A"), Color("#80C98D"), Color("#55BBDD"), Color("#728BE8"), Color("#B27AD6")]
-			for petal in range(6):
-				var angle := TAU * float(petal) / 6.0
-				var petal_center := centre + Vector2(cos(angle), sin(angle)) * unit * 0.135
-				var petal_color: Color = petal_colors[petal]
-				draw_circle(petal_center, unit * 0.09, petal_color)
-			draw_circle(centre, unit * 0.055, Color.WHITE)
-		"Browser":
-			draw_circle(centre, unit * 0.25, Color(0.0, 0.0, 0.0, 0.0))
-			draw_arc(centre, unit * 0.25, 0.0, TAU, 40, white, stroke, true)
-			draw_arc(centre, unit * 0.13, -PI * 0.5, PI * 0.5, 28, soft_white, stroke * 0.8, true)
-			draw_arc(centre, unit * 0.13, PI * 0.5, PI * 1.5, 28, soft_white, stroke * 0.8, true)
-			draw_line(centre + Vector2(-0.23, 0.0) * unit, centre + Vector2(0.23, 0.0) * unit, white, stroke, true)
-			draw_arc(centre, unit * 0.24, PI, TAU, 28, white, stroke * 0.8, true)
-		"Music":
-			draw_line(centre + Vector2(0.08, -0.24) * unit, centre + Vector2(0.08, 0.15) * unit, white, stroke * 1.8, true)
-			draw_line(centre + Vector2(0.08, -0.24) * unit, centre + Vector2(0.27, -0.29) * unit, white, stroke * 1.8, true)
-			draw_line(centre + Vector2(0.27, -0.29) * unit, centre + Vector2(0.27, 0.08) * unit, white, stroke * 1.8, true)
-			draw_circle(centre + Vector2(-0.04, 0.17) * unit, unit * 0.105, white)
-			draw_circle(centre + Vector2(0.15, 0.11) * unit, unit * 0.105, white)
-		"Calendar":
-			var calendar := Rect2(centre + Vector2(-0.25, -0.27) * unit, Vector2(0.50, 0.54) * unit)
-			_draw_round_rect(calendar, Color.WHITE, unit * 0.075)
-			_draw_round_rect(Rect2(calendar.position, Vector2(calendar.size.x, calendar.size.y * 0.25)), Color("#E65B62"), unit * 0.07)
-			_draw_text("18", centre + Vector2(-0.19, 0.16) * unit, 14, Color("#333D4B"), HORIZONTAL_ALIGNMENT_CENTER, unit * 0.38)
-			draw_line(centre + Vector2(-0.12, -0.28) * unit, centre + Vector2(-0.12, -0.17) * unit, white, stroke, true)
-			draw_line(centre + Vector2(0.12, -0.28) * unit, centre + Vector2(0.12, -0.17) * unit, white, stroke, true)
-		"Settings":
-			var gear := PackedVector2Array()
-			for tooth in range(24):
-				var angle := TAU * float(tooth) / 24.0
-				var gear_radius := unit * (0.255 if tooth % 2 == 0 else 0.205)
-				gear.append(centre + Vector2(cos(angle), sin(angle)) * gear_radius)
-			draw_colored_polygon(gear, white)
-			draw_circle(centre, unit * 0.095, base)
-		"Files":
-			draw_colored_polygon(PackedVector2Array([
-				centre + Vector2(-0.29, -0.19) * unit,
-				centre + Vector2(-0.04, -0.19) * unit,
-				centre + Vector2(0.05, -0.10) * unit,
-				centre + Vector2(0.29, -0.10) * unit,
-				centre + Vector2(0.27, 0.23) * unit,
-				centre + Vector2(-0.27, 0.23) * unit
-			]), Color("#FFE49A"))
-			draw_line(centre + Vector2(-0.20, -0.04) * unit, centre + Vector2(0.20, -0.04) * unit, Color("#C99536"), stroke, true)
-		"Clock":
-			draw_circle(centre, unit * 0.255, Color(1.0, 1.0, 1.0, 0.10))
-			draw_arc(centre, unit * 0.25, 0.0, TAU, 44, white, stroke, true)
-			draw_line(centre, centre + Vector2(-0.02, -0.16) * unit, white, stroke * 1.5, true)
-			draw_line(centre, centre + Vector2(0.15, 0.06) * unit, white, stroke * 1.5, true)
-			draw_circle(centre, unit * 0.035, white)
-		"Maps":
-			draw_circle(centre + Vector2(0.0, -0.055) * unit, unit * 0.22, Color("#EAF5FF"))
-			draw_colored_polygon(PackedVector2Array([
-				centre + Vector2(-0.18, 0.03) * unit,
-				centre + Vector2(0.18, 0.03) * unit,
-				centre + Vector2(0.0, 0.30) * unit
-			]), Color("#EAF5FF"))
-			draw_circle(centre + Vector2(0.0, -0.055) * unit, unit * 0.085, base)
-		"Notes":
-			var note_rect := Rect2(centre + Vector2(-0.23, -0.27) * unit, Vector2(0.46, 0.54) * unit)
-			_draw_round_rect(note_rect, Color("#FFF9E8"), unit * 0.045)
-			for row in range(3):
-				var line_y := centre.y + (-0.08 + float(row) * 0.12) * unit
-				draw_line(Vector2(centre.x - unit * 0.15, line_y), Vector2(centre.x + unit * 0.15, line_y), Color("#9DA6B0"), stroke * 0.75, true)
-		"Contacts":
-			draw_circle(centre + Vector2(0.0, -0.11) * unit, unit * 0.095, white)
-			draw_arc(centre + Vector2(0.0, 0.22) * unit, unit * 0.21, PI, TAU, 32, white, stroke * 2.2, true)
-		"Email":
-			var mail_rect := Rect2(centre + Vector2(-0.28, -0.19) * unit, Vector2(0.56, 0.40) * unit)
-			_draw_round_rect_outline(mail_rect, white, unit * 0.06, stroke * 1.3)
-			draw_line(mail_rect.position, centre + Vector2(0.0, 0.08) * unit, white, stroke, true)
-			draw_line(Vector2(mail_rect.end.x, mail_rect.position.y), centre + Vector2(0.0, 0.08) * unit, white, stroke, true)
-		"Calculator":
-			var calc_rect := Rect2(centre + Vector2(-0.23, -0.27) * unit, Vector2(0.46, 0.54) * unit)
-			_draw_round_rect(calc_rect, Color("#F4F7F9"), unit * 0.045)
-			_draw_round_rect(Rect2(calc_rect.position + Vector2(unit * 0.05, unit * 0.06), Vector2(unit * 0.36, unit * 0.11)), base.darkened(0.15), unit * 0.025)
-			for row in range(2):
-				for column in range(3):
-					draw_circle(calc_rect.position + Vector2(unit * (0.11 + float(column) * 0.12), unit * (0.29 + float(row) * 0.13)), unit * 0.025, Color("#7B8792"))
-		"Weather":
-			draw_circle(centre + Vector2(0.08, -0.10) * unit, unit * 0.16, Color("#FFD66F"))
-			draw_circle(centre + Vector2(-0.10, 0.06) * unit, unit * 0.13, white)
-			draw_circle(centre + Vector2(0.04, 0.02) * unit, unit * 0.17, white)
-			_draw_round_rect(Rect2(centre + Vector2(-0.21, 0.02) * unit, Vector2(0.47, 0.16) * unit), white, unit * 0.08)
-		"Store":
-			var bag := Rect2(centre + Vector2(-0.22, -0.12) * unit, Vector2(0.44, 0.36) * unit)
-			_draw_round_rect_outline(bag, white, unit * 0.055, stroke * 1.2)
-			draw_arc(centre + Vector2(0.0, -0.12) * unit, unit * 0.115, PI, TAU, 20, white, stroke, true)
-		"Security":
-			draw_colored_polygon(PackedVector2Array([
-				centre + Vector2(0.0, -0.29) * unit,
-				centre + Vector2(0.24, -0.19) * unit,
-				centre + Vector2(0.20, 0.10) * unit,
-				centre + Vector2(0.0, 0.29) * unit,
-				centre + Vector2(-0.20, 0.10) * unit,
-				centre + Vector2(-0.24, -0.19) * unit
-			]), white)
-			draw_polyline(PackedVector2Array([
-				centre + Vector2(-0.11, 0.0) * unit,
-				centre + Vector2(-0.02, 0.10) * unit,
-				centre + Vector2(0.14, -0.10) * unit
-			]), base, stroke * 1.8, true)
-		"Wallet":
-			var wallet_rect := Rect2(centre + Vector2(-0.28, -0.18) * unit, Vector2(0.56, 0.38) * unit)
-			_draw_round_rect(wallet_rect, Color("#F2F4F5"), unit * 0.06)
-			_draw_round_rect(Rect2(centre + Vector2(0.02, -0.04) * unit, Vector2(0.27, 0.16) * unit), base, unit * 0.04)
-			draw_circle(centre + Vector2(0.11, 0.04) * unit, unit * 0.022, white)
-		"Assistant":
-			draw_colored_polygon(PackedVector2Array([
-				centre + Vector2(0.0, -0.29) * unit,
-				centre + Vector2(0.055, -0.055) * unit,
-				centre + Vector2(0.29, 0.0) * unit,
-				centre + Vector2(0.055, 0.055) * unit,
-				centre + Vector2(0.0, 0.29) * unit,
-				centre + Vector2(-0.055, 0.055) * unit,
-				centre + Vector2(-0.29, 0.0) * unit,
-				centre + Vector2(-0.055, -0.055) * unit
-			]), white)
-			draw_circle(centre + Vector2(0.22, -0.22) * unit, unit * 0.04, Color("#FFE6A6"))
-		"Tasks":
-			draw_circle(centre, unit * 0.245, Color(1.0, 1.0, 1.0, 0.08))
-			draw_arc(centre, unit * 0.245, 0.0, TAU, 40, white, stroke * 1.3, true)
-			draw_polyline(PackedVector2Array([
-				centre + Vector2(-0.12, 0.0) * unit,
-				centre + Vector2(-0.025, 0.10) * unit,
-				centre + Vector2(0.15, -0.12) * unit
-			]), white, stroke * 1.5, true)
-		_:
-			_draw_text(app_name.left(1), centre + Vector2(-unit * 0.15, unit * 0.12), 18, white, HORIZONTAL_ALIGNMENT_CENTER, unit * 0.30)
+		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + label_gap - 8.0), 8, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
 
 
 func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, _text_color: Color, _muted: Color, viewport_size: Vector2, radius: int) -> void:
 	var dock: Array = dock_value if dock_value is Array else ["Phone", "Messages", "Browser", "Camera"]
 	var dock_height := viewport_size.y * 0.083
-	var dock_rect := Rect2(Vector2(viewport_size.x * 0.055, viewport_size.y - dock_height - 38.0 * _pixel_scale), Vector2(viewport_size.x * 0.89, dock_height))
+	var dock_rect := Rect2(Vector2(viewport_size.x * 0.055, viewport_size.y - dock_height - 38.0), Vector2(viewport_size.x * 0.89, dock_height))
 	var surface := _palette_color(palette, "surface", "#203344")
-	_draw_round_rect(dock_rect, Color(surface.r, surface.g, surface.b, 0.90), float(radius))
-	_draw_round_rect_outline(dock_rect, Color(1.0, 1.0, 1.0, 0.17), float(radius), 1.0 * _pixel_scale)
+	_draw_round_rect(dock_rect, Color(surface.r, surface.g, surface.b, 0.92), float(radius))
+	_draw_round_rect_outline(dock_rect, Color(1.0, 1.0, 1.0, 0.10), float(radius), 1.0)
 	var cell_width := dock_rect.size.x / 4.0
 	for index in range(mini(4, dock.size())):
 		var app_name := str(dock[index])
 		var app := _find_app(app_name)
-		var icon_size := dock_rect.size.y * 0.64
+		var icon_size := dock_rect.size.y * 0.60
 		var centre := Vector2(dock_rect.position.x + cell_width * (float(index) + 0.5), dock_rect.position.y + dock_rect.size.y * 0.49)
-		var icon_rect := Rect2(centre - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size)
-		_draw_app_icon(icon_rect, app, style)
-
-
-func _draw_page_indicator(viewport_size: Vector2) -> void:
-	var dock_top := viewport_size.y - viewport_size.y * 0.083 - 38.0 * _pixel_scale
-	var centre := Vector2(viewport_size.x * 0.5, dock_top - 15.0 * _pixel_scale)
-	for index in range(3):
-		var dot_color := Color(1.0, 1.0, 1.0, 0.90) if index == 0 else Color(1.0, 1.0, 1.0, 0.34)
-		draw_circle(centre + Vector2((float(index) - 1.0) * 12.0 * _pixel_scale, 0.0), 2.1 * _pixel_scale, dot_color)
+		var app_color := Color(str(app.get("color", "#6688B7")))
+		if str(style.get("icon_shape", "squircle")) == "circle":
+			draw_circle(centre, icon_size * 0.5, app_color)
+		else:
+			_draw_round_rect(Rect2(centre - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size), app_color, float(radius) * 0.6)
+		var glyph := str(app.get("glyph", app_name.left(1)))
+		_draw_text(glyph, centre + Vector2(-icon_size * 0.30, icon_size * 0.11), 16 if glyph.length() <= 1 else 10, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, icon_size * 0.60)
 
 
 func _draw_navigation(style: Dictionary, muted: Color, text_color: Color) -> void:
-	var y := size.y - 12.0 * _pixel_scale
+	var y := size.y - 12.0
 	if str(style.get("navigation_style", "gesture")) == "three_button":
 		var centre_x := size.x * 0.5
-		draw_colored_polygon(PackedVector2Array([Vector2(centre_x - 42.0 * _pixel_scale, y - 3.0 * _pixel_scale), Vector2(centre_x - 32.0 * _pixel_scale, y - 9.0 * _pixel_scale), Vector2(centre_x - 32.0 * _pixel_scale, y + 3.0 * _pixel_scale)]), muted)
-		draw_circle(Vector2(centre_x, y - 3.0 * _pixel_scale), 5.5 * _pixel_scale, muted)
-		draw_rect(Rect2(Vector2(centre_x + 28.0 * _pixel_scale, y - 8.0 * _pixel_scale), Vector2(12.0, 10.0) * _pixel_scale), muted, false, 1.5 * _pixel_scale)
+		draw_colored_polygon(PackedVector2Array([Vector2(centre_x - 42.0, y - 3.0), Vector2(centre_x - 32.0, y - 9.0), Vector2(centre_x - 32.0, y + 3.0)]), muted)
+		draw_circle(Vector2(centre_x, y - 3.0), 5.5, muted)
+		draw_rect(Rect2(Vector2(centre_x + 28.0, y - 8.0), Vector2(12.0, 10.0)), muted, false, 1.5)
 	else:
 		_draw_round_rect(Rect2(Vector2(size.x * 0.5 - 34.0, y - 4.0), Vector2(68.0, 4.0)), Color(text_color.r, text_color.g, text_color.b, 0.84), 2.0)
 
