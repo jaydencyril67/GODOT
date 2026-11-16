@@ -1987,7 +1987,7 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 			spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			navigation_keys.add_child(spacer)
 
-	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"] if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() or _is_gen3_samsung_ui() or _is_gen4_samsung_ui() else ["Back", "Home", "Overview"]
+	var navigation_actions := ["Back"] if back_only else ["Overview", "Home", "Back"]
 	for action in navigation_actions:
 		var key := AndroidNavigationButton.new()
 		key.name = family_prefix + "Navigation" + action
