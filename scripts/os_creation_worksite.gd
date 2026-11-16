@@ -483,7 +483,7 @@ func _build_os_selection_controls() -> void:
 	generation_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(generation_description_label)
 
-	var note := _label("Gen 1 · Android 5 Lollipop    Gen 2 · Android 8 Oreo    Gen 3 · Android 9 Pie    Gen 4 · Android 10 One UI 2.0", 10, Color("#A6A096"))
+	var note := _label("Gen 1 · Android 4.x TouchWiz    Gen 2 · Android 8 Oreo    Gen 3 · Android 9 Pie    Gen 4 · Android 10 One UI 2.0", 10, Color("#A6A096"))
 	note.name = "OSSelectionGenerationNote"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -525,19 +525,26 @@ func _show_lock_screen_studio_controls() -> void:
 	content.add_theme_constant_override("separation", 12)
 	selection_panel.add_child(content)
 
+	var is_gen1_samsung_android := home_screen_layout_level == 0 and home_generation == 1
 	var is_oreo_android := home_screen_layout_level == 0 and home_generation == 2
 	var is_pie_android := home_screen_layout_level == 0 and home_generation == 3
 	var is_samsung_one_ui_android := home_screen_layout_level == 0 and home_generation == 4
-	var heading_text := "SAMSUNG ONE UI 2.0 · ANDROID 10 LOCK SCREEN" if is_samsung_one_ui_android else "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "ANDROID 5.0 LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
+	var heading_text := "SAMSUNG TOUCHWIZ NATURE UX · ANDROID 4.x LOCK SCREEN" if is_gen1_samsung_android else "SAMSUNG ONE UI 2.0 · ANDROID 10 LOCK SCREEN" if is_samsung_one_ui_android else "ANDROID 9.0 PIE LOCK SCREEN" if is_pie_android else "ANDROID 8.0 OREO LOCK SCREEN" if is_oreo_android else "LOCK SCREEN" if home_screen_layout_level == 0 else "LOCK SCREEN"
 	var heading := _label(heading_text, 20, Color("#D3AA6B"))
 	heading.name = "LockScreenHeroTitle"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(heading)
-	var description_text := "Samsung One UI 2.0 lock screen. Configure adaptive time/date, compact notifications and Phone/Camera shortcuts." if is_samsung_one_ui_android else "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Classic Lollipop lock screen. Choose which elements are visible." if home_screen_layout_level == 0 else "Preview the selected layout's lock screen."
+	var description_text := "Galaxy S III TouchWiz Nature UX lock screen. Swipe right to unlock and tap the Phone or Camera shortcut." if is_gen1_samsung_android else "Samsung One UI 2.0 lock screen. Configure adaptive time/date, compact notifications and Phone/Camera shortcuts." if is_samsung_one_ui_android else "Android 9 Pixel lock screen. Configure rounded notifications, weather and shortcuts." if is_pie_android else "Pixel 2 lock screen. Configure the clock, notifications and bottom shortcuts." if is_oreo_android else "Preview the selected layout's lock screen."
 	var description := _label(description_text, 12, Color("#D0CBC2"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
+	if is_gen1_samsung_android:
+		var screenshot_note := _label("TouchWiz screen artwork is fixed to the uploaded Galaxy S III reference. Swipe right anywhere on the lock screen to unlock; tap Phone or Camera at the bottom to launch it.", 11, Color("#A6A096"))
+		screenshot_note.name = "SamsungGen1LockScreenInteractionNote"
+		screenshot_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(screenshot_note)
+		return
 
 	var hero_gap := Control.new()
 	hero_gap.name = "LockScreenHeroGap"
@@ -597,6 +604,13 @@ func _show_component_studio_controls(component_id: String) -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
+	if home_screen_layout_level == 0 and home_generation == 1 and component_id in ["app_drawer", "control_center", "notifications"]:
+		var screenshot_note_text := "The TouchWiz app drawer is displayed from the uploaded Galaxy S III screenshot. Tap an app to open it; use Back or Home to return." if component_id == "app_drawer" else "TouchWiz combines Quick Settings and notifications in one pull-down panel. Swipe down from the top edge to open it and swipe up to dismiss it."
+		var screenshot_note := _label(screenshot_note_text, 11, Color("#A6A096"))
+		screenshot_note.name = "SamsungGen1" + component_id.capitalize() + "ScreenshotNote"
+		screenshot_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(screenshot_note)
+		return
 
 	var component_data: Dictionary = generated_os_configuration.get("components", {}).get(component_id, {})
 	match component_id:
@@ -779,6 +793,12 @@ func _show_home_screen_studio_controls() -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(description)
+	if home_screen_layout_level == 0 and home_generation == 1:
+		var screenshot_note := _label("Samsung TouchWiz Nature UX home screen uses the imported Galaxy S III screenshot. App shortcuts and the Apps launcher remain touch-enabled; the original icon artwork is no longer generated by DWM.", 11, Color("#A6A096"))
+		screenshot_note.name = "SamsungGen1HomeScreenInteractionNote"
+		screenshot_note.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(screenshot_note)
+		return
 
 	var hero_gap := Control.new()
 	hero_gap.custom_minimum_size.y = 32
@@ -893,7 +913,7 @@ func _refresh_home_screen_layout_selector() -> void:
 		generation_value_label.text = "GENERATION %02d" % home_generation
 	if is_instance_valid(generation_description_label):
 		var layout_name: String = str(["ANDROID", "iOS", "WINDOWS PHONE"][home_screen_layout_level])
-		var generation_name := "ANDROID 5.0 LOLLIPOP" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
+		var generation_name := "ANDROID 4.x · SAMSUNG TOUCHWIZ NATURE UX" if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
 		generation_description_label.text = generation_name
 	if is_instance_valid(generation_decrease_button):
 		generation_decrease_button.disabled = home_generation <= 1
@@ -1229,13 +1249,12 @@ func _apply_generation_selection() -> void:
 		os_preview_simulator.visible = false
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
-	if home_generation == 4:
-		# Gen 4 is deliberately being introduced one component at a time.
-		# Keep its preview on the implemented Samsung One UI 2.0 lock screen.
+	if home_generation in [1, 4]:
+		# The Samsung generations open on their screenshot-backed lock screen.
 		selected_os_component_id = "lock_screen"
 	_apply_bootloader_settings_to_configuration()
 	_apply_approved_home_screen_layout()
-	if home_generation == 4 and is_instance_valid(os_preview_simulator):
+	if home_generation in [1, 4] and is_instance_valid(os_preview_simulator):
 		os_preview_simulator.set_component_view("lock_screen")
 	_refresh_home_screen_layout_selector()
 	_set_os_generation_status("GENERATION %02d SELECTED" % home_generation)
