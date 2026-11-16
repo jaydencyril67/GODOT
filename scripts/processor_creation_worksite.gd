@@ -4,13 +4,10 @@ signal back_requested
 signal design_saved(design: Dictionary)
 
 const ACCENT := Color("#C58A3A")
-const DARK := Color("#101316")
-const PANEL := Color("#191D20")
 const TEXT := Color("#EEEAE2")
 const MUTED := Color("#A9A49A")
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
-const CHIP_BASE_SIZE := 2.30
 const WIZARD_STEP_COUNT := 4
 
 class GlassArrowButton extends Button:
@@ -193,6 +190,8 @@ func _build_interface() -> void:
 
 	var preview_column := VBoxContainer.new()
 	preview_column.name = "ProcessorPreviewColumn"
+	preview_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	preview_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	preview_column.add_theme_constant_override("separation", 7)
 	preview_region.add_child(preview_column)
