@@ -499,6 +499,15 @@ func _run_os_generator_test() -> void:
 			if not gen1_notification_overlay.clip_contents or gen1_notification_mask == null or bool(gen1_notification_mask.get("mask_bottom_corners")):
 				_fail("Samsung TouchWiz notification overlay must be clipped to the phone screen with its navigation edge preserved.")
 				return
+			var notification_image_rect := gen1_notification_image.get_global_rect()
+			var wifi_canvas_position := notification_image_rect.position + notification_image_rect.size * Vector2(0.07, 0.18)
+			var wifi_local_position := simulator.get_global_transform_with_canvas().affine_inverse() * wifi_canvas_position
+			var wifi_state_before := bool(simulator.get("_quick_setting_states").get("Wi-Fi", false))
+			simulator.call("_handle_system_gesture", wifi_local_position, wifi_local_position, 10)
+			await process_frame
+			if bool(simulator.get("_quick_setting_states").get("Wi-Fi", wifi_state_before)) == wifi_state_before or simulator.find_child("SamsungGen1QuickSettingFeedback", true, false) == null:
+				_fail("TouchWiz Quick Settings tap did not toggle Wi-Fi or provide visible feedback.")
+				return
 			simulator.call("_handle_system_gesture", Vector2(72, 180), Vector2(72, 240), 110)
 			await process_frame
 			if simulator.find_child("OSGestureOverlay_notifications", true, false) == null or simulator.find_child("OSGestureOverlay_control_center", true, false) != null:
@@ -521,6 +530,19 @@ func _run_os_generator_test() -> void:
 			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or gen1_recent_image == null or gen1_recent_image.texture == null or gen1_recent_image.texture.resource_path != "res://assets/os/gen1/samsung/recent_apps.jpg":
 				_fail("Samsung Gen 1 Overview button did not open the uploaded Recent Apps artwork.")
 				return
+			var recent_image_rect := gen1_recent_image.get_global_rect()
+			var first_recent_card_canvas_position := recent_image_rect.position + recent_image_rect.size * Vector2(0.50, 0.20)
+			var first_recent_card_local_position := simulator.get_global_transform_with_canvas().affine_inverse() * first_recent_card_canvas_position
+			simulator.call("_handle_system_gesture", first_recent_card_local_position, first_recent_card_local_position, 10)
+			await process_frame
+			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null or str(simulator.get("_last_opened_app")) != "Email":
+				_fail("TouchWiz Recent Apps card tap did not open the selected recent app.")
+				return
+			gen1_overview = simulator.find_child("SamsungGen1NavigationOverview", true, false) as Button
+			gen1_back = simulator.find_child("SamsungGen1NavigationBack", true, false) as Button
+			gen1_overview.pressed.emit()
+			await process_frame
+			gen1_back = simulator.find_child("SamsungGen1NavigationBack", true, false) as Button
 			gen1_back.pressed.emit()
 			await process_frame
 			if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
