@@ -19,7 +19,7 @@ var home_screen_layout_decrease_button: Button
 var home_screen_layout_increase_button: Button
 var home_screen_layout_value_label: Label
 var home_screen_layout_family_label: Label
-var gen1_ui_family_selector: OptionButton
+var android_ui_family_selector: OptionButton
 var os_preview_simulator: Control
 var os_component_selector: OptionButton
 var os_generation_selector: OptionButton
@@ -445,19 +445,16 @@ func _build_os_selection_controls() -> void:
 	home_screen_layout_family_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(home_screen_layout_family_label)
 
-	var ui_family_heading := _label("ANDROID UI FAMILY · GENERATION 1", 10, Color("#D3AA6B"))
-	ui_family_heading.name = "Gen1AndroidUIFamilyHeading"
+	var ui_family_heading := _label("ANDROID UI FAMILY", 10, Color("#D3AA6B"))
+	ui_family_heading.name = "AndroidUIFamilyHeading"
 	ui_family_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(ui_family_heading)
-	gen1_ui_family_selector = OptionButton.new()
-	gen1_ui_family_selector.name = "Gen1AndroidUIFamilySelector"
-	gen1_ui_family_selector.add_item("Samsung TouchWiz Nature UX", 0)
-	gen1_ui_family_selector.add_item("Google Stock Android 4.0 ICS", 1)
-	gen1_ui_family_selector.add_item("Xiaomi MIUI · Android 4.0 era", 2)
-	gen1_ui_family_selector.custom_minimum_size = Vector2(260, 42)
-	gen1_ui_family_selector.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	gen1_ui_family_selector.item_selected.connect(_on_gen1_ui_family_selected)
-	content.add_child(gen1_ui_family_selector)
+	android_ui_family_selector = OptionButton.new()
+	android_ui_family_selector.name = "AndroidUIFamilySelector"
+	android_ui_family_selector.custom_minimum_size = Vector2(260, 42)
+	android_ui_family_selector.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	android_ui_family_selector.item_selected.connect(_on_android_ui_family_selected)
+	content.add_child(android_ui_family_selector)
 
 	var generation_gap := Control.new()
 	generation_gap.custom_minimum_size.y = 18
@@ -493,12 +490,12 @@ func _build_os_selection_controls() -> void:
 	generation_selector.add_child(generation_increase_button)
 	content.add_child(generation_selector)
 
-	generation_description_label = _label("ANDROID 8.0 OREO", 11, Color("#D3AA6B"))
+	generation_description_label = _label("ANDROID 7.0 NOUGAT", 11, Color("#D3AA6B"))
 	generation_description_label.name = "OSGenerationDescription"
 	generation_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(generation_description_label)
 
-	var note := _label("Gen 1 · Android 4.x TouchWiz    Gen 2 · Android 8 Oreo    Gen 3 · Android 9 Pie    Gen 4 · Android 10 One UI 2.0", 10, Color("#A6A096"))
+	var note := _label("Gen 1 · Android 4.x    Gen 2 · Android 7 Nougat    Gen 3 · Android 9 Pie    Gen 4 · Android 10 One UI 2.0", 10, Color("#A6A096"))
 	note.name = "OSSelectionGenerationNote"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -946,14 +943,14 @@ func _refresh_home_screen_layout_selector() -> void:
 		var ui_family_name := "GOOGLE STOCK ANDROID 4.0 ICE CREAM SANDWICH" if selected_gen1_family == "google_stock" else "XIAOMI MIUI · ANDROID 4.0 ERA" if selected_gen1_family == "xiaomi_miui" else "SAMSUNG TOUCHWIZ NATURE UX"
 		var generation_name := ("ANDROID 4.0 · " + ui_family_name) if home_screen_layout_level == 0 and home_generation == 1 else "ANDROID 8.0 OREO" if home_screen_layout_level == 0 and home_generation == 2 else "ANDROID 9.0 PIE" if home_screen_layout_level == 0 and home_generation == 3 else "ANDROID 10 · SAMSUNG ONE UI 2.0" if home_screen_layout_level == 0 and home_generation == 4 else "%s GENERATION %02d" % [layout_name, home_generation]
 		generation_description_label.text = generation_name
-	if is_instance_valid(gen1_ui_family_selector):
+	if is_instance_valid(android_ui_family_selector):
 		var show_gen1_families := home_screen_layout_level == 0 and home_generation == 1
-		gen1_ui_family_selector.visible = show_gen1_families
+		android_ui_family_selector.visible = show_gen1_families
 		var family_heading := selection_panel.find_child("Gen1AndroidUIFamilyHeading", true, false) as Label
 		if family_heading != null:
 			family_heading.visible = show_gen1_families
 		var family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
-		gen1_ui_family_selector.select(1 if family == "google_stock" else 2 if family == "xiaomi_miui" else 0)
+		android_ui_family_selector.select(1 if family == "google_stock" else 2 if family == "xiaomi_miui" else 0)
 	if is_instance_valid(generation_decrease_button):
 		generation_decrease_button.disabled = home_generation <= 1
 	if is_instance_valid(generation_increase_button):
@@ -1282,37 +1279,59 @@ func _on_generation_increase_pressed() -> void:
 	_apply_generation_selection()
 
 
-func _on_gen1_ui_family_selected(index: int) -> void:
-	if home_screen_layout_level != 0 or home_generation != 1 or index < 0 or index > 2:
+func _android_ui_family_options() -> Array:
+	if home_generation == 1:
+		return [
+			{"id":"samsung_touchwiz","label":"Samsung TouchWiz Nature UX","status":"SAMSUNG TOUCHWIZ NATURE UX"},
+			{"id":"google_stock","label":"Google Stock Android 4.0 ICS","status":"GOOGLE STOCK ANDROID 4.0"},
+			{"id":"xiaomi_miui","label":"Xiaomi MIUI · Android 4.0 era","status":"XIAOMI MIUI"}
+		]
+	if home_generation == 2:
+		return [
+			{"id":"samsung_experience","label":"Samsung Experience 8.0","status":"SAMSUNG EXPERIENCE 8.0"},
+			{"id":"google_pixel","label":"Google Pixel Launcher · Android 7.1","status":"GOOGLE PIXEL LAUNCHER · ANDROID 7.1"},
+			{"id":"xiaomi_miui8","label":"Xiaomi MIUI 8","status":"XIAOMI MIUI 8"}
+		]
+	return []
+
+func _on_android_ui_family_selected(index: int) -> void:
+	if home_screen_layout_level != 0:
 		return
+	var options := _android_ui_family_options()
+	if index < 0 or index >= options.size():
+		return
+	var selected: Dictionary = options[index]
 	var style: Dictionary = generated_os_configuration.get("style", {}).duplicate(true)
-	style["ui_family"] = ["samsung_touchwiz", "google_stock", "xiaomi_miui"][index]
+	style["ui_family"] = str(selected["id"])
 	generated_os_configuration["style"] = style
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_apply_approved_home_screen_layout()
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.update_configuration(generated_os_configuration)
 		os_preview_simulator.set_component_view("lock_screen")
-	_set_os_generation_status("GEN 1 UI FAMILY · " + ["SAMSUNG TOUCHWIZ", "GOOGLE STOCK ANDROID 4.0", "XIAOMI MIUI"][index])
+	_set_os_generation_status("GEN %d UI FAMILY · %s" % [home_generation, str(selected["status"])])
 
 
 func _apply_generation_selection() -> void:
 	device_powered_on = false
 	if is_instance_valid(os_preview_simulator):
 		os_preview_simulator.visible = false
-	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
+	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", ""))
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	var generated_style: Dictionary = generated_os_configuration.get("style", {})
-	if home_generation == 1:
-		generated_style["ui_family"] = selected_ui_family
+	if home_generation in [1, 2]:
+		for option in _android_ui_family_options():
+			if str(option["id"]) == selected_ui_family:
+				generated_style["ui_family"] = selected_ui_family
+				break
 	generated_os_configuration["style"] = generated_style
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
-	if home_generation in [1, 4]:
-		# The Samsung generations open on their screenshot-backed lock screen.
+	if home_generation in [1, 2, 4]:
+		# Screenshot-backed Android generations enter through their family lock screen.
 		selected_os_component_id = "lock_screen"
 	_apply_bootloader_settings_to_configuration()
 	_apply_approved_home_screen_layout()
-	if home_generation in [1, 4] and is_instance_valid(os_preview_simulator):
+	if home_generation in [1, 2, 4] and is_instance_valid(os_preview_simulator):
 		os_preview_simulator.set_component_view("lock_screen")
 	_refresh_home_screen_layout_selector()
 	_set_os_generation_status("GENERATION %02d SELECTED" % home_generation)
@@ -1329,11 +1348,14 @@ func _generate_complete_os() -> void:
 		return
 	os_generation_busy = true
 	_set_os_generation_status("GENERATING OPERATING SYSTEM...")
-	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", "samsung_touchwiz"))
+	var selected_ui_family := str(generated_os_configuration.get("style", {}).get("ui_family", ""))
 	generated_os_configuration = ProceduralOSEngineScript.generate_os(-1, home_generation)
 	var generated_style: Dictionary = generated_os_configuration.get("style", {})
-	if home_generation == 1:
-		generated_style["ui_family"] = selected_ui_family
+	if home_generation in [1, 2]:
+		for option in _android_ui_family_options():
+			if str(option["id"]) == selected_ui_family:
+				generated_style["ui_family"] = selected_ui_family
+				break
 	generated_os_configuration["style"] = generated_style
 	generated_os_configuration = ProceduralOSEngineScript.normalize_os(generated_os_configuration)
 	_apply_bootloader_settings_to_configuration()
