@@ -488,7 +488,6 @@ func _handle_xiaomi_gen1_tap(touch_position: Vector2) -> void:
 			_handle_xiaomi_notification_panel(normalized_position)
 
 func _handle_xiaomi_notification_panel(normalized_position: Vector2) -> void:
-	print("MIUI_PANEL_TAP_POSITION: ", normalized_position)
 	if normalized_position.y >= 0.12 and normalized_position.y <= 0.24:
 		var quick_tiles := ["Wi-Fi", "Location", "Sound", "Auto-rotate"]
 		var tile_index := clampi(floori(normalized_position.x * 4.0), 0, 3)
@@ -523,7 +522,7 @@ func _handle_gen1_overlay_tap(component_id: String, touch_position: Vector2) -> 
 			_handle_pixel_quick_settings(normalized_position)
 		elif component_id == "notifications":
 			_handle_pixel_gen1_panel_tap(normalized_position)
-	elif _is_gen1_xiaomi_ui() and component_id == "notifications":
+	elif _is_gen1_xiaomi_ui() and component_id in ["notifications", "control_center"]:
 		_handle_xiaomi_notification_panel(normalized_position)
 
 func _handle_pixel_gen1_panel_tap(normalized_position: Vector2) -> void:
