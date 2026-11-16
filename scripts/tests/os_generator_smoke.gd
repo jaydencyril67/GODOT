@@ -500,7 +500,11 @@ func _run_os_generator_test() -> void:
 				_fail("Samsung TouchWiz notification overlay must be clipped to the phone screen with its navigation edge preserved.")
 				return
 			var notification_image_rect := gen1_notification_image.get_global_rect()
-			var wifi_canvas_position := notification_image_rect.position + notification_image_rect.size * Vector2(0.07, 0.18)
+			var notification_texture_size := gen1_notification_image.texture.get_size()
+			var notification_image_scale := minf(notification_image_rect.size.x / notification_texture_size.x, notification_image_rect.size.y / notification_texture_size.y)
+			var notification_displayed_size := notification_texture_size * notification_image_scale
+			var notification_displayed_rect := Rect2(notification_image_rect.position + (notification_image_rect.size - notification_displayed_size) * 0.5, notification_displayed_size)
+			var wifi_canvas_position := notification_displayed_rect.position + notification_displayed_rect.size * Vector2(0.07, 0.18)
 			var wifi_local_position := simulator.get_global_transform_with_canvas().affine_inverse() * wifi_canvas_position
 			var wifi_state_before := bool(simulator.get("_quick_setting_states").get("Wi-Fi", false))
 			simulator.call("_handle_system_gesture", wifi_local_position, wifi_local_position, 10)
