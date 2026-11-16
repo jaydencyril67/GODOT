@@ -1867,7 +1867,7 @@ func _build_android_navigation(parent: VBoxContainer, back_only: bool = false) -
 
 	var is_samsung_overview := parent.name in ["SamsungGen1OverviewNavigationFooter", "SamsungGen2OverviewNavigationFooter", "SamsungGen3OverviewNavigationFooter"]
 	var generation_prefix := "Gen3" if _is_gen3_phone_ui() else "Gen2" if _is_gen2_phone_ui() else "Gen1"
-	var family_prefix := "Samsung" + generation_prefix if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() or _is_gen3_samsung_ui() else "Pixel" + generation_prefix if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() or _is_gen3_pixel_ui() else "Xiaomi" + generation_prefix if _is_gen1_xiaomi_ui() or _is_gen2_xiaomi_ui() or _is_gen3_xiaomi_ui() else "Android
+	var family_prefix := "Samsung" + generation_prefix if _is_gen1_samsung_ui() or _is_gen2_samsung_ui() or _is_gen3_samsung_ui() else "Pixel" + generation_prefix if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() or _is_gen3_pixel_ui() else "Xiaomi" + generation_prefix if _is_gen1_xiaomi_ui() or _is_gen2_xiaomi_ui() or _is_gen3_xiaomi_ui() else "Android"
 	var navigation_keys := HBoxContainer.new()
 	navigation_keys.name = family_prefix + ("OverviewThreeButtonNavigation" if is_samsung_overview else "ThreeButtonNavigation")
 	navigation_keys.custom_minimum_size.y = 46
