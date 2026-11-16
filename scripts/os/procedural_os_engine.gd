@@ -1,7 +1,7 @@
 extends RefCounted
 class_name ProceduralOSEngine
 
-const SCHEMA_VERSION := 9
+const SCHEMA_VERSION := 10
 
 const COMPONENTS := [
 	{"id": "home_screen", "title": "Home Screen"},
@@ -88,7 +88,7 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 		"created_at": int(Time.get_unix_time_from_system()),
 		"revision": 1,
 		"style": {
-			"identity": ["Classic", "Modern", "Pie", "One UI 2.0"][generation_number - 1],
+			"identity": ["Samsung TouchWiz Nature UX", "Modern", "Pie", "One UI 2.0"][generation_number - 1],
 			"generation": generation_number,
 			"palette": palette,
 			"icon_shape": icon_shapes[design_index],
@@ -129,6 +129,14 @@ static func generate_os(seed_value: int = -1, generation: int = 2) -> Dictionary
 	elif generation_number == 4:
 		config["components"]["lock_screen"]["show_phone_shortcut"] = true
 		config["components"]["lock_screen"]["show_notifications"] = false
+	elif generation_number == 1:
+		var gen1_lock_data: Dictionary = config["components"]["lock_screen"]
+		gen1_lock_data.erase("show_flashlight_shortcut")
+		gen1_lock_data.erase("show_assistant_shortcut")
+		gen1_lock_data["show_phone_shortcut"] = true
+		gen1_lock_data["show_camera_shortcut"] = true
+		gen1_lock_data["show_notifications"] = false
+		config["components"]["lock_screen"] = gen1_lock_data
 	_sync_shared_settings(config)
 	return config
 
@@ -184,7 +192,7 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_id):
 		wallpaper_id = "aurora"
 	style["generation"] = generation_number
-	style["identity"] = ["Classic", "Modern", "Pie", "One UI 2.0"][generation_number - 1]
+	style["identity"] = ["Samsung TouchWiz Nature UX", "Modern", "Pie", "One UI 2.0"][generation_number - 1]
 	style["palette"] = palette
 	style["wallpaper"] = wallpaper_id
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 6)
@@ -218,11 +226,12 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 		if not lock_data.has(lock_key):
 			lock_data[lock_key] = lock_defaults[lock_key]
 	var configured_home_data: Dictionary = components.get("home_screen", {})
+	var is_gen1_samsung_android := generation_number == 1 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_oreo_android := generation_number == 2 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_pie_android := generation_number == 3 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_samsung_one_ui_android := generation_number == 4 and str(configured_home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	# Keep the two generations historically distinct. Lollipop retains its
-	# approved four switches; Oreo uses the Pixel 2 Assistant/notification set.
+	# Keep historical lock-screen families separate: Gen 1 is TouchWiz, Gen 2/3
+	# are Pixel-era Android, and Gen 4 is Samsung One UI 2.0.
 	var obsolete_lock_keys := [
 		"show_audio_player", "show_fingerprint", "fingerprint_sensor_available",
 		"show_now_playing", "design_family", "layout_template", "clock_alignment", "clock_size",
@@ -232,7 +241,13 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	]
 	for obsolete_key in obsolete_lock_keys:
 		lock_data.erase(obsolete_key)
-	if is_oreo_android or is_pie_android or is_samsung_one_ui_android:
+	if is_gen1_samsung_android:
+		for obsolete_key in ["show_flashlight_shortcut", "show_assistant_shortcut", "show_weather", "show_battery"]:
+			lock_data.erase(obsolete_key)
+		lock_data["show_phone_shortcut"] = bool(lock_data.get("show_phone_shortcut", true))
+		lock_data["show_camera_shortcut"] = bool(lock_data.get("show_camera_shortcut", true))
+		lock_data["show_notifications"] = false
+	elif is_oreo_android or is_pie_android or is_samsung_one_ui_android:
 		lock_data.erase("show_flashlight_shortcut")
 	else:
 		for oreo_key in ["show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"]:
@@ -302,10 +317,11 @@ static func validate_os(config: Dictionary) -> PackedStringArray:
 		issues.append("Wallpaper style is invalid.")
 	var lock_screen: Dictionary = config.get("components", {}).get("lock_screen", {})
 	var home_data: Dictionary = components.get("home_screen", {})
+	var is_gen1_samsung_android := int(config.get("generation", 1)) == 1 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_oreo_android := int(config.get("generation", 1)) == 2 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_pie_android := int(config.get("generation", 1)) == 3 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
 	var is_samsung_one_ui_android := int(config.get("generation", 1)) == 4 and str(home_data.get("layout_style", "android_pixel")) == "android_pixel"
-	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_pie_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
+	var required_lock_keys := ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut"] if is_gen1_samsung_android else ["show_time", "show_date", "show_camera_shortcut", "show_phone_shortcut", "show_notifications"] if is_samsung_one_ui_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"] if is_pie_android else ["show_time", "show_date", "show_camera_shortcut", "show_assistant_shortcut", "show_notifications"] if is_oreo_android else ["show_time", "show_date", "show_camera_shortcut", "show_flashlight_shortcut"]
 	for lock_key in required_lock_keys:
 		if not lock_screen.has(lock_key):
 			issues.append("Lock-screen setting is missing: " + lock_key)
@@ -347,6 +363,7 @@ static func _generate_lock_screen_component(_rng: RandomNumberGenerator, previou
 	return {
 		"show_time": bool(previous.get("show_time", true)),
 		"show_date": bool(previous.get("show_date", true)),
+		"show_phone_shortcut": bool(previous.get("show_phone_shortcut", true)),
 		"show_camera_shortcut": bool(previous.get("show_camera_shortcut", true)),
 		"show_flashlight_shortcut": bool(previous.get("show_flashlight_shortcut", true)),
 		"show_assistant_shortcut": bool(previous.get("show_assistant_shortcut", true)),
