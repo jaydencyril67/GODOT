@@ -80,7 +80,6 @@ func _run_gen1_smoke_test() -> void:
 		"lock_screen": "lockscreen.jpg",
 		"home_screen": "homescreen.jpg",
 		"app_drawer": "appdrawer.jpg",
-		"control_center": "notification.jpg",
 		"notifications": "notification.jpg",
 		"recent_apps": "recentapps.jpg"
 	}
@@ -92,6 +91,12 @@ func _run_gen1_smoke_test() -> void:
 		if xiaomi_image_node == null or xiaomi_image_node.texture == null or xiaomi_image_node.texture.resource_path != expected_xiaomi_path:
 			_fail("Gen 1 Xiaomi MIUI V4 " + str(component_id) + " reference image failed to load: " + expected_xiaomi_path)
 			return
+
+	simulator.configure_os(xiaomi_config, "control_center")
+	await process_frame
+	if simulator.find_child("XiaomiGen1ScreenImage_control_center", true, false) != null or simulator.find_child("XiaomiGen1ReferencePending_control_center", true, false) == null:
+		_fail("Gen 1 Xiaomi Control Center must not reuse the notification screenshot when its own reference image is missing.")
+		return
 
 	root.remove_child(simulator_host)
 	simulator_host.free()
