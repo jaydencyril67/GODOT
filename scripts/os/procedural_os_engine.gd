@@ -260,8 +260,8 @@ static func normalize_os(config: Dictionary) -> Dictionary:
 	elif is_gen1_pixel_android or is_gen1_xiaomi_android or is_gen2_android or is_pie_android or is_samsung_one_ui_android:
 		lock_data.erase("show_flashlight_shortcut")
 	else:
-		for oreo_key in ["show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"]:
-			lock_data.erase(oreo_key)
+		for gen2_legacy_key in ["show_assistant_shortcut", "show_notifications", "show_weather", "show_battery"]:
+			lock_data.erase(gen2_legacy_key)
 	if is_samsung_one_ui_android:
 		lock_data.erase("show_assistant_shortcut")
 		lock_data.erase("show_weather")
