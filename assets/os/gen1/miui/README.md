@@ -2,13 +2,13 @@
 
 This folder contains the Generation 1 Xiaomi MIUI V4 reference screens, based on Android 4.0 Ice Cream Sandwich.
 
-Upload these six JPG reference images here to enable screenshot-backed previews:
-
+Reference images currently present:
 - `lockscreen.jpg`
 - `homescreen.jpg`
-- `appsdrawer.jpg`
-- `controlcenter.jpg`
+- `appdrawer.jpg`
 - `notification.jpg`
 - `recentapps.jpg`
 
-MIUI V4 is kept separate from Samsung TouchWiz Nature UX and Google Stock Android 4.0.
+The OS preview uses `notification.jpg` for both the notification shade and Control Center because no separate `controlcenter.jpg` is currently present. Add that file and update the simulator mapping when a dedicated Control Center reference is available.
+
+MIUI V4 remains separate from Samsung TouchWiz Nature UX and Google Stock Android 4.0.
