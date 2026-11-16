@@ -106,6 +106,17 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test Processor Worksite and 3D chip preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/processor_worksite_smoke.gd 2>&1 | tee processor-worksite-smoke.log
+          grep -q "PROCESSOR_WORKSITE_SMOKE_TEST: PASS" processor-worksite-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|PROCESSOR_WORKSITE_SMOKE_TEST:.*(FAIL|ERROR)' processor-worksite-smoke.log; then
+            echo "Godot reported an error during the Processor Worksite smoke test."
+            exit 1
+          fi
+
       - name: Smoke-test main scene startup
         shell: bash
         run: |
