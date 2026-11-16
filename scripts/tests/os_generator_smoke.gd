@@ -108,8 +108,8 @@ func _run_gen1_smoke_test() -> void:
 	if simulator.active_component != "app_drawer":
 		_fail("Google Stock Android 4 Apps shortcut did not open the app drawer.")
 		return
+	await process_frame
 	_simulate_screenshot_tap(simulator, "PixelGen1ScreenImage_app_drawer", Vector2(0.13, 0.245))
-	print("GEN1_PIXEL_APP_DRAWER_LAST_OPENED: ", _opened_apps.back() if not _opened_apps.is_empty() else "none")
 	if _opened_apps.is_empty() or _opened_apps.back() != "Phone":
 		_fail("Google Stock Android 4 app-drawer icons are not interactive.")
 		return
@@ -123,6 +123,7 @@ func _run_gen1_smoke_test() -> void:
 	if simulator.active_component != "home_screen":
 		_fail("Google Stock Android 4 slide-to-unlock gesture did not enter the home screen.")
 		return
+	await process_frame
 
 	simulator._handle_system_gesture(Vector2(72.0, 7.0), Vector2(72.0, 100.0), 150)
 	await process_frame
@@ -215,6 +216,7 @@ func _run_gen1_smoke_test() -> void:
 	if simulator.active_component != "home_screen":
 		_fail("Xiaomi MIUI V4 slide-to-unlock gesture did not enter the home screen.")
 		return
+	await process_frame
 
 	simulator._dispatch_android_navigation("Overview")
 	await process_frame
