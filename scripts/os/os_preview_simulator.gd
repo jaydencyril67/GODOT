@@ -797,7 +797,7 @@ func _build_gen1_family_overview() -> void:
 	_gesture_overlay = overlay
 	var background := ColorRect.new()
 	background.name = "Gen1FamilyOverviewBackground"
-	background.color = Color("#101720") if _is_gen1_pixel_ui() else Color("#071A31")
+	background.color = Color("#101720") if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() else Color("#071A31")
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(background)
@@ -828,7 +828,7 @@ func _build_gen1_family_recent_apps(parent: Control) -> void:
 
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 6)
-	var title := _label("Recent apps", 16 if _is_gen1_pixel_ui() else 15, Color("#C8D8F0"))
+	var title := _label("Recent apps", 16 if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() else 15, Color("#C8D8F0"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var clear_button := Button.new()
@@ -857,8 +857,8 @@ func _build_gen1_family_recent_apps(parent: Control) -> void:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.focus_mode = Control.FOCUS_NONE
 		var card_style := StyleBoxFlat.new()
-		card_style.bg_color = Color("#202A36") if _is_gen1_pixel_ui() else Color("#142B49")
-		card_style.border_color = Color("#477CB8") if _is_gen1_pixel_ui() else Color("#477DCA")
+		card_style.bg_color = Color("#202A36") if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() else Color("#142B49")
+		card_style.border_color = Color("#477CB8") if _is_gen1_pixel_ui() or _is_gen2_pixel_ui() else Color("#477DCA")
 		card_style.set_border_width_all(1)
 		card_style.set_corner_radius_all(4)
 		card_style.content_margin_left = 8
@@ -1875,7 +1875,7 @@ func _build_shell() -> void:
 			pin_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_build_android_navigation(pin_navigation_footer, true)
 			lock_shell.add_child(pin_navigation_footer)
-		elif _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui() or _is_gen2_pixel_ui() or _is_gen2_xiaomi_ui():
+		elif _is_gen1_pixel_ui() or _is_gen1_xiaomi_ui() or _is_gen2_phone_ui():
 			var lock_navigation_footer := VBoxContainer.new()
 			lock_navigation_footer.name = "OSNavigationFooter"
 			lock_navigation_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
