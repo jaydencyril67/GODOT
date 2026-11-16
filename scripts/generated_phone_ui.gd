@@ -71,9 +71,11 @@ func _draw() -> void:
 		_draw_widget(widget_rect, widget_type, palette, radius, text_color, muted, accent, local_scale)
 
 	if bool(home.get("show_search", true)):
-		var search_y := apps_top - size.y * 0.046
+		var search_y := apps_top - size.y * 0.105
 		if str(home.get("search_position", "above_apps")) == "below_widgets":
-			search_y = maxf(size.y * 0.445, search_y)
+			var region_bounds: Array = composition.get("region_bounds", [])
+			if region_bounds.size() == 4:
+				search_y = (float(region_bounds[1]) + float(region_bounds[3]) + 0.012) * size.y
 		_draw_search_bar(Rect2(margin, search_y, size.x - margin * 2.0, size.y * 0.052), surface, muted, radius)
 
 	_draw_apps(home.get("apps", []), apps_top, style, palette, text_color, muted, size)
