@@ -5,7 +5,7 @@ const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.g
 
 # Research duration is fixed by component. Staff efficiency affects success chance, never duration.
 const BASE_RESEARCH_DURATION_DAYS := 30.0
-const RESEARCH_DURATION_FORMULA_VERSION := 5
+const RESEARCH_DURATION_FORMULA_VERSION := 6
 const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Screen Technology": 45.0,
 	"Screen Width": 60.0,
@@ -48,6 +48,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Rear Camera MP": 60.0,
 	"Rear Camera Count": 360.0,
 	"Rear Flash Count": 200.0,
+	"Rear Camera Size": 60.0,
+	"Rear Flash Size": 60.0,
 	"Back Raised Design": 370.0,
 	"Device Color": 35.0,
 	"Phone Case": 250.0,
@@ -87,6 +89,9 @@ const REAR_CAMERA_MP_MAX := 400
 const REAR_HARDWARE_BASE_COUNT := 1
 const REAR_HARDWARE_MAX_COUNT := 5
 const REAR_HARDWARE_COUNT_RESEARCH_UPGRADES := REAR_HARDWARE_MAX_COUNT - REAR_HARDWARE_BASE_COUNT
+const REAR_HARDWARE_SIZE_BASE := 0.050
+const REAR_HARDWARE_SIZE_RESEARCH_LEVELS := [0.070, 0.090, 0.110, 0.130, 0.150, 0.175, 0.200]
+const REAR_HARDWARE_SIZE_RESEARCH_UPGRADES := REAR_HARDWARE_SIZE_RESEARCH_LEVELS.size()
 const BACK_RAISED_DESIGN_MAX_BOXES := 20
 const BATTERY_CAPACITY_BASE_MAH := 1000
 const BATTERY_CAPACITY_STEP_MAH := 350
@@ -241,7 +246,9 @@ const COMPONENT_CATALOGUE := [
 	"GNSS / GPS Receiver",
 	"Rear Camera MP",
 	"Rear Camera Count",
+	"Rear Camera Size",
 	"Rear Flash Count",
+	"Rear Flash Size",
 	"Back Raised Design",
 	"Device Color",
 	"Phone Case",
@@ -566,6 +573,46 @@ static func get_rear_camera_count_research_target(component_levels: Dictionary) 
 
 static func get_rear_flash_count_research_target(component_levels: Dictionary) -> Dictionary:
 	return _get_rear_hardware_count_research_target(component_levels, "Rear Flash Count", "flashes")
+
+
+static func get_rear_hardware_size_max_for_level(research_level: int) -> float:
+	var safe_level := clampi(research_level, 0, REAR_HARDWARE_SIZE_RESEARCH_UPGRADES)
+	if safe_level == 0:
+		return REAR_HARDWARE_SIZE_BASE
+	return float(REAR_HARDWARE_SIZE_RESEARCH_LEVELS[safe_level - 1])
+
+
+static func _get_rear_hardware_size_research_target(component_levels: Dictionary, component: String) -> Dictionary:
+	var completed_level := clampi(
+		int(component_levels.get(component, 0)),
+		0,
+		REAR_HARDWARE_SIZE_RESEARCH_UPGRADES
+	)
+	if completed_level >= REAR_HARDWARE_SIZE_RESEARCH_UPGRADES:
+		return {}
+	var target_level := completed_level + 1
+	var target_size := get_rear_hardware_size_max_for_level(target_level)
+	return {
+		"index": target_level,
+		"technology": "%.3f" % target_size,
+		"max_size": target_size
+	}
+
+
+static func get_rear_camera_size_max_for_level(research_level: int) -> float:
+	return get_rear_hardware_size_max_for_level(research_level)
+
+
+static func get_rear_flash_size_max_for_level(research_level: int) -> float:
+	return get_rear_hardware_size_max_for_level(research_level)
+
+
+static func get_rear_camera_size_research_target(component_levels: Dictionary) -> Dictionary:
+	return _get_rear_hardware_size_research_target(component_levels, "Rear Camera Size")
+
+
+static func get_rear_flash_size_research_target(component_levels: Dictionary) -> Dictionary:
+	return _get_rear_hardware_size_research_target(component_levels, "Rear Flash Size")
 
 
 static func get_back_raised_design_max_for_level(research_level: int) -> int:
@@ -1047,6 +1094,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_rear_camera_count_research_target(career.get("research_component_levels", {}))
 	elif component == "Rear Flash Count":
 		ordered_target = get_rear_flash_count_research_target(career.get("research_component_levels", {}))
+	elif component == "Rear Camera Size":
+		ordered_target = get_rear_camera_size_research_target(career.get("research_component_levels", {}))
+	elif component == "Rear Flash Size":
+		ordered_target = get_rear_flash_size_research_target(career.get("research_component_levels", {}))
 	elif component == "Back Raised Design":
 		ordered_target = get_back_raised_design_research_target(career.get("research_component_levels", {}))
 	elif component == "Smartwatch":
@@ -1073,7 +1124,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if component in ["Wireless Charging", "Phone Case", "Charger"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1112,6 +1163,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Research and validate support for a rear camera capacity of %s in one phone." % target_technology
 		elif component == "Rear Flash Count":
 			project_objective = "Research and validate support for a rear flash capacity of %s in one phone." % target_technology
+		elif component == "Rear Camera Size":
+			project_objective = "Research and validate a maximum selectable rear-camera module size of %s, with player-controlled sizing retained below the unlocked ceiling." % target_technology
+		elif component == "Rear Flash Size":
+			project_objective = "Research and validate a maximum selectable rear-flash module size of %s, with player-controlled sizing retained below the unlocked ceiling." % target_technology
 		elif component == "Back Raised Design":
 			project_objective = "Develop and validate support for %s on the back of one phone." % target_technology
 		elif component == "Device Color":
@@ -1323,6 +1378,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var rear_camera_mp_target_index := -1
 	var rear_camera_count_target_index := -1
 	var rear_flash_count_target_index := -1
+	var rear_camera_size_target_index := -1
+	var rear_flash_size_target_index := -1
 	var back_raised_design_target_index := -1
 	var device_color_target_index := -1
 	var phone_case_target_index := -1
@@ -1441,6 +1498,20 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Rear Flash Count project is no longer the next flash-capacity upgrade.")
 		if str(project.get("research_target", "")) != str(expected_rear_flash_count_target.get("technology", "")):
 			return _failure("The Rear Flash Count project target does not match the current flash-capacity progression.")
+	elif component == "Rear Camera Size":
+		rear_camera_size_target_index = int(project.get("research_target_index", -1))
+		var expected_rear_camera_size_target := get_rear_camera_size_research_target(component_levels)
+		if expected_rear_camera_size_target.is_empty() or rear_camera_size_target_index != int(expected_rear_camera_size_target.get("index", -1)):
+			return _failure("This Rear Camera Size project is no longer the next camera-size ceiling upgrade.")
+		if str(project.get("research_target", "")) != str(expected_rear_camera_size_target.get("technology", "")):
+			return _failure("The Rear Camera Size target does not match the current size progression.")
+	elif component == "Rear Flash Size":
+		rear_flash_size_target_index = int(project.get("research_target_index", -1))
+		var expected_rear_flash_size_target := get_rear_flash_size_research_target(component_levels)
+		if expected_rear_flash_size_target.is_empty() or rear_flash_size_target_index != int(expected_rear_flash_size_target.get("index", -1)):
+			return _failure("This Rear Flash Size project is no longer the next flash-size ceiling upgrade.")
+		if str(project.get("research_target", "")) != str(expected_rear_flash_size_target.get("technology", "")):
+			return _failure("The Rear Flash Size target does not match the current size progression.")
 	elif component == "Back Raised Design":
 		back_raised_design_target_index = int(project.get("research_target_index", -1))
 		var expected_back_raised_design_target := get_back_raised_design_research_target(component_levels)
@@ -1540,6 +1611,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next rear-camera resolution ceiling assigned to this project.")
 		if result_component in ["Rear Camera Count", "Rear Flash Count"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next rear-hardware addition capacity assigned to this project.")
+		if result_component in ["Rear Camera Size", "Rear Flash Size"] and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next rear-hardware size ceiling assigned to this project.")
 		if result_component == "Back Raised Design" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next raised back-design box capacity assigned to this project.")
 		if result_component in ["Device Color", "Smartwatch", "Wireless Earbuds"] and value != str(project.get("research_target", "")):
@@ -1653,6 +1726,12 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Rear Flash Count":
 		# One flash is available by default; four separate approvals unlock up to five.
 		component_levels[component] = rear_flash_count_target_index
+	elif component == "Rear Camera Size":
+		# Seven approved levels raise the rear-camera size ceiling from 0.050 to 0.200.
+		component_levels[component] = rear_camera_size_target_index
+	elif component == "Rear Flash Size":
+		# Seven approved levels raise the rear-flash size ceiling from 0.050 to 0.200.
+		component_levels[component] = rear_flash_size_target_index
 	elif component == "Back Raised Design":
 		# Level 1 unlocks the first raised box; each approval adds one, up to twenty.
 		component_levels[component] = back_raised_design_target_index
