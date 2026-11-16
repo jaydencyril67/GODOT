@@ -107,6 +107,17 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test UI Evolution generator and live 3D phone screen
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/ui_evolution_smoke.gd 2>&1 | tee ui-evolution-smoke.log
+          grep -q "UI_EVOLUTION_SMOKE_TEST: PASS" ui-evolution-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|UI_EVOLUTION_SMOKE_TEST:.*(FAIL|ERROR)' ui-evolution-smoke.log; then
+            echo "Godot reported an error during UI Evolution generation or phone-screen integration."
+            exit 1
+          fi
+
       - name: Smoke-test Processor Worksite and 3D chip preview
         shell: bash
         run: |
@@ -140,7 +151,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nullglob
-          logs=(godot-import.log godot-parse.log home-office-smoke.log os-generator-smoke.log godot-startup.log)
+          logs=(godot-import.log godot-parse.log home-office-smoke.log os-generator-smoke.log ui-evolution-smoke.log godot-startup.log)
           warning_count=0
 
           for log in "${logs[@]}"; do
