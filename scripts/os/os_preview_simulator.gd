@@ -352,20 +352,20 @@ func _handle_gen1_screen_tap(touch_position: Vector2) -> void:
 		_handle_xiaomi_gen1_tap(touch_position)
 
 func _handle_pixel_gen1_tap(touch_position: Vector2) -> void:
-	var position := _gen1_screenshot_position(active_component, touch_position)
-	if position.x < 0.0 or position.y < 0.0:
+	var normalized_position := _gen1_screenshot_position(active_component, touch_position)
+	if normalized_position.x < 0.0 or normalized_position.y < 0.0:
 		return
 	var columns := [0.14, 0.38, 0.62, 0.86]
 	match active_component:
 		"lock_screen":
-			if position.y >= 0.94:
+			if normalized_position.y >= 0.94:
 				_show_gen1_panel_feedback("Emergency calling is unavailable in this preview.")
 		"home_screen":
-			if position.y >= 0.90 and position.x >= 0.36 and position.x <= 0.64:
+			if normalized_position.y >= 0.90 and normalized_position.x >= 0.36 and normalized_position.x <= 0.64:
 				set_component_view("app_drawer")
 				return
-			if position.y >= 0.77 and position.y <= 0.90:
-				var dock_column := clampi(roundi((position.x - 0.14) / 0.35), 0, 2)
+			if normalized_position.y >= 0.77 and normalized_position.y <= 0.90:
+				var dock_column := clampi(roundi((normalized_position.x - 0.14) / 0.35), 0, 2)
 				_on_app_pressed(["Phone", "Messages", "Browser"][dock_column])
 				return
 			var home_rows := [
@@ -374,16 +374,16 @@ func _handle_pixel_gen1_tap(touch_position: Vector2) -> void:
 			]
 			var row_centres := [0.50, 0.68]
 			for row_index in range(home_rows.size()):
-				if absf(position.y - row_centres[row_index]) > 0.075:
+				if absf(normalized_position.y - row_centres[row_index]) > 0.075:
 					continue
 				for column_index in range(columns.size()):
-					if absf(position.x - float(columns[column_index])) <= 0.10:
+					if absf(normalized_position.x - float(columns[column_index])) <= 0.10:
 						_on_app_pressed(str(home_rows[row_index][column_index]))
 						return
-			if position.y >= 0.08 and position.y <= 0.20:
+			if normalized_position.y >= 0.08 and normalized_position.y <= 0.20:
 				_on_app_pressed("Browser")
 		"app_drawer":
-			if position.y < 0.20 and position.x >= 0.50:
+			if normalized_position.y < 0.20 and normalized_position.x >= 0.50:
 				set_component_view("home_screen")
 				return
 			var drawer_rows := [
@@ -396,14 +396,14 @@ func _handle_pixel_gen1_tap(touch_position: Vector2) -> void:
 			var drawer_columns := [0.13, 0.38, 0.62, 0.87]
 			var drawer_centres := [0.245, 0.405, 0.565, 0.725, 0.885]
 			for row_index in range(drawer_rows.size()):
-				if absf(position.y - drawer_centres[row_index]) > 0.075:
+				if absf(normalized_position.y - drawer_centres[row_index]) > 0.075:
 					continue
 				for column_index in range(drawer_columns.size()):
-					if absf(position.x - drawer_columns[column_index]) <= 0.10:
+					if absf(normalized_position.x - drawer_columns[column_index]) <= 0.10:
 						_on_app_pressed(str(drawer_rows[row_index][column_index]))
 						return
 		"notifications":
-			if position.y < 0.25 and position.x > 0.72:
+			if normalized_position.y < 0.25 and normalized_position.x > 0.72:
 				_show_gen1_panel_feedback("Notifications cleared")
 				return
 			var notification_rows := [
@@ -413,19 +413,19 @@ func _handle_pixel_gen1_tap(touch_position: Vector2) -> void:
 				{"y":0.84,"app":"Settings"}
 			]
 			for item in notification_rows:
-				if absf(position.y - float(item["y"])) <= 0.08:
+				if absf(normalized_position.y - float(item["y"])) <= 0.08:
 					_on_app_pressed(str(item["app"]))
 					return
 		"control_center":
-			_handle_pixel_quick_settings(position)
+			_handle_pixel_quick_settings(normalized_position)
 
-func _handle_pixel_quick_settings(position: Vector2) -> void:
-	if position.y >= 0.18 and position.y <= 0.29:
-		_set_gen1_brightness_from_position(position.x)
+func _handle_pixel_quick_settings(normalized_position: Vector2) -> void:
+	if normalized_position.y >= 0.18 and normalized_position.y <= 0.29:
+		_set_gen1_brightness_from_position(normalized_position.x)
 		return
-	if position.y >= 0.31 and position.y <= 0.86:
-		var row := clampi(floori((position.y - 0.31) / 0.18), 0, 2)
-		var column := 0 if position.x < 0.5 else 1
+	if normalized_position.y >= 0.31 and normalized_position.y <= 0.86:
+		var row := clampi(floori((normalized_position.y - 0.31) / 0.18), 0, 2)
+		var column := 0 if normalized_position.x < 0.5 else 1
 		var tiles := [
 			["Wi-Fi", "Bluetooth"],
 			["Mobile data", "Airplane mode"],
@@ -433,24 +433,24 @@ func _handle_pixel_quick_settings(position: Vector2) -> void:
 		]
 		_toggle_gen1_quick_setting(str(tiles[row][column]))
 		return
-	if position.y >= 0.90:
-		if position.x >= 0.70:
+	if normalized_position.y >= 0.90:
+		if normalized_position.x >= 0.70:
 			_close_gesture_overlay()
 		else:
 			_toggle_gen1_quick_setting("Sound")
 
 func _handle_xiaomi_gen1_tap(touch_position: Vector2) -> void:
-	var position := _gen1_screenshot_position(active_component, touch_position)
-	if position.x < 0.0 or position.y < 0.0:
+	var normalized_position := _gen1_screenshot_position(active_component, touch_position)
+	if normalized_position.x < 0.0 or normalized_position.y < 0.0:
 		return
 	var columns := [0.16, 0.40, 0.64, 0.88]
 	match active_component:
 		"lock_screen":
-			if position.y >= 0.92 and position.x <= 0.16:
+			if normalized_position.y >= 0.92 and normalized_position.x <= 0.16:
 				_on_app_pressed("Camera")
 		"home_screen":
-			if position.y >= 0.86:
-				var dock_column := clampi(roundi((position.x - 0.16) / 0.24), 0, 3)
+			if normalized_position.y >= 0.86:
+				var dock_column := clampi(roundi((normalized_position.x - 0.16) / 0.24), 0, 3)
 				_on_app_pressed(["Phone", "Messages", "Browser", "Camera"][dock_column])
 				return
 			var home_rows := [
@@ -461,10 +461,10 @@ func _handle_xiaomi_gen1_tap(touch_position: Vector2) -> void:
 			]
 			var row_centres := [0.32, 0.47, 0.62, 0.77]
 			for row_index in range(home_rows.size()):
-				if absf(position.y - float(row_centres[row_index])) > 0.065:
+				if absf(normalized_position.y - float(row_centres[row_index])) > 0.065:
 					continue
 				for column_index in range(columns.size()):
-					if absf(position.x - float(columns[column_index])) <= 0.10:
+					if absf(normalized_position.x - float(columns[column_index])) <= 0.10:
 						var app_name := str(home_rows[row_index][column_index])
 						_on_app_pressed("Store" if app_name == "Market" else app_name)
 						return
@@ -478,23 +478,23 @@ func _handle_xiaomi_gen1_tap(touch_position: Vector2) -> void:
 			]
 			var drawer_centres := [0.31, 0.46, 0.62, 0.77, 0.92]
 			for row_index in range(drawer_rows.size()):
-				if absf(position.y - drawer_centres[row_index]) > 0.065:
+				if absf(normalized_position.y - drawer_centres[row_index]) > 0.065:
 					continue
 				for column_index in range(columns.size()):
-					if absf(position.x - float(columns[column_index])) <= 0.10:
+					if absf(normalized_position.x - float(columns[column_index])) <= 0.10:
 						_on_app_pressed(str(drawer_rows[row_index][column_index]))
 						return
 		"notifications":
-			_handle_xiaomi_notification_panel(position)
+			_handle_xiaomi_notification_panel(normalized_position)
 
-func _handle_xiaomi_notification_panel(position: Vector2) -> void:
-	if position.y >= 0.12 and position.y <= 0.24:
+func _handle_xiaomi_notification_panel(normalized_position: Vector2) -> void:
+	if normalized_position.y >= 0.12 and normalized_position.y <= 0.24:
 		var quick_tiles := ["Wi-Fi", "Location", "Sound", "Auto-rotate"]
-		var tile_index := clampi(floori(position.x * 4.0), 0, 3)
+		var tile_index := clampi(floori(normalized_position.x * 4.0), 0, 3)
 		_toggle_gen1_quick_setting(quick_tiles[tile_index])
 		return
-	if position.y >= 0.25 and position.y <= 0.34:
-		_set_gen1_brightness_from_position(position.x)
+	if normalized_position.y >= 0.25 and normalized_position.y <= 0.34:
+		_set_gen1_brightness_from_position(normalized_position.x)
 		return
 	var notification_rows := [
 		{"y":0.44,"app":"Store"},
@@ -504,7 +504,7 @@ func _handle_xiaomi_notification_panel(position: Vector2) -> void:
 		{"y":0.94,"app":"Messages"}
 	]
 	for item in notification_rows:
-		if absf(position.y - float(item["y"])) <= 0.07:
+		if absf(normalized_position.y - float(item["y"])) <= 0.07:
 			_on_app_pressed(str(item["app"]))
 			return
 
@@ -514,19 +514,19 @@ func _handle_gen1_overlay_tap(component_id: String, touch_position: Vector2) -> 
 		return
 	if component_id == "recent_apps":
 		return
-	var position := _gen1_screenshot_position(component_id, touch_position)
-	if position.x < 0.0 or position.y < 0.0:
+	var normalized_position := _gen1_screenshot_position(component_id, touch_position)
+	if normalized_position.x < 0.0 or normalized_position.y < 0.0:
 		return
 	if _is_gen1_pixel_ui():
 		if component_id == "control_center":
-			_handle_pixel_quick_settings(position)
+			_handle_pixel_quick_settings(normalized_position)
 		elif component_id == "notifications":
-			_handle_pixel_gen1_panel_tap(position)
+			_handle_pixel_gen1_panel_tap(normalized_position)
 	elif _is_gen1_xiaomi_ui() and component_id == "notifications":
-		_handle_xiaomi_notification_panel(position)
+		_handle_xiaomi_notification_panel(normalized_position)
 
-func _handle_pixel_gen1_panel_tap(position: Vector2) -> void:
-	if position.y < 0.25 and position.x > 0.72:
+func _handle_pixel_gen1_panel_tap(normalized_position: Vector2) -> void:
+	if normalized_position.y < 0.25 and normalized_position.x > 0.72:
 		_show_gen1_panel_feedback("Notifications cleared")
 		return
 	var notification_rows := [
@@ -536,7 +536,7 @@ func _handle_pixel_gen1_panel_tap(position: Vector2) -> void:
 		{"y":0.82,"app":"Settings"}
 	]
 	for item in notification_rows:
-		if absf(position.y - float(item["y"])) <= 0.08:
+		if absf(normalized_position.y - float(item["y"])) <= 0.08:
 			_on_app_pressed(str(item["app"]))
 			return
 
