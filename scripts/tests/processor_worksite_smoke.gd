@@ -59,7 +59,7 @@ func _run_processor_worksite_test() -> void:
 		"package_finish": "Deep green substrate",
 		"die_finish": "Polished silicon"
 	})
-	var name_control := worksite.find_child("ProcessorDesignControlsPanel", true, false).find_child("LineEdit", true, false) as LineEdit
+	var name_control := worksite.get("name_input") as LineEdit
 	if name_control == null or name_control.text != "Smoke Test SoC":
 		_fail("Saved processor design values are not restored into the controls.")
 		worksite.free()
