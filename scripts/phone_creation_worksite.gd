@@ -118,8 +118,6 @@ var specification_readout_entry_count: int = 0
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
-var navigation_layer: CanvasLayer
-var navigation_bar: HBoxContainer
 var step_panels: Dictionary = {}
 
 
@@ -772,9 +770,8 @@ var camera_side_button_y := -0.48
 
 var sound_button_enabled := false
 
-# The SIM tray is the baseline side feature; every other optional side feature
-# stays disabled until its own company-funded research project is approved.
-var sim_tray_enabled := true
+# The SIM tray is an optional side feature and starts disabled.
+var sim_tray_enabled := false
 
 var sim_tray_y := -0.58
 
@@ -975,41 +972,46 @@ func _build_interface() -> void:
 	root.add_child(backdrop)
 	root.resized.connect(_apply_responsive_layout)
 
-	var layout := VBoxContainer.new()
-	layout.name = "WorksiteLayout"
-	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# Keep the entire worksite safely inset from the physical screen edges.
-	layout.offset_left = 20
-	layout.offset_right = -20
-	layout.offset_top = 12
-	layout.offset_bottom = -12
-	layout.add_theme_constant_override("separation", 10)
-	root.add_child(layout)
-
-	var top_bar := HBoxContainer.new()
-	top_bar.name = "WorksiteTopBar"
-	top_bar.custom_minimum_size.y = 48.0
-	top_bar.add_theme_constant_override("separation", 12)
-	layout.add_child(top_bar)
+	# The worksite body fills the root directly. Back and progress controls are
+	# independent overlays, matching the OS Creation Worksite structure.
+	worksite_body = BoxContainer.new()
+	worksite_body.name = "WorksiteMainContent"
+	worksite_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	worksite_body.offset_left = 20.0
+	worksite_body.offset_right = -20.0
+	worksite_body.offset_top = 4.0
+	worksite_body.offset_bottom = -12.0
+	worksite_body.add_theme_constant_override("separation", 0)
+	root.add_child(worksite_body)
 
 	var back_button := Button.new()
 	back_button.name = "WorksiteBackButton"
 	back_button.text = "BACK"
-	back_button.custom_minimum_size = Vector2(82, 48)
+	back_button.anchor_left = 0.0
+	back_button.anchor_right = 0.0
+	back_button.anchor_top = 0.0
+	back_button.anchor_bottom = 0.0
+	back_button.offset_left = 20.0
+	back_button.offset_top = 12.0
+	back_button.offset_right = 102.0
+	back_button.offset_bottom = 60.0
 	back_button.focus_mode = Control.FOCUS_NONE
 	_style_arrow_button(back_button)
 	back_button.pressed.connect(func(): back_requested.emit())
-	top_bar.add_child(back_button)
-
-	var top_spacer := Control.new()
-	top_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_bar.add_child(top_spacer)
+	root.add_child(back_button)
 
 	var progress := VBoxContainer.new()
 	progress.name = "WorksiteProgress"
-	progress.custom_minimum_size = Vector2(150, 38)
+	progress.anchor_left = 1.0
+	progress.anchor_right = 1.0
+	progress.anchor_top = 0.0
+	progress.anchor_bottom = 0.0
+	progress.offset_left = -170.0
+	progress.offset_top = 12.0
+	progress.offset_right = -20.0
+	progress.offset_bottom = 50.0
 	progress.add_theme_constant_override("separation", 4)
-	top_bar.add_child(progress)
+	root.add_child(progress)
 	progress_number = _label("STEP 1 / 37", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
@@ -1030,22 +1032,12 @@ func _build_interface() -> void:
 	progress_bar.add_theme_stylebox_override("background", progress_track)
 	progress.add_child(progress_bar)
 
-	# BoxContainer supports switching between horizontal and vertical
-	# layouts at runtime; HBoxContainer has a fixed horizontal orientation.
-	var body := BoxContainer.new()
-	body.name = "WorksiteMainContent"
-	worksite_body = body
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 0)
-	layout.add_child(body)
-
 	preview_region = Control.new()
 	preview_region.name = "PhonePreviewRegion"
 	preview_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_region.size_flags_stretch_ratio = 1.0
 	preview_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_child(preview_region)
+	worksite_body.add_child(preview_region)
 
 	var viewport_container := preview_container
 	if is_instance_valid(viewport_container):
@@ -1127,13 +1119,13 @@ func _build_interface() -> void:
 	selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	# Let taller control cards remain fully reachable on compact landscape
-	# screens while keeping the scrollbar invisible to preserve the clean UI.
+	# Let taller control sections remain fully reachable on compact screens
+	# while keeping the scrollbar invisible to preserve the clean UI.
 	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	var selection_scroll_bar := selection_scroll.get_v_scroll_bar()
 	selection_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	selection_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(selection_scroll)
+	worksite_body.add_child(selection_scroll)
 
 	selection_region = MarginContainer.new()
 	selection_region.name = "PhoneTypeSelectionRegion"
@@ -1170,56 +1162,38 @@ func _build_interface() -> void:
 	type_step_content.add_child(section_title)
 	_add_phone_type_selector(type_step_content)
 
-	# Reserve the same space in the worksite VBox, but render the actual
-	# navigation controls on their own high-priority CanvasLayer. This prevents
-	# nested editor/color overlays from covering the arrows or stealing taps.
-	var bottom_bar_space := Control.new()
-	bottom_bar_space.name = "WorksiteBottomBarSpace"
-	bottom_bar_space.custom_minimum_size = Vector2(0, 62.0)
-	layout.add_child(bottom_bar_space)
-
-	navigation_layer = CanvasLayer.new()
-	navigation_layer.name = "WorksiteNavigationOverlay"
-	navigation_layer.layer = 127
-	add_child(navigation_layer)
-
-	var navigation_root := Control.new()
-	navigation_root.name = "WorksiteNavigationRoot"
-	navigation_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	navigation_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	navigation_layer.add_child(navigation_root)
-
-	navigation_bar = HBoxContainer.new()
-	navigation_bar.name = "WorksiteBottomBar"
-	navigation_bar.anchor_left = 0.0
-	navigation_bar.anchor_right = 1.0
-	navigation_bar.anchor_top = 1.0
-	navigation_bar.anchor_bottom = 1.0
-	navigation_bar.offset_left = 20.0
-	navigation_bar.offset_right = -20.0
-	navigation_bar.offset_top = -74.0
-	navigation_bar.offset_bottom = -12.0
-	navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
-	navigation_bar.z_index = 1000
-	navigation_bar.z_as_relative = false
-	navigation_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	navigation_bar.add_theme_constant_override("separation", 18)
-	navigation_root.add_child(navigation_bar)
-
+	# Bottom arrows are independent root controls, not children of a full-width
+	# bar or a high-priority navigation layer.
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
 	wizard_back_button.points_right = false
+	wizard_back_button.anchor_left = 0.0
+	wizard_back_button.anchor_right = 0.0
+	wizard_back_button.anchor_top = 1.0
+	wizard_back_button.anchor_bottom = 1.0
+	wizard_back_button.offset_left = 20.0
+	wizard_back_button.offset_top = -74.0
+	wizard_back_button.offset_right = 74.0
+	wizard_back_button.offset_bottom = -20.0
+	wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	wizard_back_button.pressed.connect(_on_wizard_back_pressed)
-	navigation_bar.add_child(wizard_back_button)
-	var bottom_spacer := Control.new()
-	bottom_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	navigation_bar.add_child(bottom_spacer)
+	root.add_child(wizard_back_button)
+
 	next_button = GlassArrowButton.new()
 	next_button.name = "NextStepIconButton"
 	next_button.points_right = true
+	next_button.anchor_left = 1.0
+	next_button.anchor_right = 1.0
+	next_button.anchor_top = 1.0
+	next_button.anchor_bottom = 1.0
+	next_button.offset_left = -74.0
+	next_button.offset_top = -74.0
+	next_button.offset_right = -20.0
+	next_button.offset_bottom = -20.0
+	next_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	next_button.pressed.connect(_on_next_pressed)
-	navigation_bar.add_child(next_button)
-	_keep_step_navigation_active()
+	root.add_child(next_button)
+
 	_apply_responsive_layout()
 	# Start with Standard selected so the Worksite preview and Next state are
 	# immediately ready.
@@ -2027,9 +2001,10 @@ func set_box_package_research_level(level: int) -> void:
 	box_package_research_level = updated_level
 	if box_package_research_level <= 0:
 		box_package_color_mode = false
-		_set_box_package_preview_mode(false)
 	if level_changed and wizard_step == 30:
-		_set_box_package_preview_mode(box_package_research_level > 0)
+		# The package preview is always available; research only unlocks its
+		# branding and appearance customization controls.
+		_set_box_package_preview_mode(true)
 		_show_worksite_box_package_controls()
 
 
@@ -3457,14 +3432,7 @@ func _show_protection_glass_step() -> void:
 
 
 func _keep_step_navigation_active() -> void:
-	# These are persistent wizard controls, not step-validation indicators.
-	# Their handlers safely do nothing at the first/last boundary when needed.
-	if is_instance_valid(navigation_layer):
-		navigation_layer.layer = 127
-	if is_instance_valid(navigation_bar):
-		navigation_bar.mouse_filter = Control.MOUSE_FILTER_STOP
-		navigation_bar.z_index = 1000
-		navigation_bar.z_as_relative = false
+	# These independent root controls remain available throughout the wizard.
 	if is_instance_valid(wizard_back_button):
 		wizard_back_button.disabled = false
 		wizard_back_button.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -11335,15 +11303,31 @@ func _show_speaker_controls() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	active_feature_panel.add_child(title)
 
+	# Center the complete speaker control group beneath its hero heading,
+	# matching the full-height control zones used by the other worksite steps.
+	var content_center := CenterContainer.new()
+	content_center.name = "SpeakerContentCenter"
+	content_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_center.custom_minimum_size = Vector2(0, 360)
+	active_feature_panel.add_child(content_center)
+
+	var content := VBoxContainer.new()
+	content.name = "SpeakerContentBody"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	content.add_theme_constant_override("separation", 8)
+	content_center.add_child(content)
+
 	speaker_count_value_label = _make_label("", 16, Color("#C58A3A"))
 	speaker_count_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(speaker_count_value_label)
+	content.add_child(speaker_count_value_label)
 
 	var controls_center := CenterContainer.new()
 	controls_center.name = "SpeakerCountControlsCenter"
 	controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	active_feature_panel.add_child(controls_center)
+	content.add_child(controls_center)
 
 	var controls := HBoxContainer.new()
 	controls.name = "SpeakerCountLevelControls"
@@ -11370,22 +11354,22 @@ func _show_speaker_controls() -> void:
 
 	var quality_separator := HSeparator.new()
 	quality_separator.name = "SpeakerQualitySeparator"
-	active_feature_panel.add_child(quality_separator)
+	content.add_child(quality_separator)
 
 	var quality_heading := _make_label("SPEAKER QUALITY", 15, Color("#C58A3A"))
 	quality_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(quality_heading)
+	content.add_child(quality_heading)
 
 	speaker_quality_value_label = _make_label("", 15, Color.WHITE)
 	speaker_quality_value_label.name = "SpeakerQualityValueLabel"
 	speaker_quality_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	active_feature_panel.add_child(speaker_quality_value_label)
+	content.add_child(speaker_quality_value_label)
 
 	var quality_controls_center := CenterContainer.new()
 	quality_controls_center.name = "SpeakerQualityControlsCenter"
 	quality_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	quality_controls_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	active_feature_panel.add_child(quality_controls_center)
+	content.add_child(quality_controls_center)
 
 	var quality_controls := HBoxContainer.new()
 	quality_controls.name = "SpeakerQualityLevelControls"
@@ -11411,7 +11395,7 @@ func _show_speaker_controls() -> void:
 	speaker_quality_description_label.name = "SpeakerQualityDescriptionLabel"
 	speaker_quality_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	speaker_quality_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	active_feature_panel.add_child(speaker_quality_description_label)
+	content.add_child(speaker_quality_description_label)
 
 	_refresh_speaker_quality_controls()
 
@@ -15049,7 +15033,7 @@ func _reset_box_package_position() -> void:
 	_refresh_box_package_branding()
 
 func _set_box_package_preview_mode(enabled: bool) -> void:
-	var preview_enabled := enabled and box_package_research_level > 0
+	var preview_enabled := enabled
 	var entering := preview_enabled and not box_package_preview_mode
 	box_package_preview_mode = preview_enabled
 	if entering and is_instance_valid(box_package_preview):
