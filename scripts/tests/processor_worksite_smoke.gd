@@ -14,22 +14,22 @@ func _run_processor_worksite_test() -> void:
 	await process_frame
 	await process_frame
 
-	var preview_panel := worksite.find_child("Processor3DPreviewPanel", true, false) as PanelContainer
+	var preview_region := worksite.find_child("ProcessorPreviewRegion", true, false) as Control
 	var preview_column := worksite.find_child("ProcessorPreviewColumn", true, false) as VBoxContainer
 	var preview_container := worksite.find_child("ProcessorPreviewViewport", true, false) as SubViewportContainer
 	var viewport := worksite.find_child("Processor3DSubViewport", true, false) as SubViewport
 	var model := worksite.find_child("ProcessorSoCModel", true, false) as Node3D
-	var controls_panel := worksite.find_child("ProcessorDesignControlsPanel", true, false) as PanelContainer
-	if preview_panel == null or preview_column == null or preview_container == null or viewport == null or model == null or controls_panel == null:
-		_fail("Processor worksite is missing its left 3D preview or right design controls.")
+	var controls_region := worksite.find_child("ProcessorSelectionScroll", true, false) as ScrollContainer
+	if preview_region == null or preview_column == null or preview_container == null or viewport == null or model == null or controls_region == null:
+		_fail("Processor worksite is missing its left 3D preview or right-side design controls.")
 		worksite.free()
 		return
-	if not preview_container.visible or preview_container.custom_minimum_size.y < 240.0 or (preview_container.size_flags_vertical & Control.SIZE_EXPAND_FILL) == 0:
-		_fail("Processor preview does not reserve an expanding visible area above the bottom screen edge.")
+	if not preview_container.visible or preview_container.custom_minimum_size.y <= 0.0 or (preview_container.size_flags_vertical & Control.SIZE_EXPAND_FILL) == 0:
+		_fail("Processor preview does not reserve an expanding visible area inside the worksite.")
 		worksite.free()
 		return
-	if preview_column.size_flags_vertical != Control.SIZE_EXPAND_FILL:
-		_fail("Processor preview column is not configured to fill the left worksite panel.")
+	if preview_column.anchor_bottom != 1.0 or preview_column.anchor_right != 1.0:
+		_fail("Processor preview column is not anchored to fill its responsive preview region.")
 		worksite.free()
 		return
 
