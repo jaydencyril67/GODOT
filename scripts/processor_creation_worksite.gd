@@ -11,6 +11,39 @@ const MUTED := Color("#A9A49A")
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
 const CHIP_BASE_SIZE := 2.30
+const WIZARD_STEP_COUNT := 4
+
+class GlassArrowButton extends Button:
+	var points_right := true
+
+	func _ready() -> void:
+		focus_mode = Control.FOCUS_NONE
+		custom_minimum_size = Vector2(54, 54)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		queue_redraw()
+		mouse_entered.connect(queue_redraw)
+		mouse_exited.connect(queue_redraw)
+		button_down.connect(queue_redraw)
+		button_up.connect(queue_redraw)
+
+	func _draw() -> void:
+		var centre := size * 0.5
+		var radius := minf(size.x, size.y) * 0.5 - 2.0
+		var fill := Color(0.28, 0.20, 0.11, 0.96) if is_hovered() else Color(0.10, 0.11, 0.12, 0.92)
+		if is_pressed():
+			fill = Color(0.16, 0.11, 0.06, 0.98)
+		draw_circle(centre + Vector2(0, 2), radius + 1.0, Color(0, 0, 0, 0.42))
+		draw_circle(centre, radius, fill)
+		draw_arc(centre, radius - 1.0, PI * 1.08, PI * 1.92, 48, Color(0.94, 0.91, 0.84, 0.78), 1.5, true)
+		draw_arc(centre, radius - 1.5, -PI * 0.08, PI * 0.88, 48, Color(0.79, 0.61, 0.35, 0.36), 1.0, true)
+		var direction := 1.0 if points_right else -1.0
+		var tip := centre + Vector2(direction * 7.0, 0)
+		var upper := centre + Vector2(-direction * 4.5, -7.0)
+		var lower := centre + Vector2(-direction * 4.5, 7.0)
+		draw_line(upper, tip, Color("#F2EDE4"), 2.8, true)
+		draw_line(tip, lower, Color("#F2EDE4"), 2.8, true)
+		draw_line(centre + Vector2(-direction * 5.0, 0), centre + Vector2(direction * 6.0, 0), Color("#F2EDE4"), 2.8, true)
+
 
 var preview_viewport: SubViewport
 var processor_root: Node3D
@@ -20,6 +53,18 @@ var package_size: OptionButton
 var package_finish: OptionButton
 var die_finish: OptionButton
 var status_label: Label
+var worksite_body: BoxContainer
+var preview_region: Control
+var preview_holder: SubViewportContainer
+var selection_scroll: ScrollContainer
+var selection_region: MarginContainer
+var selection_stack: VBoxContainer
+var step_pages: Array[Control] = []
+var progress_number: Label
+var progress_bar: ProgressBar
+var wizard_back_button: Button
+var next_button: Button
+var current_wizard_step := 1
 var package_layers: Array[MeshInstance3D] = []
 var die_surface: MeshInstance3D
 var drag_active := false
@@ -60,87 +105,103 @@ func _select_option(option: OptionButton, value: String) -> void:
 
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
-	layer.name = "ProcessorWorksiteLayer"
-	layer.layer = 45
+	layer.name = "ProcessorCreationWorksiteInterface"
+	layer.layer = 40
 	add_child(layer)
 
 	var root := Control.new()
-	root.name = "ProcessorWorksiteRoot"
+	root.name = "WorksiteRoot"
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	layer.add_child(root)
+	root.resized.connect(_apply_responsive_layout)
 
-	var background := ColorRect.new()
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = DARK
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(background)
+	var backdrop := ColorRect.new()
+	backdrop.name = "WorksiteBackdrop"
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color("#292B2D")
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(backdrop)
 
-	var top := HBoxContainer.new()
-	top.anchor_right = 1.0
-	top.offset_left = 22
-	top.offset_top = 12
-	top.offset_right = -22
-	top.offset_bottom = 58
-	top.add_theme_constant_override("separation", 12)
-	root.add_child(top)
+	worksite_body = BoxContainer.new()
+	worksite_body.name = "WorksiteMainContent"
+	worksite_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	worksite_body.offset_left = 20.0
+	worksite_body.offset_right = -20.0
+	worksite_body.offset_top = 4.0
+	worksite_body.offset_bottom = -12.0
+	worksite_body.add_theme_constant_override("separation", 0)
+	root.add_child(worksite_body)
 
-	var back := Button.new()
-	back.text = "‹  BACK"
-	back.custom_minimum_size = Vector2(112, 42)
-	_style_button(back, false)
-	back.pressed.connect(func(): back_requested.emit())
-	top.add_child(back)
+	var back_button := Button.new()
+	back_button.name = "WorksiteBackButton"
+	back_button.text = "BACK"
+	back_button.anchor_left = 0.0
+	back_button.anchor_right = 0.0
+	back_button.anchor_top = 0.0
+	back_button.anchor_bottom = 0.0
+	back_button.offset_left = 20.0
+	back_button.offset_top = 12.0
+	back_button.offset_right = 102.0
+	back_button.offset_bottom = 60.0
+	back_button.focus_mode = Control.FOCUS_NONE
+	_style_button(back_button, false)
+	back_button.pressed.connect(func(): back_requested.emit())
+	root.add_child(back_button)
 
-	var heading := Label.new()
-	heading.text = "PROCESSOR DESIGN WORKSITE"
-	heading.add_theme_font_size_override("font_size", 18)
-	heading.add_theme_color_override("font_color", TEXT)
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	top.add_child(heading)
+	var progress := VBoxContainer.new()
+	progress.name = "WorksiteProgress"
+	progress.anchor_left = 1.0
+	progress.anchor_right = 1.0
+	progress.anchor_top = 0.0
+	progress.anchor_bottom = 0.0
+	progress.offset_left = -170.0
+	progress.offset_top = 12.0
+	progress.offset_right = -20.0
+	progress.offset_bottom = 50.0
+	progress.add_theme_constant_override("separation", 4)
+	root.add_child(progress)
 
-	var phase := Label.new()
-	phase.text = "DESIGN PHASE 01"
-	phase.add_theme_font_size_override("font_size", 11)
-	phase.add_theme_color_override("font_color", ACCENT)
-	phase.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	top.add_child(phase)
+	progress_number = _label("STEP 1 / %d" % WIZARD_STEP_COUNT, 11, Color("#E5E0D6"))
+	progress_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	progress.add_child(progress_number)
 
-	var body := HBoxContainer.new()
-	body.anchor_left = 0.0
-	body.anchor_top = 0.0
-	body.anchor_right = 1.0
-	body.anchor_bottom = 1.0
-	body.offset_left = 18
-	body.offset_top = 70
-	body.offset_right = -18
-	body.offset_bottom = -14
-	body.add_theme_constant_override("separation", 16)
-	root.add_child(body)
+	progress_bar = ProgressBar.new()
+	progress_bar.name = "WizardProgressBar"
+	progress_bar.custom_minimum_size = Vector2(0, 7)
+	progress_bar.min_value = 0
+	progress_bar.max_value = WIZARD_STEP_COUNT
+	progress_bar.value = 1
+	progress_bar.show_percentage = false
+	var progress_fill := StyleBoxFlat.new()
+	progress_fill.bg_color = Color("#C58A3A")
+	progress_fill.set_corner_radius_all(4)
+	var progress_track := StyleBoxFlat.new()
+	progress_track.bg_color = Color("#292D2F")
+	progress_track.set_corner_radius_all(4)
+	progress_bar.add_theme_stylebox_override("fill", progress_fill)
+	progress_bar.add_theme_stylebox_override("background", progress_track)
+	progress.add_child(progress_bar)
 
-	var left := PanelContainer.new()
-	left.name = "Processor3DPreviewPanel"
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left.size_flags_stretch_ratio = 1.25
-	_style_panel(left)
-	body.add_child(left)
+	preview_region = Control.new()
+	preview_region.name = "ProcessorPreviewRegion"
+	preview_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_region.size_flags_stretch_ratio = 1.12
+	preview_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	worksite_body.add_child(preview_region)
 
 	var preview_column := VBoxContainer.new()
 	preview_column.name = "ProcessorPreviewColumn"
-	preview_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	preview_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	preview_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	preview_column.add_theme_constant_override("separation", 7)
-	left.add_child(preview_column)
+	preview_region.add_child(preview_column)
 
-	var preview_heading := _label("SILICON PREVIEW", 12, ACCENT)
-	preview_column.add_child(preview_heading)
-
-	var preview_holder := SubViewportContainer.new()
+	preview_holder = SubViewportContainer.new()
 	preview_holder.name = "ProcessorPreviewViewport"
 	preview_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	preview_holder.custom_minimum_size = Vector2(0, 245)
+	preview_holder.custom_minimum_size = Vector2(0, 140)
 	preview_holder.stretch = true
 	preview_holder.mouse_filter = Control.MOUSE_FILTER_STOP
 	preview_holder.gui_input.connect(_on_preview_input)
@@ -150,7 +211,9 @@ func _build_interface() -> void:
 	preview_viewport.name = "Processor3DSubViewport"
 	preview_viewport.size = Vector2i(1000, 760)
 	preview_viewport.own_world_3d = true
+	preview_viewport.transparent_bg = true
 	preview_viewport.msaa_3d = Viewport.MSAA_4X
+	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	preview_holder.add_child(preview_viewport)
 
@@ -177,82 +240,235 @@ func _build_interface() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	preview_column.add_child(hint)
 
-	var right := PanelContainer.new()
-	right.name = "ProcessorDesignControlsPanel"
-	right.custom_minimum_size.x = 300
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.size_flags_stretch_ratio = 0.82
-	_style_panel(right)
-	body.add_child(right)
+	selection_scroll = ScrollContainer.new()
+	selection_scroll.name = "ProcessorSelectionScroll"
+	selection_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	selection_scroll.size_flags_stretch_ratio = 0.88
+	selection_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	selection_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var selection_scroll_bar := selection_scroll.get_v_scroll_bar()
+	selection_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	selection_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	worksite_body.add_child(selection_scroll)
 
-	var controls := VBoxContainer.new()
-	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	controls.add_theme_constant_override("separation", 10)
-	right.add_child(controls)
+	selection_region = MarginContainer.new()
+	selection_region.name = "ProcessorSelectionRegion"
+	selection_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	selection_region.add_theme_constant_override("margin_left", 24)
+	selection_region.add_theme_constant_override("margin_right", 24)
+	selection_region.add_theme_constant_override("margin_top", 20)
+	selection_region.add_theme_constant_override("margin_bottom", 20)
+	selection_scroll.add_child(selection_region)
 
-	controls.add_child(_label("PROCESSOR CONFIGURATION", 15, TEXT))
-	controls.add_child(_label("Establish the physical package and silicon identity.", 10, MUTED))
+	selection_stack = VBoxContainer.new()
+	selection_stack.name = "ProcessorSelectionControls"
+	selection_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	selection_stack.add_theme_constant_override("separation", 16)
+	selection_region.add_child(selection_stack)
 
-	controls.add_child(_label("PROCESSOR NAME", 10, ACCENT))
+	var name_page := _create_step_page(
+		"PROCESSOR IDENTITY",
+		"Give the processor its product name before configuring the physical package."
+	)
+	var name_label := _label("PROCESSOR NAME", 11, ACCENT)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_page.add_child(name_label)
 	name_input = LineEdit.new()
-	name_input.text = str(processor_design.name)
+	name_input.name = "ProcessorNameInput"
+	name_input.text = str(processor_design.get("name", "DW Silicon 01"))
 	name_input.placeholder_text = "Enter processor name"
-	name_input.custom_minimum_size.y = 40
+	name_input.custom_minimum_size = Vector2(0, 46)
+	name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_input(name_input)
 	name_input.text_changed.connect(_on_design_changed)
-	controls.add_child(name_input)
+	name_page.add_child(name_input)
 
-	controls.add_child(_label("PACKAGE DIMENSIONS", 10, ACCENT))
+	var dimensions_page := _create_step_page(
+		"PACKAGE DIMENSIONS",
+		"Choose the physical footprint of the processor package."
+	)
+	var dimensions_label := _label("PACKAGE SIZE", 11, ACCENT)
+	dimensions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dimensions_page.add_child(dimensions_label)
 	package_size = OptionButton.new()
+	package_size.name = "ProcessorPackageSize"
+	package_size.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for option in ["10 × 10 mm", "12 × 12 mm", "14 × 14 mm", "16 × 16 mm"]:
 		package_size.add_item(option)
-	package_size.select(1)
+	_select_option(package_size, str(processor_design.get("package_size", "12 × 12 mm")))
 	_style_option(package_size)
 	package_size.item_selected.connect(_on_design_changed)
-	controls.add_child(package_size)
+	dimensions_page.add_child(package_size)
 
-	controls.add_child(_label("PACKAGE FINISH", 10, ACCENT))
+	var package_page := _create_step_page(
+		"PACKAGE FINISH",
+		"Select the finish and substrate appearance for the processor package."
+	)
+	var package_label := _label("PACKAGE MATERIAL FINISH", 11, ACCENT)
+	package_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	package_page.add_child(package_label)
 	package_finish = OptionButton.new()
+	package_finish.name = "ProcessorPackageFinish"
+	package_finish.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for option in ["Matte graphite", "Deep green substrate", "Ceramic black"]:
 		package_finish.add_item(option)
+	_select_option(package_finish, str(processor_design.get("package_finish", "Matte graphite")))
 	_style_option(package_finish)
-	controls.add_child(package_finish)
 	package_finish.item_selected.connect(_on_design_changed)
+	package_page.add_child(package_finish)
 
-	controls.add_child(_label("DIE FINISH", 10, ACCENT))
+	var die_page := _create_step_page(
+		"SILICON DIE FINISH",
+		"Choose the visible finish of the silicon die and heat-spreader surface."
+	)
+	var die_label := _label("DIE SURFACE", 11, ACCENT)
+	die_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	die_page.add_child(die_label)
 	die_finish = OptionButton.new()
+	die_finish.name = "ProcessorDieFinish"
+	die_finish.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for option in ["Dark silicon", "Polished silicon", "Metallic silicon cap"]:
 		die_finish.add_item(option)
+	_select_option(die_finish, str(processor_design.get("die_finish", "Dark silicon")))
 	_style_option(die_finish)
-	controls.add_child(die_finish)
 	die_finish.item_selected.connect(_on_design_changed)
-
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	controls.add_child(spacer)
+	die_page.add_child(die_finish)
 
 	status_label = _label("DESIGN NOT YET SAVED", 10, MUTED)
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	controls.add_child(status_label)
+	status_label.name = "ProcessorDesignStatus"
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	die_page.add_child(status_label)
 
-	var save := Button.new()
-	save.text = "SAVE PROCESSOR DESIGN"
-	save.custom_minimum_size.y = 44
-	_style_button(save, true)
-	save.pressed.connect(_save_design)
-	controls.add_child(save)
+	var save_button := Button.new()
+	save_button.name = "SaveProcessorDesignButton"
+	save_button.text = "SAVE PROCESSOR DESIGN"
+	save_button.custom_minimum_size = Vector2(0, 46)
+	save_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(save_button, true)
+	save_button.pressed.connect(_save_design)
+	die_page.add_child(save_button)
 
 	var research_note := _label("The seven research systems will be added after the base processor design is established.", 9, MUTED)
 	research_note.autowrap_mode = TextServer.AUTOWRAP_WORD
-	controls.add_child(research_note)
+	research_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	die_page.add_child(research_note)
+
+	wizard_back_button = GlassArrowButton.new()
+	wizard_back_button.name = "WizardBackIconButton"
+	wizard_back_button.points_right = false
+	wizard_back_button.anchor_left = 0.0
+	wizard_back_button.anchor_right = 0.0
+	wizard_back_button.anchor_top = 1.0
+	wizard_back_button.anchor_bottom = 1.0
+	wizard_back_button.offset_left = 20.0
+	wizard_back_button.offset_top = -74.0
+	wizard_back_button.offset_right = 74.0
+	wizard_back_button.offset_bottom = -20.0
+	wizard_back_button.pressed.connect(_on_wizard_back_pressed)
+	root.add_child(wizard_back_button)
+
+	next_button = GlassArrowButton.new()
+	next_button.name = "NextStepIconButton"
+	next_button.points_right = true
+	next_button.anchor_left = 1.0
+	next_button.anchor_right = 1.0
+	next_button.anchor_top = 1.0
+	next_button.anchor_bottom = 1.0
+	next_button.offset_left = -74.0
+	next_button.offset_top = -74.0
+	next_button.offset_right = -20.0
+	next_button.offset_bottom = -20.0
+	next_button.pressed.connect(_on_next_pressed)
+	root.add_child(next_button)
+
+	_apply_responsive_layout()
+	_set_wizard_step(1)
+
+
+func _create_step_page(title_text: String, description_text: String) -> VBoxContainer:
+	var page := VBoxContainer.new()
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.alignment = BoxContainer.ALIGNMENT_CENTER
+	page.add_theme_constant_override("separation", 14)
+	page.visible = false
+	selection_stack.add_child(page)
+	step_pages.append(page)
+
+	var heading := _label(title_text, 20, Color("#D3AA6B"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page.add_child(heading)
+
+	var description := _label(description_text, 12, Color("#D0CBC2"))
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	page.add_child(description)
+	return page
+
+
+func _apply_responsive_layout() -> void:
+	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll):
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	var is_wide := viewport_size.x >= viewport_size.y and viewport_size.x >= 700.0
+	worksite_body.vertical = not is_wide
+	if is_wide:
+		preview_region.size_flags_stretch_ratio = 1.12
+		selection_scroll.size_flags_stretch_ratio = 0.88
+		preview_region.custom_minimum_size = Vector2(0, 0)
+		preview_holder.custom_minimum_size = Vector2(0, 245)
+		selection_scroll.custom_minimum_size = Vector2(280, 0)
+		selection_region.add_theme_constant_override("margin_left", 24)
+		selection_region.add_theme_constant_override("margin_right", 24)
+		selection_region.add_theme_constant_override("margin_top", 20)
+		selection_region.add_theme_constant_override("margin_bottom", 20)
+	else:
+		preview_region.size_flags_stretch_ratio = 0.82
+		selection_scroll.size_flags_stretch_ratio = 1.18
+		preview_region.custom_minimum_size = Vector2(0, maxf(160.0, viewport_size.y * 0.25))
+		preview_holder.custom_minimum_size = Vector2(0, 100)
+		selection_scroll.custom_minimum_size = Vector2(0, maxf(300.0, viewport_size.y * 0.50))
+		selection_region.add_theme_constant_override("margin_left", 20)
+		selection_region.add_theme_constant_override("margin_right", 20)
+		selection_region.add_theme_constant_override("margin_top", 14)
+		selection_region.add_theme_constant_override("margin_bottom", 14)
+
+
+func _set_wizard_step(step: int) -> void:
+	current_wizard_step = clampi(step, 1, WIZARD_STEP_COUNT)
+	for index in range(step_pages.size()):
+		step_pages[index].visible = index == current_wizard_step - 1
+	if is_instance_valid(progress_number):
+		progress_number.text = "STEP %d / %d" % [current_wizard_step, WIZARD_STEP_COUNT]
+	if is_instance_valid(progress_bar):
+		progress_bar.max_value = WIZARD_STEP_COUNT
+		progress_bar.value = current_wizard_step
+	if is_instance_valid(wizard_back_button):
+		wizard_back_button.disabled = current_wizard_step <= 1
+		wizard_back_button.modulate.a = 0.42 if wizard_back_button.disabled else 1.0
+	if is_instance_valid(next_button):
+		next_button.disabled = current_wizard_step >= WIZARD_STEP_COUNT
+		next_button.modulate.a = 0.42 if next_button.disabled else 1.0
+
+
+func _on_wizard_back_pressed() -> void:
+	if current_wizard_step > 1:
+		_set_wizard_step(current_wizard_step - 1)
+
+
+func _on_next_pressed() -> void:
+	if current_wizard_step < WIZARD_STEP_COUNT:
+		_set_wizard_step(current_wizard_step + 1)
+
 
 func _build_processor_preview() -> void:
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("#0B1117")
+	environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color("#9DABB7")
 	environment.ambient_light_energy = 0.72
@@ -446,7 +662,8 @@ func _reset_view() -> void:
 
 func _on_design_changed(_value: Variant = null) -> void:
 	_apply_design()
-	status_label.text = "UNSAVED DESIGN CHANGES"
+	if is_instance_valid(status_label):
+		status_label.text = "UNSAVED DESIGN CHANGES"
 
 func _apply_design() -> void:
 	if not is_instance_valid(processor_root) or not is_instance_valid(package_size):
@@ -494,34 +711,31 @@ func _save_design() -> void:
 func _label(value: String, font_size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = value
+	var font := FontVariation.new()
+	font.base_font = load("res://assets/fonts/STIXTwoText[wght].ttf")
+	font.variation_embolden = 0.7
+	label.add_theme_font_override("font", font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	return label
-
-func _style_panel(panel: PanelContainer) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL
-	style.border_color = Color("#343A3D")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
-	panel.add_theme_stylebox_override("panel", style)
 
 func _style_button(button: Button, primary: bool) -> void:
 	button.focus_mode = Control.FOCUS_NONE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#674B2A") if primary else Color("#252B2F")
-	style.border_color = ACCENT if primary else Color("#596166")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	button.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate()
-	hover.bg_color = Color("#795A34") if primary else Color("#333B40")
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("#674B2A") if primary else Color("#17191B")
+	normal.border_color = ACCENT if primary else Color("#8D7048")
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(8)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color("#795A34") if primary else Color("#30271D")
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color("#4C371F") if primary else Color("#211B14")
+	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
 	button.add_theme_color_override("font_color", TEXT)
+	button.add_theme_font_size_override("font_size", 13)
 
 func _style_input(input: LineEdit) -> void:
 	var style := StyleBoxFlat.new()
