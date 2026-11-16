@@ -1422,15 +1422,15 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if step < 15 or step > 29:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
-	if previous_step == 31 and step != 30:
+	if previous_step == 31 and step != 31:
 		self.call("_set_box_package_preview_mode", false)
-	if previous_step == 33 and step != 32:
+	if previous_step == 33 and step != 33:
 		self.call("_set_charger_preview_mode", false)
-	if previous_step == 35 and step != 34:
+	if previous_step == 35 and step != 35:
 		self.call("_set_earbuds_preview_mode", false)
-	if previous_step == 36 and step != 35:
+	if previous_step == 36 and step != 36:
 		self.call("_set_smartwatch_preview_mode", false)
-	if previous_step == 37 and step != 36:
+	if previous_step == 37 and step != 37:
 		self.call("_set_power_bank_preview_mode", false)
 	wizard_step = step
 	if step == 31:
