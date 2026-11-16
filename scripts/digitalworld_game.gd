@@ -2844,6 +2844,8 @@ func _activate_processor_creation_worksite() -> void:
 		current_screen = "create"
 		if is_instance_valid(create_ui_layer):
 			create_ui_layer.show()
+			ui_layer = create_ui_layer
+			ui_root = create_ui_root
 		return
 
 	# Make this a single-owner screen transition: no previous page or worksite
