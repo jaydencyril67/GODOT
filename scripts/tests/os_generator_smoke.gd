@@ -406,17 +406,12 @@ func _run_gen1_smoke_test() -> void:
 		await process_frame
 		simulator._dispatch_android_navigation("Overview")
 		await process_frame
-		if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("Gen1FamilyRecentApps", true, false) == null:
-			_fail("Gen 2 " + str(family["id"]) + " Overview did not open the live recent-apps task interface.")
+		var gen2_recent_image := simulator.find_child(str(family["prefix"]) + "Gen2ScreenImage_recent_apps", true, false) as TextureRect
+		if gen2_recent_image == null or gen2_recent_image.texture == null:
+			_fail("Gen 2 " + str(family["id"]) + " Overview did not display its uploaded Recents reference image.")
 			return
-		var gen2_clear_all := simulator.find_child("Gen1FamilyClearAllRecentApps", true, false) as Button
-		if gen2_clear_all == null:
-			_fail("Gen 2 " + str(family["id"]) + " Overview is missing Clear all.")
-			return
-		gen2_clear_all.pressed.emit()
-		await process_frame
-		if not simulator._recent_app_names.is_empty():
-			_fail("Gen 2 " + str(family["id"]) + " Clear all did not remove recent tasks.")
+		if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
+			_fail("Gen 2 " + str(family["id"]) + " Overview incorrectly displayed the generic live task overlay.")
 			return
 		simulator._dispatch_android_navigation("Back")
 		await process_frame
@@ -584,17 +579,12 @@ func _run_gen1_smoke_test() -> void:
 		await process_frame
 		simulator._dispatch_android_navigation("Overview")
 		await process_frame
-		if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("Gen1FamilyRecentApps", true, false) == null:
-			_fail("Gen 3 " + str(family["id"]) + " Overview did not open the live recent-apps task interface.")
+		var gen3_recent_image := simulator.find_child(str(family["prefix"]) + "Gen3ScreenImage_recent_apps", true, false) as TextureRect
+		if gen3_recent_image == null or gen3_recent_image.texture == null:
+			_fail("Gen 3 " + str(family["id"]) + " Overview did not display its uploaded Recents reference image.")
 			return
-		var gen3_clear_all := simulator.find_child("Gen1FamilyClearAllRecentApps", true, false) as Button
-		if gen3_clear_all == null:
-			_fail("Gen 3 " + str(family["id"]) + " Overview is missing Clear all.")
-			return
-		gen3_clear_all.pressed.emit()
-		await process_frame
-		if not simulator._recent_app_names.is_empty():
-			_fail("Gen 3 " + str(family["id"]) + " Clear all did not remove recent tasks.")
+		if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
+			_fail("Gen 3 " + str(family["id"]) + " Overview incorrectly displayed the generic live task overlay.")
 			return
 		simulator._dispatch_android_navigation("Back")
 		await process_frame
@@ -762,17 +752,12 @@ func _run_gen1_smoke_test() -> void:
 		await process_frame
 		simulator._dispatch_android_navigation("Overview")
 		await process_frame
-		if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("Gen1FamilyRecentApps", true, false) == null:
-			_fail("Gen 4 " + str(family["id"]) + " Overview did not open the live recent-apps task interface.")
+		var gen4_recent_image := simulator.find_child(str(family["prefix"]) + "Gen4ScreenImage_recent_apps", true, false) as TextureRect
+		if gen4_recent_image == null or gen4_recent_image.texture == null:
+			_fail("Gen 4 " + str(family["id"]) + " Overview did not display its uploaded Recents reference image.")
 			return
-		var gen4_clear_all := simulator.find_child("Gen1FamilyClearAllRecentApps", true, false) as Button
-		if gen4_clear_all == null:
-			_fail("Gen 4 " + str(family["id"]) + " Overview is missing Clear all.")
-			return
-		gen4_clear_all.pressed.emit()
-		await process_frame
-		if not simulator._recent_app_names.is_empty():
-			_fail("Gen 4 " + str(family["id"]) + " Clear all did not remove recent tasks.")
+		if simulator.find_child("OSGestureOverlay_recent_apps", true, false) != null:
+			_fail("Gen 4 " + str(family["id"]) + " Overview incorrectly displayed the generic live task overlay.")
 			return
 		simulator._dispatch_android_navigation("Back")
 		await process_frame
