@@ -800,15 +800,14 @@ func _oreo_quick_tile_definitions() -> Array:
 
 func _oreo_quick_tile_style(enabled: bool) -> StyleBoxFlat:
 	var tile_style := StyleBoxFlat.new()
-	tile_style.bg_color = Color("#4285F4") if enabled else Color("#DADCE0")
-	tile_style.set_corner_radius_all(999)
+	tile_style.bg_color = Color("#D8E7F8") if enabled else Color("#E4E7EB")
+	tile_style.set_corner_radius_all(9)
 	tile_style.set_border_width_all(0)
 	tile_style.content_margin_left = 0
 	tile_style.content_margin_right = 0
 	tile_style.content_margin_top = 0
 	tile_style.content_margin_bottom = 0
 	return tile_style
-
 
 func _add_android_oreo_quick_tile(parent: GridContainer, definition: Dictionary) -> void:
 	var setting_id := str(definition.get("id", ""))
@@ -829,7 +828,7 @@ func _add_android_oreo_quick_tile(parent: GridContainer, definition: Dictionary)
 	tile.focus_mode = Control.FOCUS_NONE
 	for state_name in ["normal", "hover", "pressed", "focus"]:
 		tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
-	tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+	tile.add_theme_color_override("font_color", Color("#1A73E8") if enabled else Color("#5F6368"))
 	tile.add_theme_font_size_override("font_size", 18)
 	tile.text = str(definition.get("glyph", "•"))
 	tile.tooltip_text = setting_id
@@ -851,57 +850,105 @@ func _on_oreo_quick_tile_toggled(enabled: bool, setting_id: String, tile: Button
 	if is_instance_valid(tile):
 		for state_name in ["normal", "hover", "pressed", "focus"]:
 			tile.add_theme_stylebox_override(state_name, _oreo_quick_tile_style(enabled))
-		tile.add_theme_color_override("font_color", Color.WHITE if enabled else Color("#5F6368"))
+		tile.add_theme_color_override("font_color", Color("#1A73E8") if enabled else Color("#5F6368"))
 	if is_instance_valid(label):
 		label.add_theme_color_override("font_color", Color("#3C4043") if enabled else Color("#6B7280"))
+
+func _make_android_shade_action_button(button_name: String, button_text: String, tooltip_text: String) -> Button:
+	var button := Button.new()
+	button.name = button_name
+	button.text = button_text
+	button.tooltip_text = tooltip_text
+	button.flat = true
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.custom_minimum_size = Vector2(34, 30)
+	button.add_theme_font_size_override("font_size", 11)
+	button.add_theme_color_override("font_color", Color("#3C4043"))
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("#E1E5E9")
+	normal.set_corner_radius_all(8)
+	normal.set_border_width_all(0)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color("#D5DCE4")
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color("#C8D4E1")
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("focus", normal)
+	return button
 
 
 func _add_oreo_shade_header(parent: Control) -> void:
 	var header := HBoxContainer.new()
 	header.name = "OreoShadeHeader"
+	header.custom_minimum_size.y = 42
 	header.add_theme_constant_override("separation", 8)
-
 	var time_stack := VBoxContainer.new()
 	time_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	time_stack.add_theme_constant_override("separation", 0)
-	var clock := _label(_current_lock_time("pixel"), 25, Color("#202124"))
+	var clock := _label(_current_lock_time("pixel"), 26, Color("#202124"))
 	clock.name = "OreoShadeClock"
 	clock.custom_minimum_size.y = 30
 	clock.add_theme_font_override("font", LOCKSCREEN_FONT)
 	time_stack.add_child(clock)
-	var date := _label(_current_lock_date("minimal"), 9, Color("#5F6368"))
-	date.name = "OreoShadeDate"
-	time_stack.add_child(date)
 	header.add_child(time_stack)
-
-	var actions := HBoxContainer.new()
-	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	actions.add_theme_constant_override("separation", 5)
+	var status := VBoxContainer.new()
+	status.alignment = BoxContainer.ALIGNMENT_CENTER
+	status.add_theme_constant_override("separation", 2)
+	var network := _label("Wi-Fi  ·  LTE", 8, Color("#5F6368"))
+	network.name = "OreoShadeNetworkStatus"
+	network.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	status.add_child(network)
 	var battery := _label("100%  ▰", 9, Color("#5F6368"))
 	battery.name = "OreoShadeBattery"
-	battery.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	actions.add_child(battery)
-	var settings := Button.new()
-	settings.name = "OreoShadeSettingsButton"
-	settings.text = "⚙"
-	settings.tooltip_text = "Settings"
-	settings.custom_minimum_size = Vector2(34, 34)
-	settings.focus_mode = Control.FOCUS_NONE
-	settings.add_theme_font_size_override("font_size", 18)
-	var settings_style := StyleBoxFlat.new()
-	settings_style.bg_color = Color("#E1E5E9")
-	settings_style.set_corner_radius_all(17)
-	for state_name in ["normal", "hover", "pressed", "focus"]:
-		settings.add_theme_stylebox_override(state_name, settings_style)
-	settings.add_theme_color_override("font_color", Color("#3C4043"))
+	battery.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	status.add_child(battery)
+	header.add_child(status)
+	parent.add_child(header)
+
+
+func _add_oreo_shade_footer(parent: Control, is_expanded: bool) -> void:
+	var footer := HBoxContainer.new()
+	footer.name = "OreoQuickSettingsFooter" if is_expanded else "OreoNotificationQuickSettingsFooter"
+	footer.custom_minimum_size.y = 32
+	footer.add_theme_constant_override("separation", 6)
+	var date := _label(_current_lock_date("inline"), 8, Color("#5F6368"))
+	date.name = "OreoShadeFooterDate"
+	date.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	footer.add_child(date)
+	if is_expanded:
+		var page := _label("●  ○", 8, Color("#6B7280"))
+		page.name = "OreoQuickSettingsPageIndicator"
+		page.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		footer.add_child(page)
+	else:
+		var expand := _make_android_shade_action_button("OreoShadeExpandButton", "⌄", "Expand Quick Settings")
+		expand.pressed.connect(func() -> void: _show_gesture_overlay("control_center"))
+		footer.add_child(expand)
+	var settings := _make_android_shade_action_button("OreoShadeSettingsButton", "⚙", "Open Settings")
 	settings.pressed.connect(func() -> void:
 		_close_gesture_overlay()
 		_on_app_pressed("Settings")
 	)
-	actions.add_child(settings)
-	header.add_child(actions)
-	parent.add_child(header)
+	footer.add_child(settings)
+	parent.add_child(footer)
 
+
+func _clear_notification_group(notification_group: Control, empty_label_name: String, empty_text: String, empty_color: Color) -> void:
+	if not is_instance_valid(notification_group):
+		return
+	for notification in notification_group.get_children():
+		notification_group.remove_child(notification)
+		notification.queue_free()
+	var empty_state := _label(empty_text, 9, empty_color)
+	empty_state.name = empty_label_name
+	empty_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	empty_state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	empty_state.custom_minimum_size.y = 36
+	notification_group.add_child(empty_state)
 
 func _add_oreo_brightness_slider(parent: Control) -> void:
 	var panel := PanelContainer.new()
@@ -985,11 +1032,12 @@ func _build_android_oreo_notification_content(parent: Control) -> void:
 	quick_grid.name = "OreoNotificationQuickSettingsGrid"
 	quick_grid.columns = 3
 	quick_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	quick_grid.add_theme_constant_override("h_separation", 4)
-	quick_grid.add_theme_constant_override("v_separation", 3)
+	quick_grid.add_theme_constant_override("h_separation", 5)
+	quick_grid.add_theme_constant_override("v_separation", 4)
 	for definition in _oreo_quick_tile_definitions().slice(0, 6):
 		_add_android_oreo_quick_tile(quick_grid, definition)
 	parent.add_child(quick_grid)
+	_add_oreo_shade_footer(parent, false)
 
 	var heading := HBoxContainer.new()
 	heading.name = "OreoNotificationHeadingRow"
@@ -997,11 +1045,36 @@ func _build_android_oreo_notification_content(parent: Control) -> void:
 	heading_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(heading_label)
 	heading.add_child(_label("NOW  ·  EARLIER", 7, Color("#6B7280")))
+	var clear_button := _make_android_shade_action_button("OreoNotificationClearAllButton", "Clear all", "Clear notifications")
+	heading.add_child(clear_button)
 	parent.add_child(heading)
-	_add_oreo_notification_card(parent, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW")
-	_add_oreo_notification_card(parent, "Calendar", "Your event starts in 10 minutes", "10 MIN")
-	_add_oreo_notification_card(parent, "Android System", "Device is up to date", "EARLIER")
 
+	var notification_list := VBoxContainer.new()
+	notification_list.name = "OreoShadeNotificationList"
+	notification_list.add_theme_constant_override("separation", 6)
+	parent.add_child(notification_list)
+	_add_oreo_notification_card(notification_list, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW")
+	_add_oreo_notification_card(notification_list, "Calendar", "Your event starts in 10 minutes", "10 MIN")
+	_add_oreo_notification_card(notification_list, "Android System", "Device is up to date", "EARLIER")
+	clear_button.pressed.connect(_clear_notification_group.bind(notification_list, "OreoNoNotifications", "No notifications", Color("#5F6368")))
+
+
+func _build_android_oreo_quick_settings_content(parent: Control) -> void:
+	_add_oreo_shade_header(parent)
+	_add_oreo_brightness_slider(parent)
+	var heading := _label("Quick Settings", 10, Color("#3C4043"))
+	heading.name = "OreoQuickSettingsHeading"
+	parent.add_child(heading)
+	var grid := GridContainer.new()
+	grid.name = "OreoExpandedQuickSettingsGrid"
+	grid.columns = 3
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 5)
+	grid.add_theme_constant_override("v_separation", 6)
+	for definition in _oreo_quick_tile_definitions():
+		_add_android_oreo_quick_tile(grid, definition)
+	parent.add_child(grid)
+	_add_oreo_shade_footer(parent, true)
 
 func _build_android_oreo_quick_settings_content(parent: Control) -> void:
 	_add_oreo_shade_header(parent)
@@ -1266,29 +1339,93 @@ func _apply_android_pie_shade_screen_mask(overlay: Control) -> void:
 	overlay.add_child(mask)
 
 
+func _build_android_pie_notification_content(parent: Control) -> void:
+	_add_pie_shade_header(parent)
+	var quick_grid := GridContainer.new()
+	quick_grid.name = "PieNotificationQuickSettingsGrid"
+	quick_grid.columns = 3
+	quick_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_grid.add_theme_constant_override("h_separation", 3)
+	quick_grid.add_theme_constant_override("v_separation", 4)
+	for definition in _pie_quick_tile_definitions().slice(0, 6):
+		_add_android_pie_quick_tile(quick_grid, definition)
+	parent.add_child(quick_grid)
+
+	var heading := HBoxContainer.new()
+	heading.name = "PieNotificationHeadingRow"
+	var notification_heading := _label("Notifications", 11, Color("#3C4043"))
+	notification_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(notification_heading)
+	var manage_button := _make_android_shade_action_button("PieNotificationManageButton", "Manage", "Notification settings")
+	manage_button.pressed.connect(func() -> void:
+		_close_gesture_overlay()
+		_on_app_pressed("Settings")
+	)
+	heading.add_child(manage_button)
+	parent.add_child(heading)
+
+	var notification_list := VBoxContainer.new()
+	notification_list.name = "PieShadeNotificationList"
+	notification_list.add_theme_constant_override("separation", 6)
+	parent.add_child(notification_list)
+	_add_pie_notification_card(notification_list, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW", "M", Color("#4285F4"))
+	_add_pie_notification_card(notification_list, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
+	_add_pie_notification_card(notification_list, "Android System", "Device is up to date", "EARLIER", "A", Color("#5F6368"))
+
+	var footer := HBoxContainer.new()
+	footer.name = "PieNotificationFooter"
+	footer.add_theme_constant_override("separation", 6)
+	var footer_hint := _label("Swipe down for all Quick Settings", 8, Color("#5F6368"))
+	footer_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(footer_hint)
+	var clear_button := _make_android_shade_action_button("PieNotificationClearAllButton", "Clear all", "Clear notifications")
+	clear_button.pressed.connect(_clear_notification_group.bind(notification_list, "PieNoNotifications", "No notifications", Color("#5F6368")))
+	footer.add_child(clear_button)
+	var expand_button := _make_android_shade_action_button("PieNotificationExpandButton", "⌄", "Expand Quick Settings")
+	expand_button.pressed.connect(func() -> void: _show_gesture_overlay("control_center"))
+	footer.add_child(expand_button)
+	parent.add_child(footer)
+
+
 func _build_android_pie_notification_shade() -> void:
 	var overlay := _create_android_pie_shade("notifications")
 	var body := overlay.find_child("PieShadeContent", true, false) as VBoxContainer
 	if body == null:
 		return
-	_add_pie_shade_header(body)
-	var quick_grid := GridContainer.new()
-	quick_grid.name = "PieNotificationQuickSettingsGrid"
-	quick_grid.columns = 3
-	quick_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	quick_grid.add_theme_constant_override("h_separation", 2)
-	quick_grid.add_theme_constant_override("v_separation", 3)
-	for definition in _pie_quick_tile_definitions().slice(0, 6):
-		_add_android_pie_quick_tile(quick_grid, definition)
-	body.add_child(quick_grid)
-	var notification_heading := _label("Notifications", 10, Color("#5F6368"))
-	notification_heading.name = "PieNotificationHeading"
-	body.add_child(notification_heading)
-	_add_pie_notification_card(body, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW", "M", Color("#4285F4"))
-	_add_pie_notification_card(body, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
-	_add_pie_notification_card(body, "Android System", "Device is up to date", "EARLIER", "A", Color("#5F6368"))
-	body.add_child(_label("Swipe down again for all Quick Settings", 8, Color("#5F6368")))
+	_build_android_pie_notification_content(body)
 	_apply_android_pie_shade_screen_mask(overlay)
+
+func _build_android_pie_quick_settings_content(parent: Control) -> void:
+	_add_pie_shade_header(parent)
+	_add_pie_brightness_slider(parent)
+	var heading := _label("Quick Settings", 11, Color("#3C4043"))
+	heading.name = "PieQuickSettingsHeading"
+	parent.add_child(heading)
+	var grid := GridContainer.new()
+	grid.name = "PieExpandedQuickSettingsGrid"
+	grid.columns = 3
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 3)
+	grid.add_theme_constant_override("v_separation", 5)
+	for definition in _pie_quick_tile_definitions():
+		_add_android_pie_quick_tile(grid, definition)
+	parent.add_child(grid)
+	var footer := HBoxContainer.new()
+	footer.name = "PieQuickSettingsFooter"
+	footer.custom_minimum_size.y = 34
+	footer.add_theme_constant_override("separation", 6)
+	var page_indicator := _label("●  ○", 8, Color("#5F6368"))
+	page_indicator.name = "PieQuickSettingsPageIndicator"
+	page_indicator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_indicator.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	footer.add_child(page_indicator)
+	var settings_button := _make_android_shade_action_button("PieQuickSettingsSettingsButton", "⚙  Settings", "Open Settings")
+	settings_button.pressed.connect(func() -> void:
+		_close_gesture_overlay()
+		_on_app_pressed("Settings")
+	)
+	footer.add_child(settings_button)
+	parent.add_child(footer)
 
 
 func _build_android_pie_quick_settings_shade() -> void:
@@ -1296,35 +1433,8 @@ func _build_android_pie_quick_settings_shade() -> void:
 	var body := overlay.find_child("PieShadeContent", true, false) as VBoxContainer
 	if body == null:
 		return
-	_add_pie_shade_header(body)
-	_add_pie_brightness_slider(body)
-	var grid := GridContainer.new()
-	grid.name = "PieExpandedQuickSettingsGrid"
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 2)
-	grid.add_theme_constant_override("v_separation", 5)
-	for definition in _pie_quick_tile_definitions():
-		_add_android_pie_quick_tile(grid, definition)
-	body.add_child(grid)
-	var page_row := CenterContainer.new()
-	page_row.name = "PieQuickSettingsPageIndicator"
-	page_row.add_child(_label("●  ○", 8, Color("#5F6368")))
-	body.add_child(page_row)
-	var footer := HBoxContainer.new()
-	footer.alignment = BoxContainer.ALIGNMENT_END
-	var settings_button := Button.new()
-	settings_button.name = "PieQuickSettingsSettingsButton"
-	settings_button.text = "⚙  Settings"
-	settings_button.focus_mode = Control.FOCUS_NONE
-	settings_button.pressed.connect(func() -> void:
-		_close_gesture_overlay()
-		_on_app_pressed("Settings")
-	)
-	footer.add_child(settings_button)
-	body.add_child(footer)
+	_build_android_pie_quick_settings_content(body)
 	_apply_android_pie_shade_screen_mask(overlay)
-
 
 func _build_android_pie_notifications_preview() -> void:
 	var panel := PanelContainer.new()
@@ -1343,17 +1453,7 @@ func _build_android_pie_notifications_preview() -> void:
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 7)
 	panel.add_child(body)
-	_add_pie_shade_header(body)
-	var compact_grid := GridContainer.new()
-	compact_grid.name = "PieNotificationQuickSettingsGrid"
-	compact_grid.columns = 3
-	for definition in _pie_quick_tile_definitions().slice(0, 6):
-		_add_android_pie_quick_tile(compact_grid, definition)
-	body.add_child(compact_grid)
-	body.add_child(_label("Notifications", 9, Color("#5F6368")))
-	_add_pie_notification_card(body, "Messages", "Alex Morgan  ·  Are we still meeting today?", "NOW", "M", Color("#4285F4"))
-	_add_pie_notification_card(body, "Calendar", "Your event starts in 10 minutes", "10 MIN", "31", Color("#4285F4"))
-
+	_build_android_pie_notification_content(body)
 
 func _build_android_pie_control_center_preview() -> void:
 	var panel := PanelContainer.new()
@@ -1372,18 +1472,7 @@ func _build_android_pie_control_center_preview() -> void:
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 7)
 	panel.add_child(body)
-	_add_pie_shade_header(body)
-	_add_pie_brightness_slider(body)
-	var grid := GridContainer.new()
-	grid.name = "PieExpandedQuickSettingsGrid"
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 2)
-	grid.add_theme_constant_override("v_separation", 4)
-	for definition in _pie_quick_tile_definitions():
-		_add_android_pie_quick_tile(grid, definition)
-	body.add_child(grid)
-	body.add_child(_label("●  ○    ·    Settings", 8, Color("#5F6368")))
-
+	_build_android_pie_quick_settings_content(body)
 
 func _build_lollipop_notification_shade() -> void:
 	var overlay := _create_lollipop_shade_overlay("notifications", Color(0.025, 0.045, 0.060, 0.76))
