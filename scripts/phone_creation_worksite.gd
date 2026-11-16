@@ -1965,7 +1965,7 @@ func _create_generated_ui_screen_material() -> ShaderMaterial:
 	var darkness_strength := clampf(float(darkness_level) * 0.035, 0.0, 0.28)
 	var gloss_strength := clampf(float(profile.get("metallic", 0.04)) * 0.045, 0.002, 0.045)
 	var gloss_softness := clampf(float(profile.get("roughness", 0.27)), 0.045, 0.27)
-	var reflection_strength := clampf(float(profile.get("specular", 0.55)), 0.0, 0.55
+	var reflection_strength := clampf(float(profile.get("specular", 0.55)), 0.0, 0.55)
 
 	var shader := Shader.new()
 	shader.code = """
