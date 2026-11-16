@@ -341,8 +341,8 @@ func _run_os_generator_test() -> void:
 			if oreo_status_clock == null or oreo_status_clock.visible:
 				_fail("Oreo lock screen must not duplicate the large clock with an extra status-bar time.")
 				return
-			if oreo_assistant == null or oreo_camera == null or oreo_assistant.get_parent().get_index() >= oreo_camera.get_parent().get_index():
-				_fail("Oreo lock shortcuts must place Assistant left of Camera.")
+			if oreo_assistant == null or oreo_camera == null or not oreo_assistant.visible or oreo_assistant.custom_minimum_size.x < 44.0 or oreo_assistant.get_parent().get_index() >= oreo_camera.get_parent().get_index():
+				_fail("Oreo lock shortcuts must show a full-size Assistant button left of Camera.")
 				return
 			var oreo_assistant_art := oreo_assistant.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect
 			var oreo_camera_art := oreo_camera.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect
@@ -372,7 +372,7 @@ func _run_os_generator_test() -> void:
 				_fail("Android 8 Pixel lock configuration must not inherit the Lollipop flashlight setting.")
 				return
 		elif generation_number == 3:
-			for pie_control_name in ["PieLockScreen", "PieLockScreenClock", "PieLockScreenDate", "PieLockWeather", "PieLockBatteryInfo", "PieLockScreenNotifications", "PieLockNotification_Messages", "PieLockNotification_Calendar", "PieAssistantShortcut", "PieLockStatusSlot", "PieCameraShortcut", "PieSwipeToUnlockHint"]:
+			for pie_control_name in ["PieLockScreen", "PieLockScreenClock", "PieLockScreenDate", "PieLockWeather", "PieLockBatteryInfo", "PieLockScreenNotifications", "PieLockNotification_Messages", "PieLockNotification_Calendar", "PieAssistantShortcut", "PieLockScreenShortcutCenterSpacer", "PieCameraShortcut", "PieSwipeToUnlockHint"]:
 				if simulator.find_child(pie_control_name, true, false) == null:
 					_fail("Android 9 Pie Pixel lock screen is missing: " + pie_control_name)
 					return
@@ -392,7 +392,6 @@ func _run_os_generator_test() -> void:
 			var pie_camera := simulator.find_child("PieCameraShortcut", true, false) as Button
 			var pie_assistant_art := pie_assistant.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect if pie_assistant != null else null
 			var pie_camera_art := pie_camera.find_child("ImportedLockShortcutArtwork", true, false) as TextureRect if pie_camera != null else null
-			var pie_lock_art := simulator.find_child("ImportedLockStatusArtwork", true, false) as TextureRect
 			var pie_notification_art := simulator.find_child("PieLockNotificationIcon_Messages", true, false) as TextureRect
 			var pie_assistant_atlas := pie_assistant_art.texture as AtlasTexture if pie_assistant_art != null else null
 			var pie_notification_atlas := pie_notification_art.texture as AtlasTexture if pie_notification_art != null else null
@@ -402,9 +401,11 @@ func _run_os_generator_test() -> void:
 			if pie_camera_art == null or pie_camera_art.texture == null or pie_camera_art.texture.resource_path != "res://assets/os/lockscreen/camera.svg":
 				_fail("Pie Camera shortcut must use the imported camera artwork.")
 				return
-			if pie_lock_art == null or pie_lock_art.texture == null or pie_lock_art.texture.resource_path != "res://assets/os/lockscreen/fingerprint_sensor.svg":
-				_fail("Pie lock indicator must use the imported fingerprint artwork.")
+			if not pie_assistant.visible or pie_assistant.custom_minimum_size.x < 44.0:
+				_fail("Pie lock screen must display a full-size Assistant shortcut.")
 				return
+			if simulator.find_child("ImportedLockStatusArtwork", true, false) != null:
+				_fail("Android 9 Pie must not display a fingerprint sensor or central lock glyph.")
 			if pie_notification_atlas == null or pie_notification_atlas.atlas.resource_path != "res://assets/os/pie/icons.svg":
 				_fail("Pie notifications must use imported app icon artwork.")
 				return
@@ -442,6 +443,23 @@ func _run_os_generator_test() -> void:
 		if simulator.find_child(expected_android_nav, true, false) == null:
 			_fail("Android navigation bar did not return after leaving the lock/PIN screens.")
 			return
+		if generation_number in [2, 3]:
+			var drawer_touch := InputEventScreenTouch.new()
+			drawer_touch.index = 0
+			drawer_touch.position = Vector2(72, 300)
+			drawer_touch.pressed = true
+			simulator.call("_input", drawer_touch)
+			var drawer_drag := InputEventScreenDrag.new()
+			drawer_drag.index = 0
+			drawer_drag.position = Vector2(72, 225)
+			drawer_drag.relative = Vector2(0, -75)
+			simulator.call("_input", drawer_drag)
+			await process_frame
+			if simulator.get("active_component") != "app_drawer":
+				_fail("Android generation %d upward home swipe did not open the app drawer." % generation_number)
+				return
+			simulator.configure_os(generation_preview, "home_screen")
+			await process_frame
 		if generation_number == 1:
 			simulator.configure_os(generation_preview, "home_screen")
 			await process_frame
