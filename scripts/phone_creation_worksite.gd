@@ -9606,7 +9606,7 @@ func _refresh_rear_hardware_panel() -> void:
 	else:
 		rear_hardware_size_slider.set_value_no_signal(_get_rear_hardware_default_size())
 		rear_hardware_size_label.text = "ADD A %s TO BEGIN" % kind_name
-	rear_hardware_size_slider.disabled = not has_selection
+	rear_hardware_size_slider.editable = has_selection
 	rear_hardware_remove_button.disabled = not has_selection
 	if is_instance_valid(rear_hardware_selection_button):
 		rear_hardware_selection_button.disabled = modules.is_empty()
