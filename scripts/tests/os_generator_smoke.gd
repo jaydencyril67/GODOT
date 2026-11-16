@@ -364,6 +364,16 @@ func _run_gen1_smoke_test() -> void:
 			if simulator.find_child(str(family["prefix"]) + "Gen2Navigation" + action, true, false) == null:
 				_fail("Gen 2 " + str(family["id"]) + " is missing the " + action + " navigation control.")
 				return
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen2ScreenImage_lock_screen", Vector2(0.15, 0.92))
+		if _opened_apps.is_empty() or _opened_apps.back() != "Phone":
+			_fail("Gen 2 " + str(family["id"]) + " lower-left lock shortcut did not launch Phone.")
+			return
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen2ScreenImage_lock_screen", Vector2(0.85, 0.92))
+		if _opened_apps.is_empty() or _opened_apps.back() != "Camera":
+			_fail("Gen 2 " + str(family["id"]) + " lower-right lock shortcut did not launch Camera.")
+			return
 		simulator._dispatch_android_navigation("Home")
 		if simulator.active_component != "lock_screen":
 			_fail("Gen 2 " + str(family["id"]) + " navigation must not bypass the locked screen.")
