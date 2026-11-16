@@ -1925,9 +1925,9 @@ func _ensure_phone_ui_viewport() -> bool:
 		return false
 	phone_ui_viewport = SubViewport.new()
 	phone_ui_viewport.name = "GeneratedPhoneScreenViewport"
-	# A moderately denser portrait texture improves small system text and icon edges
-	# without the 2.25x render cost of a full 720x1440 target on low-end phones.
-	phone_ui_viewport.size = Vector2i(600, 1200)
+	# Keep the proven native 2:1 portrait buffer so all generated UI layers
+	# remain inside the phone's established screen viewport.
+	phone_ui_viewport.size = Vector2i(480, 960)
 	phone_ui_viewport.transparent_bg = false
 	phone_ui_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	phone_ui_viewport.disable_3d = true
@@ -1936,7 +1936,6 @@ func _ensure_phone_ui_viewport() -> bool:
 	phone_ui_renderer.name = "GeneratedPhoneScreenRenderer"
 	phone_ui_renderer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	phone_ui_renderer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	phone_ui_renderer.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	phone_ui_viewport.add_child(phone_ui_renderer)
 	return true
 
@@ -1958,12 +1957,12 @@ func _apply_generated_ui_to_phone() -> void:
 func _create_generated_ui_screen_material() -> ShaderMaterial:
 	if not is_instance_valid(phone_ui_viewport):
 		return null
-	# Keep the UI pixels opaque and color-accurate. Screen research affects only
-	# the physical glass response and black level, never the layout or readability.
+	# Preserve every rendered interface pixel. Display research modifies only
+	# the optical response around dark pixels and the extremely subtle glass sheen.
 	var profile: Dictionary = ScreenTechnologySystem.get_visual_profile(screen_quality_state)
 	var darkness_level := maxi(0, int(screen_quality_state.get("darkness", 0)))
-	var darkness_strength := clampf(float(darkness_level) * 0.035, 0.0, 0.28)
-	var gloss_strength := clampf(float(profile.get("metallic", 0.04)) * 0.045, 0.002, 0.045)
+	var darkness_strength := clampf(float(darkness_level) * 0.025, 0.0, 0.18)
+	var gloss_strength := clampf(float(profile.get("metallic", 0.04)) * 0.025, 0.001, 0.025)
 	var gloss_softness := clampf(float(profile.get("roughness", 0.27)), 0.045, 0.27)
 	var reflection_strength := clampf(float(profile.get("specular", 0.55)), 0.0, 0.55)
 
@@ -1973,28 +1972,26 @@ shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform sampler2D screen_texture : source_color, filter_linear;
 uniform float screen_darkness_strength = 0.0;
-uniform float screen_gloss_strength = 0.002;
+uniform float screen_gloss_strength = 0.001;
 uniform float screen_gloss_softness = 0.27;
 uniform float screen_reflection_strength = 0.55;
 void fragment() {
 	vec4 interface_pixel = texture(screen_texture, UV);
-	vec3 display_rgb = mix(vec3(0.003, 0.005, 0.009), interface_pixel.rgb, clamp(interface_pixel.a, 0.0, 1.0));
+	vec3 display_rgb = interface_pixel.rgb;
 	float pixel_luminance = dot(display_rgb, vec3(0.2126, 0.7152, 0.0722));
-	float shadow_mask = 1.0 - smoothstep(0.025, 0.36, pixel_luminance);
+	float shadow_mask = 1.0 - smoothstep(0.025, 0.30, pixel_luminance);
 	display_rgb *= 1.0 - screen_darkness_strength * shadow_mask;
 
-	// A restrained diagonal glass sheen and edge Fresnel keep the surface
-	// believable while preserving sharp, high-contrast interface content.
 	float facing = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
 	float fresnel = pow(1.0 - facing, 5.0);
 	float sheen_position = 0.18 + UV.y * 0.10;
-	float sheen_width = max(screen_gloss_softness * 1.7, 0.07);
+	float sheen_width = max(screen_gloss_softness * 1.8, 0.08);
 	float diagonal_sheen = exp(-pow((UV.x - sheen_position) / sheen_width, 2.0));
-	float glass_reflection = fresnel * screen_reflection_strength * 0.035;
+	float glass_reflection = fresnel * screen_reflection_strength * 0.025;
 	glass_reflection += diagonal_sheen * screen_gloss_strength;
 	ALBEDO = display_rgb + vec3(0.80, 0.89, 1.0) * glass_reflection;
 	EMISSION = display_rgb * 0.12;
-	ALPHA = 1.0;
+	ROUGHNESS = 0.24;
 }
 """
 	var material := ShaderMaterial.new()
