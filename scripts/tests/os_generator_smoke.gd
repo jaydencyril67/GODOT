@@ -189,6 +189,10 @@ func _run_os_generator_test() -> void:
 	if samsung_lock_image.stretch_mode != TextureRect.STRETCH_SCALE:
 		_fail("Samsung Gen 1 screenshots must fill the complete phone display area.")
 		return
+	var samsung_screen_border := simulator.find_child("OSScreenRoundedCornerMask", true, false) as Control
+	if samsung_screen_border == null or float(samsung_screen_border.get("border_width")) <= 0.0:
+		_fail("Samsung Gen 1 screen artwork must retain a visible rounded display-edge border.")
+		return
 	if simulator.find_child("LollipopLockScreen", true, false) != null or simulator.find_child("LockScreenClock", true, false) != null or simulator.find_child("LockScreenShortcut_Flashlight", true, false) != null:
 		_fail("The old generated Lollipop lock-screen controls must not appear in the TouchWiz screenshot view.")
 		return
