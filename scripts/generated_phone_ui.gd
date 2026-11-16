@@ -3,6 +3,7 @@ class_name GeneratedPhoneUI
 
 var blueprint: Dictionary = {}
 var _font: Font
+var _typography_scale := 1.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -31,11 +32,20 @@ func _draw() -> void:
 	var accent := _palette_color(palette, "accent", "#79D7D0")
 	var text_color := _palette_color(palette, "text", "#F4FAFC")
 	var muted := _palette_color(palette, "muted", "#A9BDC8")
+	var secondary := _palette_color(palette, "accent_secondary", "#B5A8FF")
+	match str(style.get("accent_treatment", "vivid")):
+		"subtle":
+			accent = accent.darkened(0.14)
+		"tonal":
+			accent = secondary
+		"vivid":
+			accent = accent.lightened(0.08)
 	var radius := int(style.get("corner_radius", 22))
-	var scale := float(style.get("typography_scale", 1.0))
+	_typography_scale = clampf(float(style.get("typography_scale", 1.0)), 0.85, 1.2)
+	var scale := _typography_scale
 	var margin := size.x * 0.065
 
-	_draw_wallpaper(background, accent, str(style.get("wallpaper_style", "aurora")))
+	_draw_wallpaper(background, accent, str(style.get("wallpaper_style", "aurora")), secondary)
 	_draw_status_bar(text_color, muted, system, style)
 
 	var widgets: Array = home.get("widgets", [])
@@ -97,7 +107,7 @@ func _draw() -> void:
 	_draw_navigation(style, muted, text_color)
 
 
-func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String) -> void:
+func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, secondary: Color) -> void:
 	for strip in range(36):
 		var ratio := float(strip) / 35.0
 		var tint := base.lerp(accent.darkened(0.78), ratio * 0.44)
@@ -105,7 +115,7 @@ func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String) -> voi
 	match wallpaper_style:
 		"aurora":
 			_draw_ellipse(Vector2(size.x * 0.18, size.y * 0.42), Vector2(size.x * 0.66, size.y * 0.22), -0.45, Color(accent.r, accent.g, accent.b, 0.19))
-			_draw_ellipse(Vector2(size.x * 0.86, size.y * 0.36), Vector2(size.x * 0.58, size.y * 0.18), 0.48, Color(accent.r, accent.g, accent.b, 0.13))
+			_draw_ellipse(Vector2(size.x * 0.86, size.y * 0.36), Vector2(size.x * 0.58, size.y * 0.18), 0.48, Color(secondary.r, secondary.g, secondary.b, 0.15))
 		"orbital":
 			var centre := Vector2(size.x * 0.78, size.y * 0.37)
 			for index in range(7):
@@ -132,7 +142,7 @@ func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String) -> voi
 				Vector2(size.x * 1.05, size.y * 0.57),
 				Vector2(size.x * 0.48, size.y * 0.69)
 			])
-			draw_colored_polygon(triangle, Color(accent.r, accent.g, accent.b, 0.14))
+			draw_colored_polygon(triangle, Color(secondary.r, secondary.g, secondary.b, 0.17))
 			draw_arc(Vector2(size.x * 0.76, size.y * 0.47), size.x * 0.28, -1.5, 1.9, 64, Color(1.0, 1.0, 1.0, 0.10), 1.0, true)
 		_:
 			_draw_ellipse(Vector2(size.x * 0.8, size.y * 0.62), Vector2(size.x * 0.54, size.y * 0.20), 0.2, Color(accent.r, accent.g, accent.b, 0.12))
@@ -158,7 +168,9 @@ func _draw_status_bar(text_color: Color, muted: Color, system: Dictionary, style
 		time_text = "%d:%02d %s" % [12 if twelve_hour == 0 else twelve_hour, minute, period]
 	_draw_text(time_text, Vector2(size.x * 0.065, size.y * 0.047), 13, text_color)
 	var right := size.x * 0.94
-	_draw_text(str(system.get("network_label", "5G")), Vector2(right - 72.0, size.y * 0.047), 10, text_color, HORIZONTAL_ALIGNMENT_RIGHT, 42.0)
+	var status_style := str(style.get("status_bar_style", "balanced"))
+	if status_style != "quiet":
+		_draw_text(str(system.get("network_label", "5G")), Vector2(right - 72.0, size.y * 0.047), 10, text_color, HORIZONTAL_ALIGNMENT_RIGHT, 42.0)
 	draw_arc(Vector2(right - 25.0, size.y * 0.039), 7.0, PI * 1.15, PI * 1.85, 20, text_color, 1.5, true)
 	draw_arc(Vector2(right - 25.0, size.y * 0.039), 4.0, PI * 1.15, PI * 1.85, 20, text_color, 1.3, true)
 	draw_circle(Vector2(right - 25.0, size.y * 0.048), 1.4, text_color)
@@ -166,6 +178,8 @@ func _draw_status_bar(text_color: Color, muted: Color, system: Dictionary, style
 	draw_rect(battery_rect, text_color, false, 1.2)
 	draw_rect(Rect2(battery_rect.position + Vector2(1.5, 1.5), Vector2(12.0 * float(system.get("battery_percent", 88)) / 100.0, 5.0)), text_color)
 	draw_rect(Rect2(Vector2(right - 1.0, size.y * 0.029), Vector2(2.0, 4.0)), text_color)
+	if bool(system.get("show_battery_percent", false)) and status_style == "detailed":
+		_draw_text("%d%%" % int(system.get("battery_percent", 88)), Vector2(right - 23.0, size.y * 0.047), 8, text_color, HORIZONTAL_ALIGNMENT_RIGHT, 20.0)
 
 
 func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_radius: int, text_color: Color, muted: Color, accent: Color, scale: float) -> void:
@@ -243,8 +257,9 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, palette
 	var row_count := maxi(1, ceili(float(apps.size()) / float(columns)))
 	var dock_top := viewport_size.y - viewport_size.y * 0.083 - 38.0
 	var available_height := maxf(48.0, dock_top - apps_top - 18.0)
-	var row_height := minf(icon_size + 27.0, available_height / float(row_count))
-	icon_size = minf(icon_size, maxf(26.0, row_height - 24.0))
+	var label_gap := clampf(float(style.get("spacing", 14)) * 1.35, 13.0, 27.0)
+	var row_height := minf(icon_size + label_gap, available_height / float(row_count))
+	icon_size = minf(icon_size, maxf(26.0, row_height - label_gap))
 	for index in range(apps.size()):
 		var app_value: Variant = apps[index]
 		if not app_value is Dictionary:
@@ -261,7 +276,7 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, palette
 		var glyph := str(app.get("glyph", "A"))
 		_draw_text(glyph, centre + Vector2(-icon_size * 0.34, icon_size * 0.13), 17 if glyph.length() <= 1 else 11, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, icon_size * 0.68)
 		var label := str(app.get("name", "App"))
-		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + 17.0), 8, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
+		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + label_gap - 10.0), 8, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
 
 
 func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, text_color: Color, muted: Color, viewport_size: Vector2, radius: int) -> void:
@@ -309,10 +324,9 @@ func _palette_color(palette: Dictionary, key: String, fallback: String) -> Color
 
 
 func _draw_text(caption: String, position: Vector2, font_size: int, color: Color, alignment: int = HORIZONTAL_ALIGNMENT_LEFT, width: float = -1.0) -> void:
-	var font := _font if _font != null else get_theme_default_font()
-	if font == null:
+	if _font == null:
 		return
-	draw_string(font, position, caption, alignment, width, maxi(8, font_size), color)
+	draw_string(_font, position, caption, alignment, width, maxi(8, roundi(float(font_size) * _typography_scale)), color)
 
 
 func _draw_round_rect(rect: Rect2, color: Color, radius: float) -> void:
