@@ -421,6 +421,184 @@ func _run_gen1_smoke_test() -> void:
 		simulator._dispatch_android_navigation("Back")
 		await process_frame
 
+
+	# Gen 3 Android 8 Oreo: each manufacturer family has its own six reference
+	# images, while navigation, gestures, app launching, quick settings and recents
+	# reuse the interaction model proven by Gen 1.
+	var gen3_families: Array[Dictionary] = [
+		{
+			"id": "samsung_experience9",
+			"prefix": "Samsung",
+			"folder": "samsung",
+			"identity": "Samsung Experience 9.0 · Android 8 Oreo",
+			"home_tap": Vector2(0.13, 0.34)
+		},
+		{
+			"id": "google_pixel8",
+			"prefix": "Pixel",
+			"folder": "pixel",
+			"identity": "Google Pixel Launcher · Android 8 Oreo",
+			"home_tap": Vector2(0.13, 0.57)
+		},
+		{
+			"id": "xiaomi_miui9",
+			"prefix": "Xiaomi",
+			"folder": "miui",
+			"identity": "Xiaomi MIUI 9.5 · Android 8.1 Oreo",
+			"home_tap": Vector2(0.13, 0.34)
+		}
+	]
+	for family_index in range(gen3_families.size()):
+		var family: Dictionary = gen3_families[family_index]
+		var gen3_config := ProceduralEngineScript.generate_os(8301 + family_index, 3)
+		var gen3_style: Dictionary = gen3_config.get("style", {}).duplicate(true)
+		gen3_style["ui_family"] = str(family["id"])
+		gen3_config["style"] = gen3_style
+		gen3_config = ProceduralEngineScript.normalize_os(gen3_config)
+		if int(gen3_config.get("generation", 0)) != 2:
+			_fail("Gen 3 family configuration did not remain in Generation 3.")
+			return
+		if str(gen3_config.get("style", {}).get("identity", "")) != str(family["identity"]):
+			_fail("Gen 3 " + str(family["id"]) + " family identity is incorrect.")
+			return
+		if not ProceduralEngineScript.validate_os(gen3_config).is_empty():
+			_fail("Gen 3 " + str(family["id"]) + " configuration failed validation.")
+			return
+
+		var gen3_assets := {
+			"lock_screen": "lock.jpg",
+			"home_screen": "home.jpg",
+			"app_drawer": "appdrawer.jpg",
+			"control_center": "controlcenter.jpg",
+			"notifications": "notification.jpg",
+			"recent_apps": "recent.jpg"
+		}
+		if str(family["id"]) == "google_pixel8":
+			gen3_assets["lock_screen"] = "lockscreen.jpg"
+		elif str(family["id"]) == "xiaomi_miui9":
+			gen3_assets["recent_apps"] = "recents.jpg"
+		for component_id in gen3_assets:
+			var expected_gen3_path := "res://assets/os/gen3/" + str(family["folder"]) + "/" + str(gen3_assets[component_id])
+			simulator.configure_os(gen3_config, str(component_id))
+			await process_frame
+			var gen3_node_name := str(family["prefix"]) + "Gen3ScreenImage_" + str(component_id)
+			var gen3_image_node := simulator.find_child(gen3_node_name, true, false) as TextureRect
+			if gen3_image_node == null or gen3_image_node.texture == null or gen3_image_node.texture.resource_path != expected_gen3_path:
+				_fail("Gen 3 " + str(family["id"]) + " " + str(component_id) + " reference image failed to load: " + expected_gen3_path)
+				return
+
+		simulator.configure_os(gen3_config, "home_screen")
+		await process_frame
+		if simulator.find_child(str(family["prefix"]) + "Gen3NavigationHome", true, false) == null:
+			_fail("Gen 3 " + str(family["id"]) + " is missing its Home navigation control.")
+			return
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_home_screen", family["home_tap"])
+		if _opened_apps.is_empty() or _opened_apps.back() != "Calendar":
+			_fail("Gen 3 " + str(family["id"]) + " home-screen app icons are not interactive.")
+			return
+
+		simulator.configure_os(gen3_config, "app_drawer")
+		await process_frame
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_app_drawer", Vector2(0.13, 0.22))
+		if _opened_apps.is_empty() or _opened_apps.back() != "Phone":
+			_fail("Gen 3 " + str(family["id"]) + " app-drawer icons are not interactive.")
+			return
+
+		simulator.configure_os(gen3_config, "notifications")
+		await process_frame
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_notifications", Vector2(0.20, 0.34))
+		if _opened_apps.is_empty() or _opened_apps.back() != "Phone":
+			_fail("Gen 3 " + str(family["id"]) + " notification entries are not interactive.")
+			return
+
+		simulator.configure_os(gen3_config, "control_center")
+		await process_frame
+		var gen3_wifi_before := bool(simulator._quick_setting_states.get("Wi-Fi", false))
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_control_center", Vector2(0.25, 0.35))
+		if bool(simulator._quick_setting_states.get("Wi-Fi", false)) == gen3_wifi_before:
+			_fail("Gen 3 " + str(family["id"]) + " Quick Settings tiles do not update their state.")
+			return
+		var gen3_brightness_before := int(simulator._brightness_level)
+		var gen3_brightness_test_x := 0.85 if gen3_brightness_before < 85 else 0.25
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_control_center", Vector2(gen3_brightness_test_x, 0.20))
+		if int(simulator._brightness_level) == gen3_brightness_before:
+			_fail("Gen 3 " + str(family["id"]) + " brightness control does not change display brightness.")
+			return
+
+		simulator.configure_os(gen3_config, "recent_apps")
+		await process_frame
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_recent_apps", Vector2(0.20, 0.20))
+		if _opened_apps.is_empty() or _opened_apps.back() != "Settings":
+			_fail("Gen 3 " + str(family["id"]) + " recent-app reference cards are not interactive.")
+			return
+
+		simulator.configure_os(gen3_config, "lock_screen")
+		await process_frame
+		for action in ["Back", "Home", "Overview"]:
+			if simulator.find_child(str(family["prefix"]) + "Gen3Navigation" + action, true, false) == null:
+				_fail("Gen 3 " + str(family["id"]) + " is missing the " + action + " navigation control.")
+				return
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_lock_screen", Vector2(0.15, 0.92))
+		if _opened_apps.is_empty() or _opened_apps.back() != "Phone":
+			_fail("Gen 3 " + str(family["id"]) + " lower-left lock shortcut did not launch Phone.")
+			return
+		_opened_apps.clear()
+		_simulate_screenshot_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_lock_screen", Vector2(0.85, 0.92))
+		if _opened_apps.is_empty() or _opened_apps.back() != "Camera":
+			_fail("Gen 3 " + str(family["id"]) + " lower-right lock shortcut did not launch Camera.")
+			return
+		simulator._dispatch_android_navigation("Home")
+		if simulator.active_component != "lock_screen":
+			_fail("Gen 3 " + str(family["id"]) + " navigation must not bypass the locked screen.")
+			return
+		simulator._handle_system_gesture(Vector2(simulator.size.x * 0.50, simulator.size.y * 0.82), Vector2(simulator.size.x * 0.50, simulator.size.y * 0.20), 150)
+		if simulator.active_component != "home_screen":
+			_fail("Gen 3 " + str(family["id"]) + " swipe-up unlock gesture did not open the home screen.")
+			return
+
+		# Top-edge swipe opens Notifications; a second downward swipe opens
+		# the independently supplied Control Center reference.
+		simulator._handle_system_gesture(Vector2(simulator.size.x * 0.50, 4.0), Vector2(simulator.size.x * 0.50, simulator.size.y * 0.42), 150)
+		await process_frame
+		if simulator.find_child("OSGestureOverlay_notifications", true, false) == null or simulator.find_child(str(family["prefix"]) + "Gen3ScreenImage_notifications", true, false) == null:
+			_fail("Gen 3 " + str(family["id"]) + " top-edge swipe did not open its Notifications shade.")
+			return
+		simulator._handle_system_gesture(Vector2(simulator.size.x * 0.50, simulator.size.y * 0.20), Vector2(simulator.size.x * 0.50, simulator.size.y * 0.72), 150)
+		await process_frame
+		if simulator.find_child("OSGestureOverlay_control_center", true, false) == null or simulator.find_child(str(family["prefix"]) + "Gen3ScreenImage_control_center", true, false) == null:
+			_fail("Gen 3 " + str(family["id"]) + " second shade swipe did not open its Control Center.")
+			return
+		var gen3_overlay_wifi_before := bool(simulator._quick_setting_states.get("Wi-Fi", false))
+		_simulate_overlay_tap(simulator, str(family["prefix"]) + "Gen3ScreenImage_control_center", "control_center", Vector2(0.25, 0.35))
+		if bool(simulator._quick_setting_states.get("Wi-Fi", false)) == gen3_overlay_wifi_before:
+			_fail("Gen 3 " + str(family["id"]) + " shade Quick Settings are not interactive.")
+			return
+		simulator._close_gesture_overlay()
+
+		simulator.configure_os(gen3_config, "home_screen")
+		await process_frame
+		simulator._dispatch_android_navigation("Overview")
+		await process_frame
+		if simulator.find_child("OSGestureOverlay_recent_apps", true, false) == null or simulator.find_child("Gen1FamilyRecentApps", true, false) == null:
+			_fail("Gen 3 " + str(family["id"]) + " Overview did not open the live recent-apps task interface.")
+			return
+		var gen3_clear_all := simulator.find_child("Gen1FamilyClearAllRecentApps", true, false) as Button
+		if gen3_clear_all == null:
+			_fail("Gen 3 " + str(family["id"]) + " Overview is missing Clear all.")
+			return
+		gen3_clear_all.pressed.emit()
+		await process_frame
+		if not simulator._recent_app_names.is_empty():
+			_fail("Gen 3 " + str(family["id"]) + " Clear all did not remove recent tasks.")
+			return
+		simulator._dispatch_android_navigation("Back")
+		await process_frame
+
 	root.remove_child(simulator_host)
 	simulator_host.free()
 	await process_frame
