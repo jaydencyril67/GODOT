@@ -109,6 +109,7 @@ func _run_gen1_smoke_test() -> void:
 		_fail("Google Stock Android 4 Apps shortcut did not open the app drawer.")
 		return
 	_simulate_screenshot_tap(simulator, "PixelGen1ScreenImage_app_drawer", Vector2(0.13, 0.245))
+	print("GEN1_PIXEL_APP_DRAWER_LAST_OPENED: ", _opened_apps.back() if not _opened_apps.is_empty() else "none")
 	if _opened_apps.is_empty() or _opened_apps.back() != "Phone":
 		_fail("Google Stock Android 4 app-drawer icons are not interactive.")
 		return
