@@ -48,7 +48,7 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor model is missing its visible top silicon die.")
 		worksite.free()
 		return
-	if model.find_children("LaserEtchedMarking", "Label3D", true, false).size() < 3:
+	if model.find_child("LaserEtchedMarking_Logo", true, false) == null or model.find_child("LaserEtchedMarking_Product", true, false) == null or model.find_child("LaserEtchedMarking_Revision", true, false) == null:
 		_fail("Processor top face is missing its etched product markings.")
 		worksite.free()
 		return
