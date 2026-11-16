@@ -9,6 +9,6 @@ Reference images currently present:
 - `notification.jpg`
 - `recentapps.jpg`
 
-The OS preview uses `notification.jpg` for both the notification shade and Control Center because no separate `controlcenter.jpg` is currently present. Add that file and update the simulator mapping when a dedicated Control Center reference is available.
+The OS preview routes `notification.jpg` only to Notifications. No `controlcenter.jpg` is present, so Control Center displays the pending-reference placeholder instead of incorrectly reusing the notification screenshot. Add `controlcenter.jpg` when its actual screenshot is available.
 
 MIUI V4 remains separate from Samsung TouchWiz Nature UX and Google Stock Android 4.0.
