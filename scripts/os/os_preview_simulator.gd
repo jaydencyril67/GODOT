@@ -394,9 +394,9 @@ func _handle_pixel_gen1_tap(touch_position: Vector2) -> void:
 				["Drive", "Downloads", "Messages", "Assistant"]
 			]
 			var drawer_columns := [0.13, 0.38, 0.62, 0.87]
-			var drawer_centres := [0.31, 0.45, 0.60, 0.76, 0.91]
+			var drawer_centres := [0.245, 0.405, 0.565, 0.725, 0.885]
 			for row_index in range(drawer_rows.size()):
-				if absf(position.y - drawer_centres[row_index]) > 0.065:
+				if absf(position.y - drawer_centres[row_index]) > 0.075:
 					continue
 				for column_index in range(drawer_columns.size()):
 					if absf(position.x - drawer_columns[column_index]) <= 0.10:
