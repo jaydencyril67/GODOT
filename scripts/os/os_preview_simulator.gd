@@ -560,7 +560,7 @@ func _handle_gen2_screen_tap(touch_position: Vector2) -> void:
 	match active_component:
 		"lock_screen":
 			if normalized_position.y >= 0.88:
-				_on_app_pressed("Camera" if normalized_position.x < 0.5 else "Phone")
+				_on_app_pressed("Phone" if normalized_position.x < 0.5 else "Camera")
 		"home_screen":
 			_handle_gen2_home_screen_tap(normalized_position)
 		"app_drawer":
