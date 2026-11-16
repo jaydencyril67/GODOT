@@ -124,16 +124,16 @@ func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, second
 			_draw_ellipse(Vector2(size.x * 0.8, size.y * 0.62), Vector2(size.x * 0.54, size.y * 0.20), 0.2, Color(accent.r, accent.g, accent.b, 0.12))
 
 
-func _draw_ellipse(centre: Vector2, radii: Vector2, rotation: float, color: Color) -> void:
+func _draw_ellipse(centre: Vector2, radii: Vector2, angle_radians: float, color: Color) -> void:
 	var points := PackedVector2Array()
 	for index in range(48):
 		var angle := TAU * float(index) / 48.0
-		var point := Vector2(cos(angle) * radii.x, sin(angle) * radii.y).rotated(rotation)
+		var point := Vector2(cos(angle) * radii.x, sin(angle) * radii.y).rotated(angle_radians)
 		points.append(centre + point)
 	draw_colored_polygon(points, color)
 
 
-func _draw_status_bar(text_color: Color, muted: Color, system: Dictionary, style: Dictionary) -> void:
+func _draw_status_bar(text_color: Color, _muted: Color, system: Dictionary, style: Dictionary) -> void:
 	var now := Time.get_datetime_dict_from_system()
 	var hour := int(now.get("hour", 9))
 	var minute := int(now.get("minute", 41))
@@ -158,7 +158,7 @@ func _draw_status_bar(text_color: Color, muted: Color, system: Dictionary, style
 		_draw_text("%d%%" % int(system.get("battery_percent", 88)), Vector2(right - 23.0, size.y * 0.047), 8, text_color, HORIZONTAL_ALIGNMENT_RIGHT, 20.0)
 
 
-func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_radius: int, text_color: Color, muted: Color, accent: Color, scale: float) -> void:
+func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_radius: int, text_color: Color, muted: Color, accent: Color, widget_text_scale: float) -> void:
 	var surface := _palette_color(palette, "surface", "#203344")
 	var surface_alt := _palette_color(palette, "surface_alt", "#30495B")
 	var fill := Color(surface.r, surface.g, surface.b, 0.84)
@@ -170,7 +170,7 @@ func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_
 	match widget_type:
 		"clock":
 			_draw_text("LOCAL TIME", rect.position + Vector2(inset, rect.size.y * 0.27), 9, muted)
-			_draw_clock(rect.position + Vector2(inset, rect.size.y * 0.70), int(rect.size.y * 0.40 * scale), text_color)
+			_draw_clock(rect.position + Vector2(inset, rect.size.y * 0.70), int(rect.size.y * 0.40 * widget_text_scale), text_color)
 			_draw_text("A good moment to begin.", rect.position + Vector2(inset, rect.size.y * 0.88), 9, muted)
 		"weather":
 			_draw_text("WEATHER", rect.position + Vector2(inset, rect.size.y * 0.24), 9, muted)
@@ -207,11 +207,11 @@ func _draw_widget(rect: Rect2, widget_type: String, palette: Dictionary, corner_
 			_draw_clock(rect.position + Vector2(inset, rect.size.y * 0.72), int(rect.size.y * 0.42), text_color)
 
 
-func _draw_clock(position: Vector2, font_size: int, color: Color) -> void:
+func _draw_clock(text_position: Vector2, font_size: int, color: Color) -> void:
 	var now := Time.get_datetime_dict_from_system()
 	var hour := int(now.get("hour", 9))
 	var minute := int(now.get("minute", 41))
-	_draw_text("%02d:%02d" % [hour, minute], position, font_size, color)
+	_draw_text("%02d:%02d" % [hour, minute], text_position, font_size, color)
 
 
 func _draw_search_bar(rect: Rect2, surface: Color, muted: Color, radius: int) -> void:
@@ -221,7 +221,7 @@ func _draw_search_bar(rect: Rect2, surface: Color, muted: Color, radius: int) ->
 	draw_circle(rect.position + Vector2(rect.size.x - rect.size.y * 0.48, rect.size.y * 0.5), rect.size.y * 0.15, Color(muted.r, muted.g, muted.b, 0.7))
 
 
-func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, palette: Dictionary, text_color: Color, muted: Color, viewport_size: Vector2) -> void:
+func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, _palette: Dictionary, text_color: Color, _muted: Color, viewport_size: Vector2) -> void:
 	if not apps_value is Array:
 		return
 	var apps: Array = apps_value
@@ -255,7 +255,7 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, palette
 		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + label_gap - 8.0), 8, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
 
 
-func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, text_color: Color, muted: Color, viewport_size: Vector2, radius: int) -> void:
+func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, _text_color: Color, _muted: Color, viewport_size: Vector2, radius: int) -> void:
 	var dock: Array = dock_value if dock_value is Array else ["Phone", "Messages", "Browser", "Camera"]
 	var dock_height := viewport_size.y * 0.083
 	var dock_rect := Rect2(Vector2(viewport_size.x * 0.055, viewport_size.y - dock_height - 38.0), Vector2(viewport_size.x * 0.89, dock_height))
@@ -299,10 +299,10 @@ func _palette_color(palette: Dictionary, key: String, fallback: String) -> Color
 	return Color(str(palette.get(key, fallback)))
 
 
-func _draw_text(caption: String, position: Vector2, font_size: int, color: Color, alignment: int = HORIZONTAL_ALIGNMENT_LEFT, width: float = -1.0) -> void:
+func _draw_text(caption: String, text_position: Vector2, font_size: int, color: Color, alignment: int = HORIZONTAL_ALIGNMENT_LEFT, width: float = -1.0) -> void:
 	if _font == null:
 		return
-	draw_string(_font, position, caption, alignment, width, maxi(8, roundi(float(font_size) * _typography_scale)), color)
+	draw_string(_font, text_position, caption, alignment, width, maxi(8, roundi(float(font_size) * _typography_scale)), color)
 
 
 func _draw_round_rect(rect: Rect2, color: Color, radius: float) -> void:
