@@ -266,6 +266,19 @@ func _run_os_generator_test() -> void:
 			return
 	print("GEN1_PIXEL_ASSETS_TEST: all six reference screens loaded")
 
+	var xiaomi_gen1_config := ProceduralEngineScript.generate_os(8103, 1)
+	xiaomi_gen1_config["style"]["ui_family"] = "xiaomi_miui"
+	xiaomi_gen1_config = ProceduralEngineScript.normalize_os(xiaomi_gen1_config)
+	if str(xiaomi_gen1_config.get("style", {}).get("identity", "")) != "Xiaomi MIUI (Android 4.0 era)":
+		_fail("Gen 1 Xiaomi UI must identify itself as Xiaomi MIUI from the Android 4.0 era.")
+		return
+	simulator.configure_os(xiaomi_gen1_config, "home_screen")
+	await process_frame
+	if simulator.find_child("XiaomiGen1ReferencePending_home_screen", true, false) == null:
+		_fail("Gen 1 Xiaomi UI must remain a distinct selectable family while its reference images are pending.")
+		return
+	print("GEN1_XIAOMI_FAMILY_TEST: independent MIUI family configuration loaded")
+
 	for generation_number in range(1, 4):
 		var generation_preview := ProceduralEngineScript.generate_os(8100 + generation_number, generation_number)
 		simulator.configure_os(generation_preview, "home_screen")
