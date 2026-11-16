@@ -4902,6 +4902,7 @@ func _build_android_pie_app_drawer() -> void:
 	var all_apps_heading := HBoxContainer.new()
 	all_apps_heading.name = "PieAppDrawerAllAppsHeader"
 	var all_apps_label := _label("All apps", 13, Color("#202124"))
+	all_apps_label.name = "PieAppDrawerAllAppsHeading"
 	all_apps_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	all_apps_heading.add_child(all_apps_label)
 	var all_apps_count := _label("%d APPS" % OSEngine.APP_DEFINITIONS.size(), 8, Color("#5F6368"))
