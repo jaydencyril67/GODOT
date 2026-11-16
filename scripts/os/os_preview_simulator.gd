@@ -20,6 +20,14 @@ const PIXEL_GEN1_SCREEN_ASSETS := {
 	"notifications": "notification.jpg",
 	"recent_apps": "recentapps.jpg"
 }
+const XIAOMI_GEN1_SCREEN_ASSETS := {
+	"lock_screen": "lockscreen.jpg",
+	"home_screen": "homescreen.jpg",
+	"app_drawer": "appsdrawer.jpg",
+	"control_center": "controlcenter.jpg",
+	"notifications": "notification.jpg",
+	"recent_apps": "recentapps.jpg"
+}
 # Load imported assets after the simulator enters the scene tree. Preloading these
 # font/SVG resources during a clean-checkout script scan fails before Godot imports them.
 var LOCKSCREEN_FONT: FontFile
@@ -979,23 +987,40 @@ func _is_gen1_xiaomi_ui() -> bool:
 
 func _uses_gen1_samsung_screenshot(component_id: String = "") -> bool:
 	var target_component := active_component if component_id.is_empty() else component_id
-	return (_is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component)) or (_is_gen1_pixel_ui() and PIXEL_GEN1_SCREEN_ASSETS.has(target_component))
+	if _is_gen1_samsung_ui() and SAMSUNG_GEN1_SCREEN_ASSETS.has(target_component):
+		return true
+	if _is_gen1_pixel_ui() and PIXEL_GEN1_SCREEN_ASSETS.has(target_component):
+		return true
+	if _is_gen1_xiaomi_ui() and XIAOMI_GEN1_SCREEN_ASSETS.has(target_component):
+		var xiaomi_path := "res://assets/os/gen1/xiaomi/" + str(XIAOMI_GEN1_SCREEN_ASSETS[target_component])
+		return ResourceLoader.exists(xiaomi_path)
+	return false
 
 func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> TextureRect:
-	var is_pixel := _is_gen1_pixel_ui()
-	var assets: Dictionary = PIXEL_GEN1_SCREEN_ASSETS if is_pixel else SAMSUNG_GEN1_SCREEN_ASSETS
+	var family_folder := "samsung"
+	var family_label := "Samsung"
+	var family_prefix := "Samsung"
+	var assets: Dictionary = SAMSUNG_GEN1_SCREEN_ASSETS
+	if _is_gen1_pixel_ui():
+		family_folder = "pixel"
+		family_label = "Pixel"
+		family_prefix = "Pixel"
+		assets = PIXEL_GEN1_SCREEN_ASSETS
+	elif _is_gen1_xiaomi_ui():
+		family_folder = "xiaomi"
+		family_label = "Xiaomi MIUI"
+		family_prefix = "Xiaomi"
+		assets = XIAOMI_GEN1_SCREEN_ASSETS
 	var filename := str(assets.get(component_id, ""))
 	if filename.is_empty():
 		push_error("No Gen 1 screenshot is registered for component: " + component_id)
 		return null
-	var family_folder := "pixel" if is_pixel else "samsung"
-	var family_label := "Pixel" if is_pixel else "Samsung"
 	var asset_path := "res://assets/os/gen1/" + family_folder + "/" + filename
 	if not ResourceLoader.exists(asset_path):
 		push_error(family_label + " Gen 1 screenshot asset is missing: " + asset_path)
 		return null
 	var screenshot := TextureRect.new()
-	screenshot.name = ("PixelGen1ScreenImage_" if is_pixel else "SamsungGen1ScreenImage_") + component_id
+	screenshot.name = family_prefix + "Gen1ScreenImage_" + component_id
 	screenshot.texture = load(asset_path) as Texture2D
 	if screenshot.texture == null:
 		push_error("Samsung Gen 1 screenshot could not be loaded: " + asset_path)
