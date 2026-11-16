@@ -2995,6 +2995,8 @@ func _add_gen1_samsung_screenshot(parent: Control, component_id: String) -> Text
 	screenshot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	screenshot.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(screenshot)
+	if not parent is Container:
+		screenshot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return screenshot
 
 
