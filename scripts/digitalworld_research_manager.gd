@@ -26,7 +26,6 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Wi-Fi": 320.0,
 	"Bluetooth": 240.0,
 	"Cooling System Design": 425.0,
-	"UI Evolution": 30.0,
 	"Phone Type": 1460.0,
 	"Memory Clock": 30.0,
 	"Curved Screen Horizontal": 500.0,
@@ -226,7 +225,6 @@ const COMPONENT_CATALOGUE := [
 	"Wi-Fi",
 	"Bluetooth",
 	"Cooling System Design",
-	"UI Evolution",
 	"Phone Type",
 	"Memory Clock",
 	"Curved Screen Horizontal",
@@ -993,16 +991,6 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			if str(existing_box_package_project.get("component", "")) == component and str(existing_box_package_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION, STATUS_APPROVED]:
 				return _failure("Box Package customization research is already in progress, awaiting validation, or approved.")
 
-	if component == "UI Evolution":
-		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
-			return _failure("UI Evolution research has already been completed.")
-		for existing_project_value in career.get("research_projects", []):
-			if not (existing_project_value is Dictionary):
-				continue
-			var existing_ui_evolution_project: Dictionary = existing_project_value
-			if str(existing_ui_evolution_project.get("component", "")) == component and str(existing_ui_evolution_project.get("status", "")) in [STATUS_ACTIVE, STATUS_AWAITING_VALIDATION, STATUS_APPROVED]:
-				return _failure("UI Evolution research is already in progress, awaiting validation, or approved.")
-
 	if component == "Wireless Earbuds":
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= 1:
 			return _failure("Wireless Earbuds have already been researched.")
@@ -1118,8 +1106,6 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = {"index": 1, "technology": "Wireless Earbuds"}
 	elif component == "Box Package":
 		ordered_target = {"index": 1, "technology": "Box Package"}
-	elif component == "UI Evolution":
-		ordered_target = {"index": 1, "technology": "Procedural UI Generator"}
 	elif component == "Device Color":
 		ordered_target = {"index": 1, "technology": "Gradient Finish"} if int(career.get("research_component_levels", {}).get("Device Color", 0)) < 1 else {}
 	elif component == "Phone Case":
@@ -1138,7 +1124,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 	if component in ["Wireless Charging", "Phone Case", "Charger"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component in ["Box Package", "UI Evolution"] or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1188,9 +1174,6 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif component == "Box Package":
 			project_title = "Research: Box Package Customizations"
 			project_objective = "Develop and validate the company-branded package customization system, unlocking logo and name sizing, positioning, and package colour controls. The standard Box Package remains available without research."
-		elif component == "UI Evolution":
-			project_title = "Research: UI Evolution - Procedural UI Generator"
-			project_objective = "Develop and validate the local procedural UI Evolution engine, generating original, coherent, phone-native interfaces without external AI services."
 		elif component == "Wireless Earbuds":
 			project_title = "Research: Wireless Earbuds - Initial Unlock"
 			project_objective = "Develop and validate the wireless-earbuds accessory, unlocking its availability in the phone creation worksite."
@@ -1405,7 +1388,6 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var side_button_target_index := -1
 	var power_volume_button_length_target_index := -1
 	var power_volume_button_position_target_index := -1
-	var ui_evolution_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -1546,10 +1528,6 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Box Package":
 		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != "Box Package":
 			return _failure("This Box Package Customizations project is no longer a valid, unapproved customization unlock.")
-	elif component == "UI Evolution":
-		ui_evolution_target_index = int(project.get("research_target_index", -1))
-		if int(component_levels.get(component, 0)) >= 1 or ui_evolution_target_index != 1 or str(project.get("research_target", "")) != "Procedural UI Generator":
-			return _failure("This UI Evolution project is no longer a valid, unapproved generator unlock.")
 	elif component == "Device Color":
 		device_color_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or device_color_target_index != 1 or str(project.get("research_target", "")) != "Gradient Finish":
@@ -1641,8 +1619,6 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact gradient-finish unlock assigned to this project.")
 		if result_component == "Box Package" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact Box Package customization unlock assigned to this project.")
-		if result_component == "UI Evolution" and value != str(project.get("research_target", "")):
-			return _failure("Validate the Procedural UI Generator unlock assigned to this project.")
 		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1767,9 +1743,6 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		component_levels[component] = 1
 	elif component == "Box Package":
 		# One approved project unlocks Box Package customization controls only; the standard package is always available.
-		component_levels[component] = 1
-	elif component == "UI Evolution":
-		# One approval unlocks the local procedural interface generator.
 		component_levels[component] = 1
 	elif component == "Device Color":
 		# Solid colour is the default; one approved project unlocks gradient finishes.
