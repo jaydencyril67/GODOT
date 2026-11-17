@@ -69,7 +69,7 @@ func _check_generated_designs() -> bool:
 			for rect_value in rect_values:
 				placement_signature += "%.2f," % float(rect_value)
 			placement_signature += ";"
-		var signature := "%s|%s|%s|%s|%s|%s|%s" % [
+		var signature := "%s|%s|%s|%s|%s|%s|%s|%s" % [
 			str(style.get("palette", {}).get("name", "")),
 			str(style.get("wallpaper_style", "")),
 			str(style.get("wallpaper_path", "")),
