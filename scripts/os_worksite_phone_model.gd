@@ -6,11 +6,11 @@ extends Node3D
 
 const HANDSET_SIZE := Vector3(1.45, 2.92, 0.22)
 const OUTER_CORNER_RADIUS := 0.34
-const BEZEL_WIDTH := 0.016
+const BEZEL_WIDTH := 0.008
 const BEZEL_HEIGHT := BEZEL_WIDTH
 const SCREEN_WIDTH := HANDSET_SIZE.x - BEZEL_WIDTH * 2.0
 const SCREEN_HEIGHT := HANDSET_SIZE.y - BEZEL_HEIGHT * 2.0
-const SCREEN_CORNER_RADIUS := 0.27
+const SCREEN_CORNER_RADIUS := 0.30
 const BODY_COLOR := Color("#A5ADB6")
 
 var chassis: MeshInstance3D
@@ -129,10 +129,10 @@ func _build_display(screen_texture: Texture2D) -> void:
 	var inset := MeshInstance3D.new()
 	inset.name = "DisplayInsetFrame"
 	inset.mesh = _build_rounded_extrusion(
-		SCREEN_WIDTH + 0.016,
-		SCREEN_HEIGHT + 0.016,
-		0.006,
-		SCREEN_CORNER_RADIUS + 0.010,
+		SCREEN_WIDTH + 0.004,
+		SCREEN_HEIGHT + 0.004,
+		0.004,
+		SCREEN_CORNER_RADIUS + 0.003,
 		32
 	)
 	var inset_material := StandardMaterial3D.new()
