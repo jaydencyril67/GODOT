@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright 2021 LiteKite Startup. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bottom_nav_bar_container"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/bottom_nav_bar_height"
+    android:layout_gravity="bottom"
+    android:background="@color/black">
+
+    <com.litekite.systemui.widget.KeyButtonView
+        android:id="@+id/kbv_home"
+        style="@style/KeyButtonView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_ripple_round_48"
+        android:tint="@color/selector_tint_color"
+        app:keyCode="@integer/keycode_home"
+        app:keyRepeat="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/power"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_home" />
+
+    <com.litekite.systemui.widget.KeyButtonView
+        android:id="@+id/power"
+        style="@style/KeyButtonView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_ripple_round_48"
+        android:tint="@null"
+        app:keyCode="@integer/keycode_power"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/abv_music"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/kbv_home"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_power" />
+
+    <com.litekite.systemui.widget.AppButtonView
+        android:id="@+id/abv_music"
+        style="@style/BottomNavBarBtnStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:action="@string/action_music"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/cib_user_avatar"
+        app:layout_constraintEnd_toStartOf="@+id/cib_user_avatar"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/power"
+        app:layout_constraintTop_toTopOf="parent"
+        app:pkg="@string/pkg_music"
+        app:srcCompat="@drawable/ic_music" />
+
+    <com.litekite.widget.CircleImageButton
+        android:id="@+id/cib_user_avatar"
+        style="@style/Widget.AppCompat.ImageButton"
+        android:layout_width="@dimen/user_avatar_img_btn_width"
+        android:layout_height="@dimen/user_avatar_img_btn_height"
+        android:background="@null"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:rippleDrawable="@drawable/bg_ripple_round_54"
+        tools:src="@drawable/ic_preview_user_avatar" />
+
+    <com.litekite.systemui.widget.AppButtonView
+        android:id="@+id/abv_phone"
+        style="@style/BottomNavBarBtnStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/abv_apps_drawer"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/cib_user_avatar"
+        app:layout_constraintTop_toTopOf="parent"
+        app:pkg="@string/pkg_dialer"
+        app:srcCompat="@drawable/ic_phone" />
+
+    <com.litekite.systemui.widget.AppButtonView
+        android:id="@+id/abv_apps_drawer"
+        style="@style/BottomNavBarBtnStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:component="@string/component_apps_drawer"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/abv_settings"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/abv_phone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_apps" />
+
+    <com.litekite.systemui.widget.AppButtonView
+        android:id="@+id/abv_settings"
+        style="@style/BottomNavBarBtnStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/abv_apps_drawer"
+        app:layout_constraintTop_toTopOf="parent"
+        app:pkg="@string/pkg_settings"
+        app:srcCompat="@drawable/ic_settings" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
