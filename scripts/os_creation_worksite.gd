@@ -112,7 +112,7 @@ func _build_interface() -> void:
 	preview_region = Control.new()
 	preview_region.name = "OSPhonePreviewRegion"
 	preview_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	preview_region.size_flags_stretch_ratio = 1.0
+	preview_region.size_flags_stretch_ratio = 1.08
 	preview_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	worksite_body.add_child(preview_region)
 
@@ -318,7 +318,7 @@ func _build_interface() -> void:
 	controls_scroll = ScrollContainer.new()
 	controls_scroll.name = "OSControlsScroll"
 	controls_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	controls_scroll.size_flags_stretch_ratio = 1.0
+	controls_scroll.size_flags_stretch_ratio = 0.92
 	controls_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	controls_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	controls_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -440,7 +440,7 @@ func _apply_responsive_layout() -> void:
 		return
 	var available := preview_region.size
 	# Keep the rendered 3D handset tall while preserving its real-world silhouette.
-	var target_height := maxf(available.y - 2.0, 220.0)
+	var target_height := maxf(available.y + 6.0, 220.0)
 	var aspect := 250.0 / 500.0
 	var target_width := target_height * aspect
 	var max_width := maxf(available.x - 84.0, 125.0)
