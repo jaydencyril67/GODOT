@@ -71,7 +71,8 @@ var boot_logo_toggle: CheckButton
 var boot_device_toggle: CheckButton
 var selected_asset_path := ""
 var screen_powered := false
-var company_logo_label: Label
+var company_logo_preview: TextureRect
+var company_logo_texture: Texture2D
 var phone_name_label: Label
 var phone_model_label: Label
 
@@ -181,11 +182,15 @@ func _build_interface() -> void:
 	boot_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	phone_screen.add_child(boot_content)
 
-	company_logo_label = _make_label("Digital World", 23, TEXT)
-	company_logo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	company_logo_label.visible = false
-	boot_content.add_child(company_logo_label)
-	_apply_boot_font_weight(company_logo_label, 700)
+	company_logo_preview = TextureRect.new()
+	company_logo_preview.name = "CompanyLogoBootImage"
+	company_logo_preview.custom_minimum_size = Vector2(104, 104)
+	company_logo_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	company_logo_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	company_logo_preview.texture = company_logo_texture
+	company_logo_preview.visible = false
+	company_logo_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boot_content.add_child(company_logo_preview)
 
 	phone_name_label = _make_label("test mobile", 19, TEXT)
 	phone_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -419,10 +424,15 @@ func _select_asset(path: String) -> void:
 	selected_asset_path = path
 	selection_status_label.text = path.replace("res://", "")
 
+func set_company_logo_texture(texture: Texture2D) -> void:
+	company_logo_texture = texture
+	if is_instance_valid(company_logo_preview):
+		company_logo_preview.texture = texture
+
 func _on_power_pressed() -> void:
 	if screen_powered:
 		screen_powered = false
-		company_logo_label.visible = false
+		company_logo_preview.visible = false
 		phone_name_label.visible = false
 		phone_model_label.visible = false
 		phone_screen.color = Color("#000000")
@@ -430,7 +440,7 @@ func _on_power_pressed() -> void:
 
 	screen_powered = true
 	phone_screen.color = Color("#050607")
-	company_logo_label.visible = true
+	company_logo_preview.visible = true
 	phone_name_label.visible = false
 	phone_model_label.visible = false
 	_show_phone_boot_sequence()
@@ -442,7 +452,7 @@ func _show_phone_boot_sequence() -> void:
 		return
 
 	# Next five real-time seconds: phone name and model.
-	company_logo_label.visible = false
+	company_logo_preview.visible = false
 	phone_name_label.visible = true
 	phone_model_label.visible = true
 	await get_tree().create_timer(5.0, true, false, true).timeout
