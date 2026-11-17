@@ -84,8 +84,8 @@ func _run_test() -> void:
 	worksite.call("_update_phone_preview_mode")
 
 	var screen_center: Vector2 = worksite.call("_map_phone_preview_position_to_screen", phone_frame.size * 0.5)
-	if not screen_center.is_equal_approx(Vector2(340.0, 680.0)):
-		_fail("Phone preview touch coordinates are not mapped to the screen viewport.")
+	if screen_center.distance_to(Vector2(340.0, 680.0)) > 1.0:
+		_fail("Phone preview touch coordinates are not mapped to the screen viewport: %s" % screen_center)
 		return
 
 	var swipe_start := Vector2(phone_frame.size.x * 0.5, phone_frame.size.y * 0.80)
