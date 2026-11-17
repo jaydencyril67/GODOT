@@ -51,7 +51,10 @@ func _run_test() -> void:
 	for icon_node in home_icons:
 		var icon := icon_node as TextureRect
 		if icon == null or icon.texture == null:
-			_fail("A curated home-screen app icon failed to load: " + (icon.name if icon != null else "unknown"))
+			var icon_name := "unknown"
+			if icon != null:
+				icon_name = str(icon.name)
+			_fail("A curated home-screen app icon failed to load: " + icon_name)
 			return
 
 	if int(home_screen.call("get_loaded_app_count")) < 140:
