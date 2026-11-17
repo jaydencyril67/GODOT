@@ -175,10 +175,13 @@ func _build_interface() -> void:
 
 	var phone_camera := Camera3D.new()
 	phone_camera.name = "FixedPerspectiveCamera"
-	phone_camera.position = Vector3(2.0, 1.0, 8.6)
-	phone_camera.fov = 34.0
-	phone_camera.look_at(Vector3.ZERO, Vector3.UP)
 	phone_world.add_child(phone_camera)
+	phone_camera.position = Vector3(0.85, 0.42, 8.6)
+	phone_camera.fov = 34.0
+	phone_camera.current = true
+	# Set the view only after the camera belongs to the 3D scene tree so
+	# look_at uses its real world transform instead of its pre-tree transform.
+	phone_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 	var key_light := DirectionalLight3D.new()
 	key_light.name = "PhoneStudioKeyLight"
