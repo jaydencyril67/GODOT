@@ -286,8 +286,8 @@ func _compose_design() -> Dictionary:
 	var show_fingerprint := bool(blueprint.get("fingerprint", false)) and _rng.randf() > 0.18
 	if show_fingerprint:
 		var fingerprint_rect := Rect2(
-			Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.792, 0.812)),
-			Vector2(_rng.randf_range(0.22, 0.31), 0.045)
+			Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.785, 0.795)),
+			Vector2(_rng.randf_range(0.22, 0.31), 0.07)
 		)
 		# Fingerprint prompts occupy their own lower safe zone, below all content slots.
 		_add_component(components, occupied, "fingerprint", fingerprint_rect)
@@ -321,7 +321,7 @@ func _compose_design() -> Dictionary:
 		"clock_style": clock_style,
 		"clock_format": clock_format,
 		"clock_align": clock_align,
-		"clock_font_size": _rng.randi_range(88, 116) if clock_style == "digital" else (_rng.randi_range(76, 96) if clock_style == "stacked" else 0),
+		"clock_font_size": _rng.randi_range(72, 88) if clock_style == "digital" else (_rng.randi_range(44, 56) if clock_style == "stacked" else 0),
 		"date_font_size": _rng.randi_range(13, 18),
 		"date_letter_spacing": _rng.randi_range(1, 3),
 		"notifications": notifications,
@@ -434,7 +434,7 @@ func _add_wallpaper(design: Dictionary) -> void:
 	var wallpaper_path := str(design.get("wallpaper_path", ""))
 	var wallpaper_texture: Texture2D = null
 	if not wallpaper_path.is_empty():
-		wallpaper_texture = load(wallpaper_path) as Texture2D
+		wallpaper_texture = ResourceLoader.load(wallpaper_path, "Texture2D", ResourceLoader.CACHE_MODE_IGNORE) as Texture2D
 	if wallpaper_texture != null:
 		wallpaper.texture = wallpaper_texture
 	else:
@@ -658,14 +658,14 @@ func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
 	var group := HBoxContainer.new()
 	group.name = "GeneratedFingerprintPrompt"
 	group.alignment = BoxContainer.ALIGNMENT_CENTER
-	group.add_theme_constant_override("separation", 12)
+	group.add_theme_constant_override("separation", 8)
 	group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_normalized_rect(group, rect)
 	add_child(group)
 
 	var icon := TextureRect.new()
 	icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_fingerprint.svg"), palette["accent"])
-	icon.custom_minimum_size = Vector2(34, 46)
+	icon.custom_minimum_size = Vector2(26, 32)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -673,7 +673,7 @@ func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
 
 	var label := Label.new()
 	label.text = "TOUCH TO UNLOCK"
-	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", palette["muted"])
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	group.add_child(label)
@@ -759,10 +759,10 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.25)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(19)
-	style.content_margin_left = 9
-	style.content_margin_right = 9
-	style.content_margin_top = 7
-	style.content_margin_bottom = 6
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 5
+	style.content_margin_bottom = 4
 	card.add_theme_stylebox_override("panel", style)
 	_set_normalized_rect(card, rect)
 	add_child(card)
@@ -781,7 +781,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	var icon_path := str(media.get("icon", ""))
 	if not icon_path.is_empty():
 		service_icon.texture = load(icon_path) as Texture2D
-	service_icon.custom_minimum_size = Vector2(43, 43)
+	service_icon.custom_minimum_size = Vector2(36, 36)
 	service_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	service_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	service_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -802,7 +802,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 
 	var title := Label.new()
 	title.text = str(media.get("title", "Now Playing"))
-	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", palette["text"])
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -810,7 +810,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 
 	var artist := Label.new()
 	artist.text = str(media.get("artist", "Digital World Radio"))
-	artist.add_theme_font_size_override("font_size", 10)
+	artist.add_theme_font_size_override("font_size", 9)
 	artist.add_theme_color_override("font_color", palette["muted"])
 	artist.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track_info.add_child(artist)
@@ -844,7 +844,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	var controls := Label.new()
 	controls.text = "‹          " + ("Ⅱ" if bool(media.get("playing", true)) else "▶") + "          ›"
 	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	controls.add_theme_font_size_override("font_size", 13)
+	controls.add_theme_font_size_override("font_size", 11)
 	controls.add_theme_color_override("font_color", palette["text"])
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(controls)
