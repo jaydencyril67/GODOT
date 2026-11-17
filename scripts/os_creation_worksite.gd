@@ -2,6 +2,7 @@ extends Node3D
 
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
 const LockScreenDesignerScript = preload("res://scripts/lock_screen_designer.gd")
+const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 
 signal back_requested
 
