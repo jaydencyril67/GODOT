@@ -121,6 +121,7 @@ var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
 var right_panel_column: VBoxContainer
+var technology_level_footer_margin: MarginContainer
 var technology_level_panel: PanelContainer
 var technology_level_value_label: Label
 var technology_level_refresh_accumulator := 0.0
@@ -3841,6 +3842,14 @@ func _build_technology_level_footer() -> void:
 	if not is_instance_valid(right_panel_column):
 		return
 
+	# Reserve the bottom-right navigation button's footprint. The footer must
+	# stop before the arrow instead of extending underneath its hit area.
+	technology_level_footer_margin = MarginContainer.new()
+	technology_level_footer_margin.name = "TechnologyLevelSafeArea"
+	technology_level_footer_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	technology_level_footer_margin.add_theme_constant_override("margin_right", 88)
+	right_panel_column.add_child(technology_level_footer_margin)
+
 	technology_level_panel = PanelContainer.new()
 	technology_level_panel.name = "TechnologyLevelPanel"
 	technology_level_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3857,7 +3866,7 @@ func _build_technology_level_footer() -> void:
 	panel_style.content_margin_top = 8
 	panel_style.content_margin_bottom = 8
 	technology_level_panel.add_theme_stylebox_override("panel", panel_style)
-	right_panel_column.add_child(technology_level_panel)
+	technology_level_footer_margin.add_child(technology_level_panel)
 
 	var row := HBoxContainer.new()
 	row.name = "TechnologyLevelRow"
