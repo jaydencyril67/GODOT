@@ -1,0 +1,79 @@
+# Privacy Policy - Slate Launcher
+
+**Effective date:** 2026-05-29
+
+## What data Slate collects
+
+Slate does not collect, transmit, or share any personal data. All information stays on your device.
+
+The following data is stored locally in the app's private storage:
+
+| Data | Purpose |
+|------|---------|
+| App launch counts | Sort apps by usage frequency |
+| Hidden app list | Hide apps from the launcher |
+| Pinned app list | Keep selected apps at the top of the list |
+| Per-app text colors | Custom color assigned by the user |
+| Per-app custom names | Renamed app labels chosen by the user |
+| Gesture assignments | User-configured swipe actions |
+| Visual preferences (font, colors, spacing) | Appearance customization |
+
+## Lockscreen wallpaper
+
+When the "Apply to lockscreen" toggle is enabled in Settings, Slate writes a solid-color image to the lockscreen wallpaper layer using the `SET_WALLPAPER` permission. This action only occurs when the toggle is turned on or when the background color is changed while the toggle is active. No image data is read from the device; a plain color bitmap is generated in memory and immediately discarded after being applied.
+
+## Notification access
+
+Slate requests permission to read active notifications solely to highlight app labels when a notification is pending. Notification content (title, text, sender) is never read, stored, or transmitted - only the package name of the app that posted the notification is used.
+
+## Accessibility service
+
+Slate requests accessibility service permission solely to perform the screen lock action when the user assigns it to a double-tap or swipe gesture. The service does not observe, record, or transmit any on-screen content or user interactions.
+
+## Contact search (optional, off by default)
+
+Slate's search bar can optionally include matching contacts alongside matching apps. This feature is off by default and requires explicit opt-in via Settings → Search → "Search contacts". Toggling it on shows a consent dialog explaining the privacy contract before the standard Android READ_CONTACTS permission prompt fires.
+
+With the toggle on, Slate queries the system Contacts provider at the moment you type a search query, filters matches in memory, and displays them inline with app results. The data is held only as long as needed to render the result list and is discarded immediately after. Slate does not store contact data on disk, transmit it anywhere, or index it for future searches. Restarting the launcher starts with no contact data in memory.
+
+Tapping a contact result opens the system dialer prepopulated with that contact's number; Slate does not place the call itself. Revoking the permission in system Settings causes the toggle to flip off automatically the next time you open Slate or its Settings.
+
+## Work profile apps
+
+If your device has a work profile, Slate lists its apps alongside your personal ones, each carrying a marker so you can tell the two apart. Settings → Work profile chooses what that marker looks like, from the profile's name down to a single symbol, or removes it. This requires no additional permission: Slate uses Android's standard `LauncherApps` service, which is available to the app currently set as your home screen and returns only what a launcher needs - the app's name and the component to start when you tap it.
+
+Slate cannot see anything inside a work app. It has no access to work email, files, accounts, or any content belonging to the work profile, and no ability to read across the profile boundary. Everything it knows is the app list.
+
+The first time Slate sees a work profile it gathers those apps into a folder once, stored in the same local folder library as any folder you create yourself. Nothing about that is transmitted, and you can rename, recolour, delete, or empty it freely - after that first grouping Slate never rearranges it again. Work apps can be switched off entirely under Settings → Work profile → "Show work apps", which is lossless: folder membership, custom names, colours, and pins are preserved and return unchanged if you switch them back on.
+
+Serial numbers that identify a profile are device-local, so anything Slate remembers about a work app is deliberately excluded from the backup file it exports. A backup carried to another device contains only your personal apps.
+
+Your organisation's device policy controller may restrict what Slate can see or do with work apps, including preventing their notifications from reaching it. Uninstall is not offered for a work app, because Android reserves that for your organisation.
+
+## Hidden apps security
+
+When the "Lock hidden apps" toggle in Settings → Security is enabled, Slate stores a one-way verifier of your PIN - a salted PBKDF2-HMAC-SHA256 hash with 120,000 iterations and a per-device 16-byte random salt - in the app's private SharedPreferences. The plain-text PIN is never written to disk and is zeroed in memory immediately after hashing.
+
+A second Settings → Security toggle, "Lock long-press," uses this same PIN to gate the home screen's long-press menu, each app's long-press menu, folder and pinned-shortcut long-press menus, and the "Open settings" gesture action, with no biometric option even if biometric is enabled above. The two toggles are independent: turning one off leaves the other, and the PIN itself, untouched.
+
+If you opt into biometric unlock, Slate calls Android's standard `BiometricPrompt` (BIOMETRIC_STRONG class). Biometric templates are stored and matched entirely inside the Android OS / secure hardware; Slate only receives a success or failure callback and has no access to fingerprint or face data.
+
+After 5 wrong PIN attempts the app is locked out for 30 seconds; 10 wrong for 5 minutes; 15 wrong for 15 minutes. Lockout state is local and never reported anywhere. There is no remote PIN recovery - clearing app data is the only reset on this device. When importing a backup that includes hidden apps, Slate asks for the backup's PIN in an in-memory verification step before writing the PIN verifier to disk; entering the wrong PIN three times skips the private bundle and leaves the device's existing PIN and hidden apps untouched.
+
+Hidden apps launched from the Hidden Apps dialog are also excluded from the Android Recents (Overview) screen by default, so a glance at Recents won't reveal what you opened. This exclusion has a cost: Android closes an app kept out of Recents once you switch away from it, so it restarts and loses anything you had typed. Turning on "Keep hidden apps in Recents" under Settings → Security stops that, at the price of hidden apps appearing in Recents like any other. A consent dialog explains the trade-off when you enable it, and importing a backup always turns it back off. If the app already had a task in Recents from before it was hidden (Chrome, Gmail, and other "single task" apps in particular), Slate cannot remove the existing entry - swipe it away once and future launches stay invisible.
+
+JSON backups omit the PIN hash, salt, iteration count, hidden-apps list, biometric flag, and whether long-press menus are locked, by default. To include them - for example, when migrating to a new phone - turn on "Include hidden apps in backups" under Settings → Backup. A consent dialog explains the trade-off when you enable it. The hash is a verifier, not the PIN itself, but the salt and iteration count travel with it, so you should still keep backup files in trusted storage and use a non-trivial PIN.
+
+## Battery optimization
+
+Slate checks whether the app is exempt from battery optimization using `PowerManager.isIgnoringBatteryOptimizations` and, on Android 9+, `ActivityManager.isBackgroundRestricted`. This check reads a device state only - no data is collected, stored, or transmitted. If a restriction is detected and a background-dependent feature (notification highlight or double-tap to lock) is enabled, a warning banner is shown in Settings.
+
+Tapping "Fix this" on the banner launches a standard system dialog (`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) that lets you exempt Slate from battery optimization. The outcome of that dialog stays on your device and is not reported to Slate.
+
+## No third-party sharing
+
+Slate has no analytics, no crash reporting, no advertising SDKs, and no network communication of any kind.
+
+## Contact
+
+For questions about this policy, open an issue at the project repository.
