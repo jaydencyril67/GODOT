@@ -1223,7 +1223,7 @@ func _build_interface() -> void:
 
 
 func _apply_responsive_layout() -> void:
-	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll):
+	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll) or not is_instance_valid(right_panel_column):
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	var is_wide := viewport_size.x >= viewport_size.y and viewport_size.x >= 700.0
