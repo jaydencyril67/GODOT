@@ -51,8 +51,9 @@ func _initialize() -> void:
 	if display_width_ratio < 0.95 or display_height_ratio < 0.96:
 		_fail("The OS handset display must cover nearly the full front face with minimal bezels.")
 		return
-	if absf(front_camera.position.y - display.position.y) > 0.20 or absf(earpiece.position.y - display.position.y) > 0.20:
-		_fail("The front camera and earpiece must be integrated into the narrow top display region.")
+	var display_top := display.mesh.get_aabb().position.y + display.mesh.get_aabb().size.y
+	if front_camera.position.y < display_top - 0.18 or earpiece.position.y < display_top - 0.18:
+		_fail("The front camera and earpiece must remain inside the narrow top edge of the active display.")
 		return
 
 	var side_keys: Array[MeshInstance3D] = [power_key, volume_up, volume_down]
