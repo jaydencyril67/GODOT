@@ -456,8 +456,8 @@ func _forward_phone_screen_input(event: InputEvent, frame_position: Vector2) -> 
 	if display_rect.size.x <= 0.0 or display_rect.size.y <= 0.0:
 		return
 	var target_size := Vector2(phone_screen_interface_viewport.size)
-	var scale := Vector2(target_size.x / display_rect.size.x, target_size.y / display_rect.size.y)
-	var mapped_position := (frame_position - display_rect.position) * scale
+	var input_scale := Vector2(target_size.x / display_rect.size.x, target_size.y / display_rect.size.y)
+	var mapped_position := (frame_position - display_rect.position) * input_scale
 	var mapped_event := event.duplicate() as InputEvent
 	if mapped_event is InputEventScreenTouch:
 		(mapped_event as InputEventScreenTouch).position = mapped_position
