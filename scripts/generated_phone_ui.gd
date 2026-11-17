@@ -45,7 +45,7 @@ func _draw() -> void:
 	_typography_scale = clampf(float(style.get("typography_scale", 1.0)), 0.85, 1.2)
 	var margin := size.x * 0.065
 
-	_draw_wallpaper(background, accent, str(style.get("wallpaper_style", "aurora")), secondary, str(style.get("wallpaper_path", "")))
+	_draw_wallpaper(str(style.get("wallpaper_path", "")))
 	_draw_status_bar(text_color, muted, system, style)
 
 	var composition: Dictionary = home.get("composition", {})
@@ -84,70 +84,33 @@ func _draw() -> void:
 	_draw_navigation(style, muted, text_color)
 
 
-func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, secondary: Color, wallpaper_path: String) -> void:
-	if not wallpaper_path.is_empty():
-		var texture: Texture2D = _wallpaper_texture_cache.get(wallpaper_path) as Texture2D
-		if texture == null and ResourceLoader.exists(wallpaper_path):
-			texture = ResourceLoader.load(wallpaper_path) as Texture2D
-			if texture != null:
-				_wallpaper_texture_cache[wallpaper_path] = texture
-		if texture != null:
-			var source_size := texture.get_size()
-			var target_ratio := size.x / maxf(1.0, size.y)
-			var source_ratio := source_size.x / maxf(1.0, source_size.y)
-			var source_rect := Rect2(Vector2.ZERO, source_size)
-			if source_ratio > target_ratio:
-				var cropped_width := source_size.y * target_ratio
-				source_rect.position.x = (source_size.x - cropped_width) * 0.5
-				source_rect.size.x = cropped_width
-			else:
-				var cropped_height := source_size.x / target_ratio
-				source_rect.position.y = (source_size.y - cropped_height) * 0.5
-				source_rect.size.y = cropped_height
-			draw_texture_rect_region(texture, Rect2(Vector2.ZERO, size), source_rect)
+func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, sefunc _draw_wallpaper(wallpaper_path: String) -> void:
+	if wallpaper_path.is_empty():
+		push_error("Phone UI has no selected wallpaper asset.")
+		return
+	var texture: Texture2D = _wallpaper_texture_cache.get(wallpaper_path) as Texture2D
+	if texture == null:
+		if not ResourceLoader.exists(wallpaper_path):
+			push_error("Phone UI wallpaper asset does not exist: " + wallpaper_path)
 			return
-		push_warning("Phone UI wallpaper asset could not be loaded: " + wallpaper_path)
-	for strip in range(36):
-		var ratio := float(strip) / 35.0
-		var tint := base.lerp(accent.darkened(0.78), ratio * 0.44)
-		draw_rect(Rect2(0.0, size.y * ratio, size.x, size.y / 36.0 + 1.0), tint)
-	match wallpaper_style:
-		"aurora":
-			_draw_ellipse(Vector2(size.x * 0.18, size.y * 0.42), Vector2(size.x * 0.66, size.y * 0.22), -0.45, Color(accent.r, accent.g, accent.b, 0.19))
-			_draw_ellipse(Vector2(size.x * 0.86, size.y * 0.36), Vector2(size.x * 0.58, size.y * 0.18), 0.48, Color(secondary.r, secondary.g, secondary.b, 0.15))
-		"orbital":
-			var centre := Vector2(size.x * 0.78, size.y * 0.37)
-			for index in range(7):
-				var orbit_radius := size.x * (0.18 + float(index) * 0.055)
-				draw_arc(centre, orbit_radius, -2.5, 2.8, 72, Color(accent.r, accent.g, accent.b, 0.12 - float(index) * 0.008), 1.3, true)
-			draw_circle(centre, size.x * 0.10, Color(accent.r, accent.g, accent.b, 0.10))
-		"contour":
-			var centre := Vector2(size.x * 0.18, size.y * 0.56)
-			for index in range(12):
-				draw_arc(centre, size.x * (0.17 + float(index) * 0.048), -1.4, 2.3, 72, Color(accent.r, accent.g, accent.b, 0.11), 1.0, true)
-		"ribbon":
-			var points := PackedVector2Array([
-				Vector2(-size.x * 0.1, size.y * 0.52),
-				Vector2(size.x * 0.42, size.y * 0.30),
-				Vector2(size.x * 1.10, size.y * 0.55),
-				Vector2(size.x * 1.05, size.y * 0.72),
-				Vector2(size.x * 0.46, size.y * 0.52),
-				Vector2(-size.x * 0.1, size.y * 0.71)
-			])
-			draw_colored_polygon(points, Color(accent.r, accent.g, accent.b, 0.13))
-		"prism":
-			var triangle := PackedVector2Array([
-				Vector2(size.x * 0.72, size.y * 0.20),
-				Vector2(size.x * 1.05, size.y * 0.57),
-				Vector2(size.x * 0.48, size.y * 0.69)
-			])
-			draw_colored_polygon(triangle, Color(secondary.r, secondary.g, secondary.b, 0.17))
-			draw_arc(Vector2(size.x * 0.76, size.y * 0.47), size.x * 0.28, -1.5, 1.9, 64, Color(1.0, 1.0, 1.0, 0.10), 1.0, true)
-		_:
-			_draw_ellipse(Vector2(size.x * 0.8, size.y * 0.62), Vector2(size.x * 0.54, size.y * 0.20), 0.2, Color(accent.r, accent.g, accent.b, 0.12))
-
-
-func _draw_status_bar(text_color: Color, _muted: Color, system: Dictionary, style: Dictionary) -> void:
+		texture = ResourceLoader.load(wallpaper_path) as Texture2D
+		if texture == null:
+			push_error("Phone UI wallpaper asset could not be loaded: " + wallpaper_path)
+			return
+		_wallpaper_texture_cache[wallpaper_path] = texture
+	var source_size := texture.get_size()
+	var target_ratio := size.x / maxf(1.0, size.y)
+	var source_ratio := source_size.x / maxf(1.0, source_size.y)
+	var source_rect := Rect2(Vector2.ZERO, source_size)
+	if source_ratio > target_ratio:
+		var cropped_width := source_size.y * target_ratio
+		source_rect.position.x = (source_size.x - cropped_width) * 0.5
+		source_rect.size.x = cropped_width
+	else:
+		var cropped_height := source_size.x / target_ratio
+		source_rect.position.y = (source_size.y - cropped_height) * 0.5
+		source_rect.size.y = cropped_height
+	draw_texture_rect_region(texture, Rect2(Vector2.ZERO, size), source_rect), style: Dictionary) -> void:
 	var now := Time.get_datetime_dict_from_system()
 	var hour := int(now.get("hour", 9))
 	var minute := int(now.get("minute", 41))
