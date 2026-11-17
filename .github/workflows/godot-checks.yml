@@ -122,14 +122,14 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke-test autonomous lock-screen composition
+      - name: Smoke-test hybrid autonomous lock-screen layouts and assets
         shell: bash
         run: |
           set -euo pipefail
           godot --headless --path . --script res://scripts/tests/lock_screen_designer_smoke.gd 2>&1 | tee lock-screen-designer-smoke.log
-          grep -q "AUTONOMOUS_LOCK_SCREEN_SMOKE_TEST: PASS" lock-screen-designer-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|AUTONOMOUS_LOCK_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' lock-screen-designer-smoke.log; then
-            echo "Godot reported an error during the autonomous lock-screen smoke test."
+          grep -q "HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS" lock-screen-designer-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|HYBRID_LOCK_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' lock-screen-designer-smoke.log; then
+            echo "Godot reported an error during the hybrid lock-screen smoke test."
             exit 1
           fi
 
@@ -155,7 +155,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nullglob
-          logs=(godot-import.log godot-parse.log home-office-smoke.log ui-evolution-smoke.log godot-startup.log)
+          logs=(godot-import.log godot-parse.log home-office-smoke.log ui-evolution-smoke.log processor-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log godot-startup.log)
           warning_count=0
 
           for log in "${logs[@]}"; do
