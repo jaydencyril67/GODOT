@@ -995,11 +995,39 @@ func _run_technology_points_checks() -> bool:
 	if not is_equal_approx(full_range_phone_points, 0.4):
 		_fail("The Phone Creation Worksite did not award the full Battery Capacity range at its maximum.")
 		return false
+
+	var ui_worksite := PhoneCreationWorksiteScript.new()
+	root.add_child(ui_worksite)
+	await process_frame
+	var right_panel := ui_worksite.get("right_panel_column") as VBoxContainer
+	var selection_scroll := ui_worksite.get("selection_scroll") as ScrollContainer
+	var technology_panel := ui_worksite.get("technology_level_panel") as PanelContainer
+	var technology_value := ui_worksite.get("technology_level_value_label") as Label
+	if not is_instance_valid(right_panel) or not is_instance_valid(selection_scroll) or not is_instance_valid(technology_panel) or not is_instance_valid(technology_value):
+		ui_worksite.queue_free()
+		await process_frame
+		_fail("Phone Creation Worksite did not build its Technology Level footer.")
+		return false
+	if selection_scroll.get_parent() != right_panel or technology_panel.get_parent() != right_panel or technology_panel.get_index() != right_panel.get_child_count() - 1:
+		ui_worksite.queue_free()
+		await process_frame
+		_fail("Technology Level must remain pinned below the independently scrolling right-panel controls.")
+		return false
+	ui_worksite.set("researched_battery_capacity_level", 1)
+	ui_worksite.set("selected_battery_capacity", "1,175 mAh")
+	ui_worksite.call("_refresh_technology_level_display")
+	if technology_value.text != "0.20 TP":
+		ui_worksite.queue_free()
+		await process_frame
+		_fail("The visible Technology Level footer did not update when the selected phone specification changed.")
+		return false
+	ui_worksite.queue_free()
+	await process_frame
 	return true
 
 
 func _run_transition_checks() -> void:
-	if not _run_technology_points_checks():
+	if not await _run_technology_points_checks():
 		return
 	if not _run_screen_technology_checks():
 		return
