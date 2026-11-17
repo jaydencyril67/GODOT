@@ -144,6 +144,9 @@ func _build_interface() -> void:
 	power_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	power_button.tooltip_text = "Power on / off"
 	power_button.focus_mode = Control.FOCUS_NONE
+	power_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	power_button.disabled = false
+	power_button.z_index = 20
 	power_button.add_theme_font_size_override("font_size", 30)
 	power_button.add_theme_stylebox_override("normal", _make_panel_style(Color("#343638"), Color("#8A8175"), 1, 30))
 	power_button.add_theme_stylebox_override("hover", _make_panel_style(Color("#40382D"), ACCENT, 1, 30))
@@ -160,6 +163,7 @@ func _build_interface() -> void:
 	phone_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	phone_frame.stretch = true
+	phone_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	phone_row.add_child(phone_frame)
 
 	var phone_viewport := SubViewport.new()
