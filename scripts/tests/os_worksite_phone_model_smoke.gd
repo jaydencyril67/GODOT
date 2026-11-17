@@ -19,7 +19,7 @@ func _initialize() -> void:
 	var power_key := phone.find_child("PowerButton", true, false) as MeshInstance3D
 	var volume_up := phone.find_child("VolumeUpButton", true, false) as MeshInstance3D
 	var volume_down := phone.find_child("VolumeDownButton", true, false) as MeshInstance3D
-	var front_camera := phone.find_child("FrontCameraLens", true, false) as MeshInstance3D
+	var under_display_camera := phone.find_child("UnderDisplayCameraOpticalWindow", true, false) as MeshInstance3D
 	var earpiece := phone.find_child("TopEarpiece", true, false) as MeshInstance3D
 
 	if not is_instance_valid(chassis) or not is_instance_valid(inset) or not is_instance_valid(display):
@@ -28,8 +28,8 @@ func _initialize() -> void:
 	if not is_instance_valid(power_key) or not is_instance_valid(volume_up) or not is_instance_valid(volume_down):
 		_fail("The power and volume keys are not present as separate side-mounted hardware.")
 		return
-	if not is_instance_valid(front_camera) or not is_instance_valid(earpiece):
-		_fail("The front camera or earpiece is missing from the top bezel.")
+	if not is_instance_valid(under_display_camera) or is_instance_valid(earpiece):
+		_fail("The OS handset must have only an under-display front camera and no top earpiece.")
 		return
 
 	var body_bounds := chassis.mesh.get_aabb()
@@ -51,9 +51,10 @@ func _initialize() -> void:
 	if display_width_ratio < 0.95 or display_height_ratio < 0.96:
 		_fail("The OS handset display must cover nearly the full front face with minimal bezels.")
 		return
-	var display_top := display.mesh.get_aabb().position.y + display.mesh.get_aabb().size.y
-	if front_camera.position.y < display_top - 0.18 or earpiece.position.y < display_top - 0.18:
-		_fail("The front camera and earpiece must remain inside the narrow top edge of the active display.")
+	var display_bounds := display.mesh.get_aabb()
+	var display_top := display_bounds.position.y + display_bounds.size.y
+	if under_display_camera.position.y > display_top or under_display_camera.position.y < display_bounds.position.y:
+		_fail("The under-display camera optical window must remain within the active display.")
 		return
 
 	var side_keys: Array[MeshInstance3D] = [power_key, volume_up, volume_down]
