@@ -885,7 +885,7 @@ func _next_wallpaper_path() -> String:
 			_wallpaper_bag[_wallpaper_bag.size() - 1] = swap_value
 	if _wallpaper_bag.is_empty():
 		return ""
-	var selected := _wallpaper_bag.pop_back()
+	var selected: String = _wallpaper_bag.pop_back()
 	_recent_wallpaper_paths.append(selected)
 	if _recent_wallpaper_paths.size() > 12:
 		_recent_wallpaper_paths.pop_front()
