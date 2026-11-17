@@ -416,11 +416,18 @@ func _on_power_pressed() -> void:
 	_show_phone_boot_sequence()
 
 func _show_phone_boot_sequence() -> void:
-	# Show company branding first, then the phone name/model.
-	await get_tree().create_timer(1.4).timeout
+	# First five real-time seconds: company logo.
+	await get_tree().create_timer(5.0, true, false, true).timeout
 	if not screen_powered or not is_instance_valid(phone_model_label):
 		return
+
+	# Next five real-time seconds: phone name and model.
+	company_logo_label.visible = false
 	phone_model_label.visible = true
+	await get_tree().create_timer(5.0, true, false, true).timeout
+	if not screen_powered:
+		return
+	# Boot is complete; keep the phone name/model on screen.
 
 func _add_note(message: String) -> void:
 	var note := _make_label(message, 11, MUTED)
