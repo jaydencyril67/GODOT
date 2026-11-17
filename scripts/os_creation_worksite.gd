@@ -270,10 +270,10 @@ func _build_interface() -> void:
 
 	var screen_mesh_instance := MeshInstance3D.new()
 	screen_mesh_instance.name = "GlassDisplay"
-	# Keep the rounded display silhouette, but use a UV-mapped front face for the viewport texture.
+	# Keep the rounded UV-mapped display in front of the chassis face so it cannot be occluded.
 	screen_mesh_instance.mesh = _make_rounded_screen_mesh(2.43, 4.93, 0.27, 10)
 	screen_mesh_instance.material_override = screen_material
-	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.116)
+	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.184)
 	phone_world.add_child(screen_mesh_instance)
 
 	var glass_material := StandardMaterial3D.new()
@@ -286,7 +286,7 @@ func _build_interface() -> void:
 	earpiece_mesh.size = Vector3(0.34, 0.025, 0.012)
 	earpiece.mesh = earpiece_mesh
 	earpiece.material_override = glass_material
-	earpiece.position = Vector3(0.12, 2.39, 0.132)
+	earpiece.position = Vector3(0.12, 2.39, 0.205)
 	phone_world.add_child(earpiece)
 
 	var front_camera := MeshInstance3D.new()
@@ -298,7 +298,7 @@ func _build_interface() -> void:
 	lens_mesh.radial_segments = 24
 	front_camera.mesh = lens_mesh
 	front_camera.material_override = glass_material
-	front_camera.position = Vector3(-0.36, 2.39, 0.132)
+	front_camera.position = Vector3(-0.36, 2.39, 0.205)
 	front_camera.rotation_degrees.x = 90.0
 	phone_world.add_child(front_camera)
 
@@ -307,9 +307,9 @@ func _build_interface() -> void:
 	side_button_material.metallic = 0.78
 	side_button_material.roughness = 0.28
 	for button_data in [
-		{"name": "PowerKey", "position": Vector3(1.19, 1.15, 0.0), "size": Vector3(0.075, 0.48, 0.12)},
-		{"name": "VolumeUpKey", "position": Vector3(-1.19, 1.15, 0.0), "size": Vector3(0.075, 0.34, 0.12)},
-		{"name": "VolumeDownKey", "position": Vector3(-1.19, 0.68, 0.0), "size": Vector3(0.075, 0.34, 0.12)}
+		{"name": "PowerKey", "position": Vector3(1.255, 1.15, 0.0), "size": Vector3(0.075, 0.48, 0.12)},
+		{"name": "VolumeUpKey", "position": Vector3(-1.255, 1.15, 0.0), "size": Vector3(0.075, 0.34, 0.12)},
+		{"name": "VolumeDownKey", "position": Vector3(-1.255, 0.68, 0.0), "size": Vector3(0.075, 0.34, 0.12)}
 	]:
 		var side_key := MeshInstance3D.new()
 		side_key.name = button_data["name"]
