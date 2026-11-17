@@ -122,6 +122,17 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test autonomous lock-screen composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/lock_screen_designer_smoke.gd 2>&1 | tee lock-screen-designer-smoke.log
+          grep -q "AUTONOMOUS_LOCK_SCREEN_SMOKE_TEST: PASS" lock-screen-designer-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|AUTONOMOUS_LOCK_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' lock-screen-designer-smoke.log; then
+            echo "Godot reported an error during the autonomous lock-screen smoke test."
+            exit 1
+          fi
+
       - name: Smoke-test main scene startup
         shell: bash
         run: |

@@ -1,6 +1,7 @@
 extends Node3D
 
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
+const LockScreenDesignerScript = preload("res://scripts/lock_screen_designer.gd")
 
 signal back_requested
 
@@ -24,7 +25,7 @@ const STEP_DESCRIPTIONS := [
 	"Choose the icon assets that will be available to this OS.",
 	"Choose widget designs for the operating system.",
 	"Choose wallpaper assets for the operating system.",
-	"Choose lock-screen components and visual assets.",
+	"Generate a completely new lock-screen composition with autonomous component placement.",
 	"Choose the status bar design assets.",
 	"Choose quick settings and control-centre assets.",
 	"Choose notification appearance assets.",
@@ -36,7 +37,7 @@ const STEP_ASSET_PATHS := {
 	2: "res://assets/app_icons",
 	3: "res://assets/system-ui/Widgets",
 	4: "res://assets/system-ui/Wallpapers",
-	5: "res://assets/system-ui/Lock-Screen",
+	5: "res://assets/lock-screen/aosp",
 	6: "res://assets/system-ui/android-systemui/Status-Bar",
 	7: "res://assets/system-ui/Quick-Settings",
 	8: "res://assets/system-ui/Notifications",
@@ -77,6 +78,8 @@ var company_logo_preview: TextureRect
 var company_logo_texture: Texture2D
 var phone_name_label: Label
 var phone_model_label: Label
+var lock_screen_designer: Control
+var boot_sequence_complete := false
 
 func _ready() -> void:
 	_build_interface()
@@ -235,6 +238,16 @@ func _build_interface() -> void:
 	phone_model_label.visible = false
 	boot_content.add_child(phone_model_label)
 	_apply_boot_font_weight(phone_model_label, 900)
+
+	lock_screen_designer = LockScreenDesignerScript.new()
+	lock_screen_designer.name = "AutonomousLockScreenDesignerPreview"
+	lock_screen_designer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	lock_screen_designer.offset_left = 0.0
+	lock_screen_designer.offset_top = 0.0
+	lock_screen_designer.offset_right = 0.0
+	lock_screen_designer.offset_bottom = 0.0
+	lock_screen_designer.visible = false
+	phone_screen.add_child(lock_screen_designer)
 
 	var phone_model: Node3D = OSPhoneModelScript.new()
 	phone_model.name = "OSWorksiteHandsetModel"
@@ -404,8 +417,57 @@ func _show_step(step_index: int) -> void:
 			boot_device_toggle.text = "Show device name and model"
 			boot_device_toggle.button_pressed = true
 			content_column.add_child(boot_device_toggle)
+		5:
+			_show_lock_screen_designer_controls()
 		_:
 			_show_asset_browser(current_step)
+	_update_phone_preview_mode()
+
+func _show_lock_screen_designer_controls() -> void:
+	_add_note("AUTONOMOUS COMPOSITION ENGINE")
+	_add_note("Every generation independently chooses the clock treatment, component positions, proportions, spacing and colour direction. No preset layouts are used.")
+	var generate_button := _make_button("GENERATE A COMPLETELY NEW DESIGN")
+	generate_button.name = "GenerateNewLockScreenDesign"
+	generate_button.custom_minimum_size.y = 58
+	generate_button.pressed.connect(_generate_lock_screen_design)
+	content_column.add_child(generate_button)
+	_add_note("Rules enforced: independent components never collide; status elements stay in the top safe area; camera and flashlight shortcuts stay at the bottom; all content stays inside the display.")
+	_add_note("AOSP assets: analog clock hands, flashlight and fingerprint components.")
+	if int(lock_screen_designer.call("get_generation_count")) == 0:
+		_generate_lock_screen_design()
+	else:
+		var latest: Dictionary = lock_screen_designer.call("get_last_design")
+		var palette: Dictionary = latest.get("palette", {})
+		selection_status_label.text = "DESIGN %03d  •  %s" % [int(lock_screen_designer.call("get_generation_count")), str(palette.get("name", "GENERATED"))]
+
+func _generate_lock_screen_design() -> void:
+	if not is_instance_valid(lock_screen_designer):
+		return
+	var generated: Dictionary = lock_screen_designer.call("generate_new_design")
+	if generated.is_empty():
+		selection_status_label.text = "DESIGN VALIDATION FAILED — GENERATE AGAIN"
+		return
+	var palette: Dictionary = generated.get("palette", {})
+	selection_status_label.text = "DESIGN %03d  •  %s" % [int(lock_screen_designer.call("get_generation_count")), str(palette.get("name", "GENERATED"))]
+	_update_phone_preview_mode()
+
+func _update_phone_preview_mode() -> void:
+	if not is_instance_valid(lock_screen_designer):
+		return
+	if not screen_powered:
+		lock_screen_designer.visible = false
+		return
+	if not boot_sequence_complete:
+		return
+	if current_step == 5 and int(lock_screen_designer.call("get_generation_count")) > 0:
+		company_logo_preview.visible = false
+		phone_name_label.visible = false
+		phone_model_label.visible = false
+		lock_screen_designer.visible = true
+	else:
+		lock_screen_designer.visible = false
+		phone_name_label.visible = true
+		phone_model_label.visible = true
 
 func _add_field(caption: String, placeholder: String, is_os_name: bool) -> void:
 	var label := _make_label(caption, 11, Color("#D3AA6B"))
@@ -472,6 +534,8 @@ func set_company_logo_texture(texture: Texture2D) -> void:
 func _on_power_pressed() -> void:
 	if screen_powered:
 		screen_powered = false
+		boot_sequence_complete = false
+		lock_screen_designer.visible = false
 		company_logo_preview.visible = false
 		phone_name_label.visible = false
 		phone_model_label.visible = false
@@ -479,6 +543,8 @@ func _on_power_pressed() -> void:
 		return
 
 	screen_powered = true
+	boot_sequence_complete = false
+	lock_screen_designer.visible = false
 	phone_screen.color = Color("#050607")
 	company_logo_preview.visible = true
 	phone_name_label.visible = false
@@ -498,7 +564,8 @@ func _show_phone_boot_sequence() -> void:
 	await get_tree().create_timer(5.0, true, false, true).timeout
 	if not screen_powered:
 		return
-	# Boot is complete; keep the phone name/model on screen.
+	boot_sequence_complete = true
+	_update_phone_preview_mode()
 
 func _add_note(message: String) -> void:
 	var note := _make_label(message, 11, MUTED)
