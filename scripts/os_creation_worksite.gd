@@ -2,6 +2,7 @@ extends Node3D
 
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
 const LockScreenDesignerScript = preload("res://scripts/lock_screen_designer.gd")
+const HomeScreenDesignerScript = preload("res://scripts/home_screen_designer.gd")
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 
 signal back_requested
@@ -81,12 +82,15 @@ var company_logo_texture: Texture2D
 var phone_name_label: Label
 var phone_model_label: Label
 var lock_screen_designer: Control
+var home_screen_designer: Control
+var _home_screen_unlocked := false
 var selected_status_bar_style_id := "one_ui_balanced"
 var boot_sequence_complete := false
 var boot_sequence_id := 0
 var _phone_pointer_active := false
 var _phone_pointer_start := Vector2.ZERO
 var _phone_pointer_pin_mode := false
+var _phone_pointer_home_mode := false
 
 func _ready() -> void:
 	_build_interface()
@@ -259,6 +263,17 @@ func _build_interface() -> void:
 	lock_screen_designer.offset_bottom = 0.0
 	lock_screen_designer.visible = false
 	phone_screen.add_child(lock_screen_designer)
+	lock_screen_designer.pin_unlocked.connect(_on_pin_unlocked)
+
+	home_screen_designer = HomeScreenDesignerScript.new()
+	home_screen_designer.name = "OneUIHomeScreenPreview"
+	home_screen_designer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	home_screen_designer.offset_left = 0.0
+	home_screen_designer.offset_top = 0.0
+	home_screen_designer.offset_right = 0.0
+	home_screen_designer.offset_bottom = 0.0
+	home_screen_designer.visible = false
+	phone_screen.add_child(home_screen_designer)
 
 	var phone_model: Node3D = OSPhoneModelScript.new()
 	phone_model.name = "OSWorksiteHandsetModel"
@@ -491,7 +506,8 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		_phone_pointer_active = true
 		_phone_pointer_start = pointer_position
 		_phone_pointer_pin_mode = bool(lock_screen_designer.call("is_pin_entry_visible"))
-		if _phone_pointer_pin_mode:
+		_phone_pointer_home_mode = is_instance_valid(home_screen_designer) and home_screen_designer.visible
+		if _phone_pointer_pin_mode or _phone_pointer_home_mode:
 			_forward_phone_screen_input(event, pointer_position)
 		return
 
@@ -499,7 +515,7 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventScreenDrag or event is InputEventMouseMotion:
-		if _phone_pointer_pin_mode:
+		if _phone_pointer_pin_mode or _phone_pointer_home_mode:
 			_forward_phone_screen_input(event, pointer_position)
 		return
 
@@ -507,14 +523,26 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		var delta := pointer_position - _phone_pointer_start
 		var swipe_threshold := maxf(32.0, phone_frame.size.y * 0.075)
 		var is_vertical_swipe := absf(delta.y) >= swipe_threshold and absf(delta.y) >= absf(delta.x) * 1.15
+		var is_horizontal_swipe := absf(delta.x) >= swipe_threshold and absf(delta.x) >= absf(delta.y) * 1.15
 		if _phone_pointer_pin_mode:
 			_forward_phone_screen_input(event, pointer_position)
 			if is_vertical_swipe and delta.y > 0.0:
 				lock_screen_designer.call("hide_pin_entry")
+		elif _phone_pointer_home_mode:
+			_forward_phone_screen_input(event, pointer_position)
+			if is_instance_valid(home_screen_designer):
+				if not bool(home_screen_designer.call("is_app_drawer_visible")):
+					if is_vertical_swipe and delta.y < 0.0:
+						home_screen_designer.call("open_app_drawer")
+					elif is_horizontal_swipe:
+						home_screen_designer.call("move_page", -1 if delta.x > 0.0 else 1)
+				elif is_vertical_swipe and delta.y > 0.0 and _phone_pointer_start.y < phone_frame.size.y * 0.32:
+					home_screen_designer.call("close_app_drawer")
 		elif is_vertical_swipe and delta.y < 0.0:
 			lock_screen_designer.call("show_pin_entry")
 		_phone_pointer_active = false
 		_phone_pointer_pin_mode = false
+		_phone_pointer_home_mode = false
 
 
 func _show_step(step_index: int) -> void:
@@ -563,6 +591,8 @@ func _show_status_bar_style_controls() -> void:
 func _on_status_bar_style_selected(style_id: String) -> void:
 	if not lock_screen_designer.call("set_status_bar_style", style_id):
 		return
+	if is_instance_valid(home_screen_designer):
+		home_screen_designer.call("set_status_bar_style", style_id)
 	selected_status_bar_style_id = style_id
 	for child in content_column.get_children():
 		if child is Button and child.has_meta("status_style_id"):
@@ -643,6 +673,7 @@ func _generate_lock_screen_design() -> void:
 		selection_status_label.text = "DESIGN VALIDATION FAILED — GENERATE AGAIN"
 		return
 	_update_lock_screen_status(generated)
+	_configure_home_screen()
 	_update_phone_preview_mode()
 
 
@@ -658,21 +689,53 @@ func _update_lock_screen_status(generated: Dictionary) -> void:
 		wallpaper_total
 	]
 
+func _configure_home_screen() -> void:
+	if not is_instance_valid(home_screen_designer) or not is_instance_valid(lock_screen_designer):
+		return
+	var design: Dictionary = lock_screen_designer.call("get_last_design")
+	if design.is_empty():
+		return
+	home_screen_designer.call("configure", design, str(lock_screen_designer.call("get_status_bar_style_id")))
+
+
+func _on_pin_unlocked() -> void:
+	if not screen_powered or not boot_sequence_complete:
+		return
+	_home_screen_unlocked = true
+	lock_screen_designer.visible = false
+	lock_screen_designer.call("hide_pin_entry")
+	_configure_home_screen()
+	home_screen_designer.visible = true
+	_update_phone_preview_mode()
+
+
 func _update_phone_preview_mode() -> void:
 	if not is_instance_valid(lock_screen_designer):
 		return
 	if not screen_powered:
 		lock_screen_designer.call("hide_pin_entry")
 		lock_screen_designer.visible = false
+		if is_instance_valid(home_screen_designer):
+			home_screen_designer.visible = false
 		return
 	if not boot_sequence_complete:
 		lock_screen_designer.call("hide_pin_entry")
 		lock_screen_designer.visible = false
+		if is_instance_valid(home_screen_designer):
+			home_screen_designer.visible = false
 		return
 	company_logo_preview.visible = false
 	phone_name_label.visible = false
 	phone_model_label.visible = false
-	lock_screen_designer.visible = int(lock_screen_designer.call("get_generation_count")) > 0
+	var has_lock_screen := int(lock_screen_designer.call("get_generation_count")) > 0
+	lock_screen_designer.visible = has_lock_screen and not _home_screen_unlocked
+	if is_instance_valid(home_screen_designer):
+		if _home_screen_unlocked:
+			if not bool(home_screen_designer.call("get_loaded_app_count") > 0):
+				_configure_home_screen()
+			home_screen_designer.visible = true
+		else:
+			home_screen_designer.visible = false
 
 func _show_asset_browser(step_index: int) -> void:
 	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
@@ -727,6 +790,10 @@ func _on_power_pressed() -> void:
 			lock_screen_designer.call("hide_pin_entry")
 		_phone_pointer_active = false
 		_phone_pointer_pin_mode = false
+		_phone_pointer_home_mode = false
+		_home_screen_unlocked = false
+		if is_instance_valid(home_screen_designer):
+			home_screen_designer.visible = false
 		screen_powered = false
 		boot_sequence_complete = false
 		lock_screen_designer.visible = false
@@ -736,6 +803,9 @@ func _on_power_pressed() -> void:
 		phone_screen.color = Color("#000000")
 		return
 
+	_home_screen_unlocked = false
+	if is_instance_valid(home_screen_designer):
+		home_screen_designer.visible = false
 	screen_powered = true
 	boot_sequence_complete = false
 	lock_screen_designer.visible = false
