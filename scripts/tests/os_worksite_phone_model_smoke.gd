@@ -46,6 +46,15 @@ func _initialize() -> void:
 		_fail("The display glass is behind or embedded too deeply into the chassis face.")
 		return
 
+	var display_width_ratio := display.mesh.get_aabb().size.x / body_bounds.size.x
+	var display_height_ratio := display.mesh.get_aabb().size.y / body_bounds.size.y
+	if display_width_ratio < 0.95 or display_height_ratio < 0.96:
+		_fail("The OS handset display must cover nearly the full front face with minimal bezels.")
+		return
+	if absf(front_camera.position.y - display.position.y) > 0.20 or absf(earpiece.position.y - display.position.y) > 0.20:
+		_fail("The front camera and earpiece must be integrated into the narrow top display region.")
+		return
+
 	var side_keys: Array[MeshInstance3D] = [power_key, volume_up, volume_down]
 	for key in side_keys:
 		if absf(key.position.x) <= body_bounds.size.x * 0.5 or absf(key.position.x) > body_bounds.size.x * 0.5 + 0.03:
