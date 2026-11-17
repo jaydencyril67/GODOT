@@ -72,6 +72,7 @@ var boot_device_toggle: CheckButton
 var selected_asset_path := ""
 var screen_powered := false
 var company_logo_label: Label
+var phone_name_label: Label
 var phone_model_label: Label
 
 func _ready() -> void:
@@ -184,11 +185,19 @@ func _build_interface() -> void:
 	company_logo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	company_logo_label.visible = false
 	boot_content.add_child(company_logo_label)
+	_apply_boot_font_weight(company_logo_label, 700)
 
-	phone_model_label = _make_label("test mobile", 16, Color("#D0CBC2"))
+	phone_name_label = _make_label("test mobile", 19, TEXT)
+	phone_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phone_name_label.visible = false
+	boot_content.add_child(phone_name_label)
+	_apply_boot_font_weight(phone_name_label, 800)
+
+	phone_model_label = _make_label("test model", 15, Color("#D0CBC2"))
 	phone_model_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	phone_model_label.visible = false
 	boot_content.add_child(phone_model_label)
+	_apply_boot_font_weight(phone_model_label, 700)
 
 	controls_scroll = ScrollContainer.new()
 	controls_scroll.name = "OSControlsScroll"
@@ -414,6 +423,7 @@ func _on_power_pressed() -> void:
 	if screen_powered:
 		screen_powered = false
 		company_logo_label.visible = false
+		phone_name_label.visible = false
 		phone_model_label.visible = false
 		phone_screen.color = Color("#000000")
 		return
@@ -421,6 +431,7 @@ func _on_power_pressed() -> void:
 	screen_powered = true
 	phone_screen.color = Color("#050607")
 	company_logo_label.visible = true
+	phone_name_label.visible = false
 	phone_model_label.visible = false
 	_show_phone_boot_sequence()
 
@@ -432,6 +443,7 @@ func _show_phone_boot_sequence() -> void:
 
 	# Next five real-time seconds: phone name and model.
 	company_logo_label.visible = false
+	phone_name_label.visible = true
 	phone_model_label.visible = true
 	await get_tree().create_timer(5.0, true, false, true).timeout
 	if not screen_powered:
@@ -459,6 +471,15 @@ func _make_label(value: String, font_size: int, color: Color) -> Label:
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	return label
+
+func _apply_boot_font_weight(label: Label, weight: int) -> void:
+	var base_font := label.get_theme_font("font")
+	if base_font == null:
+		return
+	var weighted_font := FontVariation.new()
+	weighted_font.base_font = base_font
+	weighted_font.variation_opentype = {"wght": weight}
+	label.add_theme_font_override("font", weighted_font)
 
 func _make_panel_style(fill: Color, border: Color, border_width: int, radius: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
