@@ -224,17 +224,17 @@ func _build_interface() -> void:
 	company_logo_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boot_content.add_child(company_logo_preview)
 
-	phone_name_label = _make_label("Digital World", 65, TEXT)
+	phone_name_label = _make_label("Digital World", 60, TEXT)
 	phone_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	phone_name_label.visible = false
 	boot_content.add_child(phone_name_label)
-	_apply_boot_font_weight(phone_name_label, 800)
+	_apply_boot_font_weight(phone_name_label, 900)
 
-	phone_model_label = _make_label("Test Mobile", 60, Color("#D0CBC2"))
+	phone_model_label = _make_label("Test Mobile", 55, Color("#D0CBC2"))
 	phone_model_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	phone_model_label.visible = false
 	boot_content.add_child(phone_model_label)
-	_apply_boot_font_weight(phone_model_label, 700)
+	_apply_boot_font_weight(phone_model_label, 900)
 
 	var phone_model: Node3D = OSPhoneModelScript.new()
 	phone_model.name = "OSWorksiteHandsetModel"
