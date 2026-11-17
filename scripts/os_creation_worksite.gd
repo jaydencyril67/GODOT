@@ -156,7 +156,7 @@ func _build_interface() -> void:
 	# static: the player can power the device, but cannot rotate or drag it.
 	phone_frame = SubViewportContainer.new()
 	phone_frame.name = "OSPhone3DPreview"
-	phone_frame.custom_minimum_size = Vector2(228, 440)
+	phone_frame.custom_minimum_size = Vector2(250, 500)
 	phone_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	phone_frame.stretch = true
@@ -164,7 +164,7 @@ func _build_interface() -> void:
 
 	var phone_viewport := SubViewport.new()
 	phone_viewport.name = "FixedPhone3DViewport"
-	phone_viewport.size = Vector2i(640, 1200)
+	phone_viewport.size = Vector2i(700, 1400)
 	phone_viewport.transparent_bg = true
 	phone_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	phone_frame.add_child(phone_viewport)
@@ -176,7 +176,7 @@ func _build_interface() -> void:
 	var phone_camera := Camera3D.new()
 	phone_camera.name = "FixedPerspectiveCamera"
 	phone_world.add_child(phone_camera)
-	phone_camera.position = Vector3(0.28, 0.12, 7.8)
+	phone_camera.position = Vector3(0.22, 0.08, 8.5)
 	phone_camera.fov = 34.0
 	phone_camera.current = true
 	# Set the view only after the camera belongs to the 3D scene tree so
@@ -204,30 +204,28 @@ func _build_interface() -> void:
 	var body_mesh := MeshInstance3D.new()
 	body_mesh.name = "TitaniumPhoneBody"
 	var body_box := BoxMesh.new()
-	body_box.size = Vector3(2.34, 4.54, 0.24)
+	body_box.size = Vector3(2.50, 5.00, 0.22)
 	body_mesh.mesh = body_box
 	body_mesh.material_override = frame_material
 	phone_world.add_child(body_mesh)
 
 	# Rounded corner caps soften the silhouette of the metal handset body.
-	for corner_x in [-1.05, 1.05]:
-		for corner_y in [-2.05, 2.05]:
+	for corner_x in [-1.10, 1.10]:
+		for corner_y in [-2.25, 2.25]:
 			var corner := MeshInstance3D.new()
 			corner.name = "RoundedFrameCorner"
-			var corner_mesh := CylinderMesh.new()
-			corner_mesh.top_radius = 0.12
-			corner_mesh.bottom_radius = 0.12
-			corner_mesh.height = 0.24
-			corner_mesh.radial_segments = 24
+			var corner_mesh := SphereMesh.new()
+			corner_mesh.radius = 1.0
+			corner_mesh.height = 2.0
 			corner.mesh = corner_mesh
+			corner.scale = Vector3(0.15, 0.15, 0.11)
 			corner.material_override = frame_material
 			corner.position = Vector3(corner_x, corner_y, 0.0)
-			corner.rotation_degrees.x = 90.0
 			phone_world.add_child(corner)
 
 	var screen_viewport := SubViewport.new()
 	screen_viewport.name = "PhoneScreenInterfaceViewport"
-	screen_viewport.size = Vector2i(456, 880)
+	screen_viewport.size = Vector2i(680, 1360)
 	screen_viewport.transparent_bg = false
 	screen_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	phone_viewport.add_child(screen_viewport)
@@ -283,10 +281,10 @@ func _build_interface() -> void:
 	var screen_mesh_instance := MeshInstance3D.new()
 	screen_mesh_instance.name = "GlassDisplay"
 	var screen_quad := QuadMesh.new()
-	screen_quad.size = Vector2(2.28, 4.46)
+	screen_quad.size = Vector2(2.43, 4.93)
 	screen_mesh_instance.mesh = screen_quad
 	screen_mesh_instance.material_override = screen_material
-	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.126)
+	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.116)
 	phone_world.add_child(screen_mesh_instance)
 
 	var glass_material := StandardMaterial3D.new()
@@ -299,7 +297,7 @@ func _build_interface() -> void:
 	earpiece_mesh.size = Vector3(0.34, 0.025, 0.012)
 	earpiece.mesh = earpiece_mesh
 	earpiece.material_override = glass_material
-	earpiece.position = Vector3(0.12, 2.14, 0.145)
+	earpiece.position = Vector3(0.12, 2.39, 0.132)
 	phone_world.add_child(earpiece)
 
 	var front_camera := MeshInstance3D.new()
@@ -311,7 +309,7 @@ func _build_interface() -> void:
 	lens_mesh.radial_segments = 24
 	front_camera.mesh = lens_mesh
 	front_camera.material_override = glass_material
-	front_camera.position = Vector3(-0.36, 2.14, 0.145)
+	front_camera.position = Vector3(-0.36, 2.39, 0.132)
 	front_camera.rotation_degrees.x = 90.0
 	phone_world.add_child(front_camera)
 
@@ -450,6 +448,7 @@ func _build_interface() -> void:
 	root_control.add_child(next_button)
 
 	root_control.resized.connect(_apply_responsive_layout)
+	preview_region.resized.connect(_apply_responsive_layout)
 	call_deferred("_apply_responsive_layout")
 
 func _apply_responsive_layout() -> void:
@@ -457,10 +456,10 @@ func _apply_responsive_layout() -> void:
 		return
 	var available := preview_region.size
 	# Keep the rendered 3D handset tall while preserving its real-world silhouette.
-	var target_height := maxf(available.y - 6.0, 220.0)
-	var aspect := 228.0 / 440.0
+	var target_height := maxf(available.y - 2.0, 220.0)
+	var aspect := 250.0 / 500.0
 	var target_width := target_height * aspect
-	var max_width := maxf(available.x - 96.0, 120.0)
+	var max_width := maxf(available.x - 84.0, 125.0)
 	if target_width > max_width:
 		target_width = max_width
 		target_height = target_width / aspect
