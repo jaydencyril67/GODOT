@@ -1,5 +1,7 @@
 extends Control
 
+signal pin_unlocked
+
 const SVG_ROOT := "res://assets/lock-screen/aosp/SVG"
 const WALLPAPER_ROOT := "res://assets/wallpapers"
 const LayoutLibrary = preload("res://scripts/lock_screen_layout_library.gd")
@@ -536,6 +538,7 @@ func _complete_pin_preview() -> void:
 			Color("#9BE2B5")
 		)
 	_refresh_pin_entry()
+	pin_unlocked.emit()
 
 
 func _build_pin_entry_screen() -> void:
