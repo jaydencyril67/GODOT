@@ -93,8 +93,10 @@ func _build_camera() -> void:
 	preview_camera.fov = 38.0
 	preview_camera.near = 0.05
 	preview_camera.far = 100.0
+	# A camera's default forward axis is -Z, so the fixed straight-on
+	# preview needs no look_at call or scene-tree-dependent transform update.
+	preview_camera.basis = Basis.IDENTITY
 	add_child(preview_camera)
-	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 	preview_camera.current = true
 
 
