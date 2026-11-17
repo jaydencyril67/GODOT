@@ -6,8 +6,8 @@ extends Node3D
 
 const HANDSET_SIZE := Vector3(1.45, 2.92, 0.22)
 const OUTER_CORNER_RADIUS := 0.34
-const BEZEL_WIDTH := 0.020
-const BEZEL_HEIGHT := 0.052
+const BEZEL_WIDTH := 0.016
+const BEZEL_HEIGHT := 0.046
 const SCREEN_WIDTH := HANDSET_SIZE.x - BEZEL_WIDTH * 2.0
 const SCREEN_HEIGHT := HANDSET_SIZE.y - BEZEL_HEIGHT * 2.0
 const SCREEN_CORNER_RADIUS := 0.27
@@ -171,55 +171,28 @@ func _build_display(screen_texture: Texture2D) -> void:
 
 
 func _build_front_hardware() -> void:
-	var front_z := HANDSET_SIZE.z * 0.5
-	var dark_material := StandardMaterial3D.new()
-	dark_material.albedo_color = Color("#111923")
-	dark_material.metallic = 0.35
-	dark_material.roughness = 0.28
-	dark_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-
-	# The camera and earpiece stay inside the upper bezel, never on the glass.
-	var camera_ring := MeshInstance3D.new()
-	camera_ring.name = "FrontCameraMetalRing"
-	var ring_mesh := CylinderMesh.new()
-	ring_mesh.top_radius = 0.043
-	ring_mesh.bottom_radius = 0.043
-	ring_mesh.height = 0.010
-	ring_mesh.radial_segments = 40
-	camera_ring.mesh = ring_mesh
-	camera_ring.rotation_degrees.x = 90.0
-	camera_ring.position = Vector3(-0.19, 1.39, front_z + 0.006)
-	camera_ring.material_override = _make_metal_material(Color("#687582"), 0.76, 0.24)
-	camera_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(camera_ring)
-
-	var camera_lens := MeshInstance3D.new()
-	camera_lens.name = "FrontCameraLens"
+	# Match Phone Creation Worksite's Under-Display Camera treatment: one
+	# restrained optical window beneath the display glass, with no cutout,
+	# metallic ring, notch, or earpiece.
+	var optical_window := MeshInstance3D.new()
+	optical_window.name = "UnderDisplayCameraOpticalWindow"
 	var lens_mesh := CylinderMesh.new()
-	lens_mesh.top_radius = 0.027
-	lens_mesh.bottom_radius = 0.027
-	lens_mesh.height = 0.006
+	lens_mesh.top_radius = 0.026
+	lens_mesh.bottom_radius = 0.026
+	lens_mesh.height = 0.0015
 	lens_mesh.radial_segments = 40
-	camera_lens.mesh = lens_mesh
-	camera_lens.rotation_degrees.x = 90.0
-	camera_lens.position = Vector3(-0.19, 1.39, front_z + 0.012)
-	camera_lens.material_override = dark_material
-	camera_lens.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(camera_lens)
-
-	var earpiece := MeshInstance3D.new()
-	earpiece.name = "TopEarpiece"
-	var earpiece_mesh := CapsuleMesh.new()
-	earpiece_mesh.radius = 0.012
-	earpiece_mesh.height = 0.22
-	earpiece_mesh.radial_segments = 24
-	earpiece_mesh.rings = 6
-	earpiece.mesh = earpiece_mesh
-	earpiece.rotation_degrees.z = 90.0
-	earpiece.position = Vector3(0.14, 1.39, front_z + 0.008)
-	earpiece.material_override = dark_material
-	earpiece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(earpiece)
+	optical_window.mesh = lens_mesh
+	optical_window.rotation_degrees.x = 90.0
+	var front_z := HANDSET_SIZE.z * 0.5
+	optical_window.position = Vector3(0.0, SCREEN_HEIGHT * 0.5 - 0.075, front_z + 0.007)
+	var optical_material := StandardMaterial3D.new()
+	optical_material.albedo_color = Color(0.025, 0.055, 0.085, 0.22)
+	optical_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	optical_material.roughness = 0.28
+	optical_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	optical_window.material_override = optical_material
+	optical_window.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(optical_window)
 
 
 func _build_side_controls() -> void:
