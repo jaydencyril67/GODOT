@@ -16,6 +16,68 @@ const PALETTES := [
 ]
 
 const WALLPAPER_STYLES := ["aurora", "orbital", "contour", "ribbon", "prism", "soft_gradient"]
+const WALLPAPER_ASSETS := [
+	"res://assets/wallpapers/wallpaper-01.jpg",
+	"res://assets/wallpapers/wallpaper-02.jpg",
+	"res://assets/wallpapers/wallpaper-03.jpg",
+	"res://assets/wallpapers/wallpaper-04.jpg",
+	"res://assets/wallpapers/wallpaper-05.jpg",
+	"res://assets/wallpapers/wallpaper-06.jpg",
+	"res://assets/wallpapers/wallpaper-07.jpg",
+	"res://assets/wallpapers/wallpaper-08.jpg",
+	"res://assets/wallpapers/wallpaper-09.jpg",
+	"res://assets/wallpapers/wallpaper-10.jpg",
+	"res://assets/wallpapers/wallpaper-11.jpg",
+	"res://assets/wallpapers/wallpaper-12.jpg",
+	"res://assets/wallpapers/wallpaper-13.jpg",
+	"res://assets/wallpapers/wallpaper-14.jpg",
+	"res://assets/wallpapers/wallpaper-15.jpg",
+	"res://assets/wallpapers/wallpaper-16.jpg",
+	"res://assets/wallpapers/wallpaper-17.jpg",
+	"res://assets/wallpapers/wallpaper-18.jpg",
+	"res://assets/wallpapers/wallpaper-19.jpg",
+	"res://assets/wallpapers/wallpaper-20.jpg",
+	"res://assets/wallpapers/wallpaper-21.jpg",
+	"res://assets/wallpapers/wallpaper-22.jpg",
+	"res://assets/wallpapers/wallpaper-23.jpg",
+	"res://assets/wallpapers/wallpaper-24.jpg",
+	"res://assets/wallpapers/wallpaper-25.jpg",
+	"res://assets/wallpapers/wallpaper-26.jpg",
+	"res://assets/wallpapers/wallpaper-27.jpg",
+	"res://assets/wallpapers/wallpaper-28.jpg",
+	"res://assets/wallpapers/wallpaper-29.jpg",
+	"res://assets/wallpapers/wallpaper-30.jpg",
+	"res://assets/wallpapers/wallpaper-31.jpg",
+	"res://assets/wallpapers/wallpaper-32.jpg",
+	"res://assets/wallpapers/wallpaper-33.jpg",
+	"res://assets/wallpapers/wallpaper-34.jpg",
+	"res://assets/wallpapers/wallpaper-35.jpg",
+	"res://assets/wallpapers/wallpaper-36.jpg",
+	"res://assets/wallpapers/wallpaper-37.jpg",
+	"res://assets/wallpapers/wallpaper-38.jpg",
+	"res://assets/wallpapers/wallpaper-39.jpg",
+	"res://assets/wallpapers/wallpaper-40.jpg",
+	"res://assets/wallpapers/wallpaper-41.jpg",
+	"res://assets/wallpapers/wallpaper-42.jpg",
+	"res://assets/wallpapers/wallpaper-43.jpg",
+	"res://assets/wallpapers/wallpaper-44.jpg",
+	"res://assets/wallpapers/wallpaper-45.jpg",
+	"res://assets/wallpapers/wallpaper-46.jpg",
+	"res://assets/wallpapers/wallpaper-47.jpg",
+	"res://assets/wallpapers/wallpaper-48.jpg",
+	"res://assets/wallpapers/wallpaper-49.jpg",
+	"res://assets/wallpapers/wallpaper-50.jpg",
+	"res://assets/wallpapers/wallpaper-51.jpg",
+	"res://assets/wallpapers/wallpaper-52.jpg",
+	"res://assets/wallpapers/wallpaper-53.jpg",
+	"res://assets/wallpapers/wallpaper-54.jpg",
+	"res://assets/wallpapers/wallpaper-55.jpg",
+	"res://assets/wallpapers/wallpaper-56.jpg",
+	"res://assets/wallpapers/wallpaper-57.jpg",
+	"res://assets/wallpapers/wallpaper-58.jpg",
+	"res://assets/wallpapers/wallpaper-59.jpg",
+	"res://assets/wallpapers/wallpaper-60.jpg"
+]
 const WIDGET_TYPES := ["clock", "weather", "calendar", "music", "device", "focus", "battery"]
 
 const APP_LIBRARY := [
@@ -84,6 +146,7 @@ static func generate_ui(seed_value: int = -1, device_specs: Dictionary = {}) -> 
 	var style := {
 		"palette": palette,
 		"wallpaper_style": WALLPAPER_STYLES[rng.randi_range(0, WALLPAPER_STYLES.size() - 1)],
+		"wallpaper_path": WALLPAPER_ASSETS[rng.randi_range(0, WALLPAPER_ASSETS.size() - 1)],
 		"composition_density": ["airy", "balanced", "compact"][rng.randi_range(0, 2)],
 		"grid_columns": [3, 4, 4, 5][rng.randi_range(0, 3)],
 		"icon_shape": ["squircle", "rounded_square", "circle", "soft_square"][rng.randi_range(0, 3)],
@@ -142,6 +205,10 @@ static func normalize_ui(config: Dictionary) -> Dictionary:
 	if not WALLPAPER_STYLES.has(wallpaper_style):
 		wallpaper_style = "aurora"
 	style["wallpaper_style"] = wallpaper_style
+	var wallpaper_path := str(style.get("wallpaper_path", WALLPAPER_ASSETS[0]))
+	if not WALLPAPER_ASSETS.has(wallpaper_path):
+		wallpaper_path = WALLPAPER_ASSETS[0]
+	style["wallpaper_path"] = wallpaper_path
 	style["grid_columns"] = clampi(int(style.get("grid_columns", 4)), 3, 5)
 	style["icon_size"] = clampi(int(style.get("icon_size", 52)), 40, 64)
 	style["corner_radius"] = clampi(int(style.get("corner_radius", 22)), 10, 36)
@@ -225,6 +292,8 @@ static func validate_ui(config: Dictionary) -> PackedStringArray:
 					issues.append("Generated widget regions overlap.")
 	if not WALLPAPER_STYLES.has(str(style.get("wallpaper_style", ""))):
 		issues.append("The wallpaper composition is not recognized.")
+	if not WALLPAPER_ASSETS.has(str(style.get("wallpaper_path", ""))):
+		issues.append("The selected wallpaper asset is not recognized.")
 	return issues
 
 

@@ -5,6 +5,7 @@ var blueprint: Dictionary = {}
 var _font: Font
 var _typography_scale := 1.0
 var _icon_texture_cache: Dictionary = {}
+var _wallpaper_texture_cache: Dictionary = {}
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -45,7 +46,7 @@ func _draw() -> void:
 	_typography_scale = clampf(float(style.get("typography_scale", 1.0)), 0.85, 1.2)
 	var margin := size.x * 0.065
 
-	_draw_wallpaper(background, accent, str(style.get("wallpaper_style", "aurora")), secondary)
+	_draw_wallpaper(background, accent, str(style.get("wallpaper_style", "aurora")), secondary, str(style.get("wallpaper_path", "")))
 	_draw_status_bar(text_color, muted, system, style)
 
 	var composition: Dictionary = home.get("composition", {})
@@ -84,7 +85,29 @@ func _draw() -> void:
 	_draw_navigation(style, muted, text_color)
 
 
-func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, secondary: Color) -> void:
+func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, secondary: Color, wallpaper_path: String) -> void:
+	if not wallpaper_path.is_empty():
+		var texture: Texture2D = _wallpaper_texture_cache.get(wallpaper_path) as Texture2D
+		if texture == null and ResourceLoader.exists(wallpaper_path):
+			texture = ResourceLoader.load(wallpaper_path) as Texture2D
+			if texture != null:
+				_wallpaper_texture_cache[wallpaper_path] = texture
+		if texture != null:
+			var source_size := texture.get_size()
+			var target_ratio := size.x / maxf(1.0, size.y)
+			var source_ratio := source_size.x / maxf(1.0, source_size.y)
+			var source_rect := Rect2(Vector2.ZERO, source_size)
+			if source_ratio > target_ratio:
+				var cropped_width := source_size.y * target_ratio
+				source_rect.position.x = (source_size.x - cropped_width) * 0.5
+				source_rect.size.x = cropped_width
+			else:
+				var cropped_height := source_size.x / target_ratio
+				source_rect.position.y = (source_size.y - cropped_height) * 0.5
+				source_rect.size.y = cropped_height
+			draw_texture_rect_region(texture, Rect2(Vector2.ZERO, size), source_rect)
+			return
+		push_warning("Phone UI wallpaper asset could not be loaded: " + wallpaper_path)
 	for strip in range(36):
 		var ratio := float(strip) / 35.0
 		var tint := base.lerp(accent.darkened(0.78), ratio * 0.44)

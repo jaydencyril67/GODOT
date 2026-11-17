@@ -72,6 +72,7 @@ func _check_generated_designs() -> bool:
 		var signature := "%s|%s|%s|%s|%s|%s|%s" % [
 			str(style.get("palette", {}).get("name", "")),
 			str(style.get("wallpaper_style", "")),
+			str(style.get("wallpaper_path", "")),
 			str(style.get("icon_shape", "")),
 			str(style.get("grid_columns", "")),
 			widget_signature,
@@ -137,6 +138,7 @@ func _check_generated_ui_pixels() -> bool:
 				"muted": "#DDE4EE"
 			},
 			"wallpaper_style": "soft_gradient",
+			"wallpaper_path": "res://assets/wallpapers/wallpaper-01.jpg",
 			"composition_density": "balanced",
 			"grid_columns": 4,
 			"icon_shape": "rounded_square",
@@ -184,9 +186,11 @@ func _check_generated_ui_pixels() -> bool:
 	var widget_visible := widget_pixel.r > 0.45 and widget_pixel.g < 0.30
 	var icon_cache: Dictionary = renderer.get("_icon_texture_cache")
 	var app_visible := not icon_cache.is_empty() and (icon_pixel.r > 0.15 or icon_pixel.g > 0.15 or icon_pixel.b > 0.15)
+	var wallpaper_texture_cache: Dictionary = renderer.get("_wallpaper_texture_cache")
+	var wallpaper_visible := wallpaper_texture_cache.has("res://assets/wallpapers/wallpaper-01.jpg")
 	viewport.free()
-	if not widget_visible or not app_visible:
-		_fail("The generated screen image contains wallpaper but is missing visible widget or app-icon pixels.")
+	if not widget_visible or not app_visible or not wallpaper_visible:
+		_fail("The generated screen image is missing its wallpaper asset, widget or app-icon pixels.")
 		return false
 	return true
 
