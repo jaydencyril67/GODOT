@@ -70,7 +70,9 @@ var manufacturer_input: LineEdit
 var boot_logo_toggle: CheckButton
 var boot_device_toggle: CheckButton
 var selected_asset_path := ""
-var screen_powered := true
+var screen_powered := false
+var company_logo_label: Label
+var phone_model_label: Label
 
 func _ready() -> void:
 	_build_interface()
@@ -118,33 +120,29 @@ func _build_interface() -> void:
 	phone_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview_region.add_child(phone_center)
 
-	# Physical power key sits to the LEFT of the handset.
+	# The round power control is a separate object beside the handset.
 	var phone_row := HBoxContainer.new()
-	phone_row.name = "PhoneAndPowerKey"
+	phone_row.name = "PhoneAndSeparatePowerButton"
 	phone_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	phone_row.add_theme_constant_override("separation", 0)
+	phone_row.add_theme_constant_override("separation", 22)
 	phone_center.add_child(phone_row)
 
 	power_button = Button.new()
-	power_button.name = "PhonePowerButton"
-	power_button.custom_minimum_size = Vector2(11, 64)
-	power_button.tooltip_text = "Power"
+	power_button.name = "SeparateRoundPowerButton"
+	power_button.text = "⏻"
+	power_button.custom_minimum_size = Vector2(58, 58)
+	power_button.tooltip_text = "Power on / off"
 	power_button.focus_mode = Control.FOCUS_NONE
-	power_button.toggle_mode = true
-	power_button.button_pressed = true
-	var power_style := StyleBoxFlat.new()
-	power_style.bg_color = Color("#343638")
-	power_style.border_color = Color("#77736D")
-	power_style.set_border_width_all(1)
-	power_style.set_corner_radius_all(4)
-	power_button.add_theme_stylebox_override("normal", power_style)
-	power_button.add_theme_stylebox_override("hover", power_style)
-	power_button.add_theme_stylebox_override("pressed", _make_panel_style(Color("#111315"), Color("#C58A3A"), 1, 4))
-	power_button.toggled.connect(_on_power_toggled)
+	power_button.add_theme_font_size_override("font_size", 30)
+	power_button.add_theme_stylebox_override("normal", _make_panel_style(Color("#343638"), Color("#8A8175"), 1, 30))
+	power_button.add_theme_stylebox_override("hover", _make_panel_style(Color("#40382D"), ACCENT, 1, 30))
+	power_button.add_theme_stylebox_override("pressed", _make_panel_style(Color("#17191B"), ACCENT, 1, 30))
+	power_button.add_theme_color_override("font_color", TEXT)
+	power_button.pressed.connect(_on_power_pressed)
 	phone_row.add_child(power_button)
 
 	phone_frame = PanelContainer.new()
-	phone_frame.name = "BlankOSPhoneFrame"
+	phone_frame.name = "OSPhoneFrame"
 	phone_frame.custom_minimum_size = Vector2(228, 440)
 	phone_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -159,11 +157,29 @@ func _build_interface() -> void:
 	phone_frame.add_child(screen_margin)
 
 	phone_screen = ColorRect.new()
-	phone_screen.name = "BlankPhoneDisplay"
-	phone_screen.color = Color("#050607")
+	phone_screen.name = "PhoneDisplay"
+	phone_screen.color = Color("#000000")
 	phone_screen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	phone_screen.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	screen_margin.add_child(phone_screen)
+
+	var boot_content := VBoxContainer.new()
+	boot_content.name = "BootScreenContent"
+	boot_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	boot_content.alignment = BoxContainer.ALIGNMENT_CENTER
+	boot_content.add_theme_constant_override("separation", 18)
+	boot_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phone_screen.add_child(boot_content)
+
+	company_logo_label = _make_label("Digital World", 23, TEXT)
+	company_logo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	company_logo_label.visible = false
+	boot_content.add_child(company_logo_label)
+
+	phone_model_label = _make_label("test mobile", 16, Color("#D0CBC2"))
+	phone_model_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phone_model_label.visible = false
+	boot_content.add_child(phone_model_label)
 
 	controls_scroll = ScrollContainer.new()
 	controls_scroll.name = "OSControlsScroll"
@@ -288,12 +304,13 @@ func _apply_responsive_layout() -> void:
 	if not is_instance_valid(phone_frame) or not is_instance_valid(preview_region):
 		return
 	var available := preview_region.size
-	var target_width := clampf(available.x * 0.48, 150.0, 280.0)
-	var target_height := clampf(available.y * 0.78, 250.0, 540.0)
+	# Fill almost the entire preview height while preserving a realistic handset ratio.
+	var target_height := maxf(available.y - 18.0, 220.0)
 	var aspect := 228.0 / 440.0
-	if target_width / target_height > aspect:
-		target_width = target_height * aspect
-	else:
+	var target_width := target_height * aspect
+	var max_width := maxf(available.x - 112.0, 120.0)
+	if target_width > max_width:
+		target_width = max_width
 		target_height = target_width / aspect
 	phone_frame.custom_minimum_size = Vector2(target_width, target_height)
 
@@ -384,10 +401,26 @@ func _select_asset(path: String) -> void:
 	selected_asset_path = path
 	selection_status_label.text = path.replace("res://", "")
 
-func _on_power_toggled(enabled: bool) -> void:
-	screen_powered = enabled
-	# The screen stays empty in both states; only its power state changes.
-	phone_screen.color = Color("#050607") if enabled else Color("#000000")
+func _on_power_pressed() -> void:
+	if screen_powered:
+		screen_powered = false
+		company_logo_label.visible = false
+		phone_model_label.visible = false
+		phone_screen.color = Color("#000000")
+		return
+
+	screen_powered = true
+	phone_screen.color = Color("#050607")
+	company_logo_label.visible = true
+	phone_model_label.visible = false
+	_show_phone_boot_sequence()
+
+func _show_phone_boot_sequence() -> void:
+	# Show company branding first, then the phone name/model.
+	await get_tree().create_timer(1.4).timeout
+	if not screen_powered or not is_instance_valid(phone_model_label):
+		return
+	phone_model_label.visible = true
 
 func _add_note(message: String) -> void:
 	var note := _make_label(message, 11, MUTED)
