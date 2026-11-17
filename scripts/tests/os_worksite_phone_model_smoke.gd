@@ -84,7 +84,6 @@ func _initialize() -> void:
 	if display_width_ratio < 0.95 or display_height_ratio < 0.96:
 		_fail("The OS handset display must cover nearly the full front face with minimal bezels.")
 		return
-	var display_bounds := display.mesh.get_aabb()
 	var display_top := display_bounds.position.y + display_bounds.size.y
 	if under_display_camera.position.y > display_top or under_display_camera.position.y < display_bounds.position.y:
 		_fail("The under-display camera optical window must remain within the active display.")
