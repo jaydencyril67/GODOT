@@ -44,17 +44,28 @@ func _run_test() -> void:
 	if home_grid == null or home_grid.get_child_count() != 16:
 		_fail("The first home page must display a complete four-by-four app grid.")
 		return
-	var home_icons := home_screen.find_children("HomeAppIcon_*", "TextureRect", true, false)
-	if home_icons.size() != 20:
-		_fail("The home pages and dock must expose exactly twenty curated app icons.")
+	var page_icons := home_grid.find_children("*", "TextureRect", true, false)
+	if page_icons.size() != 16:
+		_fail("The visible home page must expose sixteen app icons; found %d." % page_icons.size())
 		return
-	for icon_node in home_icons:
+	for icon_node in page_icons:
 		var icon := icon_node as TextureRect
 		if icon == null or icon.texture == null:
 			var icon_name := "unknown"
 			if icon != null:
 				icon_name = str(icon.name)
-			_fail("A curated home-screen app icon failed to load: " + icon_name)
+			_fail("A home-page app icon failed to load: " + icon_name)
+			return
+
+	var dock := home_screen.find_child("HomeScreenDock", true, false) as PanelContainer
+	var dock_row := dock.find_child("HomeScreenDockApps", true, false) as HBoxContainer if dock != null else null
+	if dock_row == null or dock_row.get_child_count() != 4:
+		_fail("The home screen dock must expose four apps.")
+		return
+	for tile in dock_row.get_children():
+		var dock_icon := tile.get_child(0) as TextureRect if tile.get_child_count() > 0 else null
+		if dock_icon == null or dock_icon.texture == null:
+			_fail("A dock app icon failed to load.")
 			return
 
 	if int(home_screen.call("get_loaded_app_count")) < 140:
