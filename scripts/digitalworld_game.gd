@@ -2807,6 +2807,7 @@ func _prepare_os_creation_worksite() -> void:
 		push_error("OS Creation Worksite scene could not be initialized.")
 		return
 	os_creation_worksite.name = "OS_Creation_Worksite"
+	os_creation_worksite.set_company_logo_texture(_company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50)))
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
 	add_child(os_creation_worksite)
