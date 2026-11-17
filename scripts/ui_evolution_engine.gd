@@ -19,28 +19,27 @@ const WALLPAPER_STYLES := ["aurora", "orbital", "contour", "ribbon", "prism", "s
 const WIDGET_TYPES := ["clock", "weather", "calendar", "music", "device", "focus", "battery"]
 
 const APP_LIBRARY := [
-	{"name": "Phone", "glyph": "P", "color": "#369B79"},
-	{"name": "Messages", "glyph": "M", "color": "#398FCB"},
-	{"name": "Camera", "glyph": "C", "color": "#687987"},
-	{"name": "Gallery", "glyph": "G", "color": "#A77BC4"},
-	{"name": "Browser", "glyph": "B", "color": "#319B9A"},
-	{"name": "Music", "glyph": "♪", "color": "#C36E83"},
-	{"name": "Calendar", "glyph": "18", "color": "#D4775D"},
-	{"name": "Settings", "glyph": "S", "color": "#778590"},
-	{"name": "Files", "glyph": "F", "color": "#A58B5A"},
-	{"name": "Clock", "glyph": "◷", "color": "#6688B7"},
-	{"name": "Maps", "glyph": "↗", "color": "#4F9D82"},
-	{"name": "Notes", "glyph": "N", "color": "#B18E56"},
-	{"name": "Contacts", "glyph": "U", "color": "#568FA8"},
-	{"name": "Email", "glyph": "E", "color": "#B87962"},
-	{"name": "Calculator", "glyph": "÷", "color": "#728C9E"},
-	{"name": "Weather", "glyph": "☼", "color": "#C18C55"},
-	{"name": "Store", "glyph": "◆", "color": "#5D9B83"},
-	{"name": "Security", "glyph": "◇", "color": "#6488A8"},
-	{"name": "Photos", "glyph": "✦", "color": "#B77A9B"},
-	{"name": "Wallet", "glyph": "$", "color": "#A88762"},
-	{"name": "Assistant", "glyph": "✧", "color": "#8D83BC"},
-	{"name": "Tasks", "glyph": "✓", "color": "#638D9D"}
+	{"name": "Gmail", "icon_path": "res://assets/app_icons/appstract/google/gmail.png"},
+	{"name": "Google Keep", "icon_path": "res://assets/app_icons/appstract/google/google_keep.png"},
+	{"name": "Google Earth", "icon_path": "res://assets/app_icons/appstract/google/google_earth.png"},
+	{"name": "Google Fit", "icon_path": "res://assets/app_icons/appstract/google/google_fit.png"},
+	{"name": "Google Tasks", "icon_path": "res://assets/app_icons/appstract/google/google_tasks.png"},
+	{"name": "Spotify", "icon_path": "res://assets/app_icons/appstract/music/spotify.png"},
+	{"name": "Shazam", "icon_path": "res://assets/app_icons/appstract/music/shazam.png"},
+	{"name": "Discord", "icon_path": "res://assets/app_icons/appstract/social/discord.png"},
+	{"name": "Instagram", "icon_path": "res://assets/app_icons/appstract/social/instagram.png"},
+	{"name": "WhatsApp", "icon_path": "res://assets/app_icons/appstract/social/whatsapp.png"},
+	{"name": "Telegram", "icon_path": "res://assets/app_icons/appstract/social/telegram.png"},
+	{"name": "Snapchat", "icon_path": "res://assets/app_icons/appstract/social/snapchat.png"},
+	{"name": "TikTok", "icon_path": "res://assets/app_icons/appstract/social/tiktok.png"},
+	{"name": "Facebook", "icon_path": "res://assets/app_icons/appstract/social/facebook.png"},
+	{"name": "LinkedIn", "icon_path": "res://assets/app_icons/appstract/social/linked_in.png"},
+	{"name": "Netflix", "icon_path": "res://assets/app_icons/appstract/video/netflix.png"},
+	{"name": "YouTube", "icon_path": "res://assets/app_icons/appstract/video/youtube.png"},
+	{"name": "Twitch", "icon_path": "res://assets/app_icons/appstract/video/twitch.png"},
+	{"name": "Amazon", "icon_path": "res://assets/app_icons/appstract/shopping/amazon.png"},
+	{"name": "eBay", "icon_path": "res://assets/app_icons/appstract/shopping/ebay.png"},
+	{"name": "Canva", "icon_path": "res://assets/app_icons/appstract/creative/canva.png"}
 ]
 
 const DESIGN_PREFIXES := ["Aether", "Lumen", "Nova", "Sora", "Vanta", "Mira", "Orbit", "Solace", "Kairo", "Nexa", "Aural", "Cinder"]
@@ -71,7 +70,7 @@ static func generate_ui(seed_value: int = -1, device_specs: Dictionary = {}) -> 
 		})
 
 	var widget_layout := _create_widget_layout(widgets, rng)
-	var dock := ["Phone", "Messages", "Browser", "Camera"]
+	var dock := ["WhatsApp", "Gmail", "Spotify", "YouTube"]
 	var home_apps: Array[Dictionary] = []
 	var target_app_count := rng.randi_range(9, 12)
 	for app_value in apps:

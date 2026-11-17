@@ -4,6 +4,7 @@ class_name GeneratedPhoneUI
 var blueprint: Dictionary = {}
 var _font: Font
 var _typography_scale := 1.0
+var _icon_texture_cache: Dictionary = {}
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -229,7 +230,6 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, _palett
 	var margin := viewport_size.x * 0.045
 	var cell_width := (viewport_size.x - margin * 2.0) / float(columns)
 	var icon_size := clampf(float(style.get("icon_size", 52)) * 0.88, 36.0, 54.0)
-	var icon_radius := float(style.get("corner_radius", 22)) * 0.70
 	var row_count := maxi(1, ceili(float(apps.size()) / float(columns)))
 	var dock_top := viewport_size.y - viewport_size.y * 0.083 - 38.0
 	var available_height := maxf(48.0, dock_top - apps_top - 18.0)
@@ -244,27 +244,31 @@ func _draw_apps(apps_value: Variant, apps_top: float, style: Dictionary, _palett
 		var column := index % columns
 		var row := floori(float(index) / float(columns))
 		var centre := Vector2(margin + cell_width * (float(column) + 0.5), apps_top + float(row) * row_height)
-		var app_color := Color(str(app.get("color", "#6688B7")))
 		var icon_rect := Rect2(centre - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size)
-		# Keep the familiar generated icon geometry, but give each icon a physical
-		# lift, a soft upper reflection and a crisp edge instead of flat fill.
-		if str(style.get("icon_shape", "squircle")) == "circle":
-			draw_circle(centre + Vector2(0.0, 2.0), icon_size * 0.5, Color(0.0, 0.0, 0.0, 0.22))
-			draw_circle(centre, icon_size * 0.5, app_color)
-			draw_arc(centre, icon_size * 0.455, PI * 1.08, PI * 1.92, 36, Color(1.0, 1.0, 1.0, 0.22), 1.2, true)
-		else:
-			_draw_round_rect(Rect2(icon_rect.position + Vector2(0.0, 2.0), icon_rect.size), Color(0.0, 0.0, 0.0, 0.22), icon_radius)
-			_draw_round_rect(icon_rect, app_color, icon_radius)
-			_draw_round_rect(Rect2(icon_rect.position + Vector2(2.0, 2.0), Vector2(icon_size - 4.0, icon_size * 0.34)), Color(1.0, 1.0, 1.0, 0.10), icon_radius * 0.58)
-			_draw_round_rect_outline(icon_rect, Color(1.0, 1.0, 1.0, 0.18), icon_radius, 0.8)
-		var glyph := str(app.get("glyph", "A"))
-		_draw_text(glyph, centre + Vector2(-icon_size * 0.34, icon_size * 0.13), 17 if glyph.length() <= 1 else 11, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, icon_size * 0.68)
+		_draw_app_icon(app, icon_rect)
 		var label := str(app.get("name", "App"))
 		_draw_text(label, centre + Vector2(-cell_width * 0.48, icon_size * 0.5 + label_gap - 8.0), 8, text_color, HORIZONTAL_ALIGNMENT_CENTER, cell_width * 0.96)
 
 
+func _draw_app_icon(app: Dictionary, icon_rect: Rect2) -> void:
+	var icon_path := str(app.get("icon_path", ""))
+	if icon_path.is_empty():
+		return
+	var texture: Texture2D = _icon_texture_cache.get(icon_path) as Texture2D
+	if texture == null:
+		if not ResourceLoader.exists(icon_path):
+			push_warning("Phone UI app icon asset is missing: " + icon_path)
+			return
+		texture = ResourceLoader.load(icon_path) as Texture2D
+		if texture == null:
+			push_warning("Phone UI app icon could not be loaded: " + icon_path)
+			return
+		_icon_texture_cache[icon_path] = texture
+	draw_texture_rect(texture, icon_rect, false)
+
+
 func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, _text_color: Color, _muted: Color, viewport_size: Vector2, radius: int) -> void:
-	var dock: Array = dock_value if dock_value is Array else ["Phone", "Messages", "Browser", "Camera"]
+	var dock: Array = dock_value if dock_value is Array else ["WhatsApp", "Gmail", "Spotify", "YouTube"]
 	var dock_height := viewport_size.y * 0.083
 	var dock_rect := Rect2(Vector2(viewport_size.x * 0.055, viewport_size.y - dock_height - 38.0), Vector2(viewport_size.x * 0.89, dock_height))
 	var surface := _palette_color(palette, "surface", "#203344")
@@ -276,13 +280,8 @@ func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, _te
 		var app := _find_app(app_name)
 		var icon_size := dock_rect.size.y * 0.60
 		var centre := Vector2(dock_rect.position.x + cell_width * (float(index) + 0.5), dock_rect.position.y + dock_rect.size.y * 0.49)
-		var app_color := Color(str(app.get("color", "#6688B7")))
-		if str(style.get("icon_shape", "squircle")) == "circle":
-			draw_circle(centre, icon_size * 0.5, app_color)
-		else:
-			_draw_round_rect(Rect2(centre - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size), app_color, float(radius) * 0.6)
-		var glyph := str(app.get("glyph", app_name.left(1)))
-		_draw_text(glyph, centre + Vector2(-icon_size * 0.30, icon_size * 0.11), 16 if glyph.length() <= 1 else 10, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, icon_size * 0.60)
+		var icon_rect := Rect2(centre - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size)
+		_draw_app_icon(app, icon_rect)
 
 
 func _draw_navigation(style: Dictionary, muted: Color, text_color: Color) -> void:
