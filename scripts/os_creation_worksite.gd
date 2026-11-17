@@ -203,25 +203,11 @@ func _build_interface() -> void:
 
 	var body_mesh := MeshInstance3D.new()
 	body_mesh.name = "TitaniumPhoneBody"
-	var body_box := BoxMesh.new()
-	body_box.size = Vector3(2.50, 5.00, 0.22)
-	body_mesh.mesh = body_box
+	body_mesh.mesh = _make_rounded_prism_mesh(2.50, 5.00, 0.22, 0.34, 10)
 	body_mesh.material_override = frame_material
 	phone_world.add_child(body_mesh)
 
-	# Rounded corner caps soften the silhouette of the metal handset body.
-	for corner_x in [-1.10, 1.10]:
-		for corner_y in [-2.25, 2.25]:
-			var corner := MeshInstance3D.new()
-			corner.name = "RoundedFrameCorner"
-			var corner_mesh := SphereMesh.new()
-			corner_mesh.radius = 1.0
-			corner_mesh.height = 2.0
-			corner.mesh = corner_mesh
-			corner.scale = Vector3(0.15, 0.15, 0.11)
-			corner.material_override = frame_material
-			corner.position = Vector3(corner_x, corner_y, 0.0)
-			phone_world.add_child(corner)
+	# The chassis uses a continuous rounded-rectangle extrusion, not sharp box corners.
 
 	var screen_viewport := SubViewport.new()
 	screen_viewport.name = "PhoneScreenInterfaceViewport"
@@ -246,13 +232,13 @@ func _build_interface() -> void:
 	boot_content.name = "BootScreenContent"
 	boot_content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	boot_content.alignment = BoxContainer.ALIGNMENT_CENTER
-	boot_content.add_theme_constant_override("separation", 18)
+	boot_content.add_theme_constant_override("separation", 28)
 	boot_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	phone_screen.add_child(boot_content)
 
 	company_logo_preview = TextureRect.new()
 	company_logo_preview.name = "CompanyLogoBootImage"
-	company_logo_preview.custom_minimum_size = Vector2(104, 104)
+	company_logo_preview.custom_minimum_size = Vector2(190, 190)
 	company_logo_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	company_logo_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	company_logo_preview.texture = company_logo_texture
@@ -260,13 +246,13 @@ func _build_interface() -> void:
 	company_logo_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boot_content.add_child(company_logo_preview)
 
-	phone_name_label = _make_label("Digital World", 19, TEXT)
+	phone_name_label = _make_label("Digital World", 42, TEXT)
 	phone_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	phone_name_label.visible = false
 	boot_content.add_child(phone_name_label)
 	_apply_boot_font_weight(phone_name_label, 800)
 
-	phone_model_label = _make_label("Test Mobile", 15, Color("#D0CBC2"))
+	phone_model_label = _make_label("Test Mobile", 32, Color("#D0CBC2"))
 	phone_model_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	phone_model_label.visible = false
 	boot_content.add_child(phone_model_label)
@@ -280,9 +266,7 @@ func _build_interface() -> void:
 
 	var screen_mesh_instance := MeshInstance3D.new()
 	screen_mesh_instance.name = "GlassDisplay"
-	var screen_quad := QuadMesh.new()
-	screen_quad.size = Vector2(2.43, 4.93)
-	screen_mesh_instance.mesh = screen_quad
+	screen_mesh_instance.mesh = _make_rounded_prism_mesh(2.43, 4.93, 0.012, 0.27, 10)
 	screen_mesh_instance.material_override = screen_material
 	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.116)
 	phone_world.add_child(screen_mesh_instance)
@@ -464,6 +448,49 @@ func _apply_responsive_layout() -> void:
 		target_width = max_width
 		target_height = target_width / aspect
 	phone_frame.custom_minimum_size = Vector2(target_width, target_height)
+
+
+func _make_rounded_prism_mesh(width: float, height: float, depth: float, radius: float, corner_segments: int) -> ArrayMesh:
+	var half_width := width * 0.5
+	var half_height := height * 0.5
+	var r := clampf(radius, 0.01, minf(half_width, half_height))
+	var points := PackedVector2Array()
+	var corner_data := [
+		{"center": Vector2(half_width - r, half_height - r), "start": 0.0},
+		{"center": Vector2(-half_width + r, half_height - r), "start": 90.0},
+		{"center": Vector2(-half_width + r, -half_height + r), "start": 180.0},
+		{"center": Vector2(half_width - r, -half_height + r), "start": 270.0}
+	]
+	for corner in corner_data:
+		for segment in range(corner_segments + 1):
+			var angle := deg_to_rad(float(corner["start"]) + 90.0 * float(segment) / float(corner_segments))
+			var center: Vector2 = corner["center"]
+			points.append(center + Vector2(cos(angle), sin(angle)) * r)
+
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var front_z := depth * 0.5
+	var back_z := -depth * 0.5
+	var front_center := Vector3(0.0, 0.0, front_z)
+	var back_center := Vector3(0.0, 0.0, back_z)
+	for index in range(points.size()):
+		var next_index := (index + 1) % points.size()
+		var a := points[index]
+		var b := points[next_index]
+		surface.add_vertex(front_center)
+		surface.add_vertex(Vector3(a.x, a.y, front_z))
+		surface.add_vertex(Vector3(b.x, b.y, front_z))
+		surface.add_vertex(back_center)
+		surface.add_vertex(Vector3(b.x, b.y, back_z))
+		surface.add_vertex(Vector3(a.x, a.y, back_z))
+		surface.add_vertex(Vector3(a.x, a.y, front_z))
+		surface.add_vertex(Vector3(a.x, a.y, back_z))
+		surface.add_vertex(Vector3(b.x, b.y, back_z))
+		surface.add_vertex(Vector3(a.x, a.y, front_z))
+		surface.add_vertex(Vector3(b.x, b.y, back_z))
+		surface.add_vertex(Vector3(b.x, b.y, front_z))
+	surface.generate_normals()
+	return surface.commit()
 
 func _show_step(step_index: int) -> void:
 	current_step = clampi(step_index, 0, STEP_NAMES.size() - 1)
