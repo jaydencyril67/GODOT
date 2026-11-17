@@ -119,7 +119,6 @@ func open_app_drawer() -> void:
 		_app_drawer.visible = true
 		if is_instance_valid(_drawer_search):
 			_drawer_search.text = ""
-			_drawer_search.grab_focus()
 		_rebuild_app_drawer_grid("")
 
 
@@ -543,7 +542,7 @@ func _add_status_bar() -> void:
 	var time_label := Label.new()
 	time_label.name = "HomeStatusBarClock"
 	time_label.text = _current_time_text()
-	time_label.add_theme_font_size_override("font_size", maxi(17, int(style.get("time_size", 12)) + 6))
+	time_label.add_theme_font_size_override("font_size", maxi(22, int(style.get("time_size", 12)) + 10))
 	time_label.add_theme_color_override("font_color", tint)
 	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -559,7 +558,7 @@ func _add_status_bar() -> void:
 		var lock_icon := TextureRect.new()
 		lock_icon.name = "HomeStatusBarLockIcon"
 		lock_icon.texture = _load_tinted_asset(LOCK_ICON_PATH, tint)
-		lock_icon.custom_minimum_size = Vector2(14, 18)
+		lock_icon.custom_minimum_size = Vector2(16, 20)
 		lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -577,7 +576,7 @@ func _add_status_bar() -> void:
 		icon.name = "HomeStatusBar" + icon_id.capitalize() + "Icon"
 		icon.texture = texture
 		icon.modulate = tint
-		var base_size := float(style.get("icon_size", 16)) * 1.30
+		var base_size := float(style.get("icon_size", 16)) * 1.50
 		var icon_width := base_size * 0.75 if icon_id == "signal" else base_size
 		icon.custom_minimum_size = Vector2(icon_width, base_size)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
