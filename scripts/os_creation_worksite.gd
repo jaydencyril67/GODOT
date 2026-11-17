@@ -408,7 +408,7 @@ func _get_phone_screen_input_rect() -> Rect2:
 	# Bounds account for the handset's 1.41 x 2.88 display projected
 	# through the fixed 38-degree preview camera into its 700 x 1400 viewport.
 	return Rect2(
-		Vector2(phone_frame.size.x * 0.043, phone_frame.size.y * 0.034),
+		Vector2(phone_frame.size.x * 0.043, phone_frame.size.y * 0.0335),
 		Vector2(phone_frame.size.x * 0.914, phone_frame.size.y * 0.933)
 	)
 
