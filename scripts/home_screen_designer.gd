@@ -99,7 +99,12 @@ func get_home_icon_count() -> int:
 func get_status_bar_icon_count() -> int:
 	if not is_instance_valid(_status_bar):
 		return 0
-	return _status_bar.find_children("HomeStatusBar*Icon", "TextureRect", true, false).size()
+	var icon_count := 0
+	for node in _status_bar.find_children("*", "TextureRect", true, false):
+		var node_name := str(node.name)
+		if node_name.begins_with("HomeStatusBar") and node_name.ends_with("Icon"):
+			icon_count += 1
+	return icon_count
 
 
 func move_page(direction: int) -> bool:
