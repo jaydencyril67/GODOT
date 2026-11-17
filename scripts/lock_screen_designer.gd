@@ -312,7 +312,7 @@ func _compose_design() -> Dictionary:
 			"alpha": _rng.randf_range(0.025, 0.065)
 		})
 
-	var status_styles: Array[Dictionary] = StatusBarAssetLibrary.get_styles()
+	var status_styles: Array = StatusBarAssetLibrary.get_styles()
 	var selected_status_style: Dictionary = status_styles[_rng.randi_range(0, status_styles.size() - 1)]
 	var analog_clock_style_index := _rng.randi_range(1, LockScreenAssetLibrary.get_analog_face_count()) if clock_style == "analog" else 0
 
