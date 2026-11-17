@@ -58,12 +58,16 @@ func _run_test() -> void:
 			return
 
 	var dock := home_screen.find_child("HomeScreenDock", true, false) as PanelContainer
-	var dock_row := dock.find_child("HomeScreenDockApps", true, false) as HBoxContainer if dock != null else null
+	var dock_row: HBoxContainer = null
+	if dock != null:
+		dock_row = dock.find_child("HomeScreenDockApps", true, false) as HBoxContainer
 	if dock_row == null or dock_row.get_child_count() != 4:
 		_fail("The home screen dock must expose four apps.")
 		return
 	for tile in dock_row.get_children():
-		var dock_icon := tile.get_child(0) as TextureRect if tile.get_child_count() > 0 else null
+		var dock_icon: TextureRect = null
+		if tile.get_child_count() > 0:
+			dock_icon = tile.get_child(0) as TextureRect
 		if dock_icon == null or dock_icon.texture == null:
 			_fail("A dock app icon failed to load.")
 			return
