@@ -36,6 +36,20 @@ func _run_test() -> void:
 	if not bool(designer.call("is_pin_entry_visible")):
 		_fail("The PIN entry overlay is not visible.")
 		return
+	await process_frame
+
+	var dot_nodes := designer.find_children("PinDigitIndicator_*", "Panel", true, false)
+	if dot_nodes.size() != 6:
+		_fail("The PIN entry screen does not have six digit indicators.")
+		return
+	for dot_node in dot_nodes:
+		var dot := dot_node as Panel
+		if dot == null or not is_equal_approx(dot.custom_minimum_size.x, dot.custom_minimum_size.y):
+			_fail("A PIN digit indicator does not have a square minimum size.")
+			return
+		if dot.size.x <= 0.0 or dot.size.y <= 0.0 or absf(dot.size.x - dot.size.y) > 1.0:
+			_fail("A PIN digit indicator rendered as an oval instead of a circle: %s" % (dot.size if dot != null else Vector2.ZERO))
+			return
 
 	var backspace_icon := designer.find_child("PinBackspaceIcon", true, false) as TextureRect
 	if backspace_icon == null or backspace_icon.texture == null:
