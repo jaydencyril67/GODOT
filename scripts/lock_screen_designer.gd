@@ -267,7 +267,7 @@ func _compose_design() -> Dictionary:
 			"alpha": _rng.randf_range(0.055, 0.13)
 		})
 
-	var clock_align := ["left", "center", "right"][_rng.randi_range(0, 2)]
+	var clock_align: String = ["left", "center", "right"][_rng.randi_range(0, 2)]
 	var clock_format := "single"
 	if clock_style == "stacked":
 		clock_format = "split"
