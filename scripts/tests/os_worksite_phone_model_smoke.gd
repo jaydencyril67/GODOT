@@ -2,6 +2,7 @@ extends SceneTree
 
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
 const MIN_DISPLAY_BACK_Z := 0.109
+const EXPECTED_BEZEL_WIDTH := 0.020
 
 
 func _initialize() -> void:
@@ -46,8 +47,40 @@ func _initialize() -> void:
 		_fail("The display glass is behind or embedded too deeply into the chassis face.")
 		return
 
-	var display_width_ratio := display.mesh.get_aabb().size.x / body_bounds.size.x
-	var display_height_ratio := display.mesh.get_aabb().size.y / body_bounds.size.y
+	var display_bounds := display.mesh.get_aabb()
+	var inset_bounds := inset.mesh.get_aabb()
+	var horizontal_bezel := (body_bounds.size.x - display_bounds.size.x) * 0.5
+	var vertical_bezel := (body_bounds.size.y - display_bounds.size.y) * 0.5
+	var corner_bezel := OSPhoneModelScript.OUTER_CORNER_RADIUS - OSPhoneModelScript.SCREEN_CORNER_RADIUS
+	var bezel_positions := [
+		{"position": "Top", "thickness": vertical_bezel},
+		{"position": "Right/top corner", "thickness": corner_bezel},
+		{"position": "Right", "thickness": horizontal_bezel},
+		{"position": "Right/bottom corner", "thickness": corner_bezel},
+		{"position": "Bottom", "thickness": vertical_bezel},
+		{"position": "Bottom/left corner", "thickness": corner_bezel},
+		{"position": "Left", "thickness": horizontal_bezel},
+		{"position": "Left/top corner", "thickness": corner_bezel}
+	]
+	for bezel_position in bezel_positions:
+		if not is_equal_approx(float(bezel_position["thickness"]), EXPECTED_BEZEL_WIDTH):
+			_fail(
+				"The %s bezel must be exactly 0.020; got %.6f."
+				% [bezel_position["position"], float(bezel_position["thickness"])]
+			)
+			return
+
+	var inset_margin_x := (inset_bounds.size.x - display_bounds.size.x) * 0.5
+	var inset_margin_y := (inset_bounds.size.y - display_bounds.size.y) * 0.5
+	if not is_equal_approx(inset_margin_x, OSPhoneModelScript.DISPLAY_INSET_MARGIN):
+		_fail("The inset frame must keep a uniform 0.002 margin on the left and right.")
+		return
+	if not is_equal_approx(inset_margin_y, OSPhoneModelScript.DISPLAY_INSET_MARGIN):
+		_fail("The inset frame must keep a uniform 0.002 margin on the top and bottom.")
+		return
+
+	var display_width_ratio := display_bounds.size.x / body_bounds.size.x
+	var display_height_ratio := display_bounds.size.y / body_bounds.size.y
 	if display_width_ratio < 0.95 or display_height_ratio < 0.96:
 		_fail("The OS handset display must cover nearly the full front face with minimal bezels.")
 		return
