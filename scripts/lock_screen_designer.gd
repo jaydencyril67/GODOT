@@ -154,6 +154,14 @@ func get_generation_count() -> int:
 	return _generation_count
 
 
+func get_available_wallpaper_count() -> int:
+	return _wallpaper_paths.size()
+
+
+func get_blueprint_count() -> int:
+	return LayoutLibrary.get_blueprints().size()
+
+
 func validate_layout(design: Dictionary) -> Array[String]:
 	var issues: Array[String] = []
 	var components: Array = design.get("components", [])
@@ -281,10 +289,8 @@ func _compose_design() -> Dictionary:
 			Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.792, 0.812)),
 			Vector2(_rng.randf_range(0.22, 0.31), 0.045)
 		)
-		if _can_place(fingerprint_rect, occupied):
-			_add_component(components, occupied, "fingerprint", fingerprint_rect)
-		else:
-			show_fingerprint = false
+		# Fingerprint prompts occupy their own lower safe zone, below all content slots.
+		_add_component(components, occupied, "fingerprint", fingerprint_rect)
 
 	var shortcut_y := _rng.randf_range(0.90, 0.91)
 	var shortcut_size := Vector2(_rng.randf_range(0.12, 0.135), _rng.randf_range(0.060, 0.068))
@@ -426,7 +432,9 @@ func _add_wallpaper(design: Dictionary) -> void:
 	var wallpaper := TextureRect.new()
 	wallpaper.name = "GeneratedWallpaper"
 	var wallpaper_path := str(design.get("wallpaper_path", ""))
-	var wallpaper_texture := load(wallpaper_path) as Texture2D if not wallpaper_path.is_empty() else null
+	var wallpaper_texture: Texture2D = null
+	if not wallpaper_path.is_empty():
+		wallpaper_texture = load(wallpaper_path) as Texture2D
 	if wallpaper_texture != null:
 		wallpaper.texture = wallpaper_texture
 	else:
@@ -608,7 +616,8 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 
 	var app_icon := TextureRect.new()
 	var icon_path := str(notification_data.get("icon", ""))
-	app_icon.texture = load(icon_path) as Texture2D if not icon_path.is_empty() else null
+	if not icon_path.is_empty():
+		app_icon.texture = load(icon_path) as Texture2D
 	app_icon.custom_minimum_size = Vector2(25, 25)
 	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -770,7 +779,8 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 
 	var service_icon := TextureRect.new()
 	var icon_path := str(media.get("icon", ""))
-	service_icon.texture = load(icon_path) as Texture2D if not icon_path.is_empty() else null
+	if not icon_path.is_empty():
+		service_icon.texture = load(icon_path) as Texture2D
 	service_icon.custom_minimum_size = Vector2(43, 43)
 	service_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	service_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
