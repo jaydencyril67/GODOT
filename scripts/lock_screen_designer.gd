@@ -5,6 +5,8 @@ const WALLPAPER_ROOT := "res://assets/wallpapers"
 const LayoutLibrary = preload("res://scripts/lock_screen_layout_library.gd")
 const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
+const PIN_BACKSPACE_ICON_PATH := "res://assets/system-ui/godot/pin-entry/pin_backspace.svg"
+const PIN_LENGTH := 6
 
 const NOTIFICATION_PRESETS := [
 	{"app": "MESSAGES", "icon": "res://assets/app_icons/appstract/google/google_chat.png", "title": "You have a new message", "body": "A new conversation is waiting for you."},
@@ -117,6 +119,13 @@ var _layout_queue: Array = []
 var _wallpaper_paths: Array[String] = []
 var _wallpaper_bag: Array[String] = []
 var _recent_wallpaper_paths: Array[String] = []
+var _pin_entry_layer: Control
+var _pin_dot_nodes: Array[Panel] = []
+var _pin_title_label: Label
+var _pin_subtitle_label: Label
+var _pin_lock_icon: TextureRect
+var _pin_digits := ""
+var _pin_unlocked := false
 
 
 func _ready() -> void:
@@ -419,6 +428,7 @@ func _make_signature(design: Dictionary) -> String:
 	return "|".join(parts)
 
 func _render_design(design: Dictionary) -> void:
+	hide_pin_entry()
 	for child in get_children():
 		remove_child(child)
 		child.free()
@@ -437,6 +447,294 @@ func _render_design(design: Dictionary) -> void:
 	if bool(design["show_fingerprint"]):
 		_add_fingerprint(design, palette)
 	_add_shortcuts(design, palette)
+
+
+func show_pin_entry() -> bool:
+	if _last_design.is_empty():
+		return false
+	if is_pin_entry_visible():
+		return true
+	_pin_digits = ""
+	_pin_unlocked = false
+	_build_pin_entry_screen()
+	return is_pin_entry_visible()
+
+
+func hide_pin_entry() -> void:
+	if is_instance_valid(_pin_entry_layer):
+		_pin_entry_layer.visible = false
+		if _pin_entry_layer.get_parent() == self:
+			remove_child(_pin_entry_layer)
+		_pin_entry_layer.free()
+	_pin_entry_layer = null
+	_pin_dot_nodes.clear()
+	_pin_title_label = null
+	_pin_subtitle_label = null
+	_pin_lock_icon = null
+	_pin_digits = ""
+	_pin_unlocked = false
+
+
+func is_pin_entry_visible() -> bool:
+	return is_instance_valid(_pin_entry_layer) and _pin_entry_layer.visible
+
+
+func get_pin_digit_count() -> int:
+	return _pin_digits.length()
+
+
+func is_pin_unlocked() -> bool:
+	return _pin_unlocked
+
+
+func press_pin_digit(digit: int) -> void:
+	if not is_pin_entry_visible() or _pin_unlocked:
+		return
+	if digit < 0 or digit > 9 or _pin_digits.length() >= PIN_LENGTH:
+		return
+	_pin_digits += str(digit)
+	_refresh_pin_entry()
+	if _pin_digits.length() >= PIN_LENGTH:
+		_complete_pin_preview()
+
+
+func erase_pin_digit() -> void:
+	if not is_pin_entry_visible() or _pin_digits.is_empty():
+		return
+	if _pin_unlocked:
+		_pin_unlocked = false
+		if is_instance_valid(_pin_title_label):
+			_pin_title_label.text = "ENTER PIN"
+		if is_instance_valid(_pin_subtitle_label):
+			_pin_subtitle_label.text = "Enter your 6-digit PIN to unlock"
+		if is_instance_valid(_pin_lock_icon):
+			var palette: Dictionary = _last_design.get("palette", {})
+			_pin_lock_icon.texture = _load_tinted_asset(
+				SVG_ROOT.path_join("ic_lock_locked.svg"),
+				palette.get("accent", Color.WHITE)
+			)
+	_pin_digits = _pin_digits.left(_pin_digits.length() - 1)
+	_refresh_pin_entry()
+
+
+func _complete_pin_preview() -> void:
+	if not is_pin_entry_visible():
+		return
+	_pin_unlocked = true
+	if is_instance_valid(_pin_title_label):
+		_pin_title_label.text = "DEVICE UNLOCKED"
+	if is_instance_valid(_pin_subtitle_label):
+		_pin_subtitle_label.text = "PIN PREVIEW COMPLETE"
+	if is_instance_valid(_pin_lock_icon):
+		_pin_lock_icon.texture = _load_tinted_asset(
+			SVG_ROOT.path_join("ic_unlocked.svg"),
+			Color("#9BE2B5")
+		)
+	_refresh_pin_entry()
+
+
+func _build_pin_entry_screen() -> void:
+	var palette: Dictionary = _last_design.get("palette", {})
+	var text_color: Color = palette.get("text", Color("#F4F6FA"))
+	var muted_color: Color = palette.get("muted", Color("#B8C2D1"))
+	var accent_color: Color = palette.get("accent", Color("#A9C9FF"))
+	var glass_color: Color = palette.get("glass", Color("#17243B"))
+
+	_pin_entry_layer = Control.new()
+	_pin_entry_layer.name = "PinEntryOverlay"
+	_pin_entry_layer.mouse_filter = Control.MOUSE_FILTER_PASS
+	_pin_entry_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pin_entry_layer.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	add_child(_pin_entry_layer)
+
+	var shade := ColorRect.new()
+	shade.name = "PinEntryWallpaperShade"
+	shade.color = Color(0.008, 0.014, 0.025, 0.88)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(shade)
+	_pin_entry_layer.add_child(shade)
+
+	_pin_lock_icon = TextureRect.new()
+	_pin_lock_icon.name = "PinLockStateIcon"
+	_pin_lock_icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_lock_locked.svg"), accent_color)
+	_pin_lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_pin_lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_pin_lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_normalized_rect(_pin_lock_icon, Rect2(Vector2(0.455, 0.135), Vector2(0.09, 0.052)))
+	_pin_entry_layer.add_child(_pin_lock_icon)
+
+	_pin_title_label = _make_pin_text_label("ENTER PIN", 24, text_color)
+	_pin_title_label.name = "PinEntryTitle"
+	_set_normalized_rect(_pin_title_label, Rect2(Vector2(0.12, 0.218), Vector2(0.76, 0.045)))
+	_pin_entry_layer.add_child(_pin_title_label)
+
+	_pin_subtitle_label = _make_pin_text_label("Enter your 6-digit PIN to unlock", 12, muted_color)
+	_pin_subtitle_label.name = "PinEntrySubtitle"
+	_set_normalized_rect(_pin_subtitle_label, Rect2(Vector2(0.12, 0.268), Vector2(0.76, 0.035)))
+	_pin_entry_layer.add_child(_pin_subtitle_label)
+
+	var dots_row := HBoxContainer.new()
+	dots_row.name = "PinEntryDots"
+	dots_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	dots_row.add_theme_constant_override("separation", 24)
+	dots_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_normalized_rect(dots_row, Rect2(Vector2(0.18, 0.335), Vector2(0.64, 0.035)))
+	_pin_entry_layer.add_child(dots_row)
+
+	_pin_dot_nodes.clear()
+	for index in range(PIN_LENGTH):
+		var dot := Panel.new()
+		dot.name = "PinDigitIndicator_%02d" % (index + 1)
+		dot.custom_minimum_size = Vector2(16, 16)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dots_row.add_child(dot)
+		_pin_dot_nodes.append(dot)
+
+	var keypad_center := CenterContainer.new()
+	keypad_center.name = "PinKeypadCenter"
+	keypad_center.mouse_filter = Control.MOUSE_FILTER_PASS
+	_set_normalized_rect(keypad_center, Rect2(Vector2(0.12, 0.405), Vector2(0.76, 0.405)))
+	_pin_entry_layer.add_child(keypad_center)
+
+	var keypad := GridContainer.new()
+	keypad.name = "PinNumericKeypad"
+	keypad.columns = 3
+	keypad.add_theme_constant_override("h_separation", 18)
+	keypad.add_theme_constant_override("v_separation", 12)
+	keypad.mouse_filter = Control.MOUSE_FILTER_PASS
+	keypad_center.add_child(keypad)
+
+	for digit in range(1, 10):
+		keypad.add_child(_make_pin_digit_button(digit, text_color, glass_color))
+
+	var empty_slot := Control.new()
+	empty_slot.name = "PinKeypadEmptySlot"
+	empty_slot.custom_minimum_size = Vector2(104, 88)
+	empty_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	keypad.add_child(empty_slot)
+	keypad.add_child(_make_pin_digit_button(0, text_color, glass_color))
+	keypad.add_child(_make_pin_backspace_button(muted_color, glass_color))
+
+	if bool(_last_design.get("show_fingerprint", false)):
+		var fingerprint_button := Button.new()
+		fingerprint_button.name = "PinFingerprintOption"
+		fingerprint_button.focus_mode = Control.FOCUS_NONE
+		fingerprint_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		fingerprint_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		fingerprint_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		fingerprint_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+		fingerprint_button.pressed.connect(_complete_pin_preview)
+		_set_normalized_rect(fingerprint_button, Rect2(Vector2(0.22, 0.835), Vector2(0.56, 0.055)))
+		_pin_entry_layer.add_child(fingerprint_button)
+
+		var fingerprint_row := HBoxContainer.new()
+		fingerprint_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		fingerprint_row.add_theme_constant_override("separation", 10)
+		fingerprint_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_full_rect(fingerprint_row)
+		fingerprint_button.add_child(fingerprint_row)
+
+		var fingerprint_icon := TextureRect.new()
+		fingerprint_icon.name = "PinFingerprintIcon"
+		fingerprint_icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_fingerprint.svg"), accent_color)
+		fingerprint_icon.custom_minimum_size = Vector2(19, 27)
+		fingerprint_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		fingerprint_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		fingerprint_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fingerprint_row.add_child(fingerprint_icon)
+
+		fingerprint_row.add_child(_make_pin_text_label("USE FINGERPRINT", 10, muted_color))
+
+	var return_hint := _make_pin_text_label("SWIPE DOWN TO RETURN", 9, Color(muted_color.r, muted_color.g, muted_color.b, 0.82))
+	return_hint.name = "PinEntryReturnHint"
+	_set_normalized_rect(return_hint, Rect2(Vector2(0.18, 0.935), Vector2(0.64, 0.027)))
+	_pin_entry_layer.add_child(return_hint)
+
+	_refresh_pin_entry()
+	var fade := create_tween()
+	fade.tween_property(_pin_entry_layer, "modulate", Color.WHITE, 0.18)
+
+
+func _make_pin_digit_button(digit: int, text_color: Color, glass_color: Color) -> Button:
+	var button := Button.new()
+	button.name = "PinDigit%d" % digit
+	button.text = str(digit)
+	button.custom_minimum_size = Vector2(104, 88)
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.add_theme_font_size_override("font_size", 29)
+	button.add_theme_color_override("font_color", text_color)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", text_color)
+	button.add_theme_stylebox_override("normal", _make_pin_key_style(Color(glass_color.r, glass_color.g, glass_color.b, 0.28), Color(1.0, 1.0, 1.0, 0.13)))
+	button.add_theme_stylebox_override("hover", _make_pin_key_style(Color(glass_color.r, glass_color.g, glass_color.b, 0.48), Color(1.0, 1.0, 1.0, 0.30)))
+	button.add_theme_stylebox_override("pressed", _make_pin_key_style(Color(glass_color.r, glass_color.g, glass_color.b, 0.62), Color(1.0, 1.0, 1.0, 0.38)))
+	button.pressed.connect(press_pin_digit.bind(digit))
+	return button
+
+
+func _make_pin_backspace_button(muted_color: Color, glass_color: Color) -> Button:
+	var button := Button.new()
+	button.name = "PinBackspace"
+	button.custom_minimum_size = Vector2(104, 88)
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.add_theme_stylebox_override("normal", _make_pin_key_style(Color(glass_color.r, glass_color.g, glass_color.b, 0.18), Color(1.0, 1.0, 1.0, 0.12)))
+	button.add_theme_stylebox_override("hover", _make_pin_key_style(Color(glass_color.r, glass_color.g, glass_color.b, 0.38), Color(1.0, 1.0, 1.0, 0.28)))
+	button.add_theme_stylebox_override("pressed", _make_pin_key_style(Color(glass_color.r, glass_color.g, glass_color.b, 0.52), Color(1.0, 1.0, 1.0, 0.34)))
+	button.pressed.connect(erase_pin_digit)
+
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(center)
+	button.add_child(center)
+
+	var icon := TextureRect.new()
+	icon.name = "PinBackspaceIcon"
+	icon.texture = _load_tinted_asset(PIN_BACKSPACE_ICON_PATH, muted_color)
+	icon.custom_minimum_size = Vector2(30, 30)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(icon)
+	return button
+
+
+func _make_pin_key_style(fill: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(46)
+	return style
+
+
+func _make_pin_text_label(value: String, font_size: int, tint: Color) -> Label:
+	var label := Label.new()
+	label.text = value
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", tint)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+func _refresh_pin_entry() -> void:
+	if not is_instance_valid(_pin_entry_layer):
+		return
+	var palette: Dictionary = _last_design.get("palette", {})
+	var text_color: Color = palette.get("text", Color.WHITE)
+	var accent_color: Color = Color("#9BE2B5") if _pin_unlocked else palette.get("accent", Color("#A9C9FF"))
+	for index in range(_pin_dot_nodes.size()):
+		var filled := _pin_unlocked or index < _pin_digits.length()
+		var dot_style := StyleBoxFlat.new()
+		dot_style.bg_color = accent_color if filled else Color(1.0, 1.0, 1.0, 0.035)
+		dot_style.border_color = accent_color if filled else Color(text_color.r, text_color.g, text_color.b, 0.66)
+		dot_style.set_border_width_all(1)
+		dot_style.set_corner_radius_all(10)
+		_pin_dot_nodes[index].add_theme_stylebox_override("panel", dot_style)
+
 
 func _add_wallpaper(design: Dictionary) -> void:
 	var wallpaper := TextureRect.new()

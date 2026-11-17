@@ -17,3 +17,8 @@ This folder contains Godot-importable SVG adaptations of the Android vector/draw
 The lock-screen asset library uses the 18 bundled analog clock faces and matching hour, minute, and second hand image sets in `assets/widgets/clock/`.
 
 The SVG conversions retain the source vector paths while replacing Android resource references with explicit SVG colors. Refer to the source asset folders and their README/license files for upstream attribution and license details.
+
+## Lock-screen PIN entry
+- `pin-entry/pin_backspace.svg` is a Godot-ready explicit-color adaptation of the AOSP lock-screen backspace vector in `assets/lock-screen/aosp/SVG/ic_backspace_24dp.svg`.
+- The PIN preview reuses the AOSP locked, unlocked and fingerprint SVGs in `assets/lock-screen/aosp/SVG/`.
+- The AOSP lock-to-unlock and fingerprint animation exports remain in `assets/lock-screen/aosp/Animations/`; the PIN preview uses a short native Godot fade for its screen handoff.

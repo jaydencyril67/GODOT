@@ -63,6 +63,7 @@ var progress_bar: ProgressBar
 var content_column: VBoxContainer
 var selection_status_label: Label
 var phone_frame: SubViewportContainer
+var phone_screen_interface_viewport: SubViewport
 var phone_screen: ColorRect
 var power_button: Button
 var previous_button: Button
@@ -83,6 +84,9 @@ var lock_screen_designer: Control
 var selected_status_bar_style_id := "one_ui_balanced"
 var boot_sequence_complete := false
 var boot_sequence_id := 0
+var _phone_pointer_active := false
+var _phone_pointer_start := Vector2.ZERO
+var _phone_pointer_pin_mode := false
 
 func _ready() -> void:
 	_build_interface()
@@ -173,7 +177,8 @@ func _build_interface() -> void:
 	phone_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	phone_frame.stretch = true
-	phone_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phone_frame.mouse_filter = Control.MOUSE_FILTER_STOP
+	phone_frame.gui_input.connect(_on_phone_preview_gui_input)
 	phone_row.add_child(phone_frame)
 
 	var phone_viewport := SubViewport.new()
@@ -196,6 +201,7 @@ func _build_interface() -> void:
 	# The handset model itself is built by the same geometry rules as the
 	# working Phone Creation Worksite, not by a second improvised phone mesh.
 	var screen_viewport := SubViewport.new()
+	phone_screen_interface_viewport = screen_viewport
 	screen_viewport.name = "PhoneScreenInterfaceViewport"
 	screen_viewport.size = Vector2i(680, 1360)
 	screen_viewport.transparent_bg = false
@@ -395,6 +401,120 @@ func _apply_responsive_layout() -> void:
 
 
 
+
+func _get_phone_screen_input_rect() -> Rect2:
+	if not is_instance_valid(phone_frame):
+		return Rect2()
+	return Rect2(
+		Vector2(phone_frame.size.x * 0.055, phone_frame.size.y * 0.052),
+		Vector2(phone_frame.size.x * 0.89, phone_frame.size.y * 0.896)
+	)
+
+
+func _get_phone_preview_event_position(event: InputEvent) -> Vector2:
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).position
+	if event is InputEventScreenDrag:
+		return (event as InputEventScreenDrag).position
+	if event is InputEventMouse:
+		return (event as InputEventMouse).position
+	return Vector2(-1.0, -1.0)
+
+
+func _is_phone_preview_press_event(event: InputEvent) -> bool:
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).pressed
+	if event is InputEventMouseButton:
+		var button_event := event as InputEventMouseButton
+		return button_event.button_index == MOUSE_BUTTON_LEFT and button_event.pressed
+	return false
+
+
+func _is_phone_preview_release_event(event: InputEvent) -> bool:
+	if event is InputEventScreenTouch:
+		return not (event as InputEventScreenTouch).pressed
+	if event is InputEventMouseButton:
+		var button_event := event as InputEventMouseButton
+		return button_event.button_index == MOUSE_BUTTON_LEFT and not button_event.pressed
+	return false
+
+
+func _map_phone_preview_position_to_screen(frame_position: Vector2) -> Vector2:
+	var display_rect := _get_phone_screen_input_rect()
+	if display_rect.size.x <= 0.0 or display_rect.size.y <= 0.0:
+		return Vector2.ZERO
+	var target_size := Vector2(680.0, 1360.0)
+	if is_instance_valid(phone_screen_interface_viewport):
+		target_size = Vector2(phone_screen_interface_viewport.size)
+	return (frame_position - display_rect.position) / display_rect.size * target_size
+
+
+func _forward_phone_screen_input(event: InputEvent, frame_position: Vector2) -> void:
+	if not is_instance_valid(phone_screen_interface_viewport):
+		return
+	var display_rect := _get_phone_screen_input_rect()
+	if display_rect.size.x <= 0.0 or display_rect.size.y <= 0.0:
+		return
+	var target_size := Vector2(phone_screen_interface_viewport.size)
+	var scale := Vector2(target_size.x / display_rect.size.x, target_size.y / display_rect.size.y)
+	var mapped_position := (frame_position - display_rect.position) * scale
+	var mapped_event := event.duplicate() as InputEvent
+	if mapped_event is InputEventScreenTouch:
+		(mapped_event as InputEventScreenTouch).position = mapped_position
+	elif mapped_event is InputEventScreenDrag:
+		var drag_event := mapped_event as InputEventScreenDrag
+		var source_drag := event as InputEventScreenDrag
+		drag_event.position = mapped_position
+		drag_event.relative = source_drag.relative * scale
+	elif mapped_event is InputEventMouseButton:
+		(mapped_event as InputEventMouseButton).position = mapped_position
+	elif mapped_event is InputEventMouseMotion:
+		var motion_event := mapped_event as InputEventMouseMotion
+		var source_motion := event as InputEventMouseMotion
+		motion_event.position = mapped_position
+		motion_event.relative = source_motion.relative * scale
+	phone_screen_interface_viewport.push_input(mapped_event, true)
+
+
+func _on_phone_preview_gui_input(event: InputEvent) -> void:
+	if not screen_powered or not boot_sequence_complete or not is_instance_valid(lock_screen_designer):
+		return
+	var pointer_position := _get_phone_preview_event_position(event)
+	if pointer_position.x < 0.0:
+		return
+
+	if _is_phone_preview_press_event(event):
+		if not _get_phone_screen_input_rect().has_point(pointer_position):
+			return
+		_phone_pointer_active = true
+		_phone_pointer_start = pointer_position
+		_phone_pointer_pin_mode = bool(lock_screen_designer.call("is_pin_entry_visible"))
+		if _phone_pointer_pin_mode:
+			_forward_phone_screen_input(event, pointer_position)
+		return
+
+	if not _phone_pointer_active:
+		return
+
+	if event is InputEventScreenDrag or event is InputEventMouseMotion:
+		if _phone_pointer_pin_mode:
+			_forward_phone_screen_input(event, pointer_position)
+		return
+
+	if _is_phone_preview_release_event(event):
+		var delta := pointer_position - _phone_pointer_start
+		var swipe_threshold := maxf(32.0, phone_frame.size.y * 0.075)
+		var is_vertical_swipe := absf(delta.y) >= swipe_threshold and absf(delta.y) >= absf(delta.x) * 1.15
+		if _phone_pointer_pin_mode:
+			_forward_phone_screen_input(event, pointer_position)
+			if is_vertical_swipe and delta.y > 0.0:
+				lock_screen_designer.call("hide_pin_entry")
+		elif is_vertical_swipe and delta.y < 0.0:
+			lock_screen_designer.call("show_pin_entry")
+		_phone_pointer_active = false
+		_phone_pointer_pin_mode = false
+
+
 func _show_step(step_index: int) -> void:
 	current_step = clampi(step_index, 0, STEP_NAMES.size() - 1)
 	heading_label.text = STEP_NAMES[current_step]
@@ -540,9 +660,11 @@ func _update_phone_preview_mode() -> void:
 	if not is_instance_valid(lock_screen_designer):
 		return
 	if not screen_powered:
+		lock_screen_designer.call("hide_pin_entry")
 		lock_screen_designer.visible = false
 		return
 	if not boot_sequence_complete:
+		lock_screen_designer.call("hide_pin_entry")
 		lock_screen_designer.visible = false
 		return
 	company_logo_preview.visible = false
@@ -599,6 +721,10 @@ func set_company_logo_texture(texture: Texture2D) -> void:
 func _on_power_pressed() -> void:
 	boot_sequence_id += 1
 	if screen_powered:
+		if is_instance_valid(lock_screen_designer):
+			lock_screen_designer.call("hide_pin_entry")
+		_phone_pointer_active = false
+		_phone_pointer_pin_mode = false
 		screen_powered = false
 		boot_sequence_complete = false
 		lock_screen_designer.visible = false
