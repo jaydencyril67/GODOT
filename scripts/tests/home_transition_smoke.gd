@@ -945,7 +945,62 @@ func _run_protection_glass_progression_checks() -> bool:
 	return true
 
 
+func _run_technology_points_checks() -> bool:
+	if not is_equal_approx(ResearchManagerScript.TECHNOLOGY_POINTS_PER_RESEARCH_DAY, 0.01):
+		_fail("Technology Points must use the approved 0.01 TP per research day conversion.")
+		return false
+
+	var battery_half_range := ResearchManagerScript.get_technology_points_for_progress("Battery Capacity", 0.5)
+	var battery_full_range := ResearchManagerScript.get_technology_points_for_progress("Battery Capacity", 1.0)
+	if not is_equal_approx(battery_half_range, 0.2) or not is_equal_approx(battery_full_range, 0.4):
+		_fail("Battery Capacity did not award proportional TP within its 40-day research range.")
+		return false
+
+	var charging_half_range := ResearchManagerScript.get_technology_points_for_progress("Charging Speed", 0.5)
+	if not is_equal_approx(charging_half_range, 0.325):
+		_fail("Charging Speed did not award half of its 65-day range as proportional TP.")
+		return false
+
+	var wireless_one_and_a_half := ResearchManagerScript.get_technology_points_for_progress("Wireless Charging", 1.5)
+	if not is_equal_approx(wireless_one_and_a_half, 3.925):
+		_fail("Wireless Charging did not preserve its 370-day enablement and 45-day upgrade durations.")
+		return false
+
+	var phone_case_one_and_a_half := ResearchManagerScript.get_technology_points_for_progress("Phone Case", 1.5)
+	if not is_equal_approx(phone_case_one_and_a_half, 2.75):
+		_fail("Phone Case did not preserve its 250-day enablement and 50-day design durations.")
+		return false
+
+	var charger_one_and_a_half := ResearchManagerScript.get_technology_points_for_progress("Charger", 1.5)
+	if not is_equal_approx(charger_one_and_a_half, 3.0):
+		_fail("Charger did not preserve the duration assigned to its adapter and cable unlocks.")
+		return false
+
+	var phone := PhoneCreationWorksiteScript.new()
+	var initial_points := float(phone.call("_calculate_phone_technology_points"))
+	if not is_equal_approx(initial_points, 0.0):
+		phone.free()
+		_fail("A baseline phone received Technology Points before any researched specification was selected.")
+		return false
+	phone.set("researched_battery_capacity_level", 1)
+	phone.set("selected_battery_capacity", "1,175 mAh")
+	var half_range_phone_points := float(phone.call("_calculate_phone_technology_points"))
+	if not is_equal_approx(half_range_phone_points, 0.2):
+		phone.free()
+		_fail("The Phone Creation Worksite did not score the selected battery capacity proportionally.")
+		return false
+	phone.set("selected_battery_capacity", "1,350 mAh")
+	var full_range_phone_points := float(phone.call("_calculate_phone_technology_points"))
+	phone.free()
+	if not is_equal_approx(full_range_phone_points, 0.4):
+		_fail("The Phone Creation Worksite did not award the full Battery Capacity range at its maximum.")
+		return false
+	return true
+
+
 func _run_transition_checks() -> void:
+	if not _run_technology_points_checks():
+		return
 	if not _run_screen_technology_checks():
 		return
 	if not _run_charging_speed_progression_checks():
