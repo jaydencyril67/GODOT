@@ -267,7 +267,7 @@ func _draw_app_icon(app: Dictionary, icon_rect: Rect2) -> void:
 	draw_texture_rect(texture, icon_rect, false)
 
 
-func _draw_dock(dock_value: Variant, style: Dictionary, palette: Dictionary, _text_color: Color, _muted: Color, viewport_size: Vector2, radius: int) -> void:
+func _draw_dock(dock_value: Variant, _style: Dictionary, palette: Dictionary, _text_color: Color, _muted: Color, viewport_size: Vector2, radius: int) -> void:
 	var dock: Array = dock_value if dock_value is Array else ["WhatsApp", "Gmail", "Spotify", "YouTube"]
 	var dock_height := viewport_size.y * 0.083
 	var dock_rect := Rect2(Vector2(viewport_size.x * 0.055, viewport_size.y - dock_height - 38.0), Vector2(viewport_size.x * 0.89, dock_height))

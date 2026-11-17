@@ -156,17 +156,8 @@ func _check_generated_ui_pixels() -> bool:
 				"apps_top": 0.66,
 				"region_bounds": [0.10, 0.20, 0.80, 0.20]
 			},
-			"apps": [
-				{"name": "Test One", "glyph": "1", "color": "#00FF33"},
-				{"name": "Test Two", "glyph": "2", "color": "#00FF33"},
-				{"name": "Test Three", "glyph": "3", "color": "#00FF33"},
-				{"name": "Test Four", "glyph": "4", "color": "#00FF33"},
-				{"name": "Test Five", "glyph": "5", "color": "#00FF33"},
-				{"name": "Test Six", "glyph": "6", "color": "#00FF33"},
-				{"name": "Test Seven", "glyph": "7", "color": "#00FF33"},
-				{"name": "Test Eight", "glyph": "8", "color": "#00FF33"}
-			],
-			"dock": ["Phone", "Messages", "Browser", "Camera"],
+			"apps": UIEvolutionEngineScript.APP_LIBRARY.slice(0, 8),
+			"dock": ["WhatsApp", "Gmail", "Spotify", "YouTube"],
 			"show_search": false
 		},
 		"system": {
@@ -191,7 +182,8 @@ func _check_generated_ui_pixels() -> bool:
 	var widget_pixel := rendered_image.get_pixel(400, 280)
 	var icon_pixel := rendered_image.get_pixel(61, 620)
 	var widget_visible := widget_pixel.r > 0.45 and widget_pixel.g < 0.30
-	var app_visible := icon_pixel.g > 0.45 and icon_pixel.r < 0.30
+	var icon_cache: Dictionary = renderer.get("_icon_texture_cache")
+	var app_visible := not icon_cache.is_empty() and (icon_pixel.r > 0.15 or icon_pixel.g > 0.15 or icon_pixel.b > 0.15)
 	viewport.free()
 	if not widget_visible or not app_visible:
 		_fail("The generated screen image contains wallpaper but is missing visible widget or app-icon pixels.")
