@@ -8,7 +8,7 @@ const BLUEPRINTS := [
 		"name": "PIXEL-CENTERED",
 		"clock_styles": ["digital"],
 		"clock_rect": Rect2(0.08, 0.205, 0.84, 0.15),
-		"date_rect": Rect2(0.12, 0.365, 0.76, 0.038),
+		"date_rect": Rect2(0.12, 0.375, 0.76, 0.038),
 		"alignments": ["center"],
 		"clock_formats": ["single", "spaced"],
 		"content_slots": [
@@ -21,7 +21,7 @@ const BLUEPRINTS := [
 		"name": "ONE UI LOWER CLOCK",
 		"clock_styles": ["digital", "stacked"],
 		"clock_rect": Rect2(0.08, 0.265, 0.84, 0.145),
-		"date_rect": Rect2(0.08, 0.225, 0.84, 0.032),
+		"date_rect": Rect2(0.08, 0.215, 0.84, 0.032),
 		"alignments": ["left"],
 		"clock_formats": ["single", "split"],
 		"content_slots": [
@@ -35,7 +35,7 @@ const BLUEPRINTS := [
 		"name": "MATERIAL STACK",
 		"clock_styles": ["digital"],
 		"clock_rect": Rect2(0.08, 0.145, 0.84, 0.135),
-		"date_rect": Rect2(0.08, 0.29, 0.84, 0.04),
+		"date_rect": Rect2(0.08, 0.302, 0.84, 0.04),
 		"alignments": ["left", "center"],
 		"clock_formats": ["single"],
 		"content_slots": [
@@ -75,7 +75,7 @@ const BLUEPRINTS := [
 		"name": "EDITORIAL LEFT",
 		"clock_styles": ["digital"],
 		"clock_rect": Rect2(0.075, 0.205, 0.85, 0.15),
-		"date_rect": Rect2(0.075, 0.365, 0.85, 0.04),
+		"date_rect": Rect2(0.075, 0.375, 0.85, 0.04),
 		"alignments": ["left"],
 		"clock_formats": ["single", "spaced"],
 		"content_slots": [
