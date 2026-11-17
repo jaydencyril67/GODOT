@@ -274,6 +274,11 @@ func _compose_design() -> Dictionary:
 		var slot_rect: Rect2 = slot["rect"]
 		slot_rect.position.y += content_shift
 		slot_rect.position.x += _rng.randf_range(-0.003, 0.003)
+		# Give notification and media surfaces a little more room without
+		# changing their visual center or the surrounding lock-screen layout.
+		var original_slot_height := slot_rect.size.y
+		slot_rect.size.y *= 1.08
+		slot_rect.position.y -= (slot_rect.size.y - original_slot_height) * 0.5
 		slot_rect.size.x = clampf(slot_rect.size.x + _rng.randf_range(-0.012, 0.012), 0.78, 0.88)
 		slot_rect.position.x = clampf(slot_rect.position.x, 0.055, 0.945 - slot_rect.size.x)
 		if not _can_place(slot_rect, occupied):
@@ -961,10 +966,10 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 	card.add_child(surface)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 9)
-	margin.add_theme_constant_override("margin_right", 9)
-	margin.add_theme_constant_override("margin_top", 4)
-	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_bottom", 5)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_full_rect(margin)
 	card.add_child(margin)
@@ -978,7 +983,7 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 	var icon_path := str(notification_data.get("icon", ""))
 	if not icon_path.is_empty():
 		app_icon.texture = load(icon_path) as Texture2D
-	app_icon.custom_minimum_size = Vector2(25, 25)
+	app_icon.custom_minimum_size = Vector2(28, 28)
 	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	app_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -998,7 +1003,7 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 	var app_label := Label.new()
 	app_label.text = str(notification_data["app"]) + "  ·  " + str(notification_data.get("timestamp", "NOW"))
 	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	app_label.add_theme_font_size_override("font_size", 9)
+	app_label.add_theme_font_size_override("font_size", 10)
 	app_label.add_theme_color_override("font_color", palette["accent"])
 	app_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_child(app_label)
@@ -1006,7 +1011,7 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 	var category_icon := TextureRect.new()
 	category_icon.name = "NotificationCategoryIcon"
 	category_icon.texture = LockScreenAssetLibrary.get_icon_texture(LockScreenAssetLibrary.get_notification_category(str(notification_data["app"])))
-	category_icon.custom_minimum_size = Vector2(12, 12)
+	category_icon.custom_minimum_size = Vector2(13, 13)
 	category_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	category_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	category_icon.modulate = palette["muted"]
@@ -1016,7 +1021,7 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 	var more_icon := TextureRect.new()
 	more_icon.name = "NotificationMoreActionIcon"
 	more_icon.texture = LockScreenAssetLibrary.get_icon_texture("action_more")
-	more_icon.custom_minimum_size = Vector2(12, 12)
+	more_icon.custom_minimum_size = Vector2(13, 13)
 	more_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	more_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	more_icon.modulate = palette["muted"]
@@ -1025,7 +1030,7 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 
 	var title := Label.new()
 	title.text = str(notification_data["title"])
-	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_font_size_override("font_size", 14)
 	title.add_theme_color_override("font_color", palette["text"])
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1033,7 +1038,7 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 
 	var body := Label.new()
 	body.text = str(notification_data["body"])
-	body.add_theme_font_size_override("font_size", 10)
+	body.add_theme_font_size_override("font_size", 11)
 	body.add_theme_color_override("font_color", palette["muted"])
 	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1129,10 +1134,10 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	card.add_child(surface)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 9)
-	margin.add_theme_constant_override("margin_right", 9)
-	margin.add_theme_constant_override("margin_top", 5)
-	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 5)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_full_rect(margin)
 	card.add_child(margin)
@@ -1143,7 +1148,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	margin.add_child(content)
 
 	var top_row := HBoxContainer.new()
-	top_row.add_theme_constant_override("separation", 8)
+	top_row.add_theme_constant_override("separation", 9)
 	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(top_row)
 
@@ -1151,7 +1156,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	var icon_path := str(media.get("icon", ""))
 	if not icon_path.is_empty():
 		service_icon.texture = load(icon_path) as Texture2D
-	service_icon.custom_minimum_size = Vector2(36, 36)
+	service_icon.custom_minimum_size = Vector2(40, 40)
 	service_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	service_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	service_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1165,14 +1170,14 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 
 	var service_label := Label.new()
 	service_label.text = str(media.get("service", "MUSIC")) + "  ·  NOW PLAYING"
-	service_label.add_theme_font_size_override("font_size", 8)
+	service_label.add_theme_font_size_override("font_size", 9)
 	service_label.add_theme_color_override("font_color", palette["accent"])
 	service_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track_info.add_child(service_label)
 
 	var title := Label.new()
 	title.text = str(media.get("title", "Now Playing"))
-	title.add_theme_font_size_override("font_size", 11)
+	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", palette["text"])
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1180,7 +1185,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 
 	var artist := Label.new()
 	artist.text = str(media.get("artist", "Digital World Radio"))
-	artist.add_theme_font_size_override("font_size", 9)
+	artist.add_theme_font_size_override("font_size", 10)
 	artist.add_theme_color_override("font_color", palette["muted"])
 	artist.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track_info.add_child(artist)
@@ -1191,7 +1196,7 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	progress.max_value = 100
 	progress.value = float(media.get("progress", 55))
 	progress.show_percentage = false
-	progress.custom_minimum_size.y = 3
+	progress.custom_minimum_size.y = 4
 	progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var progress_fill := StyleBoxFlat.new()
 	progress_fill.bg_color = palette["accent"]
@@ -1206,12 +1211,12 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	var controls := HBoxContainer.new()
 	controls.name = "GeneratedMediaControls"
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 23)
+	controls.add_theme_constant_override("separation", 25)
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(controls)
-	_add_media_control(controls, "media_previous", 19)
-	_add_media_control(controls, "media_pause" if bool(media.get("playing", true)) else "media_play", 21)
-	_add_media_control(controls, "media_next", 19)
+	_add_media_control(controls, "media_previous", 21)
+	_add_media_control(controls, "media_pause" if bool(media.get("playing", true)) else "media_play", 23)
+	_add_media_control(controls, "media_next", 21)
 
 func _add_media_control(parent: Control, icon_id: String, icon_size: float) -> void:
 	var icon := TextureRect.new()
