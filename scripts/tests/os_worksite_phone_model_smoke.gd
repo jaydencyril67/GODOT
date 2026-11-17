@@ -1,6 +1,7 @@
 extends SceneTree
 
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
+const MIN_DISPLAY_BACK_Z := 0.109
 
 
 func _initialize() -> void:
@@ -41,11 +42,12 @@ func _initialize() -> void:
 	if display.mesh.get_aabb().size.x >= inset.mesh.get_aabb().size.x or display.mesh.get_aabb().size.y >= inset.mesh.get_aabb().size.y:
 		_fail("The active glass must sit inside the separate inset bezel.")
 		return
-	if display.position.z - 0.003 < HANDSET_FRONT_Z():
+	if display.position.z - 0.003 < MIN_DISPLAY_BACK_Z:
 		_fail("The display glass is behind or embedded too deeply into the chassis face.")
 		return
 
-	for key in [power_key, volume_up, volume_down]:
+	var side_keys: Array[MeshInstance3D] = [power_key, volume_up, volume_down]
+	for key in side_keys:
 		if absf(key.position.x) <= body_bounds.size.x * 0.5 or absf(key.position.x) > body_bounds.size.x * 0.5 + 0.03:
 			_fail("A physical side key is not seated on the left or right chassis edge.")
 			return
@@ -64,14 +66,10 @@ func _initialize() -> void:
 		_fail("The boot screen surface must remain visible from the preview camera.")
 		return
 
-	phone.queue_free()
+	phone.free()
 	print("OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS")
 	quit()
 
-
-func HANDSET_FRONT_Z() -> float:
-	return 0.22 * 0.5 - 0.001
-	
 
 func _fail(message: String) -> void:
 	push_error(message)
