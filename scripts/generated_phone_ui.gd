@@ -29,7 +29,7 @@ func _draw() -> void:
 	var palette: Dictionary = style.get("palette", {})
 	var home: Dictionary = blueprint.get("home", {})
 	var system: Dictionary = blueprint.get("system", {})
-		var surface := _palette_color(palette, "surface", "#203344")
+	var surface := _palette_color(palette, "surface", "#203344")
 	var accent := _palette_color(palette, "accent", "#79D7D0")
 	var text_color := _palette_color(palette, "text", "#F4FAFC")
 	var muted := _palette_color(palette, "muted", "#A9BDC8")
@@ -113,7 +113,7 @@ func _draw_wallpaper(wallpaper_path: String) -> void:
 	draw_texture_rect_region(texture, Rect2(Vector2.ZERO, size), source_rect)
 
 
-func _draw_status_bar(text_color: Color, _muted: Color, system: Dictionary, style: Dictionary) -> void
+func _draw_status_bar(text_color: Color, _muted: Color, system: Dictionary, style: Dictionary) -> void:
 	var now := Time.get_datetime_dict_from_system()
 	var hour := int(now.get("hour", 9))
 	var minute := int(now.get("minute", 41))
