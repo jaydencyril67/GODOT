@@ -26,7 +26,7 @@ const BLUEPRINTS := [
 		"clock_formats": ["single", "split"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.475, 0.85, 0.082)},
-			{"type": "media", "rect": Rect2(0.075, 0.575, 0.85, 0.165)}
+			{"type": "media", "rect": Rect2(0.075, 0.581, 0.85, 0.165)}
 		],
 		"fingerprint": false
 	},
@@ -134,7 +134,7 @@ const BLUEPRINTS := [
 		"clock_formats": ["single", "spaced"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.405, 0.85, 0.082)},
-			{"type": "media", "rect": Rect2(0.075, 0.505, 0.85, 0.19)}
+			{"type": "media", "rect": Rect2(0.075, 0.511, 0.85, 0.19)}
 		],
 		"fingerprint": false
 	}
