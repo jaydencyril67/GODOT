@@ -1,0 +1,694 @@
+{
+  "source": "res-keyguard/drawable/lock_to_unlock.xml",
+  "type": "AOSP animated-vector",
+  "targets": [
+    {
+      "name": "_R_G_L_2_G_N_10_T_1",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "133",
+                    "startOffset": "0",
+                    "valueFrom": "61",
+                    "valueTo": "57",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.369,0 0.6,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "133",
+                    "startOffset": "133",
+                    "valueFrom": "57",
+                    "valueTo": "62.125",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.436,0 0.58,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "100",
+                    "startOffset": "267",
+                    "valueFrom": "62.125",
+                    "valueTo": "61",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.449,0 0.469,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_1_G_D_0_P_0",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "pathData",
+                    "duration": "67",
+                    "startOffset": "0",
+                    "valueFrom": "M2.5 15 C2.5,15 2.5,8.61 2.5,8.61 C2.5,5.24 5.3,2.5 8.75,2.5 C12.2,2.5 15,5.24 15,8.61 C15,8.61 15,15 15,15 ",
+                    "valueTo": "M2.5 9.94 C2.5,9.94 2.5,3.55 2.5,3.55 C2.5,0.17 5.3,-2.56 8.75,-2.56 C12.2,-2.56 15,0.17 15,3.55 C15,3.55 15,15 15,15 ",
+                    "valueType": "pathType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.552,0 0.453,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "pathData",
+                    "duration": "333",
+                    "startOffset": "67",
+                    "valueFrom": "M2.5 9.94 C2.5,9.94 2.5,3.55 2.5,3.55 C2.5,0.17 5.3,-2.56 8.75,-2.56 C12.2,-2.56 15,0.17 15,3.55 C15,3.55 15,15 15,15 ",
+                    "valueTo": "M27.19 14.81 C27.19,14.81 27.19,8.3 27.19,8.3 C27.19,4.92 24.44,2.88 21.19,2.75 C17.74,2.62 15,4.74 15,8.11 C15,8.11 15,15 15,15 ",
+                    "valueType": "pathType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.476,0 0.396,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_1_G_N_10_T_1",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "133",
+                    "startOffset": "0",
+                    "valueFrom": "61",
+                    "valueTo": "57",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.369,0 0.6,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "133",
+                    "startOffset": "133",
+                    "valueFrom": "57",
+                    "valueTo": "62.125",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.436,0 0.58,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "100",
+                    "startOffset": "267",
+                    "valueFrom": "62.125",
+                    "valueTo": "61",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.449,0 0.469,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_0_G",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "scaleX",
+                    "duration": "100",
+                    "startOffset": "0",
+                    "valueFrom": "1",
+                    "valueTo": "0.8200000000000001",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.415,0 0.338,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "scaleY",
+                    "duration": "100",
+                    "startOffset": "0",
+                    "valueFrom": "1",
+                    "valueTo": "0.8200000000000001",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.415,0 0.338,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "scaleX",
+                    "duration": "283",
+                    "startOffset": "100",
+                    "valueFrom": "0.8200000000000001",
+                    "valueTo": "1",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.249,0 0.529,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "scaleY",
+                    "duration": "283",
+                    "startOffset": "100",
+                    "valueFrom": "0.8200000000000001",
+                    "valueTo": "1",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.249,0 0.529,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_0_G_N_10_T_1",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "133",
+                    "startOffset": "0",
+                    "valueFrom": "61",
+                    "valueTo": "57",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.369,0 0.6,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "133",
+                    "startOffset": "133",
+                    "valueFrom": "57",
+                    "valueTo": "62.125",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.436,0 0.58,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "100",
+                    "startOffset": "267",
+                    "valueFrom": "62.125",
+                    "valueTo": "61",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.449,0 0.469,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "time_group",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateX",
+                    "duration": "517",
+                    "startOffset": "0",
+                    "valueFrom": "0",
+                    "valueTo": "1",
+                    "valueType": "floatType"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "embedded_drawable": {
+    "element": "attr",
+    "attributes": {
+      "name": "android:drawable"
+    },
+    "children": [
+      {
+        "element": "vector",
+        "attributes": {
+          "height": "65dp",
+          "width": "46dp",
+          "viewportHeight": "65",
+          "viewportWidth": "46"
+        },
+        "children": [
+          {
+            "element": "group",
+            "attributes": {
+              "name": "_R_G"
+            },
+            "children": [
+              {
+                "element": "group",
+                "attributes": {
+                  "name": "_R_G_L_2_G_N_10_N_11_T_0",
+                  "translateX": "-27.5",
+                  "translateY": "-17.5"
+                },
+                "children": [
+                  {
+                    "element": "group",
+                    "attributes": {
+                      "name": "_R_G_L_2_G_N_10_T_1",
+                      "translateX": "50.25",
+                      "translateY": "61"
+                    },
+                    "children": [
+                      {
+                        "element": "group",
+                        "attributes": {
+                          "name": "_R_G_L_2_G_N_10_T_0",
+                          "translateX": "-13.75",
+                          "translateY": "-7.5"
+                        },
+                        "children": [
+                          {
+                            "element": "group",
+                            "attributes": {
+                              "name": "_R_G_L_2_G",
+                              "translateX": "-0.375",
+                              "translateY": "-22.375"
+                            },
+                            "children": [
+                              {
+                                "element": "path",
+                                "attributes": {
+                                  "name": "_R_G_L_2_G_D_0_P_0",
+                                  "strokeColor": "#FF000000",
+                                  "strokeLineCap": "round",
+                                  "strokeLineJoin": "round",
+                                  "strokeWidth": "2",
+                                  "strokeAlpha": "1",
+                                  "pathData": " M4.75 15 C4.75,15 23.25,15 23.25,15 C24.35,15 25.25,15.9 25.25,17 C25.25,17 25.25,33 25.25,33 C25.25,34.1 24.35,35 23.25,35 C23.25,35 4.75,35 4.75,35 C3.65,35 2.75,34.1 2.75,33 C2.75,33 2.75,17 2.75,17 C2.75,15.9 3.65,15 4.75,15c "
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "element": "group",
+                "attributes": {
+                  "name": "_R_G_L_1_G_N_10_N_11_T_0",
+                  "translateX": "-27.5",
+                  "translateY": "-17.5"
+                },
+                "children": [
+                  {
+                    "element": "group",
+                    "attributes": {
+                      "name": "_R_G_L_1_G_N_10_T_1",
+                      "translateX": "50.25",
+                      "translateY": "61"
+                    },
+                    "children": [
+                      {
+                        "element": "group",
+                        "attributes": {
+                          "name": "_R_G_L_1_G_N_10_T_0",
+                          "translateX": "-13.75",
+                          "translateY": "-7.5"
+                        },
+                        "children": [
+                          {
+                            "element": "group",
+                            "attributes": {
+                              "name": "_R_G_L_1_G",
+                              "translateX": "5",
+                              "translateY": "-22.5"
+                            },
+                            "children": [
+                              {
+                                "element": "path",
+                                "attributes": {
+                                  "name": "_R_G_L_1_G_D_0_P_0",
+                                  "strokeColor": "#FF000000",
+                                  "strokeLineCap": "round",
+                                  "strokeLineJoin": "round",
+                                  "strokeWidth": "2",
+                                  "strokeAlpha": "1",
+                                  "pathData": " M2.5 15 C2.5,15 2.5,8.61 2.5,8.61 C2.5,5.24 5.3,2.5 8.75,2.5 C12.2,2.5 15,5.24 15,8.61 C15,8.61 15,15 15,15 "
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "element": "group",
+                "attributes": {
+                  "name": "_R_G_L_0_G_N_10_N_11_T_0",
+                  "translateX": "-27.5",
+                  "translateY": "-17.5"
+                },
+                "children": [
+                  {
+                    "element": "group",
+                    "attributes": {
+                      "name": "_R_G_L_0_G_N_10_T_1",
+                      "translateX": "50.25",
+                      "translateY": "61"
+                    },
+                    "children": [
+                      {
+                        "element": "group",
+                        "attributes": {
+                          "name": "_R_G_L_0_G_N_10_T_0",
+                          "translateX": "-13.75",
+                          "translateY": "-7.5"
+                        },
+                        "children": [
+                          {
+                            "element": "group",
+                            "attributes": {
+                              "name": "_R_G_L_0_G",
+                              "translateX": "11",
+                              "translateY": "-0.25",
+                              "pivotX": "2.75",
+                              "pivotY": "2.75",
+                              "scaleX": "1",
+                              "scaleY": "1"
+                            },
+                            "children": [
+                              {
+                                "element": "path",
+                                "attributes": {
+                                  "name": "_R_G_L_0_G_D_0_P_0",
+                                  "fillColor": "#FF000000",
+                                  "fillAlpha": "1",
+                                  "fillType": "nonZero",
+                                  "pathData": " M2.75 5.25 C4.13,5.25 5.25,4.13 5.25,2.75 C5.25,1.37 4.13,0.25 2.75,0.25 C1.37,0.25 0.25,1.37 0.25,2.75 C0.25,4.13 1.37,5.25 2.75,5.25c "
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "group",
+            "attributes": {
+              "name": "time_group"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,614 @@
+{
+  "source": "res-keyguard/drawable/unlocked_to_locked.xml",
+  "type": "AOSP animated-vector",
+  "targets": [
+    {
+      "name": "_R_G_L_2_G_D_0_P_0",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "strokeWidth",
+                    "duration": "333",
+                    "startOffset": "0",
+                    "valueFrom": "2",
+                    "valueTo": "2",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.2,0 0.833,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_2_G_D_0_P_0",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "pathData",
+                    "duration": "83",
+                    "startOffset": "0",
+                    "valueFrom": "M27.19 14.81 C27.19,14.81 27.19,8.3 27.19,8.3 C27.19,4.92 24.44,2.88 21.19,2.75 C17.74,2.62 15,4.74 15,8.11 C15,8.11 15,15 15,15 ",
+                    "valueTo": "M27.13 10.19 C27.13,10.19 27.13,3.67 27.13,3.67 C27.13,0.3 24.38,-1.75 21.13,-1.87 C17.68,-2.01 14.94,0.11 14.94,3.49 C14.94,3.49 15,15 15,15 ",
+                    "valueType": "pathType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.456,0 0.464,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "pathData",
+                    "duration": "133",
+                    "startOffset": "83",
+                    "valueFrom": "M27.13 10.19 C27.13,10.19 27.13,3.67 27.13,3.67 C27.13,0.3 24.38,-1.75 21.13,-1.87 C17.68,-2.01 14.94,0.11 14.94,3.49 C14.94,3.49 15,15 15,15 ",
+                    "valueTo": "M2.5 10.38 C2.5,10.38 2.5,3.99 2.5,3.99 C2.5,0.61 5.3,-2.12 8.75,-2.12 C12.2,-2.12 15,0.61 15,3.99 C15,3.99 15,15 15,15 ",
+                    "valueType": "pathType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.606,0 0.035,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "pathData",
+                    "duration": "117",
+                    "startOffset": "217",
+                    "valueFrom": "M2.5 10.38 C2.5,10.38 2.5,3.99 2.5,3.99 C2.5,0.61 5.3,-2.12 8.75,-2.12 C12.2,-2.12 15,0.61 15,3.99 C15,3.99 15,15 15,15 ",
+                    "valueTo": "M2.52 14.65 C2.52,14.65 2.5,8.61 2.5,8.61 C2.5,5.24 5.3,2.5 8.75,2.5 C12.2,2.5 15,5.24 15,8.61 C15,8.61 15.02,14.65 15.02,14.65 ",
+                    "valueType": "pathType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.511,0 0.409,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_2_G_T_1",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "333",
+                    "startOffset": "0",
+                    "valueFrom": "22.25",
+                    "valueTo": "22.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.535,0 0.426,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "67",
+                    "startOffset": "333",
+                    "valueFrom": "22.25",
+                    "valueTo": "24.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.535,0 0.426,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "100",
+                    "startOffset": "400",
+                    "valueFrom": "24.25",
+                    "valueTo": "22.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.641,0 0.499,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_1_G_N_4_T_1",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "333",
+                    "startOffset": "0",
+                    "valueFrom": "22.25",
+                    "valueTo": "22.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.535,0 0.426,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "67",
+                    "startOffset": "333",
+                    "valueFrom": "22.25",
+                    "valueTo": "24.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.535,0 0.426,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "100",
+                    "startOffset": "400",
+                    "valueFrom": "24.25",
+                    "valueTo": "22.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.641,0 0.499,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "_R_G_L_0_G_N_4_T_1",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "333",
+                    "startOffset": "0",
+                    "valueFrom": "22.25",
+                    "valueTo": "22.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.535,0 0.426,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "67",
+                    "startOffset": "333",
+                    "valueFrom": "22.25",
+                    "valueTo": "24.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.535,0 0.426,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateY",
+                    "duration": "100",
+                    "startOffset": "400",
+                    "valueFrom": "24.25",
+                    "valueTo": "22.25",
+                    "valueType": "floatType"
+                  },
+                  "children": [
+                    {
+                      "embedded_attribute": "android:interpolator",
+                      "content": [
+                        {
+                          "element": "pathInterpolator",
+                          "attributes": {
+                            "pathData": "M 0.0,0.0 c0.641,0 0.499,1 1.0,1.0"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "time_group",
+      "animation": [
+        {
+          "element": "attr",
+          "attributes": {
+            "name": "android:animation"
+          },
+          "children": [
+            {
+              "element": "set",
+              "attributes": {
+                "ordering": "together"
+              },
+              "children": [
+                {
+                  "element": "objectAnimator",
+                  "attributes": {
+                    "propertyName": "translateX",
+                    "duration": "850",
+                    "startOffset": "0",
+                    "valueFrom": "0",
+                    "valueTo": "1",
+                    "valueType": "floatType"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "embedded_drawable": {
+    "element": "attr",
+    "attributes": {
+      "name": "android:drawable"
+    },
+    "children": [
+      {
+        "element": "vector",
+        "attributes": {
+          "height": "65dp",
+          "width": "46dp",
+          "viewportHeight": "65",
+          "viewportWidth": "46"
+        },
+        "children": [
+          {
+            "element": "group",
+            "attributes": {
+              "name": "_R_G"
+            },
+            "children": [
+              {
+                "element": "group",
+                "attributes": {
+                  "name": "_R_G_L_2_G_T_1",
+                  "translateX": "22.75",
+                  "translateY": "22.25",
+                  "scaleX": "1.02",
+                  "scaleY": "1.02"
+                },
+                "children": [
+                  {
+                    "element": "group",
+                    "attributes": {
+                      "name": "_R_G_L_2_G",
+                      "translateX": "-8.75",
+                      "translateY": "-8.75"
+                    },
+                    "children": [
+                      {
+                        "element": "path",
+                        "attributes": {
+                          "name": "_R_G_L_2_G_D_0_P_0",
+                          "strokeColor": "#FF000000",
+                          "strokeLineCap": "round",
+                          "strokeLineJoin": "round",
+                          "strokeWidth": "2",
+                          "strokeAlpha": "1",
+                          "pathData": " M27.19 14.81 C27.19,14.81 27.19,8.3 27.19,8.3 C27.19,4.92 24.44,2.88 21.19,2.75 C17.74,2.62 15,4.74 15,8.11 C15,8.11 15,15 15,15 "
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "element": "group",
+                "attributes": {
+                  "name": "_R_G_L_1_G_N_4_T_1",
+                  "translateX": "22.75",
+                  "translateY": "22.25",
+                  "scaleX": "1.02",
+                  "scaleY": "1.02"
+                },
+                "children": [
+                  {
+                    "element": "group",
+                    "attributes": {
+                      "name": "_R_G_L_1_G_N_4_T_0",
+                      "translateX": "-8.75",
+                      "translateY": "-8.75"
+                    },
+                    "children": [
+                      {
+                        "element": "group",
+                        "attributes": {
+                          "name": "_R_G_L_1_G",
+                          "translateX": "8.995",
+                          "translateY": "18.431",
+                          "scaleX": "0.98039",
+                          "scaleY": "0.98039"
+                        },
+                        "children": [
+                          {
+                            "element": "path",
+                            "attributes": {
+                              "name": "_R_G_L_1_G_D_0_P_0",
+                              "strokeColor": "#FF000000",
+                              "strokeLineCap": "round",
+                              "strokeLineJoin": "round",
+                              "strokeWidth": "2",
+                              "strokeAlpha": "1",
+                              "pathData": " M11.25 -0.64 C11.25,-0.64 11.25,13.64 11.25,13.64 C11.25,15.22 9.97,16.5 8.39,16.5 C8.39,16.5 -8.39,16.5 -8.39,16.5 C-9.97,16.5 -11.25,15.22 -11.25,13.64 C-11.25,13.64 -11.25,-0.64 -11.25,-0.64 C-11.25,-2.22 -9.97,-3.5 -8.39,-3.5 C-8.39,-3.5 8.39,-3.5 8.39,-3.5 C9.97,-3.5 11.25,-2.22 11.25,-0.64c "
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "element": "group",
+                "attributes": {
+                  "name": "_R_G_L_0_G_N_4_T_1",
+                  "translateX": "22.75",
+                  "translateY": "22.25",
+                  "scaleX": "1.02",
+                  "scaleY": "1.02"
+                },
+                "children": [
+                  {
+                    "element": "group",
+                    "attributes": {
+                      "name": "_R_G_L_0_G_N_4_T_0",
+                      "translateX": "-8.75",
+                      "translateY": "-8.75"
+                    },
+                    "children": [
+                      {
+                        "element": "group",
+                        "attributes": {
+                          "name": "_R_G_L_0_G",
+                          "translateX": "8.995000000000001",
+                          "translateY": "18.345000000000002",
+                          "pivotX": "-0.031",
+                          "pivotY": "4.406",
+                          "scaleX": "0.98039",
+                          "scaleY": "0.98039"
+                        },
+                        "children": [
+                          {
+                            "element": "path",
+                            "attributes": {
+                              "name": "_R_G_L_0_G_D_0_P_0",
+                              "fillColor": "#FF000000",
+                              "fillAlpha": "1",
+                              "fillType": "nonZero",
+                              "pathData": " M-0.09 8.63 C1.2,8.63 2.25,7.57 2.25,6.28 C2.25,4.99 1.2,3.94 -0.09,3.94 C-1.39,3.94 -2.44,4.99 -2.44,6.28 C-2.44,7.57 -1.39,8.63 -0.09,8.63c "
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "group",
+            "attributes": {
+              "name": "time_group"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
