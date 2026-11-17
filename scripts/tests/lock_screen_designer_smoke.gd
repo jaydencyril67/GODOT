@@ -58,8 +58,8 @@ func _run_test() -> void:
 
 		var notifications: Array = design.get("notifications", [])
 		notification_count += notifications.size()
-		for notification in notifications:
-			var icon_path := str(notification.get("icon", ""))
+		for notification_entry in notifications:
+			var icon_path := str(notification_entry.get("icon", ""))
 			if icon_path.is_empty() or not FileAccess.file_exists(icon_path):
 				_fail("A generated notification is missing its bundled app icon.")
 				return
