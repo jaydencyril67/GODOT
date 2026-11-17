@@ -127,10 +127,19 @@ func _build_interface() -> void:
 	phone_row.add_theme_constant_override("separation", 22)
 	phone_center.add_child(phone_row)
 
+	var power_button_center := CenterContainer.new()
+	power_button_center.name = "PowerButtonCenter"
+	power_button_center.custom_minimum_size = Vector2(58, 58)
+	power_button_center.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	power_button_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	phone_row.add_child(power_button_center)
+
 	power_button = Button.new()
 	power_button.name = "SeparateRoundPowerButton"
 	power_button.text = "⏻"
 	power_button.custom_minimum_size = Vector2(58, 58)
+	power_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	power_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	power_button.tooltip_text = "Power on / off"
 	power_button.focus_mode = Control.FOCUS_NONE
 	power_button.add_theme_font_size_override("font_size", 30)
@@ -139,7 +148,7 @@ func _build_interface() -> void:
 	power_button.add_theme_stylebox_override("pressed", _make_panel_style(Color("#17191B"), ACCENT, 1, 30))
 	power_button.add_theme_color_override("font_color", TEXT)
 	power_button.pressed.connect(_on_power_pressed)
-	phone_row.add_child(power_button)
+	power_button_center.add_child(power_button)
 
 	phone_frame = PanelContainer.new()
 	phone_frame.name = "OSPhoneFrame"
