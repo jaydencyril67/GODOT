@@ -467,14 +467,14 @@ func _forward_phone_screen_input(event: InputEvent, frame_position: Vector2) -> 
 		var drag_event := mapped_event as InputEventScreenDrag
 		var source_drag := event as InputEventScreenDrag
 		drag_event.position = mapped_position
-		drag_event.relative = source_drag.relative * scale
+		drag_event.relative = source_drag.relative * input_scale
 	elif mapped_event is InputEventMouseButton:
 		(mapped_event as InputEventMouseButton).position = mapped_position
 	elif mapped_event is InputEventMouseMotion:
 		var motion_event := mapped_event as InputEventMouseMotion
 		var source_motion := event as InputEventMouseMotion
 		motion_event.position = mapped_position
-		motion_event.relative = source_motion.relative * scale
+		motion_event.relative = source_motion.relative * input_scale
 	phone_screen_interface_viewport.push_input(mapped_event, true)
 
 
