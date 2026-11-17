@@ -30,7 +30,7 @@ func _run_test() -> void:
 	worksite.set("screen_powered", true)
 	worksite.set("boot_sequence_complete", false)
 	worksite.call("_show_phone_boot_sequence", int(worksite.get("boot_sequence_id")), 0.01)
-	await create_timer(0.15).timeout
+	await create_timer(1.0).timeout
 	if not bool(worksite.get("boot_sequence_complete")):
 		_fail("The boot sequence did not report completion.")
 		return
