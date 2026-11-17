@@ -66,6 +66,7 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Smartwatch": 310.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
+const TECHNOLOGY_POINTS_PER_RESEARCH_DAY := 0.01
 const STATUS_ACTIVE := "active"
 const STATUS_AWAITING_VALIDATION := "awaiting_validation"
 const STATUS_APPROVED := "approved"
@@ -157,6 +158,21 @@ static func get_component_research_duration_days(component_value: String, resear
 		MIN_RESEARCH_DURATION_DAYS,
 		float(COMPONENT_RESEARCH_DURATION_DAYS.get(component, BASE_RESEARCH_DURATION_DAYS))
 	)
+
+
+static func get_technology_points_for_progress(component_value: String, progress_steps: float) -> float:
+	# Option 1: each research target owns a duration-based TP budget. Complete
+	# targets receive their full budget; the current target receives only the
+	# fraction represented by the phone's selected specification.
+	var safe_progress := maxf(0.0, progress_steps)
+	var completed_steps := floori(safe_progress)
+	var partial_step := clampf(safe_progress - float(completed_steps), 0.0, 1.0)
+	var earned_research_days := 0.0
+	for target_index in range(1, completed_steps + 1):
+		earned_research_days += get_component_research_duration_days(component_value, target_index)
+	if partial_step > 0.000001:
+		earned_research_days += get_component_research_duration_days(component_value, completed_steps + 1) * partial_step
+	return earned_research_days * TECHNOLOGY_POINTS_PER_RESEARCH_DAY
 
 const PHONE_SENSOR_COMPONENTS := [
 	"Fingerprint Sensor",
