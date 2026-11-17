@@ -1002,13 +1002,14 @@ func _run_technology_points_checks() -> bool:
 	var right_panel := ui_worksite.get("right_panel_column") as VBoxContainer
 	var selection_scroll := ui_worksite.get("selection_scroll") as ScrollContainer
 	var technology_panel := ui_worksite.get("technology_level_panel") as PanelContainer
+	var footer_safe_area := ui_worksite.get("technology_level_footer_margin") as MarginContainer
 	var technology_value := ui_worksite.get("technology_level_value_label") as Label
-	if not is_instance_valid(right_panel) or not is_instance_valid(selection_scroll) or not is_instance_valid(technology_panel) or not is_instance_valid(technology_value):
+	if not is_instance_valid(right_panel) or not is_instance_valid(selection_scroll) or not is_instance_valid(technology_panel) or not is_instance_valid(footer_safe_area) or not is_instance_valid(technology_value):
 		ui_worksite.queue_free()
 		await process_frame
 		_fail("Phone Creation Worksite did not build its Technology Level footer.")
 		return false
-	if selection_scroll.get_parent() != right_panel or technology_panel.get_parent() != right_panel or technology_panel.get_index() != right_panel.get_child_count() - 1:
+	if selection_scroll.get_parent() != right_panel or footer_safe_area.get_parent() != right_panel or footer_safe_area.get_index() != right_panel.get_child_count() - 1 or technology_panel.get_parent() != footer_safe_area or footer_safe_area.get_theme_constant("margin_right") < 80:
 		ui_worksite.queue_free()
 		await process_frame
 		_fail("Technology Level must remain pinned below the independently scrolling right-panel controls.")
