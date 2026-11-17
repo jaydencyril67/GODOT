@@ -77,6 +77,11 @@ func _run_test() -> void:
 			return
 		layout_ids[layout_id] = true
 
+		var wallpaper_shade := designer.find_child("LockScreenWallpaperLegibilityShade", true, false) as ColorRect
+		if wallpaper_shade == null or wallpaper_shade.color.a < 0.55:
+			_fail("A generated lock-screen wallpaper is not darkened enough.")
+			return
+
 		var wallpaper_path := str(design.get("wallpaper_path", ""))
 		if not wallpaper_path.begins_with("res://assets/wallpapers/") or not FileAccess.file_exists(wallpaper_path):
 			_fail("A generated design selected a missing or unsupported wallpaper asset.")
