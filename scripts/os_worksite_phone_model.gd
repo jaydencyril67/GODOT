@@ -6,8 +6,8 @@ extends Node3D
 
 const HANDSET_SIZE := Vector3(1.45, 2.92, 0.22)
 const OUTER_CORNER_RADIUS := 0.34
-const BEZEL_WIDTH := 0.120833
-const BEZEL_HEIGHT := 0.246833
+const BEZEL_WIDTH := 0.025
+const BEZEL_HEIGHT := 0.070
 const SCREEN_WIDTH := HANDSET_SIZE.x - BEZEL_WIDTH * 2.0
 const SCREEN_HEIGHT := HANDSET_SIZE.y - BEZEL_HEIGHT * 2.0
 const SCREEN_CORNER_RADIUS := 0.27
@@ -188,7 +188,7 @@ func _build_front_hardware() -> void:
 	ring_mesh.radial_segments = 40
 	camera_ring.mesh = ring_mesh
 	camera_ring.rotation_degrees.x = 90.0
-	camera_ring.position = Vector3(-0.19, 1.335, front_z + 0.006)
+	camera_ring.position = Vector3(-0.19, 1.39, front_z + 0.006)
 	camera_ring.material_override = _make_metal_material(Color("#687582"), 0.76, 0.24)
 	camera_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(camera_ring)
@@ -202,7 +202,7 @@ func _build_front_hardware() -> void:
 	lens_mesh.radial_segments = 40
 	camera_lens.mesh = lens_mesh
 	camera_lens.rotation_degrees.x = 90.0
-	camera_lens.position = Vector3(-0.19, 1.335, front_z + 0.012)
+	camera_lens.position = Vector3(-0.19, 1.39, front_z + 0.012)
 	camera_lens.material_override = dark_material
 	camera_lens.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(camera_lens)
@@ -216,7 +216,7 @@ func _build_front_hardware() -> void:
 	earpiece_mesh.rings = 6
 	earpiece.mesh = earpiece_mesh
 	earpiece.rotation_degrees.z = 90.0
-	earpiece.position = Vector3(0.14, 1.335, front_z + 0.008)
+	earpiece.position = Vector3(0.14, 1.39, front_z + 0.008)
 	earpiece.material_override = dark_material
 	earpiece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(earpiece)
