@@ -1,5 +1,7 @@
 extends Node3D
 
+const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
+
 signal back_requested
 
 const STEP_NAMES := [
@@ -169,50 +171,22 @@ func _build_interface() -> void:
 	var phone_viewport := SubViewport.new()
 	phone_viewport.name = "FixedPhone3DViewport"
 	phone_viewport.size = Vector2i(700, 1400)
+	phone_viewport.msaa_3d = Viewport.MSAA_DISABLED
+	phone_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	phone_viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	phone_viewport.scaling_3d_scale = 1.25
+	phone_viewport.own_world_3d = true
 	phone_viewport.transparent_bg = true
-	phone_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	phone_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	phone_frame.add_child(phone_viewport)
 
 	var phone_world := Node3D.new()
-	phone_world.name = "FixedPhoneModel"
+	phone_world.name = "FixedPhonePreviewWorld"
 	phone_viewport.add_child(phone_world)
 
-	var phone_camera := Camera3D.new()
-	phone_camera.name = "FixedPerspectiveCamera"
-	phone_world.add_child(phone_camera)
-	phone_camera.position = Vector3(0.22, 0.08, 8.5)
-	phone_camera.fov = 34.0
-	phone_camera.current = true
-	# Set the view only after the camera belongs to the 3D scene tree so
-	# look_at uses its real world transform instead of its pre-tree transform.
-	phone_camera.look_at(Vector3.ZERO, Vector3.UP)
-
-	var key_light := DirectionalLight3D.new()
-	key_light.name = "PhoneStudioKeyLight"
-	key_light.rotation_degrees = Vector3(-34.0, -28.0, -18.0)
-	key_light.light_energy = 1.35
-	phone_world.add_child(key_light)
-
-	var fill_light := OmniLight3D.new()
-	fill_light.name = "PhoneStudioFillLight"
-	fill_light.position = Vector3(-3.0, 1.8, 4.0)
-	fill_light.light_energy = 0.7
-	fill_light.omni_range = 12.0
-	phone_world.add_child(fill_light)
-
-	var frame_material := StandardMaterial3D.new()
-	frame_material.albedo_color = Color("#34383D")
-	frame_material.metallic = 0.82
-	frame_material.roughness = 0.24
-
-	var body_mesh := MeshInstance3D.new()
-	body_mesh.name = "TitaniumPhoneBody"
-	body_mesh.mesh = _make_rounded_prism_mesh(2.50, 5.00, 0.22, 0.34, 10)
-	body_mesh.material_override = frame_material
-	phone_world.add_child(body_mesh)
-
-	# The chassis uses a continuous rounded-rectangle extrusion, not sharp box corners.
-
+	# A dedicated UI viewport supplies the boot image to the 3D glass surface.
+	# The handset model itself is built by the same geometry rules as the
+	# working Phone Creation Worksite, not by a second improvised phone mesh.
 	var screen_viewport := SubViewport.new()
 	screen_viewport.name = "PhoneScreenInterfaceViewport"
 	screen_viewport.size = Vector2i(680, 1360)
@@ -262,63 +236,10 @@ func _build_interface() -> void:
 	boot_content.add_child(phone_model_label)
 	_apply_boot_font_weight(phone_model_label, 700)
 
-	var screen_material := StandardMaterial3D.new()
-	screen_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	screen_material.albedo_texture = screen_viewport.get_texture()
-	screen_material.roughness = 0.18
-	screen_material.metallic = 0.0
-
-	var screen_mesh_instance := MeshInstance3D.new()
-	screen_mesh_instance.name = "GlassDisplay"
-	# Keep the rounded UV-mapped display in front of the chassis face so it cannot be occluded.
-	screen_mesh_instance.mesh = _make_rounded_screen_mesh(2.43, 4.93, 0.27, 10)
-	screen_mesh_instance.material_override = screen_material
-	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.184)
-	phone_world.add_child(screen_mesh_instance)
-
-	var glass_material := StandardMaterial3D.new()
-	glass_material.albedo_color = Color("#111820")
-	glass_material.metallic = 0.25
-	glass_material.roughness = 0.16
-	var earpiece := MeshInstance3D.new()
-	earpiece.name = "TopEarpiece"
-	var earpiece_mesh := BoxMesh.new()
-	earpiece_mesh.size = Vector3(0.34, 0.025, 0.012)
-	earpiece.mesh = earpiece_mesh
-	earpiece.material_override = glass_material
-	earpiece.position = Vector3(0.12, 2.39, 0.205)
-	phone_world.add_child(earpiece)
-
-	var front_camera := MeshInstance3D.new()
-	front_camera.name = "FrontCameraLens"
-	var lens_mesh := CylinderMesh.new()
-	lens_mesh.top_radius = 0.035
-	lens_mesh.bottom_radius = 0.035
-	lens_mesh.height = 0.018
-	lens_mesh.radial_segments = 24
-	front_camera.mesh = lens_mesh
-	front_camera.material_override = glass_material
-	front_camera.position = Vector3(-0.36, 2.39, 0.205)
-	front_camera.rotation_degrees.x = 90.0
-	phone_world.add_child(front_camera)
-
-	var side_button_material := StandardMaterial3D.new()
-	side_button_material.albedo_color = Color("#555B61")
-	side_button_material.metallic = 0.78
-	side_button_material.roughness = 0.28
-	for button_data in [
-		{"name": "PowerKey", "position": Vector3(1.255, 1.15, 0.0), "size": Vector3(0.075, 0.48, 0.12)},
-		{"name": "VolumeUpKey", "position": Vector3(-1.255, 1.15, 0.0), "size": Vector3(0.075, 0.34, 0.12)},
-		{"name": "VolumeDownKey", "position": Vector3(-1.255, 0.68, 0.0), "size": Vector3(0.075, 0.34, 0.12)}
-	]:
-		var side_key := MeshInstance3D.new()
-		side_key.name = button_data["name"]
-		var side_key_mesh := BoxMesh.new()
-		side_key_mesh.size = button_data["size"]
-		side_key.mesh = side_key_mesh
-		side_key.material_override = side_button_material
-		side_key.position = button_data["position"]
-		phone_world.add_child(side_key)
+	var phone_model: Node3D = OSPhoneModelScript.new()
+	phone_model.name = "OSWorksiteHandsetModel"
+	phone_world.add_child(phone_model)
+	phone_model.call("build", screen_viewport.get_texture())
 
 	controls_scroll = ScrollContainer.new()
 	controls_scroll.name = "OSControlsScroll"
@@ -455,85 +376,6 @@ func _apply_responsive_layout() -> void:
 	phone_frame.custom_minimum_size = Vector2(target_width, target_height)
 
 
-
-func _make_rounded_screen_mesh(width: float, height: float, radius: float, corner_segments: int) -> ArrayMesh:
-	# A dedicated rounded front surface keeps the screen corners while mapping
-	# the complete SubViewport texture across the display with explicit UVs.
-	var half_width := width * 0.5
-	var half_height := height * 0.5
-	var r := clampf(radius, 0.01, minf(half_width, half_height))
-	var points := PackedVector2Array()
-	var corner_data := [
-		{"center": Vector2(half_width - r, half_height - r), "start": 0.0},
-		{"center": Vector2(-half_width + r, half_height - r), "start": 90.0},
-		{"center": Vector2(-half_width + r, -half_height + r), "start": 180.0},
-		{"center": Vector2(half_width - r, -half_height + r), "start": 270.0}
-	]
-	for corner in corner_data:
-		for segment in range(corner_segments + 1):
-			var angle := deg_to_rad(float(corner["start"]) + 90.0 * float(segment) / float(corner_segments))
-			var center: Vector2 = corner["center"]
-			points.append(center + Vector2(cos(angle), sin(angle)) * r)
-
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for index in range(points.size()):
-		var next_index := (index + 1) % points.size()
-		var a := points[index]
-		var b := points[next_index]
-		var center_uv := Vector2(0.5, 0.5)
-		var a_uv := Vector2(a.x / width + 0.5, 0.5 - a.y / height)
-		var b_uv := Vector2(b.x / width + 0.5, 0.5 - b.y / height)
-		surface.set_uv(center_uv)
-		surface.add_vertex(Vector3(0.0, 0.0, 0.0))
-		surface.set_uv(a_uv)
-		surface.add_vertex(Vector3(a.x, a.y, 0.0))
-		surface.set_uv(b_uv)
-		surface.add_vertex(Vector3(b.x, b.y, 0.0))
-	surface.generate_normals()
-	return surface.commit()
-
-func _make_rounded_prism_mesh(width: float, height: float, depth: float, radius: float, corner_segments: int) -> ArrayMesh:
-	var half_width := width * 0.5
-	var half_height := height * 0.5
-	var r := clampf(radius, 0.01, minf(half_width, half_height))
-	var points := PackedVector2Array()
-	var corner_data := [
-		{"center": Vector2(half_width - r, half_height - r), "start": 0.0},
-		{"center": Vector2(-half_width + r, half_height - r), "start": 90.0},
-		{"center": Vector2(-half_width + r, -half_height + r), "start": 180.0},
-		{"center": Vector2(half_width - r, -half_height + r), "start": 270.0}
-	]
-	for corner in corner_data:
-		for segment in range(corner_segments + 1):
-			var angle := deg_to_rad(float(corner["start"]) + 90.0 * float(segment) / float(corner_segments))
-			var center: Vector2 = corner["center"]
-			points.append(center + Vector2(cos(angle), sin(angle)) * r)
-
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var front_z := depth * 0.5
-	var back_z := -depth * 0.5
-	var front_center := Vector3(0.0, 0.0, front_z)
-	var back_center := Vector3(0.0, 0.0, back_z)
-	for index in range(points.size()):
-		var next_index := (index + 1) % points.size()
-		var a := points[index]
-		var b := points[next_index]
-		surface.add_vertex(front_center)
-		surface.add_vertex(Vector3(a.x, a.y, front_z))
-		surface.add_vertex(Vector3(b.x, b.y, front_z))
-		surface.add_vertex(back_center)
-		surface.add_vertex(Vector3(b.x, b.y, back_z))
-		surface.add_vertex(Vector3(a.x, a.y, back_z))
-		surface.add_vertex(Vector3(a.x, a.y, front_z))
-		surface.add_vertex(Vector3(a.x, a.y, back_z))
-		surface.add_vertex(Vector3(b.x, b.y, back_z))
-		surface.add_vertex(Vector3(a.x, a.y, front_z))
-		surface.add_vertex(Vector3(b.x, b.y, back_z))
-		surface.add_vertex(Vector3(b.x, b.y, front_z))
-	surface.generate_normals()
-	return surface.commit()
 
 func _show_step(step_index: int) -> void:
 	current_step = clampi(step_index, 0, STEP_NAMES.size() - 1)
