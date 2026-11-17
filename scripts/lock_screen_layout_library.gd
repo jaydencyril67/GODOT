@@ -1,0 +1,145 @@
+extends RefCounted
+
+# Curated structural foundations. The designer owns all live variation:
+# typography scale, safe-area offsets, palette, wallpaper, content and details.
+const BLUEPRINTS := [
+	{
+		"id": "pixel_centered",
+		"name": "PIXEL-CENTERED",
+		"clock_styles": ["digital"],
+		"clock_rect": Rect2(0.08, 0.205, 0.84, 0.15),
+		"date_rect": Rect2(0.12, 0.365, 0.76, 0.038),
+		"alignments": ["center"],
+		"clock_formats": ["single", "spaced"],
+		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.555, 0.85, 0.095)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "one_ui_lower",
+		"name": "ONE UI LOWER CLOCK",
+		"clock_styles": ["digital", "stacked"],
+		"clock_rect": Rect2(0.08, 0.265, 0.84, 0.145),
+		"date_rect": Rect2(0.08, 0.225, 0.84, 0.032),
+		"alignments": ["left"],
+		"clock_formats": ["single", "split"],
+		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.475, 0.85, 0.082)},
+			{"type": "media", "rect": Rect2(0.075, 0.575, 0.85, 0.165)}
+		],
+		"fingerprint": false
+	},
+	{
+		"id": "material_stack",
+		"name": "MATERIAL STACK",
+		"clock_styles": ["digital"],
+		"clock_rect": Rect2(0.08, 0.145, 0.84, 0.135),
+		"date_rect": Rect2(0.08, 0.29, 0.84, 0.04),
+		"alignments": ["left", "center"],
+		"clock_formats": ["single"],
+		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.085)},
+			{"type": "notification", "rect": Rect2(0.075, 0.535, 0.85, 0.085)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "media_stage",
+		"name": "MEDIA STAGE",
+		"clock_styles": ["stacked", "digital"],
+		"clock_rect": Rect2(0.12, 0.14, 0.76, 0.205),
+		"date_rect": Rect2(0.12, 0.365, 0.76, 0.035),
+		"alignments": ["center"],
+		"clock_formats": ["split", "single"],
+		"content_slots": [
+			{"type": "media", "rect": Rect2(0.075, 0.535, 0.85, 0.185)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "analog_classic",
+		"name": "ANALOG CLASSIC",
+		"clock_styles": ["analog"],
+		"clock_rect": Rect2(0.35, 0.175, 0.30, 0.15),
+		"date_rect": Rect2(0.12, 0.365, 0.76, 0.038),
+		"alignments": ["center"],
+		"clock_formats": ["single"],
+		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.555, 0.85, 0.095)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "editorial_left",
+		"name": "EDITORIAL LEFT",
+		"clock_styles": ["digital"],
+		"clock_rect": Rect2(0.075, 0.205, 0.85, 0.15),
+		"date_rect": Rect2(0.075, 0.365, 0.85, 0.04),
+		"alignments": ["left"],
+		"clock_formats": ["single", "spaced"],
+		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.545, 0.85, 0.095)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "split_clock",
+		"name": "SPLIT CLOCK",
+		"clock_styles": ["stacked"],
+		"clock_rect": Rect2(0.12, 0.14, 0.76, 0.215),
+		"date_rect": Rect2(0.12, 0.375, 0.76, 0.035),
+		"alignments": ["center"],
+		"clock_formats": ["split"],
+		"content_slots": [
+			{"type": "media", "rect": Rect2(0.075, 0.55, 0.85, 0.17)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "notification_rich",
+		"name": "NOTIFICATION RICH",
+		"clock_styles": ["digital"],
+		"clock_rect": Rect2(0.075, 0.13, 0.85, 0.12),
+		"date_rect": Rect2(0.075, 0.265, 0.85, 0.04),
+		"alignments": ["left", "center"],
+		"clock_formats": ["single"],
+		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.395, 0.85, 0.082)},
+			{"type": "notification", "rect": Rect2(0.075, 0.49, 0.85, 0.082)},
+			{"type": "notification", "rect": Rect2(0.075, 0.585, 0.85, 0.082)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "quiet_focus",
+		"name": "QUIET FOCUS",
+		"clock_styles": ["digital", "stacked"],
+		"clock_rect": Rect2(0.12, 0.215, 0.76, 0.155),
+		"date_rect": Rect2(0.12, 0.385, 0.76, 0.035),
+		"alignments": ["center", "right"],
+		"clock_formats": ["single", "split"],
+		"content_slots": [
+			{"type": "media", "rect": Rect2(0.075, 0.565, 0.85, 0.155)}
+		],
+		"fingerprint": true
+	},
+	{
+		"id": "dual_content",
+		"name": "DUAL CONTENT",
+		"clock_styles": ["digital"],
+		"clock_rect": Rect2(0.075, 0.155, 0.85, 0.125),
+		"date_rect": Rect2(0.075, 0.295, 0.85, 0.035),
+		"alignments": ["left", "center"],
+		"clock_formats": ["single", "spaced"],
+		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.405, 0.85, 0.082)},
+			{"type": "media", "rect": Rect2(0.075, 0.505, 0.85, 0.19)}
+		],
+		"fingerprint": false
+	}
+]
+
+
+static func get_blueprints() -> Array:
+	return BLUEPRINTS.duplicate(true)
