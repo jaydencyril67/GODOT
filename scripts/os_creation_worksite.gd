@@ -270,7 +270,8 @@ func _build_interface() -> void:
 
 	var screen_mesh_instance := MeshInstance3D.new()
 	screen_mesh_instance.name = "GlassDisplay"
-	screen_mesh_instance.mesh = _make_rounded_prism_mesh(2.43, 4.93, 0.012, 0.27, 10)
+	# Keep the rounded display silhouette, but use a UV-mapped front face for the viewport texture.
+	screen_mesh_instance.mesh = _make_rounded_screen_mesh(2.43, 4.93, 0.27, 10)
 	screen_mesh_instance.material_override = screen_material
 	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.116)
 	phone_world.add_child(screen_mesh_instance)
@@ -453,6 +454,44 @@ func _apply_responsive_layout() -> void:
 		target_height = target_width / aspect
 	phone_frame.custom_minimum_size = Vector2(target_width, target_height)
 
+
+
+func _make_rounded_screen_mesh(width: float, height: float, radius: float, corner_segments: int) -> ArrayMesh:
+	# A dedicated rounded front surface keeps the screen corners while mapping
+	# the complete SubViewport texture across the display with explicit UVs.
+	var half_width := width * 0.5
+	var half_height := height * 0.5
+	var r := clampf(radius, 0.01, minf(half_width, half_height))
+	var points := PackedVector2Array()
+	var corner_data := [
+		{"center": Vector2(half_width - r, half_height - r), "start": 0.0},
+		{"center": Vector2(-half_width + r, half_height - r), "start": 90.0},
+		{"center": Vector2(-half_width + r, -half_height + r), "start": 180.0},
+		{"center": Vector2(half_width - r, -half_height + r), "start": 270.0}
+	]
+	for corner in corner_data:
+		for segment in range(corner_segments + 1):
+			var angle := deg_to_rad(float(corner["start"]) + 90.0 * float(segment) / float(corner_segments))
+			var center: Vector2 = corner["center"]
+			points.append(center + Vector2(cos(angle), sin(angle)) * r)
+
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(points.size()):
+		var next_index := (index + 1) % points.size()
+		var a := points[index]
+		var b := points[next_index]
+		var center_uv := Vector2(0.5, 0.5)
+		var a_uv := Vector2(a.x / width + 0.5, 0.5 - a.y / height)
+		var b_uv := Vector2(b.x / width + 0.5, 0.5 - b.y / height)
+		surface.set_uv(center_uv)
+		surface.add_vertex(Vector3(0.0, 0.0, 0.0))
+		surface.set_uv(a_uv)
+		surface.add_vertex(Vector3(a.x, a.y, 0.0))
+		surface.set_uv(b_uv)
+		surface.add_vertex(Vector3(b.x, b.y, 0.0))
+	surface.generate_normals()
+	return surface.commit()
 
 func _make_rounded_prism_mesh(width: float, height: float, depth: float, radius: float, corner_segments: int) -> ArrayMesh:
 	var half_width := width * 0.5
