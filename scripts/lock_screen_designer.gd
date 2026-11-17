@@ -229,13 +229,13 @@ func _compose_design() -> Dictionary:
 		var notification_rect := _find_notification_rect(occupied, notification_index)
 		if notification_rect.size == Vector2.ZERO:
 			continue
-		var notification := {
+		var notification_data := {
 			"rect": notification_rect,
 			"app": APP_NAMES[_rng.randi_range(0, APP_NAMES.size() - 1)],
 			"title": NOTIFICATION_TITLES[_rng.randi_range(0, NOTIFICATION_TITLES.size() - 1)],
 			"body": NOTIFICATION_BODIES[_rng.randi_range(0, NOTIFICATION_BODIES.size() - 1)]
 		}
-		notifications.append(notification)
+		notifications.append(notification_data)
 		_add_component(components, occupied, "notification", notification_rect)
 
 	var show_fingerprint := _rng.randf() >= 0.16
@@ -510,7 +510,7 @@ func _add_date(design: Dictionary, palette: Dictionary) -> void:
 	add_child(date)
 
 
-func _add_notification(notification: Dictionary, rect: Rect2, palette: Dictionary) -> void:
+func _add_notification(notification_data: Dictionary, rect: Rect2, palette: Dictionary) -> void:
 	var card := PanelContainer.new()
 	card.name = "GeneratedNotification"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -533,21 +533,21 @@ func _add_notification(notification: Dictionary, rect: Rect2, palette: Dictionar
 	card.add_child(content)
 
 	var app_label := Label.new()
-	app_label.text = str(notification["app"]) + "  ·  NOW"
+	app_label.text = str(notification_data["app"]) + "  ·  NOW"
 	app_label.add_theme_font_size_override("font_size", 14)
 	app_label.add_theme_color_override("font_color", palette["accent"])
 	app_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(app_label)
 
 	var title := Label.new()
-	title.text = str(notification["title"])
+	title.text = str(notification_data["title"])
 	title.add_theme_font_size_override("font_size", 21)
 	title.add_theme_color_override("font_color", palette["text"])
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(title)
 
 	var body := Label.new()
-	body.text = str(notification["body"])
+	body.text = str(notification_data["body"])
 	body.add_theme_font_size_override("font_size", 15)
 	body.add_theme_color_override("font_color", palette["muted"])
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -618,8 +618,8 @@ func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 
 
 func _notification_component_rect(design: Dictionary, notification_index: int) -> Rect2:
-	var notification: Dictionary = design["notifications"][notification_index]
-	return notification["rect"]
+	var notification_data: Dictionary = design["notifications"][notification_index]
+	return notification_data["rect"]
 
 
 func _find_component_rect(design: Dictionary, role: String) -> Rect2:
