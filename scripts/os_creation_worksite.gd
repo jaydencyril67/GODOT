@@ -23,7 +23,7 @@ const STEP_DESCRIPTIONS := [
 	"Choose the icon assets that will be available to this OS.",
 	"Choose widget designs for the operating system.",
 	"Choose wallpaper assets for the operating system.",
-	"Generate a completely new lock-screen composition with autonomous component placement.",
+"Generate a polished lock-screen using curated layout foundations and autonomous composition.",
 	"Choose the status bar design assets.",
 	"Choose quick settings and control-centre assets.",
 	"Choose notification appearance assets.",
@@ -460,21 +460,20 @@ func _style_boot_display_toggle(toggle: Button, enabled: bool, label: String) ->
 	toggle.add_theme_color_override("font_color", TEXT if enabled else MUTED)
 
 func _show_lock_screen_designer_controls() -> void:
-	_add_note("AUTONOMOUS COMPOSITION ENGINE")
-	_add_note("Every generation independently chooses the clock treatment, component positions, proportions, spacing and colour direction. No preset layouts are used.")
-	var generate_button := _make_button("GENERATE A COMPLETELY NEW DESIGN")
+	_add_note("HYBRID AUTONOMOUS DESIGN ENGINE")
+	_add_note("The system selects from %d curated layout foundations, then independently varies positioning, clock treatment, palette, wallpaper and lock-screen content. These are structural blueprints, not finished screen templates." % int(lock_screen_designer.call("get_blueprint_count")))
+	var generate_button := _make_button("GENERATE ANOTHER LOCK SCREEN")
 	generate_button.name = "GenerateNewLockScreenDesign"
 	generate_button.custom_minimum_size.y = 58
 	generate_button.pressed.connect(_generate_lock_screen_design)
 	content_column.add_child(generate_button)
-	_add_note("Rules enforced: independent components never collide; status elements stay in the top safe area; camera and flashlight shortcuts stay at the bottom; all content stays inside the display.")
-	_add_note("AOSP assets: analog clock hands, flashlight and fingerprint components.")
+	_add_note("Wallpaper library: %d bundled images, rotated without immediate repeats." % int(lock_screen_designer.call("get_available_wallpaper_count")))
+	_add_note("Autonomous content: app-branded notifications, compact media player, live clock, date, fingerprint prompt and bottom shortcuts.")
+	_add_note("Quality rules: no component collisions; status stays at the top; fingerprint and bottom shortcuts remain in their safe zones; all content stays inside the handset.")
 	if int(lock_screen_designer.call("get_generation_count")) == 0:
 		_generate_lock_screen_design()
 	else:
-		var latest: Dictionary = lock_screen_designer.call("get_last_design")
-		var palette: Dictionary = latest.get("palette", {})
-		selection_status_label.text = "DESIGN %03d  •  %s" % [int(lock_screen_designer.call("get_generation_count")), str(palette.get("name", "GENERATED"))]
+		_update_lock_screen_status(lock_screen_designer.call("get_last_design"))
 
 func _generate_lock_screen_design() -> void:
 	if not is_instance_valid(lock_screen_designer):
@@ -483,9 +482,21 @@ func _generate_lock_screen_design() -> void:
 	if generated.is_empty():
 		selection_status_label.text = "DESIGN VALIDATION FAILED — GENERATE AGAIN"
 		return
-	var palette: Dictionary = generated.get("palette", {})
-	selection_status_label.text = "DESIGN %03d  •  %s" % [int(lock_screen_designer.call("get_generation_count")), str(palette.get("name", "GENERATED"))]
+	_update_lock_screen_status(generated)
 	_update_phone_preview_mode()
+
+
+func _update_lock_screen_status(generated: Dictionary) -> void:
+	var generation := int(lock_screen_designer.call("get_generation_count"))
+	var layout_name := str(generated.get("layout_name", "AUTONOMOUS"))
+	var wallpaper_number := int(generated.get("wallpaper_index", 0))
+	var wallpaper_total := int(lock_screen_designer.call("get_available_wallpaper_count"))
+	selection_status_label.text = "DESIGN %03d  •  %s\nWALLPAPER %02d / %02d" % [
+		generation,
+		layout_name,
+		wallpaper_number,
+		wallpaper_total
+	]
 
 func _update_phone_preview_mode() -> void:
 	if not is_instance_valid(lock_screen_designer):
