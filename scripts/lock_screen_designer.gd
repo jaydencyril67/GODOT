@@ -585,7 +585,9 @@ func _build_pin_entry_screen() -> void:
 	for index in range(PIN_LENGTH):
 		var dot := Panel.new()
 		dot.name = "PinDigitIndicator_%02d" % (index + 1)
-		dot.custom_minimum_size = Vector2(16, 16)
+		dot.custom_minimum_size = Vector2(14, 14)
+		dot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		dots_row.add_child(dot)
 		_pin_dot_nodes.append(dot)
@@ -732,7 +734,7 @@ func _refresh_pin_entry() -> void:
 		dot_style.bg_color = accent_color if filled else Color(1.0, 1.0, 1.0, 0.035)
 		dot_style.border_color = accent_color if filled else Color(text_color.r, text_color.g, text_color.b, 0.66)
 		dot_style.set_border_width_all(1)
-		dot_style.set_corner_radius_all(10)
+		dot_style.set_corner_radius_all(7)
 		_pin_dot_nodes[index].add_theme_stylebox_override("panel", dot_style)
 
 
@@ -765,7 +767,7 @@ func _add_wallpaper(design: Dictionary) -> void:
 
 	var shade := ColorRect.new()
 	shade.name = "LockScreenWallpaperLegibilityShade"
-	shade.color = Color(0.015, 0.02, 0.03, 0.30)
+	shade.color = Color(0.008, 0.012, 0.02, 0.58)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_full_rect(shade)
 	add_child(shade)
