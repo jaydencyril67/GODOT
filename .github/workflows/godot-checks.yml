@@ -55,12 +55,6 @@ jobs:
           trap restore_project EXIT
           sed -i '/^theme\/custom=/d' project.godot
 
-          godot --headless --path . --check-only --script res://scripts/os/os_preview_simulator.gd 2>&1 | tee os-preview-parse.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' os-preview-parse.log; then
-            echo "Godot reported a direct OS simulator script parse error."
-            exit 1
-          fi
-
           godot --headless --editor --path . --import --quit 2>&1 | tee godot-import.log
           restore_project
           trap - EXIT
@@ -92,18 +86,6 @@ jobs:
           grep -q "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS" home-office-smoke.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|HOME_OFFICE_TRANSITION_SMOKE_TEST:.*(FAIL|ERROR)' home-office-smoke.log; then
             echo "Godot reported an error during Home and Office navigation."
-            exit 1
-          fi
-
-      - name: Smoke-test procedural OS generator and simulator
-        shell: bash
-        timeout-minutes: 2
-        run: |
-          set -euo pipefail
-          timeout --signal=TERM --kill-after=10s 90s godot --headless --verbose --path . --script res://scripts/tests/os_generator_smoke.gd 2>&1 | tee os-generator-smoke.log
-          grep -q "OS_GENERATOR_SMOKE_TEST: PASS" os-generator-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_GENERATOR_SMOKE_TEST:.*(FAIL|ERROR)' os-generator-smoke.log; then
-            echo "Godot reported an error during the OS generator smoke test."
             exit 1
           fi
 
@@ -151,7 +133,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nullglob
-          logs=(godot-import.log godot-parse.log home-office-smoke.log os-generator-smoke.log ui-evolution-smoke.log godot-startup.log)
+          logs=(godot-import.log godot-parse.log home-office-smoke.log ui-evolution-smoke.log godot-startup.log)
           warning_count=0
 
           for log in "${logs[@]}"; do

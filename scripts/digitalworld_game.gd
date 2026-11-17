@@ -2,7 +2,6 @@ extends Node3D
 
 const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
-const OSCreationWorksiteScene: PackedScene = preload("res://scenes/os_creation_worksite.tscn")
 const ProcessorCreationWorksiteScene: PackedScene = preload("res://scenes/processor_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
@@ -34,7 +33,6 @@ var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
-var os_creation_worksite: Node3D
 var processor_creation_worksite: Node3D
 var processor_worksite_open_pending := false
 var research_dashboard_return_to_worksite := false
@@ -247,7 +245,6 @@ func _load_career() -> bool:
 		"research_projects": config.get_value("career", "research_projects", []),
 		"research_technologies": config.get_value("career", "research_technologies", {}),
 		"research_component_levels": config.get_value("career", "research_component_levels", {}),
-		"selected_operating_system": config.get_value("career", "selected_operating_system", {}),
 		"processor_design": config.get_value("career", "processor_design", {}),
 		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
 	}
@@ -297,9 +294,7 @@ func _save_career() -> bool:
 	config.set_value("career", "research_projects", career.get("research_projects", []))
 	config.set_value("career", "research_technologies", career.get("research_technologies", {}))
 	config.set_value("career", "research_component_levels", career.get("research_component_levels", {}))
-	config.set_value("career", "selected_operating_system", career.get("selected_operating_system", {}))
 	config.set_value("career", "processor_design", career.get("processor_design", {}))
-	config.set_value("career", "selected_operating_system", career.get("selected_operating_system", {}))
 	config.set_value("career", "next_research_project_id", int(career.get("next_research_project_id", 1)))
 	var error := config.save(SAVE_PATH)
 	return error == OK
@@ -2219,7 +2214,6 @@ void fragment() {
 	var categories := [
 		{"name": "PHONE", "number": "01", "descriptor": "THE FLAGSHIP", "description": "Shape every detail of your smartphone, from its physical design to the experience inside."},
 		{"name": "PROCESSOR", "number": "02", "descriptor": "THE PERFORMANCE", "description": "Create the silicon that drives speed, efficiency and the next generation of mobile power."},
-		{"name": "OPERATING SYSTEM", "number": "03", "descriptor": "THE EXPERIENCE", "description": "Build the software platform, interface and intelligent features behind your devices."},
 		{"name": "CAMERA", "number": "04", "descriptor": "THE IMAGING", "description": "Develop camera systems and imaging technology that capture every detail."}
 	]
 
@@ -2796,9 +2790,6 @@ func _on_create_category_pressed(category: String) -> void:
 	if category.to_upper() == "PROCESSOR":
 		_show_processor_creation_worksite()
 		return
-	if category.to_upper() == "OPERATING SYSTEM":
-		_show_os_creation_worksite()
-		return
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
 
@@ -2859,12 +2850,6 @@ func _activate_processor_creation_worksite() -> void:
 		for child in phone_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
-	if is_instance_valid(os_creation_worksite):
-		os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-		os_creation_worksite.hide()
-		for child in os_creation_worksite.get_children():
-			if child is CanvasLayer:
-				child.hide()
 	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
 		world_root.set_preview_active(false)
 
@@ -2894,92 +2879,6 @@ func _return_from_processor_creation_worksite() -> void:
 		processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 		processor_creation_worksite.hide()
 		for child in processor_creation_worksite.get_children():
-			if child is CanvasLayer:
-				child.hide()
-	if is_instance_valid(create_ui_layer):
-		create_ui_layer.show()
-		ui_layer = create_ui_layer
-		ui_root = create_ui_root
-
-
-func _prepare_os_creation_worksite() -> void:
-	_normalize_phone_identity()
-	if is_instance_valid(os_creation_worksite):
-		os_creation_worksite.call(
-			"set_boot_identity",
-			str(career.get("company_name", "YOUR COMPANY")),
-			int(career.get("logo_id", 1)),
-			str(career["phone_name"]),
-			str(career["phone_model"])
-		)
-		return
-	os_creation_worksite = OSCreationWorksiteScene.instantiate() as Node3D
-	if not is_instance_valid(os_creation_worksite):
-		push_error("Operating System Worksite scene could not be initialized.")
-		return
-	os_creation_worksite.name = "OS_Creation_Worksite"
-	os_creation_worksite.call(
-		"set_boot_identity",
-		str(career.get("company_name", "YOUR COMPANY")),
-		int(career.get("logo_id", 1)),
-		str(career["phone_name"]),
-		str(career["phone_model"])
-	)
-	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
-	var os_selected_callback := Callable(self, "_on_generated_os_selected")
-	if not os_creation_worksite.is_connected("os_selected", os_selected_callback):
-		os_creation_worksite.connect("os_selected", os_selected_callback)
-	add_child(os_creation_worksite)
-	os_creation_worksite.hide()
-	for child in os_creation_worksite.get_children():
-		if child is CanvasLayer:
-			child.hide()
-
-
-func _show_os_creation_worksite() -> void:
-	if current_screen == "os_creation_worksite" and is_instance_valid(os_creation_worksite):
-		return
-	if not is_instance_valid(os_creation_worksite):
-		_prepare_os_creation_worksite()
-	if not is_instance_valid(os_creation_worksite):
-		return
-	if is_instance_valid(ui_layer):
-		ui_layer.hide()
-	if is_instance_valid(create_ui_layer):
-		create_ui_layer.hide()
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
-	if is_instance_valid(staff_ui_layer):
-		staff_ui_layer.hide()
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
-	ui_layer = null
-	ui_root = null
-	current_screen = "os_creation_worksite"
-	os_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
-	os_creation_worksite.show()
-	for child in os_creation_worksite.get_children():
-		if child is CanvasLayer:
-			child.show()
-
-
-func _on_generated_os_selected(configuration: Dictionary) -> void:
-	if career.is_empty():
-		return
-	career["selected_operating_system"] = configuration.duplicate(true)
-	if _save_career():
-		_show_notice("OPERATING SYSTEM SELECTED", "Your generated operating system has been saved to the company career.")
-	else:
-		_show_notice("SAVE FAILED", "The operating system could not be saved to the company career.")
-
-
-func _return_from_os_creation_worksite() -> void:
-	current_screen = "create"
-	if is_instance_valid(os_creation_worksite):
-		os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-		os_creation_worksite.hide()
-		for child in os_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
 	if is_instance_valid(create_ui_layer):
