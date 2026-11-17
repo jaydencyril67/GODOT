@@ -7,7 +7,6 @@ signal back_requested
 
 const STEP_NAMES := [
 	"OS SETUP",
-	"BOOTLOADER",
 	"APP ICONS",
 	"WIDGETS",
 	"WALLPAPERS",
@@ -20,8 +19,7 @@ const STEP_NAMES := [
 ]
 
 const STEP_DESCRIPTIONS := [
-	"Define the identity of the operating system.",
-	"Set the startup presentation for this operating system.",
+	"Choose which company and device details appear during startup.",
 	"Choose the icon assets that will be available to this OS.",
 	"Choose widget designs for the operating system.",
 	"Choose wallpaper assets for the operating system.",
@@ -34,15 +32,15 @@ const STEP_DESCRIPTIONS := [
 ]
 
 const STEP_ASSET_PATHS := {
-	2: "res://assets/app_icons",
-	3: "res://assets/system-ui/Widgets",
-	4: "res://assets/system-ui/Wallpapers",
-	5: "res://assets/lock-screen/aosp",
-	6: "res://assets/system-ui/android-systemui/Status-Bar",
-	7: "res://assets/system-ui/Quick-Settings",
-	8: "res://assets/system-ui/Notifications",
-	9: "res://assets/system-ui/android-systemui/Navigation",
-	10: "res://assets/system-ui/Recent-Apps"
+	1: "res://assets/app_icons",
+	2: "res://assets/system-ui/Widgets",
+	3: "res://assets/system-ui/Wallpapers",
+	4: "res://assets/lock-screen/aosp",
+	5: "res://assets/system-ui/android-systemui/Status-Bar",
+	6: "res://assets/system-ui/Quick-Settings",
+	7: "res://assets/system-ui/Notifications",
+	8: "res://assets/system-ui/android-systemui/Navigation",
+	9: "res://assets/system-ui/Recent-Apps"
 }
 
 const BACKGROUND := Color("#292B2D")
@@ -68,10 +66,12 @@ var phone_screen: ColorRect
 var power_button: Button
 var previous_button: Button
 var next_button: Button
-var os_name_input: LineEdit
-var manufacturer_input: LineEdit
-var boot_logo_toggle: CheckButton
-var boot_device_toggle: CheckButton
+var boot_logo_toggle: Button
+var boot_phone_name_toggle: Button
+var boot_phone_model_toggle: Button
+var show_company_logo_on_boot := true
+var show_phone_name_on_boot := true
+var show_phone_model_on_boot := true
 var selected_asset_path := ""
 var screen_powered := false
 var company_logo_preview: TextureRect
@@ -80,6 +80,7 @@ var phone_name_label: Label
 var phone_model_label: Label
 var lock_screen_designer: Control
 var boot_sequence_complete := false
+var boot_sequence_id := 0
 
 func _ready() -> void:
 	_build_interface()
@@ -406,22 +407,57 @@ func _show_step(step_index: int) -> void:
 
 	match current_step:
 		0:
-			_add_field("OPERATING SYSTEM NAME", "Enter OS name", true)
-			_add_field("MANUFACTURER / DEVELOPER", "Enter developer name", false)
-		1:
-			boot_logo_toggle = CheckButton.new()
-			boot_logo_toggle.text = "Show company logo during startup"
-			boot_logo_toggle.button_pressed = true
-			content_column.add_child(boot_logo_toggle)
-			boot_device_toggle = CheckButton.new()
-			boot_device_toggle.text = "Show device name and model"
-			boot_device_toggle.button_pressed = true
-			content_column.add_child(boot_device_toggle)
-		5:
+			boot_logo_toggle = _add_boot_display_toggle("Show Company Logo", "logo", show_company_logo_on_boot)
+			boot_phone_name_toggle = _add_boot_display_toggle("Show Phone Name", "phone_name", show_phone_name_on_boot)
+			boot_phone_model_toggle = _add_boot_display_toggle("Show Phone Model", "phone_model", show_phone_model_on_boot)
+			_add_note("At least one boot display option must remain enabled.")
+		4:
 			_show_lock_screen_designer_controls()
 		_:
 			_show_asset_browser(current_step)
 	_update_phone_preview_mode()
+
+func _add_boot_display_toggle(label: String, option: String, initially_enabled: bool) -> Button:
+	var toggle := _make_button("")
+	toggle.toggle_mode = true
+	toggle.button_pressed = initially_enabled
+	toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	toggle.custom_minimum_size.y = 54
+	toggle.add_theme_font_size_override("font_size", 14)
+	toggle.toggled.connect(_on_boot_display_toggled.bind(option, toggle, label))
+	content_column.add_child(toggle)
+	_style_boot_display_toggle(toggle, initially_enabled, label)
+	return toggle
+
+func _on_boot_display_toggled(enabled: bool, option: String, toggle: Button, label: String) -> void:
+	_set_boot_display_option(option, enabled)
+	if not enabled and not _has_enabled_boot_display():
+		toggle.set_pressed_no_signal(true)
+		enabled = true
+		_set_boot_display_option(option, true)
+	_style_boot_display_toggle(toggle, enabled, label)
+	_update_phone_preview_mode()
+
+func _set_boot_display_option(option: String, enabled: bool) -> void:
+	match option:
+		"logo":
+			show_company_logo_on_boot = enabled
+		"phone_name":
+			show_phone_name_on_boot = enabled
+		"phone_model":
+			show_phone_model_on_boot = enabled
+
+func _has_enabled_boot_display() -> bool:
+	return show_company_logo_on_boot or show_phone_name_on_boot or show_phone_model_on_boot
+
+func _style_boot_display_toggle(toggle: Button, enabled: bool, label: String) -> void:
+	toggle.text = "%s     %s" % [label, "ON" if enabled else "OFF"]
+	var fill := Color("#30291F") if enabled else PANEL
+	var border := ACCENT if enabled else Color("#6E5B42")
+	toggle.add_theme_stylebox_override("normal", _make_panel_style(fill, border, 1, 9))
+	toggle.add_theme_stylebox_override("hover", _make_panel_style(Color("#40382D") if enabled else Color("#292B2D"), ACCENT, 1, 9))
+	toggle.add_theme_stylebox_override("pressed", _make_panel_style(Color("#30291F"), ACCENT, 1, 9))
+	toggle.add_theme_color_override("font_color", TEXT if enabled else MUTED)
 
 func _show_lock_screen_designer_controls() -> void:
 	_add_note("AUTONOMOUS COMPOSITION ENGINE")
@@ -459,31 +495,16 @@ func _update_phone_preview_mode() -> void:
 		return
 	if not boot_sequence_complete:
 		return
-	if current_step == 5 and int(lock_screen_designer.call("get_generation_count")) > 0:
+	if current_step == 4 and int(lock_screen_designer.call("get_generation_count")) > 0:
 		company_logo_preview.visible = false
 		phone_name_label.visible = false
 		phone_model_label.visible = false
 		lock_screen_designer.visible = true
 	else:
 		lock_screen_designer.visible = false
-		phone_name_label.visible = true
-		phone_model_label.visible = true
-
-func _add_field(caption: String, placeholder: String, is_os_name: bool) -> void:
-	var label := _make_label(caption, 11, Color("#D3AA6B"))
-	content_column.add_child(label)
-	var field := LineEdit.new()
-	field.placeholder_text = placeholder
-	field.custom_minimum_size.y = 48
-	field.add_theme_color_override("font_color", TEXT)
-	field.add_theme_color_override("font_placeholder_color", Color("#8F8A80"))
-	field.add_theme_stylebox_override("normal", _make_panel_style(PANEL, Color("#6E5B42"), 1, 9))
-	field.add_theme_stylebox_override("focus", _make_panel_style(Color("#29251F"), ACCENT, 1, 9))
-	content_column.add_child(field)
-	if is_os_name:
-		os_name_input = field
-	else:
-		manufacturer_input = field
+		company_logo_preview.visible = show_company_logo_on_boot and not (show_phone_name_on_boot or show_phone_model_on_boot)
+		phone_name_label.visible = show_phone_name_on_boot
+		phone_model_label.visible = show_phone_model_on_boot
 
 func _show_asset_browser(step_index: int) -> void:
 	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
@@ -532,6 +553,7 @@ func set_company_logo_texture(texture: Texture2D) -> void:
 		company_logo_preview.texture = texture
 
 func _on_power_pressed() -> void:
+	boot_sequence_id += 1
 	if screen_powered:
 		screen_powered = false
 		boot_sequence_complete = false
@@ -546,26 +568,33 @@ func _on_power_pressed() -> void:
 	boot_sequence_complete = false
 	lock_screen_designer.visible = false
 	phone_screen.color = Color("#050607")
-	company_logo_preview.visible = true
+	company_logo_preview.visible = false
 	phone_name_label.visible = false
 	phone_model_label.visible = false
-	_show_phone_boot_sequence()
+	_show_phone_boot_sequence(boot_sequence_id)
 
-func _show_phone_boot_sequence() -> void:
-	# First five real-time seconds: company logo.
-	await get_tree().create_timer(5.0, true, false, true).timeout
-	if not screen_powered or not is_instance_valid(phone_model_label):
-		return
+func _show_phone_boot_sequence(sequence_id: int) -> void:
+	var show_device_text := show_phone_name_on_boot or show_phone_model_on_boot
 
-	# Next five real-time seconds: phone name and model.
-	company_logo_preview.visible = false
-	phone_name_label.visible = true
-	phone_model_label.visible = true
-	await get_tree().create_timer(5.0, true, false, true).timeout
-	if not screen_powered:
-		return
+	if show_company_logo_on_boot:
+		company_logo_preview.visible = true
+		await get_tree().create_timer(5.0, true, false, true).timeout
+		if not _is_boot_sequence_active(sequence_id):
+			return
+
+	if show_device_text:
+		company_logo_preview.visible = false
+		phone_name_label.visible = show_phone_name_on_boot
+		phone_model_label.visible = show_phone_model_on_boot
+		await get_tree().create_timer(5.0, true, false, true).timeout
+		if not _is_boot_sequence_active(sequence_id):
+			return
+
 	boot_sequence_complete = true
 	_update_phone_preview_mode()
+
+func _is_boot_sequence_active(sequence_id: int) -> bool:
+	return screen_powered and sequence_id == boot_sequence_id
 
 func _add_note(message: String) -> void:
 	var note := _make_label(message, 11, MUTED)
