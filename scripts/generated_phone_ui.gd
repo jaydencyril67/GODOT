@@ -29,8 +29,7 @@ func _draw() -> void:
 	var palette: Dictionary = style.get("palette", {})
 	var home: Dictionary = blueprint.get("home", {})
 	var system: Dictionary = blueprint.get("system", {})
-	var background := _palette_color(palette, "background", "#101820")
-	var surface := _palette_color(palette, "surface", "#203344")
+		var surface := _palette_color(palette, "surface", "#203344")
 	var accent := _palette_color(palette, "accent", "#79D7D0")
 	var text_color := _palette_color(palette, "text", "#F4FAFC")
 	var muted := _palette_color(palette, "muted", "#A9BDC8")
@@ -146,15 +145,6 @@ func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, second
 			draw_arc(Vector2(size.x * 0.76, size.y * 0.47), size.x * 0.28, -1.5, 1.9, 64, Color(1.0, 1.0, 1.0, 0.10), 1.0, true)
 		_:
 			_draw_ellipse(Vector2(size.x * 0.8, size.y * 0.62), Vector2(size.x * 0.54, size.y * 0.20), 0.2, Color(accent.r, accent.g, accent.b, 0.12))
-
-
-func _draw_ellipse(centre: Vector2, radii: Vector2, angle_radians: float, color: Color) -> void:
-	var points := PackedVector2Array()
-	for index in range(48):
-		var angle := TAU * float(index) / 48.0
-		var point := Vector2(cos(angle) * radii.x, sin(angle) * radii.y).rotated(angle_radians)
-		points.append(centre + point)
-	draw_colored_polygon(points, color)
 
 
 func _draw_status_bar(text_color: Color, _muted: Color, system: Dictionary, style: Dictionary) -> void:
