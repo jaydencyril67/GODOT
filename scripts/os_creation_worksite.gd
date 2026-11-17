@@ -405,9 +405,11 @@ func _apply_responsive_layout() -> void:
 func _get_phone_screen_input_rect() -> Rect2:
 	if not is_instance_valid(phone_frame):
 		return Rect2()
+	# Bounds account for the handset's 1.41 x 2.88 display projected
+	# through the fixed 38-degree preview camera into its 700 x 1400 viewport.
 	return Rect2(
-		Vector2(phone_frame.size.x * 0.055, phone_frame.size.y * 0.052),
-		Vector2(phone_frame.size.x * 0.89, phone_frame.size.y * 0.896)
+		Vector2(phone_frame.size.x * 0.043, phone_frame.size.y * 0.034),
+		Vector2(phone_frame.size.x * 0.914, phone_frame.size.y * 0.933)
 	)
 
 
