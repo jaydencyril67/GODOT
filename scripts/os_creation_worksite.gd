@@ -176,7 +176,7 @@ func _build_interface() -> void:
 	var phone_camera := Camera3D.new()
 	phone_camera.name = "FixedPerspectiveCamera"
 	phone_world.add_child(phone_camera)
-	phone_camera.position = Vector3(0.85, 0.42, 8.6)
+	phone_camera.position = Vector3(0.28, 0.12, 7.8)
 	phone_camera.fov = 34.0
 	phone_camera.current = true
 	# Set the view only after the camera belongs to the 3D scene tree so
@@ -283,7 +283,7 @@ func _build_interface() -> void:
 	var screen_mesh_instance := MeshInstance3D.new()
 	screen_mesh_instance.name = "GlassDisplay"
 	var screen_quad := QuadMesh.new()
-	screen_quad.size = Vector2(2.12, 4.25)
+	screen_quad.size = Vector2(2.28, 4.46)
 	screen_mesh_instance.mesh = screen_quad
 	screen_mesh_instance.material_override = screen_material
 	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.126)
@@ -457,10 +457,10 @@ func _apply_responsive_layout() -> void:
 		return
 	var available := preview_region.size
 	# Keep the rendered 3D handset tall while preserving its real-world silhouette.
-	var target_height := maxf(available.y - 18.0, 220.0)
+	var target_height := maxf(available.y - 6.0, 220.0)
 	var aspect := 228.0 / 440.0
 	var target_width := target_height * aspect
-	var max_width := maxf(available.x - 112.0, 120.0)
+	var max_width := maxf(available.x - 96.0, 120.0)
 	if target_width > max_width:
 		target_width = max_width
 		target_height = target_width / aspect
