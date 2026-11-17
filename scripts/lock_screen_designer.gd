@@ -1,6 +1,25 @@
 extends Control
 
 const SVG_ROOT := "res://assets/lock-screen/aosp/SVG"
+const WALLPAPER_ROOT := "res://assets/wallpapers"
+const LayoutLibrary = preload("res://scripts/lock_screen_layout_library.gd")
+
+const NOTIFICATION_PRESETS := [
+	{"app": "MESSAGES", "icon": "res://assets/app_icons/appstract/google/google_chat.png", "title": "You have a new message", "body": "A new conversation is waiting for you."},
+	{"app": "GMAIL", "icon": "res://assets/app_icons/appstract/google/gmail.png", "title": "A new email arrived", "body": "Your inbox has a fresh update."},
+	{"app": "GOOGLE KEEP", "icon": "res://assets/app_icons/appstract/google/google_keep.png", "title": "Reminder", "body": "A saved note is ready for review."},
+	{"app": "GOOGLE TASKS", "icon": "res://assets/app_icons/appstract/google/google_tasks.png", "title": "Task due today", "body": "One item is still on your list."},
+	{"app": "CLASSROOM", "icon": "res://assets/app_icons/appstract/google/google_classroom.png", "title": "New class update", "body": "Your learning feed has changed."},
+	{"app": "SECURITY", "icon": "res://assets/app_icons/appstract/google/google_authenticator.png", "title": "Security check complete", "body": "Your account protection is up to date."}
+]
+
+const MEDIA_PRESETS := [
+	{"service": "SPOTIFY", "icon": "res://assets/app_icons/appstract/music/spotify.png", "title": "Midnight City", "artist": "M83"},
+	{"service": "APPLE MUSIC", "icon": "res://assets/app_icons/appstract/music/apple_music.png", "title": "Sunset Lover", "artist": "Petit Biscuit"},
+	{"service": "AMAZON MUSIC", "icon": "res://assets/app_icons/appstract/music/amazon_music.png", "title": "The Less I Know the Better", "artist": "Tame Impala"},
+	{"service": "SOUNDCLOUD", "icon": "res://assets/app_icons/appstract/music/soundcloud.png", "title": "A Walk", "artist": "Tycho"},
+	{"service": "POWERAMP", "icon": "res://assets/app_icons/appstract/music/poweramp.png", "title": "Night Drive", "artist": "Digital World Radio"}
+]
 
 const PALETTES := [
 	{
@@ -85,21 +104,6 @@ const PALETTES := [
 	}
 ]
 
-const APP_NAMES := ["MESSAGES", "CALENDAR", "SYSTEM", "REMINDERS", "WEATHER"]
-const NOTIFICATION_TITLES := [
-	"One new message",
-	"Your next event is coming up",
-	"System update is ready",
-	"Daily reminder",
-	"Rain expected this evening"
-]
-const NOTIFICATION_BODIES := [
-	"You have something new waiting for you.",
-	"Your schedule has been updated.",
-	"Everything is ready when you are.",
-	"Take a moment to review your latest update.",
-	"Tap to see the full details."
-]
 const WEEKDAYS := ["", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
 const MONTHS := ["", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
@@ -107,13 +111,17 @@ var _rng := RandomNumberGenerator.new()
 var _recent_signatures: Array[String] = []
 var _last_design: Dictionary = {}
 var _generation_count := 0
+var _layout_queue: Array = []
+var _wallpaper_paths: Array[String] = []
+var _wallpaper_bag: Array[String] = []
+var _recent_wallpaper_paths: Array[String] = []
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip_contents = true
 	_rng.randomize()
-
+	_wallpaper_paths = _discover_wallpapers()
 
 func generate_new_design() -> Dictionary:
 	var candidate: Dictionary = {}
@@ -153,7 +161,15 @@ func validate_layout(design: Dictionary) -> Array[String]:
 		issues.append("The composition is missing required lock-screen components.")
 		return issues
 
+	if str(design.get("layout_id", "")).is_empty():
+		issues.append("The composition has no curated layout foundation.")
+	var wallpaper_path := str(design.get("wallpaper_path", ""))
+	if wallpaper_path.is_empty() or not FileAccess.file_exists(wallpaper_path):
+		issues.append("The composition does not reference a bundled lock-screen wallpaper.")
+
 	var occupied: Array[Rect2] = []
+	var notification_components := 0
+	var media_components := 0
 	for component in components:
 		var rect: Rect2 = component.get("rect", Rect2())
 		var role := str(component.get("role", ""))
@@ -168,11 +184,20 @@ func validate_layout(design: Dictionary) -> Array[String]:
 			issues.append("A bottom shortcut has left the designated bottom zone.")
 		if role == "fingerprint" and (rect.position.y < 0.775 or rect.end.y > 0.88):
 			issues.append("The fingerprint component has left its lower-screen zone.")
+		if role == "notification":
+			notification_components += 1
+		if role == "media":
+			media_components += 1
 		for existing in occupied:
 			if rect.grow(0.006).intersects(existing.grow(0.006)):
 				issues.append("%s collides with another independent component." % role)
 				break
 		occupied.append(rect)
+
+	if notification_components != design.get("notifications", []).size():
+		issues.append("Notification metadata and placed notification components do not match.")
+	if media_components > 1 or (media_components == 1) != (not design.get("media", {}).is_empty()):
+		issues.append("The media-player metadata and placed media component do not match.")
 
 	var shortcuts: Array = design.get("shortcuts", [])
 	if shortcuts.size() != 2:
@@ -187,62 +212,74 @@ func validate_layout(design: Dictionary) -> Array[String]:
 
 	return issues
 
-
 func _compose_design() -> Dictionary:
+	var blueprint := _next_layout_blueprint()
+	if blueprint.is_empty():
+		return {}
+
 	var palette: Dictionary = PALETTES[_rng.randi_range(0, PALETTES.size() - 1)]
 	var components: Array[Dictionary] = []
 	var occupied: Array[Rect2] = []
+	var wallpaper_path := _next_wallpaper_path()
+	if wallpaper_path.is_empty():
+		return {}
 
 	var status_rect := Rect2(Vector2(0.055, 0.024), Vector2(0.89, 0.035))
 	_add_component(components, occupied, "status", status_rect)
 
-	var clock_style := "digital"
-	var style_roll := _rng.randi_range(0, 99)
-	if style_roll >= 88:
-		clock_style = "analog"
-	elif style_roll >= 63:
-		clock_style = "stacked"
-
-	var clock_rect := _make_clock_rect(clock_style)
+	# A shared shift keeps the clock/date relationship designed while allowing
+	# the autonomous engine to move the whole visual group between generations.
+	var clock_date_shift := Vector2(_rng.randf_range(-0.012, 0.012), _rng.randf_range(-0.008, 0.008))
+	var clock_rect: Rect2 = blueprint["clock_rect"]
+	var date_rect: Rect2 = blueprint["date_rect"]
+	clock_rect.position += clock_date_shift
+	date_rect.position += clock_date_shift
+	clock_rect.position.x = clampf(clock_rect.position.x, 0.055, 0.945 - clock_rect.size.x)
+	date_rect.position.x = clampf(date_rect.position.x, 0.055, 0.945 - date_rect.size.x)
 	_add_component(components, occupied, "clock", clock_rect)
+	_add_component(components, occupied, "date", date_rect)
 
-	var date_width := _rng.randf_range(0.36, 0.78)
-	var date_height := _rng.randf_range(0.028, 0.043)
-	var date_x := clampf(clock_rect.position.x + _rng.randf_range(0.0, maxf(clock_rect.size.x - date_width, 0.0)), 0.055, 0.945 - date_width)
-	var date_above := _rng.randf() >= 0.5
-	var date_y := clock_rect.position.y - date_height - 0.018 if date_above else clock_rect.end.y + 0.018
-	var date_rect := Rect2(Vector2(date_x, date_y), Vector2(date_width, date_height))
-	if not _can_place(date_rect, occupied):
-		date_y = clock_rect.end.y + 0.026 if date_above else clock_rect.position.y - date_height - 0.026
-		date_rect.position.y = date_y
-	if not _can_place(date_rect, occupied):
-		date_rect.position.x = 0.5 - date_width * 0.5
-		date_rect.position.y = 0.715
-	if _can_place(date_rect, occupied):
-		_add_component(components, occupied, "date", date_rect)
-	else:
-		return {}
+	var clock_styles: Array = blueprint["clock_styles"]
+	var clock_style := str(clock_styles[_rng.randi_range(0, clock_styles.size() - 1)])
+	var alignments: Array = blueprint["alignments"]
+	var clock_align := str(alignments[_rng.randi_range(0, alignments.size() - 1)])
+	var clock_formats: Array = blueprint["clock_formats"]
+	var clock_format := str(clock_formats[_rng.randi_range(0, clock_formats.size() - 1)])
+	if clock_style == "analog":
+		clock_format = "single"
 
-	var notification_count := _rng.randi_range(1, 2)
 	var notifications: Array[Dictionary] = []
-	for notification_index in range(notification_count):
-		var notification_rect := _find_notification_rect(occupied, notification_index)
-		if notification_rect.size == Vector2.ZERO:
+	var media: Dictionary = {}
+	var content_shift := _rng.randf_range(-0.004, 0.004)
+	for slot in blueprint["content_slots"]:
+		var slot_rect: Rect2 = slot["rect"]
+		slot_rect.position.y += content_shift
+		slot_rect.position.x += _rng.randf_range(-0.003, 0.003)
+		slot_rect.size.x = clampf(slot_rect.size.x + _rng.randf_range(-0.012, 0.012), 0.78, 0.88)
+		slot_rect.position.x = clampf(slot_rect.position.x, 0.055, 0.945 - slot_rect.size.x)
+		if not _can_place(slot_rect, occupied):
 			continue
-		var notification_data := {
-			"rect": notification_rect,
-			"app": APP_NAMES[_rng.randi_range(0, APP_NAMES.size() - 1)],
-			"title": NOTIFICATION_TITLES[_rng.randi_range(0, NOTIFICATION_TITLES.size() - 1)],
-			"body": NOTIFICATION_BODIES[_rng.randi_range(0, NOTIFICATION_BODIES.size() - 1)]
-		}
-		notifications.append(notification_data)
-		_add_component(components, occupied, "notification", notification_rect)
 
-	var show_fingerprint := _rng.randf() >= 0.16
+		if str(slot["type"]) == "notification":
+			if _rng.randf() < 0.12:
+				continue
+			var notification_data: Dictionary = NOTIFICATION_PRESETS[_rng.randi_range(0, NOTIFICATION_PRESETS.size() - 1)].duplicate(true)
+			notification_data["rect"] = slot_rect
+			notification_data["timestamp"] = ["NOW", "1 MIN AGO", "2 MIN AGO", "5 MIN AGO"][_rng.randi_range(0, 3)]
+			notifications.append(notification_data)
+			_add_component(components, occupied, "notification", slot_rect)
+		elif str(slot["type"]) == "media" and media.is_empty():
+			media = MEDIA_PRESETS[_rng.randi_range(0, MEDIA_PRESETS.size() - 1)].duplicate(true)
+			media["rect"] = slot_rect
+			media["progress"] = _rng.randi_range(28, 84)
+			media["playing"] = _rng.randf() > 0.18
+			_add_component(components, occupied, "media", slot_rect)
+
+	var show_fingerprint := bool(blueprint.get("fingerprint", false)) and _rng.randf() > 0.18
 	if show_fingerprint:
 		var fingerprint_rect := Rect2(
-			Vector2(_rng.randf_range(0.33, 0.42), _rng.randf_range(0.795, 0.825)),
-			Vector2(_rng.randf_range(0.16, 0.34), 0.045)
+			Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.792, 0.812)),
+			Vector2(_rng.randf_range(0.22, 0.31), 0.045)
 		)
 		if _can_place(fingerprint_rect, occupied):
 			_add_component(components, occupied, "fingerprint", fingerprint_rect)
@@ -250,41 +287,39 @@ func _compose_design() -> Dictionary:
 			show_fingerprint = false
 
 	var shortcut_y := _rng.randf_range(0.90, 0.91)
-	var shortcut_size := Vector2(_rng.randf_range(0.115, 0.145), _rng.randf_range(0.060, 0.070))
-	var flashlight_rect := Rect2(Vector2(_rng.randf_range(0.105, 0.145), shortcut_y), shortcut_size)
-	var camera_rect := Rect2(Vector2(_rng.randf_range(0.755, 0.795), shortcut_y), shortcut_size)
+	var shortcut_size := Vector2(_rng.randf_range(0.12, 0.135), _rng.randf_range(0.060, 0.068))
+	var flashlight_rect := Rect2(Vector2(_rng.randf_range(0.115, 0.14), shortcut_y), shortcut_size)
+	var camera_rect := Rect2(Vector2(_rng.randf_range(0.75, 0.785), shortcut_y), shortcut_size)
 	_add_component(components, occupied, "bottom_shortcut", flashlight_rect)
 	_add_component(components, occupied, "bottom_shortcut", camera_rect)
 
-	var glow_count := _rng.randi_range(2, 4)
+	var glow_count := _rng.randi_range(1, 2)
 	var glows: Array[Dictionary] = []
 	for _glow_index in range(glow_count):
 		glows.append({
 			"rect": Rect2(
-				Vector2(_rng.randf_range(-0.12, 0.70), _rng.randf_range(0.08, 0.70)),
-				Vector2(_rng.randf_range(0.28, 0.62), _rng.randf_range(0.12, 0.28))
+				Vector2(_rng.randf_range(-0.10, 0.68), _rng.randf_range(0.08, 0.68)),
+				Vector2(_rng.randf_range(0.30, 0.58), _rng.randf_range(0.14, 0.26))
 			),
-			"alpha": _rng.randf_range(0.055, 0.13)
+			"alpha": _rng.randf_range(0.025, 0.065)
 		})
 
-	var clock_align: String = ["left", "center", "right"][_rng.randi_range(0, 2)]
-	var clock_format := "single"
-	if clock_style == "stacked":
-		clock_format = "split"
-	elif clock_style == "digital" and _rng.randf() > 0.72:
-		clock_format = "spaced"
-
 	var design := {
+		"layout_id": str(blueprint["id"]),
+		"layout_name": str(blueprint["name"]),
 		"palette": palette,
+		"wallpaper_path": wallpaper_path,
+		"wallpaper_index": _wallpaper_number(wallpaper_path),
 		"components": components,
 		"clock_rect": clock_rect,
 		"clock_style": clock_style,
 		"clock_format": clock_format,
 		"clock_align": clock_align,
-		"clock_font_size": _rng.randi_range(94, 148) if clock_style != "analog" else 0,
-		"date_font_size": _rng.randi_range(17, 25),
-		"date_letter_spacing": _rng.randi_range(1, 4),
+		"clock_font_size": _rng.randi_range(88, 116) if clock_style == "digital" else (_rng.randi_range(76, 96) if clock_style == "stacked" else 0),
+		"date_font_size": _rng.randi_range(13, 18),
+		"date_letter_spacing": _rng.randi_range(1, 3),
 		"notifications": notifications,
+		"media": media,
 		"show_fingerprint": show_fingerprint,
 		"shortcuts": [
 			{"kind": "flashlight", "rect": flashlight_rect},
@@ -294,7 +329,6 @@ func _compose_design() -> Dictionary:
 	}
 	design["signature"] = _make_signature(design)
 	return design
-
 
 func _make_clock_rect(style: String) -> Rect2:
 	if style == "analog":
@@ -341,29 +375,32 @@ func _can_place(rect: Rect2, occupied: Array[Rect2]) -> bool:
 	if rect.position.x < 0.045 or rect.position.y < 0.105 or rect.end.x > 0.955 or rect.end.y > 0.775:
 		return false
 	for existing in occupied:
-		if rect.grow(0.008).intersects(existing.grow(0.008)):
+		if rect.grow(0.004).intersects(existing.grow(0.004)):
 			return false
 	return true
 
 
 func _make_signature(design: Dictionary) -> String:
 	var parts: Array[String] = [
+		str(design.get("layout_id", "")),
+		str(design.get("wallpaper_path", "").get_file()),
 		str(design.get("clock_style", "")),
 		str(design.get("clock_format", "")),
 		str(design.get("clock_align", "")),
-		str(design.get("palette", {}).get("name", ""))
+		str(design.get("palette", {}).get("name", "")),
+		str(design.get("notifications", []).size()),
+		"media" if not design.get("media", {}).is_empty() else "no-media"
 	]
 	for component in design.get("components", []):
 		var rect: Rect2 = component.get("rect", Rect2())
 		parts.append("%s:%d:%d:%d:%d" % [
 			str(component.get("role", "")),
-			roundi(rect.position.x * 100.0),
-			roundi(rect.position.y * 100.0),
-			roundi(rect.size.x * 100.0),
-			roundi(rect.size.y * 100.0)
+			roundi(rect.position.x * 1000.0),
+			roundi(rect.position.y * 1000.0),
+			roundi(rect.size.x * 1000.0),
+			roundi(rect.size.y * 1000.0)
 		])
 	return "|".join(parts)
-
 
 func _render_design(design: Dictionary) -> void:
 	for child in get_children():
@@ -371,39 +408,51 @@ func _render_design(design: Dictionary) -> void:
 		child.free()
 
 	var palette: Dictionary = design["palette"]
-	_add_wallpaper(palette)
+	_add_wallpaper(design)
 	for glow in design["glows"]:
 		_add_glow(glow, palette["glow"])
 	_add_status_bar(palette)
 	_add_clock(design, palette)
 	_add_date(design, palette)
 	for index in range(design["notifications"].size()):
-		_add_notification(design["notifications"][index], _notification_component_rect(design, index), palette)
+		_add_notification(design["notifications"][index], palette)
+	if not design["media"].is_empty():
+		_add_media_player(design["media"], palette)
 	if bool(design["show_fingerprint"]):
 		_add_fingerprint(design, palette)
 	_add_shortcuts(design, palette)
 
-
-func _add_wallpaper(palette: Dictionary) -> void:
-	var gradient := Gradient.new()
-	gradient.colors = PackedColorArray([palette["top"], palette["bottom"]])
-	gradient.offsets = PackedFloat32Array([0.0, 1.0])
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 256
-	texture.height = 512
-	texture.fill_from = Vector2(0.12, 0.0)
-	texture.fill_to = Vector2(0.88, 1.0)
-
+func _add_wallpaper(design: Dictionary) -> void:
 	var wallpaper := TextureRect.new()
 	wallpaper.name = "GeneratedWallpaper"
-	wallpaper.texture = texture
+	var wallpaper_path := str(design.get("wallpaper_path", ""))
+	var wallpaper_texture := load(wallpaper_path) as Texture2D if not wallpaper_path.is_empty() else null
+	if wallpaper_texture != null:
+		wallpaper.texture = wallpaper_texture
+	else:
+		var palette: Dictionary = design["palette"]
+		var gradient := Gradient.new()
+		gradient.colors = PackedColorArray([palette["top"], palette["bottom"]])
+		gradient.offsets = PackedFloat32Array([0.0, 1.0])
+		var fallback_texture := GradientTexture2D.new()
+		fallback_texture.gradient = gradient
+		fallback_texture.width = 256
+		fallback_texture.height = 512
+		fallback_texture.fill_from = Vector2(0.12, 0.0)
+		fallback_texture.fill_to = Vector2(0.88, 1.0)
+		wallpaper.texture = fallback_texture
 	wallpaper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	wallpaper.stretch_mode = TextureRect.STRETCH_SCALE
+	wallpaper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	wallpaper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_full_rect(wallpaper)
 	add_child(wallpaper)
 
+	var shade := ColorRect.new()
+	shade.name = "LockScreenWallpaperLegibilityShade"
+	shade.color = Color(0.015, 0.02, 0.03, 0.30)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(shade)
+	add_child(shade)
 
 func _add_glow(glow: Dictionary, tint: Color) -> void:
 	var panel := Panel.new()
@@ -418,17 +467,41 @@ func _add_glow(glow: Dictionary, tint: Color) -> void:
 
 
 func _add_status_bar(palette: Dictionary) -> void:
-	var status := Label.new()
-	status.name = "LockScreenStatusBar"
-	status.text = _current_time_text() + "                                      ◈  ●  ▰"
-	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status.add_theme_font_size_override("font_size", 18)
-	status.add_theme_color_override("font_color", palette["muted"])
-	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(status, Rect2(Vector2(0.055, 0.024), Vector2(0.89, 0.035)))
-	add_child(status)
+	var row := HBoxContainer.new()
+	row.name = "LockScreenStatusBar"
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_normalized_rect(row, Rect2(Vector2(0.055, 0.024), Vector2(0.89, 0.035)))
+	add_child(row)
 
+	var lock_icon := TextureRect.new()
+	lock_icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_lock_locked.svg"), palette["muted"])
+	lock_icon.custom_minimum_size = Vector2(12, 15)
+	lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(lock_icon)
+
+	var time_label := Label.new()
+	time_label.text = _current_time_text()
+	time_label.add_theme_font_size_override("font_size", 12)
+	time_label.add_theme_color_override("font_color", palette["muted"])
+	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(time_label)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+
+	var system_icons := Label.new()
+	system_icons.text = "⌁  ◈  ▰"
+	system_icons.add_theme_font_size_override("font_size", 13)
+	system_icons.add_theme_color_override("font_color", palette["muted"])
+	system_icons.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	system_icons.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	system_icons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(system_icons)
 
 func _add_clock(design: Dictionary, palette: Dictionary) -> void:
 	var rect: Rect2 = design["clock_rect"]
@@ -510,7 +583,8 @@ func _add_date(design: Dictionary, palette: Dictionary) -> void:
 	add_child(date)
 
 
-func _add_notification(notification_data: Dictionary, rect: Rect2, palette: Dictionary) -> void:
+func _add_notification(notification_data: Dictionary, palette: Dictionary) -> void:
+	var rect: Rect2 = notification_data["rect"]
 	var card := PanelContainer.new()
 	card.name = "GeneratedNotification"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -518,42 +592,57 @@ func _add_notification(notification_data: Dictionary, rect: Rect2, palette: Dict
 	style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.82)
 	style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.24)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(22)
-	style.content_margin_left = 20
-	style.content_margin_right = 20
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
+	style.set_corner_radius_all(17)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
 	card.add_theme_stylebox_override("panel", style)
 	_set_normalized_rect(card, rect)
 	add_child(card)
 
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(row)
+
+	var app_icon := TextureRect.new()
+	var icon_path := str(notification_data.get("icon", ""))
+	app_icon.texture = load(icon_path) as Texture2D if not icon_path.is_empty() else null
+	app_icon.custom_minimum_size = Vector2(25, 25)
+	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	app_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(app_icon)
+
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 3)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 0)
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(content)
+	row.add_child(content)
 
 	var app_label := Label.new()
-	app_label.text = str(notification_data["app"]) + "  ·  NOW"
-	app_label.add_theme_font_size_override("font_size", 14)
+	app_label.text = str(notification_data["app"]) + "  ·  " + str(notification_data.get("timestamp", "NOW"))
+	app_label.add_theme_font_size_override("font_size", 9)
 	app_label.add_theme_color_override("font_color", palette["accent"])
 	app_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(app_label)
 
 	var title := Label.new()
 	title.text = str(notification_data["title"])
-	title.add_theme_font_size_override("font_size", 21)
+	title.add_theme_font_size_override("font_size", 13)
 	title.add_theme_color_override("font_color", palette["text"])
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(title)
 
 	var body := Label.new()
 	body.text = str(notification_data["body"])
-	body.add_theme_font_size_override("font_size", 15)
+	body.add_theme_font_size_override("font_size", 10)
 	body.add_theme_color_override("font_color", palette["muted"])
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(body)
-
 
 func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
 	var rect := _find_component_rect(design, "fingerprint")
@@ -589,8 +678,8 @@ func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 		button.name = "Bottom" + kind.capitalize() + "Shortcut"
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.54)
-		style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.32)
+		style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.58)
+		style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.36)
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(90)
 		button.add_theme_stylebox_override("panel", style)
@@ -603,19 +692,152 @@ func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 		if kind == "flashlight":
 			var flashlight := TextureRect.new()
 			flashlight.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_flashlight_off.svg"), palette["text"])
-			flashlight.custom_minimum_size = Vector2(30, 34)
+			flashlight.custom_minimum_size = Vector2(27, 32)
 			flashlight.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			flashlight.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			flashlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			center.add_child(flashlight)
 		else:
-			var camera := Label.new()
-			camera.text = "◉"
-			camera.add_theme_font_size_override("font_size", 38)
-			camera.add_theme_color_override("font_color", palette["text"])
-			camera.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			center.add_child(camera)
+			_add_camera_symbol(center, palette)
 
+
+func _add_camera_symbol(parent: Control, palette: Dictionary) -> void:
+	var camera := Control.new()
+	camera.name = "GeneratedCameraGlyph"
+	camera.custom_minimum_size = Vector2(34, 30)
+	camera.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(camera)
+
+	var body := Panel.new()
+	body.position = Vector2(1, 5)
+	body.size = Vector2(32, 22)
+	var body_style := StyleBoxFlat.new()
+	body_style.bg_color = Color(0.0, 0.0, 0.0, 0.04)
+	body_style.border_color = palette["text"]
+	body_style.set_border_width_all(2)
+	body_style.set_corner_radius_all(5)
+	body.add_theme_stylebox_override("panel", body_style)
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	camera.add_child(body)
+
+	var bump := Panel.new()
+	bump.position = Vector2(8, 1)
+	bump.size = Vector2(11, 6)
+	var bump_style := StyleBoxFlat.new()
+	bump_style.bg_color = palette["text"]
+	bump_style.set_corner_radius_all(2)
+	bump.add_theme_stylebox_override("panel", bump_style)
+	bump.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	camera.add_child(bump)
+
+	var lens := Panel.new()
+	lens.position = Vector2(11, 10)
+	lens.size = Vector2(12, 12)
+	var lens_style := StyleBoxFlat.new()
+	lens_style.bg_color = palette["accent"]
+	lens_style.set_corner_radius_all(8)
+	lens.add_theme_stylebox_override("panel", lens_style)
+	lens.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(lens)
+
+func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
+	var rect: Rect2 = media["rect"]
+	var card := PanelContainer.new()
+	card.name = "GeneratedLockScreenMediaPlayer"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.86)
+	style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.25)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(19)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 7
+	style.content_margin_bottom = 6
+	card.add_theme_stylebox_override("panel", style)
+	_set_normalized_rect(card, rect)
+	add_child(card)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 3)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(content)
+
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 8)
+	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(top_row)
+
+	var service_icon := TextureRect.new()
+	var icon_path := str(media.get("icon", ""))
+	service_icon.texture = load(icon_path) as Texture2D if not icon_path.is_empty() else null
+	service_icon.custom_minimum_size = Vector2(43, 43)
+	service_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	service_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	service_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_row.add_child(service_icon)
+
+	var track_info := VBoxContainer.new()
+	track_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track_info.add_theme_constant_override("separation", 0)
+	track_info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_row.add_child(track_info)
+
+	var service_label := Label.new()
+	service_label.text = str(media.get("service", "MUSIC")) + "  ·  NOW PLAYING"
+	service_label.add_theme_font_size_override("font_size", 8)
+	service_label.add_theme_color_override("font_color", palette["accent"])
+	service_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track_info.add_child(service_label)
+
+	var title := Label.new()
+	title.text = str(media.get("title", "Now Playing"))
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", palette["text"])
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track_info.add_child(title)
+
+	var artist := Label.new()
+	artist.text = str(media.get("artist", "Digital World Radio"))
+	artist.add_theme_font_size_override("font_size", 10)
+	artist.add_theme_color_override("font_color", palette["muted"])
+	artist.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track_info.add_child(artist)
+
+	var play_state := Label.new()
+	play_state.text = "Ⅱ" if bool(media.get("playing", true)) else "▶"
+	play_state.add_theme_font_size_override("font_size", 19)
+	play_state.add_theme_color_override("font_color", palette["text"])
+	play_state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	play_state.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_row.add_child(play_state)
+
+	var progress := ProgressBar.new()
+	progress.name = "MediaPlaybackProgress"
+	progress.min_value = 0
+	progress.max_value = 100
+	progress.value = float(media.get("progress", 55))
+	progress.show_percentage = false
+	progress.custom_minimum_size.y = 3
+	progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var progress_fill := StyleBoxFlat.new()
+	progress_fill.bg_color = palette["accent"]
+	progress_fill.set_corner_radius_all(3)
+	progress.add_theme_stylebox_override("fill", progress_fill)
+	var progress_track := StyleBoxFlat.new()
+	progress_track.bg_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.20)
+	progress_track.set_corner_radius_all(3)
+	progress.add_theme_stylebox_override("background", progress_track)
+	content.add_child(progress)
+
+	var controls := Label.new()
+	controls.text = "‹          " + ("Ⅱ" if bool(media.get("playing", true)) else "▶") + "          ›"
+	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls.add_theme_font_size_override("font_size", 13)
+	controls.add_theme_color_override("font_color", palette["text"])
+	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(controls)
 
 func _notification_component_rect(design: Dictionary, notification_index: int) -> Rect2:
 	var notification_data: Dictionary = design["notifications"][notification_index]
@@ -628,6 +850,50 @@ func _find_component_rect(design: Dictionary, role: String) -> Rect2:
 			return component["rect"]
 	return Rect2()
 
+
+func _discover_wallpapers() -> Array[String]:
+	var discovered: Array[String] = []
+	var directory := DirAccess.open(WALLPAPER_ROOT)
+	if directory == null:
+		return discovered
+	for file_name in directory.get_files():
+		var extension := file_name.get_extension().to_lower()
+		if extension in ["jpg", "jpeg", "png", "webp"]:
+			discovered.append(WALLPAPER_ROOT.path_join(file_name))
+	discovered.sort()
+	return discovered
+
+
+func _next_wallpaper_path() -> String:
+	if _wallpaper_bag.is_empty():
+		_wallpaper_bag = _wallpaper_paths.duplicate()
+		_wallpaper_bag.shuffle()
+		if _wallpaper_bag.size() > 1 and not _recent_wallpaper_paths.is_empty() and _wallpaper_bag.back() == _recent_wallpaper_paths.back():
+			var swap_index := _rng.randi_range(0, _wallpaper_bag.size() - 2)
+			var swap_value := _wallpaper_bag[swap_index]
+			_wallpaper_bag[swap_index] = _wallpaper_bag.back()
+			_wallpaper_bag[_wallpaper_bag.size() - 1] = swap_value
+	if _wallpaper_bag.is_empty():
+		return ""
+	var selected := _wallpaper_bag.pop_back()
+	_recent_wallpaper_paths.append(selected)
+	if _recent_wallpaper_paths.size() > 12:
+		_recent_wallpaper_paths.pop_front()
+	return selected
+
+
+func _next_layout_blueprint() -> Dictionary:
+	if _layout_queue.is_empty():
+		_layout_queue = LayoutLibrary.get_blueprints()
+		_layout_queue.shuffle()
+	if _layout_queue.is_empty():
+		return {}
+	return _layout_queue.pop_back()
+
+
+func _wallpaper_number(path: String) -> int:
+	var digits := path.get_file().get_basename().trim_prefix("wallpaper-")
+	return int(digits)
 
 func _load_tinted_asset(path: String, tint: Color) -> Texture2D:
 	var source := load(path) as Texture2D
