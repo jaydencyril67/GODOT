@@ -3,6 +3,8 @@ extends Control
 const SVG_ROOT := "res://assets/lock-screen/aosp/SVG"
 const WALLPAPER_ROOT := "res://assets/wallpapers"
 const LayoutLibrary = preload("res://scripts/lock_screen_layout_library.gd")
+const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
+const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 
 const NOTIFICATION_PRESETS := [
 	{"app": "MESSAGES", "icon": "res://assets/app_icons/appstract/google/google_chat.png", "title": "You have a new message", "body": "A new conversation is waiting for you."},
@@ -310,9 +312,15 @@ func _compose_design() -> Dictionary:
 			"alpha": _rng.randf_range(0.025, 0.065)
 		})
 
+	var status_styles: Array[Dictionary] = StatusBarAssetLibrary.get_styles()
+	var selected_status_style: Dictionary = status_styles[_rng.randi_range(0, status_styles.size() - 1)]
+	var analog_clock_style_index := _rng.randi_range(1, LockScreenAssetLibrary.get_analog_face_count()) if clock_style == "analog" else 0
+
 	var design := {
 		"layout_id": str(blueprint["id"]),
 		"layout_name": str(blueprint["name"]),
+		"status_style_id": str(selected_status_style.get("id", "pixel_compact")),
+		"analog_clock_style_index": analog_clock_style_index,
 		"palette": palette,
 		"wallpaper_path": wallpaper_path,
 		"wallpaper_index": _wallpaper_number(wallpaper_path),
@@ -393,6 +401,8 @@ func _make_signature(design: Dictionary) -> String:
 		str(design.get("clock_style", "")),
 		str(design.get("clock_format", "")),
 		str(design.get("clock_align", "")),
+		str(design.get("status_style_id", "")),
+		str(design.get("analog_clock_style_index", 0)),
 		str(design.get("palette", {}).get("name", "")),
 		str(design.get("notifications", []).size()),
 		"media" if not design.get("media", {}).is_empty() else "no-media"
@@ -417,7 +427,7 @@ func _render_design(design: Dictionary) -> void:
 	_add_wallpaper(design)
 	for glow in design["glows"]:
 		_add_glow(glow, palette["glow"])
-	_add_status_bar(palette)
+	_add_status_bar(design, palette)
 	_add_clock(design, palette)
 	_add_date(design, palette)
 	for index in range(design["notifications"].size()):
@@ -474,47 +484,87 @@ func _add_glow(glow: Dictionary, tint: Color) -> void:
 	add_child(panel)
 
 
-func _add_status_bar(palette: Dictionary) -> void:
+func _add_status_bar(design: Dictionary, palette: Dictionary) -> void:
+	var style := StatusBarAssetLibrary.get_style(str(design.get("status_style_id", "pixel_compact")))
 	var row := HBoxContainer.new()
 	row.name = "LockScreenStatusBar"
-	row.add_theme_constant_override("separation", 6)
+	row.add_theme_constant_override("separation", int(style.get("gap", 3)))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_normalized_rect(row, Rect2(Vector2(0.055, 0.024), Vector2(0.89, 0.035)))
 	add_child(row)
 
-	var lock_icon := TextureRect.new()
-	lock_icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_lock_locked.svg"), palette["muted"])
-	lock_icon.custom_minimum_size = Vector2(12, 15)
-	lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(lock_icon)
-
-	var time_label := Label.new()
-	time_label.text = _current_time_text()
-	time_label.add_theme_font_size_override("font_size", 12)
-	time_label.add_theme_color_override("font_color", palette["muted"])
-	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(time_label)
-
+	var leading := HBoxContainer.new()
+	leading.add_theme_constant_override("separation", int(style.get("gap", 3)))
+	leading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(leading)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
+	var trailing := HBoxContainer.new()
+	trailing.add_theme_constant_override("separation", int(style.get("gap", 3)))
+	trailing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(trailing)
 
-	var system_icons := Label.new()
-	system_icons.text = "⌁  ◈  ▰"
-	system_icons.add_theme_font_size_override("font_size", 13)
-	system_icons.add_theme_color_override("font_color", palette["muted"])
-	system_icons.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	system_icons.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	system_icons.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(system_icons)
+	var time_label := Label.new()
+	time_label.name = "StatusBarClock"
+	time_label.text = _current_time_text()
+	time_label.add_theme_font_size_override("font_size", int(style.get("time_size", 12)))
+	time_label.add_theme_color_override("font_color", palette["muted"])
+	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var icon_group := trailing if str(style.get("time_side", "left")) == "left" else leading
+	var time_group := leading if str(style.get("time_side", "left")) == "left" else trailing
+	if str(style.get("time_side", "left")) == "left":
+		leading.add_child(time_label)
+	else:
+		trailing.add_child(time_label)
+
+	if bool(style.get("show_lock", false)):
+		var lock_icon := TextureRect.new()
+		lock_icon.name = "StatusBarLockIcon"
+		lock_icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_lock_locked.svg"), palette["muted"])
+		lock_icon.custom_minimum_size = Vector2(10, 13)
+		lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		time_group.add_child(lock_icon)
+
+	var order: Array = style.get("order", [])
+	for icon_type in order:
+		var icon_id := str(icon_type)
+		if icon_id == "bluetooth" and not bool(style.get("show_bluetooth", false)):
+			continue
+		var icon_name := "bluetooth_connected" if icon_id == "bluetooth" else "%s_%d" % [icon_id, int(style.get(icon_id + "_level", 4))]
+		var icon_texture := StatusBarAssetLibrary.get_icon_texture(icon_name)
+		if icon_texture == null:
+			continue
+		var icon := TextureRect.new()
+		icon.name = "StatusBar" + icon_id.capitalize() + "Icon"
+		icon.texture = icon_texture
+		icon.modulate = palette["muted"]
+		var icon_size := float(style.get("icon_size", 16))
+		var icon_width := icon_size * 0.75 if icon_id == "signal" else icon_size
+		icon.custom_minimum_size = Vector2(icon_width, icon_size)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_group.add_child(icon)
+
+func get_status_bar_style_id() -> String:
+	return str(_last_design.get("status_style_id", "pixel_compact"))
+
+func set_status_bar_style(style_id: String) -> bool:
+	if not StatusBarAssetLibrary.has_style(style_id) or _last_design.is_empty():
+		return false
+	_last_design["status_style_id"] = style_id
+	_render_design(_last_design)
+	return true
 
 func _add_clock(design: Dictionary, palette: Dictionary) -> void:
 	var rect: Rect2 = design["clock_rect"]
 	if str(design["clock_style"]) == "analog":
-		_add_analog_clock(rect, palette)
+		_add_analog_clock(rect, palette, int(design.get("analog_clock_style_index", 1)))
 		return
 
 	var clock := Label.new()
@@ -538,44 +588,45 @@ func _add_clock(design: Dictionary, palette: Dictionary) -> void:
 	add_child(clock)
 
 
-func _add_analog_clock(rect: Rect2, palette: Dictionary) -> void:
-	var dial := Panel.new()
-	dial.name = "GeneratedAnalogClockDial"
-	dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(dial, rect)
-	var dial_style := StyleBoxFlat.new()
-	dial_style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.18)
-	dial_style.border_color = Color(palette["accent"].r, palette["accent"].g, palette["accent"].b, 0.75)
-	dial_style.set_border_width_all(3)
-	dial_style.set_corner_radius_all(300)
-	dial.add_theme_stylebox_override("panel", dial_style)
-	add_child(dial)
+func _add_analog_clock(rect: Rect2, palette: Dictionary, style_index: int) -> void:
+	# The blueprint stores normalized portrait-screen coordinates; its 2:1
+	# width-to-height ratio is already square in the actual handset viewport.
+	var face_rect := rect
+
+	var face := TextureRect.new()
+	face.name = "GeneratedAnalogClockFace"
+	face.texture = load(LockScreenAssetLibrary.get_analog_face_path(style_index)) as Texture2D
+	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_normalized_rect(face, face_rect)
+	add_child(face)
 
 	var time := Time.get_time_dict_from_system()
 	var minute_angle := float(time["minute"]) * TAU / 60.0
 	var hour_angle := (float(time["hour"] % 12) + float(time["minute"]) / 60.0) * TAU / 12.0
-	var minute_hand := _add_analog_hand("AOSPAnalogMinuteHand", "analog_minute_hand.svg", rect, palette["text"], minute_angle)
-	var hour_hand := _add_analog_hand("AOSPAnalogHourHand", "analog_hour_hand.svg", rect, palette["accent"], hour_angle)
-	var center_dot := _add_analog_hand("AOSPAnalogCenter", "analog_frame.svg", rect, palette["text"], 0.0)
-	minute_hand.z_index = 2
-	hour_hand.z_index = 3
-	center_dot.z_index = 4
+	var second_angle := float(time["second"]) * TAU / 60.0
+	var hour_hand := _add_analog_hand("AnalogHourHand", "hr", face_rect, palette["accent"], hour_angle)
+	var minute_hand := _add_analog_hand("AnalogMinuteHand", "min", face_rect, palette["text"], minute_angle)
+	var second_hand := _add_analog_hand("AnalogSecondHand", "sec", face_rect, palette["muted"], second_angle)
+	hour_hand.z_index = 2
+	minute_hand.z_index = 3
+	second_hand.z_index = 4
 
-
-func _add_analog_hand(node_name: String, file_name: String, rect: Rect2, tint: Color, angle: float) -> TextureRect:
+func _add_analog_hand(node_name: String, hand_name: String, rect: Rect2, tint: Color, angle: float) -> TextureRect:
 	var hand := TextureRect.new()
 	hand.name = node_name
-	hand.texture = _load_tinted_asset(SVG_ROOT.path_join(file_name), tint)
+	hand.texture = load(LockScreenAssetLibrary.get_analog_hand_path(int(_last_design.get("analog_clock_style_index", 1)), hand_name)) as Texture2D
+	hand.modulate = tint
 	hand.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hand.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	hand.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hand.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_normalized_rect(hand, rect)
-	hand.rotation = angle
-	hand.resized.connect(func(): hand.pivot_offset = hand.size * 0.5)
 	add_child(hand)
 	hand.pivot_offset = hand.size * 0.5
+	hand.rotation = angle
+	hand.resized.connect(func(): hand.pivot_offset = hand.size * 0.5)
 	return hand
-
 
 func _add_date(design: Dictionary, palette: Dictionary) -> void:
 	var date := Label.new()
@@ -593,26 +644,35 @@ func _add_date(design: Dictionary, palette: Dictionary) -> void:
 
 func _add_notification(notification_data: Dictionary, palette: Dictionary) -> void:
 	var rect: Rect2 = notification_data["rect"]
-	var card := PanelContainer.new()
+	var card := Control.new()
 	card.name = "GeneratedNotification"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.82)
-	style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.24)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(17)
-	style.content_margin_left = 8
-	style.content_margin_right = 8
-	style.content_margin_top = 3
-	style.content_margin_bottom = 3
-	card.add_theme_stylebox_override("panel", style)
 	_set_normalized_rect(card, rect)
 	add_child(card)
+
+	var surface := TextureRect.new()
+	surface.name = "GeneratedNotificationSurface"
+	surface.texture = LockScreenAssetLibrary.get_surface_texture("notification")
+	surface.modulate = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.82)
+	surface.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	surface.stretch_mode = TextureRect.STRETCH_SCALE
+	surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(surface)
+	card.add_child(surface)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 9)
+	margin.add_theme_constant_override("margin_right", 9)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(margin)
+	card.add_child(margin)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 7)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(row)
+	margin.add_child(row)
 
 	var app_icon := TextureRect.new()
 	var icon_path := str(notification_data.get("icon", ""))
@@ -630,12 +690,38 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(content)
 
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 4)
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(header)
+
 	var app_label := Label.new()
 	app_label.text = str(notification_data["app"]) + "  ·  " + str(notification_data.get("timestamp", "NOW"))
+	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	app_label.add_theme_font_size_override("font_size", 9)
 	app_label.add_theme_color_override("font_color", palette["accent"])
 	app_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(app_label)
+	header.add_child(app_label)
+
+	var category_icon := TextureRect.new()
+	category_icon.name = "NotificationCategoryIcon"
+	category_icon.texture = LockScreenAssetLibrary.get_icon_texture(LockScreenAssetLibrary.get_notification_category(str(notification_data["app"])))
+	category_icon.custom_minimum_size = Vector2(12, 12)
+	category_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	category_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	category_icon.modulate = palette["muted"]
+	category_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(category_icon)
+
+	var more_icon := TextureRect.new()
+	more_icon.name = "NotificationMoreActionIcon"
+	more_icon.texture = LockScreenAssetLibrary.get_icon_texture("action_more")
+	more_icon.custom_minimum_size = Vector2(12, 12)
+	more_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	more_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	more_icon.modulate = palette["muted"]
+	more_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(more_icon)
 
 	var title := Label.new()
 	title.text = str(notification_data["title"])
@@ -683,20 +769,24 @@ func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 	for shortcut in design["shortcuts"]:
 		var kind := str(shortcut["kind"])
 		var rect: Rect2 = shortcut["rect"]
-		var button := PanelContainer.new()
+		var button := Control.new()
 		button.name = "Bottom" + kind.capitalize() + "Shortcut"
 		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.58)
-		style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.36)
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(90)
-		button.add_theme_stylebox_override("panel", style)
 		_set_normalized_rect(button, rect)
 		add_child(button)
 
+		var surface := TextureRect.new()
+		surface.texture = LockScreenAssetLibrary.get_surface_texture("shortcut")
+		surface.modulate = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.58)
+		surface.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		surface.stretch_mode = TextureRect.STRETCH_SCALE
+		surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_full_rect(surface)
+		button.add_child(surface)
+
 		var center := CenterContainer.new()
 		center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_full_rect(center)
 		button.add_child(center)
 		if kind == "flashlight":
 			var flashlight := TextureRect.new()
@@ -709,68 +799,48 @@ func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 		else:
 			_add_camera_symbol(center, palette)
 
-
 func _add_camera_symbol(parent: Control, palette: Dictionary) -> void:
-	var camera := Control.new()
+	var camera := TextureRect.new()
 	camera.name = "GeneratedCameraGlyph"
-	camera.custom_minimum_size = Vector2(34, 30)
+	camera.texture = LockScreenAssetLibrary.get_icon_texture("camera")
+	camera.modulate = palette["text"]
+	camera.custom_minimum_size = Vector2(30, 30)
+	camera.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	camera.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	camera.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(camera)
 
-	var body := Panel.new()
-	body.position = Vector2(1, 5)
-	body.size = Vector2(32, 22)
-	var body_style := StyleBoxFlat.new()
-	body_style.bg_color = Color(0.0, 0.0, 0.0, 0.04)
-	body_style.border_color = palette["text"]
-	body_style.set_border_width_all(2)
-	body_style.set_corner_radius_all(5)
-	body.add_theme_stylebox_override("panel", body_style)
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	camera.add_child(body)
-
-	var bump := Panel.new()
-	bump.position = Vector2(8, 1)
-	bump.size = Vector2(11, 6)
-	var bump_style := StyleBoxFlat.new()
-	bump_style.bg_color = palette["text"]
-	bump_style.set_corner_radius_all(2)
-	bump.add_theme_stylebox_override("panel", bump_style)
-	bump.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	camera.add_child(bump)
-
-	var lens := Panel.new()
-	lens.position = Vector2(11, 10)
-	lens.size = Vector2(12, 12)
-	var lens_style := StyleBoxFlat.new()
-	lens_style.bg_color = palette["accent"]
-	lens_style.set_corner_radius_all(8)
-	lens.add_theme_stylebox_override("panel", lens_style)
-	lens.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(lens)
-
 func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	var rect: Rect2 = media["rect"]
-	var card := PanelContainer.new()
+	var card := Control.new()
 	card.name = "GeneratedLockScreenMediaPlayer"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.86)
-	style.border_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.25)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(19)
-	style.content_margin_left = 8
-	style.content_margin_right = 8
-	style.content_margin_top = 5
-	style.content_margin_bottom = 4
-	card.add_theme_stylebox_override("panel", style)
 	_set_normalized_rect(card, rect)
 	add_child(card)
+
+	var surface := TextureRect.new()
+	surface.name = "GeneratedMediaPlayerSurface"
+	surface.texture = LockScreenAssetLibrary.get_surface_texture("media")
+	surface.modulate = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.86)
+	surface.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	surface.stretch_mode = TextureRect.STRETCH_SCALE
+	surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(surface)
+	card.add_child(surface)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 9)
+	margin.add_theme_constant_override("margin_right", 9)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(margin)
+	card.add_child(margin)
 
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 3)
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(content)
+	margin.add_child(content)
 
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 8)
@@ -815,14 +885,6 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	artist.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track_info.add_child(artist)
 
-	var play_state := Label.new()
-	play_state.text = "Ⅱ" if bool(media.get("playing", true)) else "▶"
-	play_state.add_theme_font_size_override("font_size", 19)
-	play_state.add_theme_color_override("font_color", palette["text"])
-	play_state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	play_state.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_row.add_child(play_state)
-
 	var progress := ProgressBar.new()
 	progress.name = "MediaPlaybackProgress"
 	progress.min_value = 0
@@ -841,13 +903,25 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	progress.add_theme_stylebox_override("background", progress_track)
 	content.add_child(progress)
 
-	var controls := Label.new()
-	controls.text = "‹          " + ("Ⅱ" if bool(media.get("playing", true)) else "▶") + "          ›"
-	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	controls.add_theme_font_size_override("font_size", 11)
-	controls.add_theme_color_override("font_color", palette["text"])
+	var controls := HBoxContainer.new()
+	controls.name = "GeneratedMediaControls"
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 23)
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(controls)
+	_add_media_control(controls, "media_previous", 19)
+	_add_media_control(controls, "media_pause" if bool(media.get("playing", true)) else "media_play", 21)
+	_add_media_control(controls, "media_next", 19)
+
+func _add_media_control(parent: Control, icon_id: String, icon_size: float) -> void:
+	var icon := TextureRect.new()
+	icon.name = "MediaControl_" + icon_id
+	icon.texture = LockScreenAssetLibrary.get_icon_texture(icon_id)
+	icon.custom_minimum_size = Vector2(icon_size, icon_size)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(icon)
 
 func _notification_component_rect(design: Dictionary, notification_index: int) -> Rect2:
 	var notification_data: Dictionary = design["notifications"][notification_index]

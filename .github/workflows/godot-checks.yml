@@ -133,6 +133,17 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test OS boot and automatic lock-screen handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/os_creation_boot_lock_screen_smoke.gd 2>&1 | tee os-boot-lock-screen-smoke.log
+          grep -q "OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS" os-boot-lock-screen-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_BOOT_LOCK_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' os-boot-lock-screen-smoke.log; then
+            echo "Godot reported an error during the OS boot and lock-screen transition smoke test."
+            exit 1
+          fi
+
       - name: Smoke-test main scene startup
         shell: bash
         run: |
@@ -155,7 +166,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nullglob
-          logs=(godot-import.log godot-parse.log home-office-smoke.log ui-evolution-smoke.log processor-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log godot-startup.log)
+          logs=(godot-import.log godot-parse.log home-office-smoke.log ui-evolution-smoke.log processor-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log os-boot-lock-screen-smoke.log godot-startup.log)
           warning_count=0
 
           for log in "${logs[@]}"; do

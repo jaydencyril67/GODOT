@@ -1,11 +1,12 @@
 extends RefCounted
 
 const ICON_ATLAS_PATH := "res://assets/system-ui/godot/notifications/notification_icon_atlas.svg"
+const SOURCE_ICON_ATLAS_PATH := "res://assets/system-ui/godot/notifications/notification_source_icon_atlas.svg"
 const NOTIFICATION_SURFACE_PATH := "res://assets/system-ui/godot/notifications/notification_card_surface.svg"
 const MEDIA_SURFACE_PATH := "res://assets/system-ui/godot/notifications/media_player_surface.svg"
 const SHORTCUT_SURFACE_PATH := "res://assets/system-ui/godot/notifications/shortcut_surface.svg"
 
-const ICON_REGIONS := {
+const SOURCE_ICON_REGIONS := {
 	"category_chat": Rect2(0, 0, 24, 24),
 	"category_email": Rect2(32, 0, 24, 24),
 	"category_calendar": Rect2(64, 0, 24, 24),
@@ -14,11 +15,14 @@ const ICON_REGIONS := {
 	"category_work": Rect2(160, 0, 24, 24),
 	"category_shopping": Rect2(192, 0, 24, 24),
 	"category_news": Rect2(224, 0, 24, 24),
-	"action_expand": Rect2(0, 32, 24, 24),
-	"action_close": Rect2(32, 32, 24, 24),
-	"action_more": Rect2(64, 32, 24, 24),
-	"action_collapse": Rect2(96, 32, 24, 24),
-	"action_refresh": Rect2(128, 32, 24, 24),
+	"action_more": Rect2(0, 32, 24, 24),
+	"action_expand": Rect2(32, 32, 24, 24),
+	"action_collapse": Rect2(64, 32, 24, 24),
+	"action_close": Rect2(96, 32, 24, 24),
+	"action_refresh": Rect2(128, 32, 24, 24)
+}
+
+const MEDIA_ICON_REGIONS := {
 	"media_previous": Rect2(0, 64, 24, 24),
 	"media_pause": Rect2(32, 64, 24, 24),
 	"media_play": Rect2(64, 64, 24, 24),
@@ -28,16 +32,20 @@ const ICON_REGIONS := {
 }
 
 static func get_icon_texture(icon_id: String) -> Texture2D:
-	var region: Rect2 = ICON_REGIONS.get(icon_id, Rect2())
-	if region.size == Vector2.ZERO:
+	if SOURCE_ICON_REGIONS.has(icon_id):
+		return _get_atlas_region(SOURCE_ICON_ATLAS_PATH, SOURCE_ICON_REGIONS[icon_id])
+	if MEDIA_ICON_REGIONS.has(icon_id):
+		return _get_atlas_region(ICON_ATLAS_PATH, MEDIA_ICON_REGIONS[icon_id])
+	return null
+
+static func _get_atlas_region(path: String, region: Rect2) -> Texture2D:
+	var atlas := load(path) as Texture2D
+	if atlas == null:
 		return null
-	var texture_atlas := load(ICON_ATLAS_PATH) as Texture2D
-	if texture_atlas == null:
-		return null
-	var atlas_texture := AtlasTexture.new()
-	atlas_texture.atlas = texture_atlas
-	atlas_texture.region = region
-	return atlas_texture
+	var texture := AtlasTexture.new()
+	texture.atlas = atlas
+	texture.region = region
+	return texture
 
 static func get_surface_texture(surface_id: String) -> Texture2D:
 	var path := ""
@@ -71,11 +79,13 @@ static func get_notification_category(app_name: String) -> String:
 	return "category_chat"
 
 static func get_analog_face_path(style_index: int) -> String:
-	var index := clampi(style_index, 1, 8)
-	return "res://assets/widgets/clock/faces/512/face_%d_512.png" % index
+	return "res://assets/widgets/clock/faces/512/face_%d_512.png" % clampi(style_index, 1, 18)
 
 static func get_analog_hand_path(style_index: int, hand_name: String) -> String:
-	var index := clampi(style_index, 1, 8)
 	if hand_name not in ["hr", "min", "sec"]:
 		return ""
-	return "res://assets/widgets/clock/hands/%d/%s.png" % [index, hand_name]
+	var hand_set_index := ((clampi(style_index, 1, 18) - 1) % 8) + 1
+	return "res://assets/widgets/clock/hands/%d/%s.png" % [hand_set_index, hand_name]
+
+static func get_analog_face_count() -> int:
+	return 18

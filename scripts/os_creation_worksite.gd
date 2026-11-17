@@ -79,12 +79,15 @@ var company_logo_texture: Texture2D
 var phone_name_label: Label
 var phone_model_label: Label
 var lock_screen_designer: Control
+var selected_status_bar_style_id := "one_ui_balanced"
 var boot_sequence_complete := false
 var boot_sequence_id := 0
 
 func _ready() -> void:
 	_build_interface()
 	_show_step(0)
+	if is_instance_valid(lock_screen_designer) and int(lock_screen_designer.call("get_generation_count")) == 0:
+		_generate_lock_screen_design()
 
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
@@ -413,9 +416,43 @@ func _show_step(step_index: int) -> void:
 			_add_note("At least one boot display option must remain enabled.")
 		4:
 			_show_lock_screen_designer_controls()
+		5:
+			_show_status_bar_style_controls()
 		_:
 			_show_asset_browser(current_step)
 	_update_phone_preview_mode()
+
+func _show_status_bar_style_controls() -> void:
+	_add_note("TEN STATUS BAR STYLES")
+	_add_note("Select a status-bar system. The live phone preview updates immediately using the Android vector assets.")
+	selected_status_bar_style_id = str(lock_screen_designer.call("get_status_bar_style_id"))
+	for style in StatusBarAssetLibrary.get_styles():
+		var style_id := str(style.get("id", ""))
+		var style_button := _make_button("")
+		style_button.name = "StatusBarStyle_" + style_id
+		style_button.custom_minimum_size.y = 48
+		style_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		style_button.set_meta("status_style_id", style_id)
+		style_button.pressed.connect(_on_status_bar_style_selected.bind(style_id))
+		content_column.add_child(style_button)
+		_update_status_bar_style_button(style_button)
+
+func _on_status_bar_style_selected(style_id: String) -> void:
+	if not lock_screen_designer.call("set_status_bar_style", style_id):
+		return
+	selected_status_bar_style_id = style_id
+	for child in content_column.get_children():
+		if child is Button and child.has_meta("status_style_id"):
+			_update_status_bar_style_button(child)
+	selection_status_label.text = "STATUS BAR  ·  " + str(StatusBarAssetLibrary.get_style(style_id).get("name", style_id))
+
+func _update_status_bar_style_button(style_button: Button) -> void:
+	var style_id := str(style_button.get_meta("status_style_id", ""))
+	var style_name := str(StatusBarAssetLibrary.get_style(style_id).get("name", style_id))
+	var selected := style_id == selected_status_bar_style_id
+	style_button.text = style_name + ("     SELECTED" if selected else "")
+	style_button.add_theme_stylebox_override("normal", _make_panel_style(Color("#30291F") if selected else PANEL, ACCENT if selected else Color("#6E5B42"), 1, 9))
+	style_button.add_theme_color_override("font_color", TEXT if selected else MUTED)
 
 func _add_boot_display_toggle(label: String, option: String, initially_enabled: bool) -> Button:
 	var toggle := _make_button("")
@@ -505,17 +542,12 @@ func _update_phone_preview_mode() -> void:
 		lock_screen_designer.visible = false
 		return
 	if not boot_sequence_complete:
-		return
-	if current_step == 4 and int(lock_screen_designer.call("get_generation_count")) > 0:
-		company_logo_preview.visible = false
-		phone_name_label.visible = false
-		phone_model_label.visible = false
-		lock_screen_designer.visible = true
-	else:
 		lock_screen_designer.visible = false
-		company_logo_preview.visible = show_company_logo_on_boot and not (show_phone_name_on_boot or show_phone_model_on_boot)
-		phone_name_label.visible = show_phone_name_on_boot
-		phone_model_label.visible = show_phone_model_on_boot
+		return
+	company_logo_preview.visible = false
+	phone_name_label.visible = false
+	phone_model_label.visible = false
+	lock_screen_designer.visible = int(lock_screen_designer.call("get_generation_count")) > 0
 
 func _show_asset_browser(step_index: int) -> void:
 	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
@@ -584,23 +616,38 @@ func _on_power_pressed() -> void:
 	phone_model_label.visible = false
 	_show_phone_boot_sequence(boot_sequence_id)
 
-func _show_phone_boot_sequence(sequence_id: int) -> void:
+func get_boot_sequence_duration_seconds() -> float:
+	return 10.0
+
+func _get_boot_presentation_plan() -> Array[Dictionary]:
+	var plan: Array[Dictionary] = []
 	var show_device_text := show_phone_name_on_boot or show_phone_model_on_boot
+	if show_company_logo_on_boot and show_device_text:
+		plan.append({"kind": "logo", "duration": 5.0})
+		plan.append({"kind": "device", "duration": 5.0})
+	elif show_company_logo_on_boot:
+		plan.append({"kind": "logo", "duration": 10.0})
+	else:
+		plan.append({"kind": "device", "duration": 10.0})
+	return plan
 
-	if show_company_logo_on_boot:
-		company_logo_preview.visible = true
-		await get_tree().create_timer(5.0, true, false, true).timeout
+func _show_phone_boot_sequence(sequence_id: int, duration_scale: float = 1.0) -> void:
+	for stage in _get_boot_presentation_plan():
+		if not _is_boot_sequence_active(sequence_id):
+			return
+		var stage_kind := str(stage.get("kind", "device"))
+		company_logo_preview.visible = stage_kind == "logo"
+		phone_name_label.visible = stage_kind == "device" and show_phone_name_on_boot
+		phone_model_label.visible = stage_kind == "device" and show_phone_model_on_boot
+		if stage_kind == "device" and not show_phone_name_on_boot and not show_phone_model_on_boot:
+			phone_name_label.visible = true
+		await get_tree().create_timer(float(stage.get("duration", 10.0)) * duration_scale, true, false, true).timeout
 		if not _is_boot_sequence_active(sequence_id):
 			return
 
-	if show_device_text:
-		company_logo_preview.visible = false
-		phone_name_label.visible = show_phone_name_on_boot
-		phone_model_label.visible = show_phone_model_on_boot
-		await get_tree().create_timer(5.0, true, false, true).timeout
-		if not _is_boot_sequence_active(sequence_id):
-			return
-
+	company_logo_preview.visible = false
+	phone_name_label.visible = false
+	phone_model_label.visible = false
 	boot_sequence_complete = true
 	_update_phone_preview_mode()
 
