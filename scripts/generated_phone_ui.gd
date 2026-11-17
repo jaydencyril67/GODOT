@@ -84,7 +84,7 @@ func _draw() -> void:
 	_draw_navigation(style, muted, text_color)
 
 
-func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, sefunc _draw_wallpaper(wallpaper_path: String) -> void:
+func _draw_wallpaper(wallpaper_path: String) -> void:
 	if wallpaper_path.is_empty():
 		push_error("Phone UI has no selected wallpaper asset.")
 		return
@@ -110,7 +110,10 @@ func _draw_wallpaper(base: Color, accent: Color, wallpaper_style: String, sefunc
 		var cropped_height := source_size.x / target_ratio
 		source_rect.position.y = (source_size.y - cropped_height) * 0.5
 		source_rect.size.y = cropped_height
-	draw_texture_rect_region(texture, Rect2(Vector2.ZERO, size), source_rect), style: Dictionary) -> void:
+	draw_texture_rect_region(texture, Rect2(Vector2.ZERO, size), source_rect)
+
+
+func _draw_status_bar(text_color: Color, _muted: Color, system: Dictionary, style: Dictionary) -> void
 	var now := Time.get_datetime_dict_from_system()
 	var hour := int(now.get("hour", 9))
 	var minute := int(now.get("minute", 41))
