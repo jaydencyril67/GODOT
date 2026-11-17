@@ -15,6 +15,21 @@ const STEP_NAMES := [
 	"NAVIGATION",
 	"RECENT APPS"
 ]
+
+const STEP_DESCRIPTIONS := [
+	"Define the identity of the operating system.",
+	"Set the startup presentation for this operating system.",
+	"Choose the icon assets that will be available to this OS.",
+	"Choose widget designs for the operating system.",
+	"Choose wallpaper assets for the operating system.",
+	"Choose lock-screen components and visual assets.",
+	"Choose the status bar design assets.",
+	"Choose quick settings and control-centre assets.",
+	"Choose notification appearance assets.",
+	"Choose navigation assets and interaction styles.",
+	"Choose recent-apps presentation assets."
+]
+
 const STEP_ASSET_PATHS := {
 	2: "res://assets/app_icons",
 	3: "res://assets/system-ui/Widgets",
@@ -27,23 +42,35 @@ const STEP_ASSET_PATHS := {
 	10: "res://assets/system-ui/Recent-Apps"
 }
 
+const BACKGROUND := Color("#292B2D")
+const PANEL := Color("#202325")
+const ACCENT := Color("#C58A3A")
+const TEXT := Color("#EEE9DF")
+const MUTED := Color("#A6A096")
+
 var current_step := 0
 var root_control: Control
-var progress_label: Label
-var progress_bar: ProgressBar
+var worksite_body: HBoxContainer
+var preview_region: Control
+var controls_scroll: ScrollContainer
+var controls_stack: VBoxContainer
 var heading_label: Label
 var description_label: Label
+var progress_label: Label
+var progress_bar: ProgressBar
 var content_column: VBoxContainer
-var asset_list: VBoxContainer
-var preview_title: Label
-var preview_detail: Label
-var back_step_button: Button
-var next_step_button: Button
+var selection_status_label: Label
+var phone_frame: PanelContainer
+var phone_screen: ColorRect
+var power_button: Button
+var previous_button: Button
+var next_button: Button
 var os_name_input: LineEdit
 var manufacturer_input: LineEdit
 var boot_logo_toggle: CheckButton
 var boot_device_toggle: CheckButton
 var selected_asset_path := ""
+var screen_powered := true
 
 func _ready() -> void:
 	_build_interface()
@@ -56,187 +83,239 @@ func _build_interface() -> void:
 	add_child(layer)
 
 	root_control = Control.new()
+	root_control.name = "WorksiteRoot"
 	root_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root_control.mouse_filter = Control.MOUSE_FILTER_PASS
 	layer.add_child(root_control)
 
 	var backdrop := ColorRect.new()
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color("#292B2D")
+	backdrop.color = BACKGROUND
 	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root_control.add_child(backdrop)
 
-	var top := HBoxContainer.new()
-	top.anchor_right = 1.0
-	top.offset_left = 22
-	top.offset_top = 16
-	top.offset_right = -22
-	top.offset_bottom = 62
-	top.add_theme_constant_override("separation", 16)
-	root_control.add_child(top)
+	# The two work areas occupy exactly half of the available width each.
+	worksite_body = HBoxContainer.new()
+	worksite_body.name = "WorksiteMainContent"
+	worksite_body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	worksite_body.offset_left = 20.0
+	worksite_body.offset_right = -20.0
+	worksite_body.offset_top = 4.0
+	worksite_body.offset_bottom = -12.0
+	worksite_body.add_theme_constant_override("separation", 0)
+	root_control.add_child(worksite_body)
 
-	var back := _make_button("BACK")
-	back.pressed.connect(func(): back_requested.emit())
-	top.add_child(back)
+	preview_region = Control.new()
+	preview_region.name = "OSPhonePreviewRegion"
+	preview_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview_region.size_flags_stretch_ratio = 1.0
+	preview_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	worksite_body.add_child(preview_region)
 
-	progress_label = _make_label("STEP 01 / 11", 11, Color("#E5E0D6"))
-	progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var phone_center := CenterContainer.new()
+	phone_center.name = "PhoneDisplayCenter"
+	phone_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	phone_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_region.add_child(phone_center)
+
+	# Physical power key sits to the LEFT of the handset.
+	var phone_row := HBoxContainer.new()
+	phone_row.name = "PhoneAndPowerKey"
+	phone_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	phone_row.add_theme_constant_override("separation", 0)
+	phone_center.add_child(phone_row)
+
+	power_button = Button.new()
+	power_button.name = "PhonePowerButton"
+	power_button.custom_minimum_size = Vector2(11, 64)
+	power_button.tooltip_text = "Power"
+	power_button.focus_mode = Control.FOCUS_NONE
+	power_button.toggle_mode = true
+	power_button.button_pressed = true
+	var power_style := StyleBoxFlat.new()
+	power_style.bg_color = Color("#343638")
+	power_style.border_color = Color("#77736D")
+	power_style.set_border_width_all(1)
+	power_style.set_corner_radius_all(4)
+	power_button.add_theme_stylebox_override("normal", power_style)
+	power_button.add_theme_stylebox_override("hover", power_style)
+	power_button.add_theme_stylebox_override("pressed", _make_panel_style(Color("#111315"), Color("#C58A3A"), 1, 4))
+	power_button.toggled.connect(_on_power_toggled)
+	phone_row.add_child(power_button)
+
+	phone_frame = PanelContainer.new()
+	phone_frame.name = "BlankOSPhoneFrame"
+	phone_frame.custom_minimum_size = Vector2(228, 440)
+	phone_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	phone_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	phone_frame.add_theme_stylebox_override("panel", _make_panel_style(Color("#08090A"), Color("#77736D"), 2, 28))
+	phone_row.add_child(phone_frame)
+
+	var screen_margin := MarginContainer.new()
+	screen_margin.add_theme_constant_override("margin_left", 9)
+	screen_margin.add_theme_constant_override("margin_right", 9)
+	screen_margin.add_theme_constant_override("margin_top", 9)
+	screen_margin.add_theme_constant_override("margin_bottom", 9)
+	phone_frame.add_child(screen_margin)
+
+	phone_screen = ColorRect.new()
+	phone_screen.name = "BlankPhoneDisplay"
+	phone_screen.color = Color("#050607")
+	phone_screen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phone_screen.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	screen_margin.add_child(phone_screen)
+
+	controls_scroll = ScrollContainer.new()
+	controls_scroll.name = "OSControlsScroll"
+	controls_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_scroll.size_flags_stretch_ratio = 1.0
+	controls_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	controls_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	controls_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var scroll_bar := controls_scroll.get_v_scroll_bar()
+	scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	worksite_body.add_child(controls_scroll)
+
+	var controls_margin := MarginContainer.new()
+	controls_margin.name = "OSControlsMargin"
+	controls_margin.add_theme_constant_override("margin_left", 28)
+	controls_margin.add_theme_constant_override("margin_right", 24)
+	controls_margin.add_theme_constant_override("margin_top", 68)
+	controls_margin.add_theme_constant_override("margin_bottom", 68)
+	controls_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	controls_scroll.add_child(controls_margin)
+
+	controls_stack = VBoxContainer.new()
+	controls_stack.name = "OSControlsStack"
+	controls_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	controls_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	controls_stack.add_theme_constant_override("separation", 18)
+	controls_margin.add_child(controls_stack)
+
+	heading_label = _make_label("OS SETUP", 24, Color("#D3AA6B"))
+	controls_stack.add_child(heading_label)
+
+	description_label = _make_label("", 12, Color("#D0CBC2"))
+	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls_stack.add_child(description_label)
+
+	var content_gap := Control.new()
+	content_gap.custom_minimum_size.y = 8
+	controls_stack.add_child(content_gap)
+
+	content_column = VBoxContainer.new()
+	content_column.name = "OSStepControls"
+	content_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_column.add_theme_constant_override("separation", 16)
+	controls_stack.add_child(content_column)
+
+	selection_status_label = _make_label("NO ASSET SELECTED", 10, MUTED)
+	selection_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls_stack.add_child(selection_status_label)
+
+	# Navigation and progress are independent overlays, not header/footer bars.
+	var back_button := _make_button("BACK")
+	back_button.name = "WorksiteBackButton"
+	back_button.anchor_left = 0.0
+	back_button.anchor_top = 0.0
+	back_button.anchor_right = 0.0
+	back_button.anchor_bottom = 0.0
+	back_button.offset_left = 20
+	back_button.offset_top = 12
+	back_button.offset_right = 104
+	back_button.offset_bottom = 58
+	back_button.pressed.connect(func(): back_requested.emit())
+	root_control.add_child(back_button)
+
+	var progress_box := VBoxContainer.new()
+	progress_box.name = "WorksiteProgress"
+	progress_box.anchor_left = 1.0
+	progress_box.anchor_right = 1.0
+	progress_box.anchor_top = 0.0
+	progress_box.anchor_bottom = 0.0
+	progress_box.offset_left = -180
+	progress_box.offset_top = 12
+	progress_box.offset_right = -20
+	progress_box.offset_bottom = 52
+	progress_box.add_theme_constant_override("separation", 4)
+	root_control.add_child(progress_box)
+
+	progress_label = _make_label("STEP 01 / 11", 11, TEXT)
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	top.add_child(progress_label)
-
-	var spacer := Control.new()
-	spacer.custom_minimum_size.x = 74
-	top.add_child(spacer)
+	progress_box.add_child(progress_label)
 
 	progress_bar = ProgressBar.new()
-	progress_bar.anchor_left = 0.16
-	progress_bar.anchor_right = 0.84
-	progress_bar.anchor_top = 0.0
-	progress_bar.anchor_bottom = 0.0
-	progress_bar.offset_top = 72
-	progress_bar.offset_bottom = 80
+	progress_bar.custom_minimum_size = Vector2(0, 7)
 	progress_bar.min_value = 0
 	progress_bar.max_value = STEP_NAMES.size()
 	progress_bar.show_percentage = false
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = Color("#C58A3A")
-	fill.set_corner_radius_all(4)
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color("#17191B")
-	track.set_corner_radius_all(4)
-	progress_bar.add_theme_stylebox_override("fill", fill)
-	progress_bar.add_theme_stylebox_override("background", track)
-	root_control.add_child(progress_bar)
+	progress_bar.add_theme_stylebox_override("fill", _make_panel_style(ACCENT, ACCENT, 0, 4))
+	progress_bar.add_theme_stylebox_override("background", _make_panel_style(Color("#17191B"), Color("#17191B"), 0, 4))
+	progress_box.add_child(progress_bar)
 
-	var body := HBoxContainer.new()
-	body.anchor_left = 0.04
-	body.anchor_right = 0.96
-	body.anchor_top = 0.0
-	body.anchor_bottom = 1.0
-	body.offset_top = 100
-	body.offset_bottom = -94
-	body.add_theme_constant_override("separation", 22)
-	root_control.add_child(body)
+	previous_button = _make_arrow_button("‹")
+	previous_button.name = "WorksitePreviousArrow"
+	previous_button.anchor_left = 0.0
+	previous_button.anchor_right = 0.0
+	previous_button.anchor_top = 1.0
+	previous_button.anchor_bottom = 1.0
+	previous_button.offset_left = 20
+	previous_button.offset_top = -70
+	previous_button.offset_right = 76
+	previous_button.offset_bottom = -14
+	previous_button.pressed.connect(_previous_step)
+	root_control.add_child(previous_button)
 
-	var preview_column := VBoxContainer.new()
-	preview_column.custom_minimum_size.x = 210
-	preview_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	preview_column.size_flags_stretch_ratio = 0.82
-	preview_column.alignment = BoxContainer.ALIGNMENT_CENTER
-	preview_column.add_theme_constant_override("separation", 12)
-	body.add_child(preview_column)
+	next_button = _make_arrow_button("›")
+	next_button.name = "WorksiteNextArrow"
+	next_button.anchor_left = 1.0
+	next_button.anchor_right = 1.0
+	next_button.anchor_top = 1.0
+	next_button.anchor_bottom = 1.0
+	next_button.offset_left = -76
+	next_button.offset_top = -70
+	next_button.offset_right = -20
+	next_button.offset_bottom = -14
+	next_button.pressed.connect(_next_step)
+	root_control.add_child(next_button)
 
-	var phone_frame := PanelContainer.new()
-	phone_frame.custom_minimum_size = Vector2(150, 320)
-	phone_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	phone_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var frame_style := StyleBoxFlat.new()
-	frame_style.bg_color = Color("#090A0C")
-	frame_style.border_color = Color("#77736D")
-	frame_style.set_border_width_all(2)
-	frame_style.set_corner_radius_all(22)
-	frame_style.content_margin_left = 8
-	frame_style.content_margin_right = 8
-	frame_style.content_margin_top = 8
-	frame_style.content_margin_bottom = 8
-	frame_style.shadow_color = Color(0, 0, 0, 0.42)
-	frame_style.shadow_size = 14
-	phone_frame.add_theme_stylebox_override("panel", frame_style)
-	preview_column.add_child(phone_frame)
+	root_control.resized.connect(_apply_responsive_layout)
+	call_deferred("_apply_responsive_layout")
 
-	var screen := PanelContainer.new()
-	var screen_style := StyleBoxFlat.new()
-	screen_style.bg_color = Color("#111820")
-	screen_style.set_corner_radius_all(15)
-	screen.add_theme_stylebox_override("panel", screen_style)
-	phone_frame.add_child(screen)
-
-	var preview_stack := VBoxContainer.new()
-	preview_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	preview_stack.add_theme_constant_override("separation", 12)
-	screen.add_child(preview_stack)
-	var mark := _make_label("DW", 34, Color("#D3AA6B"))
-	mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	preview_stack.add_child(mark)
-	var preview_caption := _make_label("OPERATING SYSTEM", 9, Color("#D0CBC2"))
-	preview_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	preview_stack.add_child(preview_caption)
-	preview_title = _make_label("DESIGN PREVIEW", 12, Color.WHITE)
-	preview_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	preview_stack.add_child(preview_title)
-	preview_detail = _make_label("Your OS workspace preview\nwill appear here.", 9, Color("#A6A096"))
-	preview_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	preview_detail.autowrap_mode = TextServer.AUTOWRAP_WORD
-	preview_stack.add_child(preview_detail)
-
-	var workspace := VBoxContainer.new()
-	workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	workspace.size_flags_stretch_ratio = 1.18
-	workspace.add_theme_constant_override("separation", 10)
-	body.add_child(workspace)
-
-	heading_label = _make_label("OS SETUP", 22, Color("#D3AA6B"))
-	workspace.add_child(heading_label)
-	description_label = _make_label("", 11, Color("#D0CBC2"))
-	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	workspace.add_child(description_label)
-
-	var separator := HSeparator.new()
-	workspace.add_child(separator)
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.get_v_scroll_bar().modulate.a = 0.0
-	workspace.add_child(scroll)
-
-	content_column = VBoxContainer.new()
-	content_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_column.add_theme_constant_override("separation", 12)
-	scroll.add_child(content_column)
-
-	var footer := HBoxContainer.new()
-	footer.anchor_left = 0.04
-	footer.anchor_right = 0.96
-	footer.anchor_top = 1.0
-	footer.anchor_bottom = 1.0
-	footer.offset_top = -76
-	footer.offset_bottom = -18
-	footer.add_theme_constant_override("separation", 12)
-	root_control.add_child(footer)
-
-	back_step_button = _make_button("PREVIOUS")
-	back_step_button.pressed.connect(_previous_step)
-	footer.add_child(back_step_button)
-
-	var footer_spacer := Control.new()
-	footer_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer.add_child(footer_spacer)
-
-	next_step_button = _make_button("NEXT")
-	next_step_button.pressed.connect(_next_step)
-	footer.add_child(next_step_button)
+func _apply_responsive_layout() -> void:
+	if not is_instance_valid(phone_frame) or not is_instance_valid(preview_region):
+		return
+	var available := preview_region.size
+	var target_width := clampf(available.x * 0.48, 150.0, 280.0)
+	var target_height := clampf(available.y * 0.78, 250.0, 540.0)
+	var aspect := 228.0 / 440.0
+	if target_width / target_height > aspect:
+		target_width = target_height * aspect
+	else:
+		target_height = target_width / aspect
+	phone_frame.custom_minimum_size = Vector2(target_width, target_height)
 
 func _show_step(step_index: int) -> void:
 	current_step = clampi(step_index, 0, STEP_NAMES.size() - 1)
+	heading_label.text = STEP_NAMES[current_step]
+	description_label.text = STEP_DESCRIPTIONS[current_step]
 	progress_label.text = "STEP %02d / %02d" % [current_step + 1, STEP_NAMES.size()]
 	progress_bar.value = current_step + 1
-	heading_label.text = STEP_NAMES[current_step]
-	back_step_button.disabled = current_step == 0
-	next_step_button.text = "FINISH" if current_step == STEP_NAMES.size() - 1 else "NEXT"
+	previous_button.disabled = current_step == 0
+	next_button.text = "✓" if current_step == STEP_NAMES.size() - 1 else "›"
+	selection_status_label.text = "NO ASSET SELECTED" if selected_asset_path.is_empty() else selected_asset_path.replace("res://", "")
+
 	for child in content_column.get_children():
 		content_column.remove_child(child)
 		child.queue_free()
+
 	match current_step:
 		0:
-			description_label.text = "Define the identity of the operating system you are creating."
-			_add_field("OPERATING SYSTEM NAME", "MyOS", true)
-			_add_field("MANUFACTURER / DEVELOPER", "Your company", false)
-			_add_note("This workspace is independent. It does not install or connect an OS to the Phone Creation Worksite.")
+			_add_field("OPERATING SYSTEM NAME", "Enter OS name", true)
+			_add_field("MANUFACTURER / DEVELOPER", "Enter developer name", false)
 		1:
-			description_label.text = "Configure the startup identity and boot sequence presentation."
 			boot_logo_toggle = CheckButton.new()
 			boot_logo_toggle.text = "Show company logo during startup"
 			boot_logo_toggle.button_pressed = true
@@ -245,27 +324,19 @@ func _show_step(step_index: int) -> void:
 			boot_device_toggle.text = "Show device name and model"
 			boot_device_toggle.button_pressed = true
 			content_column.add_child(boot_device_toggle)
-			_add_note("Bootloader settings are currently design selections only. No boot process or simulator is connected.")
 		_:
-			description_label.text = "Browse the collected source assets for this OS component. Android XML and vector sources are shown as source files; they are not treated as Godot textures."
 			_show_asset_browser(current_step)
 
 func _add_field(caption: String, placeholder: String, is_os_name: bool) -> void:
-	var label := _make_label(caption, 9, Color("#D3AA6B"))
+	var label := _make_label(caption, 11, Color("#D3AA6B"))
 	content_column.add_child(label)
 	var field := LineEdit.new()
 	field.placeholder_text = placeholder
-	field.custom_minimum_size.y = 42
-	field.add_theme_color_override("font_color", Color("#F4F1EA"))
+	field.custom_minimum_size.y = 48
+	field.add_theme_color_override("font_color", TEXT)
 	field.add_theme_color_override("font_placeholder_color", Color("#8F8A80"))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#17191B")
-	style.border_color = Color("#6E5B42")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
-	field.add_theme_stylebox_override("normal", style)
+	field.add_theme_stylebox_override("normal", _make_panel_style(PANEL, Color("#6E5B42"), 1, 9))
+	field.add_theme_stylebox_override("focus", _make_panel_style(Color("#29251F"), ACCENT, 1, 9))
 	content_column.add_child(field)
 	if is_os_name:
 		os_name_input = field
@@ -274,17 +345,20 @@ func _add_field(caption: String, placeholder: String, is_os_name: bool) -> void:
 
 func _show_asset_browser(step_index: int) -> void:
 	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
-	var path_label := _make_label(path.replace("res://", ""), 9, Color("#D3AA6B"))
+	var path_label := _make_label(path.replace("res://", ""), 10, Color("#D3AA6B"))
 	path_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content_column.add_child(path_label)
+
 	var files: Array[String] = []
 	_collect_files(path, files)
 	files.sort()
 	if files.is_empty():
-		_add_note("No collected files are present in this category yet. The worksite is ready for the assets when sourcing is complete.")
+		_add_note("No collected files are present in this category yet. This category is ready for its assets.")
 		return
+
 	for file_path in files:
 		var item := _make_button(file_path.trim_prefix(path + "/"))
+		item.custom_minimum_size.y = 48
 		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		item.pressed.connect(_select_asset.bind(file_path))
@@ -308,16 +382,21 @@ func _collect_files(folder_path: String, output: Array[String]) -> void:
 
 func _select_asset(path: String) -> void:
 	selected_asset_path = path
-	preview_title.text = "SELECTED SOURCE"
-	preview_detail.text = path.replace("res://", "")
-	
+	selection_status_label.text = path.replace("res://", "")
+
+func _on_power_toggled(enabled: bool) -> void:
+	screen_powered = enabled
+	# The screen stays empty in both states; only its power state changes.
+	phone_screen.color = Color("#050607") if enabled else Color("#000000")
+
 func _add_note(message: String) -> void:
-	var note := _make_label(message, 10, Color("#A6A096"))
+	var note := _make_label(message, 11, MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content_column.add_child(note)
 
 func _previous_step() -> void:
-	_show_step(current_step - 1)
+	if current_step > 0:
+		_show_step(current_step - 1)
 
 func _next_step() -> void:
 	if current_step < STEP_NAMES.size() - 1:
@@ -332,21 +411,38 @@ func _make_label(value: String, font_size: int, color: Color) -> Label:
 	label.add_theme_color_override("font_color", color)
 	return label
 
+func _make_panel_style(fill: Color, border: Color, border_width: int, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.set_border_width_all(border_width)
+	style.set_corner_radius_all(radius)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	return style
+
 func _make_button(value: String) -> Button:
 	var button := Button.new()
 	button.text = value
-	button.custom_minimum_size = Vector2(0, 42)
+	button.custom_minimum_size = Vector2(0, 48)
 	button.focus_mode = Control.FOCUS_NONE
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color("#202325")
-	normal.border_color = Color("#6E5B42")
-	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(9)
-	var hover := normal.duplicate()
-	hover.bg_color = Color("#30291F")
-	button.add_theme_stylebox_override("normal", normal)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
-	button.add_theme_color_override("font_color", Color("#EEE9DF"))
+	button.add_theme_stylebox_override("normal", _make_panel_style(PANEL, Color("#6E5B42"), 1, 9))
+	button.add_theme_stylebox_override("hover", _make_panel_style(Color("#30291F"), ACCENT, 1, 9))
+	button.add_theme_stylebox_override("pressed", _make_panel_style(Color("#211B14"), ACCENT, 1, 9))
+	button.add_theme_color_override("font_color", TEXT)
 	button.add_theme_color_override("font_hover_color", Color("#F2EDE4"))
+	return button
+
+func _make_arrow_button(value: String) -> Button:
+	var button := Button.new()
+	button.text = value
+	button.custom_minimum_size = Vector2(56, 56)
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_font_size_override("font_size", 28)
+	button.add_theme_stylebox_override("normal", _make_panel_style(Color("#17191B"), Color("#6E5B42"), 1, 28))
+	button.add_theme_stylebox_override("hover", _make_panel_style(Color("#30291F"), ACCENT, 1, 28))
+	button.add_theme_stylebox_override("pressed", _make_panel_style(Color("#211B14"), ACCENT, 1, 28))
+	button.add_theme_color_override("font_color", TEXT)
 	return button
