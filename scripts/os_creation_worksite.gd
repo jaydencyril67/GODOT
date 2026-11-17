@@ -60,7 +60,7 @@ var progress_label: Label
 var progress_bar: ProgressBar
 var content_column: VBoxContainer
 var selection_status_label: Label
-var phone_frame: PanelContainer
+var phone_frame: SubViewportContainer
 var phone_screen: ColorRect
 var power_button: Button
 var previous_button: Button
@@ -152,27 +152,94 @@ func _build_interface() -> void:
 	power_button.pressed.connect(_on_power_pressed)
 	power_button_center.add_child(power_button)
 
-	phone_frame = PanelContainer.new()
-	phone_frame.name = "OSPhoneFrame"
+	# Render a fixed 3D handset in its own viewport. The camera is deliberately
+	# static: the player can power the device, but cannot rotate or drag it.
+	phone_frame = SubViewportContainer.new()
+	phone_frame.name = "OSPhone3DPreview"
 	phone_frame.custom_minimum_size = Vector2(228, 440)
 	phone_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	phone_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	phone_frame.add_theme_stylebox_override("panel", _make_panel_style(Color("#08090A"), Color("#77736D"), 2, 28))
+	phone_frame.stretch = true
 	phone_row.add_child(phone_frame)
 
-	var screen_margin := MarginContainer.new()
-	screen_margin.add_theme_constant_override("margin_left", 9)
-	screen_margin.add_theme_constant_override("margin_right", 9)
-	screen_margin.add_theme_constant_override("margin_top", 9)
-	screen_margin.add_theme_constant_override("margin_bottom", 9)
-	phone_frame.add_child(screen_margin)
+	var phone_viewport := SubViewport.new()
+	phone_viewport.name = "FixedPhone3DViewport"
+	phone_viewport.size = Vector2i(640, 1200)
+	phone_viewport.transparent_bg = true
+	phone_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	phone_frame.add_child(phone_viewport)
+
+	var phone_world := Node3D.new()
+	phone_world.name = "FixedPhoneModel"
+	phone_viewport.add_child(phone_world)
+
+	var phone_camera := Camera3D.new()
+	phone_camera.name = "FixedPerspectiveCamera"
+	phone_camera.position = Vector3(2.0, 1.0, 8.6)
+	phone_camera.fov = 34.0
+	phone_camera.look_at(Vector3.ZERO, Vector3.UP)
+	phone_world.add_child(phone_camera)
+
+	var key_light := DirectionalLight3D.new()
+	key_light.name = "PhoneStudioKeyLight"
+	key_light.rotation_degrees = Vector3(-34.0, -28.0, -18.0)
+	key_light.light_energy = 1.35
+	phone_world.add_child(key_light)
+
+	var fill_light := OmniLight3D.new()
+	fill_light.name = "PhoneStudioFillLight"
+	fill_light.position = Vector3(-3.0, 1.8, 4.0)
+	fill_light.light_energy = 0.7
+	fill_light.omni_range = 12.0
+	phone_world.add_child(fill_light)
+
+	var frame_material := StandardMaterial3D.new()
+	frame_material.albedo_color = Color("#34383D")
+	frame_material.metallic = 0.82
+	frame_material.roughness = 0.24
+
+	var body_mesh := MeshInstance3D.new()
+	body_mesh.name = "TitaniumPhoneBody"
+	var body_box := BoxMesh.new()
+	body_box.size = Vector3(2.34, 4.54, 0.24)
+	body_mesh.mesh = body_box
+	body_mesh.material_override = frame_material
+	phone_world.add_child(body_mesh)
+
+	# Rounded corner caps soften the silhouette of the metal handset body.
+	for corner_x in [-1.05, 1.05]:
+		for corner_y in [-2.05, 2.05]:
+			var corner := MeshInstance3D.new()
+			corner.name = "RoundedFrameCorner"
+			var corner_mesh := CylinderMesh.new()
+			corner_mesh.top_radius = 0.12
+			corner_mesh.bottom_radius = 0.12
+			corner_mesh.height = 0.24
+			corner_mesh.radial_segments = 24
+			corner.mesh = corner_mesh
+			corner.material_override = frame_material
+			corner.position = Vector3(corner_x, corner_y, 0.0)
+			corner.rotation_degrees.x = 90.0
+			phone_world.add_child(corner)
+
+	var screen_viewport := SubViewport.new()
+	screen_viewport.name = "PhoneScreenInterfaceViewport"
+	screen_viewport.size = Vector2i(456, 880)
+	screen_viewport.transparent_bg = false
+	screen_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	phone_viewport.add_child(screen_viewport)
+
+	var screen_root := Control.new()
+	screen_root.name = "PhoneScreenInterface"
+	screen_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_viewport.add_child(screen_root)
 
 	phone_screen = ColorRect.new()
 	phone_screen.name = "PhoneDisplay"
+	phone_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	phone_screen.color = Color("#000000")
-	phone_screen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	phone_screen.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	screen_margin.add_child(phone_screen)
+	phone_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen_root.add_child(phone_screen)
 
 	var boot_content := VBoxContainer.new()
 	boot_content.name = "BootScreenContent"
@@ -203,6 +270,65 @@ func _build_interface() -> void:
 	phone_model_label.visible = false
 	boot_content.add_child(phone_model_label)
 	_apply_boot_font_weight(phone_model_label, 700)
+
+	var screen_material := StandardMaterial3D.new()
+	screen_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	screen_material.albedo_texture = screen_viewport.get_texture()
+	screen_material.roughness = 0.18
+	screen_material.metallic = 0.0
+
+	var screen_mesh_instance := MeshInstance3D.new()
+	screen_mesh_instance.name = "GlassDisplay"
+	var screen_quad := QuadMesh.new()
+	screen_quad.size = Vector2(2.12, 4.25)
+	screen_mesh_instance.mesh = screen_quad
+	screen_mesh_instance.material_override = screen_material
+	screen_mesh_instance.position = Vector3(0.0, 0.0, 0.126)
+	phone_world.add_child(screen_mesh_instance)
+
+	var glass_material := StandardMaterial3D.new()
+	glass_material.albedo_color = Color("#111820")
+	glass_material.metallic = 0.25
+	glass_material.roughness = 0.16
+	var earpiece := MeshInstance3D.new()
+	earpiece.name = "TopEarpiece"
+	var earpiece_mesh := BoxMesh.new()
+	earpiece_mesh.size = Vector3(0.34, 0.025, 0.012)
+	earpiece.mesh = earpiece_mesh
+	earpiece.material_override = glass_material
+	earpiece.position = Vector3(0.12, 2.14, 0.145)
+	phone_world.add_child(earpiece)
+
+	var front_camera := MeshInstance3D.new()
+	front_camera.name = "FrontCameraLens"
+	var lens_mesh := CylinderMesh.new()
+	lens_mesh.top_radius = 0.035
+	lens_mesh.bottom_radius = 0.035
+	lens_mesh.height = 0.018
+	lens_mesh.radial_segments = 24
+	front_camera.mesh = lens_mesh
+	front_camera.material_override = glass_material
+	front_camera.position = Vector3(-0.36, 2.14, 0.145)
+	front_camera.rotation_degrees.x = 90.0
+	phone_world.add_child(front_camera)
+
+	var side_button_material := StandardMaterial3D.new()
+	side_button_material.albedo_color = Color("#555B61")
+	side_button_material.metallic = 0.78
+	side_button_material.roughness = 0.28
+	for button_data in [
+		{"name": "PowerKey", "position": Vector3(1.19, 1.15, 0.0), "size": Vector3(0.075, 0.48, 0.12)},
+		{"name": "VolumeUpKey", "position": Vector3(-1.19, 1.15, 0.0), "size": Vector3(0.075, 0.34, 0.12)},
+		{"name": "VolumeDownKey", "position": Vector3(-1.19, 0.68, 0.0), "size": Vector3(0.075, 0.34, 0.12)}
+	]:
+		var side_key := MeshInstance3D.new()
+		side_key.name = button_data["name"]
+		var side_key_mesh := BoxMesh.new()
+		side_key_mesh.size = button_data["size"]
+		side_key.mesh = side_key_mesh
+		side_key.material_override = side_button_material
+		side_key.position = button_data["position"]
+		phone_world.add_child(side_key)
 
 	controls_scroll = ScrollContainer.new()
 	controls_scroll.name = "OSControlsScroll"
@@ -327,7 +453,7 @@ func _apply_responsive_layout() -> void:
 	if not is_instance_valid(phone_frame) or not is_instance_valid(preview_region):
 		return
 	var available := preview_region.size
-	# Fill almost the entire preview height while preserving a realistic handset ratio.
+	# Keep the rendered 3D handset tall while preserving its real-world silhouette.
 	var target_height := maxf(available.y - 18.0, 220.0)
 	var aspect := 228.0 / 440.0
 	var target_width := target_height * aspect
