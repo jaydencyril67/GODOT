@@ -118,6 +118,59 @@ func _run_test() -> void:
 		_fail("Swiping down from PIN entry did not return to the lock screen.")
 		return
 
+	# Reopen PIN entry and complete six digits. The real worksite must hand
+	# the handset display over to its launcher only after the PIN is complete.
+	swipe_start = Vector2(phone_frame.size.x * 0.5, phone_frame.size.y * 0.80)
+	swipe_end = Vector2(phone_frame.size.x * 0.5, phone_frame.size.y * 0.28)
+	_send_touch(worksite, swipe_start, true)
+	_send_touch(worksite, swipe_end, false)
+	if not bool(lock_screen.call("is_pin_entry_visible")):
+		_fail("The PIN entry screen did not reopen for the unlock handoff.")
+		return
+	for digit in [1, 2, 3, 4, 5, 6]:
+		lock_screen.call("press_pin_digit", digit)
+
+	var home_screen := worksite.get("home_screen_designer") as Control
+	if home_screen == null or not home_screen.visible:
+		_fail("Completing the six-digit PIN did not reveal the home screen.")
+		return
+	if lock_screen.visible or bool(lock_screen.call("is_pin_entry_visible")):
+		_fail("The lock screen or PIN overlay remained visible after successful unlock.")
+		return
+	if int(home_screen.call("get_loaded_app_count")) < 140:
+		_fail("The unlocked home screen did not load the app icon collection.")
+
+	# Horizontal swipes move between launcher pages; an upward swipe opens
+	# the all-apps drawer, and a downward swipe from its top closes it.
+	swipe_start = Vector2(phone_frame.size.x * 0.80, phone_frame.size.y * 0.52)
+	swipe_end = Vector2(phone_frame.size.x * 0.20, phone_frame.size.y * 0.52)
+	_send_touch(worksite, swipe_start, true)
+	_send_touch(worksite, swipe_end, false)
+	if int(home_screen.call("get_home_page_index")) != 1:
+		_fail("A horizontal home-screen swipe did not advance to the second page.")
+		return
+
+	swipe_start = Vector2(phone_frame.size.x * 0.5, phone_frame.size.y * 0.80)
+	swipe_end = Vector2(phone_frame.size.x * 0.5, phone_frame.size.y * 0.28)
+	_send_touch(worksite, swipe_start, true)
+	_send_touch(worksite, swipe_end, false)
+	if not bool(home_screen.call("is_app_drawer_visible")):
+		_fail("Swiping up from the home screen did not open the app drawer.")
+		return
+
+	swipe_start = Vector2(phone_frame.size.x * 0.5, phone_frame.size.y * 0.20)
+	swipe_end = Vector2(phone_frame.size.x * 0.5, phone_frame.size.y * 0.80)
+	_send_touch(worksite, swipe_start, true)
+	_send_touch(worksite, swipe_end, false)
+	if bool(home_screen.call("is_app_drawer_visible")):
+		_fail("Swiping down from the top of the app drawer did not close it.")
+		return
+
+	worksite.call("_on_power_pressed")
+	if home_screen.visible or lock_screen.visible:
+		_fail("Powering off did not hide both the home screen and lock screen.")
+		return
+
 	worksite.queue_free()
 	await process_frame
 	print("PIN_ENTRY_SWIPE_SMOKE_TEST: PASS")
