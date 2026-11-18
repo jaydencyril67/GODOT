@@ -125,6 +125,9 @@ func _run_test() -> void:
 		analog_artwork_renderer_found = true
 
 		var notifications: Array = design.get("notifications", [])
+		if notifications.is_empty():
+			_fail("A generated lock-screen composition has no notification available for the optional notification renderer.")
+			return
 		notification_count += notifications.size()
 		for notification_entry in notifications:
 			var icon_path := str(notification_entry.get("icon", ""))

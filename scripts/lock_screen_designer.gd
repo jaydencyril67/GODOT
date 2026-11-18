@@ -344,6 +344,8 @@ func validate_layout(design: Dictionary) -> Array[String]:
 				break
 		occupied.append(rect)
 
+	if design.get("notifications", []).is_empty():
+		issues.append("The composition must retain at least one notification for the optional notification renderer.")
 	if notification_components != design.get("notifications", []).size():
 		issues.append("Notification metadata and placed notification components do not match.")
 	if media_components > 1 or (media_components == 1) != (not design.get("media", {}).is_empty()):
@@ -431,8 +433,8 @@ func _compose_design() -> Dictionary:
 			_add_component(components, occupied, "media", slot_rect)
 
 	if notifications.is_empty():
-		var fallback_notification_rect := Rect2(Vector2(0.075, 0.425), Vector2(0.85, 0.065))
-		if _can_place(fallback_notification_rect, occupied):
+		var fallback_notification_rect := _find_notification_rect(occupied, 0)
+		if fallback_notification_rect.size.x > 0.0:
 			var fallback_notification: Dictionary = NOTIFICATION_PRESETS[_rng.randi_range(0, NOTIFICATION_PRESETS.size() - 1)].duplicate(true)
 			fallback_notification["rect"] = fallback_notification_rect
 			fallback_notification["timestamp"] = "NOW"
@@ -504,16 +506,22 @@ func _compose_design() -> Dictionary:
 
 
 func _find_notification_rect(occupied: Array[Rect2], index: int) -> Rect2:
-	var height := _rng.randf_range(0.060, 0.078)
-	for _attempt in range(36):
-		var width := _rng.randf_range(0.76, 0.88)
-		var x := _rng.randf_range(0.06, 0.94 - width)
-		var y := _rng.randf_range(0.535, 0.735)
-		if index > 0:
-			y = _rng.randf_range(0.62, 0.735)
-		var candidate := Rect2(Vector2(x, y), Vector2(width, height))
-		if _can_place(candidate, occupied):
-			return candidate
+	# Search from the first content row downward so a notification can still
+	# fit above an existing media card when its curated slot is unavailable.
+	var height := 0.068
+	var widths: Array[float] = [0.85, 0.82, 0.78]
+	var x_positions: Array[float] = [0.075, 0.09, 0.12, 0.16]
+	for width in widths:
+		for y_step in range(24):
+			var y := 0.425 + float(y_step) * 0.012
+			if index > 0:
+				y = maxf(y, 0.62)
+			for x in x_positions:
+				if x + width > 0.955:
+					continue
+				var candidate := Rect2(Vector2(x, y), Vector2(width, height))
+				if _can_place(candidate, occupied):
+					return candidate
 	return Rect2()
 
 
