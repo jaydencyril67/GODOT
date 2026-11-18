@@ -73,6 +73,38 @@ func _run_test() -> void:
 		_fail("The OS worksite did not prepare a default lock-screen before boot completed.")
 		return
 
+	worksite.call("_show_step", 1)
+	var heading := worksite.get("heading_label") as Label
+	if heading == null or heading.text != "LOCK-SCREEN":
+		_fail("Lock Screen must be the second OS Creation Worksite step.")
+		return
+	var lock_controls := worksite.get("content_column") as VBoxContainer
+	var lock_option_names := [
+		"LockScreenOption_notifications",
+		"LockScreenOption_music_player",
+		"LockScreenOption_flashlight",
+		"LockScreenOption_camera",
+		"LockScreenOption_fingerprint"
+	]
+	for option_name in lock_option_names:
+		var option_button := lock_controls.find_child(option_name, true, false) as Button
+		if option_button == null or option_button.button_pressed:
+			_fail("A lock-screen optional element is missing or enabled by default: " + option_name)
+			return
+
+	var wallpapers: Array = lock_screen.call("get_wallpaper_paths")
+	if wallpapers.is_empty():
+		_fail("The separate Wallpapers step has no available lock-screen wallpaper assets.")
+		return
+	worksite.call("_show_step", 4)
+	if heading.text != "WALLPAPERS":
+		_fail("The independent Wallpapers step is not in position five.")
+		return
+	worksite.call("_select_asset", str(wallpapers[0]))
+	if str(lock_screen.call("get_selected_wallpaper_path")) != str(wallpapers[0]):
+		_fail("Selecting a wallpaper in the Wallpapers step did not update the lock-screen preview.")
+		return
+
 	# The status-bar worksite step exposes all ten presets and applies selections
 	# to the lock-screen currently displayed on the phone.
 	worksite.call("_show_step", 5)
