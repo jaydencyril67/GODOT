@@ -7,12 +7,12 @@ const LOCK_ICON_PATH := "res://assets/lock-screen/aosp/SVG/ic_lock_locked.svg"
 const HOME_PAGE_APP_IDS := [
 	[
 		"instagram", "facebook", "telegram", "tiktok",
-		"google_keep", "google_docs", "google_earth", "netflix",
+		"keep", "docs", "earth", "netflix",
 		"discord", "snapchat", "twitter", "shazam",
-		"spotify_client", "google_chrome", "google_drive", "google_photos"
+		"spotify_client", "chrome", "drive", "photos"
 	],
 	[
-		"google_sheets", "google_slides", "google_classroom", "google_translate",
+		"sheets", "slides", "classroom", "translate",
 		"amazon_store", "ebay", "paypal", "uber_driver",
 		"airbnb", "duolingo", "minecraft", "roblox",
 		"pubg", "brawl_stars", "cash_app", "notion"
