@@ -955,17 +955,17 @@ func _add_date(design: Dictionary, palette: Dictionary) -> void:
 func _add_notification(notification_data: Dictionary, palette: Dictionary) -> void:
 	var card: Control = NotificationCardScene.instantiate() as Control
 	card.name = "GeneratedNotification"
-	card.call("configure", notification_data, palette)
 	_set_normalized_rect(card, notification_data["rect"])
 	add_child(card)
+	card.call("configure", notification_data, palette)
 
 
 func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	var card: Control = MediaPlayerCardScene.instantiate() as Control
 	card.name = "GeneratedLockScreenMediaPlayer"
-	card.call("configure", media, palette)
 	_set_normalized_rect(card, media["rect"])
 	add_child(card)
+	card.call("configure", media, palette)
 
 func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 	for shortcut in design["shortcuts"]:
