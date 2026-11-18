@@ -1,363 +1,350 @@
 extends Control
 
-# These 41 presets are grouped around the real phone lock-screen references:
-# Galaxy S21 / One UI, Galaxy S26 / One UI, iPhone 16 Pro Max, iPhone 17 Pro
-# Max, and Pixel / Android 16. Each preset describes a phone-screen layout,
-# never a decorative clock device or a hardware bezel.
-const STYLE_GROUPS := [
-	{
-		"source": "SAMSUNG GALAXY S21 · ONE UI",
-		"layout": "single",
-		"time_rect": Rect2(0.075, 0.215, 0.85, 0.145),
-		"hours_rect": Rect2(),
-		"minutes_rect": Rect2(),
-		"date_rect": Rect2(0.075, 0.178, 0.85, 0.026),
-		"font_names": ["Roboto"],
-		"font_families": ["sans-serif", "sans-serif-light", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif", "sans-serif", "sans-serif"],
-		"date_format": "samsung",
-		"color_mode": "text",
-		"names": ["One UI Classic", "One UI Light", "One UI Medium", "One UI Bold", "One UI Compact", "One UI Wide", "One UI Left", "One UI Right"],
-		"font_scales": [0.108, 0.104, 0.11, 0.112, 0.103, 0.109, 0.108, 0.108],
-		"font_weights": [400, 300, 600, 900, 500, 800, 600, 700],
-		"font_italics": [false, false, false, false, false, false, true, false],
-		"time_letter_spacings": [0, 0, 0, 0, 0, 1, 0, -1],
-		"font_stretches": [100, 96, 100, 100, 92, 112, 100, 100],
-		"alignments": ["center", "center", "center", "center", "center", "center", "left", "right"],
-		"font_alphas": [1.0, 0.96, 1.0, 1.0, 0.96, 1.0, 1.0, 1.0],
-		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.02, 0.021, 0.021, 0.021]
-	},
-	{
-		"source": "SAMSUNG GALAXY S26 · ONE UI",
-		"layout": "stacked",
-		"time_rect": Rect2(),
-		"hours_rect": Rect2(0.08, 0.115, 0.84, 0.115),
-		"minutes_rect": Rect2(0.08, 0.23, 0.84, 0.115),
-		"date_rect": Rect2(0.08, 0.35, 0.84, 0.028),
-		"font_names": ["Roboto"],
-		"date_format": "samsung",
-		"color_mode": "text",
-		"names": ["One UI Stack", "One UI Stack Light", "One UI Stack Medium", "One UI Stack Bold", "One UI Stack Narrow", "One UI Stack Wide", "One UI Stretch", "One UI Stack Large"],
-		"font_scales": [0.11, 0.106, 0.11, 0.112, 0.106, 0.11, 0.112, 0.114],
-		"font_weights": [400, 300, 600, 900, 500, 700, 600, 700],
-		"font_italics": [false, false, false, false, false, false, true, false],
-		"time_letter_spacings": [0, 0, 0, 0, 0, 1, 0, -1],
-		"font_stretches": [100, 100, 100, 100, 88, 112, 112, 100],
-		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center"],
-		"font_alphas": [1.0, 0.96, 1.0, 1.0, 1.0, 1.0, 0.98, 1.0],
-		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.022]
-	},
-	{
-		"source": "APPLE IPHONE 16 PRO MAX · IOS",
-		"layout": "single",
-		"time_rect": Rect2(0.055, 0.225, 0.89, 0.17),
-		"hours_rect": Rect2(),
-		"minutes_rect": Rect2(),
-		"date_rect": Rect2(0.055, 0.19, 0.89, 0.026),
-		"font_names": ["Roboto"],
-		"font_families": ["sans-serif", "sans-serif-light", "sans-serif", "sans-serif-medium", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif"],
-		"date_format": "apple",
-		"color_mode": "white",
-		"names": ["iOS Classic", "iOS Ultralight", "iOS Light", "iOS Regular", "iOS Medium", "iOS Semibold", "iOS Wide", "iOS Tall"],
-		"font_scales": [0.12, 0.116, 0.118, 0.12, 0.122, 0.124, 0.12, 0.126],
-		"font_weights": [400, 200, 300, 500, 600, 800, 500, 600],
-		"font_italics": [false, false, false, false, false, false, false, true],
-		"time_letter_spacings": [0, 0, 0, 0, 0, 0, 1, 0],
-		"font_stretches": [100, 100, 100, 100, 100, 100, 112, 100],
-		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center"],
-		"font_alphas": [1.0, 0.94, 0.96, 1.0, 1.0, 1.0, 1.0, 1.0],
-		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021]
-	},
-	{
-		"source": "APPLE IPHONE 17 PRO MAX · IOS",
-		"layout": "single",
-		"time_rect": Rect2(0.045, 0.212, 0.91, 0.18),
-		"hours_rect": Rect2(),
-		"minutes_rect": Rect2(),
-		"date_rect": Rect2(0.055, 0.178, 0.89, 0.026),
-		"font_names": ["Roboto"],
-		"font_families": ["sans-serif", "sans-serif-light", "sans-serif", "sans-serif-medium", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif"],
-		"date_format": "apple",
-		"color_mode": "white",
-		"names": ["iOS 26 Clear", "iOS 26 Soft", "iOS 26 Translucent", "iOS 26 Light", "iOS 26 Medium", "iOS 26 Bold", "iOS 26 Tall", "iOS 26 Extended"],
-		"font_scales": [0.124, 0.12, 0.116, 0.118, 0.122, 0.126, 0.128, 0.124],
-		"font_weights": [400, 350, 300, 400, 600, 900, 500, 600],
-		"font_italics": [false, false, false, false, false, false, false, true],
-		"time_letter_spacings": [0, 0, 0, 0, 0, 0, 1, 0],
-		"font_stretches": [100, 100, 100, 96, 100, 100, 108, 118],
-		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center"],
-		"font_alphas": [1.0, 0.9, 0.76, 0.94, 1.0, 1.0, 0.92, 0.96],
-		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021]
-	},
-	{
-		"source": "GOOGLE PIXEL · ANDROID 16",
-		"layout": "stacked",
-		"layouts": ["stacked", "stacked", "stacked", "stacked", "stacked", "stacked", "single", "single", "single"],
-		"time_rect": Rect2(0.08, 0.205, 0.84, 0.14),
-		"hours_rect": Rect2(0.09, 0.145, 0.82, 0.108),
-		"minutes_rect": Rect2(0.09, 0.253, 0.82, 0.108),
-		"date_rect": Rect2(0.09, 0.365, 0.82, 0.026),
-		"font_names": ["Roboto"],
-		"font_families": ["sans-serif", "sans-serif-light", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif", "sans-serif", "sans-serif-condensed", "sans-serif-condensed"],
-		"date_format": "pixel",
-		"color_mode": "accent",
-		"names": ["Material Stack", "Material Stack Light", "Material Stack Medium", "Material Stack Bold", "Material Stack Narrow", "Material Stack Wide", "Material Single", "Material Single Wide", "Material Single Compact"],
-		"font_scales": [0.11, 0.106, 0.112, 0.114, 0.106, 0.11, 0.108, 0.11, 0.102],
-		"font_weights": [400, 300, 600, 900, 500, 700, 500, 600, 400],
-		"font_italics": [false, false, false, false, false, false, false, true, false],
-		"time_letter_spacings": [0, 0, 0, 0, 0, 1, 0, 1, -1],
-		"font_stretches": [100, 100, 100, 100, 88, 112, 100, 115, 90],
-		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center", "center"],
-		"font_alphas": [1.0, 0.96, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.02]
-	}
-]
+const FaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
 
-var _style_profiles: Array[Dictionary] = []
-var _font_cache: Dictionary = {}
-var style_index := 1
-var _current_time := "00:00"
-var _last_minute := -1
+var _library := FaceAssetLibrary.new()
+var _style_index := 1
+var _face: Dictionary = {}
 var _palette: Dictionary = {}
 var _show_date := true
-
-var _single_time_label: Label
-var _hours_label: Label
-var _minutes_label: Label
-var _date_label: Label
-
-
-func _init() -> void:
-	_style_profiles = _build_style_profiles()
+var _last_minute := -1
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_single_time_label = _create_clock_label("DigitalClockTime")
-	_hours_label = _create_clock_label("DigitalClockHours")
-	_minutes_label = _create_clock_label("DigitalClockMinutes")
-	_date_label = _create_clock_label("DigitalClockDate")
-	add_child(_single_time_label)
-	add_child(_hours_label)
-	add_child(_minutes_label)
-	add_child(_date_label)
-	resized.connect(_apply_profile_layout)
+	resized.connect(_render_face)
 	set_process(true)
-	_refresh_time()
-	_apply_profile_layout()
+	_load_selected_face()
 
 
 func configure(index: int, palette: Dictionary = {}, design: Dictionary = {}) -> void:
-	style_index = clampi(index, 1, _style_profiles.size())
+	_style_index = clampi(index, 1, maxi(1, _library.get_face_count()))
 	_palette = palette.duplicate(true)
 	_show_date = bool(design.get("show_details", true))
-	_refresh_time()
-	_apply_profile_layout()
+	_load_selected_face()
 
 
 func get_style_index() -> int:
-	return style_index
+	return _style_index
 
 
 func get_style_count() -> int:
-	return _style_profiles.size()
+	return _library.get_face_count()
 
 
 func get_style_name() -> String:
-	return str(_current_profile().get("name", "Digital Lock Screen"))
+	return str(_face.get("name", "Digital Clock"))
 
 
 func get_style_source() -> String:
-	return str(_current_profile().get("source", "PHONE LOCK SCREEN"))
+	return str(_face.get("category", "digital")).to_upper()
 
 
 func get_style_layout() -> String:
-	return str(_current_profile().get("layout", "single"))
+	var large: Dictionary = _face.get("large", {})
+	for key in ["row", "column", "stack"]:
+		if large.has(key):
+			return key
+	return "custom"
 
 
-func _build_style_profiles() -> Array[Dictionary]:
-	var profiles: Array[Dictionary] = []
-	for group_value in STYLE_GROUPS:
-		var group: Dictionary = group_value
-		var names: Array = group.get("names", [])
-		for variant_index in range(names.size()):
-			var profile: Dictionary = group.duplicate(true)
-			profile.erase("names")
-			var layouts: Array = profile.get("layouts", [])
-			if not layouts.is_empty():
-				profile["layout"] = str(layouts[variant_index % layouts.size()])
-			profile.erase("layouts")
-			profile["name"] = str(names[variant_index])
-			profile["font_scale"] = _variant_value(group.get("font_scales", []), variant_index, 0.12)
-			profile["font_names"] = [str(_variant_value(group.get("font_families", []), variant_index, "sans-serif")), "Roboto"]
-			profile["font_italic"] = bool(_variant_value(group.get("font_italics", []), variant_index, false))
-			profile["time_letter_spacing"] = int(_variant_value(group.get("time_letter_spacings", []), variant_index, 0))
-			profile["font_weight"] = _variant_value(group.get("font_weights", []), variant_index, 400)
-			profile["font_stretch"] = _variant_value(group.get("font_stretches", []), variant_index, 100)
-			profile["alignment"] = str(_variant_value(group.get("alignments", []), variant_index, "center"))
-			profile["font_alpha"] = _variant_value(group.get("font_alphas", []), variant_index, 1.0)
-			profile["date_font_scale"] = _variant_value(group.get("date_scales", []), variant_index, 0.026)
-			profiles.append(profile)
-	return profiles
+func _process(_delta: float) -> void:
+	var now := Time.get_time_dict_from_system()
+	if int(now.get("minute", -1)) != _last_minute:
+		_render_face()
 
 
-func _variant_value(values: Array, index: int, fallback: Variant) -> Variant:
-	if values.is_empty():
-		return fallback
-	return values[index % values.size()]
+func _load_selected_face() -> void:
+	_face = _library.get_face(_style_index)
+	_last_minute = -1
+	_render_face()
 
 
-func _current_profile() -> Dictionary:
-	if _style_profiles.is_empty():
-		return {}
-	return _style_profiles[clampi(style_index - 1, 0, _style_profiles.size() - 1)]
+func _render_face() -> void:
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
+	if _face.is_empty() or size.x <= 0.0 or size.y <= 0.0:
+		return
+
+	var large: Dictionary = _face.get("large", {})
+	var layout_key := ""
+	for key in ["row", "column", "stack"]:
+		if large.has(key):
+			layout_key = key
+			break
+	if layout_key.is_empty():
+		return
+
+	var layout_data: Dictionary = large[layout_key]
+	var root_width := clampf(float(layout_data.get("width", large.get("width", 0.90))), 0.30, 1.0)
+	var root_height := clampf(float(layout_data.get("height", large.get("height", 0.48))), 0.16, 0.90)
+	var root_x := float(large.get("x", 0.5))
+	var root_y := float(large.get("y", 0.32))
+	var horizontal_anchor := str(large.get("anchor", "CENTER"))
+	var left := root_x
+	if horizontal_anchor == "CENTER":
+		left -= root_width * 0.5
+	elif horizontal_anchor == "END":
+		left -= root_width
+	left = clampf(left, 0.0, 1.0 - root_width)
+	var top := clampf(root_y - root_height * 0.5, 0.06, 1.0 - root_height)
+
+	var frame := Control.new()
+	frame.name = "XMorphClockFace"
+	_set_normalized_rect(frame, Rect2(left, top, root_width, root_height))
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(frame)
+
+	var root_node := _build_layout_node(large, Vector2(size.x * root_width, size.y * root_height))
+	if root_node == null:
+		return
+	root_node.name = "XMorphClockLayout"
+	root_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(root_node)
+	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
 
 
-func _create_clock_label(node_name: String) -> Label:
+func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
+	if spec.has("layer"):
+		return _make_layer_label(spec, available_size)
+
+	var layout_key := ""
+	for key in ["row", "column", "stack"]:
+		if spec.has(key):
+			layout_key = key
+			break
+	if layout_key.is_empty():
+		return null
+
+	var data: Dictionary = spec[layout_key]
+	if layout_key == "stack":
+		var stack := Control.new()
+		stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var stack_width := float(data.get("width", 1.0))
+		var stack_height := float(data.get("height", 1.0))
+		stack.custom_minimum_size = Vector2(available_size.x * stack_width, available_size.y * stack_height)
+		for child_value in data.get("children", []):
+			var child_spec: Dictionary = child_value
+			var child := _build_layout_node(child_spec, available_size)
+			if child == null:
+				continue
+			stack.add_child(child)
+			_place_stack_child(child, child_spec, available_size)
+		return stack
+
+	var container: BoxContainer
+	if layout_key == "row":
+		container = HBoxContainer.new()
+	else:
+		container = VBoxContainer.new()
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	container.alignment = _box_alignment(str(data.get("align", "CENTER")))
+	var gap := float(data.get("gap", 0.0))
+	container.add_theme_constant_override("separation", roundi(minf(available_size.x, available_size.y) * gap))
+	for child_value in data.get("children", []):
+		var child_spec: Dictionary = child_value
+		var child_available := available_size
+		var child := _build_layout_node(child_spec, child_available)
+		if child == null:
+			continue
+		if child is Label:
+			if layout_key == "column":
+				child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			else:
+				child.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		container.add_child(child)
+	return container
+
+
+func _place_stack_child(child: Control, child_spec: Dictionary, available_size: Vector2) -> void:
+	var nested_stack: Dictionary = child_spec.get("stack", {})
+	var width_fraction := float(nested_stack.get("width", child_spec.get("width", 0.78)))
+	var height_fraction := float(nested_stack.get("height", child_spec.get("height", 0.24)))
+	if child is Label:
+		var label := child as Label
+		width_fraction = maxf(width_fraction, label.custom_minimum_size.x / maxf(available_size.x, 1.0))
+		height_fraction = maxf(height_fraction, label.custom_minimum_size.y / maxf(available_size.y, 1.0))
+	width_fraction = clampf(width_fraction, 0.06, 1.0)
+	height_fraction = clampf(height_fraction, 0.04, 1.0)
+	var x := float(child_spec.get("x", 0.5))
+	var y := float(child_spec.get("y", 0.5))
+	var anchor := str(child_spec.get("anchor", "CENTER"))
+	var left := x
+	if anchor == "CENTER":
+		left -= width_fraction * 0.5
+	elif anchor == "END":
+		left -= width_fraction
+	left = clampf(left, 0.0, 1.0 - width_fraction)
+	var top := clampf(y - height_fraction * 0.5, 0.0, 1.0 - height_fraction)
+	_set_normalized_rect(child, Rect2(left, top, width_fraction, height_fraction))
+	child.rotation_degrees = float(child_spec.get("rotation", 0.0))
+
+
+func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
+	var layer_id := str(node_spec.get("layer", ""))
+	var layer := _get_layer(layer_id)
 	var label := Label.new()
-	label.name = node_name
+	match layer_id:
+		"hours":
+			label.name = "DigitalClockHours"
+		"minutes":
+			label.name = "DigitalClockMinutes"
+		"date":
+			label.name = "DigitalClockDate"
+		"time":
+			label.name = "DigitalClockTime"
+		_:
+			label.name = "ClockLayer_" + layer_id
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.clip_text = false
+	label.text = _layer_text(layer)
+	if not _show_date and str(layer.get("type", "")) == "DATE":
+		label.visible = false
+
+	var text_value := label.text
+	var requested_size := float(node_spec.get("size", 0.09))
+	var short_side := minf(available_size.x, available_size.y)
+	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.28)))
+	var font_size := clampi(roundi(short_side * requested_size * 0.42), 11, max_font_size)
+	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
+	if font_reference.is_empty():
+		font_reference = "roboto_flex"
+	var font: Font = _library.get_font(font_reference)
+	if font == null:
+		font = _library.get_font("roboto_flex")
+	if font == null:
+		push_error("XMorph digital clock font is missing: " + font_reference)
+	label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", _layer_color(str(layer.get("color", ""))))
+	var tracking := float(node_spec.get("tracking", layer.get("tracking", 0.0)))
+	label.add_theme_constant_override("letter_spacing", roundi(tracking * 5.0))
+	var stroke := str(layer.get("stroke", ""))
+	if bool(layer.get("outline", false)) or not stroke.is_empty():
+		label.add_theme_constant_override("outline_size", clampi(roundi(font_size * float(layer.get("strokeWidth", 0.06))), 1, 5))
+		label.add_theme_color_override("font_outline_color", _layer_color(stroke))
+	label.modulate.a = float(layer.get("opacity", 1.0))
+	label.rotation_degrees = float(node_spec.get("rotation", 0.0))
+
+	var text_width := font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+	var min_width := clampf(text_width + font_size * 0.28, font_size * 1.1, available_size.x)
+	var min_height := maxf(font_size * 1.22, available_size.y * 0.025)
+	label.custom_minimum_size = Vector2(min_width, min_height)
 	return label
 
 
-func _process(_delta: float) -> void:
+func _get_layer(layer_id: String) -> Dictionary:
+	for layer_value in _face.get("layers", []):
+		var layer: Dictionary = layer_value
+		if str(layer.get("id", "")) == layer_id:
+			return layer
+	return {}
+
+
+func _layer_text(layer: Dictionary) -> String:
+	var kind := str(layer.get("type", "TEXT"))
 	var time := Time.get_time_dict_from_system()
-	var minute := int(time.get("minute", -1))
-	if minute != _last_minute:
-		_refresh_time()
-		_apply_profile_layout()
+	var hour := int(time.get("hour", 0))
+	var minute := int(time.get("minute", 0))
+	var hour_text := "%02d" % hour if bool(layer.get("hourZero", true)) else str(hour)
+	var minute_text := "%02d" % minute
+	match kind:
+		"HOURS":
+			return hour_text
+		"MINUTES":
+			return minute_text
+		"COLON":
+			return ":"
+		"TIME":
+			return hour_text + ":" + minute_text
+		"HOUR_TENS":
+			return hour_text.substr(0, 1)
+		"HOUR_ONES":
+			return hour_text.substr(hour_text.length() - 1, 1)
+		"MINUTE_TENS":
+			return minute_text.substr(0, 1)
+		"MINUTE_ONES":
+			return minute_text.substr(1, 1)
+		"DATE":
+			return _format_date(str(layer.get("format", "EEEE, d MMMM")), bool(layer.get("caps", false)))
+		_:
+			var text_value := str(layer.get("format", ""))
+			text_value = text_value.replace("{time}", "%02d:%02d" % [hour, minute])
+			text_value = text_value.replace("{date}", _format_date("EEEE, d MMMM", false))
+			return text_value.to_upper() if bool(layer.get("caps", false)) else text_value
 
 
-func _refresh_time() -> void:
-	var time := Time.get_time_dict_from_system()
-	_current_time = "%02d:%02d" % [int(time.get("hour", 0)), int(time.get("minute", 0))]
-	_last_minute = int(time.get("minute", -1))
-	if is_instance_valid(_single_time_label):
-		_single_time_label.text = _current_time
-	if is_instance_valid(_hours_label):
-		_hours_label.text = _current_time.substr(0, 2)
-	if is_instance_valid(_minutes_label):
-		_minutes_label.text = _current_time.substr(3, 2)
-	if is_instance_valid(_date_label):
-		_date_label.text = _format_date(str(_current_profile().get("date_format", "samsung")))
-
-
-func _format_date(format_id: String) -> String:
+func _format_date(format_value: String, caps: bool) -> String:
 	var date := Time.get_date_dict_from_system()
 	var weekday := clampi(int(date.get("weekday", 1)), 1, 7)
 	var month := clampi(int(date.get("month", 1)), 1, 12)
-	var day := int(date.get("day", 1))
-	var weekdays_short := ["", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
-	var weekdays_long := ["", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
-	var months_short := ["", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-	var months_long := ["", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
-	match format_id:
-		"apple":
-			return "%s, %s %d" % [weekdays_long[weekday], months_long[month], day]
-		"pixel":
-			return "%s, %s %d" % [weekdays_short[weekday], months_short[month], day]
-		_:
-			return "%s, %d %s" % [weekdays_short[weekday], day, months_short[month]]
+	var weekdays := ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+	var weekdays_short := ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+	var months := ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+	var months_short := ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+	var value := format_value
+	value = value.replace("EEEE", weekdays[weekday])
+	value = value.replace("EEE", weekdays_short[weekday])
+	value = value.replace("MMMM", months[month])
+	value = value.replace("MMM", months_short[month])
+	value = value.replace("yyyy", str(date.get("year", 2026)))
+	value = value.replace("dd", "%02d" % int(date.get("day", 1)))
+	value = value.replace("d", str(date.get("day", 1)))
+	return value.to_upper() if caps else value
 
 
-func _apply_profile_layout() -> void:
-	if not is_instance_valid(_single_time_label) or not is_instance_valid(_date_label):
-		return
-	var profile := _current_profile()
-	if profile.is_empty():
-		return
-
-	var layout := str(profile.get("layout", "single"))
-	var single_rect: Rect2 = profile.get("time_rect", Rect2(0.08, 0.21, 0.84, 0.15))
-	var hours_rect: Rect2 = profile.get("hours_rect", Rect2(0.08, 0.14, 0.84, 0.11))
-	var minutes_rect: Rect2 = profile.get("minutes_rect", Rect2(0.08, 0.25, 0.84, 0.11))
-	var date_rect: Rect2 = profile.get("date_rect", Rect2(0.08, 0.36, 0.84, 0.03))
-	var alignment := _alignment_from_name(str(profile.get("alignment", "center")))
-	_single_time_label.visible = layout == "single"
-	_hours_label.visible = layout == "stacked"
-	_minutes_label.visible = layout == "stacked"
-	_date_label.visible = _show_date
-
-	if layout == "stacked":
-		_set_normalized_rect(_hours_label, hours_rect)
-		_set_normalized_rect(_minutes_label, minutes_rect)
-	else:
-		_set_normalized_rect(_single_time_label, single_rect)
-	_set_normalized_rect(_date_label, date_rect)
-
-	var font := _get_profile_font(profile)
-	var time_color := _get_time_color(profile)
-	var date_color: Color = _palette.get("muted", Color(time_color.r, time_color.g, time_color.b, 0.88))
-	var alpha := float(profile.get("font_alpha", 1.0))
-	time_color.a *= alpha
-	var single_font_size := _fit_font_size(font, _current_time, single_rect, float(profile.get("font_scale", 0.14)))
-	var stacked_font_size := _fit_font_size(font, "88", hours_rect, float(profile.get("font_scale", 0.14)))
-	var date_font_size := maxi(11, roundi(minf(size.y * float(profile.get("date_font_scale", 0.026)), size.y * date_rect.size.y * 0.9)))
-	_apply_label_style(_single_time_label, font, single_font_size, time_color, alignment, int(profile.get("time_letter_spacing", 0)))
-	_apply_label_style(_hours_label, font, stacked_font_size, time_color, alignment, int(profile.get("time_letter_spacing", 0)))
-	_apply_label_style(_minutes_label, font, stacked_font_size, time_color, alignment, int(profile.get("time_letter_spacing", 0)))
-	_apply_label_style(_date_label, font, date_font_size, date_color, alignment, int(profile.get("date_letter_spacing", 0)))
-	_date_label.visible = _show_date
+func _layer_color(value: String) -> Color:
+	var normalized := value.to_lower()
+	if normalized.begins_with("#"):
+		return _library_color(normalized)
+	if normalized.begins_with("accent"):
+		var accent: Color = _palette.get("accent", Color.WHITE)
+		if "_700" in normalized:
+			return accent.darkened(0.48)
+		if "_200" in normalized:
+			return accent.lightened(0.10)
+		return accent
+	if normalized.begins_with("neutral"):
+		if "_300" in normalized or "_200" in normalized:
+			return _palette.get("muted", Color("#D1D5DB"))
+		return _palette.get("text", Color.WHITE)
+	return _palette.get("text", Color.WHITE)
 
 
-func _fit_font_size(font: Font, text_value: String, rect: Rect2, relative_scale: float) -> int:
-	var available_height := maxf(18.0, size.y * rect.size.y * 0.9)
-	var font_size := maxi(18, roundi(minf(size.y * relative_scale, available_height)))
-	var available_width := maxf(48.0, size.x * rect.size.x * 0.96)
-	while font_size > 18 and font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x > available_width:
-		font_size -= 2
-	return font_size
+func _library_color(raw: String) -> Color:
+	var hex := raw.trim_prefix("#")
+	if hex.length() == 8:
+		return Color(
+			float(hex.substr(2, 2).hex_to_int()) / 255.0,
+			float(hex.substr(4, 2).hex_to_int()) / 255.0,
+			float(hex.substr(6, 2).hex_to_int()) / 255.0,
+			float(hex.substr(0, 2).hex_to_int()) / 255.0
+		)
+	if hex.length() == 6:
+		return Color(
+			float(hex.substr(0, 2).hex_to_int()) / 255.0,
+			float(hex.substr(2, 2).hex_to_int()) / 255.0,
+			float(hex.substr(4, 2).hex_to_int()) / 255.0,
+			1.0
+		)
+	return Color.WHITE
 
 
-func _get_profile_font(profile: Dictionary) -> Font:
-	var names := PackedStringArray()
-	for value in profile.get("font_names", ["Roboto"]):
-		names.append(str(value))
-	var weight := int(profile.get("font_weight", 400))
-	var stretch := int(profile.get("font_stretch", 100))
-	var italic := bool(profile.get("font_italic", false))
-	var key := "%s|%d|%d|%s" % [",".join(names), weight, stretch, str(italic)]
-	if _font_cache.has(key):
-		return _font_cache[key] as Font
-	var font := SystemFont.new()
-	font.font_names = names
-	font.font_weight = weight
-	font.font_stretch = stretch
-	font.font_italic = italic
-	_font_cache[key] = font
-	return font
-
-
-func _get_time_color(profile: Dictionary) -> Color:
-	match str(profile.get("color_mode", "text")):
-		"white":
-			return Color(1.0, 1.0, 1.0, 1.0)
-		"accent":
-			return _palette.get("accent", Color.WHITE)
-		_:
-			return _palette.get("text", Color.WHITE)
-
-
-func _apply_label_style(label: Label, font: Font, font_size: int, color: Color, alignment: HorizontalAlignment, letter_spacing: int) -> void:
-	label.horizontal_alignment = alignment
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-	label.add_theme_constant_override("letter_spacing", letter_spacing)
-
-
-func _alignment_from_name(value: String) -> HorizontalAlignment:
+func _box_alignment(value: String):
 	match value:
-		"left":
-			return HORIZONTAL_ALIGNMENT_LEFT
-		"right":
-			return HORIZONTAL_ALIGNMENT_RIGHT
+		"START":
+			return BoxContainer.ALIGNMENT_BEGIN
+		"END":
+			return BoxContainer.ALIGNMENT_END
 		_:
-			return HORIZONTAL_ALIGNMENT_CENTER
+			return BoxContainer.ALIGNMENT_CENTER
 
 
 func _set_normalized_rect(control: Control, rect: Rect2) -> void:

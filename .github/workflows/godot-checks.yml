@@ -122,6 +122,17 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test XMorph digital clocks, media player and notifications
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/xmorph_lock_screen_assets_smoke.gd 2>&1 | tee xmorph-lock-screen-smoke.log
+          grep -q "XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS" xmorph-lock-screen-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST:.*(FAIL|ERROR)' xmorph-lock-screen-smoke.log; then
+            echo "Godot reported an error during the XMorph lock-screen asset smoke test."
+            exit 1
+          fi
+
       - name: Smoke-test lock-screen swipe-up PIN entry
         shell: bash
         run: |

@@ -2,6 +2,7 @@ extends SceneTree
 
 const WorksiteScript = preload("res://scripts/os_creation_worksite.gd")
 const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
+const ClockFaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
 
 func _initialize() -> void:
 	call_deferred("_run_test")
@@ -204,76 +205,89 @@ func _run_test() -> void:
 	if int(digital_clock.call("get_style_count")) != 41:
 		_fail("Digital lock-screen styles must retain all 41 selectable presets.")
 		return
-	var digital_time_label := digital_clock.find_child("DigitalClockTime", true, false) as Label
-	var digital_date_label := digital_clock.find_child("DigitalClockDate", true, false) as Label
-	var digital_hours_label := digital_clock.find_child("DigitalClockHours", true, false) as Label
-	var digital_minutes_label := digital_clock.find_child("DigitalClockMinutes", true, false) as Label
-	if digital_time_label == null or digital_date_label == null or digital_hours_label == null or digital_minutes_label == null:
-		_fail("The digital clock must use real lock-screen time and date labels, not a drawn alarm-clock casing.")
-		return
 	if digital_clock.anchor_left != 0.0 or digital_clock.anchor_top != 0.0 or digital_clock.anchor_right != 1.0 or digital_clock.anchor_bottom != 1.0:
 		_fail("Digital lock-screen styles must own a full-screen layout instead of inheriting the analog clock's small rectangle.")
 		return
-	var reference_styles := [
-		{"index": 1, "source": "SAMSUNG GALAXY S21", "layout": "single"},
-		{"index": 9, "source": "SAMSUNG GALAXY S26", "layout": "stacked"},
-		{"index": 17, "source": "APPLE IPHONE 16 PRO MAX", "layout": "single"},
-		{"index": 25, "source": "APPLE IPHONE 17 PRO MAX", "layout": "single"},
-		{"index": 33, "source": "GOOGLE PIXEL", "layout": "stacked"}
-	]
-	for reference_style in reference_styles:
-		var reference_index := int(reference_style["index"])
-		if not bool(lock_screen.call("set_clock_style_index", reference_index)):
-			_fail("A named real-device digital clock reference could not be selected.")
-			return
-		var active_digital := lock_screen.find_child("DigitalClock", true, false) as Control
-		if active_digital == null or str(active_digital.call("get_style_source")).find(str(reference_style["source"])) < 0:
-			_fail("Digital Style %02d is not mapped to its named real-device reference." % reference_index)
-			return
-		if str(active_digital.call("get_style_layout")) != str(reference_style["layout"]):
-			_fail("Digital Style %02d does not use the expected phone clock structure." % reference_index)
-			return
-		var active_time := active_digital.find_child("DigitalClockTime", true, false) as Label
-		var active_hours := active_digital.find_child("DigitalClockHours", true, false) as Label
-		var active_minutes := active_digital.find_child("DigitalClockMinutes", true, false) as Label
-		if str(reference_style["layout"]) == "stacked":
-			if active_time == null or active_time.visible or active_hours == null or not active_hours.visible or active_minutes == null or not active_minutes.visible:
-				_fail("Stacked phone clock references must render separate hour and minute rows.")
-				return
-		else:
-			if active_time == null or not active_time.visible or active_hours == null or active_hours.visible or active_minutes == null or active_minutes.visible:
-				_fail("Single-line phone clock references must render one horizontal time row.")
-				return
-	var observed_weights: Dictionary = {}
-	var observed_families: Dictionary = {}
-	var observed_italic := false
+
+	var face_library := ClockFaceAssetLibrary.new()
+	var observed_categories: Dictionary = {}
+	var observed_layouts: Dictionary = {}
+	var observed_fonts: Dictionary = {}
+	var observed_face_names: Dictionary = {}
 	for typography_index in range(1, 42):
 		if not bool(lock_screen.call("set_clock_style_index", typography_index)):
-			_fail("A typography preset could not be selected for validation.")
+			_fail("An imported XMorph digital face could not be selected: %02d." % typography_index)
 			return
 		var typography_clock := lock_screen.find_child("DigitalClock", true, false) as Control
-		var typography_time := typography_clock.find_child("DigitalClockTime", true, false) as Label
-		var typography_hours := typography_clock.find_child("DigitalClockHours", true, false) as Label
-		var typography_label := typography_time if typography_time.visible else typography_hours
-		var typography_font := typography_label.get_theme_font("font") as SystemFont
-		var typography_size := typography_label.get_theme_font_size("font_size")
-		if typography_font == null or typography_size > 180:
-			_fail("Digital clock typography must use a real font profile and stay within the reduced size limit.")
+		if typography_clock == null or typography_clock.find_child("XMorphClockFace", true, false) == null or typography_clock.find_child("XMorphClockLayout", true, false) == null:
+			_fail("XMorph digital face %02d did not render its asset-defined layout." % typography_index)
 			return
-		observed_weights[typography_font.font_weight] = true
-		if not typography_font.font_names.is_empty():
-			observed_families[typography_font.font_names[0]] = true
-		observed_italic = observed_italic or typography_font.font_italic
-		var typography_date := typography_clock.find_child("DigitalClockDate", true, false) as Label
-		if typography_date.get_theme_font_size("font_size") >= typography_size:
-			_fail("The lock-screen date must remain visually subordinate to the time.")
+		var face: Dictionary = face_library.get_face(typography_index)
+		var face_name := str(face.get("name", ""))
+		var face_category := str(face.get("category", "")).to_upper()
+		if face_name.is_empty() or str(typography_clock.call("get_style_name")) != face_name:
+			_fail("Digital Style %02d is not bound to its imported XMorph face name." % typography_index)
 			return
-	if observed_weights.size() < 5 or observed_families.size() < 4 or not observed_weights.has(900) or not observed_italic:
-		_fail("The 41 digital clock presets must provide distinct font families, multiple weights including extra-bold, and italic text treatments.")
+		if str(typography_clock.call("get_style_source")) != face_category:
+			_fail("Digital Style %02d is not reporting its imported XMorph category." % typography_index)
+			return
+		var layout_name := str(typography_clock.call("get_style_layout"))
+		if layout_name not in ["row", "column", "stack"]:
+			_fail("Digital Style %02d is missing its imported row, column or stack layout." % typography_index)
+			return
+		observed_categories[face_category] = true
+		observed_layouts[layout_name] = true
+		observed_face_names[face_name] = true
+
+		var time_layer_count := 0
+		for layer_value in face.get("layers", []):
+			var layer: Dictionary = layer_value
+			var layer_type := str(layer.get("type", ""))
+			if layer_type in ["HOURS", "MINUTES", "COLON", "TIME", "HOUR_TENS", "HOUR_ONES", "MINUTE_TENS", "MINUTE_ONES"]:
+				time_layer_count += 1
+		if time_layer_count == 0:
+			_fail("Digital Style %02d has no live time layers in its imported definition." % typography_index)
+			return
+
+		for label_value in typography_clock.find_children("*", "Label", true, false):
+			var clock_label := label_value as Label
+			var clock_font := clock_label.get_theme_font("font") as Font
+			if clock_font == null or not clock_font.resource_path.begins_with("res://research/XMorphClock/Fonts/Files/"):
+				_fail("Digital Style %02d contains a label that is not using an imported XMorph font." % typography_index)
+				return
+			observed_fonts[clock_font.resource_path] = true
+			if clock_label.get_theme_font_size("font_size") <= 0 or clock_label.get_theme_font_size("font_size") > 180:
+				_fail("Digital Style %02d contains an invalid or oversized clock font." % typography_index)
+				return
+
+	if observed_face_names.size() != 41:
+		_fail("The digital selector must expose 41 distinct imported XMorph faces.")
 		return
+	if observed_categories.size() < 7 or observed_layouts.size() < 2 or observed_fonts.size() < 10:
+		_fail("The 41 imported faces must cover multiple design categories, layouts and bundled font families.")
+		return
+
 	if not bool(lock_screen.call("set_clock_style_index", 41)):
-		_fail("Digital Style 41 could not be restored after reference validation.")
+		_fail("Digital Style 41 could not be selected for the live time preview.")
 		return
+	var live_digital_clock := lock_screen.find_child("DigitalClock", true, false) as Control
+	var digital_hours_label := live_digital_clock.find_child("DigitalClockHours", true, false) as Label
+	var digital_minutes_label := live_digital_clock.find_child("DigitalClockMinutes", true, false) as Label
+	var digital_date_label := live_digital_clock.find_child("DigitalClockDate", true, false) as Label
+	if digital_hours_label == null or digital_minutes_label == null or digital_date_label == null:
+		_fail("XMorph Style 41 must render real hours, minutes and date labels from its definition.")
+		return
+	var current_time := Time.get_time_dict_from_system()
+	if digital_hours_label.text != "%02d" % int(current_time.get("hour", 0)) or digital_minutes_label.text != "%02d" % int(current_time.get("minute", 0)):
+		_fail("The XMorph digital clock is not displaying the device's current time.")
+		return
+	if digital_date_label.text.is_empty():
+		_fail("The XMorph digital clock date layer is empty.")
+		return
+	if digital_date_label.get_theme_font_size("font_size") >= digital_hours_label.get_theme_font_size("font_size"):
+		_fail("The imported clock date layer must remain visually subordinate to the time.")
+		return
+
 	worksite.call("_select_lock_screen_clock_type", "analog")
 	var analog_artwork := lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
 	if analog_artwork == null or analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(41):
