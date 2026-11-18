@@ -158,7 +158,7 @@ func _check_generated_ui_pixels() -> bool:
 				"apps_top": 0.66,
 				"region_bounds": [0.10, 0.20, 0.80, 0.20]
 			},
-			"apps": UIEvolutionEngineScript.APP_LIBRARY.slice(0, 8),
+			"apps": preload("res://scripts/app_icon_library.gd").get_apps().slice(0, 8),
 			"dock": ["WhatsApp", "Gmail", "Spotify", "YouTube"],
 			"show_search": false
 		},
