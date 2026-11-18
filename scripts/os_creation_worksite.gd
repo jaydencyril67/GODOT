@@ -12,10 +12,10 @@ signal setup_failed(message: String)
 
 const STEP_NAMES := [
 	"OS SETUP",
+	"LOCK-SCREEN",
 	"APP ICONS",
 	"WIDGETS",
 	"WALLPAPERS",
-	"LOCK-SCREEN",
 	"STATUS BAR",
 	"QUICK SETTINGS",
 	"NOTIFICATIONS",
@@ -25,10 +25,10 @@ const STEP_NAMES := [
 
 const STEP_DESCRIPTIONS := [
 	"Choose which company and device details appear during startup.",
+	"Design the lock screen, generate its layout and control each optional element independently.",
 	"Choose the icon assets that will be available to this OS.",
 	"Choose widget designs for the operating system.",
-	"Choose wallpaper assets for the operating system.",
-"Generate a polished lock-screen using curated layout foundations and autonomous composition.",
+	"Choose the lock-screen wallpaper independently from layout generation.",
 	"Choose the status bar design assets.",
 	"Choose quick settings and control-centre assets.",
 	"Choose notification appearance assets.",
@@ -37,10 +37,9 @@ const STEP_DESCRIPTIONS := [
 ]
 
 const STEP_ASSET_PATHS := {
-	1: "res://assets/app_icons",
-	2: "res://assets/system-ui/Widgets",
-	3: "res://assets/system-ui/Wallpapers",
-	4: "res://assets/lock-screen/aosp",
+	2: "res://assets/app_icons",
+	3: "res://assets/system-ui/Widgets",
+	4: "res://assets/wallpapers",
 	5: "res://assets/system-ui/android-systemui/Status-Bar",
 	6: "res://assets/system-ui/Quick-Settings",
 	7: "res://assets/system-ui/Notifications",
@@ -666,7 +665,7 @@ func _show_step(step_index: int) -> void:
 	match current_step:
 		0:
 			_show_boot_display_controls()
-		4:
+		1:
 			_show_lock_screen_designer_controls()
 		5:
 			_show_status_bar_style_controls()
@@ -820,20 +819,51 @@ func _style_boot_display_toggle(toggle: Button, enabled: bool, label: String) ->
 	toggle.add_theme_color_override("font_color", TEXT if enabled else MUTED)
 
 func _show_lock_screen_designer_controls() -> void:
-	_add_note("HYBRID AUTONOMOUS DESIGN ENGINE")
-	_add_note("The system selects from %d curated layout foundations, then independently varies positioning, clock treatment, palette, wallpaper and lock-screen content. These are structural blueprints, not finished screen templates." % int(lock_screen_designer.call("get_blueprint_count")))
-	var generate_button := _make_button("GENERATE ANOTHER LOCK SCREEN")
+	_add_note("AUTONOMOUS LOCK-SCREEN LAYOUT")
+	_add_note("Generate a new layout, clock treatment and colour palette using the curated foundations. Regenerating will keep your selected wallpaper and every ON/OFF preference unchanged.")
+	var generate_button := _make_button("GENERATE NEW LOCK-SCREEN LAYOUT")
 	generate_button.name = "GenerateNewLockScreenDesign"
 	generate_button.custom_minimum_size.y = 58
 	generate_button.pressed.connect(_generate_lock_screen_design)
 	content_column.add_child(generate_button)
-	_add_note("Wallpaper library: %d bundled images, rotated without immediate repeats." % int(lock_screen_designer.call("get_available_wallpaper_count")))
-	_add_note("Autonomous content: app-branded notifications, compact media player, live clock, date, fingerprint prompt and bottom shortcuts.")
-	_add_note("Quality rules: no component collisions; status stays at the top; fingerprint and bottom shortcuts remain in their safe zones; all content stays inside the handset.")
+	_add_note("OPTIONAL LOCK-SCREEN ELEMENTS")
+	_add_note("Every optional element starts OFF. Flashlight and camera shortcuts can be controlled separately.")
 	if int(lock_screen_designer.call("get_generation_count")) == 0:
 		_generate_lock_screen_design()
 	else:
 		_update_lock_screen_status(lock_screen_designer.call("get_last_design"))
+
+	var display_options := [
+		{"option": "notifications", "label": "Notifications"},
+		{"option": "music_player", "label": "Music Player"},
+		{"option": "flashlight", "label": "Flashlight Shortcut"},
+		{"option": "camera", "label": "Camera Shortcut"},
+		{"option": "fingerprint", "label": "Fingerprint Sensor"}
+	]
+	for option_data in display_options:
+		_add_lock_screen_display_toggle(str(option_data["label"]), str(option_data["option"]))
+
+	_add_note("Choose the wallpaper separately in the WALLPAPERS step. Layout generation does not replace it.")
+
+func _add_lock_screen_display_toggle(label: String, option: String) -> void:
+	var enabled := bool(lock_screen_designer.call("get_display_option", option))
+	var toggle := _make_button("")
+	toggle.name = "LockScreenOption_" + option
+	toggle.toggle_mode = true
+	toggle.button_pressed = enabled
+	toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	toggle.custom_minimum_size.y = 54
+	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	toggle.add_theme_font_size_override("font_size", 14)
+	toggle.toggled.connect(_on_lock_screen_display_toggled.bind(option, toggle, label))
+	content_column.add_child(toggle)
+	_style_boot_display_toggle(toggle, enabled, label)
+
+func _on_lock_screen_display_toggled(enabled: bool, option: String, toggle: Button, label: String) -> void:
+	if not bool(lock_screen_designer.call("set_display_option", option, enabled)):
+		toggle.set_pressed_no_signal(not enabled)
+		return
+	_style_boot_display_toggle(toggle, enabled, label)
 
 func _generate_lock_screen_design() -> void:
 	if not is_instance_valid(lock_screen_designer):
@@ -908,18 +938,25 @@ func _update_phone_preview_mode() -> void:
 
 func _show_asset_browser(step_index: int) -> void:
 	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
+	if step_index == 4:
+		_add_note("Select a wallpaper to apply it to the lock screen. This choice is independent from layout generation.")
 	var path_label := _make_label(path.replace("res://", ""), 10, Color("#D3AA6B"))
 	path_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content_column.add_child(path_label)
 
 	var files: Array[String] = []
-	var cached_files: Variant = _asset_file_cache.get(step_index, null)
-	if cached_files is Array:
-		for cached_path in cached_files:
-			files.append(str(cached_path))
+	if step_index == 4 and is_instance_valid(lock_screen_designer):
+		var wallpaper_paths: Array = lock_screen_designer.call("get_wallpaper_paths")
+		for wallpaper_path in wallpaper_paths:
+			files.append(str(wallpaper_path))
 	else:
-		_collect_files(path, files)
-		files.sort()
+		var cached_files: Variant = _asset_file_cache.get(step_index, null)
+		if cached_files is Array:
+			for cached_path in cached_files:
+				files.append(str(cached_path))
+		else:
+			_collect_files(path, files)
+			files.sort()
 	if files.is_empty():
 		_add_note("No collected files are present in this category yet. This category is ready for its assets.")
 		return
@@ -950,6 +987,12 @@ func _collect_files(folder_path: String, output: Array[String]) -> void:
 
 func _select_asset(path: String) -> void:
 	selected_asset_path = path
+	if current_step == 4 and is_instance_valid(lock_screen_designer):
+		if not bool(lock_screen_designer.call("set_wallpaper", path)):
+			selection_status_label.text = "WALLPAPER COULD NOT BE LOADED"
+			return
+		selection_status_label.text = "WALLPAPER SELECTED  •  " + path.get_file()
+		return
 	selection_status_label.text = path.replace("res://", "")
 
 func set_company_logo_texture(texture: Texture2D) -> void:
