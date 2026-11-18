@@ -126,7 +126,7 @@ func _initialize_worksite() -> void:
 	# only displays prepared paths rather than walking the filesystem on demand.
 	for step_index_value in STEP_ASSET_PATHS.keys():
 		var step_index := int(step_index_value)
-		var category_name := STEP_NAMES[step_index]
+		var category_name: String = str(STEP_NAMES[step_index])
 		_emit_setup_progress("Indexing %s assets" % category_name.to_lower(), 0.0)
 		await get_tree().process_frame
 		var files: Array[String] = []
