@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/lock_screen_shortcut.gd" id="1"]
+
+[node name="LockScreenShortcut" type="Control"]
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="ShortcutSurface" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+expand_mode = 1
+stretch_mode = 1
+mouse_filter = 2
+
+[node name="ShortcutCenter" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="GeneratedCameraGlyph" type="TextureRect" parent="ShortcutCenter"]
+visible = false
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="FlashlightGlyph" type="TextureRect" parent="ShortcutCenter"]
+visible = false
+custom_minimum_size = Vector2(27, 32)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2

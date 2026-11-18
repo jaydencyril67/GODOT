@@ -90,6 +90,15 @@ func _run_test() -> void:
 
 		var style := str(design.get("clock_style", ""))
 		clock_styles[style] = true
+		if designer.find_child("GeneratedLockScreenClockComponent", true, false) == null or designer.find_child("GeneratedLockScreenDate", true, false) == null:
+			_fail("The lock-screen clock/date scene component was not rendered.")
+			return
+		if designer.find_child("LockScreenStatusBar", true, false) == null:
+			_fail("The asset-backed status-bar scene component was not rendered.")
+			return
+		if bool(design.get("show_fingerprint", false)) and designer.find_child("GeneratedLockScreenFingerprint", true, false) == null:
+			_fail("The asset-backed fingerprint prompt component was not rendered.")
+			return
 		if style == "analog":
 			var analog_face := designer.find_child("GeneratedAnalogClockFace", true, false) as TextureRect
 			if analog_face == null or analog_face.texture == null:

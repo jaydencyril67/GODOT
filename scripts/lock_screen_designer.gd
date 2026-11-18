@@ -9,6 +9,10 @@ const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 const NotificationCardScene = preload("res://scenes/system_ui/lock_screen_notification_card.tscn")
 const MediaPlayerCardScene = preload("res://scenes/system_ui/lock_screen_media_player_card.tscn")
+const LockScreenClockScene = preload("res://scenes/system_ui/lock_screen_clock.tscn")
+const LockScreenStatusBarScene = preload("res://scenes/system_ui/lock_screen_status_bar.tscn")
+const FingerprintPromptScene = preload("res://scenes/system_ui/lock_screen_fingerprint_prompt.tscn")
+const LockScreenShortcutScene = preload("res://scenes/system_ui/lock_screen_shortcut.tscn")
 const PIN_BACKSPACE_ICON_PATH := "res://assets/system-ui/godot/pin-entry/pin_backspace.svg"
 const PIN_LENGTH := 6
 
@@ -448,7 +452,6 @@ func _render_design(design: Dictionary) -> void:
 		_add_glow(glow, palette["glow"])
 	_add_status_bar(design, palette)
 	_add_clock(design, palette)
-	_add_date(design, palette)
 	for index in range(design["notifications"].size()):
 		_add_notification(design["notifications"][index], palette)
 	if not design["media"].is_empty():
@@ -628,34 +631,12 @@ func _build_pin_entry_screen() -> void:
 	keypad.add_child(_make_pin_backspace_button(muted_color, glass_color))
 
 	if bool(_last_design.get("show_fingerprint", false)):
-		var fingerprint_button := Button.new()
-		fingerprint_button.name = "PinFingerprintOption"
-		fingerprint_button.focus_mode = Control.FOCUS_NONE
-		fingerprint_button.mouse_filter = Control.MOUSE_FILTER_STOP
-		fingerprint_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		fingerprint_button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		fingerprint_button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		fingerprint_button.pressed.connect(_complete_pin_preview)
-		_set_normalized_rect(fingerprint_button, Rect2(Vector2(0.22, 0.835), Vector2(0.56, 0.055)))
-		_pin_entry_layer.add_child(fingerprint_button)
-
-		var fingerprint_row := HBoxContainer.new()
-		fingerprint_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		fingerprint_row.add_theme_constant_override("separation", 10)
-		fingerprint_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_set_full_rect(fingerprint_row)
-		fingerprint_button.add_child(fingerprint_row)
-
-		var fingerprint_icon := TextureRect.new()
-		fingerprint_icon.name = "PinFingerprintIcon"
-		fingerprint_icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_fingerprint.svg"), accent_color)
-		fingerprint_icon.custom_minimum_size = Vector2(19, 27)
-		fingerprint_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		fingerprint_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		fingerprint_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		fingerprint_row.add_child(fingerprint_icon)
-
-		fingerprint_row.add_child(_make_pin_text_label("USE FINGERPRINT", 10, muted_color))
+		var fingerprint_prompt: Control = FingerprintPromptScene.instantiate() as Control
+		fingerprint_prompt.name = "PinFingerprintOption"
+		_set_normalized_rect(fingerprint_prompt, Rect2(Vector2(0.22, 0.835), Vector2(0.56, 0.055)))
+		_pin_entry_layer.add_child(fingerprint_prompt)
+		fingerprint_prompt.call("configure", _last_design.get("palette", {}), "USE FINGERPRINT", Vector2(19, 27), true)
+		fingerprint_prompt.activated.connect(_complete_pin_preview)
 
 	var return_hint := _make_pin_text_label("SWIPE DOWN TO RETURN", 9, Color(muted_color.r, muted_color.g, muted_color.b, 0.82))
 	return_hint.name = "PinEntryReturnHint"
@@ -795,71 +776,10 @@ func _add_glow(glow: Dictionary, tint: Color) -> void:
 
 
 func _add_status_bar(design: Dictionary, palette: Dictionary) -> void:
-	var style := StatusBarAssetLibrary.get_style(str(design.get("status_style_id", "pixel_compact")))
-	var row := HBoxContainer.new()
-	row.name = "LockScreenStatusBar"
-	row.add_theme_constant_override("separation", int(style.get("gap", 3)))
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(row, Rect2(Vector2(0.055, 0.024), Vector2(0.89, 0.035)))
-	add_child(row)
-
-	var leading := HBoxContainer.new()
-	leading.add_theme_constant_override("separation", int(style.get("gap", 3)))
-	leading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(leading)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-	var trailing := HBoxContainer.new()
-	trailing.add_theme_constant_override("separation", int(style.get("gap", 3)))
-	trailing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(trailing)
-
-	var time_label := Label.new()
-	time_label.name = "StatusBarClock"
-	time_label.text = _current_time_text()
-	time_label.add_theme_font_size_override("font_size", int(style.get("time_size", 12)))
-	time_label.add_theme_color_override("font_color", palette["muted"])
-	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var icon_group := trailing if str(style.get("time_side", "left")) == "left" else leading
-	var time_group := leading if str(style.get("time_side", "left")) == "left" else trailing
-	if str(style.get("time_side", "left")) == "left":
-		leading.add_child(time_label)
-	else:
-		trailing.add_child(time_label)
-
-	if bool(style.get("show_lock", false)):
-		var lock_icon := TextureRect.new()
-		lock_icon.name = "StatusBarLockIcon"
-		lock_icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_lock_locked.svg"), palette["muted"])
-		lock_icon.custom_minimum_size = Vector2(10, 13)
-		lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		time_group.add_child(lock_icon)
-
-	var order: Array = style.get("order", [])
-	for icon_type in order:
-		var icon_id := str(icon_type)
-		if icon_id == "bluetooth" and not bool(style.get("show_bluetooth", false)):
-			continue
-		var icon_name := "bluetooth_connected" if icon_id == "bluetooth" else "%s_%d" % [icon_id, int(style.get(icon_id + "_level", 4))]
-		var icon_texture := StatusBarAssetLibrary.get_icon_texture(icon_name)
-		if icon_texture == null:
-			continue
-		var icon := TextureRect.new()
-		icon.name = "StatusBar" + icon_id.capitalize() + "Icon"
-		icon.texture = icon_texture
-		icon.modulate = palette["muted"]
-		var icon_size := float(style.get("icon_size", 16))
-		var icon_width := icon_size * 0.75 if icon_id == "signal" else icon_size
-		icon.custom_minimum_size = Vector2(icon_width, icon_size)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_group.add_child(icon)
+	var status_bar: Control = LockScreenStatusBarScene.instantiate() as Control
+	status_bar.name = "LockScreenStatusBar"
+	add_child(status_bar)
+	status_bar.call("configure", design, palette)
 
 func get_status_bar_style_id() -> String:
 	return str(_last_design.get("status_style_id", "pixel_compact"))
@@ -872,85 +792,10 @@ func set_status_bar_style(style_id: String) -> bool:
 	return true
 
 func _add_clock(design: Dictionary, palette: Dictionary) -> void:
-	var rect: Rect2 = design["clock_rect"]
-	if str(design["clock_style"]) == "analog":
-		_add_analog_clock(rect, palette, int(design.get("analog_clock_style_index", 1)))
-		return
-
-	var clock := Label.new()
-	clock.name = "GeneratedLockScreenClock"
-	var time_parts := _current_time_text().split(":")
-	if str(design["clock_format"]) == "split":
-		clock.text = time_parts[0] + "\n" + time_parts[1]
-	elif str(design["clock_format"]) == "spaced":
-		clock.text = time_parts[0] + "   " + time_parts[1]
-	else:
-		clock.text = _current_time_text()
-	clock.horizontal_alignment = _alignment_from_name(str(design["clock_align"]))
-	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock.add_theme_font_size_override("font_size", int(design["clock_font_size"]))
-	clock.add_theme_color_override("font_color", palette["text"])
-	clock.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.30))
-	clock.add_theme_constant_override("shadow_offset_x", 1)
-	clock.add_theme_constant_override("shadow_offset_y", 3)
-	clock.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(clock, rect)
+	var clock: Control = LockScreenClockScene.instantiate() as Control
+	clock.name = "GeneratedLockScreenClockComponent"
 	add_child(clock)
-
-
-func _add_analog_clock(rect: Rect2, palette: Dictionary, style_index: int) -> void:
-	# The blueprint stores normalized portrait-screen coordinates; its 2:1
-	# width-to-height ratio is already square in the actual handset viewport.
-	var face_rect := rect
-
-	var face := TextureRect.new()
-	face.name = "GeneratedAnalogClockFace"
-	face.texture = load(LockScreenAssetLibrary.get_analog_face_path(style_index)) as Texture2D
-	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(face, face_rect)
-	add_child(face)
-
-	var time := Time.get_time_dict_from_system()
-	var minute_angle := float(time["minute"]) * TAU / 60.0
-	var hour_angle := (float(time["hour"] % 12) + float(time["minute"]) / 60.0) * TAU / 12.0
-	var second_angle := float(time["second"]) * TAU / 60.0
-	var hour_hand := _add_analog_hand("AnalogHourHand", "hr", face_rect, palette["accent"], hour_angle)
-	var minute_hand := _add_analog_hand("AnalogMinuteHand", "min", face_rect, palette["text"], minute_angle)
-	var second_hand := _add_analog_hand("AnalogSecondHand", "sec", face_rect, palette["muted"], second_angle)
-	hour_hand.z_index = 2
-	minute_hand.z_index = 3
-	second_hand.z_index = 4
-
-func _add_analog_hand(node_name: String, hand_name: String, rect: Rect2, tint: Color, angle: float) -> TextureRect:
-	var hand := TextureRect.new()
-	hand.name = node_name
-	hand.texture = load(LockScreenAssetLibrary.get_analog_hand_path(int(_last_design.get("analog_clock_style_index", 1)), hand_name)) as Texture2D
-	hand.modulate = tint
-	hand.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hand.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	hand.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(hand, rect)
-	add_child(hand)
-	hand.pivot_offset = hand.size * 0.5
-	hand.rotation = angle
-	hand.resized.connect(func(): hand.pivot_offset = hand.size * 0.5)
-	return hand
-
-func _add_date(design: Dictionary, palette: Dictionary) -> void:
-	var date := Label.new()
-	date.name = "GeneratedLockScreenDate"
-	date.text = _current_date_text()
-	date.horizontal_alignment = _alignment_from_name(str(design["clock_align"]))
-	date.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	date.add_theme_font_size_override("font_size", int(design["date_font_size"]))
-	date.add_theme_color_override("font_color", palette["muted"])
-	date.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var date_component := _find_component_rect(design, "date")
-	_set_normalized_rect(date, date_component)
-	add_child(date)
-
+	clock.call("configure", design, palette)
 
 func _add_notification(notification_data: Dictionary, palette: Dictionary) -> void:
 	var card: Control = NotificationCardScene.instantiate() as Control
@@ -970,160 +815,19 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 	for shortcut in design["shortcuts"]:
 		var kind := str(shortcut["kind"])
-		var rect: Rect2 = shortcut["rect"]
-		var button := Control.new()
+		var button: Control = LockScreenShortcutScene.instantiate() as Control
 		button.name = "Bottom" + kind.capitalize() + "Shortcut"
-		button.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_set_normalized_rect(button, rect)
+		_set_normalized_rect(button, shortcut["rect"])
 		add_child(button)
+		button.call("configure", kind, palette)
 
-		var surface := TextureRect.new()
-		surface.texture = LockScreenAssetLibrary.get_surface_texture("shortcut")
-		surface.modulate = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.58)
-		surface.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		surface.stretch_mode = TextureRect.STRETCH_SCALE
-		surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_set_full_rect(surface)
-		button.add_child(surface)
 
-		var center := CenterContainer.new()
-		center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_set_full_rect(center)
-		button.add_child(center)
-		if kind == "flashlight":
-			var flashlight := TextureRect.new()
-			flashlight.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_flashlight_off.svg"), palette["text"])
-			flashlight.custom_minimum_size = Vector2(27, 32)
-			flashlight.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			flashlight.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			flashlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			center.add_child(flashlight)
-		else:
-			_add_camera_symbol(center, palette)
-
-func _add_camera_symbol(parent: Control, palette: Dictionary) -> void:
-	var camera := TextureRect.new()
-	camera.name = "GeneratedCameraGlyph"
-	camera.texture = LockScreenAssetLibrary.get_icon_texture("camera")
-	camera.modulate = palette["text"]
-	camera.custom_minimum_size = Vector2(30, 30)
-	camera.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	camera.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	camera.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(camera)
-
-func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
-	var rect: Rect2 = media["rect"]
-	var card := Control.new()
-	card.name = "GeneratedLockScreenMediaPlayer"
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(card, rect)
-	add_child(card)
-
-	var surface := TextureRect.new()
-	surface.name = "GeneratedMediaPlayerSurface"
-	surface.texture = LockScreenAssetLibrary.get_surface_texture("media")
-	surface.modulate = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.86)
-	surface.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	surface.stretch_mode = TextureRect.STRETCH_SCALE
-	surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_full_rect(surface)
-	card.add_child(surface)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_bottom", 5)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_full_rect(margin)
-	card.add_child(margin)
-
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 3)
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_child(content)
-
-	var top_row := HBoxContainer.new()
-	top_row.add_theme_constant_override("separation", 9)
-	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(top_row)
-
-	var service_icon := TextureRect.new()
-	var icon_path := str(media.get("icon", ""))
-	if not icon_path.is_empty():
-		service_icon.texture = load(icon_path) as Texture2D
-	service_icon.custom_minimum_size = Vector2(40, 40)
-	service_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	service_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	service_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_row.add_child(service_icon)
-
-	var track_info := VBoxContainer.new()
-	track_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	track_info.add_theme_constant_override("separation", 0)
-	track_info.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_row.add_child(track_info)
-
-	var service_label := Label.new()
-	service_label.text = str(media.get("service", "MUSIC")) + "  ·  NOW PLAYING"
-	service_label.add_theme_font_size_override("font_size", 9)
-	service_label.add_theme_color_override("font_color", palette["accent"])
-	service_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	track_info.add_child(service_label)
-
-	var title := Label.new()
-	title.text = str(media.get("title", "Now Playing"))
-	title.add_theme_font_size_override("font_size", 12)
-	title.add_theme_color_override("font_color", palette["text"])
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	track_info.add_child(title)
-
-	var artist := Label.new()
-	artist.text = str(media.get("artist", "Digital World Radio"))
-	artist.add_theme_font_size_override("font_size", 10)
-	artist.add_theme_color_override("font_color", palette["muted"])
-	artist.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	track_info.add_child(artist)
-
-	var progress := ProgressBar.new()
-	progress.name = "MediaPlaybackProgress"
-	progress.min_value = 0
-	progress.max_value = 100
-	progress.value = float(media.get("progress", 55))
-	progress.show_percentage = false
-	progress.custom_minimum_size.y = 4
-	progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var progress_fill := StyleBoxFlat.new()
-	progress_fill.bg_color = palette["accent"]
-	progress_fill.set_corner_radius_all(3)
-	progress.add_theme_stylebox_override("fill", progress_fill)
-	var progress_track := StyleBoxFlat.new()
-	progress_track.bg_color = Color(palette["muted"].r, palette["muted"].g, palette["muted"].b, 0.20)
-	progress_track.set_corner_radius_all(3)
-	progress.add_theme_stylebox_override("background", progress_track)
-	content.add_child(progress)
-
-	var controls := HBoxContainer.new()
-	controls.name = "GeneratedMediaControls"
-	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 25)
-	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(controls)
-	_add_media_control(controls, "media_previous", 21)
-	_add_media_control(controls, "media_pause" if bool(media.get("playing", true)) else "media_play", 23)
-	_add_media_control(controls, "media_next", 21)
-
-func _add_media_control(parent: Control, icon_id: String, icon_size: float) -> void:
-	var icon := TextureRect.new()
-	icon.name = "MediaControl_" + icon_id
-	icon.texture = LockScreenAssetLibrary.get_icon_texture(icon_id)
-	icon.custom_minimum_size = Vector2(icon_size, icon_size)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(icon)
+func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
+	var fingerprint: Control = FingerprintPromptScene.instantiate() as Control
+	fingerprint.name = "GeneratedLockScreenFingerprint"
+	_set_normalized_rect(fingerprint, _find_component_rect(design, "fingerprint"))
+	add_child(fingerprint)
+	fingerprint.call("configure", palette, "TOUCH SENSOR TO UNLOCK", Vector2(25, 32), false)
 
 func _notification_component_rect(design: Dictionary, notification_index: int) -> Rect2:
 	var notification_data: Dictionary = design["notifications"][notification_index]
