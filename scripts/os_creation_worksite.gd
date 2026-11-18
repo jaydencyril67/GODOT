@@ -72,8 +72,10 @@ var controls_scroll: ScrollContainer
 var controls_stack: VBoxContainer
 var heading_label: Label
 var clock_enabled_toggle: CheckBox
-var clock_type_expanded := false
 var clock_type_row: HBoxContainer
+var clock_type_value_label: Label
+var clock_type_decrease_button: Button
+var clock_type_increase_button: Button
 var clock_style_button: Button
 var progress_label: Label
 var progress_bar: ProgressBar
@@ -833,25 +835,102 @@ func _on_clock_enabled_toggled(enabled: bool) -> void:
 
 
 func _show_lock_screen_clock_controls() -> void:
-	clock_type_expanded = false
 	clock_type_row = null
+	clock_type_value_label = null
+	clock_type_decrease_button = null
+	clock_type_increase_button = null
 	clock_style_button = null
 
-	var type_title := _make_label("Clock type", 18, TEXT)
+	# Keep the clock controls in the same explicit feature-panel hierarchy used
+	# by Phone Type: feature section, heading, explanation, then a centred
+	# selector area. Clock Type and Clock Style each own their own section.
+	var feature_panel := VBoxContainer.new()
+	feature_panel.name = "LockScreenClockFeaturePanel"
+	feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
+	feature_panel.add_theme_constant_override("separation", 10)
+	content_column.add_child(feature_panel)
+
+	var type_section := VBoxContainer.new()
+	type_section.name = "ClockTypeFeatureSection"
+	type_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_section.add_theme_constant_override("separation", 8)
+	feature_panel.add_child(type_section)
+
+	var type_title := _make_label("CLOCK TYPE", 19, Color("#D3AA6B"))
 	type_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content_column.add_child(type_title)
+	type_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_section.add_child(type_title)
+
+	var type_description := _make_label("Choose between analog and digital clock designs for the phone lock screen.", 12, Color("#E5E0D6"))
+	type_description.name = "ClockTypeDescription"
+	type_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	type_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	type_section.add_child(type_description)
+
+	var type_controls_center := CenterContainer.new()
+	type_controls_center.name = "ClockTypeControlsCenter"
+	type_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	type_controls_center.custom_minimum_size = Vector2(0, 180)
+	type_section.add_child(type_controls_center)
 
 	clock_type_row = HBoxContainer.new()
 	clock_type_row.name = "ClockTypeSelector"
-	clock_type_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clock_type_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	clock_type_row.add_theme_constant_override("separation", 12)
-	content_column.add_child(clock_type_row)
-	_refresh_clock_type_selector()
+	clock_type_row.add_theme_constant_override("separation", 14)
+	type_controls_center.add_child(clock_type_row)
 
-	var style_title := _make_label("Clock Style", 18, TEXT)
+	clock_type_decrease_button = _make_button("−")
+	clock_type_decrease_button.name = "ClockTypeDecreaseButton"
+	clock_type_decrease_button.custom_minimum_size = Vector2(56, 48)
+	clock_type_decrease_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	clock_type_decrease_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_type_decrease_button.add_theme_font_size_override("font_size", 22)
+	clock_type_decrease_button.pressed.connect(_select_lock_screen_clock_type.bind("analog"))
+	clock_type_row.add_child(clock_type_decrease_button)
+
+	clock_type_value_label = _make_label("", 19, Color("#F2EEE7"))
+	clock_type_value_label.name = "ClockTypeValueLabel"
+	clock_type_value_label.custom_minimum_size.x = 190
+	clock_type_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_type_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_type_row.add_child(clock_type_value_label)
+
+	clock_type_increase_button = _make_button("+")
+	clock_type_increase_button.name = "ClockTypeIncreaseButton"
+	clock_type_increase_button.custom_minimum_size = Vector2(56, 48)
+	clock_type_increase_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	clock_type_increase_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_type_increase_button.add_theme_font_size_override("font_size", 22)
+	clock_type_increase_button.pressed.connect(_select_lock_screen_clock_type.bind("digital"))
+	clock_type_row.add_child(clock_type_increase_button)
+
+	var style_section := VBoxContainer.new()
+	style_section.name = "ClockStyleFeatureSection"
+	style_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	style_section.add_theme_constant_override("separation", 8)
+	feature_panel.add_child(style_section)
+
+	var style_title := _make_label("CLOCK STYLE", 19, Color("#D3AA6B"))
 	style_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	content_column.add_child(style_title)
+	style_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	style_section.add_child(style_title)
+
+	var style_description := _make_label("Cycle through the 41 available clock designs. Your selection updates the live phone preview.", 12, Color("#E5E0D6"))
+	style_description.name = "ClockStyleDescription"
+	style_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	style_description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	style_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	style_section.add_child(style_description)
+
+	var style_controls_center := CenterContainer.new()
+	style_controls_center.name = "ClockStyleControlsCenter"
+	style_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	style_controls_center.custom_minimum_size = Vector2(0, 76)
+	style_section.add_child(style_controls_center)
 
 	clock_style_button = _make_button("")
 	clock_style_button.name = "ClockStyleNextButton"
@@ -860,57 +939,22 @@ func _show_lock_screen_clock_controls() -> void:
 	clock_style_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	clock_style_button.add_theme_font_size_override("font_size", 17)
 	clock_style_button.pressed.connect(_on_clock_style_next_pressed)
-	content_column.add_child(clock_style_button)
+	style_controls_center.add_child(clock_style_button)
+
+	_refresh_clock_type_selector()
 	_refresh_clock_style_button()
 
 
 func _refresh_clock_type_selector() -> void:
 	if not is_instance_valid(clock_type_row) or not is_instance_valid(lock_screen_designer):
 		return
-	for child in clock_type_row.get_children():
-		clock_type_row.remove_child(child)
-		child.free()
-
 	var selected_type := str(lock_screen_designer.call("get_clock_type"))
-	var alternate_type := "digital" if selected_type == "analog" else "analog"
-	if not clock_type_expanded:
-		var add_button := _make_button(selected_type.capitalize() + "  +")
-		add_button.name = "ClockTypeAddButton"
-		add_button.custom_minimum_size = Vector2(180, 56)
-		add_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		add_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		add_button.add_theme_font_size_override("font_size", 17)
-		add_button.pressed.connect(_on_clock_type_expand_pressed)
-		clock_type_row.add_child(add_button)
-		return
-
-	var selected_button := _make_button(selected_type.capitalize() + "  −")
-	selected_button.name = "ClockTypeSelectedButton"
-	selected_button.custom_minimum_size = Vector2(132, 56)
-	selected_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	selected_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	selected_button.add_theme_font_size_override("font_size", 17)
-	selected_button.pressed.connect(_on_clock_type_collapse_pressed)
-	clock_type_row.add_child(selected_button)
-
-	var alternate_button := _make_button(alternate_type.capitalize() + "  +")
-	alternate_button.name = "ClockTypeAlternateButton"
-	alternate_button.custom_minimum_size = Vector2(132, 56)
-	alternate_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	alternate_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	alternate_button.add_theme_font_size_override("font_size", 17)
-	alternate_button.pressed.connect(_select_lock_screen_clock_type.bind(alternate_type))
-	clock_type_row.add_child(alternate_button)
-
-
-func _on_clock_type_expand_pressed() -> void:
-	clock_type_expanded = true
-	_refresh_clock_type_selector()
-
-
-func _on_clock_type_collapse_pressed() -> void:
-	clock_type_expanded = false
-	_refresh_clock_type_selector()
+	if is_instance_valid(clock_type_value_label):
+		clock_type_value_label.text = selected_type.to_upper()
+	if is_instance_valid(clock_type_decrease_button):
+		clock_type_decrease_button.disabled = selected_type == "analog"
+	if is_instance_valid(clock_type_increase_button):
+		clock_type_increase_button.disabled = selected_type == "digital"
 
 
 func _select_lock_screen_clock_type(clock_type: String) -> void:
@@ -918,7 +962,6 @@ func _select_lock_screen_clock_type(clock_type: String) -> void:
 		return
 	if not bool(lock_screen_designer.call("set_clock_type", clock_type)):
 		return
-	clock_type_expanded = true
 	_refresh_clock_type_selector()
 
 

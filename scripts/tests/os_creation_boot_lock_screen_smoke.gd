@@ -94,18 +94,51 @@ func _run_test() -> void:
 	if lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) == null:
 		_fail("Enabling the Step 2 clock checkbox must restore the live clock.")
 		return
-	var type_add_button := clock_controls.find_child("ClockTypeAddButton", true, false) as Button
+	var clock_feature_panel := clock_controls.find_child("LockScreenClockFeaturePanel", true, false) as VBoxContainer
+	var type_section := clock_controls.find_child("ClockTypeFeatureSection", true, false) as VBoxContainer
+	var type_description := clock_controls.find_child("ClockTypeDescription", true, false) as Label
+	var type_center := clock_controls.find_child("ClockTypeControlsCenter", true, false) as CenterContainer
+	var type_row := clock_controls.find_child("ClockTypeSelector", true, false) as HBoxContainer
+	var type_decrease_button := clock_controls.find_child("ClockTypeDecreaseButton", true, false) as Button
+	var type_value_label := clock_controls.find_child("ClockTypeValueLabel", true, false) as Label
+	var type_increase_button := clock_controls.find_child("ClockTypeIncreaseButton", true, false) as Button
+	var style_section := clock_controls.find_child("ClockStyleFeatureSection", true, false) as VBoxContainer
+	var style_description := clock_controls.find_child("ClockStyleDescription", true, false) as Label
+	var style_center := clock_controls.find_child("ClockStyleControlsCenter", true, false) as CenterContainer
 	var style_button := clock_controls.find_child("ClockStyleNextButton", true, false) as Button
-	if type_add_button == null or type_add_button.text != "Analog  +":
-		_fail("Step 2 must start with the Analog + clock type selector.")
+	if clock_feature_panel == null or type_section == null or type_description == null or type_center == null or type_row == null:
+		_fail("The Lock Screen Clock panel must use the Phone Type feature-section hierarchy.")
 		return
-	if style_button == null or style_button.text != "Style 1  +":
+	var type_heading := type_section.get_child(0) as Label
+	if type_heading == null or type_heading.text != "CLOCK TYPE":
+		_fail("Clock Type must begin with a dedicated feature heading.")
+		return
+	if type_row.get_parent() != type_center or type_center.get_parent() != type_section or type_section.get_parent() != clock_feature_panel:
+		_fail("Clock Type controls must sit inside their centred feature-section hierarchy.")
+		return
+	if type_row.get_child_count() != 3 or type_decrease_button == null or type_value_label == null or type_increase_button == null:
+		_fail("Clock Type must use the three-part minus, selected value, plus selector structure.")
+		return
+	if type_value_label.text != "ANALOG" or not type_decrease_button.disabled or type_increase_button.disabled:
+		_fail("The Clock Type selector must initially show Analog with only the forward selector enabled.")
+		return
+	if style_section == null or style_description == null or style_center == null or style_button == null or style_button.get_parent() != style_center:
+		_fail("Clock Style must have its own heading, description and centred control area.")
+		return
+	var style_heading := style_section.get_child(0) as Label
+	if style_heading == null or style_heading.text != "CLOCK STYLE":
+		_fail("Clock Style must begin with a dedicated feature heading.")
+		return
+	if style_button.text != "Style 1  +":
 		_fail("Step 2 must start at Clock Style 1.")
 		return
-	worksite.call("_on_clock_type_expand_pressed")
-	var digital_type_button := clock_controls.find_child("ClockTypeAlternateButton", true, false) as Button
-	if digital_type_button == null or digital_type_button.text != "Digital  +":
-		_fail("Adding a clock type must reveal Digital + beside the selected Analog type.")
+	type_increase_button.pressed.emit()
+	if type_value_label.text != "DIGITAL" or type_decrease_button.disabled or not type_increase_button.disabled:
+		_fail("The plus control must select Digital and update the available direction controls.")
+		return
+	type_decrease_button.pressed.emit()
+	if type_value_label.text != "ANALOG" or not type_decrease_button.disabled or type_increase_button.disabled:
+		_fail("The minus control must restore Analog and update the available direction controls.")
 		return
 	for _style_step in range(40):
 		worksite.call("_on_clock_style_next_pressed")
