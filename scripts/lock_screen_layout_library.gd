@@ -1,7 +1,7 @@
 extends RefCounted
 
-# Curated structural foundations. The designer owns all live variation:
-# typography scale, safe-area offsets, palette, wallpaper, content and details.
+# Curated structural foundations. The designer owns layout and content variation;
+# wallpaper selection is applied independently from layout generation.
 const BLUEPRINTS := [
 	{
 		"id": "pixel_centered",
