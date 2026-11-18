@@ -6,6 +6,7 @@ const SVG_ROOT := "res://assets/lock-screen/aosp/SVG"
 const WALLPAPER_ROOT := "res://assets/wallpapers"
 const LayoutLibrary = preload("res://scripts/lock_screen_layout_library.gd")
 const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
+const ClockFaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 const NotificationCardScene = preload("res://scenes/system_ui/lock_screen_notification_card.tscn")
 const MediaPlayerCardScene = preload("res://scenes/system_ui/lock_screen_media_player_card.tscn")
@@ -31,6 +32,19 @@ const MEDIA_PRESETS := [
 	{"service": "DEEZER", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_deezer.svg", "title": "The Less I Know the Better", "artist": "Tame Impala"},
 	{"service": "SOUNDCLOUD", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_soundcloud.svg", "title": "A Walk", "artist": "Tycho"},
 	{"service": "SAMSUNG MUSIC", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_samsung_music.svg", "title": "Night Drive", "artist": "Digital World Radio"}
+]
+
+const MEDIA_ARTWORK := [
+	"res://assets/lock-screen/music-player/1b9e7b387846cf3c10ff5c98ffaf2a4b.jpg",
+	"res://assets/lock-screen/music-player/1f005d4d6dc5298a58f39ecf198e89ac.jpg",
+	"res://assets/lock-screen/music-player/2f47aef2a0cfa544972865118eddc157.jpg",
+	"res://assets/lock-screen/music-player/477f656c41e70d17326da7278fe28cc4.jpg",
+	"res://assets/lock-screen/music-player/577eca9a15186b5264c3cd4931dcdf94.jpg",
+	"res://assets/lock-screen/music-player/9b9a6626638b09de9ceb5f9e61606e58.jpg",
+	"res://assets/lock-screen/music-player/af1d783ea4d3405c7f24a4c5c911eecb.jpg",
+	"res://assets/lock-screen/music-player/b4b67a857198beb19cb56ba42891fd62.jpg",
+	"res://assets/lock-screen/music-player/c21b48739b2f7bf770a902980aa2b1a6.jpg",
+	"res://assets/lock-screen/music-player/f983d854f7cc388cae23686f57db6ef3.jpg"
 ]
 
 const PALETTES := [
@@ -285,7 +299,12 @@ func get_clock_style_index() -> int:
 
 
 func get_clock_style_count() -> int:
-	return LockScreenAssetLibrary.get_analog_clock_count()
+	return ClockFaceAssetLibrary.new().get_face_count()
+
+
+func get_clock_style_name() -> String:
+	return ClockFaceAssetLibrary.new().get_face_name(get_clock_style_index())
+
 
 
 func set_clock_style_index(style_index: int) -> bool:
@@ -430,6 +449,7 @@ func _compose_design() -> Dictionary:
 			media["rect"] = slot_rect
 			media["progress"] = _rng.randi_range(28, 84)
 			media["playing"] = _rng.randf() > 0.18
+			media["album_art"] = MEDIA_ARTWORK[_rng.randi_range(0, MEDIA_ARTWORK.size() - 1)]
 			_add_component(components, occupied, "media", slot_rect)
 
 	if notifications.is_empty():
@@ -440,6 +460,9 @@ func _compose_design() -> Dictionary:
 			fallback_notification["timestamp"] = "NOW"
 			notifications.append(fallback_notification)
 			_add_component(components, occupied, "notification", fallback_notification_rect)
+
+	for notification_data in notifications:
+		notification_data["notification_count"] = 1
 
 	var fingerprint_rect := Rect2(
 		Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.785, 0.795)),
