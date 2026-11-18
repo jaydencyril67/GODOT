@@ -82,7 +82,13 @@ func _run_test() -> void:
 	var worksite: Node = WorksiteScript.new()
 	worksite.name = "PinEntrySwipeWorksiteSmokeTest"
 	root.add_child(worksite)
-	await process_frame
+	for _frame_index in range(1200):
+		if bool(worksite.get("setup_complete")):
+			break
+		await process_frame
+	if not bool(worksite.get("setup_complete")):
+		_fail("The OS Worksite did not finish its staged startup preparation.")
+		return
 	var phone_frame := worksite.get("phone_frame") as SubViewportContainer
 	var screen_viewport := worksite.get("phone_screen_interface_viewport") as SubViewport
 	var lock_screen := worksite.get("lock_screen_designer") as Control
