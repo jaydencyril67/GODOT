@@ -182,6 +182,52 @@ func _run_test() -> void:
 	if digital_clock == null or not digital_clock.visible or int(digital_clock.call("get_style_index")) != 41:
 		_fail("Digital Style 41 did not render on the live lock screen.")
 		return
+	if int(digital_clock.call("get_style_count")) != 41:
+		_fail("Digital lock-screen styles must retain all 41 selectable presets.")
+		return
+	var digital_time_label := digital_clock.find_child("DigitalClockTime", true, false) as Label
+	var digital_date_label := digital_clock.find_child("DigitalClockDate", true, false) as Label
+	var digital_hours_label := digital_clock.find_child("DigitalClockHours", true, false) as Label
+	var digital_minutes_label := digital_clock.find_child("DigitalClockMinutes", true, false) as Label
+	if digital_time_label == null or digital_date_label == null or digital_hours_label == null or digital_minutes_label == null:
+		_fail("The digital clock must use real lock-screen time and date labels, not a drawn alarm-clock casing.")
+		return
+	if digital_clock.anchor_left != 0.0 or digital_clock.anchor_top != 0.0 or digital_clock.anchor_right != 1.0 or digital_clock.anchor_bottom != 1.0:
+		_fail("Digital lock-screen styles must own a full-screen layout instead of inheriting the analog clock's small rectangle.")
+		return
+	var reference_styles := [
+		{"index": 1, "source": "SAMSUNG GALAXY S21", "layout": "single"},
+		{"index": 9, "source": "SAMSUNG GALAXY S26", "layout": "stacked"},
+		{"index": 17, "source": "APPLE IPHONE 16 PRO MAX", "layout": "single"},
+		{"index": 25, "source": "APPLE IPHONE 17 PRO MAX", "layout": "single"},
+		{"index": 33, "source": "GOOGLE PIXEL", "layout": "stacked"}
+	]
+	for reference_style in reference_styles:
+		var reference_index := int(reference_style["index"])
+		if not bool(lock_screen.call("set_clock_style_index", reference_index)):
+			_fail("A named real-device digital clock reference could not be selected.")
+			return
+		var active_digital := lock_screen.find_child("DigitalClock", true, false) as Control
+		if active_digital == null or str(active_digital.call("get_style_source")).find(str(reference_style["source"])) < 0:
+			_fail("Digital Style %02d is not mapped to its named real-device reference." % reference_index)
+			return
+		if str(active_digital.call("get_style_layout")) != str(reference_style["layout"]):
+			_fail("Digital Style %02d does not use the expected phone clock structure." % reference_index)
+			return
+		var active_time := active_digital.find_child("DigitalClockTime", true, false) as Label
+		var active_hours := active_digital.find_child("DigitalClockHours", true, false) as Label
+		var active_minutes := active_digital.find_child("DigitalClockMinutes", true, false) as Label
+		if str(reference_style["layout"]) == "stacked":
+			if active_time == null or active_time.visible or active_hours == null or not active_hours.visible or active_minutes == null or not active_minutes.visible:
+				_fail("Stacked phone clock references must render separate hour and minute rows.")
+				return
+		else:
+			if active_time == null or not active_time.visible or active_hours == null or active_hours.visible or active_minutes == null or active_minutes.visible:
+				_fail("Single-line phone clock references must render one horizontal time row.")
+				return
+	if not bool(lock_screen.call("set_clock_style_index", 41)):
+		_fail("Digital Style 41 could not be restored after reference validation.")
+		return
 	worksite.call("_select_lock_screen_clock_type", "analog")
 	var analog_artwork := lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
 	if analog_artwork == null or analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(41):
