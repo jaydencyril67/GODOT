@@ -1031,12 +1031,13 @@ func _refresh_clock_style_selector() -> void:
 	var selected_style := int(lock_screen_designer.call("get_clock_style_index"))
 	var style_count := int(lock_screen_designer.call("get_clock_style_count"))
 	if is_instance_valid(clock_style_value_label):
+		clock_style_value_label.text = "STYLE %02d" % selected_style
 		var active_clock_type := str(lock_screen_designer.call("get_clock_type"))
 		if active_clock_type == "digital":
 			var style_name := str(lock_screen_designer.call("get_clock_style_name"))
-			clock_style_value_label.text = "%02d  %s" % [selected_style, style_name.to_upper()]
+			clock_style_value_label.tooltip_text = "XMorph digital face: " + style_name
 		else:
-			clock_style_value_label.text = "ANALOG %02d" % selected_style
+			clock_style_value_label.tooltip_text = "Analog clock artwork %02d" % selected_style
 	if is_instance_valid(clock_style_decrease_button):
 		clock_style_decrease_button.disabled = selected_style <= 1
 	if is_instance_valid(clock_style_increase_button):
