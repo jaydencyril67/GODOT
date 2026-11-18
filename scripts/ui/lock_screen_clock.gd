@@ -2,7 +2,7 @@ extends Control
 
 const AssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 
-@onready var digital_clock: Label = $DigitalClock
+@onready var digital_clock: Label = $GeneratedLockScreenClock
 @onready var date_label: Label = $GeneratedLockScreenDate
 @onready var analog_clock: Control = $AnalogClock
 @onready var analog_face: TextureRect = $AnalogClock/GeneratedAnalogClockFace
@@ -24,7 +24,8 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 	_clock_style = str(design.get("clock_style", "digital"))
 	_clock_format = str(design.get("clock_format", "single"))
 	var clock_rect: Rect2 = design.get("clock_rect", Rect2(0.08, 0.2, 0.84, 0.15))
-	_set_normalized_rect(self, clock_rect)
+	_set_normalized_rect(digital_clock, clock_rect)
+	_set_normalized_rect(analog_clock, clock_rect)
 	digital_clock.add_theme_color_override("font_color", palette.get("text", Color.WHITE))
 	digital_clock.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.30))
 	digital_clock.add_theme_constant_override("shadow_offset_x", 1)
