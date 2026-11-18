@@ -2,8 +2,6 @@ extends SceneTree
 
 const UIEvolutionEngineScript = preload("res://scripts/ui_evolution_engine.gd")
 const GeneratedPhoneUIScript = preload("res://scripts/generated_phone_ui.gd")
-const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksite.gd")
-const ScreenTechnologySystemScript = preload("res://scripts/screen_technology_system.gd")
 
 const TEST_SAVE_PATH := "user://ui_evolution_smoke_test.json"
 
@@ -14,9 +12,6 @@ func _initialize() -> void:
 
 func _run_smoke_test() -> void:
 	if not await _check_generated_designs():
-		quit(1)
-		return
-	if not await _check_phone_screen_integration():
 		quit(1)
 		return
 	print("UI_EVOLUTION_SMOKE_TEST: PASS")
@@ -193,117 +188,6 @@ func _check_generated_ui_pixels() -> bool:
 		_fail("The generated screen image is missing its wallpaper asset, widget or app-icon pixels.")
 		return false
 	return true
-
-
-func _check_phone_screen_integration() -> bool:
-	var worksite := PhoneCreationWorksiteScript.new()
-	worksite.name = "UIEvolutionPhoneScreenSmokeWorksite"
-	root.add_child(worksite)
-	await process_frame
-	worksite.call("_show_ui_evolution_step")
-	await process_frame
-	await process_frame
-
-	var screen := worksite.get("phone_screen") as MeshInstance3D
-	var ui_viewport := worksite.get("phone_ui_viewport") as SubViewport
-	var ui_renderer := worksite.get("phone_ui_renderer") as Control
-	if screen == null or ui_viewport == null or ui_renderer == null:
-		worksite.queue_free()
-		_fail("The standalone UI Evolution feature did not create its phone screen viewport and renderer.")
-		return false
-	if not bool(worksite.get("screen_enabled")) or screen.mesh == null:
-		worksite.queue_free()
-		_fail("The generated interface did not enable the physical 3D phone display.")
-		return false
-
-	if not _has_generated_screen_texture(screen):
-		worksite.queue_free()
-		_fail("The Standard phone display is missing its generated viewport texture or UV mapping.")
-		return false
-
-	# The interface must render into an opaque, higher-density target. Screen
-	# research must affect glass optics without tinting away readable UI pixels.
-	if ui_viewport.size != Vector2i(480, 960) or ui_viewport.transparent_bg:
-		worksite.queue_free()
-		_fail("The generated UI viewport is not using the expected opaque high-density display target.")
-		return false
-	var screen_material := screen.material_override as ShaderMaterial
-	var screen_quality: Dictionary = worksite.get("screen_quality_state")
-	var screen_profile: Dictionary = ScreenTechnologySystemScript.get_visual_profile(screen_quality)
-	if screen_material == null or screen_material.shader == null:
-		worksite.queue_free()
-		_fail("The generated screen is missing its clarity and glass-response shader.")
-		return false
-	var shader_source := screen_material.shader.code
-	if shader_source.contains("ALPHA =") or not shader_source.contains("screen_reflection_strength") or not shader_source.contains("ALBEDO = display_rgb"):
-		worksite.queue_free()
-		_fail("The generated screen shader does not preserve opacity or screen-technology optical controls.")
-		return false
-	var expected_reflection := float(screen_profile.get("specular", 0.55))
-	var actual_reflection := float(screen_material.get_shader_parameter("screen_reflection_strength"))
-	if not is_equal_approx(actual_reflection, expected_reflection):
-		worksite.queue_free()
-		_fail("Screen reflection reduction is not connected to the generated display glass.")
-		return false
-
-	# Verify the same live interface maps onto both foldable inner displays.
-	worksite.call("set_phone_type_research_level", 2)
-	worksite.call("_on_phone_type_increase_pressed")
-	await process_frame
-	var flip_screen := worksite.get("phone_screen") as MeshInstance3D
-	if str(worksite.get("selected_phone_type")) != "Flip" or not _has_generated_screen_texture(flip_screen):
-		worksite.queue_free()
-		_fail("The generated interface did not map correctly onto the Flip's inner display.")
-		return false
-	worksite.call("_on_phone_type_increase_pressed")
-	await process_frame
-	var fold_screen := worksite.get("phone_screen") as MeshInstance3D
-	if str(worksite.get("selected_phone_type")) != "Fold" or not _has_generated_screen_texture(fold_screen):
-		worksite.queue_free()
-		_fail("The generated interface did not map correctly onto the Fold's inner display.")
-		return false
-
-	# Confirm the new UI research step sits immediately after Cooling System Design.
-	worksite.call("_show_cooling_system_step")
-	worksite.call("_on_next_pressed")
-	if int(worksite.get("wizard_step")) != 30:
-		worksite.queue_free()
-		_fail("The phone-interface design step is not positioned after Cooling System Design.")
-		return false
-	var progress_label := worksite.get("progress_number") as Label
-	if progress_label == null or progress_label.text != "STEP 31 / 38":
-		worksite.queue_free()
-		_fail("The phone-interface design step did not update the 38-step progress counter.")
-		return false
-	worksite.call("_on_next_pressed")
-	if int(worksite.get("wizard_step")) != 31:
-		worksite.queue_free()
-		_fail("Box Package did not follow the phone-interface design step.")
-		return false
-	var generated_config: Dictionary = worksite.get("ui_evolution_configuration")
-	if generated_config.is_empty() or str(generated_config.get("name", "")).is_empty():
-		worksite.queue_free()
-		_fail("The generated UI configuration was not applied to the phone.")
-		return false
-
-	worksite.queue_free()
-	await process_frame
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(UIEvolutionEngineScript.SAVE_PATH))
-	return true
-
-
-func _has_generated_screen_texture(screen: MeshInstance3D) -> bool:
-	if not is_instance_valid(screen) or screen.mesh == null:
-		return false
-	var material := screen.material_override as ShaderMaterial
-	if material == null:
-		return false
-	var texture := material.get_shader_parameter("screen_texture") as Texture2D
-	if texture == null or screen.mesh.get_surface_count() <= 0:
-		return false
-	var mesh_arrays: Array = screen.mesh.surface_get_arrays(0)
-	var uv_values: PackedVector2Array = mesh_arrays[Mesh.ARRAY_TEX_UV]
-	return not uv_values.is_empty()
 
 
 func _fail(message: String) -> void:

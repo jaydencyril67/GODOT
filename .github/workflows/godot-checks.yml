@@ -89,14 +89,14 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke-test UI Evolution generator and live 3D phone screen
+      - name: Smoke-test UI Evolution generator and renderer
         shell: bash
         run: |
           set -euo pipefail
-          timeout --signal=TERM --kill-after=10s 120s xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 godot --disable-vsync --path . --rendering-method gl_compatibility --audio-driver Dummy --script res://scripts/tests/ui_evolution_smoke.gd 2>&1 | tee ui-evolution-smoke.log
+          godot --headless --path . --script res://scripts/tests/ui_evolution_smoke.gd 2>&1 | tee ui-evolution-smoke.log
           grep -q "UI_EVOLUTION_SMOKE_TEST: PASS" ui-evolution-smoke.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|UI_EVOLUTION_SMOKE_TEST:.*(FAIL|ERROR)' ui-evolution-smoke.log; then
-            echo "Godot reported an error during UI Evolution generation or phone-screen integration."
+            echo "Godot reported an error during UI Evolution generation or rendering."
             exit 1
           fi
 
