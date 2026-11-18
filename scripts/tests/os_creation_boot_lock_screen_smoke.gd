@@ -249,7 +249,7 @@ func _run_test() -> void:
 		if typography_date.get_theme_font_size("font_size") >= typography_size:
 			_fail("The lock-screen date must remain visually subordinate to the time.")
 			return
-	if observed_weights.size() < 5 or observed_families.size() < 4 or not observed_weights.has(850) or not observed_italic:
+	if observed_weights.size() < 5 or observed_families.size() < 4 or not observed_weights.has(900) or not observed_italic:
 		_fail("The 41 digital clock presets must provide distinct font families, multiple weights including extra-bold, and italic text treatments.")
 		return
 	if not bool(lock_screen.call("set_clock_style_index", 41)):
