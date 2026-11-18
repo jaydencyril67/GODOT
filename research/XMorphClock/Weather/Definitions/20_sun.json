@@ -1,0 +1,129 @@
+{
+  "name": "Sun",
+  "category": "small",
+  "span": 1,
+  "layers": [
+    {
+      "id": "bg",
+      "type": "CARD",
+      "color": "#E61C1C1E",
+      "effect": "SOLID",
+      "aspect": 1.0,
+      "radius": 0.5,
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "change": "FADE",
+      "sleepStyle": "HIDE"
+    },
+    {
+      "id": "sicon",
+      "type": "SUN_ICON",
+      "font": "",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "event",
+      "type": "SUN_LABEL",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#A6FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "time",
+      "type": "SUN_TIME",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 600,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    }
+  ],
+  "large": {
+    "stack": {
+      "width": 0.171,
+      "height": 0.171,
+      "children": [
+        {
+          "layer": "bg",
+          "size": 0.171,
+          "anchor": "CENTER"
+        },
+        {
+          "column": {
+            "gap": 0.0029,
+            "align": "CENTER",
+            "children": [
+              {
+                "layer": "sicon",
+                "size": 0.0396
+              },
+              {
+                "layer": "event",
+                "size": 0.0198
+              },
+              {
+                "layer": "time",
+                "size": 0.0306
+              }
+            ]
+          },
+          "anchor": "CENTER"
+        }
+      ]
+    },
+    "x": 0.5,
+    "anchor": "CENTER"
+  },
+  "small": {
+    "stack": {
+      "width": 0.106,
+      "height": 0.106,
+      "children": [
+        {
+          "layer": "bg",
+          "size": 0.106,
+          "anchor": "CENTER"
+        },
+        {
+          "column": {
+            "gap": 0.0018,
+            "align": "CENTER",
+            "children": [
+              {
+                "layer": "sicon",
+                "size": 0.0245
+              },
+              {
+                "layer": "event",
+                "size": 0.0123
+              },
+              {
+                "layer": "time",
+                "size": 0.019
+              }
+            ]
+          },
+          "anchor": "CENTER"
+        }
+      ]
+    },
+    "x": 0.0225,
+    "anchor": "START"
+  }
+}

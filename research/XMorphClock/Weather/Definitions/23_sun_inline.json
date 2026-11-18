@@ -1,0 +1,87 @@
+{
+  "name": "Sun inline",
+  "category": "inline",
+  "span": 4,
+  "layers": [
+    {
+      "id": "sicon",
+      "type": "SUN_ICON",
+      "font": "",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "event",
+      "type": "SUN_LABEL",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "time",
+      "type": "SUN_TIME",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    }
+  ],
+  "large": {
+    "row": {
+      "gap": 0.0104,
+      "align": "CENTER",
+      "children": [
+        {
+          "layer": "sicon",
+          "size": 0.0574
+        },
+        {
+          "layer": "event",
+          "size": 0.0522
+        },
+        {
+          "layer": "time",
+          "size": 0.0522
+        }
+      ]
+    },
+    "x": 0.5,
+    "anchor": "CENTER"
+  },
+  "small": {
+    "row": {
+      "gap": 0.0065,
+      "align": "CENTER",
+      "children": [
+        {
+          "layer": "sicon",
+          "size": 0.0356
+        },
+        {
+          "layer": "event",
+          "size": 0.0324
+        },
+        {
+          "layer": "time",
+          "size": 0.0324
+        }
+      ]
+    },
+    "x": 0.0225,
+    "anchor": "START"
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "name": "Conditions",
+  "category": "medium",
+  "span": 2,
+  "layers": [
+    {
+      "id": "bg",
+      "type": "CARD",
+      "color": "#E61C1C1E",
+      "effect": "SOLID",
+      "aspect": 2.1842,
+      "radius": 0.3,
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "change": "FADE",
+      "sleepStyle": "HIDE"
+    },
+    {
+      "id": "icon",
+      "type": "WEATHER_ICON",
+      "font": "",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "temp",
+      "type": "WEATHER_TEMP",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 600,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "cond",
+      "type": "WEATHER_CONDITION",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "range",
+      "type": "WEATHER_HIGH_LOW",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#A6FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN",
+      "format": "H:%s L:%s"
+    }
+  ],
+  "large": {
+    "stack": {
+      "width": 0.3735,
+      "height": 0.171,
+      "children": [
+        {
+          "layer": "bg",
+          "size": 0.3735,
+          "anchor": "CENTER"
+        },
+        {
+          "column": {
+            "gap": 0.0054,
+            "align": "START",
+            "children": [
+              {
+                "row": {
+                  "gap": 0.0072,
+                  "align": "CENTER",
+                  "children": [
+                    {
+                      "layer": "icon",
+                      "size": 0.0324
+                    },
+                    {
+                      "layer": "temp",
+                      "size": 0.0324
+                    }
+                  ]
+                }
+              },
+              {
+                "layer": "cond",
+                "size": 0.0288
+              },
+              {
+                "layer": "range",
+                "size": 0.0252
+              }
+            ]
+          },
+          "anchor": "START",
+          "x": 0.0234
+        }
+      ]
+    },
+    "x": 0.5,
+    "anchor": "CENTER"
+  },
+  "small": {
+    "stack": {
+      "width": 0.2316,
+      "height": 0.106,
+      "children": [
+        {
+          "layer": "bg",
+          "size": 0.2316,
+          "anchor": "CENTER"
+        },
+        {
+          "column": {
+            "gap": 0.0033,
+            "align": "START",
+            "children": [
+              {
+                "row": {
+                  "gap": 0.0045,
+                  "align": "CENTER",
+                  "children": [
+                    {
+                      "layer": "icon",
+                      "size": 0.0201
+                    },
+                    {
+                      "layer": "temp",
+                      "size": 0.0201
+                    }
+                  ]
+                }
+              },
+              {
+                "layer": "cond",
+                "size": 0.0179
+              },
+              {
+                "layer": "range",
+                "size": 0.0156
+              }
+            ]
+          },
+          "anchor": "START",
+          "x": 0.0145
+        }
+      ]
+    },
+    "x": 0.0225,
+    "anchor": "START"
+  },
+  "id": 104
+}

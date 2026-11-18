@@ -1,0 +1,172 @@
+{
+  "name": "Wind",
+  "category": "medium",
+  "span": 2,
+  "layers": [
+    {
+      "id": "bg",
+      "type": "CARD",
+      "color": "#E61C1C1E",
+      "effect": "SOLID",
+      "aspect": 2.1842,
+      "radius": 0.3,
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "change": "FADE",
+      "sleepStyle": "HIDE"
+    },
+    {
+      "id": "air",
+      "type": "TEXT",
+      "font": "res:symbols?FILL=1",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN",
+      "format": ""
+    },
+    {
+      "id": "label",
+      "type": "TEXT",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 700,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN",
+      "format": "Wind",
+      "caps": true,
+      "tracking": 0.04
+    },
+    {
+      "id": "wind",
+      "type": "WEATHER_WIND",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "cond",
+      "type": "WEATHER_CONDITION",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#A6FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    }
+  ],
+  "large": {
+    "stack": {
+      "width": 0.3735,
+      "height": 0.171,
+      "children": [
+        {
+          "layer": "bg",
+          "size": 0.3735,
+          "anchor": "CENTER"
+        },
+        {
+          "column": {
+            "gap": 0.0072,
+            "align": "START",
+            "children": [
+              {
+                "row": {
+                  "gap": 0.0054,
+                  "align": "CENTER",
+                  "children": [
+                    {
+                      "layer": "air",
+                      "size": 0.027
+                    },
+                    {
+                      "layer": "label",
+                      "size": 0.0234
+                    }
+                  ]
+                }
+              },
+              {
+                "layer": "wind",
+                "size": 0.0396
+              },
+              {
+                "layer": "cond",
+                "size": 0.0252
+              }
+            ]
+          },
+          "anchor": "START",
+          "x": 0.0234
+        }
+      ]
+    },
+    "x": 0.5,
+    "anchor": "CENTER"
+  },
+  "small": {
+    "stack": {
+      "width": 0.2316,
+      "height": 0.106,
+      "children": [
+        {
+          "layer": "bg",
+          "size": 0.2316,
+          "anchor": "CENTER"
+        },
+        {
+          "column": {
+            "gap": 0.0045,
+            "align": "START",
+            "children": [
+              {
+                "row": {
+                  "gap": 0.0033,
+                  "align": "CENTER",
+                  "children": [
+                    {
+                      "layer": "air",
+                      "size": 0.0167
+                    },
+                    {
+                      "layer": "label",
+                      "size": 0.0145
+                    }
+                  ]
+                }
+              },
+              {
+                "layer": "wind",
+                "size": 0.0246
+              },
+              {
+                "layer": "cond",
+                "size": 0.0156
+              }
+            ]
+          },
+          "anchor": "START",
+          "x": 0.0145
+        }
+      ]
+    },
+    "x": 0.0225,
+    "anchor": "START"
+  },
+  "id": 106
+}

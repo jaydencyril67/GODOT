@@ -1,0 +1,110 @@
+{
+  "name": "Air inline",
+  "category": "inline",
+  "span": 4,
+  "layers": [
+    {
+      "id": "drop",
+      "type": "TEXT",
+      "font": "res:symbols?FILL=1",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#A6FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN",
+      "format": ""
+    },
+    {
+      "id": "hum",
+      "type": "WEATHER_HUMIDITY",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    },
+    {
+      "id": "air",
+      "type": "TEXT",
+      "font": "res:symbols?FILL=1",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#A6FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN",
+      "format": ""
+    },
+    {
+      "id": "wind",
+      "type": "WEATHER_WIND",
+      "font": "res:google_sans_flex?opsz=144",
+      "weight": 500,
+      "sleepWeight": 250,
+      "width": 100,
+      "height": 700,
+      "color": "#FFFFFF",
+      "change": "FADE",
+      "sleepStyle": "THIN"
+    }
+  ],
+  "large": {
+    "row": {
+      "gap": 0.0131,
+      "align": "CENTER",
+      "children": [
+        {
+          "layer": "drop",
+          "size": 0.0522
+        },
+        {
+          "layer": "hum",
+          "size": 0.0496
+        },
+        {
+          "layer": "air",
+          "size": 0.0522
+        },
+        {
+          "layer": "wind",
+          "size": 0.0496
+        }
+      ]
+    },
+    "x": 0.5,
+    "anchor": "CENTER"
+  },
+  "small": {
+    "row": {
+      "gap": 0.0081,
+      "align": "CENTER",
+      "children": [
+        {
+          "layer": "drop",
+          "size": 0.0324
+        },
+        {
+          "layer": "hum",
+          "size": 0.0307
+        },
+        {
+          "layer": "air",
+          "size": 0.0324
+        },
+        {
+          "layer": "wind",
+          "size": 0.0307
+        }
+      ]
+    },
+    "x": 0.0225,
+    "anchor": "START"
+  },
+  "id": 118
+}
