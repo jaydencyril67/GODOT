@@ -211,7 +211,8 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 	var text_value := label.text
 	var requested_size := float(node_spec.get("size", 0.09))
 	var short_side := minf(available_size.x, available_size.y)
-	var font_size := clampi(roundi(short_side * requested_size * 0.42), 11, maxi(12, roundi(available_size.y * 0.28)))
+	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.28)))
+	var font_size := clampi(roundi(short_side * requested_size * 0.42), 11, max_font_size)
 	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
 	if font_reference.is_empty():
 		font_reference = "roboto_flex"
