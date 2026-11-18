@@ -85,14 +85,14 @@ expand_mode = 1
 stretch_mode = 2
 mouse_filter = 2
 
-[node name="PlayPause" type="TextureRect" parent="Margin/Content/Controls"]
+[node name="PlayPause" type="TextureRect" parent="Margin/Content/GeneratedMediaControls"]
 custom_minimum_size = Vector2(23, 23)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 2
 mouse_filter = 2
 
-[node name="Next" type="TextureRect" parent="Margin/Content/Controls"]
+[node name="Next" type="TextureRect" parent="Margin/Content/GeneratedMediaControls"]
 custom_minimum_size = Vector2(21, 21)
 layout_mode = 2
 expand_mode = 1
