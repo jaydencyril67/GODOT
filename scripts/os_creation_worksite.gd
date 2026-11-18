@@ -12,6 +12,7 @@ signal setup_failed(message: String)
 
 const STEP_NAMES := [
 	"OS SETUP",
+	"LOCKSCREEN CLOCK",
 	"LOCK-SCREEN",
 	"APP ICONS",
 	"WIDGETS",
@@ -23,28 +24,15 @@ const STEP_NAMES := [
 	"RECENT APPS"
 ]
 
-const STEP_DESCRIPTIONS := [
-	"Choose which company and device details appear during startup.",
-	"Design the lock screen, generate its layout and control each optional element independently.",
-	"Choose the icon assets that will be available to this OS.",
-	"Choose widget designs for the operating system.",
-	"Choose the lock-screen wallpaper independently from layout generation.",
-	"Choose the status bar design assets.",
-	"Choose quick settings and control-centre assets.",
-	"Choose notification appearance assets.",
-	"Choose navigation assets and interaction styles.",
-	"Choose recent-apps presentation assets."
-]
-
 const STEP_ASSET_PATHS := {
-	2: "res://assets/app_icons",
-	3: "res://assets/system-ui/Widgets",
-	4: "res://assets/wallpapers",
-	5: "res://assets/system-ui/android-systemui/Status-Bar",
-	6: "res://assets/system-ui/Quick-Settings",
-	7: "res://assets/system-ui/Notifications",
-	8: "res://assets/system-ui/android-systemui/Navigation",
-	9: "res://assets/system-ui/Recent-Apps"
+	3: "res://assets/app_icons",
+	4: "res://assets/system-ui/Widgets",
+	5: "res://assets/wallpapers",
+	6: "res://assets/system-ui/android-systemui/Status-Bar",
+	7: "res://assets/system-ui/Quick-Settings",
+	8: "res://assets/system-ui/Notifications",
+	9: "res://assets/system-ui/android-systemui/Navigation",
+	10: "res://assets/system-ui/Recent-Apps"
 }
 
 const BACKGROUND := Color("#292B2D")
@@ -83,7 +71,9 @@ var preview_region: Control
 var controls_scroll: ScrollContainer
 var controls_stack: VBoxContainer
 var heading_label: Label
-var description_label: Label
+var clock_type_expanded := false
+var clock_type_row: HBoxContainer
+var clock_style_button: Button
 var progress_label: Label
 var progress_bar: ProgressBar
 var content_column: VBoxContainer
@@ -397,8 +387,8 @@ func _build_interface() -> void:
 	controls_margin.name = "OSControlsMargin"
 	controls_margin.add_theme_constant_override("margin_left", 28)
 	controls_margin.add_theme_constant_override("margin_right", 24)
-	controls_margin.add_theme_constant_override("margin_top", 68)
-	controls_margin.add_theme_constant_override("margin_bottom", 68)
+	controls_margin.add_theme_constant_override("margin_top", 20)
+	controls_margin.add_theme_constant_override("margin_bottom", 20)
 	controls_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	controls_scroll.add_child(controls_margin)
@@ -410,24 +400,22 @@ func _build_interface() -> void:
 	controls_stack.add_theme_constant_override("separation", 18)
 	controls_margin.add_child(controls_stack)
 
-	heading_label = _make_label("OS SETUP", 24, Color("#D3AA6B"))
+	heading_label = _make_label("OS SETUP", 22, Color("#D3AA6B"))
+	heading_label.name = "WorksiteStepHero"
+	heading_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	controls_stack.add_child(heading_label)
-
-	description_label = _make_label("", 12, Color("#D0CBC2"))
-	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	controls_stack.add_child(description_label)
-
-	var content_gap := Control.new()
-	content_gap.custom_minimum_size.y = 8
-	controls_stack.add_child(content_gap)
 
 	content_column = VBoxContainer.new()
 	content_column.name = "OSStepControls"
 	content_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_column.add_theme_constant_override("separation", 16)
+	content_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_column.add_theme_constant_override("separation", 28)
 	controls_stack.add_child(content_column)
 
 	selection_status_label = _make_label("NO ASSET SELECTED", 10, MUTED)
+	selection_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	selection_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls_stack.add_child(selection_status_label)
 
@@ -651,7 +639,7 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 func _show_step(step_index: int) -> void:
 	current_step = clampi(step_index, 0, STEP_NAMES.size() - 1)
 	heading_label.text = STEP_NAMES[current_step]
-	description_label.text = STEP_DESCRIPTIONS[current_step]
+	selection_status_label.visible = current_step not in [1, 2]
 	progress_label.text = "STEP %02d / %02d" % [current_step + 1, STEP_NAMES.size()]
 	progress_bar.value = current_step + 1
 	previous_button.disabled = current_step == 0
@@ -666,8 +654,10 @@ func _show_step(step_index: int) -> void:
 		0:
 			_show_boot_display_controls()
 		1:
+			_show_lock_screen_clock_controls()
+		2:
 			_show_lock_screen_designer_controls()
-		5:
+		6:
 			_show_status_bar_style_controls()
 		_:
 			_show_asset_browser(current_step)
@@ -818,52 +808,165 @@ func _style_boot_display_toggle(toggle: Button, enabled: bool, label: String) ->
 	toggle.add_theme_stylebox_override("pressed", _make_panel_style(Color("#30291F"), ACCENT, 1, 9))
 	toggle.add_theme_color_override("font_color", TEXT if enabled else MUTED)
 
+func _show_lock_screen_clock_controls() -> void:
+	clock_type_expanded = false
+	clock_type_row = null
+	clock_style_button = null
+
+	var type_title := _make_label("Clock type", 18, TEXT)
+	type_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content_column.add_child(type_title)
+
+	clock_type_row = HBoxContainer.new()
+	clock_type_row.name = "ClockTypeSelector"
+	clock_type_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_type_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	clock_type_row.add_theme_constant_override("separation", 12)
+	content_column.add_child(clock_type_row)
+	_refresh_clock_type_selector()
+
+	var style_title := _make_label("Clock Style", 18, TEXT)
+	style_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content_column.add_child(style_title)
+
+	clock_style_button = _make_button("")
+	clock_style_button.name = "ClockStyleNextButton"
+	clock_style_button.custom_minimum_size = Vector2(180, 56)
+	clock_style_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	clock_style_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_style_button.add_theme_font_size_override("font_size", 17)
+	clock_style_button.pressed.connect(_on_clock_style_next_pressed)
+	content_column.add_child(clock_style_button)
+	_refresh_clock_style_button()
+
+
+func _refresh_clock_type_selector() -> void:
+	if not is_instance_valid(clock_type_row) or not is_instance_valid(lock_screen_designer):
+		return
+	for child in clock_type_row.get_children():
+		clock_type_row.remove_child(child)
+		child.free()
+
+	var selected_type := str(lock_screen_designer.call("get_clock_type"))
+	var alternate_type := "digital" if selected_type == "analog" else "analog"
+	if not clock_type_expanded:
+		var add_button := _make_button(selected_type.capitalize() + "  +")
+		add_button.name = "ClockTypeAddButton"
+		add_button.custom_minimum_size = Vector2(180, 56)
+		add_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		add_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		add_button.add_theme_font_size_override("font_size", 17)
+		add_button.pressed.connect(_on_clock_type_expand_pressed)
+		clock_type_row.add_child(add_button)
+		return
+
+	var selected_button := _make_button(selected_type.capitalize() + "  −")
+	selected_button.name = "ClockTypeSelectedButton"
+	selected_button.custom_minimum_size = Vector2(132, 56)
+	selected_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	selected_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selected_button.add_theme_font_size_override("font_size", 17)
+	selected_button.pressed.connect(_on_clock_type_collapse_pressed)
+	clock_type_row.add_child(selected_button)
+
+	var alternate_button := _make_button(alternate_type.capitalize() + "  +")
+	alternate_button.name = "ClockTypeAlternateButton"
+	alternate_button.custom_minimum_size = Vector2(132, 56)
+	alternate_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	alternate_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	alternate_button.add_theme_font_size_override("font_size", 17)
+	alternate_button.pressed.connect(_select_lock_screen_clock_type.bind(alternate_type))
+	clock_type_row.add_child(alternate_button)
+
+
+func _on_clock_type_expand_pressed() -> void:
+	clock_type_expanded = true
+	_refresh_clock_type_selector()
+
+
+func _on_clock_type_collapse_pressed() -> void:
+	clock_type_expanded = false
+	_refresh_clock_type_selector()
+
+
+func _select_lock_screen_clock_type(clock_type: String) -> void:
+	if not is_instance_valid(lock_screen_designer):
+		return
+	if not bool(lock_screen_designer.call("set_clock_type", clock_type)):
+		return
+	clock_type_expanded = true
+	_refresh_clock_type_selector()
+
+
+func _on_clock_style_next_pressed() -> void:
+	if not is_instance_valid(lock_screen_designer):
+		return
+	var next_style := int(lock_screen_designer.call("get_clock_style_index")) + 1
+	if next_style > int(lock_screen_designer.call("get_clock_style_count")):
+		next_style = 1
+	if bool(lock_screen_designer.call("set_clock_style_index", next_style)):
+		_refresh_clock_style_button()
+
+
+func _refresh_clock_style_button() -> void:
+	if not is_instance_valid(clock_style_button) or not is_instance_valid(lock_screen_designer):
+		return
+	clock_style_button.text = "Style %d  +" % int(lock_screen_designer.call("get_clock_style_index"))
+
+
 func _show_lock_screen_designer_controls() -> void:
-	_add_note("AUTONOMOUS LOCK-SCREEN LAYOUT")
-	_add_note("Generate a new layout, clock treatment and colour palette using the curated foundations. Regenerating will keep your selected wallpaper and every ON/OFF preference unchanged.")
-	var generate_button := _make_button("GENERATE NEW LOCK-SCREEN LAYOUT")
-	generate_button.name = "GenerateNewLockScreenDesign"
-	generate_button.custom_minimum_size.y = 58
-	generate_button.pressed.connect(_generate_lock_screen_design)
-	content_column.add_child(generate_button)
-	_add_note("OPTIONAL LOCK-SCREEN ELEMENTS")
-	_add_note("Every optional element starts OFF. Flashlight and camera shortcuts can be controlled separately.")
 	if int(lock_screen_designer.call("get_generation_count")) == 0:
 		_generate_lock_screen_design()
 	else:
 		_update_lock_screen_status(lock_screen_designer.call("get_last_design"))
 
+	var generate_button := _make_button("GENERATE NEW LAYOUT")
+	generate_button.name = "GenerateNewLockScreenDesign"
+	generate_button.custom_minimum_size.y = 54
+	generate_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	generate_button.pressed.connect(_generate_lock_screen_design)
+	content_column.add_child(generate_button)
+
 	var display_options := [
-		{"option": "notifications", "label": "Notifications"},
-		{"option": "music_player", "label": "Music Player"},
-		{"option": "flashlight", "label": "Flashlight Shortcut"},
-		{"option": "camera", "label": "Camera Shortcut"},
-		{"option": "fingerprint", "label": "Fingerprint Sensor"}
+		{"option": "clock", "label": "Clock"},
+		{"option": "notification", "label": "Notification"},
+		{"option": "shortcut", "label": "Shortcut"},
+		{"option": "details", "label": "Details"},
+		{"option": "widget", "label": "Widget"},
+		{"option": "unlock", "label": "Unlock"}
 	]
 	for option_data in display_options:
 		_add_lock_screen_display_toggle(str(option_data["label"]), str(option_data["option"]))
 
-	_add_note("Choose the wallpaper separately in the WALLPAPERS step. Layout generation does not replace it.")
 
 func _add_lock_screen_display_toggle(label: String, option: String) -> void:
 	var enabled := bool(lock_screen_designer.call("get_display_option", option))
-	var toggle := _make_button("")
-	toggle.name = "LockScreenOption_" + option
-	toggle.toggle_mode = true
-	toggle.button_pressed = enabled
-	toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	toggle.custom_minimum_size.y = 54
-	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	toggle.add_theme_font_size_override("font_size", 14)
-	toggle.toggled.connect(_on_lock_screen_display_toggled.bind(option, toggle, label))
-	content_column.add_child(toggle)
-	_style_boot_display_toggle(toggle, enabled, label)
+	var row := HBoxContainer.new()
+	row.name = "LockScreenOptionRow_" + option
+	row.custom_minimum_size = Vector2(0, 54)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 14)
+	content_column.add_child(row)
 
-func _on_lock_screen_display_toggled(enabled: bool, option: String, toggle: Button, label: String) -> void:
+	var toggle := CheckBox.new()
+	toggle.name = "LockScreenOption_" + option
+	toggle.button_pressed = enabled
+	toggle.custom_minimum_size = Vector2(40, 40)
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.toggled.connect(_on_lock_screen_display_toggled.bind(option, toggle))
+	row.add_child(toggle)
+
+	var label_control := _make_label(label, 18, TEXT)
+	label_control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label_control.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label_control)
+
+
+func _on_lock_screen_display_toggled(enabled: bool, option: String, toggle: CheckBox) -> void:
 	if not bool(lock_screen_designer.call("set_display_option", option, enabled)):
 		toggle.set_pressed_no_signal(not enabled)
-		return
-	_style_boot_display_toggle(toggle, enabled, label)
+
 
 func _generate_lock_screen_design() -> void:
 	if not is_instance_valid(lock_screen_designer):
@@ -938,14 +1041,13 @@ func _update_phone_preview_mode() -> void:
 
 func _show_asset_browser(step_index: int) -> void:
 	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
-	if step_index == 4:
-		_add_note("Select a wallpaper to apply it to the lock screen. This choice is independent from layout generation.")
+
 	var path_label := _make_label(path.replace("res://", ""), 10, Color("#D3AA6B"))
 	path_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content_column.add_child(path_label)
 
 	var files: Array[String] = []
-	if step_index == 4 and is_instance_valid(lock_screen_designer):
+	if step_index == 5 and is_instance_valid(lock_screen_designer):
 		var wallpaper_paths: Array = lock_screen_designer.call("get_wallpaper_paths")
 		for wallpaper_path in wallpaper_paths:
 			files.append(str(wallpaper_path))
@@ -987,7 +1089,7 @@ func _collect_files(folder_path: String, output: Array[String]) -> void:
 
 func _select_asset(path: String) -> void:
 	selected_asset_path = path
-	if current_step == 4 and is_instance_valid(lock_screen_designer):
+	if current_step == 5 and is_instance_valid(lock_screen_designer):
 		if not bool(lock_screen_designer.call("set_wallpaper", path)):
 			selection_status_label.text = "WALLPAPER COULD NOT BE LOADED"
 			return

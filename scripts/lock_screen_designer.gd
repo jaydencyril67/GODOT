@@ -126,6 +126,10 @@ var _generation_count := 0
 var _layout_queue: Array = []
 var _wallpaper_paths: Array[String] = []
 var _selected_wallpaper_path := ""
+var _show_clock := true
+var _show_details := true
+var _clock_type := "analog"
+var _clock_style_index := 1
 var _show_notifications := false
 var _show_media_player := false
 var _show_fingerprint := false
@@ -206,43 +210,93 @@ func set_wallpaper(path: String) -> bool:
 
 func get_display_option(option: String) -> bool:
 	match option:
-		"notifications":
+		"clock":
+			return _show_clock
+		"notifications", "notification":
 			return _show_notifications
-		"music_player":
+		"music_player", "widget":
 			return _show_media_player
 		"flashlight":
 			return _show_flashlight_shortcut
 		"camera":
 			return _show_camera_shortcut
-		"fingerprint":
+		"shortcut":
+			return _show_flashlight_shortcut and _show_camera_shortcut
+		"fingerprint", "unlock":
 			return _show_fingerprint
+		"details":
+			return _show_details
 	return false
 
 
 func set_display_option(option: String, enabled: bool) -> bool:
 	if _last_design.is_empty():
 		return false
-	var design_key := ""
 	match option:
-		"notifications":
+		"clock":
+			_show_clock = enabled
+			_last_design["show_clock"] = enabled
+		"notifications", "notification":
 			_show_notifications = enabled
-			design_key = "show_notifications"
-		"music_player":
+			_last_design["show_notifications"] = enabled
+		"music_player", "widget":
 			_show_media_player = enabled
-			design_key = "show_media_player"
+			_last_design["show_media_player"] = enabled
 		"flashlight":
 			_show_flashlight_shortcut = enabled
-			design_key = "show_flashlight_shortcut"
+			_last_design["show_flashlight_shortcut"] = enabled
 		"camera":
 			_show_camera_shortcut = enabled
-			design_key = "show_camera_shortcut"
-		"fingerprint":
+			_last_design["show_camera_shortcut"] = enabled
+		"shortcut":
+			_show_flashlight_shortcut = enabled
+			_show_camera_shortcut = enabled
+			_last_design["show_flashlight_shortcut"] = enabled
+			_last_design["show_camera_shortcut"] = enabled
+		"fingerprint", "unlock":
 			_show_fingerprint = enabled
-			design_key = "show_fingerprint"
+			_last_design["show_fingerprint"] = enabled
+		"details":
+			_show_details = enabled
+			_last_design["show_details"] = enabled
 		_:
 			return false
-	_last_design[design_key] = enabled
 	_render_design(_last_design)
+	return true
+
+
+func get_clock_type() -> String:
+	return str(_last_design.get("clock_type", _clock_type)) if not _last_design.is_empty() else _clock_type
+
+
+func set_clock_type(clock_type: String) -> bool:
+	var normalized := clock_type.to_lower()
+	if normalized not in ["analog", "digital"]:
+		return false
+	_clock_type = normalized
+	if not _last_design.is_empty():
+		_last_design["clock_type"] = normalized
+		_render_design(_last_design)
+	return true
+
+
+func get_clock_style_index() -> int:
+	return int(_last_design.get("clock_style_index", _clock_style_index)) if not _last_design.is_empty() else _clock_style_index
+
+
+func get_clock_style_count() -> int:
+	return LockScreenAssetLibrary.get_analog_clock_count()
+
+
+func set_clock_style_index(style_index: int) -> bool:
+	if style_index < 1 or style_index > get_clock_style_count():
+		return false
+	_clock_style_index = style_index
+	if not _last_design.is_empty():
+		_last_design["clock_style_index"] = style_index
+		_last_design["analog_clock_asset_index"] = style_index
+		_last_design["digital_clock_style_index"] = style_index
+		_render_design(_last_design)
 	return true
 
 
@@ -403,13 +457,16 @@ func _compose_design() -> Dictionary:
 
 	var status_styles: Array = StatusBarAssetLibrary.get_styles()
 	var selected_status_style: Dictionary = status_styles[_rng.randi_range(0, status_styles.size() - 1)]
-	var analog_clock_asset_index := _rng.randi_range(1, LockScreenAssetLibrary.get_analog_clock_count())
+	var analog_clock_asset_index := clampi(_clock_style_index, 1, LockScreenAssetLibrary.get_analog_clock_count())
 
 	var design := {
 		"layout_id": str(blueprint["id"]),
 		"layout_name": str(blueprint["name"]),
 		"status_style_id": str(selected_status_style.get("id", "pixel_compact")),
 		"analog_clock_asset_index": analog_clock_asset_index,
+		"clock_type": _clock_type,
+		"clock_style_index": _clock_style_index,
+		"digital_clock_style_index": _clock_style_index,
 		"palette": palette,
 		"wallpaper_path": wallpaper_path,
 		"wallpaper_index": _wallpaper_number(wallpaper_path),
@@ -420,6 +477,8 @@ func _compose_design() -> Dictionary:
 		"date_letter_spacing": _rng.randi_range(1, 3),
 		"notifications": notifications,
 		"media": media,
+		"show_clock": _show_clock,
+		"show_details": _show_details,
 		"show_notifications": _show_notifications,
 		"show_media_player": _show_media_player,
 		"show_fingerprint": _show_fingerprint,
@@ -498,7 +557,8 @@ func _render_design(design: Dictionary) -> void:
 	for glow in design["glows"]:
 		_add_glow(glow, palette["glow"])
 	_add_status_bar(design, palette)
-	_add_clock(design, palette)
+	if bool(design.get("show_clock", true)):
+		_add_clock(design, palette)
 	if bool(design.get("show_notifications", false)):
 		for index in range(design["notifications"].size()):
 			_add_notification(design["notifications"][index], palette)

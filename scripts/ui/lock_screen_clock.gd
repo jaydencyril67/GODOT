@@ -3,7 +3,9 @@ extends Control
 const AssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 
 @onready var date_label: Label = $GeneratedLockScreenDate
+@onready var analog_container: Control = $AnalogClock
 @onready var analog_artwork: TextureRect = $AnalogClock/GeneratedAnalogClockArtwork
+@onready var digital_artwork: Control = $DigitalClock
 
 var _last_minute := -1
 
@@ -14,16 +16,25 @@ func _ready() -> void:
 
 func configure(design: Dictionary, palette: Dictionary) -> void:
 	var clock_rect: Rect2 = design.get("clock_rect", Rect2(0.35, 0.2, 0.30, 0.15))
-	_set_normalized_rect($AnalogClock, clock_rect)
+	_set_normalized_rect(analog_container, clock_rect)
+	_set_normalized_rect(digital_artwork, clock_rect)
+
 	date_label.add_theme_color_override("font_color", palette.get("muted", Color("#C7CDD5")))
 	date_label.add_theme_font_size_override("font_size", int(design.get("date_font_size", 15)))
 	date_label.horizontal_alignment = _alignment_from_name(str(design.get("date_align", "center")))
 	date_label.add_theme_constant_override("letter_spacing", int(design.get("date_letter_spacing", 1)))
 	_set_normalized_rect(date_label, _find_component_rect(design, "date"))
+	date_label.visible = bool(design.get("show_details", true))
 
-	var asset_index := int(design.get("analog_clock_asset_index", 1))
+	var style_index := int(design.get("clock_style_index", design.get("analog_clock_asset_index", 1)))
+	var clock_type := str(design.get("clock_type", "analog")).to_lower()
+	analog_container.visible = clock_type == "analog"
+	digital_artwork.visible = clock_type == "digital"
+
+	var asset_index := int(design.get("analog_clock_asset_index", style_index))
 	analog_artwork.texture = load(AssetLibrary.get_analog_clock_path(asset_index)) as Texture2D
-	analog_artwork.visible = analog_artwork.texture != null
+	analog_artwork.visible = clock_type == "analog" and analog_artwork.texture != null
+	digital_artwork.call("configure", int(design.get("digital_clock_style_index", style_index)))
 	_refresh_date()
 
 

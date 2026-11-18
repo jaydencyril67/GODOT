@@ -1,6 +1,7 @@
 extends SceneTree
 
 const WorksiteScript = preload("res://scripts/os_creation_worksite.gd")
+const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 
 func _initialize() -> void:
 	call_deferred("_run_test")
@@ -75,30 +76,68 @@ func _run_test() -> void:
 
 	worksite.call("_show_step", 1)
 	var heading := worksite.get("heading_label") as Label
-	if heading == null or heading.text != "LOCK-SCREEN":
-		_fail("Lock Screen must be the second OS Creation Worksite step.")
+	if heading == null or heading.text != "LOCKSCREEN CLOCK":
+		_fail("The dedicated Lockscreen Clock screen must be the second OS Worksite step.")
+		return
+	var clock_controls := worksite.get("content_column") as VBoxContainer
+	var type_add_button := clock_controls.find_child("ClockTypeAddButton", true, false) as Button
+	var style_button := clock_controls.find_child("ClockStyleNextButton", true, false) as Button
+	if type_add_button == null or type_add_button.text != "Analog  +":
+		_fail("Step 2 must start with the Analog + clock type selector.")
+		return
+	if style_button == null or style_button.text != "Style 1  +":
+		_fail("Step 2 must start at Clock Style 1.")
+		return
+	worksite.call("_on_clock_type_expand_pressed")
+	var digital_type_button := clock_controls.find_child("ClockTypeAlternateButton", true, false) as Button
+	if digital_type_button == null or digital_type_button.text != "Digital  +":
+		_fail("Adding a clock type must reveal Digital + beside the selected Analog type.")
+		return
+	for _style_step in range(40):
+		worksite.call("_on_clock_style_next_pressed")
+	if int(lock_screen.call("get_clock_style_index")) != 41 or style_button.text != "Style 41  +":
+		_fail("The Clock Style selector must expose all 41 styles and retain the selected style.")
+		return
+	worksite.call("_select_lock_screen_clock_type", "digital")
+	if str(lock_screen.call("get_clock_type")) != "digital":
+		_fail("Selecting Digital did not update the active lock-screen clock type.")
+		return
+	var digital_clock := lock_screen.find_child("DigitalClock", true, false) as Control
+	if digital_clock == null or not digital_clock.visible or int(digital_clock.call("get_style_index")) != 41:
+		_fail("Digital Style 41 did not render on the live lock screen.")
+		return
+	worksite.call("_select_lock_screen_clock_type", "analog")
+	var analog_artwork := lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
+	if analog_artwork == null or analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(41):
+		_fail("Analog Style 41 did not render the matching uploaded artwork.")
+		return
+
+	worksite.call("_show_step", 2)
+	if heading.text != "LOCK-SCREEN":
+		_fail("The original lock-screen options must move to the third OS Worksite step.")
 		return
 	var lock_controls := worksite.get("content_column") as VBoxContainer
-	var lock_option_names := [
-		"LockScreenOption_notifications",
-		"LockScreenOption_music_player",
-		"LockScreenOption_flashlight",
-		"LockScreenOption_camera",
-		"LockScreenOption_fingerprint"
-	]
-	for option_name in lock_option_names:
-		var option_button := lock_controls.find_child(option_name, true, false) as Button
-		if option_button == null or option_button.button_pressed:
-			_fail("A lock-screen optional element is missing or enabled by default: " + option_name)
+	var option_defaults := {
+		"clock": true,
+		"notification": false,
+		"shortcut": false,
+		"details": true,
+		"widget": false,
+		"unlock": false
+	}
+	for option_name in option_defaults:
+		var option_toggle := lock_controls.find_child("LockScreenOption_" + str(option_name), true, false) as CheckBox
+		if option_toggle == null or option_toggle.button_pressed != bool(option_defaults[option_name]):
+			_fail("A Step 3 lock-screen checkbox is missing or has the wrong default: " + str(option_name))
 			return
 
 	var wallpapers: Array = lock_screen.call("get_wallpaper_paths")
 	if wallpapers.is_empty():
 		_fail("The separate Wallpapers step has no available lock-screen wallpaper assets.")
 		return
-	worksite.call("_show_step", 4)
+	worksite.call("_show_step", 5)
 	if heading.text != "WALLPAPERS":
-		_fail("The independent Wallpapers step is not in position five.")
+		_fail("The independent Wallpapers step is not in position six.")
 		return
 	worksite.call("_select_asset", str(wallpapers[0]))
 	if str(lock_screen.call("get_selected_wallpaper_path")) != str(wallpapers[0]):
@@ -107,7 +146,7 @@ func _run_test() -> void:
 
 	# The status-bar worksite step exposes all ten presets and applies selections
 	# to the lock-screen currently displayed on the phone.
-	worksite.call("_show_step", 5)
+	worksite.call("_show_step", 6)
 	var controls_column := worksite.get("content_column") as VBoxContainer
 	if controls_column == null:
 		_fail("The OS worksite status-bar controls column could not be found.")

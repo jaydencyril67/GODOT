@@ -31,7 +31,7 @@ const BLUEPRINTS := [
 		"id": "material_stack",
 		"name": "MATERIAL STACK",
 		"clock_rect": Rect2(0.08, 0.145, 0.30, 0.15),
-		"date_rect": Rect2(0.08, 0.302, 0.84, 0.04),
+		"date_rect": Rect2(0.08, 0.312, 0.84, 0.04),
 		"date_alignments": ["left", "center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.415, 0.85, 0.08)},
