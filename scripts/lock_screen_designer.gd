@@ -11,20 +11,20 @@ const PIN_BACKSPACE_ICON_PATH := "res://assets/system-ui/godot/pin-entry/pin_bac
 const PIN_LENGTH := 6
 
 const NOTIFICATION_PRESETS := [
-	{"app": "MESSAGES", "icon": "res://assets/app_icons/appstract/google/google_chat.png", "title": "You have a new message", "body": "A new conversation is waiting for you."},
-	{"app": "GMAIL", "icon": "res://assets/app_icons/appstract/google/gmail.png", "title": "A new email arrived", "body": "Your inbox has a fresh update."},
-	{"app": "GOOGLE KEEP", "icon": "res://assets/app_icons/appstract/google/google_keep.png", "title": "Reminder", "body": "A saved note is ready for review."},
-	{"app": "GOOGLE TASKS", "icon": "res://assets/app_icons/appstract/google/google_tasks.png", "title": "Task due today", "body": "One item is still on your list."},
-	{"app": "CLASSROOM", "icon": "res://assets/app_icons/appstract/google/google_classroom.png", "title": "New class update", "body": "Your learning feed has changed."},
-	{"app": "SECURITY", "icon": "res://assets/app_icons/appstract/google/google_authenticator.png", "title": "Security check complete", "body": "Your account protection is up to date."}
+	{"app": "WHATSAPP", "icon": "res://assets/app_icons/papirus/social/apps_whatsapp.svg", "title": "You have a new message", "body": "A new conversation is waiting for you."},
+	{"app": "GMAIL", "icon": "res://assets/app_icons/papirus/google_essential/google_gmail.svg", "title": "A new email arrived", "body": "Your inbox has a fresh update."},
+	{"app": "GOOGLE KEEP", "icon": "res://assets/app_icons/papirus/google_essential/google_keep.svg", "title": "Reminder", "body": "A saved note is ready for review."},
+	{"app": "TODOIST", "icon": "res://assets/app_icons/papirus/productivity_education/apps_todoist.svg", "title": "Task due today", "body": "One item is still on your list."},
+	{"app": "CLASSROOM", "icon": "res://assets/app_icons/papirus/productivity_education/google_classroom.svg", "title": "New class update", "body": "Your learning feed has changed."},
+	{"app": "SECURITY", "icon": "res://assets/app_icons/papirus/google_essential/google_auth.svg", "title": "Security check complete", "body": "Your account protection is up to date."}
 ]
 
 const MEDIA_PRESETS := [
-	{"service": "SPOTIFY", "icon": "res://assets/app_icons/appstract/music/spotify.png", "title": "Midnight City", "artist": "M83"},
-	{"service": "APPLE MUSIC", "icon": "res://assets/app_icons/appstract/music/apple_music.png", "title": "Sunset Lover", "artist": "Petit Biscuit"},
-	{"service": "AMAZON MUSIC", "icon": "res://assets/app_icons/appstract/music/amazon_music.png", "title": "The Less I Know the Better", "artist": "Tame Impala"},
-	{"service": "SOUNDCLOUD", "icon": "res://assets/app_icons/appstract/music/soundcloud.png", "title": "A Walk", "artist": "Tycho"},
-	{"service": "POWERAMP", "icon": "res://assets/app_icons/appstract/music/poweramp.png", "title": "Night Drive", "artist": "Digital World Radio"}
+	{"service": "SPOTIFY", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_spotify_client.svg", "title": "Midnight City", "artist": "M83"},
+	{"service": "YOUTUBE MUSIC", "icon": "res://assets/app_icons/papirus/entertainment_music/google_youtube_music.svg", "title": "Sunset Lover", "artist": "Petit Biscuit"},
+	{"service": "DEEZER", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_deezer.svg", "title": "The Less I Know the Better", "artist": "Tame Impala"},
+	{"service": "SOUNDCLOUD", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_soundcloud.svg", "title": "A Walk", "artist": "Tycho"},
+	{"service": "SAMSUNG MUSIC", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_samsung_music.svg", "title": "Night Drive", "artist": "Digital World Radio"}
 ]
 
 const PALETTES := [
