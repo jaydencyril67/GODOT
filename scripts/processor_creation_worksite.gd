@@ -212,7 +212,7 @@ func _build_interface() -> void:
 	preview_viewport.own_world_3d = true
 	preview_viewport.transparent_bg = true
 	preview_viewport.msaa_3d = Viewport.MSAA_DISABLED
-	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	preview_holder.add_child(preview_viewport)
 
