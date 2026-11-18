@@ -1,24 +1,24 @@
 extends Control
 
-const APP_MANIFEST_PATH := "res://assets/app_icons/appstract/manifest.json"
+const APP_MANIFEST_PATH := "res://assets/app_icons/papirus/manifest.json"
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 const LOCK_ICON_PATH := "res://assets/lock-screen/aosp/SVG/ic_lock_locked.svg"
 
 const HOME_PAGE_APP_IDS := [
 	[
 		"instagram", "facebook", "telegram", "tiktok",
-		"google_keep", "google_chat", "google_docs", "google_earth",
-		"netflix", "discord", "snapchat", "twitter",
-		"canva", "github", "notion", "shazam"
+		"google_keep", "google_docs", "google_earth", "netflix",
+		"discord", "snapchat", "twitter", "shazam",
+		"spotify_client", "google_chrome", "google_drive", "google_photos"
 	],
 	[
-		"google_sheets", "google_slides", "google_tasks", "google_translate",
-		"amazon", "ebay", "paypal", "uber",
+		"google_sheets", "google_slides", "google_classroom", "google_translate",
+		"amazon_store", "ebay", "paypal", "uber_driver",
 		"airbnb", "duolingo", "minecraft", "roblox",
-		"free_fire", "asphalt_9", "picsart", "snapseed"
+		"pubg", "brawl_stars", "cash_app", "notion"
 	]
 ]
-const DOCK_APP_IDS := ["whatsapp", "gmail", "spotify", "youtube"]
+const DOCK_APP_IDS := ["whatsapp", "gmail", "spotify_client", "youtube"]
 
 var _design: Dictionary = {}
 var _status_bar_style_id := "one_ui_balanced"
