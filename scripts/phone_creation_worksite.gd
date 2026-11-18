@@ -115,8 +115,14 @@ var specification_readout: HBoxContainer
 var specification_readout_left: VBoxContainer
 var specification_readout_right: VBoxContainer
 var specification_readout_entry_count: int = 0
+var right_panel_column: VBoxContainer
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
+var technology_level_footer_margin: MarginContainer
+var technology_level_panel: PanelContainer
+var technology_level_value_label: Label
+var technology_level_refresh_accumulator := 0.0
+var last_technology_level_text := ""
 var selection_stack: VBoxContainer
 var step_panels: Dictionary = {}
 
@@ -1127,7 +1133,13 @@ func _build_interface() -> void:
 	var selection_scroll_bar := selection_scroll.get_v_scroll_bar()
 	selection_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	selection_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	worksite_body.add_child(selection_scroll)
+	right_panel_column = VBoxContainer.new()
+	right_panel_column.name = "PhoneCreationRightPanel"
+	right_panel_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_panel_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_panel_column.add_theme_constant_override("separation", 8)
+	worksite_body.add_child(right_panel_column)
+	right_panel_column.add_child(selection_scroll)
 
 	selection_region = MarginContainer.new()
 	selection_region.name = "PhoneTypeSelectionRegion"
@@ -1196,34 +1208,38 @@ func _build_interface() -> void:
 	next_button.pressed.connect(_on_next_pressed)
 	root.add_child(next_button)
 
+	_build_technology_level_footer()
 	_apply_responsive_layout()
+	_refresh_technology_level_display()
 	# Start with Standard selected so the Worksite preview and Next state are
 	# immediately ready.
 	_apply_phone_type_level()
 
 
 func _apply_responsive_layout() -> void:
-	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll):
+	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll) or not is_instance_valid(right_panel_column):
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	var is_wide := viewport_size.x >= viewport_size.y and viewport_size.x >= 700.0
 	worksite_body.vertical = not is_wide
 	if is_wide:
 		preview_region.size_flags_stretch_ratio = 1.12
-		selection_scroll.size_flags_stretch_ratio = 0.88
+		right_panel_column.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
-		selection_scroll.custom_minimum_size = Vector2(280, 0)
+		right_panel_column.custom_minimum_size = Vector2(280, 0)
+		selection_scroll.custom_minimum_size = Vector2(0, 0)
 		selection_region.add_theme_constant_override("margin_left", 24)
 		selection_region.add_theme_constant_override("margin_right", 24)
 		selection_region.add_theme_constant_override("margin_top", 20)
 		selection_region.add_theme_constant_override("margin_bottom", 20)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
-		selection_scroll.size_flags_stretch_ratio = 1.18
-		# Give the controls enough vertical room in portrait so the two-column
-		# Screen Tech choices remain visible without needing a scroll gesture.
+		right_panel_column.size_flags_stretch_ratio = 1.18
+		# The Technology Level footer remains pinned below the scrollable controls.
+		# Keep a compact minimum for the scrolling region above it.
 		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
-		selection_scroll.custom_minimum_size = Vector2(0, maxf(300.0, viewport_size.y * 0.52))
+		right_panel_column.custom_minimum_size = Vector2(0, maxf(300.0, viewport_size.y * 0.52))
+		selection_scroll.custom_minimum_size = Vector2(0, 0)
 		selection_region.add_theme_constant_override("margin_left", 20)
 		selection_region.add_theme_constant_override("margin_right", 20)
 		selection_region.add_theme_constant_override("margin_top", 14)
@@ -3630,7 +3646,351 @@ func _exit_tree() -> void:
 			tween.kill()
 	active_screen_protector_build_tweens.clear()
 
+func _build_technology_level_footer() -> void:
+	if not is_instance_valid(right_panel_column):
+		return
+
+	# Reserve the bottom-right navigation button's footprint. The footer must
+	# stop before the arrow instead of extending underneath its hit area.
+	technology_level_footer_margin = MarginContainer.new()
+	technology_level_footer_margin.name = "TechnologyLevelSafeArea"
+	technology_level_footer_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	technology_level_footer_margin.add_theme_constant_override("margin_right", 88)
+	right_panel_column.add_child(technology_level_footer_margin)
+
+	technology_level_panel = PanelContainer.new()
+	technology_level_panel.name = "TechnologyLevelPanel"
+	technology_level_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	technology_level_panel.custom_minimum_size = Vector2(0, 64)
+	technology_level_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#202224")
+	panel_style.border_color = Color(0.77, 0.54, 0.25, 0.78)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(9)
+	panel_style.content_margin_left = 12
+	panel_style.content_margin_right = 12
+	panel_style.content_margin_top = 8
+	panel_style.content_margin_bottom = 8
+	technology_level_panel.add_theme_stylebox_override("panel", panel_style)
+	technology_level_footer_margin.add_child(technology_level_panel)
+
+	var row := HBoxContainer.new()
+	row.name = "TechnologyLevelRow"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	technology_level_panel.add_child(row)
+
+	var title := _make_label("TECHNOLOGY LEVEL", 12, Color("#D3AA6B"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(title)
+
+	technology_level_value_label = _make_label("0.00 TP", 22, Color("#F2EEE7"))
+	technology_level_value_label.name = "TechnologyLevelValue"
+	technology_level_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	technology_level_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	technology_level_value_label.custom_minimum_size = Vector2(88, 0)
+	row.add_child(technology_level_value_label)
+
+
+func _refresh_technology_level_display() -> void:
+	if not is_instance_valid(technology_level_value_label):
+		return
+	var points := _calculate_phone_technology_points()
+	var display_text := "%.2f TP" % points
+	if display_text != last_technology_level_text:
+		last_technology_level_text = display_text
+		technology_level_value_label.text = display_text
+
+
+func _get_technology_points(component_name: String, progress_steps: float) -> float:
+	return ResearchManagerScript.get_technology_points_for_progress(component_name, progress_steps)
+
+
+func _get_technology_range_progress(value: float, baseline: float, range_ends: Array) -> float:
+	# Converts a selected value into completed research ranges plus the fraction
+	# of the current range. Only ranges already unlocked by research are passed in.
+	var progress := 0.0
+	var previous_value := baseline
+	for target_value in range_ends:
+		var target := float(target_value)
+		if value >= target - 0.000001:
+			progress += 1.0
+			previous_value = target
+			continue
+		if target > previous_value:
+			progress += clampf((value - previous_value) / (target - previous_value), 0.0, 1.0)
+		break
+	return progress
+
+
+func _get_descending_technology_range_progress(value: float, baseline: float, range_ends: Array) -> float:
+	# Used by specifications where research improves a decreasing measurement,
+	# such as reducing the minimum physical length of a side button.
+	var progress := 0.0
+	var previous_value := baseline
+	for target_value in range_ends:
+		var target := float(target_value)
+		if value <= target + 0.000001:
+			progress += 1.0
+			previous_value = target
+			continue
+		if previous_value > target:
+			progress += clampf((previous_value - value) / (previous_value - target), 0.0, 1.0)
+		break
+	return progress
+
+
+func _get_power_volume_position_progress(edge: String) -> float:
+	match edge:
+		"top":
+			return 1.0
+		"left":
+			return 2.0
+		_:
+			return 0.0
+
+
+func _calculate_phone_technology_points() -> float:
+	var total := 0.0
+
+	# Chassis and physical dimensions.
+	total += _get_technology_points("Phone Type", float(phone_type_level))
+	total += _get_technology_points("Phone Thickness", float(phone_thickness_level))
+	total += _get_technology_points("Border Radius", float(border_radius_level))
+
+	# Display technology and the actual selected panel dimensions.
+	if screen_enabled:
+		total += _get_technology_points("Screen Technology", float(screen_technology_level))
+		var screen_width_ranges: Array = []
+		for range_index in range(1, screen_width_research_level + 1):
+			screen_width_ranges.append(0.07 + float(range_index) * (0.08 / 12.0))
+		total += _get_technology_points(
+			"Screen Width",
+			_get_technology_range_progress(0.17 - bezel_width, 0.049167, screen_width_ranges)
+		)
+
+		var screen_height_ranges: Array = []
+		for range_index in range(1, screen_height_research_level + 1):
+			screen_height_ranges.append(minf(0.325, 0.145 + float(range_index) * (0.18 / 12.0)))
+		total += _get_technology_points(
+			"Screen Height",
+			_get_technology_range_progress(0.345 - bezel_height, 0.098167, screen_height_ranges)
+		)
+
+		var refresh_rate_ranges: Array = []
+		for range_index in range(1, refresh_rate_research_level + 1):
+			refresh_rate_ranges.append(60.0 + float(range_index) * 8.0)
+		var selected_refresh_rate_hz := selected_refresh_rate.replace(" Hz", "").to_float()
+		total += _get_technology_points(
+			"Refresh Rate",
+			_get_technology_range_progress(selected_refresh_rate_hz, 60.0, refresh_rate_ranges)
+		)
+
+		match screen_type_level:
+			1:
+				total += _get_technology_points("Curved Screen Horizontal", 1.0)
+			2:
+				total += _get_technology_points("Curved Screen Vertical", 1.0)
+			3:
+				total += _get_technology_points("Curved Screen Both", 1.0)
+
+		if screen_protector_enabled:
+			var glass_index := ResearchManagerScript.PROTECTION_GLASS_RESEARCH_SEQUENCE.find(screen_protector_finish)
+			if glass_index >= 0:
+				total += _get_technology_points("Protection Glass", float(glass_index + 1))
+
+	# Audio hardware. The base speaker is the starting state; additional units
+	# and selected quality are scored independently.
+	total += _get_technology_points("Speakers", float(maxi(0, speaker_count - 1)))
+	if speaker_count > 0:
+		total += _get_technology_points("Speaker Quality", float(speaker_quality_level))
+
+	# Physical connector and optional home navigation hardware.
+	var charge_port_index := CHARGE_PORT_RESEARCH_ORDER.find(charge_port_type)
+	if charge_port_index > 0:
+		total += _get_technology_points("Charge Port", float(charge_port_index))
+	if home_button_enabled:
+		var home_button_index := HOME_BUTTON_TYPES.find(home_button_type)
+		if home_button_index > 0:
+			total += _get_technology_points("Home Button", float(home_button_index))
+
+	# RAM, storage and memory controller selections.
+	var ram_capacity_index := RAM_CAPACITY_RESEARCH_STEPS.find(selected_ram_capacity)
+	if ram_capacity_index >= 0:
+		total += _get_technology_points("RAM", float(ram_capacity_index))
+		total += _get_technology_points("RAM Technology", float(ram_technology_level))
+		var memory_clock_ranges: Array = []
+		for range_index in range(1, selected_memory_clock_level + 1):
+			memory_clock_ranges.append(float(ResearchManagerScript.get_memory_clock_speed_for_level(range_index)))
+		total += _get_technology_points(
+			"Memory Clock",
+			_get_technology_range_progress(
+				float(ResearchManagerScript.get_memory_clock_speed_for_level(selected_memory_clock_level)),
+				float(ResearchManagerScript.MEMORY_CLOCK_MIN_SPEED),
+				memory_clock_ranges
+			)
+		)
+	var storage_index := INTERNAL_STORAGE_CAPACITIES.find(selected_rom_capacity)
+	if storage_index > 0:
+		total += _get_technology_points("Internal Storage", float(storage_index))
+
+	# Connectivity and thermal management.
+	total += _get_technology_points("Mobile Network", float(mobile_network_level))
+	total += _get_technology_points("Wi-Fi", float(wifi_level))
+	total += _get_technology_points("Bluetooth", float(bluetooth_level))
+	var cooling_index := COOLING_SYSTEM_OPTIONS.find(selected_cooling_system)
+	if cooling_index > 0:
+		total += _get_technology_points("Cooling System Design", float(cooling_index))
+
+	# Battery capacity is scored continuously inside each unlocked 350 mAh band.
+	if selected_battery_capacity != "Not set":
+		var selected_battery_mah := float(selected_battery_capacity.replace(",", "").replace(" mAh", ""))
+		var battery_ranges: Array = []
+		for range_index in range(1, researched_battery_capacity_level + 1):
+			battery_ranges.append(float(ResearchManagerScript.get_battery_capacity_max_for_level(range_index)))
+		total += _get_technology_points(
+			"Battery Capacity",
+			_get_technology_range_progress(
+				selected_battery_mah,
+				float(ResearchManagerScript.BATTERY_CAPACITY_BASE_MAH),
+				battery_ranges
+			)
+		)
+
+	# Wired charging speed uses the exact 1W–200W research ladder, including
+	# the final four-watt range. Unused research ceilings do not earn points.
+	var wired_charging_ranges: Array = []
+	for range_index in range(1, researched_charging_speed_level + 1):
+		wired_charging_ranges.append(float(ResearchManagerScript.get_charging_speed_max_for_level(range_index)))
+	total += _get_technology_points(
+		"Charging Speed",
+		_get_technology_range_progress(float(selected_charging_speed), 1.0, wired_charging_ranges)
+	)
+
+	# Wireless charging contributes only while the feature is enabled on this phone.
+	if selected_wireless_charge_enabled and researched_wireless_charging_level > 0:
+		var wireless_charging_ranges: Array = []
+		for range_index in range(2, researched_wireless_charging_level + 1):
+			wireless_charging_ranges.append(float(ResearchManagerScript.get_wireless_charging_max_for_level(range_index)))
+		var wireless_progress := 1.0 + _get_technology_range_progress(
+			float(selected_wireless_charging_speed),
+			1.0,
+			wireless_charging_ranges
+		)
+		total += _get_technology_points("Wireless Charging", wireless_progress)
+
+	# Sensors count only when they are actually switched on in the handset.
+	for sensor_value in ResearchManagerScript.PHONE_SENSOR_COMPONENTS:
+		var sensor_name := str(sensor_value)
+		if bool(selected_phone_sensors.get(sensor_name, false)):
+			total += _get_technology_points(sensor_name, 1.0)
+
+	# Front camera design and resolution count only when the camera is installed.
+	if front_camera_enabled:
+		var front_camera_design_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+		if front_camera_design_index > 0:
+			total += _get_technology_points("Front Camera", float(front_camera_design_index))
+
+		var front_camera_mp_ranges: Array = []
+		for range_index in range(1, front_camera_mp_research_level + 1):
+			front_camera_mp_ranges.append(float(ResearchManagerScript.get_front_camera_mp_max_for_level(range_index)))
+		var front_camera_resolutions: Array = [front_camera_megapixels]
+		var is_foldable_phone := selected_phone_type == "Flip" or selected_phone_type == "Fold"
+		if front_camera_style == "Dual Punch-Hole":
+			front_camera_resolutions.append(front_camera_secondary_megapixels)
+			if is_foldable_phone:
+				front_camera_resolutions.append(front_camera_outer_megapixels)
+				front_camera_resolutions.append(front_camera_outer_secondary_megapixels)
+		elif is_foldable_phone:
+			front_camera_resolutions.append(front_camera_outer_megapixels)
+		for resolution_value in front_camera_resolutions:
+			total += _get_technology_points(
+				"Front Camera MP",
+				_get_technology_range_progress(float(resolution_value), 1.0, front_camera_mp_ranges)
+			)
+
+	# Rear camera and flash modules are scored from the installed modules, not
+	# from their unlocked maximum counts.
+	if not rear_camera_modules.is_empty():
+		total += _get_technology_points("Rear Camera Count", float(maxi(0, rear_camera_modules.size() - 1)))
+		var rear_camera_mp_ranges: Array = []
+		for range_index in range(1, rear_camera_mp_research_level + 1):
+			rear_camera_mp_ranges.append(float(ResearchManagerScript.get_rear_camera_mp_max_for_level(range_index)))
+		var rear_camera_size_ranges: Array = []
+		for range_index in range(1, rear_camera_size_research_level + 1):
+			rear_camera_size_ranges.append(float(ResearchManagerScript.get_rear_camera_size_max_for_level(range_index)))
+		for camera_value in rear_camera_modules:
+			var camera_data: Dictionary = camera_value
+			total += _get_technology_points(
+				"Rear Camera MP",
+				_get_technology_range_progress(float(camera_data.get("mp", 1)), 1.0, rear_camera_mp_ranges)
+			)
+			total += _get_technology_points(
+				"Rear Camera Size",
+				_get_technology_range_progress(float(camera_data.get("size", ResearchManagerScript.REAR_HARDWARE_SIZE_BASE)), ResearchManagerScript.REAR_HARDWARE_SIZE_BASE, rear_camera_size_ranges)
+			)
+
+	if not rear_flash_modules.is_empty():
+		total += _get_technology_points("Rear Flash Count", float(maxi(0, rear_flash_modules.size() - 1)))
+		var rear_flash_size_ranges: Array = []
+		for range_index in range(1, rear_flash_size_research_level + 1):
+			rear_flash_size_ranges.append(float(ResearchManagerScript.get_rear_flash_size_max_for_level(range_index)))
+		for flash_value in rear_flash_modules:
+			var flash_data: Dictionary = flash_value
+			total += _get_technology_points(
+				"Rear Flash Size",
+				_get_technology_range_progress(float(flash_data.get("size", ResearchManagerScript.REAR_HARDWARE_SIZE_BASE)), ResearchManagerScript.REAR_HARDWARE_SIZE_BASE, rear_flash_size_ranges)
+			)
+
+	# Rear styling features actually present on the device.
+	if not back_design_boxes.is_empty():
+		total += _get_technology_points("Back Raised Design", float(back_design_boxes.size()))
+	if device_gradient_enabled:
+		total += _get_technology_points("Device Color", 1.0)
+	if phone_case_custom_enabled and phone_case_built:
+		var phone_case_progress := float(clampi(phone_case_design_style + 1, 1, 5))
+		if phone_case_gradient_enabled:
+			phone_case_progress = 6.0
+		total += _get_technology_points("Phone Case", phone_case_progress)
+
+	# Optional physical side controls. Power/volume button position and length
+	# only contribute when the corresponding button is enabled.
+	if camera_side_button_enabled:
+		total += _get_technology_points("Side Button", 1.0)
+	if sound_button_enabled:
+		total += _get_technology_points("Sound Button", 1.0)
+	if style_pen_enabled:
+		total += _get_technology_points("Style Pen (S Pen)", 1.0)
+	if power_button_enabled:
+		total += _get_technology_points("Power Button Position", _get_power_volume_position_progress(power_button_edge))
+	if volume_button_enabled:
+		total += _get_technology_points("Volume Button Position", _get_power_volume_position_progress(volume_button_edge))
+	if power_button_enabled or volume_button_enabled:
+		var button_length_ranges: Array = []
+		for range_index in range(1, ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MIN_SCALES.size()):
+			button_length_ranges.append(float(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MIN_SCALES[range_index]))
+		total += _get_technology_points(
+			"Power/Volume Button Length",
+			_get_descending_technology_range_progress(
+				side_button_length_scale,
+				float(ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_MIN_SCALES[0]),
+				button_length_ranges
+			)
+		)
+
+	return maxf(0.0, total)
+
+
 func _process(delta: float) -> void:
+	technology_level_refresh_accumulator += maxf(0.0, delta)
+	if technology_level_refresh_accumulator >= 0.12:
+		technology_level_refresh_accumulator = 0.0
+		_refresh_technology_level_display()
 	if box_package_preview_mode or selected_phone_type == "Standard":
 		return
 	var fold_angle_delta := fold_target_angle_degrees - fold_angle_degrees
