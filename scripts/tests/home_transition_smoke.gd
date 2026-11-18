@@ -1083,6 +1083,16 @@ func _run_transition_checks() -> void:
 		return
 	var headquarters = game.world_root
 	await headquarters.setup_completed
+	var os_prepared := false
+	for _frame_index in range(1200):
+		if is_instance_valid(game.os_creation_worksite) and bool(game.os_creation_worksite.get("setup_complete")):
+			os_prepared = true
+			break
+		await process_frame
+	if not os_prepared:
+		_fail("The OS Creation Worksite was not fully built during the headquarters loading sequence.")
+		return
+	var preloaded_os_worksite = game.os_creation_worksite
 	var original_building = headquarters.building_root
 	if not is_instance_valid(original_building):
 		_fail("The loading screen did not construct the owned headquarters.")
@@ -1112,6 +1122,16 @@ func _run_transition_checks() -> void:
 		return
 	if headquarters.building_root != original_building:
 		_fail("Opening Create replaced the headquarters building.")
+		return
+
+	# OS navigation must reuse the scene created during the startup loading phase.
+	game._on_create_category_pressed("OPERATING SYSTEM")
+	if game.current_screen != "os_creation_worksite" or game.os_creation_worksite != preloaded_os_worksite:
+		_fail("OS navigation constructed a new worksite instead of revealing its preloaded instance.")
+		return
+	game._return_from_os_creation_worksite()
+	if game.current_screen != "create" or game.os_creation_worksite != preloaded_os_worksite:
+		_fail("Returning from OS Worksite did not preserve the prebuilt scene.")
 		return
 
 	# Processor navigation must be a single, deferred, exclusive screen handoff.

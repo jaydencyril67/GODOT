@@ -33,6 +33,30 @@ func build(screen_texture: Texture2D) -> void:
 	_build_side_controls()
 	_build_bottom_hardware()
 
+func build_for_loading(screen_texture: Texture2D, progress_callback: Callable) -> void:
+	for child in get_children():
+		child.free()
+
+	await _run_loading_build_stage("Building handset studio environment", progress_callback, Callable(self, "_build_environment"))
+	await _run_loading_build_stage("Setting up handset studio lighting", progress_callback, Callable(self, "_build_lighting"))
+	await _run_loading_build_stage("Preparing handset preview camera", progress_callback, Callable(self, "_build_camera"))
+	await _run_loading_build_stage("Constructing handset chassis", progress_callback, Callable(self, "_build_chassis"))
+	await _run_loading_build_stage("Building handset glass display", progress_callback, Callable(self, "_build_display").bind(screen_texture))
+	await _run_loading_build_stage("Building handset front hardware", progress_callback, Callable(self, "_build_front_hardware"))
+	await _run_loading_build_stage("Building handset side controls", progress_callback, Callable(self, "_build_side_controls"))
+	await _run_loading_build_stage("Building handset bottom hardware", progress_callback, Callable(self, "_build_bottom_hardware"))
+
+
+func _run_loading_build_stage(message: String, progress_callback: Callable, build_action: Callable) -> void:
+	if progress_callback.is_valid():
+		progress_callback.call(message, 0.0)
+	await get_tree().process_frame
+	build_action.call()
+	if progress_callback.is_valid():
+		progress_callback.call(message, 100.0)
+	await get_tree().create_timer(0.18).timeout
+
+
 
 func _build_environment() -> void:
 	var environment_node := WorldEnvironment.new()

@@ -39,7 +39,6 @@ var _date_label: Label
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	clip_contents = true
-	_load_app_manifest()
 	set_process(true)
 
 
@@ -55,11 +54,94 @@ func configure(design: Dictionary, status_bar_style_id: String = "one_ui_balance
 		return false
 	if _app_manifest.is_empty():
 		_load_app_manifest()
+	return _apply_design(design, status_bar_style_id, false)
+
+
+func configure_for_loading(
+	design: Dictionary,
+	status_bar_style_id: String,
+	progress_callback: Callable
+) -> bool:
+	if design.is_empty():
+		return false
+	if _app_manifest.is_empty():
+		var manifest_ready: bool = await load_manifest_for_loading(progress_callback)
+		if not manifest_ready:
+			return false
+
+	if progress_callback.is_valid():
+		progress_callback.call("Building the One UI homepage and dock", 0.0)
+	_apply_design(design, status_bar_style_id, true)
+	if not is_instance_valid(_drawer_grid):
+		return false
+	if progress_callback.is_valid():
+		progress_callback.call("Building the One UI homepage and dock", 100.0)
+	await get_tree().create_timer(0.18).timeout
+
+	if progress_callback.is_valid():
+		progress_callback.call("Building app drawer icons", 0.0)
+	for index in range(_app_manifest.size()):
+		_drawer_grid.add_child(_make_app_tile(_app_manifest[index], 84, 22, 132, false))
+		if (index + 1) % 20 == 0 or index == _app_manifest.size() - 1:
+			if progress_callback.is_valid():
+				progress_callback.call(
+					"Building app drawer icons",
+					float(index + 1) * 100.0 / maxf(float(_app_manifest.size()), 1.0)
+				)
+			await get_tree().create_timer(0.10).timeout
+	if _app_manifest.is_empty() and progress_callback.is_valid():
+		progress_callback.call("Building app drawer icons", 100.0)
+	return _drawer_grid.get_child_count() == _app_manifest.size()
+
+
+func _apply_design(design: Dictionary, status_bar_style_id: String, defer_app_drawer_population: bool) -> bool:
 	_design = design.duplicate(true)
 	_status_bar_style_id = status_bar_style_id if StatusBarAssetLibrary.has_style(status_bar_style_id) else "one_ui_balanced"
 	_home_page_index = 0
-	_build_screen()
+	_build_screen(defer_app_drawer_population)
 	return _clock_label != null and _date_label != null and _status_bar != null
+
+
+func load_manifest_for_loading(progress_callback: Callable) -> bool:
+	_app_manifest.clear()
+	_apps_by_id.clear()
+	if not FileAccess.file_exists(APP_MANIFEST_PATH):
+		push_error("Home screen app manifest is missing: " + APP_MANIFEST_PATH)
+		return false
+	var file := FileAccess.open(APP_MANIFEST_PATH, FileAccess.READ)
+	if file == null:
+		push_error("Home screen app manifest could not be opened.")
+		return false
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if not parsed is Dictionary:
+		push_error("Home screen app manifest is not a valid JSON object.")
+		return false
+	var raw_apps: Variant = (parsed as Dictionary).get("apps", [])
+	if not raw_apps is Array:
+		push_error("Home screen app manifest does not contain an app array.")
+		return false
+	var total := (raw_apps as Array).size()
+	if progress_callback.is_valid():
+		progress_callback.call("Loading Papirus app catalogue", 0.0)
+	for index in range(total):
+		var raw_app: Variant = raw_apps[index]
+		if raw_app is Dictionary:
+			var app: Dictionary = raw_app.duplicate(true)
+			var app_id := str(app.get("id", ""))
+			var icon_path := str(app.get("path", ""))
+			if not app_id.is_empty() and not icon_path.is_empty() and FileAccess.file_exists(icon_path):
+				_app_manifest.append(app)
+				_apps_by_id[app_id] = app
+		if (index + 1) % 20 == 0 or index == total - 1:
+			if progress_callback.is_valid():
+				progress_callback.call(
+					"Loading Papirus app catalogue",
+					float(index + 1) * 100.0 / maxf(float(total), 1.0)
+				)
+			await get_tree().process_frame
+	if total == 0 and progress_callback.is_valid():
+		progress_callback.call("Loading Papirus app catalogue", 100.0)
+	return _app_manifest.size() == int((parsed as Dictionary).get("total", total))
 
 
 func set_status_bar_style(style_id: String) -> bool:
@@ -178,7 +260,7 @@ func _load_app_manifest() -> void:
 		_apps_by_id[app_id] = app
 
 
-func _build_screen() -> void:
+func _build_screen(defer_app_drawer_population: bool = false) -> void:
 	for child in get_children():
 		remove_child(child)
 		child.free()
@@ -220,7 +302,7 @@ func _build_screen() -> void:
 	_add_dock()
 	_add_page_indicators()
 	_add_navigation_gesture()
-	_build_app_drawer()
+	_build_app_drawer(not defer_app_drawer_population)
 	_add_status_bar()
 	_refresh_clock_labels()
 
@@ -436,7 +518,7 @@ func _make_app_tile(app: Dictionary, icon_size: int, label_size: int, tile_heigh
 	return tile
 
 
-func _build_app_drawer() -> void:
+func _build_app_drawer(populate_apps: bool = true) -> void:
 	_app_drawer = Control.new()
 	_app_drawer.name = "HomeScreenAppDrawer"
 	_app_drawer.visible = false
@@ -493,7 +575,8 @@ func _build_app_drawer() -> void:
 	_drawer_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_drawer_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_drawer_grid)
-	_rebuild_app_drawer_grid("")
+	if populate_apps:
+		_rebuild_app_drawer_grid("")
 
 
 func _on_app_search_changed(query: String) -> void:
@@ -503,11 +586,15 @@ func _on_app_search_changed(query: String) -> void:
 func _rebuild_app_drawer_grid(query: String) -> void:
 	if not is_instance_valid(_drawer_grid):
 		return
+	var normalized_query := query.strip_edges().to_lower()
+	# Startup already builds the complete drawer. An empty search reveals those
+	# same 200 nodes without reconstructing all SVG tiles on first open.
+	if normalized_query.is_empty() and _drawer_grid.get_child_count() == _app_manifest.size():
+		return
 	for child in _drawer_grid.get_children():
 		_drawer_grid.remove_child(child)
 		child.free()
 
-	var normalized_query := query.strip_edges().to_lower()
 	for app in _app_manifest:
 		var app_name := str(app.get("name", ""))
 		var app_id := str(app.get("id", ""))

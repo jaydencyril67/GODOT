@@ -6,6 +6,9 @@ const HomeScreenDesignerScript = preload("res://scripts/home_screen_designer.gd"
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 
 signal back_requested
+signal setup_progress(message: String, progress: float)
+signal setup_completed
+signal setup_failed(message: String)
 
 const STEP_NAMES := [
 	"OS SETUP",
@@ -91,17 +94,86 @@ var _phone_pointer_active := false
 var _phone_pointer_start := Vector2.ZERO
 var _phone_pointer_pin_mode := false
 var _phone_pointer_home_mode := false
+var setup_complete := false
+var preparing_for_first_load := false
+var phone_model: Node3D
+var phone_screen_texture: Texture2D
+var _asset_file_cache: Dictionary = {}
+
+func set_preparing_for_first_load(value: bool) -> void:
+	preparing_for_first_load = value
+
 
 func _ready() -> void:
-	_build_interface()
+	await _initialize_worksite()
+
+
+func _initialize_worksite() -> void:
+	setup_complete = false
+	_asset_file_cache.clear()
+	await _build_interface()
+	if not is_instance_valid(phone_model) or not is_instance_valid(phone_screen_texture):
+		setup_failed.emit("The handset preview could not be initialized.")
+		return
+
+	await phone_model.call(
+		"build_for_loading",
+		phone_screen_texture,
+		Callable(self, "_emit_setup_progress")
+	)
+
+	# Cache every worksite asset browser category now, so opening a step later
+	# only displays prepared paths rather than walking the filesystem on demand.
+	for step_index_value in STEP_ASSET_PATHS.keys():
+		var step_index := int(step_index_value)
+		var category_name := STEP_NAMES[step_index]
+		_emit_setup_progress("Indexing %s assets" % category_name.to_lower(), 0.0)
+		await get_tree().process_frame
+		var files: Array[String] = []
+		_collect_files(str(STEP_ASSET_PATHS[step_index]), files)
+		files.sort()
+		_asset_file_cache[step_index] = files
+		_emit_setup_progress("Indexing %s assets" % category_name.to_lower(), 100.0)
+		await get_tree().create_timer(0.18).timeout
+
 	_show_step(0)
-	if is_instance_valid(lock_screen_designer) and int(lock_screen_designer.call("get_generation_count")) == 0:
-		_generate_lock_screen_design()
+
+	_emit_setup_progress("Generating the default lock screen", 0.0)
+	await get_tree().process_frame
+	var initial_design: Dictionary = lock_screen_designer.call("generate_new_design")
+	if initial_design.is_empty():
+		setup_failed.emit("The default lock-screen design could not be generated.")
+		return
+	_update_lock_screen_status(initial_design)
+	_emit_setup_progress("Generating the default lock screen", 100.0)
+	await get_tree().create_timer(0.18).timeout
+
+	var home_ready: bool = await home_screen_designer.call(
+		"configure_for_loading",
+		initial_design,
+		str(lock_screen_designer.call("get_status_bar_style_id")),
+		Callable(self, "_emit_setup_progress")
+	)
+	if not home_ready:
+		setup_failed.emit("The homepage or 200-app drawer could not be built.")
+		return
+
+	_update_phone_preview_mode()
+	_emit_setup_progress("Finalizing OS Creation Worksite", 100.0)
+	await get_tree().process_frame
+	setup_complete = true
+	setup_completed.emit()
+
+
+func _emit_setup_progress(message: String, progress: float) -> void:
+	setup_progress.emit(message, clampf(progress, 0.0, 100.0))
 
 func _build_interface() -> void:
+	_emit_setup_progress("Building OS worksite screen layout", 0.0)
 	var layer := CanvasLayer.new()
 	layer.name = "OSCreationWorksiteInterface"
 	layer.layer = 40
+	layer.visible = not preparing_for_first_load
 	add_child(layer)
 
 	root_control = Control.new()
@@ -133,6 +205,9 @@ func _build_interface() -> void:
 	preview_region.size_flags_stretch_ratio = 1.08
 	preview_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	worksite_body.add_child(preview_region)
+	_emit_setup_progress("Building OS worksite screen layout", 100.0)
+	await get_tree().create_timer(0.18).timeout
+	_emit_setup_progress("Preparing handset screen and boot interface", 0.0)
 
 	var phone_center := CenterContainer.new()
 	phone_center.name = "PhoneDisplayCenter"
@@ -209,7 +284,7 @@ func _build_interface() -> void:
 	screen_viewport.name = "PhoneScreenInterfaceViewport"
 	screen_viewport.size = Vector2i(680, 1360)
 	screen_viewport.transparent_bg = false
-	screen_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	screen_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	phone_viewport.add_child(screen_viewport)
 
 	var screen_root := Control.new()
@@ -274,11 +349,17 @@ func _build_interface() -> void:
 	home_screen_designer.offset_bottom = 0.0
 	home_screen_designer.visible = false
 	phone_screen.add_child(home_screen_designer)
+	_emit_setup_progress("Preparing handset screen and boot interface", 100.0)
+	await get_tree().create_timer(0.18).timeout
+	_emit_setup_progress("Preparing handset scene connection", 0.0)
 
-	var phone_model: Node3D = OSPhoneModelScript.new()
+	phone_model = OSPhoneModelScript.new()
 	phone_model.name = "OSWorksiteHandsetModel"
 	phone_world.add_child(phone_model)
-	phone_model.call("build", screen_viewport.get_texture())
+	phone_screen_texture = screen_viewport.get_texture()
+	_emit_setup_progress("Preparing handset scene connection", 100.0)
+	await get_tree().create_timer(0.18).timeout
+	_emit_setup_progress("Building OS worksite controls and navigation", 0.0)
 
 	controls_scroll = ScrollContainer.new()
 	controls_scroll.name = "OSControlsScroll"
@@ -399,6 +480,8 @@ func _build_interface() -> void:
 	root_control.resized.connect(_apply_responsive_layout)
 	preview_region.resized.connect(_apply_responsive_layout)
 	call_deferred("_apply_responsive_layout")
+	_emit_setup_progress("Building OS worksite controls and navigation", 100.0)
+	await get_tree().process_frame
 
 func _apply_responsive_layout() -> void:
 	if not is_instance_valid(phone_frame) or not is_instance_valid(preview_region):
@@ -744,8 +827,13 @@ func _show_asset_browser(step_index: int) -> void:
 	content_column.add_child(path_label)
 
 	var files: Array[String] = []
-	_collect_files(path, files)
-	files.sort()
+	var cached_files: Variant = _asset_file_cache.get(step_index, null)
+	if cached_files is Array:
+		for cached_path in cached_files:
+			files.append(str(cached_path))
+	else:
+		_collect_files(path, files)
+		files.sort()
 	if files.is_empty():
 		_add_note("No collected files are present in this category yet. This category is ready for its assets.")
 		return

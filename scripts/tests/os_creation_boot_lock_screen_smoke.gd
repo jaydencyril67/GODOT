@@ -9,7 +9,22 @@ func _run_test() -> void:
 	var worksite: Node = WorksiteScript.new()
 	worksite.name = "OSCreationBootLockScreenSmokeTest"
 	root.add_child(worksite)
-	await process_frame
+	for _frame_index in range(1200):
+		if bool(worksite.get("setup_complete")):
+			break
+		await process_frame
+	if not bool(worksite.get("setup_complete")):
+		_fail("The OS Worksite did not finish its staged startup preparation.")
+		return
+
+	var home_screen := worksite.find_child("OneUIHomeScreenPreview", true, false)
+	if home_screen == null or int(home_screen.call("get_loaded_app_count")) != 200:
+		_fail("The OS Worksite did not preload all 200 Papirus apps.")
+		return
+	var app_drawer_grid := home_screen.find_child("AppDrawerIconGrid", true, false) as GridContainer
+	if app_drawer_grid == null or app_drawer_grid.get_child_count() != 200:
+		_fail("The 200-app drawer was not fully built before startup preparation completed.")
+		return
 
 	if not is_equal_approx(float(worksite.call("get_boot_sequence_duration_seconds")), 10.0):
 		_fail("The configured boot sequence must last exactly ten seconds.")

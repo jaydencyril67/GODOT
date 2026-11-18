@@ -1316,7 +1316,7 @@ func _show_home_scene() -> void:
 	headquarters.staff_market_requested.connect(func(): _open_staff_screen("market"))
 	headquarters.staff_management_requested.connect(func(): _open_staff_screen("management"))
 	headquarters.setup_progress.connect(_update_headquarters_loading)
-	headquarters.setup_completed.connect(_finish_headquarters_loading)
+	headquarters.setup_completed.connect(_on_headquarters_setup_completed)
 	# Build the 3D scene off-screen. It must not render behind the preparation UI.
 	headquarters.visible = false
 	world_root = headquarters
@@ -2009,7 +2009,7 @@ void fragment() {
 
 	loading_percent_label = Label.new()
 	loading_percent_label.name = "Preparation_Percentage"
-	loading_percent_label.text = "5%"
+	loading_percent_label.text = "0%"
 	loading_percent_label.custom_minimum_size = Vector2(58.0, 0.0)
 	loading_percent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_apply_home_button_typography(loading_percent_label, 14 if compact else 16)
@@ -2021,7 +2021,7 @@ void fragment() {
 	loading_progress_bar.custom_minimum_size = Vector2(0.0, 12.0 if compact else 14.0)
 	loading_progress_bar.min_value = 0.0
 	loading_progress_bar.max_value = 100.0
-	loading_progress_bar.value = 5.0
+	loading_progress_bar.value = 0.0
 	loading_progress_bar.show_percentage = false
 	loading_progress_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var progress_track := StyleBoxFlat.new()
@@ -2062,7 +2062,14 @@ void fragment() {
 
 func _update_headquarters_loading(message: String, progress: float) -> void:
 	var safe_progress := clampf(progress, 0.0, 100.0)
-	if is_instance_valid(loading_status_label) and loading_status_label.text != message:
+	var stage_changed := is_instance_valid(loading_status_label) and loading_status_label.text != message
+	if stage_changed:
+		if loading_progress_tween != null and loading_progress_tween.is_running():
+			loading_progress_tween.kill()
+		if is_instance_valid(loading_progress_bar):
+			loading_progress_bar.value = 0.0
+		if is_instance_valid(loading_percent_label):
+			loading_percent_label.text = "0%"
 		var status_fade := create_tween()
 		status_fade.tween_property(loading_status_label, "modulate:a", 0.35, 0.07)
 		status_fade.tween_callback(func():
@@ -2076,7 +2083,7 @@ func _update_headquarters_loading(message: String, progress: float) -> void:
 		if loading_progress_tween != null and loading_progress_tween.is_running():
 			loading_progress_tween.kill()
 		loading_progress_tween = create_tween()
-		loading_progress_tween.tween_property(loading_progress_bar, "value", safe_progress, 0.28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		loading_progress_tween.tween_property(loading_progress_bar, "value", safe_progress, 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 func _finish_headquarters_loading() -> void:
@@ -2799,19 +2806,38 @@ func _on_create_category_pressed(category: String) -> void:
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
 
+func _on_headquarters_setup_completed() -> void:
+	# Home is not revealed until the OS Worksite is also completely prepared.
+	if is_instance_valid(os_creation_worksite):
+		if bool(os_creation_worksite.get("setup_complete")):
+			_finish_headquarters_loading()
+		return
+	_update_headquarters_loading("Preparing OS Creation Worksite", 0.0)
+	_prepare_os_creation_worksite()
+
+
+func _on_os_worksite_setup_failed(message: String) -> void:
+	push_error("OS Creation Worksite startup preparation failed: " + message)
+	_update_headquarters_loading("OS Worksite setup failed: " + message, 0.0)
+
+
 func _prepare_os_creation_worksite() -> void:
 	if is_instance_valid(os_creation_worksite):
 		return
 	os_creation_worksite = OSCreationWorksiteScene.instantiate() as Node3D
 	if not is_instance_valid(os_creation_worksite):
-		push_error("OS Creation Worksite scene could not be initialized.")
+		push_error("OS Creation Worksite scene could not be initialized during company startup.")
 		return
 	os_creation_worksite.name = "OS_Creation_Worksite"
+	os_creation_worksite.call("set_preparing_for_first_load", true)
 	os_creation_worksite.set_company_logo_texture(_company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50)))
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
-	add_child(os_creation_worksite)
+	os_creation_worksite.connect("setup_progress", Callable(self, "_update_headquarters_loading"))
+	os_creation_worksite.connect("setup_completed", Callable(self, "_finish_headquarters_loading"))
+	os_creation_worksite.connect("setup_failed", Callable(self, "_on_os_worksite_setup_failed"))
 	os_creation_worksite.hide()
+	add_child(os_creation_worksite)
 	for child in os_creation_worksite.get_children():
 		if child is CanvasLayer:
 			child.hide()
@@ -2820,9 +2846,9 @@ func _prepare_os_creation_worksite() -> void:
 func _show_os_creation_worksite() -> void:
 	if current_screen == "os_creation_worksite" and is_instance_valid(os_creation_worksite):
 		return
-	if not is_instance_valid(os_creation_worksite):
-		_prepare_os_creation_worksite()
-	if not is_instance_valid(os_creation_worksite):
+	if not is_instance_valid(os_creation_worksite) or not bool(os_creation_worksite.get("setup_complete")):
+		push_error("OS Creation Worksite cannot open before startup preparation is complete.")
+		_show_notice("OS WORKSITE NOT READY", "The operating-system workspace has not finished preparing. Return to Home and try again after startup completes.")
 		return
 	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
 		if is_instance_valid(layer):

@@ -68,28 +68,20 @@ func _ready() -> void:
 	preview_level = clampi(preview_level, 1, MAX_LEVEL)
 	owned_level = clampi(owned_level, 0, MAX_LEVEL)
 
-	setup_progress.emit("Initializing game...", 8.0)
-	await get_tree().process_frame
-
-	setup_progress.emit("Loading company data...", 20.0)
-	await get_tree().process_frame
-
-	_create_material_library()
-	_create_procedural_surface_textures()
-
-	setup_progress.emit("Setting up scenes...", 38.0)
-	await get_tree().process_frame
-
-	_create_environment()
-	_create_presentation_stage()
-
-	setup_progress.emit("Constructing your headquarters...", 58.0)
-	await get_tree().process_frame
+	await _run_setup_stage("Preparing headquarters material library", Callable(self, "_create_material_library"))
+	await _run_setup_stage("Generating facade surface details", Callable(self, "_create_procedural_surface_textures"))
+	await _run_setup_stage("Creating headquarters environment", Callable(self, "_create_environment"))
+	await _run_setup_stage("Building headquarters site presentation", Callable(self, "_create_presentation_stage"))
 
 	# Construct the headquarters model once behind the loading screen. A new
 	# company has no owned office yet, so its Level 1 purchase preview is kept
 	# hidden on Home and revealed only when the Office page is opened.
-	var building_height := _build_procedural_building(preview_level)
+	var building_height_value: Variant = await _run_setup_stage(
+		"Constructing the headquarters building",
+		Callable(self, "_build_procedural_building"),
+		[preview_level]
+	)
+	var building_height := float(building_height_value)
 	current_building_height = building_height
 	home_building_root = building_root
 	home_building_height = building_height
@@ -97,15 +89,20 @@ func _ready() -> void:
 	if home_mode and owned_level <= 0 and is_instance_valid(building_root):
 		building_root.visible = false
 
-	setup_progress.emit("Preparing camera and interface...", 88.0)
-	await get_tree().process_frame
+	await _run_setup_stage("Preparing headquarters camera", Callable(self, "_create_camera"), [building_height])
+	await _run_setup_stage("Building headquarters interface", Callable(self, "_create_preview_interface"))
 
-	_create_camera(building_height)
-	_create_preview_interface()
-	await get_tree().process_frame
-
-	setup_progress.emit("Headquarters ready!", 100.0)
+	setup_progress.emit("Headquarters ready", 100.0)
 	setup_completed.emit()
+
+
+func _run_setup_stage(message: String, build_action: Callable, arguments: Array = []) -> Variant:
+	setup_progress.emit(message, 0.0)
+	await get_tree().process_frame
+	var result: Variant = build_action.callv(arguments)
+	setup_progress.emit(message, 100.0)
+	await get_tree().create_timer(0.20).timeout
+	return result
 
 func _create_material_library() -> void:
 	materials = {

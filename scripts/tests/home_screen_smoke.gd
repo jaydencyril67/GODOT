@@ -75,8 +75,8 @@ func _run_test() -> void:
 			_fail("A dock app icon failed to load.")
 			return
 
-	if int(home_screen.call("get_loaded_app_count")) < 140:
-		_fail("The app drawer did not load the bundled Papirus icon manifest.")
+	if int(home_screen.call("get_loaded_app_count")) != 200:
+		_fail("The app drawer did not load all 200 entries from the Papirus icon manifest.")
 		return
 	if int(home_screen.call("get_home_page_count")) != 2 or int(home_screen.call("get_home_icon_count")) != 36:
 		_fail("The launcher home pages and dock do not expose the expected curated app selection.")
@@ -100,7 +100,7 @@ func _run_test() -> void:
 		return
 	home_screen.call("open_app_drawer")
 	await process_frame
-	if not bool(home_screen.call("is_app_drawer_visible")) or int(home_screen.call("get_app_drawer_result_count")) < 140:
+	if not bool(home_screen.call("is_app_drawer_visible")) or int(home_screen.call("get_app_drawer_result_count")) != 200:
 		_fail("The swipe-up app drawer did not expose the bundled app collection.")
 		return
 	var drawer_grid := home_screen.find_child("AppDrawerIconGrid", true, false) as GridContainer
