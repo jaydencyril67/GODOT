@@ -71,7 +71,7 @@ var preview_region: Control
 var controls_scroll: ScrollContainer
 var controls_stack: VBoxContainer
 var heading_label: Label
-var clock_enabled_toggle: CheckBox
+var clock_enabled_toggle: Button
 var clock_type_row: HBoxContainer
 var clock_type_value_label: Label
 var clock_type_decrease_button: Button
@@ -393,7 +393,7 @@ func _build_interface() -> void:
 	controls_margin.name = "OSControlsMargin"
 	controls_margin.add_theme_constant_override("margin_left", 28)
 	controls_margin.add_theme_constant_override("margin_right", 24)
-	controls_margin.add_theme_constant_override("margin_top", 20)
+	controls_margin.add_theme_constant_override("margin_top", 66)
 	controls_margin.add_theme_constant_override("margin_bottom", 20)
 	controls_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -418,12 +418,15 @@ func _build_interface() -> void:
 	heading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	heading_row.add_child(heading_label)
 
-	clock_enabled_toggle = CheckBox.new()
+	clock_enabled_toggle = Button.new()
 	clock_enabled_toggle.name = "LockScreenClockEnabled"
-	clock_enabled_toggle.text = "Enable"
-	clock_enabled_toggle.custom_minimum_size = Vector2(92, 42)
+	clock_enabled_toggle.toggle_mode = true
+	clock_enabled_toggle.text = "✓  ENABLE" if bool(lock_screen_designer.call("get_display_option", "clock")) else "□  ENABLE"
+	clock_enabled_toggle.custom_minimum_size = Vector2(112, 38)
+	clock_enabled_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
 	clock_enabled_toggle.focus_mode = Control.FOCUS_NONE
 	clock_enabled_toggle.button_pressed = bool(lock_screen_designer.call("get_display_option", "clock"))
+	_style_clock_enable_toggle(clock_enabled_toggle, clock_enabled_toggle.button_pressed)
 	clock_enabled_toggle.toggled.connect(_on_clock_enabled_toggled)
 	heading_row.add_child(clock_enabled_toggle)
 
@@ -830,11 +833,23 @@ func _style_boot_display_toggle(toggle: Button, enabled: bool, label: String) ->
 	toggle.add_theme_stylebox_override("pressed", _make_panel_style(Color("#30291F"), ACCENT, 1, 9))
 	toggle.add_theme_color_override("font_color", TEXT if enabled else MUTED)
 
+func _style_clock_enable_toggle(toggle: Button, enabled: bool) -> void:
+	toggle.text = "✓  ENABLE" if enabled else "□  ENABLE"
+	var fill := Color("#30291F") if enabled else Color("#17191B")
+	var border := ACCENT if enabled else Color("#62513D")
+	toggle.add_theme_stylebox_override("normal", _make_panel_style(fill, border, 1, 8))
+	toggle.add_theme_stylebox_override("hover", _make_panel_style(Color("#40382D"), ACCENT, 1, 8))
+	toggle.add_theme_stylebox_override("pressed", _make_panel_style(Color("#30291F"), ACCENT, 1, 8))
+	toggle.add_theme_color_override("font_color", TEXT if enabled else MUTED)
+	toggle.add_theme_font_size_override("font_size", 12)
+
 func _on_clock_enabled_toggled(enabled: bool) -> void:
 	if not is_instance_valid(lock_screen_designer):
 		return
+	_style_clock_enable_toggle(clock_enabled_toggle, enabled)
 	if not bool(lock_screen_designer.call("set_display_option", "clock", enabled)):
 		clock_enabled_toggle.set_pressed_no_signal(not enabled)
+		_style_clock_enable_toggle(clock_enabled_toggle, not enabled)
 
 
 func _show_lock_screen_clock_controls() -> void:
