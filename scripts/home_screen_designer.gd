@@ -81,14 +81,23 @@ func configure_for_loading(
 	if progress_callback.is_valid():
 		progress_callback.call("Building app drawer icons", 0.0)
 	for index in range(_app_manifest.size()):
-		_drawer_grid.add_child(_make_app_tile(_app_manifest[index], 84, 22, 132, false))
+		var app_tile := _make_app_tile(_app_manifest[index], 84, 22, 132, false)
+		app_tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var app_icon := app_tile.get_child(0) as TextureRect
+		if app_icon == null or app_icon.texture == null:
+			push_error("Papirus app icon failed to load: " + str(_app_manifest[index].get("id", "unknown")))
+			return false
+		_drawer_grid.add_child(app_tile)
 		if (index + 1) % 20 == 0 or index == _app_manifest.size() - 1:
 			if progress_callback.is_valid():
 				progress_callback.call(
 					"Building app drawer icons",
 					float(index + 1) * 100.0 / maxf(float(_app_manifest.size()), 1.0)
 				)
-			await get_tree().create_timer(0.10).timeout
+			var batch_delay := 0.10
+			if index == _app_manifest.size() - 1:
+				batch_delay = 0.20
+			await get_tree().create_timer(batch_delay).timeout
 	if _app_manifest.is_empty() and progress_callback.is_valid():
 		progress_callback.call("Building app drawer icons", 100.0)
 	return _drawer_grid.get_child_count() == _app_manifest.size()
@@ -138,7 +147,10 @@ func load_manifest_for_loading(progress_callback: Callable) -> bool:
 					"Loading Papirus app catalogue",
 					float(index + 1) * 100.0 / maxf(float(total), 1.0)
 				)
-			await get_tree().process_frame
+			var batch_delay := 0.10
+			if index == total - 1:
+				batch_delay = 0.20
+			await get_tree().create_timer(batch_delay).timeout
 	if total == 0 and progress_callback.is_valid():
 		progress_callback.call("Loading Papirus app catalogue", 100.0)
 	return _app_manifest.size() == int((parsed as Dictionary).get("total", total))
@@ -231,6 +243,19 @@ func get_app_drawer_result_count() -> int:
 	if not is_instance_valid(_drawer_grid):
 		return 0
 	return _drawer_grid.get_child_count()
+
+
+func get_app_drawer_loaded_icon_count() -> int:
+	if not is_instance_valid(_drawer_grid):
+		return 0
+	var loaded_count := 0
+	for tile in _drawer_grid.get_children():
+		if tile.get_child_count() == 0:
+			continue
+		var app_icon := tile.get_child(0) as TextureRect
+		if app_icon != null and app_icon.texture != null:
+			loaded_count += 1
+	return loaded_count
 
 
 func _load_app_manifest() -> void:
