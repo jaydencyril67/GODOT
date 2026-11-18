@@ -80,6 +80,20 @@ func _run_test() -> void:
 		_fail("The dedicated Lockscreen Clock screen must be the second OS Worksite step.")
 		return
 	var clock_controls := worksite.get("content_column") as VBoxContainer
+	var clock_toggle := worksite.find_child("LockScreenClockEnabled", true, false) as CheckBox
+	if clock_toggle == null or not clock_toggle.visible or not clock_toggle.button_pressed:
+		_fail("Step 2 must show an enabled clock checkbox beside the LOCKSCREEN CLOCK hero.")
+		return
+	clock_toggle.set_pressed_no_signal(false)
+	worksite.call("_on_clock_enabled_toggled", false)
+	if lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) != null or lock_screen.find_child("DigitalClock", true, false) != null:
+		_fail("Disabling the Step 2 clock checkbox must remove the clock from the live preview.")
+		return
+	clock_toggle.set_pressed_no_signal(true)
+	worksite.call("_on_clock_enabled_toggled", true)
+	if lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) == null:
+		_fail("Enabling the Step 2 clock checkbox must restore the live clock.")
+		return
 	var type_add_button := clock_controls.find_child("ClockTypeAddButton", true, false) as Button
 	var style_button := clock_controls.find_child("ClockStyleNextButton", true, false) as Button
 	if type_add_button == null or type_add_button.text != "Analog  +":
@@ -118,13 +132,15 @@ func _run_test() -> void:
 		return
 	var lock_controls := worksite.get("content_column") as VBoxContainer
 	var option_defaults := {
-		"clock": true,
 		"notification": false,
 		"shortcut": false,
 		"details": true,
 		"widget": false,
 		"unlock": false
 	}
+	if lock_controls.find_child("LockScreenOption_clock", true, false) != null:
+		_fail("The Clock checkbox must not appear in Step 3; it belongs to Step 2.")
+		return
 	for option_name in option_defaults:
 		var option_toggle := lock_controls.find_child("LockScreenOption_" + str(option_name), true, false) as CheckBox
 		if option_toggle == null or option_toggle.button_pressed != bool(option_defaults[option_name]):
