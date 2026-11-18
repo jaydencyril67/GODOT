@@ -7,6 +7,7 @@ const PhoneCreationWorksiteScript = preload("res://scripts/phone_creation_worksi
 const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.gd")
 
 var game: Node
+var os_setup_error := ""
 
 
 func _initialize() -> void:
@@ -1082,15 +1083,32 @@ func _run_transition_checks() -> void:
 		_fail("Initial Home scene did not create its headquarters.")
 		return
 	var headquarters = game.world_root
-	await headquarters.setup_completed
-	var os_prepared := false
-	for _frame_index in range(1200):
-		if is_instance_valid(game.os_creation_worksite) and bool(game.os_creation_worksite.get("setup_complete")):
-			os_prepared = true
+	var headquarters_ready := false
+	for _frame_index in range(600):
+		if bool(headquarters.get("setup_complete")):
+			headquarters_ready = true
 			break
 		await process_frame
+	if not headquarters_ready:
+		_fail("Headquarters setup did not complete within 10 seconds.")
+		return
+	var os_prepared := false
+	for _frame_index in range(600):
+		if is_instance_valid(game.os_creation_worksite):
+			if not game.os_creation_worksite.is_connected("setup_failed", Callable(self, "_record_os_setup_error")):
+				game.os_creation_worksite.connect("setup_failed", Callable(self, "_record_os_setup_error"))
+			if bool(game.os_creation_worksite.get("setup_complete")):
+				os_prepared = true
+				break
+		if not os_setup_error.is_empty():
+			_fail("OS Creation Worksite setup failed immediately: " + os_setup_error)
+			return
+		await process_frame
+	if not os_setup_error.is_empty():
+		_fail("OS Creation Worksite setup failed immediately: " + os_setup_error)
+		return
 	if not os_prepared:
-		_fail("The OS Creation Worksite was not fully built during the headquarters loading sequence.")
+		_fail("OS Creation Worksite setup did not complete within 10 seconds.")
 		return
 	var preloaded_os_worksite = game.os_creation_worksite
 	var original_building = headquarters.building_root
@@ -2240,6 +2258,10 @@ func _wait_for_headquarters() -> bool:
 			return true
 		await process_frame
 	return false
+
+
+func _record_os_setup_error(message: String) -> void:
+	os_setup_error = message
 
 
 func _fail(message: String) -> void:

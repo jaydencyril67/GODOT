@@ -63,8 +63,10 @@ var touch_points: Dictionary = {}
 var materials: Dictionary = {}
 var facade_noise: Texture2D
 var facade_normal: Texture2D
+var setup_complete := false
 
 func _ready() -> void:
+	setup_complete = false
 	preview_level = clampi(preview_level, 1, MAX_LEVEL)
 	owned_level = clampi(owned_level, 0, MAX_LEVEL)
 
@@ -92,6 +94,7 @@ func _ready() -> void:
 	await _run_setup_stage("Preparing headquarters camera", Callable(self, "_create_camera"), [building_height])
 	await _run_setup_stage("Building headquarters interface", Callable(self, "_create_preview_interface"))
 
+	setup_complete = true
 	setup_completed.emit()
 
 
