@@ -71,6 +71,7 @@ var preview_region: Control
 var controls_scroll: ScrollContainer
 var controls_stack: VBoxContainer
 var heading_label: Label
+var clock_enabled_toggle: CheckBox
 var clock_type_expanded := false
 var clock_type_row: HBoxContainer
 var clock_style_button: Button
@@ -400,11 +401,26 @@ func _build_interface() -> void:
 	controls_stack.add_theme_constant_override("separation", 18)
 	controls_margin.add_child(controls_stack)
 
+	var heading_row := HBoxContainer.new()
+	heading_row.name = "WorksiteStepHeroRow"
+	heading_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_row.add_theme_constant_override("separation", 10)
+	controls_stack.add_child(heading_row)
+
 	heading_label = _make_label("OS SETUP", 22, Color("#D3AA6B"))
 	heading_label.name = "WorksiteStepHero"
 	heading_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	controls_stack.add_child(heading_label)
+	heading_row.add_child(heading_label)
+
+	clock_enabled_toggle = CheckBox.new()
+	clock_enabled_toggle.name = "LockScreenClockEnabled"
+	clock_enabled_toggle.text = "Enable"
+	clock_enabled_toggle.custom_minimum_size = Vector2(92, 42)
+	clock_enabled_toggle.focus_mode = Control.FOCUS_NONE
+	clock_enabled_toggle.button_pressed = bool(lock_screen_designer.call("get_display_option", "clock"))
+	clock_enabled_toggle.toggled.connect(_on_clock_enabled_toggled)
+	heading_row.add_child(clock_enabled_toggle)
 
 	content_column = VBoxContainer.new()
 	content_column.name = "OSStepControls"
@@ -640,6 +656,7 @@ func _show_step(step_index: int) -> void:
 	current_step = clampi(step_index, 0, STEP_NAMES.size() - 1)
 	heading_label.text = STEP_NAMES[current_step]
 	selection_status_label.visible = current_step not in [1, 2]
+	clock_enabled_toggle.visible = current_step == 1
 	progress_label.text = "STEP %02d / %02d" % [current_step + 1, STEP_NAMES.size()]
 	progress_bar.value = current_step + 1
 	previous_button.disabled = current_step == 0
@@ -808,6 +825,13 @@ func _style_boot_display_toggle(toggle: Button, enabled: bool, label: String) ->
 	toggle.add_theme_stylebox_override("pressed", _make_panel_style(Color("#30291F"), ACCENT, 1, 9))
 	toggle.add_theme_color_override("font_color", TEXT if enabled else MUTED)
 
+func _on_clock_enabled_toggled(enabled: bool) -> void:
+	if not is_instance_valid(lock_screen_designer):
+		return
+	if not bool(lock_screen_designer.call("set_display_option", "clock", enabled)):
+		clock_enabled_toggle.set_pressed_no_signal(not enabled)
+
+
 func _show_lock_screen_clock_controls() -> void:
 	clock_type_expanded = false
 	clock_type_row = null
@@ -928,7 +952,6 @@ func _show_lock_screen_designer_controls() -> void:
 	content_column.add_child(generate_button)
 
 	var display_options := [
-		{"option": "clock", "label": "Clock"},
 		{"option": "notification", "label": "Notification"},
 		{"option": "shortcut", "label": "Shortcut"},
 		{"option": "details", "label": "Details"},
