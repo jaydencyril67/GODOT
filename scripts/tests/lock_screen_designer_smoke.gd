@@ -173,7 +173,7 @@ func _run_test() -> void:
 	if not analog_face_renderer_found:
 		_fail("The analog clock face asset renderer was not exercised.")
 		return
-	if int(designer.call("get_generation_count")) != GENERATION_COUNT + 1:
+	if int(designer.call("get_generation_count")) != GENERATION_COUNT:
 		_fail("The designer generation counter is inconsistent.")
 		return
 	if int(designer.call("get_available_wallpaper_count")) < 50:
