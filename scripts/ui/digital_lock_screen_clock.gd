@@ -286,9 +286,9 @@ func _apply_profile_layout() -> void:
 	_date_label.visible = _show_date
 
 
-func _fit_font_size(font: Font, text_value: String, rect: Rect2, scale: float) -> int:
+func _fit_font_size(font: Font, text_value: String, rect: Rect2, relative_scale: float) -> int:
 	var available_height := maxf(18.0, size.y * rect.size.y * 0.9)
-	var font_size := maxi(18, roundi(minf(size.y * scale, available_height)))
+	var font_size := maxi(18, roundi(minf(size.y * relative_scale, available_height)))
 	var available_width := maxf(48.0, size.x * rect.size.x * 0.96)
 	while font_size > 18 and font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x > available_width:
 		font_size -= 2
