@@ -54,6 +54,29 @@ const ACCENT := Color("#C58A3A")
 const TEXT := Color("#EEE9DF")
 const MUTED := Color("#A6A096")
 
+class BootOrderDragHandle extends Control:
+	signal reorder_requested(source_index: int, target_index: int)
+	var item_index := -1
+
+	func _get_drag_data(_at_position: Vector2) -> Variant:
+		var preview := PanelContainer.new()
+		preview.custom_minimum_size = Vector2(190, 42)
+		var preview_label := Label.new()
+		preview_label.text = "MOVING BOOT ITEM"
+		preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		preview.add_child(preview_label)
+		set_drag_preview(preview)
+		return {"source_index": item_index}
+
+	func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+		return data is Dictionary and data.has("source_index") and int(data["source_index"]) != item_index
+
+	func _drop_data(_at_position: Vector2, data: Variant) -> void:
+		if _can_drop_data(_at_position, data):
+			reorder_requested.emit(int(data["source_index"]), item_index)
+
+
+var boot_display_order: Array[String] = ["logo", "phone_name", "phone_model"]
 var current_step := 0
 var root_control: Control
 var worksite_body: HBoxContainer
@@ -642,10 +665,7 @@ func _show_step(step_index: int) -> void:
 
 	match current_step:
 		0:
-			boot_logo_toggle = _add_boot_display_toggle("Show Company Logo", "logo", show_company_logo_on_boot)
-			boot_phone_name_toggle = _add_boot_display_toggle("Show Phone Name", "phone_name", show_phone_name_on_boot)
-			boot_phone_model_toggle = _add_boot_display_toggle("Show Phone Model", "phone_model", show_phone_model_on_boot)
-			_add_note("At least one boot display option must remain enabled.")
+			_show_boot_display_controls()
 		4:
 			_show_lock_screen_designer_controls()
 		5:
@@ -688,15 +708,84 @@ func _update_status_bar_style_button(style_button: Button) -> void:
 	style_button.add_theme_stylebox_override("normal", _make_panel_style(Color("#30291F") if selected else PANEL, ACCENT if selected else Color("#6E5B42"), 1, 9))
 	style_button.add_theme_color_override("font_color", TEXT if selected else MUTED)
 
-func _add_boot_display_toggle(label: String, option: String, initially_enabled: bool) -> Button:
+func _show_boot_display_controls() -> void:
+	_add_note("BOOT DISPLAY ORDER")
+	_add_note("Drag the grip handle to change the sequence. Switch each item ON or OFF independently.")
+	var labels := {
+		"logo": "Show Company Logo",
+		"phone_name": "Show Phone Name",
+		"phone_model": "Show Phone Model"
+	}
+	for index in range(boot_display_order.size()):
+		var option := boot_display_order[index]
+		var row := HBoxContainer.new()
+		row.name = "BootOrderRow_" + option
+		row.add_theme_constant_override("separation", 8)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		content_column.add_child(row)
+
+		var position_label := _make_label("%02d" % (index + 1), 12, MUTED)
+		position_label.custom_minimum_size = Vector2(24, 0)
+		position_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(position_label)
+
+		var drag_handle := BootOrderDragHandle.new()
+		drag_handle.name = "BootOrderDragHandle_" + option
+		drag_handle.item_index = index
+		drag_handle.custom_minimum_size = Vector2(38, 54)
+		drag_handle.tooltip_text = "Drag to change boot order"
+		drag_handle.mouse_filter = Control.MOUSE_FILTER_STOP
+		drag_handle.reorder_requested.connect(_on_boot_order_drop)
+		var grip_label := _make_label("☰", 22, Color("#D3AA6B"))
+		grip_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		grip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		grip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		grip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		drag_handle.add_child(grip_label)
+		row.add_child(drag_handle)
+
+		var enabled := _is_boot_display_enabled(option)
+		var toggle := _add_boot_display_toggle(str(labels[option]), option, enabled, row)
+		match option:
+			"logo":
+				boot_logo_toggle = toggle
+			"phone_name":
+				boot_phone_name_toggle = toggle
+			"phone_model":
+				boot_phone_model_toggle = toggle
+
+func _is_boot_display_enabled(option: String) -> bool:
+	match option:
+		"logo":
+			return show_company_logo_on_boot
+		"phone_name":
+			return show_phone_name_on_boot
+		"phone_model":
+			return show_phone_model_on_boot
+	return false
+
+func _on_boot_order_drop(source_index: int, target_index: int) -> void:
+	if source_index < 0 or source_index >= boot_display_order.size():
+		return
+	if target_index < 0 or target_index >= boot_display_order.size() or source_index == target_index:
+		return
+	var moved_option := boot_display_order.pop_at(source_index)
+	boot_display_order.insert(target_index, moved_option)
+	_show_step(0)
+
+func _add_boot_display_toggle(label: String, option: String, initially_enabled: bool, parent: Container = null) -> Button:
 	var toggle := _make_button("")
 	toggle.toggle_mode = true
 	toggle.button_pressed = initially_enabled
 	toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	toggle.custom_minimum_size.y = 54
+	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	toggle.add_theme_font_size_override("font_size", 14)
 	toggle.toggled.connect(_on_boot_display_toggled.bind(option, toggle, label))
-	content_column.add_child(toggle)
+	if parent == null:
+		content_column.add_child(toggle)
+	else:
+		parent.add_child(toggle)
 	_style_boot_display_toggle(toggle, initially_enabled, label)
 	return toggle
 
@@ -905,26 +994,26 @@ func get_boot_sequence_duration_seconds() -> float:
 
 func _get_boot_presentation_plan() -> Array[Dictionary]:
 	var plan: Array[Dictionary] = []
-	var show_device_text := show_phone_name_on_boot or show_phone_model_on_boot
-	if show_company_logo_on_boot and show_device_text:
-		plan.append({"kind": "logo", "duration": 5.0})
-		plan.append({"kind": "device", "duration": 5.0})
-	elif show_company_logo_on_boot:
-		plan.append({"kind": "logo", "duration": 10.0})
-	else:
-		plan.append({"kind": "device", "duration": 10.0})
+	var enabled_options: Array[String] = []
+	for option in boot_display_order:
+		if _is_boot_display_enabled(option):
+			enabled_options.append(option)
+	if enabled_options.is_empty():
+		return plan
+
+	var stage_duration := get_boot_sequence_duration_seconds() / float(enabled_options.size())
+	for option in enabled_options:
+		plan.append({"kind": option, "duration": stage_duration})
 	return plan
 
 func _show_phone_boot_sequence(sequence_id: int, duration_scale: float = 1.0) -> void:
 	for stage in _get_boot_presentation_plan():
 		if not _is_boot_sequence_active(sequence_id):
 			return
-		var stage_kind := str(stage.get("kind", "device"))
+		var stage_kind := str(stage.get("kind", "logo"))
 		company_logo_preview.visible = stage_kind == "logo"
-		phone_name_label.visible = stage_kind == "device" and show_phone_name_on_boot
-		phone_model_label.visible = stage_kind == "device" and show_phone_model_on_boot
-		if stage_kind == "device" and not show_phone_name_on_boot and not show_phone_model_on_boot:
-			phone_name_label.visible = true
+		phone_name_label.visible = stage_kind == "phone_name"
+		phone_model_label.visible = stage_kind == "phone_model"
 		await get_tree().create_timer(float(stage.get("duration", 10.0)) * duration_scale, true, false, true).timeout
 		if not _is_boot_sequence_active(sequence_id):
 			return
