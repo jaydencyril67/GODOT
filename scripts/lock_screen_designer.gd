@@ -125,6 +125,12 @@ var _last_design: Dictionary = {}
 var _generation_count := 0
 var _layout_queue: Array = []
 var _wallpaper_paths: Array[String] = []
+var _selected_wallpaper_path := ""
+var _show_notifications := false
+var _show_media_player := false
+var _show_fingerprint := false
+var _show_flashlight_shortcut := false
+var _show_camera_shortcut := false
 var _wallpaper_bag: Array[String] = []
 var _recent_wallpaper_paths: Array[String] = []
 var _pin_entry_layer: Control
@@ -175,6 +181,69 @@ func get_generation_count() -> int:
 
 func get_available_wallpaper_count() -> int:
 	return _wallpaper_paths.size()
+
+
+func get_wallpaper_paths() -> Array[String]:
+	return _wallpaper_paths.duplicate()
+
+
+func get_selected_wallpaper_path() -> String:
+	return _selected_wallpaper_path
+
+
+func set_wallpaper(path: String) -> bool:
+	if not _wallpaper_paths.has(path) or not FileAccess.file_exists(path):
+		return false
+	_selected_wallpaper_path = path
+	if _last_design.is_empty():
+		return true
+	_last_design["wallpaper_path"] = path
+	_last_design["wallpaper_index"] = _wallpaper_number(path)
+	_last_design["signature"] = _make_signature(_last_design)
+	_render_design(_last_design)
+	return true
+
+
+func get_display_option(option: String) -> bool:
+	match option:
+		"notifications":
+			return _show_notifications
+		"music_player":
+			return _show_media_player
+		"flashlight":
+			return _show_flashlight_shortcut
+		"camera":
+			return _show_camera_shortcut
+		"fingerprint":
+			return _show_fingerprint
+	return false
+
+
+func set_display_option(option: String, enabled: bool) -> bool:
+	if _last_design.is_empty():
+		return false
+	var design_key := ""
+	match option:
+		"notifications":
+			_show_notifications = enabled
+			design_key = "show_notifications"
+		"music_player":
+			_show_media_player = enabled
+			design_key = "show_media_player"
+		"flashlight":
+			_show_flashlight_shortcut = enabled
+			design_key = "show_flashlight_shortcut"
+		"camera":
+			_show_camera_shortcut = enabled
+			design_key = "show_camera_shortcut"
+		"fingerprint":
+			_show_fingerprint = enabled
+			design_key = "show_fingerprint"
+		_:
+			return false
+	_last_design[design_key] = enabled
+	_render_design(_last_design)
+	return true
 
 
 func get_blueprint_count() -> int:
@@ -247,7 +316,9 @@ func _compose_design() -> Dictionary:
 	var palette: Dictionary = PALETTES[_rng.randi_range(0, PALETTES.size() - 1)]
 	var components: Array[Dictionary] = []
 	var occupied: Array[Rect2] = []
-	var wallpaper_path := _next_wallpaper_path()
+	if _selected_wallpaper_path.is_empty():
+		_selected_wallpaper_path = _next_wallpaper_path()
+	var wallpaper_path := _selected_wallpaper_path
 	if wallpaper_path.is_empty():
 		return {}
 
@@ -293,8 +364,6 @@ func _compose_design() -> Dictionary:
 			continue
 
 		if str(slot["type"]) == "notification":
-			if _rng.randf() < 0.12:
-				continue
 			var notification_data: Dictionary = NOTIFICATION_PRESETS[_rng.randi_range(0, NOTIFICATION_PRESETS.size() - 1)].duplicate(true)
 			notification_data["rect"] = slot_rect
 			notification_data["timestamp"] = ["NOW", "1 MIN AGO", "2 MIN AGO", "5 MIN AGO"][_rng.randi_range(0, 3)]
@@ -307,14 +376,12 @@ func _compose_design() -> Dictionary:
 			media["playing"] = _rng.randf() > 0.18
 			_add_component(components, occupied, "media", slot_rect)
 
-	var show_fingerprint := bool(blueprint.get("fingerprint", false)) and _rng.randf() > 0.18
-	if show_fingerprint:
-		var fingerprint_rect := Rect2(
-			Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.785, 0.795)),
-			Vector2(_rng.randf_range(0.22, 0.31), 0.07)
-		)
-		# Fingerprint prompts occupy their own lower safe zone, below all content slots.
-		_add_component(components, occupied, "fingerprint", fingerprint_rect)
+	var fingerprint_rect := Rect2(
+		Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.785, 0.795)),
+		Vector2(_rng.randf_range(0.22, 0.31), 0.07)
+	)
+	# Fingerprint occupies its own safe zone, but remains disabled until selected.
+	_add_component(components, occupied, "fingerprint", fingerprint_rect)
 
 	var shortcut_y := _rng.randf_range(0.90, 0.91)
 	var shortcut_size := Vector2(_rng.randf_range(0.12, 0.135), _rng.randf_range(0.060, 0.068))
@@ -356,7 +423,11 @@ func _compose_design() -> Dictionary:
 		"date_letter_spacing": _rng.randi_range(1, 3),
 		"notifications": notifications,
 		"media": media,
-		"show_fingerprint": show_fingerprint,
+		"show_notifications": _show_notifications,
+		"show_media_player": _show_media_player,
+		"show_fingerprint": _show_fingerprint,
+		"show_flashlight_shortcut": _show_flashlight_shortcut,
+		"show_camera_shortcut": _show_camera_shortcut,
 		"shortcuts": [
 			{"kind": "flashlight", "rect": flashlight_rect},
 			{"kind": "camera", "rect": camera_rect}
@@ -452,11 +523,12 @@ func _render_design(design: Dictionary) -> void:
 		_add_glow(glow, palette["glow"])
 	_add_status_bar(design, palette)
 	_add_clock(design, palette)
-	for index in range(design["notifications"].size()):
-		_add_notification(design["notifications"][index], palette)
-	if not design["media"].is_empty():
+	if bool(design.get("show_notifications", false)):
+		for index in range(design["notifications"].size()):
+			_add_notification(design["notifications"][index], palette)
+	if bool(design.get("show_media_player", false)) and not design["media"].is_empty():
 		_add_media_player(design["media"], palette)
-	if bool(design["show_fingerprint"]):
+	if bool(design.get("show_fingerprint", false)):
 		_add_fingerprint(design, palette)
 	_add_shortcuts(design, palette)
 
@@ -815,6 +887,10 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 	for shortcut in design["shortcuts"]:
 		var kind := str(shortcut["kind"])
+		if kind == "flashlight" and not bool(design.get("show_flashlight_shortcut", false)):
+			continue
+		if kind == "camera" and not bool(design.get("show_camera_shortcut", false)):
+			continue
 		var button: Control = LockScreenShortcutScene.instantiate() as Control
 		button.name = "Bottom" + kind.capitalize() + "Shortcut"
 		_set_normalized_rect(button, shortcut["rect"])
