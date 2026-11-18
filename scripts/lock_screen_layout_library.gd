@@ -12,7 +12,8 @@ const BLUEPRINTS := [
 		"alignments": ["center"],
 		"clock_formats": ["single", "spaced"],
 		"content_slots": [
-			{"type": "notification", "rect": Rect2(0.075, 0.555, 0.85, 0.095)}
+			{"type": "notification", "rect": Rect2(0.075, 0.46, 0.85, 0.085)},
+			{"type": "media", "rect": Rect2(0.075, 0.57, 0.85, 0.15)}
 		],
 		"fingerprint": true
 	},
@@ -40,7 +41,8 @@ const BLUEPRINTS := [
 		"clock_formats": ["single"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.085)},
-			{"type": "notification", "rect": Rect2(0.075, 0.535, 0.85, 0.085)}
+			{"type": "notification", "rect": Rect2(0.075, 0.535, 0.85, 0.085)},
+			{"type": "media", "rect": Rect2(0.075, 0.64, 0.85, 0.12)}
 		],
 		"fingerprint": true
 	},
@@ -53,6 +55,7 @@ const BLUEPRINTS := [
 		"alignments": ["center"],
 		"clock_formats": ["split", "single"],
 		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.425, 0.85, 0.08)},
 			{"type": "media", "rect": Rect2(0.075, 0.535, 0.85, 0.185)}
 		],
 		"fingerprint": true
@@ -66,7 +69,8 @@ const BLUEPRINTS := [
 		"alignments": ["center"],
 		"clock_formats": ["single"],
 		"content_slots": [
-			{"type": "notification", "rect": Rect2(0.075, 0.555, 0.85, 0.095)}
+			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
+			{"type": "media", "rect": Rect2(0.075, 0.555, 0.85, 0.17)}
 		],
 		"fingerprint": true
 	},
@@ -79,7 +83,8 @@ const BLUEPRINTS := [
 		"alignments": ["left"],
 		"clock_formats": ["single", "spaced"],
 		"content_slots": [
-			{"type": "notification", "rect": Rect2(0.075, 0.545, 0.85, 0.095)}
+			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
+			{"type": "media", "rect": Rect2(0.075, 0.555, 0.85, 0.17)}
 		],
 		"fingerprint": true
 	},
@@ -92,6 +97,7 @@ const BLUEPRINTS := [
 		"alignments": ["center"],
 		"clock_formats": ["split"],
 		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
 			{"type": "media", "rect": Rect2(0.075, 0.55, 0.85, 0.17)}
 		],
 		"fingerprint": true
@@ -107,7 +113,7 @@ const BLUEPRINTS := [
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.395, 0.85, 0.082)},
 			{"type": "notification", "rect": Rect2(0.075, 0.49, 0.85, 0.082)},
-			{"type": "notification", "rect": Rect2(0.075, 0.585, 0.85, 0.082)}
+			{"type": "media", "rect": Rect2(0.075, 0.60, 0.85, 0.15)}
 		],
 		"fingerprint": true
 	},
@@ -120,6 +126,7 @@ const BLUEPRINTS := [
 		"alignments": ["center", "right"],
 		"clock_formats": ["single", "split"],
 		"content_slots": [
+			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
 			{"type": "media", "rect": Rect2(0.075, 0.565, 0.85, 0.155)}
 		],
 		"fingerprint": true
