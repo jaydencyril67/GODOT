@@ -92,7 +92,6 @@ func _ready() -> void:
 	await _run_setup_stage("Preparing headquarters camera", Callable(self, "_create_camera"), [building_height])
 	await _run_setup_stage("Building headquarters interface", Callable(self, "_create_preview_interface"))
 
-	setup_progress.emit("Headquarters ready", 100.0)
 	setup_completed.emit()
 
 

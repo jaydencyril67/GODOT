@@ -159,8 +159,6 @@ func _initialize_worksite() -> void:
 		return
 
 	_update_phone_preview_mode()
-	_emit_setup_progress("Finalizing OS Creation Worksite", 100.0)
-	await get_tree().process_frame
 	setup_complete = true
 	setup_completed.emit()
 
@@ -481,7 +479,7 @@ func _build_interface() -> void:
 	preview_region.resized.connect(_apply_responsive_layout)
 	call_deferred("_apply_responsive_layout")
 	_emit_setup_progress("Building OS worksite controls and navigation", 100.0)
-	await get_tree().process_frame
+	await get_tree().create_timer(0.18).timeout
 
 func _apply_responsive_layout() -> void:
 	if not is_instance_valid(phone_frame) or not is_instance_valid(preview_region):

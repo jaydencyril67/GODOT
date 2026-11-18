@@ -2092,10 +2092,9 @@ func _finish_headquarters_loading() -> void:
 		return
 	headquarters_loading_finish_started = true
 
-	# This callback is connected to the headquarters' setup_completed signal.
-	# That signal is emitted by the actual builder only after construction,
-	# camera setup, and the final setup frame are complete. The progress bar
-	# is visual feedback only and must never delay or trigger this handoff.
+	# This callback is connected to the OS Worksite's setup_completed signal.
+	# It fires only after the headquarters, handset, lock screen, homepage,
+	# asset indexes and complete 200-icon drawer are ready to reveal together.
 	if not is_instance_valid(world_root):
 		headquarters_loading_finish_started = false
 		return
