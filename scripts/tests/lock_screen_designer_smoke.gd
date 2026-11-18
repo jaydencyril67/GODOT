@@ -46,9 +46,15 @@ func _run_test() -> void:
 	root.add_child(designer)
 	await process_frame
 
+	for option in ["notifications", "music_player", "flashlight", "camera", "fingerprint"]:
+		if bool(designer.call("get_display_option", option)):
+			_fail("Optional lock-screen element was enabled by default: " + option)
+			return
+
 	var signatures: Dictionary = {}
 	var layout_ids: Dictionary = {}
 	var wallpaper_paths: Dictionary = {}
+	var original_wallpaper_path := ""
 	var clock_styles: Dictionary = {}
 	var analog_face_renderer_found := false
 	var media_count := 0
@@ -85,6 +91,11 @@ func _run_test() -> void:
 		var wallpaper_path := str(design.get("wallpaper_path", ""))
 		if not wallpaper_path.begins_with("res://assets/wallpapers/") or not FileAccess.file_exists(wallpaper_path):
 			_fail("A generated design selected a missing or unsupported wallpaper asset.")
+			return
+		if generation_index == 0:
+			original_wallpaper_path = wallpaper_path
+		elif wallpaper_path != original_wallpaper_path:
+			_fail("Regenerating the lock-screen layout unexpectedly changed the selected wallpaper.")
 			return
 		wallpaper_paths[wallpaper_path] = true
 
@@ -147,8 +158,8 @@ func _run_test() -> void:
 				missing_layouts.append(expected_id)
 		_fail("The designer did not exercise every curated layout foundation. Missing: %s. Seen: %s" % [", ".join(missing_layouts), ", ".join(layout_ids.keys())])
 		return
-	if wallpaper_paths.size() < 50:
-		_fail("The designer did not rotate through enough distinct bundled wallpapers.")
+	if wallpaper_paths.size() != 1:
+		_fail("Layout generation should retain one selected wallpaper until the Wallpapers step changes it.")
 		return
 	if media_count < 5:
 		_fail("The designer did not generate enough media-player compositions.")
@@ -162,7 +173,7 @@ func _run_test() -> void:
 	if not analog_face_renderer_found:
 		_fail("The analog clock face asset renderer was not exercised.")
 		return
-	if int(designer.call("get_generation_count")) != GENERATION_COUNT:
+	if int(designer.call("get_generation_count")) != GENERATION_COUNT + 1:
 		_fail("The designer generation counter is inconsistent.")
 		return
 	if int(designer.call("get_available_wallpaper_count")) < 50:
@@ -173,37 +184,73 @@ func _run_test() -> void:
 	if wallpaper_node == null or wallpaper_node.texture == null:
 		_fail("The generated lock screen is not rendering a real bundled wallpaper texture.")
 		return
-	if designer.find_child("BottomFlashlightShortcut", true, false) == null:
-		_fail("The generated lock screen is missing the flashlight shortcut preview.")
-		return
-	if designer.find_child("BottomCameraShortcut", true, false) == null:
-		_fail("The generated lock screen is missing the camera shortcut preview.")
+	if designer.find_child("BottomFlashlightShortcut", true, false) != null or designer.find_child("BottomCameraShortcut", true, false) != null:
+		_fail("Flashlight and camera shortcuts must both be hidden by default.")
 		return
 
-	# Force the preview through a media-capable composition and a notification
-	# composition so their actual scene renderers are tested as well as metadata.
-	var media_renderer_found := false
-	var notification_renderer_found := false
-	for _probe in range(30):
-		var latest: Dictionary = designer.call("get_last_design")
-		if not latest.get("media", {}).is_empty():
-			var media_surface := designer.find_child("GeneratedMediaPlayerSurface", true, false) as TextureRect
-			var media_controls := designer.find_child("GeneratedMediaControls", true, false) as HBoxContainer
-			media_renderer_found = designer.find_child("GeneratedLockScreenMediaPlayer", true, false) != null and media_surface != null and media_surface.texture != null and media_controls != null
-		if not latest.get("notifications", []).is_empty():
-			var notification_surface := designer.find_child("GeneratedNotificationSurface", true, false) as TextureRect
-			var category_icon := designer.find_child("NotificationCategoryIcon", true, false) as TextureRect
-			notification_renderer_found = designer.find_child("GeneratedNotification", true, false) != null and notification_surface != null and notification_surface.texture != null and category_icon != null and category_icon.texture != null
-		if media_renderer_found and notification_renderer_found:
-			break
-		designer.call("generate_new_design")
+	# Enable each optional element independently and exercise its real renderer.
+	for option in ["notifications", "music_player", "flashlight", "camera", "fingerprint"]:
+		if not bool(designer.call("set_display_option", option, true)):
+			_fail("The lock-screen rejected an optional display setting: " + option)
+			return
 
-	if not media_renderer_found:
-		_fail("The lock-screen media-player scene renderer was not exercised.")
+	var media_surface := designer.find_child("GeneratedMediaPlayerSurface", true, false) as TextureRect
+	var media_controls := designer.find_child("GeneratedMediaControls", true, false) as HBoxContainer
+	var notification_surface := designer.find_child("GeneratedNotificationSurface", true, false) as TextureRect
+	var category_icon := designer.find_child("NotificationCategoryIcon", true, false) as TextureRect
+	if designer.find_child("GeneratedLockScreenMediaPlayer", true, false) == null or media_surface == null or media_surface.texture == null or media_controls == null:
+		_fail("The media-player scene renderer did not appear when enabled.")
 		return
-	if not notification_renderer_found:
-		_fail("The lock-screen notification scene renderer was not exercised.")
+	if designer.find_child("GeneratedNotification", true, false) == null or notification_surface == null or notification_surface.texture == null or category_icon == null or category_icon.texture == null:
+		_fail("The notification scene renderer did not appear when enabled.")
 		return
+	if designer.find_child("GeneratedLockScreenFingerprint", true, false) == null:
+		_fail("The fingerprint component did not appear when enabled.")
+		return
+	if designer.find_child("BottomFlashlightShortcut", true, false) == null or designer.find_child("BottomCameraShortcut", true, false) == null:
+		_fail("Both bottom shortcuts should appear after their independent settings are enabled.")
+		return
+	if designer.find_child("GeneratedCameraGlyph", true, false) == null:
+		_fail("The camera shortcut is missing its composed camera glyph.")
+		return
+
+	if not bool(designer.call("set_display_option", "notifications", false)):
+		_fail("The notification setting could not be switched off.")
+		return
+	if designer.find_child("GeneratedNotification", true, false) != null or designer.find_child("GeneratedLockScreenMediaPlayer", true, false) == null:
+		_fail("Disabling notifications must not disable the independent media player.")
+		return
+	if not bool(designer.call("set_display_option", "notifications", true)):
+		_fail("The notification setting could not be switched on again.")
+		return
+	if not bool(designer.call("set_display_option", "flashlight", false)):
+		_fail("The flashlight shortcut could not be switched off.")
+		return
+	if designer.find_child("BottomFlashlightShortcut", true, false) != null or designer.find_child("BottomCameraShortcut", true, false) == null:
+		_fail("Disabling flashlight must leave the camera shortcut enabled.")
+		return
+	if not bool(designer.call("set_display_option", "flashlight", true)):
+		_fail("The flashlight shortcut could not be switched on again.")
+		return
+
+	var wallpapers: Array = designer.call("get_wallpaper_paths")
+	var chosen_wallpaper := original_wallpaper_path
+	if wallpapers.size() > 1:
+		for path_value in wallpapers:
+			if str(path_value) != original_wallpaper_path:
+				chosen_wallpaper = str(path_value)
+				break
+	if not bool(designer.call("set_wallpaper", chosen_wallpaper)):
+		_fail("The independent wallpaper selector rejected a bundled wallpaper.")
+		return
+	var generated_again: Dictionary = designer.call("generate_new_design")
+	if str(generated_again.get("wallpaper_path", "")) != chosen_wallpaper:
+		_fail("Layout regeneration replaced the wallpaper selected independently.")
+		return
+	for option in ["notifications", "music_player", "flashlight", "camera", "fingerprint"]:
+		if not bool(designer.call("get_display_option", option)):
+			_fail("Regeneration discarded the user's lock-screen element preference: " + option)
+			return
 	if designer.find_child("GeneratedCameraGlyph", true, false) == null:
 		_fail("The camera shortcut is missing its composed camera glyph.")
 		return
