@@ -13,15 +13,18 @@ const STYLE_GROUPS := [
 		"minutes_rect": Rect2(),
 		"date_rect": Rect2(0.075, 0.178, 0.85, 0.026),
 		"font_names": ["Roboto"],
+		"font_families": ["sans-serif", "sans-serif-light", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif", "sans-serif", "sans-serif"],
 		"date_format": "samsung",
 		"color_mode": "text",
 		"names": ["One UI Classic", "One UI Light", "One UI Medium", "One UI Bold", "One UI Compact", "One UI Wide", "One UI Left", "One UI Right"],
-		"font_scales": [0.132, 0.132, 0.136, 0.136, 0.122, 0.134, 0.132, 0.132],
-		"font_weights": [400, 300, 500, 650, 400, 500, 400, 400],
+		"font_scales": [0.108, 0.104, 0.11, 0.112, 0.103, 0.109, 0.108, 0.108],
+		"font_weights": [400, 300, 600, 850, 500, 750, 600, 700],
+		"font_italics": [false, false, false, false, false, false, true, false],
+		"time_letter_spacings": [0, 0, 0, 0, 0, 1, 0, -1],
 		"font_stretches": [100, 96, 100, 100, 92, 112, 100, 100],
 		"alignments": ["center", "center", "center", "center", "center", "center", "left", "right"],
 		"font_alphas": [1.0, 0.96, 1.0, 1.0, 0.96, 1.0, 1.0, 1.0],
-		"date_scales": [0.026, 0.026, 0.026, 0.026, 0.024, 0.026, 0.026, 0.026]
+		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.02, 0.021, 0.021, 0.021]
 	},
 	{
 		"source": "SAMSUNG GALAXY S26 · ONE UI",
@@ -34,12 +37,14 @@ const STYLE_GROUPS := [
 		"date_format": "samsung",
 		"color_mode": "text",
 		"names": ["One UI Stack", "One UI Stack Light", "One UI Stack Medium", "One UI Stack Bold", "One UI Stack Narrow", "One UI Stack Wide", "One UI Stretch", "One UI Stack Large"],
-		"font_scales": [0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.16, 0.165],
-		"font_weights": [400, 300, 500, 650, 400, 400, 400, 500],
+		"font_scales": [0.118, 0.112, 0.118, 0.12, 0.112, 0.118, 0.12, 0.124],
+		"font_weights": [400, 300, 600, 850, 500, 700, 600, 700],
+		"font_italics": [false, false, false, false, false, false, true, false],
+		"time_letter_spacings": [0, 0, 0, 0, 0, 1, 0, -1],
 		"font_stretches": [100, 100, 100, 100, 88, 112, 112, 100],
 		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center"],
 		"font_alphas": [1.0, 0.96, 1.0, 1.0, 1.0, 1.0, 0.98, 1.0],
-		"date_scales": [0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.027]
+		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.022]
 	},
 	{
 		"source": "APPLE IPHONE 16 PRO MAX · IOS",
@@ -48,16 +53,19 @@ const STYLE_GROUPS := [
 		"hours_rect": Rect2(),
 		"minutes_rect": Rect2(),
 		"date_rect": Rect2(0.055, 0.19, 0.89, 0.026),
-		"font_names": ["SF Pro Display", "Helvetica Neue", "Roboto"],
+		"font_names": ["Roboto"],
+		"font_families": ["sans-serif", "sans-serif-light", "sans-serif", "sans-serif-medium", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif"],
 		"date_format": "apple",
 		"color_mode": "white",
 		"names": ["iOS Classic", "iOS Ultralight", "iOS Light", "iOS Regular", "iOS Medium", "iOS Semibold", "iOS Wide", "iOS Tall"],
-		"font_scales": [0.172, 0.172, 0.172, 0.172, 0.172, 0.172, 0.172, 0.18],
-		"font_weights": [400, 200, 300, 400, 500, 600, 400, 400],
+		"font_scales": [0.132, 0.126, 0.13, 0.132, 0.132, 0.134, 0.132, 0.138],
+		"font_weights": [400, 200, 300, 500, 600, 750, 500, 600],
+		"font_italics": [false, false, false, false, false, false, false, true],
+		"time_letter_spacings": [0, 0, 0, 0, 0, 0, 1, 0],
 		"font_stretches": [100, 100, 100, 100, 100, 100, 112, 100],
 		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center"],
 		"font_alphas": [1.0, 0.94, 0.96, 1.0, 1.0, 1.0, 1.0, 1.0],
-		"date_scales": [0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.026]
+		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021]
 	},
 	{
 		"source": "APPLE IPHONE 17 PRO MAX · IOS",
@@ -66,16 +74,19 @@ const STYLE_GROUPS := [
 		"hours_rect": Rect2(),
 		"minutes_rect": Rect2(),
 		"date_rect": Rect2(0.055, 0.178, 0.89, 0.026),
-		"font_names": ["SF Pro Display", "Helvetica Neue", "Roboto"],
+		"font_names": ["Roboto"],
+		"font_families": ["sans-serif", "sans-serif-light", "sans-serif", "sans-serif-medium", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif"],
 		"date_format": "apple",
 		"color_mode": "white",
 		"names": ["iOS 26 Clear", "iOS 26 Soft", "iOS 26 Translucent", "iOS 26 Light", "iOS 26 Medium", "iOS 26 Bold", "iOS 26 Tall", "iOS 26 Extended"],
-		"font_scales": [0.18, 0.18, 0.18, 0.18, 0.18, 0.18, 0.19, 0.18],
-		"font_weights": [400, 350, 300, 300, 500, 650, 400, 400],
+		"font_scales": [0.138, 0.132, 0.128, 0.13, 0.134, 0.138, 0.142, 0.138],
+		"font_weights": [400, 350, 300, 400, 600, 850, 500, 600],
+		"font_italics": [false, false, false, false, false, false, false, true],
+		"time_letter_spacings": [0, 0, 0, 0, 0, 0, 1, 0],
 		"font_stretches": [100, 100, 100, 96, 100, 100, 108, 118],
 		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center"],
 		"font_alphas": [1.0, 0.9, 0.76, 0.94, 1.0, 1.0, 0.92, 0.96],
-		"date_scales": [0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.026]
+		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021]
 	},
 	{
 		"source": "GOOGLE PIXEL · ANDROID 16",
@@ -85,16 +96,19 @@ const STYLE_GROUPS := [
 		"hours_rect": Rect2(0.09, 0.145, 0.82, 0.108),
 		"minutes_rect": Rect2(0.09, 0.253, 0.82, 0.108),
 		"date_rect": Rect2(0.09, 0.365, 0.82, 0.026),
-		"font_names": ["Roboto", "Google Sans"],
+		"font_names": ["Roboto"],
+		"font_families": ["sans-serif", "sans-serif-light", "sans-serif-medium", "sans-serif-black", "sans-serif-condensed", "sans-serif", "sans-serif", "sans-serif-condensed", "sans-serif-condensed"],
 		"date_format": "pixel",
 		"color_mode": "accent",
 		"names": ["Material Stack", "Material Stack Light", "Material Stack Medium", "Material Stack Bold", "Material Stack Narrow", "Material Stack Wide", "Material Single", "Material Single Wide", "Material Single Compact"],
-		"font_scales": [0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.145, 0.145, 0.132],
-		"font_weights": [400, 300, 500, 650, 400, 400, 400, 400, 400],
+		"font_scales": [0.118, 0.112, 0.12, 0.122, 0.112, 0.118, 0.114, 0.116, 0.108],
+		"font_weights": [400, 300, 600, 850, 500, 700, 500, 600, 400],
+		"font_italics": [false, false, false, false, false, false, false, true, false],
+		"time_letter_spacings": [0, 0, 0, 0, 0, 1, 0, 1, -1],
 		"font_stretches": [100, 100, 100, 100, 88, 112, 100, 115, 90],
 		"alignments": ["center", "center", "center", "center", "center", "center", "center", "center", "center"],
 		"font_alphas": [1.0, 0.96, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-		"date_scales": [0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.026, 0.024]
+		"date_scales": [0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.021, 0.02]
 	}
 ]
 
@@ -173,7 +187,10 @@ func _build_style_profiles() -> Array[Dictionary]:
 				profile["layout"] = str(layouts[variant_index % layouts.size()])
 			profile.erase("layouts")
 			profile["name"] = str(names[variant_index])
-			profile["font_scale"] = _variant_value(group.get("font_scales", []), variant_index, 0.14)
+			profile["font_scale"] = _variant_value(group.get("font_scales", []), variant_index, 0.12)
+			profile["font_names"] = [str(_variant_value(group.get("font_families", []), variant_index, "sans-serif")), "Roboto"]
+			profile["font_italic"] = bool(_variant_value(group.get("font_italics", []), variant_index, false))
+			profile["time_letter_spacing"] = int(_variant_value(group.get("time_letter_spacings", []), variant_index, 0))
 			profile["font_weight"] = _variant_value(group.get("font_weights", []), variant_index, 400)
 			profile["font_stretch"] = _variant_value(group.get("font_stretches", []), variant_index, 100)
 			profile["alignment"] = str(_variant_value(group.get("alignments", []), variant_index, "center"))
@@ -279,9 +296,9 @@ func _apply_profile_layout() -> void:
 	var single_font_size := _fit_font_size(font, _current_time, single_rect, float(profile.get("font_scale", 0.14)))
 	var stacked_font_size := _fit_font_size(font, "88", hours_rect, float(profile.get("font_scale", 0.14)))
 	var date_font_size := maxi(11, roundi(minf(size.y * float(profile.get("date_font_scale", 0.026)), size.y * date_rect.size.y * 0.9)))
-	_apply_label_style(_single_time_label, font, single_font_size, time_color, alignment, 0)
-	_apply_label_style(_hours_label, font, stacked_font_size, time_color, alignment, 0)
-	_apply_label_style(_minutes_label, font, stacked_font_size, time_color, alignment, 0)
+	_apply_label_style(_single_time_label, font, single_font_size, time_color, alignment, int(profile.get("time_letter_spacing", 0)))
+	_apply_label_style(_hours_label, font, stacked_font_size, time_color, alignment, int(profile.get("time_letter_spacing", 0)))
+	_apply_label_style(_minutes_label, font, stacked_font_size, time_color, alignment, int(profile.get("time_letter_spacing", 0)))
 	_apply_label_style(_date_label, font, date_font_size, date_color, alignment, int(profile.get("date_letter_spacing", 0)))
 	_date_label.visible = _show_date
 
@@ -301,13 +318,15 @@ func _get_profile_font(profile: Dictionary) -> Font:
 		names.append(str(value))
 	var weight := int(profile.get("font_weight", 400))
 	var stretch := int(profile.get("font_stretch", 100))
-	var key := "%s|%d|%d" % [",".join(names), weight, stretch]
+	var italic := bool(profile.get("font_italic", false))
+	var key := "%s|%d|%d|%s" % [",".join(names), weight, stretch, str(italic)]
 	if _font_cache.has(key):
 		return _font_cache[key] as Font
 	var font := SystemFont.new()
 	font.font_names = names
 	font.font_weight = weight
 	font.font_stretch = stretch
+	font.font_italic = italic
 	_font_cache[key] = font
 	return font
 
