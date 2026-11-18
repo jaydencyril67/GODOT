@@ -37,7 +37,6 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 	date_label.horizontal_alignment = _alignment_from_name(str(design.get("clock_align", "center")))
 	date_label.add_theme_constant_override("letter_spacing", int(design.get("date_letter_spacing", 1)))
 	_set_normalized_rect(date_label, _find_component_rect(design, "date"))
-	analog_clock.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	digital_clock.visible = _clock_style != "analog"
 	analog_clock.visible = _clock_style == "analog"
 	if _clock_style == "analog":
