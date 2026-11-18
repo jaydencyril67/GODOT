@@ -131,7 +131,12 @@ func _run_test() -> void:
 
 	var expected_blueprints: Array = LayoutLibrary.get_blueprints()
 	if layout_ids.size() != expected_blueprints.size():
-		_fail("The designer did not exercise every curated layout foundation.")
+		var missing_layouts: Array[String] = []
+		for blueprint in expected_blueprints:
+			var expected_id := str(blueprint.get("id", ""))
+			if not layout_ids.has(expected_id):
+				missing_layouts.append(expected_id)
+		_fail("The designer did not exercise every curated layout foundation. Missing: %s. Seen: %s" % [", ".join(missing_layouts), ", ".join(layout_ids.keys())])
 		return
 	if wallpaper_paths.size() < 50:
 		_fail("The designer did not rotate through enough distinct bundled wallpapers.")
