@@ -185,8 +185,8 @@ func _make_control_icon(node_name: String, icon_name: String, layer: Dictionary,
 	icon.texture = LockScreenAssetLibrary.get_icon_texture(icon_name)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var scale := float(layer.get("size", 0.04))
-	var icon_size := clampf(screen_size.x * scale, 22.0, 42.0)
+	var icon_scale := float(layer.get("size", 0.04))
+	var icon_size := clampf(screen_size.x * icon_scale, 22.0, 42.0)
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.modulate = accent if node_name == "PlayPause" and accent.a > 0.0 else tint
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE

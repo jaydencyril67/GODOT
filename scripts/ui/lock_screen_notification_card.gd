@@ -6,7 +6,7 @@ const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.
 var _widgets := WidgetAssetLibrary.new()
 
 
-func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
+func configure(notification_data: Dictionary, palette: Dictionary = {}) -> void:
 	_clear_children()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var widget := _widgets.get_widget("40_notifications")
@@ -59,7 +59,7 @@ func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
 
 	var app_icon := TextureRect.new()
 	app_icon.name = "NotificationAppIcon"
-	var app_icon_path := str(notification.get("icon", ""))
+	var app_icon_path := str(notification_data.get("icon", ""))
 	app_icon.texture = load(app_icon_path) as Texture2D if not app_icon_path.is_empty() else null
 	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -83,7 +83,7 @@ func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
 
 	var app_label := Label.new()
 	app_label.name = "NotificationApp"
-	app_label.text = str(notification.get("app", "APP"))
+	app_label.text = str(notification_data.get("app", "APP"))
 	app_label.add_theme_font_size_override("font_size", 10)
 	app_label.add_theme_color_override("font_color", accent)
 	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -95,8 +95,8 @@ func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
 
 	var category_icon := TextureRect.new()
 	category_icon.name = "NotificationCategoryIcon"
-	var category := LockScreenAssetLibrary.get_notification_category(str(notification.get("app", "")))
-	category_icon.texture = LockScreenAssetLibrary.get_icon_texture("category_" + category)
+	var category := LockScreenAssetLibrary.get_notification_category(str(notification_data.get("app", "")))
+	category_icon.texture = LockScreenAssetLibrary.get_icon_texture(category)
 	category_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	category_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	category_icon.custom_minimum_size = Vector2(15, 15)
@@ -105,7 +105,7 @@ func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
 
 	var timestamp := Label.new()
 	timestamp.name = "NotificationTimestamp"
-	timestamp.text = str(notification.get("timestamp", "NOW"))
+	timestamp.text = str(notification_data.get("timestamp", "NOW"))
 	timestamp.add_theme_font_size_override("font_size", 9)
 	timestamp.add_theme_color_override("font_color", muted_color)
 	timestamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -125,7 +125,7 @@ func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
 
 	var count := Label.new()
 	count.name = "NotificationCount"
-	count.text = str(notification.get("notification_count", 1))
+	count.text = str(notification_data.get("notification_count", 1))
 	count.add_theme_font_size_override("font_size", clampi(roundi(screen_size.x * float(count_layer.get("weight", 600)) / 30000.0), 10, 14))
 	count.add_theme_color_override("font_color", text_color)
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -139,7 +139,7 @@ func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
 
 	var title := Label.new()
 	title.name = "NotificationTitle"
-	title.text = str(notification.get("title", "New notification"))
+	title.text = str(notification_data.get("title", "New notification"))
 	title.add_theme_font_size_override("font_size", 14)
 	title.add_theme_color_override("font_color", text_color)
 	title.clip_text = true
@@ -151,7 +151,7 @@ func configure(notification: Dictionary, palette: Dictionary = {}) -> void:
 
 	var body := Label.new()
 	body.name = "NotificationBody"
-	body.text = str(notification.get("body", ""))
+	body.text = str(notification_data.get("body", ""))
 	body.add_theme_font_size_override("font_size", 11)
 	body.add_theme_color_override("font_color", muted_color)
 	body.clip_text = true
