@@ -1,7 +1,7 @@
 {
   "collection": "Papirus",
   "version": 1,
-  "total": 145,
+  "total": 200,
   "source_repository": "https://github.com/PapirusDevelopmentTeam/papirus_icons",
   "license": "Papirus icons project license; see source repository",
   "apps": [
@@ -874,6 +874,336 @@
       "name": "Yandex Yango",
       "category": "travel_navigation",
       "path": "res://assets/app_icons/papirus/travel_navigation/yandex_yango.svg"
+    },
+    {
+      "id": "scrcpy",
+      "name": "Scrcpy",
+      "category": "development",
+      "path": "res://assets/app_icons/papirus/development/apps_scrcpy.svg"
+    },
+    {
+      "id": "sololearn",
+      "name": "SoloLearn",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_sololearn.svg"
+    },
+    {
+      "id": "sublime_text",
+      "name": "Sublime Text",
+      "category": "development",
+      "path": "res://assets/app_icons/papirus/development/apps_sublime_text.svg"
+    },
+    {
+      "id": "visual_studio_code",
+      "name": "Visual Studio Code",
+      "category": "development",
+      "path": "res://assets/app_icons/papirus/development/apps_visual_studio_code.svg"
+    },
+    {
+      "id": "terminal",
+      "name": "Terminal",
+      "category": "development",
+      "path": "res://assets/app_icons/papirus/development/apps_terminal.svg"
+    },
+    {
+      "id": "termius",
+      "name": "Termius",
+      "category": "development",
+      "path": "res://assets/app_icons/papirus/development/apps_termius.svg"
+    },
+    {
+      "id": "simplenote",
+      "name": "Simplenote",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_simplenote.svg"
+    },
+    {
+      "id": "ticktick",
+      "name": "TickTick",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_ticktick.svg"
+    },
+    {
+      "id": "taskade",
+      "name": "Taskade",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_taskade.svg"
+    },
+    {
+      "id": "superproductivity",
+      "name": "Super Productivity",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_superproductivity.svg"
+    },
+    {
+      "id": "clickup",
+      "name": "ClickUp",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_clickup.svg"
+    },
+    {
+      "id": "mondaycom",
+      "name": "Monday.com",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_mondaycom.svg"
+    },
+    {
+      "id": "microsoft_todo",
+      "name": "Microsoft To Do",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_microsoft_todo.svg"
+    },
+    {
+      "id": "firefox",
+      "name": "Firefox",
+      "category": "browsers_security",
+      "path": "res://assets/app_icons/papirus/browsers_security/apps_firefox.svg"
+    },
+    {
+      "id": "browser_brave",
+      "name": "Brave",
+      "category": "browsers_security",
+      "path": "res://assets/app_icons/papirus/browsers_security/apps_browser_brave.svg"
+    },
+    {
+      "id": "duck_duck_go",
+      "name": "DuckDuckGo",
+      "category": "browsers_security",
+      "path": "res://assets/app_icons/papirus/browsers_security/apps_duck_duck_go.svg"
+    },
+    {
+      "id": "vivaldi",
+      "name": "Vivaldi",
+      "category": "browsers_security",
+      "path": "res://assets/app_icons/papirus/browsers_security/apps_vivaldi.svg"
+    },
+    {
+      "id": "torbrowser",
+      "name": "Tor Browser",
+      "category": "browsers_security",
+      "path": "res://assets/app_icons/papirus/browsers_security/apps_torbrowser.svg"
+    },
+    {
+      "id": "wireguard",
+      "name": "WireGuard",
+      "category": "browsers_security",
+      "path": "res://assets/app_icons/papirus/browsers_security/apps_wireguard.svg"
+    },
+    {
+      "id": "windscribe",
+      "name": "Windscribe",
+      "category": "browsers_security",
+      "path": "res://assets/app_icons/papirus/browsers_security/apps_windscribe.svg"
+    },
+    {
+      "id": "crunchyroll",
+      "name": "Crunchyroll",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_crunchyroll.svg"
+    },
+    {
+      "id": "disney_star_plus",
+      "name": "Disney+",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_disney_star_plus.svg"
+    },
+    {
+      "id": "stremio",
+      "name": "Stremio",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_stremio.svg"
+    },
+    {
+      "id": "tunein",
+      "name": "TuneIn",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_tunein.svg"
+    },
+    {
+      "id": "soundhound",
+      "name": "SoundHound",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_soundhound.svg"
+    },
+    {
+      "id": "pocketcasts",
+      "name": "Pocket Casts",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_pocketcasts.svg"
+    },
+    {
+      "id": "poweramp",
+      "name": "Poweramp",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_poweramp.svg"
+    },
+    {
+      "id": "speedtest",
+      "name": "Speedtest",
+      "category": "utilities",
+      "path": "res://assets/app_icons/papirus/utilities/apps_speedtest.svg"
+    },
+    {
+      "id": "solid_explorer",
+      "name": "Solid Explorer",
+      "category": "utilities",
+      "path": "res://assets/app_icons/papirus/utilities/apps_solid_explorer.svg"
+    },
+    {
+      "id": "cx_file_explorer",
+      "name": "CX File Explorer",
+      "category": "utilities",
+      "path": "res://assets/app_icons/papirus/utilities/apps_cx_file_explorer.svg"
+    },
+    {
+      "id": "sd_maid",
+      "name": "SD Maid",
+      "category": "utilities",
+      "path": "res://assets/app_icons/papirus/utilities/apps_sd_maid.svg"
+    },
+    {
+      "id": "glasswire",
+      "name": "GlassWire",
+      "category": "utilities",
+      "path": "res://assets/app_icons/papirus/utilities/apps_glasswire.svg"
+    },
+    {
+      "id": "wifiman",
+      "name": "WiFiman",
+      "category": "utilities",
+      "path": "res://assets/app_icons/papirus/utilities/apps_wifiman.svg"
+    },
+    {
+      "id": "unified_remote",
+      "name": "Unified Remote",
+      "category": "utilities",
+      "path": "res://assets/app_icons/papirus/utilities/apps_unified_remote.svg"
+    },
+    {
+      "id": "ibispaint_x",
+      "name": "ibisPaint X",
+      "category": "creative",
+      "path": "res://assets/app_icons/papirus/creative/apps_ibispaint_x.svg"
+    },
+    {
+      "id": "inshot",
+      "name": "InShot",
+      "category": "creative",
+      "path": "res://assets/app_icons/papirus/creative/apps_inshot.svg"
+    },
+    {
+      "id": "picsart_studio",
+      "name": "Picsart",
+      "category": "creative",
+      "path": "res://assets/app_icons/papirus/creative/apps_picsart_studio.svg"
+    },
+    {
+      "id": "photoroom",
+      "name": "PhotoRoom",
+      "category": "creative",
+      "path": "res://assets/app_icons/papirus/creative/apps_photoroom.svg"
+    },
+    {
+      "id": "pixellab",
+      "name": "PixelLab",
+      "category": "creative",
+      "path": "res://assets/app_icons/papirus/creative/apps_pixellab.svg"
+    },
+    {
+      "id": "yahoo_finance",
+      "name": "Yahoo Finance",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_yahoo_finance.svg"
+    },
+    {
+      "id": "metamask",
+      "name": "MetaMask",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_metamask.svg"
+    },
+    {
+      "id": "electrum",
+      "name": "Electrum",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_electrum.svg"
+    },
+    {
+      "id": "money_manager",
+      "name": "Money Manager",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_money_manager.svg"
+    },
+    {
+      "id": "truecaller",
+      "name": "Truecaller",
+      "category": "communication",
+      "path": "res://assets/app_icons/papirus/communication/apps_truecaller.svg"
+    },
+    {
+      "id": "telegram_beta",
+      "name": "Telegram Beta",
+      "category": "communication",
+      "path": "res://assets/app_icons/papirus/communication/apps_telegram_beta.svg"
+    },
+    {
+      "id": "jitsi",
+      "name": "Jitsi",
+      "category": "communication",
+      "path": "res://assets/app_icons/papirus/communication/apps_jitsi.svg"
+    },
+    {
+      "id": "zulip",
+      "name": "Zulip",
+      "category": "communication",
+      "path": "res://assets/app_icons/papirus/communication/apps_zulip.svg"
+    },
+    {
+      "id": "strava",
+      "name": "Strava",
+      "category": "health_fitness",
+      "path": "res://assets/app_icons/papirus/health_fitness/apps_strava.svg"
+    },
+    {
+      "id": "fitbit",
+      "name": "Fitbit",
+      "category": "health_fitness",
+      "path": "res://assets/app_icons/papirus/health_fitness/apps_fitbit.svg"
+    },
+    {
+      "id": "lifesum",
+      "name": "Lifesum",
+      "category": "health_fitness",
+      "path": "res://assets/app_icons/papirus/health_fitness/apps_lifesum.svg"
+    },
+    {
+      "id": "headspace",
+      "name": "Headspace",
+      "category": "health_fitness",
+      "path": "res://assets/app_icons/papirus/health_fitness/apps_headspace.svg"
+    },
+    {
+      "id": "citymapper",
+      "name": "Citymapper",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_citymapper.svg"
+    },
+    {
+      "id": "osmand",
+      "name": "OsmAnd",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_osmand.svg"
+    },
+    {
+      "id": "indriver",
+      "name": "inDrive",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_indriver.svg"
+    },
+    {
+      "id": "komoot",
+      "name": "Komoot",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_komoot.svg"
     }
   ]
 }
