@@ -21,7 +21,7 @@ const NOTIFICATION_PRESETS := [
 
 const MEDIA_PRESETS := [
 	{"service": "SPOTIFY", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_spotify_client.svg", "title": "Midnight City", "artist": "M83"},
-	{"service": "YOUTUBE MUSIC", "icon": "res://assets/app_icons/papirus/entertainment_music/google_youtube_music.svg", "title": "Sunset Lover", "artist": "Petit Biscuit"},
+	{"service": "YOUTUBE MUSIC", "icon": "res://assets/app_icons/papirus/google_essential/google_youtube_music.svg", "title": "Sunset Lover", "artist": "Petit Biscuit"},
 	{"service": "DEEZER", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_deezer.svg", "title": "The Less I Know the Better", "artist": "Tame Impala"},
 	{"service": "SOUNDCLOUD", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_soundcloud.svg", "title": "A Walk", "artist": "Tycho"},
 	{"service": "SAMSUNG MUSIC", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_samsung_music.svg", "title": "Night Drive", "artist": "Digital World Radio"}
