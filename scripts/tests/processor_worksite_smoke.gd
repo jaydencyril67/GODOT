@@ -37,7 +37,7 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor worksite does not block touch input from reaching the previous Creation page.")
 		worksite.free()
 		return
-	if viewport.size.x <= 0 or viewport.size.y <= 0 or viewport.msaa_3d != Viewport.MSAA_DISABLED or viewport.screen_space_aa != Viewport.SCREEN_SPACE_AA_FXAA or viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
+	if viewport.size.x <= 0 or viewport.size.y <= 0 or viewport.msaa_3d != Viewport.MSAA_DISABLED or viewport.screen_space_aa != Viewport.SCREEN_SPACE_AA_DISABLED or viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
 		_fail("Processor preview is not using the low-end-device rendering budget.")
 		worksite.free()
 		return
