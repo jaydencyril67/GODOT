@@ -275,7 +275,7 @@ func _draw_navigation(style: Dictionary, muted: Color, text_color: Color) -> voi
 
 
 func _find_app(app_name: String) -> Dictionary:
-	for app_value in UIEvolutionEngine.APP_LIBRARY:
+	for app_value in preload("res://scripts/app_icon_library.gd").get_apps():
 		if str(app_value.get("name", "")) == app_name:
 			return app_value
 	return {"name": app_name, "glyph": app_name.left(1), "color": "#6688B7"}
