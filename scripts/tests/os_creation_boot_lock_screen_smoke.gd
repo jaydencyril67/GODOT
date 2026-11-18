@@ -39,8 +39,22 @@ func _run_test() -> void:
 	if not is_equal_approx(total, 10.0):
 		_fail("The selected boot branding options do not fill the full ten-second boot window.")
 		return
-	if plan.size() != 2 or float(plan[0].get("duration", 0.0)) != 5.0 or float(plan[1].get("duration", 0.0)) != 5.0:
-		_fail("Logo and device branding must receive five seconds each when both are enabled.")
+	if plan.size() != 3:
+		_fail("All three enabled boot items must appear as independent sequence stages.")
+		return
+	var expected_order := ["logo", "phone_name", "phone_model"]
+	for stage_index in range(expected_order.size()):
+		if str(plan[stage_index].get("kind", "")) != expected_order[stage_index]:
+			_fail("The boot presentation plan did not preserve the configured drag-and-drop order.")
+			return
+		if not is_equal_approx(float(plan[stage_index].get("duration", 0.0)), 10.0 / 3.0):
+			_fail("The ten-second boot window must be divided evenly between enabled items.")
+			return
+
+	worksite.call("_on_boot_order_drop", 2, 0)
+	plan = worksite.call("_get_boot_presentation_plan")
+	if str(plan[0].get("kind", "")) != "phone_model":
+		_fail("Dragging a boot item to the first position did not update the presentation order.")
 		return
 
 	# Accelerate only the test execution; production boot timing remains ten seconds.
