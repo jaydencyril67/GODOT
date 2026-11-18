@@ -80,9 +80,16 @@ func _run_test() -> void:
 		_fail("The dedicated Lockscreen Clock screen must be the second OS Worksite step.")
 		return
 	var clock_controls := worksite.get("content_column") as VBoxContainer
-	var clock_toggle := worksite.find_child("LockScreenClockEnabled", true, false) as CheckBox
-	if clock_toggle == null or not clock_toggle.visible or not clock_toggle.button_pressed:
-		_fail("Step 2 must show an enabled clock checkbox beside the LOCKSCREEN CLOCK hero.")
+	var clock_toggle := worksite.find_child("LockScreenClockEnabled", true, false) as Button
+	if clock_toggle == null or not clock_toggle.visible or not clock_toggle.button_pressed or not clock_toggle.toggle_mode:
+		_fail("Step 2 must show a custom enabled toggle beside the LOCKSCREEN CLOCK hero.")
+		return
+	if clock_toggle.text != "✓  ENABLE" or clock_toggle.get_theme_stylebox("normal") == null:
+		_fail("The clock enable control must use the custom branded checkbox treatment, not the default Godot checkbox.")
+		return
+	var progress_box := worksite.find_child("WorksiteProgress", true, false) as Control
+	if progress_box == null or clock_toggle.global_position.y < progress_box.global_position.y + progress_box.size.y:
+		_fail("The clock enable control must sit below the top-right progress overlay without colliding with it.")
 		return
 	clock_toggle.set_pressed_no_signal(false)
 	worksite.call("_on_clock_enabled_toggled", false)
