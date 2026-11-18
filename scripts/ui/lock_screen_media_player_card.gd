@@ -9,8 +9,8 @@ const AssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 @onready var artist_label: Label = $Margin/Content/TopRow/TrackInfo/Artist
 @onready var progress: ProgressBar = $Margin/Content/Progress
 @onready var previous_icon: TextureRect = $Margin/Content/GeneratedMediaControls/Previous
-@onready var play_pause_icon: TextureRect = $Margin/Content/Controls/PlayPause
-@onready var next_icon: TextureRect = $Margin/Content/Controls/Next
+@onready var play_pause_icon: TextureRect = $Margin/Content/GeneratedMediaControls/PlayPause
+@onready var next_icon: TextureRect = $Margin/Content/GeneratedMediaControls/Next
 
 
 func configure(media: Dictionary, palette: Dictionary) -> void:
