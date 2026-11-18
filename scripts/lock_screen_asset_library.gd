@@ -78,14 +78,8 @@ static func get_notification_category(app_name: String) -> String:
 		return "category_news"
 	return "category_chat"
 
-static func get_analog_face_path(style_index: int) -> String:
-	return "res://assets/widgets/clock/faces/512/face_%d_512.png" % clampi(style_index, 1, 18)
+static func get_analog_clock_path(asset_index: int) -> String:
+	return "res://assets/lock-screen/clocks/analog/analog-%02d.png" % clampi(asset_index, 1, get_analog_clock_count())
 
-static func get_analog_hand_path(style_index: int, hand_name: String) -> String:
-	if hand_name not in ["hr", "min", "sec"]:
-		return ""
-	var hand_set_index := ((clampi(style_index, 1, 18) - 1) % 8) + 1
-	return "res://assets/widgets/clock/hands/%d/%s.png" % [hand_set_index, hand_name]
-
-static func get_analog_face_count() -> int:
-	return 18
+static func get_analog_clock_count() -> int:
+	return 41

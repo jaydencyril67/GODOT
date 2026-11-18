@@ -31,14 +31,11 @@ func _run_test() -> void:
 		if LockScreenAssetLibrary.get_surface_texture(surface_id) == null:
 			_fail("A lock-screen surface asset could not be loaded: " + surface_id)
 			return
-	for face_index in range(1, LockScreenAssetLibrary.get_analog_face_count() + 1):
-		if not FileAccess.file_exists(LockScreenAssetLibrary.get_analog_face_path(face_index)):
-			_fail("An analog clock face asset is missing.")
+	for asset_index in range(1, LockScreenAssetLibrary.get_analog_clock_count() + 1):
+		var asset_path := LockScreenAssetLibrary.get_analog_clock_path(asset_index)
+		if not FileAccess.file_exists(asset_path):
+			_fail("An uploaded analog clock artwork asset is missing: " + asset_path)
 			return
-		for hand_name in ["hr", "min", "sec"]:
-			if not FileAccess.file_exists(LockScreenAssetLibrary.get_analog_hand_path(face_index, hand_name)):
-				_fail("An analog clock hand asset is missing.")
-				return
 
 	var designer: Control = LockScreenDesignerScript.new()
 	designer.name = "LockScreenDesignerSmokeTest"
@@ -55,8 +52,8 @@ func _run_test() -> void:
 	var layout_ids: Dictionary = {}
 	var wallpaper_paths: Dictionary = {}
 	var original_wallpaper_path := ""
-	var clock_styles: Dictionary = {}
-	var analog_face_renderer_found := false
+	var analog_asset_indices: Dictionary = {}
+	var analog_artwork_renderer_found := false
 	var media_count := 0
 	var notification_count := 0
 
@@ -99,23 +96,33 @@ func _run_test() -> void:
 			return
 		wallpaper_paths[wallpaper_path] = true
 
-		var style := str(design.get("clock_style", ""))
-		clock_styles[style] = true
-		if designer.find_child("GeneratedLockScreenClockComponent", true, false) == null or designer.find_child("GeneratedLockScreenDate", true, false) == null:
-			_fail("The lock-screen clock/date scene component was not rendered.")
+		var asset_index := int(design.get("analog_clock_asset_index", 0))
+		if asset_index < 1 or asset_index > LockScreenAssetLibrary.get_analog_clock_count():
+			_fail("A generated design selected an invalid analog clock artwork index.")
 			return
+		analog_asset_indices[asset_index] = true
+		if designer.find_child("GeneratedAnalogClockArtwork", true, false) == null or designer.find_child("GeneratedLockScreenDate", true, false) == null:
+			_fail("The image-based analog clock/date scene component was not rendered.")
+			return
+		for legacy_node_name in ["GeneratedLockScreenClock", "GeneratedAnalogClockFace", "AnalogHourHand", "AnalogMinuteHand", "AnalogSecondHand"]:
+			if designer.find_child(legacy_node_name, true, false) != null:
+				_fail("A legacy generated clock or separate clock-hand node is still present: " + legacy_node_name)
+				return
 		if designer.find_child("LockScreenStatusBar", true, false) == null:
 			_fail("The asset-backed status-bar scene component was not rendered.")
 			return
 		if bool(design.get("show_fingerprint", false)) and designer.find_child("GeneratedLockScreenFingerprint", true, false) == null:
 			_fail("The asset-backed fingerprint prompt component was not rendered.")
 			return
-		if style == "analog":
-			var analog_face := designer.find_child("GeneratedAnalogClockFace", true, false) as TextureRect
-			if analog_face == null or analog_face.texture == null:
-				_fail("The analog lock-screen renderer did not load its real clock-face asset.")
-				return
-			analog_face_renderer_found = true
+		var analog_artwork := designer.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
+		if analog_artwork == null or analog_artwork.texture == null:
+			_fail("The analog lock-screen renderer did not load a complete clock artwork asset.")
+			return
+		var expected_clock_path := LockScreenAssetLibrary.get_analog_clock_path(asset_index)
+		if analog_artwork.texture.resource_path != expected_clock_path:
+			_fail("The selected analog clock artwork does not match its generated asset index.")
+			return
+		analog_artwork_renderer_found = true
 
 		var notifications: Array = design.get("notifications", [])
 		notification_count += notifications.size()
@@ -167,11 +174,11 @@ func _run_test() -> void:
 	if notification_count < 25:
 		_fail("The designer did not generate enough app-branded notifications.")
 		return
-	if clock_styles.size() < 3:
-		_fail("The designer did not vary its digital, stacked and analog clock treatments.")
+	if analog_asset_indices.is_empty():
+		_fail("The designer did not select any analog clock artwork.")
 		return
-	if not analog_face_renderer_found:
-		_fail("The analog clock face asset renderer was not exercised.")
+	if not analog_artwork_renderer_found:
+		_fail("The complete analog clock artwork renderer was not exercised.")
 		return
 	if int(designer.call("get_generation_count")) != GENERATION_COUNT:
 		_fail("The designer generation counter is inconsistent.")

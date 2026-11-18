@@ -6,11 +6,9 @@ const BLUEPRINTS := [
 	{
 		"id": "pixel_centered",
 		"name": "PIXEL-CENTERED",
-		"clock_styles": ["digital"],
-		"clock_rect": Rect2(0.08, 0.205, 0.84, 0.15),
+		"clock_rect": Rect2(0.08, 0.205, 0.30, 0.15),
 		"date_rect": Rect2(0.12, 0.375, 0.76, 0.038),
-		"alignments": ["center"],
-		"clock_formats": ["single", "spaced"],
+		"date_alignments": ["center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.46, 0.85, 0.085)},
 			{"type": "media", "rect": Rect2(0.075, 0.57, 0.85, 0.15)}
@@ -20,11 +18,9 @@ const BLUEPRINTS := [
 	{
 		"id": "one_ui_lower",
 		"name": "ONE UI LOWER CLOCK",
-		"clock_styles": ["digital", "stacked"],
-		"clock_rect": Rect2(0.08, 0.265, 0.84, 0.145),
+		"clock_rect": Rect2(0.08, 0.265, 0.30, 0.15),
 		"date_rect": Rect2(0.08, 0.215, 0.84, 0.032),
-		"alignments": ["left"],
-		"clock_formats": ["single", "split"],
+		"date_alignments": ["left"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.475, 0.85, 0.082)},
 			{"type": "media", "rect": Rect2(0.075, 0.581, 0.85, 0.165)}
@@ -34,11 +30,9 @@ const BLUEPRINTS := [
 	{
 		"id": "material_stack",
 		"name": "MATERIAL STACK",
-		"clock_styles": ["digital"],
-		"clock_rect": Rect2(0.08, 0.145, 0.84, 0.135),
+		"clock_rect": Rect2(0.08, 0.145, 0.30, 0.15),
 		"date_rect": Rect2(0.08, 0.302, 0.84, 0.04),
-		"alignments": ["left", "center"],
-		"clock_formats": ["single"],
+		"date_alignments": ["left", "center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.415, 0.85, 0.08)},
 			{"type": "notification", "rect": Rect2(0.075, 0.535, 0.85, 0.08)},
@@ -49,11 +43,9 @@ const BLUEPRINTS := [
 	{
 		"id": "media_stage",
 		"name": "MEDIA STAGE",
-		"clock_styles": ["stacked", "digital"],
-		"clock_rect": Rect2(0.12, 0.14, 0.76, 0.205),
+		"clock_rect": Rect2(0.12, 0.14, 0.30, 0.15),
 		"date_rect": Rect2(0.12, 0.365, 0.76, 0.035),
-		"alignments": ["center"],
-		"clock_formats": ["split", "single"],
+		"date_alignments": ["center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.425, 0.85, 0.08)},
 			{"type": "media", "rect": Rect2(0.075, 0.535, 0.85, 0.185)}
@@ -63,11 +55,9 @@ const BLUEPRINTS := [
 	{
 		"id": "analog_classic",
 		"name": "ANALOG CLASSIC",
-		"clock_styles": ["analog"],
 		"clock_rect": Rect2(0.35, 0.175, 0.30, 0.15),
 		"date_rect": Rect2(0.12, 0.365, 0.76, 0.038),
-		"alignments": ["center"],
-		"clock_formats": ["single"],
+		"date_alignments": ["center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
 			{"type": "media", "rect": Rect2(0.075, 0.555, 0.85, 0.17)}
@@ -77,11 +67,9 @@ const BLUEPRINTS := [
 	{
 		"id": "editorial_left",
 		"name": "EDITORIAL LEFT",
-		"clock_styles": ["digital"],
-		"clock_rect": Rect2(0.075, 0.205, 0.85, 0.15),
+		"clock_rect": Rect2(0.075, 0.205, 0.30, 0.15),
 		"date_rect": Rect2(0.075, 0.375, 0.85, 0.04),
-		"alignments": ["left"],
-		"clock_formats": ["single", "spaced"],
+		"date_alignments": ["left"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
 			{"type": "media", "rect": Rect2(0.075, 0.555, 0.85, 0.17)}
@@ -91,11 +79,9 @@ const BLUEPRINTS := [
 	{
 		"id": "split_clock",
 		"name": "SPLIT CLOCK",
-		"clock_styles": ["stacked"],
-		"clock_rect": Rect2(0.12, 0.14, 0.76, 0.215),
+		"clock_rect": Rect2(0.12, 0.14, 0.30, 0.15),
 		"date_rect": Rect2(0.12, 0.375, 0.76, 0.035),
-		"alignments": ["center"],
-		"clock_formats": ["split"],
+		"date_alignments": ["center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
 			{"type": "media", "rect": Rect2(0.075, 0.55, 0.85, 0.17)}
@@ -105,11 +91,9 @@ const BLUEPRINTS := [
 	{
 		"id": "notification_rich",
 		"name": "NOTIFICATION RICH",
-		"clock_styles": ["digital"],
-		"clock_rect": Rect2(0.075, 0.13, 0.85, 0.12),
-		"date_rect": Rect2(0.075, 0.265, 0.85, 0.04),
-		"alignments": ["left", "center"],
-		"clock_formats": ["single"],
+		"clock_rect": Rect2(0.075, 0.13, 0.30, 0.15),
+		"date_rect": Rect2(0.075, 0.30, 0.85, 0.04),
+		"date_alignments": ["left", "center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.395, 0.85, 0.082)},
 			{"type": "notification", "rect": Rect2(0.075, 0.49, 0.85, 0.082)},
@@ -120,11 +104,9 @@ const BLUEPRINTS := [
 	{
 		"id": "quiet_focus",
 		"name": "QUIET FOCUS",
-		"clock_styles": ["digital", "stacked"],
-		"clock_rect": Rect2(0.12, 0.215, 0.76, 0.155),
+		"clock_rect": Rect2(0.12, 0.215, 0.30, 0.15),
 		"date_rect": Rect2(0.12, 0.385, 0.76, 0.035),
-		"alignments": ["center", "right"],
-		"clock_formats": ["single", "split"],
+		"date_alignments": ["center", "right"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
 			{"type": "media", "rect": Rect2(0.075, 0.565, 0.85, 0.155)}
@@ -134,11 +116,9 @@ const BLUEPRINTS := [
 	{
 		"id": "dual_content",
 		"name": "DUAL CONTENT",
-		"clock_styles": ["digital"],
-		"clock_rect": Rect2(0.075, 0.155, 0.85, 0.125),
-		"date_rect": Rect2(0.075, 0.295, 0.85, 0.035),
-		"alignments": ["left", "center"],
-		"clock_formats": ["single", "spaced"],
+		"clock_rect": Rect2(0.075, 0.155, 0.30, 0.15),
+		"date_rect": Rect2(0.075, 0.32, 0.85, 0.035),
+		"date_alignments": ["left", "center"],
 		"content_slots": [
 			{"type": "notification", "rect": Rect2(0.075, 0.405, 0.85, 0.082)},
 			{"type": "media", "rect": Rect2(0.075, 0.511, 0.85, 0.19)}

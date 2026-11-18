@@ -325,26 +325,26 @@ func _compose_design() -> Dictionary:
 	var status_rect := Rect2(Vector2(0.055, 0.024), Vector2(0.89, 0.035))
 	_add_component(components, occupied, "status", status_rect)
 
-	# A shared shift keeps the clock/date relationship designed while allowing
-	# the autonomous engine to move the whole visual group between generations.
+	# The complete transparent artwork is square; vary its horizontal placement
+	# with the date alignment instead of composing a face and rotating hands.
+	var date_alignments: Array = blueprint["date_alignments"]
+	var date_align := str(date_alignments[_rng.randi_range(0, date_alignments.size() - 1)])
 	var clock_date_shift := Vector2(_rng.randf_range(-0.012, 0.012), _rng.randf_range(-0.008, 0.008))
 	var clock_rect: Rect2 = blueprint["clock_rect"]
 	var date_rect: Rect2 = blueprint["date_rect"]
+	match date_align:
+		"left":
+			clock_rect.position.x = 0.075
+		"right":
+			clock_rect.position.x = 0.625
+		_:
+			clock_rect.position.x = 0.35
 	clock_rect.position += clock_date_shift
 	date_rect.position += clock_date_shift
 	clock_rect.position.x = clampf(clock_rect.position.x, 0.055, 0.945 - clock_rect.size.x)
 	date_rect.position.x = clampf(date_rect.position.x, 0.055, 0.945 - date_rect.size.x)
 	_add_component(components, occupied, "clock", clock_rect)
 	_add_component(components, occupied, "date", date_rect)
-
-	var clock_styles: Array = blueprint["clock_styles"]
-	var clock_style := str(clock_styles[_rng.randi_range(0, clock_styles.size() - 1)])
-	var alignments: Array = blueprint["alignments"]
-	var clock_align := str(alignments[_rng.randi_range(0, alignments.size() - 1)])
-	var clock_formats: Array = blueprint["clock_formats"]
-	var clock_format := str(clock_formats[_rng.randi_range(0, clock_formats.size() - 1)])
-	if clock_style == "analog":
-		clock_format = "single"
 
 	var notifications: Array[Dictionary] = []
 	var media: Dictionary = {}
@@ -403,22 +403,19 @@ func _compose_design() -> Dictionary:
 
 	var status_styles: Array = StatusBarAssetLibrary.get_styles()
 	var selected_status_style: Dictionary = status_styles[_rng.randi_range(0, status_styles.size() - 1)]
-	var analog_clock_style_index := _rng.randi_range(1, LockScreenAssetLibrary.get_analog_face_count()) if clock_style == "analog" else 0
+	var analog_clock_asset_index := _rng.randi_range(1, LockScreenAssetLibrary.get_analog_clock_count())
 
 	var design := {
 		"layout_id": str(blueprint["id"]),
 		"layout_name": str(blueprint["name"]),
 		"status_style_id": str(selected_status_style.get("id", "pixel_compact")),
-		"analog_clock_style_index": analog_clock_style_index,
+		"analog_clock_asset_index": analog_clock_asset_index,
 		"palette": palette,
 		"wallpaper_path": wallpaper_path,
 		"wallpaper_index": _wallpaper_number(wallpaper_path),
 		"components": components,
 		"clock_rect": clock_rect,
-		"clock_style": clock_style,
-		"clock_format": clock_format,
-		"clock_align": clock_align,
-		"clock_font_size": _rng.randi_range(72, 88) if clock_style == "digital" else (_rng.randi_range(44, 56) if clock_style == "stacked" else 0),
+		"date_align": date_align,
 		"date_font_size": _rng.randi_range(13, 18),
 		"date_letter_spacing": _rng.randi_range(1, 3),
 		"notifications": notifications,
@@ -436,25 +433,6 @@ func _compose_design() -> Dictionary:
 	}
 	design["signature"] = _make_signature(design)
 	return design
-
-func _make_clock_rect(style: String) -> Rect2:
-	if style == "analog":
-		var size_x := 0.30
-		return Rect2(
-			Vector2(_rng.randf_range(0.14, 0.56), _rng.randf_range(0.19, 0.40)),
-			Vector2(size_x, size_x * 0.5)
-		)
-	if style == "stacked":
-		var width := _rng.randf_range(0.40, 0.62)
-		return Rect2(
-			Vector2(_rng.randf_range(0.08, maxf(0.08, 0.945 - width)), _rng.randf_range(0.18, 0.37)),
-			Vector2(width, _rng.randf_range(0.15, 0.205))
-		)
-	var digital_width := _rng.randf_range(0.66, 0.88)
-	return Rect2(
-		Vector2(_rng.randf_range(0.07, maxf(0.07, 0.945 - digital_width)), _rng.randf_range(0.19, 0.39)),
-		Vector2(digital_width, _rng.randf_range(0.105, 0.17))
-	)
 
 
 func _find_notification_rect(occupied: Array[Rect2], index: int) -> Rect2:
@@ -491,11 +469,9 @@ func _make_signature(design: Dictionary) -> String:
 	var parts: Array[String] = [
 		str(design.get("layout_id", "")),
 		str(design.get("wallpaper_path", "").get_file()),
-		str(design.get("clock_style", "")),
-		str(design.get("clock_format", "")),
-		str(design.get("clock_align", "")),
+		str(design.get("date_align", "")),
 		str(design.get("status_style_id", "")),
-		str(design.get("analog_clock_style_index", 0)),
+		str(design.get("analog_clock_asset_index", 0)),
 		str(design.get("palette", {}).get("name", "")),
 		str(design.get("notifications", []).size()),
 		"media" if not design.get("media", {}).is_empty() else "no-media"
