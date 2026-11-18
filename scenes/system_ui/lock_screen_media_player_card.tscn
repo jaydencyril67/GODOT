@@ -1,0 +1,100 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/lock_screen_media_player_card.gd" id="1"]
+
+[node name="LockScreenMediaPlayerCard" type="Control"]
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Surface" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+expand_mode = 1
+stretch_mode = 3
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 6.0
+offset_right = -10.0
+offset_bottom = -5.0
+mouse_filter = 2
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+mouse_filter = 2
+
+[node name="TopRow" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 9
+mouse_filter = 2
+
+[node name="ServiceIcon" type="TextureRect" parent="Margin/Content/TopRow"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 2
+mouse_filter = 2
+
+[node name="TrackInfo" type="VBoxContainer" parent="Margin/Content/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+mouse_filter = 2
+
+[node name="ServiceLabel" type="Label" parent="Margin/Content/TopRow/TrackInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Margin/Content/TopRow/TrackInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text_overrun_behavior = 3
+mouse_filter = 2
+
+[node name="Artist" type="Label" parent="Margin/Content/TopRow/TrackInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text_overrun_behavior = 3
+mouse_filter = 2
+
+[node name="Progress" type="ProgressBar" parent="Margin/Content"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+show_percentage = false
+mouse_filter = 2
+
+[node name="Controls" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 25
+mouse_filter = 2
+
+[node name="Previous" type="TextureRect" parent="Margin/Content/Controls"]
+custom_minimum_size = Vector2(21, 21)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 2
+mouse_filter = 2
+
+[node name="PlayPause" type="TextureRect" parent="Margin/Content/Controls"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 2
+mouse_filter = 2
+
+[node name="Next" type="TextureRect" parent="Margin/Content/Controls"]
+custom_minimum_size = Vector2(21, 21)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 2
+mouse_filter = 2

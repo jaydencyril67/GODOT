@@ -7,6 +7,8 @@ const WALLPAPER_ROOT := "res://assets/wallpapers"
 const LayoutLibrary = preload("res://scripts/lock_screen_layout_library.gd")
 const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
+const NotificationCardScene = preload("res://scenes/system_ui/lock_screen_notification_card.tscn")
+const MediaPlayerCardScene = preload("res://scenes/system_ui/lock_screen_media_player_card.tscn")
 const PIN_BACKSPACE_ICON_PATH := "res://assets/system-ui/godot/pin-entry/pin_backspace.svg"
 const PIN_LENGTH := 6
 
@@ -951,127 +953,19 @@ func _add_date(design: Dictionary, palette: Dictionary) -> void:
 
 
 func _add_notification(notification_data: Dictionary, palette: Dictionary) -> void:
-	var rect: Rect2 = notification_data["rect"]
-	var card := Control.new()
+	var card: Control = NotificationCardScene.instantiate() as Control
 	card.name = "GeneratedNotification"
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(card, rect)
+	card.call("configure", notification_data, palette)
+	_set_normalized_rect(card, notification_data["rect"])
 	add_child(card)
 
-	var surface := TextureRect.new()
-	surface.name = "GeneratedNotificationSurface"
-	surface.texture = LockScreenAssetLibrary.get_surface_texture("notification")
-	surface.modulate = Color(palette["glass"].r, palette["glass"].g, palette["glass"].b, 0.82)
-	surface.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	surface.stretch_mode = TextureRect.STRETCH_SCALE
-	surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_full_rect(surface)
-	card.add_child(surface)
 
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_top", 5)
-	margin.add_theme_constant_override("margin_bottom", 5)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_full_rect(margin)
-	card.add_child(margin)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_child(row)
-
-	var app_icon := TextureRect.new()
-	var icon_path := str(notification_data.get("icon", ""))
-	if not icon_path.is_empty():
-		app_icon.texture = load(icon_path) as Texture2D
-	app_icon.custom_minimum_size = Vector2(28, 28)
-	app_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	app_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	app_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(app_icon)
-
-	var content := VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 0)
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(content)
-
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 4)
-	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(header)
-
-	var app_label := Label.new()
-	app_label.text = str(notification_data["app"]) + "  ·  " + str(notification_data.get("timestamp", "NOW"))
-	app_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	app_label.add_theme_font_size_override("font_size", 10)
-	app_label.add_theme_color_override("font_color", palette["accent"])
-	app_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_child(app_label)
-
-	var category_icon := TextureRect.new()
-	category_icon.name = "NotificationCategoryIcon"
-	category_icon.texture = LockScreenAssetLibrary.get_icon_texture(LockScreenAssetLibrary.get_notification_category(str(notification_data["app"])))
-	category_icon.custom_minimum_size = Vector2(13, 13)
-	category_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	category_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	category_icon.modulate = palette["muted"]
-	category_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_child(category_icon)
-
-	var more_icon := TextureRect.new()
-	more_icon.name = "NotificationMoreActionIcon"
-	more_icon.texture = LockScreenAssetLibrary.get_icon_texture("action_more")
-	more_icon.custom_minimum_size = Vector2(13, 13)
-	more_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	more_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	more_icon.modulate = palette["muted"]
-	more_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_child(more_icon)
-
-	var title := Label.new()
-	title.text = str(notification_data["title"])
-	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", palette["text"])
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(title)
-
-	var body := Label.new()
-	body.text = str(notification_data["body"])
-	body.add_theme_font_size_override("font_size", 11)
-	body.add_theme_color_override("font_color", palette["muted"])
-	body.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(body)
-
-func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
-	var rect := _find_component_rect(design, "fingerprint")
-	var group := HBoxContainer.new()
-	group.name = "GeneratedFingerprintPrompt"
-	group.alignment = BoxContainer.ALIGNMENT_CENTER
-	group.add_theme_constant_override("separation", 8)
-	group.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(group, rect)
-	add_child(group)
-
-	var icon := TextureRect.new()
-	icon.texture = _load_tinted_asset(SVG_ROOT.path_join("ic_fingerprint.svg"), palette["accent"])
-	icon.custom_minimum_size = Vector2(26, 32)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	group.add_child(icon)
-
-	var label := Label.new()
-	label.text = "TOUCH TO UNLOCK"
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", palette["muted"])
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	group.add_child(label)
-
+func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
+	var card: Control = MediaPlayerCardScene.instantiate() as Control
+	card.name = "GeneratedLockScreenMediaPlayer"
+	card.call("configure", media, palette)
+	_set_normalized_rect(card, media["rect"])
+	add_child(card)
 
 func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 	for shortcut in design["shortcuts"]:
