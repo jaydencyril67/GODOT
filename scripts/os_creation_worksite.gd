@@ -769,7 +769,7 @@ func _on_boot_order_drop(source_index: int, target_index: int) -> void:
 		return
 	if target_index < 0 or target_index >= boot_display_order.size() or source_index == target_index:
 		return
-	var moved_option := boot_display_order.pop_at(source_index)
+	var moved_option: String = boot_display_order.pop_at(source_index)
 	boot_display_order.insert(target_index, moved_option)
 	_show_step(0)
 
