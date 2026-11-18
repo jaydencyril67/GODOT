@@ -430,6 +430,15 @@ func _compose_design() -> Dictionary:
 			media["playing"] = _rng.randf() > 0.18
 			_add_component(components, occupied, "media", slot_rect)
 
+	if notifications.is_empty():
+		var fallback_notification_rect := Rect2(Vector2(0.075, 0.425), Vector2(0.85, 0.065))
+		if _can_place(fallback_notification_rect, occupied):
+			var fallback_notification: Dictionary = NOTIFICATION_PRESETS[_rng.randi_range(0, NOTIFICATION_PRESETS.size() - 1)].duplicate(true)
+			fallback_notification["rect"] = fallback_notification_rect
+			fallback_notification["timestamp"] = "NOW"
+			notifications.append(fallback_notification)
+			_add_component(components, occupied, "notification", fallback_notification_rect)
+
 	var fingerprint_rect := Rect2(
 		Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.785, 0.795)),
 		Vector2(_rng.randf_range(0.22, 0.31), 0.07)
