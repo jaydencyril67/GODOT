@@ -862,21 +862,20 @@ func _show_lock_screen_clock_controls() -> void:
 	clock_style_decrease_button = null
 	clock_style_increase_button = null
 
-	# Keep the clock controls in the same explicit feature-panel hierarchy used
-	# by Phone Type: feature section, heading, explanation, then a centred
-	# selector area. Clock Type and Clock Style each own their own section.
+	# Keep each sub-hero heading immediately above its selector. Descriptions
+	# remain available below the selector instead of separating the two.
 	var feature_panel := VBoxContainer.new()
 	feature_panel.name = "LockScreenClockFeaturePanel"
 	feature_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	feature_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	feature_panel.alignment = BoxContainer.ALIGNMENT_BEGIN
-	feature_panel.add_theme_constant_override("separation", 10)
+	feature_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	feature_panel.add_theme_constant_override("separation", 28)
 	content_column.add_child(feature_panel)
 
 	var type_section := VBoxContainer.new()
 	type_section.name = "ClockTypeFeatureSection"
 	type_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_section.add_theme_constant_override("separation", 8)
+	type_section.add_theme_constant_override("separation", 4)
 	feature_panel.add_child(type_section)
 
 	var type_title := _make_label("CLOCK TYPE", 19, Color("#D3AA6B"))
@@ -884,18 +883,10 @@ func _show_lock_screen_clock_controls() -> void:
 	type_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	type_section.add_child(type_title)
 
-	var type_description := _make_label("Choose between analog and digital clock designs for the phone lock screen.", 12, Color("#E5E0D6"))
-	type_description.name = "ClockTypeDescription"
-	type_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_description.autowrap_mode = TextServer.AUTOWRAP_WORD
-	type_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	type_section.add_child(type_description)
-
 	var type_controls_center := CenterContainer.new()
 	type_controls_center.name = "ClockTypeControlsCenter"
 	type_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	type_controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	type_controls_center.custom_minimum_size = Vector2(0, 180)
+	type_controls_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	type_section.add_child(type_controls_center)
 
 	clock_type_row = HBoxContainer.new()
@@ -929,10 +920,17 @@ func _show_lock_screen_clock_controls() -> void:
 	clock_type_increase_button.pressed.connect(_select_lock_screen_clock_type.bind("digital"))
 	clock_type_row.add_child(clock_type_increase_button)
 
+	var type_description := _make_label("Choose between analog and digital clock designs for the phone lock screen.", 12, Color("#E5E0D6"))
+	type_description.name = "ClockTypeDescription"
+	type_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	type_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	type_section.add_child(type_description)
+
 	var style_section := VBoxContainer.new()
 	style_section.name = "ClockStyleFeatureSection"
 	style_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	style_section.add_theme_constant_override("separation", 8)
+	style_section.add_theme_constant_override("separation", 4)
 	feature_panel.add_child(style_section)
 
 	var style_title := _make_label("CLOCK STYLE", 19, Color("#D3AA6B"))
@@ -940,18 +938,10 @@ func _show_lock_screen_clock_controls() -> void:
 	style_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	style_section.add_child(style_title)
 
-	var style_description := _make_label("Choose one of the 41 available clock designs for the live phone preview.", 12, Color("#E5E0D6"))
-	style_description.name = "ClockStyleDescription"
-	style_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	style_description.autowrap_mode = TextServer.AUTOWRAP_WORD
-	style_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	style_section.add_child(style_description)
-
 	var style_controls_center := CenterContainer.new()
 	style_controls_center.name = "ClockStyleControlsCenter"
 	style_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	style_controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	style_controls_center.custom_minimum_size = Vector2(0, 180)
+	style_controls_center.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	style_section.add_child(style_controls_center)
 
 	clock_style_row = HBoxContainer.new()
@@ -985,9 +975,15 @@ func _show_lock_screen_clock_controls() -> void:
 	clock_style_increase_button.pressed.connect(_on_clock_style_increase_pressed)
 	clock_style_row.add_child(clock_style_increase_button)
 
+	var style_description := _make_label("Choose one of the 41 available clock designs for the live phone preview.", 12, Color("#E5E0D6"))
+	style_description.name = "ClockStyleDescription"
+	style_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	style_description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	style_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	style_section.add_child(style_description)
+
 	_refresh_clock_type_selector()
 	_refresh_clock_style_selector()
-
 
 func _refresh_clock_type_selector() -> void:
 	if not is_instance_valid(clock_type_row) or not is_instance_valid(lock_screen_designer):
