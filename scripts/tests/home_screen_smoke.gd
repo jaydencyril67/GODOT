@@ -73,7 +73,7 @@ func _run_test() -> void:
 			return
 
 	if int(home_screen.call("get_loaded_app_count")) < 140:
-		_fail("The app drawer did not load the bundled Appstract icon manifest.")
+		_fail("The app drawer did not load the bundled Papirus icon manifest.")
 		return
 	if int(home_screen.call("get_home_page_count")) != 2 or int(home_screen.call("get_home_icon_count")) != 36:
 		_fail("The launcher home pages and dock do not expose the expected curated app selection.")
