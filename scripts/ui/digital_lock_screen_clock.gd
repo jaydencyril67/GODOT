@@ -301,7 +301,7 @@ func _get_profile_font(profile: Dictionary) -> Font:
 		names.append(str(value))
 	var weight := int(profile.get("font_weight", 400))
 	var stretch := int(profile.get("font_stretch", 100))
-	var key := "%s|%d|%d" % [names.join(","), weight, stretch]
+	var key := "%s|%d|%d" % [",".join(names), weight, stretch]
 	if _font_cache.has(key):
 		return _font_cache[key] as Font
 	var font := SystemFont.new()
