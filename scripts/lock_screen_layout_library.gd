@@ -40,8 +40,8 @@ const BLUEPRINTS := [
 		"alignments": ["left", "center"],
 		"clock_formats": ["single"],
 		"content_slots": [
-			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.085)},
-			{"type": "notification", "rect": Rect2(0.075, 0.535, 0.85, 0.085)},
+			{"type": "notification", "rect": Rect2(0.075, 0.415, 0.85, 0.08)},
+			{"type": "notification", "rect": Rect2(0.075, 0.535, 0.85, 0.08)},
 			{"type": "media", "rect": Rect2(0.075, 0.65, 0.85, 0.10)}
 		],
 		"fingerprint": true
