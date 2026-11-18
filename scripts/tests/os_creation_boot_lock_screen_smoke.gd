@@ -123,8 +123,14 @@ func _run_test() -> void:
 	if type_heading == null or type_heading.text != "CLOCK TYPE":
 		_fail("Clock Type must begin with a dedicated feature heading.")
 		return
+	if type_section.get_child_count() != 3 or type_section.get_child(1) != type_center or type_section.get_child(2) != type_description:
+		_fail("Clock Type must place its selector immediately after the heading and keep its description below.")
+		return
 	if type_row.get_parent() != type_center or type_center.get_parent() != type_section or type_section.get_parent() != clock_feature_panel:
-		_fail("Clock Type controls must sit inside their centred feature-section hierarchy.")
+		_fail("Clock Type controls must sit directly beneath their sub-hero heading.")
+		return
+	if type_center.custom_minimum_size.y > 0.0:
+		_fail("Clock Type selector must not reserve a large vertical gap below its heading.")
 		return
 	if type_row.get_child_count() != 3 or type_decrease_button == null or type_value_label == null or type_increase_button == null:
 		_fail("Clock Type must use the three-part minus, selected value, plus selector structure.")
@@ -139,8 +145,14 @@ func _run_test() -> void:
 	if style_heading == null or style_heading.text != "CLOCK STYLE":
 		_fail("Clock Style must begin with a dedicated feature heading.")
 		return
+	if style_section.get_child_count() != 3 or style_section.get_child(1) != style_center or style_section.get_child(2) != style_description:
+		_fail("Clock Style must place its selector immediately after the heading and keep its description below.")
+		return
 	if style_row.get_parent() != style_center or style_center.get_parent() != style_section:
-		_fail("Clock Style controls must sit inside their own centred feature section.")
+		_fail("Clock Style controls must sit directly beneath their sub-hero heading.")
+		return
+	if style_center.custom_minimum_size.y > 0.0:
+		_fail("Clock Style selector must not reserve a large vertical gap below its heading.")
 		return
 	if style_row.get_child_count() != 3 or style_decrease_button == null or style_value_label == null or style_increase_button == null:
 		_fail("Clock Style must use the same minus, selected value, plus selector as Phone Type.")
