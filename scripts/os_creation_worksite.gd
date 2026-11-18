@@ -76,7 +76,10 @@ var clock_type_row: HBoxContainer
 var clock_type_value_label: Label
 var clock_type_decrease_button: Button
 var clock_type_increase_button: Button
-var clock_style_button: Button
+var clock_style_row: HBoxContainer
+var clock_style_value_label: Label
+var clock_style_decrease_button: Button
+var clock_style_increase_button: Button
 var progress_label: Label
 var progress_bar: ProgressBar
 var content_column: VBoxContainer
@@ -839,7 +842,10 @@ func _show_lock_screen_clock_controls() -> void:
 	clock_type_value_label = null
 	clock_type_decrease_button = null
 	clock_type_increase_button = null
-	clock_style_button = null
+	clock_style_row = null
+	clock_style_value_label = null
+	clock_style_decrease_button = null
+	clock_style_increase_button = null
 
 	# Keep the clock controls in the same explicit feature-panel hierarchy used
 	# by Phone Type: feature section, heading, explanation, then a centred
@@ -919,7 +925,7 @@ func _show_lock_screen_clock_controls() -> void:
 	style_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	style_section.add_child(style_title)
 
-	var style_description := _make_label("Cycle through the 41 available clock designs. Your selection updates the live phone preview.", 12, Color("#E5E0D6"))
+	var style_description := _make_label("Choose one of the 41 available clock designs for the live phone preview.", 12, Color("#E5E0D6"))
 	style_description.name = "ClockStyleDescription"
 	style_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	style_description.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -929,20 +935,43 @@ func _show_lock_screen_clock_controls() -> void:
 	var style_controls_center := CenterContainer.new()
 	style_controls_center.name = "ClockStyleControlsCenter"
 	style_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	style_controls_center.custom_minimum_size = Vector2(0, 76)
+	style_controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	style_controls_center.custom_minimum_size = Vector2(0, 180)
 	style_section.add_child(style_controls_center)
 
-	clock_style_button = _make_button("")
-	clock_style_button.name = "ClockStyleNextButton"
-	clock_style_button.custom_minimum_size = Vector2(180, 56)
-	clock_style_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	clock_style_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	clock_style_button.add_theme_font_size_override("font_size", 17)
-	clock_style_button.pressed.connect(_on_clock_style_next_pressed)
-	style_controls_center.add_child(clock_style_button)
+	clock_style_row = HBoxContainer.new()
+	clock_style_row.name = "ClockStyleSelector"
+	clock_style_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	clock_style_row.add_theme_constant_override("separation", 14)
+	style_controls_center.add_child(clock_style_row)
+
+	clock_style_decrease_button = _make_button("−")
+	clock_style_decrease_button.name = "ClockStyleDecreaseButton"
+	clock_style_decrease_button.custom_minimum_size = Vector2(56, 48)
+	clock_style_decrease_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	clock_style_decrease_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_style_decrease_button.add_theme_font_size_override("font_size", 22)
+	clock_style_decrease_button.pressed.connect(_on_clock_style_decrease_pressed)
+	clock_style_row.add_child(clock_style_decrease_button)
+
+	clock_style_value_label = _make_label("", 19, Color("#F2EEE7"))
+	clock_style_value_label.name = "ClockStyleValueLabel"
+	clock_style_value_label.custom_minimum_size.x = 190
+	clock_style_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_style_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_style_row.add_child(clock_style_value_label)
+
+	clock_style_increase_button = _make_button("+")
+	clock_style_increase_button.name = "ClockStyleIncreaseButton"
+	clock_style_increase_button.custom_minimum_size = Vector2(56, 48)
+	clock_style_increase_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	clock_style_increase_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_style_increase_button.add_theme_font_size_override("font_size", 22)
+	clock_style_increase_button.pressed.connect(_on_clock_style_increase_pressed)
+	clock_style_row.add_child(clock_style_increase_button)
 
 	_refresh_clock_type_selector()
-	_refresh_clock_style_button()
+	_refresh_clock_style_selector()
 
 
 func _refresh_clock_type_selector() -> void:
@@ -965,20 +994,37 @@ func _select_lock_screen_clock_type(clock_type: String) -> void:
 	_refresh_clock_type_selector()
 
 
-func _on_clock_style_next_pressed() -> void:
+func _on_clock_style_decrease_pressed() -> void:
+	if not is_instance_valid(lock_screen_designer):
+		return
+	var previous_style := int(lock_screen_designer.call("get_clock_style_index")) - 1
+	if previous_style < 1:
+		return
+	if bool(lock_screen_designer.call("set_clock_style_index", previous_style)):
+		_refresh_clock_style_selector()
+
+
+func _on_clock_style_increase_pressed() -> void:
 	if not is_instance_valid(lock_screen_designer):
 		return
 	var next_style := int(lock_screen_designer.call("get_clock_style_index")) + 1
 	if next_style > int(lock_screen_designer.call("get_clock_style_count")):
-		next_style = 1
-	if bool(lock_screen_designer.call("set_clock_style_index", next_style)):
-		_refresh_clock_style_button()
-
-
-func _refresh_clock_style_button() -> void:
-	if not is_instance_valid(clock_style_button) or not is_instance_valid(lock_screen_designer):
 		return
-	clock_style_button.text = "Style %d  +" % int(lock_screen_designer.call("get_clock_style_index"))
+	if bool(lock_screen_designer.call("set_clock_style_index", next_style)):
+		_refresh_clock_style_selector()
+
+
+func _refresh_clock_style_selector() -> void:
+	if not is_instance_valid(clock_style_row) or not is_instance_valid(lock_screen_designer):
+		return
+	var selected_style := int(lock_screen_designer.call("get_clock_style_index"))
+	var style_count := int(lock_screen_designer.call("get_clock_style_count"))
+	if is_instance_valid(clock_style_value_label):
+		clock_style_value_label.text = "STYLE %02d" % selected_style
+	if is_instance_valid(clock_style_decrease_button):
+		clock_style_decrease_button.disabled = selected_style <= 1
+	if is_instance_valid(clock_style_increase_button):
+		clock_style_increase_button.disabled = selected_style >= style_count
 
 
 func _show_lock_screen_designer_controls() -> void:

@@ -105,7 +105,10 @@ func _run_test() -> void:
 	var style_section := clock_controls.find_child("ClockStyleFeatureSection", true, false) as VBoxContainer
 	var style_description := clock_controls.find_child("ClockStyleDescription", true, false) as Label
 	var style_center := clock_controls.find_child("ClockStyleControlsCenter", true, false) as CenterContainer
-	var style_button := clock_controls.find_child("ClockStyleNextButton", true, false) as Button
+	var style_row := clock_controls.find_child("ClockStyleSelector", true, false) as HBoxContainer
+	var style_decrease_button := clock_controls.find_child("ClockStyleDecreaseButton", true, false) as Button
+	var style_value_label := clock_controls.find_child("ClockStyleValueLabel", true, false) as Label
+	var style_increase_button := clock_controls.find_child("ClockStyleIncreaseButton", true, false) as Button
 	if clock_feature_panel == null or type_section == null or type_description == null or type_center == null or type_row == null:
 		_fail("The Lock Screen Clock panel must use the Phone Type feature-section hierarchy.")
 		return
@@ -122,15 +125,21 @@ func _run_test() -> void:
 	if type_value_label.text != "ANALOG" or not type_decrease_button.disabled or type_increase_button.disabled:
 		_fail("The Clock Type selector must initially show Analog with only the forward selector enabled.")
 		return
-	if style_section == null or style_description == null or style_center == null or style_button == null or style_button.get_parent() != style_center:
+	if style_section == null or style_description == null or style_center == null or style_row == null:
 		_fail("Clock Style must have its own heading, description and centred control area.")
 		return
 	var style_heading := style_section.get_child(0) as Label
 	if style_heading == null or style_heading.text != "CLOCK STYLE":
 		_fail("Clock Style must begin with a dedicated feature heading.")
 		return
-	if style_button.text != "Style 1  +":
-		_fail("Step 2 must start at Clock Style 1.")
+	if style_row.get_parent() != style_center or style_center.get_parent() != style_section:
+		_fail("Clock Style controls must sit inside their own centred feature section.")
+		return
+	if style_row.get_child_count() != 3 or style_decrease_button == null or style_value_label == null or style_increase_button == null:
+		_fail("Clock Style must use the same minus, selected value, plus selector as Phone Type.")
+		return
+	if style_value_label.text != "STYLE 01" or not style_decrease_button.disabled or style_increase_button.disabled:
+		_fail("Clock Style must start at Style 01 with only the plus control enabled.")
 		return
 	type_increase_button.pressed.emit()
 	if type_value_label.text != "DIGITAL" or type_decrease_button.disabled or not type_increase_button.disabled:
@@ -141,9 +150,29 @@ func _run_test() -> void:
 		_fail("The minus control must restore Analog and update the available direction controls.")
 		return
 	for _style_step in range(40):
-		worksite.call("_on_clock_style_next_pressed")
-	if int(lock_screen.call("get_clock_style_index")) != 41 or style_button.text != "Style 41  +":
-		_fail("The Clock Style selector must expose all 41 styles and retain the selected style.")
+		style_increase_button.pressed.emit()
+	if int(lock_screen.call("get_clock_style_index")) != 41 or style_value_label.text != "STYLE 41":
+		_fail("The Clock Style plus control must reach Style 41 and retain the selected style.")
+		return
+	if not style_increase_button.disabled or style_decrease_button.disabled:
+		_fail("The Clock Style plus control must disable at Style 41.")
+		return
+	style_decrease_button.pressed.emit()
+	if int(lock_screen.call("get_clock_style_index")) != 40 or style_value_label.text != "STYLE 40":
+		_fail("The Clock Style minus control must move back to Style 40.")
+		return
+	for _style_step in range(39):
+		style_decrease_button.pressed.emit()
+	if int(lock_screen.call("get_clock_style_index")) != 1 or style_value_label.text != "STYLE 01":
+		_fail("The Clock Style minus control must reach Style 01.")
+		return
+	if not style_decrease_button.disabled or style_increase_button.disabled:
+		_fail("The Clock Style minus control must disable at Style 01.")
+		return
+	for _style_step in range(40):
+		style_increase_button.pressed.emit()
+	if int(lock_screen.call("get_clock_style_index")) != 41 or style_value_label.text != "STYLE 41":
+		_fail("Clock Style must return to Style 41 for the live preview checks.")
 		return
 	worksite.call("_select_lock_screen_clock_type", "digital")
 	if str(lock_screen.call("get_clock_type")) != "digital":
