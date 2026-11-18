@@ -1,0 +1,879 @@
+{
+  "collection": "Papirus",
+  "version": 1,
+  "total": 145,
+  "source_repository": "https://github.com/PapirusDevelopmentTeam/papirus_icons",
+  "license": "Papirus icons project license; see source repository",
+  "apps": [
+    {
+      "id": "discord",
+      "name": "Discord",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_discord.svg"
+    },
+    {
+      "id": "element",
+      "name": "Element",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_element.svg"
+    },
+    {
+      "id": "facebook",
+      "name": "Facebook",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_facebook.svg"
+    },
+    {
+      "id": "facebook_lite",
+      "name": "Facebook Lite",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_facebook_lite.svg"
+    },
+    {
+      "id": "facebook_pages",
+      "name": "Facebook Pages",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_facebook_pages.svg"
+    },
+    {
+      "id": "fbmessenger",
+      "name": "Fbmessenger",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_fbmessenger.svg"
+    },
+    {
+      "id": "fbmessenger_lite",
+      "name": "Fbmessenger Lite",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_fbmessenger_lite.svg"
+    },
+    {
+      "id": "guilded",
+      "name": "Guilded",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_guilded.svg"
+    },
+    {
+      "id": "imo",
+      "name": "Imo",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_imo.svg"
+    },
+    {
+      "id": "instagram",
+      "name": "Instagram",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_instagram.svg"
+    },
+    {
+      "id": "line",
+      "name": "Line",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_line.svg"
+    },
+    {
+      "id": "line_lite",
+      "name": "Line Lite",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_line_lite.svg"
+    },
+    {
+      "id": "linkedin",
+      "name": "Linkedin",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_linkedin.svg"
+    },
+    {
+      "id": "microsoft_teams",
+      "name": "Microsoft Teams",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_microsoft_teams.svg"
+    },
+    {
+      "id": "pinterest",
+      "name": "Pinterest",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_pinterest.svg"
+    },
+    {
+      "id": "reddit",
+      "name": "Reddit",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_reddit.svg"
+    },
+    {
+      "id": "session",
+      "name": "Session",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_session.svg"
+    },
+    {
+      "id": "signal",
+      "name": "Signal",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_signal.svg"
+    },
+    {
+      "id": "skype",
+      "name": "Skype",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_skype.svg"
+    },
+    {
+      "id": "slack",
+      "name": "Slack",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_slack.svg"
+    },
+    {
+      "id": "snapchat",
+      "name": "Snapchat",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_snapchat.svg"
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_telegram.svg"
+    },
+    {
+      "id": "threema",
+      "name": "Threema",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_threema.svg"
+    },
+    {
+      "id": "threema_work",
+      "name": "Threema Work",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_threema_work.svg"
+    },
+    {
+      "id": "tiktok",
+      "name": "Tiktok",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_tiktok.svg"
+    },
+    {
+      "id": "tumblr",
+      "name": "Tumblr",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_tumblr.svg"
+    },
+    {
+      "id": "twitch",
+      "name": "Twitch",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_twitch.svg"
+    },
+    {
+      "id": "twitter",
+      "name": "Twitter",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_twitter.svg"
+    },
+    {
+      "id": "viber",
+      "name": "Viber",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_viber.svg"
+    },
+    {
+      "id": "vk",
+      "name": "VK",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_vk.svg"
+    },
+    {
+      "id": "wechat",
+      "name": "Wechat",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_wechat.svg"
+    },
+    {
+      "id": "whatsapp",
+      "name": "Whatsapp",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_whatsapp.svg"
+    },
+    {
+      "id": "whatsapp_business",
+      "name": "Whatsapp Business",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_whatsapp_business.svg"
+    },
+    {
+      "id": "wire",
+      "name": "Wire",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_wire.svg"
+    },
+    {
+      "id": "zoom",
+      "name": "Zoom",
+      "category": "social",
+      "path": "res://assets/app_icons/papirus/social/apps_zoom.svg"
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/apps_gemini.svg"
+    },
+    {
+      "id": "agenda",
+      "name": "Agenda",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_agenda.svg"
+    },
+    {
+      "id": "assistant",
+      "name": "Assistant",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_assistant.svg"
+    },
+    {
+      "id": "auth",
+      "name": "Auth",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_auth.svg"
+    },
+    {
+      "id": "camera",
+      "name": "Camera",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_camera.svg"
+    },
+    {
+      "id": "chrome",
+      "name": "Chrome",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_chrome.svg"
+    },
+    {
+      "id": "clock",
+      "name": "Clock",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_clock.svg"
+    },
+    {
+      "id": "contacts",
+      "name": "Contacts",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_contacts.svg"
+    },
+    {
+      "id": "drive",
+      "name": "Drive",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_drive.svg"
+    },
+    {
+      "id": "earth",
+      "name": "Earth",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_earth.svg"
+    },
+    {
+      "id": "files_go",
+      "name": "Files GO",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_files_go.svg"
+    },
+    {
+      "id": "gboard",
+      "name": "Gboard",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_gboard.svg"
+    },
+    {
+      "id": "gmail",
+      "name": "Gmail",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_gmail.svg"
+    },
+    {
+      "id": "keep",
+      "name": "Keep",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_keep.svg"
+    },
+    {
+      "id": "meet",
+      "name": "Meet",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_meet.svg"
+    },
+    {
+      "id": "photos",
+      "name": "Photos",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_photos.svg"
+    },
+    {
+      "id": "play",
+      "name": "Play",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_play.svg"
+    },
+    {
+      "id": "play_book",
+      "name": "Play Book",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_play_book.svg"
+    },
+    {
+      "id": "play_game",
+      "name": "Play Game",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_play_game.svg"
+    },
+    {
+      "id": "translate",
+      "name": "Translate",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_translate.svg"
+    },
+    {
+      "id": "youtube",
+      "name": "Youtube",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_youtube.svg"
+    },
+    {
+      "id": "youtube_music",
+      "name": "Youtube Music",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/google_youtube_music.svg"
+    },
+    {
+      "id": "calculator",
+      "name": "Calculator",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/system_calculator.svg"
+    },
+    {
+      "id": "maps",
+      "name": "Maps",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/system_maps.svg"
+    },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "category": "google_essential",
+      "path": "res://assets/app_icons/papirus/google_essential/system_settings.svg"
+    },
+    {
+      "id": "adobe_reader",
+      "name": "Adobe Reader",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_adobe_reader.svg"
+    },
+    {
+      "id": "amazon_kindle",
+      "name": "Amazon Kindle",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_amazon_kindle.svg"
+    },
+    {
+      "id": "ankidroid",
+      "name": "Ankidroid",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_ankidroid.svg"
+    },
+    {
+      "id": "asana",
+      "name": "Asana",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_asana.svg"
+    },
+    {
+      "id": "coursera",
+      "name": "Coursera",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_coursera.svg"
+    },
+    {
+      "id": "dropbox",
+      "name": "Dropbox",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_dropbox.svg"
+    },
+    {
+      "id": "duolingo",
+      "name": "Duolingo",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_duolingo.svg"
+    },
+    {
+      "id": "evernote",
+      "name": "Evernote",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_evernote.svg"
+    },
+    {
+      "id": "grammarly",
+      "name": "Grammarly",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_grammarly.svg"
+    },
+    {
+      "id": "khan_academy",
+      "name": "Khan Academy",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_khan_academy.svg"
+    },
+    {
+      "id": "microsoft_excel",
+      "name": "Microsoft Excel",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_microsoft_excel.svg"
+    },
+    {
+      "id": "microsoft_office",
+      "name": "Microsoft Office",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_microsoft_office.svg"
+    },
+    {
+      "id": "microsoft_onenote",
+      "name": "Microsoft Onenote",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_microsoft_onenote.svg"
+    },
+    {
+      "id": "microsoft_powerpoint",
+      "name": "Microsoft Powerpoint",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_microsoft_powerpoint.svg"
+    },
+    {
+      "id": "microsoft_word",
+      "name": "Microsoft Word",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_microsoft_word.svg"
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_notion.svg"
+    },
+    {
+      "id": "obsidian",
+      "name": "Obsidian",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_obsidian.svg"
+    },
+    {
+      "id": "todoist",
+      "name": "Todoist",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_todoist.svg"
+    },
+    {
+      "id": "trello",
+      "name": "Trello",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_trello.svg"
+    },
+    {
+      "id": "udemy",
+      "name": "Udemy",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_udemy.svg"
+    },
+    {
+      "id": "wikipedia",
+      "name": "Wikipedia",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/apps_wikipedia.svg"
+    },
+    {
+      "id": "classroom",
+      "name": "Classroom",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/google_classroom.svg"
+    },
+    {
+      "id": "docs",
+      "name": "Docs",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/google_docs.svg"
+    },
+    {
+      "id": "sheets",
+      "name": "Sheets",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/google_sheets.svg"
+    },
+    {
+      "id": "slides",
+      "name": "Slides",
+      "category": "productivity_education",
+      "path": "res://assets/app_icons/papirus/productivity_education/google_slides.svg"
+    },
+    {
+      "id": "alfabank",
+      "name": "Alfabank",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_alfabank.svg"
+    },
+    {
+      "id": "cash_app",
+      "name": "Cash App",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_cash_app.svg"
+    },
+    {
+      "id": "ledger_live",
+      "name": "Ledger Live",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_ledger_live.svg"
+    },
+    {
+      "id": "monobank",
+      "name": "Monobank",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_monobank.svg"
+    },
+    {
+      "id": "nubank",
+      "name": "Nubank",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_nubank.svg"
+    },
+    {
+      "id": "paypal",
+      "name": "Paypal",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_paypal.svg"
+    },
+    {
+      "id": "phonepe",
+      "name": "Phonepe",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_phonepe.svg"
+    },
+    {
+      "id": "samsung_pay",
+      "name": "Samsung Pay",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_samsung_pay.svg"
+    },
+    {
+      "id": "tradingview",
+      "name": "Tradingview",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_tradingview.svg"
+    },
+    {
+      "id": "wallet",
+      "name": "Wallet",
+      "category": "finance",
+      "path": "res://assets/app_icons/papirus/finance/apps_wallet.svg"
+    },
+    {
+      "id": "amazon_prime_video",
+      "name": "Amazon Prime Video",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_amazon_prime_video.svg"
+    },
+    {
+      "id": "audible",
+      "name": "Audible",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_audible.svg"
+    },
+    {
+      "id": "deezer",
+      "name": "Deezer",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_deezer.svg"
+    },
+    {
+      "id": "disney_plus",
+      "name": "Disney Plus",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_disney_plus.svg"
+    },
+    {
+      "id": "kodi",
+      "name": "Kodi",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_kodi.svg"
+    },
+    {
+      "id": "mx_player",
+      "name": "MX Player",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_mx_player.svg"
+    },
+    {
+      "id": "netflix",
+      "name": "Netflix",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_netflix.svg"
+    },
+    {
+      "id": "plex",
+      "name": "Plex",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_plex.svg"
+    },
+    {
+      "id": "samsung_music",
+      "name": "Samsung Music",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_samsung_music.svg"
+    },
+    {
+      "id": "shazam",
+      "name": "Shazam",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_shazam.svg"
+    },
+    {
+      "id": "soundcloud",
+      "name": "Soundcloud",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_soundcloud.svg"
+    },
+    {
+      "id": "spotify_client",
+      "name": "Spotify Client",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_spotify_client.svg"
+    },
+    {
+      "id": "vlc",
+      "name": "Vlc",
+      "category": "entertainment_music",
+      "path": "res://assets/app_icons/papirus/entertainment_music/apps_vlc.svg"
+    },
+    {
+      "id": "aliexpress",
+      "name": "Aliexpress",
+      "category": "shopping_ecommerce",
+      "path": "res://assets/app_icons/papirus/shopping_ecommerce/apps_aliexpress.svg"
+    },
+    {
+      "id": "amazon_store",
+      "name": "Amazon Store",
+      "category": "shopping_ecommerce",
+      "path": "res://assets/app_icons/papirus/shopping_ecommerce/apps_amazon_store.svg"
+    },
+    {
+      "id": "ebay",
+      "name": "Ebay",
+      "category": "shopping_ecommerce",
+      "path": "res://assets/app_icons/papirus/shopping_ecommerce/apps_ebay.svg"
+    },
+    {
+      "id": "shein",
+      "name": "Shein",
+      "category": "shopping_ecommerce",
+      "path": "res://assets/app_icons/papirus/shopping_ecommerce/apps_shein.svg"
+    },
+    {
+      "id": "shopee",
+      "name": "Shopee",
+      "category": "shopping_ecommerce",
+      "path": "res://assets/app_icons/papirus/shopping_ecommerce/apps_shopee.svg"
+    },
+    {
+      "id": "microsoft_xbox",
+      "name": "Microsoft Xbox",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/apps_microsoft_xbox.svg"
+    },
+    {
+      "id": "among_us",
+      "name": "Among US",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_among_us.svg"
+    },
+    {
+      "id": "brawl_stars",
+      "name": "Brawl Stars",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_brawl_stars.svg"
+    },
+    {
+      "id": "call_of_duty_mobile",
+      "name": "Call OF Duty Mobile",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_call_of_duty_mobile.svg"
+    },
+    {
+      "id": "clash_of_clans",
+      "name": "Clash OF Clans",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_clash_of_clans.svg"
+    },
+    {
+      "id": "clash_royale",
+      "name": "Clash Royale",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_clash_royale.svg"
+    },
+    {
+      "id": "epic_games",
+      "name": "Epic Games",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_epic_games.svg"
+    },
+    {
+      "id": "fifa_mobile",
+      "name": "Fifa Mobile",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_fifa_mobile.svg"
+    },
+    {
+      "id": "fortnite",
+      "name": "Fortnite",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_fortnite.svg"
+    },
+    {
+      "id": "minecraft",
+      "name": "Minecraft",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_minecraft.svg"
+    },
+    {
+      "id": "pokemon_go",
+      "name": "Pokemon GO",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_pokemon_go.svg"
+    },
+    {
+      "id": "pubg",
+      "name": "Pubg",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_pubg.svg"
+    },
+    {
+      "id": "roblox",
+      "name": "Roblox",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_roblox.svg"
+    },
+    {
+      "id": "steam",
+      "name": "Steam",
+      "category": "games",
+      "path": "res://assets/app_icons/papirus/games/games_steam.svg"
+    },
+    {
+      "id": "agoda",
+      "name": "Agoda",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_agoda.svg"
+    },
+    {
+      "id": "airbnb",
+      "name": "Airbnb",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_airbnb.svg"
+    },
+    {
+      "id": "busnavi",
+      "name": "Busnavi",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_busnavi.svg"
+    },
+    {
+      "id": "flightradar24",
+      "name": "Flightradar24",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_flightradar24.svg"
+    },
+    {
+      "id": "grab",
+      "name": "Grab",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_grab.svg"
+    },
+    {
+      "id": "here_wego",
+      "name": "Here Wego",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_here_wego.svg"
+    },
+    {
+      "id": "hotels_com",
+      "name": "Hotels Com",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_hotels_com.svg"
+    },
+    {
+      "id": "lyft",
+      "name": "Lyft",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_lyft.svg"
+    },
+    {
+      "id": "organic_maps",
+      "name": "Organic Maps",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_organic_maps.svg"
+    },
+    {
+      "id": "uber_driver",
+      "name": "Uber Driver",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_uber_driver.svg"
+    },
+    {
+      "id": "waze",
+      "name": "Waze",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/apps_waze.svg"
+    },
+    {
+      "id": "my_maps",
+      "name": "MY Maps",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/google_my_maps.svg"
+    },
+    {
+      "id": "yandex_avia",
+      "name": "Yandex Avia",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/yandex_avia.svg"
+    },
+    {
+      "id": "yandex_map",
+      "name": "Yandex Map",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/yandex_map.svg"
+    },
+    {
+      "id": "yandex_metro",
+      "name": "Yandex Metro",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/yandex_metro.svg"
+    },
+    {
+      "id": "yandex_navigator",
+      "name": "Yandex Navigator",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/yandex_navigator.svg"
+    },
+    {
+      "id": "yandex_taxi",
+      "name": "Yandex Taxi",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/yandex_taxi.svg"
+    },
+    {
+      "id": "yandex_yango",
+      "name": "Yandex Yango",
+      "category": "travel_navigation",
+      "path": "res://assets/app_icons/papirus/travel_navigation/yandex_yango.svg"
+    }
+  ]
+}
