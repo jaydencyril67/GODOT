@@ -225,6 +225,33 @@ func _run_test() -> void:
 			if active_time == null or not active_time.visible or active_hours == null or active_hours.visible or active_minutes == null or active_minutes.visible:
 				_fail("Single-line phone clock references must render one horizontal time row.")
 				return
+	var observed_weights: Dictionary = {}
+	var observed_families: Dictionary = {}
+	var observed_italic := false
+	for typography_index in range(1, 42):
+		if not bool(lock_screen.call("set_clock_style_index", typography_index)):
+			_fail("A typography preset could not be selected for validation.")
+			return
+		var typography_clock := lock_screen.find_child("DigitalClock", true, false) as Control
+		var typography_time := typography_clock.find_child("DigitalClockTime", true, false) as Label
+		var typography_hours := typography_clock.find_child("DigitalClockHours", true, false) as Label
+		var typography_label := typography_time if typography_time.visible else typography_hours
+		var typography_font := typography_label.get_theme_font("font") as SystemFont
+		var typography_size := typography_label.get_theme_font_size("font_size")
+		if typography_font == null or typography_size > 180:
+			_fail("Digital clock typography must use a real font profile and stay within the reduced size limit.")
+			return
+		observed_weights[typography_font.font_weight] = true
+		if not typography_font.font_names.is_empty():
+			observed_families[typography_font.font_names[0]] = true
+		observed_italic = observed_italic or typography_font.font_italic
+		var typography_date := typography_clock.find_child("DigitalClockDate", true, false) as Label
+		if typography_date.get_theme_font_size("font_size") >= typography_size:
+			_fail("The lock-screen date must remain visually subordinate to the time.")
+			return
+	if observed_weights.size() < 5 or observed_families.size() < 4 or not observed_weights.has(850) or not observed_italic:
+		_fail("The 41 digital clock presets must provide distinct font families, multiple weights including extra-bold, and italic text treatments.")
+		return
 	if not bool(lock_screen.call("set_clock_style_index", 41)):
 		_fail("Digital Style 41 could not be restored after reference validation.")
 		return
