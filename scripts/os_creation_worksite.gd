@@ -785,7 +785,6 @@ func _on_pin_unlocked() -> void:
 	_home_screen_unlocked = true
 	lock_screen_designer.visible = false
 	lock_screen_designer.call("hide_pin_entry")
-	_configure_home_screen()
 	home_screen_designer.visible = true
 	_update_phone_preview_mode()
 
