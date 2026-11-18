@@ -188,7 +188,17 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 	var layer_id := str(node_spec.get("layer", ""))
 	var layer := _get_layer(layer_id)
 	var label := Label.new()
-	label.name = "ClockLayer_" + layer_id
+	match layer_id:
+		"hours":
+			label.name = "DigitalClockHours"
+		"minutes":
+			label.name = "DigitalClockMinutes"
+		"date":
+			label.name = "DigitalClockDate"
+		"time":
+			label.name = "DigitalClockTime"
+		_:
+			label.name = "ClockLayer_" + layer_id
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -202,9 +212,14 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 	var requested_size := float(node_spec.get("size", 0.09))
 	var short_side := minf(available_size.x, available_size.y)
 	var font_size := clampi(roundi(short_side * requested_size * 0.42), 11, maxi(12, roundi(available_size.y * 0.28)))
-	var font: Font = _library.get_font(str(layer.get("font", "")))
+	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
+	if font_reference.is_empty():
+		font_reference = "roboto_flex"
+	var font: Font = _library.get_font(font_reference)
 	if font == null:
-		font = get_theme_default_font()
+		font = _library.get_font("roboto_flex")
+	if font == null:
+		push_error("XMorph digital clock font is missing: " + font_reference)
 	label.add_theme_font_override("font", font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", _layer_color(str(layer.get("color", ""))))
