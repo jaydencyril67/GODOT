@@ -44,6 +44,9 @@ func _run_test() -> void:
 	if home_grid == null or home_grid.get_child_count() != 16:
 		_fail("The first home page must display a complete four-by-four app grid.")
 		return
+	if not _grid_is_horizontally_centered(home_grid):
+		_fail("The home-screen app grid is horizontally shifted instead of centered.")
+		return
 	var page_icons := home_grid.find_children("*", "TextureRect", true, false)
 	if page_icons.size() != 16:
 		_fail("The visible home page must expose sixteen app icons; found %d." % page_icons.size())
@@ -96,8 +99,13 @@ func _run_test() -> void:
 		_fail("A right swipe could not return to the first home page.")
 		return
 	home_screen.call("open_app_drawer")
+	await process_frame
 	if not bool(home_screen.call("is_app_drawer_visible")) or int(home_screen.call("get_app_drawer_result_count")) < 140:
 		_fail("The swipe-up app drawer did not expose the bundled app collection.")
+		return
+	var drawer_grid := home_screen.find_child("AppDrawerIconGrid", true, false) as GridContainer
+	if not _grid_is_horizontally_centered(drawer_grid):
+		_fail("The app-drawer icon grid is horizontally shifted instead of centered.")
 		return
 	home_screen.call("set_app_search_query", "spotify")
 	if int(home_screen.call("get_app_drawer_result_count")) != 1:
@@ -112,6 +120,18 @@ func _run_test() -> void:
 	await process_frame
 	print("ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS")
 	quit()
+
+
+func _grid_is_horizontally_centered(grid: GridContainer) -> bool:
+	if grid == null or grid.get_child_count() < grid.columns or grid.columns < 2:
+		return false
+	var first_tile := grid.get_child(0) as Control
+	var last_tile := grid.get_child(grid.columns - 1) as Control
+	if first_tile == null or last_tile == null:
+		return false
+	var grid_center_x := grid.get_global_rect().get_center().x
+	var row_center_x := (first_tile.get_global_rect().get_center().x + last_tile.get_global_rect().get_center().x) * 0.5
+	return absf(row_center_x - grid_center_x) <= 2.0
 
 
 func _fail(message: String) -> void:
