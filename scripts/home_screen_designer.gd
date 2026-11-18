@@ -326,7 +326,9 @@ func _rebuild_home_app_grid() -> void:
 		var app: Dictionary = _apps_by_id.get(str(app_id), {})
 		if app.is_empty():
 			continue
-		grid.add_child(_make_app_tile(app, 98, 24, 142, false))
+		var tile := _make_app_tile(app, 98, 24, 142, false)
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(tile)
 
 
 func _add_dock() -> void:
@@ -511,7 +513,9 @@ func _rebuild_app_drawer_grid(query: String) -> void:
 		var app_id := str(app.get("id", ""))
 		if not normalized_query.is_empty() and not app_name.to_lower().contains(normalized_query) and not app_id.to_lower().contains(normalized_query):
 			continue
-		_drawer_grid.add_child(_make_app_tile(app, 84, 22, 132, false))
+		var tile := _make_app_tile(app, 84, 22, 132, false)
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_drawer_grid.add_child(tile)
 
 
 func _add_status_bar() -> void:
