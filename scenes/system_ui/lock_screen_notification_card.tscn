@@ -6,7 +6,7 @@
 mouse_filter = 2
 script = ExtResource("1")
 
-[node name="Surface" type="TextureRect" parent="."]
+[node name="GeneratedNotificationSurface" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -59,7 +59,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 10
 mouse_filter = 2
 
-[node name="CategoryIcon" type="TextureRect" parent="Margin/Row/Content/Header"]
+[node name="NotificationCategoryIcon" type="TextureRect" parent="Margin/Row/Content/Header"]
 custom_minimum_size = Vector2(13, 13)
 layout_mode = 2
 expand_mode = 1

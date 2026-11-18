@@ -6,7 +6,7 @@
 mouse_filter = 2
 script = ExtResource("1")
 
-[node name="Surface" type="TextureRect" parent="."]
+[node name="GeneratedMediaPlayerSurface" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -72,13 +72,13 @@ layout_mode = 2
 show_percentage = false
 mouse_filter = 2
 
-[node name="Controls" type="HBoxContainer" parent="Margin/Content"]
+[node name="GeneratedMediaControls" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 25
 mouse_filter = 2
 
-[node name="Previous" type="TextureRect" parent="Margin/Content/Controls"]
+[node name="Previous" type="TextureRect" parent="Margin/Content/GeneratedMediaControls"]
 custom_minimum_size = Vector2(21, 21)
 layout_mode = 2
 expand_mode = 1

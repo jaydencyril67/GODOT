@@ -2,10 +2,10 @@ extends Control
 
 const AssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 
-@onready var surface: TextureRect = $Surface
+@onready var surface: TextureRect = $GeneratedNotificationSurface
 @onready var app_icon: TextureRect = $Margin/Row/AppIcon
 @onready var app_label: Label = $Margin/Row/Content/Header/AppLabel
-@onready var category_icon: TextureRect = $Margin/Row/Content/Header/CategoryIcon
+@onready var category_icon: TextureRect = $Margin/Row/Content/Header/NotificationCategoryIcon
 @onready var more_icon: TextureRect = $Margin/Row/Content/Header/MoreIcon
 @onready var title_label: Label = $Margin/Row/Content/Title
 @onready var body_label: Label = $Margin/Row/Content/Body

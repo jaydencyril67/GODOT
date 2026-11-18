@@ -2,13 +2,13 @@ extends Control
 
 const AssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 
-@onready var surface: TextureRect = $Surface
+@onready var surface: TextureRect = $GeneratedMediaPlayerSurface
 @onready var service_icon: TextureRect = $Margin/Content/TopRow/ServiceIcon
 @onready var service_label: Label = $Margin/Content/TopRow/TrackInfo/ServiceLabel
 @onready var title_label: Label = $Margin/Content/TopRow/TrackInfo/Title
 @onready var artist_label: Label = $Margin/Content/TopRow/TrackInfo/Artist
 @onready var progress: ProgressBar = $Margin/Content/Progress
-@onready var previous_icon: TextureRect = $Margin/Content/Controls/Previous
+@onready var previous_icon: TextureRect = $Margin/Content/GeneratedMediaControls/Previous
 @onready var play_pause_icon: TextureRect = $Margin/Content/Controls/PlayPause
 @onready var next_icon: TextureRect = $Margin/Content/Controls/Next
 
