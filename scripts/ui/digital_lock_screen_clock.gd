@@ -4,6 +4,10 @@ const FaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_libra
 const FACE_FRAME_RECT := Rect2(0.05, 0.30, 0.90, 0.40)
 const TIME_FONT_FRACTION := 0.29
 const DATE_FONT_FRACTION := 0.045
+const DATE_TIME_GAP_RATIO := 0.012
+const DATE_TIME_GAP_MIN := 5.0
+const DATE_TIME_GAP_MAX := 12.0
+const TIME_LAYER_TYPES := ["HOURS", "MINUTES", "COLON", "TIME", "HOUR_TENS", "HOUR_ONES", "MINUTE_TENS", "MINUTE_ONES"]
 
 var _library := FaceAssetLibrary.new()
 var _style_index := 1
@@ -99,7 +103,142 @@ func _render_face() -> void:
 	root_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.add_child(root_node)
+	call_deferred("_normalize_time_and_date", frame, root_node)
 	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
+
+
+func get_time_visual_rect() -> Rect2:
+	return _get_time_layer_bounds(self)
+
+
+func get_date_visual_rect() -> Rect2:
+	var date_label := _find_date_layer(self)
+	return date_label.get_global_rect() if date_label != null and date_label.visible else Rect2()
+
+
+func get_date_time_gap_pixels() -> float:
+	var time_rect := get_time_visual_rect()
+	var date_rect := get_date_visual_rect()
+	if time_rect.size == Vector2.ZERO or date_rect.size == Vector2.ZERO:
+		return -1.0
+	if date_rect.end.y <= time_rect.position.y:
+		return time_rect.position.y - date_rect.end.y
+	if date_rect.position.y >= time_rect.end.y:
+		return date_rect.position.y - time_rect.end.y
+	return 0.0
+
+
+func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(frame) or not is_instance_valid(root_node):
+		return
+	var time_rect := _get_time_layer_bounds(root_node)
+	if time_rect.size == Vector2.ZERO:
+		return
+
+	# Imported faces keep their own type, font, tracking and time composition,
+	# but the visible time group always shares the same visual center.
+	var frame_rect := frame.get_global_rect()
+	var time_local := Rect2(time_rect.position - frame_rect.position, time_rect.size)
+	var shift := frame.size * 0.5 - time_local.get_center()
+	if time_local.size.x <= frame.size.x:
+		shift.x = clampf(shift.x, -time_local.position.x, frame.size.x - time_local.end.x)
+	if time_local.size.y <= frame.size.y:
+		shift.y = clampf(shift.y, -time_local.position.y, frame.size.y - time_local.end.y)
+	if not is_zero_approx(shift.x) or not is_zero_approx(shift.y):
+		root_node.offset_left += shift.x
+		root_node.offset_right += shift.x
+		root_node.offset_top += shift.y
+		root_node.offset_bottom += shift.y
+	await get_tree().process_frame
+	if not is_instance_valid(frame) or not is_instance_valid(root_node):
+		return
+
+	time_rect = _get_time_layer_bounds(root_node)
+	var date_label := _find_date_layer(root_node)
+	if time_rect.size == Vector2.ZERO or date_label == null or not date_label.visible:
+		return
+	var date_rect := date_label.get_global_rect()
+	var date_was_above := date_rect.get_center().y < time_rect.get_center().y
+	var current_frame_rect := frame.get_global_rect()
+	var time_in_frame := Rect2(time_rect.position - current_frame_rect.position, time_rect.size)
+
+	var date_font := date_label.get_theme_font("font")
+	var date_font_size := date_label.get_theme_font_size("font_size")
+	var measured_width := date_label.custom_minimum_size.x
+	if date_font != null:
+		measured_width = maxf(measured_width, date_font.get_string_size(
+			date_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, date_font_size
+		).x + 8.0)
+	var date_width := clampf(measured_width, 24.0, frame.size.x)
+	var date_height := maxf(date_label.custom_minimum_size.y, maxf(float(date_font_size) * 1.35, 16.0))
+	date_height = minf(date_height, frame.size.y)
+	var gap := clampf(frame.size.y * DATE_TIME_GAP_RATIO, DATE_TIME_GAP_MIN, DATE_TIME_GAP_MAX)
+
+	# Remove the date from the imported layout stack and place it directly
+	# beside the time. This prevents large JSON container gaps from separating
+	# the two while retaining the face's own date font and decoration.
+	date_label.reparent(frame, false)
+	date_label.anchor_left = 0.0
+	date_label.anchor_top = 0.0
+	date_label.anchor_right = 0.0
+	date_label.anchor_bottom = 0.0
+	date_label.offset_left = 0.0
+	date_label.offset_top = 0.0
+	date_label.offset_right = 0.0
+	date_label.offset_bottom = 0.0
+	date_label.custom_minimum_size = Vector2.ZERO
+	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	date_label.size = Vector2(date_width, date_height)
+	var date_x := clampf(time_in_frame.get_center().x - date_width * 0.5, 0.0, frame.size.x - date_width)
+	var above_y := time_in_frame.position.y - gap - date_height
+	var below_y := time_in_frame.end.y + gap
+	var date_y := above_y if date_was_above else below_y
+	if date_y < 0.0 or date_y + date_height > frame.size.y:
+		date_y = below_y if date_was_above else above_y
+	date_y = clampf(date_y, 0.0, frame.size.y - date_height)
+	date_label.position = Vector2(date_x, date_y)
+
+
+func _get_time_layer_bounds(search_root: Node) -> Rect2:
+	var has_bounds := false
+	var bounds := Rect2()
+	for label_value in search_root.find_children("*", "Label", true, false):
+		var clock_label := label_value as Label
+		if not clock_label.visible or clock_label.text.is_empty():
+			continue
+		var layer := _get_layer(_layer_id_for_label(clock_label))
+		if str(layer.get("type", "")) not in TIME_LAYER_TYPES:
+			continue
+		var label_rect := clock_label.get_global_rect()
+		if label_rect.size.x <= 0.0 or label_rect.size.y <= 0.0:
+			continue
+		bounds = label_rect if not has_bounds else bounds.merge(label_rect)
+		has_bounds = true
+	return bounds if has_bounds else Rect2()
+
+
+func _find_date_layer(search_root: Node) -> Label:
+	for label_value in search_root.find_children("*", "Label", true, false):
+		var clock_label := label_value as Label
+		if str(_get_layer(_layer_id_for_label(clock_label)).get("type", "")) == "DATE":
+			return clock_label
+	return null
+
+
+func _layer_id_for_label(clock_label: Label) -> String:
+	match clock_label.name:
+		"DigitalClockHours":
+			return "hours"
+		"DigitalClockMinutes":
+			return "minutes"
+		"DigitalClockDate":
+			return "date"
+		"DigitalClockTime":
+			return "time"
+		_:
+			return clock_label.name.trim_prefix("ClockLayer_") if clock_label.name.begins_with("ClockLayer_") else ""
 
 
 func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
