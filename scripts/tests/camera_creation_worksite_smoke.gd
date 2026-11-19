@@ -77,8 +77,8 @@ func _run_camera_worksite_test() -> void:
 		return
 
 	var handset_bounds := chassis.mesh.get_aabb()
-	if not is_equal_approx(handset_bounds.size.x, 1.45) or not is_equal_approx(handset_bounds.size.y, 2.92) or not is_equal_approx(handset_bounds.size.z, 0.22):
-		_fail("Camera-less handset no longer matches the shared Phone Creation Worksite proportions.")
+	if not is_equal_approx(handset_bounds.size.x, 1.45) or not is_equal_approx(handset_bounds.size.y, 2.92) or not is_equal_approx(handset_bounds.size.z, 0.15):
+		_fail("Camera-less handset is too thick or no longer matches realistic shared handset proportions.")
 		worksite.free()
 		return
 
