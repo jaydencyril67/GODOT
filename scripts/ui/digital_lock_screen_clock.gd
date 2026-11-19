@@ -385,17 +385,26 @@ func _select_cached_face(face_index: int) -> void:
 		return
 	_style_index = face_index
 	_face = _face_variants[face_index].get("face", {})
-	var normalization_active := not _face_normalization_queue.is_empty()
+	_face_normalization_queue.clear()
+	var selected_state: Dictionary = _face_variants[face_index]
+	if not bool(selected_state.get("normalized", false)):
+		var selected_root := selected_state.get("root") as Control
+		if is_instance_valid(selected_root):
+			selected_root.offset_left = 0.0
+			selected_root.offset_top = 0.0
+			selected_root.offset_right = 0.0
+			selected_root.offset_bottom = 0.0
+			selected_state["last_bounds"] = Rect2()
+			selected_state["stable_frames"] = 0
+			selected_state["shift_applied"] = false
+			selected_state["shift_attempts"] = 0
+			_face_normalization_queue.append(face_index)
 	for cached_index in _face_variants.keys():
 		var frame: Control = _face_variants[cached_index].get("frame") as Control
 		if not is_instance_valid(frame):
 			continue
-		if normalization_active:
-			frame.visible = true
-			frame.modulate.a = 1.0 if int(cached_index) == face_index else 0.0
-		else:
-			frame.visible = int(cached_index) == face_index
-			frame.modulate = Color.WHITE
+		frame.visible = int(cached_index) == face_index
+		frame.modulate = Color.WHITE
 
 func _process_face_normalization_queue() -> void:
 	if _face_normalization_queue.is_empty():
