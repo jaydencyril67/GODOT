@@ -92,15 +92,30 @@ func _run_test() -> void:
 	if progress_box == null or clock_toggle.global_position.y < progress_box.global_position.y + progress_box.size.y:
 		_fail("The clock enable control must sit below the top-right progress overlay without colliding with it.")
 		return
+	var clock_component := lock_screen.find_child("GeneratedLockScreenClockComponent", true, false) as Control
+	if clock_component == null:
+		_fail("The clock component must be constructed before the worksite enables it.")
+		return
+	var clock_component_id := clock_component.get_instance_id()
+	var analog_artwork := lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
+	var digital_clock := lock_screen.find_child("DigitalClock", true, false) as Control
+	if analog_artwork == null or digital_clock == null:
+		_fail("Both clock renderers must be constructed during initial lock-screen setup.")
+		return
+	var analog_artwork_id := analog_artwork.get_instance_id()
+	var digital_clock_id := digital_clock.get_instance_id()
 	clock_toggle.set_pressed_no_signal(false)
 	worksite.call("_on_clock_enabled_toggled", false)
-	if lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) != null or lock_screen.find_child("DigitalClock", true, false) != null:
-		_fail("Disabling the Step 2 clock checkbox must remove the clock from the live preview.")
+	if clock_component.visible or lock_screen.find_child("GeneratedLockScreenClockComponent", true, false).get_instance_id() != clock_component_id:
+		_fail("Disabling the clock must only hide its existing component.")
+		return
+	if lock_screen.find_child("GeneratedAnalogClockArtwork", true, false).get_instance_id() != analog_artwork_id or lock_screen.find_child("DigitalClock", true, false).get_instance_id() != digital_clock_id:
+		_fail("Disabling the clock must retain both prebuilt clock renderers.")
 		return
 	clock_toggle.set_pressed_no_signal(true)
 	worksite.call("_on_clock_enabled_toggled", true)
-	if lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) == null:
-		_fail("Enabling the Step 2 clock checkbox must restore the live clock.")
+	if not clock_component.visible or lock_screen.find_child("GeneratedLockScreenClockComponent", true, false).get_instance_id() != clock_component_id:
+		_fail("Enabling the clock must restore the same existing clock component.")
 		return
 	var clock_feature_panel := clock_controls.find_child("LockScreenClockFeaturePanel", true, false) as VBoxContainer
 	var type_section := clock_controls.find_child("ClockTypeFeatureSection", true, false) as VBoxContainer
