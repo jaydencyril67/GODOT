@@ -5,6 +5,11 @@ const FACE_FRAME_RECT := Rect2(0.05, 0.30, 0.90, 0.40)
 const TIME_FONT_FRACTION := 0.5104
 const CLOCK_ROW_GAP_SCALE := 0.45
 const TIME_LABEL_SIDE_PADDING := 0.08
+
+var _face_variants: Dictionary = {}
+var _face_normalization_queue: Array[int] = []
+var _faces_initialized := false
+var _initial_build_pending := false
 const DATE_FONT_FRACTION := 0.045
 const DATE_TIME_GAP_RATIO := 0.012
 const DATE_TIME_GAP_MIN := 5.0
@@ -31,17 +36,16 @@ var _time_layout_normalized := false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	resized.connect(_render_face)
 	set_process(true)
-	_load_selected_face()
-
 
 func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -> void:
 	_style_index = clampi(index, 1, maxi(1, _library.get_face_count()))
 	_palette = palette.duplicate(true)
 	_show_date = false
-	_load_selected_face()
-
+	if size.x > 0.0 and size.y > 0.0:
+		_initialize_face_variants()
+	else:
+		_initial_build_pending = true
 
 func get_style_index() -> int:
 	return _style_index
@@ -68,117 +72,50 @@ func get_style_layout() -> String:
 
 
 func is_time_layout_normalized() -> bool:
-	return _time_layout_normalized
-
+	if not _face_variants.has(_style_index):
+		return false
+	return bool(_face_variants[_style_index].get("normalized", false))
 
 func _process(_delta: float) -> void:
-	# Wait for the newly-created containers to finish layout before measuring
-	# their labels. This stays on the live renderer instance (no async resume
-	# after a style rebuild frees it).
-	if is_instance_valid(_pending_normalization_frame) and is_instance_valid(_pending_normalization_root):
-		var frame := _pending_normalization_frame
-		var root_node := _pending_normalization_root
-		if frame.is_inside_tree() and root_node.is_inside_tree() and frame.size.x > 0.0 and frame.size.y > 0.0:
-			var time_bounds := _get_time_layer_bounds(root_node)
-			if time_bounds.size.x > 0.0 and time_bounds.size.y > 0.0:
-				var stable := _rects_match(time_bounds, _pending_normalization_last_bounds, 0.1)
-				_pending_normalization_stable_frames = _pending_normalization_stable_frames + 1 if stable else 0
-				_pending_normalization_last_bounds = time_bounds
-				# Godot may need multiple layout passes after imported face
-				# controls are attached. Normalize only after the measured time
-				# bounds stop changing, avoiding style-dependent first-frame data.
-				if _pending_normalization_stable_frames >= 2:
-					if not _pending_date_detached:
-						_detach_date_from_layout(frame, root_node)
-						_pending_date_detached = true
-						# Removing the date can reflow a BoxContainer and move the
-						# time labels. Measure again after that second layout settles.
-						_pending_normalization_last_bounds = Rect2()
-						_pending_normalization_stable_frames = 0
-					else:
-						_normalize_time_and_date(frame, root_node)
-						_time_layout_normalized = true
-						_pending_normalization_frame = null
-						_pending_normalization_root = null
-						_pending_normalization_last_bounds = Rect2()
-						_pending_normalization_stable_frames = 0
+	if _initial_build_pending and size.x > 0.0 and size.y > 0.0:
+		_initial_build_pending = false
+		_initialize_face_variants()
+	if not _faces_initialized:
+		return
+	_process_face_normalization_queue()
 	var now := Time.get_time_dict_from_system()
-	if int(now.get("minute", -1)) != _last_minute:
-		_render_face()
-
+	var current_minute := int(now.get("minute", -1))
+	if current_minute != _last_minute:
+		_refresh_all_cached_time_labels()
+		_last_minute = current_minute
 
 func _load_selected_face() -> void:
-	_face = _library.get_face(_style_index)
-	_last_minute = -1
-	_render_face()
-
+	if not _faces_initialized:
+		_initialize_face_variants()
+		return
+	_select_cached_face(_style_index)
 
 func _render_face() -> void:
-	_pending_normalization_frame = null
-	_pending_normalization_root = null
-	_pending_normalization_last_bounds = Rect2()
-	_pending_normalization_stable_frames = 0
-	_pending_date_label = null
-	_pending_date_was_above = false
-	_pending_date_width = 0.0
-	_pending_date_height = 0.0
-	_pending_date_detached = false
-	_time_layout_normalized = false
-	for child in get_children():
-		remove_child(child)
-		child.queue_free()
-
-	if size.x <= 0.0 or size.y <= 0.0:
-		return
-
-	if _face.is_empty():
-		return
-
-	var large: Dictionary = _face.get("large", {})
-	var layout_key := ""
-	for key in ["row", "column", "stack"]:
-		if large.has(key):
-			layout_key = key
-			break
-	if layout_key.is_empty():
-		return
-
-	# Every imported face shares one fixed, centered canvas. The JSON controls
-	# typography and composition inside it, never the clock's screen position.
-	var frame := Control.new()
-	frame.name = "XMorphClockFace"
-	_set_normalized_rect(frame, FACE_FRAME_RECT)
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(frame)
-
-	var frame_size := Vector2(size.x * FACE_FRAME_RECT.size.x, size.y * FACE_FRAME_RECT.size.y)
-	var root_node := _build_layout_node(large, frame_size)
-	if root_node == null:
-		return
-	root_node.name = "XMorphClockLayout"
-	root_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.add_child(root_node)
-	_pending_normalization_frame = frame
-	_pending_normalization_root = root_node
-	_pending_normalization_last_bounds = Rect2()
-	_pending_normalization_stable_frames = 0
-	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
-
+	# Face trees are prepared once during initial configuration. A style change
+	# only exposes its already-built resource tree.
+	if not _faces_initialized:
+		_initialize_face_variants()
+	else:
+		_select_cached_face(_style_index)
 
 func get_time_visual_rect() -> Rect2:
-	return _get_time_layer_bounds(self)
-
+	if not _face_variants.has(_style_index):
+		return Rect2()
+	var root_node: Control = _face_variants[_style_index].get("root") as Control
+	return _get_time_layer_bounds(root_node, _face) if is_instance_valid(root_node) else Rect2()
 
 func get_date_visual_rect() -> Rect2:
-	var date_label := _pending_date_label if is_instance_valid(_pending_date_label) else _find_date_layer(self)
-	return date_label.get_global_rect() if date_label != null and date_label.visible else Rect2()
-
+	return Rect2()
 
 func get_date_time_gap_pixels() -> float:
-	var time_rect := get_time_visual_rect()
-	var date_rect := get_date_visual_rect()
-	if time_rect.size == Vector2.ZERO or date_rect.size == Vector2.ZERO:
+	return -1.0
+
+ZERO or date_rect.size == Vector2.ZERO:
 		return -1.0
 	if date_rect.end.y <= time_rect.position.y:
 		return time_rect.position.y - date_rect.end.y
@@ -272,14 +209,14 @@ func _rects_match(first: Rect2, second: Rect2, tolerance: float) -> bool:
 	return first.position.distance_to(second.position) <= tolerance and first.size.distance_to(second.size) <= tolerance
 
 
-func _get_time_layer_bounds(search_root: Node) -> Rect2:
+func _get_time_layer_bounds(search_root: Node, face_override: Dictionary = {}) -> Rect2:
 	var has_bounds := false
 	var bounds := Rect2()
 	for label_value in search_root.find_children("*", "Label", true, false):
 		var clock_label := label_value as Label
 		if not clock_label.visible or clock_label.text.is_empty():
 			continue
-		var layer := _get_layer(_layer_id_for_label(clock_label))
+		var layer := _get_layer(_layer_id_for_label(clock_label), face_override)
 		if str(layer.get("type", "")) not in TIME_LAYER_TYPES:
 			continue
 		var label_rect := clock_label.get_global_rect()
@@ -288,7 +225,6 @@ func _get_time_layer_bounds(search_root: Node) -> Rect2:
 		bounds = label_rect if not has_bounds else bounds.merge(label_rect)
 		has_bounds = true
 	return bounds if has_bounds else Rect2()
-
 
 func _find_date_layer(search_root: Node) -> Label:
 	var fallback_date: Label = null
@@ -321,10 +257,9 @@ func _layer_id_for_label(clock_label: Label) -> String:
 			return clock_label.name.trim_prefix("ClockLayer_") if clock_label.name.begins_with("ClockLayer_") else ""
 
 
-func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
+func _build_layout_node(spec: Dictionary, available_size: Vector2, face_override: Dictionary = {}) -> Control:
 	if spec.has("layer"):
-		return _make_layer_label(spec, available_size)
-
+		return _make_layer_label(spec, available_size, face_override)
 	var layout_key := ""
 	for key in ["row", "column", "stack"]:
 		if spec.has(key):
@@ -332,30 +267,43 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
 			break
 	if layout_key.is_empty():
 		return null
-
 	var data: Dictionary = spec[layout_key]
 	if layout_key == "stack":
 		var stack := Control.new()
 		stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var stack_width := float(data.get("width", 1.0))
-		var stack_height := float(data.get("height", 1.0))
-		stack.custom_minimum_size = Vector2(available_size.x * stack_width, available_size.y * stack_height)
+		stack.custom_minimum_size = Vector2(
+			available_size.x * float(data.get("width", 1.0)),
+			available_size.y * float(data.get("height", 1.0))
+		)
 		for child_value in data.get("children", []):
 			var child_spec: Dictionary = child_value
-			var child := _build_layout_node(child_spec, available_size)
+			var child := _build_layout_node(child_spec, available_size, face_override)
 			if child == null:
 				continue
 			stack.add_child(child)
 			_place_stack_child(child, child_spec, available_size)
 		return stack
-
-	var container: BoxContainer
-	if layout_key == "row":
-		container = HBoxContainer.new()
-	else:
-		container = VBoxContainer.new()
+	var container: BoxContainer = HBoxContainer.new() if layout_key == "row" else VBoxContainer.new()
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	container.alignment = _box_alignment(str(data.get("align", "CENTER")))
+	var gap_scale := CLOCK_ROW_GAP_SCALE if layout_key == "row" else 1.0
+	container.add_theme_constant_override(
+		"separation",
+		roundi(minf(available_size.x, available_size.y) * float(data.get("gap", 0.0)) * gap_scale)
+	)
+	for child_value in data.get("children", []):
+		var child_spec: Dictionary = child_value
+		var child := _build_layout_node(child_spec, available_size, face_override)
+		if child == null:
+			continue
+		if child is Label:
+			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL if layout_key == "column" else Control.SIZE_SHRINK_CENTER
+		container.add_child(child)
+	return container
+
+ZE_EXPAND_FILL
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.alignment = _box_alignment(str(data.get("align", "CENTER")))
 	var gap := float(data.get("gap", 0.0))
@@ -375,6 +323,136 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
 		container.add_child(child)
 	return container
 
+
+func _initialize_face_variants() -> void:
+	if _faces_initialized or size.x <= 0.0 or size.y <= 0.0:
+		return
+	var selected_index := _style_index
+	var faces := _library.get_faces()
+	var frame_size := Vector2(size.x * FACE_FRAME_RECT.size.x, size.y * FACE_FRAME_RECT.size.y)
+	for face_offset in range(faces.size()):
+		var face_index := face_offset + 1
+		var face: Dictionary = faces[face_offset]
+		var large: Dictionary = face.get("large", {})
+		var layout_key := ""
+		for key in ["row", "column", "stack"]:
+			if large.has(key):
+				layout_key = key
+				break
+		if layout_key.is_empty():
+			continue
+		_face = face
+		var frame := Control.new()
+		frame.name = "XMorphClockFace_%02d" % face_index
+		_set_normalized_rect(frame, FACE_FRAME_RECT)
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.visible = false
+		add_child(frame)
+		var root_node := _build_layout_node(large, frame_size, face)
+		if root_node == null:
+			remove_child(frame)
+			frame.free()
+			continue
+		root_node.name = "XMorphClockLayout_%02d" % face_index
+		root_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		root_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(root_node)
+		_face_variants[face_index] = {
+			"frame": frame,
+			"root": root_node,
+			"face": face,
+			"last_bounds": Rect2(),
+			"stable_frames": 0,
+			"normalized": false
+		}
+		_face_normalization_queue.append(face_index)
+	_faces_initialized = not _face_variants.is_empty()
+	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
+	_select_cached_face(selected_index)
+	_refresh_all_cached_time_labels()
+
+
+func _select_cached_face(face_index: int) -> void:
+	if not _face_variants.has(face_index):
+		return
+	_style_index = face_index
+	_face = _face_variants[face_index].get("face", {})
+	for cached_index in _face_variants.keys():
+		var frame: Control = _face_variants[cached_index].get("frame") as Control
+		if is_instance_valid(frame):
+			frame.visible = int(cached_index) == face_index
+
+
+func _process_face_normalization_queue() -> void:
+	var normalized_indices: Array[int] = []
+	for face_index in _face_normalization_queue:
+		if not _face_variants.has(face_index):
+			normalized_indices.append(face_index)
+			continue
+		var state: Dictionary = _face_variants[face_index]
+		var frame := state.get("frame") as Control
+		var root_node := state.get("root") as Control
+		if not is_instance_valid(frame) or not is_instance_valid(root_node) or not frame.is_inside_tree():
+			continue
+		var face: Dictionary = state.get("face", {})
+		var time_bounds := _get_time_layer_bounds(root_node, face)
+		if time_bounds.size.x <= 0.0 or time_bounds.size.y <= 0.0:
+			continue
+		var previous_bounds: Rect2 = state.get("last_bounds", Rect2())
+		var stable_frames := int(state.get("stable_frames", 0))
+		stable_frames = stable_frames + 1 if _rects_match(time_bounds, previous_bounds, 0.1) else 0
+		state["last_bounds"] = time_bounds
+		state["stable_frames"] = stable_frames
+		if stable_frames < 2:
+			continue
+		var frame_rect := frame.get_global_rect()
+		var time_local := Rect2(time_bounds.position - frame_rect.position, time_bounds.size)
+		var shift := frame.size * 0.5 - time_local.get_center()
+		root_node.offset_left += shift.x
+		root_node.offset_right += shift.x
+		root_node.offset_top += shift.y
+		root_node.offset_bottom += shift.y
+		state["normalized"] = true
+		state["last_bounds"] = Rect2()
+		state["stable_frames"] = 0
+		normalized_indices.append(face_index)
+	for face_index in normalized_indices:
+		_face_normalization_queue.erase(face_index)
+
+
+func _refresh_all_cached_time_labels() -> void:
+	for face_index in _face_variants.keys():
+		var state: Dictionary = _face_variants[face_index]
+		var root_node := state.get("root") as Control
+		var face: Dictionary = state.get("face", {})
+		if not is_instance_valid(root_node):
+			continue
+		var changed := false
+		for label_value in root_node.find_children("*", "Label", true, false):
+			var clock_label := label_value as Label
+			var layer_id := str(clock_label.get_meta("clock_layer_id", ""))
+			if layer_id.is_empty():
+				continue
+			var layer := _get_layer(layer_id, face)
+			if layer.is_empty():
+				continue
+			var next_text := _layer_text(layer)
+			if clock_label.text == next_text:
+				continue
+			clock_label.text = next_text
+			var font := clock_label.get_theme_font("font")
+			var font_size := clock_label.get_theme_font_size("font_size")
+			var available_width := float(clock_label.get_meta("clock_available_width", size.x))
+			var side_padding := float(clock_label.get_meta("clock_side_padding", TIME_LABEL_SIDE_PADDING))
+			var text_width := font.get_string_size(next_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x if font != null else available_width
+			clock_label.custom_minimum_size.x = clampf(text_width + font_size * side_padding, font_size * 1.1, available_width)
+			changed = true
+		if changed:
+			state["normalized"] = false
+			state["last_bounds"] = Rect2()
+			state["stable_frames"] = 0
+			if not _face_normalization_queue.has(int(face_index)):
+				_face_normalization_queue.append(int(face_index))
 
 func _place_stack_child(child: Control, child_spec: Dictionary, available_size: Vector2) -> void:
 	var nested_stack: Dictionary = child_spec.get("stack", {})
@@ -400,9 +478,9 @@ func _place_stack_child(child: Control, child_spec: Dictionary, available_size: 
 	child.rotation_degrees = float(child_spec.get("rotation", 0.0))
 
 
-func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
+func _make_layer_label(node_spec: Dictionary, available_size: Vector2, face_override: Dictionary = {}) -> Label:
 	var layer_id := str(node_spec.get("layer", ""))
-	var layer := _get_layer(layer_id)
+	var layer := _get_layer(layer_id, face_override)
 	var label := Label.new()
 	match layer_id:
 		"hours":
@@ -415,8 +493,50 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 			label.name = "DigitalClockTime"
 		_:
 			label.name = "ClockLayer_" + layer_id
+	label.set_meta("clock_layer_id", layer_id)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.clip_text = false
+	label.text = _layer_text(layer)
+	if not _show_date and str(layer.get("type", "")) == "DATE":
+		label.visible = false
+	var layer_type := str(layer.get("type", "TEXT"))
+	var requested_size := TIME_FONT_FRACTION if layer_type in TIME_LAYER_TYPES else DATE_FONT_FRACTION
+	var short_side := minf(available_size.x, available_size.y)
+	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.42)))
+	var font_size := clampi(roundi(short_side * requested_size * 0.62), 11, max_font_size)
+	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
+	if font_reference.is_empty():
+		font_reference = "roboto_flex"
+	var font: Font = _library.get_font(font_reference)
+	if font == null:
+		font = _library.get_font("roboto_flex")
+	if font == null:
+		push_error("XMorph digital clock font is missing: " + font_reference)
+	label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", _layer_color(str(layer.get("color", ""))))
+	var tracking := float(node_spec.get("tracking", layer.get("tracking", 0.0)))
+	label.add_theme_constant_override("letter_spacing", roundi(tracking * 5.0))
+	var stroke := str(layer.get("stroke", ""))
+	if bool(layer.get("outline", false)) or not stroke.is_empty():
+		label.add_theme_constant_override("outline_size", clampi(roundi(font_size * float(layer.get("strokeWidth", 0.06))), 1, 5))
+		label.add_theme_color_override("font_outline_color", _layer_color(stroke))
+	label.modulate.a = float(layer.get("opacity", 1.0))
+	label.rotation_degrees = float(node_spec.get("rotation", 0.0))
+	var text_width := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+	var side_padding := TIME_LABEL_SIDE_PADDING if layer_type in TIME_LAYER_TYPES else 0.28
+	label.set_meta("clock_side_padding", side_padding)
+	label.set_meta("clock_available_width", available_size.x)
+	label.custom_minimum_size = Vector2(
+		clampf(text_width + font_size * side_padding, font_size * 1.1, available_size.x),
+		maxf(font_size * 1.22, available_size.y * 0.025)
+	)
+	return label
+
+ZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.clip_text = false
@@ -460,13 +580,13 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 	return label
 
 
-func _get_layer(layer_id: String) -> Dictionary:
-	for layer_value in _face.get("layers", []):
+func _get_layer(layer_id: String, face_override: Dictionary = {}) -> Dictionary:
+	var source_face := face_override if not face_override.is_empty() else _face
+	for layer_value in source_face.get("layers", []):
 		var layer: Dictionary = layer_value
 		if str(layer.get("id", "")) == layer_id:
 			return layer
 	return {}
-
 
 func _layer_text(layer: Dictionary) -> String:
 	var kind := str(layer.get("type", "TEXT"))
