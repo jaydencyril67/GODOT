@@ -28,6 +28,10 @@ func _run_camera_worksite_test() -> void:
 	var phone_model := worksite.find_child("CameraLessPhoneModel", true, false) as Node3D
 	var chassis := worksite.find_child("PhoneChassis", true, false) as MeshInstance3D
 	var screen := worksite.find_child("PhoneScreenSurface", true, false) as MeshInstance3D
+	var side_controls := worksite.find_child("SideControls", true, false) as Node3D
+	var power_button := worksite.find_child("PowerButton", true, false) as MeshInstance3D
+	var charging_port := worksite.find_child("ChargingPortFrame", true, false) as MeshInstance3D
+	var bottom_speaker := worksite.find_child("BottomSpeaker_L_01", true, false) as MeshInstance3D
 	var selection_scroll := worksite.find_child("CameraSelectionScroll", true, false) as ScrollContainer
 	var selection_controls := worksite.find_child("CameraSelectionControls", true, false) as VBoxContainer
 	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
@@ -67,8 +71,8 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if chassis.mesh == null or screen.mesh == null:
-		_fail("Camera-less handset is missing its chassis or front glass display.")
+	if chassis.mesh == null or screen.mesh == null or side_controls == null or power_button == null or charging_port == null or bottom_speaker == null:
+		_fail("Camera-less handset is missing its chassis, glass display, side controls or bottom hardware.")
 		worksite.free()
 		return
 
