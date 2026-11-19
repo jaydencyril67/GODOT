@@ -52,7 +52,7 @@ func _run_test() -> void:
 		"accent": Color("#A9C9FF"),
 		"text": Color.WHITE,
 		"muted": Color("#C3CFE3")
-	}, {"show_details": true})
+	}, {"show_details": true, "device_clock": false})
 	await process_frame
 	if digital_clock.find_child("XMorphClockFace", true, false) == null:
 		_fail("The XMorph digital clock renderer did not create its face canvas.")
