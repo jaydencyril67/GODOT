@@ -1152,6 +1152,16 @@ func _run_transition_checks() -> void:
 		_fail("Returning from OS Worksite did not preserve the prebuilt scene.")
 		return
 
+	# Processor Worksite and all 15 designs must already exist from initialization.
+	var preloaded_processor_worksite = game.processor_creation_worksite
+	if not is_instance_valid(preloaded_processor_worksite) or preloaded_processor_worksite.visible:
+		_fail("Processor Worksite was not prebuilt and hidden during initialization.")
+		return
+	var preloaded_processor_models: Array = preloaded_processor_worksite.get("processor_models_data")
+	if preloaded_processor_models.size() != 15:
+		_fail("Initialization did not prebuild all 15 processor designs.")
+		return
+
 	# Processor navigation must be a single, deferred, exclusive screen handoff.
 	var create_page_layer = game.create_ui_layer
 	game._on_create_category_pressed("PROCESSOR")
@@ -1159,8 +1169,8 @@ func _run_transition_checks() -> void:
 	if game.current_screen != "processor_creation_worksite" or not bool(game.get("processor_worksite_open_pending")):
 		_fail("Processor navigation did not lock the destination before deferring the screen swap.")
 		return
-	if is_instance_valid(game.processor_creation_worksite):
-		_fail("Processor Worksite was instantiated before the current GUI input event completed.")
+	if game.processor_creation_worksite != preloaded_processor_worksite or preloaded_processor_worksite.visible:
+		_fail("Processor navigation rebuilt or prematurely revealed its preloaded scene.")
 		return
 	await process_frame
 	var processor_worksite = game.processor_creation_worksite
