@@ -75,7 +75,37 @@ func _run_test() -> void:
 		_fail("The OS worksite did not prepare a default lock-screen before boot completed.")
 		return
 
+	var step_host := worksite.find_child("OSStepControls", true, false) as VBoxContainer
+	if step_host == null:
+		_fail("The OS worksite must retain one persistent host for its step controls.")
+		return
+	var persistent_panel_ids: Dictionary = {}
+	for step_index in range(11):
+		var panel_name := "OSStepControls_%02d" % step_index
+		var panel := step_host.find_child(panel_name, true, false) as VBoxContainer
+		if panel == null:
+			_fail("The worksite did not prebuild the control panel for step %02d." % (step_index + 1))
+			return
+		persistent_panel_ids[step_index] = panel.get_instance_id()
+
 	worksite.call("_show_step", 1)
+	var clock_step_panel := worksite.get("content_column") as VBoxContainer
+	worksite.call("_show_step", 6)
+	if not bool((worksite.get("content_column") as Control).visible):
+		_fail("Step navigation did not activate its already-built control panel.")
+		return
+	worksite.call("_show_step", 0)
+	worksite.call("_show_step", 1)
+	if (worksite.get("content_column") as Control).get_instance_id() != clock_step_panel.get_instance_id():
+		_fail("Returning to a worksite step must reveal the same existing panel.")
+		return
+	for step_index in range(11):
+		var panel_name := "OSStepControls_%02d" % step_index
+		var panel := step_host.find_child(panel_name, true, false) as Control
+		if panel == null or panel.get_instance_id() != int(persistent_panel_ids[step_index]):
+			_fail("Worksite navigation rebuilt a persistent step panel: " + panel_name)
+			return
+
 	var heading := worksite.get("heading_label") as Label
 	if heading == null or heading.text != "LOCKSCREEN CLOCK":
 		_fail("The dedicated Lockscreen Clock screen must be the second OS Worksite step.")
