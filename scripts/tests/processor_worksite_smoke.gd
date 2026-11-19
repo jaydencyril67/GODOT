@@ -207,21 +207,44 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 
-	var starting_rotation := model.rotation.x
-	worksite.call("_flip_chip")
-	if is_equal_approx(model.rotation.x, starting_rotation):
-		_fail("Flip Chip did not reveal the underside contact array.")
+	if _has_button_text(worksite, "FLIP CHIP") or _has_button_text(worksite, "RESET VIEW"):
+		_fail("Processor Worksite still exposes manual flip or reset view controls.")
 		worksite.free()
 		return
-	worksite.call("_reset_view")
-	if not is_equal_approx(model.rotation.x, -0.24):
-		_fail("Reset View did not return the processor to its correctly framed top view.")
+	if worksite.find_child("ProcessorDesignNoteLabel", true, false) != null:
+		_fail("Processor Worksite still exposes the removed explanatory design text.")
+		worksite.free()
+		return
+
+	var active_model := worksite.get("processor_root") as Node3D
+	var initial_rotation := active_model.rotation
+	worksite.call("_rotate_preview", Vector2(36.0, 12.0))
+	var expected_rotation := initial_rotation
+	expected_rotation.y += 36.0 * 0.0024
+	if not active_model.rotation.is_equal_approx(expected_rotation):
+		_fail("Processor drag does not match Camera Worksite stable single-axis rotation sensitivity.")
+		worksite.free()
+		return
+	var viewing_rotation := active_model.rotation
+	worksite.call("_select_processor_design", 1, false)
+	var switched_model := worksite.get("processor_root") as Node3D
+	if switched_model == null or not switched_model.rotation.is_equal_approx(viewing_rotation):
+		_fail("Changing processor design reset the current viewing angle instead of preserving it.")
 		worksite.free()
 		return
 
 	worksite.free()
 	print("PROCESSOR_WORKSITE_SMOKE_TEST: PASS")
 	quit(0)
+
+
+func _has_button_text(node: Node, target_text: String) -> bool:
+	if node is Button and (node as Button).text == target_text:
+		return true
+	for child in node.get_children():
+		if _has_button_text(child, target_text):
+			return true
+	return false
 
 
 func _fail(message: String) -> void:
