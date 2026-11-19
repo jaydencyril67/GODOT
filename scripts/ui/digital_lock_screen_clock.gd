@@ -132,6 +132,42 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 	await get_tree().process_frame
 	if not is_instance_valid(frame) or not is_instance_valid(root_node):
 		return
+	var date_label := _find_date_layer(root_node)
+	var date_was_above := false
+	var date_visible := date_label != null and date_label.visible
+	var date_width := 0.0
+	var date_height := 0.0
+	if date_visible:
+		var original_date_rect := date_label.get_global_rect()
+		var initial_time_rect := _get_time_layer_bounds(root_node)
+		if initial_time_rect.size != Vector2.ZERO:
+			date_was_above = original_date_rect.get_center().y < initial_time_rect.get_center().y
+		var date_font := date_label.get_theme_font("font")
+		var date_font_size := date_label.get_theme_font_size("font_size")
+		date_width = date_label.custom_minimum_size.x
+		if date_font != null:
+			date_width = maxf(date_width, date_font.get_string_size(
+				date_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, date_font_size
+			).x + 8.0)
+		date_height = maxf(date_label.custom_minimum_size.y, maxf(float(date_font_size) * 1.35, 16.0))
+		# Remove the date from the imported layout stack before centering. This
+		# prevents the original JSON gap from influencing the time's position.
+		date_label.reparent(frame, false)
+		date_label.anchor_left = 0.0
+		date_label.anchor_top = 0.0
+		date_label.anchor_right = 0.0
+		date_label.anchor_bottom = 0.0
+		date_label.offset_left = 0.0
+		date_label.offset_top = 0.0
+		date_label.offset_right = 0.0
+		date_label.offset_bottom = 0.0
+		date_label.custom_minimum_size = Vector2.ZERO
+		date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	await get_tree().process_frame
+	if not is_instance_valid(frame) or not is_instance_valid(root_node):
+		return
+
 	var time_rect := _get_time_layer_bounds(root_node)
 	if time_rect.size == Vector2.ZERO:
 		return
@@ -155,41 +191,13 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 		return
 
 	time_rect = _get_time_layer_bounds(root_node)
-	var date_label := _find_date_layer(root_node)
-	if time_rect.size == Vector2.ZERO or date_label == null or not date_label.visible:
+	if time_rect.size == Vector2.ZERO or not date_visible or date_label == null:
 		return
-	var date_rect := date_label.get_global_rect()
-	var date_was_above := date_rect.get_center().y < time_rect.get_center().y
 	var current_frame_rect := frame.get_global_rect()
 	var time_in_frame := Rect2(time_rect.position - current_frame_rect.position, time_rect.size)
-
-	var date_font := date_label.get_theme_font("font")
-	var date_font_size := date_label.get_theme_font_size("font_size")
-	var measured_width := date_label.custom_minimum_size.x
-	if date_font != null:
-		measured_width = maxf(measured_width, date_font.get_string_size(
-			date_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, date_font_size
-		).x + 8.0)
-	var date_width := clampf(measured_width, 24.0, frame.size.x)
-	var date_height := maxf(date_label.custom_minimum_size.y, maxf(float(date_font_size) * 1.35, 16.0))
-	date_height = minf(date_height, frame.size.y)
+	date_width = clampf(date_width, 24.0, frame.size.x)
+	date_height = minf(maxf(date_height, 16.0), frame.size.y)
 	var gap := clampf(frame.size.y * DATE_TIME_GAP_RATIO, DATE_TIME_GAP_MIN, DATE_TIME_GAP_MAX)
-
-	# Remove the date from the imported layout stack and place it directly
-	# beside the time. This prevents large JSON container gaps from separating
-	# the two while retaining the face's own date font and decoration.
-	date_label.reparent(frame, false)
-	date_label.anchor_left = 0.0
-	date_label.anchor_top = 0.0
-	date_label.anchor_right = 0.0
-	date_label.anchor_bottom = 0.0
-	date_label.offset_left = 0.0
-	date_label.offset_top = 0.0
-	date_label.offset_right = 0.0
-	date_label.offset_bottom = 0.0
-	date_label.custom_minimum_size = Vector2.ZERO
-	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	date_label.size = Vector2(date_width, date_height)
 	var date_x := clampf(time_in_frame.get_center().x - date_width * 0.5, 0.0, frame.size.x - date_width)
 	var above_y := time_in_frame.position.y - gap - date_height
