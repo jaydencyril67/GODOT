@@ -17,6 +17,68 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  camera-worksite-smoke:
+    name: Isolated Camera Creation Worksite smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Prepare isolated Camera Worksite project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-camera-worksite/scripts/tests .ci-camera-worksite/scenes .ci-camera-worksite/assets/fonts
+          cp scripts/camera_creation_worksite.gd .ci-camera-worksite/scripts/
+          cp scripts/camera_worksite_phone_model.gd .ci-camera-worksite/scripts/
+          cp scripts/os_worksite_phone_model.gd .ci-camera-worksite/scripts/
+          cp scripts/tests/camera_creation_worksite_smoke.gd .ci-camera-worksite/scripts/tests/
+          cp scenes/camera_creation_worksite.tscn .ci-camera-worksite/scenes/
+          cp 'assets/fonts/STIXTwoText[wght].ttf' .ci-camera-worksite/assets/fonts/
+          cat > .ci-camera-worksite/project.godot <<'EOF'
+          config_version=5
+
+          [application]
+          config/name="Camera Creation Worksite Smoke Test"
+
+          [display]
+          window/size/viewport_width=1280
+          window/size/viewport_height=720
+
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          EOF
+
+      - name: Import isolated Camera Worksite assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path .ci-camera-worksite --import --quit 2>&1 | tee camera-worksite-import.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' camera-worksite-import.log; then
+            echo "Godot reported an error while importing the isolated Camera Worksite project."
+            exit 1
+          fi
+
+      - name: Smoke-test camera-less handset and worksite layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path .ci-camera-worksite --script res://scripts/tests/camera_creation_worksite_smoke.gd 2>&1 | tee camera-creation-worksite-smoke.log
+          grep -q "CAMERA_CREATION_WORKSITE_SMOKE_TEST: PASS" camera-creation-worksite-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|CAMERA_CREATION_WORKSITE_SMOKE_TEST:.*(FAIL|ERROR)' camera-creation-worksite-smoke.log; then
+            echo "Godot reported an error during the isolated Camera Worksite smoke test."
+            exit 1
+          fi
+
   validate:
     name: Parse project and smoke-test startup
     runs-on: ubuntu-latest
@@ -199,7 +261,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nullglob
-          logs=(godot-import.log godot-parse.log home-office-smoke.log processor-worksite-smoke.log camera-creation-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log pin-entry-smoke.log home-screen-smoke.log os-boot-lock-screen-smoke.log godot-startup.log)
+          logs=(godot-import.log godot-parse.log home-office-smoke.log processor-worksite-smoke.log camera-worksite-import.log camera-creation-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log pin-entry-smoke.log home-screen-smoke.log os-boot-lock-screen-smoke.log godot-startup.log)
           warning_count=0
 
           for log in "${logs[@]}"; do
