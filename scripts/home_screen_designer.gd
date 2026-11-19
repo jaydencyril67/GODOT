@@ -348,34 +348,6 @@ func _build_screen(defer_app_drawer_population: bool = false) -> void:
 	_add_status_bar()
 	_refresh_clock_labels()
 
-ZE
-	wallpaper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	wallpaper.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_full_rect(wallpaper)
-	add_child(wallpaper)
-
-	var shade := ColorRect.new()
-	shade.name = "HomeScreenWallpaperLegibilityShade"
-	shade.color = Color(0.004, 0.008, 0.014, 0.16)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_full_rect(shade)
-	add_child(shade)
-
-	_home_content = Control.new()
-	_home_content.name = "HomeScreenMainPage"
-	_home_content.mouse_filter = Control.MOUSE_FILTER_PASS
-	_set_full_rect(_home_content)
-	add_child(_home_content)
-
-	_add_clock_widget()
-	_add_search_widget()
-	_add_home_app_grid()
-	_add_dock()
-	_add_page_indicators()
-	_add_navigation_gesture()
-	_build_app_drawer(not defer_app_drawer_population)
-	_add_status_bar()
-	_refresh_clock_labels()
 
 
 func _add_clock_widget() -> void:
@@ -479,8 +451,6 @@ func _rebuild_home_app_grid() -> void:
 		if is_instance_valid(grid):
 			grid.visible = page_index == _home_page_index
 
-ZE_EXPAND_FILL
-		grid.add_child(tile)
 
 
 func _add_dock() -> void:
@@ -583,24 +553,6 @@ func _make_app_tile(app: Dictionary, icon_size: int, label_size: int, tile_heigh
 	tile.add_child(label)
 	return tile
 
-ZE_SHRINK_CENTER
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tile.add_child(icon)
-
-	var label := Label.new()
-	label.name = "HomeAppLabel_" + str(app.get("id", "unknown"))
-	label.text = str(app.get("name", "App"))
-	label.custom_minimum_size.y = 26
-	label.add_theme_font_size_override("font_size", label_size)
-	label.add_theme_color_override("font_color", Color("#FFFFFF"))
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tile.add_child(label)
-	return tile
 
 
 func _build_app_drawer(populate_apps: bool = true) -> void:
@@ -661,11 +613,6 @@ func _build_app_drawer(populate_apps: bool = true) -> void:
 			app_tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_drawer_grid.add_child(app_tile)
 
-ZE_EXPAND_FILL
-	_drawer_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_drawer_grid)
-	if populate_apps:
-		_rebuild_app_drawer_grid("")
 
 
 func _on_app_search_changed(query: String) -> void:
@@ -684,8 +631,6 @@ func _rebuild_app_drawer_grid(query: String) -> void:
 		var app_id := str(tile.get_meta("app_id", ""))
 		tile.visible = normalized_query.is_empty() or app_name.contains(normalized_query) or app_id.contains(normalized_query)
 
-ZE_EXPAND_FILL
-		_drawer_grid.add_child(tile)
 
 
 func _add_status_bar() -> void:
@@ -763,58 +708,6 @@ func _add_status_bar() -> void:
 			icon_group.add_child(icon)
 		_status_bar_variants[style_id] = variant
 
-ZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(spacer)
-	var trailing := HBoxContainer.new()
-	trailing.add_theme_constant_override("separation", int(style.get("gap", 3)) + 2)
-	trailing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(trailing)
-
-	var time_label := Label.new()
-	time_label.name = "HomeStatusBarClock"
-	time_label.text = _current_time_text()
-	time_label.add_theme_font_size_override("font_size", maxi(22, int(style.get("time_size", 12)) + 10))
-	time_label.add_theme_color_override("font_color", tint)
-	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var icon_group := trailing if str(style.get("time_side", "left")) == "left" else leading
-	var time_group := leading if str(style.get("time_side", "left")) == "left" else trailing
-	if str(style.get("time_side", "left")) == "left":
-		leading.add_child(time_label)
-	else:
-		trailing.add_child(time_label)
-
-	if bool(style.get("show_lock", false)):
-		var lock_icon := TextureRect.new()
-		lock_icon.name = "HomeStatusBarLockIcon"
-		lock_icon.texture = _load_tinted_asset(LOCK_ICON_PATH, tint)
-		lock_icon.custom_minimum_size = Vector2(16, 20)
-		lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		time_group.add_child(lock_icon)
-
-	for icon_type in style.get("order", []):
-		var icon_id := str(icon_type)
-		if icon_id == "bluetooth" and not bool(style.get("show_bluetooth", false)):
-			continue
-		var texture_name := "bluetooth_connected" if icon_id == "bluetooth" else "%s_%d" % [icon_id, int(style.get(icon_id + "_level", 4))]
-		var texture := StatusBarAssetLibrary.get_icon_texture(texture_name)
-		if texture == null:
-			continue
-		var icon := TextureRect.new()
-		icon.name = "HomeStatusBar" + icon_id.capitalize() + "Icon"
-		icon.texture = texture
-		icon.modulate = tint
-		var base_size := float(style.get("icon_size", 16)) * 1.50
-		var icon_width := base_size * 0.75 if icon_id == "signal" else base_size
-		icon.custom_minimum_size = Vector2(icon_width, base_size)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_group.add_child(icon)
 
 
 func _refresh_clock_labels() -> void:
