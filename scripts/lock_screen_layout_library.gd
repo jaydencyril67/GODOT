@@ -34,9 +34,9 @@ const BLUEPRINTS := [
 		"date_rect": Rect2(0.08, 0.312, 0.84, 0.04),
 		"date_alignments": ["left", "center"],
 		"content_slots": [
-			{"type": "notification", "rect": Rect2(0.075, 0.415, 0.85, 0.08)},
-			{"type": "notification", "rect": Rect2(0.075, 0.535, 0.85, 0.08)},
-			{"type": "media", "rect": Rect2(0.075, 0.65, 0.85, 0.10)}
+			{"type": "notification", "rect": Rect2(0.075, 0.385, 0.85, 0.07)},
+			{"type": "notification", "rect": Rect2(0.075, 0.475, 0.85, 0.07)},
+			{"type": "media", "rect": Rect2(0.075, 0.565, 0.85, 0.18)}
 		],
 		"fingerprint": true
 	},

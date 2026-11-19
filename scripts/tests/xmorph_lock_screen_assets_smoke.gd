@@ -130,12 +130,7 @@ func _run_test() -> void:
 		return
 
 	var widgets := WidgetAssetLibrary.new()
-	var media_widget := widgets.get_widget("44_media_player")
 	var notification_widget := widgets.get_widget("40_notifications")
-	for required_layer in ["bg", "art", "title", "artist", "prev", "play", "next"]:
-		if widgets.get_layer(media_widget, required_layer).is_empty():
-			_fail("The XMorph media-player definition is missing layer: " + required_layer)
-			return
 	for required_layer in ["bg", "nicon", "count"]:
 		if widgets.get_layer(notification_widget, required_layer).is_empty():
 			_fail("The XMorph notification definition is missing layer: " + required_layer)
@@ -146,19 +141,21 @@ func _run_test() -> void:
 	media_card.size = Vector2(680.0, 240.0)
 	root.add_child(media_card)
 	media_card.call("configure", {
-		"service": "SPOTIFY",
-		"icon": "res://assets/app_icons/papirus/entertainment_music/apps_spotify_client.svg",
-		"album_art": "res://assets/lock-screen/music-player/1b9e7b387846cf3c10ff5c98ffaf2a4b.jpg",
-		"title": "Midnight City",
-		"artist": "M83",
-		"playing": true
-	}, {"accent": Color("#A9C9FF"), "text": Color.WHITE, "muted": Color("#C3CFE3")})
+		"artwork": "res://assets/music_player/musicplayer01.png"
+	})
 	await process_frame
-	var media_surface := media_card.find_child("GeneratedMediaPlayerSurface", true, false) as TextureRect
-	var media_art := media_card.find_child("MediaAlbumArtwork", true, false) as TextureRect
-	var media_controls := media_card.find_child("GeneratedMediaControls", true, false) as HBoxContainer
-	if media_surface == null or media_surface.texture == null or media_art == null or media_art.texture == null or media_controls == null:
-		_fail("The imported XMorph media layout did not render its surface, artwork, and playback controls.")
+	var media_artwork := media_card.find_child("GeneratedMediaPlayerArtwork", true, false) as TextureRect
+	if media_artwork == null or media_artwork.texture == null:
+		_fail("The lock-screen music-player artwork did not load as a complete card.")
+		return
+	if media_artwork.texture.resource_path != "res://assets/music_player/musicplayer01.png":
+		_fail("The lock-screen renderer loaded a different music-player asset.")
+		return
+	if media_artwork.stretch_mode != TextureRect.STRETCH_KEEP_ASPECT_CENTERED:
+		_fail("The complete music-player artwork must preserve its original aspect ratio.")
+		return
+	if media_card.find_child("GeneratedMediaPlayerSurface", true, false) != null or media_card.find_child("GeneratedMediaControls", true, false) != null:
+		_fail("The old generated player overlays must not be drawn over the complete artwork.")
 		return
 
 	var notification_card: Control = NotificationScene.instantiate()

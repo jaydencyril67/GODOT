@@ -6,6 +6,7 @@ const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.
 const StatusBarAssetLibrary = preload("res://scripts/status_bar_asset_library.gd")
 
 const GENERATION_COUNT := 60
+const MEDIA_PLAYER_ASSET_ROOT := "res://assets/music_player"
 
 
 func _initialize() -> void:
@@ -13,6 +14,13 @@ func _initialize() -> void:
 
 
 func _run_test() -> void:
+	for asset_index in range(1, 11):
+		var asset_path := "%s/musicplayer%02d.png" % [MEDIA_PLAYER_ASSET_ROOT, asset_index]
+		var asset_texture := load(asset_path) as Texture2D
+		if asset_texture == null or asset_texture.get_width() <= 0 or asset_texture.get_height() <= 0:
+			_fail("A complete lock-screen music-player asset is missing or invalid: " + asset_path)
+			return
+
 	for status_style_definition in StatusBarAssetLibrary.get_styles():
 		if not StatusBarAssetLibrary.has_style(str(status_style_definition.get("id", ""))):
 			_fail("A status-bar style is missing from the style library.")
@@ -139,9 +147,9 @@ func _run_test() -> void:
 		var media: Dictionary = design.get("media", {})
 		if not media.is_empty():
 			media_count += 1
-			var media_icon := str(media.get("icon", ""))
-			if media_icon.is_empty() or not FileAccess.file_exists(media_icon):
-				_fail("The generated media player is missing its bundled service icon.")
+			var artwork_path := str(media.get("artwork", ""))
+			if not artwork_path.begins_with(MEDIA_PLAYER_ASSET_ROOT + "/") or not FileAccess.file_exists(artwork_path):
+				_fail("The generated media player is missing a complete bundled music-player image.")
 				return
 
 		var shortcuts: Array = design.get("shortcuts", [])
@@ -245,13 +253,22 @@ func _run_test() -> void:
 		if not bool(designer.call("set_display_option", option, true)):
 			_fail("The lock-screen rejected an optional display setting: " + option)
 			return
+	await process_frame
 
-	var media_surface := designer.find_child("GeneratedMediaPlayerSurface", true, false) as TextureRect
-	var media_controls := designer.find_child("GeneratedMediaControls", true, false) as HBoxContainer
+	var media_player := designer.find_child("GeneratedLockScreenMediaPlayer", true, false) as Control
+	var media_artwork := designer.find_child("GeneratedMediaPlayerArtwork", true, false) as TextureRect
 	var notification_surface := designer.find_child("GeneratedNotificationSurface", true, false) as TextureRect
 	var category_icon := designer.find_child("NotificationCategoryIcon", true, false) as TextureRect
-	if designer.find_child("GeneratedLockScreenMediaPlayer", true, false) == null or media_surface == null or media_surface.texture == null or media_controls == null:
-		_fail("The media-player scene renderer did not appear when enabled.")
+	if media_player == null or media_artwork == null or media_artwork.texture == null:
+		_fail("The complete music-player image did not appear when the lockscreen option was enabled.")
+		return
+	var latest_design: Dictionary = designer.call("get_last_design")
+	var expected_artwork_path := str(latest_design.get("media", {}).get("artwork", ""))
+	if media_artwork.texture.resource_path != expected_artwork_path:
+		_fail("The lockscreen did not render the exact music-player asset selected by its layout.")
+		return
+	if media_artwork.stretch_mode != TextureRect.STRETCH_KEEP_ASPECT_CENTERED:
+		_fail("The lockscreen music-player image is not preserving its original proportions.")
 		return
 	if designer.find_child("GeneratedNotification", true, false) == null or notification_surface == null or notification_surface.texture == null or category_icon == null or category_icon.texture == null:
 		_fail("The notification scene renderer did not appear when enabled.")

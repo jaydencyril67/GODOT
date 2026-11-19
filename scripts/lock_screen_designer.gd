@@ -16,6 +16,7 @@ const FingerprintPromptScene = preload("res://scenes/system_ui/lock_screen_finge
 const LockScreenShortcutScene = preload("res://scenes/system_ui/lock_screen_shortcut.tscn")
 const PIN_BACKSPACE_ICON_PATH := "res://assets/system-ui/godot/pin-entry/pin_backspace.svg"
 const PIN_LENGTH := 6
+const MEDIA_PLAYER_MIN_SLOT_HEIGHT := 0.175
 
 const NOTIFICATION_PRESETS := [
 	{"app": "WHATSAPP", "icon": "res://assets/app_icons/papirus/social/apps_whatsapp.svg", "title": "You have a new message", "body": "A new conversation is waiting for you."},
@@ -26,25 +27,17 @@ const NOTIFICATION_PRESETS := [
 	{"app": "SECURITY", "icon": "res://assets/app_icons/papirus/google_essential/google_auth.svg", "title": "Security check complete", "body": "Your account protection is up to date."}
 ]
 
-const MEDIA_PRESETS := [
-	{"service": "SPOTIFY", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_spotify_client.svg", "title": "Midnight City", "artist": "M83"},
-	{"service": "YOUTUBE MUSIC", "icon": "res://assets/app_icons/papirus/google_essential/google_youtube_music.svg", "title": "Sunset Lover", "artist": "Petit Biscuit"},
-	{"service": "DEEZER", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_deezer.svg", "title": "The Less I Know the Better", "artist": "Tame Impala"},
-	{"service": "SOUNDCLOUD", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_soundcloud.svg", "title": "A Walk", "artist": "Tycho"},
-	{"service": "SAMSUNG MUSIC", "icon": "res://assets/app_icons/papirus/entertainment_music/apps_samsung_music.svg", "title": "Night Drive", "artist": "Digital World Radio"}
-]
-
 const MEDIA_ARTWORK := [
-	"res://assets/lock-screen/music-player/1b9e7b387846cf3c10ff5c98ffaf2a4b.jpg",
-	"res://assets/lock-screen/music-player/1f005d4d6dc5298a58f39ecf198e89ac.jpg",
-	"res://assets/lock-screen/music-player/2f47aef2a0cfa544972865118eddc157.jpg",
-	"res://assets/lock-screen/music-player/477f656c41e70d17326da7278fe28cc4.jpg",
-	"res://assets/lock-screen/music-player/577eca9a15186b5264c3cd4931dcdf94.jpg",
-	"res://assets/lock-screen/music-player/9b9a6626638b09de9ceb5f9e61606e58.jpg",
-	"res://assets/lock-screen/music-player/af1d783ea4d3405c7f24a4c5c911eecb.jpg",
-	"res://assets/lock-screen/music-player/b4b67a857198beb19cb56ba42891fd62.jpg",
-	"res://assets/lock-screen/music-player/c21b48739b2f7bf770a902980aa2b1a6.jpg",
-	"res://assets/lock-screen/music-player/f983d854f7cc388cae23686f57db6ef3.jpg"
+	"res://assets/music_player/musicplayer01.png",
+	"res://assets/music_player/musicplayer02.png",
+	"res://assets/music_player/musicplayer03.png",
+	"res://assets/music_player/musicplayer04.png",
+	"res://assets/music_player/musicplayer05.png",
+	"res://assets/music_player/musicplayer06.png",
+	"res://assets/music_player/musicplayer07.png",
+	"res://assets/music_player/musicplayer08.png",
+	"res://assets/music_player/musicplayer09.png",
+	"res://assets/music_player/musicplayer10.png"
 ]
 
 const PALETTES := [
@@ -476,31 +469,36 @@ func _compose_design() -> Dictionary:
 	var media: Dictionary = {}
 	var content_shift := _rng.randf_range(-0.004, 0.004)
 	for slot in blueprint["content_slots"]:
+		var slot_type := str(slot.get("type", ""))
 		var slot_rect: Rect2 = slot["rect"]
 		slot_rect.position.y += content_shift
 		slot_rect.position.x += _rng.randf_range(-0.003, 0.003)
-		# Give notification and media surfaces a little more room without
-		# changing their visual center or the surrounding lock-screen layout.
+		# Preserve the slot center while giving complete player artwork enough
+		# height to remain legible without cropping or distorting the image.
 		var original_slot_height := slot_rect.size.y
 		slot_rect.size.y *= 1.08
 		slot_rect.position.y -= (slot_rect.size.y - original_slot_height) * 0.5
+		if slot_type == "media":
+			var media_center_y := slot_rect.get_center().y
+			slot_rect.size.y = maxf(slot_rect.size.y, MEDIA_PLAYER_MIN_SLOT_HEIGHT)
+			slot_rect.position.y = media_center_y - slot_rect.size.y * 0.5
 		slot_rect.size.x = clampf(slot_rect.size.x + _rng.randf_range(-0.012, 0.012), 0.78, 0.88)
 		slot_rect.position.x = clampf(slot_rect.position.x, 0.055, 0.945 - slot_rect.size.x)
 		if not _can_place(slot_rect, occupied):
 			continue
 
-		if str(slot["type"]) == "notification":
+		if slot_type == "notification":
 			var notification_data: Dictionary = NOTIFICATION_PRESETS[_rng.randi_range(0, NOTIFICATION_PRESETS.size() - 1)].duplicate(true)
 			notification_data["rect"] = slot_rect
 			notification_data["timestamp"] = ["NOW", "1 MIN AGO", "2 MIN AGO", "5 MIN AGO"][_rng.randi_range(0, 3)]
 			notifications.append(notification_data)
 			_add_component(components, occupied, "notification", slot_rect)
-		elif str(slot["type"]) == "media" and media.is_empty():
-			media = MEDIA_PRESETS[_rng.randi_range(0, MEDIA_PRESETS.size() - 1)].duplicate(true)
-			media["rect"] = slot_rect
-			media["progress"] = _rng.randi_range(28, 84)
-			media["playing"] = _rng.randf() > 0.18
-			media["album_art"] = MEDIA_ARTWORK[_rng.randi_range(0, MEDIA_ARTWORK.size() - 1)]
+		elif slot_type == "media" and media.is_empty():
+			var artwork_index := _rng.randi_range(0, MEDIA_ARTWORK.size() - 1)
+			media = {
+				"artwork": MEDIA_ARTWORK[artwork_index],
+				"rect": slot_rect
+			}
 			_add_component(components, occupied, "media", slot_rect)
 
 	if notifications.is_empty():
@@ -519,7 +517,10 @@ func _compose_design() -> Dictionary:
 		Vector2(_rng.randf_range(0.33, 0.39), _rng.randf_range(0.785, 0.795)),
 		Vector2(_rng.randf_range(0.22, 0.31), 0.07)
 	)
-	# Fingerprint occupies its own safe zone, but remains disabled until selected.
+	if not media.is_empty():
+		var media_rect: Rect2 = media["rect"]
+		fingerprint_rect.position.y = maxf(fingerprint_rect.position.y, media_rect.end.y + 0.015)
+	# Fingerprint stays in its lower-screen zone without covering the player artwork.
 	_add_component(components, occupied, "fingerprint", fingerprint_rect)
 
 	var shortcut_y := _rng.randf_range(0.90, 0.91)
