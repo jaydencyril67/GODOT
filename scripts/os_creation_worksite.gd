@@ -1344,6 +1344,8 @@ func _select_asset(path: String) -> void:
 		if not bool(lock_screen_designer.call("set_wallpaper", path)):
 			selection_status_label.text = "WALLPAPER COULD NOT BE LOADED"
 			return
+		if is_instance_valid(home_screen_designer):
+			home_screen_designer.call("set_wallpaper", path)
 		selection_status_label.text = "WALLPAPER SELECTED  •  " + path.get_file()
 		return
 	selection_status_label.text = path.replace("res://", "")
