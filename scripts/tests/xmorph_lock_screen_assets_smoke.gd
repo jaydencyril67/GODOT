@@ -3,6 +3,8 @@ extends SceneTree
 const FaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
 const WidgetAssetLibrary = preload("res://scripts/ui/xmorph_widget_asset_library.gd")
 const DigitalClockScript = preload("res://scripts/ui/digital_lock_screen_clock.gd")
+const DATE_TIME_GAP_MIN := 5.0
+const DATE_TIME_GAP_MAX := 12.0
 const MediaPlayerScene = preload("res://scenes/system_ui/lock_screen_media_player_card.tscn")
 const NotificationScene = preload("res://scenes/system_ui/lock_screen_notification_card.tscn")
 const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
@@ -76,6 +78,7 @@ func _run_test() -> void:
 	for face_index in range(1, faces.get_face_count() + 1):
 		digital_clock.call("configure", face_index, test_palette, {"show_details": true})
 		await process_frame
+		await process_frame
 		var face_canvas := digital_clock.find_child("XMorphClockFace", true, false) as Control
 		if face_canvas == null:
 			_fail("Digital face %02d did not render on the default production path." % face_index)
@@ -83,6 +86,16 @@ func _run_test() -> void:
 		if not is_equal_approx(face_canvas.anchor_left, 0.05) or not is_equal_approx(face_canvas.anchor_top, 0.30) or not is_equal_approx(face_canvas.anchor_right, 0.95) or not is_equal_approx(face_canvas.anchor_bottom, 0.70):
 			_fail("Digital face %02d does not use the shared centered clock canvas." % face_index)
 			return
+		var time_bounds: Rect2 = digital_clock.call("get_time_visual_rect")
+		if time_bounds.size == Vector2.ZERO or time_bounds.get_center().distance_to(face_canvas.get_global_rect().get_center()) > 2.5:
+			_fail("Digital face %02d moves the visible time away from the shared position." % face_index)
+			return
+		var date_bounds: Rect2 = digital_clock.call("get_date_visual_rect")
+		if date_bounds.size != Vector2.ZERO:
+			var date_gap := float(digital_clock.call("get_date_time_gap_pixels"))
+			if date_gap < DATE_TIME_GAP_MIN - 1.0 or date_gap > DATE_TIME_GAP_MAX + 1.0:
+				_fail("Digital face %02d leaves too much space between the date and time." % face_index)
+				return
 		var face: Dictionary = faces.get_face(face_index)
 		var face_name := str(face.get("name", ""))
 		if face_name.is_empty() or unique_names.has(face_name):
