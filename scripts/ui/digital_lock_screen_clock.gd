@@ -8,6 +8,7 @@ var _face: Dictionary = {}
 var _palette: Dictionary = {}
 var _show_date := true
 var _last_minute := -1
+var _device_mode := true
 
 
 func _ready() -> void:
@@ -21,6 +22,7 @@ func configure(index: int, palette: Dictionary = {}, design: Dictionary = {}) ->
 	_style_index = clampi(index, 1, maxi(1, _library.get_face_count()))
 	_palette = palette.duplicate(true)
 	_show_date = bool(design.get("show_details", true))
+	_device_mode = bool(design.get("device_clock", _device_mode))
 	_load_selected_face()
 
 
@@ -64,7 +66,15 @@ func _render_face() -> void:
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
-	if _face.is_empty() or size.x <= 0.0 or size.y <= 0.0:
+
+	if size.x <= 0.0 or size.y <= 0.0:
+		return
+
+	if _device_mode:
+		_render_device_face()
+		return
+
+	if _face.is_empty():
 		return
 
 	var large: Dictionary = _face.get("large", {})
@@ -158,6 +168,80 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
 				child.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		container.add_child(child)
 	return container
+
+
+func _render_device_face() -> void:
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
+
+	if size.x <= 0.0 or size.y <= 0.0:
+		return
+
+	var frame := Control.new()
+	frame.name = "DeviceClockFrame"
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(frame)
+
+	var time_label := Label.new()
+	time_label.name = "DeviceClockTime"
+	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	time_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	time_label.clip_text = false
+	time_label.anchor_left = 0.0
+	time_label.anchor_right = 1.0
+	time_label.anchor_top = 0.30
+	time_label.anchor_bottom = 0.48
+	frame.add_child(time_label)
+
+	var date_label := Label.new()
+	date_label.name = "DeviceClockDate"
+	date_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	date_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	date_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	date_label.clip_text = false
+	date_label.anchor_left = 0.0
+	date_label.anchor_right = 1.0
+	date_label.anchor_top = 0.50
+	date_label.anchor_bottom = 0.60
+	if not _show_date:
+		date_label.visible = false
+	frame.add_child(date_label)
+
+	var short_side := minf(size.x, size.y)
+	var time_font_size := clampi(roundi(short_side * 0.14), 36, 140)
+	var date_font_size := clampi(roundi(short_side * 0.04), 12, 24)
+
+	time_label.add_theme_font_size_override("font_size", time_font_size)
+	date_label.add_theme_font_size_override("font_size", date_font_size)
+	time_label.add_theme_color_override("font_color", _palette.get("text", Color.WHITE))
+	date_label.add_theme_color_override("font_color", _palette.get("muted", Color("#D1D5DB")))
+
+	var font: Font = _library.get_font("roboto_flex")
+	if font != null:
+		time_label.add_theme_font_override("font", font)
+		date_label.add_theme_font_override("font", font)
+
+	time_label.add_theme_constant_override("letter_spacing", 0)
+	date_label.add_theme_constant_override("letter_spacing", 2)
+	date_label.modulate.a = 0.85
+
+	_update_device_labels(time_label, date_label)
+	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
+
+
+func _update_device_labels(time_label: Label, date_label: Label) -> void:
+	var now := Time.get_time_dict_from_system()
+	var hour := int(now.get("hour", 0))
+	var minute := int(now.get("minute", 0))
+	time_label.text = "%02d:%02d" % [hour, minute]
+
+	if _show_date and date_label != null:
+		date_label.text = _format_date("EEEE, d MMMM", false)
 
 
 func _place_stack_child(child: Control, child_spec: Dictionary, available_size: Vector2) -> void:
