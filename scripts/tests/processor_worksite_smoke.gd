@@ -22,6 +22,8 @@ func _run_processor_worksite_test() -> void:
 	var preview_column := worksite.find_child("ProcessorPreviewColumn", true, false) as VBoxContainer
 	var preview_container := worksite.find_child("ProcessorPreviewViewport", true, false) as SubViewportContainer
 	var viewport := worksite.find_child("Processor3DSubViewport", true, false) as SubViewport
+	var preview_world := worksite.find_child("ProcessorPreviewWorld", true, false) as Node3D
+	var preview_environment := viewport.get_node_or_null("WorldEnvironment") as WorldEnvironment if viewport != null else null
 	var model := worksite.find_child("ProcessorSoCModel", true, false) as Node3D
 	var design_models: Array = worksite.get("processor_models_data")
 	var design_selector_previous := worksite.find_child("DecreaseProcessorDesignButton", true, false) as Button
@@ -33,7 +35,7 @@ func _run_processor_worksite_test() -> void:
 	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
 	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
 	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
-	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or model == null or design_models.size() != 15 or design_selector_previous == null or design_selector_next == null or design_selector_value == null or design_selector_position == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
+	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or preview_world == null or preview_environment == null or model == null or design_models.size() != 15 or design_selector_previous == null or design_selector_next == null or design_selector_value == null or design_selector_position == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
 		_fail("Processor worksite is missing part of the shared Phone/OS full-screen worksite structure.")
 		worksite.free()
 		return
@@ -44,6 +46,27 @@ func _run_processor_worksite_test() -> void:
 		return
 	if viewport.size.x <= 0 or viewport.size.y <= 0 or viewport.msaa_3d != Viewport.MSAA_DISABLED or viewport.screen_space_aa != Viewport.SCREEN_SPACE_AA_DISABLED or viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
 		_fail("Processor preview is not using the low-end-device rendering budget.")
+		worksite.free()
+		return
+
+	if not viewport.transparent_bg or preview_environment.environment == null or preview_environment.environment.background_mode != Environment.BG_COLOR or preview_environment.environment.background_color.a > 0.001:
+		_fail("Processor preview must use a transparent viewport over the shared Phone Worksite backdrop.")
+		worksite.free()
+		return
+	if backdrop == null or backdrop.color != Color("#292B2D"):
+		_fail("Processor preview is not revealing the same charcoal #292B2D backdrop as Phone Creation.")
+		worksite.free()
+		return
+	if preview_world.get_parent() != viewport or preview_world.get_node_or_null("ProcessorStudioCamera") == null or preview_world.get_node_or_null("PhoneStyleStudioKeyLight") == null or preview_world.get_node_or_null("PhoneStyleStudioRimLight") == null or preview_world.get_node_or_null("PhoneStyleStudioFillLight") == null:
+		_fail("Processor preview does not follow the Phone Worksite's dedicated 3D preview-world structure.")
+		worksite.free()
+		return
+	if preview_environment.environment.sky == null or not (preview_environment.environment.sky.sky_material is ProceduralSkyMaterial):
+		_fail("Processor preview is missing the Phone Worksite procedural studio sky used for PBR lighting.")
+		worksite.free()
+		return
+	if viewport.find_child("StudioFloor", true, false) != null:
+		_fail("Processor preview must not add a separate floor/platform; its background must come from WorksiteBackdrop.")
 		worksite.free()
 		return
 
