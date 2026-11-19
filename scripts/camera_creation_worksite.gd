@@ -7,6 +7,12 @@ const MIN_PREVIEW_DISTANCE := 3.2
 const MAX_PREVIEW_DISTANCE := 7.2
 const DEFAULT_PREVIEW_DISTANCE := 4.6
 
+const WIZARD_STEPS := [
+	{"title": "CAMERA SYSTEM"},
+	{"title": "CAMERA HARDWARE"},
+	{"title": "CAMERA POSITIONING"}
+]
+
 
 signal back_requested
 
