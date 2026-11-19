@@ -79,6 +79,9 @@ func _run_test() -> void:
 		digital_clock.call("configure", face_index, test_palette, {"show_details": true})
 		await process_frame
 		await process_frame
+		var layout_ready: bool = await _wait_for_digital_clock_layout(digital_clock, face_index)
+		if not layout_ready:
+			return
 		var face_canvas := digital_clock.find_child("XMorphClockFace", true, false) as Control
 		if face_canvas == null:
 			_fail("Digital face %02d did not render on the default production path." % face_index)
@@ -200,6 +203,23 @@ func _run_test() -> void:
 	notification_card.free()
 	print("XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS")
 	quit()
+
+
+func _wait_for_digital_clock_layout(digital_clock: Control, face_index: int) -> bool:
+	# Each imported face can use a different nested layout. Wait until the
+	# renderer has detached its date layer, allowed containers to reflow, and
+	# centered the final time bounds before testing its shared position.
+	for _frame_index in range(12):
+		if not is_instance_valid(digital_clock):
+			_fail("Digital face %02d renderer was replaced before normalization." % face_index)
+			return false
+		if bool(digital_clock.call("is_time_layout_normalized")):
+			return true
+		await process_frame
+	if is_instance_valid(digital_clock) and bool(digital_clock.call("is_time_layout_normalized")):
+		return true
+	_fail("Digital face %02d did not finish layout normalization within 12 frames." % face_index)
+	return false
 
 
 func _fail(message: String) -> void:
