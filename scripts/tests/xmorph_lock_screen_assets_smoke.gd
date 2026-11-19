@@ -70,6 +70,7 @@ func _run_test() -> void:
 		return
 
 	var unique_names: Dictionary = {}
+	var unique_design_signatures: Dictionary = {}
 	var unique_time_fonts: Dictionary = {}
 	var expected_time_font_size := -1
 	for face_index in range(1, faces.get_face_count() + 1):
@@ -88,6 +89,8 @@ func _run_test() -> void:
 			_fail("Digital face %02d does not have a unique design name." % face_index)
 			return
 		unique_names[face_name] = true
+		var design_signature := JSON.stringify(face.get("large", {})) + "|" + JSON.stringify(face.get("layers", []))
+		unique_design_signatures[design_signature] = true
 		var time_layer_ids: Dictionary = {}
 		for layer_value in face.get("layers", []):
 			var layer: Dictionary = layer_value
@@ -101,7 +104,20 @@ func _run_test() -> void:
 			unique_time_fonts[font_reference] = true
 		for label_value in digital_clock.find_children("*", "Label", true, false):
 			var clock_label := label_value as Label
-			if clock_label.name == "DigitalClockDate":
+			var rendered_layer_id := ""
+			match clock_label.name:
+				"DigitalClockHours":
+					rendered_layer_id = "hours"
+				"DigitalClockMinutes":
+					rendered_layer_id = "minutes"
+				"DigitalClockTime":
+					rendered_layer_id = "time"
+				"DigitalClockDate":
+					continue
+				_:
+					if clock_label.name.begins_with("ClockLayer_"):
+						rendered_layer_id = clock_label.name.trim_prefix("ClockLayer_")
+			if not time_layer_ids.has(rendered_layer_id):
 				continue
 			if expected_time_font_size < 0:
 				expected_time_font_size = clock_label.get_theme_font_size("font_size")
@@ -109,7 +125,7 @@ func _run_test() -> void:
 				_fail("Digital faces must keep the same time font size across every style.")
 				return
 
-	if unique_names.size() != faces.get_face_count() or unique_time_fonts.size() < 10:
+	if unique_names.size() != faces.get_face_count() or unique_design_signatures.size() != faces.get_face_count() or unique_time_fonts.size() < 10:
 		_fail("The digital clock set must retain unique designs and a broad range of imported time fonts.")
 		return
 
