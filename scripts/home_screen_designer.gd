@@ -257,21 +257,24 @@ func set_app_search_query(query: String) -> void:
 func get_app_drawer_result_count() -> int:
 	if not is_instance_valid(_drawer_grid):
 		return 0
-	return _drawer_grid.get_child_count()
-
+	var visible_count := 0
+	for tile in _drawer_grid.get_children():
+		if (tile as Control).visible:
+			visible_count += 1
+	return visible_count
 
 func get_app_drawer_loaded_icon_count() -> int:
 	if not is_instance_valid(_drawer_grid):
 		return 0
 	var loaded_count := 0
-	for tile in _drawer_grid.get_children():
-		if tile.get_child_count() == 0:
+	for tile_value in _drawer_grid.get_children():
+		var tile := tile_value as Control
+		if not tile.visible or tile.get_child_count() == 0:
 			continue
 		var app_icon := tile.get_child(0) as TextureRect
 		if app_icon != null and app_icon.texture != null:
 			loaded_count += 1
 	return loaded_count
-
 
 func _load_app_manifest() -> void:
 	_app_manifest.clear()
@@ -607,14 +610,12 @@ func _build_app_drawer(populate_apps: bool = true) -> void:
 	_app_drawer.mouse_filter = Control.MOUSE_FILTER_PASS
 	_set_full_rect(_app_drawer)
 	add_child(_app_drawer)
-
 	var shade := ColorRect.new()
 	shade.name = "AppDrawerShade"
 	shade.color = Color(0.012, 0.016, 0.024, 0.92)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_full_rect(shade)
 	_app_drawer.add_child(shade)
-
 	var title := Label.new()
 	title.name = "AppDrawerTitle"
 	title.text = "All apps"
@@ -624,7 +625,6 @@ func _build_app_drawer(populate_apps: bool = true) -> void:
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_normalized_rect(title, Rect2(Vector2(0.06, 0.065), Vector2(0.88, 0.048)))
 	_app_drawer.add_child(title)
-
 	var search := LineEdit.new()
 	search.name = "AppDrawerSearch"
 	search.placeholder_text = "Search apps"
@@ -638,7 +638,6 @@ func _build_app_drawer(populate_apps: bool = true) -> void:
 	search.text_changed.connect(_on_app_search_changed)
 	_app_drawer.add_child(search)
 	_drawer_search = search
-
 	var scroll := ScrollContainer.new()
 	scroll.name = "AppDrawerScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -648,13 +647,21 @@ func _build_app_drawer(populate_apps: bool = true) -> void:
 	var scroll_bar := scroll.get_v_scroll_bar()
 	scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
 	_drawer_grid = GridContainer.new()
 	_drawer_grid.name = "AppDrawerIconGrid"
 	_drawer_grid.columns = 4
 	_drawer_grid.add_theme_constant_override("h_separation", 4)
 	_drawer_grid.add_theme_constant_override("v_separation", 12)
 	_drawer_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_drawer_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_drawer_grid)
+	if populate_apps:
+		for app in _app_manifest:
+			var app_tile := _make_app_tile(app, 84, 22, 132, false)
+			app_tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_drawer_grid.add_child(app_tile)
+
+ZE_EXPAND_FILL
 	_drawer_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_drawer_grid)
 	if populate_apps:
