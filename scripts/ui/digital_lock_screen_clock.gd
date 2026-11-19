@@ -345,13 +345,39 @@ func _initialize_face_variants() -> void:
 			"face": face,
 			"last_bounds": Rect2(),
 			"stable_frames": 0,
+			"shift_applied": false,
+			"shift_attempts": 0,
 			"normalized": false
 		}
-		_face_normalization_queue.append(face_index)
 	_faces_initialized = not _face_variants.is_empty()
 	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
 	_select_cached_face(selected_index)
 	_refresh_all_cached_time_labels()
+
+
+func refresh_cached_face_layouts() -> void:
+	if not _faces_initialized:
+		return
+	_face_normalization_queue.clear()
+	for face_value in _face_variants.keys():
+		var face_index := int(face_value)
+		var state: Dictionary = _face_variants[face_index]
+		var frame := state.get("frame") as Control
+		var root_node := state.get("root") as Control
+		if not is_instance_valid(frame) or not is_instance_valid(root_node):
+			continue
+		root_node.offset_left = 0.0
+		root_node.offset_top = 0.0
+		root_node.offset_right = 0.0
+		root_node.offset_bottom = 0.0
+		state["normalized"] = false
+		state["last_bounds"] = Rect2()
+		state["stable_frames"] = 0
+		state["shift_applied"] = false
+		state["shift_attempts"] = 0
+		frame.visible = true
+		frame.modulate.a = 1.0 if face_index == _style_index else 0.0
+		_face_normalization_queue.append(face_index)
 
 
 func _select_cached_face(face_index: int) -> void:
@@ -359,26 +385,57 @@ func _select_cached_face(face_index: int) -> void:
 		return
 	_style_index = face_index
 	_face = _face_variants[face_index].get("face", {})
+	var normalization_active := not _face_normalization_queue.is_empty()
 	for cached_index in _face_variants.keys():
 		var frame: Control = _face_variants[cached_index].get("frame") as Control
-		if is_instance_valid(frame):
+		if not is_instance_valid(frame):
+			continue
+		if normalization_active:
+			frame.visible = true
+			frame.modulate.a = 1.0 if int(cached_index) == face_index else 0.0
+		else:
 			frame.visible = int(cached_index) == face_index
-
+			frame.modulate = Color.WHITE
 
 func _process_face_normalization_queue() -> void:
-	var normalized_indices: Array[int] = []
-	for face_index in _face_normalization_queue:
+	if _face_normalization_queue.is_empty():
+		return
+	var completed_indices: Array[int] = []
+	for face_value in _face_normalization_queue:
+		var face_index := int(face_value)
 		if not _face_variants.has(face_index):
-			normalized_indices.append(face_index)
+			completed_indices.append(face_index)
 			continue
 		var state: Dictionary = _face_variants[face_index]
 		var frame := state.get("frame") as Control
 		var root_node := state.get("root") as Control
-		if not is_instance_valid(frame) or not is_instance_valid(root_node) or not frame.is_inside_tree() or not frame.visible:
+		if not is_instance_valid(frame) or not is_instance_valid(root_node) or not frame.is_inside_tree():
 			continue
 		var face: Dictionary = state.get("face", {})
 		var time_bounds := _get_time_layer_bounds(root_node, face)
 		if time_bounds.size.x <= 0.0 or time_bounds.size.y <= 0.0:
+			continue
+		var frame_rect := frame.get_global_rect()
+		var time_local := Rect2(time_bounds.position - frame_rect.position, time_bounds.size)
+		var target_center := frame.size * 0.5
+		if bool(state.get("shift_applied", false)):
+			var residual := target_center - time_local.get_center()
+			if residual.length() <= 1.0:
+				state["normalized"] = true
+				completed_indices.append(face_index)
+				continue
+			var attempts := int(state.get("shift_attempts", 0)) + 1
+			if attempts > 3:
+				push_warning("XMorph clock face %02d could not reach its centered layout." % face_index)
+				completed_indices.append(face_index)
+				continue
+			root_node.offset_left += residual.x
+			root_node.offset_right += residual.x
+			root_node.offset_top += residual.y
+			root_node.offset_bottom += residual.y
+			state["shift_attempts"] = attempts
+			state["last_bounds"] = Rect2()
+			state["stable_frames"] = 0
 			continue
 		var previous_bounds: Rect2 = state.get("last_bounds", Rect2())
 		var stable_frames := int(state.get("stable_frames", 0))
@@ -387,20 +444,23 @@ func _process_face_normalization_queue() -> void:
 		state["stable_frames"] = stable_frames
 		if stable_frames < 2:
 			continue
-		var frame_rect := frame.get_global_rect()
-		var time_local := Rect2(time_bounds.position - frame_rect.position, time_bounds.size)
-		var shift := frame.size * 0.5 - time_local.get_center()
+		var shift := target_center - time_local.get_center()
 		root_node.offset_left += shift.x
 		root_node.offset_right += shift.x
 		root_node.offset_top += shift.y
 		root_node.offset_bottom += shift.y
-		state["normalized"] = true
+		state["shift_applied"] = true
+		state["shift_attempts"] = 1
 		state["last_bounds"] = Rect2()
 		state["stable_frames"] = 0
-		normalized_indices.append(face_index)
-	for face_index in normalized_indices:
+	for face_index in completed_indices:
 		_face_normalization_queue.erase(face_index)
-
+	if _face_normalization_queue.is_empty():
+		for cached_index in _face_variants.keys():
+			var frame: Control = _face_variants[cached_index].get("frame") as Control
+			if is_instance_valid(frame):
+				frame.visible = int(cached_index) == _style_index
+				frame.modulate = Color.WHITE
 
 func _refresh_all_cached_time_labels() -> void:
 	for face_index in _face_variants.keys():
@@ -430,9 +490,19 @@ func _refresh_all_cached_time_labels() -> void:
 			clock_label.custom_minimum_size.x = clampf(text_width + font_size * side_padding, font_size * 1.1, available_width)
 			changed = true
 		if changed:
+			var frame := state.get("frame") as Control
+			if is_instance_valid(frame):
+				frame.visible = true
+				frame.modulate.a = 1.0 if int(face_index) == _style_index else 0.0
+			root_node.offset_left = 0.0
+			root_node.offset_top = 0.0
+			root_node.offset_right = 0.0
+			root_node.offset_bottom = 0.0
 			state["normalized"] = false
 			state["last_bounds"] = Rect2()
 			state["stable_frames"] = 0
+			state["shift_applied"] = false
+			state["shift_attempts"] = 0
 			if not _face_normalization_queue.has(int(face_index)):
 				_face_normalization_queue.append(int(face_index))
 
