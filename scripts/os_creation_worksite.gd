@@ -678,6 +678,53 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		_phone_pointer_clock_mode = false
 
 
+func _build_all_step_content_panels() -> void:
+	if _step_content_panels_built or not is_instance_valid(_step_content_host):
+		return
+	for step_index in range(STEP_NAMES.size()):
+		var panel := VBoxContainer.new()
+		panel.name = "OSStepControls_%02d" % step_index
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		panel.alignment = BoxContainer.ALIGNMENT_CENTER
+		panel.add_theme_constant_override("separation", 28)
+		panel.visible = false
+		_step_content_host.add_child(panel)
+		_step_content_panels[step_index] = panel
+	for step_index in range(STEP_NAMES.size()):
+		content_column = _step_content_panels[step_index] as VBoxContainer
+		match step_index:
+			0:
+				_show_boot_display_controls()
+			1:
+				_show_lock_screen_clock_controls()
+			2:
+				_show_lock_screen_designer_controls()
+			6:
+				_show_status_bar_style_controls()
+			_:
+				_show_asset_browser(step_index)
+	_step_content_panels_built = true
+	content_column = _step_content_panels.get(current_step, _step_content_panels[0]) as VBoxContainer
+
+
+func _refresh_boot_order_rows() -> void:
+	if not _step_content_panels.has(0):
+		return
+	var panel := _step_content_panels[0] as VBoxContainer
+	for index in range(boot_display_order.size()):
+		var option := boot_display_order[index]
+		var row := panel.get_node_or_null("BootOrderRow_" + option) as HBoxContainer
+		if row == null:
+			continue
+		panel.move_child(row, 2 + index)
+		if row.get_child_count() > 0 and row.get_child(0) is Label:
+			(row.get_child(0) as Label).text = "%02d" % (index + 1)
+		var drag_handle := row.get_node_or_null("BootOrderDragHandle_" + option)
+		if drag_handle != null:
+			drag_handle.set("item_index", index)
+
+
 func _show_step(step_index: int) -> void:
 	current_step = clampi(step_index, 0, STEP_NAMES.size() - 1)
 	heading_label.text = STEP_NAMES[current_step]
@@ -688,22 +735,13 @@ func _show_step(step_index: int) -> void:
 	previous_button.disabled = current_step == 0
 	next_button.text = "✓" if current_step == STEP_NAMES.size() - 1 else "›"
 	selection_status_label.text = "NO ASSET SELECTED" if selected_asset_path.is_empty() else selected_asset_path.replace("res://", "")
-
-	for child in content_column.get_children():
-		content_column.remove_child(child)
-		child.queue_free()
-
-	match current_step:
-		0:
-			_show_boot_display_controls()
-		1:
-			_show_lock_screen_clock_controls()
-		2:
-			_show_lock_screen_designer_controls()
-		6:
-			_show_status_bar_style_controls()
-		_:
-			_show_asset_browser(current_step)
+	if _step_content_panels_built:
+		for panel_value in _step_content_panels.values():
+			var panel := panel_value as Control
+			if is_instance_valid(panel):
+				panel.visible = false
+		content_column = _step_content_panels[current_step] as VBoxContainer
+		content_column.visible = true
 	_update_phone_preview_mode()
 
 func _show_status_bar_style_controls() -> void:
@@ -803,7 +841,7 @@ func _on_boot_order_drop(source_index: int, target_index: int) -> void:
 		return
 	var moved_option: String = boot_display_order.pop_at(source_index)
 	boot_display_order.insert(target_index, moved_option)
-	_show_step(0)
+	_refresh_boot_order_rows()
 
 func _add_boot_display_toggle(label: String, option: String, initially_enabled: bool, parent: Container = null) -> Button:
 	var toggle := _make_button("")
