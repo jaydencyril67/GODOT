@@ -123,12 +123,12 @@ func _build_preview_world() -> void:
 	preview_viewport.transparent_bg = true
 	preview_container.add_child(preview_viewport)
 
-	_build_preview_environment()
-	_build_preview_lighting()
-
 	preview_world = Node3D.new()
 	preview_world.name = "CameraStudioPreviewWorld"
 	preview_viewport.add_child(preview_world)
+
+	_build_preview_environment()
+	_build_preview_lighting()
 
 	phone_model = CameraLessPhoneModelScript.new() as Node3D
 	phone_model.name = "CameraLessPhoneModel"
@@ -176,7 +176,7 @@ func _build_preview_environment() -> void:
 	environment.ambient_light_energy = 0.42
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	environment_node.environment = environment
-	preview_viewport.add_child(environment_node)
+	preview_world.add_child(environment_node)
 
 
 func _build_preview_lighting() -> void:
@@ -186,7 +186,7 @@ func _build_preview_lighting() -> void:
 	key_light.light_color = Color("#EEE9DF")
 	key_light.light_energy = 0.82
 	key_light.shadow_enabled = false
-	preview_viewport.add_child(key_light)
+	preview_world.add_child(key_light)
 
 	var rim_light := DirectionalLight3D.new()
 	rim_light.name = "CameraStudioRimLight"
@@ -194,7 +194,7 @@ func _build_preview_lighting() -> void:
 	rim_light.light_color = Color("#C7BBA6")
 	rim_light.light_energy = 0.34
 	rim_light.shadow_enabled = false
-	preview_viewport.add_child(rim_light)
+	preview_world.add_child(rim_light)
 
 	var fill_light := OmniLight3D.new()
 	fill_light.name = "CameraStudioFillLight"
@@ -202,7 +202,7 @@ func _build_preview_lighting() -> void:
 	fill_light.light_color = Color("#C7BBA6")
 	fill_light.light_energy = 0.18
 	fill_light.omni_range = 8.0
-	preview_viewport.add_child(fill_light)
+	preview_world.add_child(fill_light)
 
 
 func _build_interface() -> void:
@@ -243,7 +243,9 @@ func _build_interface() -> void:
 	preview_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	worksite_body.add_child(preview_region)
 
-	worksite_body.add_child(_create_preview_container())
+	preview_region.add_child(preview_container)
+	preview_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	right_panel_column = VBoxContainer.new()
 	right_panel_column.name = "CameraCreationRightPanel"
@@ -428,13 +430,6 @@ func _build_interface() -> void:
 	worksite_root.add_child(next_button)
 
 	_apply_responsive_layout()
-
-
-func _create_preview_container() -> Control:
-	preview_region.add_child(preview_container)
-	preview_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	return Control.new()
 
 
 func _set_wizard_step(step: int) -> void:
