@@ -1,6 +1,9 @@
 extends Control
 
 const FaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
+const FACE_FRAME_RECT := Rect2(0.05, 0.30, 0.90, 0.40)
+const TIME_FONT_FRACTION := 0.29
+const DATE_FONT_FRACTION := 0.045
 
 var _library := FaceAssetLibrary.new()
 var _style_index := 1
@@ -8,7 +11,6 @@ var _face: Dictionary = {}
 var _palette: Dictionary = {}
 var _show_date := true
 var _last_minute := -1
-var _device_mode := true
 
 
 func _ready() -> void:
@@ -22,7 +24,6 @@ func configure(index: int, palette: Dictionary = {}, design: Dictionary = {}) ->
 	_style_index = clampi(index, 1, maxi(1, _library.get_face_count()))
 	_palette = palette.duplicate(true)
 	_show_date = bool(design.get("show_details", true))
-	_device_mode = bool(design.get("device_clock", _device_mode))
 	_load_selected_face()
 
 
@@ -70,10 +71,6 @@ func _render_face() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
 
-	if _device_mode:
-		_render_device_face()
-		return
-
 	if _face.is_empty():
 		return
 
@@ -86,27 +83,16 @@ func _render_face() -> void:
 	if layout_key.is_empty():
 		return
 
-	var layout_data: Dictionary = large[layout_key]
-	var root_width := clampf(float(layout_data.get("width", large.get("width", 0.90))), 0.30, 1.0)
-	var root_height := clampf(float(layout_data.get("height", large.get("height", 0.48))), 0.16, 0.90)
-	var root_x := float(large.get("x", 0.5))
-	var root_y := float(large.get("y", 0.32))
-	var horizontal_anchor := str(large.get("anchor", "CENTER"))
-	var left := root_x
-	if horizontal_anchor == "CENTER":
-		left -= root_width * 0.5
-	elif horizontal_anchor == "END":
-		left -= root_width
-	left = clampf(left, 0.0, 1.0 - root_width)
-	var top := clampf(root_y - root_height * 0.5, 0.06, 1.0 - root_height)
-
+	# Every imported face shares one fixed, centered canvas. The JSON controls
+	# typography and composition inside it, never the clock's screen position.
 	var frame := Control.new()
 	frame.name = "XMorphClockFace"
-	_set_normalized_rect(frame, Rect2(left, top, root_width, root_height))
+	_set_normalized_rect(frame, FACE_FRAME_RECT)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(frame)
 
-	var root_node := _build_layout_node(large, Vector2(size.x * root_width, size.y * root_height))
+	var frame_size := Vector2(size.x * FACE_FRAME_RECT.size.x, size.y * FACE_FRAME_RECT.size.y)
+	var root_node := _build_layout_node(large, frame_size)
 	if root_node == null:
 		return
 	root_node.name = "XMorphClockLayout"
@@ -170,80 +156,6 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
 	return container
 
 
-func _render_device_face() -> void:
-	for child in get_children():
-		remove_child(child)
-		child.queue_free()
-
-	if size.x <= 0.0 or size.y <= 0.0:
-		return
-
-	var frame := Control.new()
-	frame.name = "DeviceClockFrame"
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(frame)
-
-	var time_label := Label.new()
-	time_label.name = "DeviceClockTime"
-	time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	time_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	time_label.clip_text = false
-	time_label.anchor_left = 0.0
-	time_label.anchor_right = 1.0
-	time_label.anchor_top = 0.30
-	time_label.anchor_bottom = 0.48
-	frame.add_child(time_label)
-
-	var date_label := Label.new()
-	date_label.name = "DeviceClockDate"
-	date_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	date_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	date_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	date_label.clip_text = false
-	date_label.anchor_left = 0.0
-	date_label.anchor_right = 1.0
-	date_label.anchor_top = 0.50
-	date_label.anchor_bottom = 0.60
-	if not _show_date:
-		date_label.visible = false
-	frame.add_child(date_label)
-
-	var short_side := minf(size.x, size.y)
-	var time_font_size := clampi(roundi(short_side * 0.14), 36, 140)
-	var date_font_size := clampi(roundi(short_side * 0.04), 12, 24)
-
-	time_label.add_theme_font_size_override("font_size", time_font_size)
-	date_label.add_theme_font_size_override("font_size", date_font_size)
-	time_label.add_theme_color_override("font_color", _palette.get("text", Color.WHITE))
-	date_label.add_theme_color_override("font_color", _palette.get("muted", Color("#D1D5DB")))
-
-	var font: Font = _library.get_font("roboto_flex")
-	if font != null:
-		time_label.add_theme_font_override("font", font)
-		date_label.add_theme_font_override("font", font)
-
-	time_label.add_theme_constant_override("letter_spacing", 0)
-	date_label.add_theme_constant_override("letter_spacing", 2)
-	date_label.modulate.a = 0.85
-
-	_update_device_labels(time_label, date_label)
-	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
-
-
-func _update_device_labels(time_label: Label, date_label: Label) -> void:
-	var now := Time.get_time_dict_from_system()
-	var hour := int(now.get("hour", 0))
-	var minute := int(now.get("minute", 0))
-	time_label.text = "%02d:%02d" % [hour, minute]
-
-	if _show_date and date_label != null:
-		date_label.text = _format_date("EEEE, d MMMM", false)
-
-
 func _place_stack_child(child: Control, child_spec: Dictionary, available_size: Vector2) -> void:
 	var nested_stack: Dictionary = child_spec.get("stack", {})
 	var width_fraction := float(nested_stack.get("width", child_spec.get("width", 0.78)))
@@ -293,7 +205,10 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 		label.visible = false
 
 	var text_value := label.text
-	var requested_size := float(node_spec.get("size", 0.09))
+	var layer_type := str(layer.get("type", "TEXT"))
+	var requested_size := DATE_FONT_FRACTION
+	if layer_type in ["HOURS", "MINUTES", "COLON", "TIME", "HOUR_TENS", "HOUR_ONES", "MINUTE_TENS", "MINUTE_ONES"]:
+		requested_size = TIME_FONT_FRACTION
 	var short_side := minf(available_size.x, available_size.y)
 	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.28)))
 	var font_size := clampi(roundi(short_side * requested_size * 0.42), 11, max_font_size)
