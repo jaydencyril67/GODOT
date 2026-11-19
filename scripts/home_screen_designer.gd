@@ -107,11 +107,23 @@ func configure_for_loading(
 
 
 func _apply_design(design: Dictionary, status_bar_style_id: String, defer_app_drawer_population: bool) -> bool:
+	if design.is_empty():
+		return false
+	var previous_wallpaper := str(_design.get("wallpaper_path", ""))
 	_design = design.duplicate(true)
 	_status_bar_style_id = status_bar_style_id if StatusBarAssetLibrary.has_style(status_bar_style_id) else "one_ui_balanced"
+	if is_instance_valid(_home_content):
+		# Keep the homepage alive when a new lock-screen layout is generated.
+		# Only update properties that changed; never rebuild pages or app tiles.
+		var next_wallpaper := str(_design.get("wallpaper_path", ""))
+		if next_wallpaper != previous_wallpaper and not next_wallpaper.is_empty():
+			set_wallpaper(next_wallpaper)
+		set_status_bar_style(_status_bar_style_id)
+		_refresh_clock_labels()
+		return is_instance_valid(_clock_label) and is_instance_valid(_date_label) and is_instance_valid(_status_bar)
 	_home_page_index = 0
 	_build_screen(defer_app_drawer_population)
-	return _clock_label != null and _date_label != null and _status_bar != null
+	return is_instance_valid(_clock_label) and is_instance_valid(_date_label) and is_instance_valid(_status_bar)
 
 
 func load_manifest_for_loading(progress_callback: Callable) -> bool:
