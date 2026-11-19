@@ -37,7 +37,10 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 	_palette = palette.duplicate(true)
 	_show_date = false
 	if size.x > 0.0 and size.y > 0.0:
-		_initialize_face_variants()
+		if _faces_initialized:
+			_select_cached_face(_style_index)
+		else:
+			_initialize_face_variants()
 	else:
 		_initial_build_pending = true
 
