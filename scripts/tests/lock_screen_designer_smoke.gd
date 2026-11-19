@@ -240,7 +240,20 @@ func _run_test() -> void:
 	var initial_layout_ready: bool = await _wait_for_digital_clock_layout(digital_artwork, int(designer.call("get_clock_style_index")))
 	if not initial_layout_ready:
 		return
-	var expected_time_center: Vector2 = digital_artwork.call("get_time_visual_rect").get_center()
+	var initial_digital_time_rect: Rect2 = digital_artwork.call("get_time_visual_rect")
+	var initial_drag_bounds: Rect2 = digital_component.call("get_clock_visual_rect")
+	if initial_digital_time_rect.position.distance_to(initial_drag_bounds.position) > 1.0 or initial_digital_time_rect.size.distance_to(initial_drag_bounds.size) > 1.0:
+		_fail("Digital drag bounds must include only the active prebuilt face, not the 40 hidden faces.")
+		return
+	var maximum_time_font_size := 0
+	for label_value in digital_artwork.find_children("*", "Label", true, false):
+		var time_label := label_value as Label
+		if time_label.is_visible_in_tree() and time_label.text.length() > 0:
+			maximum_time_font_size = maxi(maximum_time_font_size, time_label.get_theme_font_size("font_size"))
+	if maximum_time_font_size > 112:
+		_fail("Digital clock text exceeds the compact 112px maximum (actual %dpx)." % maximum_time_font_size)
+		return
+	var expected_time_center: Vector2 = initial_digital_time_rect.get_center()
 	var digital_date := digital_artwork.find_child("DigitalClockDate", true, false) as Label
 	if digital_date != null and digital_date.visible:
 		_fail("Digital clock faces must not display a date.")
@@ -277,6 +290,38 @@ func _run_test() -> void:
 		if center_delta > 2.5:
 			_fail("Changing digital clock styles must keep the visible time at the same screen position (style %d; expected %s, got %s; delta %.2f px)." % [style_index, expected_time_center, current_time_center, center_delta])
 			return
+
+	if not bool(designer.call("set_clock_position_mode", "flex")):
+		_fail("The digital clock could not enter Flex mode for movement testing.")
+		return
+	var digital_screen_rect := designer.get_global_rect()
+	var digital_edge_targets := [
+		digital_screen_rect.position,
+		Vector2(digital_screen_rect.end.x, digital_screen_rect.position.y),
+		Vector2(digital_screen_rect.position.x, digital_screen_rect.end.y),
+		digital_screen_rect.end
+	]
+	for edge_target in digital_edge_targets:
+		var before_edge_rect: Rect2 = digital_component.call("get_clock_visual_rect")
+		var before_edge_distance := before_edge_rect.get_center().distance_to(edge_target)
+		if not bool(designer.call("begin_clock_drag", before_edge_rect.get_center())):
+			_fail("The active digital face could not be grabbed for screen-edge movement.")
+			return
+		if not bool(designer.call("drag_clock_to", edge_target)):
+			_fail("The digital clock could not move toward a requested screen section.")
+			return
+		designer.call("end_clock_drag")
+		var after_edge_rect: Rect2 = digital_component.call("get_clock_visual_rect")
+		if after_edge_rect.position.x < digital_screen_rect.position.x - 1.0 or after_edge_rect.position.y < digital_screen_rect.position.y - 1.0 or after_edge_rect.end.x > digital_screen_rect.end.x + 1.0 or after_edge_rect.end.y > digital_screen_rect.end.y + 1.0:
+			_fail("The digital clock must remain inside the full phone screen while moving to its edges.")
+			return
+		if after_edge_rect.get_center().distance_to(edge_target) >= before_edge_distance:
+			_fail("The digital clock did not move closer to the requested screen section.")
+			return
+	moved_clock_position = designer.call("get_clock_position")
+	if not bool(designer.call("set_clock_position_mode", "fixed")):
+		_fail("The digital clock could not return to Fixed mode after movement testing.")
+		return
 	if not bool(designer.call("set_clock_type", "analog")) or designer.call("get_clock_position") != moved_clock_position:
 		_fail("Switching back to Analog did not preserve the selected clock position.")
 		return
