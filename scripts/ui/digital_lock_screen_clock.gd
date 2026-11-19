@@ -289,7 +289,7 @@ func _get_time_layer_bounds(search_root: Node) -> Rect2:
 
 
 func _find_date_layer(search_root: Node) -> Label:
-	var fallback_date: Label
+	var fallback_date: Label = null
 	for label_value in search_root.find_children("*", "Label", true, false):
 		var clock_label := label_value as Label
 		var layer_id := _layer_id_for_label(clock_label)
