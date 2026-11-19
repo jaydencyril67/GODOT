@@ -144,6 +144,8 @@ var _show_clock := true
 var _show_details := true
 var _clock_type := "analog"
 var _clock_style_index := 1
+var _clock_position := Vector2(0.05, 0.14)
+var _clock_position_mode := "fixed"
 var _show_notifications := false
 var _show_media_player := false
 var _show_fingerprint := false
@@ -305,6 +307,53 @@ func get_clock_style_count() -> int:
 func get_clock_style_name() -> String:
 	return ClockFaceAssetLibrary.new().get_face_name(get_clock_style_index())
 
+
+func get_clock_position_mode() -> String:
+	return str(_last_design.get("clock_position_mode", _clock_position_mode)) if not _last_design.is_empty() else _clock_position_mode
+
+
+func get_clock_position() -> Vector2:
+	var saved_position: Variant = _last_design.get("clock_position", _clock_position) if not _last_design.is_empty() else _clock_position
+	return saved_position if saved_position is Vector2 else _clock_position
+
+
+func set_clock_position_mode(mode: String) -> bool:
+	var normalized := mode.to_lower()
+	if normalized not in ["flex", "fixed"]:
+		return false
+	_clock_position_mode = normalized
+	if _last_design.is_empty():
+		return true
+	_last_design["clock_position_mode"] = normalized
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false)
+	if clock != null:
+		clock.call("set_position_mode", normalized)
+	return true
+
+
+func begin_clock_drag(screen_position: Vector2) -> bool:
+	if _last_design.is_empty() or not bool(_last_design.get("show_clock", true)) or is_pin_entry_visible():
+		return false
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false)
+	return clock != null and bool(clock.call("begin_clock_drag", screen_position))
+
+
+func drag_clock_to(screen_position: Vector2) -> bool:
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false)
+	if clock == null or not bool(clock.call("drag_clock_to", screen_position)):
+		return false
+	_clock_position = clock.call("get_clock_position")
+	_last_design["clock_position"] = _clock_position
+	return true
+
+
+func end_clock_drag() -> void:
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false)
+	if clock != null:
+		clock.call("end_clock_drag")
+		_clock_position = clock.call("get_clock_position")
+	if not _last_design.is_empty():
+		_last_design["clock_position"] = _clock_position
 
 
 func set_clock_style_index(style_index: int, device_clock: Variant = null) -> bool:
@@ -503,6 +552,8 @@ func _compose_design() -> Dictionary:
 		"clock_type": _clock_type,
 		"clock_style_index": _clock_style_index,
 		"digital_clock_style_index": _clock_style_index,
+		"clock_position": _clock_position,
+		"clock_position_mode": _clock_position_mode,
 		"palette": palette,
 		"wallpaper_path": wallpaper_path,
 		"wallpaper_index": _wallpaper_number(wallpaper_path),
