@@ -58,11 +58,13 @@ func _run_test() -> void:
 	# Match the production call: no legacy device_clock override is supplied.
 	digital_clock.call("configure", 41, test_palette, {"show_details": true})
 	await process_frame
-	if digital_clock.find_child("XMorphClockFace", true, false) == null:
-		_fail("The XMorph digital clock renderer did not create its face canvas.")
+	var prebuilt_face_canvases := digital_clock.find_children("XMorphClockFace_*", "Control", true, false)
+	var prebuilt_layout_trees := digital_clock.find_children("XMorphClockLayout_*", "Control", true, false)
+	if prebuilt_face_canvases.size() != 41:
+		_fail("The XMorph digital clock renderer must preload all 41 named face canvases.")
 		return
-	if digital_clock.find_child("XMorphClockLayout", true, false) == null:
-		_fail("The XMorph digital clock renderer did not create its JSON layout tree.")
+	if prebuilt_layout_trees.size() != 41:
+		_fail("The XMorph digital clock renderer must preload all 41 named JSON layout trees.")
 		return
 	if str(digital_clock.call("get_style_name")) != faces.get_face_name(41):
 		_fail("The digital clock selector did not bind the 41st imported style.")
@@ -82,7 +84,7 @@ func _run_test() -> void:
 		var layout_ready: bool = await _wait_for_digital_clock_layout(digital_clock, face_index)
 		if not layout_ready:
 			return
-		var face_canvas := digital_clock.find_child("XMorphClockFace", true, false) as Control
+		var face_canvas := digital_clock.find_child("XMorphClockFace_%02d" % face_index, true, false) as Control
 		if face_canvas == null:
 			_fail("Digital face %02d did not render on the default production path." % face_index)
 			return
