@@ -329,6 +329,7 @@ func _build_interface() -> void:
 	name_input.text_changed.connect(_on_design_changed)
 	name_page.add_child(name_input)
 
+	var dimensions_page := _create_step_page("PACKAGE DIMENSIONS")
 	var dimensions_label := _label("PACKAGE SIZE", 11, ACCENT)
 	dimensions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dimensions_page.add_child(dimensions_label)
@@ -342,6 +343,7 @@ func _build_interface() -> void:
 	package_size.item_selected.connect(_on_design_changed)
 	dimensions_page.add_child(package_size)
 
+	var package_page := _create_step_page("PACKAGE FINISH")
 	var package_label := _label("PACKAGE MATERIAL FINISH", 11, ACCENT)
 	package_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	package_page.add_child(package_label)
@@ -355,6 +357,7 @@ func _build_interface() -> void:
 	package_finish.item_selected.connect(_on_design_changed)
 	package_page.add_child(package_finish)
 
+	var die_page := _create_step_page("SILICON DIE FINISH")
 	var die_label := _label("DIE SURFACE", 11, ACCENT)
 	die_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	die_page.add_child(die_label)
