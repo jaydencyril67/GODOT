@@ -127,14 +127,6 @@ func get_date_visual_rect() -> Rect2:
 func get_date_time_gap_pixels() -> float:
 	return -1.0
 
-ZERO or date_rect.size == Vector2.ZERO:
-		return -1.0
-	if date_rect.end.y <= time_rect.position.y:
-		return time_rect.position.y - date_rect.end.y
-	if date_rect.position.y >= time_rect.end.y:
-		return date_rect.position.y - time_rect.end.y
-	return 0.0
-
 
 func _detach_date_from_layout(frame: Control, root_node: Control) -> void:
 	_pending_date_label = null
@@ -312,26 +304,6 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2, face_override
 			continue
 		if child is Label:
 			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL if layout_key == "column" else Control.SIZE_SHRINK_CENTER
-		container.add_child(child)
-	return container
-
-ZE_EXPAND_FILL
-	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	container.alignment = _box_alignment(str(data.get("align", "CENTER")))
-	var gap := float(data.get("gap", 0.0))
-	var gap_scale := CLOCK_ROW_GAP_SCALE if layout_key == "row" else 1.0
-	container.add_theme_constant_override("separation", roundi(minf(available_size.x, available_size.y) * gap * gap_scale))
-	for child_value in data.get("children", []):
-		var child_spec: Dictionary = child_value
-		var child_available := available_size
-		var child := _build_layout_node(child_spec, child_available)
-		if child == null:
-			continue
-		if child is Label:
-			if layout_key == "column":
-				child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			else:
-				child.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		container.add_child(child)
 	return container
 
