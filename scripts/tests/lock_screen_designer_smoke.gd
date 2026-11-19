@@ -51,6 +51,13 @@ func _run_test() -> void:
 	var signatures: Dictionary = {}
 	var layout_ids: Dictionary = {}
 
+	var wallpaper_paths: Dictionary = {}
+	var original_wallpaper_path := ""
+	var analog_asset_indices: Dictionary = {}
+	var analog_artwork_renderer_found := false
+	var media_count := 0
+	var notification_count := 0
+
 	for generation_index in range(GENERATION_COUNT):
 		var design: Dictionary = designer.call("generate_new_design")
 		if design.is_empty():
@@ -194,13 +201,6 @@ func _run_test() -> void:
 	if not bool(designer.call("set_clock_position_mode", "flex")):
 		_fail("The clock could not restore Flex mode after switching clock types.")
 		return
-	var wallpaper_paths: Dictionary = {}
-	var original_wallpaper_path := ""
-	var analog_asset_indices: Dictionary = {}
-	var analog_artwork_renderer_found := false
-	var media_count := 0
-	var notification_count := 0
-
 	var expected_blueprints: Array = LayoutLibrary.get_blueprints()
 	if layout_ids.size() != expected_blueprints.size():
 		var missing_layouts: Array[String] = []
