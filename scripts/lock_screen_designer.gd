@@ -692,12 +692,8 @@ func _apply_display_options_to_nodes() -> void:
 	var fingerprint := find_child("GeneratedLockScreenFingerprint", true, false) as Control
 	if fingerprint != null:
 		fingerprint.visible = _show_fingerprint
-	var flashlight := find_child("BottomFlashlightShortcut", true, false) as Control
-	if flashlight != null:
-		flashlight.visible = _show_flashlight_shortcut
-	var camera := find_child("BottomCameraShortcut", true, false) as Control
-	if camera != null:
-		camera.visible = _show_camera_shortcut
+	_sync_shortcut_node("flashlight", _show_flashlight_shortcut)
+	_sync_shortcut_node("camera", _show_camera_shortcut)
 
 func show_pin_entry() -> bool:
 	if _last_design.is_empty():
@@ -1054,15 +1050,33 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	card.call("configure", media, palette)
 	card.visible = bool(_last_design.get("show_media_player", false))
 
-func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
-	for shortcut in design["shortcuts"]:
-		var kind := str(shortcut["kind"])
+func _add_shortcuts(_design: Dictionary, _palette: Dictionary) -> void:
+	_sync_shortcut_node("flashlight", _show_flashlight_shortcut)
+	_sync_shortcut_node("camera", _show_camera_shortcut)
+
+
+func _sync_shortcut_node(kind: String, enabled: bool) -> void:
+	var node_name := "Bottom" + kind.capitalize() + "Shortcut"
+	var shortcut_node := find_child(node_name, true, false) as Control
+	if not enabled:
+		if shortcut_node != null:
+			remove_child(shortcut_node)
+			shortcut_node.free()
+		return
+	if shortcut_node != null:
+		shortcut_node.visible = true
+		return
+	var palette: Dictionary = _last_design.get("palette", {})
+	for shortcut_value in _last_design.get("shortcuts", []):
+		var shortcut: Dictionary = shortcut_value
+		if str(shortcut.get("kind", "")) != kind:
+			continue
 		var button: Control = LockScreenShortcutScene.instantiate() as Control
-		button.name = "Bottom" + kind.capitalize() + "Shortcut"
-		_set_normalized_rect(button, shortcut["rect"])
+		button.name = node_name
+		_set_normalized_rect(button, shortcut.get("rect", Rect2()))
 		add_child(button)
 		button.call("configure", kind, palette)
-		button.visible = _show_flashlight_shortcut if kind == "flashlight" else _show_camera_shortcut
+		return
 
 func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
 	var fingerprint: Control = FingerprintPromptScene.instantiate() as Control
