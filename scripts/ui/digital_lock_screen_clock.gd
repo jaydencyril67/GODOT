@@ -47,6 +47,18 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 	else:
 		_initial_build_pending = true
 
+func set_style_index(index: int) -> bool:
+	if index < 1 or index > get_style_count():
+		return false
+	if not _faces_initialized:
+		_style_index = index
+		return false
+	if not _face_variants.has(index):
+		return false
+	_select_cached_face(index)
+	return true
+
+
 func get_style_index() -> int:
 	return _style_index
 
