@@ -34,7 +34,7 @@ func _ready() -> void:
 	_load_selected_face()
 
 
-func configure(index: int, palette: Dictionary = {}, design: Dictionary = {}) -> void:
+func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -> void:
 	_style_index = clampi(index, 1, maxi(1, _library.get_face_count()))
 	_palette = palette.duplicate(true)
 	_show_date = false
