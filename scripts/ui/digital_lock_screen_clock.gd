@@ -2,7 +2,7 @@ extends Control
 
 const FaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
 const FACE_FRAME_RECT := Rect2(0.05, 0.30, 0.90, 0.40)
-const TIME_FONT_FRACTION := 0.29
+const TIME_FONT_FRACTION := 0.58
 const DATE_FONT_FRACTION := 0.045
 const DATE_TIME_GAP_RATIO := 0.012
 const DATE_TIME_GAP_MIN := 5.0
@@ -37,7 +37,7 @@ func _ready() -> void:
 func configure(index: int, palette: Dictionary = {}, design: Dictionary = {}) -> void:
 	_style_index = clampi(index, 1, maxi(1, _library.get_face_count()))
 	_palette = palette.duplicate(true)
-	_show_date = bool(design.get("show_details", true))
+	_show_date = false
 	_load_selected_face()
 
 
@@ -427,8 +427,8 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 	if layer_type in ["HOURS", "MINUTES", "COLON", "TIME", "HOUR_TENS", "HOUR_ONES", "MINUTE_TENS", "MINUTE_ONES"]:
 		requested_size = TIME_FONT_FRACTION
 	var short_side := minf(available_size.x, available_size.y)
-	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.28)))
-	var font_size := clampi(roundi(short_side * requested_size * 0.42), 11, max_font_size)
+	var max_font_size := mini(240, maxi(12, roundi(available_size.y * 0.42)))
+	var font_size := clampi(roundi(short_side * requested_size * 0.62), 11, max_font_size)
 	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
 	if font_reference.is_empty():
 		font_reference = "roboto_flex"
