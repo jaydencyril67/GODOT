@@ -86,6 +86,9 @@ var clock_position_description: Label
 var progress_label: Label
 var progress_bar: ProgressBar
 var content_column: VBoxContainer
+var _step_content_host: VBoxContainer
+var _step_content_panels: Dictionary = {}
+var _step_content_panels_built := false
 var selection_status_label: Label
 var phone_frame: SubViewportContainer
 var phone_screen_interface_viewport: SubViewport
@@ -137,15 +140,11 @@ func _initialize_worksite() -> void:
 	if not is_instance_valid(phone_model) or not is_instance_valid(phone_screen_texture):
 		setup_failed.emit("The handset preview could not be initialized.")
 		return
-
 	await phone_model.call(
 		"build_for_loading",
 		phone_screen_texture,
 		Callable(self, "_emit_setup_progress")
 	)
-
-	# Cache every worksite asset browser category now, so opening a step later
-	# only displays prepared paths rather than walking the filesystem on demand.
 	for step_index_value in STEP_ASSET_PATHS.keys():
 		var step_index := int(step_index_value)
 		var category_name: String = str(STEP_NAMES[step_index])
@@ -157,8 +156,6 @@ func _initialize_worksite() -> void:
 		_asset_file_cache[step_index] = files
 		_emit_setup_progress("Indexing %s assets" % category_name.to_lower(), 100.0)
 		await get_tree().create_timer(0.18).timeout
-
-	_show_step(0)
 
 	_emit_setup_progress("Generating the default lock screen", 0.0)
 	await get_tree().process_frame
@@ -180,10 +177,11 @@ func _initialize_worksite() -> void:
 		setup_failed.emit("The homepage or 200-app drawer could not be built.")
 		return
 
+	_build_all_step_content_panels()
+	_show_step(0)
 	_update_phone_preview_mode()
 	setup_complete = true
 	setup_completed.emit()
-
 
 func _emit_setup_progress(message: String, progress: float) -> void:
 	setup_progress.emit(message, clampf(progress, 0.0, 100.0))
@@ -441,6 +439,7 @@ func _build_interface() -> void:
 	content_column.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_column.add_theme_constant_override("separation", 28)
 	controls_stack.add_child(content_column)
+	_step_content_host = content_column
 
 	selection_status_label = _make_label("NO ASSET SELECTED", 10, MUTED)
 	selection_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
