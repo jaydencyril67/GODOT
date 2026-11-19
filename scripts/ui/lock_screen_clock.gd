@@ -24,8 +24,8 @@ func _ready() -> void:
 func configure(design: Dictionary, palette: Dictionary) -> void:
 	var saved_position: Variant = design.get("clock_position", DEFAULT_CLOCK_POSITION)
 	_clock_position = saved_position if saved_position is Vector2 else DEFAULT_CLOCK_POSITION
-	_clock_position.x = clampf(_clock_position.x, 0.0, 1.0 - CLOCK_CONTAINER_SIZE.x)
-	_clock_position.y = clampf(_clock_position.y, 0.0, 1.0 - CLOCK_CONTAINER_SIZE.y)
+	_clock_position.x = clampf(_clock_position.x, -1.0, 1.0)
+	_clock_position.y = clampf(_clock_position.y, -1.0, 1.0)
 	_position_mode = str(design.get("clock_position_mode", "fixed")).to_lower()
 	if _position_mode not in ["flex", "fixed"]:
 		_position_mode = "fixed"
