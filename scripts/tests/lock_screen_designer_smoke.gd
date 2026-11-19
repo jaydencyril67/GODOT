@@ -50,53 +50,6 @@ func _run_test() -> void:
 
 	var signatures: Dictionary = {}
 	var layout_ids: Dictionary = {}
-	if str(designer.call("get_clock_position_mode")) != "fixed":
-		_fail("Lock-screen clock positioning must default to Fixed mode.")
-		return
-	var clock_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
-	if clock_component == null:
-		_fail("The generated lock-screen clock component is missing.")
-		return
-	var initial_clock_position: Vector2 = designer.call("get_clock_position")
-	if bool(designer.call("begin_clock_drag", clock_component.call("get_drag_hit_rect").get_center())):
-		_fail("A fixed clock must reject drag attempts.")
-		return
-	if not bool(designer.call("set_clock_position_mode", "flex")):
-		_fail("The clock could not be switched into Flex mode.")
-		return
-	var drag_hit_rect: Rect2 = clock_component.call("get_drag_hit_rect")
-	if not bool(designer.call("begin_clock_drag", drag_hit_rect.get_center())):
-		_fail("A flexible clock did not start dragging when touched.")
-		return
-	if not bool(designer.call("drag_clock_to", Vector2(520.0, 1080.0))):
-		_fail("A flexible clock did not follow the pointer.")
-		return
-	designer.call("end_clock_drag")
-	var moved_clock_position: Vector2 = designer.call("get_clock_position")
-	if moved_clock_position.distance_to(initial_clock_position) < 0.05:
-		_fail("Dragging in Flex mode did not persist a new clock position.")
-		return
-	if not bool(designer.call("set_clock_position_mode", "fixed")):
-		_fail("The clock could not be switched into Fixed mode.")
-		return
-	if bool(designer.call("begin_clock_drag", clock_component.call("get_drag_hit_rect").get_center())):
-		_fail("A fixed clock remained draggable.")
-		return
-	if not bool(designer.call("set_clock_type", "digital")) or designer.call("get_clock_position") != moved_clock_position:
-		_fail("Switching to Digital did not preserve the selected clock position.")
-		return
-	if not bool(designer.call("set_clock_type", "analog")) or designer.call("get_clock_position") != moved_clock_position:
-		_fail("Switching back to Analog did not preserve the selected clock position.")
-		return
-	if not bool(designer.call("set_clock_position_mode", "flex")):
-		_fail("The clock could not restore Flex mode after switching clock types.")
-		return
-	var wallpaper_paths: Dictionary = {}
-	var original_wallpaper_path := ""
-	var analog_asset_indices: Dictionary = {}
-	var analog_artwork_renderer_found := false
-	var media_count := 0
-	var notification_count := 0
 
 	for generation_index in range(GENERATION_COUNT):
 		var design: Dictionary = designer.call("generate_new_design")
@@ -199,6 +152,54 @@ func _run_test() -> void:
 				found_camera = true
 		if not found_flashlight or not found_camera:
 			_fail("The lock screen is missing its separate flashlight or camera shortcut.")
+
+	if str(designer.call("get_clock_position_mode")) != "fixed":
+		_fail("Lock-screen clock positioning must default to Fixed mode.")
+		return
+	var clock_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
+	if clock_component == null:
+		_fail("The generated lock-screen clock component is missing.")
+		return
+	var initial_clock_position: Vector2 = designer.call("get_clock_position")
+	if bool(designer.call("begin_clock_drag", clock_component.call("get_drag_hit_rect").get_center())):
+		_fail("A fixed clock must reject drag attempts.")
+		return
+	if not bool(designer.call("set_clock_position_mode", "flex")):
+		_fail("The clock could not be switched into Flex mode.")
+		return
+	var drag_hit_rect: Rect2 = clock_component.call("get_drag_hit_rect")
+	if not bool(designer.call("begin_clock_drag", drag_hit_rect.get_center())):
+		_fail("A flexible clock did not start dragging when touched.")
+		return
+	if not bool(designer.call("drag_clock_to", Vector2(520.0, 1080.0))):
+		_fail("A flexible clock did not follow the pointer.")
+		return
+	designer.call("end_clock_drag")
+	var moved_clock_position: Vector2 = designer.call("get_clock_position")
+	if moved_clock_position.distance_to(initial_clock_position) < 0.05:
+		_fail("Dragging in Flex mode did not persist a new clock position.")
+		return
+	if not bool(designer.call("set_clock_position_mode", "fixed")):
+		_fail("The clock could not be switched into Fixed mode.")
+		return
+	if bool(designer.call("begin_clock_drag", clock_component.call("get_drag_hit_rect").get_center())):
+		_fail("A fixed clock remained draggable.")
+		return
+	if not bool(designer.call("set_clock_type", "digital")) or designer.call("get_clock_position") != moved_clock_position:
+		_fail("Switching to Digital did not preserve the selected clock position.")
+		return
+	if not bool(designer.call("set_clock_type", "analog")) or designer.call("get_clock_position") != moved_clock_position:
+		_fail("Switching back to Analog did not preserve the selected clock position.")
+		return
+	if not bool(designer.call("set_clock_position_mode", "flex")):
+		_fail("The clock could not restore Flex mode after switching clock types.")
+		return
+	var wallpaper_paths: Dictionary = {}
+	var original_wallpaper_path := ""
+	var analog_asset_indices: Dictionary = {}
+	var analog_artwork_renderer_found := false
+	var media_count := 0
+	var notification_count := 0
 
 	var expected_blueprints: Array = LayoutLibrary.get_blueprints()
 	if layout_ids.size() != expected_blueprints.size():
