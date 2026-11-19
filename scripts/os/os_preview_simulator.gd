@@ -9,12 +9,32 @@ var status_label: Label
 var _palette: Dictionary = {}
 var _style: Dictionary = {}
 
+# Digital clock style that the user can cycle through with the - / + buttons.
+# Each style pairs a different font treatment with a distinct clock design.
+var _clock_style_index := 0
+var _clock_time_label: Label
+var _clock_date_label: Label
+var _clock_tick := 0.0
+var _stix_font: Font
+
+const CLOCK_STYLE_NAMES := ["Classic Digital", "Compact Minimal", "Stacked Time", "Modern Wide"]
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	if configuration.is_empty():
 		configuration = ProceduralOSEngine.generate_os()
 	_build_shell()
+
+func _process(delta: float) -> void:
+	_clock_tick += delta
+	if _clock_tick >= 1.0 and is_instance_valid(_clock_time_label):
+		_clock_tick = 0.0
+		var time_str := Time.get_time_string_from_system()
+		if time_str.size() >= 5:
+			_clock_time_label.text = time_str.substr(0, 5)
+		if is_instance_valid(_clock_date_label):
+			_clock_date_label.text = Time.get_date_string_from_system().to_upper()
 
 func configure_os(os_configuration: Dictionary, component_id: String = "home_screen") -> void:
 	configuration = os_configuration.duplicate(true)
@@ -150,12 +170,41 @@ func _build_lock_screen(data: Dictionary) -> void:
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 25
 	page_container.add_child(spacer)
-	var clock := _label("09:41", 34 if data.get("clock_style") == "bold" else 27, _text_color())
-	clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page_container.add_child(clock)
-	var date := _label("FRIDAY, NOVEMBER 13", 8, _muted_color())
-	date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page_container.add_child(date)
+
+	# Clock style switcher: - [Style name] +
+	var style_row := HBoxContainer.new()
+	style_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	style_row.add_theme_constant_override("separation", 8)
+	page_container.add_child(style_row)
+
+	var dec_btn := Button.new()
+	dec_btn.text = "-"
+	dec_btn.custom_minimum_size = Vector2(30, 30)
+	_style_action_button(dec_btn)
+	dec_btn.pressed.connect(_prev_clock_style)
+	style_row.add_child(dec_btn)
+
+	var style_label := _label(_clock_style_display_name(), 10, _accent_color())
+	style_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	style_label.custom_minimum_size = Vector2(130, 0)
+	style_row.add_child(style_label)
+
+	var inc_btn := Button.new()
+	inc_btn.text = "+"
+	inc_btn.custom_minimum_size = Vector2(30, 30)
+	_style_action_button(inc_btn)
+	inc_btn.pressed.connect(_next_clock_style)
+	style_row.add_child(inc_btn)
+
+	# The digital clock (4 switchable styles: font + design)
+	_build_clock_display(data)
+
+	# Standalone date for non-stacked styles (stacked shows it inside the clock)
+	if _clock_style_index != 2:
+		var date := _label("FRIDAY, NOVEMBER 13", 8, _muted_color())
+		date.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		page_container.add_child(date)
+
 	var middle := Control.new()
 	middle.custom_minimum_size.y = 20
 	page_container.add_child(middle)
@@ -172,6 +221,105 @@ func _build_lock_screen(data: Dictionary) -> void:
 	_style_action_button(unlock)
 	unlock.pressed.connect(func(): set_component_view("home_screen"))
 	page_container.add_child(unlock)
+
+func _build_clock_display(data: Dictionary) -> void:
+	var container := VBoxContainer.new()
+	container.alignment = BoxContainer.ALIGNMENT_CENTER
+	container.add_theme_constant_override("separation", 4)
+	page_container.add_child(container)
+
+	match _clock_style_index:
+		0: _draw_clock_classic(container)
+		1: _draw_clock_compact(container)
+		2: _draw_clock_stacked(container)
+		3: _draw_clock_modern(container)
+		_:
+			_draw_clock_classic(container)
+
+func _draw_clock_classic(container: Control) -> void:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, 60)
+	card.add_theme_constant_override("margin_left", 14)
+	card.add_theme_constant_override("margin_right", 14)
+	card.add_theme_constant_override("margin_top", 10)
+	card.add_theme_constant_override("margin_bottom", 10)
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = Color("#14171A")
+	cs.border_color = Color(_text_color(), 0.20)
+	cs.set_border_width_all(1)
+	cs.set_corner_radius_all(16)
+	card.add_theme_stylebox_override("panel", cs)
+	container.add_child(card)
+	var t := _label("09:41", 42, _text_color())
+	t.add_theme_font_override("font", _ui_font(true))
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	card.add_child(t)
+	_clock_time_label = t
+
+func _draw_clock_compact(container: Control) -> void:
+	var t := _label("9:41", 20, _text_color())
+	t.add_theme_font_override("font", _ui_font(false))
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	container.add_child(t)
+	_clock_time_label = t
+
+func _draw_clock_stacked(container: Control) -> void:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, 56)
+	card.add_theme_constant_override("margin_left", 12)
+	card.add_theme_constant_override("margin_right", 12)
+	card.add_theme_constant_override("margin_top", 8)
+	card.add_theme_constant_override("margin_bottom", 8)
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = Color("#14171A")
+	cs.border_color = Color(_accent_color(), 0.35)
+	cs.set_border_width_all(1)
+	cs.set_corner_radius_all(12)
+	card.add_theme_stylebox_override("panel", cs)
+	container.add_child(card)
+	var t := _label("09:41", 26, _text_color())
+	t.add_theme_font_override("font", _ui_font(true))
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card.add_child(t)
+	var d := _label("FRI · NOV 13", 9, _muted_color())
+	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card.add_child(d)
+	_clock_time_label = t
+	_clock_date_label = d
+
+func _draw_clock_modern(container: Control) -> void:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, 48)
+	card.add_theme_constant_override("margin_left", 16)
+	card.add_theme_constant_override("margin_right", 16)
+	card.add_theme_constant_override("margin_top", 8)
+	card.add_theme_constant_override("margin_bottom", 8)
+	var cs := StyleBoxFlat.new()
+	cs.bg_color = Color("#0E1012")
+	cs.border_color = Color(_accent_color(), 0.5)
+	cs.set_border_width_all(1)
+	cs.set_corner_radius_all(10)
+	card.add_theme_stylebox_override("panel", cs)
+	container.add_child(card)
+	var t := _label("0  9  :  4  1", 24, _accent_color())
+	t.add_theme_font_override("font", _ui_font(true))
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card.add_child(t)
+	_clock_time_label = t
+
+func _next_clock_style() -> void:
+	_clock_style_index = (_clock_style_index + 1) % CLOCK_STYLE_NAMES.size()
+	set_component_view("lock_screen")
+
+func _prev_clock_style() -> void:
+	var size := CLOCK_STYLE_NAMES.size()
+	_clock_style_index = (_clock_style_index - 1 + size) % size
+	set_component_view("lock_screen")
+
+func _clock_style_display_name() -> String:
+	return CLOCK_STYLE_NAMES[_clock_style_index]
+
 
 func _build_icon_gallery(data: Dictionary) -> void:
 	var shape := str(data.get("shape", "rounded"))
@@ -419,3 +567,14 @@ func _text_color() -> Color:
 
 func _muted_color() -> Color:
 	return Color(str(_palette.get("muted", "#A6B0B9")))
+
+func _accent_color() -> Color:
+	return Color(str(_palette.get("accent", "#72B7C8")))
+
+# Returns a distinct font per clock style so each style looks like a different clock face.
+func _ui_font(use_system: bool) -> Font:
+	if use_system:
+		return SystemFont.new()
+	if not is_instance_valid(_stix_font):
+		_stix_font = load("res://assets/fonts/STIXTwoText[wght].ttf") as Font
+	return _stix_font

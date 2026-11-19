@@ -133,7 +133,7 @@ static func _generate_component(component_id: String, rng: RandomNumberGenerator
 		"home_screen":
 			return {"layout": ["classic_grid", "widget_grid", "minimal_grid"][rng.randi_range(0, 2)], "columns": int(style.get("grid_columns", 4)), "dock_count": rng.randi_range(3, 5), "show_search": rng.randf() > 0.45, "show_clock_widget": rng.randf() > 0.35, "wallpaper": style.get("wallpaper", WALLPAPERS[0])}
 		"lock_screen":
-			return {"clock_style": ["bold", "compact", "stacked"][rng.randi_range(0, 2)], "show_notifications": rng.randf() > 0.25, "shortcut_style": ["circular", "minimal"][rng.randi_range(0, 1)], "wallpaper": style.get("wallpaper", WALLPAPERS[0])}
+				return {"clock_style": ["bold", "compact", "stacked", "digital"][rng.randi_range(0, 3)], "show_notifications": rng.randf() > 0.25, "shortcut_style": ["circular", "minimal"][rng.randi_range(0, 1)], "wallpaper": style.get("wallpaper", WALLPAPERS[0])}
 		"app_icons":
 			var generation_number := int(style.get("generation", 1))
 			var shape_options := ["square"] if generation_number == 1 else (["soft_square", "rounded"] if generation_number == 2 else ["rounded", "soft_square"])
