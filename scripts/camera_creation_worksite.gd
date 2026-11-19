@@ -13,12 +13,6 @@ const WIZARD_STEPS := [
 	{"title": "CAMERA POSITIONING"}
 ]
 
-const WIZARD_STEPS := [
-	{"title": "CAMERA SYSTEM"},
-	{"title": "CAMERA HARDWARE"},
-	{"title": "CAMERA POSITIONING"}
-]
-
 
 signal back_requested
 
