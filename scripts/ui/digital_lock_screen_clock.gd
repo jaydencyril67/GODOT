@@ -75,7 +75,7 @@ func _process(_delta: float) -> void:
 				# Godot may need multiple layout passes after imported face
 				# controls are attached. Normalize only after the measured time
 				# bounds stop changing, avoiding style-dependent first-frame data.
-				if _pending_normalization_stable_frames >= 2:
+				if _pending_normalization_stable_frames >= 1:
 					_normalize_time_and_date(frame, root_node)
 					_pending_normalization_frame = null
 					_pending_normalization_root = null
