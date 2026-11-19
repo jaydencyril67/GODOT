@@ -15,6 +15,8 @@ var _face: Dictionary = {}
 var _palette: Dictionary = {}
 var _show_date := true
 var _last_minute := -1
+var _pending_normalization_frame: Control
+var _pending_normalization_root: Control
 
 
 func _ready() -> void:
@@ -56,6 +58,18 @@ func get_style_layout() -> String:
 
 
 func _process(_delta: float) -> void:
+	# Wait for the newly-created containers to finish layout before measuring
+	# their labels. This stays on the live renderer instance (no async resume
+	# after a style rebuild frees it).
+	if is_instance_valid(_pending_normalization_frame) and is_instance_valid(_pending_normalization_root):
+		var frame := _pending_normalization_frame
+		var root_node := _pending_normalization_root
+		if frame.is_inside_tree() and root_node.is_inside_tree() and frame.size.x > 0.0 and frame.size.y > 0.0:
+			var time_bounds := _get_time_layer_bounds(root_node)
+			if time_bounds.size.x > 0.0 and time_bounds.size.y > 0.0:
+				_normalize_time_and_date(frame, root_node)
+				_pending_normalization_frame = null
+				_pending_normalization_root = null
 	var now := Time.get_time_dict_from_system()
 	if int(now.get("minute", -1)) != _last_minute:
 		_render_face()
@@ -103,7 +117,8 @@ func _render_face() -> void:
 	root_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.add_child(root_node)
-	call_deferred("_normalize_time_and_date", frame, root_node)
+	_pending_normalization_frame = frame
+	_pending_normalization_root = root_node
 	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
 
 
