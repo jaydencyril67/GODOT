@@ -684,8 +684,8 @@ func _apply_display_options_to_nodes() -> void:
 	var clock := find_child("GeneratedLockScreenClockComponent", true, false) as Control
 	if clock != null:
 		clock.visible = _show_clock
-	for notification in find_children("GeneratedNotification", "Control", true, false):
-		(notification as Control).visible = _show_notifications
+	for notification_node in find_children("GeneratedNotification", "Control", true, false):
+		(notification_node as Control).visible = _show_notifications
 	var media := find_child("GeneratedLockScreenMediaPlayer", true, false) as Control
 	if media != null:
 		media.visible = _show_media_player
