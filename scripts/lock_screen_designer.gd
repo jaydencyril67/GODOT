@@ -307,7 +307,7 @@ func get_clock_style_name() -> String:
 
 
 
-func set_clock_style_index(style_index: int) -> bool:
+func set_clock_style_index(style_index: int, device_clock: Variant = null) -> bool:
 	if style_index < 1 or style_index > get_clock_style_count():
 		return false
 	_clock_style_index = style_index
@@ -315,6 +315,8 @@ func set_clock_style_index(style_index: int) -> bool:
 		_last_design["clock_style_index"] = style_index
 		_last_design["analog_clock_asset_index"] = style_index
 		_last_design["digital_clock_style_index"] = style_index
+		if device_clock != null:
+			_last_design["device_clock"] = bool(device_clock)
 		_render_design(_last_design)
 	return true
 

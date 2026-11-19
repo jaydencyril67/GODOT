@@ -215,7 +215,7 @@ func _run_test() -> void:
 	var observed_fonts: Dictionary = {}
 	var observed_face_names: Dictionary = {}
 	for typography_index in range(1, 42):
-		if not bool(lock_screen.call("set_clock_style_index", typography_index)):
+		if not bool(lock_screen.call("set_clock_style_index", typography_index, false)):
 			_fail("An imported XMorph digital face could not be selected: %02d." % typography_index)
 			return
 		var typography_clock := lock_screen.find_child("DigitalClock", true, false) as Control
@@ -267,7 +267,7 @@ func _run_test() -> void:
 		_fail("The 41 imported faces must cover multiple design categories, layouts and bundled font families.")
 		return
 
-	if not bool(lock_screen.call("set_clock_style_index", 41)):
+	if not bool(lock_screen.call("set_clock_style_index", 41, false)):
 		_fail("Digital Style 41 could not be selected for the live time preview.")
 		return
 	var live_digital_clock := lock_screen.find_child("DigitalClock", true, false) as Control
