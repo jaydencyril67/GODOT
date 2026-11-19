@@ -1,5 +1,7 @@
 extends Node3D
 
+const ProcessorDesignLibrary = preload("res://scripts/processor_design_library.gd")
+
 signal back_requested
 signal design_saved(design: Dictionary)
 
@@ -64,10 +66,21 @@ var next_button: Button
 var current_wizard_step := 1
 var package_layers: Array[MeshInstance3D] = []
 var die_surface: MeshInstance3D
+var die_surfaces: Array[MeshInstance3D] = []
+var processor_designs: Array[Dictionary] = []
+var processor_models_data: Array[Dictionary] = []
+var selected_design_index := 0
+var design_decrease_button: Button
+var design_increase_button: Button
+var design_value_label: Label
+var design_position_label: Label
+var design_note_label: Label
 var drag_active := false
 var is_flipped := false
 var processor_design := {
-	"name": "DW Silicon 01",
+	"name": "DW SILICON 01",
+	"design_id": "dw_silicon_01",
+	"design_name": "DW SILICON 01",
 	"package_size": "12 × 12 mm",
 	"package_finish": "Matte graphite",
 	"die_finish": "Dark silicon"
@@ -82,8 +95,15 @@ func configure_design(design: Dictionary) -> void:
 	if design.is_empty():
 		return
 	processor_design = design.duplicate(true)
+	var saved_design_id := str(processor_design.get("design_id", "dw_silicon_01"))
+	var restored_index := 0
+	for index in range(ProcessorDesignLibrary.DESIGNS.size()):
+		if str(ProcessorDesignLibrary.DESIGNS[index].get("id", "")) == saved_design_id:
+			restored_index = index
+			break
+	_select_processor_design(restored_index, false)
 	if is_instance_valid(name_input):
-		name_input.text = str(processor_design.get("name", "DW Silicon 01"))
+		name_input.text = str(processor_design.get("name", ProcessorDesignLibrary.DESIGNS[restored_index].get("name", "DW SILICON 01")))
 	if is_instance_valid(package_size):
 		_select_option(package_size, str(processor_design.get("package_size", "12 × 12 mm")))
 	if is_instance_valid(package_finish):
@@ -269,9 +289,62 @@ func _build_interface() -> void:
 	selection_region.add_child(selection_stack)
 
 	var name_page := _create_step_page(
-		"PROCESSOR IDENTITY",
-		"Give the processor its product name before configuring the physical package."
+		"SELECT PROCESSOR DESIGN",
+		"Explore 15 distinct, physically grounded mobile processor package designs."
 	)
+	var design_selector_zone := CenterContainer.new()
+	design_selector_zone.name = "ProcessorDesignSelectorZone"
+	design_selector_zone.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	design_selector_zone.custom_minimum_size = Vector2(0, 168)
+	name_page.add_child(design_selector_zone)
+
+	var selector_column := VBoxContainer.new()
+	selector_column.name = "ProcessorDesignSelector"
+	selector_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selector_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	selector_column.add_theme_constant_override("separation", 9)
+	design_selector_zone.add_child(selector_column)
+
+	design_position_label = _label("DESIGN 01 / 15", 10, ACCENT)
+	design_position_label.name = "ProcessorDesignPositionLabel"
+	design_position_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selector_column.add_child(design_position_label)
+
+	var selector_row := HBoxContainer.new()
+	selector_row.name = "ProcessorDesignSelectorControls"
+	selector_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	selector_row.add_theme_constant_override("separation", 14)
+	selector_column.add_child(selector_row)
+
+	design_decrease_button = Button.new()
+	design_decrease_button.name = "DecreaseProcessorDesignButton"
+	design_decrease_button.text = "−"
+	_style_design_selector_button(design_decrease_button)
+	design_decrease_button.pressed.connect(_on_processor_design_decrease_pressed)
+	selector_row.add_child(design_decrease_button)
+
+	design_value_label = _label("DW SILICON 01", 19, Color.WHITE)
+	design_value_label.name = "ProcessorDesignValueLabel"
+	design_value_label.custom_minimum_size.x = 210
+	design_value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	design_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	design_value_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	selector_row.add_child(design_value_label)
+
+	design_increase_button = Button.new()
+	design_increase_button.name = "IncreaseProcessorDesignButton"
+	design_increase_button.text = "+"
+	_style_design_selector_button(design_increase_button)
+	design_increase_button.pressed.connect(_on_processor_design_increase_pressed)
+	selector_row.add_child(design_increase_button)
+
+	design_note_label = _label("", 11, Color("#D0CBC2"))
+	design_note_label.name = "ProcessorDesignNoteLabel"
+	design_note_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	design_note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	design_note_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selector_column.add_child(design_note_label)
+
 	var name_label := _label("PROCESSOR NAME", 11, ACCENT)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_page.add_child(name_label)
@@ -526,9 +599,77 @@ func _build_processor_preview() -> void:
 	processor_root.rotation = DEFAULT_VIEW_ROTATION
 	preview_viewport.add_child(processor_root)
 
-	_build_package_body()
-	_build_top_die_and_passives()
-	_build_bottom_contacts()
+	# Every physical model is constructed once during startup preparation.
+	# Selection only toggles visibility, so changing designs never builds meshes.
+	processor_designs = ProcessorDesignLibrary.DESIGNS.duplicate(true)
+	processor_models_data = ProcessorDesignLibrary.build_all(preview_viewport)
+	_select_processor_design(0, true)
+
+
+func _style_design_selector_button(button: Button) -> void:
+	_style_button(button, false)
+	button.custom_minimum_size = Vector2(56, 48)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.focus_mode = Control.FOCUS_NONE
+
+
+func _on_processor_design_decrease_pressed() -> void:
+	_select_processor_design(selected_design_index - 1, true)
+
+
+func _on_processor_design_increase_pressed() -> void:
+	_select_processor_design(selected_design_index + 1, true)
+
+
+func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
+	if processor_models_data.is_empty() or processor_designs.is_empty():
+		return
+	selected_design_index = clampi(index, 0, mini(processor_models_data.size(), processor_designs.size()) - 1)
+	for model_index in range(processor_models_data.size()):
+		var model_root := processor_models_data[model_index].get("root") as Node3D
+		if is_instance_valid(model_root):
+			model_root.visible = model_index == selected_design_index
+			if model_index == selected_design_index:
+				model_root.rotation = DEFAULT_VIEW_ROTATION
+				model_root.scale = Vector3.ONE
+
+	var selected_model: Dictionary = processor_models_data[selected_design_index]
+	var selected_profile: Dictionary = processor_designs[selected_design_index]
+	processor_root = selected_model.get("root") as Node3D
+	package_layers = selected_model.get("package_layers", []) as Array[MeshInstance3D]
+	die_surfaces = selected_model.get("die_surfaces", []) as Array[MeshInstance3D]
+	die_surface = die_surfaces[0] if not die_surfaces.is_empty() else null
+	is_flipped = false
+
+	if reset_to_preset:
+		if is_instance_valid(name_input):
+			name_input.text = str(selected_profile.get("name", "DW PROCESSOR"))
+		if is_instance_valid(package_size):
+			_select_option(package_size, str(selected_profile.get("package_size", "12 × 12 mm")))
+		if is_instance_valid(package_finish):
+			_select_option(package_finish, str(selected_profile.get("package_finish", "Matte graphite")))
+		if is_instance_valid(die_finish):
+			_select_option(die_finish, str(selected_profile.get("die_finish", "Dark silicon")))
+	_apply_design()
+	_refresh_processor_design_controls()
+
+
+func _refresh_processor_design_controls() -> void:
+	if selected_design_index < 0 or selected_design_index >= processor_designs.size():
+		return
+	var profile: Dictionary = processor_designs[selected_design_index]
+	if is_instance_valid(design_value_label):
+		design_value_label.text = str(profile.get("name", "DW PROCESSOR"))
+	if is_instance_valid(design_position_label):
+		design_position_label.text = "DESIGN %02d / %02d" % [selected_design_index + 1, processor_designs.size()]
+	if is_instance_valid(design_note_label):
+		design_note_label.text = str(profile.get("description", ""))
+	if is_instance_valid(design_decrease_button):
+		design_decrease_button.disabled = selected_design_index <= 0
+	if is_instance_valid(design_increase_button):
+		design_increase_button.disabled = selected_design_index >= processor_designs.size() - 1
 
 func _build_package_body() -> void:
 	# The stepped package layers create the thin laminated edge visible on real SoC packages.
@@ -685,8 +826,9 @@ func _apply_design() -> void:
 			var layer_material := _material(package_color, 0.42, 0.34)
 			layer_material.albedo_color = package_color.darkened(0.12) if layer.name == "PackageLowerEdge" else package_color
 			layer.material_override = layer_material
-	if is_instance_valid(die_surface):
-		die_surface.material_override = _material(die_colors.get(selected_die, Color("#171D22")), 0.32, 0.25)
+	for surface in die_surfaces:
+		if is_instance_valid(surface):
+			surface.material_override = _material(die_colors.get(selected_die, Color("#171D22")), 0.32, 0.25)
 	var scale_factor := 1.0
 	match package_size.get_item_text(package_size.selected):
 		"10 × 10 mm":
@@ -698,8 +840,11 @@ func _apply_design() -> void:
 	processor_root.scale = Vector3.ONE * scale_factor
 
 func _save_design() -> void:
+	var selected_profile: Dictionary = processor_designs[selected_design_index]
 	processor_design = {
-		"name": name_input.text.strip_edges() if not name_input.text.strip_edges().is_empty() else "DW Silicon 01",
+		"name": name_input.text.strip_edges() if not name_input.text.strip_edges().is_empty() else str(selected_profile.get("name", "DW SILICON 01")),
+		"design_id": str(selected_profile.get("id", "dw_silicon_01")),
+		"design_name": str(selected_profile.get("name", "DW SILICON 01")),
 		"package_size": package_size.get_item_text(package_size.selected),
 		"package_finish": package_finish.get_item_text(package_finish.selected),
 		"die_finish": die_finish.get_item_text(die_finish.selected)
