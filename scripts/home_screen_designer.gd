@@ -32,6 +32,7 @@ var _app_drawer: Control
 var _drawer_grid: GridContainer
 var _drawer_search: LineEdit
 var _status_bar: Control
+var _status_bar_variants: Dictionary = {}
 var _clock_label: Label
 var _date_label: Label
 
@@ -160,12 +161,11 @@ func set_status_bar_style(style_id: String) -> bool:
 	if not StatusBarAssetLibrary.has_style(style_id):
 		return false
 	_status_bar_style_id = style_id
-	if is_instance_valid(_status_bar):
-		_status_bar.queue_free()
-		_status_bar = null
-	_add_status_bar()
+	for variant_id in _status_bar_variants.keys():
+		var variant := _status_bar_variants[variant_id] as Control
+		if is_instance_valid(variant):
+			variant.visible = str(variant_id) == style_id
 	return true
-
 
 func get_status_bar_style_id() -> String:
 	return _status_bar_style_id
@@ -289,7 +289,7 @@ func _build_screen(defer_app_drawer_population: bool = false) -> void:
 	for child in get_children():
 		remove_child(child)
 		child.free()
-
+	_status_bar_variants.clear()
 	_clock_label = null
 	_date_label = null
 	_status_bar = null
@@ -303,6 +303,34 @@ func _build_screen(defer_app_drawer_population: bool = false) -> void:
 	if not wallpaper_path.is_empty() and ResourceLoader.exists(wallpaper_path):
 		wallpaper.texture = load(wallpaper_path) as Texture2D
 	wallpaper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	wallpaper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	wallpaper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(wallpaper)
+	add_child(wallpaper)
+
+	var shade := ColorRect.new()
+	shade.name = "HomeScreenWallpaperLegibilityShade"
+	shade.color = Color(0.004, 0.008, 0.014, 0.16)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_full_rect(shade)
+	add_child(shade)
+
+	_home_content = Control.new()
+	_home_content.name = "HomeScreenMainPage"
+	_home_content.mouse_filter = Control.MOUSE_FILTER_PASS
+	_set_full_rect(_home_content)
+	add_child(_home_content)
+	_add_clock_widget()
+	_add_search_widget()
+	_add_home_app_grid()
+	_add_dock()
+	_add_page_indicators()
+	_add_navigation_gesture()
+	_build_app_drawer(not defer_app_drawer_population)
+	_add_status_bar()
+	_refresh_clock_labels()
+
+ZE
 	wallpaper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	wallpaper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_full_rect(wallpaper)
@@ -631,7 +659,6 @@ func _rebuild_app_drawer_grid(query: String) -> void:
 
 
 func _add_status_bar() -> void:
-	var style: Dictionary = StatusBarAssetLibrary.get_style(_status_bar_style_id)
 	var palette: Dictionary = _design.get("palette", {})
 	var tint: Color = palette.get("muted", Color("#F4F6FA"))
 	_status_bar = Control.new()
@@ -639,20 +666,74 @@ func _add_status_bar() -> void:
 	_status_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_normalized_rect(_status_bar, Rect2(Vector2(0.055, 0.012), Vector2(0.89, 0.043)))
 	add_child(_status_bar)
+	for style in StatusBarAssetLibrary.get_styles():
+		var style_id := str(style.get("id", ""))
+		var variant := Control.new()
+		variant.name = "HomeStatusBarVariant_" + style_id
+		variant.visible = style_id == _status_bar_style_id
+		variant.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_full_rect(variant)
+		_status_bar.add_child(variant)
+		var row := HBoxContainer.new()
+		row.name = "HomeStatusBarContents"
+		row.add_theme_constant_override("separation", int(style.get("gap", 3)) + 2)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_full_rect(row)
+		variant.add_child(row)
+		var leading := HBoxContainer.new()
+		leading.add_theme_constant_override("separation", int(style.get("gap", 3)) + 2)
+		leading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(leading)
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(spacer)
+		var trailing := HBoxContainer.new()
+		trailing.add_theme_constant_override("separation", int(style.get("gap", 3)) + 2)
+		trailing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(trailing)
+		var time_side := str(style.get("time_side", "left"))
+		var icon_group := trailing if time_side == "left" else leading
+		var time_group := leading if time_side == "left" else trailing
+		var time_label := Label.new()
+		time_label.name = "HomeStatusBarClock"
+		time_label.text = _current_time_text()
+		time_label.add_theme_font_size_override("font_size", maxi(22, int(style.get("time_size", 12)) + 10))
+		time_label.add_theme_color_override("font_color", tint)
+		time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		time_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		time_group.add_child(time_label)
+		if bool(style.get("show_lock", false)):
+			var lock_icon := TextureRect.new()
+			lock_icon.name = "HomeStatusBarLockIcon"
+			lock_icon.texture = _load_tinted_asset(LOCK_ICON_PATH, tint)
+			lock_icon.custom_minimum_size = Vector2(16, 20)
+			lock_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			lock_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			time_group.add_child(lock_icon)
+		for icon_type in style.get("order", []):
+			var icon_id := str(icon_type)
+			if icon_id == "bluetooth" and not bool(style.get("show_bluetooth", false)):
+				continue
+			var texture_name := "bluetooth_connected" if icon_id == "bluetooth" else "%s_%d" % [icon_id, int(style.get(icon_id + "_level", 4))]
+			var texture := StatusBarAssetLibrary.get_icon_texture(texture_name)
+			if texture == null:
+				continue
+			var icon := TextureRect.new()
+			icon.name = "HomeStatusBar" + icon_id.capitalize() + "Icon"
+			icon.texture = texture
+			icon.modulate = tint
+			var base_size := float(style.get("icon_size", 16)) * 1.50
+			var icon_width := base_size * 0.75 if icon_id == "signal" else base_size
+			icon.custom_minimum_size = Vector2(icon_width, base_size)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon_group.add_child(icon)
+		_status_bar_variants[style_id] = variant
 
-	var row := HBoxContainer.new()
-	row.name = "HomeStatusBarContents"
-	row.add_theme_constant_override("separation", int(style.get("gap", 3)) + 2)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_full_rect(row)
-	_status_bar.add_child(row)
-
-	var leading := HBoxContainer.new()
-	leading.add_theme_constant_override("separation", int(style.get("gap", 3)) + 2)
-	leading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(leading)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(spacer)
 	var trailing := HBoxContainer.new()
@@ -712,10 +793,9 @@ func _refresh_clock_labels() -> void:
 	if is_instance_valid(_date_label):
 		_date_label.text = _current_date_text()
 	if is_instance_valid(_status_bar):
-		var status_clock := _status_bar.find_child("HomeStatusBarClock", true, false) as Label
-		if status_clock != null:
-			status_clock.text = _current_time_text()
-
+		var status_clocks := _status_bar.find_children("HomeStatusBarClock", "Label", true, false)
+		for status_clock in status_clocks:
+			(status_clock as Label).text = _current_time_text()
 
 func _current_time_text() -> String:
 	var time := Time.get_time_dict_from_system()
