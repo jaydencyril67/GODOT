@@ -287,7 +287,7 @@ func _run_test() -> void:
 			_fail("An imported XMorph digital face could not be selected: %02d." % typography_index)
 			return
 		var typography_clock := lock_screen.find_child("DigitalClock", true, false) as Control
-		if typography_clock == null or typography_clock.find_child("XMorphClockFace", true, false) == null or typography_clock.find_child("XMorphClockLayout", true, false) == null:
+		if typography_clock == null or typography_clock.find_child("XMorphClockFace_%02d" % typography_index, true, false) == null or typography_clock.find_child("XMorphClockLayout_%02d" % typography_index, true, false) == null:
 			_fail("XMorph digital face %02d did not render its asset-defined layout." % typography_index)
 			return
 		var face: Dictionary = face_library.get_face(typography_index)
