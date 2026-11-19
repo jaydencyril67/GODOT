@@ -213,6 +213,7 @@ func _run_test() -> void:
 		if visible_bounds.position.x < screen_rect.position.x - 1.0 or visible_bounds.position.y < screen_rect.position.y - 1.0 or visible_bounds.end.x > screen_rect.end.x + 1.0 or visible_bounds.end.y > screen_rect.end.y + 1.0:
 			_fail("Clock movement must be limited by the outer phone-screen edges, not an inner safe area.")
 			return
+	moved_clock_position = designer.call("get_clock_position")
 	if not bool(designer.call("set_clock_position_mode", "fixed")):
 		_fail("The clock could not be switched into Fixed mode.")
 		return
@@ -226,7 +227,7 @@ func _run_test() -> void:
 	await process_frame
 	var digital_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
 	var digital_artwork := digital_component.find_child("DigitalClock", true, false) as Control
-	var expected_time_center := digital_artwork.call("get_time_visual_rect").get_center()
+	var expected_time_center: Vector2 = digital_artwork.call("get_time_visual_rect").get_center()
 	for style_index in [1, 5, 12, 20, 29, 37, 41]:
 		if not bool(designer.call("set_clock_style_index", style_index, false)):
 			_fail("A digital style could not be selected while checking clock position stability.")
