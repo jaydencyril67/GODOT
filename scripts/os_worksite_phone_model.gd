@@ -4,7 +4,7 @@ extends Node3D
 # Creation Worksite. Its boot UI is supplied as a viewport texture; this node
 # owns only the handset model and its studio preview.
 
-const HANDSET_SIZE := Vector3(1.45, 2.92, 0.22)
+const HANDSET_SIZE := Vector3(1.45, 2.92, 0.15)
 const OUTER_CORNER_RADIUS := 0.34
 # Keep a constant 0.020 inset on every straight edge and rounded corner.
 const BEZEL_WIDTH := 0.020
