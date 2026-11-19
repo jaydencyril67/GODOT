@@ -100,10 +100,10 @@ func _run_test() -> void:
 		_fail("Returning to a worksite step must reveal the same existing panel.")
 		return
 	for step_index in range(11):
-		var panel_name := "OSStepControls_%02d" % step_index
-		var panel := step_host.find_child(panel_name, true, false) as Control
-		if panel == null or panel.get_instance_id() != int(persistent_panel_ids[step_index]):
-			_fail("Worksite navigation rebuilt a persistent step panel: " + panel_name)
+		var panel_name_check := "OSStepControls_%02d" % step_index
+		var panel_check := step_host.find_child(panel_name_check, true, false) as Control
+		if panel_check == null or panel_check.get_instance_id() != int(persistent_panel_ids[step_index]):
+			_fail("Worksite navigation rebuilt a persistent step panel: " + panel_name_check)
 			return
 
 	var heading := worksite.get("heading_label") as Label
@@ -357,7 +357,7 @@ func _run_test() -> void:
 		return
 
 	worksite.call("_select_lock_screen_clock_type", "analog")
-	var analog_artwork := lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
+	analog_artwork = lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
 	if analog_artwork == null or analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(41):
 		_fail("Analog Style 41 did not render the matching uploaded artwork.")
 		return
