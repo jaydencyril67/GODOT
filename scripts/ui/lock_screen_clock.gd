@@ -24,8 +24,8 @@ func _ready() -> void:
 func configure(design: Dictionary, palette: Dictionary) -> void:
 	var saved_position: Variant = design.get("clock_position", DEFAULT_CLOCK_POSITION)
 	_clock_position = saved_position if saved_position is Vector2 else DEFAULT_CLOCK_POSITION
-	_clock_position.x = clampf(_clock_position.x, -1.0, 1.0)
-	_clock_position.y = clampf(_clock_position.y, -1.0, 1.0)
+	_clock_position.x = clampf(_clock_position.x, -2.0, 2.0)
+	_clock_position.y = clampf(_clock_position.y, -2.0, 2.0)
 	_position_mode = str(design.get("clock_position_mode", "fixed")).to_lower()
 	if _position_mode not in ["flex", "fixed"]:
 		_position_mode = "fixed"
@@ -57,6 +57,8 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 	analog_artwork.visible = clock_type == "analog" and analog_artwork.texture != null
 	digital_artwork.call("configure", int(design.get("digital_clock_style_index", style_index)), palette, design)
 	_refresh_date()
+	if clock_type == "analog" and date_label.visible:
+		_position_analog_date_near_clock(screen_clock_rect, date_rect)
 
 
 func set_position_mode(mode: String) -> bool:
@@ -77,11 +79,11 @@ func get_clock_position() -> Vector2:
 	return _clock_position
 
 
-func get_drag_hit_rect() -> Rect2:
+func get_clock_visual_rect() -> Rect2:
 	if not is_instance_valid(position_container):
 		return Rect2()
 	var has_bounds := false
-	var hit_rect := Rect2()
+	var bounds := Rect2()
 	if digital_artwork.visible:
 		for label_value in digital_artwork.find_children("*", "Label", true, false):
 			var clock_label := label_value as Label
@@ -90,53 +92,61 @@ func get_drag_hit_rect() -> Rect2:
 			var label_rect := clock_label.get_global_rect()
 			if label_rect.size.x <= 0.0 or label_rect.size.y <= 0.0:
 				continue
-			hit_rect = label_rect if not has_bounds else hit_rect.merge(label_rect)
+			bounds = label_rect if not has_bounds else bounds.merge(label_rect)
 			has_bounds = true
 	else:
 		var artwork_rect := analog_artwork.get_global_rect()
 		if artwork_rect.size.x > 0.0 and artwork_rect.size.y > 0.0:
-			hit_rect = artwork_rect
+			bounds = artwork_rect
 			has_bounds = true
 		if date_label.visible:
 			var date_rect := date_label.get_global_rect()
-			hit_rect = date_rect if not has_bounds else hit_rect.merge(date_rect)
-			has_bounds = true
-	if not has_bounds:
-		return Rect2()
-	return hit_rect.grow(12.0)
+			if date_rect.size.x > 0.0 and date_rect.size.y > 0.0:
+				bounds = date_rect if not has_bounds else bounds.merge(date_rect)
+				has_bounds = true
+	return bounds if has_bounds else Rect2()
 
+
+func get_drag_hit_rect() -> Rect2:
+	# The larger touch target is only for starting a drag. Screen-edge limits
+	# use the true visible clock bounds with no artificial inner margin.
+	var bounds := get_clock_visual_rect()
+	return bounds.grow(24.0) if bounds.size != Vector2.ZERO else Rect2()
 
 func begin_clock_drag(screen_position: Vector2) -> bool:
 	if _position_mode != "flex" or not visible or not get_drag_hit_rect().has_point(screen_position):
 		return false
 	_drag_active = true
-	var viewport_size := _get_lock_screen_size()
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+	var screen_rect := _get_lock_screen_rect()
+	if screen_rect.size.x <= 0.0 or screen_rect.size.y <= 0.0:
 		_drag_active = false
 		return false
-	_drag_offset = screen_position / viewport_size - _clock_position
+	_drag_offset = (screen_position - screen_rect.position) / screen_rect.size - _clock_position
 	return true
 
 
 func drag_clock_to(screen_position: Vector2) -> bool:
 	if not _drag_active:
 		return false
-	var viewport_size := _get_lock_screen_size()
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+	var screen_rect := _get_lock_screen_rect()
+	if screen_rect.size.x <= 0.0 or screen_rect.size.y <= 0.0:
 		return false
-	var next_position := screen_position / viewport_size - _drag_offset
-	var current_bounds := get_drag_hit_rect()
+	var next_position := (screen_position - screen_rect.position) / screen_rect.size - _drag_offset
+	var current_bounds := get_clock_visual_rect()
 	if current_bounds.size.x > 0.0 and current_bounds.size.y > 0.0:
-		var current_translation := _clock_position * viewport_size
-		var unshifted_position := current_bounds.position - current_translation
-		var unshifted_end := current_bounds.end - current_translation
-		var minimum := Vector2(-unshifted_position.x / viewport_size.x, -unshifted_position.y / viewport_size.y)
-		var maximum := Vector2(
-			(viewport_size.x - unshifted_end.x) / viewport_size.x,
-			(viewport_size.y - unshifted_end.y) / viewport_size.y
-		)
-		next_position.x = clampf(next_position.x, minimum.x, maximum.x)
-		next_position.y = clampf(next_position.y, minimum.y, maximum.y)
+		var current_translation := _clock_position * screen_rect.size
+		var unshifted_position := current_bounds.position - screen_rect.position - current_translation
+		var unshifted_end := current_bounds.end - screen_rect.position - current_translation
+		var minimum_offset := -unshifted_position
+		var maximum_offset := screen_rect.size - unshifted_end
+		if minimum_offset.x <= maximum_offset.x:
+			next_position.x = clampf(next_position.x, minimum_offset.x / screen_rect.size.x, maximum_offset.x / screen_rect.size.x)
+		else:
+			next_position.x = (screen_rect.size.x * 0.5 - unshifted_position.x - current_bounds.size.x * 0.5) / screen_rect.size.x
+		if minimum_offset.y <= maximum_offset.y:
+			next_position.y = clampf(next_position.y, minimum_offset.y / screen_rect.size.y, maximum_offset.y / screen_rect.size.y)
+		else:
+			next_position.y = (screen_rect.size.y * 0.5 - unshifted_position.y - current_bounds.size.y * 0.5) / screen_rect.size.y
 	_clock_position = next_position
 	_apply_clock_position()
 	return true
@@ -146,9 +156,13 @@ func end_clock_drag() -> void:
 	_drag_active = false
 
 
-func _get_lock_screen_size() -> Vector2:
+func _get_lock_screen_rect() -> Rect2:
 	var parent_control := get_parent_control()
-	return parent_control.size if parent_control != null else size
+	return parent_control.get_global_rect() if parent_control != null else get_global_rect()
+
+
+func _get_lock_screen_size() -> Vector2:
+	return _get_lock_screen_rect().size
 
 
 func _apply_clock_position() -> void:
@@ -161,6 +175,46 @@ func _apply_clock_position() -> void:
 	position_container.offset_top = translation.y
 	position_container.offset_right = translation.x
 	position_container.offset_bottom = translation.y
+
+
+func _position_analog_date_near_clock(clock_rect: Rect2, original_date_rect: Rect2) -> void:
+	var screen_size := _get_lock_screen_size()
+	if screen_size.x <= 0.0 or screen_size.y <= 0.0:
+		return
+	var date_font := date_label.get_theme_font("font")
+	var font_size := date_label.get_theme_font_size("font_size")
+	var measured_width := date_label.custom_minimum_size.x
+	if date_font != null:
+		measured_width = maxf(measured_width, date_font.get_string_size(
+			date_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size
+		).x + 12.0)
+	var date_width := clampf(maxf(measured_width, clock_rect.size.x * screen_size.x * 0.9), 48.0, screen_size.x * 0.90)
+	var date_height := maxf(float(font_size) * 1.4, 18.0)
+	var gap := clampf(screen_size.y * 0.008, 6.0, 12.0)
+	var clock_in_pixels := Rect2(clock_rect.position * screen_size, clock_rect.size * screen_size)
+	var was_above := original_date_rect.get_center().y < clock_rect.get_center().y
+	var above_y := clock_in_pixels.position.y - gap - date_height
+	var below_y := clock_in_pixels.end.y + gap
+	var date_y := above_y if was_above else below_y
+	if date_y < 0.0 or date_y + date_height > screen_size.y:
+		date_y = below_y if was_above else above_y
+	date_y = clampf(date_y, 0.0, screen_size.y - date_height)
+	var date_x := clampf(clock_in_pixels.get_center().x - date_width * 0.5, 0.0, screen_size.x - date_width)
+	_set_normalized_rect(date_label, Rect2(date_x / screen_size.x, date_y / screen_size.y, date_width / screen_size.x, date_height / screen_size.y))
+	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+
+func get_analog_date_gap_pixels() -> float:
+	if not date_label.visible:
+		return -1.0
+	var clock_rect := analog_artwork.get_global_rect()
+	var date_rect := date_label.get_global_rect()
+	if date_rect.end.y <= clock_rect.position.y:
+		return clock_rect.position.y - date_rect.end.y
+	if date_rect.position.y >= clock_rect.end.y:
+		return date_rect.position.y - clock_rect.end.y
+	return 0.0
 
 
 func _process(_delta: float) -> void:
