@@ -161,6 +161,29 @@ func _run_test() -> void:
 	if style_value_label.text != "STYLE 01" or not style_decrease_button.disabled or style_increase_button.disabled:
 		_fail("Clock Style must start at Style 01 with only the plus control enabled.")
 		return
+
+	var position_section := clock_controls.find_child("ClockPositionFeatureSection", true, false) as VBoxContainer
+	var position_row := clock_controls.find_child("ClockPositionSelector", true, false) as HBoxContainer
+	var flex_button := clock_controls.find_child("ClockPositionFlexButton", true, false) as Button
+	var fixed_button := clock_controls.find_child("ClockPositionFixedButton", true, false) as Button
+	var position_description := clock_controls.find_child("ClockPositionDescription", true, false) as Label
+	if position_section == null or position_row == null or flex_button == null or fixed_button == null or position_description == null:
+		_fail("Step 2 must expose Flex and Fixed clock-position controls in the right panel.")
+		return
+	if position_section.get_parent() != clock_feature_panel or position_row.get_child_count() != 2:
+		_fail("Clock-position controls must sit inside the Step 2 clock feature panel.")
+		return
+	if str(lock_screen.call("get_clock_position_mode")) != "fixed" or flex_button.disabled or not fixed_button.disabled:
+		_fail("Clock position must default to Fixed with Flex available.")
+		return
+	flex_button.pressed.emit()
+	if str(lock_screen.call("get_clock_position_mode")) != "flex" or not flex_button.disabled or fixed_button.disabled:
+		_fail("Selecting Flex did not enable clock movement and update the mode controls.")
+		return
+	fixed_button.pressed.emit()
+	if str(lock_screen.call("get_clock_position_mode")) != "fixed" or flex_button.disabled or not fixed_button.disabled:
+		_fail("Selecting Fixed did not lock the clock and update the mode controls.")
+		return
 	type_increase_button.pressed.emit()
 	if type_value_label.text != "DIGITAL" or type_decrease_button.disabled or not type_increase_button.disabled:
 		_fail("The plus control must select Digital and update the available direction controls.")
