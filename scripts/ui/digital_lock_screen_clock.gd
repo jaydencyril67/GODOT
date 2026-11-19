@@ -17,6 +17,8 @@ var _show_date := true
 var _last_minute := -1
 var _pending_normalization_frame: Control
 var _pending_normalization_root: Control
+var _pending_normalization_last_bounds := Rect2()
+var _pending_normalization_stable_frames := 0
 
 
 func _ready() -> void:
@@ -67,9 +69,18 @@ func _process(_delta: float) -> void:
 		if frame.is_inside_tree() and root_node.is_inside_tree() and frame.size.x > 0.0 and frame.size.y > 0.0:
 			var time_bounds := _get_time_layer_bounds(root_node)
 			if time_bounds.size.x > 0.0 and time_bounds.size.y > 0.0:
-				_normalize_time_and_date(frame, root_node)
-				_pending_normalization_frame = null
-				_pending_normalization_root = null
+				var stable := _rects_match(time_bounds, _pending_normalization_last_bounds, 0.1)
+				_pending_normalization_stable_frames = _pending_normalization_stable_frames + 1 if stable else 0
+				_pending_normalization_last_bounds = time_bounds
+				# Godot may need multiple layout passes after imported face
+				# controls are attached. Normalize only after the measured time
+				# bounds stop changing, avoiding style-dependent first-frame data.
+				if _pending_normalization_stable_frames >= 2:
+					_normalize_time_and_date(frame, root_node)
+					_pending_normalization_frame = null
+					_pending_normalization_root = null
+					_pending_normalization_last_bounds = Rect2()
+					_pending_normalization_stable_frames = 0
 	var now := Time.get_time_dict_from_system()
 	if int(now.get("minute", -1)) != _last_minute:
 		_render_face()
@@ -119,6 +130,8 @@ func _render_face() -> void:
 	frame.add_child(root_node)
 	_pending_normalization_frame = frame
 	_pending_normalization_root = root_node
+	_pending_normalization_last_bounds = Rect2()
+	_pending_normalization_stable_frames = 0
 	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
 
 
@@ -213,6 +226,10 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 		date_y = below_y if date_was_above else above_y
 	date_y = clampf(date_y, 0.0, frame.size.y - date_height)
 	date_label.position = Vector2(date_x, date_y)
+
+
+func _rects_match(first: Rect2, second: Rect2, tolerance: float) -> bool:
+	return first.position.distance_to(second.position) <= tolerance and first.size.distance_to(second.size) <= tolerance
 
 
 func _get_time_layer_bounds(search_root: Node) -> Rect2:
