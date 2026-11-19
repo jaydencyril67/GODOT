@@ -23,12 +23,17 @@ func _run_processor_worksite_test() -> void:
 	var preview_container := worksite.find_child("ProcessorPreviewViewport", true, false) as SubViewportContainer
 	var viewport := worksite.find_child("Processor3DSubViewport", true, false) as SubViewport
 	var model := worksite.find_child("ProcessorSoCModel", true, false) as Node3D
+	var design_models: Array = worksite.get("processor_models_data")
+	var design_selector_previous := worksite.find_child("DecreaseProcessorDesignButton", true, false) as Button
+	var design_selector_next := worksite.find_child("IncreaseProcessorDesignButton", true, false) as Button
+	var design_selector_value := worksite.find_child("ProcessorDesignValueLabel", true, false) as Label
+	var design_selector_position := worksite.find_child("ProcessorDesignPositionLabel", true, false) as Label
 	var selection_scroll := worksite.find_child("ProcessorSelectionScroll", true, false) as ScrollContainer
 	var selection_controls := worksite.find_child("ProcessorSelectionControls", true, false) as VBoxContainer
 	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
 	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
 	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
-	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or model == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
+	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or model == null or design_models.size() != 15 or design_selector_previous == null or design_selector_next == null or design_selector_value == null or design_selector_position == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
 		_fail("Processor worksite is missing part of the shared Phone/OS full-screen worksite structure.")
 		worksite.free()
 		return
@@ -62,6 +67,51 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor worksite step arrows have incorrect initial enabled states.")
 		worksite.free()
 		return
+
+	if design_selector_position.text != "DESIGN 01 / 15" or design_selector_value.text != "DW SILICON 01" or not design_selector_previous.disabled or design_selector_next.disabled:
+		_fail("The first processor design selector does not match the Phone Worksite's initial minus/current/plus state.")
+		worksite.free()
+		return
+
+	var model_roots: Array[Node3D] = []
+	for model_data_value in design_models:
+		var model_data: Dictionary = model_data_value
+		var model_root := model_data.get("root") as Node3D
+		if not is_instance_valid(model_root) or model_root.get_child_count() == 0:
+			_fail("A processor design was not fully constructed during worksite preparation.")
+			worksite.free()
+			return
+		model_roots.append(model_root)
+	if model_roots.size() != 15 or model_roots[0] != model or not model_roots[0].visible:
+		_fail("The worksite did not preload all 15 physical designs with Design 01 initially visible.")
+		worksite.free()
+		return
+	var initial_viewport_child_count := viewport.get_child_count()
+	for design_index in range(15):
+		worksite.call("_select_processor_design", design_index, false)
+		var visible_count := 0
+		for model_root in model_roots:
+			if model_root.visible:
+				visible_count += 1
+		if visible_count != 1 or not model_roots[design_index].visible:
+			_fail("Processor design %d did not switch by revealing exactly one prebuilt model." % (design_index + 1))
+			worksite.free()
+			return
+	if viewport.get_child_count() != initial_viewport_child_count:
+		_fail("Switching processor designs created new 3D nodes instead of rendering prebuilt models.")
+		worksite.free()
+		return
+	worksite.call("_select_processor_design", 14, false)
+	if not design_selector_next.disabled or design_selector_previous.disabled:
+		_fail("The processor design selector did not disable the plus button at Design 15.")
+		worksite.free()
+		return
+	worksite.call("_on_processor_design_decrease_pressed")
+	if int(worksite.get("selected_design_index")) != 13:
+		_fail("The processor design minus button did not move back one design.")
+		worksite.free()
+		return
+	worksite.call("_select_processor_design", 0, true)
 
 	worksite.call("_on_next_pressed")
 	worksite.call("_on_next_pressed")
@@ -113,6 +163,10 @@ func _run_processor_worksite_test() -> void:
 	worksite.call("_save_design")
 	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "Smoke Test SoC":
 		_fail("Save Processor Design did not emit the configured processor design.")
+		worksite.free()
+		return
+	if str(emitted_design[0].get("design_id", "")) != "dw_silicon_01":
+		_fail("Saving the processor did not preserve the selected physical design identity.")
 		worksite.free()
 		return
 	if str(emitted_design[0].get("package_size", "")) != "14 × 14 mm" or str(emitted_design[0].get("package_finish", "")) != "Deep green substrate" or str(emitted_design[0].get("die_finish", "")) != "Polished silicon":
