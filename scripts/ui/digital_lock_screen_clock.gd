@@ -19,6 +19,7 @@ var _pending_normalization_frame: Control
 var _pending_normalization_root: Control
 var _pending_normalization_last_bounds := Rect2()
 var _pending_normalization_stable_frames := 0
+var _time_layout_normalized := false
 
 
 func _ready() -> void:
@@ -59,6 +60,10 @@ func get_style_layout() -> String:
 	return "custom"
 
 
+func is_time_layout_normalized() -> bool:
+	return _time_layout_normalized
+
+
 func _process(_delta: float) -> void:
 	# Wait for the newly-created containers to finish layout before measuring
 	# their labels. This stays on the live renderer instance (no async resume
@@ -75,8 +80,9 @@ func _process(_delta: float) -> void:
 				# Godot may need multiple layout passes after imported face
 				# controls are attached. Normalize only after the measured time
 				# bounds stop changing, avoiding style-dependent first-frame data.
-				if _pending_normalization_stable_frames >= 1:
+				if _pending_normalization_stable_frames >= 2:
 					_normalize_time_and_date(frame, root_node)
+					_time_layout_normalized = true
 					_pending_normalization_frame = null
 					_pending_normalization_root = null
 					_pending_normalization_last_bounds = Rect2()
@@ -93,6 +99,11 @@ func _load_selected_face() -> void:
 
 
 func _render_face() -> void:
+	_pending_normalization_frame = null
+	_pending_normalization_root = null
+	_pending_normalization_last_bounds = Rect2()
+	_pending_normalization_stable_frames = 0
+	_time_layout_normalized = false
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
