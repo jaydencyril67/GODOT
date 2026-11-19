@@ -45,6 +45,7 @@ class GlassArrowButton extends Button:
 
 
 var preview_viewport: SubViewport
+var processor_preview_world: Node3D
 var processor_root: Node3D
 var preview_camera: Camera3D
 var name_input: LineEdit
@@ -232,6 +233,8 @@ func _build_interface() -> void:
 	preview_viewport.own_world_3d = true
 	preview_viewport.transparent_bg = true
 	preview_viewport.msaa_3d = Viewport.MSAA_DISABLED
+	preview_viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	preview_viewport.scaling_3d_scale = 1.25
 	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	preview_holder.add_child(preview_viewport)
@@ -537,72 +540,89 @@ func _on_next_pressed() -> void:
 
 
 func _build_processor_preview() -> void:
+	# Match the Phone Creation Worksite preview composition:
+	# a transparent SubViewport reveals the shared charcoal WorksiteBackdrop,
+	# while a procedural studio sky remains available for ambient/reflected light.
 	var environment_node := WorldEnvironment.new()
+	environment_node.name = "WorldEnvironment"
 	var environment := Environment.new()
+	var studio_sky := Sky.new()
+	var studio_sky_material := ProceduralSkyMaterial.new()
+	studio_sky_material.sky_top_color = Color("#77736C")
+	studio_sky_material.sky_horizon_color = Color("#D5CFC3")
+	studio_sky_material.ground_horizon_color = Color("#716C63")
+	studio_sky_material.ground_bottom_color = Color("#34312D")
+	studio_sky_material.sky_energy_multiplier = 0.9
+	studio_sky_material.ground_energy_multiplier = 0.72
+	studio_sky_material.sun_angle_max = 0.0
+	studio_sky_material.sun_curve = 0.08
+	studio_sky.sky_material = studio_sky_material
+	studio_sky.radiance_size = Sky.RADIANCE_SIZE_128
+
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
+	environment.sky = studio_sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#9DABB7")
-	environment.ambient_light_energy = 0.72
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.ambient_light_color = Color("#B6B0A5")
+	environment.ambient_light_energy = 0.66
+	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	environment_node.environment = environment
 	preview_viewport.add_child(environment_node)
 
+	# All 3D preview content is grouped under one world root, just like
+	# PhonePreviewWorld. There is deliberately no physical floor/platform:
+	# the transparent viewport exposes the shared #292B2D worksite backdrop.
+	processor_preview_world = Node3D.new()
+	processor_preview_world.name = "ProcessorPreviewWorld"
+	preview_viewport.add_child(processor_preview_world)
+
 	var camera := Camera3D.new()
 	camera.name = "ProcessorStudioCamera"
+	# Keep the processor-specific elevated angle so its upper die and package
+	# edges remain visible; only the environment/background is shared.
 	camera.position = Vector3(0.0, 2.45, 6.0)
 	camera.fov = 36.0
 	camera.near = 0.05
 	camera.far = 100.0
-	preview_viewport.add_child(camera)
+	processor_preview_world.add_child(camera)
 	camera.look_at(Vector3(0.0, 0.015, 0.0), Vector3.UP)
 	camera.make_current()
 	preview_camera = camera
 
+	# Match the Phone Worksite's neutral studio key, soft rim and restrained fill.
 	var key_light := DirectionalLight3D.new()
-	key_light.name = "LargeSoftKeyLight"
-	key_light.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	key_light.light_color = Color("#FFF1D8")
-	key_light.light_energy = 2.2
+	key_light.name = "PhoneStyleStudioKeyLight"
+	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
+	key_light.light_color = Color("#fffdf8")
+	key_light.light_energy = 1.20
 	key_light.shadow_enabled = false
-	key_light.directional_shadow_max_distance = 18.0
-	preview_viewport.add_child(key_light)
+	processor_preview_world.add_child(key_light)
+
+	var rim_light := DirectionalLight3D.new()
+	rim_light.name = "PhoneStyleStudioRimLight"
+	rim_light.rotation_degrees = Vector3(18.0, 142.0, -8.0)
+	rim_light.light_color = Color("#C7BBA6")
+	rim_light.light_energy = 0.78
+	rim_light.shadow_enabled = false
+	processor_preview_world.add_child(rim_light)
 
 	var fill_light := OmniLight3D.new()
-	fill_light.name = "CoolFillLight"
-	fill_light.position = Vector3(-2.7, 2.0, 2.1)
-	fill_light.light_color = Color("#A8C9E8")
-	fill_light.light_energy = 1.45
-	fill_light.omni_range = 9.0
-	preview_viewport.add_child(fill_light)
+	fill_light.name = "PhoneStyleStudioFillLight"
+	fill_light.position = Vector3(-2.2, 1.4, 2.8)
+	fill_light.light_color = Color("#D8D1C5")
+	fill_light.light_energy = 0.38
+	fill_light.omni_range = 8.0
+	processor_preview_world.add_child(fill_light)
 
-	var rim_light := OmniLight3D.new()
-	rim_light.name = "WarmRimLight"
-	rim_light.position = Vector3(2.4, 1.3, -2.3)
-	rim_light.light_color = Color("#E5B875")
-	rim_light.light_energy = 1.7
-	rim_light.omni_range = 8.0
-	preview_viewport.add_child(rim_light)
-
-	var studio_floor := MeshInstance3D.new()
-	studio_floor.name = "StudioFloor"
-	var floor_mesh := PlaneMesh.new()
-	floor_mesh.size = Vector2(40.0, 40.0)
-	studio_floor.mesh = floor_mesh
-	studio_floor.position = Vector3(0.0, -0.68, 0.0)
-	studio_floor.material_override = _material(Color("#111A20"), 0.24, 0.34)
-	preview_viewport.add_child(studio_floor)
-
-
-	# Every physical model is constructed once during startup preparation.
-	# Selection only toggles visibility, so changing designs never builds meshes.
+	# Construct and retain all fifteen models under the world root during
+	# initialization. Selection only toggles visibility after this point.
 	processor_designs.clear()
 	for design_value in ProcessorDesignLibrary.DESIGNS:
 		var design_profile: Dictionary = design_value
 		processor_designs.append(design_profile.duplicate(true))
 	var prebuilt_designs_root := Node3D.new()
 	prebuilt_designs_root.name = "PrebuiltProcessorDesigns"
-	preview_viewport.add_child(prebuilt_designs_root)
+	processor_preview_world.add_child(prebuilt_designs_root)
 	processor_models_data = ProcessorDesignLibrary.build_all(prebuilt_designs_root)
 	_select_processor_design(0, true)
 
