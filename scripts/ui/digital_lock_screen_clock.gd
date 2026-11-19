@@ -289,11 +289,20 @@ func _get_time_layer_bounds(search_root: Node) -> Rect2:
 
 
 func _find_date_layer(search_root: Node) -> Label:
+	var fallback_date: Label
 	for label_value in search_root.find_children("*", "Label", true, false):
 		var clock_label := label_value as Label
-		if str(_get_layer(_layer_id_for_label(clock_label)).get("type", "")) == "DATE":
+		var layer_id := _layer_id_for_label(clock_label)
+		if str(_get_layer(layer_id).get("type", "")) != "DATE":
+			continue
+		# Some faces have secondary date labels (for example, weekday plus
+		# calendar date). Keep the primary `date` layer as the shared nearby
+		# date anchor even after it is reparented outside the layout tree.
+		if layer_id == "date":
 			return clock_label
-	return null
+		if fallback_date == null:
+			fallback_date = clock_label
+	return fallback_date
 
 
 func _layer_id_for_label(clock_label: Label) -> String:
