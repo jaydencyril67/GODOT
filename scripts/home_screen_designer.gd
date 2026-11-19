@@ -211,7 +211,7 @@ func get_status_bar_icon_count() -> int:
 	var icon_count := 0
 	for node in _status_bar.find_children("*", "TextureRect", true, false):
 		var node_name := str(node.name)
-		if node_name.begins_with("HomeStatusBar") and node_name.ends_with("Icon"):
+		if node.is_visible_in_tree() and node_name.begins_with("HomeStatusBar") and node_name.ends_with("Icon"):
 			icon_count += 1
 	return icon_count
 
@@ -455,7 +455,7 @@ func _add_home_app_grid() -> void:
 	_home_page_grids.clear()
 	for page_index in range(HOME_PAGE_APP_IDS.size()):
 		var grid := GridContainer.new()
-		grid.name = "HomeScreenAppGrid_%d" % page_index
+		grid.name = "HomeScreenAppGrid" if page_index == 0 else "HomeScreenAppGrid_%d" % page_index
 		grid.columns = 4
 		grid.add_theme_constant_override("h_separation", 5)
 		grid.add_theme_constant_override("v_separation", 12)
