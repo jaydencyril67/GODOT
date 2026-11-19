@@ -1320,8 +1320,11 @@ func _show_home_scene() -> void:
 	# Build the 3D scene off-screen. It must not render behind the preparation UI.
 	headquarters.visible = false
 	world_root = headquarters
-	# Initialize the Worksite in the same loading phase, immediately before HQ construction.
+	# Fully prepare both creation workspaces under the existing initialization screen.
+	# The Processor Worksite builds and caches all 15 SoC models here; opening it later
+	# only reveals the prepared scene and switching designs only toggles visibility.
 	_prepare_phone_creation_worksite()
+	_prepare_processor_creation_worksite()
 	add_child(world_root)
 
 
