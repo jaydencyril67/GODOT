@@ -1060,8 +1060,7 @@ func _sync_shortcut_node(kind: String, enabled: bool) -> void:
 	var shortcut_node := find_child(node_name, true, false) as Control
 	if not enabled:
 		if shortcut_node != null:
-			remove_child(shortcut_node)
-			shortcut_node.free()
+			shortcut_node.visible = false
 		return
 	if shortcut_node != null:
 		shortcut_node.visible = true
