@@ -661,7 +661,8 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 			_select_option(package_finish, str(selected_profile.get("package_finish", "Matte graphite")))
 		if is_instance_valid(die_finish):
 			_select_option(die_finish, str(selected_profile.get("die_finish", "Dark silicon")))
-	_apply_design()
+	# All finish materials and geometry were prepared during initialization.
+	# Switching designs is now a visibility change only.
 	_refresh_processor_design_controls()
 
 
@@ -838,14 +839,19 @@ func _apply_design() -> void:
 	for surface in die_surfaces:
 		if is_instance_valid(surface):
 			surface.material_override = _material(die_colors.get(selected_die, Color("#171D22")), 0.32, 0.25)
-	var scale_factor := 1.0
-	match package_size.get_item_text(package_size.selected):
-		"10 × 10 mm":
-			scale_factor = 0.84
-		"14 × 14 mm":
-			scale_factor = 1.14
-		"16 × 16 mm":
-			scale_factor = 1.28
+	var package_size_values := {
+		"10 × 10 mm": 10.0,
+		"12 × 12 mm": 12.0,
+		"14 × 14 mm": 14.0,
+		"16 × 16 mm": 16.0
+	}
+	var selected_size_label := package_size.get_item_text(package_size.selected)
+	var target_package_size := float(package_size_values.get(selected_size_label, 12.0))
+	var base_package_size := 12.0
+	if selected_design_index >= 0 and selected_design_index < processor_designs.size():
+		var selected_profile: Dictionary = processor_designs[selected_design_index]
+		base_package_size = float(package_size_values.get(str(selected_profile.get("package_size", "12 × 12 mm")), 12.0))
+	var scale_factor := target_package_size / maxf(base_package_size, 1.0)
 	processor_root.scale = Vector3.ONE * scale_factor
 
 func _save_design() -> void:
