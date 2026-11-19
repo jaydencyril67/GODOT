@@ -601,7 +601,10 @@ func _build_processor_preview() -> void:
 
 	# Every physical model is constructed once during startup preparation.
 	# Selection only toggles visibility, so changing designs never builds meshes.
-	processor_designs = ProcessorDesignLibrary.DESIGNS.duplicate(true)
+	processor_designs.clear()
+	for design_value in ProcessorDesignLibrary.DESIGNS:
+		var design_profile: Dictionary = design_value
+		processor_designs.append(design_profile.duplicate(true))
 	var prebuilt_designs_root := Node3D.new()
 	prebuilt_designs_root.name = "PrebuiltProcessorDesigns"
 	preview_viewport.add_child(prebuilt_designs_root)
