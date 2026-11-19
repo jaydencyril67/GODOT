@@ -110,8 +110,12 @@ func _run_test() -> void:
 			_fail("A generated design selected an invalid analog clock artwork index.")
 			return
 		analog_asset_indices[asset_index] = true
-		if designer.find_child("GeneratedAnalogClockArtwork", true, false) == null or designer.find_child("GeneratedLockScreenDate", true, false) == null:
-			_fail("The image-based analog clock/date scene component was not rendered.")
+		if designer.find_child("GeneratedAnalogClockArtwork", true, false) == null:
+			_fail("The image-based analog clock scene component was not rendered.")
+			return
+		var lock_screen_date := designer.find_child("GeneratedLockScreenDate", true, false) as Label
+		if lock_screen_date == null or lock_screen_date.visible:
+			_fail("The lock-screen date must be completely hidden.")
 			return
 		for legacy_node_name in ["GeneratedLockScreenClock", "GeneratedAnalogClockFace", "AnalogHourHand", "AnalogMinuteHand", "AnalogSecondHand"]:
 			if designer.find_child(legacy_node_name, true, false) != null:
@@ -231,6 +235,10 @@ func _run_test() -> void:
 	if not initial_layout_ready:
 		return
 	var expected_time_center: Vector2 = digital_artwork.call("get_time_visual_rect").get_center()
+	var digital_date := digital_artwork.find_child("DigitalClockDate", true, false) as Label
+	if digital_date != null and digital_date.visible:
+		_fail("Digital clock faces must not display a date.")
+		return
 	for style_index in [1, 5, 12, 20, 29, 37, 41]:
 		if not bool(designer.call("set_clock_style_index", style_index, false)):
 			_fail("A digital style could not be selected while checking clock position stability.")
@@ -250,17 +258,14 @@ func _run_test() -> void:
 		if center_delta > 2.5:
 			_fail("Changing digital clock styles must keep the visible time at the same screen position (style %d; expected %s, got %s; delta %.2f px)." % [style_index, expected_time_center, current_time_center, center_delta])
 			return
-	var digital_date_gap := float(digital_artwork.call("get_date_time_gap_pixels"))
-	if digital_date_gap > 13.0:
-		_fail("The date must remain close to the digital time after a style change.")
-		return
 	if not bool(designer.call("set_clock_type", "analog")) or designer.call("get_clock_position") != moved_clock_position:
 		_fail("Switching back to Analog did not preserve the selected clock position.")
 		return
 	await process_frame
 	var analog_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
-	if float(analog_component.call("get_analog_date_gap_pixels")) > 13.0:
-		_fail("The analog date must remain close to its clock artwork.")
+	var analog_date := analog_component.find_child("GeneratedLockScreenDate", true, false) as Label
+	if analog_date == null or analog_date.visible:
+		_fail("The analog lock-screen date must remain hidden.")
 		return
 	if not bool(designer.call("set_clock_position_mode", "flex")):
 		_fail("The clock could not restore Flex mode after switching clock types.")
