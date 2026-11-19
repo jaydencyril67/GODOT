@@ -7,29 +7,6 @@ const MIN_PREVIEW_DISTANCE := 3.2
 const MAX_PREVIEW_DISTANCE := 7.2
 const DEFAULT_PREVIEW_DISTANCE := 4.6
 
-const WIZARD_STEPS := [
-	{
-		"title": "CAMERA SYSTEM",
-		"eyebrow": "01  /  CAMERA ENGINEERING",
-		"description": "Start with a finished handset that has no camera hardware installed. Camera Creation will own the complete imaging design before it is imported into Phone Creation.",
-		"status": "CAMERA-LESS HANDSET READY",
-		"detail": "The front glass, rear chassis, side controls and bottom hardware are in place. Both camera surfaces are intentionally clean."
-	},
-	{
-		"title": "CAMERA HARDWARE",
-		"eyebrow": "02  /  COMPONENT DESIGN",
-		"description": "This stage is reserved for building the camera hardware: image sensors, lenses, aperture, autofocus, stabilization and flash.",
-		"status": "HARDWARE DESIGN STAGE",
-		"detail": "Camera components will be configured here and saved as part of an independent camera design."
-	},
-	{
-		"title": "CAMERA POSITIONING",
-		"eyebrow": "03  /  PHYSICAL ARRANGEMENT",
-		"description": "This stage is reserved for arranging the completed camera modules on the handset and checking their physical fit from every angle.",
-		"status": "PLACEMENT STAGE",
-		"detail": "The finished camera arrangement will eventually be reusable from the Phone Creation Worksite."
-	}
-]
 
 signal back_requested
 
@@ -47,18 +24,11 @@ var selection_scroll: ScrollContainer
 var selection_stack: VBoxContainer
 var progress_number: Label
 var progress_bar: ProgressBar
-var step_eyebrow_label: Label
 var step_title_label: Label
-var step_description_label: Label
-var step_status_label: Label
-var step_detail_label: Label
 var wizard_back_button: Button
 var next_button: Button
-var front_view_button: Button
-var rear_view_button: Button
 
 var current_wizard_step := 1
-var current_view_side := "REAR"
 var preview_mouse_dragging := false
 var preview_touch_points: Dictionary = {}
 
@@ -100,7 +70,7 @@ func _ready() -> void:
 	_build_preview_world()
 	_build_interface()
 	_set_wizard_step(1)
-	_set_view_side("REAR")
+	_initialize_rear_view()
 
 
 func _build_preview_world() -> void:
@@ -288,9 +258,6 @@ func _build_interface() -> void:
 	selection_stack.add_theme_constant_override("separation", 14)
 	selection_region.add_child(selection_stack)
 
-	step_eyebrow_label = _label("", 10, Color("#D2A15C"))
-	step_eyebrow_label.name = "CameraStepEyebrow"
-	selection_stack.add_child(step_eyebrow_label)
 
 	step_title_label = _label("", 24, Color("#F2EDE4"))
 	step_title_label.name = "CameraStepTitle"
@@ -302,38 +269,7 @@ func _build_interface() -> void:
 	divider.color = Color(0.58, 0.46, 0.29, 0.42)
 	selection_stack.add_child(divider)
 
-	step_description_label = _label("", 15, Color("#D6D0C5"))
-	step_description_label.name = "CameraStepDescription"
-	step_description_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	step_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	selection_stack.add_child(step_description_label)
 
-	var status_panel := PanelContainer.new()
-	status_panel.name = "CameraWorksiteStatusPanel"
-	var status_style := StyleBoxFlat.new()
-	status_style.bg_color = Color("#1C2023")
-	status_style.border_color = Color("#58534A")
-	status_style.set_border_width_all(1)
-	status_style.set_corner_radius_all(12)
-	status_style.content_margin_left = 14
-	status_style.content_margin_right = 14
-	status_style.content_margin_top = 12
-	status_style.content_margin_bottom = 12
-	status_panel.add_theme_stylebox_override("panel", status_style)
-	selection_stack.add_child(status_panel)
-
-	var status_content := VBoxContainer.new()
-	status_content.add_theme_constant_override("separation", 7)
-	status_panel.add_child(status_content)
-
-	step_status_label = _label("", 11, Color("#D2A15C"))
-	step_status_label.name = "CameraWorksiteStatus"
-	status_content.add_child(step_status_label)
-
-	step_detail_label = _label("", 13, Color("#BEB8AE"))
-	step_detail_label.name = "CameraWorksiteDetail"
-	step_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_content.add_child(step_detail_label)
 
 	var progress := VBoxContainer.new()
 	progress.name = "WorksiteProgress"
@@ -386,24 +322,6 @@ func _build_interface() -> void:
 	back_button.pressed.connect(_on_back_pressed)
 	worksite_root.add_child(back_button)
 
-	var footer := VBoxContainer.new()
-	footer.name = "CameraPreviewControls"
-	footer.add_theme_constant_override("separation", 7)
-	right_panel_column.add_child(footer)
-
-	var view_row := HBoxContainer.new()
-	view_row.name = "CameraViewSideControls"
-	view_row.add_theme_constant_override("separation", 8)
-	footer.add_child(view_row)
-
-	front_view_button = _add_action_button(view_row, "FRONT VIEW", false, Callable(self, "_set_view_side").bind("FRONT"))
-	front_view_button.name = "CameraFrontViewButton"
-	rear_view_button = _add_action_button(view_row, "REAR VIEW", true, Callable(self, "_set_view_side").bind("REAR"))
-	rear_view_button.name = "CameraRearViewButton"
-
-	var reset_button := _add_action_button(footer, "RESET PHONE VIEW", false, Callable(self, "_reset_phone_view"))
-	reset_button.name = "CameraStudioResetButton"
-	reset_button.custom_minimum_size.y = 40
 
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
@@ -439,11 +357,7 @@ func _build_interface() -> void:
 func _set_wizard_step(step: int) -> void:
 	current_wizard_step = clampi(step, 1, WIZARD_STEPS.size())
 	var data: Dictionary = WIZARD_STEPS[current_wizard_step - 1]
-	step_eyebrow_label.text = str(data.get("eyebrow", ""))
 	step_title_label.text = str(data.get("title", ""))
-	step_description_label.text = str(data.get("description", ""))
-	step_status_label.text = str(data.get("status", ""))
-	step_detail_label.text = str(data.get("detail", ""))
 	progress_number.text = "STEP %d / %d" % [current_wizard_step, WIZARD_STEPS.size()]
 	progress_bar.value = current_wizard_step
 	wizard_back_button.disabled = current_wizard_step <= 1
@@ -466,27 +380,13 @@ func _on_back_pressed() -> void:
 	back_requested.emit()
 
 
-func _set_view_side(view_side: String) -> void:
-	current_view_side = "FRONT" if view_side.to_upper() == "FRONT" else "REAR"
+func _initialize_rear_view() -> void:
 	if not is_instance_valid(preview_camera):
 		return
-	var direction := 1.0 if current_view_side == "FRONT" else -1.0
-	preview_camera.position = Vector3(0.0, 0.0, DEFAULT_PREVIEW_DISTANCE * direction)
+	preview_camera.position = Vector3(0.0, 0.0, -DEFAULT_PREVIEW_DISTANCE)
 	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 	if is_instance_valid(phone_model):
 		phone_model.rotation = Vector3.ZERO
-	_style_button(front_view_button, current_view_side == "FRONT")
-	_style_button(rear_view_button, current_view_side == "REAR")
-	step_status_label.text = "CAMERA-LESS HANDSET READY  /  %s VIEW" % current_view_side
-
-
-func _reset_phone_view() -> void:
-	if is_instance_valid(phone_model):
-		phone_model.rotation = Vector3.ZERO
-	if is_instance_valid(preview_camera):
-		var direction := 1.0 if current_view_side == "FRONT" else -1.0
-		preview_camera.position = Vector3(0.0, 0.0, DEFAULT_PREVIEW_DISTANCE * direction)
-		preview_camera.look_at(Vector3.ZERO, Vector3.UP)
 
 
 func _zoom_camera(factor: float) -> void:
@@ -494,7 +394,7 @@ func _zoom_camera(factor: float) -> void:
 		return
 	var direction := signf(preview_camera.position.z)
 	if is_zero_approx(direction):
-		direction = -1.0 if current_view_side == "REAR" else 1.0
+		direction = -1.0
 	var distance := clampf(absf(preview_camera.position.z) / factor, MIN_PREVIEW_DISTANCE, MAX_PREVIEW_DISTANCE)
 	preview_camera.position.z = direction * distance
 	preview_camera.look_at(Vector3.ZERO, Vector3.UP)
