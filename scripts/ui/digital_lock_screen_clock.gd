@@ -147,7 +147,11 @@ func _render_face() -> void:
 
 
 func get_time_visual_rect() -> Rect2:
-	return _get_time_layer_bounds(self)
+	var bounds := _get_time_layer_bounds(self)
+	var frame := find_child("XMorphClockFace", true, false) as Control
+	if frame != null and bounds.size != Vector2.ZERO:
+		print("DIGITAL_CLOCK_QUERY style=%d normalized=%s bounds=%s center=%s frame_center=%s" % [_style_index, _time_layout_normalized, bounds, bounds.get_center(), frame.get_global_rect().get_center()])
+	return bounds
 
 
 func get_date_visual_rect() -> Rect2:
