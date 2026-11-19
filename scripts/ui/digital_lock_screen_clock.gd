@@ -2,9 +2,10 @@ extends Control
 
 const FaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
 const FACE_FRAME_RECT := Rect2(0.05, 0.30, 0.90, 0.40)
-const TIME_FONT_FRACTION := 0.5104
-const CLOCK_ROW_GAP_SCALE := 0.45
-const TIME_LABEL_SIDE_PADDING := 0.08
+const TIME_FONT_FRACTION := 0.32
+const CLOCK_ROW_GAP_SCALE := 0.20
+const CLOCK_COLUMN_GAP_SCALE := 0.30
+const TIME_LABEL_SIDE_PADDING := 0.02
 
 var _face_variants: Dictionary = {}
 var _face_normalization_queue: Array[int] = []
@@ -215,7 +216,7 @@ func _get_time_layer_bounds(search_root: Node, face_override: Dictionary = {}) -
 	var bounds := Rect2()
 	for label_value in search_root.find_children("*", "Label", true, false):
 		var clock_label := label_value as Label
-		if not clock_label.visible or clock_label.text.is_empty():
+		if not clock_label.is_visible_in_tree() or clock_label.text.is_empty():
 			continue
 		var layer := _get_layer(_layer_id_for_label(clock_label), face_override)
 		if str(layer.get("type", "")) not in TIME_LAYER_TYPES:
@@ -293,7 +294,7 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2, face_override
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.alignment = _box_alignment(str(data.get("align", "CENTER")))
-	var gap_scale := CLOCK_ROW_GAP_SCALE if layout_key == "row" else 1.0
+	var gap_scale := CLOCK_ROW_GAP_SCALE if layout_key == "row" else CLOCK_COLUMN_GAP_SCALE
 	container.add_theme_constant_override(
 		"separation",
 		roundi(minf(available_size.x, available_size.y) * float(data.get("gap", 0.0)) * gap_scale)
@@ -569,7 +570,7 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2, face_over
 	var layer_type := str(layer.get("type", "TEXT"))
 	var requested_size := TIME_FONT_FRACTION if layer_type in TIME_LAYER_TYPES else DATE_FONT_FRACTION
 	var short_side := minf(available_size.x, available_size.y)
-	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.42)))
+	var max_font_size := mini(112, maxi(12, roundi(available_size.y * 0.30)))
 	var font_size := clampi(roundi(short_side * requested_size * 0.62), 11, max_font_size)
 	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
 	if font_reference.is_empty():
