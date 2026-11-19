@@ -169,7 +169,7 @@ func get_time_visual_rect() -> Rect2:
 
 
 func get_date_visual_rect() -> Rect2:
-	var date_label := _find_date_layer(self)
+	var date_label := _pending_date_label if is_instance_valid(_pending_date_label) else _find_date_layer(self)
 	return date_label.get_global_rect() if date_label != null and date_label.visible else Rect2()
 
 
