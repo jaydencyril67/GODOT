@@ -100,6 +100,17 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test Camera Creation Worksite and camera-less handset
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/camera_creation_worksite_smoke.gd 2>&1 | tee camera-creation-worksite-smoke.log
+          grep -q "CAMERA_CREATION_WORKSITE_SMOKE_TEST: PASS" camera-creation-worksite-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|CAMERA_CREATION_WORKSITE_SMOKE_TEST:.*(FAIL|ERROR)' camera-creation-worksite-smoke.log; then
+            echo "Godot reported an error during the Camera Creation Worksite smoke test."
+            exit 1
+          fi
+
       - name: Smoke-test OS handset geometry and display surface
         shell: bash
         run: |
@@ -188,7 +199,7 @@ jobs:
         run: |
           set -uo pipefail
           shopt -s nullglob
-          logs=(godot-import.log godot-parse.log home-office-smoke.log processor-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log pin-entry-smoke.log home-screen-smoke.log os-boot-lock-screen-smoke.log godot-startup.log)
+          logs=(godot-import.log godot-parse.log home-office-smoke.log processor-worksite-smoke.log camera-creation-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log pin-entry-smoke.log home-screen-smoke.log os-boot-lock-screen-smoke.log godot-startup.log)
           warning_count=0
 
           for log in "${logs[@]}"; do
