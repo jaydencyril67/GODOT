@@ -173,17 +173,6 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke-test OS handset geometry and display surface
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/os_worksite_phone_model_smoke.gd 2>&1 | tee os-worksite-phone-model-smoke.log
-          grep -q "OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS" os-worksite-phone-model-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_WORKSITE_PHONE_MODEL_SMOKE_TEST:.*(FAIL|ERROR)' os-worksite-phone-model-smoke.log; then
-            echo "Godot reported an error during the OS handset model smoke test."
-            exit 1
-          fi
-
       - name: Smoke-test hybrid autonomous lock-screen layouts and assets
         shell: bash
         run: |
@@ -192,6 +181,17 @@ jobs:
           grep -q "HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS" lock-screen-designer-smoke.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|HYBRID_LOCK_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' lock-screen-designer-smoke.log; then
             echo "Godot reported an error during the hybrid lock-screen smoke test."
+            exit 1
+          fi
+
+      - name: Smoke-test OS handset geometry and display surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/os_worksite_phone_model_smoke.gd 2>&1 | tee os-worksite-phone-model-smoke.log
+          grep -q "OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS" os-worksite-phone-model-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_WORKSITE_PHONE_MODEL_SMOKE_TEST:.*(FAIL|ERROR)' os-worksite-phone-model-smoke.log; then
+            echo "Godot reported an error during the OS handset model smoke test."
             exit 1
           fi
 
