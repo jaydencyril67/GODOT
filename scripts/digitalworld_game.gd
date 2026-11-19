@@ -4,6 +4,7 @@ const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_head
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const OSCreationWorksiteScene: PackedScene = preload("res://scenes/os_creation_worksite.tscn")
 const ProcessorCreationWorksiteScene: PackedScene = preload("res://scenes/processor_creation_worksite.tscn")
+const CameraCreationWorksiteScene: PackedScene = preload("res://scenes/camera_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
@@ -37,7 +38,9 @@ var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
 var processor_creation_worksite: Node3D
+var camera_creation_worksite: Node3D
 var processor_worksite_open_pending := false
+var camera_worksite_open_pending := false
 var research_dashboard_return_to_worksite := false
 var worksite_research_overlay_layer: CanvasLayer
 var home_navigation_layer: CanvasLayer
@@ -104,7 +107,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "office", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite"]:
+	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "office", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -2803,6 +2806,9 @@ func _on_create_category_pressed(category: String) -> void:
 	if category.to_upper() == "PROCESSOR":
 		_show_processor_creation_worksite()
 		return
+	if category.to_upper() == "CAMERA":
+		_show_camera_creation_worksite()
+		return
 	if category.to_upper() == "OPERATING SYSTEM":
 		_show_os_creation_worksite()
 		return
@@ -2888,6 +2894,86 @@ func _return_from_os_creation_worksite() -> void:
 		os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 		os_creation_worksite.hide()
 		for child in os_creation_worksite.get_children():
+			if child is CanvasLayer:
+				child.hide()
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.show()
+		ui_layer = create_ui_layer
+		ui_root = create_ui_root
+
+
+func _prepare_camera_creation_worksite() -> void:
+	if is_instance_valid(camera_creation_worksite):
+		return
+	camera_creation_worksite = CameraCreationWorksiteScene.instantiate() as Node3D
+	if not is_instance_valid(camera_creation_worksite):
+		push_error("Camera Creation Worksite scene could not be initialized.")
+		return
+	camera_creation_worksite.name = "Camera_Creation_Worksite"
+	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	camera_creation_worksite.connect("back_requested", Callable(self, "_return_from_camera_creation_worksite"))
+	add_child(camera_creation_worksite)
+	camera_creation_worksite.hide()
+	for child in camera_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.hide()
+
+
+func _show_camera_creation_worksite() -> void:
+	if current_screen == "camera_creation_worksite" and is_instance_valid(camera_creation_worksite):
+		return
+	if camera_worksite_open_pending:
+		return
+	camera_worksite_open_pending = true
+	current_screen = "camera_creation_worksite"
+	call_deferred("_activate_camera_creation_worksite")
+
+
+func _activate_camera_creation_worksite() -> void:
+	camera_worksite_open_pending = false
+	if current_screen != "camera_creation_worksite":
+		return
+	if not is_instance_valid(camera_creation_worksite):
+		_prepare_camera_creation_worksite()
+	if not is_instance_valid(camera_creation_worksite):
+		current_screen = "create"
+		if is_instance_valid(create_ui_layer):
+			create_ui_layer.show()
+			ui_layer = create_ui_layer
+			ui_root = create_ui_root
+		return
+
+	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
+		if is_instance_valid(layer):
+			layer.hide()
+	for worksite in [phone_creation_worksite, processor_creation_worksite, os_creation_worksite]:
+		if is_instance_valid(worksite):
+			worksite.process_mode = Node.PROCESS_MODE_DISABLED
+			worksite.hide()
+			for child in worksite.get_children():
+				if child is CanvasLayer:
+					child.hide()
+	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
+		world_root.set_preview_active(false)
+
+	ui_layer = null
+	ui_root = null
+	camera_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
+	camera_creation_worksite.show()
+	for child in camera_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.show()
+
+
+func _return_from_camera_creation_worksite() -> void:
+	if current_screen != "camera_creation_worksite":
+		return
+	current_screen = "create"
+	camera_worksite_open_pending = false
+	if is_instance_valid(camera_creation_worksite):
+		camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+		camera_creation_worksite.hide()
+		for child in camera_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
 	if is_instance_valid(create_ui_layer):
