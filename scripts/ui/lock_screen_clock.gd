@@ -15,6 +15,9 @@ var _position_mode := "fixed"
 var _clock_position := DEFAULT_CLOCK_POSITION
 var _drag_active := false
 var _drag_offset := Vector2.ZERO
+var _analog_textures: Dictionary = {}
+var _clock_style_index := 1
+var _clock_type := "analog"
 
 
 func _ready() -> void:
@@ -31,35 +34,62 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 		_position_mode = "fixed"
 	_apply_clock_position()
 
-	# Preserve the generated analog-artwork and date geometry inside the shared
-	# draggable frame. Digital faces fill that same frame, so both clock types
-	# move and lock as one object.
 	var screen_clock_rect: Rect2 = design.get("clock_rect", Rect2(0.35, 0.2, 0.30, 0.15))
 	_set_normalized_rect(analog_container, screen_clock_rect)
 	_set_normalized_rect(digital_artwork, Rect2(0.0, 0.0, 1.0, 1.0))
 	var date_rect := _find_component_rect(design, "date")
 	if date_rect.size.x > 0.0 and date_rect.size.y > 0.0:
 		_set_normalized_rect(date_label, date_rect)
-
-	var clock_type := str(design.get("clock_type", "analog")).to_lower()
-	analog_container.visible = clock_type == "analog"
-	digital_artwork.visible = clock_type == "digital"
 	date_label.visible = false
-
 	date_label.add_theme_color_override("font_color", palette.get("muted", Color("#C7CDD5")))
 	date_label.add_theme_font_size_override("font_size", int(design.get("date_font_size", 15)))
 	date_label.horizontal_alignment = _alignment_from_name(str(design.get("date_align", "center")))
 	date_label.add_theme_constant_override("letter_spacing", int(design.get("date_letter_spacing", 1)))
 
-	var style_index := int(design.get("clock_style_index", design.get("analog_clock_asset_index", 1)))
-	var asset_index := int(design.get("analog_clock_asset_index", style_index))
-	analog_artwork.texture = load(AssetLibrary.get_analog_clock_path(asset_index)) as Texture2D
-	analog_artwork.visible = clock_type == "analog" and analog_artwork.texture != null
-	digital_artwork.call("configure", int(design.get("digital_clock_style_index", style_index)), palette, design)
+	_clock_style_index = int(design.get("clock_style_index", design.get("analog_clock_asset_index", 1)))
+	_preload_analog_artworks()
+	digital_artwork.call("configure", int(design.get("digital_clock_style_index", _clock_style_index)), palette, design)
+	set_clock_style_index(_clock_style_index)
+	set_clock_type(str(design.get("clock_type", "analog")))
 	_refresh_date()
-	if clock_type == "analog" and date_label.visible:
-		_position_analog_date_near_clock(screen_clock_rect, date_rect)
 
+
+func _preload_analog_artworks() -> void:
+	if not _analog_textures.is_empty():
+		return
+	for asset_index in range(1, AssetLibrary.get_analog_clock_count() + 1):
+		var asset_path := AssetLibrary.get_analog_clock_path(asset_index)
+		_analog_textures[asset_index] = load(asset_path) as Texture2D
+
+
+func set_clock_style_index(style_index: int) -> bool:
+	if style_index < 1 or style_index > AssetLibrary.get_analog_clock_count():
+		return false
+	_clock_style_index = style_index
+	analog_artwork.texture = _analog_textures.get(style_index) as Texture2D
+	analog_artwork.visible = _clock_type == "analog" and analog_artwork.texture != null
+	if not bool(digital_artwork.call("set_style_index", style_index)):
+		return false
+	return true
+
+
+func get_clock_style_index() -> int:
+	return _clock_style_index
+
+
+func set_clock_type(clock_type: String) -> bool:
+	var normalized := clock_type.to_lower()
+	if normalized not in ["analog", "digital"]:
+		return false
+	_clock_type = normalized
+	analog_container.visible = normalized == "analog"
+	digital_artwork.visible = normalized == "digital"
+	analog_artwork.visible = normalized == "analog" and analog_artwork.texture != null
+	return true
+
+
+func get_clock_type() -> String:
+	return _clock_type
 
 func set_position_mode(mode: String) -> bool:
 	var normalized := mode.to_lower()
