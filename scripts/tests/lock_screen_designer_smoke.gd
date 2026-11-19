@@ -227,6 +227,9 @@ func _run_test() -> void:
 	await process_frame
 	var digital_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
 	var digital_artwork := digital_component.find_child("DigitalClock", true, false) as Control
+	var initial_layout_ready: bool = await _wait_for_digital_clock_layout(digital_artwork, int(designer.call("get_clock_style_index")))
+	if not initial_layout_ready:
+		return
 	var expected_time_center: Vector2 = digital_artwork.call("get_time_visual_rect").get_center()
 	for style_index in [1, 5, 12, 20, 29, 37, 41]:
 		if not bool(designer.call("set_clock_style_index", style_index, false)):
@@ -239,9 +242,13 @@ func _run_test() -> void:
 			return
 		digital_component = designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
 		digital_artwork = digital_component.find_child("DigitalClock", true, false) as Control
+		var style_layout_ready: bool = await _wait_for_digital_clock_layout(digital_artwork, style_index)
+		if not style_layout_ready:
+			return
 		var current_time_center: Vector2 = digital_artwork.call("get_time_visual_rect").get_center()
-		if current_time_center.distance_to(expected_time_center) > 2.5:
-			_fail("Changing digital clock styles must keep the visible time at the same screen position.")
+		var center_delta := current_time_center.distance_to(expected_time_center)
+		if center_delta > 2.5:
+			_fail("Changing digital clock styles must keep the visible time at the same screen position (style %d; expected %s, got %s; delta %.2f px)." % [style_index, expected_time_center, current_time_center, center_delta])
 			return
 	var digital_date_gap := float(digital_artwork.call("get_date_time_gap_pixels"))
 	if digital_date_gap > 13.0:
@@ -397,6 +404,23 @@ func _run_test() -> void:
 	designer.free()
 	print("HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS")
 	quit()
+
+
+func _wait_for_digital_clock_layout(digital_artwork: Control, style_index: int) -> bool:
+	# Face layouts use BoxContainers whose measured label bounds are only valid
+	# after the renderer has completed its normalization pass. Wait on that
+	# explicit state instead of assuming a fixed number of frames is enough.
+	for _frame_index in range(12):
+		if not is_instance_valid(digital_artwork):
+			_fail("Digital clock renderer was replaced while waiting for style %d to normalize." % style_index)
+			return false
+		if bool(digital_artwork.call("is_time_layout_normalized")):
+			return true
+		await process_frame
+	if is_instance_valid(digital_artwork) and bool(digital_artwork.call("is_time_layout_normalized")):
+		return true
+	_fail("Digital clock style %d did not finish layout normalization within 12 frames." % style_index)
+	return false
 
 
 func _fail(message: String) -> void:
