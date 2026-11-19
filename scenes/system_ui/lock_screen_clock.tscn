@@ -10,7 +10,14 @@ anchor_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("1")
 
-[node name="GeneratedLockScreenDate" type="Label" parent="."]
+[node name="ClockPositionContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="GeneratedLockScreenDate" type="Label" parent="ClockPositionContainer"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,14 +27,14 @@ vertical_alignment = 1
 theme_override_font_sizes/font_size = 15
 mouse_filter = 2
 
-[node name="AnalogClock" type="Control" parent="."]
+[node name="AnalogClock" type="Control" parent="ClockPositionContainer"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="GeneratedAnalogClockArtwork" type="TextureRect" parent="AnalogClock"]
+[node name="GeneratedAnalogClockArtwork" type="TextureRect" parent="ClockPositionContainer/AnalogClock"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -36,7 +43,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="DigitalClock" type="Control" parent="."]
+[node name="DigitalClock" type="Control" parent="ClockPositionContainer"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
