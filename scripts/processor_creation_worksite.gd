@@ -10,6 +10,7 @@ const TEXT := Color("#EEEAE2")
 const MUTED := Color("#A9A49A")
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
+const DRAG_SENSITIVITY := 0.0024
 const WIZARD_STEP_COUNT := 4
 
 class GlassArrowButton extends Button:
@@ -75,9 +76,7 @@ var design_decrease_button: Button
 var design_increase_button: Button
 var design_value_label: Label
 var design_position_label: Label
-var design_note_label: Label
 var drag_active := false
-var is_flipped := false
 var processor_design := {
 	"name": "DW SILICON 01",
 	"design_id": "dw_silicon_01",
@@ -239,28 +238,6 @@ func _build_interface() -> void:
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	preview_holder.add_child(preview_viewport)
 
-	var view_actions := HBoxContainer.new()
-	view_actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	view_actions.add_theme_constant_override("separation", 10)
-	preview_column.add_child(view_actions)
-
-	var flip_button := Button.new()
-	flip_button.text = "FLIP CHIP"
-	flip_button.custom_minimum_size = Vector2(120, 36)
-	_style_button(flip_button, false)
-	flip_button.pressed.connect(_flip_chip)
-	view_actions.add_child(flip_button)
-
-	var reset_button := Button.new()
-	reset_button.text = "RESET VIEW"
-	reset_button.custom_minimum_size = Vector2(120, 36)
-	_style_button(reset_button, false)
-	reset_button.pressed.connect(_reset_view)
-	view_actions.add_child(reset_button)
-
-	var hint := _label("DRAG TO ROTATE  ·  VIEW TOP AND CONTACT SIDE", 9, MUTED)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	preview_column.add_child(hint)
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "ProcessorSelectionScroll"
@@ -291,10 +268,7 @@ func _build_interface() -> void:
 	selection_stack.add_theme_constant_override("separation", 16)
 	selection_region.add_child(selection_stack)
 
-	var name_page := _create_step_page(
-		"SELECT PROCESSOR DESIGN",
-		"Explore 15 distinct, physically grounded mobile processor package designs."
-	)
+	var name_page := _create_step_page("SELECT PROCESSOR DESIGN")
 	var design_selector_zone := CenterContainer.new()
 	design_selector_zone.name = "ProcessorDesignSelectorZone"
 	design_selector_zone.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -341,12 +315,6 @@ func _build_interface() -> void:
 	design_increase_button.pressed.connect(_on_processor_design_increase_pressed)
 	selector_row.add_child(design_increase_button)
 
-	design_note_label = _label("", 11, Color("#D0CBC2"))
-	design_note_label.name = "ProcessorDesignNoteLabel"
-	design_note_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	design_note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	design_note_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selector_column.add_child(design_note_label)
 
 	var name_label := _label("PROCESSOR NAME", 11, ACCENT)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -361,10 +329,6 @@ func _build_interface() -> void:
 	name_input.text_changed.connect(_on_design_changed)
 	name_page.add_child(name_input)
 
-	var dimensions_page := _create_step_page(
-		"PACKAGE DIMENSIONS",
-		"Choose the physical footprint of the processor package."
-	)
 	var dimensions_label := _label("PACKAGE SIZE", 11, ACCENT)
 	dimensions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dimensions_page.add_child(dimensions_label)
@@ -378,10 +342,6 @@ func _build_interface() -> void:
 	package_size.item_selected.connect(_on_design_changed)
 	dimensions_page.add_child(package_size)
 
-	var package_page := _create_step_page(
-		"PACKAGE FINISH",
-		"Select the finish and substrate appearance for the processor package."
-	)
 	var package_label := _label("PACKAGE MATERIAL FINISH", 11, ACCENT)
 	package_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	package_page.add_child(package_label)
@@ -395,10 +355,6 @@ func _build_interface() -> void:
 	package_finish.item_selected.connect(_on_design_changed)
 	package_page.add_child(package_finish)
 
-	var die_page := _create_step_page(
-		"SILICON DIE FINISH",
-		"Choose the visible finish of the silicon die and heat-spreader surface."
-	)
 	var die_label := _label("DIE SURFACE", 11, ACCENT)
 	die_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	die_page.add_child(die_label)
@@ -426,10 +382,6 @@ func _build_interface() -> void:
 	save_button.pressed.connect(_save_design)
 	die_page.add_child(save_button)
 
-	var research_note := _label("The seven research systems will be added after the base processor design is established.", 9, MUTED)
-	research_note.autowrap_mode = TextServer.AUTOWRAP_WORD
-	research_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	die_page.add_child(research_note)
 
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
@@ -463,7 +415,7 @@ func _build_interface() -> void:
 	_set_wizard_step(1)
 
 
-func _create_step_page(title_text: String, description_text: String) -> VBoxContainer:
+func _create_step_page(title_text: String) -> VBoxContainer:
 	var page := VBoxContainer.new()
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -477,10 +429,6 @@ func _create_step_page(title_text: String, description_text: String) -> VBoxCont
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	page.add_child(heading)
 
-	var description := _label(description_text, 12, Color("#D0CBC2"))
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD
-	page.add_child(description)
 	return page
 
 
@@ -647,13 +595,14 @@ func _on_processor_design_increase_pressed() -> void:
 func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 	if processor_models_data.is_empty() or processor_designs.is_empty():
 		return
+	var preserved_rotation := processor_root.rotation if is_instance_valid(processor_root) else DEFAULT_VIEW_ROTATION
 	selected_design_index = clampi(index, 0, mini(processor_models_data.size(), processor_designs.size()) - 1)
 	for model_index in range(processor_models_data.size()):
 		var model_root := processor_models_data[model_index].get("root") as Node3D
 		if is_instance_valid(model_root):
 			model_root.visible = model_index == selected_design_index
 			if model_index == selected_design_index:
-				model_root.rotation = DEFAULT_VIEW_ROTATION
+				model_root.rotation = preserved_rotation
 				model_root.scale = Vector3.ONE
 
 	var selected_model: Dictionary = processor_models_data[selected_design_index]
@@ -668,7 +617,6 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 		if surface_value is MeshInstance3D:
 			die_surfaces.append(surface_value)
 	die_surface = die_surfaces[0] if not die_surfaces.is_empty() else null
-	is_flipped = false
 
 	if reset_to_preset:
 		if is_instance_valid(name_input):
@@ -692,8 +640,6 @@ func _refresh_processor_design_controls() -> void:
 		design_value_label.text = str(profile.get("name", "DW PROCESSOR"))
 	if is_instance_valid(design_position_label):
 		design_position_label.text = "DESIGN %02d / %02d" % [selected_design_index + 1, processor_designs.size()]
-	if is_instance_valid(design_note_label):
-		design_note_label.text = str(profile.get("description", ""))
 	if is_instance_valid(design_decrease_button):
 		design_decrease_button.disabled = selected_design_index <= 0
 	if is_instance_valid(design_increase_button):
@@ -813,20 +759,10 @@ func _on_preview_input(event: InputEvent) -> void:
 func _rotate_preview(relative: Vector2) -> void:
 	if not is_instance_valid(processor_root):
 		return
-	processor_root.rotation.y += relative.x * 0.008
-	processor_root.rotation.x = clampf(processor_root.rotation.x + relative.y * 0.006, -0.65, 3.80)
-
-func _flip_chip() -> void:
-	if not is_instance_valid(processor_root):
-		return
-	is_flipped = not is_flipped
-	processor_root.rotation.x = PI - 0.24 if is_flipped else DEFAULT_VIEW_ROTATION.x
-
-func _reset_view() -> void:
-	if not is_instance_valid(processor_root):
-		return
-	is_flipped = false
-	processor_root.rotation = DEFAULT_VIEW_ROTATION
+	if absf(relative.x) >= absf(relative.y):
+		processor_root.rotation.y += relative.x * DRAG_SENSITIVITY
+	else:
+		processor_root.rotation.x += relative.y * DRAG_SENSITIVITY
 
 func _on_design_changed(_value: Variant = null) -> void:
 	_apply_design()
