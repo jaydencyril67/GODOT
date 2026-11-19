@@ -593,11 +593,6 @@ func _build_processor_preview() -> void:
 	studio_floor.material_override = _material(Color("#111A20"), 0.24, 0.34)
 	preview_viewport.add_child(studio_floor)
 
-	processor_root = Node3D.new()
-	processor_root.name = "ProcessorSoCModel"
-	processor_root.position = Vector3(0.0, 0.02, 0.0)
-	processor_root.rotation = DEFAULT_VIEW_ROTATION
-	preview_viewport.add_child(processor_root)
 
 	# Every physical model is constructed once during startup preparation.
 	# Selection only toggles visibility, so changing designs never builds meshes.
