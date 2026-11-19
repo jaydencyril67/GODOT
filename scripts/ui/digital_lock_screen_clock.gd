@@ -129,9 +129,6 @@ func get_date_time_gap_pixels() -> float:
 
 
 func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
-	await get_tree().process_frame
-	if not is_instance_valid(frame) or not is_instance_valid(root_node):
-		return
 	var date_label := _find_date_layer(root_node)
 	var date_was_above := false
 	var date_visible := date_label != null and date_label.visible
@@ -164,9 +161,6 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 		date_label.custom_minimum_size = Vector2.ZERO
 		date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	await get_tree().process_frame
-	if not is_instance_valid(frame) or not is_instance_valid(root_node):
-		return
 
 	var time_rect := _get_time_layer_bounds(root_node)
 	if time_rect.size == Vector2.ZERO:
@@ -186,9 +180,6 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 		root_node.offset_right += shift.x
 		root_node.offset_top += shift.y
 		root_node.offset_bottom += shift.y
-	await get_tree().process_frame
-	if not is_instance_valid(frame) or not is_instance_valid(root_node):
-		return
 
 	time_rect = _get_time_layer_bounds(root_node)
 	if time_rect.size == Vector2.ZERO or not date_visible or date_label == null:
