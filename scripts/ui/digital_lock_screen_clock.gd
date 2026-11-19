@@ -22,16 +22,10 @@ var _face: Dictionary = {}
 var _palette: Dictionary = {}
 var _show_date := true
 var _last_minute := -1
-var _pending_normalization_frame: Control
-var _pending_normalization_root: Control
-var _pending_normalization_last_bounds := Rect2()
-var _pending_normalization_stable_frames := 0
 var _pending_date_label: Label
 var _pending_date_was_above := false
 var _pending_date_width := 0.0
 var _pending_date_height := 0.0
-var _pending_date_detached := false
-var _time_layout_normalized := false
 
 
 func _ready() -> void:
@@ -287,7 +281,11 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2, face_override
 			stack.add_child(child)
 			_place_stack_child(child, child_spec, available_size)
 		return stack
-	var container: BoxContainer = HBoxContainer.new() if layout_key == "row" else VBoxContainer.new()
+	var container: BoxContainer
+	if layout_key == "row":
+		container = HBoxContainer.new()
+	else:
+		container = VBoxContainer.new()
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
