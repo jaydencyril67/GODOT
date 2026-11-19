@@ -220,6 +220,7 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 		root_node.offset_bottom += shift.y
 
 	time_rect = _get_time_layer_bounds(root_node)
+	print("DIGITAL_CLOCK_CENTER style=%d frame_center=%s before=%s shift=%s after=%s root_offsets=(%.2f, %.2f, %.2f, %.2f)" % [_style_index, frame_rect.get_center(), time_local.get_center(), shift, time_rect.get_center(), root_node.offset_left, root_node.offset_top, root_node.offset_right, root_node.offset_bottom])
 	if time_rect.size == Vector2.ZERO or not date_visible or date_label == null:
 		return
 	var current_frame_rect := frame.get_global_rect()
