@@ -207,6 +207,7 @@ func get_selected_wallpaper_path() -> String:
 func set_wallpaper(path: String) -> bool:
 	if not _wallpaper_paths.has(path) or not FileAccess.file_exists(path):
 		return false
+	_capture_clock_position()
 	_selected_wallpaper_path = path
 	if _last_design.is_empty():
 		return true
@@ -241,6 +242,7 @@ func get_display_option(option: String) -> bool:
 func set_display_option(option: String, enabled: bool) -> bool:
 	if _last_design.is_empty():
 		return false
+	_capture_clock_position()
 	match option:
 		"clock":
 			_show_clock = enabled
@@ -282,9 +284,12 @@ func set_clock_type(clock_type: String) -> bool:
 	var normalized := clock_type.to_lower()
 	if normalized not in ["analog", "digital"]:
 		return false
+	_capture_clock_position()
 	_clock_type = normalized
 	if not _last_design.is_empty():
 		_last_design["clock_type"] = normalized
+		_last_design["clock_position"] = _clock_position
+		_last_design["clock_position_mode"] = _clock_position_mode
 		_render_design(_last_design)
 	return true
 
@@ -302,12 +307,20 @@ func get_clock_style_name() -> String:
 
 
 func get_clock_position_mode() -> String:
-	return str(_last_design.get("clock_position_mode", _clock_position_mode)) if not _last_design.is_empty() else _clock_position_mode
+	return _clock_position_mode
 
 
 func get_clock_position() -> Vector2:
-	var saved_position: Variant = _last_design.get("clock_position", _clock_position) if not _last_design.is_empty() else _clock_position
-	return saved_position if saved_position is Vector2 else _clock_position
+	return _clock_position
+
+
+func _capture_clock_position() -> void:
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false)
+	if clock != null:
+		_clock_position = clock.call("get_clock_position")
+	if not _last_design.is_empty():
+		_last_design["clock_position"] = _clock_position
+		_last_design["clock_position_mode"] = _clock_position_mode
 
 
 func set_clock_position_mode(mode: String) -> bool:
@@ -352,8 +365,11 @@ func end_clock_drag() -> void:
 func set_clock_style_index(style_index: int, device_clock: Variant = null) -> bool:
 	if style_index < 1 or style_index > get_clock_style_count():
 		return false
+	_capture_clock_position()
 	_clock_style_index = style_index
 	if not _last_design.is_empty():
+		_last_design["clock_position"] = _clock_position
+		_last_design["clock_position_mode"] = _clock_position_mode
 		_last_design["clock_style_index"] = style_index
 		_last_design["analog_clock_asset_index"] = style_index
 		_last_design["digital_clock_style_index"] = style_index
@@ -989,6 +1005,7 @@ func get_status_bar_style_id() -> String:
 func set_status_bar_style(style_id: String) -> bool:
 	if not StatusBarAssetLibrary.has_style(style_id) or _last_design.is_empty():
 		return false
+	_capture_clock_position()
 	_last_design["status_style_id"] = style_id
 	_render_design(_last_design)
 	return true
