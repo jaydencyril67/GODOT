@@ -10,6 +10,7 @@ const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
+const GAME_START_DATE_UNIX := 1577836800.0 # 2020-01-01 00:00:00 UTC
 
 const LOGO_NAMES := [
 	"Orchard", "Skybird", "Crown", "Apex", "Volt", "Prism", "Quantum", "Helix", "Titan", "Zenith",
@@ -51,7 +52,7 @@ var staff_screen
 var staff_market_screen
 var staff_management_screen
 var confirm_modal: CanvasLayer
-var game_date_unix := 1262304000.0
+var game_date_unix := GAME_START_DATE_UNIX
 var game_clock_paused := false
 var last_saved_game_day := -1
 var career: Dictionary = {}
@@ -234,14 +235,14 @@ func _load_career() -> bool:
 		"created_at": str(config.get_value("career", "created_at", "")),
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
-		"game_date_unix": float(config.get_value("career", "game_date_unix", 1262304000.0)),
+		"game_date_unix": float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX)),
 		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
-		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
-		"last_payroll_billed_month": str(config.get_value("career", "last_payroll_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
+		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX))))),
+		"last_payroll_billed_month": str(config.get_value("career", "last_payroll_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX))))),
 		"staff_candidates": config.get_value("career", "staff_candidates", []),
 		"staff_employees": config.get_value("career", "staff_employees", []),
 		"next_staff_candidate_id": int(config.get_value("career", "next_staff_candidate_id", 1)),
-		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", 1262304000.0))))),
+		"last_candidate_refresh_month": str(config.get_value("career", "last_candidate_refresh_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX))))),
 		"staff_market_initialized": bool(config.get_value("career", "staff_market_initialized", false)),
 		"research_history": config.get_value("career", "research_history", []),
 		"research_projects": config.get_value("career", "research_projects", []),
@@ -252,7 +253,7 @@ func _load_career() -> bool:
 	}
 	_normalize_phone_identity()
 	ResearchManagerScript.ensure_state(career)
-	game_date_unix = float(career.get("game_date_unix", 1262304000.0))
+	game_date_unix = float(career.get("game_date_unix", GAME_START_DATE_UNIX))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
 	last_saved_game_day = floori(game_date_unix / 86400.0)
 	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 0)), 0, 10)
@@ -645,7 +646,7 @@ func _begin_fresh_game() -> void:
 	upgrade_level = 0
 	selected_upgrade = 1
 	selected_logo_id = 1
-	game_date_unix = 1262304000.0
+	game_date_unix = GAME_START_DATE_UNIX
 	game_clock_paused = false
 	last_saved_game_day = -1
 	_clear_world()
@@ -1245,7 +1246,7 @@ func _create_company() -> void:
 	if not career.has("balance"):
 		career["balance"] = 10000000.0
 	if not career.has("game_date_unix"):
-		game_date_unix = 1262304000.0
+		game_date_unix = GAME_START_DATE_UNIX
 		career["game_date_unix"] = game_date_unix
 	if not career.has("game_clock_paused"):
 		game_clock_paused = false
