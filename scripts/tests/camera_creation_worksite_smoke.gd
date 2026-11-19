@@ -51,6 +51,7 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	print("CAMERA_VIEWPORT_DIAGNOSTICS size=", viewport.size, " msaa=", viewport.msaa_3d, " screen_space_aa=", viewport.screen_space_aa, " update_mode=", viewport.render_target_update_mode)
 	if viewport.size.x <= 0 or viewport.size.y <= 0 or viewport.msaa_3d != Viewport.MSAA_DISABLED or viewport.screen_space_aa != Viewport.SCREEN_SPACE_AA_DISABLED or viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
 		_fail("Camera handset preview is not using the expected low-end-device rendering settings.")
 		worksite.free()
