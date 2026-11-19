@@ -321,7 +321,8 @@ func _build_screen(defer_app_drawer_population: bool = false) -> void:
 	var wallpaper_path := str(_design.get("wallpaper_path", ""))
 	if not wallpaper_path.is_empty() and ResourceLoader.exists(wallpaper_path):
 		wallpaper.texture = load(wallpaper_path) as Texture2D
-	wallpaper.expand_mode = TextureRect.EXPAND_IGNORE_SIwallpaper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	wallpaper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	wallpaper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	wallpaper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_set_full_rect(wallpaper)
 	add_child(wallpaper)
