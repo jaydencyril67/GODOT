@@ -209,11 +209,10 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 	# but the visible time group always shares the same visual center.
 	var frame_rect := frame.get_global_rect()
 	var time_local := Rect2(time_rect.position - frame_rect.position, time_rect.size)
+	# The visual time center is the invariant across face styles. Do not clamp
+	# this translation to the internal face-frame edges: doing so leaves some
+	# layouts visibly off-center when their artwork extends beyond that frame.
 	var shift := frame.size * 0.5 - time_local.get_center()
-	if time_local.size.x <= frame.size.x:
-		shift.x = clampf(shift.x, -time_local.position.x, frame.size.x - time_local.end.x)
-	if time_local.size.y <= frame.size.y:
-		shift.y = clampf(shift.y, -time_local.position.y, frame.size.y - time_local.end.y)
 	if not is_zero_approx(shift.x) or not is_zero_approx(shift.y):
 		root_node.offset_left += shift.x
 		root_node.offset_right += shift.x
