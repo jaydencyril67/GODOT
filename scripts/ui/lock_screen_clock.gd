@@ -117,7 +117,7 @@ func get_clock_visual_rect() -> Rect2:
 	if digital_artwork.visible:
 		for label_value in digital_artwork.find_children("*", "Label", true, false):
 			var clock_label := label_value as Label
-			if not clock_label.visible or clock_label.text.is_empty():
+			if not clock_label.is_visible_in_tree() or clock_label.text.is_empty():
 				continue
 			var label_rect := clock_label.get_global_rect()
 			if label_rect.size.x <= 0.0 or label_rect.size.y <= 0.0:
