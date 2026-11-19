@@ -194,6 +194,25 @@ func _run_test() -> void:
 	if moved_clock_position.distance_to(initial_clock_position) < 0.05:
 		_fail("Dragging in Flex mode did not persist a new clock position.")
 		return
+
+	# Both analog and digital clocks can travel to the visible screen edges.
+	var screen_rect := designer.get_global_rect()
+	for edge_position in [
+		screen_rect.position + Vector2(0.0, 0.0),
+		screen_rect.position + Vector2(screen_rect.size.x, screen_rect.size.y)
+	]:
+		var visible_bounds: Rect2 = clock_component.call("get_clock_visual_rect")
+		if not bool(designer.call("begin_clock_drag", visible_bounds.get_center())):
+			_fail("The flexible clock could not be grabbed for a screen-edge drag.")
+			return
+		if not bool(designer.call("drag_clock_to", edge_position)):
+			_fail("The flexible clock could not move toward a phone-screen edge.")
+			return
+		designer.call("end_clock_drag")
+		visible_bounds = clock_component.call("get_clock_visual_rect")
+		if visible_bounds.position.x < screen_rect.position.x - 1.0 or visible_bounds.position.y < screen_rect.position.y - 1.0 or visible_bounds.end.x > screen_rect.end.x + 1.0 or visible_bounds.end.y > screen_rect.end.y + 1.0:
+			_fail("Clock movement must be limited by the outer phone-screen edges, not an inner safe area.")
+			return
 	if not bool(designer.call("set_clock_position_mode", "fixed")):
 		_fail("The clock could not be switched into Fixed mode.")
 		return
@@ -203,8 +222,37 @@ func _run_test() -> void:
 	if not bool(designer.call("set_clock_type", "digital")) or designer.call("get_clock_position") != moved_clock_position:
 		_fail("Switching to Digital did not preserve the selected clock position.")
 		return
+	await process_frame
+	await process_frame
+	var digital_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
+	var digital_artwork := digital_component.find_child("DigitalClock", true, false) as Control
+	var expected_time_center := digital_artwork.call("get_time_visual_rect").get_center()
+	for style_index in [1, 5, 12, 20, 29, 37, 41]:
+		if not bool(designer.call("set_clock_style_index", style_index, false)):
+			_fail("A digital style could not be selected while checking clock position stability.")
+			return
+		await process_frame
+		await process_frame
+		if designer.call("get_clock_position") != moved_clock_position:
+			_fail("Changing digital clock styles must not change the saved clock position.")
+			return
+		digital_component = designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
+		digital_artwork = digital_component.find_child("DigitalClock", true, false) as Control
+		var current_time_center: Vector2 = digital_artwork.call("get_time_visual_rect").get_center()
+		if current_time_center.distance_to(expected_time_center) > 2.5:
+			_fail("Changing digital clock styles must keep the visible time at the same screen position.")
+			return
+	var digital_date_gap := float(digital_artwork.call("get_date_time_gap_pixels"))
+	if digital_date_gap > 13.0:
+		_fail("The date must remain close to the digital time after a style change.")
+		return
 	if not bool(designer.call("set_clock_type", "analog")) or designer.call("get_clock_position") != moved_clock_position:
 		_fail("Switching back to Analog did not preserve the selected clock position.")
+		return
+	await process_frame
+	var analog_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
+	if float(analog_component.call("get_analog_date_gap_pixels")) > 13.0:
+		_fail("The analog date must remain close to its clock artwork.")
 		return
 	if not bool(designer.call("set_clock_position_mode", "flex")):
 		_fail("The clock could not restore Flex mode after switching clock types.")
