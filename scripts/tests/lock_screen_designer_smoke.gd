@@ -366,8 +366,10 @@ func _run_test() -> void:
 	if not bool(designer.call("set_display_option", "notifications", false)):
 		_fail("The notification setting could not be switched off.")
 		return
-	if designer.find_child("GeneratedNotification", true, false) != null or designer.find_child("GeneratedLockScreenMediaPlayer", true, false) == null:
-		_fail("Disabling notifications must not disable the independent media player.")
+	var retained_notification := designer.find_child("GeneratedNotification", true, false) as Control
+	var retained_media := designer.find_child("GeneratedLockScreenMediaPlayer", true, false) as Control
+	if retained_notification == null or retained_notification.visible or retained_media == null or not retained_media.visible:
+		_fail("Disabling notifications must hide the existing notification without affecting the media player.")
 		return
 	if not bool(designer.call("set_display_option", "notifications", true)):
 		_fail("The notification setting could not be switched on again.")
@@ -375,8 +377,10 @@ func _run_test() -> void:
 	if not bool(designer.call("set_display_option", "flashlight", false)):
 		_fail("The flashlight shortcut could not be switched off.")
 		return
-	if designer.find_child("BottomFlashlightShortcut", true, false) != null or designer.find_child("BottomCameraShortcut", true, false) == null:
-		_fail("Disabling flashlight must leave the camera shortcut enabled.")
+	var retained_flashlight := designer.find_child("BottomFlashlightShortcut", true, false) as Control
+	var retained_camera := designer.find_child("BottomCameraShortcut", true, false) as Control
+	if retained_flashlight == null or retained_flashlight.visible or retained_camera == null or not retained_camera.visible:
+		_fail("Disabling flashlight must hide its existing shortcut and leave the camera shortcut enabled.")
 		return
 	if not bool(designer.call("set_display_option", "flashlight", true)):
 		_fail("The flashlight shortcut could not be switched on again.")
@@ -404,6 +408,11 @@ func _run_test() -> void:
 		_fail("The camera shortcut is missing its composed camera glyph.")
 		return
 
+	var status_bar_component := designer.find_child("LockScreenStatusBar", true, false) as Control
+	var status_bar_component_id := status_bar_component.get_instance_id()
+	if int(status_bar_component.call("get_style_variant_count")) != 10:
+		_fail("All ten lock-screen status-bar styles must be prebuilt during initial preview setup.")
+		return
 	for selectable_style in StatusBarAssetLibrary.get_styles():
 		var style_id := str(selectable_style.get("id", ""))
 		if not bool(designer.call("set_status_bar_style", style_id)):
@@ -411,6 +420,17 @@ func _run_test() -> void:
 			return
 		if str(designer.call("get_status_bar_style_id")) != style_id:
 			_fail("The selected status-bar style was not stored in the active design.")
+			return
+		if designer.find_child("LockScreenStatusBar", true, false).get_instance_id() != status_bar_component_id:
+			_fail("Status-bar style changes must reuse the same prebuilt status-bar component.")
+			return
+		var visible_status_variants := 0
+		for variant_value in status_bar_component.get_children():
+			var variant := variant_value as Control
+			if variant.name.begins_with("StatusBarVariant_") and variant.visible:
+				visible_status_variants += 1
+		if visible_status_variants != 1:
+			_fail("Exactly one prebuilt lock-screen status-bar variant must be visible.")
 			return
 		if designer.find_child("StatusBarClock", true, false) == null:
 			_fail("A status-bar preset failed to render its live clock.")
