@@ -2,9 +2,7 @@ extends Control
 
 const AssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 
-const CLOCK_CONTAINER_SIZE := Vector2(0.90, 0.50)
-const DEFAULT_CLOCK_POSITION := Vector2(0.05, 0.14)
-const DEFAULT_CLOCK_RECT := Rect2(DEFAULT_CLOCK_POSITION, CLOCK_CONTAINER_SIZE)
+const DEFAULT_CLOCK_POSITION := Vector2.ZERO
 
 @onready var position_container: Control = $ClockPositionContainer
 @onready var date_label: Label = $ClockPositionContainer/GeneratedLockScreenDate
@@ -37,11 +35,11 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 	# draggable frame. Digital faces fill that same frame, so both clock types
 	# move and lock as one object.
 	var screen_clock_rect: Rect2 = design.get("clock_rect", Rect2(0.35, 0.2, 0.30, 0.15))
-	_set_normalized_rect(analog_container, _to_frame_rect(screen_clock_rect))
+	_set_normalized_rect(analog_container, screen_clock_rect)
 	_set_normalized_rect(digital_artwork, Rect2(0.0, 0.0, 1.0, 1.0))
 	var date_rect := _find_component_rect(design, "date")
 	if date_rect.size.x > 0.0 and date_rect.size.y > 0.0:
-		_set_normalized_rect(date_label, _to_frame_rect(date_rect))
+		_set_normalized_rect(date_label, date_rect)
 
 	var clock_type := str(design.get("clock_type", "analog")).to_lower()
 	analog_container.visible = clock_type == "analog"
@@ -82,15 +80,29 @@ func get_clock_position() -> Vector2:
 func get_drag_hit_rect() -> Rect2:
 	if not is_instance_valid(position_container):
 		return Rect2()
+	var has_bounds := false
+	var hit_rect := Rect2()
 	if digital_artwork.visible:
-		var frame_rect := digital_artwork.get_global_rect()
-		return Rect2(
-			frame_rect.position + frame_rect.size * Vector2(0.05, 0.30),
-			frame_rect.size * Vector2(0.90, 0.40)
-		).grow(12.0)
-	var hit_rect := analog_container.get_global_rect()
-	if date_label.visible:
-		hit_rect = hit_rect.merge(date_label.get_global_rect())
+		for label_value in digital_artwork.find_children("*", "Label", true, false):
+			var clock_label := label_value as Label
+			if not clock_label.visible or clock_label.text.is_empty():
+				continue
+			var label_rect := clock_label.get_global_rect()
+			if label_rect.size.x <= 0.0 or label_rect.size.y <= 0.0:
+				continue
+			hit_rect = label_rect if not has_bounds else hit_rect.merge(label_rect)
+			has_bounds = true
+	else:
+		var artwork_rect := analog_artwork.get_global_rect()
+		if artwork_rect.size.x > 0.0 and artwork_rect.size.y > 0.0:
+			hit_rect = artwork_rect
+			has_bounds = true
+		if date_label.visible:
+			var date_rect := date_label.get_global_rect()
+			hit_rect = date_rect if not has_bounds else hit_rect.merge(date_rect)
+			has_bounds = true
+	if not has_bounds:
+		return Rect2()
 	return hit_rect.grow(12.0)
 
 
@@ -113,8 +125,19 @@ func drag_clock_to(screen_position: Vector2) -> bool:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return false
 	var next_position := screen_position / viewport_size - _drag_offset
-	_clock_position.x = clampf(next_position.x, 0.0, 1.0 - CLOCK_CONTAINER_SIZE.x)
-	_clock_position.y = clampf(next_position.y, 0.0, 1.0 - CLOCK_CONTAINER_SIZE.y)
+	var current_bounds := get_drag_hit_rect()
+	if current_bounds.size.x > 0.0 and current_bounds.size.y > 0.0:
+		var current_translation := _clock_position * viewport_size
+		var unshifted_position := current_bounds.position - current_translation
+		var unshifted_end := current_bounds.end - current_translation
+		var minimum := Vector2(-unshifted_position.x / viewport_size.x, -unshifted_position.y / viewport_size.y)
+		var maximum := Vector2(
+			(viewport_size.x - unshifted_end.x) / viewport_size.x,
+			(viewport_size.y - unshifted_end.y) / viewport_size.y
+		)
+		next_position.x = clampf(next_position.x, minimum.x, maximum.x)
+		next_position.y = clampf(next_position.y, minimum.y, maximum.y)
+	_clock_position = next_position
 	_apply_clock_position()
 	return true
 
@@ -129,14 +152,15 @@ func _get_lock_screen_size() -> Vector2:
 
 
 func _apply_clock_position() -> void:
-	_set_normalized_rect(position_container, Rect2(_clock_position, CLOCK_CONTAINER_SIZE))
-
-
-func _to_frame_rect(screen_rect: Rect2) -> Rect2:
-	return Rect2(
-		(screen_rect.position - DEFAULT_CLOCK_RECT.position) / DEFAULT_CLOCK_RECT.size,
-		screen_rect.size / DEFAULT_CLOCK_RECT.size
-	)
+	# Keep the clock's original full-screen coordinate system and translate
+	# the shared visual layer. This preserves every face's scale while allowing
+	# the user to move it across the entire display.
+	var viewport_size := _get_lock_screen_size()
+	var translation := _clock_position * viewport_size
+	position_container.offset_left = translation.x
+	position_container.offset_top = translation.y
+	position_container.offset_right = translation.x
+	position_container.offset_bottom = translation.y
 
 
 func _process(_delta: float) -> void:
