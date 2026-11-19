@@ -25,6 +25,8 @@ var _status_bar_style_id := "one_ui_balanced"
 var _app_manifest: Array[Dictionary] = []
 var _apps_by_id: Dictionary = {}
 var _home_page_index := 0
+var _home_page_grids: Array[GridContainer] = []
+var _page_indicator_dots: Array[Panel] = []
 var _clock_elapsed := 0.0
 
 var _home_content: Control
@@ -166,6 +168,19 @@ func set_status_bar_style(style_id: String) -> bool:
 		if is_instance_valid(variant):
 			variant.visible = str(variant_id) == style_id
 	return true
+
+func set_wallpaper(path: String) -> bool:
+	if path.is_empty() or not FileAccess.file_exists(path):
+		return false
+	var wallpaper := find_child("HomeScreenWallpaper", true, false) as TextureRect
+	var texture := ResourceLoader.load(path, "Texture2D") as Texture2D
+	if texture == null:
+		return false
+	_design["wallpaper_path"] = path
+	if wallpaper != null:
+		wallpaper.texture = texture
+	return true
+
 
 func get_status_bar_style_id() -> String:
 	return _status_bar_style_id
@@ -434,35 +449,34 @@ func _add_search_widget() -> void:
 
 
 func _add_home_app_grid() -> void:
-	var grid := GridContainer.new()
-	grid.name = "HomeScreenAppGrid"
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 5)
-	grid.add_theme_constant_override("v_separation", 12)
-	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_normalized_rect(grid, Rect2(Vector2(0.035, 0.35), Vector2(0.93, 0.47)))
-	_home_content.add_child(grid)
-	_rebuild_home_app_grid()
-
+	_home_page_grids.clear()
+	for page_index in range(HOME_PAGE_APP_IDS.size()):
+		var grid := GridContainer.new()
+		grid.name = "HomeScreenAppGrid_%d" % page_index
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", 5)
+		grid.add_theme_constant_override("v_separation", 12)
+		grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		grid.visible = page_index == _home_page_index
+		_set_normalized_rect(grid, Rect2(Vector2(0.035, 0.35), Vector2(0.93, 0.47)))
+		_home_content.add_child(grid)
+		for app_id in HOME_PAGE_APP_IDS[page_index]:
+			var app: Dictionary = _apps_by_id.get(str(app_id), {})
+			if app.is_empty():
+				continue
+			var tile := _make_app_tile(app, 98, 24, 142, false)
+			tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			grid.add_child(tile)
+		_home_page_grids.append(grid)
 
 func _rebuild_home_app_grid() -> void:
-	if not is_instance_valid(_home_content):
-		return
-	var grid := _home_content.find_child("HomeScreenAppGrid", true, false) as GridContainer
-	if grid == null:
-		return
-	for child in grid.get_children():
-		grid.remove_child(child)
-		child.free()
+	# Page changes only reveal the already-built icon grid for that page.
+	for page_index in range(_home_page_grids.size()):
+		var grid := _home_page_grids[page_index]
+		if is_instance_valid(grid):
+			grid.visible = page_index == _home_page_index
 
-	if _home_page_index < 0 or _home_page_index >= HOME_PAGE_APP_IDS.size():
-		return
-	for app_id in HOME_PAGE_APP_IDS[_home_page_index]:
-		var app: Dictionary = _apps_by_id.get(str(app_id), {})
-		if app.is_empty():
-			continue
-		var tile := _make_app_tile(app, 98, 24, 142, false)
-		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ZE_EXPAND_FILL
 		grid.add_child(tile)
 
 
@@ -500,30 +514,25 @@ func _add_page_indicators() -> void:
 	holder.add_theme_constant_override("separation", 9)
 	_set_normalized_rect(holder, Rect2(Vector2(0.38, 0.94), Vector2(0.24, 0.025)))
 	_home_content.add_child(holder)
-	_refresh_page_indicators()
-
-
-func _refresh_page_indicators() -> void:
-	if not is_instance_valid(_home_content):
-		return
-	var holder := _home_content.find_child("HomeScreenPageIndicators", true, false) as HBoxContainer
-	if holder == null:
-		return
-	for child in holder.get_children():
-		holder.remove_child(child)
-		child.free()
+	_page_indicator_dots.clear()
 	for index in range(HOME_PAGE_APP_IDS.size()):
 		var dot := Panel.new()
 		dot.name = "HomeScreenPageIndicator%d" % index
-		dot.custom_minimum_size = Vector2(18, 7) if index == _home_page_index else Vector2(7, 7)
-		var fill := Color(1.0, 1.0, 1.0, 0.94) if index == _home_page_index else Color(1.0, 1.0, 1.0, 0.48)
-		var style := StyleBoxFlat.new()
-		style.bg_color = fill
-		style.set_corner_radius_all(4)
-		dot.add_theme_stylebox_override("panel", style)
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		holder.add_child(dot)
+		_page_indicator_dots.append(dot)
+	_refresh_page_indicators()
 
+func _refresh_page_indicators() -> void:
+	for page_index in range(_page_indicator_dots.size()):
+		var dot := _page_indicator_dots[page_index]
+		if not is_instance_valid(dot):
+			continue
+		dot.custom_minimum_size = Vector2(18, 7) if page_index == _home_page_index else Vector2(7, 7)
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(1.0, 1.0, 1.0, 0.94) if page_index == _home_page_index else Color(1.0, 1.0, 1.0, 0.48)
+		style.set_corner_radius_all(4)
+		dot.add_theme_stylebox_override("panel", style)
 
 func _add_navigation_gesture() -> void:
 	var gesture := Panel.new()
@@ -538,20 +547,40 @@ func _add_navigation_gesture() -> void:
 
 
 func _make_app_tile(app: Dictionary, icon_size: int, label_size: int, tile_height: int, compact: bool) -> Control:
+	var app_id := str(app.get("id", ""))
 	var tile := VBoxContainer.new()
-	tile.name = "HomeApp_" + str(app.get("id", "unknown"))
+	tile.name = "HomeApp_" + app_id
+	tile.set_meta("app_id", app_id.to_lower())
+	tile.set_meta("app_name", str(app.get("name", "")).to_lower())
 	tile.custom_minimum_size = Vector2(142, tile_height)
 	tile.alignment = BoxContainer.ALIGNMENT_CENTER
 	tile.add_theme_constant_override("separation", 3 if compact else 5)
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
 	var icon := TextureRect.new()
-	icon.name = "HomeAppIcon_" + str(app.get("id", "unknown"))
+	icon.name = "HomeAppIcon_" + app_id
 	var icon_path := str(app.get("path", ""))
 	if not icon_path.is_empty():
 		icon.texture = load(icon_path) as Texture2D
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile.add_child(icon)
+	var label := Label.new()
+	label.name = "HomeAppLabel_" + app_id
+	label.text = str(app.get("name", "App"))
+	label.custom_minimum_size.y = 26
+	label.add_theme_font_size_override("font_size", label_size)
+	label.add_theme_color_override("font_color", Color("#FFFFFF"))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile.add_child(label)
+	return tile
+
+ZE_SHRINK_CENTER
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -640,21 +669,15 @@ func _rebuild_app_drawer_grid(query: String) -> void:
 	if not is_instance_valid(_drawer_grid):
 		return
 	var normalized_query := query.strip_edges().to_lower()
-	# Startup already builds the complete drawer. An empty search reveals those
-	# same 200 nodes without reconstructing all SVG tiles on first open.
-	if normalized_query.is_empty() and _drawer_grid.get_child_count() == _app_manifest.size():
-		return
-	for child in _drawer_grid.get_children():
-		_drawer_grid.remove_child(child)
-		child.free()
+	# All app tiles are created during initialization. Searching filters their
+	# visibility without deleting or recreating any icon controls.
+	for tile_value in _drawer_grid.get_children():
+		var tile := tile_value as Control
+		var app_name := str(tile.get_meta("app_name", ""))
+		var app_id := str(tile.get_meta("app_id", ""))
+		tile.visible = normalized_query.is_empty() or app_name.contains(normalized_query) or app_id.contains(normalized_query)
 
-	for app in _app_manifest:
-		var app_name := str(app.get("name", ""))
-		var app_id := str(app.get("id", ""))
-		if not normalized_query.is_empty() and not app_name.to_lower().contains(normalized_query) and not app_id.to_lower().contains(normalized_query):
-			continue
-		var tile := _make_app_tile(app, 84, 22, 132, false)
-		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ZE_EXPAND_FILL
 		_drawer_grid.add_child(tile)
 
 
