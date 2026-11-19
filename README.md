@@ -12,6 +12,10 @@ This repository contains the game itself, not a website wrapper. The running gam
 4. **Headquarters interior** — tap the headquarters to open the roof-off, fixed-camera operations cutaway.
 5. **Headquarters development** — view ten building tiers from Starter Headquarters through Mega Skyscraper in a 3D showroom, then save a higher tier.
 
+## Game timeline
+
+Every new career begins on **1 January 2020**. The in-game calendar advances from that date as the company operates; loading an existing career preserves its saved date.
+
 ## The starting headquarters
 
 The interior is built as a native Godot 3D scene and keeps the three original DigitalWorld departments:
