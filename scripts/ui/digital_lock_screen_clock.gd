@@ -374,7 +374,7 @@ func _process_face_normalization_queue() -> void:
 		var state: Dictionary = _face_variants[face_index]
 		var frame := state.get("frame") as Control
 		var root_node := state.get("root") as Control
-		if not is_instance_valid(frame) or not is_instance_valid(root_node) or not frame.is_inside_tree():
+		if not is_instance_valid(frame) or not is_instance_valid(root_node) or not frame.is_inside_tree() or not frame.visible:
 			continue
 		var face: Dictionary = state.get("face", {})
 		var time_bounds := _get_time_layer_bounds(root_node, face)
