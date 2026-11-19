@@ -37,11 +37,9 @@ func _run_camera_worksite_test() -> void:
 	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
 	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
 	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
-	var front_view_button := worksite.find_child("CameraFrontViewButton", true, false) as Button
-	var rear_view_button := worksite.find_child("CameraRearViewButton", true, false) as Button
 	var camera := worksite.find_child("CameraStudioPreviewCamera", true, false) as Camera3D
 
-	if worksite_root == null or backdrop == null or worksite_body == null or preview_region == null or preview_container == null or viewport == null or preview_world == null or phone_model == null or chassis == null or screen == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null or front_view_button == null or rear_view_button == null or camera == null:
+	if worksite_root == null or backdrop == null or worksite_body == null or preview_region == null or preview_container == null or viewport == null or preview_world == null or phone_model == null or chassis == null or screen == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null or camera == null:
 		_fail("Camera Worksite is missing part of the shared Phone Creation Worksite layout or 3D handset preview.")
 		worksite.free()
 		return
@@ -92,22 +90,16 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	if worksite.find_child("CameraFrontViewButton", true, false) != null or worksite.find_child("CameraRearViewButton", true, false) != null or worksite.find_child("CameraStudioResetButton", true, false) != null:
+		_fail("Camera Worksite still exposes manual view-side or reset controls.")
+		worksite.free()
+		return
+
 	var start_rotation := phone_model.rotation.y
-	worksite.call("_rotate_phone_from_drag", Vector2(36.0, 0.0))
-	if is_equal_approx(phone_model.rotation.y, start_rotation):
-		_fail("Dragging the 3D handset did not rotate its preview.")
-		worksite.free()
-		return
-
-	worksite.call("_set_view_side", "FRONT")
-	if camera.position.z <= 0.0 or str(worksite.get("current_view_side")) != "FRONT":
-		_fail("Front View did not move the studio camera to the display side.")
-		worksite.free()
-		return
-
-	worksite.call("_set_view_side", "REAR")
-	if camera.position.z >= 0.0 or str(worksite.get("current_view_side")) != "REAR":
-		_fail("Rear View did not return the studio camera to the blank camera-design surface.")
+	var start_pitch := phone_model.rotation.x
+	worksite.call("_rotate_phone_from_drag", Vector2(36.0, 12.0))
+	if not is_equal_approx(phone_model.rotation.y - start_rotation, 36.0 * 0.0024) or not is_equal_approx(phone_model.rotation.x, start_pitch) or camera.position.z >= 0.0:
+		_fail("Camera drag no longer uses the stable single-axis sensitivity while preserving its initial rear view.")
 		worksite.free()
 		return
 
