@@ -80,6 +80,9 @@ var clock_style_row: HBoxContainer
 var clock_style_value_label: Label
 var clock_style_decrease_button: Button
 var clock_style_increase_button: Button
+var clock_position_flex_button: Button
+var clock_position_fixed_button: Button
+var clock_position_description: Label
 var progress_label: Label
 var progress_bar: ProgressBar
 var content_column: VBoxContainer
@@ -112,6 +115,7 @@ var _phone_pointer_active := false
 var _phone_pointer_start := Vector2.ZERO
 var _phone_pointer_pin_mode := false
 var _phone_pointer_home_mode := false
+var _phone_pointer_clock_mode := false
 var setup_complete := false
 var preparing_for_first_load := false
 var phone_model: Node3D
@@ -622,6 +626,10 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		_phone_pointer_start = pointer_position
 		_phone_pointer_pin_mode = bool(lock_screen_designer.call("is_pin_entry_visible"))
 		_phone_pointer_home_mode = is_instance_valid(home_screen_designer) and home_screen_designer.visible
+		_phone_pointer_clock_mode = false
+		if current_step == 1 and not _phone_pointer_pin_mode and not _phone_pointer_home_mode:
+			var clock_screen_position := _map_phone_preview_position_to_screen(pointer_position)
+			_phone_pointer_clock_mode = bool(lock_screen_designer.call("begin_clock_drag", clock_screen_position))
 		if _phone_pointer_pin_mode or _phone_pointer_home_mode:
 			_forward_phone_screen_input(event, pointer_position)
 		return
@@ -630,11 +638,20 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventScreenDrag or event is InputEventMouseMotion:
-		if _phone_pointer_pin_mode or _phone_pointer_home_mode:
+		if _phone_pointer_clock_mode:
+			lock_screen_designer.call("drag_clock_to", _map_phone_preview_position_to_screen(pointer_position))
+		elif _phone_pointer_pin_mode or _phone_pointer_home_mode:
 			_forward_phone_screen_input(event, pointer_position)
 		return
 
 	if _is_phone_preview_release_event(event):
+		if _phone_pointer_clock_mode:
+			lock_screen_designer.call("end_clock_drag")
+			_phone_pointer_active = false
+			_phone_pointer_clock_mode = false
+			_phone_pointer_pin_mode = false
+			_phone_pointer_home_mode = false
+			return
 		var delta := pointer_position - _phone_pointer_start
 		var swipe_threshold := maxf(32.0, phone_frame.size.y * 0.075)
 		var is_vertical_swipe := absf(delta.y) >= swipe_threshold and absf(delta.y) >= absf(delta.x) * 1.15
@@ -658,6 +675,7 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		_phone_pointer_active = false
 		_phone_pointer_pin_mode = false
 		_phone_pointer_home_mode = false
+		_phone_pointer_clock_mode = false
 
 
 func _show_step(step_index: int) -> void:
@@ -861,6 +879,9 @@ func _show_lock_screen_clock_controls() -> void:
 	clock_style_value_label = null
 	clock_style_decrease_button = null
 	clock_style_increase_button = null
+	clock_position_flex_button = null
+	clock_position_fixed_button = null
+	clock_position_description = null
 
 	# Keep each sub-hero heading immediately above its selector. Descriptions
 	# remain available below the selector instead of separating the two.
@@ -982,8 +1003,72 @@ func _show_lock_screen_clock_controls() -> void:
 	style_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	style_section.add_child(style_description)
 
+	var position_section := VBoxContainer.new()
+	position_section.name = "ClockPositionFeatureSection"
+	position_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	position_section.add_theme_constant_override("separation", 6)
+	feature_panel.add_child(position_section)
+
+	var position_title := _make_label("CLOCK POSITION", 19, Color("#D3AA6B"))
+	position_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	position_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	position_section.add_child(position_title)
+
+	var position_controls_center := CenterContainer.new()
+	position_controls_center.name = "ClockPositionControlsCenter"
+	position_controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	position_section.add_child(position_controls_center)
+
+	var position_row := HBoxContainer.new()
+	position_row.name = "ClockPositionSelector"
+	position_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	position_row.add_theme_constant_override("separation", 10)
+	position_controls_center.add_child(position_row)
+
+	clock_position_flex_button = _make_button("FLEX")
+	clock_position_flex_button.name = "ClockPositionFlexButton"
+	clock_position_flex_button.custom_minimum_size = Vector2(132, 48)
+	clock_position_flex_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_position_flex_button.pressed.connect(_on_clock_position_mode_selected.bind("flex"))
+	position_row.add_child(clock_position_flex_button)
+
+	clock_position_fixed_button = _make_button("FIXED")
+	clock_position_fixed_button.name = "ClockPositionFixedButton"
+	clock_position_fixed_button.custom_minimum_size = Vector2(132, 48)
+	clock_position_fixed_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_position_fixed_button.pressed.connect(_on_clock_position_mode_selected.bind("fixed"))
+	position_row.add_child(clock_position_fixed_button)
+
+	clock_position_description = _make_label("", 12, Color("#E5E0D6"))
+	clock_position_description.name = "ClockPositionDescription"
+	clock_position_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	clock_position_description.autowrap_mode = TextServer.AUTOWRAP_WORD
+	clock_position_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	position_section.add_child(clock_position_description)
+
 	_refresh_clock_type_selector()
 	_refresh_clock_style_selector()
+	_refresh_clock_position_controls()
+
+
+func _on_clock_position_mode_selected(mode: String) -> void:
+	if not is_instance_valid(lock_screen_designer):
+		return
+	if not bool(lock_screen_designer.call("set_clock_position_mode", mode)):
+		return
+	_refresh_clock_position_controls()
+
+
+func _refresh_clock_position_controls() -> void:
+	if not is_instance_valid(clock_position_flex_button) or not is_instance_valid(clock_position_fixed_button) or not is_instance_valid(lock_screen_designer):
+		return
+	var selected_mode := str(lock_screen_designer.call("get_clock_position_mode"))
+	var is_flex := selected_mode == "flex"
+	clock_position_flex_button.disabled = is_flex
+	clock_position_fixed_button.disabled = not is_flex
+	clock_position_flex_button.add_theme_stylebox_override("normal", _make_panel_style(Color("#30291F") if is_flex else PANEL, ACCENT if is_flex else Color("#6E5B42"), 1, 9))
+	clock_position_fixed_button.add_theme_stylebox_override("normal", _make_panel_style(PANEL if is_flex else Color("#30291F"), Color("#6E5B42") if is_flex else ACCENT, 1, 9))
+	clock_position_description.text = "Drag the clock anywhere on the phone preview, then choose FIXED to lock its position." if is_flex else "The clock is fixed in place. Choose FLEX to reposition it on the phone preview."
 
 func _refresh_clock_type_selector() -> void:
 	if not is_instance_valid(clock_type_row) or not is_instance_valid(lock_screen_designer):
