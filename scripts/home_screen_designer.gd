@@ -210,8 +210,9 @@ func get_status_bar_icon_count() -> int:
 		return 0
 	var icon_count := 0
 	for node in _status_bar.find_children("*", "TextureRect", true, false):
+		var canvas_item := node as CanvasItem
 		var node_name := str(node.name)
-		if node.is_visible_in_tree() and node_name.begins_with("HomeStatusBar") and node_name.ends_with("Icon"):
+		if canvas_item != null and canvas_item.is_visible_in_tree() and node_name.begins_with("HomeStatusBar") and node_name.ends_with("Icon"):
 			icon_count += 1
 	return icon_count
 
