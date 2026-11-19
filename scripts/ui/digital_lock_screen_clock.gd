@@ -520,50 +520,6 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2, face_over
 	)
 	return label
 
-ZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	label.clip_text = false
-	label.text = _layer_text(layer)
-	if not _show_date and str(layer.get("type", "")) == "DATE":
-		label.visible = false
-
-	var text_value := label.text
-	var layer_type := str(layer.get("type", "TEXT"))
-	var requested_size := DATE_FONT_FRACTION
-	if layer_type in ["HOURS", "MINUTES", "COLON", "TIME", "HOUR_TENS", "HOUR_ONES", "MINUTE_TENS", "MINUTE_ONES"]:
-		requested_size = TIME_FONT_FRACTION
-	var short_side := minf(available_size.x, available_size.y)
-	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.42)))
-	var font_size := clampi(roundi(short_side * requested_size * 0.62), 11, max_font_size)
-	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
-	if font_reference.is_empty():
-		font_reference = "roboto_flex"
-	var font: Font = _library.get_font(font_reference)
-	if font == null:
-		font = _library.get_font("roboto_flex")
-	if font == null:
-		push_error("XMorph digital clock font is missing: " + font_reference)
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", _layer_color(str(layer.get("color", ""))))
-	var tracking := float(node_spec.get("tracking", layer.get("tracking", 0.0)))
-	label.add_theme_constant_override("letter_spacing", roundi(tracking * 5.0))
-	var stroke := str(layer.get("stroke", ""))
-	if bool(layer.get("outline", false)) or not stroke.is_empty():
-		label.add_theme_constant_override("outline_size", clampi(roundi(font_size * float(layer.get("strokeWidth", 0.06))), 1, 5))
-		label.add_theme_color_override("font_outline_color", _layer_color(stroke))
-	label.modulate.a = float(layer.get("opacity", 1.0))
-	label.rotation_degrees = float(node_spec.get("rotation", 0.0))
-
-	var text_width := font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
-	var side_padding := TIME_LABEL_SIDE_PADDING if layer_type in TIME_LAYER_TYPES else 0.28
-	var min_width := clampf(text_width + font_size * side_padding, font_size * 1.1, available_size.x)
-	var min_height := maxf(font_size * 1.22, available_size.y * 0.025)
-	label.custom_minimum_size = Vector2(min_width, min_height)
-	return label
-
-
 func _get_layer(layer_id: String, face_override: Dictionary = {}) -> Dictionary:
 	var source_face := face_override if not face_override.is_empty() else _face
 	for layer_value in source_face.get("layers", []):
