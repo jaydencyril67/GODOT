@@ -427,7 +427,7 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 	if layer_type in ["HOURS", "MINUTES", "COLON", "TIME", "HOUR_TENS", "HOUR_ONES", "MINUTE_TENS", "MINUTE_ONES"]:
 		requested_size = TIME_FONT_FRACTION
 	var short_side := minf(available_size.x, available_size.y)
-	var max_font_size := mini(240, maxi(12, roundi(available_size.y * 0.42)))
+	var max_font_size := mini(180, maxi(12, roundi(available_size.y * 0.42)))
 	var font_size := clampi(roundi(short_side * requested_size * 0.62), 11, max_font_size)
 	var font_reference := str(layer.get("font", "roboto_flex")).strip_edges()
 	if font_reference.is_empty():
