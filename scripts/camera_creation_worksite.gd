@@ -246,6 +246,10 @@ func _build_interface() -> void:
 	preview_region.add_child(preview_container)
 	preview_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	# SubViewportContainer switches attached viewports to UPDATE_ALWAYS while
+	# mounting. Restore visibility-based rendering after the viewport is mounted
+	# so the studio does not waste frames when the worksite is hidden.
+	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 
 	right_panel_column = VBoxContainer.new()
 	right_panel_column.name = "CameraCreationRightPanel"
