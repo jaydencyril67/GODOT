@@ -2,7 +2,9 @@ extends Control
 
 const FaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
 const FACE_FRAME_RECT := Rect2(0.05, 0.30, 0.90, 0.40)
-const TIME_FONT_FRACTION := 0.58
+const TIME_FONT_FRACTION := 0.5104
+const CLOCK_ROW_GAP_SCALE := 0.45
+const TIME_LABEL_SIDE_PADDING := 0.08
 const DATE_FONT_FRACTION := 0.045
 const DATE_TIME_GAP_RATIO := 0.012
 const DATE_TIME_GAP_MIN := 5.0
@@ -357,7 +359,8 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2) -> Control:
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	container.alignment = _box_alignment(str(data.get("align", "CENTER")))
 	var gap := float(data.get("gap", 0.0))
-	container.add_theme_constant_override("separation", roundi(minf(available_size.x, available_size.y) * gap))
+	var gap_scale := CLOCK_ROW_GAP_SCALE if layout_key == "row" else 1.0
+	container.add_theme_constant_override("separation", roundi(minf(available_size.x, available_size.y) * gap * gap_scale))
 	for child_value in data.get("children", []):
 		var child_spec: Dictionary = child_value
 		var child_available := available_size
@@ -450,7 +453,8 @@ func _make_layer_label(node_spec: Dictionary, available_size: Vector2) -> Label:
 	label.rotation_degrees = float(node_spec.get("rotation", 0.0))
 
 	var text_width := font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
-	var min_width := clampf(text_width + font_size * 0.28, font_size * 1.1, available_size.x)
+	var side_padding := TIME_LABEL_SIDE_PADDING if layer_type in TIME_LAYER_TYPES else 0.28
+	var min_width := clampf(text_width + font_size * side_padding, font_size * 1.1, available_size.x)
 	var min_height := maxf(font_size * 1.22, available_size.y * 0.025)
 	label.custom_minimum_size = Vector2(min_width, min_height)
 	return label
