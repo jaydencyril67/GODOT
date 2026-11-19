@@ -266,7 +266,7 @@ func _run_test() -> void:
 	if str(lock_screen.call("get_clock_type")) != "digital":
 		_fail("Selecting Digital did not update the active lock-screen clock type.")
 		return
-	var digital_clock := lock_screen.find_child("DigitalClock", true, false) as Control
+	digital_clock = lock_screen.find_child("DigitalClock", true, false) as Control
 	if digital_clock == null or not digital_clock.visible or int(digital_clock.call("get_style_index")) != 41:
 		_fail("Digital Style 41 did not render on the live lock screen.")
 		return
