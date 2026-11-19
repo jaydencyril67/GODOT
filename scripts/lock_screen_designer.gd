@@ -207,16 +207,18 @@ func get_selected_wallpaper_path() -> String:
 func set_wallpaper(path: String) -> bool:
 	if not _wallpaper_paths.has(path) or not FileAccess.file_exists(path):
 		return false
-	_capture_clock_position()
+	var wallpaper := find_child("GeneratedWallpaper", true, false) as TextureRect
+	var texture := ResourceLoader.load(path, "Texture2D") as Texture2D
+	if texture == null:
+		return false
 	_selected_wallpaper_path = path
-	if _last_design.is_empty():
-		return true
-	_last_design["wallpaper_path"] = path
-	_last_design["wallpaper_index"] = _wallpaper_number(path)
-	_last_design["signature"] = _make_signature(_last_design)
-	_render_design(_last_design)
+	if not _last_design.is_empty():
+		_last_design["wallpaper_path"] = path
+		_last_design["wallpaper_index"] = _wallpaper_number(path)
+		_last_design["signature"] = _make_signature(_last_design)
+	if wallpaper != null:
+		wallpaper.texture = texture
 	return true
-
 
 func get_display_option(option: String) -> bool:
 	match option:
@@ -272,9 +274,8 @@ func set_display_option(option: String, enabled: bool) -> bool:
 			_last_design["show_details"] = enabled
 		_:
 			return false
-	_render_design(_last_design)
+	_apply_display_options_to_nodes()
 	return true
-
 
 func get_clock_type() -> String:
 	return str(_last_design.get("clock_type", _clock_type)) if not _last_design.is_empty() else _clock_type
@@ -284,15 +285,14 @@ func set_clock_type(clock_type: String) -> bool:
 	var normalized := clock_type.to_lower()
 	if normalized not in ["analog", "digital"]:
 		return false
-	_capture_clock_position()
 	_clock_type = normalized
-	if not _last_design.is_empty():
-		_last_design["clock_type"] = normalized
-		_last_design["clock_position"] = _clock_position
-		_last_design["clock_position_mode"] = _clock_position_mode
-		_render_design(_last_design)
+	_last_design["clock_type"] = normalized
+	_last_design["clock_position"] = _clock_position
+	_last_design["clock_position_mode"] = _clock_position_mode
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false)
+	if clock != null:
+		return bool(clock.call("set_clock_type", normalized))
 	return true
-
 
 func get_clock_style_index() -> int:
 	return int(_last_design.get("clock_style_index", _clock_style_index)) if not _last_design.is_empty() else _clock_style_index
@@ -367,17 +367,19 @@ func set_clock_style_index(style_index: int, device_clock: Variant = null) -> bo
 		return false
 	_capture_clock_position()
 	_clock_style_index = style_index
-	if not _last_design.is_empty():
-		_last_design["clock_position"] = _clock_position
-		_last_design["clock_position_mode"] = _clock_position_mode
-		_last_design["clock_style_index"] = style_index
-		_last_design["analog_clock_asset_index"] = style_index
-		_last_design["digital_clock_style_index"] = style_index
-		if device_clock != null:
-			_last_design["device_clock"] = bool(device_clock)
-		_render_design(_last_design)
-	return true
-
+	if _last_design.is_empty():
+		return true
+	_last_design["clock_position"] = _clock_position
+	_last_design["clock_position_mode"] = _clock_position_mode
+	_last_design["clock_style_index"] = style_index
+	_last_design["analog_clock_asset_index"] = style_index
+	_last_design["digital_clock_style_index"] = style_index
+	if device_clock != null:
+		_last_design["device_clock"] = bool(device_clock)
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false)
+	if clock == null:
+		return false
+	return bool(clock.call("set_clock_style_index", style_index))
 
 func get_blueprint_count() -> int:
 	return LayoutLibrary.get_blueprints().size()
@@ -657,27 +659,45 @@ func _make_signature(design: Dictionary) -> String:
 	return "|".join(parts)
 
 func _render_design(design: Dictionary) -> void:
+	# This is the one-time scene construction path and the explicit layout
+	# refresh path. Ordinary selectors never call it.
 	hide_pin_entry()
 	for child in get_children():
 		remove_child(child)
 		child.free()
-
 	var palette: Dictionary = design["palette"]
 	_add_wallpaper(design)
 	for glow in design["glows"]:
 		_add_glow(glow, palette["glow"])
 	_add_status_bar(design, palette)
-	if bool(design.get("show_clock", true)):
-		_add_clock(design, palette)
-	if bool(design.get("show_notifications", false)):
-		for index in range(design["notifications"].size()):
-			_add_notification(design["notifications"][index], palette)
-	if bool(design.get("show_media_player", false)) and not design["media"].is_empty():
+	_add_clock(design, palette)
+	for index in range(design["notifications"].size()):
+		_add_notification(design["notifications"][index], palette)
+	if not design["media"].is_empty():
 		_add_media_player(design["media"], palette)
-	if bool(design.get("show_fingerprint", false)):
-		_add_fingerprint(design, palette)
+	_add_fingerprint(design, palette)
 	_add_shortcuts(design, palette)
+	_apply_display_options_to_nodes()
 
+
+func _apply_display_options_to_nodes() -> void:
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false) as Control
+	if clock != null:
+		clock.visible = _show_clock
+	for notification in find_children("GeneratedNotification", "Control", true, false):
+		(notification as Control).visible = _show_notifications
+	var media := find_child("GeneratedLockScreenMediaPlayer", true, false) as Control
+	if media != null:
+		media.visible = _show_media_player
+	var fingerprint := find_child("GeneratedLockScreenFingerprint", true, false) as Control
+	if fingerprint != null:
+		fingerprint.visible = _show_fingerprint
+	var flashlight := find_child("BottomFlashlightShortcut", true, false) as Control
+	if flashlight != null:
+		flashlight.visible = _show_flashlight_shortcut
+	var camera := find_child("BottomCameraShortcut", true, false) as Control
+	if camera != null:
+		camera.visible = _show_camera_shortcut
 
 func show_pin_entry() -> bool:
 	if _last_design.is_empty():
@@ -953,7 +973,7 @@ func _add_wallpaper(design: Dictionary) -> void:
 	var wallpaper_path := str(design.get("wallpaper_path", ""))
 	var wallpaper_texture: Texture2D = null
 	if not wallpaper_path.is_empty():
-		wallpaper_texture = ResourceLoader.load(wallpaper_path, "Texture2D", ResourceLoader.CACHE_MODE_IGNORE) as Texture2D
+		wallpaper_texture = ResourceLoader.load(wallpaper_path, "Texture2D") as Texture2D
 	if wallpaper_texture != null:
 		wallpaper.texture = wallpaper_texture
 	else:
@@ -1005,16 +1025,18 @@ func get_status_bar_style_id() -> String:
 func set_status_bar_style(style_id: String) -> bool:
 	if not StatusBarAssetLibrary.has_style(style_id) or _last_design.is_empty():
 		return false
-	_capture_clock_position()
 	_last_design["status_style_id"] = style_id
-	_render_design(_last_design)
-	return true
+	var status_bar := find_child("LockScreenStatusBar", true, false)
+	if status_bar == null:
+		return false
+	return bool(status_bar.call("set_style", style_id))
 
 func _add_clock(design: Dictionary, palette: Dictionary) -> void:
 	var clock: Control = LockScreenClockScene.instantiate() as Control
 	clock.name = "GeneratedLockScreenClockComponent"
 	add_child(clock)
 	clock.call("configure", design, palette)
+	clock.visible = bool(design.get("show_clock", true))
 
 func _add_notification(notification_data: Dictionary, palette: Dictionary) -> void:
 	var card: Control = NotificationCardScene.instantiate() as Control
@@ -1022,7 +1044,7 @@ func _add_notification(notification_data: Dictionary, palette: Dictionary) -> vo
 	_set_normalized_rect(card, notification_data["rect"])
 	add_child(card)
 	card.call("configure", notification_data, palette)
-
+	card.visible = bool(_last_design.get("show_notifications", false))
 
 func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	var card: Control = MediaPlayerCardScene.instantiate() as Control
@@ -1030,20 +1052,17 @@ func _add_media_player(media: Dictionary, palette: Dictionary) -> void:
 	_set_normalized_rect(card, media["rect"])
 	add_child(card)
 	card.call("configure", media, palette)
+	card.visible = bool(_last_design.get("show_media_player", false))
 
 func _add_shortcuts(design: Dictionary, palette: Dictionary) -> void:
 	for shortcut in design["shortcuts"]:
 		var kind := str(shortcut["kind"])
-		if kind == "flashlight" and not bool(design.get("show_flashlight_shortcut", false)):
-			continue
-		if kind == "camera" and not bool(design.get("show_camera_shortcut", false)):
-			continue
 		var button: Control = LockScreenShortcutScene.instantiate() as Control
 		button.name = "Bottom" + kind.capitalize() + "Shortcut"
 		_set_normalized_rect(button, shortcut["rect"])
 		add_child(button)
 		button.call("configure", kind, palette)
-
+		button.visible = _show_flashlight_shortcut if kind == "flashlight" else _show_camera_shortcut
 
 func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
 	var fingerprint: Control = FingerprintPromptScene.instantiate() as Control
@@ -1051,6 +1070,7 @@ func _add_fingerprint(design: Dictionary, palette: Dictionary) -> void:
 	_set_normalized_rect(fingerprint, _find_component_rect(design, "fingerprint"))
 	add_child(fingerprint)
 	fingerprint.call("configure", palette, "TOUCH SENSOR TO UNLOCK", Vector2(25, 32), false)
+	fingerprint.visible = bool(design.get("show_fingerprint", false))
 
 func _notification_component_rect(design: Dictionary, notification_index: int) -> Rect2:
 	var notification_data: Dictionary = design["notifications"][notification_index]
