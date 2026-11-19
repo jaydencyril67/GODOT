@@ -19,6 +19,11 @@ var _pending_normalization_frame: Control
 var _pending_normalization_root: Control
 var _pending_normalization_last_bounds := Rect2()
 var _pending_normalization_stable_frames := 0
+var _pending_date_label: Label
+var _pending_date_was_above := false
+var _pending_date_width := 0.0
+var _pending_date_height := 0.0
+var _pending_date_detached := false
 var _time_layout_normalized := false
 
 
@@ -81,12 +86,20 @@ func _process(_delta: float) -> void:
 				# controls are attached. Normalize only after the measured time
 				# bounds stop changing, avoiding style-dependent first-frame data.
 				if _pending_normalization_stable_frames >= 2:
-					_normalize_time_and_date(frame, root_node)
-					_time_layout_normalized = true
-					_pending_normalization_frame = null
-					_pending_normalization_root = null
-					_pending_normalization_last_bounds = Rect2()
-					_pending_normalization_stable_frames = 0
+					if not _pending_date_detached:
+						_detach_date_from_layout(frame, root_node)
+						_pending_date_detached = true
+						# Removing the date can reflow a BoxContainer and move the
+						# time labels. Measure again after that second layout settles.
+						_pending_normalization_last_bounds = Rect2()
+						_pending_normalization_stable_frames = 0
+					else:
+						_normalize_time_and_date(frame, root_node)
+						_time_layout_normalized = true
+						_pending_normalization_frame = null
+						_pending_normalization_root = null
+						_pending_normalization_last_bounds = Rect2()
+						_pending_normalization_stable_frames = 0
 	var now := Time.get_time_dict_from_system()
 	if int(now.get("minute", -1)) != _last_minute:
 		_render_face()
@@ -103,6 +116,11 @@ func _render_face() -> void:
 	_pending_normalization_root = null
 	_pending_normalization_last_bounds = Rect2()
 	_pending_normalization_stable_frames = 0
+	_pending_date_label = null
+	_pending_date_was_above = false
+	_pending_date_width = 0.0
+	_pending_date_height = 0.0
+	_pending_date_detached = false
 	_time_layout_normalized = false
 	for child in get_children():
 		remove_child(child)
@@ -147,11 +165,7 @@ func _render_face() -> void:
 
 
 func get_time_visual_rect() -> Rect2:
-	var bounds := _get_time_layer_bounds(self)
-	var frame := find_child("XMorphClockFace", true, false) as Control
-	if frame != null and bounds.size != Vector2.ZERO:
-		print("DIGITAL_CLOCK_QUERY style=%d normalized=%s bounds=%s center=%s frame_center=%s" % [_style_index, _time_layout_normalized, bounds, bounds.get_center(), frame.get_global_rect().get_center()])
-	return bounds
+	return _get_time_layer_bounds(self)
 
 
 func get_date_visual_rect() -> Rect2:
@@ -171,40 +185,50 @@ func get_date_time_gap_pixels() -> float:
 	return 0.0
 
 
-func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
+func _detach_date_from_layout(frame: Control, root_node: Control) -> void:
+	_pending_date_label = null
+	_pending_date_was_above = false
+	_pending_date_width = 0.0
+	_pending_date_height = 0.0
 	var date_label := _find_date_layer(root_node)
-	var date_was_above := false
-	var date_visible := date_label != null and date_label.visible
-	var date_width := 0.0
-	var date_height := 0.0
-	if date_visible:
-		var original_date_rect := date_label.get_global_rect()
-		var initial_time_rect := _get_time_layer_bounds(root_node)
-		if initial_time_rect.size != Vector2.ZERO:
-			date_was_above = original_date_rect.get_center().y < initial_time_rect.get_center().y
-		var date_font := date_label.get_theme_font("font")
-		var date_font_size := date_label.get_theme_font_size("font_size")
-		date_width = date_label.custom_minimum_size.x
-		if date_font != null:
-			date_width = maxf(date_width, date_font.get_string_size(
-				date_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, date_font_size
-			).x + 8.0)
-		date_height = maxf(date_label.custom_minimum_size.y, maxf(float(date_font_size) * 1.35, 16.0))
-		# Remove the date from the imported layout stack before centering. This
-		# prevents the original JSON gap from influencing the time's position.
-		date_label.reparent(frame, false)
-		date_label.anchor_left = 0.0
-		date_label.anchor_top = 0.0
-		date_label.anchor_right = 0.0
-		date_label.anchor_bottom = 0.0
-		date_label.offset_left = 0.0
-		date_label.offset_top = 0.0
-		date_label.offset_right = 0.0
-		date_label.offset_bottom = 0.0
-		date_label.custom_minimum_size = Vector2.ZERO
-		date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if date_label == null or not date_label.visible:
+		return
+	_pending_date_label = date_label
+	var original_date_rect := date_label.get_global_rect()
+	var initial_time_rect := _get_time_layer_bounds(root_node)
+	if initial_time_rect.size != Vector2.ZERO:
+		_pending_date_was_above = original_date_rect.get_center().y < initial_time_rect.get_center().y
+	var date_font := date_label.get_theme_font("font")
+	var date_font_size := date_label.get_theme_font_size("font_size")
+	_pending_date_width = date_label.custom_minimum_size.x
+	if date_font != null:
+		_pending_date_width = maxf(_pending_date_width, date_font.get_string_size(
+			date_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, date_font_size
+		).x + 8.0)
+	_pending_date_height = maxf(date_label.custom_minimum_size.y, maxf(float(date_font_size) * 1.35, 16.0))
+	# Detach the date before the final time measurement. BoxContainers need
+	# another layout pass after this removal, otherwise their time children
+	# shift after centering has already been applied.
+	date_label.reparent(frame, false)
+	date_label.anchor_left = 0.0
+	date_label.anchor_top = 0.0
+	date_label.anchor_right = 0.0
+	date_label.anchor_bottom = 0.0
+	date_label.offset_left = 0.0
+	date_label.offset_top = 0.0
+	date_label.offset_right = 0.0
+	date_label.offset_bottom = 0.0
+	date_label.custom_minimum_size = Vector2.ZERO
+	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	date_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
+
+func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
+	var date_label := _pending_date_label
+	var date_visible := is_instance_valid(date_label) and date_label.visible
+	var date_was_above := _pending_date_was_above
+	var date_width := _pending_date_width
+	var date_height := _pending_date_height
 	var time_rect := _get_time_layer_bounds(root_node)
 	if time_rect.size == Vector2.ZERO:
 		return
@@ -224,7 +248,6 @@ func _normalize_time_and_date(frame: Control, root_node: Control) -> void:
 		root_node.offset_bottom += shift.y
 
 	time_rect = _get_time_layer_bounds(root_node)
-	print("DIGITAL_CLOCK_CENTER style=%d frame_center=%s before=%s shift=%s after=%s root_offsets=(%.2f, %.2f, %.2f, %.2f)" % [_style_index, frame_rect.get_center(), time_local.get_center(), shift, time_rect.get_center(), root_node.offset_left, root_node.offset_top, root_node.offset_right, root_node.offset_bottom])
 	if time_rect.size == Vector2.ZERO or not date_visible or date_label == null:
 		return
 	var current_frame_rect := frame.get_global_rect()
