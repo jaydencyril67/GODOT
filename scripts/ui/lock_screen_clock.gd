@@ -44,7 +44,7 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 	var clock_type := str(design.get("clock_type", "analog")).to_lower()
 	analog_container.visible = clock_type == "analog"
 	digital_artwork.visible = clock_type == "digital"
-	date_label.visible = clock_type == "analog" and bool(design.get("show_details", true))
+	date_label.visible = false
 
 	date_label.add_theme_color_override("font_color", palette.get("muted", Color("#C7CDD5")))
 	date_label.add_theme_font_size_override("font_size", int(design.get("date_font_size", 15)))
