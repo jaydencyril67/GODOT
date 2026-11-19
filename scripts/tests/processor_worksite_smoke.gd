@@ -87,6 +87,12 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	var initial_viewport_child_count := viewport.get_child_count()
+	var first_package_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
+	if first_package_surface == null or first_package_surface.material_override == null:
+		_fail("The original processor package has no prebuilt substrate finish.")
+		worksite.free()
+		return
+	var first_package_material_id := first_package_surface.material_override.get_instance_id()
 	for design_index in range(15):
 		worksite.call("_select_processor_design", design_index, false)
 		var visible_count := 0
@@ -99,6 +105,10 @@ func _run_processor_worksite_test() -> void:
 			return
 	if viewport.get_child_count() != initial_viewport_child_count:
 		_fail("Switching processor designs created new 3D nodes instead of rendering prebuilt models.")
+		worksite.free()
+		return
+	if first_package_surface.material_override.get_instance_id() != first_package_material_id:
+		_fail("Switching processor designs recreated materials instead of reusing the prebuilt design.")
 		worksite.free()
 		return
 	worksite.call("_select_processor_design", 14, false)
