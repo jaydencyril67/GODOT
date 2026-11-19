@@ -230,7 +230,13 @@ func _run_test() -> void:
 	await process_frame
 	await process_frame
 	var digital_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
+	var digital_component_id := digital_component.get_instance_id()
 	var digital_artwork := digital_component.find_child("DigitalClock", true, false) as Control
+	var digital_artwork_id := digital_artwork.get_instance_id()
+	var prebuilt_faces := digital_artwork.find_children("XMorphClockFace_*", "Control", true, false)
+	if prebuilt_faces.size() != 41:
+		_fail("All 41 digital clock face trees must be built during initial clock setup; found %d." % prebuilt_faces.size())
+		return
 	var initial_layout_ready: bool = await _wait_for_digital_clock_layout(digital_artwork, int(designer.call("get_clock_style_index")))
 	if not initial_layout_ready:
 		return
@@ -250,6 +256,19 @@ func _run_test() -> void:
 			return
 		digital_component = designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
 		digital_artwork = digital_component.find_child("DigitalClock", true, false) as Control
+		if digital_component.get_instance_id() != digital_component_id or digital_artwork.get_instance_id() != digital_artwork_id:
+			_fail("Switching digital clock styles must reuse the same clock component and renderer.")
+			return
+		if int(digital_artwork.call("get_style_index")) != style_index:
+			_fail("The cached digital renderer did not activate the requested prebuilt face.")
+			return
+		var visible_face_count := 0
+		for face_value in prebuilt_faces:
+			if (face_value as Control).visible:
+				visible_face_count += 1
+		if visible_face_count != 1:
+			_fail("Exactly one of the 41 prebuilt digital clock faces must be visible after selection.")
+			return
 		var style_layout_ready: bool = await _wait_for_digital_clock_layout(digital_artwork, style_index)
 		if not style_layout_ready:
 			return
