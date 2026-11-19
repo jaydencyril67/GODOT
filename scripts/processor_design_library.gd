@@ -201,12 +201,38 @@ static func build_all(parent: Node3D) -> Array[Dictionary]:
 			model_data = _build_reference_design(model_root)
 		else:
 			model_data = _build_variant_design(model_root, profile)
+		_apply_profile_finishes(model_data, profile)
 		model_data["root"] = model_root
 		model_data["profile"] = profile.duplicate(true)
 		model_root.visible = index == 0
 		built_models.append(model_data)
 	return built_models
 
+
+
+static func _apply_profile_finishes(model_data: Dictionary, profile: Dictionary) -> void:
+	var package_colors := {
+		"Matte graphite": Color("#222C31"),
+		"Deep green substrate": Color("#183B32"),
+		"Ceramic black": Color("#15191E")
+	}
+	var die_colors := {
+		"Dark silicon": Color("#171D22"),
+		"Polished silicon": Color("#454F57"),
+		"Metallic silicon cap": Color("#91999D")
+	}
+	var package_color: Color = package_colors.get(str(profile.get("package_finish", "Matte graphite")), Color("#222C31"))
+	var die_color: Color = die_colors.get(str(profile.get("die_finish", "Dark silicon")), Color("#171D22"))
+	for layer_value in model_data.get("package_layers", []):
+		var layer := layer_value as MeshInstance3D
+		if is_instance_valid(layer):
+			var layer_material := _material(package_color, 0.42, 0.34)
+			layer_material.albedo_color = package_color.darkened(0.12) if layer.name == "PackageLowerEdge" else package_color
+			layer.material_override = layer_material
+	for surface_value in model_data.get("die_surfaces", []):
+		var surface := surface_value as MeshInstance3D
+		if is_instance_valid(surface):
+			surface.material_override = _material(die_color, 0.32, 0.25)
 
 static func _build_reference_design(root: Node3D) -> Dictionary:
 	# Design 01 preserves the existing processor model and its original detail.
@@ -302,7 +328,8 @@ static func _build_variant_design(root: Node3D, profile: Dictionary) -> Dictiona
 		"metal_lid":
 			_add_die(root, Vector2.ZERO, Vector2(1.08, 1.08), 0.145, Color("#20282E"), die_surfaces, "CoveredApplicationDie")
 			_add_box(root, Vector3(1.62, 0.035, 1.62), Vector3(0.0, 0.155, 0.0), _material(Color("#777F83"), 0.86, 0.24), "HeatSpreaderRetentionFrame")
-			_add_box(root, Vector3(1.48, 0.055, 1.48), Vector3(0.0, 0.199, 0.0), _material(Color("#9DA5A6"), 0.88, 0.22), "NickelAlloyHeatSpreaderLid")
+			var heat_spreader := _add_box(root, Vector3(1.48, 0.055, 1.48), Vector3(0.0, 0.199, 0.0), _material(Color("#9DA5A6"), 0.88, 0.22), "NickelAlloyHeatSpreaderLid")
+			die_surfaces.append(heat_spreader)
 			_add_marking(root, "DW", 28, Vector3(0.0, 0.228, -0.15), Color("#E4E7E4"), 0.0034, "HeatSpreaderLogo")
 			_add_marking(root, "VERTEX 09", 12, Vector3(0.0, 0.228, 0.18), Color("#D2D7D7"), 0.0028, "HeatSpreaderProduct")
 		"stiffened_die":
