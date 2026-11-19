@@ -638,8 +638,14 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 	var selected_model: Dictionary = processor_models_data[selected_design_index]
 	var selected_profile: Dictionary = processor_designs[selected_design_index]
 	processor_root = selected_model.get("root") as Node3D
-	package_layers = selected_model.get("package_layers", []) as Array[MeshInstance3D]
-	die_surfaces = selected_model.get("die_surfaces", []) as Array[MeshInstance3D]
+	package_layers.clear()
+	for layer_value in selected_model.get("package_layers", []):
+		if layer_value is MeshInstance3D:
+			package_layers.append(layer_value)
+	die_surfaces.clear()
+	for surface_value in selected_model.get("die_surfaces", []):
+		if surface_value is MeshInstance3D:
+			die_surfaces.append(surface_value)
 	die_surface = die_surfaces[0] if not die_surfaces.is_empty() else null
 	is_flipped = false
 
