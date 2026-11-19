@@ -48,11 +48,13 @@ func _run_test() -> void:
 	digital_clock.name = "DigitalClockAssetSmokeTest"
 	digital_clock.size = Vector2(680.0, 1360.0)
 	root.add_child(digital_clock)
-	digital_clock.call("configure", 41, {
+	var test_palette := {
 		"accent": Color("#A9C9FF"),
 		"text": Color.WHITE,
 		"muted": Color("#C3CFE3")
-	}, {"show_details": true, "device_clock": false})
+	}
+	# Match the production call: no legacy device_clock override is supplied.
+	digital_clock.call("configure", 41, test_palette, {"show_details": true})
 	await process_frame
 	if digital_clock.find_child("XMorphClockFace", true, false) == null:
 		_fail("The XMorph digital clock renderer did not create its face canvas.")
@@ -62,6 +64,53 @@ func _run_test() -> void:
 		return
 	if str(digital_clock.call("get_style_name")) != faces.get_face_name(41):
 		_fail("The digital clock selector did not bind the 41st imported style.")
+		return
+	if digital_clock.find_child("DeviceClockTime", true, false) != null:
+		_fail("Digital clock styles must never fall back to the shared Roboto device clock.")
+		return
+
+	var unique_names: Dictionary = {}
+	var unique_time_fonts: Dictionary = {}
+	var expected_time_font_size := -1
+	for face_index in range(1, faces.get_face_count() + 1):
+		digital_clock.call("configure", face_index, test_palette, {"show_details": true})
+		await process_frame
+		var face_canvas := digital_clock.find_child("XMorphClockFace", true, false) as Control
+		if face_canvas == null:
+			_fail("Digital face %02d did not render on the default production path." % face_index)
+			return
+		if not is_equal_approx(face_canvas.anchor_left, 0.05) or not is_equal_approx(face_canvas.anchor_top, 0.30) or not is_equal_approx(face_canvas.anchor_right, 0.95) or not is_equal_approx(face_canvas.anchor_bottom, 0.70):
+			_fail("Digital face %02d does not use the shared centered clock canvas." % face_index)
+			return
+		var face: Dictionary = faces.get_face(face_index)
+		var face_name := str(face.get("name", ""))
+		if face_name.is_empty() or unique_names.has(face_name):
+			_fail("Digital face %02d does not have a unique design name." % face_index)
+			return
+		unique_names[face_name] = true
+		var time_layer_ids: Dictionary = {}
+		for layer_value in face.get("layers", []):
+			var layer: Dictionary = layer_value
+			if str(layer.get("type", "")) in ["HOURS", "MINUTES", "COLON", "TIME", "HOUR_TENS", "HOUR_ONES", "MINUTE_TENS", "MINUTE_ONES"]:
+				time_layer_ids[str(layer.get("id", ""))] = true
+		for layer_value in face.get("layers", []):
+			var layer: Dictionary = layer_value
+			if not time_layer_ids.has(str(layer.get("id", ""))):
+				continue
+			var font_reference := str(layer.get("font", "roboto_flex")).trim_prefix("res:").get_slice("?", 0)
+			unique_time_fonts[font_reference] = true
+		for label_value in digital_clock.find_children("*", "Label", true, false):
+			var clock_label := label_value as Label
+			if clock_label.name == "DigitalClockDate":
+				continue
+			if expected_time_font_size < 0:
+				expected_time_font_size = clock_label.get_theme_font_size("font_size")
+			elif clock_label.get_theme_font_size("font_size") != expected_time_font_size:
+				_fail("Digital faces must keep the same time font size across every style.")
+				return
+
+	if unique_names.size() != faces.get_face_count() or unique_time_fonts.size() < 10:
+		_fail("The digital clock set must retain unique designs and a broad range of imported time fonts.")
 		return
 
 	var widgets := WidgetAssetLibrary.new()
