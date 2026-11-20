@@ -1,7 +1,7 @@
 extends RefCounted
 
-# Fifteen physical smartphone-SoC package designs. Each entry describes a real
-# packaging approach or die arrangement rather than a cosmetic colour preset.
+# Thirty physical smartphone-SoC package designs. Each entry uses a distinct
+# package or die arrangement; colour is selected separately in the worksite.
 const DESIGNS := [
 	{
 		"id": "dw_silicon_01",
@@ -12,8 +12,6 @@ const DESIGNS := [
 		"grid": 15,
 		"contacts": "BGA",
 		"package_size": "12 × 12 mm",
-		"package_finish": "Matte graphite",
-		"die_finish": "Dark silicon"
 	},
 	{
 		"id": "dw_core_02",
@@ -24,8 +22,6 @@ const DESIGNS := [
 		"grid": 13,
 		"contacts": "BGA",
 		"package_size": "10 × 10 mm",
-		"package_finish": "Ceramic black",
-		"die_finish": "Dark silicon"
 	},
 	{
 		"id": "dw_nova_03",
@@ -36,8 +32,6 @@ const DESIGNS := [
 		"grid": 15,
 		"contacts": "BGA",
 		"package_size": "12 × 12 mm",
-		"package_finish": "Deep green substrate",
-		"die_finish": "Polished silicon"
 	},
 	{
 		"id": "dw_atlas_04",
@@ -48,8 +42,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Matte graphite",
-		"die_finish": "Dark silicon"
 	},
 	{
 		"id": "dw_helix_05",
@@ -60,8 +52,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Deep green substrate",
-		"die_finish": "Polished silicon"
 	},
 	{
 		"id": "dw_matrix_06",
@@ -72,8 +62,6 @@ const DESIGNS := [
 		"grid": 15,
 		"contacts": "BGA",
 		"package_size": "12 × 12 mm",
-		"package_finish": "Ceramic black",
-		"die_finish": "Metallic silicon cap"
 	},
 	{
 		"id": "dw_quantum_07",
@@ -84,8 +72,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Matte graphite",
-		"die_finish": "Dark silicon"
 	},
 	{
 		"id": "dw_fusion_08",
@@ -96,8 +82,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Deep green substrate",
-		"die_finish": "Polished silicon"
 	},
 	{
 		"id": "dw_vertex_09",
@@ -108,8 +92,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Ceramic black",
-		"die_finish": "Metallic silicon cap"
 	},
 	{
 		"id": "dw_titan_10",
@@ -120,8 +102,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Matte graphite",
-		"die_finish": "Polished silicon"
 	},
 	{
 		"id": "dw_prism_11",
@@ -132,8 +112,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "16 × 16 mm",
-		"package_finish": "Deep green substrate",
-		"die_finish": "Dark silicon"
 	},
 	{
 		"id": "dw_pulse_12",
@@ -144,8 +122,6 @@ const DESIGNS := [
 		"grid": 15,
 		"contacts": "BGA",
 		"package_size": "12 × 12 mm",
-		"package_finish": "Ceramic black",
-		"die_finish": "Dark silicon"
 	},
 	{
 		"id": "dw_cobalt_13",
@@ -156,8 +132,6 @@ const DESIGNS := [
 		"grid": 13,
 		"contacts": "LGA",
 		"package_size": "12 × 12 mm",
-		"package_finish": "Matte graphite",
-		"die_finish": "Polished silicon"
 	},
 	{
 		"id": "dw_apex_14",
@@ -168,8 +142,6 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Deep green substrate",
-		"die_finish": "Metallic silicon cap"
 	},
 	{
 		"id": "dw_crown_15",
@@ -180,8 +152,157 @@ const DESIGNS := [
 		"grid": 17,
 		"contacts": "BGA",
 		"package_size": "16 × 16 mm",
-		"package_finish": "Ceramic black",
-		"die_finish": "Polished silicon"
+	},
+
+	{
+		"id": "dw_orbit_16",
+		"name": "DW ORBIT 16",
+		"description": "A central I/O tile surrounded by four dedicated compute chiplets in a cross-shaped arrangement.",
+		"layout": "cross_chiplet",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_zenith_17",
+		"name": "DW ZENITH 17",
+		"description": "Six compute chiplets arranged around a central routing die in a compact hexagonal cluster.",
+		"layout": "hex_chiplet",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_nexus_18",
+		"name": "DW NEXUS 18",
+		"description": "Three unequal silicon tiles arranged in a horizontal compute, graphics and I/O row.",
+		"layout": "triple_row",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "16 × 16 mm"
+	},
+	{
+		"id": "dw_vector_19",
+		"name": "DW VECTOR 19",
+		"description": "Two large compute dies positioned diagonally with two smaller controller tiles balancing the package.",
+		"layout": "diagonal_compute",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_pinnacle_20",
+		"name": "DW PINNACLE 20",
+		"description": "Eight compact chiplets arranged as a two-by-four array for a highly modular compute package.",
+		"layout": "octa_chiplet",
+		"board_size": 2.62,
+		"grid": 19,
+		"contacts": "BGA",
+		"package_size": "16 × 16 mm"
+	},
+	{
+		"id": "dw_terra_21",
+		"name": "DW TERRA 21",
+		"description": "A large central application die flanked by dedicated memory and cache tiles on both sides.",
+		"layout": "memory_flanks",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_summit_22",
+		"name": "DW SUMMIT 22",
+		"description": "A square central processor tile with four narrow companion dies aligned to its cardinal edges.",
+		"layout": "cardinal_tiles",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_cascade_23",
+		"name": "DW CASCADE 23",
+		"description": "A stepped three-level silicon stack combining a base processor, an elevated cache die and a top controller die.",
+		"layout": "stepped_stack",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_horizon_24",
+		"name": "DW HORIZON 24",
+		"description": "Three elongated silicon tiles spanning a wide package with separate compute, graphics and I/O zones.",
+		"layout": "wide_triple",
+		"board_size": 2.62,
+		"grid": 19,
+		"contacts": "BGA",
+		"package_size": "16 × 16 mm"
+	},
+	{
+		"id": "dw_eclipse_25",
+		"name": "DW ECLIPSE 25",
+		"description": "A central compute die framed by four corner controllers and a raised square perimeter structure.",
+		"layout": "framed_centre",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_zen_26",
+		"name": "DW ZEN 26",
+		"description": "Nine independent silicon tiles in a regular three-by-three compute and cache matrix.",
+		"layout": "nine_tile_grid",
+		"board_size": 2.62,
+		"grid": 19,
+		"contacts": "BGA",
+		"package_size": "16 × 16 mm"
+	},
+	{
+		"id": "dw_polaris_27",
+		"name": "DW POLARIS 27",
+		"description": "A large central processor with four surrounding memory dies and four smaller corner controller tiles.",
+		"layout": "octagonal_hub",
+		"board_size": 2.62,
+		"grid": 19,
+		"contacts": "BGA",
+		"package_size": "16 × 16 mm"
+	},
+	{
+		"id": "dw_vortex_28",
+		"name": "DW VORTEX 28",
+		"description": "Four rotated compute chiplets arranged around a central interconnect in a pinwheel configuration.",
+		"layout": "pinwheel_chiplet",
+		"board_size": 2.48,
+		"grid": 17,
+		"contacts": "BGA",
+		"package_size": "14 × 14 mm"
+	},
+	{
+		"id": "dw_aurora_29",
+		"name": "DW AURORA 29",
+		"description": "An asymmetric hybrid package with dedicated CPU, graphics, AI, image and modem dies.",
+		"layout": "hybrid_asymmetric",
+		"board_size": 2.62,
+		"grid": 19,
+		"contacts": "BGA",
+		"package_size": "16 × 16 mm"
+	},
+	{
+		"id": "dw_infinity_30",
+		"name": "DW INFINITY 30",
+		"description": "A large central compute tile connected to twin stacked-memory towers and separate edge I/O dies.",
+		"layout": "memory_towers",
+		"board_size": 2.62,
+		"grid": 19,
+		"contacts": "BGA",
+		"package_size": "16 × 16 mm"
 	}
 ]
 
@@ -210,24 +331,16 @@ static func build_all(parent: Node3D) -> Array[Dictionary]:
 
 
 
-static func _apply_profile_finishes(model_data: Dictionary, profile: Dictionary) -> void:
-	var package_colors := {
-		"Matte graphite": Color("#222C31"),
-		"Deep green substrate": Color("#183B32"),
-		"Ceramic black": Color("#15191E")
-	}
-	var die_colors := {
-		"Dark silicon": Color("#171D22"),
-		"Polished silicon": Color("#454F57"),
-		"Metallic silicon cap": Color("#91999D")
-	}
-	var package_color: Color = package_colors.get(str(profile.get("package_finish", "Matte graphite")), Color("#222C31"))
-	var die_color: Color = die_colors.get(str(profile.get("die_finish", "Dark silicon")), Color("#171D22"))
+static func _apply_profile_finishes(model_data: Dictionary, _profile: Dictionary) -> void:
+	# Every preset starts in the same monochrome black finish. Colour selection
+	# is handled separately as processor worksite step 2.
+	var package_color := Color("#101214")
+	var die_color := Color("#080A0C")
 	for layer_value in model_data.get("package_layers", []):
 		var layer := layer_value as MeshInstance3D
 		if is_instance_valid(layer):
 			var layer_material := _material(package_color, 0.42, 0.34)
-			layer_material.albedo_color = package_color.darkened(0.12) if layer.name == "PackageLowerEdge" else package_color
+			layer_material.albedo_color = Color("#08090A") if layer.name == "PackageLowerEdge" else package_color
 			layer.material_override = layer_material
 	for surface_value in model_data.get("die_surfaces", []):
 		var surface := surface_value as MeshInstance3D
@@ -360,6 +473,93 @@ static func _build_variant_design(root: Node3D, profile: Dictionary) -> Dictiona
 			_add_die(root, Vector2(0.52, 0.0), Vector2(0.48, 0.66), 0.145, Color("#39454C"), die_surfaces, "RightMemoryBaseDie")
 			_add_die(root, Vector2(0.52, 0.0), Vector2(0.38, 0.54), 0.218, Color("#59636A"), die_surfaces, "RightStackedMemoryDie")
 
+		"cross_chiplet":
+			_add_die(root, Vector2.ZERO, Vector2(0.62, 0.62), 0.145, Color.BLACK, die_surfaces, "CentralIO")
+			_add_die(root, Vector2(0.0, -0.72), Vector2(0.58, 0.76), 0.145, Color.BLACK, die_surfaces, "NorthCompute")
+			_add_die(root, Vector2(0.0, 0.72), Vector2(0.58, 0.76), 0.145, Color.BLACK, die_surfaces, "SouthCompute")
+			_add_die(root, Vector2(-0.72, 0.0), Vector2(0.76, 0.58), 0.145, Color.BLACK, die_surfaces, "WestCompute")
+			_add_die(root, Vector2(0.72, 0.0), Vector2(0.76, 0.58), 0.145, Color.BLACK, die_surfaces, "EastCompute")
+		"hex_chiplet":
+			_add_die(root, Vector2.ZERO, Vector2(0.54, 0.54), 0.145, Color.BLACK, die_surfaces, "HexCentralDie")
+			for position in [Vector2(0.0, -0.72), Vector2(0.62, -0.36), Vector2(0.62, 0.36), Vector2(0.0, 0.72), Vector2(-0.62, 0.36), Vector2(-0.62, -0.36)]:
+				_add_die(root, position, Vector2(0.48, 0.48), 0.145, Color.BLACK, die_surfaces, "HexComputeChiplet")
+		"triple_row":
+			_add_die(root, Vector2(-0.72, 0.0), Vector2(0.58, 1.22), 0.145, Color.BLACK, die_surfaces, "LeftComputeDie")
+			_add_die(root, Vector2(0.0, 0.0), Vector2(0.70, 1.38), 0.145, Color.BLACK, die_surfaces, "CentralGraphicsDie")
+			_add_die(root, Vector2(0.72, 0.0), Vector2(0.44, 0.92), 0.145, Color.BLACK, die_surfaces, "RightIOdie")
+		"diagonal_compute":
+			_add_die(root, Vector2(-0.48, -0.48), Vector2(0.94, 0.94), 0.145, Color.BLACK, die_surfaces, "LowerLeftComputeDie")
+			_add_die(root, Vector2(0.48, 0.48), Vector2(0.94, 0.94), 0.145, Color.BLACK, die_surfaces, "UpperRightGraphicsDie")
+			_add_die(root, Vector2(-0.58, 0.62), Vector2(0.40, 0.34), 0.145, Color.BLACK, die_surfaces, "UpperLeftController")
+			_add_die(root, Vector2(0.62, -0.58), Vector2(0.34, 0.40), 0.145, Color.BLACK, die_surfaces, "LowerRightController")
+		"octa_chiplet":
+			for row in range(2):
+				for column in range(4):
+					var position := Vector2(-0.72 + float(column) * 0.48, -0.34 + float(row) * 0.68)
+					_add_die(root, position, Vector2(0.38, 0.54), 0.145, Color.BLACK, die_surfaces, "OctaComputeChiplet")
+		"memory_flanks":
+			_add_die(root, Vector2.ZERO, Vector2(1.02, 1.08), 0.145, Color.BLACK, die_surfaces, "CentralApplicationDie")
+			for side in [-1.0, 1.0]:
+				_add_die(root, Vector2(side * 0.78, 0.0), Vector2(0.34, 0.78), 0.145, Color.BLACK, die_surfaces, "FlankingMemoryDie")
+				_add_die(root, Vector2(side * 0.78, 0.0), Vector2(0.27, 0.64), 0.218, Color.BLACK, die_surfaces, "RaisedMemoryStack")
+		"cardinal_tiles":
+			_add_die(root, Vector2.ZERO, Vector2(0.88, 0.88), 0.145, Color.BLACK, die_surfaces, "CentralProcessorTile")
+			_add_die(root, Vector2(0.0, -0.70), Vector2(0.96, 0.30), 0.145, Color.BLACK, die_surfaces, "NorthControllerTile")
+			_add_die(root, Vector2(0.0, 0.70), Vector2(0.96, 0.30), 0.145, Color.BLACK, die_surfaces, "SouthControllerTile")
+			_add_die(root, Vector2(-0.70, 0.0), Vector2(0.30, 0.96), 0.145, Color.BLACK, die_surfaces, "WestControllerTile")
+			_add_die(root, Vector2(0.70, 0.0), Vector2(0.30, 0.96), 0.145, Color.BLACK, die_surfaces, "EastControllerTile")
+		"stepped_stack":
+			_add_die(root, Vector2.ZERO, Vector2(1.36, 1.36), 0.145, Color.BLACK, die_surfaces, "BaseProcessorDie")
+			_add_die(root, Vector2.ZERO, Vector2(0.92, 0.92), 0.226, Color.BLACK, die_surfaces, "ElevatedCacheDie")
+			_add_die(root, Vector2.ZERO, Vector2(0.52, 0.52), 0.307, Color.BLACK, die_surfaces, "TopControllerDie")
+		"wide_triple":
+			_add_die(root, Vector2(-0.82, 0.0), Vector2(0.42, 1.42), 0.145, Color.BLACK, die_surfaces, "LeftWideComputeDie")
+			_add_die(root, Vector2(0.0, 0.0), Vector2(0.66, 1.58), 0.145, Color.BLACK, die_surfaces, "CentralWideGraphicsDie")
+			_add_die(root, Vector2(0.82, 0.0), Vector2(0.42, 1.18), 0.145, Color.BLACK, die_surfaces, "RightWideIOdie")
+		"framed_centre":
+			_add_die(root, Vector2.ZERO, Vector2(1.08, 1.08), 0.145, Color.BLACK, die_surfaces, "FramedCentralDie")
+			for corner_x in [-0.70, 0.70]:
+				for corner_z in [-0.70, 0.70]:
+					_add_die(root, Vector2(corner_x, corner_z), Vector2(0.34, 0.34), 0.145, Color.BLACK, die_surfaces, "CornerController")
+			_add_box(root, Vector3(1.92, 0.025, 1.92), Vector3(0.0, 0.115, 0.0), _material(Color.BLACK, 0.76, 0.28), "RaisedPerimeterFrame")
+		"nine_tile_grid":
+			for row in range(3):
+				for column in range(3):
+					var position := Vector2(-0.62 + float(column) * 0.62, -0.62 + float(row) * 0.62)
+					var dimensions := Vector2(0.48, 0.48) if row != 1 or column != 1 else Vector2(0.66, 0.66)
+					_add_die(root, position, dimensions, 0.145, Color.BLACK, die_surfaces, "MatrixComputeTile")
+		"octagonal_hub":
+			_add_die(root, Vector2.ZERO, Vector2(0.90, 0.90), 0.145, Color.BLACK, die_surfaces, "CentralHubDie")
+			for side in [-1.0, 1.0]:
+				_add_die(root, Vector2(side * 0.66, 0.0), Vector2(0.34, 0.62), 0.145, Color.BLACK, die_surfaces, "SideMemoryDie")
+				_add_die(root, Vector2(0.0, side * 0.66), Vector2(0.62, 0.34), 0.145, Color.BLACK, die_surfaces, "EndMemoryDie")
+			for corner_x in [-1.0, 1.0]:
+				for corner_z in [-1.0, 1.0]:
+					_add_die(root, Vector2(corner_x * 0.76, corner_z * 0.76), Vector2(0.26, 0.26), 0.145, Color.BLACK, die_surfaces, "CornerIOdie")
+		"pinwheel_chiplet":
+			for rotation_index in range(4):
+				var chiplet := Node3D.new()
+				chiplet.name = "RotatedPinwheelChiplet"
+				chiplet.position = Vector3(0.0, 0.0, 0.0)
+				chiplet.rotation.y = float(rotation_index) * PI * 0.5
+				root.add_child(chiplet)
+				_add_die(chiplet, Vector2(0.0, -0.76), Vector2(0.44, 0.82), 0.145, Color.BLACK, die_surfaces, "PinwheelComputeDie")
+			_add_die(root, Vector2.ZERO, Vector2(0.54, 0.54), 0.145, Color.BLACK, die_surfaces, "PinwheelCentralIO")
+		"hybrid_asymmetric":
+			_add_die(root, Vector2(-0.48, -0.28), Vector2(0.96, 1.04), 0.145, Color.BLACK, die_surfaces, "HybridCPUDie")
+			_add_die(root, Vector2(0.54, -0.38), Vector2(0.76, 0.82), 0.145, Color.BLACK, die_surfaces, "HybridGraphicsDie")
+			_add_die(root, Vector2(-0.52, 0.72), Vector2(0.60, 0.34), 0.145, Color.BLACK, die_surfaces, "HybridAIDie")
+			_add_die(root, Vector2(0.42, 0.66), Vector2(0.48, 0.38), 0.145, Color.BLACK, die_surfaces, "HybridImageDie")
+			_add_die(root, Vector2(0.92, 0.72), Vector2(0.22, 0.30), 0.145, Color.BLACK, die_surfaces, "HybridModemDie")
+		"memory_towers":
+			_add_die(root, Vector2.ZERO, Vector2(0.98, 1.10), 0.145, Color.BLACK, die_surfaces, "InfinityCentralCompute")
+			for side in [-1.0, 1.0]:
+				_add_die(root, Vector2(side * 0.78, -0.08), Vector2(0.38, 0.62), 0.145, Color.BLACK, die_surfaces, "MemoryTowerBase")
+				_add_die(root, Vector2(side * 0.78, -0.08), Vector2(0.34, 0.56), 0.226, Color.BLACK, die_surfaces, "MemoryTowerMiddle")
+				_add_die(root, Vector2(side * 0.78, -0.08), Vector2(0.30, 0.50), 0.307, Color.BLACK, die_surfaces, "MemoryTowerTop")
+			_add_die(root, Vector2(-0.20, 0.78), Vector2(0.46, 0.28), 0.145, Color.BLACK, die_surfaces, "InfinityNorthIO")
+			_add_die(root, Vector2(0.42, 0.78), Vector2(0.46, 0.28), 0.145, Color.BLACK, die_surfaces, "InfinitySouthIO")
+
 	var ceramic := _material(Color("#B6B4A8"), 0.18, 0.30)
 	var terminal := _material(Color("#B58C51"), 0.78, 0.23)
 	_add_perimeter_passives(root, board_size, ceramic, terminal)
@@ -445,9 +645,11 @@ static func _build_contacts(parent: Node3D, grid_count: int, field_size: float, 
 	parent.add_child(contact_array)
 
 
-static func _material(color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
+static func _material(_color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_color = color
+	# Keep every preset monochrome black; the user-facing colour step applies
+	# a selected finish to the complete processor model.
+	material.albedo_color = Color("#101214")
 	material.metallic = metallic
 	material.roughness = roughness
 	return material
