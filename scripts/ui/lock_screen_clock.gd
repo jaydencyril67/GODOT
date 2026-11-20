@@ -47,19 +47,10 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 	date_label.add_theme_constant_override("letter_spacing", int(design.get("date_letter_spacing", 1)))
 
 	_clock_style_index = int(design.get("clock_style_index", design.get("analog_clock_asset_index", 1)))
-	_preload_analog_artworks()
 	digital_artwork.call("configure", int(design.get("digital_clock_style_index", _clock_style_index)), palette, design)
 	set_clock_style_index(_clock_style_index)
 	set_clock_type(str(design.get("clock_type", "analog")))
 	_refresh_date()
-
-
-func _preload_analog_artworks() -> void:
-	if not _analog_textures.is_empty():
-		return
-	for asset_index in range(1, AssetLibrary.get_analog_clock_count() + 1):
-		var asset_path := AssetLibrary.get_analog_clock_path(asset_index)
-		_analog_textures[asset_index] = load(asset_path) as Texture2D
 
 
 func set_clock_style_index(style_index: int) -> bool:
