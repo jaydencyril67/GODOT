@@ -1025,20 +1025,20 @@ func _on_camera_back_design_color_changed(color: Color) -> void:
 	_refresh_camera_back_design_visuals()
 
 
-func _camera_back_design_position_is_free(position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
+func _camera_back_design_candidate_position_is_free(candidate_position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
 	var half := box_size * 0.5
 	var body_half := Vector2(1.45, 2.92) * 0.5
-	if absf(position.x) + half.x > body_half.x:
+	if absf(candidate_position.x) + half.x > body_half.x:
 		return false
-	if absf(position.y) + half.y > body_half.y:
+	if absf(candidate_position.y) + half.y > body_half.y:
 		return false
 	for index in range(camera_back_design_boxes.size()):
 		if index == ignore_index:
 			continue
 		var other: Dictionary = camera_back_design_boxes[index]
 		var other_half: Vector2 = other["size"] * 0.5
-		var other_position: Vector2 = other["position"]
-		if absf(position.x - other_position.x) < half.x + other_half.x and absf(position.y - other_position.y) < half.y + other_half.y:
+		var other_candidate_position: Vector2 = other["candidate_position"]
+		if absf(candidate_position.x - other_candidate_position.x) < half.x + other_half.x and absf(candidate_position.y - other_candidate_position.y) < half.y + other_half.y:
 			return false
 	return true
 
