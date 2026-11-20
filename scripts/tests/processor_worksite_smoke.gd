@@ -378,7 +378,11 @@ func _run_processor_worksite_test() -> void:
 		"processor_color": "#A5AAAE",
 		"processor_gradient_color": "#C65B8E",
 		"processor_gradient_enabled": true,
-		"processor_gradient_direction": 2
+		"processor_gradient_direction": 2,
+		"processor_technology_enabled_states": {
+			"Control Unit": true,
+			"Security Processing Unit": true
+		}
 	})
 	var restored_toggle := worksite.find_child("EnableProcessorGradient", true, false) as TextureButton
 	var restored_shader := recolored_surface.material_override as ShaderMaterial
