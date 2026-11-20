@@ -2784,7 +2784,7 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 	if is_instance_valid(processor_creation_worksite):
 		processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 	processor_creation_worksite.call("set_cpu_core_research_level", int(career.get("research_component_levels", {}).get("CPU Cores", 0)))
-		processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
+	processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 		phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
@@ -2862,7 +2862,7 @@ func _return_from_research_allocation_dashboard() -> void:
 				processor_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
 				processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 				processor_creation_worksite.call("set_cpu_core_research_level", int(career.get("research_component_levels", {}).get("CPU Cores", 0)))
-		processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
+				processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
 				processor_creation_worksite.show()
 				for child in processor_creation_worksite.get_children():
 					if child is CanvasLayer:
@@ -3122,7 +3122,7 @@ func _prepare_processor_creation_worksite() -> void:
 	processor_creation_worksite.call("configure_design", career.get("processor_design", {}))
 	processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 	processor_creation_worksite.call("set_cpu_core_research_level", int(career.get("research_component_levels", {}).get("CPU Cores", 0)))
-		processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
+	processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
 	processor_creation_worksite.hide()
 	for child in processor_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -3173,7 +3173,7 @@ func _activate_processor_creation_worksite() -> void:
 	ui_root = null
 	processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 	processor_creation_worksite.call("set_cpu_core_research_level", int(career.get("research_component_levels", {}).get("CPU Cores", 0)))
-		processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
+	processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
 	processor_creation_worksite.show()
 	for child in processor_creation_worksite.get_children():
