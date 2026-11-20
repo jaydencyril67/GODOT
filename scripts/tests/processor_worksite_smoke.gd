@@ -30,16 +30,21 @@ func _run_processor_worksite_test() -> void:
 	var design_selector_next := worksite.find_child("IncreaseProcessorDesignButton", true, false) as Button
 	var design_selector_value := worksite.find_child("ProcessorDesignValueLabel", true, false) as Label
 	var design_selector_position := worksite.find_child("ProcessorDesignPositionLabel", true, false) as Label
+	var right_panel_column := worksite.find_child("ProcessorCreationRightPanel", true, false) as VBoxContainer
 	var selection_scroll := worksite.find_child("ProcessorSelectionScroll", true, false) as ScrollContainer
 	var selection_controls := worksite.find_child("ProcessorSelectionControls", true, false) as VBoxContainer
 	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
 	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
 	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
-	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or preview_world == null or preview_environment == null or model == null or design_models.size() != 30 or design_selector_previous == null or design_selector_next == null or design_selector_value == null or design_selector_position == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
+	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or preview_world == null or preview_environment == null or model == null or design_models.size() != 30 or design_selector_previous == null or design_selector_next == null or design_selector_value == null or design_selector_position == null or right_panel_column == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
 		_fail("Processor worksite is missing part of the shared Phone/OS full-screen worksite structure.")
 		worksite.free()
 		return
 	var backdrop := worksite.find_child("WorksiteBackdrop", true, false) as ColorRect
+	if right_panel_column.get_parent() != worksite_body or selection_scroll.get_parent() != right_panel_column:
+		_fail("Processor right-side controls do not follow the Phone Creation right-panel hierarchy.")
+		worksite.free()
+		return
 	if worksite_root.mouse_filter != Control.MOUSE_FILTER_STOP or backdrop == null or backdrop.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("Processor worksite does not block touch input from reaching the previous Creation page.")
 		worksite.free()
@@ -180,9 +185,22 @@ func _run_processor_worksite_test() -> void:
 		return
 	worksite.call("_select_processor_design", 0, true)
 
-	var processor_color_control := worksite.find_child("ProcessorColor", true, false) as OptionButton
-	if processor_color_control == null:
-		_fail("Processor worksite is missing its dedicated second-step colour selector.")
+	var processor_color_content := worksite.find_child("ProcessorColorControls", true, false) as VBoxContainer
+	var color_picker_columns := worksite.find_child("ProcessorColorPickerColumns", true, false) as HBoxContainer
+	var normal_picker := worksite.find_child("ProcessorNormalColorPicker", true, false) as VBoxContainer
+	var gradient_picker := worksite.find_child("ProcessorGradientColorPicker", true, false) as VBoxContainer
+	var gradient_toggle := worksite.find_child("EnableProcessorGradient", true, false) as TextureButton
+	var gradient_direction := worksite.find_child("ProcessorGradientDirection", true, false) as Button
+	var normal_spectrum := normal_picker.get_node_or_null("ProcessorColorSpectrum") as Control if normal_picker != null else null
+	var normal_hue := normal_picker.get_node_or_null("ProcessorColorHue") as Control if normal_picker != null else null
+	var normal_hex := normal_picker.get_node_or_null("ProcessorCustomHexEntry/ProcessorColorHexInput") as LineEdit if normal_picker != null else null
+	var gradient_hex := gradient_picker.get_node_or_null("ProcessorCustomHexEntry/ProcessorColorHexInput") as LineEdit if gradient_picker != null else null
+	if processor_color_content == null or color_picker_columns == null or normal_picker == null or gradient_picker == null or gradient_toggle == null or gradient_direction == null or normal_spectrum == null or normal_hue == null or normal_hex == null or gradient_hex == null:
+		_fail("Processor colour step is missing part of the Phone Creation spectrum, hue, hex, or gradient editor.")
+		worksite.free()
+		return
+	if worksite.find_child("ProcessorColor", true, false) != null:
+		_fail("Processor colour step still uses the old preset dropdown instead of the Phone Creation editor.")
 		worksite.free()
 		return
 	worksite.call("_on_next_pressed")
@@ -190,21 +208,29 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor Next navigation did not advance to the dedicated colour step.")
 		worksite.free()
 		return
-	var silver_index := -1
-	for option_index in range(processor_color_control.item_count):
-		if processor_color_control.get_item_text(option_index) == "Silver":
-			silver_index = option_index
-			break
-	if silver_index < 0:
-		_fail("Processor colour step is missing the Silver option.")
-		worksite.free()
-		return
-	processor_color_control.select(silver_index)
-	worksite.call("_on_processor_color_selected", silver_index)
+	worksite.call("_on_processor_color_picker_changed", Color("#A5AAAE"), false)
 	var recolored_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
 	var recolored_material := recolored_surface.material_override as StandardMaterial3D if recolored_surface != null else null
 	if recolored_surface == null or recolored_material == null or recolored_material.albedo_color != Color("#A5AAAE"):
-		_fail("Processor colour selection did not apply to the model.")
+		_fail("Processor normal colour selection did not apply to the model.")
+		worksite.free()
+		return
+	gradient_toggle.button_pressed = true
+	worksite.call("_on_processor_gradient_toggle_pressed", gradient_toggle)
+	worksite.call("_on_processor_color_picker_changed", Color("#C65B8E"), true)
+	worksite.call("_select_processor_gradient_direction", 2)
+	var gradient_material := recolored_surface.material_override as ShaderMaterial if recolored_surface != null else null
+	if gradient_material == null:
+		_fail("Enabling the processor gradient did not apply a gradient shader to the model.")
+		worksite.free()
+		return
+	if gradient_material.get_shader_parameter("solid_color") != Color("#A5AAAE") or gradient_material.get_shader_parameter("gradient_color") != Color("#C65B8E") or int(gradient_material.get_shader_parameter("gradient_direction")) != 2:
+		_fail("Processor gradient shader did not receive the selected normal colour, gradient colour, and diagonal direction.")
+		worksite.free()
+		return
+	var gradient_options := processor_color_content.get_node_or_null("ProcessorGradientOptions") as Control
+	if gradient_options == null or not gradient_options.visible or gradient_picker.modulate.a < 0.99 or not gradient_direction.text.contains("DIAGONAL"):
+		_fail("Processor gradient controls did not follow the Phone Creation enabled-gradient state.")
 		worksite.free()
 		return
 	worksite.call("_on_next_pressed")
@@ -245,9 +271,24 @@ func _run_processor_worksite_test() -> void:
 		"processor_color": "Silver"
 	})
 	var name_control := worksite.find_child("ProcessorNameInput", true, false)
-	var restored_color := worksite.find_child("ProcessorColor", true, false) as OptionButton
-	if name_control != null or restored_color == null or restored_color.get_item_text(restored_color.selected) != "Silver":
-		_fail("Processor worksite still shows a name field or failed to restore the saved processor colour.")
+	if name_control != null or worksite.get("processor_color") != Color("#A5AAAE"):
+		_fail("Processor worksite still shows a name field or failed to restore a legacy named processor colour.")
+		worksite.free()
+		return
+	worksite.configure_design({
+		"design_id": "dw_silicon_01",
+		"package_size": "14 × 14 mm",
+		"processor_color": "#A5AAAE",
+		"processor_gradient_color": "#C65B8E",
+		"processor_gradient_enabled": true,
+		"processor_gradient_direction": 2
+	})
+	var restored_toggle := worksite.find_child("EnableProcessorGradient", true, false) as TextureButton
+	var restored_shader := recolored_surface.material_override as ShaderMaterial
+	if restored_toggle == null or not restored_toggle.button_pressed or not bool(worksite.get("processor_gradient_enabled")) or int(worksite.get("processor_gradient_direction")) != 2 or restored_shader == null:
+		_fail("Processor worksite did not restore the saved gradient editor state.")
+		worksite.free()
+		return
 		worksite.free()
 		return
 
@@ -262,8 +303,12 @@ func _run_processor_worksite_test() -> void:
 		_fail("Saving the processor did not preserve the selected physical design identity.")
 		worksite.free()
 		return
-	if str(emitted_design[0].get("package_size", "")) != "14 × 14 mm" or str(emitted_design[0].get("processor_color", "")) != "Silver":
-		_fail("Save Processor Design did not preserve the configured package size and processor colour.")
+	if str(emitted_design[0].get("package_size", "")) != "14 × 14 mm" or str(emitted_design[0].get("processor_color", "")) != "#A5AAAE":
+		_fail("Save Processor Design did not preserve the configured package size and normal processor colour.")
+		worksite.free()
+		return
+	if str(emitted_design[0].get("processor_gradient_color", "")) != "#C65B8E" or not bool(emitted_design[0].get("processor_gradient_enabled", false)) or int(emitted_design[0].get("processor_gradient_direction", -1)) != 2:
+		_fail("Save Processor Design did not preserve gradient colour, enabled state, and direction.")
 		worksite.free()
 		return
 
