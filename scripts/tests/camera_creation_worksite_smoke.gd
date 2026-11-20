@@ -59,8 +59,8 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if progress_bar.max_value != 2 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Camera Worksite does not initialize its two-stage creation workflow.")
+	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Camera Worksite does not initialize its four-stage camera workflow.")
 		worksite.free()
 		return
 
@@ -71,8 +71,10 @@ func _run_camera_worksite_test() -> void:
 
 	var initial_rear_panel := worksite.find_child("RareCameraStepControls", true, false) as VBoxContainer
 	var initial_mp_panel := worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
-	if initial_rear_panel == null or not initial_rear_panel.visible or initial_mp_panel == null or initial_mp_panel.visible:
-		_fail("The camera hardware editor must be Step 1 and the MP editor must start hidden.")
+	var initial_front_panel := worksite.find_child("FrontCameraStepControls", true, false) as VBoxContainer
+	var initial_front_mp_panel := worksite.find_child("FrontCameraMegapixelStepControls", true, false) as VBoxContainer
+	if initial_rear_panel == null or not initial_rear_panel.visible or initial_mp_panel == null or initial_mp_panel.visible or initial_front_panel == null or initial_front_panel.visible or initial_front_mp_panel == null or initial_front_mp_panel.visible:
+		_fail("Only the Rare Camera editor should be visible at the start of the four-step workflow.")
 		worksite.free()
 		return
 	worksite.call("_on_next_pressed")
@@ -365,6 +367,82 @@ func _run_camera_worksite_test() -> void:
 	worksite.call("_on_wizard_back_pressed")
 	if int(worksite.get("current_wizard_step")) != 1 or progress_bar.value != 1 or not rare_camera_panel.visible or mp_panel.visible:
 		_fail("Camera Worksite Back navigation did not return from MP settings to Step 1.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	worksite.call("_on_next_pressed")
+	var front_camera_panel := worksite.find_child("FrontCameraStepControls", true, false) as VBoxContainer
+	var front_mp_panel := worksite.find_child("FrontCameraMegapixelStepControls", true, false) as VBoxContainer
+	var front_enable_button := worksite.find_child("FrontCameraEnablement", true, false) as Button
+	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or not front_camera_panel.visible or initial_rear_panel.visible or initial_mp_panel.visible or front_mp_panel.visible or front_enable_button == null or not is_equal_approx(float(phone_model.rotation.y), PI):
+		_fail("Step 3 did not open the front camera editor and turn the handset to its front face.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	var empty_front_mp_message := front_mp_panel.get_child(1) as Label if front_mp_panel != null and front_mp_panel.get_child_count() > 1 else null
+	if int(worksite.get("current_wizard_step")) != 4 or progress_bar.value != 4 or not front_mp_panel.visible or front_camera_panel.visible or empty_front_mp_message == null or empty_front_mp_message.text != "Enable the front camera in Step 3 first":
+		_fail("Step 4 should prompt the user to enable the front camera before setting its megapixels.")
+		worksite.free()
+		return
+
+	worksite.call("_on_wizard_back_pressed")
+	front_enable_button.emit_signal("toggled", true)
+	if not bool(worksite.get("front_camera_enabled")) or worksite.find_child("FrontCameraHardware", true, false) == null:
+		_fail("Enabling the front camera did not add its design to the handset preview.")
+		worksite.free()
+		return
+
+	worksite.call("set_front_camera_research_level", 4)
+	worksite.call("_change_front_camera_style", 4)
+	if str(worksite.get("front_camera_style")) != "Dual Punch-Hole" or worksite.find_child("FrontCameraLens01", true, false) == null or worksite.find_child("FrontCameraLens02", true, false) == null:
+		_fail("Front Camera research did not unlock and preview the dual punch-hole design.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	var front_mp_row := worksite.find_child("FrontCameraMegapixelOptions", true, false) as HBoxContainer
+	if int(worksite.get("current_wizard_step")) != 4 or front_mp_row == null or front_mp_row.get_child_count() != 2:
+		_fail("Dual Punch-Hole should provide two independent front-camera MP controls.")
+		worksite.free()
+		return
+
+	worksite.call("set_front_camera_mp_research_level", 2)
+	front_mp_row = worksite.find_child("FrontCameraMegapixelOptions", true, false) as HBoxContainer
+	var front_first_card := front_mp_row.get_child(0) as VBoxContainer if front_mp_row != null and front_mp_row.get_child_count() > 0 else null
+	var front_second_card := front_mp_row.get_child(1) as VBoxContainer if front_mp_row != null and front_mp_row.get_child_count() > 1 else null
+	var front_first_slider := front_first_card.find_child("FrontCameraMPValueSlider", true, false) as VSlider if front_first_card != null else null
+	var front_second_slider := front_second_card.find_child("FrontCameraMPValueSlider", true, false) as VSlider if front_second_card != null else null
+	var front_first_max := front_first_card.find_child("FrontCameraMPMaximumLabel", true, false) as Label if front_first_card != null else null
+	if front_first_slider == null or front_second_slider == null or front_first_max == null or front_first_slider.min_value != 1.0 or front_first_slider.max_value != 11.0 or front_second_slider.max_value != 11.0 or front_first_max.text != "11":
+		_fail("Front Camera MP sliders did not inherit the 1MP baseline and research-based 11MP ceiling.")
+		worksite.free()
+		return
+
+	front_first_slider.value = 11.0
+	front_second_slider.value = 6.0
+	if int(worksite.get("front_camera_megapixels")) != 11 or int(worksite.get("front_camera_secondary_megapixels")) != 6:
+		_fail("The two front-camera MP sliders did not preserve their independent resolutions.")
+		worksite.free()
+		return
+
+	worksite.call("set_front_camera_mp_research_level", 0)
+	if int(worksite.get("front_camera_megapixels")) != 1 or int(worksite.get("front_camera_secondary_megapixels")) != 1:
+		_fail("Reducing Front Camera MP research did not clamp both front-camera resolutions.")
+		worksite.free()
+		return
+
+	worksite.call("set_front_camera_research_level", 0)
+	if str(worksite.get("front_camera_style")) != "Bezel Camera" or front_mp_row.get_child_count() != 1:
+		_fail("Reducing Front Camera research did not restore the baseline design and single-camera MP layout.")
+		worksite.free()
+		return
+
+	worksite.call("_on_wizard_back_pressed")
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 2 or not is_equal_approx(float(phone_model.rotation.y), 0.0):
+		_fail("Returning to the rear-camera steps did not restore the handset rear view.")
 		worksite.free()
 		return
 
