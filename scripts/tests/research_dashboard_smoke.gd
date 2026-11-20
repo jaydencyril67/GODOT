@@ -46,6 +46,12 @@ func _run_checks() -> void:
 			"staff_ids": ["processor_researcher"]
 		},
 		{
+			"id": "RDP-PROCESSOR-CPU-ACTIVE",
+			"component": "CPU Cores",
+			"status": ResearchManagerScript.STATUS_ACTIVE,
+			"staff_ids": ["processor_researcher"]
+		},
+		{
 			"id": "RDP-PROCESSOR-PENDING",
 			"component": "Security Processing Unit",
 			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
@@ -180,7 +186,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if _project_ids(processor_dashboard.call("_get_active_projects")) != ["RDP-PROCESSOR-ACTIVE"]:
+	if _project_ids(processor_dashboard.call("_get_active_projects")) != ["RDP-PROCESSOR-CPU-ACTIVE", "RDP-PROCESSOR-ACTIVE"]:
 		_fail("Processor Research is displaying a Phone or Camera active project, or hiding its own active project.")
 		host.queue_free()
 		quit(1)
@@ -199,6 +205,7 @@ func _run_checks() -> void:
 	var processor_options: Array = processor_dashboard.get("component_buttons")
 	var processor_labels := _button_labels(processor_options)
 	var expected_processor_labels: Array[String] = [
+		"CPU CORES",
 		"CONTROL UNIT",
 		"INSTRUCTION DECODER",
 		"INSTRUCTION FETCH UNIT",
@@ -220,7 +227,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _check_processor_technology_research():
+	if not _check_processor_technology_research() or not _check_processor_cpu_core_research():
 		host.queue_free()
 		quit(1)
 		return
@@ -465,6 +472,72 @@ func _check_processor_technology_research() -> bool:
 		}, 3000.0)
 		if bool(duplicate.get("ok", false)):
 			_fail("%s could be commissioned again after its one-time unlock was approved." % feature)
+			return false
+	return true
+
+
+func _check_processor_cpu_core_research() -> bool:
+	const COMPONENT := "CPU Cores"
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has(COMPONENT) or not ResearchManagerScript.PROCESSOR_RESEARCH_COMPONENTS.has(COMPONENT):
+		_fail("CPU Cores is missing from the processor research catalogue or routing group.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days(COMPONENT, 1), 750.0):
+		_fail("Every CPU Core upgrade must use a fixed 750-day research duration.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 0.5), 3.75) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 1.0), 7.50) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 2.0), 15.00):
+		_fail("CPU Cores is not using the shared duration-based Technology Points conversion.")
+		return false
+
+	var first_target: Dictionary = ResearchManagerScript.get_cpu_cores_research_target({})
+	if int(first_target.get("index", -1)) != 2 or str(first_target.get("technology", "")) != "2 Cores" or int(first_target.get("core_count", -1)) != 2:
+		_fail("CPU Cores did not begin with the expected 1-to-2 core research target.")
+		return false
+	var penultimate_target: Dictionary = ResearchManagerScript.get_cpu_cores_research_target({"CPU Cores": 28})
+	if int(penultimate_target.get("index", -1)) != 30 or str(penultimate_target.get("technology", "")) != "30 Cores" or not ResearchManagerScript.get_cpu_cores_research_target({"CPU Cores": 29}).is_empty() or ResearchManagerScript.get_cpu_cores_max_for_level(29) != 30:
+		_fail("CPU Cores does not stop cleanly at its maximum of 30 cores.")
+		return false
+
+	var test_career := {
+		"staff_employees": [{"id": "cpu_core_researcher", "department": "Research", "efficiency": 90}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	for expected_core_count in [2, 3]:
+		var target: Dictionary = ResearchManagerScript.get_cpu_cores_research_target(test_career["research_component_levels"])
+		var commission := ResearchManagerScript.commission_project(test_career, {
+			"component": COMPONENT,
+			"staff_ids": ["cpu_core_researcher"]
+		}, 1000.0 + float(expected_core_count))
+		if not bool(commission.get("ok", false)):
+			_fail("CPU Cores research could not be commissioned: %s" % str(commission.get("error", "")))
+			return false
+		var project: Dictionary = commission.get("project", {})
+		var expected_target := "%d Cores" % expected_core_count
+		if int(target.get("index", -1)) != expected_core_count or int(project.get("research_target_index", -1)) != expected_core_count or str(project.get("research_target", "")) != expected_target or not is_equal_approx(float(project.get("required_research_days", 0.0)), 750.0):
+			_fail("CPU Cores research did not preserve the next sequential target or 750-day duration.")
+			return false
+		var duplicate := ResearchManagerScript.commission_project(test_career, {
+			"component": COMPONENT,
+			"staff_ids": ["cpu_core_researcher"]
+		}, 1100.0)
+		if bool(duplicate.get("ok", false)):
+			_fail("CPU Cores allowed a duplicate project while the next core upgrade was already in progress.")
+			return false
+		for project_index in range(test_career["research_projects"].size()):
+			var saved_project: Dictionary = test_career["research_projects"][project_index]
+			if str(saved_project.get("id", "")) == str(project.get("id", "")):
+				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+				test_career["research_projects"][project_index] = saved_project
+				break
+		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": COMPONENT,
+			"metric": "Supported CPU core count",
+			"value": expected_target
+		}], 2000.0 + float(expected_core_count))
+		if not bool(approval.get("ok", false)) or int(test_career["research_component_levels"].get(COMPONENT, 0)) != expected_core_count - 1:
+			_fail("Approving the %s target did not persist the next CPU Core research level: %s" % [expected_target, str(approval.get("error", ""))])
 			return false
 	return true
 
