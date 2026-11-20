@@ -741,6 +741,11 @@ func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vec
 	var max_x := half.x - extent - 0.025
 	var min_y := -half.y + extent + 0.025
 	var max_y := half.y - extent - 0.025
+	# Start near the centre so the first module can move in every direction.
+	# Edge-first placement made one or more direction-pad controls appear broken.
+	var preferred_position := _snap_rear_hardware_position(Vector2.ZERO)
+	if _rear_module_position_is_free(preferred_position, module_size, kind, -1):
+		return preferred_position
 	var min_x_index := ceili(min_x / REAR_HARDWARE_GRID_STEP - 0.00001)
 	var max_x_index := floori(max_x / REAR_HARDWARE_GRID_STEP + 0.00001)
 	var min_y_index := ceili(min_y / REAR_HARDWARE_GRID_STEP - 0.00001)
@@ -827,9 +832,9 @@ func _on_rear_hardware_size_changed(value: float) -> void:
 	if selected_index < 0 or selected_index >= modules.size():
 		return
 	var module: Dictionary = modules[selected_index]
-	var position: Vector2 = module["position"]
+	var module_position: Vector2 = module["position"]
 	var next_size := clampf(value, REAR_HARDWARE_SIZE_MIN, REAR_HARDWARE_SIZE_MAX)
-	if not _rear_module_position_is_free(position, next_size, rear_hardware_mode, selected_index):
+	if not _rear_module_position_is_free(module_position, next_size, rear_hardware_mode, selected_index):
 		_refresh_rear_hardware_panel()
 		return
 	module["size"] = next_size
