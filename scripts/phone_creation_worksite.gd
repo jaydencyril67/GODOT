@@ -7,7 +7,6 @@ var charging_speed_step_visited := false
 var wireless_charge_step_visited := false
 var sensors_step_visited := false
 var front_camera_mp_step_visited := false
-var rear_camera_mp_step_visited := false
 var memory_clock_step_visited := false
 var refresh_rate_step_visited := false
 var cooling_system_step_visited := false
@@ -1358,26 +1357,24 @@ func _on_next_pressed() -> void:
 	elif wizard_step == 24:
 		_show_front_camera_mp_step()
 	elif wizard_step == 25:
-		_show_rear_camera_mp_step()
-	elif wizard_step == 26:
 		_show_memory_clock_step()
-	elif wizard_step == 27:
+	elif wizard_step == 26:
 		_show_refresh_rate_step()
-	elif wizard_step == 28:
+	elif wizard_step == 27:
 		_show_cooling_system_step()
-	elif wizard_step == 29:
+	elif wizard_step == 28:
 		_show_box_package_step()
-	elif wizard_step == 30:
+	elif wizard_step == 29:
 		_show_phone_case_step()
-	elif wizard_step == 31:
+	elif wizard_step == 30:
 		_show_charger_step()
-	elif wizard_step == 32:
+	elif wizard_step == 31:
 		_show_protection_glass_step()
-	elif wizard_step == 33:
+	elif wizard_step == 32:
 		_show_wireless_earbuds_step()
-	elif wizard_step == 34:
+	elif wizard_step == 33:
 		_show_smartwatch_step()
-	elif wizard_step == 35:
+	elif wizard_step == 34:
 		_show_power_bank_step()
 
 
@@ -1393,17 +1390,17 @@ func _cache_current_step_panel() -> void:
 			if self.has_method("_close_worksite_back_design_color_view"):
 				self.call("_close_worksite_back_design_color_view")
 			self.call("_show_back_design_controls")
-	elif wizard_step == 30 and bool(self.get("box_package_color_mode")):
+	elif wizard_step == 29 and bool(self.get("box_package_color_mode")):
 		_show_worksite_box_package_controls()
-	elif wizard_step == 31 and bool(self.get("phone_case_color_mode")):
+	elif wizard_step == 30 and bool(self.get("phone_case_color_mode")):
 		_show_worksite_phone_case_controls()
-	elif wizard_step == 32 and bool(self.get("charger_color_mode")):
+	elif wizard_step == 31 and bool(self.get("charger_color_mode")):
 		_show_worksite_charger_controls("HOME")
-	elif wizard_step == 34 and bool(self.get("wireless_earbuds_color_mode")):
+	elif wizard_step == 33 and bool(self.get("wireless_earbuds_color_mode")):
 		_show_worksite_earbuds_controls()
-	elif wizard_step == 35 and bool(self.get("smartwatch_color_mode")):
+	elif wizard_step == 34 and bool(self.get("smartwatch_color_mode")):
 		_show_worksite_smartwatch_controls()
-	elif wizard_step == 36 and bool(self.get("power_bank_color_mode")):
+	elif wizard_step == 35 and bool(self.get("power_bank_color_mode")):
 		_show_worksite_power_bank_controls()
 
 	var current_panel := self.get("active_feature_panel") as Control
@@ -1425,29 +1422,29 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 		return
 
 	var previous_step := wizard_step
-	if step < 15 or step > 29:
+	if step < 15 or step > 28:
 		_set_ram_selection_preview(false)
 	_prepare_step_panels_for_navigation()
-	if previous_step == 30 and step != 30:
+	if previous_step == 29 and step != 29:
 		self.call("_set_box_package_preview_mode", false)
-	if previous_step == 32 and step != 32:
+	if previous_step == 31 and step != 31:
 		self.call("_set_charger_preview_mode", false)
-	if previous_step == 34 and step != 34:
+	if previous_step == 33 and step != 33:
 		self.call("_set_earbuds_preview_mode", false)
-	if previous_step == 35 and step != 35:
+	if previous_step == 34 and step != 34:
 		self.call("_set_smartwatch_preview_mode", false)
-	if previous_step == 36 and step != 36:
+	if previous_step == 35 and step != 35:
 		self.call("_set_power_bank_preview_mode", false)
 	wizard_step = step
-	if step == 30:
+	if step == 29:
 		self.call("_set_box_package_preview_mode", true)
-	if step == 32:
+	if step == 31:
 		self.call("_set_charger_preview_mode", true)
-	if step == 34:
+	if step == 33:
 		self.call("_set_earbuds_preview_mode", true)
-	if step == 35:
+	if step == 34:
 		self.call("_set_smartwatch_preview_mode", true)
-	if step == 36:
+	if step == 35:
 		self.call("_set_power_bank_preview_mode", true)
 	if step >= 22:
 		charging_speed_step_visited = true
@@ -1458,12 +1455,10 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	if step >= 25:
 		front_camera_mp_step_visited = true
 	if step >= 26:
-		rear_camera_mp_step_visited = true
-	if step >= 27:
 		memory_clock_step_visited = true
-	if step >= 28:
+	if step >= 27:
 		refresh_rate_step_visited = true
-	if step >= 29:
+	if step >= 28:
 		cooling_system_step_visited = true
 	type_step_content.hide()
 	self.set("active_feature_panel", null)
@@ -1471,7 +1466,7 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 	# Camera megapixel panels depend on the camera hardware configured in
 	# earlier steps. Rebuild these two panels on each visit so added, removed,
 	# or changed camera modules are always represented by the current hardware.
-	if step == 25 or step == 26:
+	if step == 25:
 		var stale_camera_panel := step_panels.get(step) as Control
 		if is_instance_valid(stale_camera_panel):
 			var stale_parent := stale_camera_panel.get_parent()
@@ -1528,10 +1523,10 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			or panel.name == "BluetoothSelectionControls"
 		)
 		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL if panel_uses_full_height else Control.SIZE_SHRINK_BEGIN
-		if step >= 15 and step <= 29:
+		if step >= 15 and step <= 28:
 			_style_ram_selector_buttons(panel)
 
-	if step >= 15 and step <= 29:
+	if step >= 15 and step <= 28:
 		_set_ram_selection_preview(true)
 		_update_ram_selection_display(
 			str(self.get("selected_ram_technology")),
@@ -1545,7 +1540,6 @@ func _show_worksite_step(step: int, builder_method: String = "") -> void:
 			_get_wireless_charging_summary() if wireless_charge_step_visited else "Not set",
 			self.call("_get_enabled_sensor_names") if sensors_step_visited else [],
 			str(self.call("_get_front_camera_mp_summary")) if front_camera_mp_step_visited else "Not set",
-			str(self.call("_get_rear_camera_mp_summary")) if rear_camera_mp_step_visited else "Not set",
 			str(self.get("selected_memory_clock")) if memory_clock_step_visited else "Not set",
 			str(self.get("selected_refresh_rate")) if refresh_rate_step_visited else "Not set",
 			str(self.get("selected_cooling_system")) if cooling_system_step_visited else "Not set"
@@ -1618,7 +1612,6 @@ func _update_ram_selection_display(
 	wireless_charge: String = "Not set",
 	sensors: Array = [],
 	front_camera_mp: String = "Not set",
-	rear_camera_mp: String = "Not set",
 	memory_clock: String = "Not set",
 	refresh_rate: String = "Not set",
 	cooling_system: String = "Not set"
@@ -1641,10 +1634,6 @@ func _update_ram_selection_display(
 		front_camera_mp = "Not set"
 	elif front_camera_mp == "Not set":
 		front_camera_mp = _get_front_camera_mp_summary()
-	if not rear_camera_mp_step_visited:
-		rear_camera_mp = "Not set"
-	elif rear_camera_mp == "Not set":
-		rear_camera_mp = _get_rear_camera_mp_summary()
 	if not memory_clock_step_visited:
 		memory_clock = "Not set"
 	if not refresh_rate_step_visited:
@@ -1685,8 +1674,6 @@ func _update_ram_selection_display(
 		_add_specification_readout_entry("SENSORS", sensor_summary)
 	if front_camera_mp != "Not set":
 		_add_specification_readout_entry("FRONT CAMERA MP", front_camera_mp)
-	if rear_camera_mp != "Not set":
-		_add_specification_readout_entry("REAR CAMERA MP", rear_camera_mp)
 	if memory_clock != "Not set":
 		_add_specification_readout_entry("MEMORY CLOCK", memory_clock)
 	if refresh_rate != "Not set":
@@ -1725,8 +1712,8 @@ func _add_specification_readout_entry(caption_text: String, value_text: String) 
 	specification_readout_entry_count += 1
 
 func _update_step_progress(step: int) -> void:
-	var progress_value := clampi(step + 1, 1, 37)
-	progress_number.text = "STEP %d / 37" % progress_value
+	var progress_value := clampi(step + 1, 1, 36)
+	progress_number.text = "STEP %d / 36" % progress_value
 	progress_bar.value = progress_value
 
 
@@ -1795,7 +1782,50 @@ func _show_back_design_step() -> void:
 
 
 func _show_rear_camera_step() -> void:
-	_show_worksite_step(14, "_show_rear_camera_controls")
+	_show_worksite_step(14, "_show_rear_camera_import_controls")
+
+
+func _show_rear_camera_import_controls() -> void:
+	var panel_host := active_feature_panel.get_parent() as Control if is_instance_valid(active_feature_panel) else right_tools_content
+	if not is_instance_valid(panel_host):
+		panel_host = right_tools_content
+	if not is_instance_valid(panel_host):
+		return
+	if is_instance_valid(active_feature_panel) and active_feature_panel.get_parent() == panel_host:
+		panel_host.remove_child(active_feature_panel)
+		active_feature_panel.queue_free()
+	if panel_host == right_tools_content:
+		for old_child in right_tools_content.get_children():
+			old_child.queue_free()
+
+	var panel := VBoxContainer.new()
+	panel.name = "RearCameraImportControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_theme_constant_override("separation", 12)
+	active_feature_panel = panel
+	panel_host.add_child(panel)
+
+	var heading := _make_label("REAR CAMERA", 16, Color("#E5E0D6"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(heading)
+
+	var import_center := CenterContainer.new()
+	import_center.name = "RearCameraImportButtonCenter"
+	import_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	import_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(import_center)
+
+	var import_button := Button.new()
+	import_button.name = "RearCameraImportButton"
+	import_button.text = "IMPORT"
+	import_button.tooltip_text = "Import from the Camera Worksite (not connected yet)"
+	import_button.custom_minimum_size = Vector2(176, 52)
+	import_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	import_button.focus_mode = Control.FOCUS_NONE
+	_style_button(import_button, false)
+	import_center.add_child(import_button)
 
 
 func _show_ram_technology_step() -> void:
@@ -1881,7 +1911,7 @@ func _show_worksite_box_package_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[30] = panel
+		step_panels[29] = panel
 		return
 
 	# Use the same cardless hierarchy as Back Raised Design:
@@ -1993,7 +2023,7 @@ func _show_worksite_box_package_controls() -> void:
 	_add_back_design_pad_spacer(position_pad)
 	_add_editor_direction_pad_button(position_pad, "↓", Vector2i(0, -1), tight, Callable(self, "_move_box_package_branding"))
 	_add_back_design_pad_spacer(position_pad)
-	step_panels[30] = panel
+	step_panels[29] = panel
 
 func _add_worksite_box_package_position_spacer(parent: GridContainer) -> void:
 	var spacer := Control.new()
@@ -2019,7 +2049,7 @@ func set_box_package_research_level(level: int) -> void:
 	box_package_research_level = updated_level
 	if box_package_research_level <= 0:
 		box_package_color_mode = false
-	if level_changed and wizard_step == 30:
+	if level_changed and wizard_step == 29:
 		# The package preview is always available; research only unlocks its
 		# branding and appearance customization controls.
 		_set_box_package_preview_mode(true)
@@ -2043,14 +2073,14 @@ func _open_worksite_box_package_color_controls() -> void:
 func _show_worksite_phone_case_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 31:
-		var stale_case_panel := step_panels.get(31) as Control
+	if wizard_step != 30:
+		var stale_case_panel := step_panels.get(30) as Control
 		if is_instance_valid(stale_case_panel):
 			var stale_parent := stale_case_panel.get_parent()
 			if is_instance_valid(stale_parent):
 				stale_parent.remove_child(stale_case_panel)
 			stale_case_panel.queue_free()
-			step_panels.erase(31)
+			step_panels.erase(30)
 		return
 
 	var previous_panel := self.get("active_feature_panel") as Control
@@ -2090,7 +2120,7 @@ func _show_worksite_phone_case_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[31] = panel
+		step_panels[30] = panel
 		var locked_preview := self.get("phone_case_preview") as Node3D
 		if is_instance_valid(locked_preview):
 			locked_preview.visible = false
@@ -2208,7 +2238,7 @@ func _add_worksite_phone_case_toggle(parent: Control) -> void:
 func _show_worksite_phone_case_design_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 31:
+	if wizard_step != 30:
 		return
 	if not bool(self.get("phone_case_custom_enabled")) or not bool(self.get("phone_case_built")):
 		_show_worksite_phone_case_controls()
@@ -2307,7 +2337,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 		locked_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		panel.add_child(locked_heading)
 		_add_charger_research_button(panel, "ChargerResearchButton", "RESEARCH", 360.0)
-		step_panels[32] = panel
+		step_panels[31] = panel
 		if is_instance_valid(charger_preview):
 			charger_preview.visible = false
 		return
@@ -2514,7 +2544,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 		color_option.pressed.connect(_open_worksite_charger_color_controls)
 		panel.add_child(color_option)
 
-	step_panels[32] = panel
+	step_panels[31] = panel
 
 
 
@@ -2523,7 +2553,7 @@ func _show_worksite_charger_controls(page: String = "HOME") -> void:
 func _show_worksite_power_bank_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 36:
+	if wizard_step != 35:
 		return
 
 	var previous_panel := self.get("active_feature_panel") as Control
@@ -2562,7 +2592,7 @@ func _show_worksite_power_bank_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[36] = panel
+		step_panels[35] = panel
 		return
 
 	var description := _label("Add a rotatable 3D power bank to the product preview. Set its battery capacity and customize its body colour.", 12, Color("#E5E0D6"))
@@ -2650,11 +2680,11 @@ func _show_worksite_power_bank_controls() -> void:
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
-	step_panels[36] = panel
+	step_panels[35] = panel
 
 
 func _on_worksite_power_bank_capacity_changed(value: float) -> void:
-	if wizard_step != 36:
+	if wizard_step != 35:
 		return
 	if researched_power_bank_level <= 0:
 		return
@@ -2669,7 +2699,7 @@ func _on_worksite_power_bank_capacity_changed(value: float) -> void:
 
 
 func _open_worksite_power_bank_color_controls() -> void:
-	if wizard_step != 36:
+	if wizard_step != 35:
 		return
 	self.call("_show_device_color_controls", false, false, false, false, true)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2685,7 +2715,7 @@ func _open_worksite_power_bank_color_controls() -> void:
 func _show_worksite_smartwatch_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 35:
+	if wizard_step != 34:
 		return
 
 	var previous_panel := self.get("active_feature_panel") as Control
@@ -2723,7 +2753,7 @@ func _show_worksite_smartwatch_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[35] = panel
+		step_panels[34] = panel
 		return
 
 	var description := _label("Add a rotatable 3D smartwatch accessory to the product preview. Drag the centre preview to inspect the case, display and strap.", 12, Color("#E5E0D6"))
@@ -2775,11 +2805,11 @@ func _show_worksite_smartwatch_controls() -> void:
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
 
-	step_panels[35] = panel
+	step_panels[34] = panel
 
 
 func _open_worksite_smartwatch_color_controls() -> void:
-	if wizard_step != 35:
+	if wizard_step != 34:
 		return
 	self.call("_show_device_color_controls", false, false, false, true, false)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2795,7 +2825,7 @@ func _open_worksite_smartwatch_color_controls() -> void:
 func _show_worksite_earbuds_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 34:
+	if wizard_step != 33:
 		return
 	var previous_panel := self.get("active_feature_panel") as Control
 	if is_instance_valid(previous_panel):
@@ -2832,7 +2862,7 @@ func _show_worksite_earbuds_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[34] = panel
+		step_panels[33] = panel
 		return
 	var description := _label("Add a rotatable 3D wireless-earbuds charging case. The lid stays closed and both earbuds remain stored inside.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -2881,11 +2911,11 @@ func _show_worksite_earbuds_controls() -> void:
 		var disabled_note := _label("Enable the case to show its rotatable 3D preview and unlock its custom colour.", 12, Color("#B8AFA2"))
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
-	step_panels[34] = panel
+	step_panels[33] = panel
 
 
 func _open_worksite_earbuds_color_controls() -> void:
-	if wizard_step != 34:
+	if wizard_step != 33:
 		return
 	self.call("_show_device_color_controls", false, false, false, false, false, true)
 	var color_panel := self.get("active_feature_panel") as Control
@@ -2901,7 +2931,7 @@ func _open_worksite_earbuds_color_controls() -> void:
 func _show_worksite_protection_glass_controls() -> void:
 	if not is_instance_valid(selection_stack):
 		return
-	if wizard_step != 33:
+	if wizard_step != 32:
 		return
 	var previous_panel := self.get("active_feature_panel") as Control
 	if is_instance_valid(previous_panel):
@@ -2937,7 +2967,7 @@ func _show_worksite_protection_glass_controls() -> void:
 		_style_button(research_button, true)
 		research_button.pressed.connect(func(): research_requested.emit())
 		research_center.add_child(research_button)
-		step_panels[33] = panel
+		step_panels[32] = panel
 		return
 	var description := _label("Install precision-cut tempered glass fitted to the active display, curves and front-camera layout.", 12, Color("#E5E0D6"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -2975,19 +3005,19 @@ func _show_worksite_protection_glass_controls() -> void:
 		var research_hint := _label("Normal Glass is locked. Complete Protection Glass research to unlock installation.", 12, Color("#D3AA6B"))
 		research_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(research_hint)
-		step_panels[33] = panel
+		step_panels[32] = panel
 		return
 	if not screen_is_enabled:
 		var screen_hint := _label("Enable the phone screen first. Protection glass fits the active display surfaces.", 12, Color("#D3AA6B"))
 		screen_hint.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(screen_hint)
-		step_panels[33] = panel
+		step_panels[32] = panel
 		return
 	if not bool(self.get("screen_protector_enabled")):
 		var disabled_note := _label("Switch on protection glass to install the fitted 3D layer.", 12, Color("#B8AFA2"))
 		disabled_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 		panel.add_child(disabled_note)
-		step_panels[33] = panel
+		step_panels[32] = panel
 		return
 	panel.add_child(_label("GLASS TYPE", 14, Color("#C58A3A")))
 	for glass_type in ["Normal Glass", "Privacy Glass"]:
@@ -3052,7 +3082,7 @@ void fragment(){
 	var cutout_note := _label("CAMERA & SENSOR CUTOUTS  ·  AUTO-FITTED", 11, Color("#C58A3A"), HORIZONTAL_ALIGNMENT_CENTER)
 	cutout_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	panel.add_child(cutout_note)
-	step_panels[33] = panel
+	step_panels[32] = panel
 
 
 func _add_worksite_charger_toggle(
@@ -3350,103 +3380,48 @@ func _show_worksite_front_camera_mp_controls() -> void:
 			camera_row.add_child(card)
 
 
-func _show_worksite_rear_camera_mp_controls() -> void:
-	rear_camera_mp_sliders.clear()
-	rear_camera_mp_value_labels.clear()
-	rear_camera_mp_max_labels.clear()
-	rear_camera_mp_slider_camera_ids.clear()
-	var panel := VBoxContainer.new()
-	panel.name = "WorksiteRearCameraMegapixelControls"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	panel.add_theme_constant_override("separation", 8)
-	self.set("active_feature_panel", panel)
-
-	var heading := _label("REAR CAMERA MP", 19, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_child(heading)
-
-	var camera_modules: Array = self.get("rear_camera_modules")
-	if camera_modules.is_empty():
-		var hint := _label("No rear cameras added", 11, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD
-		panel.add_child(hint)
-		return
-
-	# Keep every rear-camera slider on the same horizontal line, including all
-	# five supported camera modules.
-	var slider_row := HBoxContainer.new()
-	slider_row.name = "WorksiteRearCameraMegapixelOptions"
-	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	slider_row.add_theme_constant_override("separation", 8)
-	panel.add_child(slider_row)
-
-	for camera_index in range(camera_modules.size()):
-		var camera_data: Dictionary = camera_modules[camera_index]
-		var camera_id := int(camera_data.get("id", camera_index + 1))
-		var megapixels := int(camera_data.get("mp", ResearchManagerScript.REAR_CAMERA_MP_BASE))
-		var callback := Callable(self, "_set_rear_camera_mp_value").bind(camera_id)
-		var card := self.call("_make_camera_mp_slider_card", "%02d" % (camera_index + 1), megapixels, callback, _get_rear_camera_mp_maximum()) as Control
-		var mp_slider := card.find_child("CameraMPValueSlider", true, false) as VSlider
-		var mp_value_label := card.find_child("CameraMPValueLabel", true, false) as Label
-		var mp_max_label := card.find_child("CameraMPMaximumLabel", true, false) as Label
-		if is_instance_valid(mp_slider):
-			rear_camera_mp_sliders.append(mp_slider)
-			rear_camera_mp_slider_camera_ids.append(camera_id)
-		if is_instance_valid(mp_value_label):
-			rear_camera_mp_value_labels.append(mp_value_label)
-		if is_instance_valid(mp_max_label):
-			rear_camera_mp_max_labels.append(mp_max_label)
-		slider_row.add_child(card)
-
-
 func _show_front_camera_mp_step() -> void:
 	_show_worksite_step(25, "_show_worksite_front_camera_mp_controls")
 
 
-func _show_rear_camera_mp_step() -> void:
-	_show_worksite_step(26, "_show_worksite_rear_camera_mp_controls")
-
-
 func _show_memory_clock_step() -> void:
-	_show_worksite_step(27, "_show_memory_clock_controls")
+	_show_worksite_step(26, "_show_memory_clock_controls")
 
 
 func _show_refresh_rate_step() -> void:
-	_show_worksite_step(28, "_show_refresh_rate_controls")
+	_show_worksite_step(27, "_show_refresh_rate_controls")
 
 
 func _show_cooling_system_step() -> void:
-	_show_worksite_step(29, "_show_cooling_system_controls")
+	_show_worksite_step(28, "_show_cooling_system_controls")
 
 
 func _show_box_package_step() -> void:
-	_show_worksite_step(30, "_show_worksite_box_package_controls")
+	_show_worksite_step(29, "_show_worksite_box_package_controls")
 
 
 func _show_phone_case_step() -> void:
-	_show_worksite_step(31, "_show_worksite_phone_case_controls")
+	_show_worksite_step(30, "_show_worksite_phone_case_controls")
 
 
 func _show_charger_step() -> void:
-	_show_worksite_step(32, "_show_worksite_charger_controls")
+	_show_worksite_step(31, "_show_worksite_charger_controls")
 
 
 func _show_smartwatch_step() -> void:
-	_show_worksite_step(35, "_show_worksite_smartwatch_controls")
+	_show_worksite_step(34, "_show_worksite_smartwatch_controls")
 
 
 func _show_power_bank_step() -> void:
-	_show_worksite_step(36, "_show_worksite_power_bank_controls")
+	_show_worksite_step(35, "_show_worksite_power_bank_controls")
 
 
 func _show_wireless_earbuds_step() -> void:
-	_show_worksite_step(34, "_show_worksite_earbuds_controls")
+	_show_worksite_step(33, "_show_worksite_earbuds_controls")
 
 
 func _show_protection_glass_step() -> void:
-	_show_worksite_step(33, "_show_worksite_protection_glass_controls")
+	_show_worksite_step(32, "_show_worksite_protection_glass_controls")
 
 
 func _keep_step_navigation_active() -> void:
@@ -3482,8 +3457,6 @@ func _on_wizard_back_pressed() -> void:
 	var previous_builder := ""
 	if previous_step == 25:
 		previous_builder = "_show_worksite_front_camera_mp_controls"
-	elif previous_step == 26:
-		previous_builder = "_show_worksite_rear_camera_mp_controls"
 	_show_worksite_step(previous_step, previous_builder)
 
 
@@ -4030,7 +4003,7 @@ func set_power_bank_research_level(level: int) -> void:
 	if is_instance_valid(power_bank_preview):
 		_rebuild_power_bank_preview()
 	_set_power_bank_preview_mode(power_bank_preview_mode)
-	if wizard_step == 36 and is_instance_valid(selection_stack) and not power_bank_color_mode:
+	if wizard_step == 35 and is_instance_valid(selection_stack) and not power_bank_color_mode:
 		_show_worksite_power_bank_controls()
 
 
@@ -4051,7 +4024,7 @@ func set_charger_research_level(level: int) -> void:
 		charger_cable_enabled = false
 	charger_wattage = clampi(charger_wattage, 2, maxi(2, _get_charger_wattage_maximum()))
 	_rebuild_charger_preview()
-	if level_changed and wizard_step == 32 and is_instance_valid(selection_stack) and not charger_color_mode:
+	if level_changed and wizard_step == 31 and is_instance_valid(selection_stack) and not charger_color_mode:
 		_show_worksite_charger_controls(str(charger_controls_page))
 
 
@@ -4323,7 +4296,7 @@ func set_protection_glass_research_level(level: int) -> void:
 		visual_state_changed = true
 	if visual_state_changed:
 		_refresh_phone_screen()
-	if wizard_step == 33:
+	if wizard_step == 32:
 		_show_worksite_protection_glass_controls()
 
 
@@ -4336,7 +4309,7 @@ func set_smartwatch_research_level(level: int) -> void:
 		smartwatch_color_mode = false
 		_rebuild_smartwatch_preview()
 		_set_smartwatch_preview_mode(false)
-	if level_changed and wizard_step == 35:
+	if level_changed and wizard_step == 34:
 		_show_worksite_smartwatch_controls()
 
 
@@ -4350,7 +4323,7 @@ func set_wireless_earbuds_research_level(level: int) -> void:
 		_set_earbuds_preview_mode(false)
 		if is_instance_valid(wireless_earbuds_preview):
 			wireless_earbuds_preview.visible = false
-	if level_changed and wizard_step == 34:
+	if level_changed and wizard_step == 33:
 		_show_worksite_earbuds_controls()
 
 
@@ -4369,7 +4342,7 @@ func set_phone_case_research_level(level: int) -> void:
 		phone_case_gradient_enabled = false
 		phone_case_gradient_color_edit_mode = false
 	_refresh_phone_case_material()
-	if wizard_step == 31:
+	if wizard_step == 30:
 		_show_worksite_phone_case_controls()
 
 
@@ -4494,7 +4467,7 @@ func _get_software_research_features() -> Array:
 	return [
 		"RAM", "Internal Storage", "RAM Technology", "Battery",
 		"Charging Speed", "Wireless Charge", "Bluetooth", "WiFi",
-		"Mobile Network", "Sensors", "Front Camera MP", "Rear Camera MP",
+		"Mobile Network", "Sensors", "Front Camera MP",
 		"Memory Clock", "Refresh Rate", "Cooling System Design"
 	]
 
@@ -4622,7 +4595,6 @@ func _make_tools_card(card_name: String, include_controls: bool) -> PanelContain
 	# These five software controls now live as individual Worksite wizard steps.
 	software_editor_features.erase("Sensors")
 	software_editor_features.erase("Front Camera MP")
-	software_editor_features.erase("Rear Camera MP")
 	software_editor_features.erase("Memory Clock")
 	software_editor_features.erase("Refresh Rate")
 	software_editor_features.erase("Cooling System Design")
@@ -4813,7 +4785,7 @@ func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
 		style.content_margin_top = 7
 		style.content_margin_bottom = 7
 		button.add_theme_stylebox_override(state, style)
-	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Rear Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Type", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank", "Wireless Earbuds", "Box Package"]:
+	if feature_name in ["Screen Tech", "Screen Size", "Screen Type", "Border Radius", "Thickness", "Device Color", "Speakers", "Charge Port", "Power/Volume Buttons", "Side Button", "Home Button", "Front Camera", "Rare Camera", "Rear Camera", "Front Camera MP", "Back Design", "RAM", "ROM", "Internal Storage", "RAM Technology", "Battery", "Charging Speed", "Wireless Charge", "Bluetooth", "WiFi", "Network", "Sensors", "Refresh Rate", "Memory Clock", "Cooling System Design", "Phone Type", "Phone Case", "Protection Glass", "Charger", "Charging Cable", "Smartwatch", "Power Bank", "Wireless Earbuds", "Box Package"]:
 		button.pressed.connect(_on_tool_feature_pressed.bind(feature_name))
 	# Other feature buttons remain untouched until their systems are implemented.
 	parent.add_child(button)
@@ -4885,11 +4857,9 @@ func _on_tool_feature_pressed(feature_name: String) -> void:
 	elif feature_name == "Front Camera":
 		_show_front_camera_controls()
 	elif feature_name in ["Rare Camera", "Rear Camera"]:
-		_show_rear_camera_controls()
+		_show_rear_camera_import_controls()
 	elif feature_name == "Front Camera MP":
 		_show_worksite_front_camera_mp_controls()
-	elif feature_name == "Rear Camera MP":
-		_show_worksite_rear_camera_mp_controls()
 	elif feature_name == "Back Design":
 		_show_back_design_controls()
 	elif feature_name == "RAM":
