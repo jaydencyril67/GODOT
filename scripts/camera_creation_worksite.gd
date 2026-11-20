@@ -1,6 +1,7 @@
 extends Node3D
 
 const CameraLessPhoneModelScript = preload("res://scripts/camera_worksite_phone_model.gd")
+const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 const MAX_REAR_CAMERAS := 5
 const MAX_REAR_FLASHES := 5
@@ -9,6 +10,8 @@ const REAR_HARDWARE_SPAWN_GRID_INTERVALS := 3
 const REAR_HARDWARE_SIZE_MIN := 0.05
 const REAR_HARDWARE_SIZE_MAX := 0.20
 const CAMERA_WORKSITE_PHONE_DEPTH := 0.13
+const CAMERA_BACK_DESIGN_BOX_DEPTH := 0.035 / 1.10 / 1.5
+const CAMERA_BACK_DESIGN_GRID_STEP := 0.08
 
 const DRAG_SENSITIVITY := 0.0024
 const MIN_PREVIEW_DISTANCE := 3.2
@@ -24,6 +27,7 @@ const WIZARD_STEPS := [
 
 
 signal back_requested
+signal research_requested
 
 var worksite_root: Control
 var worksite_body: BoxContainer
@@ -58,14 +62,33 @@ var next_rear_flash_id := 1
 var rear_hardware_step_content: VBoxContainer
 var rear_hardware_controls_view: VBoxContainer
 var rear_hardware_selection_view: VBoxContainer
+var rear_hardware_mode_switchers: HBoxContainer
 var rear_hardware_camera_mode_button: Button
 var rear_hardware_flash_mode_button: Button
+var rear_hardware_design_mode_button: Button
 var rear_hardware_selection_button: Button
 var rear_hardware_size_label: Label
 var rear_hardware_size_slider: HSlider
 var rear_hardware_add_button: Button
 var rear_hardware_remove_button: Button
 var rear_hardware_move_buttons: Array[Button] = []
+var right_panel_mode := "CAMERA"
+
+var camera_back_design_boxes: Array[Dictionary] = []
+var camera_back_design_research_level := 0
+var camera_back_design_selected_index := -1
+var next_camera_back_design_id := 1
+var camera_back_design_mode := "MOVE"
+var camera_back_design_size_action := "EXPAND"
+var camera_back_design_color := Color("#a5adb6")
+var camera_back_design_view: VBoxContainer
+var camera_back_design_selection_view: VBoxContainer
+var camera_back_design_selection_button: Button
+var camera_back_design_capacity_label: Label
+var camera_back_design_size_label: Label
+var camera_back_design_rounding_label: Label
+var camera_back_design_rounding_slider: HSlider
+var camera_back_design_move_buttons: Array[Button] = []
 
 
 class GlassArrowButton extends Button:
@@ -437,6 +460,39 @@ func _build_rear_hardware_step_controls() -> void:
 	rear_hardware_step_content.add_theme_constant_override("separation", 9)
 	selection_stack.add_child(rear_hardware_step_content)
 
+	rear_hardware_mode_switchers = HBoxContainer.new()
+	rear_hardware_mode_switchers.name = "RearHardwareModeSwitchers"
+	rear_hardware_mode_switchers.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_mode_switchers.add_theme_constant_override("separation", 6)
+	rear_hardware_step_content.add_child(rear_hardware_mode_switchers)
+
+	rear_hardware_camera_mode_button = Button.new()
+	rear_hardware_camera_mode_button.name = "RearHardwareModeCamera"
+	rear_hardware_camera_mode_button.text = "CAMERA"
+	rear_hardware_camera_mode_button.custom_minimum_size = Vector2(0, 36)
+	rear_hardware_camera_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_camera_mode_button.pressed.connect(_set_rear_hardware_mode.bind("CAMERA"))
+	_style_button(rear_hardware_camera_mode_button, true)
+	rear_hardware_mode_switchers.add_child(rear_hardware_camera_mode_button)
+
+	rear_hardware_flash_mode_button = Button.new()
+	rear_hardware_flash_mode_button.name = "RearHardwareModeFlash"
+	rear_hardware_flash_mode_button.text = "FLASH"
+	rear_hardware_flash_mode_button.custom_minimum_size = Vector2(0, 36)
+	rear_hardware_flash_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_flash_mode_button.pressed.connect(_set_rear_hardware_mode.bind("FLASH"))
+	_style_button(rear_hardware_flash_mode_button, false)
+	rear_hardware_mode_switchers.add_child(rear_hardware_flash_mode_button)
+
+	rear_hardware_design_mode_button = Button.new()
+	rear_hardware_design_mode_button.name = "RearHardwareModeDesign"
+	rear_hardware_design_mode_button.text = "DESIGN"
+	rear_hardware_design_mode_button.custom_minimum_size = Vector2(0, 36)
+	rear_hardware_design_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_design_mode_button.pressed.connect(_show_camera_back_design_controls)
+	_style_button(rear_hardware_design_mode_button, false)
+	rear_hardware_mode_switchers.add_child(rear_hardware_design_mode_button)
+
 	rear_hardware_controls_view = VBoxContainer.new()
 	rear_hardware_controls_view.name = "RearHardwareControls"
 	rear_hardware_controls_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -446,30 +502,6 @@ func _build_rear_hardware_step_controls() -> void:
 
 	var heading := _label("REAR CAMERA & FLASH", 16, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
 	rear_hardware_controls_view.add_child(heading)
-
-	var modes := HBoxContainer.new()
-	modes.name = "RearHardwareModeSwitchers"
-	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modes.add_theme_constant_override("separation", 6)
-	rear_hardware_controls_view.add_child(modes)
-
-	rear_hardware_camera_mode_button = Button.new()
-	rear_hardware_camera_mode_button.name = "RearHardwareModeCamera"
-	rear_hardware_camera_mode_button.text = "CAMERA"
-	rear_hardware_camera_mode_button.custom_minimum_size = Vector2(0, 36)
-	rear_hardware_camera_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rear_hardware_camera_mode_button.pressed.connect(_set_rear_hardware_mode.bind("CAMERA"))
-	_style_button(rear_hardware_camera_mode_button, true)
-	modes.add_child(rear_hardware_camera_mode_button)
-
-	rear_hardware_flash_mode_button = Button.new()
-	rear_hardware_flash_mode_button.name = "RearHardwareModeFlash"
-	rear_hardware_flash_mode_button.text = "FLASH"
-	rear_hardware_flash_mode_button.custom_minimum_size = Vector2(0, 36)
-	rear_hardware_flash_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rear_hardware_flash_mode_button.pressed.connect(_set_rear_hardware_mode.bind("FLASH"))
-	_style_button(rear_hardware_flash_mode_button, false)
-	modes.add_child(rear_hardware_flash_mode_button)
 
 	var management := HBoxContainer.new()
 	management.name = "RearHardwareManagementStrip"
@@ -593,6 +625,632 @@ func _build_rear_hardware_step_controls() -> void:
 	)
 	rear_hardware_step_content.visible = false
 	_refresh_rear_hardware_panel()
+
+
+
+func set_back_raised_design_research_level(level: int) -> void:
+	var updated_level := ResearchManagerScript.get_back_raised_design_max_for_level(level)
+	if updated_level == camera_back_design_research_level:
+		return
+	camera_back_design_research_level = updated_level
+	if current_wizard_step == 4 and right_panel_mode == "DESIGN":
+		_show_camera_back_design_controls()
+
+
+func _show_camera_back_design_controls() -> void:
+	if not is_instance_valid(rear_hardware_step_content):
+		return
+	right_panel_mode = "DESIGN"
+	if is_instance_valid(rear_hardware_selection_view):
+		rear_hardware_selection_view.queue_free()
+		rear_hardware_selection_view = null
+	if is_instance_valid(camera_back_design_selection_view):
+		camera_back_design_selection_view.queue_free()
+		camera_back_design_selection_view = null
+	if is_instance_valid(rear_hardware_controls_view):
+		rear_hardware_controls_view.visible = false
+	if is_instance_valid(camera_back_design_view):
+		camera_back_design_view.queue_free()
+		camera_back_design_view = null
+	camera_back_design_view = _build_camera_back_design_controls()
+	rear_hardware_step_content.add_child(camera_back_design_view)
+	_style_button(rear_hardware_camera_mode_button, false)
+	_style_button(rear_hardware_flash_mode_button, false)
+	_style_button(rear_hardware_design_mode_button, true)
+
+
+func _build_camera_back_design_controls() -> VBoxContainer:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var tight := viewport_size.y < 560.0 or viewport_size.x < 520.0
+	var control_height := 40.0 if tight else 44.0
+	var button_font_size := 12 if tight else 13
+	var panel := VBoxContainer.new()
+	panel.name = "CameraBackDesignControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_theme_constant_override("separation", 7 if tight else 9)
+
+	if camera_back_design_research_level <= 0:
+		var locked_heading := _label("BACK RAISED DESIGN", 16, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+		panel.add_child(locked_heading)
+		var controls_center := CenterContainer.new()
+		controls_center.name = "CameraBackRaisedDesignResearchControlsCenter"
+		controls_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		controls_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		controls_center.custom_minimum_size = Vector2(0, 360)
+		panel.add_child(controls_center)
+		var locked_research_button := Button.new()
+		locked_research_button.name = "CameraBackDesignResearchButton"
+		locked_research_button.text = "RESEARCH"
+		locked_research_button.custom_minimum_size = Vector2(0, 48 if not tight else 44)
+		locked_research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		locked_research_button.focus_mode = Control.FOCUS_NONE
+		_style_button(locked_research_button, true)
+		locked_research_button.pressed.connect(_request_camera_back_raised_design_research)
+		controls_center.add_child(locked_research_button)
+		return panel
+
+	var heading := _label("BACK DESIGN", 16, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+	panel.add_child(heading)
+
+	var top_controls := HBoxContainer.new()
+	top_controls.name = "CameraBackDesignTopControls"
+	top_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_controls.add_theme_constant_override("separation", 6)
+	panel.add_child(top_controls)
+
+	for mode in ["SIZE", "MOVE"]:
+		var mode_button := Button.new()
+		mode_button.name = "CameraBackDesignMode%s" % mode.capitalize()
+		mode_button.text = mode
+		mode_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+		mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mode_button.focus_mode = Control.FOCUS_NONE
+		_style_button(mode_button, camera_back_design_mode == mode)
+		mode_button.pressed.connect(_set_camera_back_design_mode.bind(mode))
+		top_controls.add_child(mode_button)
+
+	var color_button := Button.new()
+	color_button.name = "CameraBackDesignColorButton"
+	color_button.text = "COLOR"
+	color_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+	color_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	color_button.focus_mode = Control.FOCUS_NONE
+	color_button.disabled = camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size()
+	_style_button(color_button, false)
+	color_button.pressed.connect(_show_camera_back_design_color_controls)
+	top_controls.add_child(color_button)
+
+	var research_button := Button.new()
+	research_button.name = "CameraBackDesignResearchButton"
+	research_button.text = "RESEARCH" if camera_back_design_research_level < ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES else "MAX 20"
+	research_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
+	research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	research_button.focus_mode = Control.FOCUS_NONE
+	research_button.disabled = camera_back_design_research_level >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES
+	research_button.tooltip_text = "Research to unlock more raised boxes, up to 20." if not research_button.disabled else "Maximum of 20 raised boxes unlocked."
+	_style_button(research_button, false)
+	research_button.pressed.connect(_request_camera_back_raised_design_research)
+	top_controls.add_child(research_button)
+
+	camera_back_design_selection_button = Button.new()
+	camera_back_design_selection_button.name = "CameraBackDesignBoxSelector"
+	camera_back_design_selection_button.text = "CHOOSE RAISED BOX  ▼"
+	camera_back_design_selection_button.custom_minimum_size = Vector2(0, control_height)
+	camera_back_design_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_back_design_selection_button.focus_mode = Control.FOCUS_NONE
+	_style_button(camera_back_design_selection_button, true)
+	camera_back_design_selection_button.pressed.connect(_show_camera_back_design_selection_controls)
+	panel.add_child(camera_back_design_selection_button)
+
+	camera_back_design_capacity_label = _label("RAISED BOXES  0 / %d" % camera_back_design_research_level, 10, Color("#B8AFA2"), HORIZONTAL_ALIGNMENT_CENTER)
+	camera_back_design_capacity_label.name = "CameraBackDesignCapacityLabel"
+	panel.add_child(camera_back_design_capacity_label)
+
+	var rounding_section := VBoxContainer.new()
+	rounding_section.name = "CameraBackDesignRoundingSection"
+	rounding_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rounding_section.add_theme_constant_override("separation", 3)
+	panel.add_child(rounding_section)
+	var rounding_header := HBoxContainer.new()
+	rounding_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rounding_section.add_child(rounding_header)
+	rounding_header.add_child(_label("ROUND", 10, Color("#B8AFA2")))
+	camera_back_design_rounding_label = _label("NO BOX SELECTED", 10, Color("#E5E0D6"))
+	camera_back_design_rounding_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_back_design_rounding_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rounding_header.add_child(camera_back_design_rounding_label)
+
+	camera_back_design_rounding_slider = HSlider.new()
+	camera_back_design_rounding_slider.name = "CameraBackDesignHorizontalRoundingSlider"
+	camera_back_design_rounding_slider.min_value = 0.0
+	camera_back_design_rounding_slider.max_value = 0.45
+	camera_back_design_rounding_slider.step = 0.01
+	camera_back_design_rounding_slider.custom_minimum_size = Vector2(0, 24)
+	camera_back_design_rounding_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_back_design_rounding_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_style_rear_hardware_slider(camera_back_design_rounding_slider)
+	camera_back_design_rounding_slider.value_changed.connect(_on_camera_back_design_rounding_changed)
+	rounding_section.add_child(camera_back_design_rounding_slider)
+
+	camera_back_design_size_label = _label("ADD A BOX TO BEGIN", 10, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+	camera_back_design_size_label.name = "CameraBackDesignSizeLabel"
+	camera_back_design_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	panel.add_child(camera_back_design_size_label)
+
+	var pad_control_row := HBoxContainer.new()
+	pad_control_row.name = "CameraBackDesignPadWithManagement"
+	pad_control_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_control_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
+	panel.add_child(pad_control_row)
+
+	var icon_diameter := 56.0 if tight else 64.0
+	var add_button := _make_rear_hardware_icon_button(
+		pad_control_row, "CameraBackDesignAddButton", "+", "Add raised box",
+		Callable(self, "_add_camera_back_design_box"), icon_diameter, true
+	)
+
+	var pad_center := CenterContainer.new()
+	pad_center.name = "CameraBackDesignDirectionControllerCenter"
+	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_child(pad_center)
+	var pad_shell := PanelContainer.new()
+	pad_shell.name = "CameraBackDesignDirectionController"
+	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
+	var pad_style := StyleBoxFlat.new()
+	pad_style.bg_color = Color(0.12, 0.13, 0.14, 0.72)
+	pad_style.border_color = Color(0.58, 0.46, 0.29, 0.72)
+	pad_style.set_border_width_all(1)
+	pad_style.set_corner_radius_all(16)
+	pad_style.content_margin_left = 8
+	pad_style.content_margin_right = 8
+	pad_style.content_margin_top = 8
+	pad_style.content_margin_bottom = 8
+	pad_shell.add_theme_stylebox_override("panel", pad_style)
+	pad_center.add_child(pad_shell)
+
+	var pad := GridContainer.new()
+	pad.name = "CameraBackDesignDirectionPad"
+	pad.columns = 3
+	pad.add_theme_constant_override("h_separation", 18 if not tight else 16)
+	pad.add_theme_constant_override("v_separation", 6)
+	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pad_shell.add_child(pad)
+	_add_camera_back_design_pad_spacer(pad, tight)
+	_add_camera_back_design_pad_button(pad, "↑", Vector2i(0, 1), tight)
+	_add_camera_back_design_pad_spacer(pad, tight)
+	_add_camera_back_design_pad_button(pad, "←", Vector2i(-1, 0), tight)
+	var action_button := Button.new()
+	action_button.name = "CameraBackDesignSizeActionButton"
+	action_button.text = ("EXPAND" if camera_back_design_size_action == "EXPAND" else "SHRINK") if camera_back_design_mode == "SIZE" else "MOVE"
+	action_button.custom_minimum_size = Vector2(76, 42)
+	action_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	action_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	action_button.focus_mode = Control.FOCUS_NONE
+	_style_button(action_button, true)
+	action_button.pressed.connect(_toggle_camera_back_design_size_action if camera_back_design_mode == "SIZE" else _set_camera_back_design_mode.bind("MOVE"))
+	pad.add_child(action_button)
+	_add_camera_back_design_pad_button(pad, "→", Vector2i(1, 0), tight)
+	_add_camera_back_design_pad_spacer(pad, tight)
+	_add_camera_back_design_pad_button(pad, "↓", Vector2i(0, -1), tight)
+	_add_camera_back_design_pad_spacer(pad, tight)
+
+	var remove_button := _make_rear_hardware_icon_button(
+		pad_control_row, "CameraBackDesignRemoveButton", "−", "Remove selected box",
+		Callable(self, "_remove_selected_camera_back_design_box"), icon_diameter, false
+	)
+	_refresh_camera_back_design_panel()
+	return panel
+
+
+func _request_camera_back_raised_design_research() -> void:
+	if camera_back_design_research_level >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES:
+		return
+	research_requested.emit()
+
+
+func _set_camera_back_design_mode(mode: String) -> void:
+	if mode not in ["SIZE", "MOVE"]:
+		return
+	camera_back_design_mode = mode
+	_show_camera_back_design_controls()
+
+
+func _toggle_camera_back_design_size_action() -> void:
+	camera_back_design_size_action = "SHRINK" if camera_back_design_size_action == "EXPAND" else "EXPAND"
+	_show_camera_back_design_controls()
+
+
+func _get_camera_back_design_addition_limit() -> int:
+	return clampi(camera_back_design_research_level, 0, ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES)
+
+
+func _add_camera_back_design_box() -> void:
+	var addition_limit := _get_camera_back_design_addition_limit()
+	if addition_limit <= 0 or camera_back_design_boxes.size() >= addition_limit or camera_back_design_boxes.size() >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES:
+		_refresh_camera_back_design_panel()
+		return
+	var box_size := Vector2(0.34, 0.34)
+	var half := box_size * 0.5
+	var body_half := Vector2(1.45, 2.92) * 0.5
+	var min_x := -body_half.x + half.x
+	var max_x := body_half.x - half.x
+	var min_y := -body_half.y + half.y
+	var max_y := body_half.y - half.y
+	var placed := false
+	var y := max_y
+	while y >= min_y and not placed:
+		var x := min_x
+		while x <= max_x and not placed:
+			var candidate := Vector2(x, y)
+			if _camera_back_design_position_is_free(candidate, box_size, -1):
+				camera_back_design_boxes.append({
+					"id": next_camera_back_design_id,
+					"position": candidate,
+					"size": box_size,
+					"border": 0.08,
+					"custom_color": camera_back_design_color
+				})
+				camera_back_design_selected_index = camera_back_design_boxes.size() - 1
+				next_camera_back_design_id += 1
+				placed = true
+			x += CAMERA_BACK_DESIGN_GRID_STEP
+		y -= CAMERA_BACK_DESIGN_GRID_STEP
+	if placed:
+		_refresh_camera_back_design_visuals()
+		_show_camera_back_design_controls()
+
+
+func _remove_selected_camera_back_design_box() -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	camera_back_design_boxes.remove_at(camera_back_design_selected_index)
+	camera_back_design_selected_index = mini(camera_back_design_selected_index, camera_back_design_boxes.size() - 1)
+	_refresh_camera_back_design_visuals()
+	_show_camera_back_design_controls()
+
+
+func _show_camera_back_design_selection_controls() -> void:
+	if camera_back_design_boxes.is_empty() or not is_instance_valid(rear_hardware_step_content):
+		return
+	if is_instance_valid(camera_back_design_view):
+		camera_back_design_view.visible = false
+	if is_instance_valid(camera_back_design_selection_view):
+		camera_back_design_selection_view.queue_free()
+		camera_back_design_selection_view = null
+	camera_back_design_selection_view = VBoxContainer.new()
+	camera_back_design_selection_view.name = "CameraBackDesignBoxSelection"
+	camera_back_design_selection_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_back_design_selection_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	camera_back_design_selection_view.add_theme_constant_override("separation", 9)
+	rear_hardware_step_content.add_child(camera_back_design_selection_view)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 7)
+	camera_back_design_selection_view.add_child(header)
+	var back := Button.new()
+	back.name = "CameraBackDesignSelectionBackButton"
+	back.text = "‹"
+	back.custom_minimum_size = Vector2(36, 34)
+	back.focus_mode = Control.FOCUS_NONE
+	_style_button(back, false)
+	back.pressed.connect(_show_camera_back_design_controls)
+	header.add_child(back)
+	var title := _label("SELECT RAISED BOX", 15, Color("#E5E0D6"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+	var list := GridContainer.new()
+	list.name = "CameraBackDesignBoxOptions"
+	list.columns = 2
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("h_separation", 7)
+	list.add_theme_constant_override("v_separation", 7)
+	camera_back_design_selection_view.add_child(list)
+	for index in range(camera_back_design_boxes.size()):
+		var box: Dictionary = camera_back_design_boxes[index]
+		var option := Button.new()
+		option.name = "CameraBackDesignBoxOption%d" % index
+		option.text = "RAISED BOX  %02d%s" % [int(box["id"]), "   ✓ SELECTED" if index == camera_back_design_selected_index else ""]
+		option.custom_minimum_size.y = 48
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		option.focus_mode = Control.FOCUS_NONE
+		_style_button(option, index == camera_back_design_selected_index)
+		option.pressed.connect(_select_camera_back_design_box.bind(index))
+		list.add_child(option)
+
+
+func _select_camera_back_design_box(index: int) -> void:
+	if index < 0 or index >= camera_back_design_boxes.size():
+		return
+	camera_back_design_selected_index = index
+	_refresh_camera_back_design_visuals()
+	_show_camera_back_design_controls()
+
+
+func _show_camera_back_design_color_controls() -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	if is_instance_valid(camera_back_design_view):
+		camera_back_design_view.visible = false
+	if is_instance_valid(camera_back_design_selection_view):
+		camera_back_design_selection_view.queue_free()
+		camera_back_design_selection_view = null
+	var color_view := VBoxContainer.new()
+	color_view.name = "CameraBackDesignColorControls"
+	color_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	color_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	color_view.add_theme_constant_override("separation", 10)
+	camera_back_design_selection_view = color_view
+	rear_hardware_step_content.add_child(color_view)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 7)
+	color_view.add_child(header)
+	var back := Button.new()
+	back.name = "CameraBackDesignColorBackButton"
+	back.text = "‹"
+	back.custom_minimum_size = Vector2(36, 34)
+	back.focus_mode = Control.FOCUS_NONE
+	_style_button(back, false)
+	back.pressed.connect(_show_camera_back_design_controls)
+	header.add_child(back)
+	var title := _label("BACK DESIGN COLOR", 15, Color("#E5E0D6"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+
+	var picker := ColorPicker.new()
+	picker.name = "CameraBackDesignColorPicker"
+	picker.color = Color(camera_back_design_boxes[camera_back_design_selected_index].get("custom_color", camera_back_design_color))
+	picker.edit_alpha = false
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	picker.custom_minimum_size = Vector2(0, 220)
+	picker.color_changed.connect(_on_camera_back_design_color_changed)
+	color_view.add_child(picker)
+
+
+func _on_camera_back_design_color_changed(color: Color) -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	camera_back_design_boxes[camera_back_design_selected_index]["custom_color"] = color
+	camera_back_design_color = color
+	_refresh_camera_back_design_visuals()
+
+
+func _camera_back_design_position_is_free(position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
+	var half := box_size * 0.5
+	var body_half := Vector2(1.45, 2.92) * 0.5
+	if absf(position.x) + half.x > body_half.x:
+		return false
+	if absf(position.y) + half.y > body_half.y:
+		return false
+	for index in range(camera_back_design_boxes.size()):
+		if index == ignore_index:
+			continue
+		var other: Dictionary = camera_back_design_boxes[index]
+		var other_half: Vector2 = other["size"] * 0.5
+		var other_position: Vector2 = other["position"]
+		if absf(position.x - other_position.x) < half.x + other_half.x and absf(position.y - other_position.y) < half.y + other_half.y:
+			return false
+	return true
+
+
+func _on_camera_back_design_pad_pressed(direction: Vector2i) -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	if not is_instance_valid(phone_model) or not is_instance_valid(preview_camera):
+		return
+	var box: Dictionary = camera_back_design_boxes[camera_back_design_selected_index]
+	var box_position: Vector2 = box["position"]
+	var box_size: Vector2 = box["size"]
+	var inverse_basis := phone_model.global_transform.basis.inverse()
+	var camera_right_local := inverse_basis * preview_camera.global_transform.basis.x
+	var camera_up_local := inverse_basis * preview_camera.global_transform.basis.y
+	var local_direction_3d := camera_right_local * float(direction.x) + camera_up_local * float(direction.y)
+	var local_direction := Vector2(local_direction_3d.x, local_direction_3d.y)
+	if local_direction.length_squared() < 0.000001:
+		return
+	local_direction = local_direction.normalized()
+	if camera_back_design_mode == "MOVE":
+		local_direction = Vector2(signf(local_direction.x), 0.0) if absf(local_direction.x) >= absf(local_direction.y) else Vector2(0.0, signf(local_direction.y))
+		var next_position := box_position + local_direction * 0.04
+		if _camera_back_design_position_is_free(next_position, box_size, camera_back_design_selected_index):
+			box["position"] = next_position
+	else:
+		var half := box_size * 0.5
+		var next_position := box_position
+		var next_half := half
+		var step := 0.025 if camera_back_design_size_action == "EXPAND" else -0.025
+		local_direction = Vector2(signf(local_direction.x), 0.0) if absf(local_direction.x) >= absf(local_direction.y) else Vector2(0.0, signf(local_direction.y))
+		if local_direction.x < 0.0:
+			next_position.x -= step * 0.5
+			next_half.x += step * 0.5
+		elif local_direction.x > 0.0:
+			next_position.x += step * 0.5
+			next_half.x += step * 0.5
+		elif local_direction.y > 0.0:
+			next_position.y += step * 0.5
+			next_half.y += step * 0.5
+		elif local_direction.y < 0.0:
+			next_position.y -= step * 0.5
+			next_half.y += step * 0.5
+		var next_size := next_half * 2.0
+		if next_size.x > 0.001 and next_size.y > 0.001 and _camera_back_design_position_is_free(next_position, next_size, camera_back_design_selected_index):
+			box["position"] = next_position
+			box["size"] = next_size
+	camera_back_design_boxes[camera_back_design_selected_index] = box
+	_refresh_camera_back_design_visuals()
+	_refresh_camera_back_design_panel()
+
+
+func _on_camera_back_design_rounding_changed(value: float) -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	camera_back_design_boxes[camera_back_design_selected_index]["border"] = value
+	_refresh_camera_back_design_visuals()
+	if is_instance_valid(camera_back_design_rounding_label):
+		camera_back_design_rounding_label.text = "ROUNDING  %.0f%%" % (value / 0.45 * 100.0)
+
+
+func _refresh_camera_back_design_panel() -> void:
+	if not is_instance_valid(camera_back_design_view):
+		return
+	var add_button := camera_back_design_view.find_child("CameraBackDesignAddButton", true, false) as Button
+	var remove_button := camera_back_design_view.find_child("CameraBackDesignRemoveButton", true, false) as Button
+	var color_button := camera_back_design_view.find_child("CameraBackDesignColorButton", true, false) as Button
+	var research_button := camera_back_design_view.find_child("CameraBackDesignResearchButton", true, false) as Button
+	var addition_limit := _get_camera_back_design_addition_limit()
+	if is_instance_valid(add_button):
+		add_button.disabled = addition_limit <= 0 or camera_back_design_boxes.size() >= addition_limit
+	if is_instance_valid(research_button):
+		research_button.disabled = addition_limit >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES
+		research_button.text = "RESEARCH" if not research_button.disabled else "MAX 20"
+	if is_instance_valid(camera_back_design_capacity_label):
+		camera_back_design_capacity_label.text = "RAISED BOXES  %d / %d" % [camera_back_design_boxes.size(), addition_limit]
+	var has_box := camera_back_design_selected_index >= 0 and camera_back_design_selected_index < camera_back_design_boxes.size()
+	if is_instance_valid(camera_back_design_selection_button):
+		camera_back_design_selection_button.disabled = not has_box and camera_back_design_boxes.is_empty()
+		camera_back_design_selection_button.text = "ADD A BOX TO SELECT" if not has_box else "RAISED BOX  %02d  ›" % int(camera_back_design_boxes[camera_back_design_selected_index]["id"])
+	if is_instance_valid(remove_button):
+		remove_button.disabled = not has_box
+	if is_instance_valid(color_button):
+		color_button.disabled = not has_box
+	if is_instance_valid(camera_back_design_rounding_slider):
+		camera_back_design_rounding_slider.editable = has_box
+	for move_button in camera_back_design_move_buttons:
+		move_button.disabled = not has_box
+	if has_box:
+		var selected: Dictionary = camera_back_design_boxes[camera_back_design_selected_index]
+		var size: Vector2 = selected["size"]
+		camera_back_design_size_label.text = "SIZE  %.2f × %.2f" % [size.x, size.y]
+		camera_back_design_rounding_slider.set_value_no_signal(float(selected["border"]))
+		camera_back_design_rounding_label.text = "ROUNDING  %.0f%%" % (float(selected["border"]) / 0.45 * 100.0)
+	else:
+		camera_back_design_size_label.text = "ADD A BOX TO BEGIN"
+		camera_back_design_rounding_slider.set_value_no_signal(0.0)
+		camera_back_design_rounding_label.text = "NO BOX SELECTED"
+
+
+func _add_camera_back_design_pad_spacer(parent: GridContainer, tight: bool) -> void:
+	var diameter := 64.0 if tight else 72.0
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(diameter, diameter)
+	spacer.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(spacer)
+
+
+func _add_camera_back_design_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool) -> void:
+	var diameter := 64.0 if tight else 72.0
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(diameter, diameter)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.focus_mode = Control.FOCUS_NONE
+	_style_rear_hardware_circle_button(button, true, diameter)
+	button.pressed.connect(_on_camera_back_design_pad_pressed.bind(direction))
+	parent.add_child(button)
+	camera_back_design_move_buttons.append(button)
+
+
+func _make_camera_back_design_mesh(box_size: Vector2, corner_radius: float, depth: float) -> ArrayMesh:
+	var outline := PackedVector2Array()
+	var radius := clampf(corner_radius, 0.001, minf(box_size.x, box_size.y) * 0.48)
+	var centers := [
+		Vector2(box_size.x * 0.5 - radius, box_size.y * 0.5 - radius),
+		Vector2(-box_size.x * 0.5 + radius, box_size.y * 0.5 - radius),
+		Vector2(-box_size.x * 0.5 + radius, -box_size.y * 0.5 + radius),
+		Vector2(box_size.x * 0.5 - radius, -box_size.y * 0.5 + radius)
+	]
+	for corner in range(4):
+		for segment in range(5):
+			var angle := float(corner) * PI * 0.5 + float(segment) / 4.0 * PI * 0.5
+			outline.append(centers[corner] + Vector2(cos(angle), sin(angle)) * radius)
+	var indices := Geometry2D.triangulate_polygon(outline)
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var outer_z := -depth
+	for index in range(0, indices.size(), 3):
+		var a: Vector2 = outline[indices[index]]
+		var b: Vector2 = outline[indices[index + 1]]
+		var c: Vector2 = outline[indices[index + 2]]
+		_add_camera_design_mesh_triangle(surface, Vector3(a.x, a.y, outer_z), Vector3(b.x, b.y, outer_z), Vector3(c.x, c.y, outer_z), Vector3(0, 0, -1))
+		_add_camera_design_mesh_triangle(surface, Vector3(a.x, a.y, 0), Vector3(c.x, c.y, 0), Vector3(b.x, b.y, 0), Vector3(0, 0, 1))
+	for index in range(outline.size()):
+		var next := (index + 1) % outline.size()
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[next]
+		var normal := Vector3((b - a).y, -(b - a).x, 0).normalized()
+		var fa := Vector3(a.x, a.y, outer_z)
+		var fb := Vector3(b.x, b.y, outer_z)
+		var ba := Vector3(a.x, a.y, 0)
+		var bb := Vector3(b.x, b.y, 0)
+		_add_camera_design_mesh_triangle(surface, fa, ba, bb, normal)
+		_add_camera_design_mesh_triangle(surface, fa, bb, fb, normal)
+	return surface.commit()
+
+
+func _add_camera_design_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward_normal: Vector3) -> void:
+	var normal := outward_normal.normalized()
+	if (b - a).cross(c - a).dot(normal) > 0.0:
+		var swap := b
+		b = c
+		c = swap
+	surface.set_normal(normal)
+	surface.add_vertex(a)
+	surface.set_normal(normal)
+	surface.add_vertex(b)
+	surface.set_normal(normal)
+	surface.add_vertex(c)
+
+
+func _refresh_camera_back_design_visuals() -> void:
+	if not is_instance_valid(phone_model):
+		return
+	var old_root := phone_model.get_node_or_null("CameraBackDesignRaisedSections")
+	if is_instance_valid(old_root):
+		old_root.free()
+	if not camera_back_design_boxes.is_empty():
+		var root := Node3D.new()
+		root.name = "CameraBackDesignRaisedSections"
+		phone_model.add_child(root)
+		var surface_z := -CAMERA_WORKSITE_PHONE_DEPTH * 0.5
+		for index in range(camera_back_design_boxes.size()):
+			var box: Dictionary = camera_back_design_boxes[index]
+			var size: Vector2 = box["size"]
+			var raised := MeshInstance3D.new()
+			raised.name = "CameraRaisedBackBox_%d" % int(box["id"])
+			raised.mesh = _make_camera_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), CAMERA_BACK_DESIGN_BOX_DEPTH)
+			var material := StandardMaterial3D.new()
+			var box_color: Color = Color(box.get("custom_color", camera_back_design_color))
+			material.albedo_color = box_color.lightened(0.045) if index == camera_back_design_selected_index else box_color.darkened(0.10)
+			material.metallic = 0.34
+			material.roughness = 0.48
+			raised.material_override = material
+			raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var box_center: Vector2 = box["position"]
+			raised.position = Vector3(box_center.x, box_center.y, surface_z)
+			root.add_child(raised)
+	_refresh_rear_hardware_visuals()
+
+
+func _camera_back_design_surface_z(module_position: Vector2) -> float:
+	var surface_z := -CAMERA_WORKSITE_PHONE_DEPTH * 0.5
+	for box in camera_back_design_boxes:
+		var centre: Vector2 = box["position"]
+		var half: Vector2 = box["size"] * 0.5
+		if absf(module_position.x - centre.x) <= half.x and absf(module_position.y - centre.y) <= half.y:
+			return surface_z - CAMERA_BACK_DESIGN_BOX_DEPTH
+	return surface_z
+
 
 
 func _make_rear_hardware_icon_button(parent: Control, node_name: String, caption: String, tooltip: String, pressed_callback: Callable, diameter: float, active: bool) -> Button:
@@ -874,6 +1532,15 @@ func _show_rear_hardware_selection_controls() -> void:
 	var modules := _get_rear_hardware_modules()
 	if modules.is_empty() or not is_instance_valid(rear_hardware_step_content):
 		return
+	right_panel_mode = "CAMERA" if rear_hardware_mode == "CAMERA" else "FLASH"
+	if is_instance_valid(camera_back_design_view):
+		camera_back_design_view.visible = false
+	if is_instance_valid(camera_back_design_selection_view):
+		camera_back_design_selection_view.queue_free()
+		camera_back_design_selection_view = null
+	_style_button(rear_hardware_camera_mode_button, rear_hardware_mode == "CAMERA")
+	_style_button(rear_hardware_flash_mode_button, rear_hardware_mode == "FLASH")
+	_style_button(rear_hardware_design_mode_button, false)
 	if is_instance_valid(rear_hardware_selection_view):
 		rear_hardware_selection_view.queue_free()
 		rear_hardware_selection_view = null
@@ -932,12 +1599,19 @@ func _show_rear_hardware_selection_controls() -> void:
 func _show_rear_camera_controls() -> void:
 	if not is_instance_valid(rear_hardware_controls_view):
 		return
+	right_panel_mode = "CAMERA" if rear_hardware_mode == "CAMERA" else "FLASH"
 	if is_instance_valid(rear_hardware_selection_view):
 		rear_hardware_selection_view.queue_free()
 		rear_hardware_selection_view = null
+	if is_instance_valid(camera_back_design_selection_view):
+		camera_back_design_selection_view.queue_free()
+		camera_back_design_selection_view = null
+	if is_instance_valid(camera_back_design_view):
+		camera_back_design_view.visible = false
 	rear_hardware_controls_view.visible = true
 	_style_button(rear_hardware_camera_mode_button, rear_hardware_mode == "CAMERA")
 	_style_button(rear_hardware_flash_mode_button, rear_hardware_mode == "FLASH")
+	_style_button(rear_hardware_design_mode_button, false)
 	_refresh_rear_hardware_panel()
 
 
@@ -981,11 +1655,11 @@ func _refresh_rear_hardware_visuals() -> void:
 	var root := Node3D.new()
 	root.name = "RearCameraFlashHardware"
 	phone_model.add_child(root)
-	var surface_z := -CAMERA_WORKSITE_PHONE_DEPTH * 0.5
 
 	for module in rear_camera_modules:
 		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
+		var surface_z := _camera_back_design_surface_z(module_position)
 		var housing := StandardMaterial3D.new()
 		housing.albedo_color = Color("#05070a")
 		housing.metallic = 0.88
@@ -1027,6 +1701,7 @@ func _refresh_rear_hardware_visuals() -> void:
 		var module: Dictionary = rear_flash_modules[index]
 		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
+		var surface_z := _camera_back_design_surface_z(module_position)
 		var selected := rear_hardware_mode == "FLASH" and index == rear_flash_selected_index
 		var housing := StandardMaterial3D.new()
 		housing.albedo_color = Color("#303943")
