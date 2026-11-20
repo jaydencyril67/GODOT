@@ -116,10 +116,10 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor Technologies contains an unwanted camera-style top switcher.")
 		worksite.free()
 		return
-	var research_request_count := 0
-	worksite.research_requested.connect(func(): research_request_count += 1)
-	processor_research_button.emit_signal("pressed")
-	if research_request_count != 1:
+	var research_request_events: Array[String] = []
+	worksite.research_requested.connect(func(): research_request_events.append("requested"))
+	processor_research_button.pressed.emit()
+	if research_request_events.size() != 1:
 		_fail("Processor Research button did not emit its navigation request.")
 		worksite.free()
 		return
