@@ -440,8 +440,11 @@ func refresh_cached_face_layouts() -> void:
 		state["shift_attempts"] = 0
 		state["bounds_wait_frames"] = 0
 		state["layout_wait_frames"] = 0
-		frame.visible = true
-		frame.modulate.a = 1.0 if face_index == _style_index else 0.0
+		# Keep every cached layout in the normalization queue, but render only
+		# the selected face. Showing 41 transparent Control trees at once adds
+		# avoidable layout and draw work on low-memory Android devices.
+		frame.visible = face_index == _style_index
+		frame.modulate = Color.WHITE
 		_face_normalization_queue.append(face_index)
 
 
