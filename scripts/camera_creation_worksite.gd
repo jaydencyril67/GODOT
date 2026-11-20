@@ -103,7 +103,12 @@ var camera_sensor_camera_switcher: HBoxContainer
 var camera_sensor_rear_camera_button: Button
 var camera_sensor_front_camera_button: Button
 var camera_sensor_enable_row: HBoxContainer
+var camera_sensor_enable_label: Label
 var camera_sensor_enabled_toggle: TextureButton
+var camera_sensor_research_levels: Dictionary = {}
+var technology_level_value_label: Label
+var last_technology_level_text := ""
+var technology_level_refresh_accumulator := 0.0
 var camera_sensor_name_label: Label
 var camera_sensor_previous_button: Button
 var camera_sensor_next_button: Button
@@ -372,6 +377,7 @@ func _build_interface() -> void:
 	scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	right_panel_column.add_child(selection_scroll)
+	_build_camera_technology_level_footer()
 
 	var selection_region := MarginContainer.new()
 	selection_region.name = "CameraSelectionRegion"
@@ -407,6 +413,7 @@ func _build_interface() -> void:
 	_build_front_camera_step_controls()
 	_build_front_camera_mp_step_controls()
 	_build_camera_sensor_step_controls()
+	_refresh_camera_technology_level_display()
 
 
 	var progress := VBoxContainer.new()
@@ -490,6 +497,162 @@ func _build_interface() -> void:
 	worksite_root.add_child(next_button)
 
 	_apply_responsive_layout()
+
+
+func _build_camera_technology_level_footer() -> void:
+	if not is_instance_valid(right_panel_column):
+		return
+
+	var footer_margin := MarginContainer.new()
+	footer_margin.name = "CameraTechnologyLevelSafeArea"
+	footer_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer_margin.add_theme_constant_override("margin_right", 88)
+	right_panel_column.add_child(footer_margin)
+
+	var panel := PanelContainer.new()
+	panel.name = "CameraTechnologyLevelPanel"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.custom_minimum_size = Vector2(0, 64)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#202224")
+	panel_style.border_color = Color(0.77, 0.54, 0.25, 0.78)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(9)
+	panel_style.content_margin_left = 12
+	panel_style.content_margin_right = 12
+	panel_style.content_margin_top = 8
+	panel_style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", panel_style)
+	footer_margin.add_child(panel)
+
+	var row := HBoxContainer.new()
+	row.name = "CameraTechnologyLevelRow"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	panel.add_child(row)
+
+	var title := _label("TECHNOLOGY LEVEL", 12, Color("#D3AA6B"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(title)
+
+	technology_level_value_label = _label("0.00 TP", 22, Color("#F2EEE7"))
+	technology_level_value_label.name = "CameraTechnologyLevelValue"
+	technology_level_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	technology_level_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	technology_level_value_label.custom_minimum_size = Vector2(88, 0)
+	row.add_child(technology_level_value_label)
+
+
+func _refresh_camera_technology_level_display() -> void:
+	if not is_instance_valid(technology_level_value_label):
+		return
+	var display_text := "%.2f TP" % _calculate_camera_technology_points()
+	if display_text != last_technology_level_text:
+		last_technology_level_text = display_text
+		technology_level_value_label.text = display_text
+
+
+func _get_camera_technology_points(component_name: String, progress_steps: float) -> float:
+	return ResearchManagerScript.get_technology_points_for_progress(component_name, progress_steps)
+
+
+func _get_camera_technology_range_progress(value: float, baseline: float, range_ends: Array) -> float:
+	var progress := 0.0
+	var previous_value := baseline
+	for target_value in range_ends:
+		var target := float(target_value)
+		if value >= target - 0.000001:
+			progress += 1.0
+			previous_value = target
+			continue
+		if target > previous_value:
+			progress += clampf((value - previous_value) / (target - previous_value), 0.0, 1.0)
+		break
+	return progress
+
+
+func _calculate_camera_technology_points() -> float:
+	var total := 0.0
+
+	if front_camera_enabled:
+		var front_design_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+		if front_design_index > 0:
+			total += _get_camera_technology_points("Front Camera", float(front_design_index))
+
+		var front_mp_ranges: Array = []
+		for range_index in range(1, front_camera_mp_research_level + 1):
+			front_mp_ranges.append(float(ResearchManagerScript.get_front_camera_mp_max_for_level(range_index)))
+		total += _get_camera_technology_points(
+			"Front Camera MP",
+			_get_camera_technology_range_progress(float(front_camera_megapixels), 1.0, front_mp_ranges)
+		)
+		if front_camera_style == "Dual Punch-Hole":
+			total += _get_camera_technology_points(
+				"Front Camera MP",
+				_get_camera_technology_range_progress(float(front_camera_secondary_megapixels), 1.0, front_mp_ranges)
+			)
+
+	if not rear_camera_modules.is_empty():
+		total += _get_camera_technology_points("Rear Camera Count", float(maxi(0, rear_camera_modules.size() - 1)))
+		var rear_mp_ranges: Array = []
+		for range_index in range(1, rear_camera_mp_research_level + 1):
+			rear_mp_ranges.append(float(ResearchManagerScript.get_rear_camera_mp_max_for_level(range_index)))
+		var rear_size_ranges: Array = []
+		for range_index in range(1, rear_camera_size_research_level + 1):
+			rear_size_ranges.append(float(ResearchManagerScript.get_rear_camera_size_max_for_level(range_index)))
+		for camera_value in rear_camera_modules:
+			var camera_data: Dictionary = camera_value
+			total += _get_camera_technology_points(
+				"Rear Camera MP",
+				_get_camera_technology_range_progress(float(camera_data.get("mp", 1)), 1.0, rear_mp_ranges)
+			)
+			total += _get_camera_technology_points(
+				"Rear Camera Size",
+				_get_camera_technology_range_progress(
+					float(camera_data.get("size", ResearchManagerScript.REAR_HARDWARE_SIZE_BASE)),
+					ResearchManagerScript.REAR_HARDWARE_SIZE_BASE,
+					rear_size_ranges
+				)
+			)
+
+	if not rear_flash_modules.is_empty():
+		total += _get_camera_technology_points("Rear Flash Count", float(maxi(0, rear_flash_modules.size() - 1)))
+		var rear_flash_size_ranges: Array = []
+		for range_index in range(1, rear_flash_size_research_level + 1):
+			rear_flash_size_ranges.append(float(ResearchManagerScript.get_rear_flash_size_max_for_level(range_index)))
+		for flash_value in rear_flash_modules:
+			var flash_data: Dictionary = flash_value
+			total += _get_camera_technology_points(
+				"Rear Flash Size",
+				_get_camera_technology_range_progress(
+					float(flash_data.get("size", ResearchManagerScript.REAR_HARDWARE_SIZE_BASE)),
+					ResearchManagerScript.REAR_HARDWARE_SIZE_BASE,
+					rear_flash_size_ranges
+				)
+			)
+
+	if not camera_back_design_boxes.is_empty():
+		total += _get_camera_technology_points("Back Raised Design", float(camera_back_design_boxes.size()))
+
+	for camera_type in ["REAR", "FRONT"]:
+		var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_type, {})
+		for feature_value in CAMERA_SENSOR_COMPONENTS:
+			var feature := str(feature_value)
+			if int(camera_sensor_research_levels.get(feature, 0)) >= 1 and bool(camera_states.get(feature, false)):
+				total += _get_camera_technology_points(feature, 1.0)
+
+	return maxf(0.0, total)
+
+
+func _process(delta: float) -> void:
+	technology_level_refresh_accumulator += maxf(0.0, delta)
+	if technology_level_refresh_accumulator >= 0.12:
+		technology_level_refresh_accumulator = 0.0
+		_refresh_camera_technology_level_display()
 
 
 func _set_wizard_step(step: int) -> void:
@@ -1130,12 +1293,12 @@ func _build_camera_sensor_step_controls() -> void:
 	camera_sensor_enable_row.add_theme_constant_override("separation", 8)
 	camera_sensor_step_content.add_child(camera_sensor_enable_row)
 
-	var enable_label := _label("ENABLE", 14, Color("#EEE9DF"))
-	enable_label.custom_minimum_size = Vector2(72, 0)
-	enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	enable_label.clip_text = true
-	camera_sensor_enable_row.add_child(enable_label)
+	camera_sensor_enable_label = _label("ENABLE", 14, Color("#EEE9DF"))
+	camera_sensor_enable_label.custom_minimum_size = Vector2(72, 0)
+	camera_sensor_enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	camera_sensor_enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	camera_sensor_enable_label.clip_text = true
+	camera_sensor_enable_row.add_child(camera_sensor_enable_label)
 
 	camera_sensor_checked_texture = _make_camera_sensor_checkbox_icon(true)
 	camera_sensor_unchecked_texture = _make_camera_sensor_checkbox_icon(false)
@@ -1220,20 +1383,24 @@ func _refresh_camera_sensor_controls() -> void:
 	camera_sensor_selected_index = clampi(camera_sensor_selected_index, 0, CAMERA_SENSOR_COMPONENTS.size() - 1)
 	var sensor_name: String = CAMERA_SENSOR_COMPONENTS[camera_sensor_selected_index]
 	var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_sensor_selected_camera, {})
-	var enabled := bool(camera_states.get(sensor_name, false))
+	var unlocked := int(camera_sensor_research_levels.get(sensor_name, 0)) >= 1
+	var enabled := unlocked and bool(camera_states.get(sensor_name, false))
 
 	_refresh_camera_sensor_camera_switcher()
 	if is_instance_valid(camera_sensor_name_label):
 		camera_sensor_name_label.text = sensor_name
+	if is_instance_valid(camera_sensor_enable_label):
+		camera_sensor_enable_label.text = "ENABLE" if unlocked else "LOCKED"
+		camera_sensor_enable_label.add_theme_color_override("font_color", Color("#EEE9DF") if unlocked else Color("#ffb45c"))
 	if is_instance_valid(camera_sensor_enabled_toggle):
-		camera_sensor_enabled_toggle.disabled = false
+		camera_sensor_enabled_toggle.disabled = not unlocked
 		camera_sensor_enabled_toggle.set_pressed_no_signal(enabled)
 		var checkbox_texture := camera_sensor_checked_texture if enabled else camera_sensor_unchecked_texture
 		camera_sensor_enabled_toggle.texture_normal = checkbox_texture
 		camera_sensor_enabled_toggle.texture_hover = checkbox_texture
 		camera_sensor_enabled_toggle.texture_pressed = camera_sensor_checked_texture
 		camera_sensor_enabled_toggle.texture_disabled = camera_sensor_unchecked_texture
-		camera_sensor_enabled_toggle.tooltip_text = "Enable or disable " + sensor_name
+		camera_sensor_enabled_toggle.tooltip_text = "Enable or disable " + sensor_name if unlocked else "Complete %s research to unlock this camera feature." % sensor_name
 	if is_instance_valid(camera_sensor_previous_button):
 		camera_sensor_previous_button.disabled = camera_sensor_selected_index <= 0
 	if is_instance_valid(camera_sensor_next_button):
@@ -1251,6 +1418,20 @@ func _refresh_camera_sensor_camera_switcher() -> void:
 		_style_button(camera_sensor_front_camera_button, front_selected)
 
 
+func set_camera_sensor_research_levels(levels: Dictionary) -> void:
+	camera_sensor_research_levels = levels.duplicate(true)
+	for feature_value in CAMERA_SENSOR_COMPONENTS:
+		var feature := str(feature_value)
+		if int(camera_sensor_research_levels.get(feature, 0)) >= 1:
+			continue
+		for camera_type in ["REAR", "FRONT"]:
+			var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_type, {})
+			camera_states[feature] = false
+			camera_sensor_enabled_states[camera_type] = camera_states
+	_refresh_camera_sensor_controls()
+	_refresh_camera_technology_level_display()
+
+
 func _on_camera_sensor_camera_selected(camera_type: String) -> void:
 	if camera_type != "REAR" and camera_type != "FRONT":
 		return
@@ -1262,6 +1443,9 @@ func _on_camera_sensor_toggled(enabled: bool) -> void:
 	if CAMERA_SENSOR_COMPONENTS.is_empty():
 		return
 	var sensor_name: String = CAMERA_SENSOR_COMPONENTS[clampi(camera_sensor_selected_index, 0, CAMERA_SENSOR_COMPONENTS.size() - 1)]
+	if int(camera_sensor_research_levels.get(sensor_name, 0)) < 1:
+		_refresh_camera_sensor_controls()
+		return
 	var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_sensor_selected_camera, {})
 	camera_states[sensor_name] = enabled
 	camera_sensor_enabled_states[camera_sensor_selected_camera] = camera_states
