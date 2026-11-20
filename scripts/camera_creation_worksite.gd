@@ -1175,7 +1175,10 @@ func _build_camera_back_design_controls() -> VBoxContainer:
 	var rounding_header := HBoxContainer.new()
 	rounding_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rounding_section.add_child(rounding_header)
-	rounding_header.add_child(_label("ROUND", 10, Color("#B8AFA2")))
+	var rounding_title := _label("ROUND", 10, Color("#B8AFA2"))
+	rounding_title.custom_minimum_size = Vector2(48.0, 0.0)
+	rounding_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rounding_header.add_child(rounding_title)
 	camera_back_design_rounding_label = _label("NO BOX SELECTED", 10, Color("#E5E0D6"))
 	camera_back_design_rounding_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	camera_back_design_rounding_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
