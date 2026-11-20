@@ -666,7 +666,6 @@ func _build_camera_back_design_controls() -> VBoxContainer:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var tight := viewport_size.y < 560.0 or viewport_size.x < 520.0
 	var control_height := 40.0 if tight else 44.0
-	var button_font_size := 12 if tight else 13
 	var panel := VBoxContainer.new()
 	panel.name = "CameraBackDesignControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -789,7 +788,7 @@ func _build_camera_back_design_controls() -> VBoxContainer:
 	panel.add_child(pad_control_row)
 
 	var icon_diameter := 56.0 if tight else 64.0
-	var add_button := _make_rear_hardware_icon_button(
+	_make_rear_hardware_icon_button(
 		pad_control_row, "CameraBackDesignAddButton", "+", "Add raised box",
 		Callable(self, "_add_camera_back_design_box"), icon_diameter, true
 	)
@@ -841,7 +840,7 @@ func _build_camera_back_design_controls() -> VBoxContainer:
 	_add_camera_back_design_pad_button(pad, "↓", Vector2i(0, -1), tight)
 	_add_camera_back_design_pad_spacer(pad, tight)
 
-	var remove_button := _make_rear_hardware_icon_button(
+	_make_rear_hardware_icon_button(
 		pad_control_row, "CameraBackDesignRemoveButton", "−", "Remove selected box",
 		Callable(self, "_remove_selected_camera_back_design_box"), icon_diameter, false
 	)
