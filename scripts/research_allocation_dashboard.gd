@@ -337,7 +337,7 @@ func _build_empty_scene() -> void:
 	empty_state.add_child(create)
 
 func _is_research_project_visible(component: String) -> bool:
-	return not CAMERA_RESEARCH_COMPONENTS.has(component)
+	return not CAMERA_RESEARCH_COMPONENTS.has(component) and not ResearchManagerScript.PROCESSOR_TECHNOLOGIES.has(component)
 
 
 func _get_pending_validation_projects() -> Array[Dictionary]:
