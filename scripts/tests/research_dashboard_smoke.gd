@@ -495,4 +495,4 @@ func _button_labels(buttons: Array) -> Array[String]:
 
 func _fail(message: String) -> void:
 	push_error(message)
-	print("PHONE_CAMERA_RESEARCH_DASHBOARD_SMOKE_TEST: FAIL — " + message)
+	print("PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: FAIL — " + message)
