@@ -47,6 +47,26 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 	else:
 		_initial_build_pending = true
 
+func prepare_all_styles(batch_size: int = 3) -> void:
+	if size.x <= 0.0 or size.y <= 0.0:
+		return
+	var selected_index := _style_index
+	var total := get_style_count()
+	var safe_batch_size := maxi(1, batch_size)
+	for face_index in range(1, total + 1):
+		_build_face_variant(face_index)
+		if face_index % safe_batch_size == 0 or face_index == total:
+			await get_tree().process_frame
+	_faces_initialized = not _face_variants.is_empty()
+	if not _faces_initialized:
+		return
+	refresh_cached_face_layouts()
+	while not _face_normalization_queue.is_empty():
+		await get_tree().process_frame
+	_select_cached_face(selected_index)
+	_refresh_all_cached_time_labels()
+
+
 func set_style_index(index: int) -> bool:
 	if index < 1 or index > get_style_count():
 		return false
